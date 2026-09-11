@@ -51,10 +51,10 @@ records.
 The feature boundary is split into explicit collaborators. `compiler-adapter.js`
 owns current-protocol validation and activation projections,
 `relation-option-resolver.js` owns scoped relation choices, `run-repository.js`
-owns the intentionally ephemeral manual-run lifecycle, and `runtime.js` owns
-active-process compilation/auth hydration. Organization configuration is read
-and changed through the registered organization service. Neither runtime nor
-the feature service imports another feature's repository.
+owns the durable run/invocation/wait/receipt execution store, and `runtime.js`
+owns active-process compilation/auth hydration. Organization configuration is
+read and changed through the registered organization service. Neither runtime
+nor the feature service imports another feature's repository.
 
 ## Process execution
 

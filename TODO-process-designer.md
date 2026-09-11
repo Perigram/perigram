@@ -19,26 +19,41 @@ second specification.
 
 ## Required authoring model
 
-- [ ] Keep iteration below the node language. Item access maps over matched
+- [x] Keep iteration below the node language. Item access maps over matched
   items, List access runs once per branch, and Tree access receives the whole
   structure. Create, Modify, Change Status, and Delete must consume and return
   item/list/tree topology through those same solver rules. Do not add `For
   Each`, Batch, Bulk, Map, or collection-specific mutation nodes.
-- [ ] Keep transport shape separate from value type. A List of entity refs is
+- [x] Keep transport shape separate from value type. A List of entity refs is
   not an array-valued entity field; Collect Array and Expand Array remain the
   explicit boundary between data-tree topology and a persisted `array` value.
-- [ ] Keep nodes declarative and domain-independent. Entity types, canonical
+- [x] Keep nodes declarative and domain-independent. Entity types, canonical
   blocks, fields, relations, construction modes, status contracts, commands,
   and capabilities must come from the active domain and runtime registry.
-- [ ] Keep access and persistence at service boundaries. Graph evaluation may
+- [x] Keep access and persistence at service boundaries. Graph evaluation may
   select and transform readable DTOs, but every read/write/delete/status action
   must still re-enter the registered entity service, access engine, or status
   engine with the complete auth context.
-- [ ] Keep ordinary CRUD synchronous for now. Do not introduce schedules,
+- [x] Keep ordinary CRUD synchronous for now. Do not introduce schedules,
   general-purpose wait nodes, retry-control nodes, compensation nodes, or
   service-management UI as prerequisites for this plan. Durable suspension is
   limited to a Run Service invocation whose declared completion outputs are
   consumed by the graph.
+
+##### Agent Notes — 2026-09-11 authoring-model constraints verified
+
+All five keep-constraints are enforced and pinned by existing coverage, so
+they are ticked as satisfied invariants rather than new work: mutation nodes
+share the solver's item/list/tree mapping with no iteration nodes in the
+authoring palette (`designer.spec.js` palette contract; runtime-only
+`control.forEach` stays out of the palette); Collect/Expand Array remain the
+persisted-array boundary with round-trip tests; node contracts resolve from
+the domain/runtime registry (capability projection, catalog ports);
+reads/effects re-enter registered services with the full auth context
+(`entity-sources.spec.js`, durable effect adapter tests); ordinary CRUD stays
+synchronous with durable suspension exactly at the Run Service async boundary
+(`run-repository.spec.js`), and the designer has no scheduling/retry/queue
+surface (Run Service keep-constraint note).
 
 ## P0 — make the contracts truthful
 
@@ -1774,12 +1789,26 @@ SFC compile check passed; `node scripts/check-arch.js`,
   factories/synchronization, entity/block inspector, roles/access, screens,
   workflow/statuses, graph interaction, preview, and persistence. The page must
   remain the composition root.
-- [ ] Use ordinary PrimeVue controls for scalar/enum/role/schema/process-record
+- [x] Use ordinary PrimeVue controls for scalar/enum/role/schema/process-record
   choices and shared entity pickers only for canonical entity DTO/reference
   choices.
-- [ ] Remove stale documentation and archived-plan claims that imply event
+  Verified 2026-09-11: every Select/MultiSelect in the process designer renders
+  in plain PrimeVue mode over scalar option lists (entity types, commands,
+  roles, fields, statuses); no designer control passes shared entity-picker
+  props (`entity-mode`/`:entities` usages: none), and entity pickers appear
+  only where canonical entity DTO/reference choices belong — generated manual
+  forms and entity surfaces.
+- [x] Remove stale documentation and archived-plan claims that imply event
   automation, waits, durable runs, or complete CRUD paths that current UI and
   runtime cannot demonstrate.
+  Audited 2026-09-11 across the canonical READMEs: date/event automation is
+  correctly documented as outside the contract, the durable wait/receipt/
+  ingestion protocol is now real and accurately described, and the one stale
+  claim found — `run-repository.js` described as the "intentionally ephemeral
+  manual-run lifecycle" — is corrected to the durable execution store
+  (`server/features/process-definitions/README.md`). Archived plan files under
+  `docs/` are the owner's uncommitted deletions in the primary checkout and
+  were not touched.
 
 ## Corrections queue — re-launch scopes
 
@@ -2609,13 +2638,15 @@ check for `pages/organization/process.vue` passed; `node scripts/check-arch.js`,
   Pinned: `index.spec.js` "keeps same-type lineage bindings separate by full
   producer and socket identity" (two project producers, two queue producers,
   separate bindings and per-producer attachment).
-- [ ] Prove each producer's explicit initial status and transitions compile and
+- [x] Prove each producer's explicit initial status and transitions compile and
   execute independently; missing/ambiguous/unknown statuses fail activation and
   no designer or migration chooses a first/default status.
-  Partial: compile-side rejection and declared-initial preservation are pinned
-  (`producer-output-contract.spec.js` entry-state specs; migration
-  ambiguous-record failure). Open remainder: the runtime proof that two
-  same-type producers execute their independent initial statuses in one graph.
+  Closed 2026-09-11: compile-side rejection and declared-initial preservation
+  are pinned (`producer-output-contract.spec.js` entry-state specs; migration
+  ambiguous-record failure), and the execution half is pinned by
+  `process-definitions.spec.js` "executes independent initial statuses for two
+  same-type producers" — each producer's authored initial status reaches the
+  status engine with its own `producerOutputId` binding.
 - [ ] Connect same-type producer paths to an ordinary consumer and prove
   activation rejects implicit workflow convergence. Connect them through an
   explicit compatible Join and prove the selected result identity is retained.
@@ -2655,14 +2686,16 @@ check for `pages/organization/process.vue` passed; `node scripts/check-arch.js`,
   (crash/retry/attempt 2), "conflicting completion identity cannot consume the
   wait twice" (new), the task-completion correlation/resume/continuation test,
   and the failure-ingestion exactly-once test.
-- [ ] Prove graph run/step status changes cannot mutate entity domain status and
+- [x] Prove graph run/step status changes cannot mutate entity domain status and
   entity status metadata contains no process definition, action, node, producer,
   or workflow identifier.
-  Partial: the metadata half is pinned (the machines provenance spec asserts
-  both the entity snapshot and status event exclude `producerOutputId`; the
-  strip-provenance migration exists); run/step status vocabulary lives only on
-  process execution records, but no direct negative test drives a run step
-  status change and asserts entity domain status is untouched.
+  Closed 2026-09-11: the metadata half is pinned (the machines provenance spec
+  asserts both the entity snapshot and status event exclude
+  `producerOutputId`; the strip-provenance migration exists), and the boundary
+  half is pinned by `orchestration.spec.js` "advances run and step statuses on
+  a read-only graph without entering the effect boundary" — run/step status
+  transitions never invoke the effect/status engines, which are the only
+  entity-status writers.
 
 #### Agent Notes — 2026-08-20
 
