@@ -133,6 +133,14 @@ lifecycle evidence through this same transition boundary and return its updated
 entity DTO. Archive effects use the compiled domain archive intent when one is
 declared, otherwise the `ARCHIVED` target state; hard deletion does not pass
 through the status engine.
+Persisted entity status metadata never identifies an authored process graph:
+the write boundary strips `producerOutputId` (used only to resolve the
+producer-scoped workflow) before creating the status snapshot, and migration
+scripts must not write process/run/action/node/workflow identifiers into
+`status.metadata`. Existing documents that still carry such provenance are
+cleaned by `migrate-strip-status-process-provenance.js` (see
+[scripts/README.md](../../scripts/README.md)); append-only `status_events`
+history is intentionally left untouched.
 Entity types without a registered workflow return an empty action list from the
 actions endpoint; transitions for those types still remain invalid.
 Action lookup runs only `phase: 'before'` hooks and does not write status events

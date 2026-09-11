@@ -951,19 +951,6 @@ export function resolveScreens({ access } = {}) {
   return access?.screens || [];
 }
 
-export function resolveWorkflow({ compiled, entityType, fallbackWorkflow = null } = {}) {
-  return compiled?.workflows?.[entityType] || fallbackWorkflow;
-}
-
-export function resolveFieldPolicy({ compiled, entityType, basePolicy = null } = {}) {
-  const processPolicy = compiled?.fieldPolicies?.[entityType];
-  if (!processPolicy) return basePolicy;
-  return {
-    ...(basePolicy || {}),
-    ...processPolicy
-  };
-}
-
 function normalizeGraph(graph = {}) {
   return {
     nodes: Array.isArray(graph.nodes) ? graph.nodes.map(normalizeNode) : [],
