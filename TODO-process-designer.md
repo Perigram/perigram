@@ -1758,24 +1758,29 @@ SFC compile check passed; `node scripts/check-arch.js`,
   Transpose, Clean, and Tree Statistics until a documented procedural entity
   case requires them. Do not create an “Advanced” drawer merely to retain
   unused nodes.
-- [ ] Remove legacy Action, Entity, Service, Socket, Value Input, Role, and User
+- [x] Remove legacy Action, Entity, Service, Socket, Value Input, Role, and User
   canvas components/inspectors after migration proves current v4 semantic
   records no longer need them. Definition-plane resources belong in focused
   panels, not duplicate executable nodes.
-  Partial 2026-09-11 (scope finding): the records behind these anchors are all
-  still live at runtime — `services` gate commands
-  (`resolveProcessCommandService`), `sockets` back entity projection
-  (`projectEntityThroughSocket`), `valueInputs` are consumed by designer
-  resolution, and `actions`/`producerOutputs` are the executable protocol — so
-  the canvas nodes cannot simply be deleted: each needs its focused editing
-  panel first (roles, service principals, and screens already have panels;
-  services, sockets, value inputs, status definitions, and the producer-output
-  workflow anchor do not). `ProcessRoleNode.vue` and `ProcessUserNode.vue` are
-  already unreferenced by the page (no `#node-role`/`#node-user` slots) and are
-  the provably dead part of this scope. The entity canvas node is a second
-  editing anchor for `producerOutputs`, which the producer contract reserves
-  for the entity-producing node; removing it belongs to the same
-  panels-first session.
+  Closed 2026-09-11 (panels-first removal): the transpiler now distinguishes
+  canvas-owned records (`processNodes`, `statusDefinitions` — projected,
+  deletable from the canvas) from panel-owned records (`producerOutputs`,
+  `actions`, `services`, `sockets`, `valueInputs` — never projected, survive
+  the canvas round trip untouched). The five legacy canvas node slots
+  (entity/action/service/socket/valueInput) and their components are deleted
+  (including the already-dead Role/User components); the producer workflow
+  inspector now opens on the entity-producing process node
+  (`useProcessDesignerInspector` resolves the node's `producerOutputId`;
+  pinned by its spec), and services/sockets are edited in collapsible Roles-tab
+  panels with add/remove. Persisted definitions migrate naturally: previously
+  stored record-node canvas entries are dropped on the next save while their
+  records persist. Authored standalone actions remain unauthored by design
+  (they were already dropped by the canvas filter on every save); value-input
+  records were never editable on canvas (read-only tag) and stay
+  panel-preserved. Coverage: transpiler round-trip specs
+  (`current-dataflow.spec.js`, `index.spec.js` "keeps definition-plane records
+  off the canvas…"), inspector spec producer-anchor case, SFC compile, full
+  battery green.
 - [x] Keep Run Service as one typed command leaf operation required by a CRUD
   path. Do not add service lifecycle, scheduling, worker, retry, or queue
   management to the Process Designer.

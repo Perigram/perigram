@@ -2,8 +2,13 @@
 
 The organization process designer authors the `@cutkit/processes`
 `dataflowVersion: 4` contract. Executable canvas records are `processNode`
-operations. Entity profiles, screens, role grants, service principals, and
-statuses are definition-plane records. Role identities are organization data,
+operations (plus inline-editable status definition nodes). Producer outputs,
+actions, services, sockets, value inputs, screens, role grants, and service
+principals are definition-plane records: they are never projected as canvas
+nodes, survive the canvas round trip untouched, and are edited in focused
+surfaces — the producer workflow inspector opens on the entity-producing
+process node, while services and sockets are edited in collapsible panels of
+the Roles tab. Role identities are organization data,
 and the Roles panel performs immediate organization CRUD independently of
 process Save/Apply. Assignments belong to Team Management. Statuses have a
 definition item in the Entities palette and render as inline-editable canvas

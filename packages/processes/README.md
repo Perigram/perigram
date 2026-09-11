@@ -135,10 +135,13 @@ is pure over compiled outputs; callers recompile both sides because the stored
 `compiled` snapshot is inspection-only.
 
 Process definitions use canonical semantic records as the editing source of
-truth. `definitionToCanvas()` projects those records into deterministic Vue
-Flow nodes and `canvasToDefinition()` writes canvas layout/edges back while
-preserving role-grant, service-identity, lifecycle, service, and socket
-records.
+truth. `definitionToCanvas()` projects process nodes and status definitions
+into deterministic Vue Flow nodes and `canvasToDefinition()` writes canvas
+layout/edges back; deleting one of those canvas nodes deletes its record.
+Every other record kind — producer outputs, actions, services, sockets, value
+inputs — is panel-owned: it is never projected as a canvas node and survives
+the canvas round trip untouched, so focused panels (not duplicate canvas
+anchors) own its lifecycle.
 
 Durable orchestration resolves every data edge through the source node's
 declared data ports before reading or evaluating it. A sole data output is the
