@@ -2315,9 +2315,19 @@ a declared asynchronous output.
   resolution instead of only the record flag, so read-source lineage bindings
   keep their source identity. Coverage:
   `packages/processes/src/producer-binding-diagnostics.spec.js` (8 tests).
-  Still open: the explicit Join contract (implicit same-type convergence
-  rejection needs the Join node as its legal escape first), policy/role/access
-  attachment diagnostics, and canvas Apply focus.
+  Third slice 2026-09-11: the joins half is implemented — the explicit
+  `producer.join` node (two required entity-stream inputs, one output,
+  `selectedProducerOutputId`, no producer output of its own) plus
+  implicit-convergence rejection in `validateDataflowEdges` naming the
+  consumer node, both producer outputs, and both edges; join validity
+  (connected streams, selection among sources) and join-aware downstream
+  identity resolution are enforced and pinned by
+  `packages/processes/src/producer-join.spec.js` (8 tests). Design decisions
+  not pinned by the recorded verdict, stated here: data semantics are
+  stream concatenation; the node has exactly two fixed inputs; the output
+  carries no `producerOutputId` of its own (identity is the selected
+  source's). Still open: policy/role/access attachment diagnostics
+  verification and canvas Apply focus.
 - [x] Replace the persisted process protocol in one migration. Rewrite profile
   data onto producer outputs only where graph ownership is unambiguous; fail the
   migration with actionable node/output diagnostics rather than preserving a
@@ -2597,8 +2607,13 @@ check for `pages/organization/process.vue` passed; `node scripts/check-arch.js`,
   explicit compatible Join and prove the selected result identity is retained.
   Assert each failure identifies the exact producer, socket/edge, or transition
   and that Apply focuses that graph element.
-  Blocked on the explicit Join contract (no recorded design verdict yet); see
-  the producer-scoped activation diagnostics checkbox.
+  Partial 2026-09-11: compile-level proof delivered — implicit convergence
+  rejection (node + both producer outputs + both edge ids named), join
+  validity diagnostics, and selected-identity retention through a downstream
+  lineage binding are pinned by `producer-join.spec.js`; the acceptance
+  fixture, template, and full battery stay green. Open: the canvas Apply
+  focus behavior (structured diagnostics → focused graph element) and the
+  browser walkthrough.
 - [ ] Prove `commandOwned` outputs route already-persisted entities exactly once
   and `graphOwned` outputs route raw typed data to an explicit persistence node;
   reject cross-mode results and effects.

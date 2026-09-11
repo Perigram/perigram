@@ -18,6 +18,13 @@ and deletion, connection inference, palette queries, inspector record access,
 roles, screens, and dock/panel state. Their contracts are exercised directly in
 behavior tests so a disconnected Save, selection, or graph mutation fails even
 when labels remain in the page source.
+
+The Entities palette ends with **Join producer paths** (`producer.join`), the
+one legal convergence point for same-type producer paths: activation rejects
+implicitly converging wires elsewhere on the graph. Its inspector authors the
+entity type and the resulting producer output (offered from the join's
+connected sources); selecting an entity type resets the selection, and the
+join never becomes a workflow anchor of its own.
 `useProcessDesignerScreens` owns source/region creation, source-id reference
 updates, mode normalization, lineage rows, and typed scalar-map mutations. The
 Screens tab renders those mutations against the canonical

@@ -83,6 +83,21 @@ and required-input availability errors carry the same producer context: an
 entity edge error names the source `producerOutputId`, and a required effect
 input error on a producer names `producerOutputId` alongside the socket id.
 
+Same-type producer paths converge only through the explicit `producer.join`
+node. It has exactly two required entity-stream inputs (`primary`,
+`secondary`, both List-access sockets of one authored entity type), one
+entity-stream output, and a `selectedProducerOutputId` that must name one of
+its connected sources; the evaluator concatenates both streams while the
+compiler resolves the output's producer identity as the selected source, and
+`syncProcessNodeProducerOutputs` deliberately creates no producer output for
+the join itself. `validateDataflowEdges` rejects implicit convergence — any
+other node receiving entity streams from two distinct producer outputs of the
+same entity type fails with the target node, both producer outputs, and both
+edge ids named — and rejects a join with an unconnected stream input or a
+selection outside its connected sources. Downstream identity resolution
+(lineage `sourceProducerOutputId`, edge diagnostics) is join-aware, so a
+joined stream reads as exactly one producer.
+
 `migrateProducerOutputIdentities()` is the one-way persisted-definition
 rewrite for v4 records created before that identity was stored. It derives
 entity sockets from the registered node/command catalog, writes the stable
