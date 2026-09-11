@@ -1599,6 +1599,52 @@ Validation: `npx vitest run packages/processes` 348 passed;
 `server/features/process-definitions/process-definitions.spec.js` 21 passed;
 `node scripts/check-arch.js` and `node scripts/check-docs.js` pass.
 
+#### Agent Notes — 2026-09-11 second continuation session
+
+Session scope: audit the ledger against `local`, disposition the surviving
+worktree inventory, and close the next diagnostics slice.
+
+- **Audit.** Re-ran the focused battery at `local` HEAD: `packages/processes
+  packages/domain-cnc server/runtime` 388 passed;
+  `server/features/process-definitions` 42 passed (plus the `node:test`
+  run-repository suite, 8 passed); `node scripts/check-arch.js`,
+  `npm run framework:validate`, and `node scripts/check-docs.js` pass. The two
+  check-docs broken links seen in the primary checkout point at
+  `docs/DEPLOYMENT.md` and `docs/FRAMEWORK_EXTRACTION_STATUS.md`, which are
+  deleted only by the primary checkout's unrelated dirty working tree; the
+  committed state is clean. The 2026-09-11 ledger claims above remain truthful.
+- **Worktree disposition.** The six surviving non-current worktrees were
+  re-compared with current HEAD, bounded to this ledger and the Process
+  Designer paths. `design-centralization-fresh` and
+  `design-system-inventory-enforcement` have no committed Process Designer
+  delta; `design-convergence` and `semantic-typography` carry only typography
+  class renames in designer components (`text-xs` to semantic label classes);
+  the two `solution-lod-v9-recovery` worktrees have no commits beyond their
+  old base (one holds a two-line dirty docs edit). Nothing to merge for this
+  ledger; all six remain preserved for their design-system owner per the
+  standing verdicts.
+- **Diagnostics slice.** Closed the socket/edge/binding half of the
+  producer-scoped activation diagnostics checkbox (see the updated partial note
+  under that checkbox): producer-named required-input availability errors,
+  producer-named entity edge incompatibilities, the
+  `validateLineageBindingResolution` activation pass, and socket-alias-aware
+  `sourceProducerOutputId` resolution in `compileLineageBindings`. The explicit
+  Join contract, policy/role/access attachment diagnostics, and canvas Apply
+  focus remain open.
+
+Files changed (code): `packages/processes/src/compiler-core.js`,
+`packages/processes/src/validation.js`,
+`packages/processes/src/producer-binding-diagnostics.spec.js` (new),
+`server/features/process-definitions/compiler-adapter.js`.
+Files changed (docs): `packages/processes/README.md`,
+`TODO-process-designer.md`.
+
+Validation: `npx vitest run packages/processes packages/domain-cnc
+server/runtime server/features/process-definitions` 433 passed (plus the known
+vitest/node:test harness-mismatch file, 8 passed under `node --test`);
+`node scripts/check-arch.js`, `npm run framework:validate`, and
+`node scripts/check-docs.js` all pass.
+
 ## P1 — validation and diagnostics
 
 - [x] Make Apply validate the complete fresh-graph path: domain capabilities,
@@ -2167,6 +2213,22 @@ a declared asynchronous output.
   missing/undeclared region entry state), each error naming the producer output
   and region/action; the socket/edge/binding/join diagnostics and canvas Apply
   focus remain open.
+  Partial 2026-09-11 (second slice): socket, edge, and lineage-binding
+  diagnostics now carry producer identity. Required-input availability errors
+  name the owning `producerOutputId` beside the socket id; dataflow edge
+  incompatibilities name the source `producerOutputId` when the source socket
+  emits an entity; the new `validateLineageBindingResolution` activation pass
+  rejects a lineage `entry:*` edge whose entry, source record, ancestor entity
+  type, lineage key, or organization-ancestor rule fails, and an
+  entity-emitting lineage source socket with no resolvable producer output
+  record (exact key, authored socket alias, or single same-type candidate).
+  `compileLineageBindings` resolves `sourceProducerOutputId` through the same
+  resolution instead of only the record flag, so read-source lineage bindings
+  keep their source identity. Coverage:
+  `packages/processes/src/producer-binding-diagnostics.spec.js` (8 tests).
+  Still open: the explicit Join contract (implicit same-type convergence
+  rejection needs the Join node as its legal escape first), policy/role/access
+  attachment diagnostics, and canvas Apply focus.
 - [x] Replace the persisted process protocol in one migration. Rewrite profile
   data onto producer outputs only where graph ownership is unambiguous; fail the
   migration with actionable node/output diagnostics rather than preserving a

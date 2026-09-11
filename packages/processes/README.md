@@ -66,6 +66,23 @@ intentionally inspectable pure-data subgraph therefore stays valid while being
 surfaced as dead-end diagnostics through the compiled `warnings` channel the
 designer already renders.
 
+Activation runs one further producer-scoped binding pass,
+`validateLineageBindingResolution`, beside `validateRequiredInputAvailability`.
+Every `entry:*` edge into a Lineage composition must resolve: the entry must
+exist on the target record, the source node must resolve to a process record,
+the ancestor entity type must be derivable (source entity port, source record
+type, or entry declaration) and must not be `organization`, and a lineage key
+must exist for the ancestor type. An entity-emitting lineage source socket must
+also resolve to a producer output record — by exact `nodeId:outputSocketId`
+key, by authored socket alias, or as the single same-type candidate — because
+`compileLineageBindings` carries that identity on every binding as
+`sourceProducerOutputId`. Each error names the edge id plus the responsible
+node, entry, and socket, so a dropped lineage binding is an activation failure
+instead of a silently missing runtime binding. Dataflow edge incompatibilities
+and required-input availability errors carry the same producer context: an
+entity edge error names the source `producerOutputId`, and a required effect
+input error on a producer names `producerOutputId` alongside the socket id.
+
 `migrateProducerOutputIdentities()` is the one-way persisted-definition
 rewrite for v4 records created before that identity was stored. It derives
 entity sockets from the registered node/command catalog, writes the stable
