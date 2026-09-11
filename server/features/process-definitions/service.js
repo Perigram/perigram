@@ -12,6 +12,7 @@ import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeEntityType } from '~/server/runtime/entities.js';
 import {
   compileProcessDefinition,
+  diffProcessContracts,
   hasCanonicalProcessSource,
   normalizeProcessDefinition,
   PROCESS_DATAFLOW_VERSION,
@@ -153,11 +154,68 @@ export async function update(id, payload = {}, auth) {
   return new ProcessDefinition(updated).toJSON();
 }
 
+// The semantic Apply diff recomputes both sides from the canonical authored
+// definitions instead of trusting the stored `compiled` snapshot (which is
+// inspection-only). Returns null when there is no distinct active definition
+// or the previous contract can no longer be compiled for comparison.
+async function activeContractBaseline(process, auth) {
+  const active = await repository.findActiveByOrganization(process.lineage.organizationId);
+  if (!active || String(active._id) === String(process._id)) return null;
+  try {
+    const data = currentProcessDefinition(active.data, getDomain());
+    const roles = await loadOrganizationRoles(process.lineage.organizationId);
+    return compileProcessDefinition(data, getDomain(), { roles });
+  } catch {
+    return null;
+  }
+}
+
+async function contractDiffFor(process, auth) {
+  const baseline = await activeContractBaseline(process, auth);
+  if (!baseline) return null;
+  const roles = await loadOrganizationRoles(process.lineage.organizationId);
+  try {
+    return diffProcessContracts(baseline, compileProcessDefinition(process.data, getDomain(), { roles }));
+  } catch {
+    return null;
+  }
+}
+
+// Activation must not silently orphan live entities on workflow states the
+// next contract removes: the author first migrates those entities (through
+// the status engine) or keeps the states. Entity types whose status check
+// cannot run are not treated as affected.
+async function assertNoStrandedEntityStatuses(process, auth, nextCompiled) {
+  const baseline = await activeContractBaseline(process, auth);
+  if (!baseline) return;
+  const removed = diffProcessContracts(baseline, nextCompiled).removedEntityStatuses;
+  const affected = [];
+  for (const { entityType, statuses } of removed) {
+    let entities = [];
+    try {
+      entities = await queryProcessGraphEntities(entityType, {}, auth);
+    } catch {
+      continue;
+    }
+    const count = entities.filter(entity => statuses.includes(entity?.status?.state?.primary)).length;
+    if (count) affected.push({ entityType, statuses, count });
+  }
+  if (affected.length) {
+    const detail = affected.map(item => `${item.entityType} ${item.statuses.join(', ')} (${item.count})`).join('; ');
+    throw createError({
+      statusCode: 409,
+      message: `Removed workflow states still used by active entities require a migration decision: ${detail}`,
+      data: { migrationRequired: true, affected }
+    });
+  }
+}
+
 export async function validate(id, auth) {
   const process = await loadAuthorized(id, auth, 'write');
   process.data = currentProcessDefinition(process.data, getDomain());
   assertCanonicalProcessSource(process.data);
-  return validateActivatableProcess(process.data, getDomain(), await loadOrganizationRoles(process.lineage.organizationId));
+  const validation = validateActivatableProcess(process.data, getDomain(), await loadOrganizationRoles(process.lineage.organizationId));
+  return { ...validation, diff: await contractDiffFor(process, auth) };
 }
 
 export async function activate(id, auth) {
@@ -177,6 +235,7 @@ export async function activate(id, auth) {
     ...process.data,
     compiled: compileProcessDefinition(process.data, getDomain(), { roles })
   };
+  await assertNoStrandedEntityStatuses(process, auth, process.data.compiled);
   await repository.archiveActiveByOrganization(process.lineage.organizationId, auth.userId);
   applyProcessStatus(process, 'ACTIVE', auth.userId, 'Process activated');
   const updated = await repository.updateById(id, process);

@@ -2892,7 +2892,15 @@
     "selectScreen": "Выберите экран",
     "validation": "Проверка",
     "applySuccess": "Процесс активирован для этой организации.",
-    "validationOk": "Определение процесса корректно"
+    "validationOk": "Определение процесса корректно",
+    "applyDiffTitle": "Семантические изменения относительно активного процесса:",
+    "applyDiffActions": "Действия",
+    "applyDiffScreens": "Экраны",
+    "applyDiffRoles": "Права ролей",
+    "applyDiffWorkflows": "Рабочие процессы",
+    "applyDiffFieldPolicies": "Политики полей",
+    "applyDiffCapabilities": "CRUD-возможности",
+    "applyDiffRemovedStatuses": "{entityType}: удалены состояния {statuses} — перед активацией требуется решение о миграции"
   },
   "generatedScreen": {
     "home": "Главная",

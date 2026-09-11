@@ -2892,7 +2892,15 @@
     "selectScreen": "Select a screen",
     "validation": "Validation",
     "applySuccess": "Process activated for this organization.",
-    "validationOk": "Process definition is valid"
+    "validationOk": "Process definition is valid",
+    "applyDiffTitle": "Semantic changes vs the active process:",
+    "applyDiffActions": "Actions",
+    "applyDiffScreens": "Screens",
+    "applyDiffRoles": "Role grants",
+    "applyDiffWorkflows": "Workflows",
+    "applyDiffFieldPolicies": "Field policies",
+    "applyDiffCapabilities": "CRUD capabilities",
+    "applyDiffRemovedStatuses": "{entityType}: removed states {statuses} — a migration decision is required before activation"
   },
   "generatedScreen": {
     "home": "Home",

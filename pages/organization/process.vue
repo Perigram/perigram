@@ -946,6 +946,12 @@
             {{ validation.ok ? (validation.message || $t('processDesigner.validationOk')) : validation.errors.join('; ') }}
           </Message>
           <Message v-for="warning in validation.warnings || []" :key="warning" severity="warn">{{ warning }}</Message>
+          <Message v-if="validationDiffLines.length" severity="info">
+            <div class="flex flex-col gap-1">
+              <span>{{ $t('processDesigner.applyDiffTitle') }}</span>
+              <span v-for="line in validationDiffLines" :key="line">{{ line }}</span>
+            </div>
+          </Message>
         </div>
       </div>
 
@@ -1042,6 +1048,43 @@ const processLoadError = ref('');
 const nodes = ref([]);
 const edges = ref([]);
 const validation = ref(null);
+const validationDiffLines = computed(() => {
+  const diff = validation.value?.diff;
+  if (!diff) return [];
+  const lines = [];
+  const counts = record => [
+    record.added?.length ? `+${record.added.length}` : '',
+    record.removed?.length ? `−${record.removed.length}` : '',
+    record.changed?.length ? `~${record.changed.length}` : ''
+  ].filter(Boolean).join(' · ');
+  for (const [key, labelKey] of [
+    ['actions', 'processDesigner.applyDiffActions'],
+    ['screens', 'processDesigner.applyDiffScreens'],
+    ['roles', 'processDesigner.applyDiffRoles']
+  ]) {
+    const summary = counts(diff[key] || {});
+    if (summary) lines.push(`${t(labelKey)}: ${summary}`);
+  }
+  for (const [key, labelKey] of [
+    ['workflows', 'processDesigner.applyDiffWorkflows'],
+    ['fieldPolicies', 'processDesigner.applyDiffFieldPolicies']
+  ]) {
+    const record = diff[key] || {};
+    const summary = counts({ added: record.addedProducers, removed: record.removedProducers, changed: record.changed });
+    if (summary) lines.push(`${t(labelKey)}: ${summary}`);
+  }
+  for (const change of diff.capabilities?.changed || []) {
+    const parts = [
+      change.added?.length ? `+${change.added.join(', ')}` : '',
+      change.removed?.length ? `−${change.removed.join(', ')}` : ''
+    ].filter(Boolean).join(' · ');
+    if (parts) lines.push(`${t('processDesigner.applyDiffCapabilities')} — ${change.entityType}: ${parts}`);
+  }
+  for (const item of diff.removedEntityStatuses || []) {
+    lines.push(t('processDesigner.applyDiffRemovedStatuses', { entityType: item.entityType, statuses: item.statuses.join(', ') }));
+  }
+  return lines;
+});
 const dataflowPreview = ref(null);
 const previewingData = ref(false);
 const applyingProcess = ref(false);

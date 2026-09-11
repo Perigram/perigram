@@ -6,6 +6,7 @@ export * from './validation.js';
 export * from './action-compilation.js';
 export * from './screen-compilation.js';
 export * from './screen-contract.js';
+export * from './contract-diff.js';
 export * from './access-compilation.js';
 export * from './assignment-bindings.js';
 export * from './hierarchy-projection.js';

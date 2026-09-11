@@ -175,6 +175,87 @@ describe('current process-definition service contract', () => {
     });
   });
 
+  it('reports the semantic apply diff and requires a migration decision for removed workflow states', async () => {
+    const fixture = createPersistedAcceptanceFixture();
+    const entityType = fixture.processDefinition.data.producerOutputs['project_source:result'].entityType;
+    const activeData = structuredClone(fixture.processDefinition.data);
+    activeData.producerOutputs['project_source:result'].lifecycle = {
+      mode: 'custom',
+      workflow: {
+        schemaVersion: 2,
+        primaryRegion: 'main',
+        regions: {
+          main: {
+            label: 'Project lifecycle',
+            initial: 'CREATED',
+            states: { CREATED: { canUpdateMeta: true }, LEGACY_RETIRED: {} },
+            transitions: []
+          }
+        }
+      }
+    };
+    processRepository.findActiveByOrganization.mockResolvedValue({
+      ...fixture.processDefinition,
+      _id: 'process-active',
+      data: activeData
+    });
+    processRepository.findById.mockResolvedValue(draftRecord(fixture.processDefinition.data));
+    processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
+    const processList = vi.fn().mockResolvedValue([{ status: { state: { primary: 'LEGACY_RETIRED' } } }]);
+    getAppRegistry.mockReturnValue({
+      getEntityService: type => type === entityType ? { processList } : organizationService
+    });
+
+    const validation = await validate('process-draft', adminAuth());
+    expect(validation.ok).toBe(true);
+    expect(validation.diff.removedEntityStatuses).toEqual([{ entityType, statuses: ['LEGACY_RETIRED'] }]);
+
+    await expect(activate('process-draft', adminAuth())).rejects.toMatchObject({
+      statusCode: 409,
+      data: { migrationRequired: true, affected: [{ entityType, statuses: ['LEGACY_RETIRED'], count: 1 }] }
+    });
+    expect(processList).toHaveBeenCalledWith({}, expect.objectContaining({ organizationId: 'org-acceptance' }));
+    expect(processRepository.archiveActiveByOrganization).not.toHaveBeenCalled();
+  });
+
+  it('activates when removed workflow states have no live entities', async () => {
+    const fixture = createPersistedAcceptanceFixture();
+    const entityType = fixture.processDefinition.data.producerOutputs['project_source:result'].entityType;
+    const activeData = structuredClone(fixture.processDefinition.data);
+    activeData.producerOutputs['project_source:result'].lifecycle = {
+      mode: 'custom',
+      workflow: {
+        schemaVersion: 2,
+        primaryRegion: 'main',
+        regions: {
+          main: {
+            label: 'Project lifecycle',
+            initial: 'CREATED',
+            states: { CREATED: { canUpdateMeta: true }, LEGACY_RETIRED: {} },
+            transitions: []
+          }
+        }
+      }
+    };
+    processRepository.findActiveByOrganization.mockResolvedValue({
+      ...fixture.processDefinition,
+      _id: 'process-active',
+      data: activeData
+    });
+    processRepository.findById.mockResolvedValue(draftRecord(fixture.processDefinition.data));
+    processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
+    getAppRegistry.mockReturnValue({
+      getEntityService: type => type === entityType
+        ? { processList: vi.fn().mockResolvedValue([{ status: { state: { primary: 'CREATED' } } }]) }
+        : organizationService
+    });
+
+    await expect(activate('process-draft', adminAuth())).resolves.toMatchObject({
+      status: { state: { primary: 'ACTIVE' } }
+    });
+    expect(processRepository.archiveActiveByOrganization).toHaveBeenCalled();
+  });
+
   it('rejects ambiguous persisted producer sockets at the save boundary', async () => {
     const authored = createPersistedAcceptanceFixture().processDefinition.data;
     const node = authored.processNodes.project_source;
