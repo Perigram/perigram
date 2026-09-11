@@ -2126,26 +2126,12 @@ a declared asynchronous output.
 - [x] Add per-output command/task metadata for persistence owner and result
   timing; validate handler results/effects against it and migrate every existing
   command/task declaration without behavior inference.
-- [ ] Add durable run/invocation/wait/receipt storage and task-completion
+- [x] Add durable run/invocation/wait/receipt storage and task-completion
   ingestion. Snapshot the versioned output contract and exact connected routes
   at suspension; project final async outputs into the waiting invocation before
   emitting `completed`; recover delivery after crashes; and use transactional
   compare-and-set plus unique completion/wait constraints for attempt-safe,
   exact-once graph advancement.
-  Partial 2026-09-11 (verified audit): `server/features/process-definitions/
-  run-repository.js` implements and tests the durable `execution_*` run,
-  invocation, wait, output, step, and receipt records; suspension snapshots the
-  expected completion sockets and connected routes; receipt ingestion is
-  transactional compare-and-set with unique invocation/receipt indexes,
-  duplicate no-ops, route-filtered advancement, and a recovery query for
-  unreceipted invocations; manual runs persist declared async boundaries and
-  leave their step waiting. Still missing: task-completion ingestion wiring
-  (`ingestRunReceipt` has no API/caller and the task `complete` path performs no
-  process correlation), a reconciliation caller for `resumeDueRuns`, failure and
-  cancellation routes through the receipt transaction, and the full versioned
-  output contract (today's snapshot lists socket ids only). Implement the
-  per-output persistence-owner/timing metadata first — ingestion validates
-  against it.
 - [x] Remove process/action ids from entity status writes and from the
   command-output-status migration. Add a data migration that removes existing
   process provenance from entity status metadata while retaining legitimate
@@ -2168,6 +2154,52 @@ a declared asynchronous output.
   data onto producer outputs only where graph ownership is unambiguous; fail the
   migration with actionable node/output diagnostics rather than preserving a
   detached-profile or type-global fallback.
+
+#### Agent Notes — 2026-09-11 durable task completion ingestion
+
+Closed the durable storage and ingestion checkbox above:
+
+- **Correlation.** `executeManualRun`'s durable effect dispatcher records the
+  enqueued task-run id on the invocation dispatch (`dispatch.taskRunId`),
+  resolved from the command result's task/job references (including
+  `raw.jobs` task-run entries — the shape real handlers such as `solveNesting`
+  return; the async-boundary detector now also honors those). The repository
+  exposes `findInvocationByTaskRunId` behind a `dispatch.taskRunId + receiptId`
+  index.
+- **Resume semantics.** `packages/processes` gains `resumeProcessRun`: the
+  waiting step succeeds with the projected completion output, its snapshotted
+  control token (now stored on `run.pendingEffect.controlToken`) is re-queued
+  on the recorded `completed` routes with per-socket output values, and the run
+  returns to `running`. Mismatched invocation ids leave the run untouched.
+- **Ingestion.** The task runtime's terminal boundary
+  (`completeTaskRun`/`failTaskRun`/`cancelTaskRun`) notifies the process layer;
+  `ingestTaskCompletion` correlates by task-run id, projects the terminal
+  `TaskResult` entities onto the expected completion sockets, and — inside the
+  receipt transaction — resumes the step via `resumeProcessRun`, persisting
+  the advanced run state atomically with the receipt. After commit,
+  `continueStoredRun` (the extracted settled loop shared with
+  `executeManualRun`) drives the run to settled or the next async boundary
+  under the originating actor. Failure/cancellation enter the same transaction
+  through `failInvocation`; with no authored failure route in the graph
+  language, the run is marked failed/cancelled with a failure receipt.
+- **Recovery.** The `process-reconciliation` plugin scans unreceipted
+  invocations every 30 seconds and redelivers terminal task outcomes
+  (`reconcileProcessTaskRuns`), closing the task-finalize/ingest crash window.
+- **Recorded deviation.** The completion snapshot lists socket ids rather than
+  a duplicated versioned typed contract: per-output persistence owner and
+  timing are declared once on the command/task boundary and enforced at the
+  result boundary and projection, instead of being copied into every snapshot.
+- Coverage: `run-repository.spec.js` (node:test, 8 cases) adds end-to-end
+  correlation → resume → continuation → duplicate no-op and failure ingestion;
+  `orchestration.spec.js` pins `resumeProcessRun` resume/mismatch behavior.
+
+Validation: `node --test server/features/process-definitions/run-repository.
+spec.js` 8 passed; `npx vitest run packages/processes
+server/features/process-definitions server/core` 418 passed (plus the known
+vitest/node:test harness-mismatch file); the full `server` battery matches the
+primary checkout exactly (11 pre-existing failures unchanged); `node scripts/
+check-arch.js`, `npm run framework:validate`, and `node scripts/check-docs.js`
+all pass.
 
 #### Agent Notes — 2026-09-11 command output ownership and timing
 

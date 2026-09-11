@@ -50,7 +50,31 @@ durable receipt can supply terminal output and advance those routes.
 Receipt ingestion claims the invocation revision and advances the run in one
 MongoDB transaction. Duplicate or concurrent delivery is therefore an
 idempotent no-op after the first commit. Dispatched invocations without receipts
-remain discoverable after restart for continuation or retry. Effect nodes are
+remain discoverable after restart for continuation or retry.
+
+Task completion closes the loop end to end. `executeManualRun` records the
+enqueued task-run id on the invocation dispatch (`dispatch.taskRunId`, resolved
+from the command result's task/job references), the task runtime's terminal
+boundary (`completeTaskRun`/`failTaskRun`/`cancelTaskRun` in
+`server/core/tasks`) notifies the process layer, and `ingestTaskCompletion`
+correlates by that task-run id, projects the terminal `TaskResult` entities
+onto the invocation's expected completion sockets, and — inside the same
+receipt transaction — resumes the waiting graph step
+(`resumeProcessRun`): the step succeeds with the projected output, its
+snapshotted control token is re-queued on the recorded `completed` routes, and
+the run continues. After the transaction commits, `continueStoredRun` drives
+the run to settled or the next async boundary with the originating actor
+context. Terminal task failure or cancellation enters the same receipt
+transaction through `failInvocation`; with no authored failure route in the
+graph language the run is marked failed/cancelled. The
+`process-reconciliation` plugin re-checks unreceipted invocations against
+terminal task runs every 30 seconds, so a crash between task finalization and
+ingestion redelivers exactly once. The completion snapshot intentionally lists
+socket ids (not a duplicated typed contract): per-output persistence owner and
+timing are declared once on the command/task boundary and enforced where the
+result is produced and where it is projected.
+
+Effect nodes are
 either manual or automatic-from-socket. Date or event-triggered automation is
 not part of the
 supported process contract. The originating actor/access snapshot is carried on
