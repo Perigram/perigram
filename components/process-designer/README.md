@@ -98,6 +98,12 @@ a Boolean mask, then feed that mask and the original list to Filter.
 | Run manually or chain effects | Manual effect, or completion → Automatic effect | Durable orchestration |
 | Reshape collections | CRUD-path list operations | Pure data-tree evaluator |
 
+Run Service stays one typed command leaf: the node selects a registered
+command and its typed inputs/outputs, and nothing more. The designer has no
+service lifecycle, scheduling, worker, retry, or queue-management surface;
+async completion is the durable Run Service boundary owned by the runtime
+(wait/receipt/ingestion records), never a designer-managed concept.
+
 The exhaustive runtime catalog, producer effects, predicates, patches,
 conversions, and trigger-payload helpers have no direct authoring entry.
 

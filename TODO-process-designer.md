@@ -1747,9 +1747,29 @@ SFC compile check passed; `node scripts/check-arch.js`,
   canvas components/inspectors after migration proves current v4 semantic
   records no longer need them. Definition-plane resources belong in focused
   panels, not duplicate executable nodes.
-- [ ] Keep Run Service as one typed command leaf operation required by a CRUD
+  Partial 2026-09-11 (scope finding): the records behind these anchors are all
+  still live at runtime — `services` gate commands
+  (`resolveProcessCommandService`), `sockets` back entity projection
+  (`projectEntityThroughSocket`), `valueInputs` are consumed by designer
+  resolution, and `actions`/`producerOutputs` are the executable protocol — so
+  the canvas nodes cannot simply be deleted: each needs its focused editing
+  panel first (roles, service principals, and screens already have panels;
+  services, sockets, value inputs, status definitions, and the producer-output
+  workflow anchor do not). `ProcessRoleNode.vue` and `ProcessUserNode.vue` are
+  already unreferenced by the page (no `#node-role`/`#node-user` slots) and are
+  the provably dead part of this scope. The entity canvas node is a second
+  editing anchor for `producerOutputs`, which the producer contract reserves
+  for the entity-producing node; removing it belongs to the same
+  panels-first session.
+- [x] Keep Run Service as one typed command leaf operation required by a CRUD
   path. Do not add service lifecycle, scheduling, worker, retry, or queue
   management to the Process Designer.
+  Verified 2026-09-11: the Run Service surface is exactly the
+  `effect.runCommand` process node (command Select plus its typed
+  construction/command sockets); no scheduling, worker, retry, or queue UI
+  exists anywhere in the designer, and async completion stays the runtime-owned
+  durable wait/receipt boundary. Constraint recorded in
+  `components/process-designer/README.md` (authoring capability matrix note).
 - [ ] Split `pages/organization/process.vue` by real ownership: node-record
   factories/synchronization, entity/block inspector, roles/access, screens,
   workflow/statuses, graph interaction, preview, and persistence. The page must
@@ -2538,41 +2558,82 @@ check for `pages/organization/process.vue` passed; `node scripts/check-arch.js`,
 
 #### Acceptance tests
 
-- [ ] Compile two Create Entity nodes for the same `entityType` and assert two
+- [x] Compile two Create Entity nodes for the same `entityType` and assert two
   workflows and field policies survive under distinct producer/output ids while
   the type index contains both.
+  Pinned 2026-09-11: `producer-output-contract.spec.js` "compiles two same-type
+  producers into independent workflows and field policies" (distinct entry
+  states, separate workflow/fieldPolicy records, `entityTypeIndex` lists both).
 - [ ] Start from New Draft, add same-type Create and Run Service producers, and
   prove no standalone profile node or `requiredEntityProfiles` repair is created
   or required. Edit each output in the integrated Workflow inspector and prove
   saving/round-trip preserves independent settings and visible identities.
-- [ ] Prove runtime workflow, policy, action, and transition resolution fails
+  Partial: `requiredEntityProfiles` and the profile palette/repair path are
+  removed and producer-output independence through the inspector is pinned by
+  `composables/useProcessDesignerInspector.spec.js`; the New-Draft
+  same-type-producer browser walkthrough remains open as designer e2e.
+- [x] Prove runtime workflow, policy, action, and transition resolution fails
   without producer context and resolves the correct same-type producer when it
   is supplied.
-- [ ] Prove same-type lineage/relation edges from different source sockets and
+  Pinned 2026-09-11: `runtime-producer-output.spec.js` ("requires the
+  authoritative producer output identity", "resolves the exact same-type
+  producer among candidates and never falls back to the first", type-mismatch
+  rejection); action binding rejection is pinned at validation time in
+  `producer-output-contract.spec.js`.
+- [x] Prove same-type lineage/relation edges from different source sockets and
   into different consuming producers remain separate compiled bindings.
+  Pinned: `index.spec.js` "keeps same-type lineage bindings separate by full
+  producer and socket identity" (two project producers, two queue producers,
+  separate bindings and per-producer attachment).
 - [ ] Prove each producer's explicit initial status and transitions compile and
   execute independently; missing/ambiguous/unknown statuses fail activation and
   no designer or migration chooses a first/default status.
+  Partial: compile-side rejection and declared-initial preservation are pinned
+  (`producer-output-contract.spec.js` entry-state specs; migration
+  ambiguous-record failure). Open remainder: the runtime proof that two
+  same-type producers execute their independent initial statuses in one graph.
 - [ ] Connect same-type producer paths to an ordinary consumer and prove
   activation rejects implicit workflow convergence. Connect them through an
   explicit compatible Join and prove the selected result identity is retained.
   Assert each failure identifies the exact producer, socket/edge, or transition
   and that Apply focuses that graph element.
+  Blocked on the explicit Join contract (no recorded design verdict yet); see
+  the producer-scoped activation diagnostics checkbox.
 - [ ] Prove `commandOwned` outputs route already-persisted entities exactly once
   and `graphOwned` outputs route raw typed data to an explicit persistence node;
   reject cross-mode results and effects.
+  Partial: cross-mode result rejection and the declaration matrix are pinned
+  (`packages/core/src/entity-output-contracts.spec.js`,
+  `packages/domain-cnc/src/command-output-contracts.spec.js`); no `graphOwned`
+  output exists in the CNC domain yet, so its routing half has nothing to
+  prove until one is declared.
 - [ ] Prove an async nesting-style command emits only values present in its
   immediate result and no completion-only entity early. Assert the persisted
   wait identifies the run, step, producer node, invocation, task correlation,
   attempt, versioned socket contract, and route snapshot.
-- [ ] Deliver final run/design/sheet outputs and prove only the exact suspended
+  Partial: early-population rejection, immediate/completion timing, correlation,
+  and route snapshot are pinned (`run-repository.spec.js`,
+  `command-output-contracts.spec.js`); the recorded deviation stands — the
+  snapshot lists socket ids rather than a duplicated versioned typed contract.
+- [x] Deliver final run/design/sheet outputs and prove only the exact suspended
   invocation's connected completion sockets advance. Redeliver concurrently,
   retry after a simulated task-finalization/ingestion crash, and send a stale
   attempt plus a conflicting completion id; assert one receipt, one resume, and
   one set of continuation tokens.
+  Pinned 2026-09-11: `run-repository.spec.js` — "concurrent duplicate receipt
+  delivery advances connected routes exactly once", "restart discovers
+  dispatched invocation without receipt and accepts redelivery once"
+  (crash/retry/attempt 2), "conflicting completion identity cannot consume the
+  wait twice" (new), the task-completion correlation/resume/continuation test,
+  and the failure-ingestion exactly-once test.
 - [ ] Prove graph run/step status changes cannot mutate entity domain status and
   entity status metadata contains no process definition, action, node, producer,
   or workflow identifier.
+  Partial: the metadata half is pinned (the machines provenance spec asserts
+  both the entity snapshot and status event exclude `producerOutputId`; the
+  strip-provenance migration exists); run/step status vocabulary lives only on
+  process execution records, but no direct negative test drives a run step
+  status change and asserts entity domain status is untouched.
 
 #### Agent Notes — 2026-08-20
 
@@ -2597,6 +2658,21 @@ receipt plus transactional wait/invocation compare-and-set provides exact-once
 graph advancement, while retry/reconciliation after task finalization provides
 delivery. Process definition, producer node, invocation, and task provenance
 stay on run/step/wait/receipt records and are never copied to produced entities.
+
+##### Agent Notes — 2026-09-11 acceptance evidence reconciliation
+
+Verified every acceptance row against current specs before touching anything;
+ticked only rows with direct pinned evidence and added the two missing focused
+tests where the gap was cheap: same-type producer compile independence
+(`producer-output-contract.spec.js`) and exact same-type runtime resolution
+(`runtime-producer-output.spec.js`), plus the conflicting-completion-identity
+exactly-once case (`run-repository.spec.js`, now 9 node:test cases). Also
+closed the P2 Run Service keep-constraint checkbox by verification (the Run
+Service surface is exactly the `effect.runCommand` leaf; no
+scheduling/worker/retry/queue UI exists) and recorded the canvas-node removal
+scope finding under its checkbox: the underlying records are all runtime-live,
+so that removal needs its panels-first session. Session worktree
+`agent/process-designer-legacy-nodes-20260911-174129`.
 
 ## Required acceptance matrix
 
