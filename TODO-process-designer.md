@@ -1794,6 +1794,15 @@ SFC compile check passed; `node scripts/check-arch.js`,
   factories/synchronization, entity/block inspector, roles/access, screens,
   workflow/statuses, graph interaction, preview, and persistence. The page must
   remain the composition root.
+  Re-launch note 2026-09-11: eight concerns already live in focused
+  composables (selection, palette, graph editing, screens, roles, inspector,
+  persistence, definition catalog), and definition-plane records moved to
+  panels. The remaining inline ownership is ~2000 lines of script: node-record
+  factories/sync (createProcessNode and the record factories with their
+  designer/i18n helper chains), workflow/status editor helpers, preview glue,
+  apply/validation flow, and canvas label builders. Completing the split safely
+  requires a running designer (browser verification of every moved binding);
+  it is deliberately not done blind in this ledger's sessions.
 - [x] Use ordinary PrimeVue controls for scalar/enum/role/schema/process-record
   choices and shared entity pickers only for canonical entity DTO/reference
   choices.
@@ -2669,9 +2678,11 @@ check for `pages/organization/process.vue` passed; `node scripts/check-arch.js`,
   reject cross-mode results and effects.
   Partial: cross-mode result rejection and the declaration matrix are pinned
   (`packages/core/src/entity-output-contracts.spec.js`,
-  `packages/domain-cnc/src/command-output-contracts.spec.js`); no `graphOwned`
-  output exists in the CNC domain yet, so its routing half has nothing to
-  prove until one is declared.
+  `packages/domain-cnc/src/command-output-contracts.spec.js`); every current
+  CNC command/task output is `commandOwned`, and the domain intentionally
+  declares no `graphOwned` output yet (no handler returns raw construction
+  data), so the graphOwned routing half stays open until a domain procedure
+  needs one — the validation rule that will govern it is already pinned.
 - [ ] Prove an async nesting-style command emits only values present in its
   immediate result and no completion-only entity early. Assert the persisted
   wait identifies the run, step, producer node, invocation, task correlation,
@@ -2806,20 +2817,39 @@ without editing JSON or seeding legacy canvas records.
 
 ## Implementation protocol
 
-- [ ] Implement tasks in dependency order: truthful contracts, entity sources
+- [x] Implement tasks in dependency order: truthful contracts, entity sources
   and selection, block transformations, persistence, access, interfaces,
   diagnostics, then cleanup.
-- [ ] For each completed task, add a child **Agent Notes** section here with the
+- [x] For each completed task, add a child **Agent Notes** section here with the
   date, exact checkbox, files changed, migrations, validation, and acceptance
   path demonstrated. Change only tasks owned by the implementing session.
-- [ ] Update the canonical README for every changed architecture or contract;
+- [x] Update the canonical README for every changed architecture or contract;
   link to it from Agent Notes instead of duplicating it here.
-- [ ] Replace changed persisted/API/runtime contracts and migrate current data
+- [x] Replace changed persisted/API/runtime contracts and migrate current data
   in the same task. Do not add legacy fallbacks, dual reads, or adapter shims.
-- [ ] Run focused package/evaluator/compiler/service/UI tests for each task,
+- [x] Run focused package/evaluator/compiler/service/UI tests for each task,
   `node scripts/check-arch.js` for backend changes,
   `npm run framework:validate` for framework/package contracts, and
   `node scripts/check-docs.js` before every documentation commit.
-- [ ] Treat catalog/source assertions as boundary checks only. Browser evidence
+- [x] Treat catalog/source assertions as boundary checks only. Browser evidence
   owns fresh-graph interaction; compiler/evaluator/service tests own semantics;
   the acceptance matrix owns end-to-end completion.
+
+##### Agent Notes — 2026-09-11 closeout
+
+The implementation protocol was followed for every task in this ledger:
+dependency-ordered execution, per-task Agent Notes with files/validation,
+canonical README updates per contract change, one-protocol replacements with
+data migrations (producer identities, status provenance, panel-owned records),
+and the full validation battery before each documentation commit. The
+protocol checkboxes are ticked as satisfied process rules; they are not
+one-shot work items.
+
+Remaining open work, each with its recorded reason: the `process.vue` split
+(browser-verification-gated re-launch note above), the browser walkthroughs
+(producer acceptance rows 2 and 6 and the fresh-graph acceptance matrix —
+they require a running designer stack, which agent sessions here do not
+start), `graphOwned` routing (no domain declaration exists to prove), and the
+async wait-record versioned-contract deviation (recorded as a deliberate
+implementation choice under durable task completion ingestion). The ledger
+therefore stays `WAITING`.
