@@ -534,6 +534,20 @@ export async function resolveProcessGraphEntity(entityType, candidate, { entityI
   return entity?.toJSON ? entity.toJSON() : entity;
 }
 
+// List adapters have feature-specific filter contracts. Equality on a normal
+// persisted field is the one source predicate they all already share; leave
+// every other predicate for the evaluator rather than risking a narrower read.
+export function processQueryFilters(predicate) {
+  if (predicate?.kind !== 'field' || predicate.operation !== 'eq') return {};
+  if (!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(predicate.path || '')) return {};
+  return { [predicate.path]: predicate.value };
+}
+
+export async function executeProcessQuery(processList, predicate, auth) {
+  const values = await processList(processQueryFilters(predicate), auth);
+  return predicate ? values.filter(entity => evaluateEntityPredicate(predicate, entity)) : values;
+}
+
 async function queryProcessGraphEntities(entityType, filters = {}, auth = {}) {
   const service = getAppRegistry().getEntityService(entityType);
   if (!service?.processList) throw new Error(`Entity service cannot query ${entityType} from a process`);
@@ -1062,9 +1076,9 @@ function processDataEnvironment(auth, run) {
     childEntities: (entity, entityType) => processChildEntities(domain.containment, queryEntities, entity, entityType),
     relatedEntities: (entity, relationKey, entityType) => processRelatedEntities(domain.relations, resolveEntity, entity, relationKey, entityType),
     queryEntities: async (entityType, predicate) => {
-      const values = await queryProcessGraphEntities(entityType, {}, auth);
-      if (!predicate) return values;
-      return values.filter(entity => evaluateEntityPredicate(predicate, entity));
+      const service = getAppRegistry().getEntityService(entityType);
+      if (!service?.processList) throw new Error(`Entity service cannot query ${entityType} from a process`);
+      return executeProcessQuery(service.processList, predicate, auth);
     }
   };
 }
