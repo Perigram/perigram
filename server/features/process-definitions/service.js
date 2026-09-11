@@ -18,6 +18,7 @@ import {
   applyPatch,
   evaluateEntityPredicate,
   previewProcessDataflow,
+  resumeProcessRun,
   serializeProcessResult,
   validateRoundTrip
 } from '~/packages/processes/src/index.js';
@@ -44,9 +45,9 @@ import {
   validateActivatableProcess
 } from './compiler-adapter.js';
 import {
+  continueStoredRun,
   executeManualRun,
-  getRunRepository,
-  resumeDueRuns as resumeStoredRuns
+  getRunRepository
 } from './run-repository.js';
 import {
   processChildEntities,
@@ -218,6 +219,16 @@ export async function archive(id, auth) {
   return new ProcessDefinition(updated).toJSON();
 }
 
+function manualRunEnvironment(definition, auth = {}) {
+  return {
+    executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data),
+    isAsyncBoundary: (request, result) => request.kind === 'effect.runCommand' && hasAsyncOutputBoundary(result),
+    catalogContext: catalogContextFromDefinition(definition.data),
+    domain: getDomain(),
+    data: run => processDataEnvironment(auth, run)
+  };
+}
+
 export async function startRun(id, payload = {}, auth = {}, options = {}) {
   const process = await loadAuthorized(id, auth, 'read');
   const definition = process.toJSON();
@@ -230,11 +241,7 @@ export async function startRun(id, payload = {}, auth = {}, options = {}) {
   return serializeProcessResult(await executeManualRun(definition, payload, {
     actor,
     repository: runRepository,
-    executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data),
-    isAsyncBoundary: (request, result) => request.kind === 'effect.runCommand' && hasAsyncOutputBoundary(result),
-    catalogContext: catalogContextFromDefinition(definition.data),
-    domain: getDomain(),
-    data: run => processDataEnvironment(auth, run)
+    ...manualRunEnvironment(definition, auth)
   }));
 }
 
@@ -263,17 +270,130 @@ function catalogContextFromDefinition(processData) {
   };
 }
 
-export async function resumeDueRuns() {
-  return resumeStoredRuns({ repository: getRunRepository(await repository.getConnection()) });
+async function loadRunRecord(runRepository, runId) {
+  const runRecord = await runRepository.collection('runs').findOne({ _id: String(runId) });
+  if (!runRecord) throw createError({ statusCode: 404, message: 'Process run not found' });
+  return runRecord;
 }
 
-export async function ingestRunReceipt(receipt, auth = {}) {
+function projectedCompletionOutput(invocation, taskResult = {}) {
+  const expected = invocation.expectedCompletionSockets || [];
+  const entities = expected.length
+    ? (taskResult.entities || []).filter(entity => expected.includes(entity?.type))
+    : (taskResult.entities || []);
+  return {
+    entities,
+    attachments: taskResult.attachments || [],
+    data: taskResult.data || {},
+    events: taskResult.events || []
+  };
+}
+
+function failRunState(state, { error, cancelled }) {
+  const next = structuredClone(state);
+  const failure = { message: error?.message || String(error || 'Task failed'), statusCode: error?.statusCode || null };
+  const pendingStepId = next.pendingEffect?.stepId;
+  if (pendingStepId) {
+    const step = next.steps.find(item => item.id === pendingStepId);
+    if (step) {
+      step.status = cancelled ? 'cancelled' : 'failed';
+      step.error = failure;
+      step.completedAt = new Date().toISOString();
+    }
+  }
+  delete next.pendingEffect;
+  next.status = cancelled ? 'cancelled' : 'failed';
+  next.error = failure;
+  next.updatedAt = new Date().toISOString();
+  return next;
+}
+
+export async function ingestTaskCompletion({ taskRunId, taskResult = {} } = {}) {
   const runRepository = getRunRepository(await repository.getConnection());
-  const execution = await runRepository.getExecution(receipt?.runId);
-  if (!execution.run) throw createError({ statusCode: 404, message: 'Process run not found' });
-  const organizationId = execution.run.controlScope?.organizationId;
-  await assertOrgAccess(auth, organizationId, 'read');
-  return runRepository.ingestReceipt(receipt);
+  const invocation = await runRepository.findInvocationByTaskRunId(taskRunId);
+  if (!invocation) return { applied: false, reason: 'uncorrelated' };
+  const runRecord = await loadRunRecord(runRepository, invocation.runId);
+  const definition = runRecord.definition;
+  const actor = runRecord.state?.context?.actor || {};
+
+  const ingested = await runRepository.ingestReceipt({
+    invocationId: invocation.invocationId,
+    socketId: '',
+    output: projectedCompletionOutput(invocation, taskResult)
+  }, {
+    advance: async ({ invocation: claimed, output, session }) => {
+      const current = await runRepository.collection('runs').findOne({ _id: claimed.runId }, { session });
+      const resumed = await resumeProcessRun(current.state, definition.data, {
+        invocationId: claimed.invocationId,
+        output
+      }, {
+        catalogContext: catalogContextFromDefinition(definition.data),
+        domain: getDomain(),
+        data: run => processDataEnvironment(actor, run)
+      });
+      return { state: resumed };
+    }
+  });
+  if (!ingested.applied) return ingested;
+
+  const refreshed = await loadRunRecord(runRepository, invocation.runId);
+  await continueStoredRun(refreshed, definition, {}, {
+    actor,
+    repository: runRepository,
+    ...manualRunEnvironment(definition, actor)
+  });
+  return ingested;
+}
+
+export async function failTaskInvocation({ taskRunId, error = null, cancelled = false } = {}) {
+  const runRepository = getRunRepository(await repository.getConnection());
+  const invocation = await runRepository.findInvocationByTaskRunId(taskRunId);
+  if (!invocation) return { applied: false, reason: 'uncorrelated' };
+  return runRepository.failInvocation(invocation.invocationId, { error, cancelled }, {
+    advance: async ({ invocation: claimed, session }) => {
+      const current = await runRepository.collection('runs').findOne({ _id: claimed.runId }, { session });
+      return { state: failRunState(current.state, { error, cancelled }) };
+    }
+  });
+}
+
+export async function reconcileProcessTaskRuns() {
+  const runRepository = getRunRepository(await repository.getConnection());
+  const { getTaskRunById } = await import('../core/tasks/service.js');
+  const pending = await runRepository.findUnreceiptedInvocations();
+  const summary = { scanned: pending.length, ingested: 0, failed: 0, skipped: 0 };
+  for (const invocation of pending) {
+    const taskRunId = invocation.dispatch?.taskRunId;
+    if (!taskRunId) {
+      summary.skipped += 1;
+      continue;
+    }
+    let taskRun = null;
+    try {
+      taskRun = await getTaskRunById(String(taskRunId));
+    } catch {
+      summary.skipped += 1;
+      continue;
+    }
+    if (!taskRun || !['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(taskRun.status)) {
+      summary.skipped += 1;
+      continue;
+    }
+    const outcome = taskRun.status === 'SUCCEEDED'
+      ? await ingestTaskCompletion({ taskRunId: String(taskRunId), taskResult: taskRun.output || {} })
+      : await failTaskInvocation({
+        taskRunId: String(taskRunId),
+        error: taskRun.error || { message: `Task run ${taskRun.status}` },
+        cancelled: taskRun.status === 'CANCELLED'
+      });
+    if (outcome?.applied) {
+      if (taskRun.status === 'SUCCEEDED') summary.ingested += 1;
+      else summary.failed += 1;
+    } else {
+      summary.skipped += 1;
+    }
+  }
+  return summary;
 }
 
 export async function preview({ definition, nodeId = '', trigger = {}, inputs = {} } = {}, auth = {}) {
@@ -686,7 +806,8 @@ function entityId(entity = {}) {
 
 function hasAsyncOutputBoundary(result = {}) {
   return (result.tasks || []).length > 0
-    || (result.jobs || []).some(job => ['task_run', 'task'].includes(job?.type));
+    || (result.raw?.tasks || []).length > 0
+    || [...(result.jobs || []), ...(result.raw?.jobs || [])].some(job => ['task_run', 'task'].includes(job?.type));
 }
 
 function commandOutputStatusMap(actionId, processData = {}) {

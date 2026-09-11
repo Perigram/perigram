@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DurableRunRepository, executeManualRun } from './run-repository.js';
+import { DurableRunRepository, continueStoredRun, executeManualRun } from './run-repository.js';
+import { resumeProcessRun } from '../../../packages/processes/src/index.js';
 
 const clone = value => value == null ? value : structuredClone(value);
 
+function resolvePath(record, path) {
+  return path.split('.').reduce((value, segment) => (value == null ? undefined : value[segment]), record);
+}
+
 function matches(record, query) {
   return Object.entries(query).every(([key, expected]) => {
-    const actual = record[key];
+    const actual = resolvePath(record, key);
     if (expected && typeof expected === 'object' && !Array.isArray(expected)) {
       if ('$in' in expected) return expected.$in.includes(actual);
     }
@@ -233,4 +238,159 @@ test('manual execution persists only declared async boundaries and leaves their 
   assert.equal(execution.invocations.length, 1);
   assert.equal(execution.invocations[0].status, 'dispatched');
   assert.equal(execution.outputs.length, 0);
+});
+
+function chainedAsyncDefinition() {
+  return {
+    id: 'process-chained',
+    data: {
+      dataflowVersion: 4,
+      processNodes: {
+        command1: {
+          id: 'command1',
+          kind: 'effect.runCommand',
+          commandId: 'dispatch',
+          trigger: { mode: 'manual' },
+          outputs: ['sheet_design']
+        },
+        command2: {
+          id: 'command2',
+          kind: 'effect.runCommand',
+          commandId: 'finish',
+          outputs: []
+        }
+      },
+      graph: {
+        nodes: ['command1', 'command2'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [{ id: 'command1-command2', source: 'command1', sourceHandle: 'completed', target: 'command2', targetHandle: 'trigger', role: 'control' }]
+      }
+    }
+  };
+}
+
+function chainedEnvironment(fixture = {}) {
+  return {
+    executeEffect: async request => {
+      if (request.record.id === 'command1') {
+        return fixture.command1Result || { raw: { jobs: [{ type: 'task_run', id: 'task-run-9' }] } };
+      }
+      return { entities: [{ type: 'sheet', id: 'sheet-final' }], data: { finished: true } };
+    },
+    isAsyncBoundary: (request, result) => request.record.id === 'command1'
+      && [...(result.jobs || []), ...(result.raw?.jobs || [])].some(job => job?.type === 'task_run'),
+    catalogContext: () => ({
+      command: {
+        output: {
+          entities: [
+            { type: 'sheet_design', persistenceOwner: 'commandOwned', timing: 'completion' },
+            { type: 'sheet', persistenceOwner: 'commandOwned', timing: 'completion' }
+          ]
+        }
+      }
+    }),
+    domain: { entities: [] },
+    data: () => ({})
+  };
+}
+
+test('task completion correlates by dispatch task run id, resumes the step, and drives the run to completion', async () => {
+  const repository = await seededRepository(new PersistentMongoFixture());
+  const definition = chainedAsyncDefinition();
+  const environment = chainedEnvironment();
+
+  const run = await executeManualRun(definition, { trigger: { nodeId: 'command1' } }, {
+    actor: { organizationId: 'org-1' },
+    repository,
+    ...environment
+  });
+  assert.equal(run.status, 'waiting');
+  assert.equal(run.steps[0].status, 'waiting');
+
+  const invocation = await repository.findInvocationByTaskRunId('task-run-9');
+  assert.ok(invocation, 'dispatch task run id must correlate to the waiting invocation');
+  assert.equal(invocation.runId, run.id);
+
+  const ingested = await repository.ingestReceipt({
+    invocationId: invocation.invocationId,
+    socketId: '',
+    output: {
+      entities: [
+        { type: 'nesting_run', id: 'run-9' },
+        { type: 'sheet_design', id: 'design-9' }
+      ]
+    }
+  }, {
+    advance: async ({ invocation: claimed, output, session }) => {
+      const current = await repository.collection('runs').findOne({ _id: claimed.runId }, { session });
+      const resumed = await resumeProcessRun(current.state, definition.data, {
+        invocationId: claimed.invocationId,
+        output
+      }, {
+        catalogContext: environment.catalogContext,
+        domain: environment.domain,
+        data: environment.data
+      });
+      return { state: resumed };
+    }
+  });
+  assert.equal(ingested.applied, true);
+
+  const afterReceipt = await repository.collection('runs').findOne({ _id: run.id });
+  assert.equal(afterReceipt.state.status, 'running');
+  assert.equal(afterReceipt.state.steps[0].status, 'succeeded');
+  assert.deepEqual(afterReceipt.state.steps[0].output.entities.map(entity => entity.type).sort(), ['nesting_run', 'sheet_design']);
+
+  const completed = await continueStoredRun(afterReceipt, definition, {}, {
+    actor: { organizationId: 'org-1' },
+    repository,
+    ...environment
+  });
+  assert.equal(completed.status, 'succeeded');
+  assert.equal(completed.steps.length, 2);
+  assert.deepEqual(completed.steps[1].output.entities, [{ type: 'sheet', id: 'sheet-final' }]);
+
+  const duplicate = await repository.ingestReceipt({ invocationId: invocation.invocationId, socketId: '', output: { entities: [] } });
+  assert.equal(duplicate.applied, false);
+  assert.equal(duplicate.reason, 'duplicate');
+});
+
+test('failure ingestion fails the waiting run and records a failure receipt exactly once', async () => {
+  const repository = await seededRepository(new PersistentMongoFixture());
+  const definition = chainedAsyncDefinition();
+  const environment = chainedEnvironment();
+  const run = await executeManualRun(definition, { trigger: { nodeId: 'command1' } }, {
+    actor: { organizationId: 'org-1' },
+    repository,
+    ...environment
+  });
+  const invocation = await repository.findInvocationByTaskRunId('task-run-9');
+
+  const failed = await repository.failInvocation(invocation.invocationId, {
+    error: { message: 'Solver crashed' }
+  }, {
+    advance: async ({ invocation: claimed, session }) => {
+      const current = await repository.collection('runs').findOne({ _id: claimed.runId }, { session });
+      const state = structuredClone(current.state);
+      const step = state.steps.find(item => item.id === state.pendingEffect?.stepId);
+      if (step) {
+        step.status = 'failed';
+        step.error = { message: 'Solver crashed' };
+      }
+      delete state.pendingEffect;
+      state.status = 'failed';
+      state.error = { message: 'Solver crashed' };
+      return { state };
+    }
+  });
+  assert.equal(failed.applied, true);
+
+  const execution = await repository.getExecution(run.id);
+  assert.equal(execution.invocations[0].status, 'failed');
+  assert.equal(execution.steps[0].status, 'failed');
+  assert.equal(execution.run.state.status, 'failed');
+  assert.equal(execution.receipts[0].output.error.message, 'Solver crashed');
+  assert.equal(execution.outputs.length, 0);
+
+  const duplicate = await repository.failInvocation(invocation.invocationId, { error: { message: 'Solver crashed' } });
+  assert.equal(duplicate.applied, false);
 });

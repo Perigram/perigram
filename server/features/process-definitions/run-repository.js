@@ -27,6 +27,21 @@ function identityFields(invocation) {
   };
 }
 
+function dispatchTaskRunId(dispatch) {
+  if (!dispatch || typeof dispatch !== 'object') return null;
+  const taskJob = [
+    ...(dispatch.jobs || []),
+    ...(dispatch.raw?.jobs || [])
+  ].find(job => ['task_run', 'task'].includes(job?.type));
+  return dispatch.taskRunId
+    || dispatch.tasks?.[0]?.runId
+    || dispatch.tasks?.[0]?.id
+    || dispatch.raw?.tasks?.[0]?.runId
+    || dispatch.raw?.tasks?.[0]?.id
+    || taskJob?.id
+    || null;
+}
+
 function requireSnapshot(input) {
   if (!Object.hasOwn(input, 'expectedCompletionSockets') || !Array.isArray(input.expectedCompletionSockets)) {
     throw new Error('Invocation requires an expected completion socket snapshot');
@@ -80,6 +95,7 @@ export class DurableRunRepository {
   async initialize() {
     this.initialization ||= Promise.all([
       this.collection('invocations').createIndex({ invocationId: 1 }, { unique: true }),
+      this.collection('invocations').createIndex({ 'dispatch.taskRunId': 1, receiptId: 1 }),
       this.collection('receipts').createIndex({ invocationId: 1 }, { unique: true }),
       this.collection('steps').createIndex({ runId: 1, stepId: 1, invocationId: 1 }, { unique: true })
     ]);
@@ -222,7 +238,7 @@ export class DurableRunRepository {
       if (!invocation) throw new Error(`Invocation ${invocationId} not found`);
       requireSnapshot(invocation);
       const receiptSocketId = String(input.socketId || '');
-      if (invocation.expectedCompletionSockets.length && !invocation.expectedCompletionSockets.includes(receiptSocketId)) {
+      if (receiptSocketId && invocation.expectedCompletionSockets.length && !invocation.expectedCompletionSockets.includes(receiptSocketId)) {
         throw new Error(`Socket ${receiptSocketId || '<missing>'} is not expected by invocation ${invocationId}`);
       }
 
@@ -281,7 +297,7 @@ export class DurableRunRepository {
         runId: claimed.runId,
         invocation: clone(claimed),
         receipt: clone(receipt),
-        output: clone(output),
+        output: clone(input.output),
         routes: clone(matchingRoutes),
         session
       }) : null;
@@ -293,6 +309,68 @@ export class DurableRunRepository {
       if (advancement?.state) runUpdate.$set.state = clone(advancement.state);
       await this.collection('runs').updateOne({ _id: claimed.runId }, runUpdate, options);
       return { applied: true, invocation: clone(claimed), receipt: clone(receipt), output: clone(output), routes: clone(matchingRoutes) };
+    });
+  }
+
+  async failInvocation(invocationId, { error = null, cancelled = false } = {}, { advance } = {}) {
+    const id = String(invocationId || '');
+    if (!id) throw new Error('Failure ingestion requires invocationId');
+    return this.transaction(async session => {
+      const options = { session };
+      const invocation = await this.collection('invocations').findOne({ _id: id }, options);
+      if (!invocation) throw new Error(`Invocation ${id} not found`);
+      if (invocation.receiptId) {
+        return { applied: false, reason: 'duplicate', invocation: clone(invocation) };
+      }
+      const failedAt = now(this.clock);
+      const receiptId = String(this.id());
+      const claimed = resultValue(await this.collection('invocations').findOneAndUpdate(
+        { _id: id, revision: invocation.revision, receiptId: null, status: { $in: ['dispatched', 'retrying'] } },
+        { $set: { receiptId, status: cancelled ? 'cancelled' : 'failed', completedAt: failedAt, updatedAt: failedAt }, $inc: { revision: 1 } },
+        { ...options, returnDocument: 'after' }
+      ));
+      if (!claimed) {
+        const current = await this.collection('invocations').findOne({ _id: id }, options);
+        if (current?.receiptId) return { applied: false, reason: 'duplicate', invocation: clone(current) };
+        return { applied: false, reason: 'conflict', invocation: clone(current) };
+      }
+      const identity = identityFields(claimed);
+      const failure = { message: error?.message || String(error || 'Task failed'), statusCode: error?.statusCode || null };
+      const receipt = {
+        _id: receiptId,
+        receiptId,
+        ...identity,
+        revision: 0,
+        socketId: null,
+        output: { error: failure, cancelled },
+        producerReceipt: null,
+        createdAt: failedAt,
+        updatedAt: failedAt
+      };
+      await this.collection('receipts').insertOne(receipt, options);
+      await this.collection('steps').updateOne(
+        { _id: `${claimed.runId}:${claimed.stepId}:${claimed.invocationId}` },
+        { $set: { status: cancelled ? 'cancelled' : 'failed', error: failure, updatedAt: failedAt }, $inc: { revision: 1 } },
+        options
+      );
+      const advancement = advance ? await advance({
+        runId: claimed.runId,
+        invocation: clone(claimed),
+        receipt: clone(receipt),
+        output: null,
+        routes: [],
+        session
+      }) : null;
+      const runUpdate = {
+        $set: {
+          lastReceiptId: receiptId,
+          updatedAt: failedAt,
+          ...(advancement?.state ? { state: clone(advancement.state) } : {})
+        },
+        $inc: { revision: 1, advancementCount: 1 }
+      };
+      await this.collection('runs').updateOne({ _id: claimed.runId }, runUpdate, options);
+      return { applied: true, invocation: clone(claimed), receipt: clone(receipt) };
     });
   }
 
@@ -311,6 +389,17 @@ export class DurableRunRepository {
     const query = { receiptId: null, status: { $in: ['ready', 'dispatched', 'retrying'] } };
     if (runId) query.runId = String(runId);
     return clone(await this.collection('invocations').find(query).toArray());
+  }
+
+  async findInvocationByTaskRunId(taskRunId) {
+    const id = String(taskRunId || '');
+    if (!id) return null;
+    const record = await this.collection('invocations').findOne({
+      'dispatch.taskRunId': id,
+      receiptId: null,
+      status: { $in: ['ready', 'dispatched', 'retrying'] }
+    });
+    return clone(record);
   }
 
   async getExecution(runId) {
@@ -333,6 +422,49 @@ export function getRunRepository(connection) {
   return defaultRepository;
 }
 
+function makeDurableEffectExecutor({ repository, runId, payload, actor, executeEffect, isAsyncBoundary, processData }) {
+  return async (request, run) => {
+    const dispatch = await executeEffect(request, run);
+    if (!isAsyncBoundary(request, dispatch)) return dispatch;
+    const snapshot = snapshotInvocation(request, processData);
+    const stepId = String(request.record?.nodeId || request.record?.id || request.nodeId || `step-${run?.steps?.length || 0}`);
+    const invocation = await repository.createInvocation({
+      runId,
+      stepId,
+      request,
+      invocationIdentity: { runId, stepId, attempt: request.attempt || 1 },
+      producerOutputId: request.producerOutputId || snapshot.producerOutputId || null,
+      producerIdentity: snapshot.producerIdentity,
+      controlScope: payload.controlScope || { organizationId: actor?.organizationId || null },
+      expectedCompletionSockets: snapshot.expectedCompletionSockets,
+      connectedRoutes: snapshot.connectedRoutes
+    });
+    await repository.markDispatched(invocation.invocationId, {
+      accepted: true,
+      dispatchId: dispatch?.id || dispatch?.taskId || dispatch?.tasks?.[0]?.id || dispatch?.jobs?.[0]?.id || null,
+      taskRunId: dispatchTaskRunId(dispatch)
+    });
+    return { __processEffectPending: true, invocationId: invocation.invocationId };
+  };
+}
+
+async function advanceUntilBoundary({ repository, runId, run, revision, definition, environment }) {
+  const { advanceProcessRun } = await import('../../../packages/processes/src/index.js');
+  let state = run;
+  let currentRevision = revision;
+  for (let index = 0; state.status === 'running' && index < 999; index += 1) {
+    const advanced = await advanceProcessRun(state, definition, environment(state));
+    if (JSON.stringify(advanced) === JSON.stringify(state)) break;
+    state = advanced;
+    const saved = await repository.saveRunState(runId, state, currentRevision);
+    currentRevision = saved.revision;
+  }
+  if (state.status === 'running' && !(await repository.findUnreceiptedInvocations({ runId })).length) {
+    throw new Error('Process run exceeded 1000 steps');
+  }
+  return { run: state, revision: currentRevision };
+}
+
 export async function executeManualRun(definition, payload = {}, {
   actor,
   executeEffect,
@@ -342,7 +474,7 @@ export async function executeManualRun(definition, payload = {}, {
   data,
   repository = getRunRepository()
 } = {}) {
-  const { advanceProcessRun, createProcessRun } = await import('../../../packages/processes/src/index.js');
+  const { createProcessRun } = await import('../../../packages/processes/src/index.js');
   let run = createProcessRun(definition, payload.trigger || {}, {
     processDefinitionId: definition._id || definition.id,
     context: { inputs: payload.inputs || {}, actor }
@@ -355,44 +487,62 @@ export async function executeManualRun(definition, payload = {}, {
     producerIdentity: payload.producerIdentity || null,
     controlScope: payload.controlScope || { organizationId: actor?.organizationId || null }
   });
-  let revision = 0;
-  for (let index = 0; run.status === 'running' && index < 999; index += 1) {
-    const advanced = await advanceProcessRun(run, definition.data, {
-      executeEffect: async request => {
-        const dispatch = await executeEffect(request, run);
-        if (!isAsyncBoundary(request, dispatch)) return dispatch;
-        const snapshot = snapshotInvocation(request, definition.data);
-        const stepId = String(request.record?.nodeId || request.record?.id || request.nodeId || `step-${index}`);
-        const invocation = await repository.createInvocation({
-          runId,
-          stepId,
-          request,
-          invocationIdentity: { runId, stepId, attempt: request.attempt || 1 },
-          producerOutputId: request.producerOutputId || snapshot.producerOutputId || null,
-          producerIdentity: snapshot.producerIdentity,
-          controlScope: payload.controlScope || { organizationId: actor?.organizationId || null },
-          expectedCompletionSockets: snapshot.expectedCompletionSockets,
-          connectedRoutes: snapshot.connectedRoutes
-        });
-        await repository.markDispatched(invocation.invocationId, {
-          accepted: true,
-          dispatchId: dispatch?.id || dispatch?.taskId || dispatch?.tasks?.[0]?.id || dispatch?.jobs?.[0]?.id || null
-        });
-        return { __processEffectPending: true, invocationId: invocation.invocationId };
-      },
+  const result = await advanceUntilBoundary({
+    repository,
+    runId,
+    run,
+    revision: 0,
+    definition: definition.data,
+    environment: current => ({
+      executeEffect: makeDurableEffectExecutor({
+        repository,
+        runId,
+        payload,
+        actor,
+        executeEffect,
+        isAsyncBoundary,
+        processData: definition.data
+      }),
       catalogContext,
       domain,
-      data: data(run)
-    });
-    if (JSON.stringify(advanced) === JSON.stringify(run)) break;
-    run = advanced;
-    const saved = await repository.saveRunState(runId, run, revision);
-    revision = saved.revision;
-  }
-  if (run.status === 'running' && !(await repository.findUnreceiptedInvocations({ runId })).length) {
-    throw new Error('Process run exceeded 1000 steps');
-  }
-  return run;
+      data: data(current)
+    })
+  });
+  return result.run;
+}
+
+export async function continueStoredRun(runRecord, definition, payload = {}, {
+  actor,
+  executeEffect,
+  isAsyncBoundary = () => false,
+  catalogContext,
+  domain,
+  data,
+  repository = getRunRepository()
+} = {}) {
+  const runId = String(runRecord.runId || runRecord._id);
+  const result = await advanceUntilBoundary({
+    repository,
+    runId,
+    run: structuredClone(runRecord.state),
+    revision: Number(runRecord.revision || 0),
+    definition: definition.data,
+    environment: current => ({
+      executeEffect: makeDurableEffectExecutor({
+        repository,
+        runId,
+        payload,
+        actor,
+        executeEffect,
+        isAsyncBoundary,
+        processData: definition.data
+      }),
+      catalogContext,
+      domain,
+      data: data(current)
+    })
+  });
+  return result.run;
 }
 
 export async function resumeDueRuns({ repository = getRunRepository() } = {}) {
