@@ -441,6 +441,43 @@ describe('current process-definition service contract', () => {
     expect(result.status.state.active.fulfillment).toBe('UNASSIGNED');
   });
 
+  it('executes independent initial statuses for two same-type producers', async () => {
+    const create = vi.fn()
+      .mockResolvedValueOnce({ _id: 'project-a', type: 'project' })
+      .mockResolvedValueOnce({ _id: 'project-b', type: 'project' });
+    statusService.setInitialStateForOrganization
+      .mockResolvedValueOnce({ state: { primary: 'PLANNED' } })
+      .mockResolvedValueOnce({ state: { primary: 'SURVEYING' } });
+    getAppRegistry.mockReturnValue({
+      getEntityService: type => type === 'project'
+        ? { constructionHandlers: { genericCreate: create } }
+        : organizationService
+    });
+    const createEffect = (id, statusTo) => performDurableEffect({
+      kind: 'effect.createEntity',
+      record: {
+        kind: 'effect.createEntity',
+        id,
+        entityType: 'project',
+        producerOutputId: `${id}:result`,
+        construction: { mode: 'genericCreate' },
+        status: { to: statusTo },
+        blocks: []
+      },
+      inputs: {}
+    }, adminAuth());
+
+    await createEffect('create_a', 'PLANNED');
+    await createEffect('create_b', 'SURVEYING');
+
+    expect(statusService.setInitialStateForOrganization).toHaveBeenNthCalledWith(1,
+      'project', 'project-a', 'PLANNED', 'org-acceptance', 'admin',
+      expect.objectContaining({ producerOutputId: 'create_a:result' }));
+    expect(statusService.setInitialStateForOrganization).toHaveBeenNthCalledWith(2,
+      'project', 'project-b', 'SURVEYING', 'org-acceptance', 'admin',
+      expect.objectContaining({ producerOutputId: 'create_b:result' }));
+  });
+
   it('passes authored region and lifecycle evidence to status execution and returns the entity DTO', async () => {
     const entity = { _id: 'sheet-1', type: 'sheet', status: { state: { primary: 'AVAILABLE', active: { main: 'AVAILABLE', quality: 'UNVERIFIED' } } } };
     statusService.transitionWithResult.mockResolvedValue({ entity: { ...entity, status: { state: { primary: 'AVAILABLE', active: { main: 'AVAILABLE', quality: 'VERIFIED' } } } }, actions: [], effects: [] });

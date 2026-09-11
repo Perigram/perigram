@@ -789,6 +789,29 @@ describe('durable process orchestration', () => {
     expect(executeEffect).not.toHaveBeenCalled();
   });
 
+  it('advances run and step statuses on a read-only graph without entering the effect boundary', async () => {
+    const definition = process([
+      { id: 'trigger', kind: 'control.manualTrigger' },
+      { id: 'entities', kind: 'read.queryEntities', entityType: 'queue' },
+      { id: 'count', kind: 'collection.count', type: { base: 'entity' } }
+    ], ['trigger', 'entities', 'count'], [
+      { id: 'trigger-entities', source: 'trigger', sourceHandle: 'data:entity', target: 'entities', targetHandle: 'data:value', role: 'data' },
+      control('trigger', 'out', 'entities'),
+      { id: 'entities-count', source: 'entities', sourceHandle: 'data:entities', target: 'count', targetHandle: 'data:value', role: 'data' }
+    ]);
+    const executeEffect = vi.fn();
+    const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+      executeEffect,
+      catalogContext,
+      data: { queryEntities: async () => [{ _id: 'q1' }, { _id: 'q2' }] }
+    });
+
+    expect(completed.status).toBe('succeeded');
+    expect(completed.steps.length).toBeGreaterThan(0);
+    expect(completed.steps.every(step => ['succeeded', 'skipped'].includes(step.status))).toBe(true);
+    expect(executeEffect).not.toHaveBeenCalled();
+  });
+
   it('previews secret and opaque values as redacted', async () => {
     const definition = process([
       { id: 'secrets', kind: 'source.literalList', value: [{ secretRef: 'vault/1' }, { opaqueType: 'geometry' }, { safe: 1 }] }
