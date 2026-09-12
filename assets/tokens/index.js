@@ -248,6 +248,8 @@ export const tailwindThemeExtension = {
         'dialog-lg': 'var(--ck-dialog-lg)',
         'dialog-xl': 'var(--ck-dialog-xl)',
         'support-chat': 'var(--ck-support-chat-width)',
+        'support-chat-message': 'var(--ck-support-chat-message-max)',
+        'support-chat-admin-message': 'var(--ck-support-chat-admin-message-max)',
         'entity-popover': 'var(--ck-entity-popover-min-width)',
         'floating-menu': 'var(--ck-floating-menu-min-width)'
     },

@@ -114,6 +114,20 @@ export async function markConversationRead(auth, body = {}) {
     return read;
 }
 
+/**
+ * Ephemeral typing signal: authorized like a read, published to the
+ * conversation topic, never persisted.
+ */
+export async function notifyTyping(auth, conversationKey = null) {
+    const context = await getConversationContextByKey(auth, conversationKey);
+    connectionsService.publish(`conversation:${context.conversationKey}`, {
+        type: 'typing',
+        conversationKey: context.conversationKey,
+        userId: auth.userId,
+        name: auth.name || ''
+    });
+}
+
 export async function listEntityOptions(auth, type, query = '', recipientUserId = null) {
     const scopedAuth = await resolveEntityOptionAuth(auth);
     if (!scopedAuth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });

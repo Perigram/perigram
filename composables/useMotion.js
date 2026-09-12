@@ -91,6 +91,28 @@ export function useEnterExit(elRef, active, { y = 6, duration = 0.16 } = {}) {
 }
 
 /**
+ * One-shot enter for freshly appended rows (streamed chat messages, live list
+ * items). Fire-and-forget: animates the element from transparent/offset to
+ * its natural state and leaves it mounted. Reduced motion is a no-op.
+ */
+export function enterOnce(element, { y = 8, duration = 0.2 } = {}) {
+    if (!element || !import.meta.client) return
+    loadGsap().then(engine => {
+        if (reducedMotionActive(element)) return
+        engine.fromTo(
+            element,
+            { opacity: 0, y },
+            { opacity: 1, y: 0, duration, ease: 'power2.out', clearProps: 'opacity,transform' }
+        )
+    })
+}
+
+const reducedMotionActive = () => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+/**
  * Parameter-to-state transition. When an input parameter drives a re-render
  * (cassette dimensions, geometry parameters), call `capture()` while the
  * previous rendered state is still in the DOM, then let the reactive update
