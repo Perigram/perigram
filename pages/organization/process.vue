@@ -563,6 +563,45 @@
                       @update:model-value="updateOpenBlockReadAttachmentKind"
                     />
                   </div>
+                  <div v-if="['effect.changeStatus', 'effect.archiveEntity'].includes(selectedProcessNode.kind)" class="flex flex-col gap-2 rounded-ui border border-content-border bg-subtle p-2">
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.transitionFrom') }}</label>
+                        <Select
+                          :model-value="selectedProcessNode.status?.from || ''"
+                          :options="[{ label: '—', value: '' }, ...lifecycleStateOptions]"
+                          option-label="label"
+                          option-value="value"
+                          size="small"
+                          @update:model-value="value => updateNodeStatusTransition(selectedProcessNode, 'from', value)"
+                        />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.transitionTo') }}</label>
+                        <Select
+                          :model-value="selectedProcessNode.status?.to || ''"
+                          :options="lifecycleStateOptions"
+                          option-label="label"
+                          option-value="value"
+                          size="small"
+                          @update:model-value="value => updateNodeStatusTransition(selectedProcessNode, 'to', value)"
+                        />
+                      </div>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.transitionRoles') }}</label>
+                      <MultiSelect
+                        :model-value="selectedProcessNodeGrantRoleIds"
+                        :options="roleOptions"
+                        option-label="label"
+                        option-value="value"
+                        display="chip"
+                        class="w-full"
+                        @update:model-value="updateSelectedProcessNodeGrantRoles"
+                      />
+                    </div>
+                    <small class="text-muted-color">{{ $t('processDesigner.transitionBelongsTo') }}</small>
+                  </div>
                   <div v-if="selectedProcessNode.kind?.startsWith('effect.')" class="flex flex-col gap-2">
                     <div class="flex items-center justify-between gap-2">
                       <label>{{ $t('processDesigner.roles') }}</label>
@@ -908,7 +947,7 @@
     </DesignerSurface>
 
     <StandardDialog v-model:visible="showGrantEditor" :header="$t('processDesigner.editGrantConditions')" size="xl">
-      <PermissionEditor :permissions="grantEditorPermissions" :features="permissionFeatureOptions" @save="saveGrantEditor" />
+      <PermissionEditor :permissions="grantEditorPermissions" :features="grantEditorFeatureOptions" @save="saveGrantEditor" />
     </StandardDialog>
 
   </StandardPage>
@@ -1459,6 +1498,42 @@ const permissionFeatureOptions = computed(() => screenFeatureOptions.value.map(o
   label: option.label,
   actions: ['view', 'create', 'update', 'delete', 'run', 'send', 'approve', 'reject', 'fulfill']
 })));
+// Process-node grant conditions stay inside the authored process: only the
+// entity types this process actually produces (plus their lineage ancestors
+// and the selected node's own type) are offered — never the whole domain.
+const grantEditorFeatureOptions = computed(() => {
+  const target = grantEditorTarget.value;
+  if (target?.kind !== 'processNode' && target?.kind !== 'action') return permissionFeatureOptions.value;
+  const entityTypes = new Set();
+  for (const output of Object.values(draft.value?.data?.producerOutputs || {})) {
+    if (output?.entityType) entityTypes.add(output.entityType);
+  }
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const link of cncDomain.containment || []) {
+      if (entityTypes.has(link.childType) && link.parentType && !entityTypes.has(link.parentType)) {
+        entityTypes.add(link.parentType);
+        grew = true;
+      }
+    }
+  }
+  const nodeEntityType = selectedProcessNode.value?.entityType
+    || selectedProcessNode.value?.targetEntityType
+    || '';
+  if (nodeEntityType) entityTypes.add(nodeEntityType);
+  const byFeature = new Map();
+  for (const entityType of entityTypes) {
+    const key = featureForEntityType(entityType);
+    if (!key || byFeature.has(key)) continue;
+    byFeature.set(key, {
+      key,
+      label: (cncDomain.entities || []).find(entity => entity.type === entityType)?.label || entityType,
+      actions: ['view', 'create', 'update', 'delete', 'run', 'send', 'approve', 'reject', 'fulfill']
+    });
+  }
+  return [...byFeature.values()];
+});
 const fieldOptionsForSelectedEntity = computed(() => fieldOptions(selectedEntity.value.entityType));
 const selectedActionEntityType = computed(() => actionEntityType(selectedAction.value) || (selectedNode.value ? inferIncomingEntityContract(selectedNode.value.id).entityType : ''));
 const fieldOptionsForSelectedAction = computed(() => fieldOptions(selectedActionEntityType.value));
@@ -1494,6 +1569,25 @@ function removeSelectedSocket() {
 }
 const selectedActionGrants = computed(() => normalizeDesignerAccess(selectedAction.value.access).grants);
 const actionGrantFeature = computed(() => selectedActionEntityType.value ? featureForEntityType(selectedActionEntityType.value) : '');
+const selectedProcessNodeGrantRoleIds = computed(() => [
+  ...new Set((selectedProcessNodeGrants.value || []).map(grant => grant.roleId).filter(Boolean))
+]);
+function updateSelectedProcessNodeGrantRoles(roleIds = []) {
+  const node = selectedProcessNode.value;
+  if (!node) return;
+  const current = node.access?.grants || [];
+  const kept = current.filter(grant => roleIds.includes(grant.roleId));
+  const added = roleIds
+    .filter(roleId => !kept.some(grant => grant.roleId === roleId))
+    .map(roleId => ({ roleId, level: node.kind === 'effect.deleteEntity' ? 'admin' : 'write' }));
+  node.access = { ...(node.access || {}), grants: [...kept, ...added] };
+  syncNodeData();
+}
+function updateNodeStatusTransition(node, field, value) {
+  node.status ||= {};
+  node.status[field] = value || '';
+  syncNodeData();
+}
 const processNodeGrantFeature = computed(() => {
   const entityType = selectedProcessNode.value?.entityType
     || selectedProcessNode.value?.targetEntityType

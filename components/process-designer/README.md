@@ -35,6 +35,15 @@ Validation and Apply focus the responsible graph element: failed validation
 and activation responses carry structured diagnostics (`nodeId`, `edgeId`,
 `socketId`, `producerOutputId` anchors), and the first anchored diagnostic
 selects its edge or node on the canvas before the error message is shown.
+
+Status-change nodes (Change Status, Archive) open with an inline transition
+block: transition-from/transition-to selects resolved from the node's own
+producer workflow states, and a single roles multiselect that writes the
+node's action access grants (levels preserved, new entries defaulting to the
+node kind's level). The grant-conditions dialog reachable from a process-node
+grant row is scoped to the authored process: it offers only the entity types
+the process produces plus their lineage ancestors and the node's own type —
+never the whole domain feature catalog.
 `useProcessDesignerScreens` owns source/region creation, source-id reference
 updates, mode normalization, lineage rows, and typed scalar-map mutations. The
 Screens tab renders those mutations against the canonical
