@@ -254,7 +254,8 @@ export const tailwindThemeExtension = {
         'floating-menu': 'var(--ck-floating-menu-min-width)'
     },
     width: {
-        swatch: 'var(--ck-swatch-size)'
+        swatch: 'var(--ck-swatch-size)',
+        'support-chat': 'var(--ck-support-chat-width)'
     },
     height: {
         swatch: 'var(--ck-swatch-size)',

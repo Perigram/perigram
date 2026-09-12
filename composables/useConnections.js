@@ -12,6 +12,7 @@ const onlineUsers = ref([])
 let source = null
 let connectionId = null
 let syncing = false
+let pendingSync = false
 const handlers = new Map()
 const desiredTopics = new Set()
 
@@ -19,7 +20,10 @@ const onlineUserIds = computed(() => new Set(onlineUsers.value.map(entry => entr
 
 async function syncSubscriptions() {
     if (!connectionId || !desiredTopics.size) return
-    if (syncing) return
+    if (syncing) {
+        pendingSync = true
+        return
+    }
     syncing = true
     try {
         await $fetch('/api/connections/subscriptions', {
@@ -30,6 +34,10 @@ async function syncSubscriptions() {
         console.error('Failed to sync connection subscriptions:', error)
     } finally {
         syncing = false
+        if (pendingSync) {
+            pendingSync = false
+            syncSubscriptions()
+        }
     }
 }
 
