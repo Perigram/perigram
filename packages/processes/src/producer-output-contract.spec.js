@@ -36,7 +36,7 @@ describe('producer output process contract', () => {
     expect(normalized).not.toHaveProperty('entityProfiles');
   });
 
-  it('compiles authoritative producer records and a non-authoritative type index', () => {
+  it('compiles authoritative producer-keyed records', () => {
     const compiled = compileProcessDefinition(definition(), domain);
 
     expect(compiled).not.toHaveProperty('workflows');
@@ -49,7 +49,6 @@ describe('producer output process contract', () => {
     });
     expect(compiled.producerOutputs['create:entity'].workflow).toBeTruthy();
     expect(compiled.producerOutputs['create:entity'].fieldPolicy).toBeTruthy();
-    expect(compiled.entityTypeIndex).toEqual({ project: ['create:entity'] });
   });
 
   it('rejects keys that are not the stable node and output socket identity', () => {
@@ -123,7 +122,6 @@ describe('producer output entry-state and binding diagnostics', () => {
     ];
 
     const compiled = compileProcessDefinition(source, domain);
-    expect(compiled.entityTypeIndex).toEqual({ project: ['create_a:entity', 'import_b:entity'] });
     const createA = compiled.producerOutputs['create_a:entity'];
     const importB = compiled.producerOutputs['import_b:entity'];
     expect(createA.workflow.initial).toBe('CREATED');
@@ -164,7 +162,6 @@ describe('producer output entry-state and binding diagnostics', () => {
     // with the upstream producer context.
     expect(compiled.actions.stale).toBeUndefined();
     expect(Object.keys(compiled.producerOutputs)).toEqual(['create:entity']);
-    expect(compiled.entityTypeIndex).toEqual({ project: ['create:entity'] });
   });
 
   it('rejects a lifecycle entry state that is not declared', () => {

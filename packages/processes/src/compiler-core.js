@@ -1047,10 +1047,6 @@ export function compileProcessDefinition(definition = {}, domain = {}, { roles =
     actions: Object.values(compiledActions).filter(action => action.producerOutputId === producerOutputId),
     lineageBindings: lineageBindings.filter(binding => binding.producerOutputId === producerOutputId)
   }]));
-  const entityTypeIndex = Object.values(producerOutputs).reduce((index, output) => {
-    (index[output.entityType] ||= []).push(output.producerOutputId);
-    return index;
-  }, {});
 
   return {
     schemaVersion: PROCESS_SCHEMA_VERSION,
@@ -1058,7 +1054,6 @@ export function compileProcessDefinition(definition = {}, domain = {}, { roles =
     roles: compiledRoles,
     servicePrincipals: process.servicePrincipals,
     producerOutputs,
-    entityTypeIndex,
     actions: compiledActions,
     statusDefinitions: compileStatusDefinitions(process.statusDefinitions),
     valueInputs: compileValueInputs(process.valueInputs),

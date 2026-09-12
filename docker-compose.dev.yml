@@ -38,6 +38,7 @@ services:
   mongo:
     image: mongo:4.4
     container_name: cutkit_mongo
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
     volumes:
@@ -45,6 +46,12 @@ services:
     networks:
       - cutkit-network
     restart: always
+    healthcheck:
+      test: ["CMD", "mongo", "--quiet", "--eval", "try { db.adminCommand('ismaster').ok } catch (e) { 0 }"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
   user-file-processing-worker:
     image: ghcr.io/1suo/file-processing-worker:latest
