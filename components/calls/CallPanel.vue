@@ -181,7 +181,10 @@ const join = async () => {
         connected.value = true;
     } catch (joinError) {
         console.error('Failed to join call:', joinError);
-        error.value = joinError?.data?.message || joinError?.message || t('call.failed');
+        const insecureContext = typeof navigator !== 'undefined' && !navigator.mediaDevices;
+        error.value = insecureContext
+            ? t('call.insecureContext')
+            : joinError?.data?.message || joinError?.message || t('call.failed');
     }
 };
 
