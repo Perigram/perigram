@@ -108,5 +108,20 @@ export const cncAttachmentKinds = {
     bucket: 'uploads', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', preview: { mode: 'workbook' },
     creation: { mode: 'upload', accept: '.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }, editor: { mode: 'none' },
     file: { extensions: ['.xlsx'], mimeTypes: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'], maxBytes: 25 * 1024 * 1024 }
+  },
+  SKETCH: {kind: 'SKETCH',
+    bucket: 'sketches',
+    mimeType: 'application/json',
+    preview: { mode: 'sketch' },
+    creation: {
+      mode: 'editor',
+      initial: {
+        fileName: 'sketch.json',
+        mimeType: 'application/json',
+        content: '{"version":1,"strokes":[]}'
+      }
+    },
+    editor: { mode: 'sketch' },
+    file: { extensions: ['.json'], mimeTypes: ['application/json'], maxBytes: 25 * 1024 * 1024 }
   }
 };

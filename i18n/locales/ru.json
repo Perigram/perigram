@@ -2026,6 +2026,35 @@
     "selectWarehouseHint": "Выберите склад и источники инвентаря, соответствующие размерам этого раскроя.",
     "requisitionRedirect": "Создайте новую заявку с этими параметрами."
   },
+  "sketch": {
+    "editorTitle": "Скетч",
+    "tool": "Инструмент",
+    "tools": {
+      "pen": "Перо",
+      "line": "Линия",
+      "rect": "Прямоугольник",
+      "ellipse": "Овал",
+      "eraser": "Ластик"
+    },
+    "color": "Цвет штриха",
+    "strokeWidth": "Толщина штриха",
+    "sizes": {
+      "thin": "Тонкая",
+      "medium": "Средняя",
+      "thick": "Толстая"
+    },
+    "undo": "Отменить",
+    "redo": "Вернуть",
+    "clear": "Очистить скетч",
+    "setBackground": "Задать фон",
+    "replaceBackground": "Заменить фон",
+    "removeBackground": "Убрать фон",
+    "originEntity": "Источник",
+    "originType": "Тип исходной сущности",
+    "originId": "ID исходной сущности",
+    "setOrigin": "Связать источник",
+    "clearOrigin": "Убрать источник"
+  },
   "artifacts": {
     "noQueues": "В этом проекте пока нет очередей.",
     "createQueueFirst": "Создайте очередь, чтобы создать артефакты.",

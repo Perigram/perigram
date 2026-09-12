@@ -38,6 +38,7 @@ export function createDomainUiAdapter(domain = {}) {
     endpointMap,
     surfaceMap,
     attachmentKindMap,
+    surfaces: domain.ui?.surfaces || [],
     containment: domain.containment || [],
     relations: domain.relations || [],
     construction: domain.construction || {},

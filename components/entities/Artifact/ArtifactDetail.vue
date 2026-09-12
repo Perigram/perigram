@@ -13,6 +13,7 @@
       </div>
       <template v-if="canEdit && layoutDraft && editor.mode === 'layout'"><ArtifactLayoutEditor v-model="layoutDraft" /></template>
       <ArtifactTextEditor v-else-if="canEdit && ['text', 'csv'].includes(editor.mode)" :artifact="artifact" @saved="$emit('saved', $event)" />
+      <SketchEditor v-else-if="canEdit && editor.mode === 'sketch'" :artifact="artifact" @saved="$emit('saved', $event)" />
       <ArtifactViewer v-else :artifact="artifact" :revision="revision" />
     </div>
   </EntityPage>
@@ -25,6 +26,7 @@ import Select from '~/components/shared/EntitySelect.vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
 import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
+import SketchEditor from '~/components/artifacts/SketchEditor.vue';
 import ArtifactLayoutEditor from '~/components/ArtifactLayoutEditor.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';

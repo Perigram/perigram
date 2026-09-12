@@ -92,8 +92,11 @@ async function upload() {
   uploading.value = true;
   try {
     const form = new FormData();
+    const initialConfig = definition.value.creation?.initial;
     const initial = creationMode.value === 'editor'
-      ? new File([''], `${name.value || 'artifact'}${kind.value.includes('CSV') ? '.csv' : '.txt'}`, { type: kind.value.includes('CSV') ? 'text/csv' : 'text/plain' })
+      ? initialConfig
+        ? new File([initialConfig.content || ''], initialConfig.fileName || 'artifact', { type: initialConfig.mimeType || 'text/plain' })
+        : new File([''], `${name.value || 'artifact'}${kind.value.includes('CSV') ? '.csv' : '.txt'}`, { type: kind.value.includes('CSV') ? 'text/csv' : 'text/plain' })
       : file.value;
     form.append('file', initial);
     form.append('type', kind.value);
