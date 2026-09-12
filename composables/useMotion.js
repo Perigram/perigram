@@ -113,6 +113,21 @@ const reducedMotionActive = () => {
 }
 
 /**
+ * Transient badge motion (floating reactions): the element rises and fades
+ * out once, then the caller removes it. Returns a promise that settles when
+ * the animation completes; reduced motion resolves immediately so cleanup
+ * paths behave identically.
+ */
+export function riseAndFade(element, { y = -120, duration = 1.6 } = {}) {
+    if (!element || !import.meta.client) return Promise.resolve()
+    if (reducedMotionActive()) return Promise.resolve()
+    return loadGsap().then(engine => {
+        const tween = engine.to(element, { y, opacity: 0, duration, ease: 'power1.out' })
+        return tween.then ? tween.then(() => {}) : Promise.resolve()
+    })
+}
+
+/**
  * Parameter-to-state transition. When an input parameter drives a re-render
  * (cassette dimensions, geometry parameters), call `capture()` while the
  * previous rendered state is still in the DOM, then let the reactive update
