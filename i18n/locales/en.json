@@ -1764,30 +1764,7 @@
       "standardPage": "Standard page"
     },
     "feedback": {
-      "title": "Review & Feedback",
-      "export": "Export Feedback",
-      "placeholder": "Detailed feedback and requested fixes...",
-      "planTitle": "# UI Lab Feedback",
-      "scope": "Scope",
-      "component": "Component",
-      "decisions": {
-        "unchecked": "Unchecked",
-        "fix": "Needs fix",
-        "improve": "Improve",
-        "ok": "OK"
-      }
-    },
-    "review": {
-      "title": "Data model review",
-      "collection": "Collection",
-      "fields": "Fields",
-      "source": "Source",
-      "issues": "Issues",
-      "flags": "Flags",
-      "toggle": "Review",
-      "noModel": "No extracted model matched this component.",
-      "targetPlaceholder": "Rename target or destination",
-      "planTitle": "## Data model review"
+      "placeholder": "Detailed feedback and requested fixes..."
     },
     "contract": {
       "title": "Manifest health",
