@@ -2,7 +2,9 @@ export const cncEntityFieldGroups = {
   facade: {
     summary: [
       { path: 'data.parts.length', i18n: 'facade.parts', display: 'count', priority: 10 },
-      { path: 'data.partAssignments.length', i18n: 'facade.assignments', display: 'count', priority: 20 }
+      { path: 'data.partAssignments.length', i18n: 'facade.assignments', display: 'count', priority: 20 },
+      { path: 'relations.sourceModel', i18n: 'facade.sourceModel', display: 'entityRef', entityType: 'artifact', priority: 30 },
+      { path: 'relations.patterns', i18n: 'facade.patterns', display: 'entityRefList', entityType: 'facadePattern', priority: 40 }
     ]
   },
   facadePattern: {

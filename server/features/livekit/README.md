@@ -14,9 +14,15 @@ service. Nothing here persists; rooms are derived, never free-form:
   key, `video.roomJoin` grants) after `authorizeRoom` passes, resolves call
   invites on the support conversation contract, and verifies + fans webhook
   events onto the connections layer.
-- Access today derives from org membership and conversation participation.
-  The Process Designer service declaration — rooms provisioned and gated by
-  the active process access rights — is the tracked follow-up in TODO.md.
+- Access derives from org membership and conversation participation, and
+  org rooms are a Process-Designer-declared service: when the organization
+  has an active compiled process, `call:org:*` admission additionally
+  requires a `livekit` feature grant (read level) in the process access
+  rights, evaluated with the shared grant evaluator. The bundled process
+  templates declare `livekit: 'write'` for their admin role; organizations
+  with an already-active process definition must add the grant (re-instantiate a template or edit its role grants) before org rooms admit under
+  process mode. Direct rooms keep the participant contract, which mirrors
+  the process-aware support conversation keys.
 - Webhooks: `POST /api/livekit/webhook` verifies the signed Authorization
   JWT including the `sha256` body-hash claim, then publishes `call.activity`
   events (org rooms → org topic, direct rooms → both participant user

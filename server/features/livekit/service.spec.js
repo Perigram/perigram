@@ -61,6 +61,19 @@ describe('livekit call rooms', () => {
         expect(authorizeRoom(auth('user-a'), 'freeform-room')).rejects.toMatchObject({ statusCode: 400 });
     });
 
+    it('gates org rooms through the active process livekit grant when a process is active', async () => {
+        const processAuth = (grants) => ({
+            ...auth('user-a', 'org-1'),
+            process: { active: true },
+            effectivePermissions: grants
+        });
+        await expect(authorizeRoom(processAuth({ livekit: [{ level: 'read' }] }), 'call:org:org-1')).resolves.toMatchObject({ kind: 'org' });
+        await expect(authorizeRoom(processAuth({ other: [{ level: 'read' }] }), 'call:org:org-1')).rejects.toMatchObject({ statusCode: 403 });
+        await expect(authorizeRoom(processAuth({}), 'call:org:org-1')).rejects.toMatchObject({ statusCode: 403 });
+        // without an active process, plain membership still admits
+        await expect(authorizeRoom(auth('user-a', 'org-1'), 'call:org:org-1')).resolves.toMatchObject({ kind: 'org' });
+    });
+
     it('mints LiveKit-shaped room tokens for authorized callers', async () => {
         const room = directCallRoom('user-a', 'user-b');
         const grant = await mintRoomToken(auth('user-a'), room);

@@ -91,10 +91,17 @@
   `livekit-client` (WebRTC stack stays out of the main bundle), PrimeVue
   toolbar + semantic tiles; ChatSupport gained the call button, incoming-call
   banner over the conversation topic, and a full-size StandardDialog host.
-  REMAINING subtask: Process Designer service declaration — rooms gated by
-  the ACTIVE process access rights (today: org membership + conversation
-  participation). PD services/sockets are process-graph node concepts, so
-  that integration belongs with designer-contract work, not this slice.
+  ### Agent Notes — 2026-09-12 (PD declaration slice)
+  Org rooms are now a declared process service: with an active compiled
+  process, `call:org:*` admission requires a `livekit` feature grant
+  (read level) through the shared grant evaluator over
+  `auth.effectivePermissions`; without an active process, org membership
+  still admits. All four bundled process templates declare
+  `livekit: 'write'` for their admin role (spec covers grant/deny/no-grant
+  paths). Existing active process definitions must gain the grant before
+  their org rooms admit in process mode (re-instantiate template or edit
+  role grants). Designer-palette authoring (graph node for the service)
+  remains future designer-contract work; the access contract is complete.
   Status: WAITING.
 
 ## UI

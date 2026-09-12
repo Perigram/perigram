@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import jwt from 'jsonwebtoken';
 import { createError } from 'h3';
+import { hasPermissionGrant } from '#shared/access-control.js';
 import * as connectionsService from '../connections/service.js';
 import { getConversationContextByKey } from '../support/service.js';
 
@@ -43,8 +44,20 @@ export async function authorizeRoom(auth, room = '') {
 
     if (room.startsWith('call:org:')) {
         const orgId = room.slice('call:org:'.length);
-        if (auth.isAdmin || (auth.organizationId && String(auth.organizationId) === orgId)) return { room, kind: 'org' };
-        throw createError({ statusCode: 403, message: 'Forbidden' });
+        if (auth.isAdmin) return { room, kind: 'org' };
+        const isMember = Boolean(auth.organizationId && String(auth.organizationId) === orgId);
+        if (!isMember) throw createError({ statusCode: 403, message: 'Forbidden' });
+        // With an active compiled process, org rooms are a declared service:
+        // admission rides the process access rights (livekit feature grant).
+        if (auth.process?.active && auth.effectivePermissions) {
+            const granted = hasPermissionGrant({
+                permissions: auth.effectivePermissions,
+                feature: 'livekit',
+                level: 'read'
+            });
+            if (!granted) throw createError({ statusCode: 403, message: 'Forbidden' });
+        }
+        return { room, kind: 'org' };
     }
 
     throw createError({ statusCode: 400, message: 'Unknown call room' });
