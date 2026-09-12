@@ -67,50 +67,36 @@ import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
 import { supportAvatarPalette } from '~/assets/tokens/index.js'
+import { useConnections } from '~/composables/useConnections.js'
 
 const { t } = useI18n()
 const chatList = ref([])
 const loading = ref(true)
 const error = ref(null)
 const selectedUserId = ref(null)
-let eventSource = null
+let unsubscribeAdminInbox = null
 
 const emit = defineEmits(['select-chat'])
 
-const connectToChatList = () => {
+const refreshChatList = async () => {
     try {
-        loading.value = true
-        eventSource = new EventSource('/api/support/admin/chatlist')
-        eventSource.onopen = () => {
-            loading.value = false
-        }
-
-        eventSource.onmessage = (event) => {
-            const data = JSON.parse(event.data)
-
-            switch (data.type) {
-                case 'initial':
-                    chatList.value = data.data
-                    loading.value = false
-                    break
-                case 'update':
-                    chatList.value = data.data
-                    break
-                case 'heartbeat':
-                    break
-            }
-        }
-
-        eventSource.onerror = (error) => {
-            console.error('EventSource error:', error)
-            error.value = t('admin.connectionFailed')
-            loading.value = false
-        }
+        const response = await $fetch('/api/support/admin/chatlist')
+        chatList.value = response?.data || []
+        loading.value = false
     } catch (err) {
-        console.error('Error connecting to chat list:', err)
+        console.error('Error loading chat list:', err)
         error.value = t('admin.failedToConnect')
         loading.value = false
     }
+}
+
+const connectToChatList = () => {
+    loading.value = true
+    refreshChatList()
+    unsubscribeAdminInbox?.()
+    unsubscribeAdminInbox = useConnections().subscribe('admin-support', (payload) => {
+        if (payload?.type === 'support.inbox') refreshChatList()
+    })
 }
 
 const selectChat = (userId) => {
@@ -123,9 +109,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-    if (eventSource) {
-        eventSource.close()
-    }
+    unsubscribeAdminInbox?.()
+    unsubscribeAdminInbox = null
 })
 
 const getUserName = (user) => {

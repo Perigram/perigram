@@ -13,10 +13,6 @@ export async function find(match, projection = {}) {
         .toArray();
 }
 
-export async function findSince(match, timestamp, projection = {}) {
-    return await find({ $and: [match, { timestamp: { $gt: timestamp } }] }, projection);
-}
-
 export async function insert(data, projection = {}) {
     const db = await connectDB();
     const record = await db.collection(COLLECTION).insertOne(data);

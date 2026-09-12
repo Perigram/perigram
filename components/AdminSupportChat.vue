@@ -117,6 +117,7 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useConnections } from '~/composables/useConnections.js';
 import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
@@ -144,7 +145,7 @@ const messagesContainer = ref(null)
 const entityComposerVisible = ref(false)
 const entityDraft = ref({ type: 'project', id: '' })
 const entityRefs = ref([])
-let eventSource = null
+let unsubscribeConversation = null
 const entityTypeOptions = computed(() => [
     { label: t('common.project'), value: 'project' },
     { label: t('queue.title'), value: 'queue' },
@@ -182,51 +183,36 @@ const messagesList = computed(() => {
         }
     })
 })
-const connectToChat = () => {
+const connectToChat = async () => {
     try {
         loading.value = true
         error.value = null
         isConnected.value = false
         messages.value = []
 
-        eventSource = new EventSource(`/api/support/admin/${props.userId}`)
-
-        eventSource.onopen = () => {
-            isConnected.value = true
-        }
-
-        eventSource.onmessage = async (event) => {
-            const data = JSON.parse(event.data)
-            switch (data.type) {
-                case 'initial':
-                    messages.value = data.data
-                    loading.value = false
-                    await nextTick()
-                    scrollToBottom()
-                    break
-                case 'newMessages':
-                    messages.value.push(...data.data)
-                    await nextTick()
-                    scrollToBottom()
-                    break
-                case 'heartbeat':
-                    break
-            }
-        }
-
-        eventSource.onerror = (error) => {
-            console.error('EventSource error:', error)
-            isConnected.value = false
-            error.value = t('admin.connectionFailed')
-            loading.value = false
-        }
+        const snapshot = await $fetch(`/api/support/admin/${props.userId}`)
+        messages.value = snapshot?.data || []
+        isConnected.value = true
+        loading.value = false
+        await nextTick()
+        scrollToBottom()
     } catch (err) {
         console.error('Error connecting to chat:', err)
         error.value = t('admin.failedToConnect')
+        isConnected.value = false
         loading.value = false
     }
+}
 
-    scrollToBottom()
+const subscribeConversation = () => {
+    unsubscribeConversation?.()
+    unsubscribeConversation = null
+    if (!props.userId) return
+    unsubscribeConversation = useConnections().subscribe(`conversation:support:${props.userId}`, (payload) => {
+        if (payload?.type !== 'message') return
+        messages.value.push(payload.message)
+        nextTick().then(scrollToBottom)
+    })
 }
 
 const sendMessage = async () => {
@@ -282,12 +268,12 @@ const scrollToBottom = async () => {
 onMounted(() => {
     if (props.userId) {
         connectToChat()
+        subscribeConversation()
     }
 })
 
 onUnmounted(() => {
-    if (eventSource) {
-        eventSource.close()
-    }
+    unsubscribeConversation?.()
+    unsubscribeConversation = null
 })
 </script>

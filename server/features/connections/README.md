@@ -1,0 +1,67 @@
+# COMPONENT: Connections
+
+Connections is the canonical realtime layer: one Server-Sent Events stream per
+authenticated browser tab, topic-based publish/subscribe, and organization
+presence derived from the live connection registry. It is a capability module
+like `support` — no Mongo collection, no v24 entity — because nothing here
+persists. Feature services stay the persistence source of truth and publish
+through this module when a write should reach connected clients.
+
+## Server Contract
+
+- `service.js` owns the in-memory registry: connections keyed by id, each
+  carrying the authenticated context, its topic set, and a push callback
+  bound to the SSE stream. Nothing else in the app may hold references to
+  live streams.
+- The registry is per Nitro worker. All in-process publishes reach every
+  connection served by that worker; there is no cross-worker bus, so features
+  must not rely on delivery when producers and consumers sit in different
+  workers behind a scaling load balancer. Dev and the current single-app
+  compose deployment satisfy this assumption.
+- `registerConnection({ auth, push })` subscribes the defaults
+  `user:<userId>` and `org:<organizationId>` and broadcasts a presence
+  snapshot to the organization topic. `unregisterConnection` mirrors it.
+- `syncTopics(connectionId, requested)` replaces the requested topic set;
+  defaults always survive and every requested topic passes admission:
+  - `user:<userId>` — self only.
+  - `org:<orgId>` — the connection's own organization.
+  - `admin-support` — admins only.
+  - `conversation:<key>` — delegated to the support feature through
+    `registerTopicAuthorizer('conversation:', …)`, which resolves the
+    conversation context and therefore rejects non-participants and
+    non-admins. Other features register their own authorizers the same way;
+    admission errors count as denial.
+- `publish(topic, payload)` fans an envelope `{ topic, payload, ts }` out to
+  subscribed connections. Publishing with no subscribers is a no-op.
+
+## Client Contract
+
+`composables/useConnections.js` holds one module-scoped `EventSource` per
+browser tab. `useConnections().subscribe(topic, handler)` returns an
+unsubscribe function; when the last handler of a topic goes away the topic is
+dropped from the subscription sync. After every (re)connect the server's
+`ready` event reports the new connection id and the current presence
+snapshot, and the composable re-posts the active topic set, so EventSource's
+native reconnect heals subscriptions without consumer involvement.
+Presence arrives as `org:` topic events; `onlineUserIds` is a reactive Set of
+user ids with at least one live connection.
+
+## Chat Integration
+
+Support chat is the first consumer:
+
+- `POST`ed messages and read receipts publish `message` / `read` events on
+  `conversation:<key>`, inbox pings on each participant's `user:` topic, and
+  an `admin-support` ping for support-channel messages.
+- The support store's badge/inbox refresh subscribes to the user topic
+  instead of polling `/api/support/conversations` on an interval.
+- `GET /api/support/messages`, `GET /api/support/admin/:user_id`, and
+  `GET /api/support/admin/chatlist` are REST snapshots now; initial state
+  loads over REST, changes arrive over the connections stream, and the old
+  per-conversation polled streams are gone. There is no dual transport.
+
+## Related
+
+- [API routes](../../api/README.md)
+- [Support chat](../support/README.md)
+- [Composables](../../../composables/README.md)

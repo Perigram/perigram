@@ -1716,6 +1716,7 @@
     "addEntity": "Добавить сущность",
     "openChat": "Открыть чаты",
     "noMessages": "Нет сообщений",
+    "online": "В сети",
     "noConversations": "Чатов пока нет",
     "selectConversation": "Выберите чат или начните новый",
     "recipientChatOnlyWarning": "{label} недоступна получателю вне этого чата",

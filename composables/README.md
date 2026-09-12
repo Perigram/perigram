@@ -174,6 +174,26 @@ composition per the components motion policy.
 
 ---
 
+## useConnections — realtime connections layer
+
+```js
+const { status, onlineUserIds, subscribe } = useConnections();
+const unsubscribe = subscribe('conversation:support:123', (payload) => { ... });
+```
+
+One module-scoped `EventSource` per browser tab carries every realtime topic:
+`user:<id>` self pings, `org:<id>` presence snapshots, `admin-support`, and
+feature topics such as `conversation:<key>`. The server enforces topic
+admission; `subscribe` returns an unsubscribe function and drops the server
+subscription when the last handler goes away. After every (re)connect the
+composable resynchronizes the active topic set, so consumers never handle
+reconnects themselves. `status` is `idle | connecting | open | error`;
+`onlineUserIds` is a reactive Set of user ids with a live connection in the
+active organization. Contract details live in
+[the connections feature](../server/features/connections/README.md).
+
+---
+
 ## useReducedMotion
 
 ```js
