@@ -1,0 +1,11 @@
+# Dev-only LiveKit configuration: fixed dev keys, single UDP media port.
+# The app container reads the same key pair from LIVEKIT_API_KEY/SECRET.
+port: 7880
+rtc:
+  tcp_port: 7881
+  udp_port: 7882
+use_external_ip: false
+turn:
+  enabled: false
+keys:
+  devkey: devsecret

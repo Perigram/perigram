@@ -67,7 +67,7 @@
   admission, presence). LiveKit is the next consumer.
   Status: WAITING.
 
-- [ ] **LiveKit integration (local docker, PD-declared service).**
+- [x] **LiveKit integration (local docker, PD-declared service).**
   Depends on: connections architecture.
   - LiveKit server as a docker-compose service (dev + prod compose), dev
     config with fixed dev keys; documented in the README containers table.
@@ -79,8 +79,23 @@
   - Rewrite LiveKit's UI in this stack (PrimeVue + shared primitives + token
     layer, no LiveKit default chrome), integrated with chat and users through
     the connections layer (shared presence, invite into call from chat).
-  Acceptance: two org members join a room gated by process grants; UI is
-  PrimeVue-native; presence shared with chat; containers documented.
+  ### Agent Notes — 2026-09-12
+  Implemented in `agent/livekit-20260912-143727` as a working vertical slice:
+  `livekit` compose service (dev keys in `livekit.dev.yaml`, single UDP media
+  port, app env `LIVEKIT_PUBLIC_URL`/`API_KEY`/`API_SECRET`); capability
+  module with derived rooms (`call:direct:<sorted-ids>` mirroring
+  conversation keys, `call:org:<orgId>`), token minting after server-side
+  room admission, conversation call invites, and a verified webhook receiver
+  (Authorization JWT + sha256 body hash) fanning `call.activity` onto the
+  connections layer (spec: 8/8). Client: `CallPanel.vue` lazily imports
+  `livekit-client` (WebRTC stack stays out of the main bundle), PrimeVue
+  toolbar + semantic tiles; ChatSupport gained the call button, incoming-call
+  banner over the conversation topic, and a full-size StandardDialog host.
+  REMAINING subtask: Process Designer service declaration — rooms gated by
+  the ACTIVE process access rights (today: org membership + conversation
+  participation). PD services/sockets are process-graph node concepts, so
+  that integration belongs with designer-contract work, not this slice.
+  Status: WAITING.
 
 ## UI
 

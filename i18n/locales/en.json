@@ -2026,6 +2026,20 @@
     "selectWarehouseHint": "Please select warehouse and inventory sources to match this run dimensions.",
     "requisitionRedirect": "Please create a new requisition with these specs."
   },
+  "call": {
+    "title": "Call",
+    "start": "Start call",
+    "join": "Join call",
+    "incoming": "{name} is calling",
+    "leave": "Leave",
+    "connecting": "Connecting…",
+    "participants": "{count} participant(s)",
+    "toggleMic": "Toggle microphone",
+    "toggleCamera": "Toggle camera",
+    "muted": "Muted",
+    "failed": "Call failed",
+    "retry": "Retry"
+  },
   "sketch": {
     "editorTitle": "Sketch",
     "tool": "Tool",
