@@ -56,7 +56,19 @@
 
 ## UI
 
-- [ ] **GSAP motion foundation: patterns + MotionDock cutover + cassette test flight.**
+- [x] **GSAP motion foundation: patterns + MotionDock cutover + cassette test flight.**
+  ### Agent Notes — 2026-09-12
+  Implemented in `agent/impl-design-epics-20260912-101759`. `composables/useMotion.js`
+  ships `loadGsap` (lazy engine import) plus the three documented patterns
+  (`useFollowValue`, `useEnterExit`, `useStateTransition`), all reduced-motion
+  aware. MotionDock rewritten on the patterns with an unchanged behavior
+  contract (unused `spring` prop dropped; no caller passed it). Test flight
+  landed in the queue editor add-cassette dialog: a live `CassetteThumbnail`
+  preview animates from the previous rendered state when cassette parameters
+  change (`useStateTransition` crossfade, 250 ms input debounce). `motion-v`
+  removed from dependencies — GSAP is the only engine. Patterns documented in
+  `composables/README.md`; MotionDock and motion policy entries updated.
+  Status: WAITING.
   GSAP becomes the project animation engine; `motion-v` is removed in the same
   task — no dual engines.
   - Add gsap following project dependency/bundle architecture (client-only,

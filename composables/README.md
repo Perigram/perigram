@@ -148,6 +148,32 @@ import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 
 ---
 
+## useMotion — GSAP motion patterns
+
+```js
+import { loadGsap, useFollowValue, useEnterExit, useStateTransition } from './useMotion.js';
+```
+
+GSAP is the project animation engine, loaded lazily: `loadGsap()` dynamic-imports
+it once per session, and every pattern below only touches the engine from client
+lifecycle hooks, so GSAP never enters the SSR critical path. There is no second
+motion library and no application motion token layer; Aura's
+`--p-transition-duration` still owns generic component states.
+
+| Pattern | Use |
+|---|---|
+| `useFollowValue(initial, { duration, ease })` | Smoothed numeric follow for continuously recomputed targets (pointer proximity, dock magnification). Call `set(target)` as often as input fires; `jump(target)` snaps without animation and is the reduced-motion switch. |
+| `useEnterExit(elRef, active, { y, duration })` | Single-element presence (tooltips, drawers, message rows). The element stays mounted; visibility animates opacity plus a vertical offset; reduced motion resolves to immediate show/hide with no spatial movement. |
+| `useStateTransition(containerRef, { duration, scale })` | Parameter-to-state animation. Call `capture()` while the previous rendered state is still in the DOM, apply the reactive update, then `play()` — a clone of the real previous state crossfades out over the new one. The animation always starts from the actual previous state, never from defaults. The container owns `position: relative` and clipped overflow; reduced motion skips the overlay. |
+
+Every pattern consumes `useReducedMotion()`. Consumers today: `MotionDock`
+(magnification follow + tooltip enter/exit) and the queue editor cassette
+parameter preview (`useStateTransition` on `CassetteThumbnail` re-renders).
+JavaScript motion that PrimeVue cannot provide stays inside its owning derived
+composition per the components motion policy.
+
+---
+
 ## useReducedMotion
 
 ```js
