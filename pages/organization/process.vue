@@ -950,6 +950,13 @@ import { useProcessDesignerRoles } from '~/composables/useProcessDesignerRoles.j
 import { useProcessDesignerScreens } from '~/composables/useProcessDesignerScreens.js';
 import { useProcessDesignerPalette } from '~/composables/useProcessDesignerPalette.js';
 import { useProcessDesignerInspector } from '~/composables/useProcessDesignerInspector.js';
+import {
+  defaultProcessNodeOperation,
+  defaultProcessNodeValueType,
+  humanizeNodeLabel,
+  iconForProcessNode,
+  useProcessDesignerNodeRecords
+} from '~/composables/useProcessDesignerNodeRecords.js';
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
 
@@ -1071,6 +1078,28 @@ const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInfer
 const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen, normalizeScreenContract, defaultEntityType, featureForEntityType });
 
 const designer = reactive(createProcessDesignerContract(cncDomain));
+
+const {
+  processNodeOperations,
+  processNodeOperationLabels,
+  createServicePrincipal,
+  createEntityProfile,
+  createService,
+  createSocket,
+  createStatusDefinition,
+  createValueInput,
+  createProcessNode,
+  defaultEntityType,
+  defaultFeature
+} = useProcessDesignerNodeRecords({
+  designer,
+  translate: key => t(key),
+  featureForEntityType,
+  relationOptionsForEntity,
+  syncEntityProfileIo,
+  initialStatusForEntity,
+  syncProcessNode
+});
 const {
   ensureRecord,
   factoryForType,
@@ -1166,86 +1195,6 @@ const accessLevelOptions = [
 ];
 const processValueTypeOptions = ['string', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'entityRef', 'status'].map(value => ({ label: value, value }));
 const dataMatchingOptions = ['longest', 'shortest', 'cross'].map(value => ({ label: t(`processDesigner.matching.${value}`), value }));
-const processNodeOperations = {
-  'value.math': ['add', 'subtract', 'multiply', 'divide', 'modulo', 'power', 'min', 'max', 'absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt', 'clamp'],
-  'value.string': ['concat', 'replace', 'substring', 'split', 'join', 'length', 'lower', 'upper', 'trim'],
-  'value.logic': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull', 'and', 'or', 'xor', 'nand', 'nor', 'xnor', 'not'],
-  'value.dateTime': ['addDays', 'addHours', 'addMinutes', 'addMonths', 'addDuration', 'subtractDuration', 'differenceDays', 'differenceHours', 'differenceMinutes', 'startOfDay', 'endOfDay'],
-  'predicate.field': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull'],
-  'predicate.logic': ['and', 'or', 'not'],
-  'collection.sort': ['asc', 'desc'],
-  'record.fieldChange': ['set', 'unset', 'append', 'remove']
-};
-const processNodeOperationLabels = {
-  add: t('processDesigner.operationLabels.add'),
-  subtract: t('processDesigner.operationLabels.subtract'),
-  multiply: t('processDesigner.operationLabels.multiply'),
-  divide: t('processDesigner.operationLabels.divide'),
-  modulo: t('processDesigner.operationLabels.modulo'),
-  power: t('processDesigner.operationLabels.power'),
-  min: t('processDesigner.operationLabels.min'),
-  max: t('processDesigner.operationLabels.max'),
-  absolute: t('processDesigner.operationLabels.absolute'),
-  negate: t('processDesigner.operationLabels.negate'),
-  round: t('processDesigner.operationLabels.round'),
-  floor: t('processDesigner.operationLabels.floor'),
-  ceil: t('processDesigner.operationLabels.ceil'),
-  sqrt: t('processDesigner.operationLabels.sqrt'),
-  clamp: t('processDesigner.operationLabels.clamp'),
-  current: t('processDesigner.useCurrentEntity'),
-  parent: t('processDesigner.useParentEntity'),
-  children: t('processDesigner.useChildEntities'),
-  related: t('processDesigner.useRelatedEntities'),
-  concat: t('processDesigner.useJoinText'),
-  template: t('processDesigner.useBuildText'),
-  replace: t('processDesigner.useReplaceText'),
-  lower: t('processDesigner.useLowerText'),
-  upper: t('processDesigner.useUpperText'),
-  trim: t('processDesigner.useTrimText'),
-  substring: t('processDesigner.operationLabels.substring'),
-  split: t('processDesigner.operationLabels.split'),
-  join: t('processDesigner.operationLabels.join'),
-  length: t('processDesigner.operationLabels.length'),
-  eq: t('processDesigner.useEquals'),
-  neq: t('processDesigner.useNotEquals'),
-  gt: t('processDesigner.useGreaterThan'),
-  gte: t('processDesigner.useGreaterOrEqual'),
-  lt: t('processDesigner.useLessThan'),
-  lte: t('processDesigner.useLessOrEqual'),
-  contains: t('processDesigner.useContains'),
-  startsWith: t('processDesigner.operationLabels.startsWith'),
-  endsWith: t('processDesigner.operationLabels.endsWith'),
-  isNull: t('processDesigner.operationLabels.isEmpty'),
-  isNotNull: t('processDesigner.operationLabels.isNotEmpty'),
-  exists: t('processDesigner.useExists'),
-  and: t('processDesigner.useAllConditions'),
-  or: t('processDesigner.useAnyCondition'),
-  xor: t('processDesigner.useExclusiveCondition'),
-  nand: t('processDesigner.operationLabels.nand'),
-  nor: t('processDesigner.operationLabels.nor'),
-  xnor: t('processDesigner.operationLabels.xnor'),
-  not: t('processDesigner.useInvertCondition'),
-  first: t('processDesigner.useFirstItem'),
-  last: t('processDesigner.useLastItem'),
-  index: t('processDesigner.useIndexedItem'),
-  asc: t('processDesigner.operationLabels.ascending'),
-  desc: t('processDesigner.operationLabels.descending'),
-  set: t('processDesigner.operationLabels.set'),
-  unset: t('processDesigner.operationLabels.clear'),
-  append: t('processDesigner.operationLabels.append'),
-  remove: t('processDesigner.operationLabels.remove'),
-  addDays: t('processDesigner.operationLabels.addDays'),
-  addHours: t('processDesigner.operationLabels.addHours'),
-  addMinutes: t('processDesigner.operationLabels.addMinutes'),
-  addMonths: t('processDesigner.operationLabels.addMonths'),
-  addDuration: t('processDesigner.operationLabels.addDuration'),
-  subtractDuration: t('processDesigner.operationLabels.subtractDuration'),
-  differenceDays: t('processDesigner.operationLabels.differenceDays'),
-  differenceHours: t('processDesigner.operationLabels.differenceHours'),
-  differenceMinutes: t('processDesigner.operationLabels.differenceMinutes'),
-  startOfDay: t('processDesigner.operationLabels.startOfDay'),
-  endOfDay: t('processDesigner.operationLabels.endOfDay')
-};
 const relationMutationOptions = [
   { label: t('processDesigner.operationLabels.link'), value: 'append' },
   { label: t('processDesigner.operationLabels.unlink'), value: 'remove' },
@@ -2393,9 +2342,6 @@ function syncOpenBlockEntryContracts() {
   }
 }
 
-function createServicePrincipal(id) {
-  return { id, label: id };
-}
 
 function paletteLabel(item) {
   if (item.labelKey && te(item.labelKey)) return t(item.labelKey);
@@ -2425,49 +2371,10 @@ function paletteGroupLabel(id) {
   return te(key) ? t(key) : humanizeNodeLabel(id);
 }
 
-function humanizeNodeLabel(value = '') {
-  return String(value)
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/[._]/g, ' ')
-    .replace(/^./, letter => letter.toUpperCase());
-}
 
-function defaultEntityType() {
-  return designer.entityOptions[0]?.value || '';
-}
 
-function defaultFeature() {
-  return featureForEntityType(defaultEntityType());
-}
 
-function createEntityProfile(id) {
-  const workflow = createCreatedWorkflow();
-  const profile = {
-    id,
-    entityType: defaultEntityType(),
-    label: id,
-    lifecycle: { mode: 'defaultCreated', workflow },
-    fields: { read: ['identity.*', 'status.*', 'lineage.*'], write: [], private: [] },
-    relations: relationOptionsForEntity(defaultEntityType()).map(option => option.value),
-    stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
-    allowedRoles: { read: [], write: [], admin: [] }
-  };
-  syncEntityProfileIo(profile);
-  return profile;
-}
 
-function createService(id) {
-  return {
-    id,
-    label: id,
-    serviceType: '',
-    commandId: '',
-    inputs: [],
-    outputs: [],
-    access: { runPrincipals: [], viewPrincipals: [] },
-    billing: { mode: 'none', tokenCost: 0, meterKey: '' }
-  };
-}
 
 function createAction(id, actionKind = 'createEntity') {
   const action = {
@@ -2491,21 +2398,7 @@ function createAction(id, actionKind = 'createEntity') {
   return action;
 }
 
-function createSocket(id, direction = 'outbound') {
-  return {
-    id,
-    label: id,
-    direction,
-    entityType: defaultEntityType(),
-    projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
-    receiverLifecycle: { mode: 'defaultCreated', workflow: null },
-    access: { sendRoles: [], receiveRoles: [] }
-  };
-}
 
-function createStatusDefinition(id) {
-  return { id, label: '', statusId: 'STATUS', severity: 'info', color: 'info', icon: 'pi pi-circle-fill' };
-}
 
 function removeStatusDefinition(id) {
   if (!id) return;
@@ -2531,84 +2424,7 @@ function removeStatusDefinition(id) {
   syncNodeData();
 }
 
-function createValueInput(id, structure = 'item') {
-  return {
-    id,
-    label: t(`processDesigner.paletteItems.${structure === 'list' ? 'literalList' : 'literal'}`),
-    valueType: 'string',
-    structure,
-    value: structure === 'list' ? '[]' : ''
-  };
-}
 
-function createProcessNode(id, kind = 'source.literalItem') {
-  const entityKind = processNodeRequiresEntitySelection(kind);
-  const fieldKind = ['record.getField', 'record.fieldChange', 'predicate.field'].includes(kind);
-  const node = {
-    id,
-    label: kind,
-    kind,
-    entityType: entityKind ? defaultEntityType() : '',
-    path: '',
-    type: processType(kind === 'source.currentTime' ? 'dateTime' : 'json'),
-    operation: defaultProcessNodeOperation(kind),
-    value: kind === 'source.literalList' ? [] : kind === 'source.literalTree' ? { branches: [] } : null,
-    fields: [],
-    cases: [],
-    icon: iconForProcessNode(kind),
-    inputs: [],
-    outputs: []
-  };
-  if (kind === 'effect.createEntity') {
-    node.entityType = designer.createEntityOptions[0]?.value || '';
-  }
-  if (kind === 'effect.changeStatus') node.entityType = designer.changeStatusOptions[0]?.value || '';
-  if (kind === 'effect.archiveEntity') node.entityType = designer.archivableEntityOptions[0]?.value || '';
-  if (kind === 'effect.deleteEntity') node.entityType = designer.deleteEntityOptions[0]?.value || '';
-  if (kind === 'producer.join') {
-    node.entityType = designer.entityOptions[0]?.value || '';
-    node.selectedProducerOutputId = '';
-  }
-  if (kind.startsWith('effect.')) {
-    node.trigger = { mode: 'manual' };
-    node.access = { level: kind === 'effect.deleteEntity' ? 'admin' : 'write', grants: [] };
-    node.entryTriggerId = id;
-  }
-  if (kind === 'source.literalList') node.access = 'list';
-  if (kind === 'source.literalTree') node.access = 'tree';
-  if (fieldKind) {
-    const fields = kind === 'record.getField' ? designer.fieldsForBlock() : designer.fieldsForEntity(node.entityType);
-    node.path = fields
-      .find(field => field[kind === 'record.fieldChange' ? 'writable' : 'readable'] !== false)?.value || '';
-  }
-  if (['effect.createEntity', 'effect.runProducer'].includes(kind)) node.status = { to: initialStatusForEntity(node.entityType) };
-  if (kind === 'record.deconstruct') {
-    node.blocks = designer.blocksForEntity(node.entityType).map(block => block.id);
-  }
-  if (['record.getBlock', 'record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(kind)) {
-    const access = kind === 'record.composeBlock' ? 'constructible'
-      : kind === 'record.modifyBlock' ? 'writable'
-        : 'readable';
-    const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(kind);
-    const availableFields = (structural ? designer.fieldsForBlock() : designer.fieldsForEntity(node.entityType))
-      .filter(field => field[access] !== false);
-    node.block = availableFields[0]?.block || designer.blocksForEntity(node.entityType)[0]?.id || designer.blocks[0]?.id || '';
-    if (kind === 'record.getField') {
-      node.path = availableFields.find(field => field.block === node.block)?.value || '';
-    }
-    if (['record.composeBlock', 'record.modifyBlock'].includes(kind)) {
-      node.fields = availableFields.filter(field => field.block === node.block).slice(0, 1).map(field => field.value);
-    }
-  }
-  if (kind === 'read.related') {
-    node.relationKey = relationOptionsForEntity(node.entityType)[0]?.value || '';
-  }
-  if (kind === 'effect.runCommand') node.commandId = designer.commandOptions[0]?.value || '';
-  if (kind === 'effect.generateAttachment') node.attachmentKind = designer.attachmentKindOptions[0]?.value || '';
-  if (kind === 'control.domainEventTrigger') node.eventId = designer.eventOptions[0]?.value || '';
-  syncProcessNode(node);
-  return node;
-}
 
 async function addRole() {
   const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
@@ -3215,14 +3031,7 @@ function applyInferredProcessNodeInputs(record = {}) {
   if (record?.kind) syncProcessNode(record);
 }
 
-function defaultProcessNodeValueType(kind = '', operation = '') {
-  if (kind === 'compare') return ['gt', 'gte', 'lt', 'lte'].includes(operation) ? 'number' : 'string';
-  return 'string';
-}
 
-function defaultProcessNodeOperation(kind = '') {
-  return (processNodeOperations[kind] || [''])[0] || '';
-}
 
 function processNodeOperationOptions(kind = '') {
   const record = typeof kind === 'object' ? kind : { kind };
@@ -3433,16 +3242,6 @@ function processPortLabel(node = {}, port = {}) {
   return processSocketLabel(port.label || port.id);
 }
 
-function iconForProcessNode(kind = '') {
-  if (kind.startsWith('source.')) return 'pi pi-circle-fill';
-  if (kind.startsWith('value.')) return 'pi pi-sliders-h';
-  if (kind.startsWith('collection.') || kind.startsWith('tree.')) return 'pi pi-list';
-  if (kind.startsWith('record.')) return 'pi pi-box';
-  if (kind.startsWith('predicate.')) return 'pi pi-filter';
-  if (kind.startsWith('read.')) return 'pi pi-database';
-  if (kind.startsWith('effect.')) return 'pi pi-bolt';
-  return 'pi pi-directions';
-}
 
 function fieldLabel(entityType = '', path = '') {
   return fieldOptions(entityType).find(option => option.value === path)?.label || path || t('processDesigner.field');
@@ -3727,20 +3526,6 @@ function ensureCustomLifecycleRegion() {
   return workflow.regions[regionId];
 }
 
-function createCreatedWorkflow() {
-  return {
-    schemaVersion: 2,
-    primaryRegion: 'main',
-    regions: {
-      main: {
-        label: 'Lifecycle',
-        initial: 'CREATED',
-        states: { CREATED: { canUpdateMeta: true } },
-        transitions: []
-      }
-    }
-  };
-}
 
 function parseJson(source, fallback) {
   try {
