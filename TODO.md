@@ -169,7 +169,7 @@
   animation. All three chat components remain zero-finding.
   Status: WAITING.
 
-- [ ] **Per-entity layout program: env-friendly variant layouts.**
+- [x] **Per-entity layout program: env-friendly variant layouts.**
   Supersedes `TODO_UI.md` (content folded here; that file is deleted).
   For each entity below, inspect real usage and design variant layouts
   (inline/compact/card/detail) that satisfy its usage flow and are
@@ -251,3 +251,19 @@
   diagnostics/history panels into `#sidebar`; revision cards through
   `ResponsiveGrid variant="bounded" responsive-context="container"`; the
   dimension-correction row as responsive flex. Group verdict: done.
+  ### Agent Notes — 2026-09-12 (group 7/7: user, organization, machine,
+  process_definition, layer_standard, color, requisition)
+  User/Organization/LayerStandard/Color/Machine cards are card-only surfaces
+  with no layout debt (machine and process_definition have no dedicated
+  entity components — they surface through admin/process-designer screens,
+  which own their own shells). RequisitionDetail carried the family defect;
+  rebuilt: lifecycle to `#sidebar`, order-composition title via
+  `ActionToolbar`, item panels through `ResponsiveGrid variant="wide"
+  responsive-context="container"`. Group verdict: done — program complete.
+
+  Program closeout: all 30 entities reviewed across 7 groups. The recurring
+  defect was one pattern — viewport-breakpoint (often arbitrary) two-column
+  splits and card grids hand-rolled inside EntityPage/EntityWorkspace
+  container-query contexts — now replaced everywhere by the canonical
+  `#sidebar` slot, `ResponsiveGrid` container mode, `MetricPanel`,
+  `ActionToolbar`, and `StateBlock` primitives. Status: WAITING.
