@@ -764,7 +764,7 @@ export function validateAttachmentKindDefinition(definition) {
     throw new Error(`Attachment kind ${definition.kind} command creation requires commandId`);
   }
   const editorMode = definition.editor?.mode || 'none';
-  if (!['none', 'text', 'csv', 'layout'].includes(editorMode)) {
+  if (!['none', 'text', 'csv', 'layout', 'sketch'].includes(editorMode)) {
     throw new Error(`Attachment kind ${definition.kind} has invalid editor mode ${editorMode}`);
   }
 }

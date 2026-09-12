@@ -161,6 +161,15 @@
       "preview": {
         "mode": "workbook"
       }
+    },
+    {
+      "bucket": "sketches",
+      "key": "SKETCH",
+      "kind": "SKETCH",
+      "mimeType": "application/json",
+      "preview": {
+        "mode": "sketch"
+      }
     }
   ],
   "commands": [
