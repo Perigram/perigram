@@ -5,19 +5,19 @@
                 <i class="pi pi-box"></i>
                 <div class="flex flex-col">
                     <small class="text-muted-color">{{ $t('entities.batchPile') }}</small>
-                    <span class="font-medium">{{ serial }}</span>
+                    <span class="text-label">{{ serial }}</span>
                 </div>
             </div>
             <Tag v-if="thickness" :value="`${thickness} mm`" severity="secondary" size="small" />
         </div>
-        <div class="grid grid-cols-2 gap-3 text-sm">
+        <div class="grid grid-cols-2 gap-3 text-body">
             <div class="flex flex-col">
                 <small class="text-muted-color">{{ $t('piles.stockTotal') }}</small>
-                <span class="font-medium">{{ stock.total ?? $t('common.notAvailable') }}</span>
+                <span class="text-label">{{ stock.total ?? $t('common.notAvailable') }}</span>
             </div>
             <div class="flex flex-col">
                 <small class="text-muted-color">{{ $t('piles.remaining') }}</small>
-                <span class="font-medium">{{ remaining }}</span>
+                <span class="text-label">{{ remaining }}</span>
             </div>
         </div>
     </div>

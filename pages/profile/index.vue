@@ -5,7 +5,7 @@
                 v-for="tab in profileTabs"
                 :key="tab.key"
                 :to="profileTabRoute(tab.key)"
-                class="border-b-2 px-3 py-3 text-sm no-underline"
+                class="border-b-2 px-3 py-3 no-underline text-body"
                 :class="activeProfileTab === tab.value ? 'border-primary text-primary' : 'border-transparent text-muted-color'"
             >
                 {{ $t(tab.label) }}
@@ -50,7 +50,7 @@
                                         <label>{{ $t('profile.theme') }}</label>
                                         <Panel>
                                                 <div class="flex items-center gap-3">
-                                                    <i class="pi pi-palette text-xl"></i>
+                                                    <i class="pi pi-palette"></i>
                                                     <p class="m-0 italic">{{ $t('profile.themeNotImplemented') }}</p>
                                                 </div>
                                         </Panel>

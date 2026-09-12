@@ -61,7 +61,7 @@
                                     <div class="flex min-w-0 flex-col gap-4">
                                         <div class="flex flex-wrap items-end justify-between gap-3">
                                             <div class="flex min-w-0 flex-wrap items-end gap-2">
-                                                <span class="pb-2 font-medium">{{ $t('auth.permissionAllow') }}</span>
+                                                <span class="pb-2 text-label">{{ $t('auth.permissionAllow') }}</span>
                                                 <Select
                                                     :model-value="grant.level"
                                                     :options="PERMISSION_LEVELS"
@@ -125,6 +125,7 @@
                                                 </label>
                                             </div>
                                         </Panel>
+
 
                                     </div>
                                 </AccordionContent>

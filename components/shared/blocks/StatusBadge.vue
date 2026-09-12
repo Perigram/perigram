@@ -60,7 +60,7 @@ const dotClass = computed(() => ({
   <Tag
     v-else
     :severity="config.severity" 
-    class="max-w-full min-w-0 text-ui-caption font-bold uppercase"
+    class="max-w-full min-w-0 uppercase text-label"
     :icon="config.icon"
   >
     <span class="min-w-0 truncate">{{ label }}</span>

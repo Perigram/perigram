@@ -11,7 +11,7 @@
                 <div class="flex items-center h-full min-w-0 flex-1">
                     <NuxtLink
                         to="/"
-                        class="flex items-center gap-2 no-underline text-primary text-xl font-bold whitespace-nowrap hover:opacity-80 transition-opacity mr-2 shrink-0"
+                        class="flex items-center gap-2 no-underline text-primary whitespace-nowrap hover:opacity-80 transition-opacity mr-2 shrink-0 text-section-heading"
                     >
                         <img src="/logo-light.svg" alt="CutKit" class="h-8 w-auto dark:hidden" />
                         <img src="/logo-dark.svg" alt="CutKit" class="hidden h-8 w-auto dark:block" />
@@ -28,7 +28,7 @@
                             <span v-if="index > 0" class="mx-0.5 shrink-0 text-[var(--ck-chrome-muted)] opacity-50">/</span>
                             <NuxtLink
                                 :to="crumb.to"
-                                class="p-button p-component p-button-text p-button-secondary !text-[var(--ck-chrome-foreground)] text-xs md:text-sm whitespace-nowrap max-w-[80px] sm:max-w-[120px] md:max-w-none truncate px-1 md:px-2"
+                                class="p-button p-component p-button-text p-button-secondary !text-[var(--ck-chrome-foreground)] whitespace-nowrap max-w-[80px] sm:max-w-[120px] md:max-w-none truncate px-1 md:px-2"
                             >
                                 {{ crumb.name }}
                             </NuxtLink>

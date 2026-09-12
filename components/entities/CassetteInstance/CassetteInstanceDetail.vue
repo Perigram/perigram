@@ -14,7 +14,7 @@
                 <div class="flex flex-col gap-4">
                     <div class="flex items-center gap-2">
                         <i class="pi pi-history"></i>
-                        <h2 class="m-0 text-base">{{ $t('cassetteInstance.tracking') }}</h2>
+                        <h2 class="m-0 text-section-heading">{{ $t('cassetteInstance.tracking') }}</h2>
                     </div>
                     <Panel>
                         <StatusHistory :entity="instance" entity-type="cassette_instance" />

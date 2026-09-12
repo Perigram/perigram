@@ -3,7 +3,7 @@
     <DesignerWorkspace layout="canvas" class="h-full">
     <template #palette>
       <div class="flex w-52 flex-col gap-2 rounded-ui border border-content-border bg-content p-3 shadow-overlay">
-        <span class="text-sm font-medium">{{ $t('facadePattern.nodes') }}</span>
+        <span class="text-label">{{ $t('facadePattern.nodes') }}</span>
         <Button
           v-for="nodeType in nodeTypes"
           :key="nodeType"
@@ -17,7 +17,7 @@
 
     <VueFlow v-model:nodes="nodes" v-model:edges="edges" class="bg-surface-ground" fit-view-on-init>
       <template #node-default="node">
-        <div class="rounded-ui border border-content-border bg-content px-3 py-2 text-ui-body">
+        <div class="rounded-ui border border-content-border bg-content px-3 py-2 text-body">
           {{ node.data.label }}
         </div>
       </template>

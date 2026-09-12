@@ -402,7 +402,7 @@ function tonePalette(role) {
             :icon="icon"
             :fields="fields"
           />
-          <span v-else class="min-w-0 flex-1 truncate font-medium text-sm">
+          <span v-else class="min-w-0 flex-1 truncate text-label">
             {{ normalizedId || $t('common.notAvailable') }}
           </span>
         </span>
@@ -430,7 +430,7 @@ function tonePalette(role) {
       <div class="w-[min(34rem,calc(100vw-3rem))]">
         <div class="flex flex-col gap-4 p-4">
           <TraceChain v-if="resolved" :entity="resolved" :entity-type="type" />
-          <small class="text-xs uppercase tracking-[0.08em] text-muted-color">
+          <small class="uppercase text-muted-color text-supporting">
             {{ compactTypeLabel }}
           </small>
           <div v-if="resolved" class="flex flex-wrap items-start justify-between gap-3">

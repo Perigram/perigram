@@ -67,19 +67,19 @@
     <section v-if="selectedWarehouse" class="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <div class="rounded-ui border border-content-border bg-content px-4 py-3">
         <small class="text-muted-color">{{ $t('warehouse.storedBatches') }}</small>
-        <div class="mt-1 text-2xl font-semibold">{{ warehouseStats.totalBatches }}</div>
+        <div class="mt-1 text-metric">{{ warehouseStats.totalBatches }}</div>
       </div>
       <div class="rounded-ui border border-content-border bg-content px-4 py-3">
         <small class="text-muted-color">{{ $t('warehouse.availableSheets') }}</small>
-        <div class="mt-1 text-2xl font-semibold">{{ warehouseStats.totalSheets }}</div>
+        <div class="mt-1 text-metric">{{ warehouseStats.totalSheets }}</div>
       </div>
       <div class="rounded-ui border border-content-border bg-content px-4 py-3">
         <small class="text-muted-color">{{ $t('warehouse.remnants') }}</small>
-        <div class="mt-1 text-2xl font-semibold">{{ warehouseStats.totalRemnants }}</div>
+        <div class="mt-1 text-metric">{{ warehouseStats.totalRemnants }}</div>
       </div>
       <div class="rounded-ui border border-content-border bg-content px-4 py-3">
         <small class="text-muted-color">{{ $t('warehouse.cassetteInstances') }}</small>
-        <div class="mt-1 text-2xl font-semibold">{{ warehouseStats.totalCassetteInstances }}</div>
+        <div class="mt-1 text-metric">{{ warehouseStats.totalCassetteInstances }}</div>
       </div>
     </section>
 

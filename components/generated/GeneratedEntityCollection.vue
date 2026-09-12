@@ -43,7 +43,7 @@
           <button
             v-if="isIdentityNameField(field.path) && detailRouteFor(data)"
             type="button"
-            class="min-w-0 max-w-full truncate text-left font-medium text-[var(--ck-primary-ink)] underline-offset-4 hover:underline"
+            class="min-w-0 max-w-full truncate text-left text-[var(--ck-primary-ink)] underline-offset-4 hover:underline text-label"
             @click="openEntity(data)"
           >
             {{ formatCell(data, field.path) }}

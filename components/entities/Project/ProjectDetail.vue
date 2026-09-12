@@ -13,7 +13,7 @@
             <div class="lg:col-span-3 flex flex-col gap-8">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-list"></i>
-                    <h2 class="m-0 text-base">{{ $t('project.queues') }}</h2>
+                    <h2 class="m-0 text-section-heading">{{ $t('project.queues') }}</h2>
                 </div>
                 
                 <div v-if="queues.length" class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -27,7 +27,7 @@
                 </div>
                 
                 <div v-else-if="!loading" class="flex flex-col items-center py-20">
-                    <i class="pi pi-inbox text-4xl"></i>
+                    <i class="pi pi-inbox"></i>
                     <p>{{ $t('queue.empty') }}</p>
                     <Button :label="$t('queue.createFirst')" icon="pi pi-plus" text @click="$emit('add-queue', project)" />
                 </div>

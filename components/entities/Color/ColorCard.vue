@@ -11,18 +11,18 @@
         <small>{{ color.data?.code || color.identity?.serial || hexCode || '—' }}</small>
       </template>
       <template #compact-content>
-        <div v-if="catalogId" class="mt-3 text-sm">
+        <div v-if="catalogId" class="mt-3 text-body">
           <EntityInlineRef type="catalog" :id="catalogId" />
         </div>
       </template>
       <Divider />
       <div class="flex justify-between items-center gap-4">
         <small class="text-muted-color">{{ $t('catalog.colorCode') }}</small>
-        <span class="font-medium">{{ color.data?.code || color.identity?.serial || hexCode || '—' }}</span>
+        <span class="text-label">{{ color.data?.code || color.identity?.serial || hexCode || '—' }}</span>
       </div>
       <div class="flex justify-between items-center gap-4 mt-2">
         <small class="text-muted-color">{{ $t('assets.color') }}</small>
-        <span class="font-mono">{{ hexCode || '—' }}</span>
+        <span class="text-technical">{{ hexCode || '—' }}</span>
       </div>
       <div v-if="catalogId" class="flex justify-between items-center gap-4 mt-2">
         <small class="text-muted-color">{{ $t('entities.catalog') }}</small>

@@ -820,6 +820,7 @@ onBeforeUnmount(() => {
                 preserveAspectRatio="xMidYMid meet"
               />
               <g v-else-if="isRawSvg(path)" v-html="path" />
+              <!-- Data-driven exception: source drawing text size is geometry. -->
               <text
                 v-else-if="pathKind(path) === 'text'"
                 :x="path.x ?? 0"
@@ -884,7 +885,7 @@ onBeforeUnmount(() => {
                   stroke-width="1.2"
                   vector-effect="non-scaling-stroke"
                 />
-                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-ui-caption">
+                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-supporting">
                   {{ marker.label }}
                 </text>
               </g>
@@ -915,7 +916,7 @@ onBeforeUnmount(() => {
                 @click.stop.prevent="requestDesignerFoldAngleEdit(fold, $event)"
               >
                 <rect :x="-22" :y="-10" :width="44" :height="20" rx="10" fill="currentColor" class="opacity-90" />
-                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-xs">
+                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-supporting">
                   {{ fold.label || fold.angle }}
                 </text>
               </g>
@@ -962,7 +963,7 @@ onBeforeUnmount(() => {
                 @click.stop.prevent="requestDesignerAction(edge.edgeIndex ?? index, edge, $event)"
               >
                 <rect :x="-10" :y="-10" :width="20" :height="20" rx="10" fill="currentColor" class="opacity-90" />
-                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-xs">
+                <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-supporting">
                   +
                 </text>
               </g>
@@ -986,7 +987,7 @@ onBeforeUnmount(() => {
                 fill="currentColor"
                 class="opacity-90"
               />
-              <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-xs">
+              <text text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-supporting">
                 {{ control.label || control.value }}
               </text>
             </g>
@@ -1002,7 +1003,7 @@ onBeforeUnmount(() => {
                   @click.stop.prevent="requestDesignerFaceCommand(face, 'menu', $event)"
                 >
                   <rect x="-14" y="-14" width="28" height="28" rx="14" fill="currentColor" class="opacity-90" />
-                  <text y="-3" text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-sm">
+                  <text y="-3" text-anchor="middle" dominant-baseline="middle" class="fill-[var(--p-content-background)] text-body">
                     ...
                   </text>
                 </g>
@@ -1029,7 +1030,7 @@ onBeforeUnmount(() => {
                     :y="controlChipRect(control).y + 8"
                     text-anchor="middle"
                     dominant-baseline="middle"
-                    class="fill-[var(--p-content-background)] text-ui-caption"
+                    class="fill-[var(--p-content-background)] text-supporting"
                   >
                     {{ controlValueLabel(control.value) }}
                   </text>

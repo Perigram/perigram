@@ -116,7 +116,7 @@
       </template>
       <div class="flex flex-col gap-3">
         <div v-for="field in promptFields" :key="field.id" class="flex flex-col gap-1">
-          <span v-if="!(relationCreatorMode && field.creator?.actionId)" class="text-xs text-muted-color">{{ field.label || field.id }}</span>
+          <span v-if="!(relationCreatorMode && field.creator?.actionId)" class="text-muted-color text-supporting">{{ field.label || field.id }}</span>
           <div
             v-if="field.type === 'cassetteParameters'"
             class="grid grid-cols-2 gap-2"
@@ -126,7 +126,7 @@
               :key="parameter.name"
               class="flex flex-col gap-1"
             >
-              <span class="text-xs text-muted-color">{{ parameter.name }}</span>
+              <span class="text-muted-color text-supporting">{{ parameter.name }}</span>
               <InputText
                 v-model="promptValues[field.id][parameter.name]"
                 type="number"
@@ -142,7 +142,7 @@
               :key="variable.name"
               class="flex flex-col gap-1"
             >
-              <span class="text-xs text-muted-color">{{ variable.name }}</span>
+              <span class="text-muted-color text-supporting">{{ variable.name }}</span>
               <Select
                 v-if="variable.type === 'boolean'"
                 v-model="promptValues[field.id][variable.name]"
@@ -205,7 +205,7 @@
             />
             <div v-if="relationCreatorMode && field.creator?.actionId" class="flex flex-col gap-3">
               <label v-for="creatorField in relationCreatorFields" :key="creatorField.id" class="flex flex-col gap-1">
-                <span class="text-xs text-muted-color">{{ creatorField.label || creatorField.id }}</span>
+                <span class="text-muted-color text-supporting">{{ creatorField.label || creatorField.id }}</span>
                 <Select
                   v-if="creatorField.type === 'entity'"
                   v-model="relationCreatorValues[creatorField.id]"
@@ -217,7 +217,7 @@
                 />
                 <div v-else-if="creatorField.type === 'cassetteParameters'" class="grid grid-cols-2 gap-2">
                   <label v-for="parameter in relationCreatorParameterFields(creatorField)" :key="parameter.name" class="flex flex-col gap-1">
-                    <span class="text-xs text-muted-color">{{ parameter.name }}</span>
+                    <span class="text-muted-color text-supporting">{{ parameter.name }}</span>
                     <InputText v-model="relationCreatorValues[creatorField.id][parameter.name]" type="number" />
                   </label>
                 </div>

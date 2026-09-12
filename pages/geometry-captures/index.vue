@@ -445,7 +445,7 @@ const confirmCapture = async (capture) => {
                   <Tag :value="$t(`geometryCapture.modes.${capture.data?.mode || 'REMNANT'}`)" severity="secondary" size="small" />
                   <Tag :value="getPrimaryState(capture.status, 'DRAFT')" :severity="statusSeverity(capture)" size="small" />
                 </div>
-                <strong class="truncate text-sm">{{ captureTitle(capture) }}</strong>
+                <strong class="truncate text-label">{{ captureTitle(capture) }}</strong>
                 <small class="truncate text-muted-color">{{ captureMeta(capture) }}</small>
               </div>
             </div>

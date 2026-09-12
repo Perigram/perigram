@@ -18,7 +18,7 @@
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
             <TraceChain v-if="effectivePopupShowTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" />
-                    <small v-if="inlineTypeLabel" class="text-xs uppercase tracking-[0.08em] text-muted-color">
+                    <small v-if="inlineTypeLabel" class="uppercase text-muted-color text-supporting">
                         {{ inlineTypeLabel }}
                     </small>
                     <div class="flex flex-wrap items-start justify-between gap-3">
@@ -107,7 +107,7 @@
                 </div>
             </div>
             <template v-if="$slots.subtitle">
-                <div class="mt-2 text-sm text-muted-color">
+                <div class="mt-2 text-muted-color text-body">
                     <slot name="subtitle" />
                 </div>
             </template>
@@ -118,7 +118,7 @@
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
                     <TraceChain v-if="effectivePopupShowTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" />
-                    <small v-if="inlineTypeLabel" class="text-xs uppercase tracking-[0.08em] text-muted-color">
+                    <small v-if="inlineTypeLabel" class="uppercase text-muted-color text-supporting">
                         {{ inlineTypeLabel }}
                     </small>
                     <div class="flex flex-wrap items-start justify-between gap-3">
@@ -201,7 +201,7 @@
                 </template>
             </template>
             <template #subtitle v-if="$slots.subtitle">
-                <div class="text-sm text-muted-color">
+                <div class="text-muted-color text-body">
                     <slot name="subtitle" />
                 </div>
             </template>

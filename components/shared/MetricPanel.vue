@@ -1,8 +1,8 @@
 <template>
   <Panel>
     <div v-if="title || subtitle" class="mb-4 flex flex-col gap-1">
-      <h2 v-if="title" class="m-0 text-ui-title font-semibold">{{ title }}</h2>
-      <p v-if="subtitle" class="m-0 text-ui-body text-muted-color">{{ subtitle }}</p>
+      <h2 v-if="title" class="m-0 text-section-heading">{{ title }}</h2>
+      <p v-if="subtitle" class="m-0 text-body text-muted-color">{{ subtitle }}</p>
     </div>
 
     <div :class="metricGridClass">
@@ -11,8 +11,8 @@
         :key="metric.key || metric.label"
         class="px-3 py-3"
       >
-        <small class="text-ui-caption text-muted-color">{{ metric.label }}</small>
-        <div class="mt-1 text-ui-display font-semibold">{{ metric.value }}</div>
+        <small class="text-label text-muted-color">{{ metric.label }}</small>
+        <div class="mt-1 text-metric">{{ metric.value }}</div>
       </div>
     </div>
 

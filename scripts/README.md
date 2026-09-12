@@ -140,7 +140,8 @@ flags verbatim paragraphs that appear in more than one README, so canonical
 contracts stay in one canonical file instead of being restated in several.
 
 `npx vitest run shared/design-system.spec.js` enforces the PrimeVue-first visual
-boundary. It rejects arbitrary typography, raw palette/surface borders,
+boundary. It rejects raw font-size, weight, line-height, tracking, and family
+utilities outside the eight semantic typography aliases, raw palette/surface borders,
 nonsemantic radii and shadows, non-allowlisted scoped CSS, duplicated runtime
 theme overrides, direct global PrimeVue selectors or variable declarations,
 `!important` runtime rules, and global focus suppression. It also reconciles source-derived

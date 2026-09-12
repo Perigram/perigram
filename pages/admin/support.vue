@@ -19,8 +19,8 @@
                 class="hidden md:flex h-full items-center justify-center p-8 text-center"
             >
                 <div class="flex flex-col items-center gap-4 opacity-40">
-                    <i class="pi pi-comments text-6xl"></i>
-                    <p class="text-lg font-bold uppercase tracking-widest m-0">{{ $t('admin.selectChatPrompt') }}</p>
+                    <i class="pi pi-comments"></i>
+                    <p class="uppercase m-0 text-label">{{ $t('admin.selectChatPrompt') }}</p>
                 </div>
             </div>
         </div>
