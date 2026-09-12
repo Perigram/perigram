@@ -18,6 +18,8 @@ const desiredTopics = new Set()
 
 const onlineUserIds = computed(() => new Set(onlineUsers.value.map(entry => entry.userId)))
 
+let syncAttempts = 0
+
 async function syncSubscriptions() {
     if (!connectionId || !desiredTopics.size) return
     if (syncing) {
@@ -25,19 +27,34 @@ async function syncSubscriptions() {
         return
     }
     syncing = true
+    let ok = false
     try {
         await $fetch('/api/connections/subscriptions', {
             method: 'POST',
             body: { connectionId, topics: Array.from(desiredTopics) }
         })
+        ok = true
     } catch (error) {
         console.error('Failed to sync connection subscriptions:', error)
-    } finally {
-        syncing = false
+    }
+    syncing = false
+    if (ok) {
+        syncAttempts = 0
         if (pendingSync) {
             pendingSync = false
             syncSubscriptions()
         }
+        return
+    }
+    if (syncAttempts < 5) {
+        syncAttempts += 1
+        pendingSync = true
+        setTimeout(() => {
+            if (pendingSync && !syncing) {
+                pendingSync = false
+                syncSubscriptions()
+            }
+        }, 750 * syncAttempts)
     }
 }
 

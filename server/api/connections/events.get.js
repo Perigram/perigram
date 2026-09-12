@@ -22,14 +22,14 @@ export default defineEventHandler(async (event) => {
     })
     connectionId = registration.id
 
-    await eventStream.push(
+    eventStream.push(
         JSON.stringify({
             type: 'ready',
             connectionId: registration.id,
             topics: registration.topics,
             presence: registration.presence
         })
-    )
+    ).catch(() => {})
 
     eventStream.onClosed(async () => {
         clearInterval(heartbeatInterval)
