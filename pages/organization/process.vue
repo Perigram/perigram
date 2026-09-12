@@ -295,7 +295,7 @@
                     </div>
                     <small class="text-muted-color">{{ $t('processDesigner.actionRolesHelp') }}</small>
                   </div>
-                  <Panel v-if="selectedEntityAvailable" :header="$t('processDesigner.producerWorkflow')" class="mt-0">
+                  <Panel v-if="selectedEntityAvailable" :header="$t('processDesigner.createdEntity')" class="mt-0">
                         <div class="flex flex-col gap-3">
                           <Tag :value="`${selectedEntity.producerOutputId} · ${selectedEntity.entityType}`" severity="info" size="small" />
         <div class="flex flex-col gap-1">
@@ -406,6 +406,53 @@
                     <label>{{ $t('processDesigner.service') }}</label>
                     <Select v-model="selectedProcessNode.commandId" :options="commandOptions" option-label="label" option-value="value" filter @change="syncNodeData" />
                   </div>
+                  <Panel v-if="selectedProcessNode.kind === 'effect.runCommand' && selectedProcessNode.commandId" :header="$t('processDesigner.commandService')" toggleable collapsed>
+                    <div class="flex flex-col gap-3">
+                      <Message v-if="!selectedCommandService" severity="secondary">{{ $t('processDesigner.commandServiceNone') }}</Message>
+                      <div v-if="selectedCommandService" class="flex flex-col gap-3">
+                        <div class="flex flex-col gap-1">
+                          <label>{{ $t('processDesigner.runPrincipals') }}</label>
+                          <MultiSelect v-model="selectedCommandService.access.runPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                          <label>{{ $t('processDesigner.viewPrincipals') }}</label>
+                          <MultiSelect v-model="selectedCommandService.access.viewPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                          <label>{{ $t('processDesigner.serviceBillingMode') }}</label>
+                          <Select v-model="selectedCommandService.billing.mode" :options="serviceBillingModeOptions" option-label="label" option-value="value" />
+                        </div>
+                        <div v-if="selectedCommandService.billing.mode === 'prepaidTokens'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div class="flex flex-col gap-1">
+                            <label>{{ $t('processDesigner.serviceTokenCost') }}</label>
+                            <InputNumber v-model="selectedCommandService.billing.tokenCost" :min="0" :max-fraction-digits="2" class="w-full" />
+                          </div>
+                          <div class="flex flex-col gap-1">
+                            <label>{{ $t('processDesigner.serviceMeterKey') }}</label>
+                            <InputText v-model="selectedCommandService.billing.meterKey" class="w-full" />
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        v-if="!selectedCommandService"
+                        icon="pi pi-plus"
+                        :label="$t('processDesigner.commandServiceCreate')"
+                        size="small"
+                        severity="secondary"
+                        outlined
+                        @click="createCommandServiceForSelectedNode"
+                      />
+                      <Button
+                        v-else
+                        icon="pi pi-trash"
+                        :label="$t('common.delete')"
+                        severity="danger"
+                        outlined
+                        size="small"
+                        @click="removeSelectedCommandService"
+                      />
+                    </div>
+                  </Panel>
                   <div v-if="selectedProcessNode.kind === 'producer.join'" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.entityType') }}</label>
                     <Select
@@ -620,63 +667,9 @@
                   <div class="flex flex-wrap gap-1">
                     <Tag v-for="item in selectedRoleAccessSummary" :key="item.key" :value="`${item.text} · ${item.contributor.label}`" size="small" />
                   </div>
-                  <Panel :header="$t('processDesigner.roleGrants')" toggleable collapsed>
-                    <PermissionEditor :permissions="selectedRoleGrantPermissions" :features="permissionFeatureOptions" @save="saveSelectedRoleGrants" />
-                  </Panel>
                   <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedRole" />
                   <Button icon="pi pi-users" :label="$t('organization.openTeam')" severity="secondary" outlined size="small" @click="navigateTo('/organization/users')" />
                 </div>
-
-                <Panel :header="$t('processDesigner.commandServices')" toggleable collapsed>
-                  <div class="flex flex-col gap-3">
-                    <div class="flex flex-wrap gap-2">
-                      <Tag
-                        v-for="service in serviceList"
-                        :key="service.id"
-                        :value="service.label || service.id"
-                        :severity="selectedServiceId === service.id ? 'success' : 'secondary'"
-                        class="cursor-pointer"
-                        @click="selectedServiceId = service.id"
-                      />
-                    </div>
-                    <div v-if="selectedServiceRecord" class="flex flex-col gap-3">
-                      <div class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.commandId') }}</label>
-                        <Select v-model="selectedServiceRecord.commandId" :options="commandOptions" option-label="label" option-value="value" @change="syncServiceFromCommand(selectedServiceRecord)" />
-                      </div>
-                      <div class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.runPrincipals') }}</label>
-                        <MultiSelect v-model="selectedServiceRecord.access.runPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                      </div>
-                      <div class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.viewPrincipals') }}</label>
-                        <MultiSelect v-model="selectedServiceRecord.access.viewPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                      </div>
-                      <div class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.serviceBillingMode') }}</label>
-                        <Select v-model="selectedServiceRecord.billing.mode" :options="serviceBillingModeOptions" option-label="label" option-value="value" />
-                      </div>
-                      <div v-if="selectedServiceRecord.billing.mode === 'prepaidTokens'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div class="flex flex-col gap-1">
-                          <label>{{ $t('processDesigner.serviceTokenCost') }}</label>
-                          <InputNumber v-model="selectedServiceRecord.billing.tokenCost" :min="0" :max-fraction-digits="2" class="w-full" />
-                        </div>
-                        <div class="flex flex-col gap-1">
-                          <label>{{ $t('processDesigner.serviceMeterKey') }}</label>
-                          <InputText v-model="selectedServiceRecord.billing.meterKey" class="w-full" />
-                        </div>
-                      </div>
-                      <Panel :header="$t('processDesigner.outputs')" toggleable collapsed>
-                        <div class="flex flex-wrap gap-2">
-                          <Tag v-for="input in selectedServiceRecord.inputs" :key="input.id" :value="input.entityType || input.id" size="small" />
-                          <Tag v-for="output in selectedServiceRecord.outputs" :key="output.id" :value="output.entityType || output.id" size="small" severity="success" />
-                        </div>
-                      </Panel>
-                      <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedService" />
-                    </div>
-                    <Button icon="pi pi-plus" :label="$t('processDesigner.addService')" size="small" severity="secondary" outlined @click="addService" />
-                  </div>
-                </Panel>
 
                 <Panel v-if="socketList.length" :header="$t('processDesigner.sockets')" toggleable collapsed>
                   <div class="flex flex-col gap-3">
@@ -1447,16 +1440,31 @@ const selectedSocketId = ref('');
 const selectedServiceRecord = computed(() => draft.value?.data?.services?.[selectedServiceId.value] || serviceList.value[0] || null);
 const selectedSocketRecord = computed(() => draft.value?.data?.sockets?.[selectedSocketId.value] || socketList.value[0] || null);
 const selectedEntityAvailable = computed(() => Boolean(selectedEntity.value?.producerOutputId));
-function addService() {
+const selectedCommandService = computed(() => {
+  const node = selectedProcessNode.value;
+  if (node?.kind !== 'effect.runCommand' || !node.commandId) return null;
+  return serviceList.value.find(service => service.commandId === node.commandId) || null;
+});
+function createCommandServiceForSelectedNode() {
+  const node = selectedProcessNode.value;
+  if (node?.kind !== 'effect.runCommand' || !node.commandId) return;
   const id = `service_${Date.now()}`;
+  const record = createService(id);
+  record.commandId = node.commandId;
+  const command = cncDomain.commands?.[node.commandId];
+  record.label = command?.label || node.commandId;
+  record.serviceType = command?.service || '';
+  record.inputs = commandInputs(command);
+  record.outputs = commandOutputs(command);
   draft.value.data.services ||= {};
-  draft.value.data.services[id] = createService(id);
-  selectedServiceId.value = id;
+  draft.value.data.services[id] = record;
+  syncNodeData();
 }
-function removeSelectedService() {
-  if (!selectedServiceRecord.value) return;
-  delete draft.value.data.services[selectedServiceRecord.value.id];
-  selectedServiceId.value = '';
+function removeSelectedCommandService() {
+  const record = selectedCommandService.value;
+  if (!record) return;
+  delete draft.value.data.services[record.id];
+  syncNodeData();
 }
 function addSocket() {
   const id = `socket_${Date.now()}`;
@@ -4231,11 +4239,6 @@ function syncServiceFromCommand(service = selectedServiceRecord.value) {
   syncNodeData();
 }
 
-function saveSelectedRoleGrants(permissions = {}) {
-  if (!selectedRoleId.value || !draft.value?.data) return;
-  draft.value.data.roleGrants ||= {};
-  draft.value.data.roleGrants[selectedRoleId.value] = permissionGrants(permissions);
-}
 
 function openGrantEditor(kind, index, feature) {
   if (!feature) return;
