@@ -11,19 +11,18 @@
                 <Button :label="$t('sheetDesign.exportGCode')" icon="pi pi-file-export" text />
         </template>
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
-            <div class="lg:col-span-3 flex flex-col gap-8">
-                <Panel>
-                    <SheetDesignEditor v-if="canEdit" :design="design" editable @saved="$emit('saved', $event)" />
-                    <GeometryPreview v-else :entity="design" />
-                </Panel>
+        <div class="flex flex-col gap-8">
+            <Panel>
+                <SheetDesignEditor v-if="canEdit" :design="design" editable @saved="$emit('saved', $event)" />
+                <GeometryPreview v-else :entity="design" />
+            </Panel>
 
-                <Panel>
-                    <DataBlock entity-type="sheetDesign" :entity="design" :fields="SHEET_DESIGN_FIELDS" />
-                </Panel>
-            </div>
+            <Panel>
+                <DataBlock entity-type="sheetDesign" :entity="design" :fields="SHEET_DESIGN_FIELDS" />
+            </Panel>
+        </div>
 
-            <!-- Sidebar -->
+        <template #sidebar>
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('cassetteInstance.tracking')">
                     <StatusHistory :entity="design" entity-type="sheet_design" />
@@ -72,7 +71,7 @@
                     </div>
                 </Panel>
             </div>
-        </div>
+        </template>
     </EntityPage>
 </template>
 
