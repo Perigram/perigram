@@ -15,6 +15,7 @@ import * as sheetsService from '~/server/features/sheets/service.js';
 import * as usersService from '~/server/features/users/service.js';
 import * as warehousesService from '~/server/features/warehouses/service.js';
 import { resolveProcessAuth } from '~/server/features/process-definitions/runtime.js';
+import * as connectionsService from '~/server/features/connections/service.js';
 import { actionToLevel, levelAtLeast, normalizePermissionGrants } from '#shared/access-control.js';
 import * as repository from './repository.js';
 import { MESSAGE_SENDER } from './const.js';
@@ -86,10 +87,6 @@ export async function listMessages(match) {
     return await repository.find(match, messageProjection());
 }
 
-export async function listMessagesSince(match, timestamp) {
-    return await repository.findSince(match, timestamp, messageProjection());
-}
-
 export async function listUserConversations(auth) {
     const userId = auth?.userId;
     if (!userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
@@ -107,7 +104,14 @@ export async function listAdminSupportConversations(auth) {
 
 export async function markConversationRead(auth, body = {}) {
     const context = await getConversationContextByKey(auth, body.conversationKey || null);
-    return await repository.markRead(context.conversationKey, auth.userId);
+    const read = await repository.markRead(context.conversationKey, auth.userId);
+    connectionsService.publish(`conversation:${context.conversationKey}`, {
+        type: 'read',
+        conversationKey: context.conversationKey,
+        userId: auth.userId,
+        at: read?.lastReadAt || new Date().toISOString()
+    });
+    return read;
 }
 
 export async function listEntityOptions(auth, type, query = '', recipientUserId = null) {
@@ -178,7 +182,7 @@ export async function sendAdminSupportMessage(auth, customerId, body = {}) {
 async function insertMessage({ context, sender, senderUserId, message, entityRefs, auth, recipientUserId = null }) {
     const refs = await normalizeEntityRefs(entityRefs, auth, { recipientUserId });
     const text = normalizeMessage(message, refs);
-    return await repository.insert({
+    const inserted = await repository.insert({
         userId: context.kind === 'support' ? context.participants[0] : null,
         conversationKey: context.conversationKey,
         conversationKind: context.kind,
@@ -189,7 +193,39 @@ async function insertMessage({ context, sender, senderUserId, message, entityRef
         entityRefs: refs,
         timestamp: new Date()
     }, messageProjection());
+    notifyConversationEvent(context, inserted);
+    return inserted;
 }
+
+/**
+ * Fanout for a persisted message: conversation subscribers receive the
+ * message, each participant's user topic receives an inbox ping for badge and
+ * list refreshes, and support-channel messages also ping the admin topic.
+ */
+function notifyConversationEvent(context, message) {
+    connectionsService.publish(`conversation:${context.conversationKey}`, {
+        type: 'message',
+        conversationKey: context.conversationKey,
+        message
+    });
+    for (const participant of context.participants || []) {
+        connectionsService.publish(`user:${participant}`, {
+            type: 'support.inbox',
+            conversationKey: context.conversationKey
+        });
+    }
+    if (context.kind === 'support') {
+        connectionsService.publish('admin-support', {
+            type: 'support.inbox',
+            conversationKey: context.conversationKey
+        });
+    }
+}
+
+connectionsService.registerTopicAuthorizer('conversation:', async (auth, topic) => {
+    const context = await getConversationContextByKey(auth, topic.slice('conversation:'.length));
+    return Boolean(context);
+});
 
 function normalizeMessage(message, entityRefs = []) {
     const text = typeof message === 'string' ? message.trim() : '';

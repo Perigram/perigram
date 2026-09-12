@@ -3,59 +3,21 @@ import * as supportService from '~/server/features/support/service.js'
 export default defineEventHandler(async (event) => {
     const auth = event.context?.auth
     if (!auth?.userId || !auth?.isAdmin) {
-        setResponseStatus(401)
+        setResponseStatus(event, 401)
         return
     }
 
-    const eventStream = createEventStream(event)
     const customerId = event.context.params.user_id
     const context = supportService.getAdminSupportContext(customerId)
     const messages = await supportService.listMessages(context.match)
     await supportService.markConversationRead(auth, { conversationKey: context.conversationKey })
 
-    let lastTimestamp = new Date(0)
-    eventStream.push(
-        JSON.stringify({
-            type: 'initial',
-            data: messages,
-            currentUserId: auth.userId,
-            conversation: {
-                conversationKey: context.conversationKey,
-                kind: context.kind
-            }
-        })
-    )
-    if (messages.length > 0) {
-        lastTimestamp = messages[messages.length - 1].timestamp
-    }
-    const interval = setInterval(async () => {
-        const newMessages = await supportService.listMessagesSince(context.match, lastTimestamp)
-        if (newMessages.length > 0) {
-            lastTimestamp = newMessages[newMessages.length - 1].timestamp
-            await supportService.markConversationRead(auth, { conversationKey: context.conversationKey })
-            await eventStream.push(
-                JSON.stringify({
-                    type: 'newMessages',
-                    data: newMessages
-                })
-            )
+    return {
+        data: messages,
+        currentUserId: auth.userId,
+        conversation: {
+            conversationKey: context.conversationKey,
+            kind: context.kind
         }
-    }, 1000)
-
-    const heartbeatInterval = setInterval(async () => {
-        await eventStream.push(
-            JSON.stringify({
-                type: 'heartbeat',
-                ts: Date.now()
-            })
-        )
-    }, 30000)
-
-    eventStream.onClosed(async () => {
-        clearInterval(heartbeatInterval)
-        clearInterval(interval)
-        await eventStream.close()
-    })
-
-    return eventStream.send()
+    }
 })

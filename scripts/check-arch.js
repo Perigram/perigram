@@ -22,6 +22,7 @@ function featureToEntityType(feature) {
 }
 const CAPABILITY_FEATURES = [
   'config-bot',
+  'connections',
   'entity-events',
   'files',
   'billing',

@@ -109,13 +109,20 @@
                         class="flex min-w-0 items-center gap-2 rounded-ui border border-content-border bg-content p-3 text-left transition-colors hover:border-primary md:gap-3"
                         @click="openConversation(conversation)"
                     >
-                        <Avatar
-                            :image="conversationAvatar(conversation)"
-                            :label="conversationLabel(conversation).charAt(0).toUpperCase()"
-                            shape="circle"
-                            size="normal"
-                            class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
-                        />
+                        <div class="relative shrink-0">
+                            <Avatar
+                                :image="conversationAvatar(conversation)"
+                                :label="conversationLabel(conversation).charAt(0).toUpperCase()"
+                                shape="circle"
+                                size="normal"
+                                class="bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                            />
+                            <span
+                                v-if="conversation.conversationKind === 'direct' && participantOnline(conversation)"
+                                class="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-ui bg-status-success"
+                                :aria-label="$t('support.online')"
+                            />
+                        </div>
                         <div class="min-w-0 flex-1">
                             <div class="flex min-w-0 items-center gap-2">
                                 <span class="truncate text-label">{{ conversationLabel(conversation) }}</span>
@@ -308,6 +315,7 @@ import EntityInlineRef from '~/components/shared/EntityInlineRef.vue'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
 import StateBlock from '~/components/shared/StateBlock.vue'
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState'
+import { useConnections } from '~/composables/useConnections.js'
 import { useAuthStore } from '~/stores/auth'
 import { useSupportChatStore } from '~/stores/supportChat'
 
@@ -328,9 +336,10 @@ const supportChatStore = useSupportChatStore()
 const message = ref('')
 const messages = ref([])
 const isLoading = ref(false)
-const eventSource = ref(null)
 const messagesContainer = ref(null)
 const currentUserId = ref(authStore.userData?.id || authStore.userData?.userId || null)
+let unsubscribeConversation = null
+let conversationLoadToken = 0
 const entityComposerVisible = ref(false)
 const entityDraft = ref({ type: 'project', id: '' })
 const entityRefs = ref([])
@@ -398,7 +407,6 @@ const sendMessage = async () => {
         })
         message.value = ''
         entityRefs.value = []
-        await supportChatStore.refresh()
     } catch (error) {
         console.error('Failed to send message:', error)
     } finally {
@@ -406,44 +414,61 @@ const sendMessage = async () => {
     }
 }
 
-const connect = async () => {
-    if (!activeConversation.value) return
-    if (unref(eventSource)) {
-        unref(eventSource).close()
-    }
-    messages.value = []
-    const params = new URLSearchParams()
-    const recipientUserId = activeConversation.value.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null
-    if (recipientUserId) params.set('recipientUserId', recipientUserId)
-    const url = params.toString() ? `/api/support/messages?${params.toString()}` : '/api/support/messages'
-    eventSource.value = new EventSource(url)
+const { onlineUserIds } = useConnections()
 
-    unref(eventSource).onmessage = async (event) => {
-        try {
-            const parsed = JSON.parse(event.data)
-            if (parsed.type === 'initial') {
-                messages.value = parsed.data
-                currentUserId.value = parsed.currentUserId || currentUserId.value
-                if (parsed.conversation?.kind && activeConversation.value) {
-                    activeConversation.value.conversationKey = parsed.conversation.conversationKey || activeConversation.value.conversationKey
-                    activeConversation.value.conversationKind = parsed.conversation.kind
-                }
-            } else if (parsed.type === 'newMessages') {
-                messages.value.push(...parsed.data)
-            }
-            await supportChatStore.markRead(activeConversation.value.conversationKey)
-        } catch (e) {
-            console.error('Error parsing SSE message:', e)
-        } finally {
+const participantOnline = (conversation) => {
+    const participant = conversation?.conversationKind === 'direct'
+        ? participantUserId(conversation)
+        : null
+    return Boolean(participant && onlineUserIds.value.has(participant))
+}
+
+const activeConversationKey = computed(() => activeConversation.value?.conversationKey || null)
+
+const loadConversation = async () => {
+    if (!activeConversation.value) return
+    const token = ++conversationLoadToken
+    messages.value = []
+    const recipientUserId = activeConversation.value.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null
+    try {
+        const snapshot = await $fetch('/api/support/messages', {
+            query: recipientUserId ? { recipientUserId } : {}
+        })
+        if (token !== conversationLoadToken) return
+        messages.value = snapshot?.data || []
+        currentUserId.value = snapshot?.currentUserId || currentUserId.value
+        if (snapshot?.conversation?.kind && activeConversation.value) {
+            activeConversation.value.conversationKey = snapshot.conversation.conversationKey || activeConversation.value.conversationKey
+            activeConversation.value.conversationKind = snapshot.conversation.kind
+        }
+        await supportChatStore.markRead(activeConversation.value.conversationKey)
+    } catch (error) {
+        console.error('Failed to load conversation:', error)
+    } finally {
+        if (token === conversationLoadToken) {
             await nextTick()
             scrollToBottom()
         }
     }
-
-    unref(eventSource).onerror = (err) => {
-        console.error('SSE connection error:', err)
-    }
 }
+
+watch(
+    [activeConversationKey, supportDialog, () => props.embedded],
+    ([key, dialogOpen, embedded]) => {
+        if (unsubscribeConversation) {
+            unsubscribeConversation()
+            unsubscribeConversation = null
+        }
+        if (!key || !(dialogOpen || embedded)) return
+        unsubscribeConversation = useConnections().subscribe(`conversation:${key}`, (payload) => {
+            if (payload?.type !== 'message') return
+            messages.value.push(payload.message)
+            supportChatStore.markRead(key)
+            nextTick().then(scrollToBottom)
+        })
+        loadConversation()
+    }
+)
 
 onMounted(() => {
     if (authStore.userIsSet) supportChatStore.connect()
@@ -451,8 +476,9 @@ onMounted(() => {
     if (chatTarget.value?.userId) openDirectTarget()
 })
 onBeforeUnmount(() => {
-    if (unref(eventSource)) {
-        unref(eventSource).close()
+    if (unsubscribeConversation) {
+        unsubscribeConversation()
+        unsubscribeConversation = null
     }
 })
 
@@ -463,13 +489,6 @@ watch(chatTarget, () => {
 watch(supportDialog, (isOpen) => {
     if (isOpen && chatTarget.value?.userId) openDirectTarget()
 })
-
-watch(
-    [activeConversation, supportDialog, () => props.embedded],
-    ([conversation, dialogOpen, embedded]) => {
-        if (conversation && (dialogOpen || embedded)) connect()
-    }
-)
 
 const formatTime = (timestamp, withoutTime) => {
     const date = new Date(timestamp)
@@ -655,10 +674,6 @@ const openConversation = async (conversation) => {
 const showInbox = () => {
     activeConversation.value = null
     chatTarget.value = null
-    if (unref(eventSource)) {
-        unref(eventSource).close()
-        eventSource.value = null
-    }
 }
 
 const closeChat = () => {

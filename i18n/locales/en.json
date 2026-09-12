@@ -1716,6 +1716,7 @@
     "addEntity": "Add entity",
     "openChat": "Open chats",
     "noMessages": "No messages",
+    "online": "Online",
     "noConversations": "No conversations yet",
     "selectConversation": "Select a conversation or start a new one",
     "recipientChatOnlyWarning": "{label} is unavailable to the recipient outside this chat",

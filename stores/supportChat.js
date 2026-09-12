@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
+import { useConnections } from '~/composables/useConnections.js';
 
 export const useSupportChatStore = defineStore('supportChat', () => {
     const authStore = useAuthStore();
@@ -8,7 +9,7 @@ export const useSupportChatStore = defineStore('supportChat', () => {
     const totalUnread = ref(0);
     const connected = ref(false);
     const error = ref(null);
-    let refreshInterval = null;
+    let unsubscribeInbox = null;
 
     const supportConversation = computed(() => conversations.value.find(item => item.conversationKind === 'support') || null);
 
@@ -28,15 +29,18 @@ export const useSupportChatStore = defineStore('supportChat', () => {
     }
 
     function connect() {
-        if (refreshInterval || process.server || !authStore.userIsSet) return;
+        if (unsubscribeInbox || process.server || !authStore.userIsSet) return;
         refresh();
-        refreshInterval = setInterval(refresh, 5000);
+        unsubscribeInbox = useConnections().subscribe(`user:${authStore.user.userId}`, (payload) => {
+            if (payload?.type === 'support.inbox') refresh();
+        });
+        connected.value = true;
     }
 
     function disconnect() {
-        if (refreshInterval) {
-            clearInterval(refreshInterval);
-            refreshInterval = null;
+        if (unsubscribeInbox) {
+            unsubscribeInbox();
+            unsubscribeInbox = null;
         }
         connected.value = false;
     }
