@@ -272,31 +272,27 @@
 
 
                 <template v-else-if="selectedNode.type === 'processNode'">
-                  <div v-if="['effect.changeStatus', 'effect.archiveEntity'].includes(selectedProcessNode.kind)" class="flex flex-col gap-2 rounded-ui border border-content-border bg-subtle p-2">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.transitionTo') }}</label>
-                      <Select
-                        :model-value="selectedProcessNode.status?.to || ''"
-                        :options="lifecycleStateOptions"
-                        option-label="label"
-                        option-value="value"
-                        size="small"
-                        @update:model-value="value => updateNodeStatusTransition(selectedProcessNode, 'to', value)"
-                      />
-                    </div>
-                    <small class="text-muted-color">{{ $t('processDesigner.transitionBelongsTo') }}</small>
-                  </div>
                   <div v-if="selectedProcessNode.kind?.startsWith('effect.')" class="flex flex-col gap-2">
                     <label>{{ $t('processDesigner.actionRoles') }}</label>
-                    <MultiSelect
-                      :model-value="selectedProcessNodeGrantRoleIds"
-                      :options="roleOptions"
-                      option-label="label"
-                      option-value="value"
-                      display="chip"
-                      class="w-full"
-                      @update:model-value="updateSelectedProcessNodeGrantRoles"
-                    />
+                    <div class="flex items-start gap-2">
+                      <MultiSelect
+                        :model-value="selectedProcessNodeGrantRoleIds"
+                        :options="roleOptions"
+                        option-label="label"
+                        option-value="value"
+                        display="chip"
+                        class="min-w-0 flex-1"
+                        @update:model-value="updateSelectedProcessNodeGrantRoles"
+                      />
+                      <Select
+                        :model-value="selectedProcessNode.access?.level || 'write'"
+                        :options="accessLevelOptions"
+                        option-label="label"
+                        option-value="value"
+                        class="w-32 shrink-0"
+                        @update:model-value="value => updateSelectedProcessNodeAccessLevel(value)"
+                      />
+                    </div>
                     <small class="text-muted-color">{{ $t('processDesigner.actionRolesHelp') }}</small>
                   </div>
                   <Panel v-if="selectedEntityAvailable" :header="$t('processDesigner.producerWorkflow')" class="mt-0">
@@ -1492,9 +1488,10 @@ function updateSelectedProcessNodeGrantRoles(roleIds = []) {
   node.access = { ...(node.access || {}), grants: [...kept, ...added] };
   syncNodeData();
 }
-function updateNodeStatusTransition(node, field, value) {
-  node.status ||= {};
-  node.status[field] = value || '';
+function updateSelectedProcessNodeAccessLevel(level) {
+  const node = selectedProcessNode.value;
+  if (!node) return;
+  node.access = { ...(node.access || {}), level: level || 'write' };
   syncNodeData();
 }
 const lifecycleWorkflow = computed(() => workflowForEntity(selectedEntity.value));

@@ -59,9 +59,11 @@ export {
 export { migrateProcessDefinitionV4 } from './migration-v4.js';
 export { migrateProducerOutputIdentities } from './migration-producer-identities.js';
 export {
+  CONSUMER_EFFECT_KINDS,
   MAKE_LIST_INPUTS,
   PROCESS_NODE_CATALOG,
   PROCESS_NODE_FAMILIES,
+  PRODUCER_ORIGIN_EFFECT_KINDS,
   getProcessNodeDefinition,
   processNodeDefinitionsForFamily,
   requireProcessNodeDefinition,

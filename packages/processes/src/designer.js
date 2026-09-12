@@ -1,4 +1,5 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
+import { CONSUMER_EFFECT_KINDS } from './node-catalog.js';
 
 const BLOCK_PRESENTATION = {
   identity: { defaultPath: 'identity.name', icon: 'pi pi-id-card', fields: ['identity.uid', 'identity.name', 'identity.slug', 'identity.serial', 'identity.reference'] },
@@ -103,13 +104,23 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
 
 export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
   if (!node.id) return [];
-  // The explicit producer join routes its output under the producer output
-  // its configuration selects; it must never become a producer anchor itself.
-  if (node.kind === 'producer.join') {
+  const pruneOwnOutputs = () => {
     const producerOutputs = data.producerOutputs ||= {};
     for (const [producerOutputId, output] of Object.entries(producerOutputs)) {
       if (output?.nodeId === node.id) delete producerOutputs[producerOutputId];
     }
+  };
+  // The explicit producer join routes its output under the producer output
+  // its configuration selects; it must never become a producer anchor itself.
+  if (node.kind === 'producer.join') {
+    pruneOwnOutputs();
+    return [];
+  }
+  // Consumer effects transform entities that arrived over an input wire:
+  // they own no producer output and carry no producer identity of their own.
+  if (CONSUMER_EFFECT_KINDS.includes(node.kind)) {
+    pruneOwnOutputs();
+    delete node.producerOutputId;
     return [];
   }
   const outputs = (node.outputs || []).filter(output => (

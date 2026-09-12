@@ -1,4 +1,4 @@
-import { resolveCatalogNodePorts } from './node-catalog.js';
+import { CONSUMER_EFFECT_KINDS, resolveCatalogNodePorts } from './node-catalog.js';
 
 const ACTION_EFFECT_KINDS = new Set([
   'effect.createEntity',
@@ -9,6 +9,12 @@ const ACTION_EFFECT_KINDS = new Set([
   'effect.sendEntity',
   'effect.generateAttachment'
 ]);
+
+function actionHasStaleOwnBinding(actions = {}, nodeId = '') {
+  return Object.values(actions || {}).some(action => (
+    String(action?.producerOutputId || '').startsWith(`${nodeId}:`)
+  ));
+}
 
 export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
   const data = structuredClone(definition.data || definition);
@@ -21,6 +27,31 @@ export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
     if (!node?.kind?.startsWith('effect.')) continue;
 
     const nodeId = String(node.id || recordId);
+    // Consumer effects own no producer output: drop records minted by
+    // pre-protocol definitions and their node identity; the derived action
+    // rebinds to the upstream producer of the entity input wire.
+    if (CONSUMER_EFFECT_KINDS.includes(node.kind)) {
+      for (const [producerOutputId, output] of Object.entries(producerOutputs)) {
+        if (String(output?.nodeId) === nodeId) {
+          delete producerOutputs[producerOutputId];
+          changed = true;
+        }
+      }
+      if (String(node.producerOutputId || '').startsWith(`${nodeId}:`)) {
+        delete node.producerOutputId;
+        changed = true;
+      }
+      if (actionHasStaleOwnBinding(actions, nodeId)) {
+        for (const action of Object.values(actions)) {
+          if (String(action?.producerOutputId || '').startsWith(`${nodeId}:`)) {
+            delete action.producerOutputId;
+            changed = true;
+          }
+        }
+      }
+      continue;
+    }
+
     const candidates = entityOutputCandidates(nodeId, node, producerOutputs, domain);
     for (const candidate of candidates) {
       const current = producerOutputs[candidate.producerOutputId];

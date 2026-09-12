@@ -2696,8 +2696,6 @@
     "entity": "Entity",
     "service": "Service",
     "joinResultProducer": "Resulting producer output",
-    "transitionTo": "Transition to",
-    "transitionBelongsTo": "States and the full machine belong to this producer workflow (below).",
     "actionRoles": "Action roles",
     "actionRolesHelp": "The action belongs to these roles: they get the action and access to the resulting status of this node's entities. The grant's scope comes from the node itself.",
     "entityAccess": "Entity data access",
