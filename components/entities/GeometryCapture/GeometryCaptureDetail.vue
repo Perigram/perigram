@@ -11,6 +11,7 @@ import PhotoGeometryOverlay from './PhotoGeometryOverlay.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { getPrimaryState } from '~/packages/core/src/index.js';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
@@ -203,7 +204,7 @@ const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surfa
       />
     </template>
 
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+    <div class="flex flex-col gap-6">
       <div class="flex flex-col gap-6">
         <Panel :header="$t('geometryCapture.detectedGeometry')">
           <div v-if="hasGeometry" class="flex flex-col gap-4">
@@ -246,14 +247,15 @@ const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surfa
                 />
               </div>
 
-              <div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_12rem_auto]">
-                <div class="flex min-w-0 flex-col gap-1">
+              <div class="flex flex-col gap-3 md:flex-row md:items-center">
+                <div class="min-w-0 flex-1 flex-col gap-1">
                   <small class="text-muted-color">{{ $t('geometryCapture.dimensionSelection') }}</small>
                   <strong v-if="measuredDistance" class="truncate text-label">{{ measuredDistance }} mm</strong>
                   <small v-else class="text-muted-color">{{ $t('geometryCapture.selectTwoVertices') }}</small>
                 </div>
                 <InputNumber
                   v-model="correctedDistance"
+                  class="w-full shrink-0 md:w-48"
                   :placeholder="$t('geometryCapture.correctDistance')"
                   suffix=" mm"
                   :disabled="!measuredDistance"
@@ -263,6 +265,7 @@ const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surfa
                   icon="pi pi-arrows-h"
                   size="small"
                   severity="secondary"
+                  class="shrink-0"
                   :disabled="!measuredDistance || !correctedDistance"
                   @click="applyDistanceCorrection"
                 />
@@ -275,7 +278,7 @@ const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surfa
         </Panel>
 
         <Panel :header="$t('geometryCapture.revisions')">
-          <div v-if="revisions.length" class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <ResponsiveGrid v-if="revisions.length" variant="bounded" responsive-context="container" class="gap-3">
             <div
               v-for="revision in revisions"
               :key="revision.id"
@@ -317,11 +320,14 @@ const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surfa
                 <small v-if="revision.error" class="truncate text-muted-color">{{ revision.error }}</small>
               </div>
             </div>
-          </div>
+          </ResponsiveGrid>
           <small v-else class="text-muted-color">{{ $t('geometryCapture.noRevisions') }}</small>
         </Panel>
       </div>
 
+    </div>
+
+    <template #sidebar>
       <div class="flex flex-col gap-6">
         <Panel :header="$t('geometryCapture.extraction')">
           <div class="flex flex-col gap-4">
@@ -385,6 +391,6 @@ const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surfa
           <StatusHistory :entity="capture" entity-type="geometry_capture" compact />
         </Panel>
       </div>
-    </div>
+    </template>
   </EntityPage>
 </template>
