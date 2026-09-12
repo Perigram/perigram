@@ -25,19 +25,35 @@
   and origin ref; attachment kind, storage, preview, and permissions follow
   existing contracts; no parallel preview pipeline.
 
-- [ ] **User connections architecture (shared realtime layer).**
+- [x] **User connections architecture (shared realtime layer).**
+  > Architecture note: implemented as a Server-Sent Events gateway, not a
+  > WebSocket gateway. Chat already shipped h3 `createEventStream` streams and
+  > EventSource clients, so SSE is the established in-repo transport; WS would
+  > add Nitro's experimental websocket flag for no functional gain. Same
+  > contract, same acceptance criteria.
   One canonical connections/presence architecture that chat and LiveKit both
   ride on:
-  - Nitro WebSocket gateway as a capability module (like `support`:
-    `service.js` + `repository.js`, not a v24 entity), authenticated by the
-    existing session, presence registry keyed by user + active organization.
+  - SSE gateway as a capability module (`server/features/connections/`:
+    `service.js` + spec, no v24 entity, nothing persisted), authenticated by
+    the existing session, presence registry keyed by user + active
+    organization.
   - Client composable (`useConnections`) exposing connection state, presence,
     and topic subscriptions; documented in `composables/README.md`.
-  - Chat migrates message delivery and read state onto it; the support
-    repository remains the persistence source of truth.
-  Acceptance: chat works over the connections layer with no dual transport
-  (polling read paths removed in the same task); presence is consumable by the
-  app shell; gateway contract has spec coverage.
+  - Chat migrated onto it; the support repository remains the persistence
+    source of truth.
+  ### Agent Notes — 2026-09-12
+  Implemented in `agent/connections-architecture-20260912-114913`. One SSE
+  stream per tab (`GET /api/connections/events`) with server-side topic
+  admission (self/org/admin built-in; `conversation:` delegated to the support
+  feature authorizer); `POST /api/connections/subscriptions` resyncs topics
+  after reconnects. Support chat publishes message/read/inbox events through
+  the layer; the badge/inbox store dropped its 5 s REST poll, and the three
+  per-conversation polled SSE endpoints became REST snapshots — no dual
+  transport, `listMessagesSince`/`findSince` dead paths removed. Presence
+  (online dot on direct-conversation rows) consumes `onlineUserIds`. Spec
+  coverage: `server/features/connections/service.spec.js` (registry, fanout,
+  admission, presence). LiveKit is the next consumer.
+  Status: WAITING.
 
 - [ ] **LiveKit integration (local docker, PD-declared service).**
   Depends on: connections architecture.

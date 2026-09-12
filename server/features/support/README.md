@@ -3,7 +3,10 @@
 Support chat is a capability module backed by the `supportMessages`
 collection. It is not a v24 entity module, but API routes still delegate message
 normalization and conversation selection to `service.js`, while `repository.js`
-owns raw MongoDB access.
+owns raw MongoDB access. Realtime delivery rides the shared connections layer
+([connections feature](../connections/README.md)): message and read events
+publish to `conversation:<key>` topics, inbox pings to participant `user:`
+topics, and support-channel changes to the `admin-support` topic.
 
 ## Conversation Contract
 
@@ -101,12 +104,12 @@ survives write-time validation.
 | `POST /api/support/read` | Marks an authorized conversation read for the current user. |
 | `GET /api/support/entity-types` | Returns generated-screen entity source types readable by the current user. |
 | `GET /api/support/entity-options?type=<type>&q=<query>&recipientUserId=<id>` | Returns readable entity options for chat attachment refs and flags recipient chat-only visibility for direct chats. |
-| `GET /api/support/messages` | SSE stream for the current user's support conversation. |
-| `GET /api/support/messages?recipientUserId=<id>` | SSE stream for a direct user conversation. |
-| `POST /api/support/messages` | Send support or direct user message, depending on `recipientUserId`. |
-| `GET /api/support/admin/:user_id` | Admin SSE stream for a customer support conversation. |
+| `GET /api/support/messages` | REST snapshot of the current user's support conversation; changes arrive over the connections stream. |
+| `GET /api/support/messages?recipientUserId=<id>` | REST snapshot of a direct user conversation. |
+| `POST /api/support/messages` | Send support or direct user message, depending on `recipientUserId`. Publishes `message`/`read`/inbox events through the connections layer. |
+| `GET /api/support/admin/:user_id` | REST snapshot of the admin support conversation. |
 | `POST /api/support/admin/:user_id` | Admin reply to a customer support conversation. |
-| `GET /api/support/admin/chatlist` | Admin support-thread list; excludes direct user conversations. |
+| `GET /api/support/admin/chatlist` | Admin support-thread list snapshot; excludes direct user conversations. Refreshes via the `admin-support` connections topic. |
 
 Concrete chat option loaders are registered for current domain list services
 such as projects, queues, cassettes, cassette designs, nesting runs, sheet
