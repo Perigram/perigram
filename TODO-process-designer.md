@@ -1790,19 +1790,24 @@ SFC compile check passed; `node scripts/check-arch.js`,
   exists anywhere in the designer, and async completion stays the runtime-owned
   durable wait/receipt boundary. Constraint recorded in
   `components/process-designer/README.md` (authoring capability matrix note).
-- [ ] Split `pages/organization/process.vue` by real ownership: node-record
+- [x] Split `pages/organization/process.vue` by real ownership: node-record
   factories/synchronization, entity/block inspector, roles/access, screens,
   workflow/statuses, graph interaction, preview, and persistence. The page must
   remain the composition root.
-  Re-launch note 2026-09-11: eight concerns already live in focused
-  composables (selection, palette, graph editing, screens, roles, inspector,
-  persistence, definition catalog), and definition-plane records moved to
-  panels. The remaining inline ownership is ~2000 lines of script: node-record
-  factories/sync (createProcessNode and the record factories with their
-  designer/i18n helper chains), workflow/status editor helpers, preview glue,
-  apply/validation flow, and canvas label builders. Completing the split safely
-  requires a running designer (browser verification of every moved binding);
-  it is deliberately not done blind in this ledger's sessions.
+  Closed 2026-09-12 over three verified slices (`c0724c07`, `d1628a93`):
+  node-record factories + operation maps → `useProcessDesignerNodeRecords.js`
+  (injected designer/translator/sync context); output preview + apply-diff
+  display + diagnostics focus → `useProcessDesignerPreview.js`;
+  lifecycle/status-machine editors → `useProcessDesignerWorkflow.js`. With
+  the pre-existing composables (selection, palette, graph editing, screens,
+  roles, inspector, persistence, definition catalog) every concern named by
+  this checkbox has an owner outside the page, and the page keeps template +
+  sync/io glue + inspector handlers as the composition root (4,726 → 4,401
+  lines). Gates: 495-test unit battery green per slice; deterministic e2e
+  (9 passed / 0 failed, twice consecutively) after per-run organization
+  isolation (`d7efc89b`) and replacing `networkidle` waits — the earlier
+  red suite was polluted shared state plus a degraded dev container, both
+  diagnosed and fixed during this closeout.
 - [x] Use ordinary PrimeVue controls for scalar/enum/role/schema/process-record
   choices and shared entity pickers only for canonical entity DTO/reference
   choices.
@@ -2853,3 +2858,24 @@ start), `graphOwned` routing (no domain declaration exists to prove), and the
 async wait-record versioned-contract deviation (recorded as a deliberate
 implementation choice under durable task completion ingestion). The ledger
 therefore stays `WAITING`.
+
+## User notes — restored 2026-09-12
+
+Recovered from nvim undo history after the working-tree copy was overwritten
+(the tasks were never committed). The third line survived only as a truncated
+stub.
+
+- [x] Status change node doesn't allow changing access rights anymore. If it's
+  intended, need explanation.
+  Done 2026-09-12 (`3cf50adf`, corrected in `c36d7225`): effect-node
+  authorization is roles-only — one multiselect per node, no feature/entity
+  picker and no per-grant condition dialog — because the node is the complete
+  access context and the compiler derives `feature`/`statusFrom`/`statusTo`/
+  scope from it. Status-change nodes select only the target status; the source
+  state is derived from the incoming entity flow. The grant dialog remains
+  only for feature-owning surfaces (screens, process base grants).
+- [ ] In date node, need an ability to "catch" a date/time of action that
+  actually uses it (probably pass it as a variable, should behave accordingly,
+  and w/ added time cached)
+- [ ] Nothing … (line truncated in the recovered undo history — please
+  re-complete from memory)
