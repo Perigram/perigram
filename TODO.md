@@ -305,6 +305,17 @@
   GENERIC BY DESIGN (no custom surface exists yet): facade,
   facade_pattern, artifact_template — pass-throughs rendering through
   EntitySurfaceContent; tailor when a custom surface consumes them.
+  ### Agent Notes — 2026-09-12 (pass 1 correction: process-mode layer)
+  User feedback exposed a layer miss: their organization runs in process
+  mode, so static surfaces like `/warehouses` (WarehouseHub) are not part
+  of their navigation — generated screens render from the display
+  contract, which the card redesigns do not touch. Ported the emphasis to
+  the contract layer: sheet now declares identity rows `specs.color` +
+  `specs.material` (rendered beside the name on generated cards and
+  popovers), remnant declares `specs.area`. Per-entity Card components
+  still serve custom surfaces and inline-ref popovers. Lesson recorded:
+  content changes for process-mode orgs must land in
+  `cncEntityFieldGroups`, not only in card components.
   Task stays OPEN: these are code-derived flows; completion needs the
   user's real-world validation of the changed content.
   ---
