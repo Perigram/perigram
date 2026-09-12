@@ -36,14 +36,17 @@ and activation responses carry structured diagnostics (`nodeId`, `edgeId`,
 `socketId`, `producerOutputId` anchors), and the first anchored diagnostic
 selects its edge or node on the canvas before the error message is shown.
 
-Status-change nodes (Change Status, Archive) open with an inline transition
-block: transition-from/transition-to selects resolved from the node's own
-producer workflow states, and a single roles multiselect that writes the
-node's action access grants (levels preserved, new entries defaulting to the
-node kind's level). The grant-conditions dialog reachable from a process-node
-grant row is scoped to the authored process: it offers only the entity types
-the process produces plus their lineage ancestors and the node's own type —
-never the whole domain feature catalog.
+Effect-node authorization is authored as roles only, because the node is the
+complete access context: entity type, producer path, workflow, and transition
+are already fixed by the node and its wiring, and the compiler derives the
+action access window (`feature`, `statusFrom`, `statusTo`, scope) from them.
+The inspector therefore offers one roles multiselect per effect node (levels
+default write, deletion admin) — no entity/feature picker, no per-grant
+condition dialog. Status-change nodes additionally select their target status
+from the node's own producer workflow states; the source state is derived at
+compile time from the incoming entity flow. The grant-conditions dialog is
+reserved for surfaces that genuinely own a feature dimension (screen required
+access, process base grants).
 `useProcessDesignerScreens` owns source/region creation, source-id reference
 updates, mode normalization, lineage rows, and typed scalar-map mutations. The
 Screens tab renders those mutations against the canonical

@@ -564,87 +564,30 @@
                     />
                   </div>
                   <div v-if="['effect.changeStatus', 'effect.archiveEntity'].includes(selectedProcessNode.kind)" class="flex flex-col gap-2 rounded-ui border border-content-border bg-subtle p-2">
-                    <div class="grid grid-cols-2 gap-2">
-                      <div class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.transitionFrom') }}</label>
-                        <Select
-                          :model-value="selectedProcessNode.status?.from || ''"
-                          :options="[{ label: '—', value: '' }, ...lifecycleStateOptions]"
-                          option-label="label"
-                          option-value="value"
-                          size="small"
-                          @update:model-value="value => updateNodeStatusTransition(selectedProcessNode, 'from', value)"
-                        />
-                      </div>
-                      <div class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.transitionTo') }}</label>
-                        <Select
-                          :model-value="selectedProcessNode.status?.to || ''"
-                          :options="lifecycleStateOptions"
-                          option-label="label"
-                          option-value="value"
-                          size="small"
-                          @update:model-value="value => updateNodeStatusTransition(selectedProcessNode, 'to', value)"
-                        />
-                      </div>
-                    </div>
                     <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.transitionRoles') }}</label>
-                      <MultiSelect
-                        :model-value="selectedProcessNodeGrantRoleIds"
-                        :options="roleOptions"
+                      <label>{{ $t('processDesigner.transitionTo') }}</label>
+                      <Select
+                        :model-value="selectedProcessNode.status?.to || ''"
+                        :options="lifecycleStateOptions"
                         option-label="label"
                         option-value="value"
-                        display="chip"
-                        class="w-full"
-                        @update:model-value="updateSelectedProcessNodeGrantRoles"
+                        size="small"
+                        @update:model-value="value => updateNodeStatusTransition(selectedProcessNode, 'to', value)"
                       />
                     </div>
                     <small class="text-muted-color">{{ $t('processDesigner.transitionBelongsTo') }}</small>
                   </div>
                   <div v-if="selectedProcessNode.kind?.startsWith('effect.')" class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between gap-2">
-                      <label>{{ $t('processDesigner.roles') }}</label>
-                      <Button
-                        icon="pi pi-plus"
-                        text
-                        size="small"
-                        :aria-label="$t('processDesigner.addRole')"
-                        :disabled="!nextSelectedProcessNodeRoleId"
-                        @click="addSelectedProcessNodeGrant"
-                      />
-                    </div>
-                    <div
-                      v-for="(grant, index) in selectedProcessNodeGrants"
-                      :key="`${grant.roleId}-${index}`"
-                      class="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto_auto] gap-2"
-                    >
-                      <Select
-                        :model-value="grant.roleId"
-                        :options="selectedProcessNodeRoleOptions(index)"
-                        option-label="label"
-                        option-value="value"
-                        size="small"
-                        @update:model-value="value => updateSelectedProcessNodeGrant(index, { roleId: value })"
-                      />
-                      <Button icon="pi pi-filter" :aria-label="$t('processDesigner.editGrantConditions')" text size="small" @click="openGrantEditor('processNode', index, processNodeGrantFeature)" />
-                      <Select
-                        :model-value="grant.level || 'write'"
-                        :options="accessLevelOptions"
-                        option-label="label"
-                        option-value="value"
-                        size="small"
-                        @update:model-value="value => updateSelectedProcessNodeGrant(index, { level: value })"
-                      />
-                      <Button
-                        icon="pi pi-trash"
-                        text
-                        severity="danger"
-                        size="small"
-                        :aria-label="$t('common.delete')"
-                        @click="removeSelectedProcessNodeGrant(index)"
-                      />
-                    </div>
+                    <label>{{ $t('processDesigner.roles') }}</label>
+                    <MultiSelect
+                      :model-value="selectedProcessNodeGrantRoleIds"
+                      :options="roleOptions"
+                      option-label="label"
+                      option-value="value"
+                      display="chip"
+                      class="w-full"
+                      @update:model-value="updateSelectedProcessNodeGrantRoles"
+                    />
                   </div>
                 </template>
 
@@ -947,7 +890,7 @@
     </DesignerSurface>
 
     <StandardDialog v-model:visible="showGrantEditor" :header="$t('processDesigner.editGrantConditions')" size="xl">
-      <PermissionEditor :permissions="grantEditorPermissions" :features="grantEditorFeatureOptions" @save="saveGrantEditor" />
+      <PermissionEditor :permissions="grantEditorPermissions" :features="permissionFeatureOptions" @save="saveGrantEditor" />
     </StandardDialog>
 
   </StandardPage>
@@ -1427,10 +1370,6 @@ const processStatusOptions = computed(() => statusDefinitionList.value
   .filter(status => status.statusId)
   .map(status => ({ label: status.label || status.statusId, value: status.statusId, refId: status.id })));
 const selectedProcessNodeGrants = computed(() => selectedProcessNode.value.access?.grants || []);
-const nextSelectedProcessNodeRoleId = computed(() => {
-  const selected = new Set(selectedProcessNodeGrants.value.map(grant => grant.roleId));
-  return roleOptions.value.find(option => !selected.has(option.value))?.value || '';
-});
 const selectedEntityFeature = computed(() => selectedEntity.value.entityType ? featureForEntityType(selectedEntity.value.entityType) : defaultFeature());
 
 const roles = computed(() => organizationRoles.value);
@@ -1498,42 +1437,6 @@ const permissionFeatureOptions = computed(() => screenFeatureOptions.value.map(o
   label: option.label,
   actions: ['view', 'create', 'update', 'delete', 'run', 'send', 'approve', 'reject', 'fulfill']
 })));
-// Process-node grant conditions stay inside the authored process: only the
-// entity types this process actually produces (plus their lineage ancestors
-// and the selected node's own type) are offered — never the whole domain.
-const grantEditorFeatureOptions = computed(() => {
-  const target = grantEditorTarget.value;
-  if (target?.kind !== 'processNode' && target?.kind !== 'action') return permissionFeatureOptions.value;
-  const entityTypes = new Set();
-  for (const output of Object.values(draft.value?.data?.producerOutputs || {})) {
-    if (output?.entityType) entityTypes.add(output.entityType);
-  }
-  let grew = true;
-  while (grew) {
-    grew = false;
-    for (const link of cncDomain.containment || []) {
-      if (entityTypes.has(link.childType) && link.parentType && !entityTypes.has(link.parentType)) {
-        entityTypes.add(link.parentType);
-        grew = true;
-      }
-    }
-  }
-  const nodeEntityType = selectedProcessNode.value?.entityType
-    || selectedProcessNode.value?.targetEntityType
-    || '';
-  if (nodeEntityType) entityTypes.add(nodeEntityType);
-  const byFeature = new Map();
-  for (const entityType of entityTypes) {
-    const key = featureForEntityType(entityType);
-    if (!key || byFeature.has(key)) continue;
-    byFeature.set(key, {
-      key,
-      label: (cncDomain.entities || []).find(entity => entity.type === entityType)?.label || entityType,
-      actions: ['view', 'create', 'update', 'delete', 'run', 'send', 'approve', 'reject', 'fulfill']
-    });
-  }
-  return [...byFeature.values()];
-});
 const fieldOptionsForSelectedEntity = computed(() => fieldOptions(selectedEntity.value.entityType));
 const selectedActionEntityType = computed(() => actionEntityType(selectedAction.value) || (selectedNode.value ? inferIncomingEntityContract(selectedNode.value.id).entityType : ''));
 const fieldOptionsForSelectedAction = computed(() => fieldOptions(selectedActionEntityType.value));
@@ -1588,12 +1491,6 @@ function updateNodeStatusTransition(node, field, value) {
   node.status[field] = value || '';
   syncNodeData();
 }
-const processNodeGrantFeature = computed(() => {
-  const entityType = selectedProcessNode.value?.entityType
-    || selectedProcessNode.value?.targetEntityType
-    || (selectedNode.value ? inferIncomingEntityContract(selectedNode.value.id).entityType : '');
-  return entityType ? featureForEntityType(entityType) : '';
-});
 const lifecycleWorkflow = computed(() => workflowForEntity(selectedEntity.value));
 const lifecycleRegion = computed(() => lifecycleWorkflow.value.regions?.main || lifecycleWorkflow.value.regions?.[lifecycleWorkflow.value.primaryRegion] || null);
 const lifecycleStateIds = computed(() => Object.keys(lifecycleRegion.value?.states || {}).filter(key => !key.includes('.')));
@@ -4241,31 +4138,6 @@ function setSelectedProcessNodeGrants(grants) {
   });
 }
 
-function addSelectedProcessNodeGrant() {
-  if (!nextSelectedProcessNodeRoleId.value) return;
-  setSelectedProcessNodeGrants([
-    ...selectedProcessNodeGrants.value,
-    { roleId: nextSelectedProcessNodeRoleId.value, level: 'write' }
-  ]);
-}
-
-function selectedProcessNodeRoleOptions(index) {
-  const usedByOthers = new Set(selectedProcessNodeGrants.value
-    .filter((_, grantIndex) => grantIndex !== index)
-    .map(grant => grant.roleId));
-  return roleOptions.value.filter(option => !usedByOthers.has(option.value));
-}
-
-function updateSelectedProcessNodeGrant(index, updates) {
-  setSelectedProcessNodeGrants(selectedProcessNodeGrants.value.map((grant, grantIndex) => (
-    grantIndex === index ? { ...grant, ...updates } : grant
-  )));
-}
-
-function removeSelectedProcessNodeGrant(index) {
-  setSelectedProcessNodeGrants(selectedProcessNodeGrants.value.filter((_, grantIndex) => grantIndex !== index));
-}
-
 function resetActionAccess(actionId) {
   const action = draft.value?.data?.actions?.[actionId];
   if (!action || action.actionKind !== 'updateEntity') return;
@@ -4410,7 +4282,6 @@ function openGrantEditor(kind, index, feature) {
 
 function grantForEditorTarget(target = {}) {
   if (target.kind === 'action') return selectedActionGrants.value[target.index];
-  if (target.kind === 'processNode') return selectedProcessNodeGrants.value[target.index];
   if (target.kind === 'screen') return selectedScreenRecord.value?.required;
   return null;
 }
@@ -4423,7 +4294,6 @@ function saveGrantEditor(permissions = {}) {
   const previous = grantForEditorTarget(target) || {};
   const next = { ...withoutKeys(grant, ['feature']), ...(previous.roleId ? { roleId: previous.roleId } : {}) };
   if (target.kind === 'action') updateSelectedActionGrant(target.index, next);
-  if (target.kind === 'processNode') updateSelectedProcessNodeGrant(target.index, next);
   if (target.kind === 'screen' && selectedScreenRecord.value) selectedScreenRecord.value.required = { feature: target.feature, ...next };
   showGrantEditor.value = false;
 }
