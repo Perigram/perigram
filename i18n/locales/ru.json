@@ -97,8 +97,7 @@
     "coordinates": "Координаты",
     "lastUpdated": "Последнее обновление",
     "note": "Примечание",
-    "history": "История"
-    ,
+    "history": "История",
     "refresh": "Обновить"
   },
   "drawing": {
@@ -109,22 +108,26 @@
     "resetView": "Сбросить вид"
   },
   "support": {
-    "entityTypeLabels": {
-      "cassette": "Кассета",
-      "cassette_design": "Дизайн кассеты",
-      "queue": "Очередь",
-      "library": "Библиотека",
-      "nesting_run": "Запуск раскроя",
-      "sheet_design": "Дизайн листа",
-      "project": "Проект",
-      "material_pile": "Партия материала",
-      "warehouse": "Склад",
+    "title": "Чаты",
+    "chatTitle": "Чаты",
+    "description": "Нужна помощь? Свяжитесь с нами!",
+    "button": "Чаты",
+    "email": "Email",
+    "typeMessage": "Введите сообщение...",
+    "send": "Отправить",
+    "entityType": "Тип сущности",
+    "entityId": "ID сущности",
+    "addEntity": "Добавить сущность",
+    "openChat": "Открыть чаты",
+    "noMessages": "Нет сообщений",
+    "online": "В сети",
+    "typing": "{name} печатает…",
+    "noConversations": "Чатов пока нет",
+    "selectConversation": "Выберите чат или начните новый",
+    "recipientChatOnlyWarning": "{label} недоступна получателю вне этого чата",
+    "entityTypes": {
       "sheet": "Лист",
-      "catalog": "Каталог",
-      "requisition": "Заявка",
-      "material": "Материал",
-      "remnant": "Остаток",
-      "user": "Пользователь"
+      "material": "Материал"
     }
   },
   "footer": {
@@ -1708,29 +1711,6 @@
     "confirmDeleteTable": "Удалить таблицу \"{name}\"?",
     "confirmDeleteCassette": "Удалить эту кассету?"
   },
-  "support": {
-    "title": "Чаты",
-    "chatTitle": "Чаты",
-    "description": "Нужна помощь? Свяжитесь с нами!",
-    "button": "Чаты",
-    "email": "Email",
-    "typeMessage": "Введите сообщение...",
-    "send": "Отправить",
-    "entityType": "Тип сущности",
-    "entityId": "ID сущности",
-    "addEntity": "Добавить сущность",
-    "openChat": "Открыть чаты",
-    "noMessages": "Нет сообщений",
-    "online": "В сети",
-    "typing": "{name} печатает…",
-    "noConversations": "Чатов пока нет",
-    "selectConversation": "Выберите чат или начните новый",
-    "recipientChatOnlyWarning": "{label} недоступна получателю вне этого чата",
-    "entityTypes": {
-      "sheet": "Лист",
-      "material": "Материал"
-    }
-  },
   "batch": {
     "name": "Название партии"
   },
@@ -1911,8 +1891,18 @@
     "facade": "Фасад",
     "facadePattern": "Шаблон фасада"
   },
-  "facade": { "parts": "Части", "assignments": "Назначения", "save": "Сохранить фасад", "patterns": "Шаблоны", "sourceModel": "Исходная модель" },
-  "facadePattern": { "nodes": "Узлы", "save": "Сохранить шаблон", "graph": "Граф шаблона" },
+  "facade": {
+    "parts": "Части",
+    "assignments": "Назначения",
+    "save": "Сохранить фасад",
+    "patterns": "Шаблоны",
+    "sourceModel": "Исходная модель"
+  },
+  "facadePattern": {
+    "nodes": "Узлы",
+    "save": "Сохранить шаблон",
+    "graph": "Граф шаблона"
+  },
   "artifactTemplates": {
     "selectFile": "Выбрать DXF или PDF",
     "empty": "Нет шаблонов артефактов",
@@ -2422,7 +2412,7 @@
       "childEntities": "Дочерние сущности",
       "fieldCondition": "Условие по полю",
       "combineFilters": "Объединить фильтры",
-      "filterEntities": "Отфильтровать сущности",
+      "filterEntities": "Фильтровать сущности",
       "createEntity": "Создать сущность",
       "updateEntity": "Обновить сущность",
       "changeStatus": "Изменить статус",
@@ -2464,15 +2454,12 @@
       "entity": "Сущность",
       "queryEntities": "Запросить сущности",
       "entityField": "Прочитать поле сущности",
-      "filterEntities": "Фильтровать сущности",
       "selectEntity": "Выбрать сущность",
-      "decomposeEntity": "Разобрать сущность",
       "composeEntity": "Собрать сущность",
       "modifyEntityData": "Изменить данные сущности",
       "field": "Поле",
       "composeBlock": "Собрать блок",
       "modifyBlock": "Изменить блок",
-      "text": "Текст",
       "compare": "Сравнить",
       "logicGate": "Логический вентиль",
       "entityCondition": "Условие сущности",
@@ -2714,7 +2701,7 @@
     "fieldsEditable": "Поля, доступные для изменения",
     "fieldsHidden": "Поля только для администраторов",
     "producerWorkflow": "Рабочий процесс производителя",
-    "services": "Сервисы",
+    "commandServices": "Команды-сервисы",
     "sockets": "Сокеты",
     "addService": "Добавить сервис",
     "addSocket": "Добавить сокет",
@@ -2906,12 +2893,23 @@
     "addBinding": "Добавить привязку",
     "key": "Ключ",
     "value": "Значение",
-    "valueType": "Тип значения",
-    "scalarTypes": { "string": "Строка", "number": "Число", "boolean": "Логическое", "assignment": "Ссылка на назначение" },
-    "lineageBindingFields": { "childEntityType": "Тип дочерней сущности", "ancestorEntityType": "Тип сущности-предка", "lineageKey": "Ключ lineage", "sourceNode": "Исходный узел", "sourceSocket": "Исходный сокет", "consumingNode": "Потребляющий узел", "consumingSocket": "Потребляющий сокет" },
+    "scalarTypes": {
+      "string": "Строка",
+      "number": "Число",
+      "boolean": "Логическое",
+      "assignment": "Ссылка на назначение"
+    },
+    "lineageBindingFields": {
+      "childEntityType": "Тип дочерней сущности",
+      "ancestorEntityType": "Тип сущности-предка",
+      "lineageKey": "Ключ lineage",
+      "sourceNode": "Исходный узел",
+      "sourceSocket": "Исходный сокет",
+      "consumingNode": "Потребляющий узел",
+      "consumingSocket": "Потребляющий сокет"
+    },
     "requiredFeature": "Требуемая функция",
     "requiredLevel": "Требуемый уровень",
-    "required": "Обязательно",
     "multiple": "Несколько",
     "selectNode": "Выберите узел процесса",
     "selectScreen": "Выберите экран",
@@ -2939,14 +2937,14 @@
     "noScreens": "Экраны процесса недоступны",
     "actionCompleted": "Действие выполнено",
     "actionFailed": "Не удалось выполнить действие",
-      "exactEntityId": "Точный ID сущности",
-      "createArtifact": "Загрузить артефакт",
-      "createRelatedEntity": "Создать",
-      "selectExisting": "Выбрать существующую",
-      "selectArtifactFile": "Выбрать файл",
-      "replaceArtifactFile": "Заменить файл",
-      "artifactFileRequired": "Выберите файл для загрузки.",
-      "artifactUploadFailed": "Не удалось загрузить артефакт.",
+    "exactEntityId": "Точный ID сущности",
+    "createArtifact": "Загрузить артефакт",
+    "createRelatedEntity": "Создать",
+    "selectExisting": "Выбрать существующую",
+    "selectArtifactFile": "Выбрать файл",
+    "replaceArtifactFile": "Заменить файл",
+    "artifactFileRequired": "Выберите файл для загрузки.",
+    "artifactUploadFailed": "Не удалось загрузить артефакт.",
     "noOptions": "Нет доступных вариантов для {field}",
     "objectKey": "Ключ",
     "objectValue": "Значение"

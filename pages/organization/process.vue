@@ -627,7 +627,7 @@
                   <Button icon="pi pi-users" :label="$t('organization.openTeam')" severity="secondary" outlined size="small" @click="navigateTo('/organization/users')" />
                 </div>
 
-                <Panel :header="$t('processDesigner.services')" toggleable collapsed>
+                <Panel :header="$t('processDesigner.commandServices')" toggleable collapsed>
                   <div class="flex flex-col gap-3">
                     <div class="flex flex-wrap gap-2">
                       <Tag
@@ -678,7 +678,7 @@
                   </div>
                 </Panel>
 
-                <Panel :header="$t('processDesigner.sockets')" toggleable collapsed>
+                <Panel v-if="socketList.length" :header="$t('processDesigner.sockets')" toggleable collapsed>
                   <div class="flex flex-col gap-3">
                     <div class="flex flex-wrap gap-2">
                       <Tag
@@ -1084,7 +1084,6 @@ const {
   recordKeyForType,
   selectedRecord,
   selectedEntity,
-  selectedAction,
   selectedStatusDefinition,
   selectedProcessNode
 } = useProcessDesignerInspector({
@@ -1440,8 +1439,6 @@ const permissionFeatureOptions = computed(() => screenFeatureOptions.value.map(o
   actions: ['view', 'create', 'update', 'delete', 'run', 'send', 'approve', 'reject', 'fulfill']
 })));
 const fieldOptionsForSelectedEntity = computed(() => fieldOptions(selectedEntity.value.entityType));
-const selectedActionEntityType = computed(() => actionEntityType(selectedAction.value) || (selectedNode.value ? inferIncomingEntityContract(selectedNode.value.id).entityType : ''));
-const fieldOptionsForSelectedAction = computed(() => fieldOptions(selectedActionEntityType.value));
 const fieldOptionsForSelectedSocket = computed(() => fieldOptions(selectedSocketRecord.value?.entityType));
 const serviceList = computed(() => Object.values(draft.value?.data?.services || {}));
 const socketList = computed(() => Object.values(draft.value?.data?.sockets || {}));
@@ -1472,8 +1469,6 @@ function removeSelectedSocket() {
   delete draft.value.data.sockets[selectedSocketRecord.value.id];
   selectedSocketId.value = '';
 }
-const selectedActionGrants = computed(() => normalizeDesignerAccess(selectedAction.value.access).grants);
-const actionGrantFeature = computed(() => selectedActionEntityType.value ? featureForEntityType(selectedActionEntityType.value) : '');
 const selectedProcessNodeGrantRoleIds = computed(() => [
   ...new Set((selectedProcessNodeGrants.value || []).map(grant => grant.roleId).filter(Boolean))
 ]);
@@ -2283,7 +2278,6 @@ function syncNodeData() {
     node.data.entityType = record.entityType;
     node.data.commandId = record.commandId;
     node.data.triggerMode = record.trigger?.mode;
-    node.data.actionKindLabel = node.type === 'action' ? actionHeaderLabel(record) : null;
     node.data.actionTitleLabel = node.type === 'action' ? actionTitleLabel(record) : null;
     node.data.eventLabel = node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null;
     node.data.actionRecord = node.type === 'action' ? record : null;
@@ -2296,7 +2290,6 @@ function syncNodeData() {
     node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
     node.data.fieldOptions = node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [];
     node.data.onActionUpdate = node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data.refId, updates, options) : null;
-    node.data.onActionResetAccess = node.type === 'action' ? () => resetActionAccess(record.id || node.data.refId) : null;
     node.data.valueInputRecord = node.type === 'valueInput' ? record : null;
     node.data.onValueInputUpdate = node.type === 'valueInput' ? updates => updateValueInputRecord(record.id || node.data.refId, updates) : null;
     node.data.processNodeRecord = node.type === 'processNode' ? record : null;
@@ -2728,10 +2721,6 @@ function addLifecycleState() {
   newStateId.value = '';
 }
 
-function syncSelectedAction() {
-  syncActionIo(selectedAction.value, selectedNode.value);
-  syncNodeData();
-}
 
 function syncActionIo(action = {}, node = null) {
   action.trigger ||= { mode: 'manual' };
@@ -2920,12 +2909,6 @@ function syncParentRevision(action = {}) {
   }
 }
 
-function updateParentRevisionEnabled(enabled) {
-  selectedAction.value.parentRevision ||= { enabled: false, scope: '' };
-  selectedAction.value.parentRevision.enabled = enabled === true;
-  syncParentRevision(selectedAction.value);
-  syncNodeData();
-}
 
 function applyStatusDefinitionToAction(action = {}) {
   if (!action.statusRef) return;
@@ -3453,7 +3436,6 @@ function actionKindLabel(actionKind) {
 }
 
 function nodeDisplayLabel(record = {}, node = {}) {
-  if (node.type === 'action') return actionTitleLabel(record) || actionKindLabel(record.actionKind) || record.entityType || record.commandId || node.data?.label || '';
   return record.label || record.entityType || record.commandId || node.data?.label || '';
 }
 
@@ -3530,37 +3512,9 @@ function normalizeDesignerAccess(access = {}) {
   };
 }
 
-function addSelectedActionGrant() {
-  const used = new Set(selectedActionGrants.value.map(grant => grant.roleId));
-  const role = roleOptions.value.find(option => !used.has(option.value));
-  if (!role) return;
-  setSelectedActionGrants([...selectedActionGrants.value, { roleId: role.value, level: 'write' }]);
-}
 
-function updateSelectedActionGrant(index, updates = {}) {
-  setSelectedActionGrants(selectedActionGrants.value.map((grant, grantIndex) => (
-    grantIndex === index ? { ...grant, ...updates } : grant
-  )));
-}
 
-function removeSelectedActionGrant(index) {
-  setSelectedActionGrants(selectedActionGrants.value.filter((_, grantIndex) => grantIndex !== index));
-}
 
-function setSelectedActionGrants(grants = []) {
-  const seen = new Set();
-  const normalized = grants.filter(grant => {
-    if (!grant.roleId || seen.has(grant.roleId)) return false;
-    seen.add(grant.roleId);
-    return true;
-  });
-  updateActionRecord(selectedAction.value.id, {
-    access: {
-      ...(selectedAction.value.access || {}),
-      grants: normalized
-    }
-  }, { syncIo: true });
-}
 
 function createInputSockets(action = {}) {
   const contract = constructionContractForEntity(action.entityType);
@@ -3781,7 +3735,6 @@ function enrichNodeData(node) {
       label: nodeDisplayLabel(record, node),
       entityType: record.entityType,
       commandId: record.commandId,
-      actionKindLabel: node.type === 'action' ? actionHeaderLabel(record) : null,
       actionTitleLabel: node.type === 'action' ? actionTitleLabel(record) : null,
       actionRecord: node.type === 'action' ? record : null,
       entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
@@ -3793,7 +3746,6 @@ function enrichNodeData(node) {
       triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
       fieldOptions: node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [],
       onActionUpdate: node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data?.refId, updates, options) : null,
-      onActionResetAccess: node.type === 'action' ? () => resetActionAccess(record.id || node.data?.refId) : null,
       valueInputRecord: node.type === 'valueInput' ? record : null,
       onValueInputUpdate: node.type === 'valueInput' ? updates => updateValueInputRecord(record.id || node.data?.refId, updates) : null,
       processNodeRecord: node.type === 'processNode' ? record : null,
@@ -4141,21 +4093,6 @@ function setSelectedProcessNodeGrants(grants) {
   });
 }
 
-function resetActionAccess(actionId) {
-  const action = draft.value?.data?.actions?.[actionId];
-  if (!action || action.actionKind !== 'updateEntity') return;
-  const node = nodes.value.find(item => item.data?.refId === actionId);
-  const inherited = node ? inferIncomingEntityContract(node.id).access : null;
-  if (!inherited?.grants?.length) return;
-  action.access = {
-    ...(action.access || {}),
-    grants: inherited.grants.map(grant => ({ ...grant })),
-    modified: false
-  };
-  action.access = normalizeDesignerAccess(action.access);
-  syncActionIo(action, node);
-  syncNodeData();
-}
 
 function stripRuntimeNodeData(node) {
   const runtimeFreeNode = { ...node };
@@ -4284,7 +4221,6 @@ function openGrantEditor(kind, index, feature) {
 }
 
 function grantForEditorTarget(target = {}) {
-  if (target.kind === 'action') return selectedActionGrants.value[target.index];
   if (target.kind === 'screen') return selectedScreenRecord.value?.required;
   return null;
 }
@@ -4296,7 +4232,6 @@ function saveGrantEditor(permissions = {}) {
   if (!grant) return;
   const previous = grantForEditorTarget(target) || {};
   const next = { ...withoutKeys(grant, ['feature']), ...(previous.roleId ? { roleId: previous.roleId } : {}) };
-  if (target.kind === 'action') updateSelectedActionGrant(target.index, next);
   if (target.kind === 'screen' && selectedScreenRecord.value) selectedScreenRecord.value.required = { feature: target.feature, ...next };
   showGrantEditor.value = false;
 }

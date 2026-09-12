@@ -6,7 +6,6 @@ const compiled = {
     'create:entity': { entityType: 'project', workflow: { primaryRegion: 'main' } },
     'import:entity': { entityType: 'project', workflow: { primaryRegion: 'imported' } }
   },
-  entityTypeIndex: { project: ['create:entity', 'import:entity'] }
 };
 
 describe('process workflow resolution', () => {

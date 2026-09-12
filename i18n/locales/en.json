@@ -97,8 +97,7 @@
     "coordinates": "Coordinates",
     "lastUpdated": "Last Updated",
     "note": "Note",
-    "history": "History"
-    ,
+    "history": "History",
     "refresh": "Refresh"
   },
   "drawing": {
@@ -109,22 +108,26 @@
     "resetView": "Reset view"
   },
   "support": {
-    "entityTypeLabels": {
-      "cassette": "Cassette",
-      "cassette_design": "Cassette design",
-      "queue": "Queue",
-      "library": "Library",
-      "nesting_run": "Nesting run",
-      "sheet_design": "Sheet design",
-      "project": "Project",
-      "material_pile": "Material pile",
-      "warehouse": "Warehouse",
+    "title": "Chats",
+    "chatTitle": "Chats",
+    "description": "Need help? Contact us!",
+    "button": "Chats",
+    "email": "Email",
+    "typeMessage": "Type your message...",
+    "send": "Send",
+    "entityType": "Entity type",
+    "entityId": "Entity ID",
+    "addEntity": "Add entity",
+    "openChat": "Open chats",
+    "noMessages": "No messages",
+    "online": "Online",
+    "typing": "{name} is typing…",
+    "noConversations": "No conversations yet",
+    "selectConversation": "Select a conversation or start a new one",
+    "recipientChatOnlyWarning": "{label} is unavailable to the recipient outside this chat",
+    "entityTypes": {
       "sheet": "Sheet",
-      "catalog": "Catalog",
-      "requisition": "Requisition",
-      "material": "Material",
-      "remnant": "Remnant",
-      "user": "User"
+      "material": "Material"
     }
   },
   "footer": {
@@ -1708,29 +1711,6 @@
     "confirmDeleteTable": "Delete table \"{name}\"?",
     "confirmDeleteCassette": "Delete this cassette?"
   },
-  "support": {
-    "title": "Chats",
-    "chatTitle": "Chats",
-    "description": "Need help? Contact us!",
-    "button": "Chats",
-    "email": "Email",
-    "typeMessage": "Type your message...",
-    "send": "Send",
-    "entityType": "Entity type",
-    "entityId": "Entity ID",
-    "addEntity": "Add entity",
-    "openChat": "Open chats",
-    "noMessages": "No messages",
-    "online": "Online",
-    "typing": "{name} is typing…",
-    "noConversations": "No conversations yet",
-    "selectConversation": "Select a conversation or start a new one",
-    "recipientChatOnlyWarning": "{label} is unavailable to the recipient outside this chat",
-    "entityTypes": {
-      "sheet": "Sheet",
-      "material": "Material"
-    }
-  },
   "batch": {
     "name": "Batch Name"
   },
@@ -1911,8 +1891,18 @@
     "facade": "Facade",
     "facadePattern": "Facade Pattern"
   },
-  "facade": { "parts": "Parts", "assignments": "Assignments", "save": "Save facade", "patterns": "Patterns", "sourceModel": "Source model" },
-  "facadePattern": { "nodes": "Nodes", "save": "Save pattern", "graph": "Pattern graph" },
+  "facade": {
+    "parts": "Parts",
+    "assignments": "Assignments",
+    "save": "Save facade",
+    "patterns": "Patterns",
+    "sourceModel": "Source model"
+  },
+  "facadePattern": {
+    "nodes": "Nodes",
+    "save": "Save pattern",
+    "graph": "Pattern graph"
+  },
   "artifactTemplates": {
     "selectFile": "Choose DXF or PDF",
     "empty": "No artifact templates",
@@ -2464,15 +2454,12 @@
       "entity": "Entity",
       "queryEntities": "Query entities",
       "entityField": "Read entity field",
-      "filterEntities": "Filter entities",
       "selectEntity": "Select entity",
-      "decomposeEntity": "Decompose entity",
       "composeEntity": "Compose entity",
       "modifyEntityData": "Modify entity data",
       "field": "Field",
       "composeBlock": "Compose block",
       "modifyBlock": "Modify block",
-      "text": "Text",
       "compare": "Compare",
       "logicGate": "Logic gate",
       "entityCondition": "Entity condition",
@@ -2714,7 +2701,7 @@
     "fieldsEditable": "Fields editable on write",
     "fieldsHidden": "Admin-only fields",
     "producerWorkflow": "Producer workflow",
-    "services": "Services",
+    "commandServices": "Command services",
     "sockets": "Sockets",
     "addService": "Add service",
     "addSocket": "Add socket",
@@ -2906,12 +2893,23 @@
     "addBinding": "Add binding",
     "key": "Key",
     "value": "Value",
-    "valueType": "Value type",
-    "scalarTypes": { "string": "String", "number": "Number", "boolean": "Boolean", "assignment": "Assignment reference" },
-    "lineageBindingFields": { "childEntityType": "Child entity type", "ancestorEntityType": "Ancestor entity type", "lineageKey": "Lineage key", "sourceNode": "Source node", "sourceSocket": "Source socket", "consumingNode": "Consuming node", "consumingSocket": "Consuming socket" },
+    "scalarTypes": {
+      "string": "String",
+      "number": "Number",
+      "boolean": "Boolean",
+      "assignment": "Assignment reference"
+    },
+    "lineageBindingFields": {
+      "childEntityType": "Child entity type",
+      "ancestorEntityType": "Ancestor entity type",
+      "lineageKey": "Lineage key",
+      "sourceNode": "Source node",
+      "sourceSocket": "Source socket",
+      "consumingNode": "Consuming node",
+      "consumingSocket": "Consuming socket"
+    },
     "requiredFeature": "Required feature",
     "requiredLevel": "Required level",
-    "required": "Required",
     "multiple": "Multiple",
     "selectNode": "Select a process node",
     "selectScreen": "Select a screen",
@@ -2939,14 +2937,14 @@
     "noScreens": "No process screens are available",
     "actionCompleted": "Action completed",
     "actionFailed": "Action failed",
-      "exactEntityId": "Exact entity ID",
-      "createArtifact": "Upload artifact",
-      "createRelatedEntity": "Create new",
-      "selectExisting": "Select existing",
-      "selectArtifactFile": "Select file",
-      "replaceArtifactFile": "Replace file",
-      "artifactFileRequired": "Select a file to upload.",
-      "artifactUploadFailed": "Artifact upload failed.",
+    "exactEntityId": "Exact entity ID",
+    "createArtifact": "Upload artifact",
+    "createRelatedEntity": "Create new",
+    "selectExisting": "Select existing",
+    "selectArtifactFile": "Select file",
+    "replaceArtifactFile": "Replace file",
+    "artifactFileRequired": "Select a file to upload.",
+    "artifactUploadFailed": "Artifact upload failed.",
     "noOptions": "No available options for {field}",
     "objectKey": "Key",
     "objectValue": "Value"

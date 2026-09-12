@@ -60,7 +60,6 @@ export async function resolveProcessAuth(auth = {}) {
       active: true,
       schemaVersion: compiled.schemaVersion,
       producerOutputs: compiled.producerOutputs || {},
-      entityTypeIndex: compiled.entityTypeIndex || {},
       lineageBindings: compiled.lineageBindings || []
     },
     navigation: [...system.navigation, ...processNavigation],
