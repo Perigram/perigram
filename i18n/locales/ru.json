@@ -2038,7 +2038,8 @@
     "toggleCamera": "Камера",
     "muted": "Без звука",
     "failed": "Не удалось соединиться",
-    "retry": "Повторить"
+    "retry": "Повторить",
+    "insecureContext": "Камере и микрофону нужен защищённый контекст. Откройте приложение по https:// или http://localhost, либо запустите dev-стек с NUXT_DEV_HTTPS=true."
   },
   "sketch": {
     "editorTitle": "Скетч",

@@ -34,6 +34,13 @@ service. Nothing here persists; rooms are derived, never free-form:
 
 Dev keys are fixed in `livekit.dev.yaml`; production must override all three.
 
+Browsers only expose `navigator.mediaDevices` (mic/camera) in secure
+contexts: `https://` or exactly `http://localhost`. For two-device LAN call
+testing, start the stack with `NUXT_DEV_HTTPS=true docker compose -f
+docker-compose.dev.yml up -d --force-recreate app` and accept the self-signed
+certificate once; the call panel surfaces a dedicated error when opened over
+plain HTTP from another host.
+
 ## Client Contract
 
 `components/calls/CallPanel.vue` lazily imports `livekit-client` (the WebRTC

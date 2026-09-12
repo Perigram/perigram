@@ -2038,7 +2038,8 @@
     "toggleCamera": "Toggle camera",
     "muted": "Muted",
     "failed": "Call failed",
-    "retry": "Retry"
+    "retry": "Retry",
+    "insecureContext": "Camera and microphone need a secure context. Open the app on https:// or http://localhost, or start the dev stack with NUXT_DEV_HTTPS=true."
   },
   "sketch": {
     "editorTitle": "Sketch",
