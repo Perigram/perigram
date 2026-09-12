@@ -957,6 +957,8 @@ import {
   iconForProcessNode,
   useProcessDesignerNodeRecords
 } from '~/composables/useProcessDesignerNodeRecords.js';
+import { useProcessDesignerPreview } from '~/composables/useProcessDesignerPreview.js';
+import { useProcessDesignerWorkflow } from '~/composables/useProcessDesignerWorkflow.js';
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
 
@@ -976,51 +978,11 @@ const processLoadError = ref('');
 const nodes = ref([]);
 const edges = ref([]);
 const validation = ref(null);
-const validationDiffLines = computed(() => {
-  const diff = validation.value?.diff;
-  if (!diff) return [];
-  const lines = [];
-  const counts = record => [
-    record.added?.length ? `+${record.added.length}` : '',
-    record.removed?.length ? `−${record.removed.length}` : '',
-    record.changed?.length ? `~${record.changed.length}` : ''
-  ].filter(Boolean).join(' · ');
-  for (const [key, labelKey] of [
-    ['actions', 'processDesigner.applyDiffActions'],
-    ['screens', 'processDesigner.applyDiffScreens'],
-    ['roles', 'processDesigner.applyDiffRoles']
-  ]) {
-    const summary = counts(diff[key] || {});
-    if (summary) lines.push(`${t(labelKey)}: ${summary}`);
-  }
-  for (const [key, labelKey] of [
-    ['workflows', 'processDesigner.applyDiffWorkflows'],
-    ['fieldPolicies', 'processDesigner.applyDiffFieldPolicies']
-  ]) {
-    const record = diff[key] || {};
-    const summary = counts({ added: record.addedProducers, removed: record.removedProducers, changed: record.changed });
-    if (summary) lines.push(`${t(labelKey)}: ${summary}`);
-  }
-  for (const change of diff.capabilities?.changed || []) {
-    const parts = [
-      change.added?.length ? `+${change.added.join(', ')}` : '',
-      change.removed?.length ? `−${change.removed.join(', ')}` : ''
-    ].filter(Boolean).join(' · ');
-    if (parts) lines.push(`${t('processDesigner.applyDiffCapabilities')} — ${change.entityType}: ${parts}`);
-  }
-  for (const item of diff.removedEntityStatuses || []) {
-    lines.push(t('processDesigner.applyDiffRemovedStatuses', { entityType: item.entityType, statuses: item.statuses.join(', ') }));
-  }
-  return lines;
-});
-const dataflowPreview = ref(null);
-const previewingData = ref(false);
 const applyingProcess = ref(false);
 const savingDraft = ref(false);
 const creatingDraft = ref(false);
 const savedDraftSignature = ref('');
 const organizationRoles = ref({});
-const newStateId = ref('');
 const canvasFrame = ref(null);
 const compiledPreview = ref(null);
 const compiledPreviewError = ref('');
@@ -1078,6 +1040,53 @@ const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInfer
 const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen, normalizeScreenContract, defaultEntityType, featureForEntityType });
 
 const designer = reactive(createProcessDesignerContract(cncDomain));
+
+const {
+  dataflowPreview,
+  previewingData,
+  validationDiffLines,
+  selectedNodePreview,
+  selectedNodeSupportsPreview,
+  selectedNodePreviewOutputs,
+  previewDataflow,
+  formatPreviewPath,
+  formatPreviewItem,
+  formatPreviewItems,
+  focusValidationDiagnostic,
+  focusFirstValidationDiagnostic
+} = useProcessDesignerPreview({
+  t,
+  validation,
+  selectedNode,
+  selectedNodeId,
+  selectedProcessNode,
+  processNodeOutputs,
+  persistence,
+  serializeProcess: () => serializeProcess(),
+  nodes,
+  edges,
+  selectNode,
+  selectEdge
+});
+
+const {
+  newStateId,
+  lifecycleWorkflow,
+  lifecycleRegion,
+  lifecycleStateIds,
+  lifecycleStateEntries,
+  lifecycleStateOptions,
+  lifecycleTransitions,
+  ensureCustomLifecycleRegion,
+  addLifecycleState,
+  addLifecycleTransition,
+  updateTransition,
+  updateTransitionRoles,
+  removeLifecycleTransition
+} = useProcessDesignerWorkflow({
+  selectedEntity,
+  cncDomain
+});
 
 const {
   processNodeOperations,
@@ -1286,24 +1295,6 @@ const emptyCanvasMessage = computed(() => {
   if (processLoadError.value) return processLoadError.value;
   return t('processDesigner.noActiveDraft');
 });
-const selectedNodePreview = computed(() => selectedNode.value ? dataflowPreview.value?.nodes?.[selectedNode.value.id] || null : null);
-const selectedNodeSupportsPreview = computed(() => {
-  const kind = selectedProcessNode.value?.kind || '';
-  return Boolean(kind && !kind.startsWith('effect.') && !kind.startsWith('control.'));
-});
-const selectedNodePreviewOutputs = computed(() => {
-  const outputs = selectedNodePreview.value?.outputs || {};
-  const ports = processNodeOutputs(selectedProcessNode.value || {});
-  return Object.entries(outputs).map(([id, tree]) => {
-    const port = ports.find(item => item.id === id);
-    return {
-      id,
-      label: port?.label || id,
-      type: port?.type ? formatProcessType(port.type) : '',
-      tree
-    };
-  });
-});
 const selectedStatusAttachmentEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.attachments || {})
   .map(([key, schema]) => ({ key, schema })));
 const selectedStatusSnapshotEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.snapshots || {})
@@ -1446,15 +1437,6 @@ function updateSelectedProcessNodeAccessLevel(level) {
   node.access = { ...(node.access || {}), level: level || 'write' };
   syncNodeData();
 }
-const lifecycleWorkflow = computed(() => workflowForEntity(selectedEntity.value));
-const lifecycleRegion = computed(() => lifecycleWorkflow.value.regions?.main || lifecycleWorkflow.value.regions?.[lifecycleWorkflow.value.primaryRegion] || null);
-const lifecycleStateIds = computed(() => Object.keys(lifecycleRegion.value?.states || {}).filter(key => !key.includes('.')));
-const lifecycleStateEntries = computed(() => lifecycleStateIds.value.map(value => ({
-  label: lifecycleRegion.value?.states?.[value]?.label || value,
-  value
-})));
-const lifecycleStateOptions = computed(() => lifecycleStateEntries.value);
-const lifecycleTransitions = computed(() => lifecycleRegion.value?.transitions || []);
 const selectedRoleAccessSummary = computed(() => selectedRoleId.value
   ? flattenRoleAccessSummary(deriveRoleAccessSummary({ process: draft.value, roleIds: [selectedRoleId.value] }))
   : []);
@@ -1666,56 +1648,11 @@ async function saveDraftFromDock() {
   }
 }
 
-async function previewDataflow() {
-  if (!draft.value || !selectedNodeSupportsPreview.value) return;
-  previewingData.value = true;
-  try {
-    const definition = serializeProcess();
-    dataflowPreview.value = await persistence.previewDraft(definition, selectedNodeId.value);
-  } catch (error) {
-    dataflowPreview.value = { nodes: { [selectedNodeId.value]: { error: error?.data?.message || error.message } } };
-  } finally {
-    previewingData.value = false;
-  }
-}
 
-function formatPreviewPath(path = []) {
-  return `{${path.join(';')}}`;
-}
 
-function formatPreviewItem(item) {
-  if (item && typeof item === 'object' && !Array.isArray(item) && item.missing === true) {
-    const path = Array.isArray(item.path) ? item.path.join('.') : String(item.path ?? '');
-    return `missing(${path})`;
-  }
-  return JSON.stringify(item);
-}
 
-function formatPreviewItems(items = []) {
-  return items.map(formatPreviewItem).join(', ');
-}
 
-// Apply focus: the first structured diagnostic with a graph anchor selects the
-// responsible node or edge so the author lands on the exact element.
-function focusValidationDiagnostic(diagnostic) {
-  if (!diagnostic) return;
-  if (diagnostic.edgeId) {
-    const edge = edges.value.find(item => String(item.id) === String(diagnostic.edgeId));
-    if (edge) {
-      selectEdge(edge);
-      return;
-    }
-  }
-  if (diagnostic.nodeId) {
-    const node = nodes.value.find(item => String(item.id) === String(diagnostic.nodeId));
-    if (node) selectNode(node);
-  }
-}
 
-function focusFirstValidationDiagnostic(result) {
-  if (result?.ok) return;
-  focusValidationDiagnostic((result?.diagnostics || []).find(diagnostic => diagnostic.edgeId || diagnostic.nodeId));
-}
 
 async function activateDraft() {
   await saveDraft();
@@ -2559,14 +2496,6 @@ function featureForEntityType(entityType) {
   return entity?.collection || `${entityType}s`;
 }
 
-function addLifecycleState() {
-  const id = newStateId.value.trim().toUpperCase().replace(/\s+/g, '_');
-  if (!id) return;
-  const region = ensureCustomLifecycleRegion();
-  region.states[id] ||= { canUpdateMeta: true };
-  if (!region.initial) region.initial = id;
-  newStateId.value = '';
-}
 
 
 function syncActionIo(action = {}, node = null) {
@@ -3476,34 +3405,9 @@ function principalLabels(principalIds = []) {
   return principalIds.map(principalId => servicePrincipals.value[principalId]?.label || principalId).filter(Boolean);
 }
 
-function addLifecycleTransition() {
-  const region = ensureCustomLifecycleRegion();
-  const states = Object.keys(region.states);
-  if (states.length < 2) return;
-  region.transitions.push({ from: states[0], to: states[1], access: { processRoleIds: [] } });
-}
 
-function updateTransition(index, updates) {
-  const region = ensureCustomLifecycleRegion();
-  region.transitions[index] = { ...region.transitions[index], ...updates };
-}
 
-function updateTransitionRoles(index, roleIds) {
-  const region = ensureCustomLifecycleRegion();
-  const transition = region.transitions[index] || {};
-  region.transitions[index] = {
-    ...transition,
-    access: {
-      ...(transition.access || {}),
-      processRoleIds: roleIds
-    }
-  };
-}
 
-function removeLifecycleTransition(index) {
-  const region = ensureCustomLifecycleRegion();
-  region.transitions.splice(index, 1);
-}
 
 function workflowForEntity(profile = {}) {
   if (profile.lifecycle?.mode === 'domainDefault' && cncDomain.workflows?.[profile.entityType]) return normalizeWorkflow(cncDomain.workflows[profile.entityType]);
@@ -3511,20 +3415,6 @@ function workflowForEntity(profile = {}) {
   return normalizeWorkflow(createCreatedWorkflow());
 }
 
-function ensureCustomLifecycleRegion() {
-  selectedEntity.value.lifecycle ||= {};
-  if (selectedEntity.value.lifecycle.mode !== 'custom') {
-    selectedEntity.value.lifecycle = {
-      mode: 'custom',
-      workflow: workflowForEntity(selectedEntity.value)
-    };
-  }
-  const workflow = normalizeWorkflow(selectedEntity.value.lifecycle.workflow || createCreatedWorkflow());
-  selectedEntity.value.lifecycle.workflow = workflow;
-  const regionId = workflow.primaryRegion || 'main';
-  workflow.regions[regionId] ||= { id: regionId, label: 'Lifecycle', initial: 'CREATED', states: { CREATED: { canUpdateMeta: true } }, transitions: [] };
-  return workflow.regions[regionId];
-}
 
 
 function parseJson(source, fallback) {
