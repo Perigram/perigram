@@ -129,9 +129,8 @@ export function publish(topic, payload) {
     publishToTopic(topic, payload);
 }
 
-/** Test-only: resets the in-memory registry between spec cases. */
+/** Test-only: resets the in-memory connection registry between spec cases. */
 export function __clearRegistryForTests() {
     connections.clear();
-    topicAuthorizers.clear();
     nextConnectionId = 1;
 }

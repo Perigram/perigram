@@ -123,9 +123,23 @@
   46+3+4+1). Animations: streamed messages enter via the new `enterOnce`
   pattern, typing indicators via `useEnterExit`; typing itself is a new
   ephemeral `POST /api/support/typing` published on the conversation topic
-  (never persisted). Localization spec is green — added the 5 pre-existing
+  (never persisted).   Localization spec is green — added the 5 pre-existing
   missing keys (common.apply/rotate/settings, nesting.selectMachine/thickness)
   plus support.typing in en+ru.
+  ### Agent Notes — 2026-09-12 (hotfix)
+  User report: messages not delivered + layout regression. Root cause of
+  delivery: `useConnections.syncSubscriptions` dropped topic syncs that raced
+  an in-flight request, so conversation topics never subscribed server-side
+  and published messages reached no one — fixed with a pendingSync re-run.
+  Also fixed `__clearRegistryForTests` wiping feature authorizers (masked by
+  tests; new `server/features/support/delivery.spec.js` pins the full
+  subscribe→send→deliver chain). Layout: reverted the Drawer/Listbox/
+  ActionToolbar redesign — ChatSupport is back to the original compact
+  floating window and familiar structure (single file; SupportChatSurface
+  removed), keeping only audit-clean classes (`bg-subtle`/`rounded-ui`,
+  `max-w-support-chat-message` + `w-support-chat` token aliases), Divider day
+  markers, bare Aura Textarea, typing indicator, and `enterOnce` message
+  animation. All three chat components remain zero-finding.
   Status: WAITING.
 
 - [ ] **Per-entity layout program: env-friendly variant layouts.**
