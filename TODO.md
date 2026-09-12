@@ -169,7 +169,7 @@
   animation. All three chat components remain zero-finding.
   Status: WAITING.
 
-- [x] **Per-entity layout program: env-friendly variant layouts.**
+- [ ] **Per-entity layout program: env-friendly variant layouts.**
   Supersedes `TODO_UI.md` (content folded here; that file is deleted).
   For each entity below, inspect real usage and design variant layouts
   (inline/compact/card/detail) that satisfy its usage flow and are
@@ -261,9 +261,22 @@
   `ActionToolbar`, item panels through `ResponsiveGrid variant="wide"
   responsive-context="container"`. Group verdict: done — program complete.
 
-  Program closeout: all 30 entities reviewed across 7 groups. The recurring
-  defect was one pattern — viewport-breakpoint (often arbitrary) two-column
-  splits and card grids hand-rolled inside EntityPage/EntityWorkspace
-  container-query contexts — now replaced everywhere by the canonical
-  `#sidebar` slot, `ResponsiveGrid` container mode, `MetricPanel`,
-  `ActionToolbar`, and `StateBlock` primitives. Status: WAITING.
+  ### Agent Notes — 2026-09-12 (REOPENED, honest state)
+  The closeout below overclaimed. What the 7 groups actually delivered is
+  the ENV-FRIENDLY MECHANICS axis only (viewport grids → container-aware
+  canonical primitives). The task's core deliverable — per-entity
+  USAGE-FLOW variant design ("inspect usage, design variants that satisfy
+  the usage flow; generic is fallback, can be done much better per case") —
+  was NOT started: no flow inspection was performed for any entity, and
+  group notes saying cards are "already tailored" never asked tailored to
+  which flow. Mechanics: done for all 30 entities. Flow design: 0 of 30.
+  Next step: per entity, enumerate real usage contexts (hub tab / queue
+  card / picker / inline ref / detail / mobile), get user confirmation of
+  flows before redesigning content, then design variants per confirmed
+  flow. Starting entity to be chosen by the user.
+  ---
+  Superseded closeout (mechanics only): all 30 entities reviewed across 7
+  groups; the recurring defect — viewport-breakpoint (often arbitrary)
+  two-column splits and card grids inside EntityPage/EntityWorkspace
+  container-query contexts — replaced with `#sidebar`, `ResponsiveGrid`
+  container mode, `MetricPanel`, `ActionToolbar`, `StateBlock`.
