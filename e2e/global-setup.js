@@ -61,8 +61,11 @@ async function registerE2eUser(context) {
       email: E2E_USER_EMAIL,
       password: E2E_USER_PASSWORD,
       name: E2E_USER_NAME,
-      organizationId: E2E_ORG_ID,
-      role: 'ContractorAdmin'
+      // Registration only creates an organization via organizationName; a
+      // fresh org gets the full template process, roles, and the owner role
+      // assignment the suite switches to.
+      organizationName: 'E2E Contracting',
+      processTemplateId: 'contractor'
     },
     failOnStatusCode: false
   });
