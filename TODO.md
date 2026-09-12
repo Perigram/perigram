@@ -270,10 +270,36 @@
   was NOT started: no flow inspection was performed for any entity, and
   group notes saying cards are "already tailored" never asked tailored to
   which flow. Mechanics: done for all 30 entities. Flow design: 0 of 30.
-  Next step: per entity, enumerate real usage contexts (hub tab / queue
-  card / picker / inline ref / detail / mobile), get user confirmation of
-  flows before redesigning content, then design variants per confirmed
-  flow. Starting entity to be chosen by the user.
+  ### Agent Notes — 2026-09-12 (flow-design pass 1, code-derived flows)
+  First content pass grounded in render-site analysis (where each surface
+  actually appears in code), not invention:
+  CHANGED (usage gap found):
+  - SheetCard — warehouse-browsing flow wants material identification:
+    color swatch + color/material now lead card and compact bodies;
+    removed 2 per-card entity fetches (pile/run provenance stays on the
+    detail page). Swatches are allowlisted data-driven bindings.
+  - RemnantCard — recovered-material flow: geometry+area already led;
+    removed the per-card sheet fetch (provenance on detail).
+  - CassetteInstanceCard — hub browsing: thumbnail + reference + status;
+    removed duplicate design/template fetches (the thumbnail self-resolves
+    the design) — 2 fetches × N cards saved in the instances tab.
+  - ToolProfileCard compact — picker identification now D + kerf + angle,
+    not angle alone.
+  - MaterialCard compact — picker identification now code + thickness,
+    not free-text description.
+  VERIFIED FLOW-TAILORED (no change warranted): queue (run-count summary
+  tags), nesting_run (results/failure/relation galleries, context reuse),
+  cassette family (thumbnail-led), material_pile (MaterialSummary +
+  catalog), library (cassette preview galleries), color (swatch header),
+  pen_template (stroke preview + weight/pattern), layer_standard (resolved
+  default pen inline), user (avatar + role/org tags), geometry_capture
+  (preview-led), catalog, requisition, artifact (kind pipeline owns the
+  visual depth), warehouse, project/organization/index cards.
+  GENERIC BY DESIGN (no custom surface exists yet): facade,
+  facade_pattern, artifact_template — pass-throughs rendering through
+  EntitySurfaceContent; tailor when a custom surface consumes them.
+  Task stays OPEN: these are code-derived flows; completion needs the
+  user's real-world validation of the changed content.
   ---
   Superseded closeout (mechanics only): all 30 entities reviewed across 7
   groups; the recurring defect — viewport-breakpoint (often arbitrary)
