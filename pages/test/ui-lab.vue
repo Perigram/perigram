@@ -2,8 +2,6 @@
   <div class="flex flex-col gap-8">
     <ActionToolbar :title="$t('uiLab.title')" :subtitle="$t('uiLab.subtitle')" :level="1">
         <template #actions>
-            <Button icon="pi pi-download" :label="$t('uiLab.feedback.export')" severity="secondary" size="small" @click="exportFeedback" />
-            <Button icon="pi pi-trash" :label="$t('common.reset')" severity="danger" outlined size="small" @click="resetFeedback" />
             <ThemeSwitcher />
             <LanguageSwitcher />
         </template>
@@ -18,26 +16,11 @@
     </Tabs>
 
     <section v-if="activeGroup" class="flex flex-col gap-10">
-      <Message v-if="reviewError" severity="warn">
-        {{ reviewError }}
-      </Message>
-      <Message v-else-if="reviewLoading" severity="info">
-        {{ $t('common.loading') }}
-      </Message>
-
       <article v-for="row in activeRowsWithModels" :key="row.key" class="flex flex-col gap-4">
         <ActionToolbar :title="$t(row.labelKey)" :subtitle="`${row.entityType} · ${row.propName}`" :level="2">
             <template #actions>
                 <Tag :value="$t(`uiLab.statusPolicy.${row.status}`)" severity="secondary" />
                 <Tag :value="row.trace ? $t('uiLab.tracePolicy.enabled') : $t('uiLab.tracePolicy.hidden')" severity="secondary" />
-                <Button
-                    :label="$t('uiLab.feedback.title')"
-                    :icon="feedbackOpen.has(row.key) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
-                    severity="secondary"
-                    text
-                    size="small"
-                    @click="toggleFeedback(row.key)"
-                />
             </template>
         </ActionToolbar>
 
@@ -58,108 +41,7 @@
           </div>
         </div>
 
-        <div v-if="feedbackOpen.has(row.key)" class="grid grid-cols-1 gap-3 md:grid-cols-[12rem_minmax(0,1fr)]">
-          <Select
-            v-model="feedbackFor('entity', row.key).decision"
-            :options="feedbackDecisionOptions"
-            optionLabel="label"
-            optionValue="value"
-          />
-          <Textarea
-            v-model="feedbackFor('entity', row.key).note"
-            :placeholder="$t('uiLab.feedback.placeholder')"
-            rows="2"
-            class="w-full"
-            auto-resize
-          />
-        </div>
-
-        <Panel v-if="row.model">
-          <template #header>
-            <div class="flex items-center justify-between gap-3 w-full">
-              <div class="flex flex-col gap-0.5">
-                <span class="text-label">{{ $t('uiLab.review.title') }}</span>
-                <small class="text-muted-color">{{ row.model.collection }} · {{ row.model.fields?.length || 0 }} {{ $t('uiLab.review.fields') }}</small>
-              </div>
-              <Button
-                :icon="reviewExpanded(row.key) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
-                :aria-label="$t('uiLab.review.toggle')"
-                severity="secondary"
-                text
-                size="small"
-                @click="toggleReview(row.key)"
-              />
-            </div>
-          </template>
-          <template v-if="reviewExpanded(row.key)">
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
-              <div class="flex flex-col gap-1">
-                <small class="text-muted-color">{{ $t('uiLab.review.collection') }}</small>
-                <strong>{{ row.model.collection }}</strong>
-              </div>
-              <div class="flex flex-col gap-1">
-                <small class="text-muted-color">{{ $t('uiLab.review.fields') }}</small>
-                <strong>{{ row.model.fields?.length || 0 }}</strong>
-              </div>
-              <div class="flex flex-col gap-1">
-                <small class="text-muted-color">{{ $t('uiLab.review.source') }}</small>
-                <strong>{{ row.model.feature }}</strong>
-              </div>
-              <div class="flex flex-col gap-1">
-                <small class="text-muted-color">{{ $t('uiLab.review.issues') }}</small>
-                <strong>{{ row.model.issues?.length || 0 }}</strong>
-              </div>
-            </div>
-
-            <Message v-if="row.model.issues?.length" severity="warn" class="mt-4">
-              {{ row.model.issues.map((issue) => `${issue.field}: ${issue.issue}`).join(' · ') }}
-            </Message>
-
-            <div class="mt-4 overflow-x-auto">
-              <DataTable :value="row.model.fields || []" size="small">
-                <Column field="name" :header="$t('admin.dataModelReview.field')">
-                  <template #body="{ data }"><span class="text-technical">{{ data.name }}</span></template>
-                </Column>
-                <Column field="type" :header="$t('common.type')" />
-                <Column :header="$t('uiLab.review.flags')">
-                  <template #body="{ data }">
-                    <div class="flex flex-wrap gap-2">
-                      <Tag v-for="issue in data.issues || []" :key="issue" :value="issue" severity="warn" size="small" />
-                    </div>
-                  </template>
-                </Column>
-                <Column :header="$t('admin.dataModelReview.decision')">
-                  <template #body="{ data }">
-                    <Select
-                      v-model="reviewFieldFeedbackFor(row, data).decision"
-                      :options="reviewDecisionOptions"
-                      optionLabel="label"
-                      optionValue="value"
-                      class="w-full"
-                    />
-                  </template>
-                </Column>
-                <Column :header="$t('admin.dataModelReview.target')">
-                  <template #body="{ data }">
-                    <InputText
-                      v-if="reviewFieldFeedbackFor(row, data).decision === 'rename' || reviewFieldFeedbackFor(row, data).decision === 'move'"
-                      v-model="reviewFieldFeedbackFor(row, data).target"
-                      :placeholder="$t('uiLab.review.targetPlaceholder')"
-                      class="w-full"
-                    />
-                    <span v-else class="text-muted-color">—</span>
-                  </template>
-                </Column>
-                <Column :header="$t('common.note')">
-                  <template #body="{ data }">
-                    <InputText v-model="reviewFieldFeedbackFor(row, data).note" class="w-full" />
-                  </template>
-                </Column>
-              </DataTable>
-            </div>
-          </template>
-        </Panel>
-      </article>
+                </article>
     </section>
 
     <section v-else-if="activeSection === 'primitives'" class="flex flex-col gap-6">
@@ -348,23 +230,7 @@
               </StandardPage>
             </template>
 
-            <div class="flex flex-col gap-3 md:flex-row">
-              <Select
-                v-model="feedbackFor('primitive', primitive.key).decision"
-                :options="feedbackDecisionOptions"
-                optionLabel="label"
-                optionValue="value"
-                class="w-full md:w-48 shrink-0"
-              />
-              <Textarea
-                v-model="feedbackFor('primitive', primitive.key).note"
-                :placeholder="$t('uiLab.feedback.placeholder')"
-                rows="2"
-                class="w-full min-w-0 flex-1"
-                auto-resize
-              />
-            </div>
-          </div>
+                      </div>
         </Panel>
       </div>
     </section>
@@ -460,7 +326,6 @@ import { useEntityStore } from '~/stores/entities';
 
 const groups = DESIGN_SYSTEM_GROUPS;
 const variants = DESIGN_SYSTEM_VARIANTS;
-const FEEDBACK_STORAGE_KEY = 'cutkit:ui-lab-feedback:v1';
 const { t } = useI18n();
 const ENTITY_COLLECTION_BY_TYPE = new Map((frameworkManifest.entities || []).map(entity => [entity.type, entity.collection]));
 const PRIMITIVE_EXAMPLE_KEYS = [
@@ -498,18 +363,6 @@ const primitiveRows = DESIGN_SYSTEM_PRIMITIVES.map((primitive) => ({
 const rows = createDesignSystemDemoRows();
 const manifestIssues = validateDesignSystemManifest();
 const entityStore = useEntityStore();
-const feedback = ref(loadFeedback());
-const reviewModels = ref([]);
-const reviewLoading = ref(false);
-const reviewError = ref(null);
-const expandedReviews = ref(new Set());
-const feedbackOpen = ref(new Set());
-const toggleFeedback = (key) => {
-    const next = new Set(feedbackOpen.value);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
-    feedbackOpen.value = next;
-};
 
 const activeSection = ref(groups[0]?.id || 'contract');
 const contractMetrics = computed(() => [
@@ -523,10 +376,7 @@ const dialogVisible = ref(false);
 const designerDialogVisible = ref(false);
 const activeGroup = computed(() => groups.find((group) => group.id === activeSection.value));
 const activeRows = computed(() => rows.filter((row) => row.group === activeSection.value));
-const activeRowsWithModels = computed(() => activeRows.value.map((row) => ({
-  ...row,
-  model: uiLabReviewModelForRow(row)
-})));
+const activeRowsWithModels = computed(() => activeRows.value);
 
 const primitiveEntity = createMockQueue();
 const primitiveAlternateQueue = createMockQueue({
@@ -563,21 +413,7 @@ const queueFields = [
   { path: 'summary.sheetCount', i18n: 'results.sheets' }
 ];
 
-const feedbackDecisionOptions = computed(() => [
-  { label: t('uiLab.feedback.decisions.unchecked'), value: 'unchecked' },
-  { label: t('uiLab.feedback.decisions.fix'), value: 'fix' },
-  { label: t('uiLab.feedback.decisions.improve'), value: 'improve' },
-  { label: t('uiLab.feedback.decisions.ok'), value: 'ok' }
-]);
 
-const reviewDecisionOptions = computed(() => [
-  { label: t('admin.dataModelReview.decisions.unchecked'), value: 'unchecked' },
-  { label: t('admin.dataModelReview.decisions.keep'), value: 'keep' },
-  { label: t('admin.dataModelReview.decisions.remove'), value: 'remove' },
-  { label: t('admin.dataModelReview.decisions.rename'), value: 'rename' },
-  { label: t('admin.dataModelReview.decisions.move'), value: 'move' },
-  { label: t('admin.dataModelReview.decisions.investigate'), value: 'investigate' }
-]);
 
 const contractRows = computed(() =>
   rows.map((row) => ({
@@ -589,131 +425,6 @@ const contractRows = computed(() =>
     docs: row.docs.join(', ')
   }))
 );
-
-function feedbackKey(scope, key) {
-  return `${scope}:${key}`;
-}
-
-function feedbackFor(scope, key, meta = {}) {
-  const id = feedbackKey(scope, key);
-  if (!feedback.value[id]) {
-    feedback.value[id] = { scope, key, decision: 'unchecked', note: '' };
-  }
-  if (meta.component && !feedback.value[id].component) feedback.value[id].component = meta.component;
-  if (meta.field && !feedback.value[id].field) feedback.value[id].field = meta.field;
-  return feedback.value[id];
-}
-
-function reviewModelForRow(row) {
-  const collection = ENTITY_COLLECTION_BY_TYPE.get(row.entityType);
-  if (!collection) return null;
-  return reviewModels.value.find(model => model.collection === collection) || null;
-}
-
-function uiLabReviewModelForRow(row) {
-  const model = reviewModelForRow(row);
-  if (!model) return null;
-  return {
-    ...model,
-    fields: (model.fields || []).filter(field => !field.name.startsWith('lineage.')),
-    issues: (model.issues || []).filter(issue => !issue.field.startsWith('lineage.'))
-  };
-}
-
-function reviewFieldFeedbackFor(row, field) {
-  return feedbackFor('model', `${row.key}:${field.name}`, {
-    component: row.key,
-    field: field.name
-  });
-}
-
-function reviewExpanded(key) {
-  return expandedReviews.value.has(key);
-}
-
-function toggleReview(key) {
-  const next = new Set(expandedReviews.value);
-  if (next.has(key)) {
-    next.delete(key);
-  } else {
-    next.add(key);
-  }
-  expandedReviews.value = next;
-}
-
-function loadFeedback() {
-  if (!import.meta.client) return {};
-  const saved = localStorage.getItem(FEEDBACK_STORAGE_KEY);
-  if (!saved) return {};
-  try {
-    return JSON.parse(saved);
-  } catch {
-    return {};
-  }
-}
-
-async function loadReviewModels() {
-  reviewLoading.value = true;
-  reviewError.value = null;
-  try {
-    const result = await $fetch('/api/debug/data-models');
-    if (!result.success) throw new Error(result.error || t('admin.dataModelReview.loadFailed'));
-    reviewModels.value = result.models || [];
-  } catch (err) {
-    reviewError.value = err.data?.message || err.message || t('admin.dataModelReview.loadFailed');
-  } finally {
-    reviewLoading.value = false;
-  }
-}
-
-function buildFeedbackMarkdown() {
-  const rows = Object.values(feedback.value)
-    .filter(item => (item.decision && item.decision !== 'unchecked') || item.note);
-
-  const lines = [
-    t('uiLab.feedback.planTitle'),
-    '',
-    `${t('admin.dataModelReview.generated')}: ${new Date().toISOString()}`,
-    '',
-    `| ${t('uiLab.feedback.scope')} | ${t('uiLab.feedback.component')} | ${t('admin.dataModelReview.decision')} | ${t('common.note')} |`,
-    '|---|---|---|---|'
-  ];
-
-  for (const row of rows.filter(item => item.scope !== 'model')) {
-    lines.push(`| ${row.scope} | \`${row.component || row.key}\` | ${row.decision || 'unchecked'} | ${(row.note || '').replace(/\n/g, ' ')} |`);
-  }
-
-  const modelRows = rows.filter(item => item.scope === 'model');
-  if (modelRows.length) {
-    lines.push(
-      '',
-      t('uiLab.review.planTitle'),
-      '',
-      `| ${t('uiLab.feedback.component')} | ${t('admin.dataModelReview.field')} | ${t('admin.dataModelReview.decision')} | ${t('admin.dataModelReview.target')} | ${t('common.note')} |`,
-      '|---|---|---|---|---|'
-    );
-    for (const row of modelRows) {
-      lines.push(`| \`${row.component || row.key}\` | \`${row.field || row.key}\` | ${row.decision || 'unchecked'} | ${row.target || ''} | ${(row.note || '').replace(/\n/g, ' ')} |`);
-    }
-  }
-
-  return lines.join('\n');
-}
-
-function exportFeedback() {
-  const blob = new Blob([buildFeedbackMarkdown()], { type: 'text/markdown' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'ui-lab-feedback.md';
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-function resetFeedback() {
-  feedback.value = {};
-  if (import.meta.client) localStorage.removeItem(FEEDBACK_STORAGE_KEY);
-}
 
 function seedDemoTraceEntities() {
   const demoEntities = [
@@ -732,14 +443,4 @@ function seedDemoTraceEntities() {
     };
   }
 }
-
-onMounted(async () => {
-  await loadReviewModels();
-});
-
-watch(feedback, value => {
-  if (import.meta.client) {
-    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(value));
-  }
-}, { deep: true });
 </script>
