@@ -513,7 +513,9 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   small caller-owned primary navigation choice, such as opening or switching
   the organization represented by a profile card.
 - **`MotionDock.vue`**: Shared compact bottom action dock adapted from the Vue
-  Bits Dock block and backed by `motion-v`. Use it for a small, contextual set
+  Bits Dock block and animated through the GSAP motion patterns in
+  `composables/useMotion.js` (`useFollowValue` magnification, `useEnterExit`
+  tooltips). Use it for a small, contextual set
   of canvas or workspace commands—not global navigation or ordinary page
   actions. Callers supply `{ icon, label, onClick, pressed?, disabled?,
   attention?, hasPopup?, onHoverStart?, onHoverEnd?, onFocus?, onBlur? }`

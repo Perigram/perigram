@@ -6,7 +6,9 @@
 - **Motion:** Motion is contextual behavior, not an application theme concern.
   Keep interaction-specific motion inside the owning derived composition, use
   Aura's transition duration for generic states, and respect
-  `useReducedMotion()`. Do not add perpetual, global, or page-local animation
+  `useReducedMotion()`. JavaScript motion uses the GSAP patterns from
+  `composables/useMotion.js` — do not introduce another motion library. Do not
+  add perpetual, global, or page-local animation
   to otherwise static operational controls.
 - **Layout:** Use Tailwind CSS utility classes for layout (flex, grid, spacing, alignment).
 - **Minimal Text Chrome:** Do not add page/panel headers, descriptions,
