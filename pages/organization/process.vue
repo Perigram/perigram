@@ -287,7 +287,7 @@
                     <small class="text-muted-color">{{ $t('processDesigner.transitionBelongsTo') }}</small>
                   </div>
                   <div v-if="selectedProcessNode.kind?.startsWith('effect.')" class="flex flex-col gap-2">
-                    <label>{{ $t('processDesigner.actionAccess') }}</label>
+                    <label>{{ $t('processDesigner.actionRoles') }}</label>
                     <MultiSelect
                       :model-value="selectedProcessNodeGrantRoleIds"
                       :options="roleOptions"
@@ -297,7 +297,7 @@
                       class="w-full"
                       @update:model-value="updateSelectedProcessNodeGrantRoles"
                     />
-                    <small class="text-muted-color">{{ $t('processDesigner.actionAccessHelp') }}</small>
+                    <small class="text-muted-color">{{ $t('processDesigner.actionRolesHelp') }}</small>
                   </div>
                   <Panel v-if="selectedEntityAvailable" :header="$t('processDesigner.producerWorkflow')" class="mt-0">
                         <div class="flex flex-col gap-3">

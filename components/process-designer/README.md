@@ -41,12 +41,15 @@ complete access context: entity type, producer path, workflow, and transition
 are already fixed by the node and its wiring, and the compiler derives the
 action access window (`feature`, `statusFrom`, `statusTo`, scope) from them.
 The inspector separates the two authorization axes explicitly, operation
-first: **"Can run this action"** (one roles multiselect per effect node,
-levels default write / deletion admin, with a one-line explanation that the
-scope is node-derived) and, inside the producer workflow panel, **"Entity
-data access"** ("Can view / edit / manage entities", "Fields visible on
-read / editable on write / admin-only") governing the entities the producer
-emits. Neither offers an entity/feature picker or a per-grant condition
+first: **"Action roles"** (one roles multiselect per effect node, levels
+default write / deletion admin) — the action *belongs to* those roles: they
+receive the action in their compiled action list and a status-scoped data
+grant for the node's resulting state (`feature` + `level` + `primaryStatus`
+rule derived from the node), matching the original `grantFromAction`
+semantics; it is not an execution-permission check. Inside the producer
+workflow panel, **"Entity data access"** ("Can view / edit / manage
+entities", "Fields visible on read / editable on write / admin-only")
+governs the entities the producer emits. Neither offers an entity/feature picker or a per-grant condition
 dialog; the grant-conditions dialog is reserved for surfaces that genuinely
 own a feature dimension (screen required access, process base grants).
 Status-change nodes select their target status from the node's own producer
