@@ -7,20 +7,7 @@
             </div>
         </template>
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
-            <div class="lg:col-span-3">
-                <Panel>
-                    <div class="flex flex-col gap-4">
-                        <p v-if="catalog.data?.description" class="m-0">{{ catalog.data.description }}</p>
-                        <DataBlock entity-type="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />
-                        <div v-if="catalog.lineage?.manufacturerId" class="flex items-center justify-between gap-4">
-                            <small class="text-muted-color">{{ $t('requisition.manufacturer') }}</small>
-                            <EntityInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
-                        </div>
-                    </div>
-                </Panel>
-            </div>
-
+        <template #sidebar>
             <Panel :header="$t('catalog.sheetOptions')">
                 <div class="flex flex-col gap-4">
                     <div v-if="catalog.data?.material" class="flex flex-col gap-1">
@@ -47,15 +34,23 @@
                     </div>
                 </div>
             </Panel>
-        </div>
+        </template>
 
         <div class="flex flex-col gap-6">
-            <div class="flex items-center gap-2">
-                <i class="pi pi-images"></i>
-                <h2 class="m-0 text-section-heading">{{ $t('catalog.visualLibrary') }}</h2>
-            </div>
-            
-            <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-6">
+            <Panel>
+                <div class="flex flex-col gap-4">
+                    <p v-if="catalog.data?.description" class="m-0">{{ catalog.data.description }}</p>
+                    <DataBlock entity-type="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />
+                    <div v-if="catalog.lineage?.manufacturerId" class="flex items-center justify-between gap-4">
+                        <small class="text-muted-color">{{ $t('requisition.manufacturer') }}</small>
+                        <EntityInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
+                    </div>
+                </div>
+            </Panel>
+
+            <ActionToolbar :title="$t('catalog.visualLibrary')" :level="2" />
+
+            <ResponsiveGrid variant="dense" responsive-context="container">
                 <div v-for="color in colors" :key="color._id" class="flex flex-col gap-1">
                     <ColorCard :color="color" variant="card" />
                     <div v-if="authStore.can('catalogs', 'edit')" class="flex justify-end gap-1">
@@ -63,7 +58,7 @@
                         <Button icon="pi pi-trash" text size="small" severity="danger" :aria-label="$t('common.delete')" @click="$emit('remove-sheet-type', { catalog, sheetTypeId: color._id })" />
                     </div>
                 </div>
-            </div>
+            </ResponsiveGrid>
         </div>
     </EntityPage>
 </template>
@@ -77,6 +72,8 @@ import EntityPage from '~/components/shared/EntityPage.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import ColorCard from '~/components/entities/Color/ColorCard.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { useAuthStore } from '~/stores/auth';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
