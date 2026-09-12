@@ -6,7 +6,7 @@ test.describe('home and entity UI', () => {
     const project = await app.createProject();
     await app.createQueue(project);
     await app.page.goto('/');
-    await app.page.waitForLoadState('networkidle');
+    await app.page.waitForLoadState('load');
     await expect(app.page.locator('[data-home-entity-type="project"] [data-entity-id]').filter({ hasText: project.identity?.name || project.name })).toBeVisible();
     await expect(app.page.locator('[data-home-entity-type="queue"]')).toHaveCount(0);
     await app.expectCleanRuntime();
@@ -21,7 +21,7 @@ test.describe('home and entity UI', () => {
     const detail = (context.screens || []).find(screen => screen.template === 'entityDetail' && screen.entityType === 'queue');
     test.skip(!detail?.route, 'Active process has no generated queue detail screen');
     await app.page.goto(`${detail.route}?entityId=${encodeURIComponent(queue._id)}&queueId=${encodeURIComponent(queue._id)}&projectId=${encodeURIComponent(project._id)}`);
-    await app.page.waitForLoadState('networkidle');
+    await app.page.waitForLoadState('load');
     const entityPage = app.page.locator('.entity-page').first();
     await expect(entityPage).toBeVisible();
     expect(await entityPage.evaluate(element => getComputedStyle(element).containerType)).toBe('inline-size');
@@ -31,7 +31,7 @@ test.describe('home and entity UI', () => {
 
   test('entity page layout uses inline-size container queries', async ({ app }) => {
     await app.page.goto('/');
-    await app.page.waitForLoadState('networkidle');
+    await app.page.waitForLoadState('load');
     await app.page.waitForTimeout(2000);
     const entityPages = app.page.locator('.entity-page');
     const count = await entityPages.count();
@@ -44,7 +44,7 @@ test.describe('home and entity UI', () => {
 
   test('chats full route renders without app launcher', async ({ app }) => {
     await app.page.goto('/chats');
-    await app.page.waitForLoadState('networkidle');
+    await app.page.waitForLoadState('load');
     const launcher = app.page.locator('[data-testid="desktop-chat-launcher"]');
     await expect(launcher).not.toBeVisible({ timeout: 5000 });
     await app.expectCleanRuntime();
@@ -66,7 +66,7 @@ test.describe('home and entity UI', () => {
     expect(target).toBeTruthy();
     const organizationName = target.identity?.name || target.data?.name || target.name;
     await app.page.goto('/');
-    await app.page.waitForLoadState('networkidle');
+    await app.page.waitForLoadState('load');
     const userMenuTrigger = app.page.locator('[data-testid="user-menu-trigger"]');
     await expect(userMenuTrigger).toBeVisible();
     await userMenuTrigger.click();

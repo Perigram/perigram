@@ -4,12 +4,18 @@ import { dirname } from 'node:path';
 import {
   E2E_AUTH_STATE,
   E2E_BASE_URL,
-  E2E_ORG_ID,
   E2E_REGISTER_ON_LOGIN_FAILURE,
   E2E_USER_EMAIL,
   E2E_USER_NAME,
   E2E_USER_PASSWORD
 } from './config.js';
+
+// Each run gets a unique identity so consecutive runs never share database
+// state: a fresh registration provisions a fresh organization with the full
+// template process, roles, and the owner role assignment. Set E2E_USER_EMAIL
+// explicitly to pin a reused identity.
+const RUN_EMAIL = process.env.E2E_USER_EMAIL
+  || `e2e-${Date.now().toString(36)}@cutkit.local`;
 
 export default async function globalSetup() {
   const context = await request.newContext({ baseURL: E2E_BASE_URL });
@@ -20,11 +26,11 @@ export default async function globalSetup() {
       throw new Error(`App responded with ${health.status()} from /api/auth/me`);
     }
 
-    let login = await loginRequest(context);
+    let login = await loginRequest(context, RUN_EMAIL);
 
     if (login.status() === 401 && E2E_REGISTER_ON_LOGIN_FAILURE) {
-      await registerE2eUser(context);
-      login = await loginRequest(context);
+      await registerE2eUser(context, RUN_EMAIL);
+      login = await loginRequest(context, RUN_EMAIL);
     }
 
     if (!login.ok()) {
@@ -45,20 +51,20 @@ export default async function globalSetup() {
   }
 }
 
-async function loginRequest(context) {
+async function loginRequest(context, email) {
   return await context.post('/api/auth/login', {
     data: {
-      email: E2E_USER_EMAIL,
+      email,
       password: E2E_USER_PASSWORD
     },
     failOnStatusCode: false
   });
 }
 
-async function registerE2eUser(context) {
+async function registerE2eUser(context, email) {
   const response = await context.post('/api/auth/register', {
     data: {
-      email: E2E_USER_EMAIL,
+      email,
       password: E2E_USER_PASSWORD,
       name: E2E_USER_NAME,
       // Registration only creates an organization via organizationName; a
