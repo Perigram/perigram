@@ -25,7 +25,7 @@
             <Panel>
                 <template #header>
                     <div class="flex items-center gap-4">
-                        <i class="pi pi-file"></i>
+                        <i class="ck-entity-icon ck-entity-icon-sheet-instance"></i>
                         <span>{{ warehouseStats.totalSheets || 0 }}</span>
                     </div>
                 </template>
@@ -34,7 +34,7 @@
             <Panel>
                 <template #header>
                     <div class="flex items-center gap-4">
-                        <i class="pi pi-undo"></i>
+                        <i class="ck-entity-icon ck-entity-icon-remnant"></i>
                         <span>{{ warehouseStats.totalRemnants || 0 }}</span>
                     </div>
                 </template>

@@ -126,7 +126,7 @@
                                 <div class="rounded-panel border border-content-border bg-content p-3">
                                     <div class="flex items-center justify-between gap-3">
                                         <div class="flex min-w-0 items-center gap-2">
-                                            <i class="pi pi-file"></i>
+                                            <i class="ck-entity-icon ck-entity-icon-sheet-instance"></i>
                                             <span class="truncate font-medium">{{ $t('nesting.virtualSheet') }}</span>
                                         </div>
                                         <span>{{ virtualSheetLabel }}</span>

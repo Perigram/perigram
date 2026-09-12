@@ -40,7 +40,7 @@ watch(runId, async (id) => {
   <div class="h-full">
     <EntityCard :entity="sheet" entity-type="sheet" :variant="variant">
       <template #before-identity>
-        <i class="pi pi-file"></i>
+        <i class="ck-entity-icon ck-entity-icon-sheet-instance"></i>
       </template>
       <template #compact-content>
         <SpecsBlock entity-type="sheet" :entity="sheet" variant="compact" />

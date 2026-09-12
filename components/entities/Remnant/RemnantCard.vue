@@ -31,7 +31,7 @@ watch(sheetId, async (id) => {
   <div class="h-full">
     <EntityCard :entity="remnant" entity-type="remnant" :variant="variant">
       <template #before-identity>
-        <i class="pi pi-undo"></i>
+        <i class="ck-entity-icon ck-entity-icon-remnant"></i>
       </template>
       <template #compact-content>
         <div class="mt-3 flex flex-col gap-3">

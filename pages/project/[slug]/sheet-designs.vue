@@ -12,7 +12,7 @@
       v-else-if="!sheetDesigns.length"
       :message="$t('sheetDesign.noSheetDesigns')"
       :description="$t('sheetDesign.runNestingFirst')"
-      icon="pi pi-map"
+      icon="ck-entity-icon ck-entity-icon-sheet-design"
     />
 
     <template v-else>

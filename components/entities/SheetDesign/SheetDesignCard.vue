@@ -35,7 +35,7 @@ const openDesign = () => {
   <div>
     <EntityCard :entity="design" entity-type="sheet_design" :variant="variant" :show-status="false">
       <template #before-identity>
-        <i class="pi pi-map"></i>
+        <i class="ck-entity-icon ck-entity-icon-sheet-design"></i>
       </template>
       <template #compact-content>
         <SpecsBlock entity-type="sheetDesign" :entity="design" variant="compact" />
