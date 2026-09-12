@@ -596,7 +596,9 @@
         "entityType": "sheet",
         "fieldPaths": [
           "specs.area",
+          "specs.color",
           "specs.length",
+          "specs.material",
           "specs.width"
         ],
         "group": "material",
@@ -612,7 +614,9 @@
           "server/features/remnants/README.md"
         ],
         "entityType": "remnant",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "specs.area"
+        ],
         "group": "material",
         "key": "remnant",
         "labelKey": "entities.remnant",
