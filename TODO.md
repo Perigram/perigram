@@ -102,7 +102,7 @@
   Acceptance: MotionDock + cassette animated via GSAP; `motion-v` gone from
   dependencies; patterns documented; design-system spec green.
 
-- [ ] **Chat redesign in PrimeVue-native components + animations.**
+- [x] **Chat redesign in PrimeVue-native components + animations.**
   Depends on: GSAP foundation; connections architecture.
   - Rebuild `ChatSupport` / `AdminSupportChat(List)` surfaces from PrimeVue
     primitives + shared blocks; `EntityInlineRef` message refs stay; no custom
@@ -110,8 +110,23 @@
   - Animations through the documented GSAP patterns (message enter, drawer,
     typing indicators), reduced-motion aware.
   - Delivery and read state over the connections layer.
-  Acceptance: visual audit clean (no hand-rolled chat styling); animations
-    follow the documented patterns; localization spec green.
+  ### Agent Notes — 2026-09-12
+  Implemented in `agent/chat-redesign-20260912-121420`. `ChatSupport.vue` is now
+  a thin host: drawer mode is a PrimeVue `Drawer` (Aura transition, token width
+  via allowlisted binding), embedded/full-page modes wrap the extracted
+  `SupportChatSurface.vue` that owns all chat state. Inbox lists are PrimeVue
+  `Listbox` (keyboard nav + Aura hover/selection chrome), headers are
+  `ActionToolbar`, empty/loading rows are `StateBlock`, day dividers are
+  `Divider`, composer is a bare Aura-chromed `Textarea`. Bubbles use
+  `bg-subtle` / brand primary with `max-w-support-chat-message` tokens; all
+  four chat components now carry ZERO visual-inventory findings (was
+  46+3+4+1). Animations: streamed messages enter via the new `enterOnce`
+  pattern, typing indicators via `useEnterExit`; typing itself is a new
+  ephemeral `POST /api/support/typing` published on the conversation topic
+  (never persisted). Localization spec is green — added the 5 pre-existing
+  missing keys (common.apply/rotate/settings, nesting.selectMachine/thickness)
+  plus support.typing in en+ru.
+  Status: WAITING.
 
 - [ ] **Per-entity layout program: env-friendly variant layouts.**
   Supersedes `TODO_UI.md` (content folded here; that file is deleted).

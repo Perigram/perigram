@@ -104,6 +104,7 @@ survives write-time validation.
 | `POST /api/support/read` | Marks an authorized conversation read for the current user. |
 | `GET /api/support/entity-types` | Returns generated-screen entity source types readable by the current user. |
 | `GET /api/support/entity-options?type=<type>&q=<query>&recipientUserId=<id>` | Returns readable entity options for chat attachment refs and flags recipient chat-only visibility for direct chats. |
+| `POST /api/support/typing` | Ephemeral typing signal; authorized like a read, published to the conversation topic, never persisted. |
 | `GET /api/support/messages` | REST snapshot of the current user's support conversation; changes arrive over the connections stream. |
 | `GET /api/support/messages?recipientUserId=<id>` | REST snapshot of a direct user conversation. |
 | `POST /api/support/messages` | Send support or direct user message, depending on `recipientUserId`. Publishes `message`/`read`/inbox events through the connections layer. |
