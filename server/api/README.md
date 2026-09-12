@@ -91,6 +91,10 @@ Routes are grouped into sub-directories corresponding to features:
   `POST /connections/subscriptions` replaces the connection's requested
   topic set after every (re)connect; topic admission is enforced server-side.
   See [the connections feature](../features/connections/README.md).
+- `livekit/`: Authenticated call endpoints — config for the browser,
+  token minting with server-side room admission, conversation call invites,
+  and a verified LiveKit webhook receiver that fans call activity onto the
+  connections layer. See [the livekit feature](../features/livekit/README.md).
 - `support/`: Authenticated support chat endpoints. User routes snapshot the
   current user's support conversation or a direct user-to-user conversation
   selected by `recipientUserId`; admin routes remain scoped to customer support

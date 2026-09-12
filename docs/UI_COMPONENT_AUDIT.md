@@ -129,6 +129,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-artifactstable-vue` | `components/ArtifactsTable.vue` | derived usage | compliant |
 | `ui-components-assetslibrary-vue` | `components/AssetsLibrary.vue` | derived usage | replace:chrome (2); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-authprogress-vue` | `components/AuthProgress.vue` | derived usage | compliant |
+| `ui-components-calls-callpanel-vue` | `components/calls/CallPanel.vue` | derived usage | replace:chrome (3) |
 | `ui-components-cassettedesigner-vue` | `components/CassetteDesigner.vue` | derived usage | replace:chrome (3); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-cassettedesignerv2-vue` | `components/CassetteDesignerV2.vue` | derived usage | centralize:layout (1); replace:chrome (59); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-cassetteeditordialog-vue` | `components/CassetteEditorDialog.vue` | derived usage | centralize:layout (6); replace:chrome (2) |
@@ -136,7 +137,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-cassettefoldedpreview-vue` | `components/CassetteFoldedPreview.vue` | derived usage | centralize:layout (2); replace:chrome (4); remove:state (1) |
 | `ui-components-cassettemanager-vue` | `components/CassetteManager.vue` | derived usage | compliant |
 | `ui-components-cassettethumbnail-vue` | `components/CassetteThumbnail.vue` | derived usage | replace:chrome (4) |
-| `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | replace:chrome (9) |
+| `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | replace:chrome (10) |
 | `ui-components-config-bot-configbotcitationlist-vue` | `components/config-bot/ConfigBotCitationList.vue` | derived usage | replace:chrome (4) |
 | `ui-components-config-bot-configbotdraftpreview-vue` | `components/config-bot/ConfigBotDraftPreview.vue` | derived usage | centralize:layout (1); replace:chrome (12) |
 | `ui-components-config-bot-configbotgeneratedpreview-vue` | `components/config-bot/ConfigBotGeneratedPreview.vue` | derived usage | replace:chrome (8) |
