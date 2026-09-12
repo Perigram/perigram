@@ -1037,8 +1037,6 @@ const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInfer
   portForHandle,
   syncProcessNode
 });
-const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen, normalizeScreenContract, defaultEntityType, featureForEntityType });
-
 const designer = reactive(createProcessDesignerContract(cncDomain));
 
 const {
@@ -1109,6 +1107,10 @@ const {
   initialStatusForEntity,
   syncProcessNode
 });
+
+const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen, normalizeScreenContract, defaultEntityType, featureForEntityType });
+
+
 const {
   ensureRecord,
   factoryForType,
