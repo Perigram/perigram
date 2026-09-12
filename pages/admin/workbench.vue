@@ -1,15 +1,14 @@
 <template>
-  <div class="flex w-full flex-col gap-4 p-4 md:p-6">
-    <div class="flex flex-col gap-4">
-      <div class="flex flex-wrap items-center justify-end gap-2">
-        <div class="flex items-center gap-2">
-          <Button icon="pi pi-refresh" :label="$t('common.reset')" severity="secondary" size="small" @click="resetWorkbench" />
-          <Button icon="pi pi-download" :label="$t('admin.workbench.exportDraft')" size="small" @click="downloadDraft" />
-        </div>
-      </div>
+  <StandardPage :title="$t('admin.workbench.title')" :subtitle="$t('admin.workbench.subtitle')">
+    <template #actions>
+      <Button icon="pi pi-refresh" :label="$t('common.reset')" severity="secondary" size="small" @click="resetWorkbench" />
+      <Button icon="pi-download" :label="$t('admin.workbench.exportDraft')" size="small" @click="downloadDraft" />
+    </template>
 
-      <div v-if="activeWorkbenchSection === 'commands'" class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
-        <Panel :header="$t('admin.workbench.sectionsCommands')" class="lg:sticky lg:top-4">
+    <div class="flex flex-col gap-4">
+
+      <div v-if="activeWorkbenchSection === 'commands'" class="flex flex-col items-stretch gap-4 lg:flex-row">
+        <Panel :header="$t('admin.workbench.sectionsCommands')" class="shrink-0 lg:sticky lg:top-4 lg:w-64">
           <div class="flex flex-col gap-3">
             <Message v-if="commandsError" severity="warn">{{ commandsError }}</Message>
             <InputText v-model="commandSearch" :placeholder="$t('common.search')" class="w-full" />
@@ -187,7 +186,7 @@
         </div>
       </div>
 
-      <div v-else-if="activeWorkbenchSection === 'context'" class="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)]">
+      <div v-else-if="activeWorkbenchSection === 'context'" class="flex flex-col items-stretch gap-4 lg:flex-row-reverse">
         <Panel :header="$t('admin.commands.fixtures')">
           <div class="flex flex-col gap-4">
             <div class="flex flex-wrap items-center gap-2">
@@ -305,8 +304,8 @@
               v-for="entity in visibleEntities"
               :key="entity.key"
               type="button"
-              class="flex min-w-0 items-center justify-between gap-2 rounded-ui border border-content-border bg-content px-2 py-2 text-left"
-              :class="selectedEntityKey === entity.key ? 'border-primary' : ''"
+              class="flex min-w-0 items-center justify-between gap-2 rounded-ui px-2 py-2 text-left"
+              :class="selectedEntityKey === entity.key ? 'bg-primary text-primary-contrast' : 'bg-subtle'"
               @click="selectedEntityKey = entity.key"
             >
               <span class="flex min-w-0 flex-col">
@@ -320,16 +319,11 @@
         </Panel>
 
         <div class="flex flex-col gap-4">
-          <div class="flex flex-wrap gap-2">
-            <Button
-              v-for="tab in entityWorkbenchTabs"
-              :key="tab.value"
-              :label="$t(tab.labelKey)"
-              :severity="activeEntityTab === tab.value ? 'primary' : 'secondary'"
-              size="small"
-              @click="activeEntityTab = tab.value"
-            />
-          </div>
+          <Tabs :value="activeEntityTab" @update:value="value => activeEntityTab = value">
+            <TabList>
+              <Tab v-for="tab in entityWorkbenchTabs" :key="tab.value" :value="tab.value">{{ $t(tab.labelKey) }}</Tab>
+            </TabList>
+          </Tabs>
 
           <Panel v-if="activeEntityTab === 'ui'" :header="$t('admin.workbench.sectionsUi')">
           <div class="flex flex-col gap-4">
@@ -439,7 +433,7 @@
         </div>
       </div>
     </StandardDialog>
-  </div>
+  </StandardPage>
 </template>
 
 <script setup>
@@ -452,6 +446,10 @@ import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
+import StandardPage from '~/components/shared/StandardPage.vue';
 import Panel from 'primevue/panel';
 import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';

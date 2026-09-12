@@ -290,7 +290,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-admin-index-vue` | `pages/admin/index.vue` | derived usage | compliant |
 | `ui-pages-admin-support-vue` | `pages/admin/support.vue` | derived usage | replace:chrome (7) |
 | `ui-pages-admin-users-vue` | `pages/admin/users.vue` | derived usage | replace:chrome (4) |
-| `ui-pages-admin-workbench-vue` | `pages/admin/workbench.vue` | derived usage | centralize:layout (8); replace:chrome (38) |
+| `ui-pages-admin-workbench-vue` | `pages/admin/workbench.vue` | derived usage | centralize:layout (6); replace:chrome (35) |
 | `ui-pages-admin-workflows-vue` | `pages/admin/workflows.vue` | derived usage | centralize:layout (1) |
 | `ui-pages-assets-cassettes-vue` | `pages/assets/cassettes.vue` | derived usage | compliant |
 | `ui-pages-assets-index-vue` | `pages/assets/index.vue` | derived usage | compliant |
