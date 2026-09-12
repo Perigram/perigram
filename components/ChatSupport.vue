@@ -143,7 +143,7 @@
                 <StateBlock :message="$t('support.selectConversation')" icon="pi pi-comments" />
             </div>
 
-            <section v-if="activeConversation" class="flex min-h-0 min-w-0 flex-col overflow-hidden">
+            <section v-if="activeConversation" class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                 <div v-if="fullPage" class="flex items-center gap-3 p-4">
                     <Button
                         icon="pi pi-arrow-left"
