@@ -1,6 +1,6 @@
 <template>
   <StandardPage :title="$t('terms.title')">
-    <div class="flex flex-col gap-8 font-serif">
+    <div class="flex flex-col gap-8 text-prose">
       <div class="flex flex-col gap-4">
         <p class="m-0">
           {{ $t('terms.welcome') }}

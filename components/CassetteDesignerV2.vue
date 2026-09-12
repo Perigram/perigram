@@ -124,7 +124,7 @@
         <div class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-1">
           <div v-for="parameter in globalParameterEntries" :key="parameter.key" class="flex min-w-0 flex-col gap-1">
             <div class="flex items-center justify-between gap-2">
-              <label class="font-mono">{{ parameter.key }}</label>
+              <label class="text-technical">{{ parameter.key }}</label>
               <Button
                 icon="pi pi-trash"
                 severity="danger"
@@ -208,7 +208,7 @@
       </div>
 
       <div v-else class="flex min-h-0 flex-col gap-2">
-        <Textarea :model-value="occsJson" readonly rows="22" class="min-h-0 w-full flex-1 font-mono text-xs" />
+        <Textarea :model-value="occsJson" readonly rows="22" class="min-h-0 w-full flex-1 text-technical" />
       </div>
       </aside>
       </template>
@@ -357,7 +357,7 @@
               v-tooltip.top="$t('cassette.v2.attachmentFields.sourceSnap')"
               @update:model-value="value => updateInlineAttachmentRelation({ sourceSnap: value })"
             />
-            <label class="flex min-w-0 flex-col gap-1 text-xs text-muted-color" v-tooltip.top="$t('cassette.v2.attachmentFields.edgeMargin')">
+            <label class="flex min-w-0 flex-col gap-1 text-muted-color text-label" v-tooltip.top="$t('cassette.v2.attachmentFields.edgeMargin')">
               <span class="truncate">{{ $t('cassette.v2.attachmentFields.edgeMargin') }}</span>
               <CassetteExpressionEditor
                 :model-value="inlineEditorRelation.offsetX"
@@ -366,7 +366,7 @@
                 @update:model-value="value => updateInlineAttachmentRelation({ offsetX: value })"
               />
             </label>
-            <label class="flex min-w-0 flex-col gap-1 text-xs text-muted-color" v-tooltip.top="$t('cassette.v2.attachmentFields.normalOffset')">
+            <label class="flex min-w-0 flex-col gap-1 text-muted-color text-label" v-tooltip.top="$t('cassette.v2.attachmentFields.normalOffset')">
               <span class="truncate">{{ $t('cassette.v2.attachmentFields.normalOffset') }}</span>
               <CassetteExpressionEditor
                 :model-value="inlineEditorRelation.offsetY"
@@ -375,7 +375,7 @@
                 @update:model-value="value => updateInlineAttachmentRelation({ offsetY: value })"
               />
             </label>
-            <label class="flex min-w-0 flex-col gap-1 text-xs text-muted-color" v-tooltip.top="$t('cassette.v2.attachmentFields.rotation')">
+            <label class="flex min-w-0 flex-col gap-1 text-muted-color text-label" v-tooltip.top="$t('cassette.v2.attachmentFields.rotation')">
               <span class="truncate">{{ $t('cassette.v2.attachmentFields.rotation') }}</span>
               <CassetteExpressionEditor
                 :model-value="inlineEditorRelation.rotation"
@@ -432,7 +432,7 @@
             />
             <label
               v-if="inlineEditorRelation.placementMode === 'edgeArray'"
-              class="flex min-w-0 flex-col gap-1 text-xs text-muted-color"
+              class="flex min-w-0 flex-col gap-1 text-muted-color text-label"
               v-tooltip.top="arrayValueLabel(inlineEditorRelation)"
             >
               <span class="truncate">{{ arrayValueLabel(inlineEditorRelation) }}</span>
@@ -694,8 +694,8 @@
                       :class="relationRow.relation.id === selectedRelationId ? 'border-primary bg-subtle' : 'border-content-border'"
                       @click="selectWorkpieceRelation(relationRow.relation.id, $event)"
                     >
-                      <span class="shrink-0 font-mono text-xs text-muted-color">{{ relationRow.arrow }}</span>
-                      <span class="truncate text-sm">{{ relationRow.otherLabel }}</span>
+                      <span class="shrink-0 text-muted-color text-technical">{{ relationRow.arrow }}</span>
+                      <span class="truncate text-body">{{ relationRow.otherLabel }}</span>
                       <small class="truncate text-muted-color">{{ relationRow.faceLabel }}</small>
                       <Tag
                         v-if="relationRow.relation.driver"

@@ -57,7 +57,7 @@
       />
     </header>
     <div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-muted-color">
-      <i class="pi pi-folder-open text-2xl" aria-hidden="true" />
+      <i class="pi pi-folder-open" aria-hidden="true" />
       <span>{{ $t('project.openSomething') }}</span>
     </div>
   </section>

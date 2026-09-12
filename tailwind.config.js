@@ -1,4 +1,12 @@
-import { tailwindThemeExtension } from './assets/tokens/index.js';
+import { designTokens, tailwindThemeExtension } from './assets/tokens/index.js';
+
+const typographyRoles = Object.fromEntries(Object.entries(designTokens.typography.roles).map(([role, properties]) => [
+  `.text-${role}`,
+  {
+    ...properties,
+    fontFamily: designTokens.typography[properties.fontFamily],
+  },
+]));
 
 export default {
   content: [
@@ -13,5 +21,5 @@ export default {
   theme: {
     extend: tailwindThemeExtension,
   },
-  plugins: [],
+  plugins: [({ addUtilities }) => addUtilities(typographyRoles)],
 };

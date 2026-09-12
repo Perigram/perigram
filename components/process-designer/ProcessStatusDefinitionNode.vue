@@ -2,8 +2,8 @@
   <div :class="nodeFrameClass">
     <div class="absolute inset-x-0 top-0 h-0.5 rounded-t-ui" :style="{ backgroundColor: toneColor }"></div>
     <div class="flex items-center gap-1.5">
-      <i :class="record.icon || 'pi pi-circle-fill'" class="text-xs" :style="{ color: toneColor }" aria-hidden="true"></i>
-      <strong class="min-w-0 flex-1 truncate text-xs">{{ $t('processDesigner.paletteItems.defineStatus') }}</strong>
+      <i :class="record.icon || 'pi pi-circle-fill'" :style="{ color: toneColor }" aria-hidden="true"></i>
+      <strong class="min-w-0 flex-1 truncate text-label">{{ $t('processDesigner.paletteItems.defineStatus') }}</strong>
     </div>
 
     <div class="nodrag nowheel mt-1.5 grid gap-1" @mousedown.stop @click.stop>
@@ -32,7 +32,7 @@
         :style="statusHandleStyle"
         :aria-label="$t('processDesigner.socketLabels.status')"
       />
-      <span class="block truncate text-ui-caption">{{ record.label || record.statusId || $t('processDesigner.socketLabels.status') }}</span>
+      <span class="block truncate text-supporting">{{ record.label || record.statusId || $t('processDesigner.socketLabels.status') }}</span>
     </div>
   </div>
 </template>

@@ -68,11 +68,16 @@ export const designTokens = {
         ui: "'IBM Plex Sans', sans-serif",
         mono: "'IBM Plex Mono', monospace",
         serif: "'IBM Plex Serif', serif",
-        labelTracking: '0.04em',
-        caption: ['0.75rem', { lineHeight: '1rem' }],
-        body: ['0.875rem', { lineHeight: '1.25rem' }],
-        title: ['1.25rem', { lineHeight: '1.5rem' }],
-        display: ['1.75rem', { lineHeight: '2rem' }]
+        roles: {
+            'page-title': { fontFamily: 'ui', fontSize: 'clamp(1.75rem, 1.5rem + 1vw, 2.25rem)', lineHeight: '1.15', fontWeight: '700' },
+            'section-heading': { fontFamily: 'ui', fontSize: '1.25rem', lineHeight: '1.5rem', fontWeight: '700' },
+            body: { fontFamily: 'ui', fontSize: '1rem', lineHeight: '1.5rem', fontWeight: '400' },
+            label: { fontFamily: 'ui', fontSize: '0.875rem', lineHeight: '1.25rem', fontWeight: '600', letterSpacing: '0.02em' },
+            supporting: { fontFamily: 'ui', fontSize: '0.75rem', lineHeight: '1rem', fontWeight: '400' },
+            metric: { fontFamily: 'ui', fontSize: '1.75rem', lineHeight: '2rem', fontWeight: '700', fontVariantNumeric: 'tabular-nums' },
+            technical: { fontFamily: 'mono', fontSize: '0.875rem', lineHeight: '1.25rem', fontWeight: '400' },
+            prose: { fontFamily: 'serif', fontSize: '1rem', lineHeight: '1.625', fontWeight: '400' }
+        }
     },
     status: {
         info: 'var(--ck-status-info)',
@@ -120,7 +125,6 @@ export const cssVariableTokens = {
     '--ck-font-ui': designTokens.typography.ui,
     '--ck-font-mono': designTokens.typography.mono,
     '--ck-font-serif': designTokens.typography.serif,
-    '--ck-label-tracking': designTokens.typography.labelTracking,
     '--ck-status-info': 'var(--p-primary-color)',
     '--ck-status-success': 'var(--p-emerald-600)',
     '--ck-status-warning': 'var(--p-amber-700)',
@@ -267,15 +271,6 @@ export const tailwindThemeExtension = {
         sans: 'var(--ck-font-ui)',
         mono: 'var(--ck-font-mono)',
         serif: 'var(--ck-font-serif)'
-    },
-    fontSize: {
-        'ui-caption': designTokens.typography.caption,
-        'ui-body': designTokens.typography.body,
-        'ui-title': designTokens.typography.title,
-        'ui-display': designTokens.typography.display
-    },
-    letterSpacing: {
-        label: 'var(--ck-label-tracking)'
     },
     boxShadow: {
         card: 'var(--p-card-shadow)',

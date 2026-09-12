@@ -8,10 +8,11 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   PrimeVue, Tailwind, and Nuxt runtime CSS variables.
   Its active palette uses near-white light chrome, dark ink chrome, and
   signal-orange intent accents; `--ck-process-canvas-background` provides a
-  dedicated graph-work surface; the IBM Plex superfamily provides three type
-  roles: Sans (`typography.ui`, the application default), Mono
-  (`typography.mono`, technical data), and Serif (`typography.serif`,
-  display titles and long-form text blocks).
+  dedicated graph-work surface. `typography.roles` is the complete application
+  type contract: page title, section heading, body, label, supporting, metric,
+  technical, and prose. The roles select IBM Plex Sans, Mono, or Serif and own
+  their full treatment; Tailwind generates one `text-*` alias per role directly
+  from this object.
   Aura, not this module, owns generic control and container typography,
   spacing, borders, radii, shadows, chrome, and interaction states.
 - Nuxt emits the exported `cssVariableTokens` and `darkCssVariableTokens`
@@ -29,6 +30,11 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 - Use `--ck-*` tokens only for application-owned semantic typography, reusable
   layout constraints, domain signals, and geometry/data visualization.
   Do not use them to recreate Aura chrome or states.
+- Apply one semantic role to application text instead of composing font size,
+  weight, line height, tracking, or family utilities. Only page titles scale
+  responsively. Generic PrimeVue controls retain Aura typography. A local font
+  size is valid only when a documented runtime data value directly drives
+  visualization geometry or information magnitude.
 - Component-specific dimensions such as support chat size, dialog widths, popover/menu minimum widths, preview height, table action column width, and form swatch size live here because they are reused UI decisions rather than page-local styling.
 - Application tokens do not own a motion scale or component-specific spacing.
   Interaction behavior unavailable in PrimeVue stays local to its owning

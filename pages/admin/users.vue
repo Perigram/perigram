@@ -73,7 +73,7 @@
                 <Message severity="info">
                     {{ $t('organization.legacyPermissionsReadOnly') }}
                 </Message>
-                <pre class="max-h-96 overflow-auto rounded-ui border border-content-border bg-subtle p-3 text-xs">{{ legacyPermissionsJson }}</pre>
+                <pre class="max-h-96 overflow-auto rounded-ui border border-content-border bg-subtle p-3 text-technical">{{ legacyPermissionsJson }}</pre>
                 <div class="flex justify-end">
                     <Button
                         :label="$t('organization.openTeam')"

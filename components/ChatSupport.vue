@@ -26,9 +26,9 @@
                         @click="showInbox"
                     />
                     <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-contrast">
-                        <i class="pi pi-comment text-sm"></i>
+                        <i class="pi pi-comment"></i>
                     </div>
-                    <h2 class="m-0 truncate text-base font-bold">{{ chatTitle }}</h2>
+                    <h2 class="m-0 truncate text-section-heading">{{ chatTitle }}</h2>
                 </div>
                 <div class="flex shrink-0 items-center gap-1">
                     <Button
@@ -73,7 +73,7 @@
                 ]"
             >
                 <div v-if="fullPage" class="flex items-center justify-between border-b border-content-border p-4">
-                    <h1 class="m-0 text-lg">{{ $t('support.chatTitle') }}</h1>
+                    <h1 class="m-0 text-page-title">{{ $t('support.chatTitle') }}</h1>
                     <Button
                         icon="pi pi-user-plus"
                         severity="secondary"
@@ -118,7 +118,7 @@
                         />
                         <div class="min-w-0 flex-1">
                             <div class="flex min-w-0 items-center gap-2">
-                                <span class="truncate font-medium">{{ conversationLabel(conversation) }}</span>
+                                <span class="truncate text-label">{{ conversationLabel(conversation) }}</span>
                             </div>
                             <small class="block truncate text-muted-color">
                                 <SupportMessageContent
@@ -156,7 +156,7 @@
                         shape="circle"
                         class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                     />
-                    <h2 class="m-0 min-w-0 truncate text-base">{{ conversationLabel(activeConversation) }}</h2>
+                    <h2 class="m-0 min-w-0 truncate text-section-heading">{{ conversationLabel(activeConversation) }}</h2>
                 </div>
                 <div ref="messagesContainer" class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 bg-content md:p-4 md:gap-4">
                     <template
@@ -165,7 +165,7 @@
                     >
                         <div v-if="messageItem.day" class="flex items-center gap-4 my-2">
                             <div class="flex-1 h-px bg-content-border"></div>
-                            <span class="text-ui-caption font-bold uppercase tracking-widest text-text-muted bg-content px-2 py-0.5 rounded-full border border-content-border">
+                            <span class="uppercase text-text-muted bg-content px-2 py-0.5 rounded-full border border-content-border text-supporting">
                                 {{ messageItem.day }}
                             </span>
                             <div class="flex-1 h-px bg-content-border"></div>
@@ -176,16 +176,16 @@
                             :class="isOwnMessage(messageItem) ? 'ml-auto items-end' : 'mr-auto items-start'"
                         >
                             <div
-                                class="px-4 py-2 rounded-ui text-sm shadow-card"
+                                class="px-4 py-2 rounded-ui shadow-card text-body"
                                 :class="isOwnMessage(messageItem)
                                     ? 'bg-primary text-primary-contrast rounded-tr-none'
                                     : 'bg-content border border-content-border rounded-tl-none'"
                             >
-                                <p class="m-0 leading-relaxed break-words">
+                                <p class="m-0 break-words text-body">
                                     <SupportMessageContent :message="messageItem" :viewer-user-id="currentUserId" />
                                 </p>
                             </div>
-                            <span class="text-ui-caption text-text-muted px-1">{{ formatTime(messageItem.timestamp) }}</span>
+                            <span class="text-text-muted px-1 text-supporting">{{ formatTime(messageItem.timestamp) }}</span>
                         </div>
                     </template>
                 </div>
@@ -225,7 +225,7 @@
                     </div>
                     <div
                         v-if="messagePreviewVisible"
-                        class="mb-2 rounded-ui border border-content-border bg-content p-2 text-sm text-muted-color"
+                        class="mb-2 rounded-ui border border-content-border bg-content p-2 text-muted-color text-body"
                     >
                         <SupportMessageContent :message="draftPreviewMessage" :viewer-user-id="currentUserId" />
                     </div>
@@ -251,7 +251,7 @@
                             />
                         </div>
                     </div>
-                    <div v-if="recipientLimitedRefs.length" class="mb-2 flex flex-col gap-1 text-xs text-status-warning">
+                    <div v-if="recipientLimitedRefs.length" class="mb-2 flex flex-col gap-1 text-status-warning text-supporting">
                         <small
                             v-for="ref in recipientLimitedRefs"
                             :key="`${ref.type}-${ref.id}`"
@@ -275,7 +275,7 @@
                         />
                         <Textarea
                             :placeholder="$t('support.typeMessage')"
-                            class="flex-1 !bg-transparent !border-none !shadow-none !ring-0 text-sm py-1"
+                            class="flex-1 !bg-transparent !border-none !shadow-none !ring-0 py-1"
                             v-model="message"
                             @keydown="handleKeyDown"
                             rows="1"

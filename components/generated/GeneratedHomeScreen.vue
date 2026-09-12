@@ -7,7 +7,7 @@
       :data-home-entity-type="section.source.entityType"
     >
       <div class="flex min-w-0 items-center justify-between gap-3">
-        <h2 class="m-0 min-w-0 truncate text-base font-semibold">
+        <h2 class="m-0 min-w-0 truncate text-section-heading">
           {{ sectionLabel(section) }}
         </h2>
         <div class="flex shrink-0 items-center gap-2">

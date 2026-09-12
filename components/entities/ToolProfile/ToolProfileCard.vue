@@ -11,7 +11,7 @@
         </div>
       </template>
       <template #compact-content>
-        <div v-if="angle" class="mt-3 text-sm text-muted-color">{{ $t('toolProfile.angle') }}: {{ angle }}°</div>
+        <div v-if="angle" class="mt-3 text-muted-color text-body">{{ $t('toolProfile.angle') }}: {{ angle }}°</div>
       </template>
       <Divider />
       <DataBlock entity-type="toolProfile" :entity="tool" :fields="FIELDS" />

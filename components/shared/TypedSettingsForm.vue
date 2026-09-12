@@ -33,7 +33,7 @@
         v-else-if="field.type === 'array' || field.type === 'object'"
         :model-value="jsonValue(field)"
         rows="4"
-        class="w-full font-mono text-xs"
+        class="w-full text-technical"
         @update:model-value="value => updateJsonField(field, value)"
       />
       <EntityRefInput

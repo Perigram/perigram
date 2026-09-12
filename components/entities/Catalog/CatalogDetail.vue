@@ -52,7 +52,7 @@
         <div class="flex flex-col gap-6">
             <div class="flex items-center gap-2">
                 <i class="pi pi-images"></i>
-                <h2 class="m-0 text-base">{{ $t('catalog.visualLibrary') }}</h2>
+                <h2 class="m-0 text-section-heading">{{ $t('catalog.visualLibrary') }}</h2>
             </div>
             
             <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-6">

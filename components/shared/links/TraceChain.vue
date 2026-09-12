@@ -1,6 +1,6 @@
 <template>
     <nav v-if="items.length > 0" class="max-w-full" :aria-label="$t('common.traceability')">
-        <ol class="flex max-w-full flex-wrap items-center gap-1 text-xs text-muted-color">
+        <ol class="flex max-w-full flex-wrap items-center gap-1 text-muted-color text-supporting">
             <li v-for="(item, index) in visibleItems" :key="`${item.type}-${item.id || index}`" class="flex min-w-0 items-center gap-1">
                 <Button
                     v-if="item.type === 'separator'"
@@ -33,7 +33,7 @@
                     :slug="item.slug"
                     class="max-w-[14rem]"
                 />
-                <i v-if="index < visibleItems.length - 1" class="pi pi-chevron-right shrink-0 text-ui-caption text-muted-color"></i>
+                <i v-if="index < visibleItems.length - 1" class="pi pi-chevron-right shrink-0 text-muted-color"></i>
             </li>
         </ol>
     </nav>

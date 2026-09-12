@@ -113,7 +113,7 @@
                   {{ $t('admin.commands.missingOutputRefs') }} {{ commandMissingOutputRefs.join(', ') }}
                 </Message>
                 <Panel v-if="lastCommandRun" :header="$t('admin.commands.debugOutput')">
-                  <pre class="m-0 max-h-[28rem] overflow-auto whitespace-pre-wrap break-words font-mono text-xs">{{ commandRunOutput(lastCommandRun) }}</pre>
+                  <pre class="m-0 max-h-[28rem] overflow-auto whitespace-pre-wrap break-words text-technical">{{ commandRunOutput(lastCommandRun) }}</pre>
                 </Panel>
                 <Message v-if="!lastCommandRun" severity="info">{{ $t('admin.commands.noOutput') }}</Message>
               </div>
@@ -176,7 +176,7 @@
                     <small class="text-muted-color">{{ $t('admin.tasks.lease') }}: {{ formatDateTime(run.leaseExpiresAt) || $t('common.notAvailable') }}</small>
                     <small class="text-muted-color">{{ $t('common.created') }}: {{ formatDateTime(run.createdAt) }}</small>
                   </div>
-                  <pre class="m-0 max-h-52 overflow-auto whitespace-pre-wrap break-words font-mono text-xs">{{ taskRunDebug(run) }}</pre>
+                  <pre class="m-0 max-h-52 overflow-auto whitespace-pre-wrap break-words text-technical">{{ taskRunDebug(run) }}</pre>
                 </article>
                 <Message v-if="selectedCommandTaskDefinitions.length && selectedCommandTaskRuns.length === 0" severity="info">
                   {{ $t('admin.tasks.noRuns') }}
@@ -339,7 +339,7 @@
             <article v-for="row in selectedUiRows" :key="row.key" class="flex flex-col gap-4">
               <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                 <div>
-                  <h3 class="m-0 text-base font-semibold">{{ $t(row.labelKey) }}</h3>
+                  <h3 class="m-0 text-section-heading">{{ $t(row.labelKey) }}</h3>
                   <small class="text-muted-color">{{ row.entityType }} · {{ row.propName }}</small>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
@@ -386,7 +386,7 @@
             </div>
             <div class="flex flex-wrap gap-2">
               <div v-for="field in compactModelFields" :key="field.name" class="flex max-w-full flex-wrap items-center gap-2 rounded-ui border border-content-border bg-content px-2 py-1">
-                <span class="font-mono text-sm">{{ field.name }}</span>
+                <span class="text-technical">{{ field.name }}</span>
                 <Tag :value="field.type" severity="secondary" size="small" />
                 <Tag v-for="issue in field.issues || []" :key="issue" :value="issue" severity="warn" size="small" />
                 <Select v-model="dataDecisionFor(field).decision" :options="dataDecisionOptions" option-label="label" option-value="value" size="small" />
@@ -418,7 +418,7 @@
     >
       <div class="flex h-full">
         <div v-if="artifactPreviewError" class="flex flex-1 flex-col items-center justify-center gap-4">
-          <i class="pi pi-exclamation-circle text-4xl"></i>
+          <i class="pi pi-exclamation-circle"></i>
           <p>{{ artifactPreviewError }}</p>
         </div>
         <DrawingCanvas
@@ -430,7 +430,7 @@
           @error="handleArtifactPreviewError"
         />
         <div v-else class="flex flex-1 flex-col items-center justify-center gap-6">
-          <i :class="artifactPreviewMode === 'pdf' ? 'pi pi-file-pdf text-6xl opacity-20' : 'pi pi-file text-6xl opacity-20'"></i>
+          <i :class="artifactPreviewMode === 'pdf' ? 'pi pi-file-pdf opacity-20' : 'pi pi-file opacity-20'"></i>
           <div class="text-center">
             <p>{{ artifactPreviewMode === 'pdf' ? $t('artifacts.pdfPreviewUnavailable') : $t('artifacts.previewUnavailable') }}</p>
             <small>{{ $t('artifacts.downloadFilePrompt') }}</small>

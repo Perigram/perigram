@@ -21,24 +21,10 @@ html {
   text-rendering: optimizeLegibility;
 }
 
-/* PrimeVue components and native controls inherit Plex Sans from body.
-   No !important overrides: the font-mono / font-serif utilities must win
-   everywhere, including inside PrimeVue components. */
+/* PrimeVue components and native controls inherit Aura typography. */
 :where(input, button, select, textarea) {
   font-family: inherit;
 }
 
-:where(code, kbd, pre, samp) {
-  font-family: var(--ck-font-mono);
-}
-
-/* Editorial typography is explicit so HTML semantics never restyle app UI. */
-.ck-prose {
-  font-family: var(--ck-font-serif);
-}
-
-/* Numerical entry is technical data: dimensions, quantities, parameters. */
-input[type="number"],
-.p-inputnumber-input {
-  font-family: var(--ck-font-mono);
-}
+/* HTML elements carry no application typography; role aliases are generated
+   from assets/tokens/index.js and applied explicitly at usage sites. */

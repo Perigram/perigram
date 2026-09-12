@@ -13,7 +13,7 @@
 
     <Popover ref="popover">
       <form class="flex min-w-72 flex-col gap-3" @submit.prevent="submit">
-        <label :for="inputId" class="text-sm font-medium">{{ label }}</label>
+        <label :for="inputId" class="text-label">{{ label }}</label>
         <InputText
           :id="inputId"
           v-model="draft"

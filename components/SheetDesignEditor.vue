@@ -81,6 +81,7 @@
               stroke-linejoin="round"
               vector-effect="non-scaling-stroke"
             />
+            <!-- Data-driven exception: layer annotation size is part of sheet geometry. -->
             <text
               v-else-if="layerText(layer)"
               :x="layerText(layer).x"

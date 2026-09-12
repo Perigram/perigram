@@ -52,41 +52,17 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   'components/entities/PenTemplate/PenTemplateCard.vue': ['data-driven', [':style="lineStyle"']],
   'components/entities/Requisition/RequisitionDetail.vue': ['data-driven', [':style="{ backgroundColor: item.colorHex || item.colorFallback || \'var(--p-content-border-color)\' }"']],
   'components/entities/Sheet/SheetDetail.vue': ['data-driven', [':style="{ backgroundColor: colorHex }"', ':style="geometryStyle"']],
-  'components/process-designer/ProcessActionNode.vue': ['data-driven', [
-    ':style="handleStyle(input)"',
-    ':style="handleStyle(output)"',
-    ':style="handleStyle({ kind: \'event\' })"',
-    ':style="handleStyle({ kind: \'event\' })"'
-  ]],
-  'components/process-designer/ProcessEntityNode.vue': ['data-driven', [':style="handleStyle(input)"', ':style="handleStyle(output)"']],
   'components/process-designer/ProcessNode.vue': ['data-driven', [
     ':style="handleStyle(row.input)"',
     ':style="handleStyle(row.output)"',
     ':style="handleStyle(row.input)"',
     ':style="handleStyle(row.output)"'
   ]],
-  'components/process-designer/ProcessRoleNode.vue': ['data-driven', [
-    ':style="processSocketHandleStyle({ type: { base: \'entityRef\' } })"',
-    ':style="processSocketHandleStyle({ type: { base: \'entityRef\' } })"',
-    ':style="processSocketHandleStyle({ kind: \'event\' })"'
-  ]],
-  'components/process-designer/ProcessServiceNode.vue': ['data-driven', [
-    ':style="handleStyle({ kind: \'event\' })"',
-    ':style="handleStyle(input)"',
-    ':style="handleStyle(output)"'
-  ]],
-  'components/process-designer/ProcessSocketNode.vue': ['data-driven', [
-    ':style="handleStyle(\'entity\')"',
-    ':style="handleStyle(\'entity\')"',
-    ':style="handleStyle(\'projection\')"'
-  ]],
   'components/process-designer/ProcessStatusDefinitionNode.vue': ['data-driven', [
     ':style="{ backgroundColor: toneColor }"',
     ':style="{ color: toneColor }"',
     ':style="statusHandleStyle"'
   ]],
-  'components/process-designer/ProcessUserNode.vue': ['data-driven', [':style="processSocketHandleStyle({ type: { base: \'entityRef\' } })"']],
-  'components/process-designer/ProcessValueInputNode.vue': ['data-driven', [':style="valueHandleStyle"']],
   'components/shared/EntityInlineRef.vue': ['data-driven', [':style="toneStyle"', ':style="toneStyle"']],
   'pages/assets/pens.vue': ['data-driven', [':style="{ backgroundColor: form.stroke.color }"']],
   'pages/organization/process.vue': ['data-driven', [':style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"']],
@@ -96,9 +72,9 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
 const REGISTERED_PRIMITIVE_PATHS = new Set(cncDesignSystemPrimitives.map(primitive => primitive.componentPath));
 
 const VISUAL_CONCERNS = [
-  ['centralize:typography', /\b(?:text-(?:xs|sm|base|lg|xl|[2-9]xl)|font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black)|tracking-(?:tighter|tight|normal|wide|wider|widest|\[[^\]]+\]))\b/g],
+  ['centralize:typography', /\b(?:text-(?:xs|sm|base|lg|xl|[2-9]xl|\[[0-9.]+(?:px|rem|em)\])|font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black|mono|serif)|tracking-(?:tighter|tight|normal|wide|wider|widest|\[[^\]]+\])|leading-(?:none|tight|snug|normal|relaxed|loose|\[[^\]]+\]))\b/g],
   ['centralize:layout', /\b(?:basis|gap|grid-cols|grid-rows|h|max-h|max-w|min-h|min-w|m[trblxy]?|p[trblxy]?|w)-\[[^\]]+\]/g],
-  ['replace:chrome', /(?:\bbg-(?:content|subtle)\b|\bborder(?:-[trblxy])?(?:-(?:0|2|4|8|content-border|primary|transparent|dashed|double))?\b|\brounded(?:-[\w-]+)?\b|\bshadow(?:-[\w-]+)?\b|\[box-shadow:[^\]]+\])/g],
+  ['replace:chrome', /(?:\bbg-(?!(?:content|subtle|chrome)\b)[\w-]+\b|\bborder(?:-[trblxy])?(?:-(?:0|2|4|8|primary|transparent|dashed|double))?\b|\brounded\b|\brounded-(?!(?:ui|t-ui)\b)[\w-]+\b|\bshadow-(?!(?:card|overlay)\b)[\w-]+\b|\[box-shadow:[^\]]+\])/g],
   ['remove:state', /\b(?:active|disabled|focus|focus-visible|hover|invalid):[^\s"'`]+/g],
   ['remove:important-override', /(?:^|\s)![\w\[][^\s"'`]*/gm]
 ];
@@ -140,7 +116,11 @@ export const analyzeVueVisuals = (file, source) => {
   const template = source
     .replace(/<script\b[\s\S]*?<\/script>/g, '')
     .replace(/<style\b[\s\S]*?<\/style>/g, '');
-  const visualSource = [template, ...scriptStringLiterals(source)].join('\n');
+  const classSource = Array.from(
+    template.matchAll(/(?:^|\s):?class\s*=\s*["']([^"']*)["']/g),
+    match => match[1]
+  ).join('\n');
+  const visualSource = [classSource, ...scriptStringLiterals(source)].join('\n');
   const findings = VISUAL_CONCERNS.flatMap(([disposition, pattern]) => {
     const count = visualSource.match(pattern)?.length || 0;
     return count ? [`${disposition} (${count})`] : [];

@@ -40,11 +40,11 @@ provide('displayedEntityContexts', computed(() => [
 
       <div class="entity-page-header-content flex flex-col gap-3">
         <div class="flex min-w-0 flex-col gap-2">
-          <div v-if="effectiveTitle" class="text-sm text-muted-color">
+          <div v-if="effectiveTitle" class="text-muted-color text-body">
             {{ effectiveTitle }}
           </div>
           <IdentityBlock v-if="showIdentity" :entity="entity" variant="header" />
-          <div v-if="$slots.info" class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-color">
+          <div v-if="$slots.info" class="flex flex-wrap items-center gap-x-5 gap-y-2 text-muted-color text-body">
             <slot name="info"></slot>
           </div>
         </div>

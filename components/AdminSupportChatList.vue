@@ -2,7 +2,7 @@
     <div class="flex flex-col h-full">
         <Panel>
             <template #header>
-                <h2 class="m-0 text-base">{{ $t('admin.supportChatList') }}</h2>
+                <h2 class="m-0 text-section-heading">{{ $t('admin.supportChatList') }}</h2>
             </template>
             
             <div class="flex flex-col gap-2 p-2">
@@ -38,7 +38,7 @@
                 </div>
 
                 <div v-else class="flex flex-col items-center py-20">
-                    <i class="pi pi-inbox text-4xl mb-2"></i>
+                    <i class="pi pi-inbox mb-2"></i>
                     <p>{{ $t('admin.noChats') }}</p>
                 </div>
 

@@ -6,7 +6,7 @@
     </div>
 
     <div v-else-if="!artifacts || artifacts.length === 0" class="flex flex-col items-center py-16 italic">
-      <i class="pi pi-file text-5xl mb-4"></i>
+      <i class="pi pi-file mb-4"></i>
       <p>{{ $t('artifacts.noArtifacts') }}</p>
     </div>
 
@@ -64,7 +64,7 @@
                 <small>{{ $t('artifacts.loadingPreview') }}</small>
             </div>
             <div v-else-if="previewError" class="flex-1 flex flex-col items-center justify-center gap-4">
-                <i class="pi pi-exclamation-circle text-4xl"></i>
+                <i class="pi pi-exclamation-circle"></i>
                 <p>{{ previewError }}</p>
             </div>
             <div v-else-if="!editingLayout" class="flex-1 flex overflow-hidden">

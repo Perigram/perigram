@@ -7,7 +7,7 @@
       <template #compact-content>
         <div class="mt-3 flex flex-col gap-3">
           <CassetteThumbnail v-if="designIdValue" :cassette="design" :cassette-id="designIdValue" />
-          <div v-if="design || template" class="flex flex-wrap gap-2 text-sm">
+          <div v-if="design || template" class="flex flex-wrap gap-2 text-body">
             <EntityInlineRef v-if="design" type="cassetteDesign" :entity="design" />
             <EntityInlineRef v-if="template" type="cassetteTemplate" :entity="template" />
           </div>

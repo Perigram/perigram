@@ -1,7 +1,7 @@
 <template>
   <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
   <SheetDesignDetail v-else-if="design" :design="design" @saved="fetch" />
-  <StateBlock v-else :message="$t('sheetDesign.notFound')" icon="pi pi-map" />
+  <StateBlock v-else :message="$t('sheetDesign.notFound')" icon="ck-entity-icon ck-entity-icon-sheet-design" />
 </template>
 
 <script setup>

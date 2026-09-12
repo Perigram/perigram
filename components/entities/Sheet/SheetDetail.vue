@@ -14,7 +14,7 @@
                             :style="{ backgroundColor: colorHex }"
                         ></div>
                         <div class="flex flex-col">
-                            <span class="text-xl">{{ colorName }}</span>
+                            <span class="text-section-heading">{{ colorName }}</span>
                             <small>{{ materialName }}</small>
                         </div>
                     </div>
@@ -36,7 +36,7 @@
                             :style="geometryStyle"
                         >
                             <small>{{ $t('sheets.surface') }}</small>
-                            <span class="text-2xl">{{ sheetWidth }}x{{ sheetLength }}</span>
+                            <span class="text-metric">{{ sheetWidth }}x{{ sheetLength }}</span>
                         </div>
                     </div>
                  </Fieldset>

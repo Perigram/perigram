@@ -11,6 +11,12 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 
 ## Core Files
 
+- `build-entity-icons.js`: Builds the `ck-entity-icons` font from the CNC
+  domain SVGs in `public/icons/data-model/cnc-domain/` via fantasticon,
+  writes `public/fonts/cnc-domain/ck-entity-icons.{woff2,ttf}`, and rewrites
+  the marked `ck-entity-icons` block in `assets/css/main.css` so icon
+  codepoints never drift from the class definitions. Run as
+  `npm run icons:build` after adding or editing source SVGs.
 - `check-arch.js`: Architecture guardrail for v24 backend features, API layer
   boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
   retired vocabulary, portable-runtime import rules, concrete CNC domain leaks
@@ -39,6 +45,8 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   under the same dispositions consumed by `shared/design-system.spec.js`.
   Inline exceptions are exact file/category/binding-expression entries, so
   adding or changing a binding requires explicit classification.
+  Template findings are extracted from `class` and `:class` values so PrimeVue
+  boolean props such as `rounded` are not mistaken for utility styling.
   Render-function style bindings are replacement debt rather than an enforcement
   bypass. Utility classes assembled in Vue script string literals are classified
   with template utilities, so moving visual ownership into script does not bypass
@@ -137,11 +145,14 @@ flags verbatim paragraphs that appear in more than one README, so canonical
 contracts stay in one canonical file instead of being restated in several.
 
 `npx vitest run shared/design-system.spec.js` enforces the PrimeVue-first visual
-boundary. It rejects arbitrary typography, raw palette/surface borders,
+boundary. It rejects raw font-size, weight, line-height, tracking, and family
+utilities outside the eight semantic typography aliases, raw palette/surface borders,
 nonsemantic radii and shadows, non-allowlisted scoped CSS, duplicated runtime
 theme overrides, direct global PrimeVue selectors or variable declarations,
 `!important` runtime rules, and global focus suppression. It also reconciles source-derived
-visual concern counts with the canonical audit. Scoped-style exceptions name one
+visual concern counts with the canonical audit. Token-backed aliases such as
+`bg-content`, `rounded-ui`, `shadow-card`, and `shadow-overlay` are consumers of
+Aura/application tokens, not generic chrome overrides. Scoped-style exceptions name one
 exact category per file; every exception category is limited to an exact set of
 properties rather than granting whole-file visual ownership. Aura-owned padding
 is excluded from general layout exceptions. Allowlisted inline style bindings
