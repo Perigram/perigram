@@ -198,3 +198,16 @@
   duplicated wrapper div. Replaced with the canonical `MetricPanel`
   aggregate-facts primitive, which owns the responsive collapse itself.
   Group verdict: done; no overflow or full-width-grab issues found.
+  ### Agent Notes — 2026-09-12 (group 2/7: project, queue, nesting_run)
+  Cards and QueueEditor were already healthy (QueueEditor rides
+  EntityWorkspace/WorkspaceLanes with min-w-0 flex hygiene; cards carry real
+  bodies). Both detail pages repeated the group-1 defect class: hand-rolled
+  `lg:grid-cols-4` + `col-span-3` sidebar splits inside EntityPage (viewport
+  breakpoints in a container-query context) with plain card grids
+  (`md:grid-cols-2/3`), custom section headers, and custom empty states.
+  Rewrote both on canonical primitives: EntityPage `#sidebar` slot (with its
+  own 48rem container track), `MetricPanel` for overview facts,
+  `ActionToolbar` section titles, `ResponsiveGrid` (`wide` queues, `bounded`
+  artifact refs, both `responsive-context="container"`), `StateBlock` for the
+  empty state. Removed the deprecated DataTable `responsiveLayout` prop and
+  raw opacity headers. Group verdict: done.
