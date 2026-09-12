@@ -161,7 +161,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-entities-facade-facadecard-vue` | `components/entities/Facade/FacadeCard.vue` | derived usage | compliant |
 | `ui-components-entities-facadepattern-facadepatterncard-vue` | `components/entities/FacadePattern/FacadePatternCard.vue` | derived usage | compliant |
 | `ui-components-entities-geometrycapture-geometrycapturecard-vue` | `components/entities/GeometryCapture/GeometryCaptureCard.vue` | derived usage | replace:chrome (5) |
-| `ui-components-entities-geometrycapture-geometrycapturedetail-vue` | `components/entities/GeometryCapture/GeometryCaptureDetail.vue` | derived usage | centralize:layout (2); replace:chrome (17) |
+| `ui-components-entities-geometrycapture-geometrycapturedetail-vue` | `components/entities/GeometryCapture/GeometryCaptureDetail.vue` | derived usage | replace:chrome (17) |
 | `ui-components-entities-geometrycapture-photogeometryoverlay-vue` | `components/entities/GeometryCapture/PhotoGeometryOverlay.vue` | derived usage | replace:chrome (4) |
 | `ui-components-entities-layerstandard-layerstandardcard-vue` | `components/entities/LayerStandard/LayerStandardCard.vue` | derived usage | compliant |
 | `ui-components-entities-library-librarycard-vue` | `components/entities/Library/LibraryCard.vue` | derived usage | compliant |

@@ -241,3 +241,13 @@
   `ResponsiveGrid variant="dense" responsive-context="container"` (token
   minimum track widths instead of viewport column counts). Group verdict:
   done.
+  ### Agent Notes — 2026-09-12 (group 6/7: artifact, artifact_template,
+  entity_revision, geometry_capture, facade, facade_pattern)
+  Artifact surfaces are the detail-dispatch pipeline (viewer/editor per
+  attachment kind) — no layout debt. Facade/ArtifactTemplate/EntityRevision
+  are card-only. GeometryCaptureDetail carried the heaviest instance of the
+  family defect: an arbitrary `xl:grid-cols-[minmax(0,1fr)_22rem]` split
+  plus two more arbitrary/viewport grids. Rebuilt: extraction/traceability/
+  diagnostics/history panels into `#sidebar`; revision cards through
+  `ResponsiveGrid variant="bounded" responsive-context="container"`; the
+  dimension-correction row as responsive flex. Group verdict: done.
