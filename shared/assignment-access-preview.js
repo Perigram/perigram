@@ -1,4 +1,4 @@
-import { resolveRoleAssignmentAccess } from '@cutkit/processes';
+import { resolveRoleAssignmentAccess } from '#packages/processes/src/index.js';
 import { hasPermissionGrant, normalizePermissionGrants } from './access-control.js';
 import { canDisplayEntityField, getActiveEntityFieldPolicyEntries } from './entity-field-access.js';
 

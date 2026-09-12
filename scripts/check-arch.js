@@ -598,6 +598,22 @@ for (const file of walkDir('server').filter(item => item.endsWith('.js') && !ite
   }
 }
 
+console.log('\n--- Bare workspace-package imports ---');
+// Bare `@cutkit/*` specifiers resolve only where workspace symlinks exist
+// (a host install); the dev container runs Nitro with its own node_modules
+// that has none, so such imports 500 at request time. Cross-root imports
+// must use the package.json `imports` subpaths (#packages/..., #shared/...,
+// #utils/...).
+for (const file of [...walkDir('server'), ...walkDir('shared')]) {
+  if (!file.endsWith('.js') || file.endsWith('.spec.js')) continue;
+  const relFile = path.relative('.', file);
+  const content = fs.readFileSync(file, 'utf8');
+  for (const match of content.matchAll(/(?:from\s+['"]|import\s*\(\s*['"])@cutkit\//g)) {
+    console.error(`❌ ${relFile} imports bare workspace package near '${match[0].trim()}' — use #packages/... instead`);
+    errors++;
+  }
+}
+
 console.log('\n--- Verification Summary ---');
 if (errors === 0) {
   console.log('✅ All features comply with v24 Golden Path.');
