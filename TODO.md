@@ -186,3 +186,15 @@
   tool_profile, user, warehouse.
   Acceptance per entity: variants cover its real usage flows; no overflow
   regressions in narrow containers; ui-lab coverage updated.
+  ### Agent Notes — 2026-09-12 (group 1/7: warehouse, material, material_pile)
+  Reviewed the family's real surfaces: WarehouseHub tabs already render
+  through ResponsiveGrid card variants (route-level, viewport-correct);
+  Warehouse/Material/Pile cards carry tailored bodies (stats tags, specs,
+  contract-driven DataBlocks) with meaningful inline/compact variants; the
+  hub was already audit-clean. One genuine defect found and fixed:
+  WarehouseDetail rendered its operational-stock facts as a hand-rolled
+  viewport-breakpoint grid (md:2/xl:4) inside EntityPage — a container-query
+  context where viewport breakpoints mispredict inside split panes — plus a
+  duplicated wrapper div. Replaced with the canonical `MetricPanel`
+  aggregate-facts primitive, which owns the responsive collapse itself.
+  Group verdict: done; no overflow or full-width-grab issues found.
