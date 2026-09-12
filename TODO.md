@@ -222,3 +222,12 @@
   SheetDesignDetail moves tracking/cassette-design/material/instance panels
   to `#sidebar` with the editor+DataBlock as a plain flex column. Scripts
   unchanged apart from the MetricPanel metrics. Group verdict: done.
+  ### Agent Notes — 2026-09-12 (group 4/7: cassette, cassette_design,
+  cassette_template, cassette_instance)
+  Cards were already tailored (thumbnails, parameter chips, specs) with
+  single-column `grid-cols-1` bodies that pose no container risk.
+  CassetteInstanceDetail had the family defect: `lg:grid-cols-4` split with a
+  `md:grid-cols-2` references grid and a custom icon-heading. Rebuilt:
+  metadata/parent-design/template/material-source panels into `#sidebar`,
+  tracking title via `ActionToolbar`, geometry thumbnail as the main column.
+  Group verdict: done.
