@@ -1662,6 +1662,7 @@
     "subtitle": "Individual physical material sheets in inventory.",
     "noSheets": "No physical sheets found",
     "materialColor": "Material / Color",
+    "material": "Material",
     "physicalRepresentation": "Physical Representation",
     "surface": "Surface",
     "markMilled": "Mark Milled"
