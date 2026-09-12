@@ -1,71 +1,62 @@
 <template>
-    <div class="flex flex-col h-full">
-        <Panel>
-            <template #header>
-                <h2 class="m-0 text-section-heading">{{ $t('admin.supportChatList') }}</h2>
-            </template>
-            
-            <div class="flex flex-col gap-2 p-2">
-                <div v-if="chatList.length > 0" class="flex flex-col gap-2">
-                    <Panel
-                        v-for="chat in chatList" 
-                        :key="chat.userId" 
-                        @click="selectChat(chat.userId)"
-                    >
-                        <template #header>
-                            <div class="flex items-center gap-3">
-                                <Avatar 
-                                    :label="getUserName(chat.participant)"
-                                    shape="circle" 
-                                    :style="{ backgroundColor: letterToBg(getUserName(chat.participant)), color: 'var(--p-primary-contrast-color)' }"
-                                />
-                                <span class="truncate">{{ chat.participant?.identity?.name || chat.participant?.name || $t('admin.unknownUser') }}</span>
-                                <Badge v-if="chat.unreadCount" :value="chat.unreadCount" severity="danger" size="small" />
+    <div class="flex h-full min-h-0 flex-col">
+        <div class="p-4">
+            <ActionToolbar :title="$t('admin.supportChatList')" :level="2" />
+        </div>
+
+        <div class="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-4">
+            <Listbox
+                v-if="chatList.length"
+                :options="chatList"
+                option-label="userId"
+                :aria-label="$t('admin.supportChatList')"
+                @change="(option) => selectChat(option.value?.userId)"
+            >
+                <template #option="{ option }">
+                    <div class="flex min-w-0 items-center gap-3">
+                        <Avatar
+                            :label="getUserName(option.participant).charAt(0).toUpperCase() || '?'"
+                            shape="circle"
+                            :style="{ backgroundColor: letterToBg(getUserName(option.participant)), color: 'var(--p-primary-contrast-color)' }"
+                        />
+                        <div class="min-w-0 flex-1">
+                            <div class="flex min-w-0 items-center gap-2">
+                                <span class="truncate text-label">{{ option.participant?.identity?.name || option.participant?.name || $t('admin.unknownUser') }}</span>
+                                <Badge v-if="option.unreadCount" :value="option.unreadCount" severity="danger" size="small" />
                             </div>
-                        </template>
-                        <small>{{ $t('common.id') }}: {{ chat.userId.slice(-8) }}</small>
-                        <Divider />
-                        <div class="flex flex-col">
-                            <p class="m-0 italic truncate">{{ chat.lastMessage }}</p>
-                            <small>{{ getTimeAgo(chat.timestamp) }}</small>
+                            <small class="block truncate text-muted-color">{{ option.lastMessage }}</small>
+                            <small class="block truncate text-muted-color">{{ getTimeAgo(option.timestamp) }}</small>
                         </div>
-                    </Panel>
-                </div> 
+                    </div>
+                </template>
+            </Listbox>
 
-                <div v-else-if="loading" class="flex flex-col items-center py-20">
-                    <ProgressSpinner />
-                    <p>{{ $t('admin.loadingChatList') }}</p>
-                </div>
+            <StateBlock v-else-if="loading" state="loading" :message="$t('admin.loadingChatList')" />
+            <StateBlock v-else :message="$t('admin.noChats')" icon="pi pi-inbox" />
 
-                <div v-else class="flex flex-col items-center py-20">
-                    <i class="pi pi-inbox mb-2"></i>
-                    <p>{{ $t('admin.noChats') }}</p>
-                </div>
-
-                <div v-if="error" class="flex flex-col gap-4">
-                    <Message severity="error">{{ error }}</Message>
-                    <Button 
-                        :label="$t('admin.retry')"
-                        severity="danger"
-                        text
-                        @click="connectToChatList"
-                    />
-                </div>
+            <div v-if="error" class="flex flex-col gap-3">
+                <Message severity="error">{{ error }}</Message>
+                <Button
+                    :label="$t('admin.retry')"
+                    severity="danger"
+                    text
+                    @click="connectToChatList"
+                />
             </div>
-        </Panel>
+        </div>
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Panel from 'primevue/panel'
 import Avatar from 'primevue/avatar'
 import Badge from 'primevue/badge'
-import Divider from 'primevue/divider'
-import Message from 'primevue/message'
-import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
+import Listbox from 'primevue/listbox'
+import Message from 'primevue/message'
+import ActionToolbar from '~/components/shared/ActionToolbar.vue'
+import StateBlock from '~/components/shared/StateBlock.vue'
 import { supportAvatarPalette } from '~/assets/tokens/index.js'
 import { useConnections } from '~/composables/useConnections.js'
 
@@ -100,6 +91,7 @@ const connectToChatList = () => {
 }
 
 const selectChat = (userId) => {
+    if (!userId) return
     selectedUserId.value = userId
     emit('select-chat', userId)
 }
@@ -115,7 +107,7 @@ onUnmounted(() => {
 
 const getUserName = (user) => {
     const name = user?.identity?.name || user?.name || ''
-    return name.split(' ').map(word => word.charAt(0).toUpperCase()).join('') || 'U'
+    return name
 }
 
 const letterToBg = (letter) => {

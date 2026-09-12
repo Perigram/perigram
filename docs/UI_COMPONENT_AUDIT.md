@@ -120,7 +120,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 
 | ID | Path | Primary ownership | Current disposition |
 |---|---|---|---|
-| `ui-components-adminsupportchat-vue` | `components/AdminSupportChat.vue` | derived usage | centralize:layout (3); replace:chrome (3); remove:important-override (4) |
+| `ui-components-adminsupportchat-vue` | `components/AdminSupportChat.vue` | derived usage | replace:chrome (1) |
 | `ui-components-adminsupportchatlist-vue` | `components/AdminSupportChatList.vue` | derived usage | narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-artifactlayouteditor-vue` | `components/ArtifactLayoutEditor.vue` | derived usage | centralize:layout (1); replace:chrome (4) |
 | `ui-components-artifacts-artifacttexteditor-vue` | `components/artifacts/ArtifactTextEditor.vue` | derived usage | compliant |
@@ -135,7 +135,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-cassettefoldedpreview-vue` | `components/CassetteFoldedPreview.vue` | derived usage | centralize:layout (2); replace:chrome (4); remove:state (1) |
 | `ui-components-cassettemanager-vue` | `components/CassetteManager.vue` | derived usage | compliant |
 | `ui-components-cassettethumbnail-vue` | `components/CassetteThumbnail.vue` | derived usage | replace:chrome (4) |
-| `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | centralize:layout (3); replace:chrome (46); remove:state (1); remove:important-override (4) |
+| `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | compliant:inline-layout (1) |
 | `ui-components-config-bot-configbotcitationlist-vue` | `components/config-bot/ConfigBotCitationList.vue` | derived usage | replace:chrome (4) |
 | `ui-components-config-bot-configbotdraftpreview-vue` | `components/config-bot/ConfigBotDraftPreview.vue` | derived usage | centralize:layout (1); replace:chrome (12) |
 | `ui-components-config-bot-configbotgeneratedpreview-vue` | `components/config-bot/ConfigBotGeneratedPreview.vue` | derived usage | replace:chrome (8) |
@@ -275,6 +275,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-workspacelanes-vue` | `components/shared/WorkspaceLanes.vue` | derived usage | compliant |
 | `ui-components-shared-workspacesplitnode-vue` | `components/shared/WorkspaceSplitNode.vue` | derived usage | replace:chrome (1); remove:important-override (1) |
 | `ui-components-sheetdesigneditor-vue` | `components/SheetDesignEditor.vue` | derived usage | replace:chrome (4) |
+| `ui-components-supportchatsurface-vue` | `components/SupportChatSurface.vue` | derived usage | replace:chrome (8) |
 | `ui-components-templatesmanager-vue` | `components/TemplatesManager.vue` | derived usage | compliant |
 | `ui-components-themeswitcher-vue` | `components/ThemeSwitcher.vue` | derived usage | compliant |
 | `ui-components-userform-vue` | `components/UserForm.vue` | derived usage | compliant |
