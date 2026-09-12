@@ -83,6 +83,22 @@ and required-input availability errors carry the same producer context: an
 entity edge error names the source `producerOutputId`, and a required effect
 input error on a producer names `producerOutputId` alongside the socket id.
 
+Producer outputs are owned by origin effects only (`effect.createEntity`,
+`effect.runProducer`, `effect.runCommand`). Consumer effects — Update, Change
+Status, Archive, Delete, Send, Generate Attachment — transform entities that
+arrived over an input wire: they mint no producer output, carry no producer
+identity of their own, and their derived actions bind to the upstream
+producer resolved from the entity input wire (through consumer chains and
+joins, with a single same-type candidate as the read-source fallback).
+Normalization prunes consumer-owned outputs and stale own-node bindings from
+persisted drafts, `migrateProducerOutputIdentities` does the same at the
+server boundary, and `syncProcessNodeProducerOutputs` never creates them in
+the designer — so each entity path has exactly one workflow anchor: where it
+begins. Status-change transitions synthesized from consumer actions land on
+the origin's machine, and downstream identity resolution
+(`resolveSourceProducerOutputId`, `upstreamProducerOutputId`) attributes
+consumer outputs to the upstream producer.
+
 Same-type producer paths converge only through the explicit `producer.join`
 node. It has exactly two required entity-stream inputs (`primary`,
 `secondary`, both List-access sockets of one authored entity type), one

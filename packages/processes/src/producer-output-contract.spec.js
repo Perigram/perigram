@@ -133,6 +133,40 @@ describe('producer output entry-state and binding diagnostics', () => {
     expect(importB.fieldPolicy).toMatchObject({ read: [], write: [], private: [] });
   });
 
+  it('binds consumer effects to the upstream producer instead of minting own outputs', () => {
+    const source = definition();
+    source.processNodes = {
+      create: { id: 'create', kind: 'effect.createEntity', entityType: 'project', producerOutputId: 'create:entity', construction: { mode: 'genericCreate', inputs: [] }, status: { to: 'CREATED' } },
+      rename: { id: 'rename', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'manual' }, status: { to: 'ACTIVE' } },
+      stale: { id: 'stale', kind: 'effect.changeStatus', entityType: 'project', trigger: { mode: 'manual' }, status: { to: 'ACTIVE' }, producerOutputId: 'stale:result' }
+    };
+    source.producerOutputs['stale:result'] = {
+      producerOutputId: 'stale:result',
+      nodeId: 'stale',
+      outputSocketId: 'result',
+      entityType: 'project',
+      fields: { read: [], write: [], private: [] }
+    };
+    source.graph = {
+      nodes: ['create', 'rename', 'stale'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+      edges: [
+        { id: 'create-rename', source: 'create', sourceHandle: 'data:result', target: 'rename', targetHandle: 'data:entity', role: 'data' },
+        { id: 'rename-stale', source: 'rename', sourceHandle: 'data:result', target: 'stale', targetHandle: 'data:entity', role: 'data' }
+      ]
+    };
+
+    const compiled = compileProcessDefinition(source, domain);
+
+    expect(compiled.producerOutputs).not.toHaveProperty('stale:result');
+    expect(compiled.processNodes.stale.producerOutputId).toBeUndefined();
+    expect(compiled.actions.rename).toMatchObject({ producerOutputId: 'create:entity' });
+    // changeStatus nodes derive no action; they execute through orchestration
+    // with the upstream producer context.
+    expect(compiled.actions.stale).toBeUndefined();
+    expect(Object.keys(compiled.producerOutputs)).toEqual(['create:entity']);
+    expect(compiled.entityTypeIndex).toEqual({ project: ['create:entity'] });
+  });
+
   it('rejects a lifecycle entry state that is not declared', () => {
     const invalid = definition();
     invalid.producerOutputs['create:entity'].lifecycle = {

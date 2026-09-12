@@ -12,7 +12,7 @@ import {
   resolveProcessNodePorts,
   validateProcessEdges
 } from './ports.js';
-import { entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
+import { CONSUMER_EFFECT_KINDS, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForEntityType, lineageRelationsForParent } from './hierarchy-utils.js';
@@ -111,7 +111,18 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     graph,
     domain
   ), data.actions, data.screens);
-  const effectActions = deriveEffectActions(data.actions, processNodes, graph, domain);
+  const producerOutputs = normalizeRecord(data.producerOutputs);
+  // Consumer effects own no producer outputs: prune stale records/identities
+  // (pre-protocol definitions minted them per node) so the workflow stays
+  // anchored at the origin of each entity path.
+  for (const [recordId, node] of Object.entries(processNodes)) {
+    if (!CONSUMER_EFFECT_KINDS.includes(node.kind)) continue;
+    delete node.producerOutputId;
+    for (const [producerOutputId, output] of Object.entries(producerOutputs)) {
+      if (String(output?.nodeId) === String(node.id || recordId)) delete producerOutputs[producerOutputId];
+    }
+  }
+  const effectActions = deriveEffectActions(data.actions, processNodes, graph, domain, producerOutputs);
   const normalized = inferProcessDataflowContracts({
     schemaVersion: data.schemaVersion || PROCESS_SCHEMA_VERSION,
     dataflowVersion: data.dataflowVersion,
@@ -120,7 +131,7 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     graph,
     roleGrants: normalizeRecord(data.roleGrants),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
-    producerOutputs: normalizeRecord(data.producerOutputs),
+    producerOutputs,
     actions: normalizeActions(deriveRelationMutationActions(effectActions, domain)),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
@@ -245,7 +256,7 @@ function normalizeProcessNodesForDomain(value = {}, domain = {}) {
   }));
 }
 
-function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain = {}) {
+function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain = {}, producerOutputs = {}) {
   const derived = { ...(actions || {}) };
   for (const [nodeId, node] of Object.entries(processNodes)) {
     if (!node.kind?.startsWith('effect.')) continue;
@@ -268,7 +279,11 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       ...promptContract.wiredFields
     ]);
     const statusTo = processDefaultValue(node.inputDefaults?.['status.state.primary']) || node.status?.to || '';
-    const producerOutputId = node.producerOutputId || derived[actionId]?.producerOutputId || '';
+    // Consumer effects bind to the upstream producer of their entity input
+    // wire; a stale own-node binding from a persisted draft is ignored.
+    const producerOutputId = CONSUMER_EFFECT_KINDS.includes(node.kind)
+      ? upstreamProducerOutputId({ graph, processNodes, producerOutputs }, node) || ''
+      : node.producerOutputId || derived[actionId]?.producerOutputId || '';
     derived[actionId] = {
       ...(derived[actionId] || {}),
       id: actionId,
@@ -884,6 +899,45 @@ export function validateRequiredInputAvailability(process = {}, domain = {}) {
   return errors;
 }
 
+// A consumer effect's producer context is the upstream producer of its
+// entity input wire: follow incoming data edges (through consumer nodes)
+// until an origin node or join provides the identity. The graph path by
+// which the entity enters supplies the workflow context.
+function upstreamProducerOutputId(process, node, visited = new Set()) {
+  if (!node?.id || visited.has(String(node.id))) return null;
+  visited.add(String(node.id));
+  const recordsByGraphId = new Map((process.graph?.nodes || []).map(graphNode => [
+    String(graphNode.id),
+    (process.processNodes || {})[String(graphNode.data?.refId || graphNode.id)]
+  ]));
+  for (const edge of process.graph?.edges || []) {
+    if (String(edge.target) !== String(node.id)) continue;
+    const source = recordsByGraphId.get(String(edge.source));
+    if (!source) continue;
+    if (source.kind === 'producer.join' && source.selectedProducerOutputId) {
+      const selected = process.producerOutputs?.[source.selectedProducerOutputId];
+      if (selected) return source.selectedProducerOutputId;
+      continue;
+    }
+    if (source.producerOutputId && process.producerOutputs?.[source.producerOutputId]) {
+      return source.producerOutputId;
+    }
+    if (CONSUMER_EFFECT_KINDS.includes(source.kind)) {
+      const upstream = upstreamProducerOutputId(process, source, visited);
+      if (upstream) return upstream;
+    }
+  }
+  // Read sources and unmarked origins resolve by single same-type candidate,
+  // exactly like downstream identity resolution does.
+  const sourceEntityType = node?.entityType;
+  if (sourceEntityType) {
+    const matching = Object.values(process.producerOutputs || {})
+      .filter(output => output?.entityType === sourceEntityType);
+    if (matching.length === 1) return matching[0].producerOutputId;
+  }
+  return null;
+}
+
 function resolveSourceProducerOutputId(process, source, sourcePort) {
   if (!source?.id) return null;
   // An explicit producer-path Join routes its output under the producer
@@ -893,6 +947,9 @@ function resolveSourceProducerOutputId(process, source, sourcePort) {
     return process.producerOutputs?.[source.selectedProducerOutputId]
       ? source.selectedProducerOutputId
       : null;
+  }
+  if (CONSUMER_EFFECT_KINDS.includes(source.kind)) {
+    return upstreamProducerOutputId(process, source);
   }
   const candidates = Object.values(process.producerOutputs || {})
     .filter(output => output?.nodeId === source.id);

@@ -8,6 +8,25 @@ const CONTROL = 'control';
 // connection validation rejects a second wire like any single-value socket).
 export const MAKE_LIST_INPUTS = Object.freeze(['item1', 'item2', 'item3', 'item4']);
 
+// Origin effects mint new entity paths and own producer outputs. Consumer
+// effects transform entities that arrived over an input wire: they own no
+// producer output and bind to the upstream producer of that wire, so the
+// workflow/machine stays anchored where the entity path begins.
+export const PRODUCER_ORIGIN_EFFECT_KINDS = Object.freeze([
+  'effect.createEntity',
+  'effect.runProducer',
+  'effect.runCommand'
+]);
+
+export const CONSUMER_EFFECT_KINDS = Object.freeze([
+  'effect.updateEntity',
+  'effect.changeStatus',
+  'effect.archiveEntity',
+  'effect.deleteEntity',
+  'effect.sendEntity',
+  'effect.generateAttachment'
+]);
+
 const definitions = [
   source('source.literalItem', 'literalItem'),
   source('source.literalList', 'literalList'),
