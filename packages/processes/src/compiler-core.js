@@ -1613,18 +1613,22 @@ function exposedActionFeature(action = {}, actionWindow = null, access = {}, dom
   return actionWindow?.primaryGrant?.feature || grantFromAction(action, access, domain)?.feature || null;
 }
 
+// Authored action roles are the primary declaration of whom the action
+// belongs to: they receive the surfaced action and the status-scoped grant
+// for the resulting state. Executability derived from the input window only
+// fills in when the action declares no roles of its own.
 function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
   const kind = action.actionKind || 'createEntity';
-  if (kind === 'updateEntity' && actionTargetState(action)) {
-    const executable = executableRoleIdsForWindow(actionWindow?.input, access);
-    if (executable.length) return [...new Set(executable)];
-  }
   const explicitGrants = access.grants?.length ? access.grants : grantsFromRoleIds(access.roleIds || [], access.level);
   const explicit = explicitGrants
     .filter(grant => ACCESS_ORDER[normalizeAccessLevel(grant.level)] >= ACCESS_ORDER.write)
     .map(grant => grant.roleId)
     .filter(Boolean);
-  if (explicit.length) return explicit;
+  if (explicit.length) return [...new Set(explicit)];
+  if (kind === 'updateEntity' && actionTargetState(action)) {
+    const executable = executableRoleIdsForWindow(actionWindow?.input, access);
+    if (executable.length) return [...new Set(executable)];
+  }
   return [...new Set((actionWindow?.outputs || []).flatMap(output => {
     const grants = output.roleGrants || grantsFromRoleIds(output.roleIds || [], output.level || access.level);
     return grants
@@ -1634,6 +1638,12 @@ function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
 }
 
 function actionExposureRoleIdsForInput(action = {}, access = {}, inputWindow = null) {
+  const explicitGrants = access.grants?.length ? access.grants : grantsFromRoleIds(access.roleIds || [], access.level);
+  const explicit = explicitGrants
+    .filter(grant => ACCESS_ORDER[normalizeAccessLevel(grant.level)] >= ACCESS_ORDER.write)
+    .map(grant => grant.roleId)
+    .filter(Boolean);
+  if (explicit.length) return [...new Set(explicit)];
   if ((action.actionKind || 'createEntity') !== 'updateEntity' || !actionTargetState(action)) return actionExposureRoleIds(action, access, null);
   const executable = executableRoleIdsForWindow(inputWindow, access);
   if (executable.length) return [...new Set(executable)];

@@ -3292,7 +3292,7 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
-  it('replaces inherited role grants when a status-change access window is modified', () => {
+  it('surfaces a status-change action to its authored roles over inherited input access', () => {
     const compiled = compileProcessDefinition({
       graph: {
         nodes: [
@@ -3356,9 +3356,9 @@ describe('@cutkit/processes compiler', () => {
         rule: { fact: 'primaryStatus', equals: TARGET_STATE }
       }
     ]);
-    expect(compiled.userAccess.user_source.actions.map(action => action.actionId)).toContain('activate_project');
-    expect(compiled.userAccess.user_target.actions.map(action => action.actionId)).not.toContain('activate_project');
-    expect(compiled.producerOutputs['create_project:entity'].workflow.regions.main.transitions[0].processRoleIds).toEqual(['role_source']);
+    expect(compiled.userAccess.user_target.actions.map(action => action.actionId)).toContain('activate_project');
+    expect(compiled.userAccess.user_source.actions.map(action => action.actionId)).not.toContain('activate_project');
+    expect(compiled.producerOutputs['create_project:entity'].workflow.regions.main.transitions[0].processRoleIds).toEqual(['role_target']);
     expect(compiled.producerOutputs['create_project:entity'].workflow.regions.main.transitions[0].access).toBeUndefined();
   });
 

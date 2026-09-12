@@ -46,7 +46,11 @@ default write / deletion admin) — the action *belongs to* those roles: they
 receive the action in their compiled action list and a status-scoped data
 grant for the node's resulting state (`feature` + `level` + `primaryStatus`
 rule derived from the node), matching the original `grantFromAction`
-semantics; it is not an execution-permission check. Inside the producer
+semantics; it is not an execution-permission check. Authored action roles
+are the primary exposure source: the compiled action list and the workflow
+transition's `processRoleIds` come from them first, and executability
+derived from the input window's write access only fills in when the action
+declares no roles of its own. Inside the producer
 workflow panel, **"Entity data access"** ("Can view / edit / manage
 entities", "Fields visible on read / editable on write / admin-only")
 governs the entities the producer emits. Neither offers an entity/feature picker or a per-grant condition
