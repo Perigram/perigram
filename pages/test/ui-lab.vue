@@ -1,42 +1,21 @@
 <template>
   <div class="flex flex-col gap-8">
-    <header class="flex flex-col gap-4 rounded-panel border border-content-border bg-content p-5 shadow-card">
-      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 class="m-0 text-page-title">{{ $t('uiLab.title') }}</h1>
-          <p class="m-0 text-muted-color">{{ $t('uiLab.subtitle') }}</p>
-        </div>
-        <div class="flex gap-2">
-          <Button icon="pi pi-download" :label="$t('uiLab.feedback.export')" severity="secondary" size="small" @click="exportFeedback" />
-          <Button icon="pi pi-trash" :label="$t('common.reset')" severity="danger" outlined size="small" @click="resetFeedback" />
-          <ThemeSwitcher />
-          <LanguageSwitcher />
-        </div>
-      </div>
+    <ActionToolbar :title="$t('uiLab.title')" :subtitle="$t('uiLab.subtitle')" :level="1">
+        <template #actions>
+            <Button icon="pi pi-download" :label="$t('uiLab.feedback.export')" severity="secondary" size="small" @click="exportFeedback" />
+            <Button icon="pi pi-trash" :label="$t('common.reset')" severity="danger" outlined size="small" @click="resetFeedback" />
+            <ThemeSwitcher />
+            <LanguageSwitcher />
+        </template>
+    </ActionToolbar>
 
-      <div class="flex flex-wrap gap-2">
-        <Button
-          v-for="group in groups"
-          :key="group.id"
-          :label="$t(group.labelKey)"
-          :severity="activeSection === group.id ? 'primary' : 'secondary'"
-          size="small"
-          @click="activeSection = group.id"
-        />
-        <Button
-          :label="$t('uiLab.sections.primitives')"
-          :severity="activeSection === 'primitives' ? 'primary' : 'secondary'"
-          size="small"
-          @click="activeSection = 'primitives'"
-        />
-        <Button
-          :label="$t('uiLab.sections.contract')"
-          :severity="activeSection === 'contract' ? 'primary' : 'secondary'"
-          size="small"
-          @click="activeSection = 'contract'"
-        />
-      </div>
-    </header>
+    <Tabs :value="activeSection" @update:value="value => activeSection = value">
+        <TabList>
+            <Tab v-for="group in groups" :key="group.id" :value="group.id">{{ $t(group.labelKey) }}</Tab>
+            <Tab value="primitives">{{ $t('uiLab.sections.primitives') }}</Tab>
+            <Tab value="contract">{{ $t('uiLab.sections.contract') }}</Tab>
+        </TabList>
+    </Tabs>
 
     <section v-if="activeGroup" class="flex flex-col gap-10">
       <Message v-if="reviewError" severity="warn">
@@ -46,19 +25,23 @@
         {{ $t('common.loading') }}
       </Message>
 
-      <article v-for="row in activeRowsWithModels" :key="row.key" class="flex flex-col gap-4 rounded-panel border border-content-border bg-content p-4 shadow-card">
-        <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h2 class="m-0 text-section-heading">{{ $t(row.labelKey) }}</h2>
-            <small class="text-muted-color">{{ row.entityType }} · {{ row.propName }}</small>
-          </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <Tag :value="$t(`uiLab.statusPolicy.${row.status}`)" severity="secondary" />
-            <Tag :value="row.trace ? $t('uiLab.tracePolicy.enabled') : $t('uiLab.tracePolicy.hidden')" severity="secondary" />
-          </div>
-        </div>
+      <article v-for="row in activeRowsWithModels" :key="row.key" class="flex flex-col gap-4">
+        <ActionToolbar :title="$t(row.labelKey)" :subtitle="`${row.entityType} · ${row.propName}`" :level="2">
+            <template #actions>
+                <Tag :value="$t(`uiLab.statusPolicy.${row.status}`)" severity="secondary" />
+                <Tag :value="row.trace ? $t('uiLab.tracePolicy.enabled') : $t('uiLab.tracePolicy.hidden')" severity="secondary" />
+                <Button
+                    :label="$t('uiLab.feedback.title')"
+                    :icon="feedbackOpen.has(row.key) ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
+                    severity="secondary"
+                    text
+                    size="small"
+                    @click="toggleFeedback(row.key)"
+                />
+            </template>
+        </ActionToolbar>
 
-        <div class="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,26rem)_minmax(0,20rem)_minmax(0,1fr)]">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           <div class="flex flex-col gap-2">
             <small class="text-muted-color">{{ $t('uiLab.variants.card') }}</small>
             <component :is="row.component" v-bind="row.props" variant="card" />
@@ -75,7 +58,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-3 border-t border-content-border pt-4 md:grid-cols-[12rem_1fr]">
+        <div v-if="feedbackOpen.has(row.key)" class="grid grid-cols-1 gap-3 md:grid-cols-[12rem_minmax(0,1fr)]">
           <Select
             v-model="feedbackFor('entity', row.key).decision"
             :options="feedbackDecisionOptions"
@@ -133,61 +116,46 @@
             </Message>
 
             <div class="mt-4 overflow-x-auto">
-              <table class="w-full">
-                <thead>
-                  <tr>
-                    <th class="text-left py-2">{{ $t('admin.dataModelReview.field') }}</th>
-                    <th class="text-left py-2">{{ $t('common.type') }}</th>
-                    <th class="text-left py-2">{{ $t('uiLab.review.flags') }}</th>
-                    <th class="text-left py-2">{{ $t('admin.dataModelReview.decision') }}</th>
-                    <th class="text-left py-2">{{ $t('admin.dataModelReview.target') }}</th>
-                    <th class="text-left py-2">{{ $t('common.note') }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="field in row.model.fields || []" :key="field.name" class="border-t border-content-border align-top">
-                    <td class="py-3 pr-3 text-technical">{{ field.name }}</td>
-                    <td class="py-3 pr-3">{{ field.type }}</td>
-                    <td class="py-3 pr-3">
-                      <div class="flex flex-wrap gap-2">
-                        <Tag
-                          v-for="issue in field.issues || []"
-                          :key="issue"
-                          :value="issue"
-                          severity="warn"
-                          size="small"
-                        />
-                      </div>
-                    </td>
-                    <td class="py-3 pr-3 min-w-48">
-                      <Select
-                        v-model="reviewFieldFeedbackFor(row, field).decision"
-                        :options="reviewDecisionOptions"
-                        optionLabel="label"
-                        optionValue="value"
-                        class="w-full"
-                      />
-                    </td>
-                    <td class="py-3 pr-3 min-w-44">
-                      <InputText
-                        v-if="reviewFieldFeedbackFor(row, field).decision === 'rename' || reviewFieldFeedbackFor(row, field).decision === 'move'"
-                        v-model="reviewFieldFeedbackFor(row, field).target"
-                        :placeholder="$t('uiLab.review.targetPlaceholder')"
-                        class="w-full"
-                      />
-                    </td>
-                    <td class="py-3 min-w-64">
-                      <Textarea
-                        v-model="reviewFieldFeedbackFor(row, field).note"
-                        :placeholder="$t('uiLab.feedback.placeholder')"
-                        rows="2"
-                        class="w-full"
-                        auto-resize
-                      />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <DataTable :value="row.model.fields || []" size="small">
+                <Column field="name" :header="$t('admin.dataModelReview.field')">
+                  <template #body="{ data }"><span class="text-technical">{{ data.name }}</span></template>
+                </Column>
+                <Column field="type" :header="$t('common.type')" />
+                <Column :header="$t('uiLab.review.flags')">
+                  <template #body="{ data }">
+                    <div class="flex flex-wrap gap-2">
+                      <Tag v-for="issue in data.issues || []" :key="issue" :value="issue" severity="warn" size="small" />
+                    </div>
+                  </template>
+                </Column>
+                <Column :header="$t('admin.dataModelReview.decision')">
+                  <template #body="{ data }">
+                    <Select
+                      v-model="reviewFieldFeedbackFor(row, data).decision"
+                      :options="reviewDecisionOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      class="w-full"
+                    />
+                  </template>
+                </Column>
+                <Column :header="$t('admin.dataModelReview.target')">
+                  <template #body="{ data }">
+                    <InputText
+                      v-if="reviewFieldFeedbackFor(row, data).decision === 'rename' || reviewFieldFeedbackFor(row, data).decision === 'move'"
+                      v-model="reviewFieldFeedbackFor(row, data).target"
+                      :placeholder="$t('uiLab.review.targetPlaceholder')"
+                      class="w-full"
+                    />
+                    <span v-else class="text-muted-color">—</span>
+                  </template>
+                </Column>
+                <Column :header="$t('common.note')">
+                  <template #body="{ data }">
+                    <InputText v-model="reviewFieldFeedbackFor(row, data).note" class="w-full" />
+                  </template>
+                </Column>
+              </DataTable>
             </div>
           </template>
         </Panel>
@@ -380,18 +348,19 @@
               </StandardPage>
             </template>
 
-            <div class="grid grid-cols-1 gap-3 border-t border-content-border pt-4 md:grid-cols-[12rem_1fr]">
+            <div class="flex flex-col gap-3 md:flex-row">
               <Select
                 v-model="feedbackFor('primitive', primitive.key).decision"
                 :options="feedbackDecisionOptions"
                 optionLabel="label"
                 optionValue="value"
+                class="w-full md:w-48 shrink-0"
               />
               <Textarea
                 v-model="feedbackFor('primitive', primitive.key).note"
                 :placeholder="$t('uiLab.feedback.placeholder')"
                 rows="2"
-                class="w-full"
+                class="w-full min-w-0 flex-1"
                 auto-resize
               />
             </div>
@@ -402,28 +371,7 @@
 
     <section v-else class="flex flex-col gap-4">
       <Panel :header="$t('uiLab.contract.title')">
-          <div class="grid grid-cols-1 gap-4 md:grid-cols-5">
-            <div class="flex flex-col">
-              <small class="text-muted-color">{{ $t('uiLab.contract.entities') }}</small>
-              <span>{{ rows.length }}</span>
-            </div>
-            <div class="flex flex-col">
-              <small class="text-muted-color">{{ $t('uiLab.contract.primitives') }}</small>
-              <span>{{ primitiveRows.length }}</span>
-            </div>
-            <div class="flex flex-col">
-              <small class="text-muted-color">{{ $t('uiLab.contract.variants') }}</small>
-              <span>{{ variants.join(', ') }}</span>
-            </div>
-            <div class="flex flex-col">
-              <small class="text-muted-color">{{ $t('uiLab.contract.issues') }}</small>
-              <span>{{ manifestIssues.length }}</span>
-            </div>
-            <div class="flex flex-col">
-              <small class="text-muted-color">{{ $t('uiLab.contract.source') }}</small>
-              <span>utils/design-system.js</span>
-            </div>
-          </div>
+          <MetricPanel :metrics="contractMetrics" />
       </Panel>
 
       <DataTable :value="contractRows" size="small">
@@ -487,6 +435,10 @@ import EntitySelect from '~/components/shared/EntitySelect.vue';
 import EntityMultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
+import MetricPanel from '~/components/shared/MetricPanel.vue';
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
 import {
   createDesignSystemDemoRows,
   validateDesignSystemManifest
@@ -551,8 +503,22 @@ const reviewModels = ref([]);
 const reviewLoading = ref(false);
 const reviewError = ref(null);
 const expandedReviews = ref(new Set());
+const feedbackOpen = ref(new Set());
+const toggleFeedback = (key) => {
+    const next = new Set(feedbackOpen.value);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    feedbackOpen.value = next;
+};
 
 const activeSection = ref(groups[0]?.id || 'contract');
+const contractMetrics = computed(() => [
+    { key: 'entities', label: t('uiLab.contract.entities'), value: rows.length },
+    { key: 'primitives', label: t('uiLab.contract.primitives'), value: primitiveRows.length },
+    { key: 'variants', label: t('uiLab.contract.variants'), value: variants.join(', ') },
+    { key: 'issues', label: t('uiLab.contract.issues'), value: manifestIssues.length },
+    { key: 'source', label: t('uiLab.contract.source'), value: 'utils/design-system.js' }
+]);
 const dialogVisible = ref(false);
 const designerDialogVisible = ref(false);
 const activeGroup = computed(() => groups.find((group) => group.id === activeSection.value));

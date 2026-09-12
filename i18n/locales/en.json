@@ -1764,6 +1764,7 @@
       "standardPage": "Standard page"
     },
     "feedback": {
+      "title": "Review & Feedback",
       "export": "Export Feedback",
       "placeholder": "Detailed feedback and requested fixes...",
       "planTitle": "# UI Lab Feedback",
