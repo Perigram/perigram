@@ -45,6 +45,8 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   under the same dispositions consumed by `shared/design-system.spec.js`.
   Inline exceptions are exact file/category/binding-expression entries, so
   adding or changing a binding requires explicit classification.
+  Template findings are extracted from `class` and `:class` values so PrimeVue
+  boolean props such as `rounded` are not mistaken for utility styling.
   Render-function style bindings are replacement debt rather than an enforcement
   bypass. Utility classes assembled in Vue script string literals are classified
   with template utilities, so moving visual ownership into script does not bypass
@@ -145,7 +147,9 @@ utilities outside the eight semantic typography aliases, raw palette/surface bor
 nonsemantic radii and shadows, non-allowlisted scoped CSS, duplicated runtime
 theme overrides, direct global PrimeVue selectors or variable declarations,
 `!important` runtime rules, and global focus suppression. It also reconciles source-derived
-visual concern counts with the canonical audit. Scoped-style exceptions name one
+visual concern counts with the canonical audit. Token-backed aliases such as
+`bg-content`, `rounded-ui`, `shadow-card`, and `shadow-overlay` are consumers of
+Aura/application tokens, not generic chrome overrides. Scoped-style exceptions name one
 exact category per file; every exception category is limited to an exact set of
 properties rather than granting whole-file visual ownership. Aura-owned padding
 is excluded from general layout exceptions. Allowlisted inline style bindings

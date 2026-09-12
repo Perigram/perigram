@@ -533,7 +533,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   for content-height panels. `density="compact"` reduces header and content
   padding for IDE-style navigation and inspector lanes without changing the
   global PrimeVue panel density.
-- **`StateBlock.vue`**: Standard loading/empty/error layout with icon, semantic body/caption roles, optional description, and action slot. It does not recreate bordered container chrome.
+- **`StateBlock.vue`**: Standard loading/empty/error layout with icon, semantic body/caption roles, optional description, and action slot. It does not recreate bordered container chrome. The root `error.vue` surface uses this primitive for failures and recovery actions.
 - **`TableFrame.vue`**: Reusable overflow boundary around PrimeVue `DataTable` surfaces. DataTable chrome remains Aura-owned.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
 - **`StandardPage.vue`**: Route-level page shell for title, subtitle,
