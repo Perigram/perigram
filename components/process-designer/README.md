@@ -56,9 +56,15 @@ entities", "Fields visible on read / editable on write / admin-only")
 governs the entities the producer emits. Neither offers an entity/feature picker or a per-grant condition
 dialog; the grant-conditions dialog is reserved for surfaces that genuinely
 own a feature dimension (screen required access, process base grants).
-Status-change nodes select their target status from the node's own producer
-workflow states; the source state is derived at compile time from the
-incoming entity flow.
+The producer workflow panel (status machine + entity data access) appears
+only on origin nodes — Create Entity, Run Producer, Run Service — because
+only origins own a producer output. Consumer nodes (Update, Change Status,
+Archive, Delete) show no workflow section: they transform entities from
+their input wire and bind to the upstream producer, so the machine is edited
+exactly once, where the entity path begins. A status-change node's target
+status is authored by wiring a status definition socket (or the node's
+inline status control), never a duplicate inspector select; the source state
+is derived at compile time from the incoming entity flow.
 `useProcessDesignerScreens` owns source/region creation, source-id reference
 updates, mode normalization, lineage rows, and typed scalar-map mutations. The
 Screens tab renders those mutations against the canonical
