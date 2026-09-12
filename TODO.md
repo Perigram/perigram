@@ -231,3 +231,13 @@
   metadata/parent-design/template/material-source panels into `#sidebar`,
   tracking title via `ActionToolbar`, geometry thumbnail as the main column.
   Group verdict: done.
+  ### Agent Notes — 2026-09-12 (group 5/7: library, catalog, pen_template,
+  tool_profile, profile_template)
+  Asset cards are card-only surfaces with single-column bodies — no detail
+  pages, no container risk. CatalogDetail carried the family defects plus a
+  five-step viewport color-swatch grid (`2/4/6/8/10` cols). Rebuilt:
+  sheet-options panel to `#sidebar`, description+DataBlock as the main
+  column, visual-library title via `ActionToolbar`, and the color grid through
+  `ResponsiveGrid variant="dense" responsive-context="container"` (token
+  minimum track widths instead of viewport column counts). Group verdict:
+  done.
