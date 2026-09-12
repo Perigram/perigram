@@ -326,5 +326,5 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-terms-and-conditions-vue` | `pages/terms-and-conditions.vue` | derived usage | replace:chrome (2) |
 | `ui-pages-test-components-variantshowcase-vue` | `pages/test/components/VariantShowcase.vue` | derived usage | replace:chrome (1) |
 | `ui-pages-test-ui-constructor-vue` | `pages/test/ui-constructor.vue` | derived usage | centralize:layout (2); replace:chrome (12) |
-| `ui-pages-test-ui-lab-vue` | `pages/test/ui-lab.vue` | derived usage | centralize:layout (1); replace:chrome (12) |
+| `ui-pages-test-ui-lab-vue` | `pages/test/ui-lab.vue` | derived usage | replace:chrome (12) |
 | `ui-pages-warehouses-index-vue` | `pages/warehouses/index.vue` | derived usage | compliant |

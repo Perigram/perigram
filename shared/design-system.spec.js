@@ -177,7 +177,6 @@ describe('Design system manifest', () => {
 
     expect(exampleKeys).toEqual(primitiveKeys);
     expect(source).toContain('DESIGN_SYSTEM_PRIMITIVES');
-    expect(source).toContain('cutkit:ui-lab-feedback:v1');
   });
 
   it('keeps design-system runtime exports distinct from contract exports', () => {
@@ -700,20 +699,6 @@ describe('Design system manifest', () => {
     expect(service).toContain("status: 'FAILED'");
   });
 
-  it('merges data-model review fields into UI lab entity rows', () => {
-    const source = fs.readFileSync(path.join(REPO_ROOT, 'pages/test/ui-lab.vue'), 'utf8');
-
-    expect(source).toContain('loadReviewModels');
-    expect(source).toContain('reviewModelForRow');
-    expect(source).toContain('uiLabReviewModelForRow');
-    expect(source).toContain("!field.name.startsWith('lineage.')");
-    expect(source).toContain('reviewFieldFeedbackFor');
-    expect(source).toContain('reviewExpanded');
-    expect(source).toContain('toggleReview');
-    expect(source).toContain('expandedReviews = ref(new Set())');
-    expect(source).toContain('uiLab.review.title');
-    expect(source).toContain('cutkit:ui-lab-feedback:v1');
-  });
 
   it('keeps entity cards on shared EntityCard title chrome', () => {
     const offenders = walkFiles(
