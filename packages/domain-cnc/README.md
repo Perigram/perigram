@@ -226,6 +226,14 @@ icons, docs, component paths, field groups, surface contracts, and field paths.
 It must not import Vue components. `@cutkit/vue` turns this metadata into
 frontend lookup helpers.
 
+Entity icons are CSS class strings. CNC production entities (cassette
+template/design/instance, sheet design/instance, remnant) use the
+`ck-entity-icon-*` classes of the generated `ck-entity-icons` icon font (built
+from `public/icons/data-model/cnc-domain/*.svg` into `public/fonts/` by
+`npm run icons:build`, classes emitted into `assets/css/main.css`); they
+render in `currentColor` anywhere a PrimeIcon class is accepted. All other
+entities use PrimeIcon (`pi pi-*`) classes.
+
 `cncBlockFieldSchemas` projects the explicit framework-owned
 `CANONICAL_BLOCK_SCHEMAS`; it is not generated from entity field inventories.
 Fixed blocks expose their fixed fields. `cncBlockComposition` declares how open
