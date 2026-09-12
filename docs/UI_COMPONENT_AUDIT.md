@@ -125,6 +125,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-artifactlayouteditor-vue` | `components/ArtifactLayoutEditor.vue` | derived usage | centralize:layout (1); replace:chrome (4) |
 | `ui-components-artifacts-artifacttexteditor-vue` | `components/artifacts/ArtifactTextEditor.vue` | derived usage | compliant |
 | `ui-components-artifacts-artifactviewer-vue` | `components/artifacts/ArtifactViewer.vue` | derived usage | centralize:layout (2); replace:chrome (2) |
+| `ui-components-artifacts-sketcheditor-vue` | `components/artifacts/SketchEditor.vue` | derived usage | replace:chrome (1) |
 | `ui-components-artifactstable-vue` | `components/ArtifactsTable.vue` | derived usage | compliant |
 | `ui-components-assetslibrary-vue` | `components/AssetsLibrary.vue` | derived usage | replace:chrome (2); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-authprogress-vue` | `components/AuthProgress.vue` | derived usage | compliant |

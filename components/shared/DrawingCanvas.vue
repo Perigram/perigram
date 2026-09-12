@@ -15,6 +15,7 @@ import {
   normalizeCassetteDrawing,
   normalizeGeometryDrawing
 } from '~/utils/drawingPreview';
+import { normalizeSketchDrawing, parseScene } from '~/utils/sketch.js';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
@@ -263,6 +264,13 @@ const resolveDrawing = async () => {
         }]
       }]
     };
+  }
+
+  if (props.sourceType === 'sketch') {
+    const raw = typeof props.source === 'string'
+      ? await fetchText(props.source)
+      : JSON.stringify(props.source);
+    return normalizeSketchDrawing(parseScene(raw));
   }
 
   if (props.sourceType === 'parametric-cassette') {

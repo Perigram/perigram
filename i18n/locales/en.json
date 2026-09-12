@@ -2026,6 +2026,35 @@
     "selectWarehouseHint": "Please select warehouse and inventory sources to match this run dimensions.",
     "requisitionRedirect": "Please create a new requisition with these specs."
   },
+  "sketch": {
+    "editorTitle": "Sketch",
+    "tool": "Tool",
+    "tools": {
+      "pen": "Pen",
+      "line": "Line",
+      "rect": "Rectangle",
+      "ellipse": "Ellipse",
+      "eraser": "Eraser"
+    },
+    "color": "Stroke color",
+    "strokeWidth": "Stroke width",
+    "sizes": {
+      "thin": "Thin",
+      "medium": "Medium",
+      "thick": "Thick"
+    },
+    "undo": "Undo",
+    "redo": "Redo",
+    "clear": "Clear sketch",
+    "setBackground": "Set background",
+    "replaceBackground": "Replace background",
+    "removeBackground": "Remove background",
+    "originEntity": "Origin",
+    "originType": "Origin entity type",
+    "originId": "Origin entity id",
+    "setOrigin": "Link origin",
+    "clearOrigin": "Clear origin"
+  },
   "artifacts": {
     "noQueues": "This project has no queues yet.",
     "createQueueFirst": "Create a queue to generate artifacts.",
