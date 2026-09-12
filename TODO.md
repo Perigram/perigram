@@ -2,28 +2,40 @@
 
 ## Integrations
 
-- [ ] **Excalidraw drawings: attachment kind + dedicated editor surface.**
-  New standalone surface — not a `DesignerDialog`/`DrawingCanvas` reuse. The
-  Excalidraw editor itself is incorporated into this project's stack; it is
-  React-based, so decide at implementation start between the official React
-  package mounted in an isolated island vs a maintained Vue wrapper, and record
-  that decision in this task's Agent Notes.
+- [x] **Sketch drawings: attachment kind + minimal drawing editor surface.**
+  > Decision record, 2026-09-12: original scope said "incorporate the
+  > Excalidraw editor". Excalidraw's editor is React-only; a lazily-loaded
+  > React island was approved provisionally, then re-scoped when the real
+  > toolset turned out to be "drawing tools only" (no transforms, hatches,
+  > diagrams). Implemented instead with `perfect-freehand` (~5KB) + an
+  > in-house editor: no React, we own the scene format, and the same contract
+  > would host a full excalidraw island later if ever wanted.
   Scope:
-  - Declare the drawing attachment kind through the `@cutkit/processes`
-    attachment-kind contract; `.excalidraw` source JSON persists via the
-    files feature.
-  - `ExcalidrawEditor` surface with route + pane/dialog hosts following the
-    `DesignerSurface`/`DesignerDialog` sizing contract.
-  - Creation flow accepts an optional background image (upload or existing
-    attachment ref) and an optional origin entity reference; both persist in
-    drawing metadata.
-  - Creating drawings from geometry entities via screenshot backgrounds is
-    Process Designer orchestration and is OUT of scope here — this task only
-    ships the bg-image + origin-ref contract that PD will later drive.
-  - Preview thumbnails in cards/refs, i18n, access through grants.
-  Acceptance: create/edit/reopen a drawing with and without background image
-  and origin ref; attachment kind, storage, preview, and permissions follow
-  existing contracts; no parallel preview pipeline.
+  - `SKETCH` attachment kind in `@cutkit/domain-cnc`: `application/json`
+    scene persisted via the files feature (`sketches` bucket), created
+    through `creation.mode: 'editor'` (generalized
+    `GeneratedArtifactCreator` initial-file contract), edited through
+    `editor.mode: 'sketch'`.
+  - `SketchEditor` surface inside `ArtifactDetail` (same inline-editor
+    pattern as the text/CSV editors): pen/line/rect/ellipse/eraser,
+    color/width, undo/redo, clear.
+  - Creation accepts an optional background image (uploaded to the sketches
+    bucket, referenced from scene JSON) and an optional origin entity
+    reference persisted to `data.metadata.origin`.
+  - Creating sketches from geometry entities via screenshot backgrounds is
+    Process Designer orchestration and is OUT of scope here — this ships the
+    bg-image + origin-ref contract PD will later drive.
+  - Preview through `DrawingCanvas` (`sketch` source type + shared
+    `utils/sketch.js` normalizer) — no parallel preview pipeline.
+  ### Agent Notes — 2026-09-12
+  Implemented in `agent/excalidraw-surface-20260912-132350`. Scene contract:
+  `{ version, background: { fileId, url } | null, strokes: [{ id, tool,
+  points, color, size }] }`; pen strokes render via perfect-freehand, shapes
+  from two defining points; eraser is stroke-level hit-testing. Editor saves
+  through `PUT /api/artifacts/:id/file` (same revision/access path as the
+  text editor); origin through `PUT /api/artifacts/:id` metadata. Domain vue
+  adapter now exposes the raw `surfaces` list for typed pickers. i18n en+ru.
+  Status: WAITING.
 
 - [x] **User connections architecture (shared realtime layer).**
   > Architecture note: implemented as a Server-Sent Events gateway, not a
