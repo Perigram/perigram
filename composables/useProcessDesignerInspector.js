@@ -39,15 +39,23 @@ export function useProcessDesignerInspector({ draft, selectedNode, factories }) 
 
   // The entity-producing process node is the only workflow editing anchor:
   // selecting it resolves its producer output directly instead of projecting
-  // a second detached entity canvas node.
+  // a second detached entity canvas node. Node-synced outputs may not yet
+  // carry the editor shape (the old entity-node factory seeded it lazily), so
+  // resolution seeds the same defaults the editor binds to.
   function producerOutputForProcessNode() {
     const node = selectedNode.value;
     if (node?.type !== 'processNode') return {};
     const record = selectedRecordFor('processNode');
     const producerOutputId = record?.producerOutputId;
-    return producerOutputId && draft.value?.data?.producerOutputs?.[producerOutputId]
+    const producerOutput = producerOutputId && draft.value?.data?.producerOutputs?.[producerOutputId]
       ? draft.value.data.producerOutputs[producerOutputId]
-      : {};
+      : null;
+    if (!producerOutput) return {};
+    producerOutput.lifecycle ||= { mode: 'defaultCreated' };
+    producerOutput.allowedRoles ||= { read: [], write: [], admin: [] };
+    producerOutput.fields ||= { read: [], write: [], private: [] };
+    producerOutput.relations ||= [];
+    return producerOutput;
   }
 
   return {

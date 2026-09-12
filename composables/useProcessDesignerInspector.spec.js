@@ -59,4 +59,31 @@ describe('process designer producer-output inspector', () => {
     selectedNode.value = { id: 'literal', type: 'processNode', data: { refId: 'literal' } };
     expect(inspector.selectedEntity.value).toEqual({});
   });
+
+  it('seeds the editor shape on node-synced producer outputs without it', () => {
+    const draft = ref({
+      data: {
+        producerOutputs: {
+          'create_queue:entity': { producerOutputId: 'create_queue:entity', entityType: 'queue' }
+        },
+        processNodes: {
+          create_queue: { id: 'create_queue', kind: 'effect.createEntity', entityType: 'queue', producerOutputId: 'create_queue:entity' }
+        }
+      }
+    });
+    const selectedNode = ref({ id: 'create_queue', type: 'processNode', data: { refId: 'create_queue' } });
+    const inspector = useProcessDesignerInspector({
+      draft,
+      selectedNode,
+      factories: {
+        entity: id => ({ producerOutputId: id, lifecycle: {} }),
+        processNode: id => draft.value.data.processNodes[id] || { id }
+      }
+    });
+
+    expect(inspector.selectedEntity.value.lifecycle).toEqual({ mode: 'defaultCreated' });
+    expect(inspector.selectedEntity.value.allowedRoles).toEqual({ read: [], write: [], admin: [] });
+    expect(inspector.selectedEntity.value.fields).toEqual({ read: [], write: [], private: [] });
+    expect(inspector.selectedEntity.value.relations).toEqual([]);
+  });
 });

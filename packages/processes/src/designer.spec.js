@@ -64,6 +64,7 @@ describe('process designer domain contract', () => {
       nodeId: 'processNode_1785860422855',
       outputSocketId: 'result',
       entityType: 'work_item',
+      lifecycle: { mode: 'defaultCreated' },
       fields: { read: [], write: [], private: [] }
     });
   });

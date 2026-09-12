@@ -130,6 +130,7 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
       nodeId: node.id,
       outputSocketId: output.id,
       entityType: output.type.entityType,
+      lifecycle: producerOutputs[producerOutputId]?.lifecycle || { mode: 'defaultCreated' },
       fields: producerOutputs[producerOutputId]?.fields || { read: [], write: [], private: [] }
     };
   }
