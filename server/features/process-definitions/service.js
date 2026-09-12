@@ -60,7 +60,15 @@ export async function list(auth) {
   const organizationId = resolveOrganizationId(auth);
   await assertOrgAccess(auth, organizationId, 'read');
   const raws = await repository.find({ 'lineage.organizationId': toFlexibleId(organizationId) });
-  return raws.map(raw => new ProcessDefinition(raw).toJSON());
+  // Summaries only: the list is a picker surface. Shipping full records
+  // (graph + persisted compiled snapshots) made the response megabytes once
+  // activations accumulated; full data loads per id on selection.
+  return raws.map(raw => ({
+    _id: raw._id,
+    identity: raw.identity ? { ...raw.identity } : {},
+    status: raw.status ? structuredClone(raw.status) : {},
+    lineage: raw.lineage ? { ...raw.lineage } : {}
+  }));
 }
 
 export async function findRoleReferences(organizationId, roleId) {

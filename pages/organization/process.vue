@@ -1569,6 +1569,17 @@ async function loadActiveOrCreateLocal() {
     processDefinitions.value = normalizeProcessList(active, definitions);
     const initial = pickInitialProcess(active, processDefinitions.value);
     if (initial) {
+      if (!initial.data) {
+        try {
+          const full = await persistence.loadById(initial._id);
+          upsertProcessDefinition(full);
+          setDraft(full);
+          return;
+        } catch (error) {
+          processLoadError.value = error?.data?.message || error?.message || t('processDesigner.noActiveDraft');
+          return;
+        }
+      }
       setDraft(initial);
       return;
     }
@@ -1603,12 +1614,24 @@ async function loadOrganizationRoles() {
     : Object.keys(organizationRoles.value)[0] || null;
 }
 
-function selectProcessDefinition(processId) {
+async function selectProcessDefinition(processId) {
   selectedProcessId.value = processId === null || processId === undefined ? null : String(processId);
   const selected = processDefinitions.value.find(process => String(process._id) === selectedProcessId.value);
   if (!selected) return;
-  setDraft(selected);
   closeDockPopover('process');
+  // List entries are summaries; load the full record before editing.
+  if (!selected.data) {
+    try {
+      const full = await persistence.loadById(selectedProcessId.value);
+      upsertProcessDefinition(full);
+      setDraft(full);
+      return;
+    } catch (error) {
+      toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message, life: 5000 });
+      return;
+    }
+  }
+  setDraft(selected);
 }
 
 function upsertProcessDefinition(process) {
