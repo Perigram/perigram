@@ -31,7 +31,8 @@
     "framework:validate": "node scripts/framework-inspect.js validate",
     "agent:scope-check": "node scripts/check-agent-scope.js",
     "docs:validate": "node scripts/check-docs.js",
-    "icons:build": "node scripts/build-entity-icons.js"
+    "icons:build": "node scripts/build-entity-icons.js",
+    "test:durable": "node --test server/features/process-definitions/run-repository.spec.js"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

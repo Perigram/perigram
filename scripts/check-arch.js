@@ -564,11 +564,8 @@ const staticBoundarySpecs = new Set([
   'components/ui-rework-review.spec.js',
   'components/generated/project-workspace.spec.js',
   'components/generated/project-file-operations.spec.js',
-  'components/designers/designer-workspace.spec.js',
   'components/entities/Artifact/artifact-detail.spec.js',
-  'components/artifacts/artifact-viewer.spec.js',
-  'components/artifacts/artifact-text-editor.spec.js',
-  'layouts/app.spec.js'
+  'components/artifacts/artifact-viewer.spec.js'
 ]);
 const specFiles = walkDir('.').filter(file => file.endsWith('.spec.js') && !file.includes('node_modules'));
 specFiles.forEach(file => {
