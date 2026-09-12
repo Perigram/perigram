@@ -371,7 +371,7 @@ async function resolveConversationParticipant(summary, auth) {
     return user ? user.toJSON() : { _id: otherUserId, identity: { name: otherUserId }, data: {} };
 }
 
-async function getConversationContextByKey(auth, conversationKey) {
+export async function getConversationContextByKey(auth, conversationKey) {
     if (!conversationKey) throw createError({ statusCode: 400, message: 'Conversation key is required' });
     if (conversationKey === supportConversationKey(auth.userId)) {
         return await getUserConversationContext(auth, null);

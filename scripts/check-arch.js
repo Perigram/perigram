@@ -25,6 +25,7 @@ const CAPABILITY_FEATURES = [
   'connections',
   'entity-events',
   'files',
+  'livekit',
   'billing',
   'artifact-conversions',
   'invitations',

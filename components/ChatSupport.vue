@@ -30,6 +30,16 @@
                 </div>
                 <div class="flex shrink-0 items-center gap-1">
                     <Button
+                        v-if="activeConversation"
+                        icon="pi pi-phone"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('call.start')"
+                        @click="startCall"
+                    />
+                    <Button
                         v-if="!activeConversation || fullPage"
                         icon="pi pi-user-plus"
                         severity="secondary"
@@ -162,6 +172,15 @@
                         class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                     />
                     <h2 class="m-0 min-w-0 truncate text-section-heading">{{ conversationLabel(activeConversation) }}</h2>
+                </div>
+                <div
+                    v-if="incomingCall"
+                    class="mx-3 mt-3 flex items-center justify-between gap-3 rounded-ui bg-subtle p-3 md:mx-4 md:mt-4"
+                >
+                    <span class="min-w-0 truncate text-body">
+                        {{ $t('call.incoming', { name: incomingCall.fromName || '' }) }}
+                    </span>
+                    <Button :label="$t('call.join')" icon="pi pi-phone" size="small" @click="joinIncomingCall" />
                 </div>
                 <div ref="messagesContainer" class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 bg-content md:p-4 md:gap-4">
                     <template
@@ -303,6 +322,16 @@
                 </div>
             </section>
         </div>
+        <StandardDialog
+            v-model:visible="callDialog"
+            :header="$t('call.title')"
+            size="full"
+            :show-default-footer="false"
+        >
+            <div class="flex h-support-chat flex-col">
+                <CallPanel v-if="callDialog && callRoom" :key="callRoom" :room="callRoom" @closed="callDialog = false" />
+            </div>
+        </StandardDialog>
     </div>
 </template>
 
@@ -317,6 +346,8 @@ import { useI18n } from 'vue-i18n'
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
 import StateBlock from '~/components/shared/StateBlock.vue'
+import StandardDialog from '~/components/shared/StandardDialog.vue'
+import CallPanel from '~/components/calls/CallPanel.vue'
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState'
 import { useConnections } from '~/composables/useConnections.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
@@ -362,6 +393,41 @@ let typingSendTimer = null
 
 const typingActive = computed(() => Boolean(typingName.value))
 useEnterExit(typingIndicatorRef, typingActive, { y: 4, duration: 0.15 })
+const callRoom = ref('')
+const callDialog = ref(false)
+const incomingCall = ref(null)
+let incomingCallTimer = null
+
+const startCall = async () => {
+    if (!activeConversationKey.value) return
+    try {
+        const invite = await $fetch('/api/livekit/invite', {
+            method: 'POST',
+            body: { conversationKey: activeConversationKey.value }
+        })
+        callRoom.value = invite.room
+        callDialog.value = true
+    } catch (error) {
+        console.error('Failed to start call:', error)
+    }
+}
+
+const joinIncomingCall = () => {
+    if (!incomingCall.value?.room) return
+    callRoom.value = incomingCall.value.room
+    incomingCall.value = null
+    if (incomingCallTimer) clearTimeout(incomingCallTimer)
+    callDialog.value = true
+}
+
+const receiveCallInvite = (payload) => {
+    if (!payload?.room || payload.from === currentUserId.value) return
+    incomingCall.value = { room: payload.room, fromName: payload.fromName || '' }
+    if (incomingCallTimer) clearTimeout(incomingCallTimer)
+    incomingCallTimer = setTimeout(() => {
+        incomingCall.value = null
+    }, 30000)
+}
 
 const messagePreviewVisible = computed(() => Boolean(message.value.includes('{{entity:')))
 const draftPreviewMessage = computed(() => ({
@@ -498,6 +564,10 @@ watch(
                 receiveTyping(payload)
                 return
             }
+            if (payload?.type === 'call') {
+                receiveCallInvite(payload)
+                return
+            }
             if (payload?.type !== 'message') return
             messages.value.push(payload.message)
             supportChatStore.markRead(key)
@@ -528,6 +598,7 @@ onBeforeUnmount(() => {
     }
     if (typingResetTimer) clearTimeout(typingResetTimer)
     if (typingSendTimer) clearTimeout(typingSendTimer)
+    if (incomingCallTimer) clearTimeout(incomingCallTimer)
 })
 
 watch(chatTarget, () => {

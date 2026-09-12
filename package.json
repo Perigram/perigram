@@ -53,6 +53,7 @@
     "formidable": "^3.5.4",
     "gsap": "^3.15.0",
     "jsonwebtoken": "^9.0.3",
+    "livekit-client": "^2.22.3",
     "mongodb": "6.8",
     "multiparty": "^4.2.3",
     "nodemailer": "^7.0.3",
