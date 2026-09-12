@@ -304,7 +304,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
 | `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | compliant |
 | `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (9); replace:chrome (30); remove:state (1); remove:important-override (4); narrowly-allowlist:inline-data-driven (1) |
-| `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | centralize:typography (1) |
+| `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | compliant |
 | `ui-pages-profile-index-vue` | `pages/profile/index.vue` | derived usage | replace:chrome (5); remove:important-override (1) |
 | `ui-pages-project-slug-vue` | `pages/project/[slug].vue` | derived usage | compliant |
 | `ui-pages-project-slug-artifacts-vue` | `pages/project/[slug]/artifacts.vue` | derived usage | centralize:layout (1) |

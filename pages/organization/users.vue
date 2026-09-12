@@ -186,7 +186,7 @@
                     <div v-for="group in assignmentPreviewGroups" :key="group.key">
                         <small class="text-muted-color">{{ group.label }}</small>
                         <div class="mt-1 flex flex-col gap-1">
-                            <span v-for="item in group.items" :key="item.key || item.screenKey || item.id" class="text-sm">
+                            <span v-for="item in group.items" :key="item.key || item.screenKey || item.id" class="text-supporting">
                                 <Tag :value="item.allowed === null ? $t('organization.unresolved') : (item.allowed ? $t('organization.allowed') : $t('organization.denied'))" :severity="item.allowed === null ? 'warn' : (item.allowed ? 'success' : 'danger')" size="small" />
                                 {{ item.label || item.entityType || item.feature || item.transition || item.actionId || item.route }} · {{ item.explanation }}
                             </span>

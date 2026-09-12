@@ -52,41 +52,17 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   'components/entities/PenTemplate/PenTemplateCard.vue': ['data-driven', [':style="lineStyle"']],
   'components/entities/Requisition/RequisitionDetail.vue': ['data-driven', [':style="{ backgroundColor: item.colorHex || item.colorFallback || \'var(--p-content-border-color)\' }"']],
   'components/entities/Sheet/SheetDetail.vue': ['data-driven', [':style="{ backgroundColor: colorHex }"', ':style="geometryStyle"']],
-  'components/process-designer/ProcessActionNode.vue': ['data-driven', [
-    ':style="handleStyle(input)"',
-    ':style="handleStyle(output)"',
-    ':style="handleStyle({ kind: \'event\' })"',
-    ':style="handleStyle({ kind: \'event\' })"'
-  ]],
-  'components/process-designer/ProcessEntityNode.vue': ['data-driven', [':style="handleStyle(input)"', ':style="handleStyle(output)"']],
   'components/process-designer/ProcessNode.vue': ['data-driven', [
     ':style="handleStyle(row.input)"',
     ':style="handleStyle(row.output)"',
     ':style="handleStyle(row.input)"',
     ':style="handleStyle(row.output)"'
   ]],
-  'components/process-designer/ProcessRoleNode.vue': ['data-driven', [
-    ':style="processSocketHandleStyle({ type: { base: \'entityRef\' } })"',
-    ':style="processSocketHandleStyle({ type: { base: \'entityRef\' } })"',
-    ':style="processSocketHandleStyle({ kind: \'event\' })"'
-  ]],
-  'components/process-designer/ProcessServiceNode.vue': ['data-driven', [
-    ':style="handleStyle({ kind: \'event\' })"',
-    ':style="handleStyle(input)"',
-    ':style="handleStyle(output)"'
-  ]],
-  'components/process-designer/ProcessSocketNode.vue': ['data-driven', [
-    ':style="handleStyle(\'entity\')"',
-    ':style="handleStyle(\'entity\')"',
-    ':style="handleStyle(\'projection\')"'
-  ]],
   'components/process-designer/ProcessStatusDefinitionNode.vue': ['data-driven', [
     ':style="{ backgroundColor: toneColor }"',
     ':style="{ color: toneColor }"',
     ':style="statusHandleStyle"'
   ]],
-  'components/process-designer/ProcessUserNode.vue': ['data-driven', [':style="processSocketHandleStyle({ type: { base: \'entityRef\' } })"']],
-  'components/process-designer/ProcessValueInputNode.vue': ['data-driven', [':style="valueHandleStyle"']],
   'components/shared/EntityInlineRef.vue': ['data-driven', [':style="toneStyle"', ':style="toneStyle"']],
   'pages/assets/pens.vue': ['data-driven', [':style="{ backgroundColor: form.stroke.color }"']],
   'pages/organization/process.vue': ['data-driven', [':style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"']],
