@@ -129,7 +129,9 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-artifactstable-vue` | `components/ArtifactsTable.vue` | derived usage | compliant |
 | `ui-components-assetslibrary-vue` | `components/AssetsLibrary.vue` | derived usage | replace:chrome (2); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-authprogress-vue` | `components/AuthProgress.vue` | derived usage | compliant |
-| `ui-components-calls-callpanel-vue` | `components/calls/CallPanel.vue` | derived usage | replace:chrome (3) |
+| `ui-components-calls-callpanel-vue` | `components/calls/CallPanel.vue` | derived usage | replace:chrome (1); narrowly-allowlist:inline-data-driven (1) |
+| `ui-components-calls-callprejoin-vue` | `components/calls/CallPrejoin.vue` | derived usage | replace:chrome (5) |
+| `ui-components-calls-calltile-vue` | `components/calls/CallTile.vue` | derived usage | replace:chrome (5) |
 | `ui-components-cassettedesigner-vue` | `components/CassetteDesigner.vue` | derived usage | replace:chrome (3); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-cassettedesignerv2-vue` | `components/CassetteDesignerV2.vue` | derived usage | centralize:layout (1); replace:chrome (59); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-cassetteeditordialog-vue` | `components/CassetteEditorDialog.vue` | derived usage | centralize:layout (6); replace:chrome (2) |

@@ -165,6 +165,7 @@ motion library and no application motion token layer; Aura's
 | `useFollowValue(initial, { duration, ease })` | Smoothed numeric follow for continuously recomputed targets (pointer proximity, dock magnification). Call `set(target)` as often as input fires; `jump(target)` snaps without animation and is the reduced-motion switch. |
 | `useEnterExit(elRef, active, { y, duration })` | Single-element presence (tooltips, drawers, message rows). The element stays mounted; visibility animates opacity plus a vertical offset; reduced motion resolves to immediate show/hide with no spatial movement. |
 | `enterOnce(el, { y, duration })` | One-shot enter for freshly appended rows (streamed chat messages, live list items). Fire-and-forget from the live-update path; reduced motion is a no-op. |
+| `riseAndFade(el, { y, duration })` | Transient badge motion (floating call reactions): rises and fades once, returns a completion promise for caller cleanup; reduced motion resolves immediately. |
 | `useStateTransition(containerRef, { duration, scale })` | Parameter-to-state animation. Call `capture()` while the previous rendered state is still in the DOM, apply the reactive update, then `play()` — a clone of the real previous state crossfades out over the new one. The animation always starts from the actual previous state, never from defaults. The container owns `position: relative` and clipped overflow; reduced motion skips the overlay. |
 
 Every pattern consumes `useReducedMotion()`. Consumers today: `MotionDock`

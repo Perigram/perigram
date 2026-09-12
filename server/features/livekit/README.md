@@ -43,13 +43,17 @@ plain HTTP from another host.
 
 ## Client Contract
 
-`components/calls/CallPanel.vue` lazily imports `livekit-client` (the WebRTC
-stack never enters the main bundle), joins with a minted token, renders
-participant tiles through shared primitives (video or Avatar fallback,
-semantic tile chrome, speaking/mute state), and owns mic/camera/leave
-controls. Chat integration lives in `ChatSupport.vue`: the call button posts
-`/api/livekit/invite` which publishes a `call` event on the conversation
-topic; the counterpart gets an incoming-call banner and joins the same room.
+The call surfaces live in `components/calls/` (see their README): a pre-join
+screen with device selection and preview, speaker/grid layouts with pinning
+and screen-share spotlight, speaking levels, connection-quality and
+reconnection states, raise-hand and floating reactions over the data channel,
+mid-call device settings, and mic/camera/share/leave controls — all PrimeVue
++ shared primitives, `livekit-client` lazily imported. Chat integration lives
+in `ChatSupport.vue`: the call button posts `/api/livekit/invite` which
+publishes a `call` event on the conversation topic; the counterpart gets an
+incoming-call banner and joins the same room. In-call chat is intentionally
+absent (app chat owns messaging); recording/egress awaits server-side LiveKit
+egress configuration.
 
 ## API
 
