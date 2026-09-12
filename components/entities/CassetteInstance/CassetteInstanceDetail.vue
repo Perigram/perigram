@@ -4,58 +4,50 @@
                 <Button :label="$t('cassetteInstance.printLabel')" icon="pi pi-print" text />
         </template>
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
-            <div class="lg:col-span-3 flex flex-col gap-8">
-                <Panel :header="$t('cassette.geometry')">
-                    <CassetteThumbnail v-if="designIdValue" :cassette="design" :cassette-id="designIdValue" />
-                </Panel>
-
-                <!-- Tracking Timeline -->
+        <template #sidebar>
+            <Panel :header="$t('common.metadata')">
                 <div class="flex flex-col gap-4">
-                    <div class="flex items-center gap-2">
-                        <i class="pi pi-history"></i>
-                        <h2 class="m-0 text-section-heading">{{ $t('cassetteInstance.tracking') }}</h2>
+                    <div class="flex justify-between items-center">
+                        <small>{{ $t('common.created') }}</small>
+                        <span>{{ instance.lineage?.createdAt ? new Date(instance.lineage.createdAt).toLocaleDateString() : '—' }}</span>
                     </div>
-                    <Panel>
-                        <StatusHistory :entity="instance" entity-type="cassette_instance" />
-                    </Panel>
-                </div>
-
-                <!-- References -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Panel :header="$t('cassetteInstance.parentDesign')">
-                        <EntityInlineRef v-if="design" type="cassetteDesign" :entity="design" />
-                        <span v-else>—</span>
-                    </Panel>
-                    <Panel :header="$t('entities.cassetteTemplate')">
-                        <EntityInlineRef v-if="template" type="cassetteTemplate" :entity="template" />
-                        <span v-else>—</span>
-                    </Panel>
-                    <Panel :header="$t('cassetteInstance.materialSource')">
-                        <div class="flex flex-col gap-3">
-                            <EntityInlineRef v-if="sheet" type="sheet" :entity="sheet" />
-                            <EntityInlineRef v-if="pile" type="materialPile" :entity="pile" />
-                            <EntityInlineRef v-if="warehouse" type="warehouse" :entity="warehouse" />
-                            <span v-if="!sheet && !pile && !warehouse">—</span>
-                        </div>
-                    </Panel>
-                </div>
-            </div>
-
-            <!-- Sidebar -->
-            <div class="flex flex-col gap-8">
-                <Panel :header="$t('common.metadata')">
-                    <div class="flex flex-col gap-4">
-                        <div class="flex justify-between items-center">
-                            <small>{{ $t('common.created') }}</small>
-                            <span>{{ instance.lineage?.createdAt ? new Date(instance.lineage.createdAt).toLocaleDateString() : '—' }}</span>
-                        </div>
-                        <Divider />
-                        <div class="flex justify-between items-center">
-                            <small>{{ $t('common.project') }}</small>
-                            <span>{{ instance.lineage?.projectSlug || '—' }}</span>
-                        </div>
+                    <Divider />
+                    <div class="flex justify-between items-center">
+                        <small>{{ $t('common.project') }}</small>
+                        <span>{{ instance.lineage?.projectSlug || '—' }}</span>
                     </div>
+                </div>
+            </Panel>
+
+            <Panel :header="$t('cassetteInstance.parentDesign')">
+                <EntityInlineRef v-if="design" type="cassetteDesign" :entity="design" />
+                <span v-else>—</span>
+            </Panel>
+
+            <Panel :header="$t('entities.cassetteTemplate')">
+                <EntityInlineRef v-if="template" type="cassetteTemplate" :entity="template" />
+                <span v-else>—</span>
+            </Panel>
+
+            <Panel :header="$t('cassetteInstance.materialSource')">
+                <div class="flex flex-col gap-3">
+                    <EntityInlineRef v-if="sheet" type="sheet" :entity="sheet" />
+                    <EntityInlineRef v-if="pile" type="materialPile" :entity="pile" />
+                    <EntityInlineRef v-if="warehouse" type="warehouse" :entity="warehouse" />
+                    <span v-if="!sheet && !pile && !warehouse">—</span>
+                </div>
+            </Panel>
+        </template>
+
+        <div class="flex flex-col gap-8">
+            <Panel :header="$t('cassette.geometry')">
+                <CassetteThumbnail v-if="designIdValue" :cassette="design" :cassette-id="designIdValue" />
+            </Panel>
+
+            <div class="flex flex-col gap-4">
+                <ActionToolbar :title="$t('cassetteInstance.tracking')" :level="2" />
+                <Panel>
+                    <StatusHistory :entity="instance" entity-type="cassette_instance" />
                 </Panel>
             </div>
         </div>
@@ -71,6 +63,7 @@ import Divider from 'primevue/divider';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import { useEntity } from '~/composables/useEntity';
 
 const props = defineProps({
