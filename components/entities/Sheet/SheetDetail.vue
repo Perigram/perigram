@@ -4,12 +4,34 @@
             <Button icon="pi pi-qrcode" text :aria-label="$t('common.printTag')" />
         </template>
 
-        <Panel>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <!-- Visual Swatch -->
-                <Panel :header="$t('sheets.materialColor')">
-                    <div class="flex items-center gap-4">
-                        <div 
+        <template #sidebar>
+            <Panel v-if="warehouseId || pileId || runId" :header="$t('common.source')">
+                <div class="flex flex-col gap-3">
+                    <div v-if="warehouseId" class="flex items-center justify-between gap-4">
+                        <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
+                        <EntityInlineRef type="warehouse" :id="warehouseId" />
+                    </div>
+                    <div v-if="pileId" class="flex items-center justify-between gap-4">
+                        <small class="text-muted-color">{{ $t('entities.materialPile') }}</small>
+                        <EntityInlineRef type="materialPile" :id="pileId" />
+                    </div>
+                    <div v-if="runId" class="flex items-center justify-between gap-4">
+                        <small class="text-muted-color">{{ $t('entities.nestingRun') }}</small>
+                        <EntityInlineRef type="nestingRun" :id="runId" />
+                    </div>
+                </div>
+            </Panel>
+
+            <Panel :header="$t('common.history')">
+                <StatusHistory :entity="sheet" entity-type="sheet" />
+            </Panel>
+        </template>
+
+        <div class="flex flex-col gap-6">
+            <Panel>
+                <div class="flex flex-col gap-6 md:flex-row md:items-center">
+                    <div class="flex shrink-0 items-center gap-4">
+                        <div
                             class="w-12 h-12 border rounded"
                             :style="{ backgroundColor: colorHex }"
                         ></div>
@@ -18,55 +40,23 @@
                             <small>{{ materialName }}</small>
                         </div>
                     </div>
-                </Panel>
-
-                <!-- Physical Specs -->
-                <div class="lg:col-span-3">
-                    <SpecsBlock entity-type="sheet" :entity="sheet" />
+                    <div class="min-w-0 flex-1">
+                        <SpecsBlock entity-type="sheet" :entity="sheet" />
+                    </div>
                 </div>
-            </div>
-        </Panel>
+            </Panel>
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
-            <div class="lg:col-span-3">
-                 <Fieldset :legend="$t('sheets.physicalRepresentation')">
-                    <div class="aspect-[16/9] border rounded flex items-center justify-center relative overflow-hidden">
-                        <div 
-                            class="border border-dashed rounded flex items-center justify-center flex-col gap-4"
-                            :style="geometryStyle"
-                        >
-                            <small>{{ $t('sheets.surface') }}</small>
-                            <span class="text-metric">{{ sheetWidth }}x{{ sheetLength }}</span>
-                        </div>
+            <Fieldset :legend="$t('sheets.physicalRepresentation')">
+                <div class="aspect-[16/9] border rounded flex items-center justify-center relative overflow-hidden">
+                    <div
+                        class="border border-dashed rounded flex items-center justify-center flex-col gap-4"
+                        :style="geometryStyle"
+                    >
+                        <small>{{ $t('sheets.surface') }}</small>
+                        <span class="text-metric">{{ sheetWidth }}x{{ sheetLength }}</span>
                     </div>
-                 </Fieldset>
-            </div>
-
-            <div class="flex flex-col gap-8">
-                <Panel
-                  v-if="warehouseId || pileId || runId"
-                  :header="$t('common.source')"
-                >
-                    <div class="flex flex-col gap-3">
-                        <div v-if="warehouseId" class="flex items-center justify-between gap-4">
-                            <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
-                            <EntityInlineRef type="warehouse" :id="warehouseId" />
-                        </div>
-                        <div v-if="pileId" class="flex items-center justify-between gap-4">
-                            <small class="text-muted-color">{{ $t('entities.materialPile') }}</small>
-                            <EntityInlineRef type="materialPile" :id="pileId" />
-                        </div>
-                        <div v-if="runId" class="flex items-center justify-between gap-4">
-                            <small class="text-muted-color">{{ $t('entities.nestingRun') }}</small>
-                            <EntityInlineRef type="nestingRun" :id="runId" />
-                        </div>
-                    </div>
-                </Panel>
-
-                <Panel :header="$t('common.history')">
-                    <StatusHistory :entity="sheet" entity-type="sheet" />
-                </Panel>
-            </div>
+                </div>
+            </Fieldset>
         </div>
     </EntityPage>
 </template>

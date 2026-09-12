@@ -211,3 +211,14 @@
   artifact refs, both `responsive-context="container"`), `StateBlock` for the
   empty state. Removed the deprecated DataTable `responsiveLayout` prop and
   raw opacity headers. Group verdict: done.
+  ### Agent Notes — 2026-09-12 (group 3/7: sheet_design, sheet, remnant)
+  Same defect class in all three details: nested Panel-in-Panel grids with
+  `md:/lg:` viewport splits inside EntityPage. Rebuilt: SheetDetail moves
+  source/history to `#sidebar` and flattens the swatch+specs row into a
+  responsive flex (swatch bindings kept byte-identical for the data-driven
+  inline exceptions); RemnantDetail consolidates pile/sheet/warehouse refs
+  into one sidebar source panel, renders the recovered area via
+  `MetricPanel`, keeps GeometryPreview as the main surface;
+  SheetDesignDetail moves tracking/cassette-design/material/instance panels
+  to `#sidebar` with the editor+DataBlock as a plain flex column. Scripts
+  unchanged apart from the MetricPanel metrics. Group verdict: done.
