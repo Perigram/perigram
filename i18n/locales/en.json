@@ -2039,7 +2039,40 @@
     "muted": "Muted",
     "failed": "Call failed",
     "retry": "Retry",
-    "insecureContext": "Camera and microphone need a secure context. Open the app on https:// or http://localhost, or start the dev stack with NUXT_DEV_HTTPS=true."
+    "insecureContext": "Camera and microphone need a secure context. Open the app on https:// or http://localhost, or start the dev stack with NUXT_DEV_HTTPS=true.",
+    "prejoin": {
+      "title": "Ready to join?",
+      "join": "Join call",
+      "cameraOff": "Camera is off",
+      "cameraUnavailable": "Camera unavailable",
+      "micLevel": "Microphone active"
+    },
+    "devices": {
+      "microphone": "Microphone",
+      "camera": "Camera",
+      "speaker": "Speaker"
+    },
+    "layout": "Layout",
+    "layoutSpeaker": "Speaker",
+    "layoutGrid": "Grid",
+    "settings": "Call settings",
+    "hand": "Raise hand",
+    "handRaised": "Hand raised",
+    "share": "Share screen",
+    "shareStop": "Stop sharing",
+    "speaking": "Speaking",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "react": "React with {emoji}",
+    "quality": {
+      "excellent": "Excellent connection",
+      "good": "Good connection",
+      "fair": "Fair connection",
+      "poor": "Poor connection",
+      "lost": "Connection lost",
+      "unknown": "Unknown connection"
+    },
+    "reconnecting": "Reconnecting…"
   },
   "sketch": {
     "editorTitle": "Sketch",
