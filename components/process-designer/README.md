@@ -40,13 +40,18 @@ Effect-node authorization is authored as roles only, because the node is the
 complete access context: entity type, producer path, workflow, and transition
 are already fixed by the node and its wiring, and the compiler derives the
 action access window (`feature`, `statusFrom`, `statusTo`, scope) from them.
-The inspector therefore offers one roles multiselect per effect node (levels
-default write, deletion admin) — no entity/feature picker, no per-grant
-condition dialog. Status-change nodes additionally select their target status
-from the node's own producer workflow states; the source state is derived at
-compile time from the incoming entity flow. The grant-conditions dialog is
-reserved for surfaces that genuinely own a feature dimension (screen required
-access, process base grants).
+The inspector separates the two authorization axes explicitly, operation
+first: **"Can run this action"** (one roles multiselect per effect node,
+levels default write / deletion admin, with a one-line explanation that the
+scope is node-derived) and, inside the producer workflow panel, **"Entity
+data access"** ("Can view / edit / manage entities", "Fields visible on
+read / editable on write / admin-only") governing the entities the producer
+emits. Neither offers an entity/feature picker or a per-grant condition
+dialog; the grant-conditions dialog is reserved for surfaces that genuinely
+own a feature dimension (screen required access, process base grants).
+Status-change nodes select their target status from the node's own producer
+workflow states; the source state is derived at compile time from the
+incoming entity flow.
 `useProcessDesignerScreens` owns source/region creation, source-id reference
 updates, mode normalization, lineage rows, and typed scalar-map mutations. The
 Screens tab renders those mutations against the canonical

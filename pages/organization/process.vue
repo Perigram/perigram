@@ -272,6 +272,33 @@
 
 
                 <template v-else-if="selectedNode.type === 'processNode'">
+                  <div v-if="['effect.changeStatus', 'effect.archiveEntity'].includes(selectedProcessNode.kind)" class="flex flex-col gap-2 rounded-ui border border-content-border bg-subtle p-2">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.transitionTo') }}</label>
+                      <Select
+                        :model-value="selectedProcessNode.status?.to || ''"
+                        :options="lifecycleStateOptions"
+                        option-label="label"
+                        option-value="value"
+                        size="small"
+                        @update:model-value="value => updateNodeStatusTransition(selectedProcessNode, 'to', value)"
+                      />
+                    </div>
+                    <small class="text-muted-color">{{ $t('processDesigner.transitionBelongsTo') }}</small>
+                  </div>
+                  <div v-if="selectedProcessNode.kind?.startsWith('effect.')" class="flex flex-col gap-2">
+                    <label>{{ $t('processDesigner.actionAccess') }}</label>
+                    <MultiSelect
+                      :model-value="selectedProcessNodeGrantRoleIds"
+                      :options="roleOptions"
+                      option-label="label"
+                      option-value="value"
+                      display="chip"
+                      class="w-full"
+                      @update:model-value="updateSelectedProcessNodeGrantRoles"
+                    />
+                    <small class="text-muted-color">{{ $t('processDesigner.actionAccessHelp') }}</small>
+                  </div>
                   <Panel v-if="selectedEntityAvailable" :header="$t('processDesigner.producerWorkflow')" class="mt-0">
                         <div class="flex flex-col gap-3">
                           <Tag :value="`${selectedEntity.producerOutputId} · ${selectedEntity.entityType}`" severity="info" size="small" />
@@ -305,38 +332,43 @@
           </div>
         </Panel>
 
-        <div class="grid grid-cols-1 gap-3">
-          <div class="flex flex-col gap-1">
-            <label>{{ $t('processDesigner.readRoles') }}</label>
-            <MultiSelect v-model="selectedEntity.allowedRoles.read" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+        <Panel :header="$t('processDesigner.entityAccess')">
+          <div class="flex flex-col gap-3">
+            <small class="text-muted-color -mt-2">{{ $t('processDesigner.entityAccessHelp', { type: selectedEntity.entityType }) }}</small>
+            <div class="grid grid-cols-1 gap-3">
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.canView') }}</label>
+                <MultiSelect v-model="selectedEntity.allowedRoles.read" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.canEdit') }}</label>
+                <MultiSelect v-model="selectedEntity.allowedRoles.write" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.canManage') }}</label>
+                <MultiSelect v-model="selectedEntity.allowedRoles.admin" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-3">
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.fieldsVisible') }}</label>
+                <MultiSelect v-model="selectedEntity.fields.read" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.fieldsEditable') }}</label>
+                <MultiSelect v-model="selectedEntity.fields.write" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.fieldsHidden') }}</label>
+                <MultiSelect v-model="selectedEntity.fields.private" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.relations') }}</label>
+                <MultiSelect v-model="selectedEntity.relations" :options="relationOptionsForEntity(selectedEntity.entityType)" option-label="label" option-value="value" display="chip" class="w-full" @change="syncNodeData" />
+              </div>
+            </div>
           </div>
-          <div class="flex flex-col gap-1">
-            <label>{{ $t('processDesigner.writeRoles') }}</label>
-            <MultiSelect v-model="selectedEntity.allowedRoles.write" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label>{{ $t('processDesigner.adminRoles') }}</label>
-            <MultiSelect v-model="selectedEntity.allowedRoles.admin" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-          </div>
-        </div>
-        <div class="grid grid-cols-1 gap-3">
-          <div class="flex flex-col gap-1">
-            <label>{{ $t('processDesigner.publicFields') }}</label>
-            <MultiSelect v-model="selectedEntity.fields.read" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label>{{ $t('processDesigner.writeFields') }}</label>
-            <MultiSelect v-model="selectedEntity.fields.write" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label>{{ $t('processDesigner.privateFields') }}</label>
-            <MultiSelect v-model="selectedEntity.fields.private" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label>{{ $t('processDesigner.relations') }}</label>
-            <MultiSelect v-model="selectedEntity.relations" :options="relationOptionsForEntity(selectedEntity.entityType)" option-label="label" option-value="value" display="chip" class="w-full" @change="syncNodeData" />
-          </div>
-        </div>
+        </Panel>
 
                         </div>
                   </Panel>
@@ -561,32 +593,6 @@
                       size="small"
                       filter
                       @update:model-value="updateOpenBlockReadAttachmentKind"
-                    />
-                  </div>
-                  <div v-if="['effect.changeStatus', 'effect.archiveEntity'].includes(selectedProcessNode.kind)" class="flex flex-col gap-2 rounded-ui border border-content-border bg-subtle p-2">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.transitionTo') }}</label>
-                      <Select
-                        :model-value="selectedProcessNode.status?.to || ''"
-                        :options="lifecycleStateOptions"
-                        option-label="label"
-                        option-value="value"
-                        size="small"
-                        @update:model-value="value => updateNodeStatusTransition(selectedProcessNode, 'to', value)"
-                      />
-                    </div>
-                    <small class="text-muted-color">{{ $t('processDesigner.transitionBelongsTo') }}</small>
-                  </div>
-                  <div v-if="selectedProcessNode.kind?.startsWith('effect.')" class="flex flex-col gap-2">
-                    <label>{{ $t('processDesigner.roles') }}</label>
-                    <MultiSelect
-                      :model-value="selectedProcessNodeGrantRoleIds"
-                      :options="roleOptions"
-                      option-label="label"
-                      option-value="value"
-                      display="chip"
-                      class="w-full"
-                      @update:model-value="updateSelectedProcessNodeGrantRoles"
                     />
                   </div>
                 </template>
