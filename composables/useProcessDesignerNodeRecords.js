@@ -44,7 +44,7 @@ export function defaultProcessNodeOperation(kind = '') {
   return (processNodeOperations[kind] || [''])[0] || '';
 }
 
-function createCreatedWorkflow() {
+export function createCreatedWorkflow() {
   return normalizeWorkflow({
     schemaVersion: 2,
     primaryRegion: 'main',
