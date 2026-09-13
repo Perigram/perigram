@@ -954,14 +954,19 @@ watch(() => props.conversationKey, (key) => {
 }, { immediate: true })
 watch([() => props.conversationKey, () => supportChatStore.conversations], ([key]) => {
     if (!key || !props.embedded || conversationKeyTarget !== key) return
-    if (activeConversation.value?.conversationKey === key) return
-    openConversationByKey(key)
-})
+    const current = activeConversation.value
+    // Pin only while nothing is open or the current thread is a synthesized
+    // stub: once resolved (or after the user navigated elsewhere in this
+    // rail), inbox refreshes must not yank the view back.
+    if (!current || (!current.resolved && current.conversationKey === key)) {
+        openConversationByKey(key)
+    }
+}, { immediate: true })
 
 const openConversationByKey = (key) => {
     const summary = supportChatStore.conversations.find(item => item.conversationKey === key)
     if (summary) {
-        activeConversation.value = summary
+        activeConversation.value = { ...summary, resolved: true }
         supportChatStore.markRead(key)
         return
     }

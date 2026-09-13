@@ -1,6 +1,6 @@
 <template>
   <div class="flex h-full min-h-0 w-full overflow-hidden">
-    <div class="flex min-h-0 min-w-0 flex-1 flex-col">
+    <div class="flex min-h-0 min-w-0 flex-1 flex-col p-3">
       <CallPanel :room="room" @closed="$emit('closed')" />
     </div>
     <aside
