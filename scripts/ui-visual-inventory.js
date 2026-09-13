@@ -40,7 +40,6 @@ export const SCOPED_EXCEPTION_PROPERTIES = Object.freeze({
 });
 
 export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
-  'components/AdminSupportChatList.vue': ['data-driven', [':style="{ backgroundColor: letterToBg(getUserName(option.participant)), color: \'var(--p-primary-contrast-color)\' }"']],
   'components/AssetsLibrary.vue': ['data-driven', [':style="{ backgroundColor: penForm.stroke.color }"']],
   'components/CassetteDesigner.vue': ['data-driven', [':style="{ position: \'absolute\', left: addDialog.screenX + \'px\', top: addDialog.screenY + \'px\', transform: \'translate(-50%, -100%)\' }"']],
   'components/calls/CallPanel.vue': ['data-driven', [':style="{ left: `${reaction.left}%` }"']],
