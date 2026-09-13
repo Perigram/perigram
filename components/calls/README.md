@@ -21,7 +21,8 @@ enters the main bundle).
   (`ChatSupport` embedded and pinned through its `conversation-key` prop,
   meet-style stage + chat). It is responsive to the pane width through a
   container query: wide panes render the chat as a fixed side rail, narrow
-  or split panes stack it below the stage. Direct and group calls show
+  or split panes stack it below the stage, capped at 60% of the call
+  height and internally scrollable so the stage always keeps its place. Direct and group calls show
   their persistent app chat; org-room calls render stage-only. The
   floating drawer/mobile surfaces keep the full-screen call dialog.
 - Screen shares render `object-contain`; cameras `object-cover`.
