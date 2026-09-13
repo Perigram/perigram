@@ -2,17 +2,17 @@
   <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
     <div class="hidden h-full min-h-0 flex-1 overflow-hidden md:flex" data-home-workspace>
       <aside
-        class="home-explorer flex w-64 min-w-0 shrink-0 flex-col overflow-hidden border-r border-content-border bg-chrome"
+        class="flex w-64 min-w-0 shrink-0 flex-col overflow-hidden border-r border-chrome-border bg-chrome"
         :aria-label="$t('nav.home')"
       >
-        <header class="flex h-12 shrink-0 items-center border-b [border-color:var(--ck-chrome-border)] px-3">
+        <header class="flex h-12 shrink-0 items-center border-b border-chrome-border px-3">
           <NuxtLink to="/" class="flex items-center no-underline">
             <img src="/logo-light.svg" alt="CutKit" class="h-7 w-auto dark:hidden" />
             <img src="/logo-dark.svg" alt="CutKit" class="hidden h-7 w-auto dark:block" />
           </NuxtLink>
         </header>
 
-        <nav class="flex shrink-0 flex-col gap-1 border-b [border-color:var(--ck-chrome-border)] p-2">
+        <nav class="flex shrink-0 flex-col gap-1 border-b border-chrome-border p-2">
           <div class="flex min-w-0 items-center gap-1">
             <Button
               text
@@ -94,41 +94,47 @@
             :value="explorerNodes"
             selection-mode="single"
             :aria-label="$t('nav.home')"
-            class="home-explorer-tree w-full !border-0 !p-1"
             :pt="explorerTreePt"
             @node-select="selectNode"
             @node-expand="expandNode"
           >
             <template #default="{ node }">
-              <div
+              <span
                 v-if="node.data?.section"
-                class="flex min-w-0 max-w-full flex-1 items-center gap-2"
+                class="flex min-w-0 flex-1 items-center gap-2"
                 :data-home-entity-type="node.data.section.source.entityType"
               >
-                <i :class="node.icon" class="shrink-0" aria-hidden="true" />
                 <span class="min-w-0 flex-1 truncate text-label">{{ node.label }}</span>
-                <GeneratedActionButton
-                  v-for="action in collectionActions(node.data.section.region)"
-                  :key="action.actionId"
-                  :action-id="action.actionId"
-                  icon-only
-                  @execute="selectedAction => emit('execute-action', selectedAction, null, actionContext(node.data.section))"
+                <Button
+                  v-if="collectionActions(node.data.section.region).length"
+                  icon="pi pi-ellipsis-v"
+                  text
+                  rounded
+                  size="small"
+                  severity="secondary"
+                  class="shrink-0"
+                  :aria-label="$t('common.add')"
+                  @click.stop="toggleSectionActions($event, node)"
                 />
-              </div>
-              <div
+              </span>
+              <span
                 v-else
-                class="flex min-w-0 max-w-full flex-1 items-center gap-1"
+                class="flex min-w-0 flex-1 items-center gap-1"
                 :data-entity-id="entityId(node.data?.item?.entity)"
               >
                 <span class="flex min-w-0 flex-1 items-center">
                   <IdentityBlock :entity="node.data?.item?.entity" variant="compact" class="min-w-0 flex-1" />
                 </span>
-                <GeneratedActionButton
-                  v-for="entry in childCreateActions(node.data?.item)"
-                  :key="entry.action.actionId"
-                  :action-id="entry.action.actionId"
-                  icon-only
-                  @execute="selectedAction => emit('execute-action', selectedAction, null, entry.context)"
+                <Button
+                  v-if="childCreateActions(node.data?.item).length"
+                  icon="pi pi-ellipsis-v"
+                  text
+                  rounded
+                  size="small"
+                  severity="secondary"
+                  class="shrink-0"
+                  :aria-label="$t('common.add')"
+                  @click.stop="toggleChildActions($event, node)"
                 />
                 <EntityStatus
                   v-if="node.data?.item?.entity?.status"
@@ -140,12 +146,12 @@
                   @refresh="$emit('refresh')"
                   @transitioned="$emit('refresh')"
                 />
-              </div>
+              </span>
             </template>
           </Tree>
         </div>
 
-        <footer class="flex shrink-0 items-center border-t [border-color:var(--ck-chrome-border)] p-2">
+        <footer class="flex shrink-0 items-center border-t border-chrome-border p-2">
           <UserAccountMenu class="min-w-0 flex-1">
             <template #trigger="{ toggle }">
               <Button
@@ -241,6 +247,17 @@
       </div>
     </StandardDialog>
 
+    <Popover ref="actionsPopover">
+      <div class="flex min-w-44 flex-col gap-1" @click="hideRowActions">
+        <GeneratedActionButton
+          v-for="entry in rowActionEntries"
+          :key="entry.action.actionId"
+          :action-id="entry.action.actionId"
+          menu-item
+          @execute="runRowAction"
+        />
+      </div>
+    </Popover>
     <ConfirmDialog />
   </div>
 </template>
@@ -252,6 +269,7 @@ import Avatar from 'primevue/avatar';
 import Badge from 'primevue/badge';
 import ConfirmDialog from 'primevue/confirmdialog';
 import InputText from 'primevue/inputtext';
+import Popover from 'primevue/popover';
 import Tree from 'primevue/tree';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
@@ -323,15 +341,21 @@ const channelDialog = ref(false);
 const channelName = ref('');
 const channelSaving = ref(false);
 const callChannels = ref([]);
+const actionsPopover = ref(null);
+const rowActionEntries = ref([]);
 const loadedChildKeys = ref(new Set());
 let openedEntityLoadSequence = 0;
 let childLoadSequences = new Map();
+// Layout-only passthroughs: nested rows indent inside the row content so the
+// hover/selection surface stays full width, and the label owns the remaining
+// row width so trailing controls align to the end. Everything else is the
+// Material tree default.
 const explorerTreePt = {
-  root: { class: '!min-w-0 !max-w-full' },
-  node: { class: '!min-w-0 !max-w-full !overflow-hidden' },
-  nodeContent: { class: '!min-w-0 !max-w-full !overflow-hidden !px-1 !py-0.5 !gap-1' },
-  nodeLabel: { class: '!min-w-0 !overflow-hidden' },
-  nodeToggleButton: { class: '!h-6 !w-6' }
+  nodeChildren: { style: { paddingInlineStart: '0' } },
+  nodeContent: ({ props }) => (props.level > 1
+    ? { style: { paddingInlineStart: `${(props.level - 1) * 1.25}rem` } }
+    : undefined),
+  nodeLabel: { class: 'flex min-w-0 flex-1 items-center' }
 };
 
 provide('displayedEntityContexts', computed(() => []));
@@ -554,6 +578,31 @@ function joinRoom(room = '') {
 
 function openChatsPage() {
   if (activePane.value) selectPaneTab(activePane.value.id, 'page:chats');
+}
+
+function toggleSectionActions(event, node) {
+  const section = node.data?.section;
+  if (!section) return;
+  rowActionEntries.value = collectionActions(section.region)
+    .map(action => ({ action, context: actionContext(section) }));
+  actionsPopover.value?.toggle(event);
+}
+
+function toggleChildActions(event, node) {
+  const item = node.data?.item;
+  if (!item) return;
+  rowActionEntries.value = childCreateActions(item);
+  actionsPopover.value?.toggle(event);
+}
+
+function hideRowActions() {
+  actionsPopover.value?.hide();
+}
+
+function runRowAction(action) {
+  const entry = rowActionEntries.value.find(item => item.action.actionId === (action?.actionId || action?.id));
+  hideRowActions();
+  if (entry) emit('execute-action', action, null, entry.context);
 }
 
 function collectionActions(region = {}) {
@@ -882,22 +931,3 @@ function entityId(entity = null) {
 }
 </script>
 
-<style scoped>
-.home-explorer {
-  container-type: inline-size;
-}
-
-.home-explorer-tree :deep(.p-tree-root),
-.home-explorer-tree :deep(.p-tree-node),
-.home-explorer-tree :deep(.p-tree-node-content),
-.home-explorer-tree :deep(.p-tree-node-label),
-.home-explorer-tree :deep(.p-tree-node-children) {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.home-explorer-tree :deep(.p-tree-node-content),
-.home-explorer-tree :deep(.p-tree-node-label) {
-  overflow: hidden;
-}
-</style>
