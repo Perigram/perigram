@@ -16,9 +16,16 @@ enters the main bundle).
   microphone level meter, and mic/cam pre-toggles carried into the join.
 - `CallTile.vue` renders one participant or screen-share track: video or
   Avatar fallback, speaking level dot, mute/hand/quality badges, and pin.
+- `CallWorkspacePage.vue` is the pane-hosted call surface used by the home
+  workspace: the `CallPanel` stage plus a fixed side rail with the call's own
+  conversation thread (`ChatSupport` embedded and pinned through its
+  `conversation-key` prop, meet-style stage + chat). Direct and group calls
+  show their persistent app chat; org-room calls render stage-only. The
+  floating drawer/mobile surfaces keep the full-screen call dialog.
 - Screen shares render `object-contain`; cameras `object-cover`.
-  In-call chat is intentionally absent — app chat owns messaging and call
-  invites arrive on the conversation topic. Recording/egress is not wired;
+  `CallPanel` itself carries no chat — app chat owns messaging; the panel
+  only emits `closed` so hosts can tear the surface down. Call invites
+  arrive on the conversation topic. Recording/egress is not wired;
   it needs server-side LiveKit egress configuration first.
 
 Room access, tokens, invites, and webhooks are owned by the

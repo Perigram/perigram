@@ -29,6 +29,8 @@
         v-bind="pageProps"
         @execute-action="(action, entry) => $emit('execute-action', action, entry)"
         @open-page="page => $emit('open-page', page)"
+        @open-call="request => $emit('open-call', request)"
+        @closed="$emit('close-tab', page.key)"
         @refresh="$emit('refresh')"
       />
     </div>
@@ -49,7 +51,7 @@ const props = defineProps({
   splittable: { type: Boolean, default: true }
 });
 
-defineEmits(['execute-action', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
+defineEmits(['execute-action', 'open-page', 'open-call', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
 
 const definition = computed(() => resolveGeneratedWorkspacePage(props.page?.pageId));
 const pageProps = computed(() => definition.value?.props?.(props.page) || {});

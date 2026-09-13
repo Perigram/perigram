@@ -426,8 +426,12 @@ const props = defineProps({
         type: Boolean,
         default: false
     },
-    fullPage: { type: Boolean, default: false }
+    fullPage: { type: Boolean, default: false },
+    conversationKey: { type: String, default: '' },
+    openCallInPane: { type: Boolean, default: false }
 })
+
+const emit = defineEmits(['open-call'])
 
 const { t } = useI18n()
 const confirm = useConfirm()
@@ -478,19 +482,34 @@ const startCall = async () => {
             method: 'POST',
             body: { conversationKey: activeConversationKey.value }
         })
-        callRoom.value = invite.room
-        callDialog.value = true
+        openCallSurface(invite.room)
     } catch (error) {
         console.error('Failed to start call:', error)
     }
 }
 
+// Pane-hosted chats open calls as workspace tabs instead of the floating
+// dialog; drawer and mobile surfaces keep the dialog.
+const openCallSurface = (room = '') => {
+    if (!room) return
+    if (props.openCallInPane) {
+        emit('open-call', {
+            room,
+            conversationKey: activeConversationKey.value || '',
+            label: conversationLabel(activeConversation.value)
+        })
+        return
+    }
+    callRoom.value = room
+    callDialog.value = true
+}
+
 const joinIncomingCall = () => {
     if (!incomingCall.value?.room) return
-    callRoom.value = incomingCall.value.room
+    const room = incomingCall.value.room
     incomingCall.value = null
     if (incomingCallTimer) clearTimeout(incomingCallTimer)
-    callDialog.value = true
+    openCallSurface(room)
 }
 
 const receiveCallInvite = (payload) => {
@@ -925,6 +944,48 @@ const openGroupConversation = (conversationKey) => {
     supportChatStore.markRead(conversationKey)
 }
 
+// Embedded call surfaces pin this chat to one conversation through the
+// `conversation-key` prop: it resolves from the inbox summaries and falls
+// back to a synthesized thread (the message snapshot fills kind/name).
+// Navigating back releases the pin so inbox refreshes do not reopen it.
+let conversationKeyTarget = ''
+watch(() => props.conversationKey, (key) => {
+    conversationKeyTarget = key || ''
+}, { immediate: true })
+watch([() => props.conversationKey, () => supportChatStore.conversations], ([key]) => {
+    if (!key || !props.embedded || conversationKeyTarget !== key) return
+    if (activeConversation.value?.conversationKey === key) return
+    openConversationByKey(key)
+})
+
+const openConversationByKey = (key) => {
+    const summary = supportChatStore.conversations.find(item => item.conversationKey === key)
+    if (summary) {
+        activeConversation.value = summary
+        supportChatStore.markRead(key)
+        return
+    }
+    if (key.startsWith('group:')) {
+        activeConversation.value = {
+            conversationKey: key,
+            conversationKind: 'group',
+            participants: [],
+            lastMessage: '',
+            entityRefs: []
+        }
+        return
+    }
+    if (key.startsWith('direct:')) {
+        activeConversation.value = {
+            conversationKey: key,
+            conversationKind: 'direct',
+            participants: key.split(':').slice(1),
+            lastMessage: '',
+            entityRefs: []
+        }
+    }
+}
+
 const requestDeleteGroup = () => {
     confirm.require({
         message: t('support.groupDeleteConfirm'),
@@ -961,6 +1022,7 @@ const openConversation = async (conversation) => {
 const showInbox = () => {
     activeConversation.value = null
     chatTarget.value = null
+    conversationKeyTarget = ''
 }
 
 const closeChat = () => {

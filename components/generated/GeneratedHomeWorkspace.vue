@@ -35,21 +35,39 @@
           <div class="flex min-w-0 flex-col gap-0.5 pt-1">
             <div class="flex min-w-0 items-center gap-1 px-2">
               <i class="pi pi-phone shrink-0" aria-hidden="true" />
-              <span class="min-w-0 flex-1 truncate text-label">{{ $t('call.activeRooms') }}</span>
-              <Badge
-                v-if="activeCallRooms.length"
-                :value="activeCallRooms.length"
-                severity="success"
+              <span class="min-w-0 flex-1 truncate text-label">{{ $t('call.calls') }}</span>
+              <Button
+                icon="pi pi-plus"
+                text
+                rounded
                 size="small"
+                severity="secondary"
                 class="shrink-0"
+                :aria-label="$t('call.newCall')"
+                @click="callStartPopover?.toggle($event)"
               />
+              <Popover ref="callStartPopover">
+                <div class="flex min-w-56 max-w-72 flex-col gap-1" data-call-start-popover>
+                  <span
+                    v-if="!callPopoverConversations.length"
+                    class="px-2 py-1 text-supporting text-muted-color"
+                  >
+                    {{ $t('support.noConversations') }}
+                  </span>
+                  <Button
+                    v-for="conversation in callPopoverConversations"
+                    :key="conversation.conversationKey"
+                    text
+                    size="small"
+                    severity="secondary"
+                    class="w-full justify-start"
+                    :icon="conversation.conversationKind === 'group' ? 'pi pi-users' : 'pi pi-user'"
+                    :label="conversationLabelByKey(conversation.conversationKey) || conversation.conversationKey"
+                    @click="startCallFromConversation(conversation)"
+                  />
+                </div>
+              </Popover>
             </div>
-            <span
-              v-if="!activeCallRooms.length"
-              class="px-2 pt-1 pb-1 text-supporting text-muted-color"
-            >
-              {{ $t('call.noActiveRooms') }}
-            </span>
             <div
               v-for="room in activeCallRooms"
               :key="room.room"
@@ -63,7 +81,7 @@
                 :icon="roomKindIcon(room.kind)"
                 :label="activeRoomLabel(room)"
                 :aria-label="$t('call.join')"
-                @click="joinRoom(room.room)"
+                @click="openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })"
               />
               <span
                 class="flex shrink-0 items-center gap-1 text-supporting text-muted-color"
@@ -193,6 +211,7 @@
               @execute-action="executeWorkspaceAction"
               @open-entity="request => openWorkspaceEntity(request.entityType, request.entity)"
               @open-page="openWorkspacePage"
+              @open-call="request => openCallTab(request.room, request)"
               @refresh="$emit('refresh')"
               @select-tab="key => selectPaneTab(pane.id, key)"
               @close-tab="key => closePaneTab(pane.id, key)"
@@ -213,17 +232,6 @@
         @execute-action="(action, entity, context) => $emit('execute-action', action, entity, context)"
       />
     </div>
-
-    <StandardDialog
-      v-model:visible="callDialog"
-      :header="$t('call.title')"
-      size="full"
-      :show-default-footer="false"
-    >
-      <div class="flex h-support-chat flex-col">
-        <CallPanel v-if="callDialog && callRoom" :key="callRoom" :room="callRoom" @closed="callDialog = false" />
-      </div>
-    </StandardDialog>
 
     <Menu ref="actionsMenu" :model="rowActionMenuItems" :popup="true">
       <template #item="{ item }">
@@ -249,9 +257,7 @@ import { useI18n } from 'vue-i18n';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
-import StandardDialog from '~/components/shared/StandardDialog.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
-import CallPanel from '~/components/calls/CallPanel.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
@@ -307,9 +313,8 @@ const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
 const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
-const callDialog = ref(false);
-const callRoom = ref('');
 const activeCallRooms = ref([]);
+const callStartPopover = ref(null);
 const actionsMenu = ref(null);
 const rowActionEntries = ref([]);
 const rowActionMenuItems = computed(() => rowActionEntries.value.map(entry => ({
@@ -369,11 +374,22 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
 }).filter(Boolean));
 // Registered pages without an entity binding are always openable tabs.
 const staticPageItems = computed(() => generatedWorkspacePages
-  .filter(page => !page.entityType)
+  .filter(page => !page.entityType && !page.ephemeral)
   .map(page => ({ key: `page:${page.id}`, kind: 'page', pageId: page.id })));
+const callPageItems = computed(() => callPageRefs.value.map(call => ({
+  key: call.key,
+  kind: 'page',
+  pageId: 'call',
+  room: call.room,
+  conversationKey: call.conversationKey,
+  label: call.label
+})));
+const callPopoverConversations = computed(() => supportChatStore.conversations
+  .filter(conversation => conversation.conversationKind === 'direct' || conversation.conversationKind === 'group'));
 const workspaceItems = computed(() => [
   ...workspaceEntityItems.value,
   ...openedPageItems.value,
+  ...callPageItems.value,
   ...staticPageItems.value
 ].filter(Boolean).filter((item, index, items) => (
   items.findIndex(candidate => candidate.key === item.key) === index
@@ -561,10 +577,55 @@ onBeforeUnmount(() => {
   if (unsubscribeOrgCalls) unsubscribeOrgCalls();
 });
 
-function joinRoom(room = '') {
-  if (!room) return;
-  callRoom.value = room;
-  callDialog.value = true;
+// Calls open as ephemeral workspace tabs (never persisted with the pane
+// layout): the tab hosts the LiveKit stage plus the conversation chat rail.
+const callPageRefs = ref([]);
+
+function openCallTab(room = '', meta = {}) {
+  if (!room || !activePane.value) return;
+  const label = typeof meta.label === 'string' ? meta.label : '';
+  const existing = callPageRefs.value.find(call => call.key === room);
+  if (existing) {
+    if (label && existing.label !== label) existing.label = label;
+  } else {
+    callPageRefs.value = [...callPageRefs.value, {
+      key: room,
+      room,
+      conversationKey: meta.conversationKey || '',
+      label
+    }];
+  }
+  selectPaneTab(activePane.value.id, room);
+}
+
+function conversationKeyForRoom(room = '') {
+  if (room.startsWith('call:group:')) return `group:${room.slice('call:group:'.length)}`;
+  if (room.startsWith('call:direct:')) return room.slice('call:'.length);
+  return '';
+}
+
+function conversationLabelByKey(conversationKey = '') {
+  const conversation = supportChatStore.conversations.find(item => item.conversationKey === conversationKey);
+  if (!conversation) return '';
+  if (conversation.conversationKind === 'group') return conversation.groupName || '';
+  return conversation?.participant?.identity?.name || '';
+}
+
+async function startCallFromConversation(conversation = {}) {
+  callStartPopover.value?.hide();
+  if (!conversation.conversationKey) return;
+  try {
+    const invite = await $fetch('/api/livekit/invite', {
+      method: 'POST',
+      body: { conversationKey: conversation.conversationKey }
+    });
+    openCallTab(invite.room, {
+      conversationKey: conversation.conversationKey,
+      label: conversationLabelByKey(conversation.conversationKey)
+    });
+  } catch (error) {
+    console.error('Failed to start call:', error);
+  }
 }
 
 function openChatsPage() {
@@ -852,6 +913,7 @@ function closePaneTab(paneId, key) {
   const remainingTabKeys = new Set(workspaceLeaves(nextTree).flatMap(leaf => leaf.tabKeys || []));
   if (!remainingTabKeys.has(key)) {
     openedPageRefs.value = openedPageRefs.value.filter(reference => reference.key !== key);
+    callPageRefs.value = callPageRefs.value.filter(call => call.key !== key);
   }
   activePaneId.value = paneId;
   syncActiveSelection();

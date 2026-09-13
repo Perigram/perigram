@@ -27,6 +27,7 @@
     :splittable="splittable"
     @execute-action="(action, entry) => $emit('execute-action', action, entry)"
     @open-page="page => $emit('open-page', page)"
+    @open-call="request => $emit('open-call', request)"
     @refresh="$emit('refresh')"
     @select-tab="$emit('select-tab', $event)"
     @close-tab="$emit('close-tab', $event)"
@@ -80,5 +81,5 @@ defineProps({
   splittable: { type: Boolean, default: true }
 });
 
-defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
+defineEmits(['execute-action', 'open-entity', 'open-page', 'open-call', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
 </script>

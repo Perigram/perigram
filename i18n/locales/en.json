@@ -2061,8 +2061,8 @@
     },
     "reconnecting": "Reconnecting…",
     "orgChannel": "Organization room",
-    "activeRooms": "Active calls",
-    "noActiveRooms": "No active calls",
+    "calls": "Calls",
+    "newCall": "Start call",
     "groupCall": "Group call",
     "directCall": "Direct call"
   },
