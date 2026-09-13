@@ -318,26 +318,20 @@ provides keyboard-assisted panning without a middle mouse button. A selected
 node uses one primary border only; it does not add an outer ring or second
 outline. Socket handles render at a compact 12px with an invisible grab pad,
 and wires draw at 2px, so starting a connection stays easy at any zoom.
-The canvas uses its own token-backed work surface behind two side rails. The
-palette and inspector are canvas-scoped PrimeVue `Panel` rails rendered
-through the `DesignerWorkspace` palette/inspector slots: they are positioned,
-bounded, and scrolled inside the canvas workspace and never cover the app
-shell or viewport. PrimeVue `Drawer` is intentionally not used for these
-rails because its portal is viewport-fixed (v4 appends to `body` with a
-fixed mask), which would scope the panels to the whole screen. Visibility is
-owned by the dock toggles; the inspector keeps its `TabList` pinned while
-`TabPanels` scroll, and the palette rail scrolls in its slot. Either rail
-can be closed independently to recover the full canvas. Behind the rails
+The canvas uses its own token-backed work surface behind two side drawers. The
+palette and inspector are non-modal, non-dismissable PrimeVue `Drawer` panels
+with Aura drawer chrome; canvas clicks never close them, `closeOnEscape`
+is disabled so canvas Escape still clears graph selection, and the header
+close button plus the dock toggles own visibility. Each drawer scrolls its
+own content, and either can be closed independently to recover the full
+canvas. Behind them
 sits one compact bottom dock composed of default PrimeVue `Dock` through
-`components/process-designer/ProcessDesignerDock.vue`. Dock items are static
-2rem icon buttons — there is no proximity magnification; hover labels are the
-only motion and run through the GSAP `useEnterExit` pattern inside
-`ProcessDesignerDockItem.vue`, with `useReducedMotion()` resolving them to
-immediate show/hide. The dock surface is an opaque preset token decision
-(`primeComponentTokens.dock` in `assets/tokens/index.js`): the stock
-translucent pill targets dark hero backgrounds, so the designer dock reads
-`{content.background}` with compact paddings instead. Items are icon-only and
-grouped by concern with
+`components/process-designer/ProcessDesignerDock.vue`: item proximity
+magnification and hover labels run through the GSAP patterns in
+`composables/useMotion.js` (`useFollowValue`, `useEnterExit`) inside
+`ProcessDesignerDockItem.vue`, and `useReducedMotion()` disables magnification
+and label travel while keeping every action keyboard-reachable through the
+Dock's menu semantics. Dock items are icon-only and grouped by concern with
 separators: Palette and Inspector drawer toggles, then direct canvas view
 controls (zoom out, zoom in, frame all, frame selection, reset zoom), then
 Save and Apply, and finally the Folder for process selection and New Draft.

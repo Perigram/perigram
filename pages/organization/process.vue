@@ -82,32 +82,38 @@
         <StateBlock :message="emptyCanvasMessage" />
       </div>
 
-      <template v-if="paletteOpen" #palette>
-        <Panel :header="$t('processDesigner.palette')" class="w-72">
-          <div class="flex flex-col gap-3">
-            <div class="flex items-center gap-1">
-              <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
-            </div>
-            <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
-              <span class="px-1 uppercase text-muted-color text-supporting">{{ paletteGroupLabel(group.id) }}</span>
-              <div class="grid grid-cols-2 gap-1.5">
-                <Button
-                  v-for="item in group.items"
-                  :key="item.id"
-                  :icon="item.icon"
-                  :label="paletteLabel(item)"
-                  :aria-label="paletteLabel(item)"
-                  v-tooltip.right="paletteDescription(item)"
-                  size="small"
-                  text
-                  class="min-w-0 justify-start border border-transparent bg-subtle px-2 hover:border-content-border"
-                  @click="addNode(item)"
-                />
-              </div>
+      <Drawer
+        v-model:visible="paletteOpen"
+        position="left"
+        :modal="false"
+        :dismissable="false"
+        :block-scroll="false"
+        :close-on-escape="false"
+        :header="$t('processDesigner.palette')"
+      >
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center gap-1">
+            <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
+          </div>
+          <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
+            <span class="px-1 uppercase text-muted-color text-supporting">{{ paletteGroupLabel(group.id) }}</span>
+            <div class="grid grid-cols-2 gap-1.5">
+              <Button
+                v-for="item in group.items"
+                :key="item.id"
+                :icon="item.icon"
+                :label="paletteLabel(item)"
+                :aria-label="paletteLabel(item)"
+                v-tooltip.right="paletteDescription(item)"
+                size="small"
+                text
+                class="min-w-0 justify-start border border-transparent bg-subtle px-2 hover:border-content-border"
+                @click="addNode(item)"
+              />
             </div>
           </div>
-        </Panel>
-      </template>
+        </div>
+      </Drawer>
 
       <template #dock>
         <ProcessDesignerDock
@@ -144,18 +150,23 @@
         </div>
       </Popover>
 
-      <template v-if="inspectorOpen" #inspector>
-        <Panel
-          class="flex h-full min-h-0 w-[26rem] flex-col"
-          :pt="{ content: { class: 'flex min-h-0 flex-1 flex-col' } }"
-        >
-          <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
-            <TabList>
-              <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
-              <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
-              <Tab value="screens">{{ $t('organization.screens') }}</Tab>
-            </TabList>
-            <TabPanels class="min-h-0 flex-1 overflow-y-auto">
+      <Drawer
+        v-model:visible="inspectorOpen"
+        position="right"
+        :modal="false"
+        :dismissable="false"
+        :block-scroll="false"
+        :close-on-escape="false"
+        :header="$t('processDesigner.inspector')"
+        :style="{ width: '26rem' }"
+      >
+        <Tabs v-model:value="inspectTab">
+          <TabList>
+            <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
+            <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
+            <Tab value="screens">{{ $t('organization.screens') }}</Tab>
+          </TabList>
+          <TabPanels>
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
                 <div v-if="!['action', 'statusDefinition', 'processNode'].includes(selectedNode.type)" class="flex flex-col gap-1">
@@ -851,8 +862,7 @@
             </TabPanel>
           </TabPanels>
         </Tabs>
-        </Panel>
-      </template>
+      </Drawer>
 
       <div v-if="validation" class="pointer-events-none absolute inset-x-0 bottom-16 z-10 flex justify-center px-4">
         <div class="pointer-events-auto flex max-w-xl flex-col gap-2">
@@ -886,6 +896,7 @@ import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
+import Drawer from 'primevue/drawer';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';

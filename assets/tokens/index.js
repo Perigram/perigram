@@ -331,12 +331,9 @@ export const primeSemanticTokens = {
     }
 };
 
-// Generic controls keep Aura defaults except where the app-shell anatomy
+// Generic controls keep Material defaults except where the app-shell anatomy
 // needs a token-level decision: tab strips are transparent so the chrome
-// surface shows through, tree roots paint no surface, and the process
-// designer dock gets an opaque content surface with compact paddings because
-// the stock translucent pill targets dark hero backgrounds and the default
-// dock paddings dwarf the 2rem designer actions.
+// surface shows through, and tree rows run at explorer density.
 export const primeComponentTokens = {
     tabs: {
         tablist: {
@@ -346,16 +343,6 @@ export const primeComponentTokens = {
     tree: {
         root: {
             background: 'transparent'
-        }
-    },
-    dock: {
-        root: {
-            background: '{content.background}',
-            borderColor: '{content.border.color}',
-            padding: '0.25rem'
-        },
-        item: {
-            padding: '0.125rem'
         }
     }
 };

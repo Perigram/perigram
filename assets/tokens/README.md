@@ -22,11 +22,7 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   directly. `assets/css/main.css` consumes those variables but must not
   duplicate their values or bridge PrimeVue `--p-*` variables.
 - `assets/presets/re_l.js` extends Aura with the bounded primary palette and zinc surface scale
-  projection, plus a small `primeComponentTokens` set for app-shell anatomy
-  decisions: transparent tab strips and tree roots, and an opaque, compactly
-  padded dock surface (the stock translucent dock pill targets dark hero
-  backgrounds and its default paddings dwarf the 2rem designer actions).
-  Everything else keeps Aura defaults.
+  projection only. The component-token projection remains empty.
 - Tailwind semantic aliases are consumed by `tailwind.config.js`.
 
 ## Rules
