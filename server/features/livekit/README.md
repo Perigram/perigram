@@ -1,12 +1,30 @@
 # COMPONENT: LiveKit Calls
 
 LiveKit calls are a capability module over the self-hosted `livekit` docker
-service. Nothing here persists; rooms are derived, never free-form:
+service. Direct and organization rooms are derived, never free-form; call
+channels are the one persisted room record:
 
 | Room | Who may join |
 |---|---|
 | `call:direct:<sorted-user-id-a>:<sorted-user-id-b>` | Conversation participants (mirrors the support conversation keys) or admins |
 | `call:org:<orgId>` | Organization members or admins |
+| `call:channel:<channelId>` | Members of the channel's organization (channel must exist) |
+
+## Call Channels
+
+Discord-style organization voice channels persisted in the `call_channels`
+collection through `repository.js`:
+
+- `GET /api/livekit/channels` lists the current organization's channels.
+- `POST /api/livekit/channels` creates one (`{ name }`); under an active
+  compiled process it requires the `livekit` write grant.
+- `DELETE /api/livekit/channels/:id` removes one; the creating member or an
+  organization admin may delete.
+- Channel documents carry canonical `identity`, `status`/`origin` (creator in
+  `origin.userId`), and org `lineage` blocks.
+- Channel admission follows the org-room contract (membership plus the
+  process `livekit` read grant when a process is active); webhook activity
+  for channel rooms fans onto the organization topic like org rooms.
 
 ## Server Contract
 
@@ -15,18 +33,20 @@ service. Nothing here persists; rooms are derived, never free-form:
   invites on the support conversation contract, and verifies + fans webhook
   events onto the connections layer.
 - Access derives from org membership and conversation participation, and
-  org rooms are a Process-Designer-declared service: when the organization
-  has an active compiled process, `call:org:*` admission additionally
+  org and channel rooms are a Process-Designer-declared service: when the
+  organization has an active compiled process, `call:org:*` and
+  `call:channel:*` admission additionally
   requires a `livekit` feature grant (read level) in the process access
-  rights, evaluated with the shared grant evaluator. The bundled process
+  rights, evaluated with the shared grant evaluator; channel creation
+  requires the write level. The bundled process
   templates declare `livekit: 'write'` for their admin role; organizations
   with an already-active process definition must add the grant (re-instantiate a template or edit its role grants) before org rooms admit under
   process mode. Direct rooms keep the participant contract, which mirrors
   the process-aware support conversation keys.
 - Webhooks: `POST /api/livekit/webhook` verifies the signed Authorization
   JWT including the `sha256` body-hash claim, then publishes `call.activity`
-  events (org rooms → org topic, direct rooms → both participant user
-  topics). Configure the LiveKit server with
+  events (org and channel rooms → org topic, direct rooms → both participant
+  user topics). Configure the LiveKit server with
   `webhook.api_key: devkey` pointing at this endpoint inside the compose
   network.
 

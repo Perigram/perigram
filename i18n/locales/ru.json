@@ -2052,7 +2052,11 @@
       "unknown": "Соединение неизвестно"
     },
     "reconnecting": "Переподключение…",
-    "orgChannel": "Общая комната"
+    "orgChannel": "Общая комната",
+    "channels": "Каналы",
+    "channelCreate": "Новый канал",
+    "channelName": "Название канала",
+    "channelDeleteConfirm": "Удалить этот канал?"
   },
   "sketch": {
     "editorTitle": "Скетч",

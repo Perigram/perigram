@@ -153,7 +153,7 @@
             size="large"
             :aria-label="$t('support.openChat')"
             @click="openSupportDialog"
-            v-if="!supportDialog && !isChatsRoute"
+            v-if="!supportDialog && !isChatsRoute && !isGeneratedHomeRoute"
             class="fixed bottom-8 right-8 z-[999] hidden h-14 w-14 shadow-overlay md:inline-flex"
         />
     </div>

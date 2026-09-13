@@ -4,17 +4,23 @@ import { createError } from 'h3';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import * as connectionsService from '../connections/service.js';
 import { getConversationContextByKey } from '../support/service.js';
+import * as repository from './repository.js';
+import { createIdentity, createStatus } from '../../core/blocks/index.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 
 /**
- * LiveKit calls capability module. Rooms are derived, never free-form:
+ * LiveKit calls capability module. Direct and organization rooms are derived,
+ * never free-form:
  *
  * - `call:direct:<sorted-user-id-a>:<sorted-user-id-b>` — mirrors the support
  *   conversation keys; only participants (or admins) may mint tokens.
  * - `call:org:<orgId>` — organization rooms; any member may join.
+ * - `call:channel:<channelId>` — persisted organization call channels created
+ *   and deleted by members like Discord voice channels.
  *
- * Access today derives from org membership and conversation participation;
- * the Process Designer service declaration (rooms provisioned and gated by
- * the active process access rights) is the tracked follow-up.
+ * Room access today derives from org membership and conversation
+ * participation; under an active compiled process, org and channel rooms
+ * additionally ride the process access rights (livekit feature grant).
  */
 
 const config = () => ({
@@ -30,6 +36,75 @@ const sortedIds = (left, right) => [String(left), String(right)].sort();
 export const directCallRoom = (left, right) => `call:direct:${sortedIds(left, right).join(':')}`;
 
 export const orgCallRoom = (orgId) => `call:org:${orgId}`;
+
+export const channelCallRoom = (channelId) => `call:channel:${channelId}`;
+
+function requireLiveKitGrant(auth, level = 'read') {
+    if (!auth.process?.active || !auth.effectivePermissions) return;
+    const granted = hasPermissionGrant({
+        permissions: auth.effectivePermissions,
+        feature: 'livekit',
+        level
+    });
+    if (!granted) throw createError({ statusCode: 403, message: 'Forbidden' });
+}
+
+async function channelById(channelId) {
+    if (!channelId) return null;
+    return await repository.findById(channelId);
+}
+
+function channelOrganizationId(channel = null) {
+    const organizationId = channel?.lineage?.organizationId;
+    return organizationId ? String(organizationId) : '';
+}
+
+function channelDTO(channel = null) {
+    if (!channel) return null;
+    return {
+        _id: channel._id,
+        identity: channel.identity,
+        status: channel.status,
+        origin: channel.origin,
+        lineage: channel.lineage,
+        data: channel.data || {}
+    };
+}
+
+export async function createChannel(auth, data = {}) {
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    const name = String(data?.name || '').trim();
+    if (!name) throw createError({ statusCode: 400, message: 'Channel name is required' });
+    if (!auth.organizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
+    requireLiveKitGrant(auth, 'write');
+    const status = createStatus('ACTIVE', auth.userId, { note: 'Call channel created' });
+    const doc = {
+        identity: createIdentity(name),
+        status,
+        origin: status,
+        lineage: { organizationId: toFlexibleId(auth.organizationId) },
+        data: {}
+    };
+    const created = await repository.create(doc);
+    return channelDTO(created);
+}
+
+export async function listChannels(auth) {
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    if (!auth.organizationId) return [];
+    const channels = await repository.findByOrganization(auth.organizationId);
+    return channels.map(channelDTO);
+}
+
+export async function deleteChannel(auth, channelId = '') {
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    const channel = await channelById(channelId);
+    if (!channel) throw createError({ statusCode: 404, message: 'Call channel not found' });
+    const isCreator = String(channel.origin?.userId || '') === String(auth.userId);
+    if (!auth.isAdmin && !isCreator) throw createError({ statusCode: 403, message: 'Forbidden' });
+    await repository.deleteById(channelId);
+    return { deleted: true };
+}
 
 export async function authorizeRoom(auth, room = '') {
     if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
@@ -49,15 +124,18 @@ export async function authorizeRoom(auth, room = '') {
         if (!isMember) throw createError({ statusCode: 403, message: 'Forbidden' });
         // With an active compiled process, org rooms are a declared service:
         // admission rides the process access rights (livekit feature grant).
-        if (auth.process?.active && auth.effectivePermissions) {
-            const granted = hasPermissionGrant({
-                permissions: auth.effectivePermissions,
-                feature: 'livekit',
-                level: 'read'
-            });
-            if (!granted) throw createError({ statusCode: 403, message: 'Forbidden' });
-        }
+        requireLiveKitGrant(auth);
         return { room, kind: 'org' };
+    }
+
+    if (room.startsWith('call:channel:')) {
+        const channel = await channelById(room.slice('call:channel:'.length));
+        if (!channel) throw createError({ statusCode: 404, message: 'Unknown call channel' });
+        if (auth.isAdmin) return { room, kind: 'channel' };
+        const isMember = Boolean(auth.organizationId && String(auth.organizationId) === channelOrganizationId(channel));
+        if (!isMember) throw createError({ statusCode: 403, message: 'Forbidden' });
+        requireLiveKitGrant(auth);
+        return { room, kind: 'channel' };
     }
 
     throw createError({ statusCode: 400, message: 'Unknown call room' });
@@ -128,10 +206,11 @@ export function verifyWebhookAuthorization(header = '', rawBody = '') {
 }
 
 /**
- * Fans webhook room events onto the connections layer: organization rooms
- * publish on the org topic, direct rooms on each participant's user topic.
+ * Fans webhook room events onto the connections layer: organization and
+ * channel rooms publish on the org topic, direct rooms on each participant's
+ * user topic.
  */
-export function publishWebhookEvent(body = {}) {
+export async function publishWebhookEvent(body = {}) {
     const event = body?.event;
     const room = body?.room?.name || '';
     if (!event || !room.startsWith('call:')) return { published: false };
@@ -146,6 +225,13 @@ export function publishWebhookEvent(body = {}) {
     };
     if (room.startsWith('call:org:')) {
         connectionsService.publish(`org:${room.slice('call:org:'.length)}`, payload);
+        return { published: true };
+    }
+    if (room.startsWith('call:channel:')) {
+        const channel = await channelById(room.slice('call:channel:'.length));
+        const organizationId = channelOrganizationId(channel);
+        if (!organizationId) return { published: false };
+        connectionsService.publish(`org:${organizationId}`, payload);
         return { published: true };
     }
     if (room.startsWith('call:direct:')) {

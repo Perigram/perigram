@@ -1,3 +1,4 @@
+import ChatSupport from '~/components/ChatSupport.vue';
 import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
 
 export const generatedWorkspacePages = [
@@ -11,6 +12,13 @@ export const generatedWorkspacePages = [
       cassette: page.entity,
       cassettes: page.cassettes || []
     })
+  },
+  {
+    id: 'chats',
+    labelKey: 'support.chatTitle',
+    icon: 'pi pi-comments',
+    component: ChatSupport,
+    props: () => ({ embedded: true, fullPage: true })
   }
 ];
 
