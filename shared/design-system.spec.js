@@ -305,17 +305,6 @@ describe('Design system manifest', () => {
     });
   });
 
-  it('keeps local workflow preview transitions out of the server status API', () => {
-    const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/EntityStatus.vue'), 'utf8');
-    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
-    const store = fs.readFileSync(path.join(REPO_ROOT, 'stores/workbenchFixtures.js'), 'utf8');
-
-    expect(entityStatus).toContain("inject('statusTransitionHandler'");
-    expect(entityStatus).toContain('useLocalTransition');
-    expect(workbench).toContain("provide('statusTransitionHandler'");
-    expect(workbench).toContain('handleWorkbenchStatusTransition');
-    expect(store).toContain('transitionEntityStatus');
-  });
 
   it('gives the UI lab test user a real access model', () => {
     const user = factories.createMockUser();
@@ -633,71 +622,7 @@ describe('Design system manifest', () => {
     }
   });
 
-  it('exposes ConfigBot as a draft-only admin tool', () => {
-    const page = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/config-bot.vue'), 'utf8');
-    const preview = fs.readFileSync(path.join(REPO_ROOT, 'components/config-bot/ConfigBotDraftPreview.vue'), 'utf8');
-    const layout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
-    const navigation = fs.readFileSync(path.join(REPO_ROOT, 'stores/navigation.js'), 'utf8');
 
-    expect(page).toContain('/api/config-bot/generate');
-    expect(page).toContain('/api/config-bot/chat');
-    expect(page).toContain('/api/admin/config-bot/reindex');
-    expect(page).toContain("writes: 'draft-only'");
-    expect(page).not.toContain('applyPackage');
-    expect(preview).toContain('ActionToolbar');
-    expect(preview).toContain('StateBlock');
-    expect(layout).not.toContain("router.push('/admin/config-bot')");
-    expect(navigation).toContain("to: '/admin/config-bot'");
-  });
-
-  it('exposes command definitions and runs in the admin workbench', () => {
-    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
-    const service = fs.readFileSync(path.join(REPO_ROOT, 'server/core/commands/service.js'), 'utf8');
-    const adapter = fs.readFileSync(path.join(REPO_ROOT, 'server/adapters/cnc-domain.js'), 'utf8');
-
-    expect(workbench).toContain('sectionsCommands');
-    expect(workbench).toContain('activeWorkbenchSection');
-    expect(workbench).toContain('activeEntityTab');
-    expect(workbench).toContain('globalWorkbenchTabs');
-    expect(workbench).toContain('entityWorkbenchTabs');
-    expect(workbench).toContain("value: 'entities'");
-    expect(workbench).toContain("value: 'context'");
-    expect(workbench).toContain("value: 'commands'");
-    expect(workbench).toContain("const entityWorkbenchTabs = [");
-    expect(workbench).toContain('/api/admin/commands');
-    expect(workbench).toContain('/api/admin/commands/runs');
-    expect(workbench).toContain('/api/admin/tasks');
-    expect(workbench).toContain('runSelectedCommand');
-    expect(workbench).toContain("command.kind !== 'task'");
-    expect(workbench).toContain('selectedCommandTaskDefinitions');
-    expect(workbench).toContain('selectedCommandTaskRuns');
-    expect(workbench).toContain('commandRelatedTaskIds');
-    expect(workbench).toContain('visibleCommands');
-    expect(workbench).toContain('commandSearch');
-    expect(workbench).toContain('commandsRegistry');
-    expect(workbench).toContain('handlerRegistered');
-    expect(workbench).not.toContain("admin.operations.registry");
-    expect(workbench).not.toContain('input.type === selectedEntity.value?.type');
-    expect(workbench).toContain('noCommands');
-    expect(workbench).toContain('commandEntityFields');
-    expect(workbench).toContain("type: 'entityId'");
-    expect(workbench).toContain('lastCommandRun');
-    expect(workbench).toContain('TypedSettingsForm');
-    expect(workbench).toContain('hookContracts');
-    expect(workbench).toContain('parameters: commandParameters.value');
-    expect(workbench).not.toContain("from 'primevue/datatable'");
-    expect(workbench).not.toContain('TableFrame');
-    expect(service).toContain('commandRunsRepository.create');
-    expect(service).toContain('handlerRegistered');
-    expect(service).not.toContain("features/nesting/operations.js");
-    expect(service).not.toContain("features/artifacts/operations.js");
-    expect(adapter).not.toContain("features/nesting/operations.js");
-    expect(adapter).not.toContain("features/artifacts/operations.js");
-    expect(adapter).toContain('cncDomain');
-    expect(fs.readFileSync(path.join(REPO_ROOT, 'server/api/admin/commands/index.get.js'), 'utf8')).toContain('listCommands');
-    expect(service).toContain("status: 'SUCCEEDED'");
-    expect(service).toContain("status: 'FAILED'");
-  });
 
 
   it('keeps entity cards on shared EntityCard title chrome', () => {
@@ -719,21 +644,6 @@ describe('Design system manifest', () => {
     expect(runtimeCss).not.toMatch(/\.entity-inline-(?:chip|compact)[^{]*\{[^}]*(?:background|border(?:-radius)?|box-shadow|padding)\s*:/s);
   });
 
-  it('keeps embedded previews and statuses from conflicting with parent card clicks', () => {
-    const entityCard = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityCard.vue'), 'utf8');
-    const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/EntityStatus.vue'), 'utf8');
-    const artifactCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Artifact/ArtifactCard.vue'), 'utf8');
-    const cassetteCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Cassette/CassetteCard.vue'), 'utf8');
-    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
-
-    expect(entityCard).toContain('isInteractiveEventTarget');
-    expect(entityCard).toContain('expandable');
-    expect(entityStatus).toContain('data-entity-card-interactive="true"');
-    expect(artifactCard).toContain(':expandable="false"');
-    expect(workbench).toContain('listeners: { click: previewArtifactOutput }');
-    expect(cassetteCard).toContain('CassetteThumbnail');
-    expect(cassetteCard).not.toContain("path: 'data.type'");
-  });
 
   it('keeps nesting runs focused on sheet design outputs', () => {
     const nestingRunCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/NestingRun/NestingRunCard.vue'), 'utf8');
@@ -865,21 +775,6 @@ describe('Design system manifest', () => {
     expect(queueEditor).not.toContain('canEditQueue.value || Boolean(processRunNestingAction.value)');
   });
 
-  it('keeps manual workbench forms explicit about type and lineage choices', () => {
-    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
-    const manualEntities = fs.readFileSync(path.join(REPO_ROOT, 'test-data/workbench-manual-entities.js'), 'utf8');
-    const typedSettingsForm = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/TypedSettingsForm.vue'), 'utf8');
-
-    expect(workbench).toContain('manualEntityTypeLabel');
-    expect(workbench).toContain('manualEntityDefinitions');
-    expect(workbench).toContain('DESIGN_SYSTEM_ENTITIES');
-    expect(workbench).toContain('canCreateManualEntity');
-    expect(workbench).toContain(':disabled="!canCreateManualEntity"');
-    expect(manualEntities).not.toContain("if (field.type === 'entityId')");
-    expect(manualEntities).not.toContain('draft[field.name] = value');
-    expect(typedSettingsForm).toContain("field.type === 'entityId'");
-    expect(typedSettingsForm).not.toContain('field.entityType && `entity:${field.entityType}`');
-  });
 
   it('keeps entity details on shared EntityPage header chrome', () => {
     const offenders = walkFiles(

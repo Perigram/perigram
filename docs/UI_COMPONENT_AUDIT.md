@@ -278,12 +278,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-error-vue` | `error.vue` | derived usage | compliant |
 | `ui-layouts-app-vue` | `layouts/app.vue` | derived usage | centralize:layout (4); replace:chrome (10); remove:state (1); remove:important-override (3) |
 | `ui-layouts-ui-lab-layout-vue` | `layouts/ui-lab-layout.vue` | derived usage | centralize:layout (2); replace:chrome (10); remove:state (2) |
-| `ui-pages-admin-config-bot-vue` | `pages/admin/config-bot.vue` | derived usage | centralize:layout (1) |
-| `ui-pages-admin-index-vue` | `pages/admin/index.vue` | derived usage | compliant |
-| `ui-pages-admin-support-vue` | `pages/admin/support.vue` | derived usage | replace:chrome (7) |
-| `ui-pages-admin-users-vue` | `pages/admin/users.vue` | derived usage | replace:chrome (4) |
-| `ui-pages-admin-workbench-vue` | `pages/admin/workbench.vue` | derived usage | centralize:layout (6); replace:chrome (35) |
-| `ui-pages-admin-workflows-vue` | `pages/admin/workflows.vue` | derived usage | centralize:layout (1) |
 | `ui-pages-auth-login-vue` | `pages/auth/login.vue` | derived usage | replace:chrome (1) |
 | `ui-pages-auth-register-vue` | `pages/auth/register.vue` | derived usage | replace:chrome (1) |
 | `ui-pages-chats-vue` | `pages/chats.vue` | derived usage | compliant |

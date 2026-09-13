@@ -140,9 +140,7 @@ const routeForItem = (item) => {
     const scopedRoute = projectHierarchyRoute({ type: item.type, id: item.id, entity: resolvedEntity, project });
     if (scopedRoute) return scopedRoute;
     const config = entityUiFor(item.type);
-    return typeof config?.route === 'function'
-        ? config.route(item.id, project?.identity?.slug || project?.identity?.uid || item.slug)
-        : null;
+    return null;
 };
 
 const generatedEntityType = (type) => {
