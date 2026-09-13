@@ -122,15 +122,16 @@
                 class="flex min-w-0 flex-1 items-center gap-1"
                 :data-entity-id="entityId(node.data?.item?.entity)"
               >
-                <EntityInlineRef
-                  :type="node.data.item.type"
-                  :entity="node.data.item.entity"
-                  :fetch="false"
-                  :fields="[]"
-                  :interactive="false"
-                  variant="inline"
-                  class="min-w-0 flex-1"
-                />
+                <span class="flex min-w-0 flex-1 items-center overflow-hidden">
+                  <EntityInlineRef
+                    :type="node.data.item.type"
+                    :entity="node.data.item.entity"
+                    :fetch="false"
+                    :fields="[]"
+                    :interactive="false"
+                    variant="inline"
+                  />
+                </span>
                 <EntityStatus
                   v-if="node.data?.item?.entity?.status"
                   :entity="node.data.item.entity"
