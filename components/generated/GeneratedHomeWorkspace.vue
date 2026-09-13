@@ -122,13 +122,16 @@
                 class="flex min-w-0 flex-1 items-center gap-1"
                 :data-entity-id="entityId(node.data?.item?.entity)"
               >
-                <EntityInlineRef
-                  :type="node.data.item.type"
+                <IdentityBlock :entity="node.data?.item?.entity" variant="inline" class="min-w-0 flex-1" />
+                <EntityStatus
+                  v-if="node.data?.item?.entity?.status"
                   :entity="node.data.item.entity"
-                  :fetch="false"
-                  :interactive="false"
-                  variant="compact"
-                  class="min-w-0 flex-1"
+                  :entity-type="node.data.item.type"
+                  variant="icon"
+                  class="shrink-0"
+                  @click.stop
+                  @refresh="$emit('refresh')"
+                  @transitioned="$emit('refresh')"
                 />
                 <Button
                   v-if="rowActions(node.data?.item).length"
@@ -269,7 +272,8 @@ import Tree from 'primevue/tree';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
