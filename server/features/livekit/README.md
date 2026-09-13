@@ -1,54 +1,59 @@
 # COMPONENT: LiveKit Calls
 
 LiveKit calls are a capability module over the self-hosted `livekit` docker
-service. Direct and organization rooms are derived, never free-form; call
-channels are the one persisted room record:
+service. Direct and organization rooms are derived, never free-form; group
+call rooms derive from the persisted support group chat:
 
 | Room | Who may join |
 |---|---|
 | `call:direct:<sorted-user-id-a>:<sorted-user-id-b>` | Conversation participants (mirrors the support conversation keys) or admins |
 | `call:org:<orgId>` | Organization members or admins |
-| `call:channel:<channelId>` | Members of the channel's organization (channel must exist) |
+| `call:group:<groupId>` | Participants of the support group chat (or admins) — same contract as direct rooms |
 
-## Call Channels
+## Group Calls
 
-Discord-style organization voice channels persisted in the `call_channels`
-collection through `repository.js`:
+Group chats are persisted in the `chat_groups` collection by the
+[support feature](../support/README.md); each group's call room is
+`call:group:<groupId>`. Admission follows the direct-room participant
+contract (group participants or admins) and deliberately does not require
+the process `livekit` grant, so every invited member can always join their
+group's call. Call buttons in `ChatSupport.vue` post
+`POST /api/livekit/invite` with the conversation key; direct conversations
+ring `call:direct:*`, group conversations ring `call:group:*`, and support
+conversations ring the organization room.
 
-- `GET /api/livekit/channels` lists the current organization's channels.
-- `POST /api/livekit/channels` creates one (`{ name }`); under an active
-  compiled process it requires the `livekit` write grant.
-- `DELETE /api/livekit/channels/:id` removes one; the creating member or an
-  organization admin may delete.
-- Channel documents carry canonical `identity`, `status`/`origin` (creator in
-  `origin.userId`), and org `lineage` blocks.
-- Channel admission follows the org-room contract (membership plus the
-  process `livekit` read grant when a process is active); webhook activity
-  for channel rooms fans onto the organization topic like org rooms.
+## Active Calls
+
+`GET /api/livekit/active-rooms` returns the currently joined call rooms the
+caller may enter: the service calls the LiveKit server's
+`RoomService/ListRooms` HTTP API with a signed `roomList` token, keeps only
+`call:` rooms, and filters them through the same `authorizeRoom` admission
+as token minting. The home workspace sidebar renders this snapshot and keeps
+it live by debounced refetches on `call.activity` events arriving on the
+caller's own `user:` and `org:` topics (which match room admission, so
+events only ever mention joinable rooms).
 
 ## Server Contract
 
 - `service.js` mints LiveKit room tokens (`jsonwebtoken`, HS256, `iss` = API
   key, `video.roomJoin` grants) after `authorizeRoom` passes, resolves call
-  invites on the support conversation contract, and verifies + fans webhook
-  events onto the connections layer.
-- Access derives from org membership and conversation participation, and
-  org and channel rooms are a Process-Designer-declared service: when the
-  organization has an active compiled process, `call:org:*` and
-  `call:channel:*` admission additionally
+  invites on the support conversation contract, snapshots active rooms, and
+  verifies + fans webhook events onto the connections layer.
+- Access derives from org membership and conversation/group participation.
+  Org rooms are a Process-Designer-declared service: when the organization
+  has an active compiled process, `call:org:*` admission additionally
   requires a `livekit` feature grant (read level) in the process access
-  rights, evaluated with the shared grant evaluator; channel creation
-  requires the write level. The bundled process
+  rights, evaluated with the shared grant evaluator. The bundled process
   templates declare `livekit: 'write'` for their admin role; organizations
-  with an already-active process definition must add the grant (re-instantiate a template or edit its role grants) before org rooms admit under
-  process mode. Direct rooms keep the participant contract, which mirrors
+  with an already-active process definition must add the grant (re-instantiate
+  a template or edit its role grants) before org rooms admit under process
+  mode. Direct and group rooms keep the participant contract, which mirrors
   the process-aware support conversation keys.
 - Webhooks: `POST /api/livekit/webhook` verifies the signed Authorization
   JWT including the `sha256` body-hash claim, then publishes `call.activity`
-  events (org and channel rooms → org topic, direct rooms → both participant
-  user topics). Configure the LiveKit server with
-  `webhook.api_key: devkey` pointing at this endpoint inside the compose
-  network.
+  events (org rooms → org topic; direct and group rooms → each participant's
+  user topic). Configure the LiveKit server with `webhook.api_key: devkey`
+  pointing at this endpoint inside the compose network.
 
 ## Environment
 
@@ -76,10 +81,11 @@ reconnection states, raise-hand and floating reactions over the data channel,
 mid-call device settings, and mic/camera/share/leave controls — all PrimeVue
 + shared primitives, `livekit-client` lazily imported. Chat integration lives
 in `ChatSupport.vue`: the call button posts `/api/livekit/invite` which
-publishes a `call` event on the conversation topic; the counterpart gets an
-incoming-call banner and joins the same room. In-call chat is intentionally
-absent (app chat owns messaging); recording/egress awaits server-side LiveKit
-egress configuration.
+publishes a `call` event on the conversation topic; counterparts get an
+incoming-call banner and join the same room. The home workspace sidebar
+lists active calls from `/api/livekit/active-rooms` with join buttons.
+In-call chat is intentionally absent (app chat owns messaging);
+recording/egress awaits server-side LiveKit egress configuration.
 
 ## API
 
@@ -88,7 +94,14 @@ egress configuration.
 | `GET /api/livekit/config` | Browser-facing `{ url }`. |
 | `POST /api/livekit/token` | `{ room }` → `{ token, url, room, kind }` after room admission. |
 | `POST /api/livekit/invite` | `{ conversationKey }` → publishes the call invite on the conversation topic. |
+| `GET /api/livekit/active-rooms` | `{ room, kind, participants }[]` snapshot of joinable active call rooms. |
 | `POST /api/livekit/webhook` | Verified LiveKit webhook receiver → connections layer. |
+
+## Migration
+
+Retired `call_channels` documents move into `chat_groups` with
+`node server/scripts/migrate-call-channels-to-groups.js`
+(`--dry-run` supported); see [scripts](../../scripts/README.md).
 
 ## Related
 

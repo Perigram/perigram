@@ -52,7 +52,12 @@ Support chat is the first consumer:
 
 - `POST`ed messages and read receipts publish `message` / `read` events on
   `conversation:<key>`, inbox pings on each participant's `user:` topic, and
-  an `admin-support` ping for support-channel messages.
+  an `admin-support` ping for support-channel messages. Group conversations
+  use the same `conversation:group:<id>` admission and fanout.
+- LiveKit call activity arrives as `call.activity` events from the verified
+  webhook receiver: org rooms publish on `org:<orgId>`, direct and group
+  rooms on each participant's `user:<userId>` topic, matching room
+  admission so events only ever mention rooms the recipient may join.
 - The support store's badge/inbox refresh subscribes to the user topic
   instead of polling `/api/support/conversations` on an interval.
 - `GET /api/support/messages`, `GET /api/support/admin/:user_id`, and

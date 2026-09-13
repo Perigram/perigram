@@ -56,6 +56,10 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
   string `status.state` / `origin.state` values and `status_events` records to
   the v2 structured status shape. Supports `--dry-run`.
+- `server/scripts/migrate-call-channels-to-groups.js`: One-shot migration of
+  the retired livekit `call_channels` collection into unified support
+  `chat_groups` (participants start as the creating member; same ids keep
+  room identity). Drops `call_channels` after copying. Supports `--dry-run`.
 - `server/scripts/migrate-process-update-actions.js`: Rewrites legacy
   `changeStatus` process actions into canonical `updateEntity` actions with a
   status mutation input and recompiles active runtime contracts. Run before
