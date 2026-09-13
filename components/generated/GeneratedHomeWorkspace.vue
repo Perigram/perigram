@@ -746,7 +746,8 @@ function entityNode(item) {
   const expandable = declaredChildren || hasRelationRefs(item.entity) || children.length > 0;
   return {
     key: item.key,
-    icon: domainUi.getIcon(item.type),
+    // The inline entity chip owns the entity icon; a tree-level icon would
+    // duplicate it.
     data: { item },
     leaf: !expandable,
     children: children.length ? children.map(entityNode) : undefined

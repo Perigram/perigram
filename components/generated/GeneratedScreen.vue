@@ -351,7 +351,9 @@ const dialogSaveLabel = computed(() => pendingAction.value
   : t('common.save'));
 const errorMessage = computed(() => error.value?.data?.message || error.value?.message || t('generatedScreen.loadFailed'));
 const screenTitle = computed(() => generatedScreenLabel(screen.value, { t, te }));
-const pageTitle = computed(() => screen.value?.template === 'entityDetail' ? '' : screenTitle.value);
+// Workspace overloads (project IDE, home shell) own the whole viewport; they
+// render no outer page title.
+const pageTitle = computed(() => screenOverload.value || screen.value?.template === 'entityDetail' ? '' : screenTitle.value);
 const screenOverload = computed(() => resolveGeneratedScreenOverload(screen.value));
 const booleanOptions = computed(() => [
   { label: t('common.yes'), value: true },
