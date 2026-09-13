@@ -2052,7 +2052,11 @@
       "unknown": "Unknown connection"
     },
     "reconnecting": "Reconnecting…",
-    "orgChannel": "Organization room"
+    "orgChannel": "Organization room",
+    "channels": "Channels",
+    "channelCreate": "New channel",
+    "channelName": "Channel name",
+    "channelDeleteConfirm": "Delete this channel?"
   },
   "sketch": {
     "editorTitle": "Sketch",

@@ -22,7 +22,7 @@
               icon="pi pi-comments"
               :label="$t('support.chatTitle')"
               :aria-label="$t('support.openChat')"
-              @click="openChats"
+              @click="openChatsPage"
             />
             <Badge
               v-if="supportChatStore.totalUnread"
@@ -32,63 +32,118 @@
               class="shrink-0"
             />
           </div>
-          <Button
-            text
-            size="small"
-            severity="secondary"
-            class="w-full !justify-start"
-            icon="pi pi-volume-up"
-            :label="orgChannelLabel"
-            :aria-label="$t('call.join')"
-            @click="joinOrgChannel"
-          />
+          <div class="flex min-w-0 flex-col gap-0.5 pt-1">
+            <div class="flex min-w-0 items-center gap-1 px-2">
+              <i class="pi pi-volume-up shrink-0" aria-hidden="true" />
+              <span class="min-w-0 flex-1 truncate text-label">{{ $t('call.channels') }}</span>
+              <Button
+                icon="pi pi-plus"
+                text
+                rounded
+                size="small"
+                severity="secondary"
+                class="shrink-0"
+                :aria-label="$t('call.channelCreate')"
+                @click="channelDialog = true"
+              />
+            </div>
+            <Button
+              text
+              size="small"
+              severity="secondary"
+              class="w-full !justify-start"
+              icon="pi pi-volume-up"
+              :label="orgChannelLabel"
+              :aria-label="$t('call.join')"
+              @click="joinRoom(orgChannelRoom)"
+            />
+            <div
+              v-for="channel in callChannels"
+              :key="channel._id"
+              class="flex min-w-0 items-center gap-1"
+            >
+              <Button
+                text
+                size="small"
+                severity="secondary"
+                class="min-w-0 flex-1 !justify-start"
+                icon="pi pi-volume-up"
+                :label="channel.identity?.name || channel._id"
+                :aria-label="$t('call.join')"
+                @click="joinRoom(channelRoom(channel))"
+              />
+              <Button
+                v-if="canDeleteChannel(channel)"
+                icon="pi pi-trash"
+                text
+                rounded
+                size="small"
+                severity="secondary"
+                class="shrink-0"
+                :aria-label="$t('common.delete')"
+                @click.stop="requestDeleteChannel(channel)"
+              />
+            </div>
+          </div>
         </nav>
 
-        <Tree
-          v-model:selection-keys="selectionKeys"
-          v-model:expanded-keys="expandedKeys"
-          :value="explorerNodes"
-          selection-mode="single"
-          :aria-label="$t('nav.home')"
-          class="home-explorer-tree min-h-0 min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto !border-0 !p-1"
-          :pt="explorerTreePt"
-          @node-select="selectNode"
-          @node-expand="expandNode"
-        >
-          <template #default="{ node }">
-            <div
-              v-if="node.data?.section"
-              class="flex min-w-0 max-w-full flex-1 items-center gap-2"
-              :data-home-entity-type="node.data.section.source.entityType"
-            >
-              <i :class="node.icon" class="shrink-0" aria-hidden="true" />
-              <span class="min-w-0 flex-1 truncate text-label">{{ node.label }}</span>
-              <GeneratedActionButton
-                v-for="action in collectionActions(node.data.section.region)"
-                :key="action.actionId"
-                :action-id="action.actionId"
-                icon-only
-                @execute="selectedAction => emit('execute-action', selectedAction, null, actionContext(node.data.section))"
-              />
-            </div>
-            <div
-              v-else
-              class="flex min-w-0 max-w-full flex-1 items-center gap-2"
-              :data-entity-id="entityId(node.data?.item?.entity)"
-            >
-              <IdentityBlock :entity="node.data?.item?.entity" variant="compact" class="min-w-0 flex-1" />
-              <EntityStatus
-                v-if="node.data?.item?.entity?.status"
-                :entity="node.data.item.entity"
-                :entity-type="node.data.item.type"
-                variant="icon"
-                @click.stop
-                @refresh="$emit('refresh')"
-                @transitioned="$emit('refresh')"
-              />
-            </div>
-          </template>
-        </Tree>
+        <div class="min-h-0 flex-1 overflow-y-auto">
+          <Tree
+            v-model:selection-keys="selectionKeys"
+            v-model:expanded-keys="expandedKeys"
+            :value="explorerNodes"
+            selection-mode="single"
+            :aria-label="$t('nav.home')"
+            class="home-explorer-tree w-full !border-0 !p-1"
+            :pt="explorerTreePt"
+            @node-select="selectNode"
+            @node-expand="expandNode"
+          >
+            <template #default="{ node }">
+              <div
+                v-if="node.data?.section"
+                class="flex min-w-0 max-w-full flex-1 items-center gap-2"
+                :data-home-entity-type="node.data.section.source.entityType"
+              >
+                <i :class="node.icon" class="shrink-0" aria-hidden="true" />
+                <span class="min-w-0 flex-1 truncate text-label">{{ node.label }}</span>
+                <GeneratedActionButton
+                  v-for="action in collectionActions(node.data.section.region)"
+                  :key="action.actionId"
+                  :action-id="action.actionId"
+                  icon-only
+                  @execute="selectedAction => emit('execute-action', selectedAction, null, actionContext(node.data.section))"
+                />
+              </div>
+              <div
+                v-else
+                class="flex min-w-0 max-w-full flex-1 items-center gap-1"
+                :data-entity-id="entityId(node.data?.item?.entity)"
+              >
+                <span class="flex min-w-0 flex-1 items-center">
+                  <IdentityBlock :entity="node.data?.item?.entity" variant="compact" class="min-w-0 flex-1" />
+                </span>
+                <GeneratedActionButton
+                  v-for="entry in childCreateActions(node.data?.item)"
+                  :key="entry.action.actionId"
+                  :action-id="entry.action.actionId"
+                  icon-only
+                  @execute="selectedAction => emit('execute-action', selectedAction, null, entry.context)"
+                />
+                <EntityStatus
+                  v-if="node.data?.item?.entity?.status"
+                  :entity="node.data.item.entity"
+                  :entity-type="node.data.item.type"
+                  variant="icon"
+                  class="shrink-0"
+                  @click.stop
+                  @refresh="$emit('refresh')"
+                  @transitioned="$emit('refresh')"
+                />
+              </div>
+            </template>
+          </Tree>
+        </div>
 
         <footer class="flex shrink-0 items-center border-t [border-color:var(--ck-chrome-border)] p-2">
           <UserAccountMenu class="min-w-0 flex-1">
@@ -167,6 +222,26 @@
         <CallPanel v-if="callDialog && callRoom" :key="callRoom" :room="callRoom" @closed="callDialog = false" />
       </div>
     </StandardDialog>
+
+    <StandardDialog
+      v-model:visible="channelDialog"
+      size="sm"
+      :show-default-footer="true"
+      :save-label="$t('common.add')"
+      :cancel-label="$t('common.cancel')"
+      :loading="channelSaving"
+      @save="saveChannel"
+      @cancel="channelDialog = false"
+    >
+      <template #header>
+        <span>{{ $t('call.channelCreate') }}</span>
+      </template>
+      <div class="flex flex-col gap-2">
+        <InputText v-model="channelName" :placeholder="$t('call.channelName')" :aria-label="$t('call.channelName')" />
+      </div>
+    </StandardDialog>
+
+    <ConfirmDialog />
   </div>
 </template>
 
@@ -175,7 +250,11 @@ import { computed, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
 import Badge from 'primevue/badge';
+import ConfirmDialog from 'primevue/confirmdialog';
+import InputText from 'primevue/inputtext';
 import Tree from 'primevue/tree';
+import { useConfirm } from 'primevue/useconfirm';
+import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
@@ -187,11 +266,12 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
-import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
+import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
+import { resolveGeneratedWorkspacePage, generatedWorkspacePages } from '~/components/generated/workspace-pages.js';
+import { generatedDetailScreenForEntityType } from '~/components/generated/detail-screen-actions.js';
 import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities.js';
 import { useSupportChatStore } from '~/stores/supportChat';
-import { useSupportDialog } from '~/composables/useModalState';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedRegionLabel } from '~/utils/generated-labels.js';
@@ -224,8 +304,9 @@ const authStore = useAuthStore();
 const entityStore = useEntityStore();
 const domainUi = useCutkitDomainUi();
 const supportChatStore = useSupportChatStore();
-const supportDialog = useSupportDialog();
 const effectiveContainment = useEffectiveContainment();
+const confirm = useConfirm();
+const toast = useToast();
 const { t, te } = useI18n();
 const activePaneId = ref('pane-1');
 const paneSequence = ref(1);
@@ -238,11 +319,15 @@ const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
 const callDialog = ref(false);
 const callRoom = ref('');
+const channelDialog = ref(false);
+const channelName = ref('');
+const channelSaving = ref(false);
+const callChannels = ref([]);
 const loadedChildKeys = ref(new Set());
 let openedEntityLoadSequence = 0;
 let childLoadSequences = new Map();
 const explorerTreePt = {
-  root: { class: '!min-w-0 !max-w-full !overflow-hidden' },
+  root: { class: '!min-w-0 !max-w-full' },
   node: { class: '!min-w-0 !max-w-full !overflow-hidden' },
   nodeContent: { class: '!min-w-0 !max-w-full !overflow-hidden !px-1 !py-0.5 !gap-1' },
   nodeLabel: { class: '!min-w-0 !overflow-hidden' },
@@ -284,9 +369,14 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
     cassettes: cassetteItems.value.map(item => item.entity)
   };
 }).filter(Boolean));
+// Registered pages without an entity binding are always openable tabs.
+const staticPageItems = computed(() => generatedWorkspacePages
+  .filter(page => !page.entityType)
+  .map(page => ({ key: `page:${page.id}`, kind: 'page', pageId: page.id })));
 const workspaceItems = computed(() => [
   ...workspaceEntityItems.value,
-  ...openedPageItems.value
+  ...openedPageItems.value,
+  ...staticPageItems.value
 ].filter(Boolean).filter((item, index, items) => (
   items.findIndex(candidate => candidate.key === item.key) === index
 )));
@@ -390,7 +480,81 @@ watch(openedEntityRefs, async refs => {
   openedEntityItems.value = loaded.filter(Boolean);
 }, { immediate: true, deep: true });
 
+watch(() => [
+  authStore.userIsSet,
+  authStore.organizationData?._id || authStore.userData?.organizationId
+], () => {
+  loadCallChannels();
+}, { immediate: true });
+
 watch([activePaneId, paneTree], syncActiveSelection);
+
+async function loadCallChannels() {
+  if (!authStore.userIsSet || process.server) return;
+  try {
+    callChannels.value = await $fetch('/api/livekit/channels');
+  } catch {
+    callChannels.value = [];
+  }
+}
+
+async function saveChannel() {
+  const name = channelName.value.trim();
+  if (!name) return;
+  channelSaving.value = true;
+  try {
+    const created = await $fetch('/api/livekit/channels', { method: 'POST', body: { name } });
+    channelDialog.value = false;
+    channelName.value = '';
+    await loadCallChannels();
+    joinRoom(channelRoom(created));
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
+  } finally {
+    channelSaving.value = false;
+  }
+}
+
+function requestDeleteChannel(channel = {}) {
+  confirm.require({
+    message: t('call.channelDeleteConfirm'),
+    header: t('common.confirmation'),
+    icon: 'pi pi-exclamation-triangle',
+    accept: () => deleteCallChannel(channel)
+  });
+}
+
+async function deleteCallChannel(channel = {}) {
+  try {
+    await $fetch(`/api/livekit/channels/${encodeURIComponent(String(channel._id))}`, { method: 'DELETE' });
+    await loadCallChannels();
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
+  }
+}
+
+function canDeleteChannel(channel = {}) {
+  const userId = String(authStore.userData?.id || authStore.userData?.userId || authStore.userData?._id || '');
+  if (String(channel.origin?.userId || '') === userId) return true;
+  const organizationId = String(authStore.organizationData?._id || authStore.userData?.organizationId || '');
+  return (authStore.userData?.memberships || []).some(membership => (
+    String(membership?.organizationId) === organizationId && membership?.owner === true
+  ));
+}
+
+function channelRoom(channel = {}) {
+  return `call:channel:${channel._id}`;
+}
+
+function joinRoom(room = '') {
+  if (!room) return;
+  callRoom.value = room;
+  callDialog.value = true;
+}
+
+function openChatsPage() {
+  if (activePane.value) selectPaneTab(activePane.value.id, 'page:chats');
+}
 
 function collectionActions(region = {}) {
   return resolvedRegionActions(region)
@@ -402,6 +566,42 @@ function resolvedRegionActions(region = {}) {
     .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
     .filter(Boolean)
     .map(action => [action.actionId || action.id, action])).values()];
+}
+
+// Child creates for an explorer entity come from that entity type's compiled
+// detail screen: every list region below the single main source contributes
+// its createEntity actions with the row entity bound as the opened parent.
+function childCreateActions(item = null) {
+  if (!item?.entity) return [];
+  const detailScreen = generatedDetailScreenForEntityType({
+    screens: authStore.screenManifest,
+    entityType: item.type
+  });
+  if (!detailScreen) return [];
+  const entries = [];
+  for (const region of detailScreen.regions || []) {
+    const source = (detailScreen.sources || []).find(candidate => candidate.id === region.sourceId);
+    if (!source || source.mode !== 'list' || source.entityType === item.type) continue;
+    for (const action of resolvedRegionActions(region).filter(action => action.actionKind === 'createEntity')) {
+      entries.push({
+        action,
+        context: mergeCollectionActionContext({
+          incoming: {
+            parentEntityType: item.type,
+            parentEntity: item.entity,
+            parentEntityId: entityId(item.entity)
+          },
+          region,
+          source,
+          entityType: source.entityType,
+          items: []
+        })
+      });
+    }
+  }
+  return entries.filter((entry, index, list) => (
+    list.findIndex(candidate => candidate.action.actionId === entry.action.actionId) === index
+  ));
 }
 
 function actionContext(section = {}) {
@@ -485,16 +685,6 @@ async function loadChildrenFor(parent) {
   const known = new Set(workspaceEntityItems.value.map(item => item.key));
   const additions = loaded.flat().filter(item => item?.entity && entityId(item.entity) && !known.has(item.key));
   if (additions.length) openedEntityItems.value = [...openedEntityItems.value, ...additions];
-}
-
-function openChats() {
-  supportDialog.value = true;
-}
-
-function joinOrgChannel() {
-  if (!orgChannelRoom.value) return;
-  callRoom.value = orgChannelRoom.value;
-  callDialog.value = true;
 }
 
 function activatePane(paneId) {

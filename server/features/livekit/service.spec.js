@@ -2,7 +2,32 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     connectionsPublish: vi.fn(),
-    getConversationContextByKey: vi.fn()
+    getConversationContextByKey: vi.fn(),
+    repository: (() => {
+        const channels = new Map();
+        let sequence = 0;
+        return {
+            reset: () => channels.clear(),
+            seed: (doc) => {
+                const id = `channel-${++sequence}`;
+                channels.set(id, { ...doc, _id: id });
+                return channels.get(id);
+            },
+            create: vi.fn(async (data) => {
+                const id = `channel-${++sequence}`;
+                channels.set(id, { ...data, _id: id });
+                return channels.get(id);
+            }),
+            findById: vi.fn(async (id) => channels.get(String(id)) || null),
+            findByOrganization: vi.fn(async (organizationId) => [...channels.values()]
+                .filter(channel => String(channel.lineage?.organizationId) === String(organizationId))
+                .sort((left, right) => String(left.identity?.name).localeCompare(String(right.identity?.name)))),
+            deleteById: vi.fn(async (id) => {
+                channels.delete(String(id));
+                return { deletedCount: 1 };
+            })
+        };
+    })()
 }));
 
 vi.mock('../connections/service.js', () => ({
@@ -12,15 +37,20 @@ vi.mock('../connections/service.js', () => ({
 vi.mock('../support/service.js', () => ({
     getConversationContextByKey: mocks.getConversationContextByKey
 }));
+vi.mock('./repository.js', () => mocks.repository);
 
 import { createHash } from 'crypto';
 import jwt from 'jsonwebtoken';
 import {
     authorizeRoom,
+    createChannel,
+    deleteChannel,
     directCallRoom,
     inviteToCall,
+    listChannels,
     mintRoomToken,
     orgCallRoom,
+    channelCallRoom,
     publishWebhookEvent,
     verifyWebhookAuthorization
 } from './service.js';
@@ -35,6 +65,7 @@ const auth = (userId, organizationId = 'org-1', isAdmin = false) => ({
 describe('livekit call rooms', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mocks.repository.reset();
         process.env.LIVEKIT_API_KEY = 'devkey';
         process.env.LIVEKIT_API_SECRET = 'devsecret';
     });
@@ -74,6 +105,63 @@ describe('livekit call rooms', () => {
         await expect(authorizeRoom(auth('user-a', 'org-1'), 'call:org:org-1')).resolves.toMatchObject({ kind: 'org' });
     });
 
+    it('creates, lists, and deletes organization call channels', async () => {
+        const created = await createChannel(auth('user-a', 'org-1'), { name: 'Workshop' });
+        expect(created.identity.name).toBe('Workshop');
+        expect(channelCallRoom(created._id)).toBe(`call:channel:${created._id}`);
+
+        await createChannel(auth('user-a', 'org-1'), { name: 'Office' });
+        const channels = await listChannels(auth('user-b', 'org-1'));
+        expect(channels.map(channel => channel.identity.name)).toEqual(['Office', 'Workshop']);
+
+        await expect(deleteChannel(auth('user-b', 'org-1'), created._id)).rejects.toMatchObject({ statusCode: 403 });
+        await expect(deleteChannel(auth('user-a', 'org-1'), created._id)).resolves.toMatchObject({ deleted: true });
+        await expect(deleteChannel(auth('admin', 'org-1', true), 'missing')).rejects.toMatchObject({ statusCode: 404 });
+        await expect(createChannel(auth('user-a', 'org-1'), { name: '   ' })).rejects.toMatchObject({ statusCode: 400 });
+    });
+
+    it('gates channel rooms to the owning organization', async () => {
+        const channel = mocks.repository.seed({
+            identity: { name: 'Workshop' },
+            lineage: { organizationId: 'org-1' },
+            origin: { userId: 'user-a' }
+        });
+        await expect(authorizeRoom(auth('user-a', 'org-1'), channelCallRoom(channel._id))).resolves.toMatchObject({ kind: 'channel' });
+        await expect(authorizeRoom(auth('user-a', 'org-2'), channelCallRoom(channel._id))).rejects.toMatchObject({ statusCode: 403 });
+        await expect(authorizeRoom(auth('admin', 'org-2', true), channelCallRoom(channel._id))).resolves.toMatchObject({ kind: 'channel' });
+        await expect(authorizeRoom(auth('user-a', 'org-1'), 'call:channel:missing')).rejects.toMatchObject({ statusCode: 404 });
+    });
+
+    it('gates channel creation through the active process livekit write grant', async () => {
+        const processAuth = (grants) => ({
+            ...auth('user-a', 'org-1'),
+            process: { active: true },
+            effectivePermissions: grants
+        });
+        await expect(createChannel(processAuth({ livekit: [{ level: 'write' }] }), { name: 'Workshop' })).resolves.toMatchObject({
+            identity: { name: 'Workshop' }
+        });
+        await expect(createChannel(processAuth({ livekit: [{ level: 'read' }] }), { name: 'Denied' })).rejects.toMatchObject({ statusCode: 403 });
+    });
+
+    it('fans webhook events for channel rooms onto the organization topic', async () => {
+        const channel = mocks.repository.seed({
+            identity: { name: 'Workshop' },
+            lineage: { organizationId: 'org-1' },
+            origin: { userId: 'user-a' }
+        });
+        await expect(publishWebhookEvent({
+            event: 'participant_joined',
+            room: { name: channelCallRoom(channel._id) },
+            participant: { identity: 'user-a', name: 'A' }
+        })).resolves.toEqual({ published: true });
+        expect(mocks.connectionsPublish).toHaveBeenCalledWith('org:org-1', expect.objectContaining({
+            type: 'call.activity',
+            room: channelCallRoom(channel._id)
+        }));
+        await expect(publishWebhookEvent({ event: 'x', room: { name: 'call:channel:missing' } })).resolves.toEqual({ published: false });
+    });
+
     it('mints LiveKit-shaped room tokens for authorized callers', async () => {
         const room = directCallRoom('user-a', 'user-b');
         const grant = await mintRoomToken(auth('user-a'), room);
@@ -110,8 +198,8 @@ describe('livekit call rooms', () => {
         expect(() => verifyWebhookAuthorization('', body)).toThrow();
     });
 
-    it('fans webhook events for org and direct rooms onto the connections layer', () => {
-        const published = publishWebhookEvent({
+    it('fans webhook events for org and direct rooms onto the connections layer', async () => {
+        const published = await publishWebhookEvent({
             event: 'participant_joined',
             room: { name: 'call:org:org-1' },
             participant: { identity: 'user-a', name: 'A' }
@@ -130,6 +218,6 @@ describe('livekit call rooms', () => {
         expect(mocks.connectionsPublish).toHaveBeenCalledWith('user:user-a', expect.objectContaining({ type: 'call.activity' }));
         expect(mocks.connectionsPublish).toHaveBeenCalledWith('user:user-b', expect.objectContaining({ type: 'call.activity' }));
 
-        expect(publishWebhookEvent({ event: 'x', room: { name: 'other' } })).toEqual({ published: false });
+        await expect(publishWebhookEvent({ event: 'x', room: { name: 'other' } })).resolves.toEqual({ published: false });
     });
 });
