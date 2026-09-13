@@ -82,15 +82,8 @@
         <StateBlock :message="emptyCanvasMessage" />
       </div>
 
-      <Drawer
-        v-model:visible="paletteOpen"
-        position="left"
-        :modal="false"
-        :dismissable="false"
-        :block-scroll="false"
-        :close-on-escape="false"
-        :header="$t('processDesigner.palette')"
-      >
+      <template v-if="paletteOpen" #palette>
+        <div class="flex w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 rounded-ui border border-content-border bg-content p-3 shadow-card">
         <div class="flex flex-col gap-3">
           <div class="flex items-center gap-1">
             <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
@@ -113,7 +106,8 @@
             </div>
           </div>
         </div>
-      </Drawer>
+        </div>
+      </template>
 
       <template #dock>
         <MotionDock
@@ -150,16 +144,8 @@
         </div>
       </Popover>
 
-      <Drawer
-        v-model:visible="inspectorOpen"
-        position="right"
-        :modal="false"
-        :dismissable="false"
-        :block-scroll="false"
-        :close-on-escape="false"
-        :header="$t('processDesigner.inspector')"
-        :style="{ width: '26rem' }"
-      >
+      <template v-if="inspectorOpen" #inspector>
+        <aside class="flex w-[26rem] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card">
         <Tabs v-model:value="inspectTab">
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
@@ -862,7 +848,8 @@
             </TabPanel>
           </TabPanels>
         </Tabs>
-      </Drawer>
+        </aside>
+      </template>
 
       <div v-if="validation" class="pointer-events-none absolute inset-x-0 bottom-16 z-10 flex justify-center px-4">
         <div class="pointer-events-auto flex max-w-xl flex-col gap-2">
@@ -896,7 +883,6 @@ import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
-import Drawer from 'primevue/drawer';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
