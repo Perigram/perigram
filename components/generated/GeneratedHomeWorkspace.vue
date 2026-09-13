@@ -12,86 +12,13 @@
           </NuxtLink>
         </header>
 
-        <nav class="flex shrink-0 flex-col gap-1 border-b border-chrome-border p-2">
-          <div class="flex min-w-0 items-center gap-1">
-            <Button
-              text
-              size="small"
-              severity="secondary"
-              class="min-w-0 flex-1 !justify-start"
-              icon="pi pi-comments"
-              :label="$t('support.chatTitle')"
-              :aria-label="$t('support.openChat')"
-              @click="openChatsPage"
-            />
-            <Badge
-              v-if="supportChatStore.totalUnread"
-              :value="supportChatStore.totalUnread"
-              severity="danger"
-              size="small"
-              class="shrink-0"
-            />
-          </div>
-          <div class="flex min-w-0 flex-col gap-0.5 pt-1">
-            <div class="flex min-w-0 items-center gap-1 px-2">
-              <i class="pi pi-phone shrink-0" aria-hidden="true" />
-              <span class="min-w-0 flex-1 truncate text-label">{{ $t('call.calls') }}</span>
-              <Button
-                icon="pi pi-plus"
-                text
-                rounded
-                size="small"
-                severity="secondary"
-                class="shrink-0"
-                :aria-label="$t('call.newCall')"
-                @click="callStartPopover?.toggle($event)"
-              />
-              <Popover ref="callStartPopover">
-                <div class="flex min-w-56 max-w-72 flex-col gap-1" data-call-start-popover>
-                  <span
-                    v-if="!callPopoverConversations.length"
-                    class="px-2 py-1 text-supporting text-muted-color"
-                  >
-                    {{ $t('support.noConversations') }}
-                  </span>
-                  <Button
-                    v-for="conversation in callPopoverConversations"
-                    :key="conversation.conversationKey"
-                    text
-                    size="small"
-                    severity="secondary"
-                    class="w-full justify-start"
-                    :icon="conversation.conversationKind === 'group' ? 'pi pi-users' : 'pi pi-user'"
-                    :label="conversationLabelByKey(conversation.conversationKey) || conversation.conversationKey"
-                    @click="startCallFromConversation(conversation)"
-                  />
-                </div>
-              </Popover>
-            </div>
-            <div
-              v-for="room in activeCallRooms"
-              :key="room.room"
-              class="flex min-w-0 items-center gap-1"
-            >
-              <Button
-                text
-                size="small"
-                severity="secondary"
-                class="min-w-0 flex-1 !justify-start"
-                :icon="roomKindIcon(room.kind)"
-                :label="activeRoomLabel(room)"
-                :aria-label="$t('call.join')"
-                @click="openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })"
-              />
-              <span
-                class="flex shrink-0 items-center gap-1 text-supporting text-muted-color"
-                :aria-label="$t('call.participants', { count: room.participants })"
-              >
-                <i class="pi pi-user" aria-hidden="true" />
-                {{ room.participants }}
-              </span>
-            </div>
-          </div>
+        <nav class="flex shrink-0 flex-col border-b border-chrome-border p-2" :aria-label="$t('support.chatTitle')">
+          <CommunicationMenu
+            :active-rooms="activeCallRooms"
+            @open-chats="openChatsPage"
+            @start-call="startCallFromConversation"
+            @join-room="room => openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })"
+          />
         </nav>
 
         <div class="min-h-0 flex-1 overflow-y-auto">
@@ -249,14 +176,13 @@
 import { computed, onBeforeUnmount, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
-import Badge from 'primevue/badge';
 import Menu from 'primevue/menu';
-import Popover from 'primevue/popover';
 import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
+import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
@@ -314,7 +240,6 @@ const openedPageRefs = ref([]);
 const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
 const activeCallRooms = ref([]);
-const callStartPopover = ref(null);
 const actionsMenu = ref(null);
 const rowActionEntries = ref([]);
 const rowActionMenuItems = computed(() => rowActionEntries.value.map(entry => ({
@@ -384,8 +309,6 @@ const callPageItems = computed(() => callPageRefs.value.map(call => ({
   conversationKey: call.conversationKey,
   label: call.label
 })));
-const callPopoverConversations = computed(() => supportChatStore.conversations
-  .filter(conversation => conversation.conversationKind === 'direct' || conversation.conversationKind === 'group'));
 const workspaceItems = computed(() => [
   ...workspaceEntityItems.value,
   ...openedPageItems.value,
@@ -401,11 +324,6 @@ const workspaceStorageKey = computed(() => homeWorkspaceStorageKey({
   userId: authStore.userData?.id || authStore.userData?.userId || authStore.userData?._id,
   organizationId: authStore.organizationData?._id || authStore.userData?.organizationId
 }));
-const orgChannelLabel = computed(() => (
-  authStore.organizationData?.identity?.name
-  || authStore.organizationData?.data?.name
-  || t('call.orgChannel')
-));
 const currentUserId = computed(() => String(
   authStore.userData?.id || authStore.userData?.userId || authStore.userData?._id || ''
 ));
@@ -546,30 +464,6 @@ function syncCallActivitySubscriptions() {
   }
 }
 
-function roomKindIcon(kind = '') {
-  if (kind === 'group') return 'pi pi-users';
-  if (kind === 'direct') return 'pi pi-user';
-  return 'pi pi-volume-up';
-}
-
-function activeRoomLabel(room = {}) {
-  if (room.kind === 'group') {
-    const conversation = supportChatStore.conversations.find(item => (
-      item.conversationKind === 'group'
-      && item.conversationKey === `group:${room.room.slice('call:group:'.length)}`
-    ));
-    return conversation?.groupName || t('call.groupCall');
-  }
-  if (room.kind === 'direct') {
-    const otherId = room.room.split(':').slice(2).find(id => id !== currentUserId.value);
-    const conversation = supportChatStore.conversations.find(item => (
-      item.conversationKind === 'direct'
-      && (item.participants || []).map(String).includes(String(otherId))
-    ));
-    return conversation?.participant?.identity?.name || t('call.directCall');
-  }
-  return orgChannelLabel.value;
-}
 
 onBeforeUnmount(() => {
   if (callActivityRefreshTimer) clearTimeout(callActivityRefreshTimer);
@@ -604,15 +498,8 @@ function conversationKeyForRoom(room = '') {
   return '';
 }
 
-function conversationLabelByKey(conversationKey = '') {
-  const conversation = supportChatStore.conversations.find(item => item.conversationKey === conversationKey);
-  if (!conversation) return '';
-  if (conversation.conversationKind === 'group') return conversation.groupName || '';
-  return conversation?.participant?.identity?.name || '';
-}
 
 async function startCallFromConversation(conversation = {}) {
-  callStartPopover.value?.hide();
   if (!conversation.conversationKey) return;
   try {
     const invite = await $fetch('/api/livekit/invite', {

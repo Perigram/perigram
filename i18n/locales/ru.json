@@ -2063,6 +2063,7 @@
     "orgChannel": "Общая комната",
     "calls": "Звонки",
     "newCall": "Позвонить",
+    "activeRooms": "Активные",
     "groupCall": "Групповой звонок",
     "directCall": "Личный звонок"
   },

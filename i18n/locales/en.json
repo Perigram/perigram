@@ -2063,6 +2063,7 @@
     "orgChannel": "Organization room",
     "calls": "Calls",
     "newCall": "Start call",
+    "activeRooms": "Active",
     "groupCall": "Group call",
     "directCall": "Direct call"
   },

@@ -205,7 +205,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedfacadedesignerworkspacepage-vue` | `components/generated/GeneratedFacadeDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedfacadepatterndesignerworkspacepage-vue` | `components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedhomescreen-vue` | `components/generated/GeneratedHomeScreen.vue` | derived usage | centralize:layout (2); remove:state (1) |
-| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (13); remove:important-override (16) |
+| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (13); remove:important-override (14) |
 | `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | compliant |
 | `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | replace:chrome (11) |
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
@@ -233,6 +233,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-blocks-identityblock-vue` | `components/shared/blocks/IdentityBlock.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-blocks-specsblock-vue` | `components/shared/blocks/SpecsBlock.vue` | shared/domain primitive | replace:chrome (8); compliant:scoped-layout |
 | `ui-components-shared-blocks-statusbadge-vue` | `components/shared/blocks/StatusBadge.vue` | shared/domain primitive | replace:chrome (9) |
+| `ui-components-shared-communicationmenu-vue` | `components/shared/CommunicationMenu.vue` | derived usage | replace:chrome (2); remove:important-override (1) |
 | `ui-components-shared-designerdialog-vue` | `components/shared/DesignerDialog.vue` | shared/domain primitive | compliant:scoped-layout |
 | `ui-components-shared-designersurface-vue` | `components/shared/DesignerSurface.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (2); compliant:scoped-layout |
