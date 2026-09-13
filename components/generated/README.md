@@ -121,7 +121,12 @@ Discord-style operational shell:
   an ephemeral `call` workspace tab (`CallWorkspacePage.vue` — stage plus
   the conversation chat rail) in the active pane, never a floating dialog;
   the tab disappears when its `CallPanel` reports the call closed and is
-  never persisted with the pane layout. `CallPanel` stays usable in small
+  never persisted with the pane layout. Active rooms reach the sidebar
+  Calls menu live through the LiveKit webhook fanout into `call.activity`
+  events (see
+  [server/features/livekit/README.md](../../server/features/livekit/README.md));
+  `livekit.dev.yaml` points the webhook at the compose-internal app
+  endpoint. `CallPanel` stays usable in small
   panes: tiles keep a small minimum height, the speaker stage scrolls
   instead of overflowing, and the wide side-strip/two-column arrangements
   apply only from the panel's own 40rem container width. Entity-less page definitions marked
@@ -225,9 +230,13 @@ bounded IDE-style Explorer and file workspace:
   with that pane. `GeneratedEntityFile` is the pane adapter: each entity tab
   owns its DTO-backed icon-only interactive lifecycle status and close affordance;
   tabs without a persisted status state do not synthesize an `UNKNOWN` badge. The tab
-  strip ends with an add-tab picker. Pane-level split and close commands live in
+  strip's add control opens a new empty tab (IDE-like) instead of a content
+  picker; the empty tab renders the pane's open-content prompt, and the first
+  real item opened into that pane replaces it. Tab keys that no longer resolve
+  to a workspace item (for example a restored stale call room) render as empty
+  tabs. Pane-level split and close commands live in
   one ellipsis menu. The add button follows the last tab instead of consuming
-  the far edge of the header. Generated entity-action buttons render inside the active
+  the far edge of the header, inside the strip's border run. Generated entity-action buttons render inside the active
   tab body below the strip only when the operational detail overload does not
   own its action surface. Cassette, queue, and sheet-design editors own that
   surface completely, including deletion. The body mounts the canonical
