@@ -117,24 +117,34 @@ Discord-style operational shell:
   the tree itself) and section folders expand/collapse. The tree
   passthroughs are layout-only: nested rows indent inside the row content so
   hover/selection keep the full row width, and the node label owns the
-  remaining width so the icon-variant `EntityStatus` pins to the row end.
-- Generated create buttons follow the hierarchy and live behind one
+  remaining width so trailing row controls align to the row end.
+- Entity rows are the shared inline entity surface: `EntityInlineRef
+  variant="compact"` with `interactive: false`, so the standard identity,
+  status badge, and tone render inside the row and the tree owns selection.
+  The row's ellipsis control is separate at the end of the row.
+- Generated mutation buttons follow the hierarchy and live behind one
   ellipsis menu per row: section folders expose the region's compiled create
   actions, and each entity row resolves the create actions of its entity
   type's compiled detail-screen child collection regions
   (`generatedDetailScreenForEntityType`) with the row entity bound as the
-  opened parent through `mergeCollectionActionContext`. The ellipsis opens a
+  opened parent through `mergeCollectionActionContext`, plus the compiled
+  relation Link actions of the detail screen's main region, which execute
+  against the row entity itself. The ellipsis opens a
   popover of menu-item `GeneratedActionButton`s and only renders when the
   row has actions. Nothing is hardcoded per entity type; a row without
-  compiled child create regions shows no ellipsis.
-- The explorer shows containment hierarchy like the project page: entities
-  nest beneath a loaded ancestor through the effective containment graph and
-  canonical `lineage.*Id` references. Section roots never nest. Entity nodes
-  whose type declares containment children are expandable; expanding lazily
-  loads those children through the compiled detail-screen list sources
-  (`linkedExplorerChildSources`) scoped to the parent's lineage and merges
-  them into the workspace item pool. Entities opened through nested pane
-  navigation nest the same way.
+  compiled mutations shows no ellipsis.
+- The explorer shows the full hierarchy like the project page: entities nest
+  beneath a loaded ancestor through the effective containment graph and
+  canonical `lineage.*Id` references, and declared relation links participate
+  beside containment — expanding a row resolves its relation refs
+  (`resolveEntityRelationRefs` over the canonical DTO, fetching the full
+  record when the list DTO omits relations) and nests the referenced
+  entities under the row. Section roots never nest. Entity nodes whose type
+  declares containment children or carries relation refs are expandable;
+  expanding lazily loads children through the compiled detail-screen list
+  sources (`linkedExplorerChildSources`) scoped to the parent's lineage and
+  merges them into the workspace item pool. Entities opened through nested
+  pane navigation nest the same way.
 - Selecting an explorer row opens or selects that entity as a tab in the
   active pane; the active pane's selected key drives the tree selection. The
   desktop sidebar does not link out to hub entity-list screens; the full

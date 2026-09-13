@@ -122,29 +122,24 @@
                 class="flex min-w-0 flex-1 items-center gap-1"
                 :data-entity-id="entityId(node.data?.item?.entity)"
               >
-                <span class="flex min-w-0 flex-1 items-center">
-                  <IdentityBlock :entity="node.data?.item?.entity" variant="compact" class="min-w-0 flex-1" />
-                </span>
+                <EntityInlineRef
+                  :type="node.data.item.type"
+                  :entity="node.data.item.entity"
+                  :fetch="false"
+                  :interactive="false"
+                  variant="compact"
+                  class="min-w-0 flex-1"
+                />
                 <Button
-                  v-if="childCreateActions(node.data?.item).length"
+                  v-if="rowActions(node.data?.item).length"
                   icon="pi pi-ellipsis-v"
                   text
                   rounded
                   size="small"
                   severity="secondary"
                   class="shrink-0"
-                  :aria-label="$t('common.add')"
+                  :aria-label="$t('common.more')"
                   @click.stop="toggleChildActions($event, node)"
-                />
-                <EntityStatus
-                  v-if="node.data?.item?.entity?.status"
-                  :entity="node.data.item.entity"
-                  :entity-type="node.data.item.type"
-                  variant="icon"
-                  class="shrink-0"
-                  @click.stop
-                  @refresh="$emit('refresh')"
-                  @transitioned="$emit('refresh')"
                 />
               </span>
             </template>
@@ -274,8 +269,7 @@ import Tree from 'primevue/tree';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
@@ -295,6 +289,7 @@ import { useEffectiveContainment } from '~/composables/useEffectiveContainment.j
 import { generatedRegionLabel } from '~/utils/generated-labels.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
+import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
 import { containmentParent, normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
 import {
   closeWorkspaceLeaf,
@@ -343,6 +338,7 @@ const channelSaving = ref(false);
 const callChannels = ref([]);
 const actionsPopover = ref(null);
 const rowActionEntries = ref([]);
+const linkedChildrenByKey = ref(new Map());
 const loadedChildKeys = ref(new Set());
 let openedEntityLoadSequence = 0;
 let childLoadSequences = new Map();
@@ -591,7 +587,7 @@ function toggleSectionActions(event, node) {
 function toggleChildActions(event, node) {
   const item = node.data?.item;
   if (!item) return;
-  rowActionEntries.value = childCreateActions(item);
+  rowActionEntries.value = rowActions(item);
   actionsPopover.value?.toggle(event);
 }
 
@@ -602,7 +598,15 @@ function hideRowActions() {
 function runRowAction(action) {
   const entry = rowActionEntries.value.find(item => item.action.actionId === (action?.actionId || action?.id));
   hideRowActions();
-  if (entry) emit('execute-action', action, null, entry.context);
+  if (entry) emit('execute-action', action, entry.entity ?? null, entry.context);
+}
+
+// One action channel per explorer row: compiled child-collection creates with
+// the row bound as opened parent, plus the row's compiled relation Link
+// actions executed against the row entity itself.
+function rowActions(item = null) {
+  if (!item?.entity) return [];
+  return [...childCreateActions(item), ...linkActions(item)];
 }
 
 function collectionActions(region = {}) {
@@ -620,6 +624,33 @@ function resolvedRegionActions(region = {}) {
 // Child creates for an explorer entity come from that entity type's compiled
 // detail screen: every list region below the single main source contributes
 // its createEntity actions with the row entity bound as the opened parent.
+function linkActions(item = null) {
+  const detailScreen = generatedDetailScreenForEntityType({
+    screens: authStore.screenManifest,
+    entityType: item.type
+  });
+  if (!detailScreen) return [];
+  const mainRegion = (detailScreen.regions || []).find(region => (
+    (detailScreen.sources || []).some(source => (
+      source.id === region.sourceId
+      && source.entityType === item.type
+      && source.mode === 'single'
+    ))
+  ));
+  const actionIds = [...new Set([...(mainRegion?.actions || []), ...(detailScreen.actions || [])])];
+  return resolvedRegionActions({ actions: actionIds })
+    .filter(action => action.relationMutation?.operation === 'link')
+    .filter(isGeneratedSurfaceAction)
+    .map(action => ({
+      action,
+      entity: item.entity,
+      context: {
+        parentEntity: item.entity,
+        parentEntityType: item.type
+      }
+    }));
+}
+
 function childCreateActions(item = null) {
   if (!item?.entity) return [];
   const detailScreen = generatedDetailScreenForEntityType({
@@ -691,12 +722,21 @@ function entityNode(item) {
   const declaredChildren = effectiveContainment().some(relation => (
     relation.parentType === item.type
   ));
-  const children = workspaceEntityItems.value.filter(candidate => childrenByKey.value.get(candidate.key) === item.key);
+  const contained = workspaceEntityItems.value.filter(candidate => (
+    childrenByKey.value.get(candidate.key) === item.key
+  ));
+  const containedKeys = new Set(contained.map(child => child.key));
+  const linked = (linkedChildrenByKey.value.get(item.key) || [])
+    .map(key => workspaceEntityItems.value.find(candidate => candidate.key === key))
+    .filter(Boolean)
+    .filter(candidate => !containedKeys.has(candidate.key));
+  const children = [...contained, ...linked];
+  const expandable = declaredChildren || hasRelationRefs(item.entity) || children.length > 0;
   return {
     key: item.key,
     icon: domainUi.getIcon(item.type),
     data: { item },
-    leaf: !declaredChildren && children.length === 0,
+    leaf: !expandable,
     children: children.length ? children.map(entityNode) : undefined
   };
 }
@@ -717,6 +757,22 @@ async function loadChildrenFor(parent) {
   loadedChildKeys.value.add(parent.key);
   const sequence = (childLoadSequences.get(parent.key) || 0) + 1;
   childLoadSequences.set(parent.key, sequence);
+  const [sourceChildren, relationChildren] = await Promise.all([
+    loadContainmentChildren(parent),
+    loadRelationChildren(parent)
+  ]);
+  if (childLoadSequences.get(parent.key) !== sequence) return;
+  const known = new Set(workspaceEntityItems.value.map(item => item.key));
+  const additions = [...sourceChildren, ...relationChildren]
+    .filter(item => item?.entity && entityId(item.entity) && !known.has(item.key));
+  if (additions.length) openedEntityItems.value = [...openedEntityItems.value, ...additions];
+  linkedChildrenByKey.value = new Map([
+    ...linkedChildrenByKey.value,
+    [parent.key, relationChildren.map(item => item.key).filter(Boolean)]
+  ]);
+}
+
+async function loadContainmentChildren(parent) {
   const sources = linkedExplorerChildSources({
     linkedItems: [parent],
     screens: authStore.screenManifest,
@@ -730,10 +786,41 @@ async function loadChildrenFor(parent) {
       return [];
     }
   }));
-  if (childLoadSequences.get(parent.key) !== sequence) return;
-  const known = new Set(workspaceEntityItems.value.map(item => item.key));
-  const additions = loaded.flat().filter(item => item?.entity && entityId(item.entity) && !known.has(item.key));
-  if (additions.length) openedEntityItems.value = [...openedEntityItems.value, ...additions];
+  return loaded.flat();
+}
+
+// Declared relation links participate in the hierarchy beside containment:
+// expanding a row resolves its relation refs through the canonical entity DTO
+// (fetching the full record when the list DTO omits relations) and hydrates
+// the referenced entities into the workspace pool as row children.
+async function loadRelationChildren(parent) {
+  let entity = parent.entity;
+  if (!entity?.relations) {
+    try {
+      entity = await entityStore.fetchEntity(parent.type, entityId(entity), false, { silent: true }) || entity;
+    } catch {
+      entity = entity;
+    }
+  }
+  const refs = relationRefsFor(entity);
+  const loaded = await Promise.all(refs.map(async ref => {
+    const existing = workspaceEntityItems.value.find(item => (
+      item.type === ref.entityType && entityId(item.entity) === ref.id
+    ));
+    const resolved = existing?.entity
+      || ref.entity
+      || await entityStore.fetchEntity(ref.entityType, ref.id, false, { silent: true }).catch(() => null);
+    return resolved ? workspaceEntityItem(ref.entityType, resolved) : null;
+  }));
+  return loaded.filter(Boolean);
+}
+
+function relationRefsFor(entity = {}) {
+  return Object.values(entity?.relations || {}).flatMap(value => resolveEntityRelationRefs(value));
+}
+
+function hasRelationRefs(entity = {}) {
+  return relationRefsFor(entity).length > 0;
 }
 
 function activatePane(paneId) {
