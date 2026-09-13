@@ -53,9 +53,6 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   'components/entities/Requisition/RequisitionDetail.vue': ['data-driven', [':style="{ backgroundColor: item.colorHex || item.colorFallback || \'var(--p-content-border-color)\' }"']],
   'components/entities/Sheet/SheetDetail.vue': ['data-driven', [':style="{ backgroundColor: colorHex }"', ':style="geometryStyle"']],
   'components/entities/Sheet/SheetCard.vue': ['data-driven', [':style="{ backgroundColor: colorHex }"', ':style="{ backgroundColor: colorHex }"']],
-  'components/process-designer/ProcessDesignerDockItem.vue': ['data-driven', [
-    ':style="buttonStyle"'
-  ]],
   'components/process-designer/ProcessNode.vue': ['data-driven', [
     ':style="handleStyle(row.input)"',
     ':style="handleStyle(row.output)"',
