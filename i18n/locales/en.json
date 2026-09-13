@@ -2761,9 +2761,9 @@
     "service": "Service",
     "joinResultProducer": "Resulting producer output",
     "actionRoles": "Action roles",
-    "actionRolesHelp": "The action belongs to these roles: they get the action and access to the resulting status of this node's entities. The grant's scope comes from the node itself.",
+
     "entityAccess": "Entity data access",
-    "entityAccessHelp": "Who can view, edit, or manage the {type} entities this producer emits, and which fields they see.",
+    "entityAccessHelp": "Access to {type} entities and fields.",
     "canView": "Can view entities",
     "canEdit": "Can edit entities",
     "canManage": "Can manage entities",
