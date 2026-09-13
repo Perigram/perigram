@@ -72,7 +72,6 @@
               <GeneratedWorkspacePane
                 :item="itemForPane(pane)"
                 :tabs="tabItemsForPane(pane)"
-                :available-tabs="workspaceItems"
                 :action-entries="actionEntriesForPane(pane)"
                 :closeable="paneCount > 1"
                 @execute-action="executeWorkspaceAction"
@@ -81,7 +80,7 @@
                 @refresh="$emit('refresh')"
                 @select-tab="key => selectPaneTab(pane.id, key)"
                 @close-tab="key => closePaneTab(pane.id, key)"
-                @add-tab="key => selectPaneTab(pane.id, key)"
+                @add-tab="openEmptyPaneTab(pane.id)"
                 @split="orientation => splitPane(pane.id, orientation)"
                 @close="closePane(pane.id)"
               />
@@ -105,7 +104,6 @@
           class="min-h-0 flex-1"
           :item="itemForPane(activePane)"
           :tabs="tabItemsForPane(activePane)"
-          :available-tabs="workspaceItems"
           :action-entries="actionEntriesForPane(activePane)"
           :splittable="false"
           @execute-action="executeWorkspaceAction"
@@ -114,7 +112,7 @@
           @refresh="$emit('refresh')"
           @select-tab="key => selectPaneTab(activePane.id, key)"
           @close-tab="key => closePaneTab(activePane.id, key)"
-          @add-tab="key => selectPaneTab(activePane.id, key)"
+          @add-tab="openEmptyPaneTab(activePane.id)"
         />
       </div>
     </div>
@@ -144,6 +142,7 @@ import { useEffectiveContainment } from '~/composables/useEffectiveContainment.j
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
 import { projectExplorerHierarchy } from '~/utils/project-explorer-hierarchy.js';
+import { emptyTabItem, emptyTabKey, isEmptyTabKey } from '~/utils/workspace-empty-tabs.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
 import {
   closeWorkspaceLeaf,
@@ -457,11 +456,27 @@ function selectByKey(key) {
 
 function selectPaneTab(paneId, key) {
   const pane = panes.value.find(item => item.id === paneId);
-  if (!pane || !workspaceItems.value.some(item => item.key === key)) return;
-  const tabKeys = [...new Set([...(pane.tabKeys || []), key])];
-  paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, { selectionKey: key, tabKeys });
+  if (!pane) return;
+  if (!isEmptyTabKey(key) && !workspaceItems.value.some(item => item.key === key)) return;
+  paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, {
+    selectionKey: key,
+    tabKeys: withPaneTab(pane, key)
+  });
   activePaneId.value = paneId;
   syncActiveSelection();
+}
+
+// Opening a real item replaces the pane's selected empty tab instead of
+// piling placeholders beside it; empty tabs never accumulate duplicates.
+function withPaneTab(pane, key) {
+  const replacing = !isEmptyTabKey(key) && isEmptyTabKey(pane.selectionKey)
+    ? [pane.selectionKey]
+    : [];
+  return [...new Set([...(pane.tabKeys || []).filter(tabKey => !replacing.includes(tabKey)), key])];
+}
+
+function openEmptyPaneTab(paneId) {
+  selectPaneTab(paneId, emptyTabKey());
 }
 
 function closePaneTab(paneId, key) {
@@ -585,8 +600,7 @@ function itemForPane(pane) {
 
 function tabItemsForPane(pane) {
   return (pane?.tabKeys || [])
-    .map(key => workspaceItems.value.find(item => item.key === key))
-    .filter(Boolean);
+    .map(key => workspaceItems.value.find(item => item.key === key) || emptyTabItem(key));
 }
 
 function actionEntriesForPane(pane) {

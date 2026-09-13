@@ -37,38 +37,22 @@
         </Tab>
       </TabList>
     </Tabs>
-    <Button
-      icon="pi pi-plus"
-      text
-      rounded
-      size="small"
-      severity="secondary"
-      class="shrink-0 self-center"
-      :disabled="addableTabs.length === 0"
-      :aria-label="$t('common.add')"
-      @click.stop="toggleAdd"
-    />
-    <Popover ref="addPopover">
-      <div class="flex min-w-52 flex-col gap-1" @click="hideAdd">
-        <Button
-          v-for="tab in addableTabs"
-          :key="tab.key"
-          :label="tabLabel(tab)"
-          :icon="tabIcon(tab)"
-          text
-          size="small"
-          class="w-full justify-start"
-          @click="$emit('add', tab.key)"
-        />
-      </div>
-    </Popover>
+    <div class="flex shrink-0 items-center border-b border-chrome-border">
+      <Button
+        icon="pi pi-plus"
+        text
+        rounded
+        size="small"
+        severity="secondary"
+        :aria-label="$t('project.newTab')"
+        @click.stop="$emit('add')"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
 import Button from 'primevue/button';
-import Popover from 'primevue/popover';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -77,9 +61,8 @@ import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 
-const props = defineProps({
+defineProps({
   tabs: { type: Array, default: () => [] },
-  availableTabs: { type: Array, default: () => [] },
   activeKey: { type: String, default: '' }
 });
 
@@ -87,21 +70,9 @@ defineEmits(['select', 'close', 'add', 'refresh']);
 
 const { t } = useI18n();
 const domainUi = useCutkitDomainUi();
-const addPopover = ref(null);
-const addableTabs = computed(() => {
-  const openKeys = new Set(props.tabs.map(tab => tab.key));
-  return props.availableTabs.filter(tab => !openKeys.has(tab.key));
-});
-
-function toggleAdd(event) {
-  addPopover.value?.toggle(event);
-}
-
-function hideAdd() {
-  addPopover.value?.hide();
-}
 
 function tabLabel(tab = {}) {
+  if (tab.kind === 'empty') return t('project.newTab');
   if (tab.kind === 'entity') {
     return tab.entity?.identity?.name || tab.entity?.identity?.slug || tab.entity?.identity?.uid || tab.key;
   }
@@ -112,6 +83,7 @@ function tabLabel(tab = {}) {
 }
 
 function tabIcon(tab = {}) {
+  if (tab.kind === 'empty') return 'pi pi-plus';
   if (tab.kind === 'entity') return domainUi.getIcon(tab.type);
   return resolveGeneratedWorkspacePage(tab.pageId)?.icon || 'pi pi-file';
 }

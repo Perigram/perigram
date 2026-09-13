@@ -19,6 +19,34 @@ body {
     display: none;
 }
 
+/* App-wide themed scrollbars: transparent track (the page canvas shows
+   through), a subtle themed thumb, and no arrow buttons. The token rides
+   the PrimeVue border color so both schemes stay in theme. */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ck-scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 0.5rem;
+    height: 0.5rem;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: var(--ck-scrollbar-thumb);
+    border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
 ::selection {
     background: var(--ck-selection-background);
 }

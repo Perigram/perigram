@@ -6,7 +6,6 @@
     <div data-pane-header class="flex shrink-0 items-stretch">
       <GeneratedWorkspaceTabs
         :tabs="tabs"
-        :available-tabs="availableTabs"
         :active-key="item.key"
         @select="$emit('select-tab', $event)"
         @close="$emit('close-tab', $event)"
@@ -97,7 +96,6 @@ import { useAuthStore } from '~/stores/auth';
 const props = defineProps({
   item: { type: Object, default: null },
   tabs: { type: Array, default: () => [] },
-  availableTabs: { type: Array, default: () => [] },
   actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true },

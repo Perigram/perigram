@@ -6,7 +6,6 @@
     <div data-pane-header class="flex shrink-0 items-stretch">
       <GeneratedWorkspaceTabs
         :tabs="tabs"
-        :available-tabs="availableTabs"
         :active-key="page.key"
         @select="$emit('select-tab', $event)"
         @close="$emit('close-tab', $event)"
@@ -46,7 +45,6 @@ import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-
 const props = defineProps({
   page: { type: Object, required: true },
   tabs: { type: Array, default: () => [] },
-  availableTabs: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true }
 });

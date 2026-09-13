@@ -1156,6 +1156,7 @@
         "--ck-primary-950": "#321000",
         "--ck-primary-ink": "#a93300",
         "--ck-process-canvas-background": "var(--p-surface-50)",
+        "--ck-scrollbar-thumb": "var(--p-content-border-color)",
         "--ck-selection-background": "color-mix(in srgb, var(--p-primary-color) 20%, transparent)",
         "--ck-signal-data": "var(--ck-entity-tone-material)",
         "--ck-signal-decision": "var(--ck-primary-500)",
@@ -1973,6 +1974,12 @@
       "kind": "lineage",
       "source": "organization",
       "target": "project",
+      "via": "lineage.organizationId"
+    },
+    {
+      "kind": "lineage",
+      "source": "organization",
+      "target": "supportMessage",
       "via": "lineage.organizationId"
     },
     {

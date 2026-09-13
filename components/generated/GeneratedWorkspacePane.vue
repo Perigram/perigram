@@ -3,7 +3,6 @@
     v-if="item?.kind === 'entity'"
     :item="item"
     :tabs="tabs"
-    :available-tabs="availableTabs"
     :action-entries="actionEntries"
     :closeable="closeable"
     :splittable="splittable"
@@ -22,7 +21,6 @@
     v-else-if="item?.kind === 'page'"
     :page="item"
     :tabs="tabs"
-    :available-tabs="availableTabs"
     :closeable="closeable"
     :splittable="splittable"
     @execute-action="(action, entry) => $emit('execute-action', action, entry)"
@@ -43,7 +41,6 @@
     <div data-pane-header class="flex shrink-0 items-stretch">
       <GeneratedWorkspaceTabs
         :tabs="tabs"
-        :available-tabs="availableTabs"
         active-key=""
         @select="$emit('select-tab', $event)"
         @close="$emit('close-tab', $event)"
@@ -75,7 +72,6 @@ import GeneratedWorkspacePaneMenu from '~/components/generated/GeneratedWorkspac
 defineProps({
   item: { type: Object, default: null },
   tabs: { type: Array, default: () => [] },
-  availableTabs: { type: Array, default: () => [] },
   actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true }

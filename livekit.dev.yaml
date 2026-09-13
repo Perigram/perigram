@@ -8,3 +8,9 @@ turn:
   enabled: false
 keys:
   devkey: devsecret
+# Room events fan into /api/livekit/webhook so active calls appear live in
+# the sidebar Calls menu; `app` is the compose service name.
+webhook:
+  api_key: devkey
+  urls:
+    - http://app:3000/api/livekit/webhook
