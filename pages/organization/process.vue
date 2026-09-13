@@ -284,6 +284,15 @@
                       />
                     </div>
                     <small class="text-muted-color">{{ $t('processDesigner.actionRolesHelp') }}</small>
+                    <div v-if="selectedProcessNodeAccessDetail" class="text-xs text-muted-color">{{ selectedProcessNodeAccessDetail }}</div>
+                    <div v-if="selectedProcessNodeEffectiveAccess.length" class="flex flex-wrap gap-1">
+                      <span
+                        v-for="item in selectedProcessNodeEffectiveAccess"
+                        :key="item.label"
+                        class="max-w-full truncate rounded-ui border border-content-border px-1.5 py-0.5 text-xs"
+                        :class="item.inherited ? 'text-muted-color' : ''"
+                      >{{ item.label }}</span>
+                    </div>
                   </div>
                   <Panel v-if="selectedEntityAvailable" :header="$t('processDesigner.createdEntity')" class="mt-0">
                         <div class="flex flex-col gap-3">
@@ -1420,6 +1429,42 @@ function removeSelectedSocket() {
   delete draft.value.data.sockets[selectedSocketRecord.value.id];
   selectedSocketId.value = '';
 }
+const ACCESS_LEVEL_ORDER = { read: 0, write: 1, admin: 2 };
+const selectedProcessNodeAccessDetail = computed(() => {
+  const node = selectedProcessNode.value;
+  if (!node?.kind || !['effect.changeStatus', 'effect.archiveEntity', 'effect.updateEntity'].includes(node.kind)) return '';
+  const incoming = node.id ? inferIncomingEntityContract(node.id) : {};
+  const from = incoming.status || '';
+  const to = node.status?.to || '';
+  if (!from && !to) return '';
+  return [from || '?', to || '?'].join(' -> ');
+});
+const selectedProcessNodeEffectiveAccess = computed(() => {
+  const node = selectedProcessNode.value;
+  const entityType = node?.entityType || node?.targetEntityType || '';
+  if (!node?.kind?.startsWith('effect.') || !entityType) return [];
+  const byRole = new Map();
+  const record = (roleId, level, inherited) => {
+    const current = byRole.get(roleId);
+    if (current && ACCESS_LEVEL_ORDER[current.level] >= ACCESS_LEVEL_ORDER[level]) return;
+    byRole.set(roleId, { roleId, level, inherited });
+  };
+  for (const grant of node.access?.grants || []) {
+    if (grant.roleId) record(grant.roleId, grant.level || node.access?.level || 'write', false);
+  }
+  for (const output of Object.values(draft.value?.data?.producerOutputs || {})) {
+    if (output.entityType !== entityType) continue;
+    for (const level of ['read', 'write', 'admin']) {
+      for (const roleId of output.allowedRoles?.[level] || []) record(roleId, level, true);
+    }
+  }
+  return [...byRole.values()]
+    .map(item => ({
+      label: `${roles.value[item.roleId]?.label || item.roleId}: ${item.level}${item.inherited ? ' (from entity access)' : ''}`,
+      inherited: item.inherited
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label));
+});
 const selectedProcessNodeGrantRoleIds = computed(() => [
   ...new Set((selectedProcessNodeGrants.value || []).map(grant => grant.roleId).filter(Boolean))
 ]);

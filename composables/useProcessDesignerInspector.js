@@ -1,4 +1,5 @@
 import { computed } from 'vue';
+import { CONSUMER_EFFECT_KINDS } from '~/packages/processes/src/node-catalog.js';
 
 const RECORD_KEYS = Object.freeze({
   entity: 'producerOutputs',
@@ -46,10 +47,18 @@ export function useProcessDesignerInspector({ draft, selectedNode, factories }) 
     const node = selectedNode.value;
     if (node?.type !== 'processNode') return {};
     const record = selectedRecordFor('processNode');
-    const producerOutputId = record?.producerOutputId;
-    const producerOutput = producerOutputId && draft.value?.data?.producerOutputs?.[producerOutputId]
-      ? draft.value.data.producerOutputs[producerOutputId]
+    // Consumer effects never anchor the created-entity panel — a stale
+    // producerOutputId on a loaded pre-protocol draft must not resurrect it.
+    if (CONSUMER_EFFECT_KINDS.includes(record?.kind)) return {};
+    const producerOutputs = draft.value?.data?.producerOutputs || {};
+    const byId = record?.producerOutputId && producerOutputs[record.producerOutputId]
+      ? producerOutputs[record.producerOutputId]
       : null;
+    // Origin self-heal: resolve by ownership when the recorded id is stale
+    // (legacy socket keys, sync ordering) so the panel follows the node.
+    const owned = Object.values(producerOutputs)
+      .filter(output => String(output?.nodeId) === String(record?.id || node.id));
+    const producerOutput = byId || (owned.length === 1 ? owned[0] : null);
     if (!producerOutput) return {};
     producerOutput.lifecycle ||= { mode: 'defaultCreated' };
     producerOutput.allowedRoles ||= { read: [], write: [], admin: [] };
