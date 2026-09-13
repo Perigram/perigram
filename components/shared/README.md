@@ -165,7 +165,7 @@ generated workspace panes, and dialog content. `DesignerDialog` is the only
 dialog host for standalone designer launches. It fills the viewport and mounts
 its content through `DesignerSurface`, so a cassette designer opened from an
 entity action uses the same sizing contract as route and pane designers.
-The host keeps Aura's dialog-content padding; its scoped PrimeVue integration
+The host keeps the preset's dialog-content padding; its scoped PrimeVue integration
 owns only the flex sizing needed for the designer surface.
 
 ### `ThreeViewport.vue`
@@ -519,7 +519,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   of canvas or workspace commands—not global navigation or ordinary page
   actions. Callers supply `{ icon, label, onClick, pressed?, disabled?,
   attention?, hasPopup?, onHoverStart?, onHoverEnd?, onFocus?, onBlur? }`
-  items; the component owns only its proximity behavior and labels. Aura
+  items; the component owns only its proximity behavior and labels. The preset
   variables own its generic spacing, transitions, and surface treatment. Use the optional
   hover/focus hooks only when a caller owns a contextual popover anchored to
   that action; the dock does not own page-specific panels. Its rendered button
@@ -536,7 +536,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   padding for IDE-style navigation and inspector lanes without changing the
   global PrimeVue panel density.
 - **`StateBlock.vue`**: Standard loading/empty/error layout with icon, semantic body/caption roles, optional description, and action slot. It does not recreate bordered container chrome. The root `error.vue` surface uses this primitive for failures and recovery actions.
-- **`TableFrame.vue`**: Reusable overflow boundary around PrimeVue `DataTable` surfaces. DataTable chrome remains Aura-owned.
+- **`TableFrame.vue`**: Reusable overflow boundary around PrimeVue `DataTable` surfaces. DataTable chrome remains preset-owned.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
 - **`StandardPage.vue`**: Route-level page shell for title, subtitle,
   breadcrumbs, and page actions. The authenticated `app` layout owns outer
@@ -550,6 +550,13 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   parameters and lifecycle hook settings so those surfaces do not fall back to
   raw JSON editors. Entity type helper text is shown only for `entityId`
   selectors, not workflow-state selectors.
+- **`UserAccountMenu.vue`**: The single shared account control: a PrimeVue
+  popover with organization switching, chats entry, theme toggle, profile, and
+  logout, plus a customizable trigger through the `#trigger` slot (default is
+  the round avatar button). The desktop navbar and the mobile bottom panel
+  render it for the avatar/profile buttons, and the generated home workspace
+  sidebar renders the panel-style trigger. It only flips the `theme-mode`
+  cookie; the app layout applies the theme class.
 - **`EntityRefInput.vue`**: Typed entity reference selector used by
   `TypedSettingsForm` for `entityId` fields. It prefers workbench/scenario
   entity options and falls back to a manual id input only when no typed options
@@ -571,7 +578,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   from `data.type` or lifecycle state.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
 - **`EntityPage.vue`**: Root layout for all entity detail views. Features a compact header with identity, optional inline status, an `actions` slot, an `info` slot for summary data, and optional `sidebar`. Trace breadcrumbs are hidden by default and appear only when a caller opts in with `showTrace`; callers can pass exact `traceExclusions` derived from the current compiled context. Generated entity-detail screens also suppress the outer `StandardPage` title so the entity header is the only title surface. Page headers use the shared inline status popover, including compact lifecycle history, and normally collapse the `actions` slot into `EntityActionsPopover`; canonical hub entities may select `actionsDisplay="inline"` for a small set of primary child-screen routes. Detail surfaces for static master-data entities can pass `:show-status="false"` instead of rendering local header chrome. Pane adapters pass `:show-header="false"` so their own tabs/status/actions remain the sole chrome while the canonical body and sidebar layout are retained. The wrapper is an inline-size query container: the header splits at 32rem and the sidebar receives its second track at 48rem of actual parent width. It appends its entity to the displayed-context stack so nested traces do not repeat any represented ancestor. Operational overloads compose their workspace primitives inside this canonical shell instead of adding overload-specific layout modes to `EntityPage`.
-- **`EntityCard.vue`**: Shared entity card structure built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`) while Aura owns its border, radius, shadow, spacing, and interaction states. Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `statusActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title.
+- **`EntityCard.vue`**: Shared entity card structure built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`) while the preset owns its border, radius, shadow, spacing, and interaction states. Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `statusActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title.
   Full-card footer actions and generated inline/compact popover actions render
   through `EntityActionsPopover`, including access-gated deletion.
 - **`NameEditPopover.vue`**: Compact single-field rename control for entity names and other one-field edits. Use it near identity or action clusters instead of opening a full dialog when the only editable field is a name.
@@ -611,7 +618,7 @@ primary action is a custom preview, such as `ArtifactCard`, can pass
 
 Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `EntityCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `WorkspaceLanes`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.
 
-Shared wrappers own semantic structure and reusable layout constraints, while PrimeVue/Aura owns their generic visual chrome. New application tokens are limited to semantic typography, layout, domain signals, visualization, and motion; wrappers must not add radius, shadow, border, or interaction-state values.
+Shared wrappers own semantic structure and reusable layout constraints, while PrimeVue/Material owns their generic visual chrome. New application tokens are limited to semantic typography, layout, domain signals, visualization, and motion; wrappers must not add radius, shadow, border, or interaction-state values.
 
 ## Demo Contract
 

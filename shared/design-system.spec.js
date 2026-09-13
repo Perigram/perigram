@@ -78,7 +78,7 @@ describe('Design system manifest', () => {
     const documentedFiles = rows.map(([, , file]) => file).sort();
     const expectedFiles = repositoryVueFiles();
     const expectedMechanisms = [
-      'aura',
+      'material',
       'token-source',
       'primevue-projection',
       'tailwind-projection',
@@ -323,7 +323,10 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
     expect(primeComponentTokens).toEqual({});
-    expect(Object.keys(primeSemanticTokens)).toEqual(['primary']);
+    expect(Object.keys(primeSemanticTokens)).toEqual(['primary', 'colorScheme']);
+    expect(Object.keys(primeSemanticTokens.colorScheme)).toEqual(['light', 'dark']);
+    expect(primeSemanticTokens.colorScheme.light.surface[100]).toBe('{zinc.100}');
+    expect(primeSemanticTokens.colorScheme.dark.surface[950]).toBe('{zinc.950}');
     expect(designTokens.palette.primary[500]).toBe('#ff4b00');
     expect(cssVariableTokens['--ck-primary-700']).toBe(designTokens.palette.primary[700]);
     expect(cssVariableTokens['--ck-chrome-background']).toBe('#fefefc');

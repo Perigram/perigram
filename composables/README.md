@@ -157,7 +157,7 @@ import { loadGsap, useFollowValue, useEnterExit, useStateTransition } from './us
 GSAP is the project animation engine, loaded lazily: `loadGsap()` dynamic-imports
 it once per session, and every pattern below only touches the engine from client
 lifecycle hooks, so GSAP never enters the SSR critical path. There is no second
-motion library and no application motion token layer; Aura's
+motion library and no application motion token layer; the preset's
 `--p-transition-duration` still owns generic component states.
 
 | Pattern | Use |

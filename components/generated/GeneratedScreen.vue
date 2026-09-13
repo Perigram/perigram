@@ -3,10 +3,12 @@
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <StateBlock v-else-if="error" state="error" :message="errorMessage" />
     <StateBlock v-else-if="actionError" state="error" :message="actionError" />
-    <GeneratedHomeScreen
-      v-else-if="screen.template === 'home'"
+    <component
+      :is="screenOverload.component"
+      v-else-if="screenOverload"
       :screen="screen"
       :source-state="sourceState"
+      :screen-actions="screen.actions || []"
       @refresh="load"
       @execute-action="executeAction"
     />
@@ -17,15 +19,6 @@
     <GeneratedOrganizationOverview
       v-else-if="screen.template === 'organizationOverview'"
       :screen="screen"
-    />
-    <component
-      :is="screenOverload.component"
-      v-else-if="screenOverload"
-      :screen="screen"
-      :source-state="sourceState"
-      :screen-actions="screen.actions || []"
-      @refresh="load"
-      @execute-action="executeAction"
     />
     <WorkspaceLanes v-else-if="screen.template === 'workspaceLanes'" class="min-h-[32rem]">
       <template v-if="regionBySlot.left" #left>
@@ -273,7 +266,6 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
-import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
 import GeneratedOrganizationAccount from '~/components/generated/GeneratedOrganizationAccount.vue';
 import GeneratedOrganizationOverview from '~/components/generated/GeneratedOrganizationOverview.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';

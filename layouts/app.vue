@@ -5,7 +5,7 @@
             isBoundedWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'
         ]"
     >
-    <header class="chrome-signal-rule sticky top-0 z-50 hidden shrink-0 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur-md md:block">
+    <header v-if="!isGeneratedHomeRoute" class="chrome-signal-rule sticky top-0 z-50 hidden shrink-0 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur-md md:block">
             <nav class="max-w-[var(--ck-page-max-width)] mx-auto px-4 h-14 flex items-center justify-between gap-2 ">
                 <!-- Left: Logo & Breadcrumbs -->
                 <div class="flex items-center h-full min-w-0 flex-1">
@@ -50,21 +50,7 @@
                 <!-- Right: User -->
                 <div class="flex items-center gap-2 shrink-0">
                     <div class="relative flex items-center" v-if="authStore.userIsSet">
-                        <Button 
-                            data-testid="user-menu-trigger"
-                            type="button" 
-                            @click="toggleUserMenu" 
-                            class="p-0.5 rounded-full overflow-hidden border-2 border-transparent transition-colors"
-                            text
-                        >
-                            <Avatar 
-                                :image="authStore.userData.avatarUrl || null"
-                                :label="!authStore.userData.avatarUrl && authStore.userData.name ? authStore.userData.name[0].toUpperCase() : null"
-                                shape="circle" 
-                                size="normal" 
-                                class="bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
-                            />
-                        </Button>
+                        <UserAccountMenu />
                     </div>
                 </div>
             </nav>
@@ -85,24 +71,6 @@
         </main>
 
         <ChatSupport v-if="supportDialog && mobileActiveTab !== 'chats'" />
-        <Popover ref="userMenu">
-            <div class="flex min-w-56 flex-col gap-3">
-                <section v-for="group in userMenuItems" :key="group.label" class="flex flex-col gap-1">
-                    <small class="px-2 text-muted-color">{{ group.label }}</small>
-                    <Button
-                        v-for="item in group.items"
-                        :key="item.label"
-                        :label="item.label"
-                        :icon="item.icon"
-                        text
-                        severity="secondary"
-                        size="small"
-                        class="w-full !justify-start"
-                        @click="runUserMenuItem(item)"
-                    />
-                </section>
-            </div>
-        </Popover>
         <Menu ref="mobileScreenMenu" :model="mobileScreenMenuItems" :popup="true" />
         <nav
             v-if="authStore.userIsSet"
@@ -147,30 +115,34 @@
                     @click="openMobileScreenMenu"
                 />
                 <div class="relative flex items-center">
-                    <Button
-                        icon="pi pi-comments"
-                        text
-                        rounded
-                        :severity="supportDialog ? 'primary' : 'secondary'"
-                        :aria-label="$t('support.openChat')"
-                        @click="openSupportDialog"
-                    />
-                    <Badge
-                        v-if="supportChatStore.totalUnread"
-                        :value="supportChatStore.totalUnread"
-                        severity="danger"
-                        size="small"
-                        class="absolute -right-1 -top-1"
-                    />
-                </div>
                 <Button
-                    icon="pi pi-user"
+                    icon="pi pi-comments"
                     text
                     rounded
-                    severity="secondary"
-                    :aria-label="$t('nav.profile')"
-                    @click="toggleUserMenu"
+                    :severity="supportDialog ? 'primary' : 'secondary'"
+                    :aria-label="$t('support.openChat')"
+                    @click="openSupportDialog"
                 />
+                <Badge
+                    v-if="supportChatStore.totalUnread"
+                    :value="supportChatStore.totalUnread"
+                    severity="danger"
+                    size="small"
+                    class="absolute -right-1 -top-1"
+                />
+                </div>
+                <UserAccountMenu v-if="authStore.userIsSet">
+                    <template #trigger="{ toggle }">
+                        <Button
+                            icon="pi pi-user"
+                            text
+                            rounded
+                            severity="secondary"
+                            :aria-label="$t('nav.profile')"
+                            @click="toggle"
+                        />
+                    </template>
+                </UserAccountMenu>
             </div>
         </nav>
         <Button
@@ -194,9 +166,8 @@
     import Button from 'primevue/button'
     import Badge from 'primevue/badge'
     import Menu from 'primevue/menu'
-    import Popover from 'primevue/popover'
-    import Avatar from 'primevue/avatar'
     import ChatSupport from '~/components/ChatSupport.vue'
+    import UserAccountMenu from '~/components/shared/UserAccountMenu.vue'
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'
     import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
@@ -294,6 +265,10 @@
     const isGeneratedWorkspaceRoute = computed(() => Boolean(
         resolveGeneratedScreenOverload(activeGeneratedScreen.value)
     ))
+    // The generated home workspace owns the full desktop viewport: its sidebar
+    // carries brand, navigation, and the user controls that the desktop
+    // navbar provides on other routes.
+    const isGeneratedHomeRoute = computed(() => activeGeneratedScreen.value?.template === 'home')
     const isStandaloneDesignerRoute = computed(() => route.path === '/organization/process')
     const isChatsRoute = computed(() => route.path === '/chats' || route.path.startsWith('/chats/'))
     const isBoundedWorkspaceRoute = computed(() => (
@@ -366,7 +341,6 @@
         supportDialog.value = false
         mobileActiveTab.value = 'content'
         breadcrumbMenu.value?.hide?.()
-        userMenu.value?.hide?.()
         mobileScreenMenu.value?.hide?.()
     }
 
@@ -488,71 +462,7 @@
 
     watch(mobileShortcutStorageKey, loadMobileShortcuts)
 
-    // --- User Menu ---
-    const userMenu = ref();
     const mobileScreenMenu = ref();
-    const toggleUserMenu = (event) => {
-        userMenu.value?.toggle?.(event);
-    };
-    const runUserMenuItem = async (item) => {
-        userMenu.value?.hide?.();
-        await item?.command?.();
-    };
-    const userMenuItems = computed(() => {
-        const items = [];
-
-        // 1. Current Organization & Context
-        // Keep the organization context visible even for a single membership.
-        if (authStore.userOrganizations.length) {
-            items.push({
-                label: t('profile.myOrganizations'),
-                items: authStore.userOrganizations.map(org => ({
-                    label: org.identity?.name || org.name || org.identity?.uid || org._id?.toString(),
-                    icon: (org._id?.toString() || org.id?.toString()) === authStore.userData.organizationId?.toString() ? 'pi pi-check text-status-success' : 'pi pi-building',
-                    command: async () => {
-                        const organizationId = org._id?.toString() || org.id?.toString();
-                        if (organizationId && organizationId !== authStore.userData.organizationId?.toString()) {
-                            await authStore.switchOrganization(organizationId);
-                        }
-                        router.push('/organization');
-                    }
-                }))
-            });
-        }
-
-        // 3. User Actions
-        items.push({
-            label: authStore.userData.name || t('common.user'),
-            items: [
-                {
-                    label: t('support.chatTitle'),
-                    icon: 'pi pi-comments',
-                    command: () => router.push('/chats')
-                },
-                {
-                    label: t('common.toggleTheme'),
-                    icon: themeIcon.value,
-                    command: toggleTheme
-                },
-                {
-                    label: t('nav.profile'),
-                    icon: 'pi pi-user',
-                    command: () => navigateMobile('/profile')
-                },
-                {
-                    label: t('nav.logout'),
-                    icon: 'pi pi-sign-out',
-                    command: async () => {
-                        await authStore.logout();
-                        router.push('/auth/login');
-                    }
-                }
-            ]
-        });
-
-        return items;
-    });
-
     onMounted(async () => {
         if (!authStore.userIsSet) {
             await authStore.setUser();
@@ -561,13 +471,6 @@
 
     // --- Theme Switcher ---
     const themeCookie = useCookie('theme-mode')
-
-    const isDarkMode = computed(() => themeCookie.value === 'dark')
-    const themeIcon = computed(() => (isDarkMode.value ? 'pi pi-sun' : 'pi pi-moon'))
-
-    const toggleTheme = () => {
-        themeCookie.value = isDarkMode.value ? 'light' : 'dark'
-    }
 
     const updateThemeClass = (theme) => {
         if (process.client) {

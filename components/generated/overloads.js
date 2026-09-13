@@ -1,3 +1,4 @@
+import GeneratedHomeWorkspace from '~/components/generated/GeneratedHomeWorkspace.vue';
 import GeneratedProjectWorkspace from '~/components/generated/GeneratedProjectWorkspace.vue';
 import GeneratedQueueDetail from '~/components/generated/GeneratedQueueDetail.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
@@ -7,6 +8,10 @@ import GeneratedFacadePatternDesignerWorkspacePage from '~/components/generated/
 import ArtifactDetail from '~/components/entities/Artifact/ArtifactDetail.vue';
 
 export const generatedScreenOverloads = [
+  {
+    template: 'home',
+    component: GeneratedHomeWorkspace
+  },
   {
     template: 'entityDetail',
     entityType: 'project',
@@ -62,7 +67,7 @@ export function resolveGeneratedScreenOverload(screen = {}) {
   if (!screen || typeof screen !== 'object' || Array.isArray(screen)) return null;
   return generatedScreenOverloads.find(overload => (
     overload.template === screen.template
-    && overload.entityType === detailEntityType(screen)
+    && (overload.entityType == null || overload.entityType === detailEntityType(screen))
   )) || null;
 }
 

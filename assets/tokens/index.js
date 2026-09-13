@@ -291,8 +291,30 @@ export const supportAvatarPalette = [
     'var(--p-pink-500)'
 ];
 
+// Zinc is the generic surface scale for both color schemes; the palette is
+// projected through the preset primitive so the PrimeVue surface tokens and
+// the app aliases that consume them stay in sync.
+const zincSurface = {
+    0: '#ffffff',
+    50: '{zinc.50}',
+    100: '{zinc.100}',
+    200: '{zinc.200}',
+    300: '{zinc.300}',
+    400: '{zinc.400}',
+    500: '{zinc.500}',
+    600: '{zinc.600}',
+    700: '{zinc.700}',
+    800: '{zinc.800}',
+    900: '{zinc.900}',
+    950: '{zinc.950}'
+};
+
 export const primeSemanticTokens = {
-    primary: signalOrangePrimary
+    primary: signalOrangePrimary,
+    colorScheme: {
+        light: { surface: zincSurface },
+        dark: { surface: zincSurface }
+    }
 };
 
 // Generic controls and containers intentionally inherit Aura unchanged.

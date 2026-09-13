@@ -221,8 +221,6 @@ const dtoContractFiles = [
   ...walkDir('components/entities').filter(file => file.endsWith('.vue')),
   ...walkDir('components/shared').filter(file => file.endsWith('.vue')),
   ...walkDir('composables').filter(file => file.endsWith('.js')),
-  ...walkDir('pages/projects').filter(file => file.endsWith('.vue')),
-  ...walkDir('pages/project').filter(file => file.endsWith('.vue')),
   ...walkDir('pages/test').filter(file => file.endsWith('.vue')),
   ...walkDir('test-data').filter(file => file.endsWith('.js'))
 ];

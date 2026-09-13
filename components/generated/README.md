@@ -83,11 +83,51 @@ Use the registry instead of adding entity checks directly inside
 `GeneratedScreen.vue`, `GeneratedEntityDetail.vue`, or generated collections.
 The current default overloads are:
 
+- `home` screens render `GeneratedHomeWorkspace.vue`, the Discord-style
+  operational shell described below.
 - project `entityDetail` screens render `GeneratedProjectWorkspace.vue`, an
   IDE-style project workspace over the generated project source and child
   sources.
 - queue detail bodies render `GeneratedQueueDetail.vue`.
 - sheet-design detail bodies render `SheetDesignEditor.vue`.
+
+## Home Workspace
+
+`GeneratedHomeWorkspace.vue` renders the generated `home` template as a
+Discord-style operational shell:
+
+- Desktop (`md` and up) is a fixed two-column bounded workspace: a sidebar and
+  the recursive pane area. Mobile keeps the previous stacked home sections
+  (`GeneratedHomeScreen.vue`) inside a self-scrolling container, so the mobile
+  contract is unchanged.
+- The sidebar owns navigation for the whole shell. It groups the compiler's
+  top-level home entity-list sources into sections (same
+  `shouldRenderHomeSection` root filtering as the mobile sections), each with
+  the entity-type icon and `generatedRegionLabel` label. Region create
+  actions render as icon-only `GeneratedActionButton`s in their section
+  header — generated buttons live on their corresponding sidebar entries, not
+  on page-level toolbars. Each section header also keeps the open-list
+  control that navigates to the compiled entity-list screen.
+- Entity rows render `IdentityBlock` plus the icon-variant `EntityStatus` as
+  siblings (never nested interactive elements). Selecting a row opens or
+  selects that entity as a tab in the active pane; the active pane's selected
+  key marks the row as current.
+- The sidebar footer mounts the shared `UserAccountMenu`, so on this route the
+  desktop top navbar is hidden and its user controls live in the sidebar
+  (`layouts/app.vue` resolves this from the active screen template).
+- The pane area is the same recursive `WorkspaceSplitNode` tree used by the
+  project workspace: IDE-style file tabs, wheel-scrollable tab strips, split
+  right/down, pane-local close, registered workspace pages (for example the
+  cassette designer), and `GeneratedEntityFile` bodies that scope each
+  entity's own compiled detail screen. There is no Explorer tree and no
+  project action strip; collection creation belongs to sidebar sections and
+  entity operations belong to the opened file tabs.
+- Tab and pane state persists as versioned browser UI state scoped to the
+  current user and organization (`utils/home-workspace-state.js`). It stores
+  the pane tree, tab selections, opened entity references, and opened page
+  references using the same normalization contract as the project workspace,
+  minus explorer fields. Entities opened through nested detail navigation are
+  hydrated through the entity store like project workspace files.
 
 ## Project Workspace
 

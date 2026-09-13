@@ -1,8 +1,8 @@
 import { definePreset } from '@primeuix/themes'
-import Aura from '@primeuix/themes/aura'
+import Material from '@primeuix/themes/material'
 import { primeComponentTokens, primeSemanticTokens } from '../tokens/index.js'
 
-const Re_L = definePreset(Aura, {
+const Re_L = definePreset(Material, {
     semantic: primeSemanticTokens,
     components: primeComponentTokens
 })
