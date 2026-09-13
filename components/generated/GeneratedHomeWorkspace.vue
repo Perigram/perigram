@@ -122,7 +122,7 @@
                 class="flex min-w-0 flex-1 items-center gap-1"
                 :data-entity-id="entityId(node.data?.item?.entity)"
               >
-                <span class="flex min-w-0 flex-1 items-center overflow-hidden">
+                <span class="flex min-w-0 flex-1 items-center">
                   <EntityInlineRef
                     :type="node.data.item.type"
                     :entity="node.data.item.entity"

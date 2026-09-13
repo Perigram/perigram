@@ -39,6 +39,8 @@ body {
 }
 
 .entity-inline-chip {
+    display: inline-flex;
+    align-items: center;
     max-width: 100%;
     min-width: 0;
     vertical-align: baseline;

@@ -488,6 +488,7 @@ function tonePalette(role) {
       v-if="resolved && cardComponent"
       :is="cardComponent"
       v-bind="cardProps"
+      class="min-w-0 max-w-full"
       data-entity-card-interactive="true"
     />
     <IdentityBlock
