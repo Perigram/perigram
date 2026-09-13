@@ -323,7 +323,7 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
     expect(primeComponentTokens).toEqual({
-      tabs: { tablist: { background: 'transparent' } },
+      tabs: { tablist: { background: 'transparent' }, tabpanel: { background: 'transparent' } },
       tree: { root: { background: 'transparent' } }
     });
     expect(Object.keys(primeSemanticTokens)).toEqual(['primary', 'colorScheme']);

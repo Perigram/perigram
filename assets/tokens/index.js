@@ -343,6 +343,9 @@ export const primeComponentTokens = {
     tabs: {
         tablist: {
             background: 'transparent'
+        },
+        tabpanel: {
+            background: 'transparent'
         }
     },
     tree: {

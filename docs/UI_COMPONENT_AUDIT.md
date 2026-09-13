@@ -130,7 +130,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-calls-callpanel-vue` | `components/calls/CallPanel.vue` | derived usage | replace:chrome (1); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-calls-callprejoin-vue` | `components/calls/CallPrejoin.vue` | derived usage | replace:chrome (5) |
 | `ui-components-calls-calltile-vue` | `components/calls/CallTile.vue` | derived usage | replace:chrome (5) |
-| `ui-components-calls-callworkspacepage-vue` | `components/calls/CallWorkspacePage.vue` | derived usage | replace:chrome (4); compliant:scoped-layout |
+| `ui-components-calls-callworkspacepage-vue` | `components/calls/CallWorkspacePage.vue` | derived usage | centralize:layout (1); replace:chrome (4); compliant:scoped-layout |
 | `ui-components-cassettedesigner-vue` | `components/CassetteDesigner.vue` | derived usage | replace:chrome (3); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-cassettedesignerv2-vue` | `components/CassetteDesignerV2.vue` | derived usage | centralize:layout (1); replace:chrome (59); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-cassetteeditordialog-vue` | `components/CassetteEditorDialog.vue` | derived usage | centralize:layout (6); replace:chrome (2) |
@@ -233,7 +233,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-blocks-identityblock-vue` | `components/shared/blocks/IdentityBlock.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-blocks-specsblock-vue` | `components/shared/blocks/SpecsBlock.vue` | shared/domain primitive | replace:chrome (8); compliant:scoped-layout |
 | `ui-components-shared-blocks-statusbadge-vue` | `components/shared/blocks/StatusBadge.vue` | shared/domain primitive | replace:chrome (9) |
-| `ui-components-shared-communicationmenu-vue` | `components/shared/CommunicationMenu.vue` | derived usage | replace:chrome (2); remove:important-override (1) |
+| `ui-components-shared-communicationmenu-vue` | `components/shared/CommunicationMenu.vue` | derived usage | replace:chrome (2); remove:important-override (3) |
 | `ui-components-shared-designerdialog-vue` | `components/shared/DesignerDialog.vue` | shared/domain primitive | compliant:scoped-layout |
 | `ui-components-shared-designersurface-vue` | `components/shared/DesignerSurface.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (2); compliant:scoped-layout |
