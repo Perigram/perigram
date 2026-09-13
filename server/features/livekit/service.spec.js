@@ -133,6 +133,7 @@ describe('livekit call rooms', () => {
                     { name: 'call:group:group-1', num_participants: 3 },
                     { name: 'call:group:group-other', num_participants: 1 },
                     { name: 'call:direct:user-a:user-c', num_participants: 1 },
+                    { name: 'call:direct:user-a:user-d', num_participants: 0 },
                     { name: 'unrelated-room', num_participants: 5 }
                 ]
             })

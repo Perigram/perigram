@@ -138,9 +138,11 @@ export const cssVariableTokens = {
     '--ck-surface-raised': 'var(--p-content-background)',
     '--ck-border-subtle': 'var(--p-content-border-color)',
     '--ck-selection-background': 'color-mix(in srgb, var(--p-primary-color) 20%, transparent)',
-    // Scrollbars ride the theme through the PrimeVue border variable, which
-    // flips per scheme, so no separate dark override is needed.
-    '--ck-scrollbar-thumb': 'var(--p-content-border-color)',
+    // Scrollbars ride the theme through the PrimeVue text color, which
+    // flips per scheme, so no separate dark override is needed. The hover
+    // step strengthens the same mix.
+    '--ck-scrollbar-thumb': 'color-mix(in srgb, var(--p-text-color) 32%, transparent)',
+    '--ck-scrollbar-thumb-hover': 'color-mix(in srgb, var(--p-text-color) 55%, transparent)',
     '--ck-primary-ink': '#a93300',
     '--ck-font-ui': designTokens.typography.ui,
     '--ck-font-mono': designTokens.typography.mono,

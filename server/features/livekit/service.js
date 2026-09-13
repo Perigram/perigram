@@ -25,7 +25,11 @@ import { getConversationContextByKey, findChatGroup } from '../support/service.j
 const config = () => ({
     apiKey: process.env.LIVEKIT_API_KEY || 'devkey',
     apiSecret: process.env.LIVEKIT_API_SECRET || 'devsecret',
-    publicUrl: process.env.LIVEKIT_PUBLIC_URL || 'ws://localhost:7880'
+    publicUrl: process.env.LIVEKIT_PUBLIC_URL || 'ws://localhost:7880',
+    // Server-to-server RoomService base: inside compose the published
+    // localhost port is not reachable from the app container, so
+    // administrative calls need the network-internal LiveKit address.
+    internalUrl: process.env.LIVEKIT_INTERNAL_URL || process.env.LIVEKIT_PUBLIC_URL || 'ws://localhost:7880'
 });
 
 export const publicConfig = () => ({ url: config().publicUrl });
@@ -142,6 +146,11 @@ export async function listActiveRooms(auth) {
     for (const room of rooms) {
         const name = room?.name || '';
         if (!name.startsWith('call:')) continue;
+        // LiveKit keeps emptied rooms alive for the server empty_timeout
+        // (default 300s) after the last participant leaves; a room with no
+        // connected participants is not an active call, so the sidebar must
+        // not list it as one.
+        if (Number(room.num_participants || 0) < 1) continue;
         try {
             const { kind } = await authorizeRoom(auth, name);
             active.push({ room: name, kind, participants: Number(room.num_participants || 0) });
@@ -153,8 +162,8 @@ export async function listActiveRooms(auth) {
 }
 
 async function fetchLiveKitRooms() {
-    const { apiKey, apiSecret, publicUrl } = config();
-    const httpBase = publicUrl.replace(/^ws/, 'http');
+    const { apiKey, apiSecret, internalUrl } = config();
+    const httpBase = internalUrl.replace(/^ws/, 'http');
     const token = jwt.sign({ iss: apiKey, sub: apiKey, video: { roomList: true } }, apiSecret, { expiresIn: '1m' });
     try {
         const response = await fetch(`${httpBase}/twirp/livekit.RoomService/ListRooms`, {

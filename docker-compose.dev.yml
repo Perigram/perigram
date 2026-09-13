@@ -20,6 +20,7 @@ services:
       - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest
       - LIVEKIT_PUBLIC_URL=${LIVEKIT_PUBLIC_URL:-ws://localhost:7880}
+      - LIVEKIT_INTERNAL_URL=${LIVEKIT_INTERNAL_URL:-ws://livekit:7880}
       - NUXT_DEV_HTTPS=${NUXT_DEV_HTTPS:-false}
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-devsecret}

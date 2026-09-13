@@ -19,26 +19,36 @@ body {
     display: none;
 }
 
-/* App-wide themed scrollbars: transparent track (the page canvas shows
-   through), a subtle themed thumb, and no arrow buttons. The token rides
-   the PrimeVue border color so both schemes stay in theme. */
+/* App-wide themed scrollbars: a floating rounded pill thumb on a fully
+   transparent track, no arrow buttons, with a hover step. Tokens ride the
+   PrimeVue text color so both schemes stay in theme. */
 * {
     scrollbar-width: thin;
     scrollbar-color: var(--ck-scrollbar-thumb) transparent;
 }
 
 *::-webkit-scrollbar {
-    width: 0.5rem;
-    height: 0.5rem;
+    width: 0.625rem;
+    height: 0.625rem;
 }
 
-*::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
     background: transparent;
 }
 
 *::-webkit-scrollbar-thumb {
     background: var(--ck-scrollbar-thumb);
+    border: 0.1875rem solid transparent;
     border-radius: 9999px;
+    background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--ck-scrollbar-thumb-hover);
+    border: 0.1875rem solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
 }
 
 *::-webkit-scrollbar-button {
