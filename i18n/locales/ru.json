@@ -128,7 +128,15 @@
     "entityTypes": {
       "sheet": "Лист",
       "material": "Материал"
-    }
+    },
+    "sectionDirect": "Личные",
+    "sectionGroups": "Группы",
+    "newGroup": "Новая группа",
+    "groupName": "Название группы",
+    "groupCreate": "Создать группу",
+    "selectMembers": "Выберите участников",
+    "membersCount": "{count} участник(ов)",
+    "groupDeleteConfirm": "Удалить эту группу?"
   },
   "footer": {
     "termsAndConditions": "Условия и положения",
@@ -2053,10 +2061,10 @@
     },
     "reconnecting": "Переподключение…",
     "orgChannel": "Общая комната",
-    "channels": "Каналы",
-    "channelCreate": "Новый канал",
-    "channelName": "Название канала",
-    "channelDeleteConfirm": "Удалить этот канал?"
+    "activeRooms": "Активные звонки",
+    "noActiveRooms": "Нет активных звонков",
+    "groupCall": "Групповой звонок",
+    "directCall": "Личный звонок"
   },
   "sketch": {
     "editorTitle": "Скетч",

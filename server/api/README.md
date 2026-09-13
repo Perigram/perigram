@@ -94,15 +94,18 @@ Routes are grouped into sub-directories corresponding to features:
 - `livekit/`: Authenticated call endpoints — config for the browser,
   token minting with server-side room admission, conversation call invites,
   verified LiveKit webhook receiver that fans call activity onto the
-  connections layer, and organization call-channel CRUD
-  (`GET/POST /livekit/channels`, `DELETE /livekit/channels/:id`) used by the
-  home workspace channel list. See
+  connections layer, and the active-room snapshot
+  (`GET /livekit/active-rooms`) that backs the home workspace's active-call
+  list. Group call rooms derive from support group chats. See
   [the livekit feature](../features/livekit/README.md).
 - `support/`: Authenticated support chat endpoints. User routes snapshot the
-  current user's support conversation or a direct user-to-user conversation
-  selected by `recipientUserId`; admin routes remain scoped to customer support
-  conversations. Conversation-list routes return unread counts from
-  `supportConversationReads`. Messages may include structured inline
+  current user's support conversation, a direct user-to-user conversation
+  selected by `recipientUserId`, or a group conversation selected by
+  `conversationKey`; admin routes remain scoped to customer support
+  conversations. Group chats are created and deleted through
+  `POST/DELETE /support/groups`. Conversation-list routes return unread
+  counts from `supportConversationReads`. Messages may include structured
+  inline
   `entityRefs` selected from readable generated-screen entity types and
   concrete readable entity options when a scoped list service exists. The
   entity-options route also accepts `recipientUserId` for direct-chat warning

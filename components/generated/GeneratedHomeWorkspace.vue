@@ -34,32 +34,25 @@
           </div>
           <div class="flex min-w-0 flex-col gap-0.5 pt-1">
             <div class="flex min-w-0 items-center gap-1 px-2">
-              <i class="pi pi-volume-up shrink-0" aria-hidden="true" />
-              <span class="min-w-0 flex-1 truncate text-label">{{ $t('call.channels') }}</span>
-              <Button
-                icon="pi pi-plus"
-                text
-                rounded
+              <i class="pi pi-phone shrink-0" aria-hidden="true" />
+              <span class="min-w-0 flex-1 truncate text-label">{{ $t('call.activeRooms') }}</span>
+              <Badge
+                v-if="activeCallRooms.length"
+                :value="activeCallRooms.length"
+                severity="success"
                 size="small"
-                severity="secondary"
                 class="shrink-0"
-                :aria-label="$t('call.channelCreate')"
-                @click="channelDialog = true"
               />
             </div>
-            <Button
-              text
-              size="small"
-              severity="secondary"
-              class="w-full !justify-start"
-              icon="pi pi-volume-up"
-              :label="orgChannelLabel"
-              :aria-label="$t('call.join')"
-              @click="joinRoom(orgChannelRoom)"
-            />
+            <span
+              v-if="!activeCallRooms.length"
+              class="px-2 pt-1 pb-1 text-supporting text-muted-color"
+            >
+              {{ $t('call.noActiveRooms') }}
+            </span>
             <div
-              v-for="channel in callChannels"
-              :key="channel._id"
+              v-for="room in activeCallRooms"
+              :key="room.room"
               class="flex min-w-0 items-center gap-1"
             >
               <Button
@@ -67,22 +60,18 @@
                 size="small"
                 severity="secondary"
                 class="min-w-0 flex-1 !justify-start"
-                icon="pi pi-volume-up"
-                :label="channel.identity?.name || channel._id"
+                :icon="roomKindIcon(room.kind)"
+                :label="activeRoomLabel(room)"
                 :aria-label="$t('call.join')"
-                @click="joinRoom(channelRoom(channel))"
+                @click="joinRoom(room.room)"
               />
-              <Button
-                v-if="canDeleteChannel(channel)"
-                icon="pi pi-trash"
-                text
-                rounded
-                size="small"
-                severity="secondary"
-                class="shrink-0"
-                :aria-label="$t('common.delete')"
-                @click.stop="requestDeleteChannel(channel)"
-              />
+              <span
+                class="flex shrink-0 items-center gap-1 text-supporting text-muted-color"
+                :aria-label="$t('call.participants', { count: room.participants })"
+              >
+                <i class="pi pi-user" aria-hidden="true" />
+                {{ room.participants }}
+              </span>
             </div>
           </div>
         </nav>
@@ -236,24 +225,6 @@
       </div>
     </StandardDialog>
 
-    <StandardDialog
-      v-model:visible="channelDialog"
-      size="sm"
-      :show-default-footer="true"
-      :save-label="$t('common.add')"
-      :cancel-label="$t('common.cancel')"
-      :loading="channelSaving"
-      @save="saveChannel"
-      @cancel="channelDialog = false"
-    >
-      <template #header>
-        <span>{{ $t('call.channelCreate') }}</span>
-      </template>
-      <div class="flex flex-col gap-2">
-        <InputText v-model="channelName" :placeholder="$t('call.channelName')" :aria-label="$t('call.channelName')" />
-      </div>
-    </StandardDialog>
-
     <Menu ref="actionsMenu" :model="rowActionMenuItems" :popup="true">
       <template #item="{ item }">
         <GeneratedActionButton
@@ -263,22 +234,17 @@
         />
       </template>
     </Menu>
-    <ConfirmDialog />
   </div>
 </template>
 
 <script setup>
-import { computed, provide, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
 import Badge from 'primevue/badge';
-import ConfirmDialog from 'primevue/confirmdialog';
-import InputText from 'primevue/inputtext';
 import Menu from 'primevue/menu';
 import Popover from 'primevue/popover';
 import Tree from 'primevue/tree';
-import { useConfirm } from 'primevue/useconfirm';
-import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
@@ -297,6 +263,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities.js';
 import { useSupportChatStore } from '~/stores/supportChat';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { useConnections } from '~/composables/useConnections.js';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedActionLabel, generatedRegionLabel } from '~/utils/generated-labels.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
@@ -330,8 +297,6 @@ const entityStore = useEntityStore();
 const domainUi = useCutkitDomainUi();
 const supportChatStore = useSupportChatStore();
 const effectiveContainment = useEffectiveContainment();
-const confirm = useConfirm();
-const toast = useToast();
 const { t, te } = useI18n();
 const activePaneId = ref('pane-1');
 const paneSequence = ref(1);
@@ -344,10 +309,7 @@ const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
 const callDialog = ref(false);
 const callRoom = ref('');
-const channelDialog = ref(false);
-const channelName = ref('');
-const channelSaving = ref(false);
-const callChannels = ref([]);
+const activeCallRooms = ref([]);
 const actionsMenu = ref(null);
 const rowActionEntries = ref([]);
 const rowActionMenuItems = computed(() => rowActionEntries.value.map(entry => ({
@@ -428,10 +390,9 @@ const orgChannelLabel = computed(() => (
   || authStore.organizationData?.data?.name
   || t('call.orgChannel')
 ));
-const orgChannelRoom = computed(() => {
-  const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId;
-  return organizationId ? `call:org:${organizationId}` : '';
-});
+const currentUserId = computed(() => String(
+  authStore.userData?.id || authStore.userData?.userId || authStore.userData?._id || ''
+));
 
 // Items nested under another loaded workspace item through the effective
 // containment graph: lazily fetched explorer children and entities opened
@@ -518,69 +479,85 @@ watch(openedEntityRefs, async refs => {
 
 watch(() => [
   authStore.userIsSet,
-  authStore.organizationData?._id || authStore.userData?.organizationId
+  authStore.organizationData?._id || authStore.userData?.organizationId,
+  currentUserId.value
 ], () => {
-  loadCallChannels();
+  syncCallActivitySubscriptions();
+  loadActiveRooms();
 }, { immediate: true });
 
 watch([activePaneId, paneTree], syncActiveSelection);
 
-async function loadCallChannels() {
+// Active calls come from the livekit snapshot endpoint and stay live through
+// `call.activity` events on the caller's own `user:` and `org:` topics
+// (room admission and fanout agree, so events only mention joinable rooms).
+// Events debounce into a snapshot refetch instead of local count patching,
+// so participant counters cannot drift from the LiveKit server.
+async function loadActiveRooms() {
   if (!authStore.userIsSet || process.server) return;
   try {
-    callChannels.value = await $fetch('/api/livekit/channels');
+    activeCallRooms.value = await $fetch('/api/livekit/active-rooms');
   } catch {
-    callChannels.value = [];
+    activeCallRooms.value = [];
   }
 }
 
-async function saveChannel() {
-  const name = channelName.value.trim();
-  if (!name) return;
-  channelSaving.value = true;
-  try {
-    const created = await $fetch('/api/livekit/channels', { method: 'POST', body: { name } });
-    channelDialog.value = false;
-    channelName.value = '';
-    await loadCallChannels();
-    joinRoom(channelRoom(created));
-  } catch (error) {
-    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
-  } finally {
-    channelSaving.value = false;
+let callActivityRefreshTimer = null;
+let unsubscribeUserCalls = null;
+let unsubscribeOrgCalls = null;
+
+function scheduleActiveRoomsRefresh() {
+  if (callActivityRefreshTimer) return;
+  callActivityRefreshTimer = setTimeout(() => {
+    callActivityRefreshTimer = null;
+    loadActiveRooms();
+  }, 1000);
+}
+
+function syncCallActivitySubscriptions() {
+  if (process.server || !authStore.userIsSet) return;
+  const handleCallActivity = (payload) => {
+    if (payload?.type === 'call.activity') scheduleActiveRoomsRefresh();
+  };
+  if (currentUserId.value && !unsubscribeUserCalls) {
+    unsubscribeUserCalls = useConnections().subscribe(`user:${currentUserId.value}`, handleCallActivity);
   }
-}
-
-function requestDeleteChannel(channel = {}) {
-  confirm.require({
-    message: t('call.channelDeleteConfirm'),
-    header: t('common.confirmation'),
-    icon: 'pi pi-exclamation-triangle',
-    accept: () => deleteCallChannel(channel)
-  });
-}
-
-async function deleteCallChannel(channel = {}) {
-  try {
-    await $fetch(`/api/livekit/channels/${encodeURIComponent(String(channel._id))}`, { method: 'DELETE' });
-    await loadCallChannels();
-  } catch (error) {
-    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 });
-  }
-}
-
-function canDeleteChannel(channel = {}) {
-  const userId = String(authStore.userData?.id || authStore.userData?.userId || authStore.userData?._id || '');
-  if (String(channel.origin?.userId || '') === userId) return true;
   const organizationId = String(authStore.organizationData?._id || authStore.userData?.organizationId || '');
-  return (authStore.userData?.memberships || []).some(membership => (
-    String(membership?.organizationId) === organizationId && membership?.owner === true
-  ));
+  if (organizationId && !unsubscribeOrgCalls) {
+    unsubscribeOrgCalls = useConnections().subscribe(`org:${organizationId}`, handleCallActivity);
+  }
 }
 
-function channelRoom(channel = {}) {
-  return `call:channel:${channel._id}`;
+function roomKindIcon(kind = '') {
+  if (kind === 'group') return 'pi pi-users';
+  if (kind === 'direct') return 'pi pi-user';
+  return 'pi pi-volume-up';
 }
+
+function activeRoomLabel(room = {}) {
+  if (room.kind === 'group') {
+    const conversation = supportChatStore.conversations.find(item => (
+      item.conversationKind === 'group'
+      && item.conversationKey === `group:${room.room.slice('call:group:'.length)}`
+    ));
+    return conversation?.groupName || t('call.groupCall');
+  }
+  if (room.kind === 'direct') {
+    const otherId = room.room.split(':').slice(2).find(id => id !== currentUserId.value);
+    const conversation = supportChatStore.conversations.find(item => (
+      item.conversationKind === 'direct'
+      && (item.participants || []).map(String).includes(String(otherId))
+    ));
+    return conversation?.participant?.identity?.name || t('call.directCall');
+  }
+  return orgChannelLabel.value;
+}
+
+onBeforeUnmount(() => {
+  if (callActivityRefreshTimer) clearTimeout(callActivityRefreshTimer);
+  if (unsubscribeUserCalls) unsubscribeUserCalls();
+  if (unsubscribeOrgCalls) unsubscribeOrgCalls();
+});
 
 function joinRoom(room = '') {
   if (!room) return;
