@@ -28,7 +28,10 @@ conversations ring the organization room.
 caller may enter: the service calls the LiveKit server's
 `RoomService/ListRooms` HTTP API with a signed `roomList` token, keeps only
 `call:` rooms, and filters them through the same `authorizeRoom` admission
-as token minting. The home workspace sidebar's communication menu (a
+as token minting. Rooms with zero connected participants are skipped:
+LiveKit keeps emptied rooms alive for the server empty_timeout (default
+300s) after the last participant leaves, and an emptied room must not
+appear as an active call while it waits to be reaped. The home workspace sidebar's communication menu (a
 PrimeVue TieredMenu — see `components/shared/CommunicationMenu.vue`)
 renders this snapshot under its Calls item, beside the direct/group
 conversations that can be rung through the invite endpoint, and keeps it
@@ -65,6 +68,7 @@ conversation chat, not as floating dialogs.
 | Variable | Dev default |
 |---|---|
 | `LIVEKIT_PUBLIC_URL` | `ws://localhost:7880` (browser-facing) |
+| `LIVEKIT_INTERNAL_URL` | `ws://livekit:7880` (server-to-server RoomService; defaults to `LIVEKIT_PUBLIC_URL`). The compose app container cannot reach the published `localhost:7880`, so `listActiveRooms` must use the network-internal address. |
 | `LIVEKIT_API_KEY` | `devkey` |
 | `LIVEKIT_API_SECRET` | `devsecret` |
 
