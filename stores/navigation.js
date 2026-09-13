@@ -136,7 +136,6 @@ export const useNavigationStore = defineStore('navigation', () => {
     // Entirely dynamic based on role/org state and permissions
     const hubConfigs = [
         { id: 'organization', entity: 'organizations', level: 'read', nameKey: 'organization.workspace', to: '/organization', icon: 'pi pi-building' },
-        { id: 'admin', entity: 'organizations', level: 'admin', nameKey: 'nav.admin', to: '/admin', icon: 'pi pi-cog' },
     ];
 
     const visibleProcessNavigation = computed(() => resolveVisibleNavigation(
@@ -247,39 +246,6 @@ export const useNavigationStore = defineStore('navigation', () => {
             }
         }
 
-        // --- Level 2: Admin Context ---
-        if (parts[0] === 'admin') {
-             const adminTabs = [
-                { id: 'workbench', name: t('admin.workbench.title'), to: '/admin' },
-                { id: 'workflows', name: t('admin.workflows.title'), to: '/admin/workflows' },
-                { id: 'users', name: t('features.users'), to: '/admin/users' },
-                { id: 'config-bot', name: t('admin.configBot.title'), to: '/admin/config-bot' },
-                { id: 'support', name: t('admin.workbench.short.support'), to: '/admin/support' },
-             ].filter(item => processAllowsRoute(item.to));
-             const currentTabId = parts[1] || 'workbench';
-             const currentTab = adminTabs.find(t => t.id === currentTabId);
-             if (currentTab) {
-                 nav.push({
-                     name: currentTab.name,
-                     to: currentTab.to,
-                     siblings: adminTabs.map(t => siblingOption(t.name, t.to))
-                 });
-             }
-             if (currentTab?.id === 'workbench') {
-                 const section = Array.isArray(query.section) ? query.section[0] : query.section;
-                 const workbenchSections = [
-                    { id: 'entities', name: t('admin.workbench.entities'), to: '/admin?section=entities' },
-                    { id: 'context', name: t('admin.workbench.sectionsContext'), to: '/admin?section=context' },
-                    { id: 'commands', name: t('admin.workbench.sectionsCommands'), to: '/admin?section=commands' },
-                 ];
-                 const currentSection = workbenchSections.find(item => item.id === section) || workbenchSections[0];
-                 nav.push({
-                    name: currentSection.name,
-                    to: currentSection.to,
-                    siblings: workbenchSections.map(item => siblingOption(item.name, item.to))
-                 });
-             }
-        }
 
         if (currentHierarchyPath.value === path && currentHierarchy.value.length) {
             for (const item of currentHierarchy.value) {

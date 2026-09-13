@@ -157,5 +157,4 @@ architecturally meaningful are not deleted during UI refactors.
 
 ## Related
 
-- [admin pages](./admin/README.md)
 - [organization pages](./organization/README.md)

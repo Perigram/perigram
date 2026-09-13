@@ -128,7 +128,6 @@ against the configured `E2E_BASE_URL`.
 | Pages and public entry | [pages/README.md](./pages/README.md) |
 | Workers | [workers/README.md](./workers/README.md) |
 | E2E workflow tests | [e2e/README.md](./e2e/README.md) |
-| Admin workbench | [pages/admin/README.md](./pages/admin/README.md) |
 | Scripts and guardrails | [scripts/README.md](./scripts/README.md) |
 | Deploy tooling (Forgejo autodeploy) | [deploy/README.md](./deploy/README.md) |
 | Schema specs | [docs/specs/README.md](./docs/specs/README.md) |

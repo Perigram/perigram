@@ -133,5 +133,4 @@ on each array item instead of copying the whole object.
 ## Related
 - [users feature](../server/features/users/README.md) - Stores membership and
   copied permission data on user records.
-- [admin pages](../pages/admin/README.md) - Workbench editor for permission
   template drafts and UI action visibility drafts.

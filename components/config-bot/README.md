@@ -29,5 +29,4 @@ enable repository writes.
 ## Related
 
 - [Shared UI components](../shared/README.md)
-- [Admin pages](../../pages/admin/README.md)
 - [ConfigBot backend](../../server/features/config-bot/README.md)
