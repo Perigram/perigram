@@ -123,7 +123,7 @@
                                     <InputNumber v-model="nestingOptions.virtualLength" :min="100" :placeholder="$t('nesting.length')" size="small" />
                                     <InputNumber v-model="nestingOptions.virtualThickness" :min="0.01" :min-fraction-digits="1" :max-fraction-digits="3" :placeholder="$t('nesting.thickness')" size="small" />
                                 </div>
-                                <div class="rounded-panel border border-content-border bg-content p-3">
+                                <div class="rounded-panel border border-content-border p-3">
                                     <div class="flex items-center justify-between gap-3">
                                         <div class="flex min-w-0 items-center gap-2">
                                             <i class="ck-entity-icon ck-entity-icon-sheet-instance"></i>

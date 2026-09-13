@@ -106,7 +106,7 @@ function queueState(queue) {
             <div
               v-for="queue in visibleQueues"
               :key="queue._id"
-              class="rounded-ui border border-content-border bg-content px-3 py-2"
+              class="rounded-ui border border-content-border px-3 py-2"
             >
               <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
                 <div class="min-w-0 truncate text-label">
@@ -128,7 +128,7 @@ function queueState(queue) {
           <small v-else class="text-muted-color">{{ $t('queue.empty') }}</small>
         </div>
 
-        <div class="flex min-w-0 flex-col rounded-ui border border-content-border bg-content p-3">
+        <div class="flex min-w-0 flex-col rounded-ui border border-content-border p-3">
           <div class="grid grid-cols-2 gap-3 xl:grid-cols-1">
             <div>
               <small class="text-muted-color">{{ $t('project.queues') }}</small>

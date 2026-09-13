@@ -12,7 +12,7 @@
                         v-for="feature in entities"
                         :key="feature.key"
                         type="button"
-                        class="flex min-w-0 items-center justify-between gap-3 rounded-ui border border-content-border bg-content px-3 py-2 text-left"
+                        class="flex min-w-0 items-center justify-between gap-3 rounded-ui border border-content-border px-3 py-2 text-left"
                         :class="selectedFeatureKey === feature.key ? 'border-primary' : ''"
                         @click="selectedFeatureKey = feature.key"
                     >

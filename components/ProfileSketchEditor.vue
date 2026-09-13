@@ -41,7 +41,7 @@
         </div>
 
         <svg
-          class="h-[28rem] w-full rounded-ui bg-content"
+          class="h-[28rem] w-full rounded-ui"
           :viewBox="viewBox"
           role="img"
           :aria-label="$t('cassette.v2.profileEditor.preview')"

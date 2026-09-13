@@ -43,7 +43,7 @@
 
       <div
         v-if="contextPalette.open"
-        class="absolute z-30 flex max-h-80 w-72 flex-col gap-2 overflow-y-auto rounded-ui border border-content-border bg-content p-2 shadow-card"
+        class="absolute z-30 flex max-h-80 w-72 flex-col gap-2 overflow-y-auto rounded-ui border border-content-border p-2 shadow-card"
         :style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"
         @mousedown.stop
         @click.stop
@@ -518,7 +518,7 @@
                     <div
                       v-for="(entry, index) in selectedProcessNode.entries || []"
                       :key="entry.id"
-                      class="rounded-ui border border-content-border bg-content p-2"
+                      class="rounded-ui border border-content-border p-2"
                     >
                       <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                         <div class="grid min-w-0 gap-2">
