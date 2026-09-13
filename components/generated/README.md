@@ -118,10 +118,11 @@ Discord-style operational shell:
   passthroughs are layout-only: nested rows indent inside the row content so
   hover/selection keep the full row width, and the node label owns the
   remaining width so trailing row controls align to the row end.
-- Entity rows are single-line inline entity entries: `IdentityBlock
-  variant="inline"` plus the icon-variant `EntityStatus`, the same inline
-  identity row the workspace tab strip uses, with the tree owning selection.
-  The row's ellipsis control is separate at the end of the row.
+- Entity rows are inline entity entries through the shared component:
+  `EntityInlineRef variant="inline"` with `interactive: false` (non-expanding
+  inline card, no detail popup), followed by the icon-variant `EntityStatus`
+  and the separate ellipsis control at the end of the row. The tree owns
+  selection.
 - Generated mutation buttons follow the hierarchy and live behind one
   ellipsis menu per row: section folders expose the region's compiled create
   actions, and each entity row resolves the create actions of its entity
