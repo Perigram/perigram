@@ -2,10 +2,14 @@
   <div class="flex h-full min-w-0 flex-1 items-stretch overflow-hidden">
     <Tabs
       :value="activeKey"
+      scrollable
       class="min-w-0 flex-1 justify-center"
       @update:value="key => key !== activeKey && $emit('select', key)"
     >
-      <TabList class="min-w-0 flex-1">
+      <TabList
+        class="min-w-0 flex-1"
+        :pt="{ root: { style: { background: 'var(--ck-chrome-background)', borderBottomColor: 'var(--ck-chrome-border)' } } }"
+      >
         <Tab
           v-for="tab in tabs"
           :key="tab.key"

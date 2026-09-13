@@ -49,7 +49,7 @@
         @add="$emit('add-tab', $event)"
         @refresh="$emit('refresh')"
       />
-      <div class="flex shrink-0 items-center border-b border-content-border pr-1">
+      <div class="flex shrink-0 items-center border-b border-chrome-border bg-chrome pr-1">
         <GeneratedWorkspacePaneMenu
           :splittable="splittable"
           :closeable="closeable"
