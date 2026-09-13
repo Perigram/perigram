@@ -121,21 +121,20 @@ export const designTokens = {
 };
 
 export const cssVariableTokens = {
-    // Uniform canvas: the page and app-shell chrome sit ON the content
-    // background itself, so the shell, transparent structural containers,
-    // and PrimeVue controls all share one surface color in each scheme
-    // (zinc 0 light / zinc 900 dark). Structure reads through borders and
-    // `subtle` insets, elevation through overlay shadows — never painted
-    // boxes.
-    '--ck-page-background': 'var(--p-content-background)',
+    // The gray page (zinc 100 light / zinc 950 dark) is the single canvas;
+    // structural containers are transparent over it and PrimeVue
+    // controls/overlays carry the lighter content surface. Structure reads
+    // through borders and `subtle` insets (one step off the canvas),
+    // elevation through overlay shadows.
+    '--ck-page-background': 'var(--p-surface-100)',
     '--ck-process-canvas-background': 'var(--p-surface-50)',
-    '--ck-chrome-background': 'var(--p-content-background)',
+    '--ck-chrome-background': 'var(--p-surface-100)',
 
     '--ck-chrome-foreground': 'var(--p-text-color)',
     '--ck-chrome-muted': 'var(--p-text-muted-color)',
-    '--ck-chrome-subtle': 'var(--p-surface-100)',
+    '--ck-chrome-subtle': 'var(--p-surface-200)',
     '--ck-chrome-border': 'var(--p-content-border-color)',
-    '--ck-subtle-background': 'var(--p-surface-100)',
+    '--ck-subtle-background': 'var(--p-surface-200)',
     '--ck-surface-raised': 'var(--p-content-background)',
     '--ck-border-subtle': 'var(--p-content-border-color)',
     '--ck-selection-background': 'color-mix(in srgb, var(--p-primary-color) 20%, transparent)',
@@ -190,10 +189,11 @@ export const cssVariableTokens = {
 };
 
 export const darkCssVariableTokens = {
-    // Dark side of the uniform canvas contract: page and chrome ride the
-    // dark content background; subtle stays one step lighter for
-    // in-surface contrast over the shared surface.
+    // Dark side of the gray-canvas contract; subtle stays one step lighter
+    // for in-surface contrast.
+    '--ck-page-background': 'var(--p-surface-950)',
     '--ck-process-canvas-background': 'var(--p-surface-950)',
+    '--ck-chrome-background': 'var(--p-surface-950)',
     '--ck-chrome-foreground': 'var(--p-text-color)',
     '--ck-chrome-muted': 'var(--p-text-muted-color)',
     '--ck-chrome-subtle': 'var(--p-surface-800)',
