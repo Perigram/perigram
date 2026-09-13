@@ -116,10 +116,10 @@
       </Drawer>
 
       <template #dock>
-        <ProcessDesignerDock
+        <MotionDock
           :items="designerDockItems"
           :aria-label="$t('processDesigner.title')"
-          dock-class="process-designer-dock"
+          class-name="process-designer-dock"
         />
       </template>
 
@@ -937,7 +937,7 @@ import { cncDomain } from '@cutkit/domain-cnc';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
-import ProcessDesignerDock from '~/components/process-designer/ProcessDesignerDock.vue';
+import MotionDock from '~/components/shared/MotionDock.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
@@ -1242,62 +1242,48 @@ const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== s
 const dockSeparator = { separator: true };
 const designerDockItems = computed(() => [
   {
-    icon: 'pi pi-th-large',
+    icon: () => h('i', { class: 'pi pi-th-large', 'aria-hidden': 'true' }),
     label: t('processDesigner.palette'),
     onClick: () => { paletteOpen.value = !paletteOpen.value; },
     pressed: paletteOpen.value
   },
   {
-    icon: 'pi pi-sliders-h',
+    icon: () => h('i', { class: 'pi pi-sliders-h', 'aria-hidden': 'true' }),
     label: t('processDesigner.inspector'),
     onClick: () => { inspectorOpen.value = !inspectorOpen.value; },
     pressed: inspectorOpen.value
   },
-  dockSeparator,
   {
-    icon: 'pi pi-minus',
-    label: t('drawing.zoomOut'),
-    onClick: zoomCanvasOut
-  },
-  {
-    icon: 'pi pi-plus',
-    label: t('drawing.zoomIn'),
-    onClick: zoomCanvasIn
-  },
-  {
-    icon: 'pi pi-expand',
-    label: t('processDesigner.frameAll'),
-    onClick: frameAllNodes
-  },
-  {
-    icon: 'pi pi-crosshairs',
-    label: t('processDesigner.frameSelection'),
-    onClick: frameSelectedNodes
-  },
-  {
-    icon: 'pi pi-refresh',
-    label: t('processDesigner.resetZoom'),
-    onClick: resetCanvasZoom
-  },
-  dockSeparator,
-  {
-    icon: savingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-save',
+    icon: () => h('i', { class: savingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
     label: t('common.save'),
     onClick: saveDraftFromDock,
     disabled: !draft.value || savingDraft.value || creatingDraft.value || applyingProcess.value,
     attention: isDirty.value
   },
   {
-    icon: applyingProcess.value ? 'pi pi-spinner pi-spin' : 'pi pi-check',
+    icon: () => h('i', { class: applyingProcess.value ? 'pi pi-spinner pi-spin' : 'pi pi-check', 'aria-hidden': 'true' }),
     label: t('processDesigner.apply'),
     onClick: applyProcess,
     disabled: !draft.value?._id || isActiveProcess.value || applyingProcess.value || savingDraft.value || creatingDraft.value
   },
-  dockSeparator,
   {
-    icon: 'pi pi-folder',
+    icon: () => h('i', { class: 'pi pi-arrows-alt', 'aria-hidden': 'true' }),
+    label: t('processDesigner.canvasNavigation'),
+    onClick: event => openDockPopover('navigation', event),
+    onHoverStart: event => openDockPopover('navigation', event),
+    onHoverEnd: () => scheduleDockPopoverClose('navigation'),
+    onFocus: event => openDockPopover('navigation', event),
+    onBlur: () => scheduleDockPopoverClose('navigation'),
+    hasPopup: true
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-folder', 'aria-hidden': 'true' }),
     label: t('processDesigner.title'),
-    onClick: event => toggleProcessMenu(event),
+    onClick: event => openDockPopover('process', event),
+    onHoverStart: event => openDockPopover('process', event),
+    onHoverEnd: () => scheduleDockPopoverClose('process'),
+    onFocus: event => openDockPopover('process', event),
+    onBlur: () => scheduleDockPopoverClose('process'),
     hasPopup: true
   }
 ]);

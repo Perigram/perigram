@@ -1954,12 +1954,6 @@
     {
       "kind": "lineage",
       "source": "organization",
-      "target": "call_channel",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
       "target": "catalog",
       "via": "lineage.organizationId"
     },
