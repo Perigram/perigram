@@ -477,6 +477,12 @@ watch(openedEntityRefs, async refs => {
   openedEntityItems.value = loaded.filter(Boolean);
 }, { immediate: true, deep: true });
 
+// Declared before the immediate watcher below: it subscribes synchronously
+// on first evaluation, so the unsubscribe handles must already exist.
+let callActivityRefreshTimer = null;
+let unsubscribeUserCalls = null;
+let unsubscribeOrgCalls = null;
+
 watch(() => [
   authStore.userIsSet,
   authStore.organizationData?._id || authStore.userData?.organizationId,
@@ -501,10 +507,6 @@ async function loadActiveRooms() {
     activeCallRooms.value = [];
   }
 }
-
-let callActivityRefreshTimer = null;
-let unsubscribeUserCalls = null;
-let unsubscribeOrgCalls = null;
 
 function scheduleActiveRoomsRefresh() {
   if (callActivityRefreshTimer) return;
