@@ -2051,7 +2051,8 @@
       "lost": "Connection lost",
       "unknown": "Unknown connection"
     },
-    "reconnecting": "Reconnecting…"
+    "reconnecting": "Reconnecting…",
+    "orgChannel": "Organization room"
   },
   "sketch": {
     "editorTitle": "Sketch",

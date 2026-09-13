@@ -2,7 +2,7 @@
   <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
     <div class="hidden h-full min-h-0 flex-1 overflow-hidden md:flex" data-home-workspace>
       <aside
-        class="flex w-64 min-w-0 shrink-0 flex-col overflow-hidden border-r border-content-border bg-chrome text-[var(--ck-chrome-foreground)]"
+        class="home-explorer flex w-64 min-w-0 shrink-0 flex-col overflow-hidden border-r border-content-border bg-chrome"
         :aria-label="$t('nav.home')"
       >
         <header class="flex h-12 shrink-0 items-center border-b [border-color:var(--ck-chrome-border)] px-3">
@@ -12,66 +12,83 @@
           </NuxtLink>
         </header>
 
-        <nav class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-2">
-          <section
-            v-for="section in sections"
-            :key="section.region.id"
-            class="flex min-w-0 flex-col"
-            :data-home-entity-type="section.source.entityType"
-          >
-            <div class="flex min-w-0 items-center gap-1 px-2 py-1">
-              <i :class="sectionIcon(section)" class="shrink-0 text-[var(--ck-chrome-muted)]" aria-hidden="true" />
-              <span class="m-0 min-w-0 flex-1 truncate text-supporting text-[var(--ck-chrome-muted)]">
-                {{ sectionLabel(section) }}
-              </span>
+        <nav class="flex shrink-0 flex-col gap-1 border-b [border-color:var(--ck-chrome-border)] p-2">
+          <div class="flex min-w-0 items-center gap-1">
+            <Button
+              text
+              size="small"
+              severity="secondary"
+              class="min-w-0 flex-1 !justify-start"
+              icon="pi pi-comments"
+              :label="$t('support.chatTitle')"
+              :aria-label="$t('support.openChat')"
+              @click="openChats"
+            />
+            <Badge
+              v-if="supportChatStore.totalUnread"
+              :value="supportChatStore.totalUnread"
+              severity="danger"
+              size="small"
+              class="shrink-0"
+            />
+          </div>
+          <Button
+            text
+            size="small"
+            severity="secondary"
+            class="w-full !justify-start"
+            icon="pi pi-volume-up"
+            :label="orgChannelLabel"
+            :aria-label="$t('call.join')"
+            @click="joinOrgChannel"
+          />
+        </nav>
+
+        <Tree
+          v-model:selection-keys="selectionKeys"
+          v-model:expanded-keys="expandedKeys"
+          :value="explorerNodes"
+          selection-mode="single"
+          :aria-label="$t('nav.home')"
+          class="home-explorer-tree min-h-0 min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto !border-0 !p-1"
+          :pt="explorerTreePt"
+          @node-select="selectNode"
+          @node-expand="expandNode"
+        >
+          <template #default="{ node }">
+            <div
+              v-if="node.data?.section"
+              class="flex min-w-0 max-w-full flex-1 items-center gap-2"
+              :data-home-entity-type="node.data.section.source.entityType"
+            >
+              <i :class="node.icon" class="shrink-0" aria-hidden="true" />
+              <span class="min-w-0 flex-1 truncate text-label">{{ node.label }}</span>
               <GeneratedActionButton
-                v-for="action in collectionActions(section.region)"
+                v-for="action in collectionActions(node.data.section.region)"
                 :key="action.actionId"
                 :action-id="action.actionId"
                 icon-only
-                @execute="selectedAction => emit('execute-action', selectedAction, null, actionContext(section))"
-              />
-              <Button
-                v-if="sectionRoute(section)"
-                icon="pi pi-arrow-right"
-                text
-                rounded
-                size="small"
-                severity="secondary"
-                class="shrink-0 !text-[var(--ck-chrome-foreground)]"
-                :aria-label="sectionLabel(section)"
-                @click="navigateTo(sectionRoute(section))"
+                @execute="selectedAction => emit('execute-action', selectedAction, null, actionContext(node.data.section))"
               />
             </div>
             <div
-              v-for="entity in section.items"
-              :key="entity._id || entity.id || entity.identity?.uid"
-              class="flex min-w-0 items-center gap-1"
-              :data-entity-id="entity._id || entity.id || entity.identity?.uid"
+              v-else
+              class="flex min-w-0 max-w-full flex-1 items-center gap-2"
+              :data-entity-id="entityId(node.data?.item?.entity)"
             >
-              <Button
-                text
-                size="small"
-                :severity="isActiveItem(section, entity) ? 'primary' : 'secondary'"
-                class="min-w-0 flex-1 !justify-start"
-                :aria-current="isActiveItem(section, entity) ? 'true' : undefined"
-                @click="openWorkspaceEntity(section.source.entityType, entity)"
-              >
-                <span class="flex min-w-0 flex-1 items-center gap-2">
-                  <IdentityBlock :entity="entity" variant="compact" class="min-w-0 flex-1" />
-                </span>
-              </Button>
+              <IdentityBlock :entity="node.data?.item?.entity" variant="compact" class="min-w-0 flex-1" />
               <EntityStatus
-                v-if="entity.status"
-                :entity="entity"
-                :entity-type="section.source.entityType"
+                v-if="node.data?.item?.entity?.status"
+                :entity="node.data.item.entity"
+                :entity-type="node.data.item.type"
                 variant="icon"
+                @click.stop
                 @refresh="$emit('refresh')"
                 @transitioned="$emit('refresh')"
               />
             </div>
-          </section>
-        </nav>
+          </template>
+        </Tree>
 
         <footer class="flex shrink-0 items-center border-t [border-color:var(--ck-chrome-border)] p-2">
           <UserAccountMenu class="min-w-0 flex-1">
@@ -92,10 +109,10 @@
                   size="small"
                   class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                 />
-                <span class="m-0 min-w-0 flex-1 truncate text-left text-label !text-[var(--ck-chrome-foreground)]">
+                <span class="m-0 min-w-0 flex-1 truncate text-left text-label">
                   {{ authStore.userData.name || $t('common.user') }}
                 </span>
-                <i class="pi pi-chevron-up shrink-0 text-[var(--ck-chrome-muted)]" aria-hidden="true" />
+                <i class="pi pi-chevron-up shrink-0" aria-hidden="true" />
               </Button>
             </template>
           </UserAccountMenu>
@@ -139,18 +156,33 @@
         @execute-action="(action, entity, context) => $emit('execute-action', action, entity, context)"
       />
     </div>
+
+    <StandardDialog
+      v-model:visible="callDialog"
+      :header="$t('call.title')"
+      size="full"
+      :show-default-footer="false"
+    >
+      <div class="flex h-support-chat flex-col">
+        <CallPanel v-if="callDialog && callRoom" :key="callRoom" :room="callRoom" @closed="callDialog = false" />
+      </div>
+    </StandardDialog>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
+import Badge from 'primevue/badge';
+import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
+import CallPanel from '~/components/calls/CallPanel.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
@@ -158,9 +190,14 @@ import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/ge
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities.js';
+import { useSupportChatStore } from '~/stores/supportChat';
+import { useSupportDialog } from '~/composables/useModalState';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedRegionLabel } from '~/utils/generated-labels.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
+import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
+import { containmentParent, normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
 import {
   closeWorkspaceLeaf,
   createWorkspaceLeaf,
@@ -186,15 +223,33 @@ const emit = defineEmits(['refresh', 'execute-action']);
 const authStore = useAuthStore();
 const entityStore = useEntityStore();
 const domainUi = useCutkitDomainUi();
+const supportChatStore = useSupportChatStore();
+const supportDialog = useSupportDialog();
+const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
 const activePaneId = ref('pane-1');
 const paneSequence = ref(1);
 const paneTree = ref(createWorkspaceLeaf('pane-1'));
+const selectionKeys = ref({});
+const expandedKeys = ref({});
 const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
 const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
+const callDialog = ref(false);
+const callRoom = ref('');
+const loadedChildKeys = ref(new Set());
 let openedEntityLoadSequence = 0;
+let childLoadSequences = new Map();
+const explorerTreePt = {
+  root: { class: '!min-w-0 !max-w-full !overflow-hidden' },
+  node: { class: '!min-w-0 !max-w-full !overflow-hidden' },
+  nodeContent: { class: '!min-w-0 !max-w-full !overflow-hidden !px-1 !py-0.5 !gap-1' },
+  nodeLabel: { class: '!min-w-0 !overflow-hidden' },
+  nodeToggleButton: { class: '!h-6 !w-6' }
+};
+
+provide('displayedEntityContexts', computed(() => []));
 
 const sections = computed(() => props.screen.regions
   .map(region => {
@@ -242,6 +297,56 @@ const workspaceStorageKey = computed(() => homeWorkspaceStorageKey({
   userId: authStore.userData?.id || authStore.userData?.userId || authStore.userData?._id,
   organizationId: authStore.organizationData?._id || authStore.userData?.organizationId
 }));
+const orgChannelLabel = computed(() => (
+  authStore.organizationData?.identity?.name
+  || authStore.organizationData?.data?.name
+  || t('call.orgChannel')
+));
+const orgChannelRoom = computed(() => {
+  const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId;
+  return organizationId ? `call:org:${organizationId}` : '';
+});
+
+// Items nested under another loaded workspace item through the effective
+// containment graph: lazily fetched explorer children and entities opened
+// from nested surfaces both nest beneath their loaded ancestor.
+const childrenByKey = computed(() => {
+  const containment = effectiveContainment();
+  const byIdentity = new Map(workspaceEntityItems.value.map(item => [
+    `${normalizeHierarchyType(item.type)}:${entityId(item.entity)}`,
+    item
+  ]));
+  const children = new Map();
+  for (const item of workspaceEntityItems.value) {
+    const parent = containmentParent(item.type, item.entity?.lineage || {}, containment);
+    const parentId = parent && item.entity?.lineage?.[parent.lineageKey];
+    const parentItem = parentId ? byIdentity.get(`${normalizeHierarchyType(parent.parentType)}:${String(parentId)}`) : null;
+    if (!parentItem || parentItem.key === item.key) continue;
+    if (sectionRootKeys.value.has(item.key)) continue;
+    children.set(item.key, parentItem.key);
+  }
+  return children;
+});
+const sectionRootKeys = computed(() => new Set(sectionItems.value.map(item => item.key)));
+
+const explorerNodes = computed(() => sections.value
+  .map(section => ({
+    key: sectionMenuKey(section),
+    label: sectionLabel(section),
+    icon: sectionIcon(section),
+    selectable: false,
+    data: { section },
+    children: sectionItemsFor(section.region.id).map(item => entityNode(item))
+  })));
+
+watch(sections, value => {
+  const next = { ...expandedKeys.value };
+  for (const section of value) {
+    const key = sectionMenuKey(section);
+    if (!(key in next)) next[key] = true;
+  }
+  expandedKeys.value = next;
+}, { immediate: true });
 
 watch(workspaceStorageKey, key => {
   if (!key || typeof window === 'undefined') return;
@@ -252,6 +357,7 @@ watch(workspaceStorageKey, key => {
   openedEntityRefs.value = state.openedEntityRefs;
   openedPageRefs.value = state.openedPageRefs;
   hydratedStorageKey.value = key;
+  syncActiveSelection();
 }, { immediate: true });
 
 watch(
@@ -284,6 +390,8 @@ watch(openedEntityRefs, async refs => {
   openedEntityItems.value = loaded.filter(Boolean);
 }, { immediate: true, deep: true });
 
+watch([activePaneId, paneTree], syncActiveSelection);
+
 function collectionActions(region = {}) {
   return resolvedRegionActions(region)
     .filter(action => action?.actionKind === 'createEntity');
@@ -310,21 +418,6 @@ function actionContext(section = {}) {
   };
 }
 
-function sectionRoute(section = {}) {
-  if (section.region.route) return section.region.route;
-  const entityType = section.source.entityType;
-  const screen = authStore.screenManifest.find(item => (
-    item.template === 'entityList'
-    && item.entityType === entityType
-    && (item.screenKey || item.id) === section.region.screenKey
-  )) || authStore.screenManifest.find(item => (
-    item.template === 'entityList'
-    && item.entityType === entityType
-    && item.placement === 'hub'
-  ));
-  return screen?.route || '';
-}
-
 function sectionLabel(section = {}) {
   return generatedRegionLabel(section.region, section.source, { t, te });
 }
@@ -333,12 +426,84 @@ function sectionIcon(section = {}) {
   return domainUi.getIcon(section.source.entityType);
 }
 
-function isActiveItem(section = {}, entity = {}) {
-  return Boolean(activePane.value?.selectionKey === entityKey(section.source.entityType, entity));
+function sectionMenuKey(section = {}) {
+  return `section:${section.region.id}`;
+}
+
+function sectionItemsFor(regionId) {
+  const section = sections.value.find(candidate => candidate.region.id === regionId);
+  return section ? sectionItems.value.filter(item => (
+    item.type === section.source.entityType
+    && section.items.some(entity => entityId(entity) === entityId(item.entity))
+  )) : [];
+}
+
+function entityNode(item) {
+  const declaredChildren = effectiveContainment().some(relation => (
+    relation.parentType === item.type
+  ));
+  const children = workspaceEntityItems.value.filter(candidate => childrenByKey.value.get(candidate.key) === item.key);
+  return {
+    key: item.key,
+    icon: domainUi.getIcon(item.type),
+    data: { item },
+    leaf: !declaredChildren && children.length === 0,
+    children: children.length ? children.map(entityNode) : undefined
+  };
+}
+
+function selectNode(node) {
+  const item = node.data?.item;
+  if (!item) return;
+  selectByKey(item.key);
+}
+
+function expandNode(node) {
+  const item = node.data?.item;
+  if (item) loadChildrenFor(item);
+}
+
+async function loadChildrenFor(parent) {
+  if (!parent || loadedChildKeys.value.has(parent.key)) return;
+  loadedChildKeys.value.add(parent.key);
+  const sequence = (childLoadSequences.get(parent.key) || 0) + 1;
+  childLoadSequences.set(parent.key, sequence);
+  const sources = linkedExplorerChildSources({
+    linkedItems: [parent],
+    screens: authStore.screenManifest,
+    containment: effectiveContainment()
+  });
+  const loaded = await Promise.all(sources.map(async source => {
+    try {
+      const entities = await $fetch(domainUi.getListEndpoint(source.entityType, source.filters));
+      return (Array.isArray(entities) ? entities : []).map(entity => workspaceEntityItem(source.entityType, entity));
+    } catch {
+      return [];
+    }
+  }));
+  if (childLoadSequences.get(parent.key) !== sequence) return;
+  const known = new Set(workspaceEntityItems.value.map(item => item.key));
+  const additions = loaded.flat().filter(item => item?.entity && entityId(item.entity) && !known.has(item.key));
+  if (additions.length) openedEntityItems.value = [...openedEntityItems.value, ...additions];
+}
+
+function openChats() {
+  supportDialog.value = true;
+}
+
+function joinOrgChannel() {
+  if (!orgChannelRoom.value) return;
+  callRoom.value = orgChannelRoom.value;
+  callDialog.value = true;
 }
 
 function activatePane(paneId) {
   activePaneId.value = paneId;
+}
+
+function selectByKey(key) {
+  if (!workspaceItems.value.some(item => item.key === key) || !activePane.value) return;
+  selectPaneTab(activePane.value.id, key);
 }
 
 function selectPaneTab(paneId, key) {
@@ -347,6 +512,7 @@ function selectPaneTab(paneId, key) {
   const tabKeys = [...new Set([...(pane.tabKeys || []), key])];
   paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, { selectionKey: key, tabKeys });
   activePaneId.value = paneId;
+  syncActiveSelection();
 }
 
 function closePaneTab(paneId, key) {
@@ -366,6 +532,7 @@ function closePaneTab(paneId, key) {
     openedPageRefs.value = openedPageRefs.value.filter(reference => reference.key !== key);
   }
   activePaneId.value = paneId;
+  syncActiveSelection();
 }
 
 function splitPane(paneId, orientation) {
@@ -488,6 +655,11 @@ function tabItemsForPane(pane) {
     .filter(Boolean);
 }
 
+function syncActiveSelection() {
+  const key = activePane.value?.selectionKey || '';
+  selectionKeys.value = key ? { [key]: true } : {};
+}
+
 function workspacePageKey(pageId, entity) {
   return `page:${pageId}:${entityId(entity)}`;
 }
@@ -519,3 +691,23 @@ function entityId(entity = null) {
   return value ? String(value) : '';
 }
 </script>
+
+<style scoped>
+.home-explorer {
+  container-type: inline-size;
+}
+
+.home-explorer-tree :deep(.p-tree-root),
+.home-explorer-tree :deep(.p-tree-node),
+.home-explorer-tree :deep(.p-tree-node-content),
+.home-explorer-tree :deep(.p-tree-node-label),
+.home-explorer-tree :deep(.p-tree-node-children) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.home-explorer-tree :deep(.p-tree-node-content),
+.home-explorer-tree :deep(.p-tree-node-label) {
+  overflow: hidden;
+}
+</style>
