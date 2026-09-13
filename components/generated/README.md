@@ -122,7 +122,8 @@ Discord-style operational shell:
   `EntityInlineRef variant="inline"` with `interactive: false` (non-expanding
   inline card, no detail popup), followed by the icon-variant `EntityStatus`
   and the separate ellipsis control at the end of the row. The tree owns
-  selection.
+  selection. Entity nodes carry no tree-level icon — the inline chip owns the
+  entity icon, and a tree icon would duplicate it.
 - Generated mutation buttons follow the hierarchy and live behind one
   ellipsis menu per row: section folders expose the region's compiled create
   actions, and each entity row resolves the create actions of its entity
