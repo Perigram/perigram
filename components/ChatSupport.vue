@@ -6,19 +6,19 @@
     >
         <div
             v-if="supportDialog || embedded"
-            :class="embedded
-                ? fullPage
-                    ? 'flex h-full min-h-0 w-full flex-col overflow-hidden pointer-events-auto lg:flex-row lg:rounded-ui'
-                    : 'flex h-full min-h-0 w-full flex-col overflow-hidden pointer-events-auto'
-                : 'flex h-dvh w-full flex-col overflow-hidden bg-content shadow-overlay pointer-events-auto md:h-support-chat md:w-support-chat md:rounded-ui'"
+            :class="[
+                embedded
+                    ? fullPage
+                        ? 'chat-page flex h-full min-h-0 w-full flex-col overflow-hidden pointer-events-auto'
+                        : 'flex h-full min-h-0 w-full flex-col overflow-hidden pointer-events-auto'
+                    : 'flex h-dvh w-full flex-col overflow-hidden bg-content shadow-overlay pointer-events-auto md:h-support-chat md:w-support-chat md:rounded-ui',
+                fullPage && activeConversation ? 'chat-page--thread' : ''
+            ]"
         >
             <aside
                 v-if="!activeConversation || fullPage"
-                class="flex min-h-0 flex-col overflow-hidden"
-                :class="[
-                    fullPage ? 'lg:w-80 lg:shrink-0 lg:border-r lg:border-chrome-border' : 'flex-1',
-                    { 'hidden lg:flex': fullPage && activeConversation }
-                ]"
+                class="chat-inbox flex min-h-0 flex-col overflow-hidden"
+                :class="fullPage ? 'chat-inbox--rail border-r border-chrome-border' : 'flex-1'"
             >
                 <div class="flex shrink-0 items-center justify-end gap-1 px-2 pt-2">
                     <Button
@@ -120,7 +120,7 @@
                 </div>
             </aside>
 
-            <div v-if="fullPage && !activeConversation" class="hidden min-h-0 flex-1 items-center justify-center lg:flex">
+            <div v-if="fullPage && !activeConversation" class="chat-empty min-h-0 flex-1 items-center justify-center">
                 <StateBlock :message="$t('support.selectConversation')" icon="pi pi-comments" />
             </div>
 
@@ -132,7 +132,7 @@
                         text
                         rounded
                         size="small"
-                        :class="fullPage ? 'lg:hidden' : ''"
+                        :class="fullPage ? 'chat-back' : ''"
                         :aria-label="$t('common.back')"
                         @click="showInbox"
                     />
@@ -1093,3 +1093,42 @@ const directConversationKey = (left, right) => {
     return `direct:${[left, right].map(String).sort().join(':')}`
 }
 </script>
+
+<style scoped>
+/*
+ * Container-driven layout: the two-pane chats split responds to the chat
+ * surface's own width, not the viewport, so the workspace tab behaves in
+ * narrow or split panes — below 44rem the thread takes the full surface
+ * (mobile-like column), above it the inbox rail sits beside it.
+ */
+.chat-page {
+  container-type: inline-size;
+}
+
+.chat-page--thread .chat-inbox--rail {
+  display: none;
+}
+
+.chat-empty {
+  display: none;
+}
+
+@container (min-width: 44rem) {
+  .chat-inbox--rail {
+    flex: none;
+    width: 20rem;
+  }
+
+  .chat-page--thread .chat-inbox--rail {
+    display: flex;
+  }
+
+  .chat-page--thread .chat-back {
+    display: none;
+  }
+
+  .chat-empty {
+    display: flex;
+  }
+}
+</style>
