@@ -6,7 +6,7 @@
       </div>
       <aside
         v-if="conversationKey"
-        class="call-workspace__chat flex shrink-0 basis-56 max-h-[60%] flex-col overflow-hidden border-t border-l border-chrome-border"
+        class="call-workspace__chat flex shrink-0 grow-0 basis-2/5 flex-col overflow-hidden border-t border-l border-chrome-border"
         :aria-label="$t('support.chatTitle')"
       >
         <ChatSupport embedded :conversation-key="conversationKey" />
