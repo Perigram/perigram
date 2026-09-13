@@ -189,6 +189,7 @@ export const useNavigationStore = defineStore('navigation', () => {
                 to: config.to,
                 icon: config.icon
             }));
+    });
 
     // Master breadcrumb generator
     const resolveBreadcrumbs = (path, query = {}) => {
