@@ -1,11 +1,11 @@
 # COMPONENT: Components
 
 ## Style Guide
-- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states.
+- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Material appearance. The app preset supplies only the brand primary palette and the zinc surface scale; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states.
 - **Zero Styling Policy:** Components MUST avoid manual visual styling. Feature code may own layout and data-driven styling only. Reusable domain entity surfaces, operational workspaces, geometry/process designers, and recurring layouts use the registered shared primitives and semantic aliases from `assets/tokens/`.
 - **Motion:** Motion is contextual behavior, not an application theme concern.
   Keep interaction-specific motion inside the owning derived composition, use
-  Aura's transition duration for generic states, and respect
+  the preset's transition duration for generic states, and respect
   `useReducedMotion()`. JavaScript motion uses the GSAP patterns from
   `composables/useMotion.js` — do not introduce another motion library. Do not
   add perpetual, global, or page-local animation
@@ -92,7 +92,7 @@ All entity-related components MUST use these patterns:
 | Audit log | `<StatusHistory :entity="..." entity-type="..." />` |
 | Detail page header | `<EntityPage :entity="..." entity-type="..." />` |
 | CRUD + status operations | `useEntity(type, id)` |
-| Entity/container structure | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout; Aura owns generic chrome |
+| Entity/container structure | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout; Material owns generic chrome |
 | Section/page action rows | `<ActionToolbar>` |
 | Route-level aggregate facts | `<MetricPanel>` |
 | Repeated card grids | `<ResponsiveGrid>` |
@@ -312,14 +312,20 @@ actions do not have an existing entity row. Parent-bound collection actions also
 emit the source and region context so the generated screen can pass the active
 parent id from screen scope to the process action endpoint, or open a parent
 selector when the target entity list is not already scoped to that parent.
-The generated `home` template is the user's process start screen. It renders
-compiler-selected top-level entity-list sources as horizontal card sections and
-uses the region's compiled action ids for section-level create buttons and
-entity-card action footers. Entity-card actions use the same status/entity
-filters as collection screens. The home template must reuse the same entity
-primitives and generated action execution path as collection screens; it must
-not invent static dashboard widgets, hardcoded domain routes, or per-card
-create buttons. Each home section resolves its open-list button from the
+The generated `home` template is the user's process start screen. Its desktop
+surface is the Discord-style `GeneratedHomeWorkspace` overload (see
+[components/generated/README.md](./generated/README.md)): entities live in the
+sidebar grouped by home section, the active entity opens in the recursive
+tab/split pane area, region create buttons render on their sidebar section
+entries, and the sidebar footer carries the user controls that the desktop
+navbar owns on other routes. Mobile keeps the previous stacked home sections
+(`GeneratedHomeScreen`) with section-level create buttons and entity-card
+action footers. Both surfaces use the region's compiled action ids and the
+same status/entity filters as collection screens. The home template must
+reuse the same entity primitives and generated action execution path as
+collection screens; it must not invent static dashboard widgets, hardcoded
+domain routes, or per-card create buttons. Each home section resolves its
+open-list button from the
 compiled region route or the matching compiled entity-list screen in the
 current screen manifest; it must not construct list routes from entity names.
 Home root filtering is derived at runtime from the domain containment graph,
@@ -332,7 +338,7 @@ empty child sections are omitted as well. Empty top-level sections remain
 available when they own a top-level create action. Record filtering still
 suppresses a descendant when any non-organization ancestor is readable, not
 only when its immediate parent is a Home section.
-Home sections are true horizontal carousels: entity cards keep a stable
+Mobile home sections are true horizontal carousels: entity cards keep a stable
 non-shrinking width and overflow horizontally instead of shrinking every card
 to fit the viewport. The fixed width belongs on the carousel item wrapper, not
 on `<EntityCard>` itself, because shared entity cards have variant root
@@ -625,9 +631,9 @@ field-access policy.
 
 ## Visual Tokens
 
-`assets/tokens/index.js` is the sole textual source for app-owned visual values. Nuxt projects its light and dark CSS variable maps into the document, Tailwind consumes its semantic aliases, and the PrimeVue preset projects only the primary brand palette onto Aura. Do not duplicate token values in runtime CSS or add generic PrimeVue component-token overrides.
+`assets/tokens/index.js` is the sole textual source for app-owned visual values. Nuxt projects its light and dark CSS variable maps into the document, Tailwind consumes its semantic aliases, and the PrimeVue preset projects only the primary brand palette and zinc surface scale onto Material. Do not duplicate token values in runtime CSS or add generic PrimeVue component-token overrides.
 
-Aura owns generic control and container typography, spacing, borders, radii, shadows, hover, active, disabled, invalid, and keyboard-focus states. App tokens are bounded to domain entity tones, status/process signals, operational workspace constraints, reusable layout dimensions, motion, and app-shell chrome. The `rounded-ui`, `rounded-panel`, `shadow-card`, and `shadow-overlay` utility aliases consume Aura variables directly; they do not define application radius or elevation values.
+Material owns generic control and container typography, spacing, borders, radii, shadows, hover, active, disabled, invalid, and keyboard-focus states. App tokens are bounded to domain entity tones, status/process signals, operational workspace constraints, reusable layout dimensions, motion, and app-shell chrome. The `rounded-ui`, `rounded-panel`, `shadow-card`, and `shadow-overlay` utility aliases consume Material variables directly; they do not define application radius or elevation values.
 
 Application typography has exactly eight complete roles: `text-page-title`,
 `text-section-heading`, `text-body`, `text-label`, `text-supporting`,
@@ -635,7 +641,7 @@ Application typography has exactly eight complete roles: `text-page-title`,
 family, size, line height, weight, tracking, and numeric behavior from
 `assets/tokens/index.js`; usage sites must not compose those treatments from
 raw size, weight, tracking, leading, mono, or serif utilities. Only
-`page-title` scales responsively. PrimeVue controls inherit Aura typography
+`page-title` scales responsively. PrimeVue controls inherit Material typography
 unless their content itself has a technical or prose role. HTML elements such
 as `p`, `blockquote`, headings, `pre`, and `code` never select an application
 role by themselves. Non-role font sizing is limited to locally documented
@@ -645,7 +651,7 @@ Nested active app surfaces must use semantic aliases such as `bg-content` or
 `bg-subtle`, not raw palette utilities like `bg-surface-50`, so dark mode uses
 the app token overrides consistently.
 
-Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, typography, or transition durations. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Scoped CSS is limited to exact reusable-layout declarations enforced by `shared/design-system.spec.js`; padding remains Aura-owned spacing. Inline bindings are either exact reusable layout or derived semantic composition, or narrowly allowlisted when their visual value is driven by data.
+Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, typography, or transition durations. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Scoped CSS is limited to exact reusable-layout declarations enforced by `shared/design-system.spec.js`; padding remains Material-owned spacing. Inline bindings are either exact reusable layout or derived semantic composition, or narrowly allowlisted when their visual value is driven by data.
 
 ## UI Inventory Policy
 
