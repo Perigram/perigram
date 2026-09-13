@@ -110,9 +110,13 @@ const resolvedId = computed(() => normalizedId.value
 );
 const icon = computed(() => domainUi.getIcon?.(props.type) || 'pi pi-box');
 const cardComponent = computed(() => CARD_COMPONENTS[contract.value?.key] || null);
+// `interactive: false` renders the inline entity card non-expandable, so
+// non-interactive rows (explorer entries, static summaries) can consume the
+// inline card without its detail popup.
 const cardProps = computed(() => ({
   [contract.value?.propName || 'entity']: resolved.value,
-  variant: 'inline'
+  variant: 'inline',
+  expandable: props.interactive
 }));
 const detailRoute = computed(() => {
   if (!props.allowDetailRoute || !authStore.processActive || !resolvedId.value) return null;

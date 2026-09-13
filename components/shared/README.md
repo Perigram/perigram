@@ -350,7 +350,9 @@ When only an id is provided, it resolves the DTO through the entity store's
 access-filtered optional-reference lookup, resolves the matching design-system
 entity card, and renders that card with
 `variant="inline"`. The referenced entity card owns the click/keyboard popover
-and reuses its canonical body inside that popover. In generated surfaces,
+and reuses its canonical body inside that popover; `interactive: false`
+renders the inline card non-expandable for non-interactive rows such as
+explorer entries and static summaries. In generated surfaces,
 the popover action row is access-aware: `EntityInlineRef` resolves the
 referenced entity's generated detail-screen actions, forwards them to
 `EntityCard`, and invokes the surrounding generated screen's action executor

@@ -122,7 +122,15 @@
                 class="flex min-w-0 flex-1 items-center gap-1"
                 :data-entity-id="entityId(node.data?.item?.entity)"
               >
-                <IdentityBlock :entity="node.data?.item?.entity" variant="inline" class="min-w-0 flex-1" />
+                <EntityInlineRef
+                  :type="node.data.item.type"
+                  :entity="node.data.item.entity"
+                  :fetch="false"
+                  :fields="[]"
+                  :interactive="false"
+                  variant="inline"
+                  class="min-w-0 flex-1"
+                />
                 <EntityStatus
                   v-if="node.data?.item?.entity?.status"
                   :entity="node.data.item.entity"
@@ -272,7 +280,7 @@ import Tree from 'primevue/tree';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import { useI18n } from 'vue-i18n';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
