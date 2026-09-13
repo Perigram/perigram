@@ -7,13 +7,12 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 - `index.js` exports application semantic tokens plus bounded projections for
   PrimeVue, Tailwind, and Nuxt runtime CSS variables.
   Its active palette keeps signal-orange intent accents on the zinc surface
-  scale. The surface contract is flat: the gray page (`--p-surface-100`
-  light, `--p-surface-950` dark) is the single canvas and structural
-  containers — panes, tab strips, layouts, chats, call surfaces — paint no
-  background at all; only overlays and controls (dialogs, popovers,
-  PrimeVue inputs) carry the lighter content background, while
-  `--ck-subtle-background` (one step off the canvas) provides in-surface
-  contrast for bubbles, hover rows, and placeholders.
+  scale. The surface contract is uniform and flat: the page and app-shell
+  chrome sit ON the content background itself, so the shell, transparent
+  structural containers — panes, tab strips, layouts, chats, call
+  surfaces — and PrimeVue controls all share one surface color per scheme;
+  structure reads through borders and `--ck-subtle-background` insets
+  (one step off the canvas) and elevation through overlay shadows.
   `--ck-process-canvas-background` provides a dedicated graph-work surface.
   `typography.roles` is the complete application
   type contract: page title, section heading, body, label, supporting, metric,

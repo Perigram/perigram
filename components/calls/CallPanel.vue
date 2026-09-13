@@ -1,5 +1,5 @@
 <template>
-    <div class="relative flex h-full min-h-0 flex-col gap-3">
+    <div class="call-panel relative flex h-full min-h-0 flex-col gap-3">
         <ActionToolbar :subtitle="statusText" :level="2">
             <template #actions>
                 <SelectButton
@@ -91,7 +91,7 @@
                 <span class="rounded-ui bg-content px-3 py-1 text-supporting">{{ $t('call.reconnecting') }}</span>
             </div>
 
-            <div v-if="layout === 'speaker'" class="flex min-h-0 flex-1 flex-col gap-3 md:flex-row">
+            <div v-if="layout === 'speaker'" class="call-stage flex min-h-0 flex-1 flex-col gap-3">
                 <div class="flex min-h-0 flex-1 items-stretch">
                     <CallTile
                         v-if="spotlightTile"
@@ -102,18 +102,18 @@
                         @video="el => attachTile(spotlightTile, el)"
                     />
                 </div>
-                <div class="flex shrink-0 gap-3 overflow-x-auto pb-1 md:flex-col md:overflow-x-visible md:overflow-y-auto md:pb-0 md:w-64">
+                <div class="call-strip flex shrink-0 gap-3 overflow-x-auto pb-1">
                     <CallTile
                         v-for="tile in stripTiles"
                         :key="`strip-${tile.identity}-${tile.isScreen}`"
                         :tile="tile"
-                        class="w-40 shrink-0 md:w-full"
+                        class="call-strip-tile w-40 shrink-0"
                         @toggle-pin="togglePin"
                         @video="el => attachTile(tile, el)"
                     />
                 </div>
             </div>
-            <div v-else class="grid min-h-0 flex-1 auto-rows-fr gap-3 overflow-y-auto md:grid-cols-2">
+            <div v-else class="call-grid grid min-h-0 flex-1 auto-rows-fr gap-3 overflow-y-auto">
                 <CallTile
                     v-for="tile in tiles"
                     :key="`grid-${tile.identity}-${tile.isScreen}`"
@@ -528,3 +528,35 @@ onBeforeUnmount(() => {
     livekitRoom = null;
 });
 </script>
+
+<style scoped>
+/*
+ * Container-driven layout: the speaker/grid stage responds to the panel's
+ * own width, not the viewport, so calls lay out correctly inside arbitrary
+ * workspace panes — narrow containers stack the strip and single-column
+ * the grid, wide containers get the side strip and two-column grid.
+ */
+.call-panel {
+  container-type: inline-size;
+}
+
+@container (min-width: 40rem) {
+  .call-panel .call-stage {
+    flex-direction: row;
+  }
+
+  .call-panel .call-strip {
+    flex-direction: column;
+    overflow: visible auto;
+    width: 16rem;
+  }
+
+  .call-panel .call-strip-tile {
+    width: 100%;
+  }
+
+  .call-panel .call-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+</style>

@@ -121,20 +121,21 @@ export const designTokens = {
 };
 
 export const cssVariableTokens = {
-    // Flat surface contract: the gray page (zinc 100 light / zinc 950 dark)
-    // is the single canvas. Structural containers — panes, tab strips,
-    // layouts, chats, and call surfaces — paint no background at all; only
-    // overlays (dialogs, popovers, PrimeVue controls) carry the lighter
-    // content surface, and `subtle` provides in-surface contrast on gray.
-    '--ck-page-background': 'var(--p-surface-100)',
+    // Uniform canvas: the page and app-shell chrome sit ON the content
+    // background itself, so the shell, transparent structural containers,
+    // and PrimeVue controls all share one surface color in each scheme
+    // (zinc 0 light / zinc 900 dark). Structure reads through borders and
+    // `subtle` insets, elevation through overlay shadows — never painted
+    // boxes.
+    '--ck-page-background': 'var(--p-content-background)',
     '--ck-process-canvas-background': 'var(--p-surface-50)',
-    '--ck-chrome-background': 'var(--p-surface-100)',
+    '--ck-chrome-background': 'var(--p-content-background)',
 
     '--ck-chrome-foreground': 'var(--p-text-color)',
     '--ck-chrome-muted': 'var(--p-text-muted-color)',
-    '--ck-chrome-subtle': 'var(--p-surface-200)',
+    '--ck-chrome-subtle': 'var(--p-surface-100)',
     '--ck-chrome-border': 'var(--p-content-border-color)',
-    '--ck-subtle-background': 'var(--p-surface-200)',
+    '--ck-subtle-background': 'var(--p-surface-100)',
     '--ck-surface-raised': 'var(--p-content-background)',
     '--ck-border-subtle': 'var(--p-content-border-color)',
     '--ck-selection-background': 'color-mix(in srgb, var(--p-primary-color) 20%, transparent)',
@@ -189,11 +190,10 @@ export const cssVariableTokens = {
 };
 
 export const darkCssVariableTokens = {
-    // Dark side of the flat surface contract: the zinc 950 canvas with
-    // transparent structural containers; overlays carry zinc 900.
-    '--ck-page-background': 'var(--p-surface-950)',
+    // Dark side of the uniform canvas contract: page and chrome ride the
+    // dark content background; subtle stays one step lighter for
+    // in-surface contrast over the shared surface.
     '--ck-process-canvas-background': 'var(--p-surface-950)',
-    '--ck-chrome-background': 'var(--p-surface-950)',
     '--ck-chrome-foreground': 'var(--p-text-color)',
     '--ck-chrome-muted': 'var(--p-text-muted-color)',
     '--ck-chrome-subtle': 'var(--p-surface-800)',
