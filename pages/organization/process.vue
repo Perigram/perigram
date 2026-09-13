@@ -83,30 +83,30 @@
       </div>
 
       <template v-if="paletteOpen" #palette>
-        <div class="flex w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 rounded-ui border border-content-border bg-content p-3 shadow-card">
-        <div class="flex flex-col gap-3">
-          <div class="flex items-center gap-1">
-            <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
-          </div>
-          <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
-            <span class="px-1 uppercase text-muted-color text-supporting">{{ paletteGroupLabel(group.id) }}</span>
-            <div class="grid grid-cols-2 gap-1.5">
-              <Button
-                v-for="item in group.items"
-                :key="item.id"
-                :icon="item.icon"
-                :label="paletteLabel(item)"
-                :aria-label="paletteLabel(item)"
-                v-tooltip.right="paletteDescription(item)"
-                size="small"
-                text
-                class="min-w-0 justify-start border border-transparent bg-subtle px-2 hover:border-content-border"
-                @click="addNode(item)"
-              />
+        <Panel :header="$t('processDesigner.palette')" class="w-72">
+          <div class="flex flex-col gap-3">
+            <div class="flex items-center gap-1">
+              <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
+            </div>
+            <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
+              <span class="px-1 uppercase text-muted-color text-supporting">{{ paletteGroupLabel(group.id) }}</span>
+              <div class="grid grid-cols-2 gap-1.5">
+                <Button
+                  v-for="item in group.items"
+                  :key="item.id"
+                  :icon="item.icon"
+                  :label="paletteLabel(item)"
+                  :aria-label="paletteLabel(item)"
+                  v-tooltip.right="paletteDescription(item)"
+                  size="small"
+                  text
+                  class="min-w-0 justify-start border border-transparent bg-subtle px-2 hover:border-content-border"
+                  @click="addNode(item)"
+                />
+              </div>
             </div>
           </div>
-        </div>
-        </div>
+        </Panel>
       </template>
 
       <template #dock>
@@ -145,14 +145,17 @@
       </Popover>
 
       <template v-if="inspectorOpen" #inspector>
-        <aside class="flex w-[26rem] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card">
-        <Tabs v-model:value="inspectTab">
-          <TabList>
-            <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
-            <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
-            <Tab value="screens">{{ $t('organization.screens') }}</Tab>
-          </TabList>
-          <TabPanels>
+        <Panel
+          class="flex h-full min-h-0 w-[26rem] flex-col"
+          :pt="{ content: { class: 'flex min-h-0 flex-1 flex-col' } }"
+        >
+          <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
+            <TabList>
+              <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
+              <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
+              <Tab value="screens">{{ $t('organization.screens') }}</Tab>
+            </TabList>
+            <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
                 <div v-if="!['action', 'statusDefinition', 'processNode'].includes(selectedNode.type)" class="flex flex-col gap-1">
@@ -270,15 +273,6 @@
                       />
                     </div>
                     <small class="text-muted-color">{{ $t('processDesigner.actionRolesHelp') }}</small>
-                    <div v-if="selectedProcessNodeAccessDetail" class="text-supporting text-muted-color">{{ selectedProcessNodeAccessDetail }}</div>
-                    <div v-if="selectedProcessNodeEffectiveAccess.length" class="flex flex-wrap gap-1">
-                      <span
-                        v-for="item in selectedProcessNodeEffectiveAccess"
-                        :key="item.label"
-                        class="max-w-full truncate rounded-ui border border-content-border px-1.5 py-0.5 text-supporting"
-                        :class="item.inherited ? 'text-muted-color' : ''"
-                      >{{ item.label }}</span>
-                    </div>
                   </div>
                   <Panel v-if="selectedEntityAvailable" :header="$t('processDesigner.createdEntity')" class="mt-0">
                         <div class="flex flex-col gap-3">
@@ -848,7 +842,7 @@
             </TabPanel>
           </TabPanels>
         </Tabs>
-        </aside>
+        </Panel>
       </template>
 
       <div v-if="validation" class="pointer-events-none absolute inset-x-0 bottom-16 z-10 flex justify-center px-4">
