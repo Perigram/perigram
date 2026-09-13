@@ -100,18 +100,31 @@ Discord-style operational shell:
   the recursive pane area. Mobile keeps the previous stacked home sections
   (`GeneratedHomeScreen.vue`) inside a self-scrolling container, so the mobile
   contract is unchanged.
-- The sidebar owns navigation for the whole shell. It groups the compiler's
-  top-level home entity-list sources into sections (same
-  `shouldRenderHomeSection` root filtering as the mobile sections), each with
-  the entity-type icon and `generatedRegionLabel` label. Region create
-  actions render as icon-only `GeneratedActionButton`s in their section
-  header — generated buttons live on their corresponding sidebar entries, not
-  on page-level toolbars. Each section header also keeps the open-list
-  control that navigates to the compiled entity-list screen.
-- Entity rows render `IdentityBlock` plus the icon-variant `EntityStatus` as
-  siblings (never nested interactive elements). Selecting a row opens or
-  selects that entity as a tab in the active pane; the active pane's selected
-  key marks the row as current.
+- The sidebar owns navigation for the whole shell. Below the brand header, a
+  pinned communication block exposes the chats drawer entry (with the shared
+  unread badge) and the organization LiveKit channel, which joins the derived
+  `call:org:<orgId>` room through a full-size `CallPanel` dialog using the
+  livekit feature's documented room contract.
+- Entity navigation is a dense PrimeVue `Tree` explorer, the same structure the
+  project workspace Explorer uses. Home entity-list sections render as
+  non-selectable folder nodes (entity-type icon, `generatedRegionLabel` label)
+  whose rows carry the region's compiled create actions as icon-only
+  `GeneratedActionButton`s — generated buttons live on their corresponding
+  sidebar entries, not on page-level toolbars. Section folders expand/collapse
+  and entity rows render `IdentityBlock` plus the icon-variant `EntityStatus`
+  as siblings (never nested interactive elements).
+- The explorer shows containment hierarchy like the project page: entities
+  nest beneath a loaded ancestor through the effective containment graph and
+  canonical `lineage.*Id` references. Section roots never nest. Entity nodes
+  whose type declares containment children are expandable; expanding lazily
+  loads those children through the compiled detail-screen list sources
+  (`linkedExplorerChildSources`) scoped to the parent's lineage and merges
+  them into the workspace item pool. Entities opened through nested pane
+  navigation nest the same way.
+- Selecting an explorer row opens or selects that entity as a tab in the
+  active pane; the active pane's selected key drives the tree selection. The
+  desktop sidebar does not link out to hub entity-list screens; the full
+  hierarchy is navigable in place.
 - The sidebar footer mounts the shared `UserAccountMenu`, so on this route the
   desktop top navbar is hidden and its user controls live in the sidebar
   (`layouts/app.vue` resolves this from the active screen template).
@@ -119,15 +132,16 @@ Discord-style operational shell:
   project workspace: IDE-style file tabs, wheel-scrollable tab strips, split
   right/down, pane-local close, registered workspace pages (for example the
   cassette designer), and `GeneratedEntityFile` bodies that scope each
-  entity's own compiled detail screen. There is no Explorer tree and no
-  project action strip; collection creation belongs to sidebar sections and
-  entity operations belong to the opened file tabs.
+  entity's own compiled detail screen. There is no Explorer header or project
+  action strip; collection creation belongs to sidebar sections and entity
+  operations belong to the opened file tabs.
 - Tab and pane state persists as versioned browser UI state scoped to the
   current user and organization (`utils/home-workspace-state.js`). It stores
   the pane tree, tab selections, opened entity references, and opened page
   references using the same normalization contract as the project workspace,
   minus explorer fields. Entities opened through nested detail navigation are
-  hydrated through the entity store like project workspace files.
+  hydrated through the entity store like project workspace files; lazily
+  fetched explorer children stay session-local.
 
 ## Project Workspace
 

@@ -9,6 +9,7 @@ Nuxt layout shells for public and authenticated app surfaces.
   support entry, and bounded workspace sizing for production workspace routes.
 - The desktop header is hidden on the generated home screen: that route's
   Discord-style workspace overload owns the full viewport and mounts brand,
+  communication entries (chats drawer and the organization LiveKit channel),
   navigation, and user controls in its own sidebar. The header's user control
   is the shared `UserAccountMenu` component on every other route, and the
   mobile bottom panel renders the same component for its profile button.
