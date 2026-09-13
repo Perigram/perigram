@@ -108,7 +108,10 @@ Discord-style operational shell:
   `workspace-pages.js`): a tab in the main pane area rendering `ChatSupport`
   full-page with its built-in inbox rail — chats are not a floating surface
   on this route and the desktop floating launcher is hidden; the Chats menu
-  item carries the unread badge. The Calls submenu lists direct/group
+  item carries the unread badge. The full-page chat splits into inbox rail
+  plus thread through a container query on its host wrapper at 44rem; the
+  row direction lives on the inner `.chat-page` node because a container
+  query cannot restyle its own container element. The Calls submenu lists direct/group
   conversations from the chats store (choosing one rings the room through
   `/api/livekit/invite`) and, below a separator, currently joinable rooms
   from `/api/livekit/active-rooms` with participant-count badges, labeled
@@ -118,7 +121,10 @@ Discord-style operational shell:
   an ephemeral `call` workspace tab (`CallWorkspacePage.vue` — stage plus
   the conversation chat rail) in the active pane, never a floating dialog;
   the tab disappears when its `CallPanel` reports the call closed and is
-  never persisted with the pane layout. Entity-less page definitions marked
+  never persisted with the pane layout. `CallPanel` stays usable in small
+  panes: tiles keep a small minimum height, the speaker stage scrolls
+  instead of overflowing, and the wide side-strip/two-column arrangements
+  apply only from the panel's own 40rem container width. Entity-less page definitions marked
   `ephemeral: true` are runtime-parameterized like this and never appear in
   add-tab lists.
 - Entity navigation is a PrimeVue `Tree` explorer at Aura defaults in a

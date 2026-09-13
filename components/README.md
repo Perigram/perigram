@@ -659,9 +659,15 @@ containers — panes, tab strips, workspace and layout wrappers, chats, and
 call surfaces — paint no background at all; `bg-content` belongs to
 overlays and controls (dialogs, popovers, inputs, chips over media) and
 `bg-subtle` to in-surface insets (bubbles, hover rows, placeholders),
-never to layout boxes. Pane-hosted surfaces size their internal layout
+never to layout boxes. PrimeVue `Splitter` roots are forced transparent
+(`!bg-transparent`) because Aura paints `content.background` on them, which
+would give split pane areas a painted surface the rest of the shell does not
+have. Pane-hosted surfaces size their internal layout
 through container queries on their own width, never viewport
-breakpoints.
+breakpoints. A container query cannot restyle the container element itself,
+so a surface that needs its own flex direction to switch (for example the
+chats two-pane split) declares the container on an outer wrapper and keeps
+the direction rule on the inner layout node.
 
 Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, typography, or transition durations. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Scoped CSS is limited to exact reusable-layout declarations enforced by `shared/design-system.spec.js`; padding remains Aura-owned spacing. Inline bindings are either exact reusable layout or derived semantic composition, or narrowly allowlisted when their visual value is driven by data.
 
