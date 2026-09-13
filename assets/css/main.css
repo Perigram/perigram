@@ -38,6 +38,20 @@ body {
     stroke-linecap: square;
 }
 
+/* Sockets stay visually compact while their grab target grows:
+   the invisible ::after pad makes thin wires and 12px handles easy
+   to grab without enlarging the rendered node chrome. */
+.process-designer-canvas .vue-flow__handle {
+    cursor: crosshair;
+}
+
+.process-designer-canvas .vue-flow__handle::after {
+    content: '';
+    inset: -0.375rem;
+    position: absolute;
+    border-radius: inherit;
+}
+
 .entity-inline-chip {
     display: inline-flex;
     align-items: center;

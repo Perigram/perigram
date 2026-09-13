@@ -500,7 +500,7 @@ function socketClass(item, side) {
 
 function handleClass(item, side) {
   return [
-    '!top-1/2 !h-2.5 !w-2.5 !-translate-y-1/2',
+    '!top-1/2 !h-3 !w-3 !-translate-y-1/2',
     item.access === 'tree' ? '!rounded-none' : item.access === 'list' ? '!rounded-sm' : '!rounded-full',
     side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
   ];
