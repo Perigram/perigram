@@ -320,7 +320,7 @@ outline. Socket handles render at a compact 12px with an invisible grab pad,
 and wires draw at 2px, so starting a connection stays easy at any zoom.
 The canvas uses its own token-backed work surface behind two side drawers. The
 palette and inspector are non-modal, non-dismissable PrimeVue `Drawer` panels
-with Material drawer chrome; canvas clicks never close them, `closeOnEscape`
+with Aura drawer chrome; canvas clicks never close them, `closeOnEscape`
 is disabled so canvas Escape still clears graph selection, and the header
 close button plus the dock toggles own visibility. Each drawer scrolls its
 own content, and either can be closed independently to recover the full
