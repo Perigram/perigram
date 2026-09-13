@@ -653,8 +653,8 @@ runtime data that directly encodes visualization geometry or information
 magnitude, never ordinary copy or compact UI.
 Nested active app surfaces must use semantic aliases such as `bg-content` or
 `bg-subtle`, not raw palette utilities like `bg-surface-50`, so dark mode uses
-the app token overrides consistently. The surface contract is uniform
-and flat: the page canvas rides the content background, structural
+the app token overrides consistently. The surface contract is flat:
+the gray page is the single canvas, structural
 containers — panes, tab strips, workspace and layout wrappers, chats, and
 call surfaces — paint no background at all; `bg-content` belongs to
 overlays and controls (dialogs, popovers, inputs, chips over media) and
