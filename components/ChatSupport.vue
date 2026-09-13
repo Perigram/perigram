@@ -1,5 +1,6 @@
 <template>
     <div
+        class="chat-host"
         :class="embedded
             ? 'flex h-full min-h-0 w-full items-stretch justify-stretch p-0'
             : 'fixed inset-0 z-50 flex items-stretch justify-stretch p-0 pointer-events-none md:inset-auto md:bottom-0 md:right-0 md:items-end md:justify-end md:p-6'"
@@ -1099,9 +1100,12 @@ const directConversationKey = (left, right) => {
  * Container-driven layout: the two-pane chats split responds to the chat
  * surface's own width, not the viewport, so the workspace tab behaves in
  * narrow or split panes — below 44rem the thread takes the full surface
- * (mobile-like column), above it the inbox rail sits beside it.
+ * (mobile-like column), above it the inbox rail sits beside it. The
+ * container is the host wrapper because a container query cannot restyle
+ * the container element itself: the row direction belongs to .chat-page,
+ * one level inside.
  */
-.chat-page {
+.chat-host {
   container-type: inline-size;
 }
 
@@ -1114,6 +1118,10 @@ const directConversationKey = (left, right) => {
 }
 
 @container (min-width: 44rem) {
+  .chat-page {
+    flex-direction: row;
+  }
+
   .chat-inbox--rail {
     flex: none;
     width: 20rem;

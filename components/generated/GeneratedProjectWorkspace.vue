@@ -24,7 +24,7 @@
       <Splitter
         :gutter-size="1"
         :pt="workspaceSplitterPt"
-        class="hidden h-full min-h-0 !border-0 lg:flex"
+        class="hidden h-full min-h-0 !border-0 !bg-transparent lg:flex"
         @resizeend="resizeWorkspaceShell"
       >
         <SplitterPanel

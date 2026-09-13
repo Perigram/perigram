@@ -1,5 +1,5 @@
 <template>
-    <div class="call-panel relative flex h-full min-h-0 flex-col gap-3">
+    <div class="call-panel relative flex h-full min-h-0 flex-col gap-3 overflow-y-auto">
         <ActionToolbar :subtitle="statusText" :level="2">
             <template #actions>
                 <SelectButton
@@ -91,7 +91,7 @@
                 <span class="rounded-ui bg-content px-3 py-1 text-supporting">{{ $t('call.reconnecting') }}</span>
             </div>
 
-            <div v-if="layout === 'speaker'" class="call-stage flex min-h-0 flex-1 flex-col gap-3">
+            <div v-if="layout === 'speaker'" class="call-stage flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
                 <div class="flex min-h-0 flex-1 items-stretch">
                     <CallTile
                         v-if="spotlightTile"

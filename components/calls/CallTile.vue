@@ -1,6 +1,6 @@
 <template>
     <div
-        class="relative flex min-h-56 items-center justify-center overflow-hidden rounded-ui bg-subtle"
+        class="relative flex min-h-36 items-center justify-center overflow-hidden rounded-ui bg-subtle"
         :class="{ 'md:min-h-0 md:h-full': spotlight }"
         :data-call-tile="tile.identity"
     >
