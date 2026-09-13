@@ -1,9 +1,9 @@
 <template>
   <section
     v-if="definition"
-    class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content"
+    class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
   >
-    <header data-pane-header class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome pr-1 text-[var(--ck-chrome-foreground)]">
+    <header data-pane-header class="flex h-10 shrink-0 items-center gap-1 border-b border-content-border pr-1">
       <GeneratedWorkspaceTabs
         :tabs="tabs"
         :available-tabs="availableTabs"

@@ -187,7 +187,7 @@
         </footer>
       </aside>
 
-      <div class="min-h-0 min-w-0 flex-1 overflow-hidden">
+      <div class="min-h-0 min-w-0 flex-1 overflow-hidden bg-content">
         <WorkspaceSplitNode
           :node="paneTree"
           :active-pane-id="activePaneId"
