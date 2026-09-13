@@ -1,5 +1,5 @@
 <template>
-  <TieredMenu :model="items" class="w-full border-none bg-transparent !p-0" :aria-label="$t('support.chatTitle')" />
+  <TieredMenu :model="items" class="w-full !border-none !bg-transparent !p-0" :aria-label="$t('support.chatTitle')" />
 </template>
 
 <script setup>
