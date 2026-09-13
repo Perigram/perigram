@@ -506,6 +506,11 @@ function conversationKeyForRoom(room = '') {
 
 async function startCallFromConversation(conversation = {}) {
   if (!conversation.conversationKey) return;
+  // Label comes from the conversation summary the menu emitted; empty falls
+  // back to the call page's own title in the tab strip.
+  const label = conversation.conversationKind === 'group'
+    ? (conversation.groupName || '')
+    : (conversation?.participant?.identity?.name || '');
   try {
     const invite = await $fetch('/api/livekit/invite', {
       method: 'POST',
@@ -513,7 +518,7 @@ async function startCallFromConversation(conversation = {}) {
     });
     openCallTab(invite.room, {
       conversationKey: conversation.conversationKey,
-      label: conversationLabelByKey(conversation.conversationKey)
+      label
     });
   } catch (error) {
     console.error('Failed to start call:', error);
