@@ -514,23 +514,6 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   identity and status. `EntityCard footer-display="inline"` is reserved for a
   small caller-owned primary navigation choice, such as opening or switching
   the organization represented by a profile card.
-- **`MotionDock.vue`**: Shared compact bottom action dock adapted from the Vue
-  Bits Dock block and animated through the GSAP motion patterns in
-  `composables/useMotion.js` (`useFollowValue` magnification, `useEnterExit`
-  tooltips). Use it for a small, contextual set
-  of canvas or workspace commands—not global navigation or ordinary page
-  actions. Callers supply `{ icon, label, onClick, pressed?, disabled?,
-  attention?, hasPopup?, onHoverStart?, onHoverEnd?, onFocus?, onBlur? }`
-  items; the component owns only its proximity behavior and labels. The preset
-  variables own its generic spacing, transitions, and surface treatment. Use the optional
-  hover/focus hooks only when a caller owns a contextual popover anchored to
-  that action; the dock does not own page-specific panels. Its rendered button
-  refs bind pointer, focus, and click listeners after mount so contextual
-  actions remain interactive after SSR hydration.
-  `useReducedMotion()` disables magnification and label travel while retaining
-  static labels and every action's normal keyboard behavior. Do not recreate
-  the interaction with a page-local toolbar or add fixed dark surfaces,
-  shadows, or motion contracts.
 - **`ScrollablePanel.vue`**: PrimeVue `Panel` wrapper for bounded workspace
   sections whose header remains fixed while the panel content scrolls. It
   supports an `actions` slot for header controls and `:scroll-content="false"`

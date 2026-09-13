@@ -316,35 +316,42 @@ socket hit targets. Left drag box-selects, Shift extends selection, two-finger
 touchpad scroll pans, pinch zooms around the pointer, and Space plus left drag
 provides keyboard-assisted panning without a middle mouse button. A selected
 node uses one primary border only; it does not add an outer ring or second
-outline.
-The canvas uses its own token-backed work surface. Opaque palette and inspector
-rails leave the graph clear behind one compact bottom dock. The dock is
-icon-only and ordered by concern: four-square Palette, Inspector, Save, Apply,
-hover/focus Navigation, then the final Folder for process selection and New
-Draft. There is no standalone Validate control: Apply saves, validates, and
-activates as one operation, while the result remains visible as feedback on the
-canvas. Navigation opens framing and zoom controls on hover/focus. The Folder
-opens the process chooser and New Draft action the same way, with click as a
-touch fallback. The process chooser uses the shared `EntitySelect` value event
-directly, pins the Folder panel while its option overlay is open, and closes
-only after an actual selection; selected process cards remain outside the
-change trigger.
+outline. Socket handles render at a compact 12px with an invisible grab pad,
+and wires draw at 2px, so starting a connection stays easy at any zoom.
+The canvas uses its own token-backed work surface behind two side drawers. The
+palette and inspector are non-modal, non-dismissable PrimeVue `Drawer` panels
+with Material drawer chrome; canvas clicks never close them, `closeOnEscape`
+is disabled so canvas Escape still clears graph selection, and the header
+close button plus the dock toggles own visibility. Each drawer scrolls its
+own content, and either can be closed independently to recover the full
+canvas. Behind them
+sits one compact bottom dock composed of default PrimeVue `Dock` through
+`components/process-designer/ProcessDesignerDock.vue`: item proximity
+magnification and hover labels run through the GSAP patterns in
+`composables/useMotion.js` (`useFollowValue`, `useEnterExit`) inside
+`ProcessDesignerDockItem.vue`, and `useReducedMotion()` disables magnification
+and label travel while keeping every action keyboard-reachable through the
+Dock's menu semantics. Dock items are icon-only and grouped by concern with
+separators: Palette and Inspector drawer toggles, then direct canvas view
+controls (zoom out, zoom in, frame all, frame selection, reset zoom), then
+Save and Apply, and finally the Folder for process selection and New Draft.
+There is no standalone Validate control: Apply saves, validates, and
+activates as one operation, while the result remains visible as feedback on
+the canvas. The Folder opens a click-anchored Popover that uses the shared
+`EntitySelect` value event directly; PrimeVue's overlay-click coordination
+keeps the popover open while the chooser's option overlay is used, and it
+closes only after an actual selection.
 
 New Draft starts from an empty graph. Save on an active process is the explicit
 copy-to-draft operation; saving an ordinary draft updates that draft. Dirty
 state is a primary save affordance plus a small dot, not a persistent text
-badge. `components/shared/MotionDock.vue` is the shared, Vue Bits-derived
-`motion-v` block: the page supplies action data and optional contextual
-hover/focus hooks while the derived composition owns proximity scaling,
-keyboard buttons, and hover labels. Its generic spacing, transition, and
-surface treatment resolve through Aura variables. `useReducedMotion()`
-keeps the same accessible actions without magnification or label travel, so the
+badge. The dock composition owns only proximity sizing and hover labels; the
 route must not replace it with a hand-built toolbar, fixed dark colors, or
 shadows.
 Delete/Backspace removes all selected nodes and edges together while preserving
 definition records that are still referenced. Home frames the graph,
-Numpad Decimal frames the selection, and the dock's view popup exposes
-frame/zoom controls without requiring shortcuts. Zoom spans 0.1x through 4x,
+Numpad Decimal frames the selection, and the dock's direct view controls
+expose frame/zoom without requiring shortcuts. Zoom spans 0.1x through 4x,
 and the live viewport is persisted with the graph. Runtime-only selection
 styles are stripped before serialization. Validation reports missing sockets,
 incompatible types, guessed/undeclared fields, unreachable operational nodes,
@@ -364,9 +371,8 @@ silently failing. Save remains available for every loaded process and persists
 the authored graph as a draft even when it is incomplete or fails activation
 validation; dirty state is an attention indicator, never a persistence gate.
 Apply saves and validates the draft first and refuses activation when
-validation fails. On
-narrow layouts the bottom dock remains icon-only, both side rails become
-overlays, and either rail can be closed independently to recover the canvas.
+validation fails. The side rails are always non-modal drawer overlays and the
+bottom dock stays icon-only on narrow layouts.
 
 Legacy canvas records are not interpreted by the designer. The v4 migration
 rewrites supported v3 records before editing or activation and fails closed

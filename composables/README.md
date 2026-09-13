@@ -168,9 +168,10 @@ motion library and no application motion token layer; the preset's
 | `riseAndFade(el, { y, duration })` | Transient badge motion (floating call reactions): rises and fades once, returns a completion promise for caller cleanup; reduced motion resolves immediately. |
 | `useStateTransition(containerRef, { duration, scale })` | Parameter-to-state animation. Call `capture()` while the previous rendered state is still in the DOM, apply the reactive update, then `play()` — a clone of the real previous state crossfades out over the new one. The animation always starts from the actual previous state, never from defaults. The container owns `position: relative` and clipped overflow; reduced motion skips the overlay. |
 
-Every pattern consumes `useReducedMotion()`. Consumers today: `MotionDock`
-(magnification follow + tooltip enter/exit) and the queue editor cassette
-parameter preview (`useStateTransition` on `CassetteThumbnail` re-renders).
+Every pattern consumes `useReducedMotion()`. Consumers today:
+`ProcessDesignerDockItem` (magnification follow + tooltip enter/exit) and the
+queue editor cassette parameter preview (`useStateTransition` on
+`CassetteThumbnail` re-renders).
 JavaScript motion that PrimeVue cannot provide stays inside its owning derived
 composition per the components motion policy.
 
