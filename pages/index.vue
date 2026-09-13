@@ -80,7 +80,7 @@ async function redirectIfAuthenticated() {
       await navigateTo(processRoute);
       return;
     }
-    await navigateTo('/projects');
+    await navigateTo('/organization');
   }
 }
 
