@@ -284,12 +284,12 @@
                       />
                     </div>
                     <small class="text-muted-color">{{ $t('processDesigner.actionRolesHelp') }}</small>
-                    <div v-if="selectedProcessNodeAccessDetail" class="text-xs text-muted-color">{{ selectedProcessNodeAccessDetail }}</div>
+                    <div v-if="selectedProcessNodeAccessDetail" class="text-supporting text-muted-color">{{ selectedProcessNodeAccessDetail }}</div>
                     <div v-if="selectedProcessNodeEffectiveAccess.length" class="flex flex-wrap gap-1">
                       <span
                         v-for="item in selectedProcessNodeEffectiveAccess"
                         :key="item.label"
-                        class="max-w-full truncate rounded-ui border border-content-border px-1.5 py-0.5 text-xs"
+                        class="max-w-full truncate rounded-ui border border-content-border px-1.5 py-0.5 text-supporting"
                         :class="item.inherited ? 'text-muted-color' : ''"
                       >{{ item.label }}</span>
                     </div>
@@ -1035,6 +1035,54 @@ const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInfer
 });
 const designer = reactive(createProcessDesignerContract(cncDomain));
 
+
+
+
+
+const {
+  processNodeOperations,
+  processNodeOperationLabels,
+  createServicePrincipal,
+  createEntityProfile,
+  createService,
+  createSocket,
+  createStatusDefinition,
+  createValueInput,
+  createProcessNode,
+  defaultEntityType,
+  defaultFeature
+} = useProcessDesignerNodeRecords({
+  designer,
+  translate: key => t(key),
+  featureForEntityType,
+  relationOptionsForEntity,
+  syncEntityProfileIo,
+  initialStatusForEntity,
+  syncProcessNode
+});
+
+const {
+  ensureRecord,
+  factoryForType,
+  recordKeyForType,
+  selectedRecord,
+  selectedEntity,
+  selectedStatusDefinition,
+  selectedProcessNode
+} = useProcessDesignerInspector({
+  draft,
+  selectedNode,
+  factories: {
+    entity: createEntityProfile,
+    action: createAction,
+    service: createService,
+    socket: createSocket,
+    statusDefinition: createStatusDefinition,
+    valueInput: createValueInput,
+    processNode: createProcessNode
+  }
+});
+
 const {
   dataflowPreview,
   previewingData,
@@ -1082,52 +1130,11 @@ const {
   cncDomain
 });
 
-const {
-  processNodeOperations,
-  processNodeOperationLabels,
-  createServicePrincipal,
-  createEntityProfile,
-  createService,
-  createSocket,
-  createStatusDefinition,
-  createValueInput,
-  createProcessNode,
-  defaultEntityType,
-  defaultFeature
-} = useProcessDesignerNodeRecords({
-  designer,
-  translate: key => t(key),
-  featureForEntityType,
-  relationOptionsForEntity,
-  syncEntityProfileIo,
-  initialStatusForEntity,
-  syncProcessNode
-});
 
 const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen, normalizeScreenContract, defaultEntityType, featureForEntityType });
 
 
-const {
-  ensureRecord,
-  factoryForType,
-  recordKeyForType,
-  selectedRecord,
-  selectedEntity,
-  selectedStatusDefinition,
-  selectedProcessNode
-} = useProcessDesignerInspector({
-  draft,
-  selectedNode,
-  factories: {
-    entity: createEntityProfile,
-    action: createAction,
-    service: createService,
-    socket: createSocket,
-    statusDefinition: createStatusDefinition,
-    valueInput: createValueInput,
-    processNode: createProcessNode
-  }
-});
+
 const {
   deleteGraphSelection,
   selectedGraphEdges,
