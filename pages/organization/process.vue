@@ -253,26 +253,40 @@
                 <template v-else-if="selectedNode.type === 'processNode'">
                   <div v-if="selectedProcessNode.kind?.startsWith('effect.')" class="flex flex-col gap-2">
                     <label>{{ $t('processDesigner.actionRoles') }}</label>
-                    <div class="flex items-start gap-2">
-                      <MultiSelect
-                        :model-value="selectedProcessNodeGrantRoleIds"
-                        :options="roleOptions"
-                        option-label="label"
-                        option-value="value"
-                        display="chip"
-                        class="min-w-0 flex-1"
-                        @update:model-value="updateSelectedProcessNodeGrantRoles"
-                      />
+                    <MultiSelect
+                      :model-value="selectedProcessNodeGrantRoleIds"
+                      :options="roleOptions"
+                      option-label="label"
+                      option-value="value"
+                      display="chip"
+                      class="w-full"
+                      @update:model-value="updateSelectedProcessNodeGrantRoles"
+                    />
+                    <div
+                      v-for="(grant, index) in selectedProcessNodeGrants"
+                      :key="grant.roleId"
+                      class="flex items-center gap-2"
+                    >
+                      <span class="min-w-0 flex-1 truncate text-supporting">{{ roleOptions.find(option => option.value === grant.roleId)?.label || grant.roleId }}</span>
                       <Select
-                        :model-value="selectedProcessNode.access?.level || 'write'"
+                        :model-value="grant.level || 'write'"
                         :options="accessLevelOptions"
                         option-label="label"
                         option-value="value"
-                        class="w-32 shrink-0"
-                        @update:model-value="value => updateSelectedProcessNodeAccessLevel(value)"
+                        class="w-28 shrink-0"
+                        size="small"
+                        @update:model-value="value => updateSelectedProcessNodeGrantLevel(index, value)"
                       />
                     </div>
-                    <small class="text-muted-color">{{ $t('processDesigner.actionRolesHelp') }}</small>
+                    <div v-if="selectedProcessNodeAccessDetail" class="text-supporting text-muted-color">{{ selectedProcessNodeAccessDetail }}</div>
+                    <div v-if="selectedProcessNodeEffectiveAccess.length" class="flex flex-wrap gap-1">
+                      <span
+                        v-for="item in selectedProcessNodeEffectiveAccess"
+                        :key="item.label"
+                        class="max-w-full truncate rounded-ui border border-content-border px-1.5 py-0.5 text-supporting"
+                        :class="item.inherited ? 'text-muted-color' : ''"
+                      >{{ item.label }}</span>
+                    </div>
                   </div>
                   <Panel v-if="selectedEntityAvailable" :header="$t('processDesigner.createdEntity')" class="mt-0">
                         <div class="flex flex-col gap-3">
@@ -1288,7 +1302,6 @@ const statusDefinitionList = computed(() => Object.values(draft.value?.data?.sta
 const processStatusOptions = computed(() => statusDefinitionList.value
   .filter(status => status.statusId)
   .map(status => ({ label: status.label || status.statusId, value: status.statusId, refId: status.id })));
-const selectedProcessNodeGrants = computed(() => selectedProcessNode.value.access?.grants || []);
 const selectedEntityFeature = computed(() => selectedEntity.value.entityType ? featureForEntityType(selectedEntity.value.entityType) : defaultFeature());
 
 const roles = computed(() => organizationRoles.value);
@@ -1438,6 +1451,7 @@ const selectedProcessNodeEffectiveAccess = computed(() => {
     }))
     .sort((left, right) => left.label.localeCompare(right.label));
 });
+const selectedProcessNodeGrants = computed(() => (selectedProcessNode.value?.access?.grants || []).filter(grant => grant.roleId));
 const selectedProcessNodeGrantRoleIds = computed(() => [
   ...new Set((selectedProcessNodeGrants.value || []).map(grant => grant.roleId).filter(Boolean))
 ]);
@@ -1452,10 +1466,12 @@ function updateSelectedProcessNodeGrantRoles(roleIds = []) {
   node.access = { ...(node.access || {}), grants: [...kept, ...added] };
   syncNodeData();
 }
-function updateSelectedProcessNodeAccessLevel(level) {
+function updateSelectedProcessNodeGrantLevel(index, level) {
   const node = selectedProcessNode.value;
   if (!node) return;
-  node.access = { ...(node.access || {}), level: level || 'write' };
+  const grants = [...(node.access?.grants || [])];
+  if (grants[index]) grants[index] = { ...grants[index], level: level || 'write' };
+  node.access = { ...(node.access || {}), grants };
   syncNodeData();
 }
 const selectedRoleAccessSummary = computed(() => selectedRoleId.value
