@@ -33,7 +33,7 @@
 
     <DesignerWorkspace layout="lanes" class="min-h-0 flex-1">
       <template #palette>
-      <aside class="order-3 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-ui border border-content-border bg-content p-3 lg:col-span-2 xl:order-1 xl:col-span-1">
+      <aside class="order-3 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-ui border border-content-border p-3 lg:col-span-2 xl:order-1 xl:col-span-1">
 
       <div class="flex shrink-0 flex-col gap-2 rounded-ui border border-content-border bg-subtle p-2">
         <InputText

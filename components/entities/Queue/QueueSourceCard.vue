@@ -125,7 +125,7 @@ const previewPath = computed(() => {
 </script>
 
 <template>
-  <article class="flex min-h-0 flex-col overflow-hidden rounded-panel border border-content-border bg-content">
+  <article class="flex min-h-0 flex-col overflow-hidden rounded-panel border border-content-border">
     <div class="flex h-20 items-center justify-center border-b border-content-border bg-subtle p-2">
       <svg class="h-full w-full text-[var(--p-text-color)]" :viewBox="previewViewBox" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
         <path

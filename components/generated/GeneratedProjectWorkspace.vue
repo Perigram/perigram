@@ -33,7 +33,7 @@
           :min-size="10"
           :class="['min-h-0 min-w-0 overflow-hidden !border-0', { '!hidden': !explorerOpen }]"
         >
-          <section class="project-explorer flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content">
+          <section class="project-explorer flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
             <Tree
               v-model:selection-keys="selectionKeys"
               v-model:expanded-keys="expandedKeys"

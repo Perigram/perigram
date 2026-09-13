@@ -85,7 +85,7 @@
 
         <div
             ref="canvasHost"
-            class="relative flex min-h-0 flex-1 items-stretch overflow-hidden rounded-ui bg-content"
+            class="relative flex min-h-0 flex-1 items-stretch overflow-hidden rounded-ui"
             :class="cursorClass"
         >
             <svg

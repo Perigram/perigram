@@ -1,6 +1,6 @@
 <template>
   <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-    <div class="overflow-auto rounded-ui border border-content-border bg-content p-3">
+    <div class="overflow-auto rounded-ui border border-content-border p-3">
       <svg
         v-if="activePage"
         class="h-auto min-h-80 w-full"

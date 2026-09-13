@@ -2,7 +2,7 @@
   <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
     <div class="hidden h-full min-h-0 flex-1 overflow-hidden md:flex" data-home-workspace>
       <aside
-        class="flex w-64 min-w-0 shrink-0 flex-col border-r border-chrome-border bg-chrome"
+        class="flex w-64 min-w-0 shrink-0 flex-col border-r border-chrome-border"
         :aria-label="$t('nav.home')"
       >
         <header class="flex h-12 shrink-0 items-center border-b border-chrome-border px-3">

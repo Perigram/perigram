@@ -57,7 +57,7 @@ const hasSpecs = computed(() => Boolean((canDisplayDimensions.value && formatted
     <!-- Default Variant -->
     <template v-else>
         <div class="specs-layout grid grid-cols-1 gap-3">
-            <div v-if="canDisplayDimensions && formattedDimensions" class="min-w-0 rounded-ui border border-content-border bg-content px-3 py-3">
+            <div v-if="canDisplayDimensions && formattedDimensions" class="min-w-0 rounded-ui border border-content-border px-3 py-3">
                 <small class="text-muted-color">{{ $t('catalog.dimensions') }}</small>
                 <div class="mt-1 break-words text-label">{{ formattedDimensions }}</div>
             </div>
