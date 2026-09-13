@@ -16,12 +16,12 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   technical, and prose. The roles select IBM Plex Sans, Mono, or Serif and own
   their full treatment; Tailwind generates one `text-*` alias per role directly
   from this object.
-  Material, not this module, owns generic control and container typography,
+  Aura, not this module, owns generic control and container typography,
   spacing, borders, radii, shadows, and interaction states.
 - Nuxt emits the exported `cssVariableTokens` and `darkCssVariableTokens`
   directly. `assets/css/main.css` consumes those variables but must not
   duplicate their values or bridge PrimeVue `--p-*` variables.
-- `assets/presets/re_l.js` extends Material with the bounded primary palette and zinc surface scale
+- `assets/presets/re_l.js` extends Aura with the bounded primary palette and zinc surface scale
   projection only. The component-token projection remains empty.
 - Tailwind semantic aliases are consumed by `tailwind.config.js`.
 

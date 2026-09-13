@@ -111,7 +111,7 @@ Discord-style operational shell:
   `CallPanel` dialog, and channels can be created (name dialog) and deleted
   (confirmation) inline. Deletion visibility follows the livekit feature's
   contract: the creating member or an organization owner.
-- Entity navigation is a PrimeVue `Tree` explorer at Material defaults in a
+- Entity navigation is a PrimeVue `Tree` explorer at Aura defaults in a
   self-scrolling wrapper. Home entity-list sections render as non-selectable
   folder nodes (entity-type icon and `generatedRegionLabel` label owned by
   the tree itself) and section folders expand/collapse. The tree

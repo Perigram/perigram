@@ -78,7 +78,7 @@ describe('Design system manifest', () => {
     const documentedFiles = rows.map(([, , file]) => file).sort();
     const expectedFiles = repositoryVueFiles();
     const expectedMechanisms = [
-      'material',
+      'aura',
       'token-source',
       'primevue-projection',
       'tailwind-projection',

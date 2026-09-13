@@ -2,7 +2,7 @@
 
 Date: 2026-08-21
 
-This is the canonical human-readable UI inventory. It separates PrimeVue/Material
+This is the canonical human-readable UI inventory. It separates PrimeVue/Aura
 system ownership from application primitives and derived composition. The matrix
 is observational: an `owned` or `overridden` entry records current ownership;
 it does not grant an exception to the zero-styling policy. A `violation` is a
@@ -22,7 +22,7 @@ their files and UI-lab examples.
 
 Ownership classes:
 
-- `system-owned`: non-component mechanism that projects or centralizes the design system; generic visuals still defer to PrimeVue/Material.
+- `system-owned`: non-component mechanism that projects or centralizes the design system; generic visuals still defer to PrimeVue/Aura.
 - `shared/domain primitive`: exact component path in the domain primitive registry; it owns semantics, data visualization, or reusable layout.
 - `derived usage`: every unregistered component, route, layout, generated renderer, or other composition that consumes system and primitive contracts.
 
@@ -32,7 +32,7 @@ the four convergence dispositions below and include current occurrence counts;
 
 ## Visual Ownership Contract
 
-Each generic visual concern has one owner. PrimeVue Material owns control and
+Each generic visual concern has one owner. PrimeVue Aura owns control and
 container typography defaults, padding and spacing, borders, radii, shadows,
 container chrome, and hover, active, disabled, invalid, and keyboard-focus
 states. The application preset may project the primary brand palette but must
@@ -56,14 +56,14 @@ classified by exact file in the inventory rather than broadening the theme.
 Allowlisted bindings are also pinned to their normalized expressions, preventing
 an allowed file from silently gaining or changing a visual exception.
 
-Violations have four dispositions: `remove` when Material already supplies the
-concern, `replace` when an Material component or registered primitive owns it,
+Violations have four dispositions: `remove` when Aura already supplies the
+concern, `replace` when an Aura component or registered primitive owns it,
 `centralize` when a repeated semantic type or layout role is legitimate, and
 `narrowly allowlist` only for an irreducible exception above.
 
 | Inventory finding | Disposition under this contract |
 |---|---|
-| PrimeVue/Material/Tailwind/Nuxt foundation | compliant; add no design-system dependency. |
+| PrimeVue/Aura/Tailwind/Nuxt foundation | compliant; add no design-system dependency. |
 | 25 registered primitives and UI-lab coverage | compliant semantic ownership; primitives delegate generic chrome and states to Material. |
 | Generic preset typography, spacing, borders, radii, shadows, and states | remove; the preset retains only the primary palette. |
 | Application motion scales and component-specific spacing tokens | remove; generic transitions and spacing belong to Material, while unavailable interaction behavior stays local to its owning derived composition. |
@@ -96,7 +96,7 @@ longer override Material borders, elevation, or interaction states.
 
 | ID | Mechanism | Primary ownership | Intended boundary | Sources | Current disposition |
 |---|---|---|---|---|---|
-| `mechanism-material` | PrimeVue/Material baseline | system-owned | Generic controls, containers, typography, chrome, and interaction states. | `@primeuix/themes/material`; `assets/presets/re_l.js` | default: Material is the sole generic visual owner. |
+| `mechanism-material` | PrimeVue/Aura baseline | system-owned | Generic controls, containers, typography, chrome, and interaction states. | `@primeuix/themes/material`; `assets/presets/re_l.js` | default: Material is the sole generic visual owner. |
 | `mechanism-token-source` | Application token source | shared/domain primitive | Semantic typography roles, reusable layout constraints, domain signals, geometry, and data-driven roles only. | `assets/tokens/index.js`; `assets/tokens/README.md` | owned: sole textual source for application visual values. |
 | `mechanism-primevue-projection` | PrimeVue semantic/component projection | system-owned | Projects the brand primary palette and the zinc surface scale; generic component defaults remain Material-owned. | `assets/tokens/index.js`; `assets/presets/re_l.js` | default: component projection covers app-shell anatomy only; semantic projection is primary palette plus zinc surfaces. |
 | `mechanism-tailwind-projection` | Tailwind theme projection | system-owned | Expose semantic app aliases and reusable layout constraints. | `assets/tokens/index.js:L164-L343`; `tailwind.config.js:L1-L15` | owned: `tailwindThemeExtension`; usage is recorded per Vue row. |
