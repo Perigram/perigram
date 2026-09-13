@@ -2,7 +2,7 @@
   <div class="flex h-full min-w-0 flex-1 items-stretch overflow-hidden">
     <Tabs
       :value="activeKey"
-      class="min-w-0 flex-1"
+      class="min-w-0 flex-1 justify-center"
       @update:value="key => key !== activeKey && $emit('select', key)"
     >
       <TabList class="min-w-0 flex-1">
@@ -11,7 +11,7 @@
           :key="tab.key"
           :value="tab.key"
           as="div"
-          class="flex max-w-56 min-w-0 items-center gap-2"
+          class="flex max-w-56 min-w-0 items-center !shrink !py-1.5 !px-2.5"
         >
           <i v-if="tabIcon(tab)" :class="tabIcon(tab)" class="shrink-0" aria-hidden="true" />
           <span class="min-w-0 truncate">{{ tabLabel(tab) }}</span>
