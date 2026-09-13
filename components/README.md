@@ -315,19 +315,21 @@ selector when the target entity list is not already scoped to that parent.
 The generated `home` template is the user's process start screen. Its desktop
 surface is the Discord-style `GeneratedHomeWorkspace` overload (see
 [components/generated/README.md](./generated/README.md)): entities live in the
-sidebar grouped by home section, the active entity opens in the recursive
-tab/split pane area, region create buttons render on their sidebar section
-entries, and the sidebar footer carries the user controls that the desktop
-navbar owns on other routes. Mobile keeps the previous stacked home sections
-(`GeneratedHomeScreen`) with section-level create buttons and entity-card
-action footers. Both surfaces use the region's compiled action ids and the
+sidebar's Tree explorer grouped by home section with containment hierarchy,
+the active entity opens in the recursive tab/split pane area, region create
+buttons render on their sidebar section entries, the pinned communication
+block exposes chats and the organization LiveKit channel, and the sidebar
+footer carries the user controls that the desktop navbar owns on other
+routes. The desktop sidebar does not link out to hub entity-list screens.
+Mobile keeps the previous stacked home sections
+(`GeneratedHomeScreen`) with section-level create buttons, entity-card action
+footers, and the open-list button resolved from the compiled entity-list
+screen. Both surfaces use the region's compiled action ids and the
 same status/entity filters as collection screens. The home template must
 reuse the same entity primitives and generated action execution path as
 collection screens; it must not invent static dashboard widgets, hardcoded
-domain routes, or per-card create buttons. Each home section resolves its
-open-list button from the
-compiled region route or the matching compiled entity-list screen in the
-current screen manifest; it must not construct list routes from entity names.
+domain routes, or per-card create buttons. Mobile must not construct list
+routes from entity names.
 Home root filtering is derived at runtime from the domain containment graph,
 compiled source metadata, and canonical `lineage.*Id` references. The lineage
 fallback covers active manifests whose domain containment catalog does not

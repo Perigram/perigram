@@ -6,15 +6,18 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 
 - `index.js` exports application semantic tokens plus bounded projections for
   PrimeVue, Tailwind, and Nuxt runtime CSS variables.
-  Its active palette uses near-white light chrome, dark ink chrome, and
-  signal-orange intent accents; `--ck-process-canvas-background` provides a
+  Its active palette keeps signal-orange intent accents on the zinc surface
+  scale; app-shell chrome (`--ck-chrome-*`) is derived from the preset
+  surfaces — light chrome sits on `--p-surface-100`, dark chrome on
+  `--p-surface-950`, one step outside the content background — so the active
+  palette owns the shell too. `--ck-process-canvas-background` provides a
   dedicated graph-work surface. `typography.roles` is the complete application
   type contract: page title, section heading, body, label, supporting, metric,
   technical, and prose. The roles select IBM Plex Sans, Mono, or Serif and own
   their full treatment; Tailwind generates one `text-*` alias per role directly
   from this object.
   Material, not this module, owns generic control and container typography,
-  spacing, borders, radii, shadows, chrome, and interaction states.
+  spacing, borders, radii, shadows, and interaction states.
 - Nuxt emits the exported `cssVariableTokens` and `darkCssVariableTokens`
   directly. `assets/css/main.css` consumes those variables but must not
   duplicate their values or bridge PrimeVue `--p-*` variables.

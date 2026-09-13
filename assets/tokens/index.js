@@ -112,11 +112,14 @@ export const designTokens = {
 export const cssVariableTokens = {
     '--ck-page-background': 'var(--p-surface-100)',
     '--ck-process-canvas-background': 'var(--p-surface-50)',
-    '--ck-chrome-background': '#fefefc',
-    '--ck-chrome-foreground': '#0c0c0b',
-    '--ck-chrome-muted': '#6d6d66',
-    '--ck-chrome-subtle': '#f4f4f0',
-    '--ck-chrome-border': '#c7c7bf',
+    // App-shell chrome derives from the preset surface scale so the active
+    // palette (zinc) owns the shell too: light chrome sits one step below the
+    // white content surface, dark chrome one step below the dark content.
+    '--ck-chrome-background': 'var(--p-surface-100)',
+    '--ck-chrome-foreground': 'var(--p-text-color)',
+    '--ck-chrome-muted': 'var(--p-text-muted-color)',
+    '--ck-chrome-subtle': 'var(--p-surface-200)',
+    '--ck-chrome-border': 'var(--p-content-border-color)',
     '--ck-subtle-background': 'var(--p-surface-100)',
     '--ck-surface-raised': 'var(--p-content-background)',
     '--ck-border-subtle': 'var(--p-content-border-color)',
@@ -174,11 +177,11 @@ export const cssVariableTokens = {
 export const darkCssVariableTokens = {
     '--ck-page-background': 'var(--p-surface-950)',
     '--ck-process-canvas-background': 'var(--p-surface-950)',
-    '--ck-chrome-background': '#0c0c0b',
-    '--ck-chrome-foreground': '#fffdf8',
-    '--ck-chrome-muted': '#bdbdb5',
-    '--ck-chrome-subtle': '#20201d',
-    '--ck-chrome-border': '#393933',
+    '--ck-chrome-background': 'var(--p-surface-950)',
+    '--ck-chrome-foreground': 'var(--p-text-color)',
+    '--ck-chrome-muted': 'var(--p-text-muted-color)',
+    '--ck-chrome-subtle': 'var(--p-surface-800)',
+    '--ck-chrome-border': 'var(--p-content-border-color)',
     '--ck-subtle-background': 'var(--p-surface-800)',
     '--ck-primary-ink': 'var(--ck-primary-300)',
     '--ck-status-success': 'var(--p-emerald-400)',

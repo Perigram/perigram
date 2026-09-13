@@ -6,6 +6,7 @@ import { cncDesignSystemPrimitives } from '../packages/domain-cnc/src/ui.js';
 export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/QueueEditor.vue': 'layout',
   'components/entities/Queue/QueueEntryCard.vue': 'layout',
+  'components/generated/GeneratedHomeWorkspace.vue': 'layout',
   'components/generated/GeneratedProjectWorkspace.vue': 'layout',
   'components/shared/DesignerDialog.vue': 'layout',
   'components/shared/DesignerWorkspace.vue': 'layout',
