@@ -653,12 +653,15 @@ runtime data that directly encodes visualization geometry or information
 magnitude, never ordinary copy or compact UI.
 Nested active app surfaces must use semantic aliases such as `bg-content` or
 `bg-subtle`, not raw palette utilities like `bg-surface-50`, so dark mode uses
-the app token overrides consistently. The surface contract is flat:
-structural containers — panes, tab strips, workspace and layout wrappers,
-chats, and call surfaces — paint no background at all and let the page
-canvas show through; `bg-content` belongs to overlays and controls
-(dialogs, popovers, inputs, chips over media) and `bg-subtle` to in-surface
-insets (bubbles, hover rows, placeholders), never to layout boxes.
+the app token overrides consistently. The surface contract is uniform
+and flat: the page canvas rides the content background, structural
+containers — panes, tab strips, workspace and layout wrappers, chats, and
+call surfaces — paint no background at all; `bg-content` belongs to
+overlays and controls (dialogs, popovers, inputs, chips over media) and
+`bg-subtle` to in-surface insets (bubbles, hover rows, placeholders),
+never to layout boxes. Pane-hosted surfaces size their internal layout
+through container queries on their own width, never viewport
+breakpoints.
 
 Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, typography, or transition durations. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Scoped CSS is limited to exact reusable-layout declarations enforced by `shared/design-system.spec.js`; padding remains Aura-owned spacing. Inline bindings are either exact reusable layout or derived semantic composition, or narrowly allowlisted when their visual value is driven by data.
 
