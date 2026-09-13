@@ -58,9 +58,11 @@ validation feedback so operators can inspect the result without a persistent
 canvas panel.
 The route uses the authenticated app layout with a full canvas workspace and
 the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell. The
-dock is supplied through the shell's dock slot, matching the shared designer
-contract used by Cassette, Facade, and Facade Pattern; the palette and
-inspector render as PrimeVue `Drawer` side panels inside the canvas workspace.
+dock is supplied through the shell's dock slot and the palette/inspector ride
+the shell's palette and inspector slots, matching the shared designer
+contract used by Cassette, Facade, and Facade Pattern. Both rails are
+canvas-scoped PrimeVue `Panel` surfaces; PrimeVue `Drawer` is not used
+because its viewport-fixed portal would scope the panels to the whole screen.
 The graph palette is a compact, descriptive control with four
 concerns only: Entities, Values, Lists and trees, and Events. Its framework
 metadata comes from `createProcessDesignerContract(cncDomain)`; the route
@@ -71,22 +73,22 @@ entity reads, and trigger-payload plumbing cannot be added as unexplained empty
 nodes. Value input selects its type in one node. Logic/comparison, text, math,
 and date each select their operation in one node. Grasshopper-style list/tree
 operations provide selection and structure work without a second entity-query
-language. The persistent drawer renders those operations as a readable
+language. The persistent palette rail renders those operations as a readable
 two-column grid; the full job description is a tooltip, not permanent panel
 prose.
-The palette and inspector are non-modal, non-dismissable drawers (left and
-right, `closeOnEscape` disabled so canvas Escape keeps clearing graph
-selection); each drawer owns its vertical scrolling so long entity lifecycle
-and role forms remain reachable without moving the canvas, and either closes
-independently to recover the canvas. The bottom dock is PrimeVue `Dock`
+The palette and inspector rails scroll inside their canvas slots so long
+entity lifecycle and role forms remain reachable without moving the canvas,
+and either closes independently through its dock toggle to recover the
+canvas; the inspector keeps its tab strip pinned while the tab body scrolls.
+The bottom dock is PrimeVue `Dock`
 wrapped by `components/process-designer/ProcessDesignerDock.vue`:
 `process.vue` maps the page actions into its item API, and
-`ProcessDesignerDockItem.vue` keeps proximity magnification and hover labels
-on the GSAP motion patterns while honoring reduced motion. Dock items are
-grouped by concern with separators: drawer toggles, direct canvas view
-controls, Save and Apply, and the Folder. Process selection and New Draft live
-in the Folder's click-anchored popover. Unsaved work is signaled by the active
-save control and a dot rather than a text badge.
+`ProcessDesignerDockItem.vue` renders static compact icon actions whose hover
+labels run on the GSAP enter/exit pattern while honoring reduced motion. Dock
+items are grouped by concern with separators: rail toggles, direct canvas
+view controls, Save and Apply, and the Folder. Process selection and New
+Draft live in the Folder's click-anchored popover. Unsaved work is signaled
+by the active save control and a dot rather than a text badge.
 Saved graphs containing legacy role/user layout nodes have those non-canvas
 nodes filtered out at load, and entity/service/socket nodes are reconstructed
 from the process records so active definitions do not open to a blank canvas.
