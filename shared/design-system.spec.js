@@ -325,7 +325,7 @@ describe('Design system manifest', () => {
     expect(primeComponentTokens).toEqual({
       tabs: { tablist: { background: 'transparent' } },
       tree: {
-        root: { padding: '0' },
+        root: { padding: '0', background: 'transparent' },
         node: { padding: '0.125rem 0.25rem', gap: '0.25rem' },
         nodeToggleButton: { size: '1.5rem' }
       }
