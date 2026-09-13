@@ -247,11 +247,6 @@ export const useNavigationStore = defineStore('navigation', () => {
             }
         }
 
-        // --- Level 2: Project Context ---
-        if (parts[0] === 'project' && parts[1] && !(currentHierarchyPath.value === path && currentHierarchy.value.length)) {
-            const projectName = entitySelectLabel(currentProject.value, parts[1]);
-            const projectSlug = parts[1];
-
         // --- Level 2: Admin Context ---
         if (parts[0] === 'admin') {
              const adminTabs = [
