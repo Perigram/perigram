@@ -121,12 +121,13 @@ export const designTokens = {
 };
 
 export const cssVariableTokens = {
-    '--ck-page-background': 'var(--p-surface-100)',
+    // Flat surface contract: the page and app-shell chrome sit ON the content
+    // background (zinc 0 light / zinc 900 dark), so content surfaces never
+    // paint a box on the page. In-surface contrast comes from `subtle` (one
+    // step away) and borders; elevation comes from shadows on true overlays.
+    '--ck-page-background': 'var(--p-surface-0)',
     '--ck-process-canvas-background': 'var(--p-surface-50)',
-    // App-shell chrome derives from the preset surface scale so the active
-    // palette (zinc) owns the shell too: light chrome sits one step below the
-    // white content surface, dark chrome one step below the dark content.
-    '--ck-chrome-background': 'var(--p-surface-100)',
+    '--ck-chrome-background': 'var(--p-surface-0)',
     '--ck-chrome-foreground': 'var(--p-text-color)',
     '--ck-chrome-muted': 'var(--p-text-muted-color)',
     '--ck-chrome-subtle': 'var(--p-surface-200)',
@@ -186,9 +187,12 @@ export const cssVariableTokens = {
 };
 
 export const darkCssVariableTokens = {
-    '--ck-page-background': 'var(--p-surface-950)',
+    // Dark side of the flat surface contract: page and chrome sit on the
+    // dark content background (zinc 900) so content surfaces blend; subtle
+    // stays one step lighter for in-surface contrast.
+    '--ck-page-background': 'var(--p-surface-900)',
     '--ck-process-canvas-background': 'var(--p-surface-950)',
-    '--ck-chrome-background': 'var(--p-surface-950)',
+    '--ck-chrome-background': 'var(--p-surface-900)',
     '--ck-chrome-foreground': 'var(--p-text-color)',
     '--ck-chrome-muted': 'var(--p-text-muted-color)',
     '--ck-chrome-subtle': 'var(--p-surface-800)',

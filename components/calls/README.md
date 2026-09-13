@@ -17,10 +17,12 @@ enters the main bundle).
 - `CallTile.vue` renders one participant or screen-share track: video or
   Avatar fallback, speaking level dot, mute/hand/quality badges, and pin.
 - `CallWorkspacePage.vue` is the pane-hosted call surface used by the home
-  workspace: the `CallPanel` stage plus a fixed side rail with the call's own
-  conversation thread (`ChatSupport` embedded and pinned through its
-  `conversation-key` prop, meet-style stage + chat). Direct and group calls
-  show their persistent app chat; org-room calls render stage-only. The
+  workspace: the `CallPanel` stage plus the call's own conversation thread
+  (`ChatSupport` embedded and pinned through its `conversation-key` prop,
+  meet-style stage + chat). It is responsive to the pane width through a
+  container query: wide panes render the chat as a fixed side rail, narrow
+  or split panes stack it below the stage. Direct and group calls show
+  their persistent app chat; org-room calls render stage-only. The
   floating drawer/mobile surfaces keep the full-screen call dialog.
 - Screen shares render `object-contain`; cameras `object-cover`.
   `CallPanel` itself carries no chat — app chat owns messaging; the panel

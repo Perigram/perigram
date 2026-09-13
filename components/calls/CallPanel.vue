@@ -1,6 +1,6 @@
 <template>
     <div class="relative flex h-full min-h-0 flex-col gap-3">
-        <ActionToolbar :title="$t('call.title')" :subtitle="statusText" :level="2">
+        <ActionToolbar :subtitle="statusText" :level="2">
             <template #actions>
                 <SelectButton
                     :model-value="layout"

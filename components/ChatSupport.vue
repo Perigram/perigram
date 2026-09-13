@@ -8,40 +8,37 @@
             v-if="supportDialog || embedded"
             :class="embedded
                 ? fullPage
-                    ? 'flex h-full min-h-0 w-full flex-col overflow-hidden bg-content pointer-events-auto md:flex-row md:rounded-ui'
-                    : 'flex h-full min-h-0 w-full flex-col overflow-hidden bg-content pointer-events-auto'
+                    ? 'flex h-full min-h-0 w-full flex-col overflow-hidden pointer-events-auto lg:flex-row lg:rounded-ui'
+                    : 'flex h-full min-h-0 w-full flex-col overflow-hidden pointer-events-auto'
                 : 'flex h-dvh w-full flex-col overflow-hidden bg-content shadow-overlay pointer-events-auto md:h-support-chat md:w-support-chat md:rounded-ui'"
         >
             <aside
                 v-if="!activeConversation || fullPage"
                 class="flex min-h-0 flex-col overflow-hidden"
                 :class="[
-                    fullPage ? 'md:w-80 md:shrink-0 md:border-r md:border-chrome-border' : 'flex-1',
-                    { 'hidden md:flex': fullPage && activeConversation }
+                    fullPage ? 'lg:w-80 lg:shrink-0 lg:border-r lg:border-chrome-border' : 'flex-1',
+                    { 'hidden lg:flex': fullPage && activeConversation }
                 ]"
             >
-                <div class="flex shrink-0 items-center justify-between gap-2 border-b border-chrome-border px-4 py-3">
-                    <h2 class="m-0 truncate text-section-heading">{{ $t('support.chatTitle') }}</h2>
-                    <div class="flex shrink-0 items-center gap-1">
-                        <Button
-                            icon="pi pi-user-plus"
-                            severity="secondary"
-                            text
-                            rounded
-                            size="small"
-                            :aria-label="$t('support.openChat')"
-                            @click="toggleNewChat"
-                        />
-                        <Button
-                            icon="pi pi-users"
-                            severity="secondary"
-                            text
-                            rounded
-                            size="small"
-                            :aria-label="$t('support.newGroup')"
-                            @click="openGroupDialog"
-                        />
-                    </div>
+                <div class="flex shrink-0 items-center justify-end gap-1 px-2 pt-2">
+                    <Button
+                        icon="pi pi-user-plus"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('support.openChat')"
+                        @click="toggleNewChat"
+                    />
+                    <Button
+                        icon="pi pi-users"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('support.newGroup')"
+                        @click="openGroupDialog"
+                    />
                 </div>
                 <div v-if="newChatVisible" class="border-b border-chrome-border p-3">
                     <Select
@@ -123,7 +120,7 @@
                 </div>
             </aside>
 
-            <div v-if="fullPage && !activeConversation" class="hidden min-h-0 flex-1 items-center justify-center md:flex">
+            <div v-if="fullPage && !activeConversation" class="hidden min-h-0 flex-1 items-center justify-center lg:flex">
                 <StateBlock :message="$t('support.selectConversation')" icon="pi pi-comments" />
             </div>
 
@@ -135,7 +132,7 @@
                         text
                         rounded
                         size="small"
-                        :class="fullPage ? 'md:hidden' : ''"
+                        :class="fullPage ? 'lg:hidden' : ''"
                         :aria-label="$t('common.back')"
                         @click="showInbox"
                     />
@@ -210,7 +207,7 @@
                     </span>
                     <Button :label="$t('call.join')" icon="pi pi-phone" size="small" @click="joinIncomingCall" />
                 </div>
-                <div ref="messagesContainer" class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 bg-content md:p-4 md:gap-4">
+                <div ref="messagesContainer" class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 md:p-4 md:gap-4">
                     <template
                         v-for="messageItem in messagesList"
                         :key="messageItem._id"
