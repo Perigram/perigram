@@ -53,13 +53,15 @@ process definitions with Vue Flow, persists drafts through
 activates compiled runtime contracts for access, screen manifests, navigation,
 entity workflows, services, sockets, and field policies. The checkmark apply
 button saves or forks the visible graph, activates the resulting process
-definition, and records activation warnings/errors in the validation popup so
-operators can inspect the result without a persistent canvas panel.
+definition, and records activation warnings/errors in the centered canvas
+validation feedback so operators can inspect the result without a persistent
+canvas panel.
 The route uses the authenticated app layout with a full canvas workspace and
-the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell. Its graph palette,
-inspector, and dock are supplied through the shell's named slots, matching the
-shared designer contract used by Cassette, Facade, and Facade Pattern. The
-graph palette is a compact, descriptive control with four
+the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell. The
+dock is supplied through the shell's dock slot, matching the shared designer
+contract used by Cassette, Facade, and Facade Pattern; the palette and
+inspector render as PrimeVue `Drawer` side panels inside the canvas workspace.
+The graph palette is a compact, descriptive control with four
 concerns only: Entities, Values, Lists and trees, and Events. Its framework
 metadata comes from `createProcessDesignerContract(cncDomain)`; the route
 supplies CNC as the active domain implementation rather than importing
@@ -69,21 +71,22 @@ entity reads, and trigger-payload plumbing cannot be added as unexplained empty
 nodes. Value input selects its type in one node. Logic/comparison, text, math,
 and date each select their operation in one node. Grasshopper-style list/tree
 operations provide selection and structure work without a second entity-query
-language. The persistent panel renders those operations as a readable
+language. The persistent drawer renders those operations as a readable
 two-column grid; the full job description is a tooltip, not permanent panel
 prose.
-The properties pane is a bounded floating aside; its tab body owns vertical
-scrolling so long entity lifecycle and role forms remain reachable without
-moving the canvas. Palette and inspector rails are opaque structural surfaces
-around a compact icon-only bottom dock. Process selection and New Draft live in
-a focused popup; validation and view controls open their own popups. Unsaved
-work is signaled by the active save control and a dot rather than a text badge.
-The dock is the shared `MotionDock.vue` installation of the Vue Bits Dock
-interaction: `process.vue` maps the page actions into its item API, while the
-derived component keeps proximity behavior local, consumes Aura for generic
-spacing and states, and honors reduced motion. This keeps the external block's proximity interaction
-without introducing its published fixed black surface, border, or shadow
-treatment.
+The palette and inspector are non-modal, non-dismissable drawers (left and
+right, `closeOnEscape` disabled so canvas Escape keeps clearing graph
+selection); each drawer owns its vertical scrolling so long entity lifecycle
+and role forms remain reachable without moving the canvas, and either closes
+independently to recover the canvas. The bottom dock is PrimeVue `Dock`
+wrapped by `components/process-designer/ProcessDesignerDock.vue`:
+`process.vue` maps the page actions into its item API, and
+`ProcessDesignerDockItem.vue` keeps proximity magnification and hover labels
+on the GSAP motion patterns while honoring reduced motion. Dock items are
+grouped by concern with separators: drawer toggles, direct canvas view
+controls, Save and Apply, and the Folder. Process selection and New Draft live
+in the Folder's click-anchored popover. Unsaved work is signaled by the active
+save control and a dot rather than a text badge.
 Saved graphs containing legacy role/user layout nodes have those non-canvas
 nodes filtered out at load, and entity/service/socket nodes are reconstructed
 from the process records so active definitions do not open to a blank canvas.

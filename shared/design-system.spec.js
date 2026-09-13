@@ -412,11 +412,9 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.colors.signal.entity).toBe('var(--ck-signal-entity)');
     expect(tailwindThemeExtension).not.toHaveProperty('letterSpacing');
 
-    const motionDock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/MotionDock.vue'), 'utf8');
-    expect(motionDock).toContain('var(--p-toolbar-gap)');
-    expect(motionDock).toContain('var(--p-toolbar-padding)');
-    expect(motionDock).toContain('var(--p-transition-duration)');
-    expect(motionDock).not.toMatch(/--ck-(?:motion|ease|dock)/);
+    const processDesignerDockItem = fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer/ProcessDesignerDockItem.vue'), 'utf8');
+    expect(processDesignerDockItem).toContain("from '~/composables/useMotion.js'");
+    expect(processDesignerDockItem).not.toMatch(/--ck-(?:motion|ease|dock)/);
 
     const appLayout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
     const uiLabLayout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/ui-lab-layout.vue'), 'utf8');

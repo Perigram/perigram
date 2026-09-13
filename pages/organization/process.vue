@@ -78,52 +78,53 @@
         </Message>
       </div>
 
-      <div v-if="!nodes.length" class="absolute inset-x-4 top-8 z-10 flex justify-center lg:left-[20rem] lg:right-[28rem]">
+      <div v-if="!nodes.length" class="absolute inset-x-4 top-8 z-10 flex justify-center">
         <StateBlock :message="emptyCanvasMessage" />
       </div>
 
-      <template v-if="paletteOpen" #palette>
-        <div class="flex w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 rounded-ui border border-content-border bg-content p-3 shadow-card">
-        <div class="flex items-center gap-1">
-          <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
-        </div>
-        <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
-          <span class="px-1 uppercase text-muted-color text-supporting">{{ paletteGroupLabel(group.id) }}</span>
-          <div class="grid grid-cols-2 gap-1.5">
-            <Button
-              v-for="item in group.items"
-              :key="item.id"
-              :icon="item.icon"
-              :label="paletteLabel(item)"
-              :aria-label="paletteLabel(item)"
-              v-tooltip.right="paletteDescription(item)"
-              size="small"
-              text
-              class="min-w-0 justify-start border border-transparent bg-subtle px-2 hover:border-content-border"
-              @click="addNode(item)"
-            />
+      <Drawer
+        v-model:visible="paletteOpen"
+        position="left"
+        :modal="false"
+        :dismissable="false"
+        :block-scroll="false"
+        :close-on-escape="false"
+        :header="$t('processDesigner.palette')"
+      >
+        <div class="flex flex-col gap-3">
+          <div class="flex items-center gap-1">
+            <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
+          </div>
+          <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
+            <span class="px-1 uppercase text-muted-color text-supporting">{{ paletteGroupLabel(group.id) }}</span>
+            <div class="grid grid-cols-2 gap-1.5">
+              <Button
+                v-for="item in group.items"
+                :key="item.id"
+                :icon="item.icon"
+                :label="paletteLabel(item)"
+                :aria-label="paletteLabel(item)"
+                v-tooltip.right="paletteDescription(item)"
+                size="small"
+                text
+                class="min-w-0 justify-start border border-transparent bg-subtle px-2 hover:border-content-border"
+                @click="addNode(item)"
+              />
+            </div>
           </div>
         </div>
-        </div>
-      </template>
+      </Drawer>
 
       <template #dock>
-        <MotionDock
+        <ProcessDesignerDock
           :items="designerDockItems"
           :aria-label="$t('processDesigner.title')"
-          class-name="process-designer-dock"
+          dock-class="process-designer-dock"
         />
       </template>
 
-      <Popover ref="processMenu" @hide="onDockPopoverHide('process')">
-        <div
-          class="flex min-w-72 flex-col gap-2"
-          @mousedown.stop
-          @click.stop
-          @mouseenter="keepDockPopover('process')"
-          @mouseleave="scheduleDockPopoverClose('process')"
-          @focusin="keepDockPopover('process')"
-        >
+      <Popover ref="processMenu">
+        <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
           <Select
             v-if="processOptions.length"
             :model-value="selectedProcessId"
@@ -135,8 +136,6 @@
             size="small"
             :aria-label="$t('processDesigner.title')"
             @update:model-value="selectProcessDefinition"
-            @show="pinDockPopover('process')"
-            @hide="unpinDockPopover('process')"
           />
           <Button
             icon="pi pi-file-plus"
@@ -151,32 +150,23 @@
         </div>
       </Popover>
 
-      <Popover ref="canvasMenu" @hide="onDockPopoverHide('navigation')">
-        <div
-          class="grid grid-cols-5 gap-0.5"
-          @mousedown.stop
-          @click.stop
-          @mouseenter="keepDockPopover('navigation')"
-          @mouseleave="scheduleDockPopoverClose('navigation')"
-          @focusin="keepDockPopover('navigation')"
-        >
-          <Button icon="pi pi-minus" text size="small" v-tooltip.top="$t('drawing.zoomOut')" :aria-label="$t('drawing.zoomOut')" @click="zoomCanvasOut" />
-          <Button icon="pi pi-expand" text size="small" v-tooltip.top="$t('processDesigner.frameAll')" :aria-label="$t('processDesigner.frameAll')" @click="frameAllNodes" />
-          <Button icon="pi pi-crosshairs" text size="small" v-tooltip.top="$t('processDesigner.frameSelection')" :aria-label="$t('processDesigner.frameSelection')" @click="frameSelectedNodes" />
-          <Button icon="pi pi-plus" text size="small" v-tooltip.top="$t('drawing.zoomIn')" :aria-label="$t('drawing.zoomIn')" @click="zoomCanvasIn" />
-          <Button icon="pi pi-refresh" text size="small" v-tooltip.top="$t('processDesigner.resetZoom')" :aria-label="$t('processDesigner.resetZoom')" @click="resetCanvasZoom" />
-        </div>
-      </Popover>
-
-      <template v-if="inspectorOpen" #inspector>
-        <aside class="flex w-[26rem] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card">
-        <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
+      <Drawer
+        v-model:visible="inspectorOpen"
+        position="right"
+        :modal="false"
+        :dismissable="false"
+        :block-scroll="false"
+        :close-on-escape="false"
+        :header="$t('processDesigner.inspector')"
+        :style="{ width: '26rem' }"
+      >
+        <Tabs v-model:value="inspectTab">
           <TabList>
             <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
             <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
             <Tab value="screens">{{ $t('organization.screens') }}</Tab>
           </TabList>
-          <TabPanels class="min-h-0 flex-1 overflow-y-auto">
+          <TabPanels>
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
                 <div v-if="!['action', 'statusDefinition', 'processNode'].includes(selectedNode.type)" class="flex flex-col gap-1">
@@ -863,11 +853,10 @@
             </TabPanel>
           </TabPanels>
         </Tabs>
-        </aside>
-      </template>
+      </Drawer>
 
-      <div v-if="validation" class="absolute bottom-16 left-3 z-10 max-w-xl">
-        <div class="flex flex-col gap-2">
+      <div v-if="validation" class="pointer-events-none absolute inset-x-0 bottom-16 z-10 flex justify-center px-4">
+        <div class="pointer-events-auto flex max-w-xl flex-col gap-2">
           <Message :severity="validation.ok ? 'success' : 'error'">
             {{ validation.ok ? (validation.message || $t('processDesigner.validationOk')) : validation.errors.join('; ') }}
           </Message>
@@ -892,12 +881,13 @@
 </template>
 
 <script setup>
-import { computed, h, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { SelectionMode, VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
+import Drawer from 'primevue/drawer';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
@@ -938,7 +928,7 @@ import { cncDomain } from '@cutkit/domain-cnc';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
-import MotionDock from '~/components/shared/MotionDock.vue';
+import ProcessDesignerDock from '~/components/process-designer/ProcessDesignerDock.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
@@ -1001,12 +991,9 @@ const contextPalette = ref({
 const canvasKeyboardActive = ref(false);
 const { fitView, getViewport, setViewport, zoomIn, zoomOut, zoomTo } = useVueFlow();
 const {
-  canvasMenu,
-  dockPopover,
   inspectTab,
   inspectorOpen,
   paletteOpen,
-  pinnedDockPopover,
   processMenu,
   selectedPrincipalId,
   selectedRoleId,
@@ -1232,55 +1219,69 @@ const statusIconOptions = [
 ];
 const accessLevelRank = { read: 1, write: 2, admin: 3 };
 const defaultEdgeOptions = { type: 'default' };
-let dockPopoverCloseTimer = null;
 
 const activeName = computed(() => draft.value?.identity?.name || '');
 const isActiveProcess = computed(() => draft.value?.status?.state?.primary === 'ACTIVE');
 const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
+const dockSeparator = { separator: true };
 const designerDockItems = computed(() => [
   {
-    icon: () => h('i', { class: 'pi pi-th-large', 'aria-hidden': 'true' }),
+    icon: 'pi pi-th-large',
     label: t('processDesigner.palette'),
     onClick: () => { paletteOpen.value = !paletteOpen.value; },
     pressed: paletteOpen.value
   },
   {
-    icon: () => h('i', { class: 'pi pi-sliders-h', 'aria-hidden': 'true' }),
+    icon: 'pi pi-sliders-h',
     label: t('processDesigner.inspector'),
     onClick: () => { inspectorOpen.value = !inspectorOpen.value; },
     pressed: inspectorOpen.value
   },
+  dockSeparator,
   {
-    icon: () => h('i', { class: savingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
+    icon: 'pi pi-minus',
+    label: t('drawing.zoomOut'),
+    onClick: zoomCanvasOut
+  },
+  {
+    icon: 'pi pi-plus',
+    label: t('drawing.zoomIn'),
+    onClick: zoomCanvasIn
+  },
+  {
+    icon: 'pi pi-expand',
+    label: t('processDesigner.frameAll'),
+    onClick: frameAllNodes
+  },
+  {
+    icon: 'pi pi-crosshairs',
+    label: t('processDesigner.frameSelection'),
+    onClick: frameSelectedNodes
+  },
+  {
+    icon: 'pi pi-refresh',
+    label: t('processDesigner.resetZoom'),
+    onClick: resetCanvasZoom
+  },
+  dockSeparator,
+  {
+    icon: savingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-save',
     label: t('common.save'),
     onClick: saveDraftFromDock,
     disabled: !draft.value || savingDraft.value || creatingDraft.value || applyingProcess.value,
     attention: isDirty.value
   },
   {
-    icon: () => h('i', { class: applyingProcess.value ? 'pi pi-spinner pi-spin' : 'pi pi-check', 'aria-hidden': 'true' }),
+    icon: applyingProcess.value ? 'pi pi-spinner pi-spin' : 'pi pi-check',
     label: t('processDesigner.apply'),
     onClick: applyProcess,
     disabled: !draft.value?._id || isActiveProcess.value || applyingProcess.value || savingDraft.value || creatingDraft.value
   },
+  dockSeparator,
   {
-    icon: () => h('i', { class: 'pi pi-arrows-alt', 'aria-hidden': 'true' }),
-    label: t('processDesigner.canvasNavigation'),
-    onClick: event => openDockPopover('navigation', event),
-    onHoverStart: event => openDockPopover('navigation', event),
-    onHoverEnd: () => scheduleDockPopoverClose('navigation'),
-    onFocus: event => openDockPopover('navigation', event),
-    onBlur: () => scheduleDockPopoverClose('navigation'),
-    hasPopup: true
-  },
-  {
-    icon: () => h('i', { class: 'pi pi-folder', 'aria-hidden': 'true' }),
+    icon: 'pi pi-folder',
     label: t('processDesigner.title'),
-    onClick: event => openDockPopover('process', event),
-    onHoverStart: event => openDockPopover('process', event),
-    onHoverEnd: () => scheduleDockPopoverClose('process'),
-    onFocus: event => openDockPopover('process', event),
-    onBlur: () => scheduleDockPopoverClose('process'),
+    onClick: event => toggleProcessMenu(event),
     hasPopup: true
   }
 ]);
@@ -1496,7 +1497,6 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleCanvasKeydown);
-  if (dockPopoverCloseTimer) clearTimeout(dockPopoverCloseTimer);
   if (previewRecomputeTimer) clearTimeout(previewRecomputeTimer);
 });
 
@@ -1559,7 +1559,7 @@ async function selectProcessDefinition(processId) {
   selectedProcessId.value = processId === null || processId === undefined ? null : String(processId);
   const selected = processDefinitions.value.find(process => String(process._id) === selectedProcessId.value);
   if (!selected) return;
-  closeDockPopover('process');
+  closeProcessMenu();
   // List entries are summaries; load the full record before editing.
   if (!selected.data) {
     try {
@@ -1602,7 +1602,7 @@ async function createDraftFromDock() {
   creatingDraft.value = true;
   try {
     await createDraft({ empty: true });
-    closeDockPopover('process');
+    closeProcessMenu();
     toast.add({ severity: 'success', summary: t('processDesigner.newDraft'), life: 2400 });
   } catch (error) {
     toast.add({
@@ -1699,60 +1699,12 @@ async function applyProcess() {
   }
 }
 
-function popoverFor(panel) {
-  return panel === 'process' ? processMenu.value : canvasMenu.value;
+function toggleProcessMenu(event) {
+  processMenu.value?.toggle?.(event);
 }
 
-function openDockPopover(panel, event) {
-  const previousPanel = dockPopover.value;
-  keepDockPopover(panel);
-  if (previousPanel && previousPanel !== panel) popoverFor(previousPanel)?.hide?.();
-  dockPopover.value = panel;
-  popoverFor(panel)?.show?.(event);
-}
-
-function keepDockPopover(panel) {
-  if (dockPopoverCloseTimer) {
-    clearTimeout(dockPopoverCloseTimer);
-    dockPopoverCloseTimer = null;
-  }
-  dockPopover.value = panel;
-}
-
-function pinDockPopover(panel) {
-  keepDockPopover(panel);
-  pinnedDockPopover.value = panel;
-}
-
-function unpinDockPopover(panel) {
-  if (pinnedDockPopover.value === panel) pinnedDockPopover.value = null;
-  scheduleDockPopoverClose(panel);
-}
-
-function scheduleDockPopoverClose(panel) {
-  if (pinnedDockPopover.value === panel) return;
-  if (dockPopoverCloseTimer) clearTimeout(dockPopoverCloseTimer);
-  dockPopoverCloseTimer = setTimeout(() => {
-    if (dockPopover.value === panel) closeDockPopover(panel);
-    dockPopoverCloseTimer = null;
-  }, 160);
-}
-
-function closeDockPopover(panel = null) {
-  if (dockPopoverCloseTimer) {
-    clearTimeout(dockPopoverCloseTimer);
-    dockPopoverCloseTimer = null;
-  }
-  if (panel && dockPopover.value !== panel) return;
-  if (!panel || pinnedDockPopover.value === panel) pinnedDockPopover.value = null;
-  const activePanel = panel || dockPopover.value;
-  dockPopover.value = null;
-  if (activePanel) popoverFor(activePanel)?.hide?.();
-}
-
-function onDockPopoverHide(panel) {
-  if (dockPopover.value === panel) dockPopover.value = null;
-  if (pinnedDockPopover.value === panel) pinnedDockPopover.value = null;
+function closeProcessMenu() {
+  processMenu.value?.hide?.();
 }
 
 function setDraft(value) {
@@ -1839,7 +1791,6 @@ function addNode(item, position = nextNodePosition()) {
 
 function handleDesignerPointerDown(event) {
   canvasKeyboardActive.value = Boolean(event.target?.closest?.('.vue-flow'));
-  if (!event.target?.closest?.('.process-designer-dock')) closeDockPopover();
 }
 
 function handleDesignerFocus(event) {
@@ -2053,7 +2004,7 @@ function decorateEdge(edge = {}) {
     animated: selected,
     style: {
       stroke: selected ? 'var(--p-primary-color)' : processSocketColor(sourcePort),
-      strokeWidth: selected ? 3 : 1.5
+      strokeWidth: selected ? 3 : 2
     }
   };
 }
