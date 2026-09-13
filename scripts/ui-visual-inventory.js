@@ -66,9 +66,6 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
     ':style="statusHandleStyle"'
   ]],
   'components/shared/EntityInlineRef.vue': ['data-driven', [':style="toneStyle"', ':style="toneStyle"']],
-  'pages/assets/pens.vue': ['data-driven', [':style="{ backgroundColor: form.stroke.color }"']],
-  'pages/organization/process.vue': ['data-driven', [':style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"']],
-  'pages/project/[slug]/data.vue': ['layout', ['style="width: var(--ck-table-action-column-width)"']]
 });
 
 const REGISTERED_PRIMITIVE_PATHS = new Set(cncDesignSystemPrimitives.map(primitive => primitive.componentPath));

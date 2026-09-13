@@ -228,7 +228,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-profilesketcheditor-vue` | `components/ProfileSketchEditor.vue` | derived usage | centralize:layout (2); replace:chrome (13) |
 | `ui-components-projectstatistics-vue` | `components/ProjectStatistics.vue` | derived usage | compliant |
 | `ui-components-queueeditor-vue` | `components/QueueEditor.vue` | derived usage | replace:chrome (8); compliant:scoped-layout; compliant:inline-layout (1) |
-| `ui-components-recentprojects-vue` | `components/RecentProjects.vue` | derived usage | compliant |
 | `ui-components-shared-actiontoolbar-vue` | `components/shared/ActionToolbar.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-blocks-datablock-vue` | `components/shared/blocks/DataBlock.vue` | shared/domain primitive | compliant:scoped-layout |
 | `ui-components-shared-blocks-identityblock-vue` | `components/shared/blocks/IdentityBlock.vue` | shared/domain primitive | compliant |
@@ -285,35 +284,16 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-admin-users-vue` | `pages/admin/users.vue` | derived usage | replace:chrome (4) |
 | `ui-pages-admin-workbench-vue` | `pages/admin/workbench.vue` | derived usage | centralize:layout (6); replace:chrome (35) |
 | `ui-pages-admin-workflows-vue` | `pages/admin/workflows.vue` | derived usage | centralize:layout (1) |
-| `ui-pages-assets-cassettes-vue` | `pages/assets/cassettes.vue` | derived usage | compliant |
-| `ui-pages-assets-index-vue` | `pages/assets/index.vue` | derived usage | compliant |
-| `ui-pages-assets-layer-standards-vue` | `pages/assets/layer-standards.vue` | derived usage | centralize:layout (1) |
-| `ui-pages-assets-pens-vue` | `pages/assets/pens.vue` | derived usage | centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (1) |
-| `ui-pages-assets-templates-vue` | `pages/assets/templates.vue` | derived usage | compliant |
-| `ui-pages-assets-tools-vue` | `pages/assets/tools.vue` | derived usage | centralize:layout (1) |
 | `ui-pages-auth-login-vue` | `pages/auth/login.vue` | derived usage | replace:chrome (1) |
 | `ui-pages-auth-register-vue` | `pages/auth/register.vue` | derived usage | replace:chrome (1) |
-| `ui-pages-catalog-index-vue` | `pages/catalog/index.vue` | derived usage | centralize:layout (1) |
 | `ui-pages-chats-vue` | `pages/chats.vue` | derived usage | compliant |
-| `ui-pages-geometry-captures-index-vue` | `pages/geometry-captures/index.vue` | derived usage | centralize:layout (3); replace:chrome (9); remove:state (1) |
 | `ui-pages-index-vue` | `pages/index.vue` | derived usage | centralize:layout (5); replace:chrome (4) |
 | `ui-pages-invitation-token-vue` | `pages/invitation/[token].vue` | derived usage | replace:chrome (3) |
 | `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
 | `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | compliant |
-| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (8); replace:chrome (29); remove:state (1); narrowly-allowlist:inline-data-driven (1) |
+| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (8); replace:chrome (29); remove:state (1); replace:inline-visual (1) |
 | `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | compliant |
 | `ui-pages-profile-index-vue` | `pages/profile/index.vue` | derived usage | replace:chrome (4) |
-| `ui-pages-project-slug-vue` | `pages/project/[slug].vue` | derived usage | compliant |
-| `ui-pages-project-slug-artifacts-vue` | `pages/project/[slug]/artifacts.vue` | derived usage | centralize:layout (1) |
-| `ui-pages-project-slug-data-vue` | `pages/project/[slug]/data.vue` | derived usage | centralize:layout (1); replace:chrome (5); compliant:inline-layout (1) |
-| `ui-pages-project-slug-details-vue` | `pages/project/[slug]/details.vue` | derived usage | centralize:layout (1); replace:chrome (16) |
-| `ui-pages-project-slug-index-vue` | `pages/project/[slug]/index.vue` | derived usage | compliant |
-| `ui-pages-project-slug-queue-queueid-vue` | `pages/project/[slug]/queue/[queueId].vue` | derived usage | compliant |
-| `ui-pages-project-slug-queues-vue` | `pages/project/[slug]/queues.vue` | derived usage | compliant |
-| `ui-pages-project-slug-sheet-design-sheetdesignid-vue` | `pages/project/[slug]/sheet-design/[sheetDesignId].vue` | derived usage | compliant |
-| `ui-pages-project-slug-sheet-designs-vue` | `pages/project/[slug]/sheet-designs.vue` | derived usage | centralize:layout (1) |
-| `ui-pages-projects-index-vue` | `pages/projects/index.vue` | derived usage | centralize:layout (1); replace:chrome (16) |
-| `ui-pages-requisitions-index-vue` | `pages/requisitions/index.vue` | derived usage | centralize:layout (1) |
 | `ui-pages-screens-screenkey-vue` | `pages/screens/[screenKey].vue` | derived usage | compliant |
 | `ui-pages-screens-index-vue` | `pages/screens/index.vue` | derived usage | compliant |
 | `ui-pages-terms-and-conditions-vue` | `pages/terms-and-conditions.vue` | derived usage | replace:chrome (2) |

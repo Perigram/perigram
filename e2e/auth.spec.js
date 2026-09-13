@@ -5,7 +5,7 @@ test.describe('authenticated app shell', () => {
     const me = await app.request.get('/api/auth/me');
     expect(me.ok()).toBeTruthy();
 
-    await app.page.goto('/projects');
+    await app.page.goto('/screens');
     await expect(app.page).toHaveURL(/\/projects$/);
     await expect(app.page.locator('body')).toContainText(/project|проект/i);
     await app.expectCleanRuntime();

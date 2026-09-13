@@ -69,4 +69,3 @@ already present.
 ## Related
 
 - [stores](../stores/README.md)
-- [project routes](../pages/project/README.md)
