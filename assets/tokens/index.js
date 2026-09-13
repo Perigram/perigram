@@ -340,7 +340,7 @@ export const primeComponentTokens = {
             background: 'transparent'
         },
         tab: {
-            padding: '0.5rem 0.75rem'
+            padding: '{navigation.item.padding}'
         }
     },
     tree: {
