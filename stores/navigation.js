@@ -135,11 +135,6 @@ export const useNavigationStore = defineStore('navigation', () => {
     // --- HUB DEFINITIONS (Level 1) ---
     // Entirely dynamic based on role/org state and permissions
     const hubConfigs = [
-        { id: 'projects', entity: 'projects', level: 'read', nameKey: 'features.projects', to: '/projects', icon: 'pi pi-folder' },
-        { id: 'warehouses', entity: 'warehouses', level: 'read', nameKey: 'features.warehouses', to: '/warehouses', icon: 'pi pi-building' },
-        { id: 'catalog', entity: 'catalogs', level: 'read', nameKey: 'features.catalogs', to: '/catalog', icon: 'pi pi-palette' },
-        { id: 'requisitions', entity: 'requisitions', level: 'read', nameKey: 'features.requisitions', to: '/requisitions', icon: 'pi pi-shopping-cart' },
-        { id: 'assets', entity: 'cassettes', level: 'read', nameKey: 'features.assets', to: '/assets/cassettes', icon: 'pi pi-objects-column' },
         { id: 'organization', entity: 'organizations', level: 'read', nameKey: 'organization.workspace', to: '/organization', icon: 'pi pi-building' },
         { id: 'admin', entity: 'organizations', level: 'admin', nameKey: 'nav.admin', to: '/admin', icon: 'pi pi-cog' },
     ];
