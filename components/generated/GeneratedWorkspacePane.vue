@@ -39,7 +39,7 @@
     class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
     data-empty-workspace-pane
   >
-    <header data-pane-header class="flex h-10 shrink-0 items-center gap-1 border-b border-content-border pr-1">
+    <div data-pane-header class="flex shrink-0 items-stretch">
       <GeneratedWorkspaceTabs
         :tabs="tabs"
         :available-tabs="availableTabs"
@@ -49,13 +49,15 @@
         @add="$emit('add-tab', $event)"
         @refresh="$emit('refresh')"
       />
-      <GeneratedWorkspacePaneMenu
-        :splittable="splittable"
-        :closeable="closeable"
-        @split="$emit('split', $event)"
-        @close="$emit('close')"
-      />
-    </header>
+      <div class="flex shrink-0 items-center border-b border-content-border pr-1">
+        <GeneratedWorkspacePaneMenu
+          :splittable="splittable"
+          :closeable="closeable"
+          @split="$emit('split', $event)"
+          @close="$emit('close')"
+        />
+      </div>
+    </div>
     <div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-muted-color">
       <i class="pi pi-folder-open" aria-hidden="true" />
       <span>{{ $t('project.openSomething') }}</span>
