@@ -101,18 +101,29 @@ Discord-style operational shell:
   (`GeneratedHomeScreen.vue`) inside a self-scrolling container, so the mobile
   contract is unchanged.
 - The sidebar owns navigation for the whole shell. Below the brand header, a
-  pinned communication block exposes the chats drawer entry (with the shared
-  unread badge) and the organization LiveKit channel, which joins the derived
-  `call:org:<orgId>` room through a full-size `CallPanel` dialog using the
-  livekit feature's documented room contract.
-- Entity navigation is a dense PrimeVue `Tree` explorer, the same structure the
-  project workspace Explorer uses. Home entity-list sections render as
-  non-selectable folder nodes (entity-type icon, `generatedRegionLabel` label)
-  whose rows carry the region's compiled create actions as icon-only
-  `GeneratedActionButton`s — generated buttons live on their corresponding
-  sidebar entries, not on page-level toolbars. Section folders expand/collapse
-  and entity rows render `IdentityBlock` plus the icon-variant `EntityStatus`
-  as siblings (never nested interactive elements).
+  pinned communication block exposes the chats entry and LiveKit channels.
+  Chats open as the registered entity-less `chats` workspace page (see
+  `workspace-pages.js`): a tab in the main pane area rendering `ChatSupport`
+  full-page with its built-in inbox rail — chats are not a floating surface
+  on this route and the desktop floating launcher is hidden. The channels
+  block lists the derived organization room plus persisted organization call
+  channels from `/api/livekit/channels`; joining opens a full-size
+  `CallPanel` dialog, and channels can be created (name dialog) and deleted
+  (confirmation) inline. Deletion visibility follows the livekit feature's
+  contract: the creating member or an organization owner.
+- Entity navigation is a dense PrimeVue `Tree` explorer in a self-scrolling
+  wrapper, the same structure the project workspace Explorer uses. Home
+  entity-list sections render as non-selectable folder nodes (entity-type
+  icon, `generatedRegionLabel` label) whose rows carry the region's compiled
+  create actions as icon-only `GeneratedActionButton`s. Section folders
+  expand/collapse and entity rows keep the identity left-aligned with the
+  icon-variant `EntityStatus` pinned at the row end.
+- Generated create buttons follow the hierarchy: beyond the section folders,
+  each entity row resolves the create actions of its entity type's compiled
+  detail-screen child collection regions (`generatedDetailScreenForEntityType`)
+  and renders them with the row entity bound as the opened parent through
+  `mergeCollectionActionContext`. Nothing is hardcoded per entity type; a
+  row without compiled child create regions shows none.
 - The explorer shows containment hierarchy like the project page: entities
   nest beneath a loaded ancestor through the effective containment graph and
   canonical `lineage.*Id` references. Section roots never nest. Entity nodes
@@ -211,7 +222,9 @@ bounded IDE-style Explorer and file workspace:
   and mounts `CassetteDesignerV2` through the shared designer surface so the
   designer owns the pane rather than a dialog. Linked entities and source-loaded children use the same
   page-opening lookup; relation navigation does not reduce their capabilities.
-  Additional app-owned pages register through the same fixed registry.
+  Additional app-owned pages register through the same fixed registry; pages
+  without an entity binding (for example `chats`) are always-openable tabs in
+  the home workspace.
 - PrimeVue splitters form a recursive split tree. A pane can split right or
   down, and nested horizontal/vertical splits keep independent selections and
   scrolling. Split proportions, Explorer width/visibility, active pane,

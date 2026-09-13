@@ -316,9 +316,11 @@ The generated `home` template is the user's process start screen. Its desktop
 surface is the Discord-style `GeneratedHomeWorkspace` overload (see
 [components/generated/README.md](./generated/README.md)): entities live in the
 sidebar's Tree explorer grouped by home section with containment hierarchy,
-the active entity opens in the recursive tab/split pane area, region create
-buttons render on their sidebar section entries, the pinned communication
-block exposes chats and the organization LiveKit channel, and the sidebar
+the active entity opens in the recursive tab/split pane area, generated
+create buttons render on their section folders and on entity rows through
+their compiled detail-screen child regions, the pinned communication block
+exposes chats (a registered workspace page tab with the built-in inbox rail)
+and the LiveKit channel list with create/delete, and the sidebar
 footer carries the user controls that the desktop navbar owns on other
 routes. The desktop sidebar does not link out to hub entity-list screens.
 Mobile keeps the previous stacked home sections

@@ -93,8 +93,11 @@ Routes are grouped into sub-directories corresponding to features:
   See [the connections feature](../features/connections/README.md).
 - `livekit/`: Authenticated call endpoints — config for the browser,
   token minting with server-side room admission, conversation call invites,
-  and a verified LiveKit webhook receiver that fans call activity onto the
-  connections layer. See [the livekit feature](../features/livekit/README.md).
+  verified LiveKit webhook receiver that fans call activity onto the
+  connections layer, and organization call-channel CRUD
+  (`GET/POST /livekit/channels`, `DELETE /livekit/channels/:id`) used by the
+  home workspace channel list. See
+  [the livekit feature](../features/livekit/README.md).
 - `support/`: Authenticated support chat endpoints. User routes snapshot the
   current user's support conversation or a direct user-to-user conversation
   selected by `recipientUserId`; admin routes remain scoped to customer support
