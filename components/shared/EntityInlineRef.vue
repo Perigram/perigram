@@ -483,7 +483,7 @@ function tonePalette(role) {
     </Popover>
   </span>
 
-  <span v-else class="entity-inline-tone inline-flex min-w-0 max-w-full items-center align-middle" :style="toneStyle">
+  <span v-else class="entity-inline-tone inline-flex min-w-0 max-w-full items-center align-middle" :class="{ 'pointer-events-none': !interactive }" :style="toneStyle">
     <component
       v-if="resolved && cardComponent"
       :is="cardComponent"

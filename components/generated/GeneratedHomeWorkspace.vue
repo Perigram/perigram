@@ -360,7 +360,7 @@ let childLoadSequences = new Map();
 // row content, and a label that owns the remaining width for end-aligned
 // row controls.
 const explorerTreePt = {
-  root: { class: '!p-0' },
+  root: { class: '!p-0', style: { background: 'transparent' } },
   nodeChildren: { style: { paddingInlineStart: '0' } },
   nodeContent: ({ props }) => ({
     class: '!gap-1 !py-0.5',
