@@ -98,10 +98,10 @@ longer override Material borders, elevation, or interaction states.
 |---|---|---|---|---|---|
 | `mechanism-material` | PrimeVue/Material baseline | system-owned | Generic controls, containers, typography, chrome, and interaction states. | `@primeuix/themes/material`; `assets/presets/re_l.js` | default: Material is the sole generic visual owner. |
 | `mechanism-token-source` | Application token source | shared/domain primitive | Semantic typography roles, reusable layout constraints, domain signals, geometry, and data-driven roles only. | `assets/tokens/index.js`; `assets/tokens/README.md` | owned: sole textual source for application visual values. |
-| `mechanism-primevue-projection` | PrimeVue semantic/component projection | system-owned | Projects the brand primary palette and the zinc surface scale; generic component defaults remain Material-owned. | `assets/tokens/index.js`; `assets/presets/re_l.js` | default: component projection is empty; semantic projection is primary palette plus zinc surfaces. |
+| `mechanism-primevue-projection` | PrimeVue semantic/component projection | system-owned | Projects the brand primary palette and the zinc surface scale; generic component defaults remain Material-owned. | `assets/tokens/index.js`; `assets/presets/re_l.js` | default: component projection covers app-shell anatomy only; semantic projection is primary palette plus zinc surfaces. |
 | `mechanism-tailwind-projection` | Tailwind theme projection | system-owned | Expose semantic app aliases and reusable layout constraints. | `assets/tokens/index.js:L164-L343`; `tailwind.config.js:L1-L15` | owned: `tailwindThemeExtension`; usage is recorded per Vue row. |
 | `mechanism-css-variable-projection` | CSS variable projection | system-owned | Expose light and dark `--ck-*` values for app-owned semantic roles. | `assets/tokens/index.js` exports `cssVariableTokens` and `darkCssVariableTokens`; `nuxt.config.js`; `shared/design-system.spec.js` | owned: Nuxt emits both projections directly from the token source. |
-| `mechanism-preset` | PrimeVue preset | system-owned | Install Material plus the bounded primary palette and zinc surface projections. | `assets/presets/re_l.js`; `nuxt.config.js` | default: no generic component overrides. |
+| `mechanism-preset` | PrimeVue preset | system-owned | Install Material plus the bounded primary palette, zinc surface scale, and app-shell component tokens (transparent tab strips, explorer-density trees). | `assets/presets/re_l.js`; `nuxt.config.js` | default: no generic component overrides. |
 | `mechanism-tailwind-aliases` | Tailwind aliases | system-owned | Layout utilities plus token-backed app semantic aliases. | `tailwind.config.js:L1-L16`; `assets/tokens/index.js:L164-L343` | owned: aliases are projected from tokens; raw and arbitrary usage remains component drift. |
 | `mechanism-global-css` | Global CSS layers | system-owned | Font loading/inheritance, page background, app-shell behavior, and active global integrations only. | `assets/css/fonts.css`; `assets/css/main.css`; `assets/css/variants.css` | owned: HTML elements carry no application type role and generic controls remain Material-owned. |
 | `mechanism-runtime-overrides` | Runtime PrimeVue overrides | system-owned | No independent visual-value or generic PrimeVue override source. | `assets/css/main.css`; `shared/design-system.spec.js` | default: PrimeVue variable declarations, component selectors, and important rules are rejected. |
@@ -204,7 +204,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedfacadedesignerworkspacepage-vue` | `components/generated/GeneratedFacadeDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedfacadepatterndesignerworkspacepage-vue` | `components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedhomescreen-vue` | `components/generated/GeneratedHomeScreen.vue` | derived usage | centralize:layout (2); remove:state (1) |
-| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (13); remove:important-override (10) |
+| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (13); remove:important-override (5) |
 | `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | compliant |
 | `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | replace:chrome (11) |
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
@@ -216,7 +216,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedworkspacepage-vue` | `components/generated/GeneratedWorkspacePage.vue` | derived usage | replace:chrome (3) |
 | `ui-components-generated-generatedworkspacepane-vue` | `components/generated/GeneratedWorkspacePane.vue` | derived usage | replace:chrome (3) |
 | `ui-components-generated-generatedworkspacepanemenu-vue` | `components/generated/GeneratedWorkspacePaneMenu.vue` | derived usage | compliant |
-| `ui-components-generated-generatedworkspacetabs-vue` | `components/generated/GeneratedWorkspaceTabs.vue` | derived usage | compliant |
+| `ui-components-generated-generatedworkspacetabs-vue` | `components/generated/GeneratedWorkspaceTabs.vue` | derived usage | remove:important-override (2) |
 | `ui-components-languageswitcher-vue` | `components/LanguageSwitcher.vue` | derived usage | compliant |
 | `ui-components-partlibrary-vue` | `components/PartLibrary.vue` | derived usage | replace:chrome (3) |
 | `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:layout (2); replace:chrome (5) |

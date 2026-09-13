@@ -14,6 +14,17 @@ const signalOrangePrimary = {
     800: '#7c2600',
     900: '#5c1c00',
     950: '#321000'
+    // 50: '#fce8ed',
+    // 100: '#f7c1cd',
+    // 200: '#ef8aa3',
+    // 300: '#e6547a',
+    // 400: '#de2a5a',
+    // 500: '#c9144a',
+    // 600: '#ad1040',
+    // 700: '#850c32',
+    // 800: '#610924',
+    // 900: '#48061b',
+    // 950: '#28030e'
 };
 
 export const designTokens = {
@@ -320,5 +331,25 @@ export const primeSemanticTokens = {
     }
 };
 
-// Generic controls and containers intentionally inherit Aura unchanged.
-export const primeComponentTokens = {};
+// Generic controls keep Material defaults except where the app-shell anatomy
+// needs a token-level decision: tab strips are transparent so the chrome
+// surface shows through, and tree rows run at explorer density.
+export const primeComponentTokens = {
+    tabs: {
+        tablist: {
+            background: 'transparent'
+        }
+    },
+    tree: {
+        root: {
+            padding: '0'
+        },
+        node: {
+            padding: '0.125rem 0.25rem',
+            gap: '0.25rem'
+        },
+        nodeToggleButton: {
+            size: '1.5rem'
+        }
+    }
+};

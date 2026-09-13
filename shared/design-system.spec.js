@@ -322,7 +322,14 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.height['support-chat']).toBe('var(--ck-support-chat-height)');
     expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
-    expect(primeComponentTokens).toEqual({});
+    expect(primeComponentTokens).toEqual({
+      tabs: { tablist: { background: 'transparent' } },
+      tree: {
+        root: { padding: '0' },
+        node: { padding: '0.125rem 0.25rem', gap: '0.25rem' },
+        nodeToggleButton: { size: '1.5rem' }
+      }
+    });
     expect(Object.keys(primeSemanticTokens)).toEqual(['primary', 'colorScheme']);
     expect(Object.keys(primeSemanticTokens.colorScheme)).toEqual(['light', 'dark']);
     expect(primeSemanticTokens.colorScheme.light.surface[100]).toBe('{zinc.100}');

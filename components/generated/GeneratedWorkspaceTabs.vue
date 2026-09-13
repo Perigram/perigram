@@ -6,18 +6,16 @@
       class="min-w-0 flex-1 justify-center"
       @update:value="key => key !== activeKey && $emit('select', key)"
     >
-      <TabList
-        class="min-w-0 flex-1"
-        :pt="{ root: { style: { background: 'transparent', borderBottomColor: 'var(--ck-chrome-border)' } } }"
-      >
+      <TabList class="min-w-0 flex-1">
         <Tab
           v-for="tab in tabs"
           :key="tab.key"
           :value="tab.key"
           as="div"
+          class="flex max-w-56 min-w-0 items-center !py-0 !px-2.5"
         >
-          <i v-if="tabIcon(tab)" :class="tabIcon(tab)" aria-hidden="true" />
-          <span>{{ tabLabel(tab) }}</span>
+          <i v-if="tabIcon(tab)" :class="tabIcon(tab)" class="shrink-0" aria-hidden="true" />
+          <span class="min-w-0 truncate">{{ tabLabel(tab) }}</span>
           <EntityStatus
             v-if="tab.kind === 'entity' && tab.entity?.status?.state"
             :entity="tab.entity"
