@@ -101,17 +101,24 @@ Discord-style operational shell:
   (`GeneratedHomeScreen.vue`) inside a self-scrolling container, so the mobile
   contract is unchanged.
 - The sidebar owns navigation for the whole shell. Below the brand header, a
-  pinned communication block exposes the chats entry and active calls.
+  pinned communication block exposes the chats entry and calls.
   Chats open as the registered entity-less `chats` workspace page (see
   `workspace-pages.js`): a tab in the main pane area rendering `ChatSupport`
   full-page with its built-in inbox rail — chats are not a floating surface
-  on this route and the desktop floating launcher is hidden. The active-calls
-  block lists joinable call rooms from `/api/livekit/active-rooms`
-  (group/direct/org rooms with participant counts, labeled from the chats
-  store and organization data) and stays live by refetching on
-  `call.activity` events arriving on the caller's `user:`/`org:` topics;
-  joining opens a full-size `CallPanel` dialog. Group chats themselves are
-  created and called from the Chats inbox, not from this block.
+  on this route and the desktop floating launcher is hidden. The calls block
+  is a terse "Calls" header with a `+` popover listing direct/group
+  conversations from the chats store (choosing one rings the room through
+  `/api/livekit/invite`), followed by currently joinable rooms from
+  `/api/livekit/active-rooms` with participant counts, labeled from the
+  chats store and organization data, kept live by refetching on
+  `call.activity` events arriving on the caller's `user:`/`org:` topics.
+  There is no empty-state copy when nothing is active. Every call opens as
+  an ephemeral `call` workspace tab (`CallWorkspacePage.vue` — stage plus
+  the conversation chat rail) in the active pane, never a floating dialog;
+  the tab disappears when its `CallPanel` reports the call closed and is
+  never persisted with the pane layout. Entity-less page definitions marked
+  `ephemeral: true` are runtime-parameterized like this and never appear in
+  add-tab lists.
 - Entity navigation is a PrimeVue `Tree` explorer at Aura defaults in a
   self-scrolling wrapper. Home entity-list sections render as non-selectable
   folder nodes (entity-type icon and `generatedRegionLabel` label owned by
