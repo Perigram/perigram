@@ -254,17 +254,15 @@
       </div>
     </StandardDialog>
 
-    <Popover ref="actionsPopover">
-      <div class="flex min-w-44 flex-col gap-1" @click="hideRowActions">
+    <Menu ref="actionsMenu" :model="rowActionMenuItems" :popup="true">
+      <template #item="{ item }">
         <GeneratedActionButton
-          v-for="entry in rowActionEntries"
-          :key="entry.action.actionId"
-          :action-id="entry.action.actionId"
+          :action-id="item.actionId"
           menu-item
           @execute="runRowAction"
         />
-      </div>
-    </Popover>
+      </template>
+    </Menu>
     <ConfirmDialog />
   </div>
 </template>
@@ -276,6 +274,7 @@ import Avatar from 'primevue/avatar';
 import Badge from 'primevue/badge';
 import ConfirmDialog from 'primevue/confirmdialog';
 import InputText from 'primevue/inputtext';
+import Menu from 'primevue/menu';
 import Popover from 'primevue/popover';
 import Tree from 'primevue/tree';
 import { useConfirm } from 'primevue/useconfirm';
@@ -299,7 +298,7 @@ import { useEntityStore } from '~/stores/entities.js';
 import { useSupportChatStore } from '~/stores/supportChat';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
-import { generatedRegionLabel } from '~/utils/generated-labels.js';
+import { generatedActionLabel, generatedRegionLabel } from '~/utils/generated-labels.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
 import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
@@ -349,8 +348,12 @@ const channelDialog = ref(false);
 const channelName = ref('');
 const channelSaving = ref(false);
 const callChannels = ref([]);
-const actionsPopover = ref(null);
+const actionsMenu = ref(null);
 const rowActionEntries = ref([]);
+const rowActionMenuItems = computed(() => rowActionEntries.value.map(entry => ({
+  actionId: entry.action.actionId,
+  label: generatedActionLabel(entry.action, entry.action.actionId, { t, te })
+})));
 const linkedChildrenByKey = ref(new Map());
 const loadedChildKeys = ref(new Set());
 let openedEntityLoadSequence = 0;
@@ -600,18 +603,18 @@ function toggleSectionActions(event, node) {
   if (!section) return;
   rowActionEntries.value = collectionActions(section.region)
     .map(action => ({ action, context: actionContext(section) }));
-  actionsPopover.value?.toggle(event);
+  actionsMenu.value?.toggle(event);
 }
 
 function toggleChildActions(event, node) {
   const item = node.data?.item;
   if (!item) return;
   rowActionEntries.value = rowActions(item);
-  actionsPopover.value?.toggle(event);
+  actionsMenu.value?.toggle(event);
 }
 
 function hideRowActions() {
-  actionsPopover.value?.hide();
+  actionsMenu.value?.hide();
 }
 
 function runRowAction(action) {

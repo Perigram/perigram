@@ -1,50 +1,41 @@
 <template>
   <div class="flex h-full min-w-0 flex-1 items-stretch overflow-hidden">
-    <div
-      class="workspace-tab-strip flex min-w-0 items-stretch overflow-x-auto"
-      role="tablist"
-      :aria-label="$t('project.openFiles')"
+    <Tabs
+      :value="activeKey"
+      class="min-w-0 flex-1"
+      @update:value="key => key !== activeKey && $emit('select', key)"
     >
-      <div
-        v-for="tab in tabs"
-        :key="tab.key"
-        role="presentation"
-        class="flex min-w-0 shrink-0 items-center border-r border-content-border"
-        :class="tab.key === activeKey ? 'border-b-2 border-b-primary bg-content' : 'border-b-2 border-b-transparent'"
-      >
-        <Button
-          :label="tabLabel(tab)"
-          :icon="tabIcon(tab)"
-          text
-          size="small"
-          severity="secondary"
-          class="min-w-0 max-w-56 !rounded-none"
-          :class="tab.key === activeKey ? 'text-label' : 'text-muted-color'"
-          :pt="{ label: { class: 'truncate' } }"
-          :title="tabLabel(tab)"
-          role="tab"
-          :aria-selected="tab.key === activeKey"
-          @click="$emit('select', tab.key)"
-        />
-        <EntityStatus
-          v-if="tab.kind === 'entity' && tab.entity?.status?.state"
-          :entity="tab.entity"
-          :entity-type="tab.type"
-          variant="icon"
-          @refresh="$emit('refresh', tab)"
-          @transitioned="$emit('refresh', tab)"
-        />
-        <Button
-          icon="pi pi-times"
-          text
-          rounded
-          size="small"
-          severity="secondary"
-          :aria-label="$t('common.close')"
-          @click.stop="$emit('close', tab.key)"
-        />
-      </div>
-    </div>
+      <TabList class="min-w-0 flex-1">
+        <Tab
+          v-for="tab in tabs"
+          :key="tab.key"
+          :value="tab.key"
+          as="div"
+          class="flex max-w-56 min-w-0 items-center gap-2"
+        >
+          <i v-if="tabIcon(tab)" :class="tabIcon(tab)" class="shrink-0" aria-hidden="true" />
+          <span class="min-w-0 truncate">{{ tabLabel(tab) }}</span>
+          <EntityStatus
+            v-if="tab.kind === 'entity' && tab.entity?.status?.state"
+            :entity="tab.entity"
+            :entity-type="tab.type"
+            variant="icon"
+            @click.stop
+            @refresh="$emit('refresh', tab)"
+            @transitioned="$emit('refresh', tab)"
+          />
+          <Button
+            icon="pi pi-times"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="$t('common.close')"
+            @click.stop="$emit('close', tab.key)"
+          />
+        </Tab>
+      </TabList>
+    </Tabs>
     <Button
       icon="pi pi-plus"
       text
@@ -77,6 +68,9 @@
 import { computed, ref } from 'vue';
 import Button from 'primevue/button';
 import Popover from 'primevue/popover';
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
 import { useI18n } from 'vue-i18n';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
