@@ -108,7 +108,6 @@ All entity-related components MUST use these patterns:
 | Entity dropdowns | `<EntitySelect>` / `<EntityMultiSelect>` with explicit `entity-type` |
 | Compact contextual canvas/workspace actions | `<MotionDock :items="..." />` |
 
-`WorkflowDesignerV2.vue` is the shared v2 state-machine editor used by the admin
 workbench and organization workflow overrides page. It normalizes flat legacy
 workflows into a `regions` contract, edits the selected region's states and
 transitions, and keeps lifecycle metadata, transition capabilities, access JSON,
