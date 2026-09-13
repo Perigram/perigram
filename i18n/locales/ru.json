@@ -2061,8 +2061,8 @@
     },
     "reconnecting": "Переподключение…",
     "orgChannel": "Общая комната",
-    "activeRooms": "Активные звонки",
-    "noActiveRooms": "Нет активных звонков",
+    "calls": "Звонки",
+    "newCall": "Позвонить",
     "groupCall": "Групповой звонок",
     "directCall": "Личный звонок"
   },

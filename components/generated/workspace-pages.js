@@ -1,6 +1,10 @@
 import ChatSupport from '~/components/ChatSupport.vue';
+import CallWorkspacePage from '~/components/calls/CallWorkspacePage.vue';
 import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
 
+// Entity-less pages are always openable tabs. `ephemeral: true` marks
+// runtime-parameterized pages that only open programmatically with per-call
+// props (a live call room) and never appear in add-tab lists.
 export const generatedWorkspacePages = [
   {
     id: 'cassette-designer',
@@ -18,7 +22,18 @@ export const generatedWorkspacePages = [
     labelKey: 'support.chatTitle',
     icon: 'pi pi-comments',
     component: ChatSupport,
-    props: () => ({ embedded: true, fullPage: true })
+    props: () => ({ embedded: true, fullPage: true, openCallInPane: true })
+  },
+  {
+    id: 'call',
+    labelKey: 'call.title',
+    icon: 'pi pi-phone',
+    component: CallWorkspacePage,
+    ephemeral: true,
+    props: page => ({
+      room: page.room,
+      conversationKey: page.conversationKey || ''
+    })
   }
 ];
 

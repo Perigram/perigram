@@ -105,6 +105,8 @@ function tabLabel(tab = {}) {
   if (tab.kind === 'entity') {
     return tab.entity?.identity?.name || tab.entity?.identity?.slug || tab.entity?.identity?.uid || tab.key;
   }
+  // Runtime-opened pages (live calls) carry their own label.
+  if (typeof tab.label === 'string' && tab.label) return tab.label;
   const definition = resolveGeneratedWorkspacePage(tab.pageId);
   return definition ? t(definition.labelKey) : tab.key;
 }
