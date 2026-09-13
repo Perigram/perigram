@@ -324,11 +324,7 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
     expect(primeComponentTokens).toEqual({
       tabs: { tablist: { background: 'transparent' } },
-      tree: {
-        root: { padding: '0', background: 'transparent' },
-        node: { padding: '0.125rem 0.25rem', gap: '0.25rem' },
-        nodeToggleButton: { size: '1.5rem' }
-      }
+      tree: { root: { background: 'transparent' } }
     });
     expect(Object.keys(primeSemanticTokens)).toEqual(['primary', 'colorScheme']);
     expect(Object.keys(primeSemanticTokens.colorScheme)).toEqual(['light', 'dark']);
