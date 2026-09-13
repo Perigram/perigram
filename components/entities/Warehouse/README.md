@@ -17,7 +17,6 @@ Warehouse master-data card and detail surfaces.
   material pile, sheet, and remnant entity surfaces.
 - Status is hidden unless the domain workflow contract exposes warehouse
   lifecycle behavior.
-- `WarehouseHub` displays compact selected-warehouse context and derived counts
   above its tabs; full detail-page content stays in `WarehouseDetail.vue` so
   inventory users do not scroll past repeated page chrome.
 

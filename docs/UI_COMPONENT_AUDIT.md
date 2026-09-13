@@ -218,13 +218,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedworkspacepane-vue` | `components/generated/GeneratedWorkspacePane.vue` | derived usage | replace:chrome (3) |
 | `ui-components-generated-generatedworkspacepanemenu-vue` | `components/generated/GeneratedWorkspacePaneMenu.vue` | derived usage | compliant |
 | `ui-components-generated-generatedworkspacetabs-vue` | `components/generated/GeneratedWorkspaceTabs.vue` | derived usage | replace:chrome (4); remove:important-override (1) |
-| `ui-components-hubs-cassetteinstancestab-vue` | `components/hubs/CassetteInstancesTab.vue` | derived usage | compliant |
-| `ui-components-hubs-catalogstab-vue` | `components/hubs/CatalogsTab.vue` | derived usage | compliant |
-| `ui-components-hubs-pilestab-vue` | `components/hubs/PilesTab.vue` | derived usage | compliant |
-| `ui-components-hubs-remnantstab-vue` | `components/hubs/RemnantsTab.vue` | derived usage | compliant |
-| `ui-components-hubs-requisitionstab-vue` | `components/hubs/RequisitionsTab.vue` | derived usage | compliant |
-| `ui-components-hubs-sheetstab-vue` | `components/hubs/SheetsTab.vue` | derived usage | compliant |
-| `ui-components-hubs-warehousehub-vue` | `components/hubs/WarehouseHub.vue` | derived usage | centralize:layout (1); replace:chrome (20) |
 | `ui-components-languageswitcher-vue` | `components/LanguageSwitcher.vue` | derived usage | compliant |
 | `ui-components-partlibrary-vue` | `components/PartLibrary.vue` | derived usage | replace:chrome (3) |
 | `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:layout (2); replace:chrome (5) |
@@ -325,4 +318,3 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-screens-index-vue` | `pages/screens/index.vue` | derived usage | compliant |
 | `ui-pages-terms-and-conditions-vue` | `pages/terms-and-conditions.vue` | derived usage | replace:chrome (2) |
 | `ui-pages-test-ui-lab-vue` | `pages/test/ui-lab.vue` | derived usage | replace:chrome (12) |
-| `ui-pages-warehouses-index-vue` | `pages/warehouses/index.vue` | derived usage | compliant |
