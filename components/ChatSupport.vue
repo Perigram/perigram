@@ -963,7 +963,9 @@ watch([() => props.conversationKey, () => supportChatStore.conversations], ([key
     }
 }, { immediate: true })
 
-const openConversationByKey = (key) => {
+// Function declaration: the immediate watcher below runs during setup and
+// must be able to call this before its textual position.
+function openConversationByKey(key) {
     const summary = supportChatStore.conversations.find(item => item.conversationKey === key)
     if (summary) {
         activeConversation.value = { ...summary, resolved: true }
