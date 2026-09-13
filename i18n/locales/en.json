@@ -128,7 +128,15 @@
     "entityTypes": {
       "sheet": "Sheet",
       "material": "Material"
-    }
+    },
+    "sectionDirect": "Direct",
+    "sectionGroups": "Groups",
+    "newGroup": "New group",
+    "groupName": "Group name",
+    "groupCreate": "Create group",
+    "selectMembers": "Select members",
+    "membersCount": "{count} member(s)",
+    "groupDeleteConfirm": "Delete this group?"
   },
   "footer": {
     "termsAndConditions": "Terms and Conditions",
@@ -2053,10 +2061,10 @@
     },
     "reconnecting": "Reconnecting…",
     "orgChannel": "Organization room",
-    "channels": "Channels",
-    "channelCreate": "New channel",
-    "channelName": "Channel name",
-    "channelDeleteConfirm": "Delete this channel?"
+    "activeRooms": "Active calls",
+    "noActiveRooms": "No active calls",
+    "groupCall": "Group call",
+    "directCall": "Direct call"
   },
   "sketch": {
     "editorTitle": "Sketch",

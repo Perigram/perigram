@@ -3,31 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
     connectionsPublish: vi.fn(),
     getConversationContextByKey: vi.fn(),
-    repository: (() => {
-        const channels = new Map();
-        let sequence = 0;
-        return {
-            reset: () => channels.clear(),
-            seed: (doc) => {
-                const id = `channel-${++sequence}`;
-                channels.set(id, { ...doc, _id: id });
-                return channels.get(id);
-            },
-            create: vi.fn(async (data) => {
-                const id = `channel-${++sequence}`;
-                channels.set(id, { ...data, _id: id });
-                return channels.get(id);
-            }),
-            findById: vi.fn(async (id) => channels.get(String(id)) || null),
-            findByOrganization: vi.fn(async (organizationId) => [...channels.values()]
-                .filter(channel => String(channel.lineage?.organizationId) === String(organizationId))
-                .sort((left, right) => String(left.identity?.name).localeCompare(String(right.identity?.name)))),
-            deleteById: vi.fn(async (id) => {
-                channels.delete(String(id));
-                return { deletedCount: 1 };
-            })
-        };
-    })()
+    findChatGroup: vi.fn(),
+    fetch: vi.fn()
 }));
 
 vi.mock('../connections/service.js', () => ({
@@ -35,22 +12,20 @@ vi.mock('../connections/service.js', () => ({
     registerTopicAuthorizer: vi.fn()
 }));
 vi.mock('../support/service.js', () => ({
-    getConversationContextByKey: mocks.getConversationContextByKey
+    getConversationContextByKey: mocks.getConversationContextByKey,
+    findChatGroup: mocks.findChatGroup
 }));
-vi.mock('./repository.js', () => mocks.repository);
 
 import { createHash } from 'crypto';
 import jwt from 'jsonwebtoken';
 import {
     authorizeRoom,
-    createChannel,
-    deleteChannel,
     directCallRoom,
+    groupCallRoom,
     inviteToCall,
-    listChannels,
+    listActiveRooms,
     mintRoomToken,
     orgCallRoom,
-    channelCallRoom,
     publishWebhookEvent,
     verifyWebhookAuthorization
 } from './service.js';
@@ -62,22 +37,32 @@ const auth = (userId, organizationId = 'org-1', isAdmin = false) => ({
     name: 'Test User'
 });
 
+const group = (id, participants, organizationId = 'org-1') => ({
+    _id: id,
+    identity: { name: 'Workshop' },
+    origin: { userId: participants[0] },
+    lineage: { organizationId },
+    participants
+});
+
 describe('livekit call rooms', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        mocks.repository.reset();
         process.env.LIVEKIT_API_KEY = 'devkey';
         process.env.LIVEKIT_API_SECRET = 'devsecret';
+        vi.stubGlobal('fetch', mocks.fetch);
     });
     afterEach(() => {
         delete process.env.LIVEKIT_API_KEY;
         delete process.env.LIVEKIT_API_SECRET;
+        vi.unstubAllGlobals();
     });
 
     it('derives deterministic direct rooms regardless of caller order', () => {
         expect(directCallRoom('user-b', 'user-a')).toBe('call:direct:user-a:user-b');
         expect(directCallRoom('user-a', 'user-b')).toBe('call:direct:user-a:user-b');
         expect(orgCallRoom('org-1')).toBe('call:org:org-1');
+        expect(groupCallRoom('group-1')).toBe('call:group:group-1');
     });
 
     it('gates direct rooms to participants and admins', () => {
@@ -105,61 +90,67 @@ describe('livekit call rooms', () => {
         await expect(authorizeRoom(auth('user-a', 'org-1'), 'call:org:org-1')).resolves.toMatchObject({ kind: 'org' });
     });
 
-    it('creates, lists, and deletes organization call channels', async () => {
-        const created = await createChannel(auth('user-a', 'org-1'), { name: 'Workshop' });
-        expect(created.identity.name).toBe('Workshop');
-        expect(channelCallRoom(created._id)).toBe(`call:channel:${created._id}`);
-
-        await createChannel(auth('user-a', 'org-1'), { name: 'Office' });
-        const channels = await listChannels(auth('user-b', 'org-1'));
-        expect(channels.map(channel => channel.identity.name)).toEqual(['Office', 'Workshop']);
-
-        await expect(deleteChannel(auth('user-b', 'org-1'), created._id)).rejects.toMatchObject({ statusCode: 403 });
-        await expect(deleteChannel(auth('user-a', 'org-1'), created._id)).resolves.toMatchObject({ deleted: true });
-        await expect(deleteChannel(auth('admin', 'org-1', true), 'missing')).rejects.toMatchObject({ statusCode: 404 });
-        await expect(createChannel(auth('user-a', 'org-1'), { name: '   ' })).rejects.toMatchObject({ statusCode: 400 });
+    it('gates group rooms to participants without a process grant', async () => {
+        mocks.findChatGroup.mockResolvedValue(group('group-1', ['user-a', 'user-b']));
+        await expect(authorizeRoom(auth('user-a', 'org-1'), groupCallRoom('group-1'))).resolves.toMatchObject({ kind: 'group' });
+        await expect(authorizeRoom(auth('user-c', 'org-1'), groupCallRoom('group-1'))).rejects.toMatchObject({ statusCode: 403 });
+        await expect(authorizeRoom(auth('admin', 'org-9', true), groupCallRoom('group-1'))).resolves.toMatchObject({ kind: 'group' });
+        // participant admission is grant-free even under an active process
+        const processAuth = { ...auth('user-a', 'org-1'), process: { active: true }, effectivePermissions: {} };
+        await expect(authorizeRoom(processAuth, groupCallRoom('group-1'))).resolves.toMatchObject({ kind: 'group' });
+        mocks.findChatGroup.mockResolvedValue(null);
+        await expect(authorizeRoom(auth('user-a', 'org-1'), groupCallRoom('missing'))).rejects.toMatchObject({ statusCode: 404 });
     });
 
-    it('gates channel rooms to the owning organization', async () => {
-        const channel = mocks.repository.seed({
-            identity: { name: 'Workshop' },
-            lineage: { organizationId: 'org-1' },
-            origin: { userId: 'user-a' }
-        });
-        await expect(authorizeRoom(auth('user-a', 'org-1'), channelCallRoom(channel._id))).resolves.toMatchObject({ kind: 'channel' });
-        await expect(authorizeRoom(auth('user-a', 'org-2'), channelCallRoom(channel._id))).rejects.toMatchObject({ statusCode: 403 });
-        await expect(authorizeRoom(auth('admin', 'org-2', true), channelCallRoom(channel._id))).resolves.toMatchObject({ kind: 'channel' });
-        await expect(authorizeRoom(auth('user-a', 'org-1'), 'call:channel:missing')).rejects.toMatchObject({ statusCode: 404 });
-    });
-
-    it('gates channel creation through the active process livekit write grant', async () => {
-        const processAuth = (grants) => ({
-            ...auth('user-a', 'org-1'),
-            process: { active: true },
-            effectivePermissions: grants
-        });
-        await expect(createChannel(processAuth({ livekit: [{ level: 'write' }] }), { name: 'Workshop' })).resolves.toMatchObject({
-            identity: { name: 'Workshop' }
-        });
-        await expect(createChannel(processAuth({ livekit: [{ level: 'read' }] }), { name: 'Denied' })).rejects.toMatchObject({ statusCode: 403 });
-    });
-
-    it('fans webhook events for channel rooms onto the organization topic', async () => {
-        const channel = mocks.repository.seed({
-            identity: { name: 'Workshop' },
-            lineage: { organizationId: 'org-1' },
-            origin: { userId: 'user-a' }
-        });
+    it('fans webhook events for group rooms onto participant user topics', async () => {
+        mocks.findChatGroup.mockResolvedValue(group('group-1', ['user-a', 'user-b']));
         await expect(publishWebhookEvent({
             event: 'participant_joined',
-            room: { name: channelCallRoom(channel._id) },
+            room: { name: groupCallRoom('group-1') },
             participant: { identity: 'user-a', name: 'A' }
         })).resolves.toEqual({ published: true });
-        expect(mocks.connectionsPublish).toHaveBeenCalledWith('org:org-1', expect.objectContaining({
+        expect(mocks.connectionsPublish).toHaveBeenCalledWith('user:user-a', expect.objectContaining({
             type: 'call.activity',
-            room: channelCallRoom(channel._id)
+            room: groupCallRoom('group-1')
         }));
-        await expect(publishWebhookEvent({ event: 'x', room: { name: 'call:channel:missing' } })).resolves.toEqual({ published: false });
+        expect(mocks.connectionsPublish).toHaveBeenCalledWith('user:user-b', expect.objectContaining({
+            type: 'call.activity',
+            room: groupCallRoom('group-1')
+        }));
+        mocks.findChatGroup.mockResolvedValue(null);
+        await expect(publishWebhookEvent({ event: 'x', room: { name: 'call:group:missing' } })).resolves.toEqual({ published: false });
+    });
+
+    it('lists only active call rooms the caller may join', async () => {
+        mocks.findChatGroup.mockImplementation(async (id) => (
+            id === 'group-1' ? group('group-1', ['user-a', 'user-b']) : null
+        ));
+        mocks.fetch.mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                rooms: [
+                    { name: 'call:org:org-1', num_participants: 2 },
+                    { name: 'call:group:group-1', num_participants: 3 },
+                    { name: 'call:group:group-other', num_participants: 1 },
+                    { name: 'call:direct:user-a:user-c', num_participants: 1 },
+                    { name: 'unrelated-room', num_participants: 5 }
+                ]
+            })
+        });
+
+        const rooms = await listActiveRooms(auth('user-a', 'org-1'));
+        expect(rooms).toEqual([
+            { room: 'call:group:group-1', kind: 'group', participants: 3 },
+            { room: 'call:org:org-1', kind: 'org', participants: 2 },
+            { room: 'call:direct:user-a:user-c', kind: 'direct', participants: 1 }
+        ]);
+        const [, request] = mocks.fetch.mock.calls[0];
+        expect(request.headers.Authorization).toEqual(expect.stringMatching(/^Bearer /));
+    });
+
+    it('returns an empty active-room list when the LiveKit server is unreachable', async () => {
+        mocks.fetch.mockRejectedValue(new Error('network down'));
+        await expect(listActiveRooms(auth('user-a', 'org-1'))).resolves.toEqual([]);
     });
 
     it('mints LiveKit-shaped room tokens for authorized callers', async () => {
@@ -187,6 +178,21 @@ describe('livekit call rooms', () => {
             type: 'call',
             room: 'call:direct:user-a:user-b',
             from: 'user-a'
+        }));
+    });
+
+    it('rings group conversations into their group room', async () => {
+        mocks.getConversationContextByKey.mockResolvedValue({
+            kind: 'group',
+            conversationKey: 'group:group-1',
+            participants: ['user-a', 'user-b'],
+            groupId: 'group-1'
+        });
+        const result = await inviteToCall(auth('user-a'), 'group:group-1');
+        expect(result.room).toBe('call:group:group-1');
+        expect(mocks.connectionsPublish).toHaveBeenCalledWith('conversation:group:group-1', expect.objectContaining({
+            type: 'call',
+            room: 'call:group:group-1'
         }));
     });
 

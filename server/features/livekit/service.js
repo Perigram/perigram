@@ -3,10 +3,7 @@ import jwt from 'jsonwebtoken';
 import { createError } from 'h3';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import * as connectionsService from '../connections/service.js';
-import { getConversationContextByKey } from '../support/service.js';
-import * as repository from './repository.js';
-import { createIdentity, createStatus } from '../../core/blocks/index.js';
-import { toFlexibleId } from '../../utils/objectid.js';
+import { getConversationContextByKey, findChatGroup } from '../support/service.js';
 
 /**
  * LiveKit calls capability module. Direct and organization rooms are derived,
@@ -15,12 +12,14 @@ import { toFlexibleId } from '../../utils/objectid.js';
  * - `call:direct:<sorted-user-id-a>:<sorted-user-id-b>` — mirrors the support
  *   conversation keys; only participants (or admins) may mint tokens.
  * - `call:org:<orgId>` — organization rooms; any member may join.
- * - `call:channel:<channelId>` — persisted organization call channels created
- *   and deleted by members like Discord voice channels.
+ * - `call:group:<groupId>` — the call room of a persisted support group chat;
+ *   only group participants (or admins) may join, mirroring the direct-room
+ *   participant contract.
  *
- * Room access today derives from org membership and conversation
- * participation; under an active compiled process, org and channel rooms
- * additionally ride the process access rights (livekit feature grant).
+ * Room access today derives from org membership and conversation/group
+ * participation; under an active compiled process, org rooms additionally
+ * ride the process access rights (livekit feature grant). Group rooms follow
+ * their participants like direct rooms and stay grant-free.
  */
 
 const config = () => ({
@@ -37,7 +36,7 @@ export const directCallRoom = (left, right) => `call:direct:${sortedIds(left, ri
 
 export const orgCallRoom = (orgId) => `call:org:${orgId}`;
 
-export const channelCallRoom = (channelId) => `call:channel:${channelId}`;
+export const groupCallRoom = (groupId) => `call:group:${groupId}`;
 
 function requireLiveKitGrant(auth, level = 'read') {
     if (!auth.process?.active || !auth.effectivePermissions) return;
@@ -47,63 +46,6 @@ function requireLiveKitGrant(auth, level = 'read') {
         level
     });
     if (!granted) throw createError({ statusCode: 403, message: 'Forbidden' });
-}
-
-async function channelById(channelId) {
-    if (!channelId) return null;
-    return await repository.findById(channelId);
-}
-
-function channelOrganizationId(channel = null) {
-    const organizationId = channel?.lineage?.organizationId;
-    return organizationId ? String(organizationId) : '';
-}
-
-function channelDTO(channel = null) {
-    if (!channel) return null;
-    return {
-        _id: channel._id,
-        identity: channel.identity,
-        status: channel.status,
-        origin: channel.origin,
-        lineage: channel.lineage,
-        data: channel.data || {}
-    };
-}
-
-export async function createChannel(auth, data = {}) {
-    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
-    const name = String(data?.name || '').trim();
-    if (!name) throw createError({ statusCode: 400, message: 'Channel name is required' });
-    if (!auth.organizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
-    requireLiveKitGrant(auth, 'write');
-    const status = createStatus('ACTIVE', auth.userId, { note: 'Call channel created' });
-    const doc = {
-        identity: createIdentity(name),
-        status,
-        origin: status,
-        lineage: { organizationId: toFlexibleId(auth.organizationId) },
-        data: {}
-    };
-    const created = await repository.create(doc);
-    return channelDTO(created);
-}
-
-export async function listChannels(auth) {
-    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
-    if (!auth.organizationId) return [];
-    const channels = await repository.findByOrganization(auth.organizationId);
-    return channels.map(channelDTO);
-}
-
-export async function deleteChannel(auth, channelId = '') {
-    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
-    const channel = await channelById(channelId);
-    if (!channel) throw createError({ statusCode: 404, message: 'Call channel not found' });
-    const isCreator = String(channel.origin?.userId || '') === String(auth.userId);
-    if (!auth.isAdmin && !isCreator) throw createError({ statusCode: 403, message: 'Forbidden' });
-    await repository.deleteById(channelId);
-    return { deleted: true };
 }
 
 export async function authorizeRoom(auth, room = '') {
@@ -128,14 +70,13 @@ export async function authorizeRoom(auth, room = '') {
         return { room, kind: 'org' };
     }
 
-    if (room.startsWith('call:channel:')) {
-        const channel = await channelById(room.slice('call:channel:'.length));
-        if (!channel) throw createError({ statusCode: 404, message: 'Unknown call channel' });
-        if (auth.isAdmin) return { room, kind: 'channel' };
-        const isMember = Boolean(auth.organizationId && String(auth.organizationId) === channelOrganizationId(channel));
-        if (!isMember) throw createError({ statusCode: 403, message: 'Forbidden' });
-        requireLiveKitGrant(auth);
-        return { room, kind: 'channel' };
+    if (room.startsWith('call:group:')) {
+        const group = await findChatGroup(room.slice('call:group:'.length));
+        if (!group) throw createError({ statusCode: 404, message: 'Unknown call group' });
+        if (auth.isAdmin || group.participants.includes(String(auth.userId))) {
+            return { room, kind: 'group' };
+        }
+        throw createError({ statusCode: 403, message: 'Forbidden' });
     }
 
     throw createError({ statusCode: 400, message: 'Unknown call room' });
@@ -167,13 +108,16 @@ export async function mintRoomToken(auth, room = '') {
 /**
  * Publishes a call invite on the conversation topic. Authorization reuses
  * the support conversation contract, so only conversation participants (or
- * admins) can ring a room.
+ * admins) can ring a room. Group conversations ring their group room;
+ * support conversations ring the organization room.
  */
 export async function inviteToCall(auth, conversationKey = null) {
     const context = await getConversationContextByKey(auth, conversationKey);
     const room = context.kind === 'direct'
         ? directCallRoom(auth.userId, context.participants.find(id => id !== auth.userId) || auth.userId)
-        : orgCallRoom(auth.organizationId);
+        : context.kind === 'group'
+            ? groupCallRoom(context.groupId)
+            : orgCallRoom(auth.organizationId);
     connectionsService.publish(`conversation:${context.conversationKey}`, {
         type: 'call',
         conversationKey: context.conversationKey,
@@ -182,6 +126,49 @@ export async function inviteToCall(auth, conversationKey = null) {
         fromName: auth.name || ''
     });
     return { room, conversationKey: context.conversationKey };
+}
+
+/**
+ * Snapshot of currently active call rooms the caller may join. Sourced from
+ * the LiveKit server's RoomService ListRooms API and filtered through the
+ * same `authorizeRoom` admission as token minting, so hidden rooms never
+ * leak. Live updates ride `call.activity` webhook events on the connections
+ * layer; this endpoint is the reconnect/bootstrap source of truth.
+ */
+export async function listActiveRooms(auth) {
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    const rooms = await fetchLiveKitRooms();
+    const active = [];
+    for (const room of rooms) {
+        const name = room?.name || '';
+        if (!name.startsWith('call:')) continue;
+        try {
+            const { kind } = await authorizeRoom(auth, name);
+            active.push({ room: name, kind, participants: Number(room.num_participants || 0) });
+        } catch {
+            /* rooms the caller cannot join stay hidden */
+        }
+    }
+    return active.sort((left, right) => right.participants - left.participants);
+}
+
+async function fetchLiveKitRooms() {
+    const { apiKey, apiSecret, publicUrl } = config();
+    const httpBase = publicUrl.replace(/^ws/, 'http');
+    const token = jwt.sign({ iss: apiKey, sub: apiKey, video: { roomList: true } }, apiSecret, { expiresIn: '1m' });
+    try {
+        const response = await fetch(`${httpBase}/twirp/livekit.RoomService/ListRooms`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({})
+        });
+        if (!response.ok) throw new Error(`LiveKit ListRooms responded ${response.status}`);
+        const body = await response.json();
+        return Array.isArray(body?.rooms) ? body.rooms : [];
+    } catch (error) {
+        console.error('Failed to list LiveKit rooms:', error);
+        return [];
+    }
 }
 
 /**
@@ -206,9 +193,10 @@ export function verifyWebhookAuthorization(header = '', rawBody = '') {
 }
 
 /**
- * Fans webhook room events onto the connections layer: organization and
- * channel rooms publish on the org topic, direct rooms on each participant's
- * user topic.
+ * Fans webhook room events onto the connections layer: organization rooms
+ * publish on the org topic, direct and group rooms on each participant's
+ * user topic (matching room admission, so nobody learns about calls they
+ * cannot join).
  */
 export async function publishWebhookEvent(body = {}) {
     const event = body?.event;
@@ -227,11 +215,10 @@ export async function publishWebhookEvent(body = {}) {
         connectionsService.publish(`org:${room.slice('call:org:'.length)}`, payload);
         return { published: true };
     }
-    if (room.startsWith('call:channel:')) {
-        const channel = await channelById(room.slice('call:channel:'.length));
-        const organizationId = channelOrganizationId(channel);
-        if (!organizationId) return { published: false };
-        connectionsService.publish(`org:${organizationId}`, payload);
+    if (room.startsWith('call:group:')) {
+        const group = await findChatGroup(room.slice('call:group:'.length));
+        if (!group) return { published: false };
+        for (const userId of group.participants) connectionsService.publish(`user:${userId}`, payload);
         return { published: true };
     }
     if (room.startsWith('call:direct:')) {

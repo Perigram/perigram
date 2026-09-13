@@ -9,7 +9,10 @@ export default defineEventHandler(async (event) => {
     }
 
     const query = getQuery(event)
-    const context = await supportService.getUserConversationContext(auth, query.recipientUserId || null)
+    const conversationKey = String(query.conversationKey || '')
+    const context = conversationKey.startsWith('group:')
+        ? await supportService.getGroupConversationContext(auth, conversationKey.slice('group:'.length))
+        : await supportService.getUserConversationContext(auth, query.recipientUserId || null)
     const messages = await supportService.listMessages(context.match)
     await supportService.markConversationRead(auth, { conversationKey: context.conversationKey })
 
@@ -19,7 +22,8 @@ export default defineEventHandler(async (event) => {
         conversation: {
             conversationKey: context.conversationKey,
             kind: context.kind,
-            recipient: context.recipient
+            recipient: context.recipient,
+            name: context.name || null
         }
     }
 })

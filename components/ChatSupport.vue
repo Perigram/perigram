@@ -12,87 +12,38 @@
                     : 'flex h-full min-h-0 w-full flex-col overflow-hidden bg-content pointer-events-auto'
                 : 'flex h-dvh w-full flex-col overflow-hidden bg-content shadow-overlay pointer-events-auto md:h-support-chat md:w-support-chat md:rounded-ui'"
         >
-            <div v-if="!fullPage" class="flex items-center justify-between bg-content p-4">
-                <div class="flex min-w-0 items-center gap-2">
-                    <Button
-                        v-if="activeConversation"
-                        icon="pi pi-arrow-left"
-                        severity="secondary"
-                        text
-                        rounded
-                        size="small"
-                        :class="{ 'md:hidden': fullPage }"
-                        :aria-label="$t('common.back')"
-                        @click="showInbox"
-                    />
-                    <Avatar icon="pi pi-comment" shape="circle" class="bg-primary text-primary-contrast" />
-                    <h2 class="m-0 truncate text-section-heading">{{ chatTitle }}</h2>
-                </div>
-                <div class="flex shrink-0 items-center gap-1">
-                    <Button
-                        v-if="activeConversation"
-                        icon="pi pi-phone"
-                        severity="secondary"
-                        text
-                        rounded
-                        size="small"
-                        :aria-label="$t('call.start')"
-                        @click="startCall"
-                    />
-                    <Button
-                        v-if="!activeConversation || fullPage"
-                        icon="pi pi-user-plus"
-                        severity="secondary"
-                        text
-                        rounded
-                        size="small"
-                        :aria-label="$t('support.openChat')"
-                        @click="toggleNewChat"
-                    />
-                    <Button
-                        v-if="!embedded"
-                        icon="pi pi-external-link"
-                        severity="secondary"
-                        text
-                        rounded
-                        size="small"
-                        :aria-label="$t('common.open')"
-                        @click="openChatsPage"
-                    />
-                    <Button
-                        v-if="!embedded"
-                        icon="pi pi-times"
-                        severity="secondary"
-                        text
-                        rounded
-                        size="small"
-                        :aria-label="$t('common.close')"
-                        @click="closeChat"
-                    />
-                </div>
-            </div>
-
             <aside
                 v-if="!activeConversation || fullPage"
                 class="flex min-h-0 flex-col overflow-hidden"
                 :class="[
-                    fullPage ? 'md:w-80 md:shrink-0' : 'flex-1',
-                    { 'hidden md:block': fullPage && activeConversation }
+                    fullPage ? 'md:w-80 md:shrink-0 md:border-r md:border-chrome-border' : 'flex-1',
+                    { 'hidden md:flex': fullPage && activeConversation }
                 ]"
             >
-                <div v-if="fullPage" class="flex items-center justify-between p-4">
-                    <h1 class="m-0 text-page-title">{{ $t('support.chatTitle') }}</h1>
-                    <Button
-                        icon="pi pi-user-plus"
-                        severity="secondary"
-                        text
-                        rounded
-                        size="small"
-                        :aria-label="$t('support.openChat')"
-                        @click="toggleNewChat"
-                    />
+                <div class="flex shrink-0 items-center justify-between gap-2 border-b border-chrome-border px-4 py-3">
+                    <h2 class="m-0 truncate text-section-heading">{{ $t('support.chatTitle') }}</h2>
+                    <div class="flex shrink-0 items-center gap-1">
+                        <Button
+                            icon="pi pi-user-plus"
+                            severity="secondary"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('support.openChat')"
+                            @click="toggleNewChat"
+                        />
+                        <Button
+                            icon="pi pi-users"
+                            severity="secondary"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('support.newGroup')"
+                            @click="openGroupDialog"
+                        />
+                    </div>
                 </div>
-                <div v-if="newChatVisible" class="m-3">
+                <div v-if="newChatVisible" class="border-b border-chrome-border p-3">
                     <Select
                         v-model="newChatUserId"
                         :options="newChatUserOptions"
@@ -108,71 +59,148 @@
                         @update:model-value="openNewChatUser"
                     />
                 </div>
-                <StateBlock v-if="!displayConversations.length && !newChatVisible" class="m-3" :message="$t('support.noConversations')" icon="pi pi-comments" />
+                <StateBlock
+                    v-if="!displayConversations.length && !newChatVisible"
+                    class="m-3"
+                    :message="$t('support.noConversations')"
+                    icon="pi pi-comments"
+                />
                 <div v-else class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-2 md:p-3">
-                    <button
-                        v-for="conversation in displayConversations"
-                        :key="conversation.conversationKey"
-                        type="button"
-                        class="flex min-w-0 items-center gap-2 rounded-ui bg-subtle p-3 text-left md:gap-3"
-                        @click="openConversation(conversation)"
-                    >
-                        <div class="relative shrink-0">
-                            <Avatar
-                                :image="conversationAvatar(conversation)"
-                                :label="conversationLabel(conversation).charAt(0).toUpperCase()"
-                                shape="circle"
-                                size="normal"
-                                class="bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
-                            />
-                            <span
-                                v-if="conversation.conversationKind === 'direct' && participantOnline(conversation)"
-                                class="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-ui bg-status-success"
-                                :aria-label="$t('support.online')"
-                            />
-                        </div>
-                        <div class="min-w-0 flex-1">
-                            <div class="flex min-w-0 items-center gap-2">
-                                <span class="truncate text-label">{{ conversationLabel(conversation) }}</span>
-                            </div>
-                            <small class="block truncate text-muted-color">
-                                <SupportMessageContent
-                                    v-if="conversation.lastMessage"
-                                    :message="conversationPreviewMessage(conversation)"
-                                    :viewer-user-id="currentUserId"
+                    <template v-for="section in conversationSections" :key="section.key">
+                        <span class="px-2 pt-2 pb-1 text-label text-muted-color">{{ section.label }}</span>
+                        <button
+                            v-for="conversation in section.conversations"
+                            :key="conversation.conversationKey"
+                            type="button"
+                            class="flex min-w-0 items-center gap-2 rounded-ui p-2 text-left transition-colors hover:bg-subtle md:gap-3"
+                            :class="{ 'bg-subtle': isActiveConversation(conversation) }"
+                            @click="openConversation(conversation)"
+                        >
+                            <div class="relative shrink-0">
+                                <Avatar
+                                    v-if="conversation.conversationKind === 'group'"
+                                    icon="pi pi-users"
+                                    shape="circle"
+                                    size="normal"
+                                    class="bg-primary text-primary-contrast"
                                 />
-                                <template v-else>{{ $t('support.noMessages') }}</template>
-                            </small>
-                        </div>
-                        <small v-if="conversation.timestamp" class="shrink-0 text-muted-color">{{ shortTime(conversation.timestamp) }}</small>
-                    </button>
+                                <Avatar
+                                    v-else
+                                    :image="conversationAvatar(conversation)"
+                                    :label="conversationLabel(conversation).charAt(0).toUpperCase()"
+                                    shape="circle"
+                                    size="normal"
+                                    class="bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                                />
+                                <span
+                                    v-if="conversation.conversationKind === 'direct' && participantOnline(conversation)"
+                                    class="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-ui bg-status-success"
+                                    :aria-label="$t('support.online')"
+                                />
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex min-w-0 items-center gap-2">
+                                    <span class="truncate text-label">{{ conversationLabel(conversation) }}</span>
+                                    <small
+                                        v-if="conversation.conversationKind === 'group'"
+                                        class="shrink-0 text-muted-color text-supporting"
+                                    >
+                                        {{ $t('support.membersCount', { count: (conversation.participants || []).length }) }}
+                                    </small>
+                                </div>
+                                <small class="block truncate text-muted-color">
+                                    <SupportMessageContent
+                                        v-if="conversation.lastMessage"
+                                        :message="conversationPreviewMessage(conversation)"
+                                        :viewer-user-id="currentUserId"
+                                    />
+                                    <template v-else>{{ $t('support.noMessages') }}</template>
+                                </small>
+                            </div>
+                            <small v-if="conversation.timestamp" class="shrink-0 text-muted-color">{{ shortTime(conversation.timestamp) }}</small>
+                        </button>
+                    </template>
                 </div>
             </aside>
 
-            <div v-if="fullPage && !activeConversation" class="hidden min-h-0 items-center justify-center md:flex">
+            <div v-if="fullPage && !activeConversation" class="hidden min-h-0 flex-1 items-center justify-center md:flex">
                 <StateBlock :message="$t('support.selectConversation')" icon="pi pi-comments" />
             </div>
 
             <section v-if="activeConversation" class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-                <div v-if="fullPage" class="flex items-center gap-3 p-4">
+                <header class="flex shrink-0 items-center gap-2 border-b border-chrome-border px-3 py-3 md:gap-3 md:px-4">
                     <Button
                         icon="pi pi-arrow-left"
                         severity="secondary"
                         text
                         rounded
                         size="small"
-                        class="md:hidden"
+                        :class="fullPage ? 'md:hidden' : ''"
                         :aria-label="$t('common.back')"
                         @click="showInbox"
                     />
                     <Avatar
+                        v-if="activeConversation.conversationKind === 'group'"
+                        icon="pi pi-users"
+                        shape="circle"
+                        class="shrink-0 bg-primary text-primary-contrast"
+                    />
+                    <Avatar
+                        v-else
                         :image="conversationAvatar(activeConversation)"
                         :label="conversationLabel(activeConversation).charAt(0).toUpperCase()"
                         shape="circle"
                         class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                     />
-                    <h2 class="m-0 min-w-0 truncate text-section-heading">{{ conversationLabel(activeConversation) }}</h2>
-                </div>
+                    <div class="min-w-0 flex-1">
+                        <h2 class="m-0 truncate text-section-heading">{{ conversationLabel(activeConversation) }}</h2>
+                        <small v-if="conversationSubtitle" class="block truncate text-muted-color text-supporting">
+                            {{ conversationSubtitle }}
+                        </small>
+                    </div>
+                    <div class="flex shrink-0 items-center gap-1">
+                        <Button
+                            v-if="activeConversation.conversationKind !== 'support'"
+                            icon="pi pi-phone"
+                            severity="secondary"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('call.start')"
+                            @click="startCall"
+                        />
+                        <Button
+                            v-if="canDeleteActiveGroup"
+                            icon="pi pi-trash"
+                            severity="secondary"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('common.delete')"
+                            @click="requestDeleteGroup"
+                        />
+                        <Button
+                            v-if="!embedded"
+                            icon="pi pi-external-link"
+                            severity="secondary"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('common.open')"
+                            @click="openChatsPage"
+                        />
+                        <Button
+                            v-if="!embedded"
+                            icon="pi pi-times"
+                            severity="secondary"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('common.close')"
+                            @click="closeChat"
+                        />
+                    </div>
+                </header>
                 <div
                     v-if="incomingCall"
                     class="mx-3 mt-3 flex items-center justify-between gap-3 rounded-ui bg-subtle p-3 md:mx-4 md:mt-4"
@@ -210,7 +238,7 @@
                     </template>
                 </div>
 
-                <div class="flex flex-col gap-2 p-3 md:p-4">
+                <div class="flex flex-col gap-2 border-t border-chrome-border p-3 md:p-4">
                     <div
                         v-show="typingName"
                         ref="typingIndicatorRef"
@@ -332,17 +360,56 @@
                 <CallPanel v-if="callDialog && callRoom" :key="callRoom" :room="callRoom" @closed="callDialog = false" />
             </div>
         </StandardDialog>
+        <StandardDialog
+            v-model:visible="groupDialog"
+            size="sm"
+            :show-default-footer="true"
+            :save-label="$t('support.groupCreate')"
+            :cancel-label="$t('common.cancel')"
+            :loading="groupSaving"
+            @save="createGroup"
+            @cancel="groupDialog = false"
+        >
+            <template #header>
+                <span>{{ $t('support.newGroup') }}</span>
+            </template>
+            <div class="flex flex-col gap-3">
+                <InputText
+                    v-model="groupName"
+                    :placeholder="$t('support.groupName')"
+                    :aria-label="$t('support.groupName')"
+                />
+                <EntityMultiSelect
+                    v-model="groupMemberIds"
+                    :options="newChatUsers"
+                    option-label="label"
+                    option-value="value"
+                    entity-type="user"
+                    filter
+                    :loading="newChatUsersLoading"
+                    :placeholder="$t('support.selectMembers')"
+                    :aria-label="$t('support.selectMembers')"
+                    class="w-full"
+                />
+            </div>
+        </StandardDialog>
+        <ConfirmDialog />
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, unref, computed, nextTick, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 import Avatar from 'primevue/avatar'
 import Divider from 'primevue/divider'
 import Button from 'primevue/button'
+import ConfirmDialog from 'primevue/confirmdialog'
+import InputText from 'primevue/inputtext'
 import Select from '~/components/shared/EntitySelect.vue'
+import EntityMultiSelect from '~/components/shared/EntityMultiSelect.vue'
 import Textarea from 'primevue/textarea'
 import { useI18n } from 'vue-i18n'
+import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
 import StateBlock from '~/components/shared/StateBlock.vue'
@@ -363,6 +430,8 @@ const props = defineProps({
 })
 
 const { t } = useI18n()
+const confirm = useConfirm()
+const toast = useToast()
 const supportDialog = useSupportDialog()
 const chatTarget = useSupportChatTarget()
 const authStore = useAuthStore()
@@ -386,6 +455,10 @@ const newChatVisible = ref(false)
 const newChatUserId = ref('')
 const newChatUsers = ref([])
 const newChatUsersLoading = ref(false)
+const groupDialog = ref(false)
+const groupName = ref('')
+const groupMemberIds = ref([])
+const groupSaving = ref(false)
 const typingName = ref('')
 const typingIndicatorRef = ref(null)
 let typingResetTimer = null
@@ -452,9 +525,43 @@ const localizedEntityTypeLabel = (type) => {
 const newChatUserOptions = computed(() => newChatUsers.value)
 
 const displayConversations = computed(() => supportChatStore.conversations
-    .filter(conversation => conversation.conversationKind === 'direct'))
+    .filter(conversation => conversation.conversationKind === 'direct' || conversation.conversationKind === 'group'))
 
-const chatTitle = computed(() => activeConversation.value ? conversationLabel(activeConversation.value) : t('support.chatTitle'))
+const conversationSections = computed(() => {
+    const direct = []
+    const group = []
+    for (const conversation of displayConversations.value) {
+        (conversation.conversationKind === 'group' ? group : direct).push(conversation)
+    }
+    return [
+        { key: 'direct', label: t('support.sectionDirect'), conversations: direct },
+        { key: 'group', label: t('support.sectionGroups'), conversations: group }
+    ].filter(section => section.conversations.length)
+})
+
+const isActiveConversation = (conversation) => activeConversation.value?.conversationKey === conversation.conversationKey
+
+const conversationSubtitle = computed(() => {
+    const conversation = activeConversation.value
+    if (!conversation) return ''
+    if (conversation.conversationKind === 'group') {
+        return t('support.membersCount', { count: (conversation.participants || []).length })
+    }
+    if (conversation.conversationKind === 'direct' && participantOnline(conversation)) {
+        return t('support.online')
+    }
+    return ''
+})
+
+const canDeleteActiveGroup = computed(() => {
+    const conversation = activeConversation.value
+    if (conversation?.conversationKind !== 'group') return false
+    if (conversation.groupCreatorId && String(conversation.groupCreatorId) === String(currentUserId.value)) return true
+    const organizationId = String(authStore.organizationData?._id || authStore.userData?.organizationId || '')
+    return (authStore.userData?.memberships || []).some(membership => (
+        String(membership?.organizationId) === organizationId && membership?.owner === true
+    ))
+})
 
 const handleKeyDown = (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -501,6 +608,7 @@ const sendMessage = async () => {
             body: {
                 message: message.value,
                 recipientUserId: activeConversation.value.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null,
+                conversationKey: activeConversation.value.conversationKind === 'group' ? activeConversation.value.conversationKey : null,
                 entityRefs: payloadEntityRefs
             }
         })
@@ -528,10 +636,13 @@ const loadConversation = async () => {
     if (!activeConversation.value) return
     const token = ++conversationLoadToken
     messages.value = []
-    const recipientUserId = activeConversation.value.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null
+    const isGroup = activeConversation.value.conversationKind === 'group'
+    const recipientUserId = isGroup ? null : participantUserId(activeConversation.value)
     try {
         const snapshot = await $fetch('/api/support/messages', {
-            query: recipientUserId ? { recipientUserId } : {}
+            query: isGroup
+                ? { conversationKey: activeConversation.value.conversationKey }
+                : (recipientUserId ? { recipientUserId } : {})
         })
         if (token !== conversationLoadToken) return
         messages.value = snapshot?.data || []
@@ -539,6 +650,9 @@ const loadConversation = async () => {
         if (snapshot?.conversation?.kind && activeConversation.value) {
             activeConversation.value.conversationKey = snapshot.conversation.conversationKey || activeConversation.value.conversationKey
             activeConversation.value.conversationKind = snapshot.conversation.kind
+            if (snapshot.conversation.name && !activeConversation.value.groupName) {
+                activeConversation.value.groupName = snapshot.conversation.name
+            }
         }
         await supportChatStore.markRead(activeConversation.value.conversationKey)
     } catch (error) {
@@ -579,7 +693,7 @@ watch(
 
 watch(() => messages.value.length, (newLength, oldLength) => {
     if (!newLength || !oldLength || newLength <= oldLength) return
-    nextTick(() => {
+    nextTick().then(() => {
         if (messagesContainer.value?.lastElementChild) {
             enterOnce(messagesContainer.value.lastElementChild)
         }
@@ -778,6 +892,60 @@ const openNewChatUser = (userId) => {
     newChatVisible.value = false
 }
 
+const openGroupDialog = async () => {
+    groupName.value = ''
+    groupMemberIds.value = []
+    groupDialog.value = true
+    if (!newChatUsers.value.length) await loadNewChatUsers()
+}
+
+const createGroup = async () => {
+    const name = groupName.value.trim()
+    if (!name) return
+    groupSaving.value = true
+    try {
+        const group = await $fetch('/api/support/groups', {
+            method: 'POST',
+            body: { name, participantIds: groupMemberIds.value }
+        })
+        groupDialog.value = false
+        await supportChatStore.refresh()
+        openGroupConversation(`group:${group._id}`)
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 })
+    } finally {
+        groupSaving.value = false
+    }
+}
+
+const openGroupConversation = (conversationKey) => {
+    const summary = supportChatStore.conversations.find(item => item.conversationKey === conversationKey)
+    if (!summary) return
+    activeConversation.value = summary
+    supportChatStore.markRead(conversationKey)
+}
+
+const requestDeleteGroup = () => {
+    confirm.require({
+        message: t('support.groupDeleteConfirm'),
+        header: t('common.confirmation'),
+        icon: 'pi pi-exclamation-triangle',
+        accept: deleteActiveGroup
+    })
+}
+
+const deleteActiveGroup = async () => {
+    const conversation = activeConversation.value
+    if (conversation?.conversationKind !== 'group') return
+    try {
+        await $fetch(`/api/support/groups/${encodeURIComponent(String(conversation.groupId || conversation.conversationKey.slice('group:'.length)))}`, { method: 'DELETE' })
+        showInbox()
+        await supportChatStore.refresh()
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 })
+    }
+}
+
 const isOwnMessage = (chatMessage) => {
     if (chatMessage.senderUserId && currentUserId.value) {
         return chatMessage.senderUserId === currentUserId.value
@@ -829,6 +997,9 @@ const openDirectTarget = async () => {
 }
 
 const conversationLabel = (conversation) => {
+    if (conversation?.conversationKind === 'group') {
+        return conversation?.groupName || t('support.sectionGroups')
+    }
     return conversation?.participant?.identity?.name
         || conversation?.participant?.name
         || (conversation?.conversationKind === 'support' ? t('support.chatTitle') : t('common.user'))
