@@ -323,7 +323,7 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
     expect(primeComponentTokens).toEqual({
-      tabs: { tablist: { background: 'transparent' }, tab: { padding: '{navigation.item.padding}' } },
+      tabs: { tablist: { background: 'transparent' } },
       tree: {
         root: { padding: '0', background: 'transparent' },
         node: { padding: '0.125rem 0.25rem', gap: '0.25rem' },
