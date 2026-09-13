@@ -101,18 +101,20 @@ Discord-style operational shell:
   (`GeneratedHomeScreen.vue`) inside a self-scrolling container, so the mobile
   contract is unchanged.
 - The sidebar owns navigation for the whole shell. Below the brand header, a
-  pinned communication block exposes the chats entry and calls.
+  pinned communication nav renders the shared `CommunicationMenu.vue`
+  (components/shared): Chats and Calls as proper PrimeVue `TieredMenu`
+  items instead of hand-written rows.
   Chats open as the registered entity-less `chats` workspace page (see
   `workspace-pages.js`): a tab in the main pane area rendering `ChatSupport`
   full-page with its built-in inbox rail — chats are not a floating surface
-  on this route and the desktop floating launcher is hidden. The calls block
-  is a terse "Calls" header with a `+` popover listing direct/group
+  on this route and the desktop floating launcher is hidden; the Chats menu
+  item carries the unread badge. The Calls submenu lists direct/group
   conversations from the chats store (choosing one rings the room through
-  `/api/livekit/invite`), followed by currently joinable rooms from
-  `/api/livekit/active-rooms` with participant counts, labeled from the
-  chats store and organization data, kept live by refetching on
+  `/api/livekit/invite`) and, below a separator, currently joinable rooms
+  from `/api/livekit/active-rooms` with participant-count badges, labeled
+  from the chats store and organization data, kept live by refetching on
   `call.activity` events arriving on the caller's `user:`/`org:` topics.
-  There is no empty-state copy when nothing is active. Every call opens as
+  Every call opens as
   an ephemeral `call` workspace tab (`CallWorkspacePage.vue` — stage plus
   the conversation chat rail) in the active pane, never a floating dialog;
   the tab disappears when its `CallPanel` reports the call closed and is

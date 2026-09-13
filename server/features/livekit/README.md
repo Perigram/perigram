@@ -28,13 +28,15 @@ conversations ring the organization room.
 caller may enter: the service calls the LiveKit server's
 `RoomService/ListRooms` HTTP API with a signed `roomList` token, keeps only
 `call:` rooms, and filters them through the same `authorizeRoom` admission
-as token minting. The home workspace sidebar's "Calls" block renders this
-snapshot (plus a `+` popover that rings any direct/group conversation
-through the invite endpoint) and keeps it live by debounced refetches on
-`call.activity` events arriving on the caller's own `user:` and `org:`
-topics (which match room admission, so events only ever mention joinable
-rooms). Calls open as ephemeral workspace-pane tabs hosting the LiveKit
-stage beside the call's conversation chat, not as floating dialogs.
+as token minting. The home workspace sidebar's communication menu (a
+PrimeVue TieredMenu — see `components/shared/CommunicationMenu.vue`)
+renders this snapshot under its Calls item, beside the direct/group
+conversations that can be rung through the invite endpoint, and keeps it
+live by debounced refetches on `call.activity` events arriving on the
+caller's own `user:` and `org:` topics (which match room admission, so
+events only ever mention joinable rooms). Calls open as ephemeral
+workspace-pane tabs hosting the LiveKit stage beside the call's
+conversation chat, not as floating dialogs.
 
 ## Server Contract
 
