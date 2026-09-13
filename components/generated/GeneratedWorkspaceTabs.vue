@@ -8,7 +8,7 @@
     >
       <TabList
         class="min-w-0 flex-1"
-        :pt="{ root: { style: { background: 'var(--ck-chrome-background)', borderBottomColor: 'var(--ck-chrome-border)' } } }"
+        :pt="{ root: { style: { background: 'transparent', borderBottomColor: 'var(--ck-chrome-border)' } } }"
       >
         <Tab
           v-for="tab in tabs"
