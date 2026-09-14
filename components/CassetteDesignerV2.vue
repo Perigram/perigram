@@ -5,7 +5,7 @@
   >
     <div
       v-if="showOnboardingRail"
-      class="absolute z-[140] w-80 rounded-ui border border-content-border bg-content p-3 [box-shadow:var(--ck-shadow-overlay)]"
+      class="absolute z-[140] w-80 rounded-ui border border-content-border bg-content p-3 shadow-overlay"
       :class="onboardingCalloutClass"
     >
       <span
@@ -33,7 +33,7 @@
 
     <DesignerWorkspace layout="lanes" class="min-h-0 flex-1">
       <template #palette>
-      <aside class="order-3 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-ui border border-content-border bg-content p-3 lg:col-span-2 xl:order-1 xl:col-span-1">
+      <aside class="order-3 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-ui border border-content-border p-3 lg:col-span-2 xl:order-1 xl:col-span-1">
 
       <div class="flex shrink-0 flex-col gap-2 rounded-ui border border-content-border bg-subtle p-2">
         <InputText
@@ -124,7 +124,7 @@
         <div class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-1">
           <div v-for="parameter in globalParameterEntries" :key="parameter.key" class="flex min-w-0 flex-col gap-1">
             <div class="flex items-center justify-between gap-2">
-              <label class="font-mono">{{ parameter.key }}</label>
+              <label class="text-technical">{{ parameter.key }}</label>
               <Button
                 icon="pi pi-trash"
                 severity="danger"
@@ -208,7 +208,7 @@
       </div>
 
       <div v-else class="flex min-h-0 flex-col gap-2">
-        <Textarea :model-value="occsJson" readonly rows="22" class="min-h-0 w-full flex-1 font-mono text-xs" />
+        <Textarea :model-value="occsJson" readonly rows="22" class="min-h-0 w-full flex-1 text-technical" />
       </div>
       </aside>
       </template>
@@ -232,7 +232,7 @@
         @designer-section-edit="handleDesignerSectionEdit"
         @designer-fold-angle-edit="handleDesignerFoldAngleEdit"
       />
-      <div class="absolute left-3 top-3 z-[80] flex gap-1 rounded-ui border border-content-border bg-content p-1 [box-shadow:var(--ck-shadow-overlay)]">
+      <div class="absolute left-3 top-3 z-[80] flex gap-1 rounded-ui border border-content-border bg-content p-1 shadow-overlay">
         <Button
           icon="pi pi-undo"
           severity="secondary"
@@ -258,7 +258,7 @@
       </div>
       <div
         v-if="inlineEditor"
-        class="absolute z-[120] min-w-64 rounded-ui border border-content-border bg-content p-2 [box-shadow:var(--ck-shadow-overlay)]"
+        class="absolute z-[120] min-w-64 rounded-ui border border-content-border bg-content p-2 shadow-overlay"
         :style="{ left: `${inlineEditor.x}px`, top: `${inlineEditor.y}px` }"
         tabindex="-1"
         @keydown.enter.stop.prevent="closeInlineEditor"
@@ -357,7 +357,7 @@
               v-tooltip.top="$t('cassette.v2.attachmentFields.sourceSnap')"
               @update:model-value="value => updateInlineAttachmentRelation({ sourceSnap: value })"
             />
-            <label class="flex min-w-0 flex-col gap-1 text-xs text-muted-color" v-tooltip.top="$t('cassette.v2.attachmentFields.edgeMargin')">
+            <label class="flex min-w-0 flex-col gap-1 text-muted-color text-label" v-tooltip.top="$t('cassette.v2.attachmentFields.edgeMargin')">
               <span class="truncate">{{ $t('cassette.v2.attachmentFields.edgeMargin') }}</span>
               <CassetteExpressionEditor
                 :model-value="inlineEditorRelation.offsetX"
@@ -366,7 +366,7 @@
                 @update:model-value="value => updateInlineAttachmentRelation({ offsetX: value })"
               />
             </label>
-            <label class="flex min-w-0 flex-col gap-1 text-xs text-muted-color" v-tooltip.top="$t('cassette.v2.attachmentFields.normalOffset')">
+            <label class="flex min-w-0 flex-col gap-1 text-muted-color text-label" v-tooltip.top="$t('cassette.v2.attachmentFields.normalOffset')">
               <span class="truncate">{{ $t('cassette.v2.attachmentFields.normalOffset') }}</span>
               <CassetteExpressionEditor
                 :model-value="inlineEditorRelation.offsetY"
@@ -375,7 +375,7 @@
                 @update:model-value="value => updateInlineAttachmentRelation({ offsetY: value })"
               />
             </label>
-            <label class="flex min-w-0 flex-col gap-1 text-xs text-muted-color" v-tooltip.top="$t('cassette.v2.attachmentFields.rotation')">
+            <label class="flex min-w-0 flex-col gap-1 text-muted-color text-label" v-tooltip.top="$t('cassette.v2.attachmentFields.rotation')">
               <span class="truncate">{{ $t('cassette.v2.attachmentFields.rotation') }}</span>
               <CassetteExpressionEditor
                 :model-value="inlineEditorRelation.rotation"
@@ -432,7 +432,7 @@
             />
             <label
               v-if="inlineEditorRelation.placementMode === 'edgeArray'"
-              class="flex min-w-0 flex-col gap-1 text-xs text-muted-color"
+              class="flex min-w-0 flex-col gap-1 text-muted-color text-label"
               v-tooltip.top="arrayValueLabel(inlineEditorRelation)"
             >
               <span class="truncate">{{ arrayValueLabel(inlineEditorRelation) }}</span>
@@ -694,8 +694,8 @@
                       :class="relationRow.relation.id === selectedRelationId ? 'border-primary bg-subtle' : 'border-content-border'"
                       @click="selectWorkpieceRelation(relationRow.relation.id, $event)"
                     >
-                      <span class="shrink-0 font-mono text-xs text-muted-color">{{ relationRow.arrow }}</span>
-                      <span class="truncate text-sm">{{ relationRow.otherLabel }}</span>
+                      <span class="shrink-0 text-muted-color text-technical">{{ relationRow.arrow }}</span>
+                      <span class="truncate text-body">{{ relationRow.otherLabel }}</span>
                       <small class="truncate text-muted-color">{{ relationRow.faceLabel }}</small>
                       <Tag
                         v-if="relationRow.relation.driver"

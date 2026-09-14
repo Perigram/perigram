@@ -148,6 +148,55 @@ import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 
 ---
 
+## useMotion — GSAP motion patterns
+
+```js
+import { loadGsap, useFollowValue, useEnterExit, useStateTransition } from './useMotion.js';
+```
+
+GSAP is the project animation engine, loaded lazily: `loadGsap()` dynamic-imports
+it once per session, and every pattern below only touches the engine from client
+lifecycle hooks, so GSAP never enters the SSR critical path. There is no second
+motion library and no application motion token layer; the preset's
+`--p-transition-duration` still owns generic component states.
+
+| Pattern | Use |
+|---|---|
+| `useFollowValue(initial, { duration, ease })` | Smoothed numeric follow for continuously recomputed targets (pointer proximity, dock magnification). Call `set(target)` as often as input fires; `jump(target)` snaps without animation and is the reduced-motion switch. |
+| `useEnterExit(elRef, active, { y, duration })` | Single-element presence (tooltips, drawers, message rows). The element stays mounted; visibility animates opacity plus a vertical offset; reduced motion resolves to immediate show/hide with no spatial movement. |
+| `enterOnce(el, { y, duration })` | One-shot enter for freshly appended rows (streamed chat messages, live list items). Fire-and-forget from the live-update path; reduced motion is a no-op. |
+| `riseAndFade(el, { y, duration })` | Transient badge motion (floating call reactions): rises and fades once, returns a completion promise for caller cleanup; reduced motion resolves immediately. |
+| `useStateTransition(containerRef, { duration, scale })` | Parameter-to-state animation. Call `capture()` while the previous rendered state is still in the DOM, apply the reactive update, then `play()` — a clone of the real previous state crossfades out over the new one. The animation always starts from the actual previous state, never from defaults. The container owns `position: relative` and clipped overflow; reduced motion skips the overlay. |
+
+Every pattern consumes `useReducedMotion()`. Consumers today:
+`ProcessDesignerDockItem` (magnification follow + tooltip enter/exit) and the
+queue editor cassette parameter preview (`useStateTransition` on
+`CassetteThumbnail` re-renders).
+JavaScript motion that PrimeVue cannot provide stays inside its owning derived
+composition per the components motion policy.
+
+---
+
+## useConnections — realtime connections layer
+
+```js
+const { status, onlineUserIds, subscribe } = useConnections();
+const unsubscribe = subscribe('conversation:support:123', (payload) => { ... });
+```
+
+One module-scoped `EventSource` per browser tab carries every realtime topic:
+`user:<id>` self pings, `org:<id>` presence snapshots, `admin-support`, and
+feature topics such as `conversation:<key>`. The server enforces topic
+admission; `subscribe` returns an unsubscribe function and drops the server
+subscription when the last handler goes away. After every (re)connect the
+composable resynchronizes the active topic set, so consumers never handle
+reconnects themselves. `status` is `idle | connecting | open | error`;
+`onlineUserIds` is a reactive Set of user ids with a live connection in the
+active organization. Contract details live in
+[the connections feature](../server/features/connections/README.md).
+
+---
+
 ## useReducedMotion
 
 ```js
@@ -223,6 +272,11 @@ records, roles, screens, and dock/panel state to focused
 `useProcessDesigner*` composables. The page remains the view composition root;
 these composables own mutations for their concern and are behavior-tested
 without reading Vue source text.
+`useProcessDesignerScreens` mutates complete semantic screen sources, regions,
+lineage rows, and typed binding/filter maps, then normalizes through the
+[`@cutkit/processes` screen contract](../packages/processes/README.md). Source
+mode changes discard fields that are invalid for the selected mode rather than
+keeping a page-local shadow shape.
 
 Loads process-compiled screen manifests for `pages/screens/[screenKey].vue`.
 The composable normalizes the screen contract, checks source-level process
@@ -233,9 +287,17 @@ generated renderer.
 Generated screens listen to the shared browser-local entity sync event and
 apply its complete entity snapshot directly to matching source state. A local
 create, update, or delete therefore becomes visible immediately without a
-polling request or a manual page reload. Events without a complete snapshot are
-the only case that schedules a source reload; API routes still enforce whether
-the source may read the changed entity.
+polling request or a manual page reload. The patch is semantic, not
+positional: a changed entity replaces the matching item in place and is
+appended to a list source only when it satisfies that source's resolved
+filters; a delete event removes the id from every list source of that entity
+type. Single-mode sources patch only when the changed id matches the source's
+resolved identifier. Events without a complete snapshot are the only case that
+schedules a (debounced) source reload; API routes still enforce whether the
+source may read the changed entity. `GeneratedScreen.applyActionResult` feeds
+the same `applyEntitySnapshot` path synchronously from the action response, so
+a successful procedural action patches affected sources before any sync event
+arrives.
 
 Generated screens are UI composition only. They decide which regions, sources,
 and action buttons are visible, while API routes still enforce real access.

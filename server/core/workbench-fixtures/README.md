@@ -21,5 +21,4 @@ domain-builder/workflow package rules.
 ## Related
 
 - [test-data](../../../test-data/README.md)
-- [admin workbench](../../../pages/admin/README.md)
 - [state machines](../machines/README.md)

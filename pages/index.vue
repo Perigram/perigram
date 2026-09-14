@@ -3,7 +3,7 @@
     <section class="relative min-h-[88vh] overflow-hidden border-b border-content-border">
 
       <header class="relative z-10 mx-auto flex max-w-[var(--ck-page-max-width)] items-center justify-between gap-4 px-4 py-5 md:px-8">
-        <NuxtLink to="/" class="text-xl font-semibold text-[var(--ck-primary-ink)] no-underline">CutKit</NuxtLink>
+        <NuxtLink to="/" class="text-[var(--ck-primary-ink)] no-underline text-section-heading">CutKit</NuxtLink>
         <div class="flex items-center gap-2">
           <Button :label="$t('auth.login')" text @click="navigateTo('/auth/login')" />
           <Button :label="$t('auth.signup')" icon="pi pi-arrow-right" @click="navigateTo('/auth/register')" />
@@ -13,10 +13,10 @@
       <div class="relative z-10 mx-auto flex min-h-[calc(88vh-5rem)] max-w-[var(--ck-page-max-width)] items-center px-4 pb-16 pt-8 md:px-8">
         <div class="max-w-3xl">
           <Tag :value="$t('marketing.heroEyebrow')" severity="secondary" />
-          <h1 class="mb-4 mt-5 max-w-2xl text-4xl font-semibold leading-tight md:text-6xl">
+          <h1 class="mb-4 mt-5 max-w-2xl text-page-title">
             {{ $t('marketing.heroTitle') }}
           </h1>
-          <p class="max-w-2xl text-lg text-muted-color md:text-xl">
+          <p class="max-w-2xl text-muted-color text-body">
             {{ $t('marketing.heroSubtitle') }}
           </p>
           <div class="mt-8 flex flex-wrap gap-3">
@@ -30,9 +30,9 @@
     <section class="mx-auto grid max-w-[var(--ck-page-max-width)] grid-cols-1 gap-4 px-4 py-8 md:grid-cols-3 md:px-8">
       <Panel v-for="item in valueProps" :key="item.title" class="h-full">
         <div class="flex flex-col gap-2">
-          <i :class="item.icon" class="text-xl text-[var(--ck-primary-ink)]" aria-hidden="true"></i>
-          <h2 class="m-0 text-base font-semibold">{{ item.title }}</h2>
-          <p class="m-0 text-sm text-muted-color">{{ item.description }}</p>
+          <i :class="item.icon" class="text-[var(--ck-primary-ink)]" aria-hidden="true"></i>
+          <h2 class="m-0 text-section-heading">{{ item.title }}</h2>
+          <p class="m-0 text-muted-color text-body">{{ item.description }}</p>
         </div>
       </Panel>
     </section>
@@ -80,7 +80,7 @@ async function redirectIfAuthenticated() {
       await navigateTo(processRoute);
       return;
     }
-    await navigateTo('/projects');
+    await navigateTo('/organization');
   }
 }
 

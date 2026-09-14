@@ -84,16 +84,34 @@ Routes are grouped into sub-directories corresponding to features:
   display data for audit rows. Successful status transitions publish entity
   invalidation events through the shared entity event bus so other devices can
   refresh affected surfaces.
-- `support/`: Authenticated support chat endpoints. User routes stream the
-  current user's support conversation or a direct user-to-user conversation
-  selected by `recipientUserId`; admin routes remain scoped to customer support
-  conversations. Conversation-list routes return unread counts from
-  `supportConversationReads`. Messages may include structured inline
+- `connections/`: Authenticated realtime layer. `GET /connections/events`
+  is the single Server-Sent Events stream per browser tab; the server
+  registers the connection with `user:`/`org:` topics and reports its
+  connection id plus a presence snapshot in the `ready` event.
+  `POST /connections/subscriptions` replaces the connection's requested
+  topic set after every (re)connect; topic admission is enforced server-side.
+  See [the connections feature](../features/connections/README.md).
+- `livekit/`: Authenticated call endpoints — config for the browser,
+  token minting with server-side room admission, conversation call invites,
+  verified LiveKit webhook receiver that fans call activity onto the
+  connections layer, and the active-room snapshot
+  (`GET /livekit/active-rooms`) that backs the home workspace's active-call
+  list. Group call rooms derive from support group chats. See
+  [the livekit feature](../features/livekit/README.md).
+- `support/`: Authenticated support chat endpoints. User routes snapshot the
+  current user's support conversation, a direct user-to-user conversation
+  selected by `recipientUserId`, or a group conversation selected by
+  `conversationKey`; admin routes remain scoped to customer support
+  conversations. Group chats are created and deleted through
+  `POST/DELETE /support/groups`. Conversation-list routes return unread
+  counts from `supportConversationReads`. Messages may include structured
+  inline
   `entityRefs` selected from readable generated-screen entity types and
   concrete readable entity options when a scoped list service exists. The
   entity-options route also accepts `recipientUserId` for direct-chat warning
   metadata. The shared chat message component renders both inline tokens and
-  structured refs.
+  structured refs. Initial state loads over these REST routes; message, read,
+  and inbox events arrive over the connections stream.
 - `workflow-overrides/`: Authenticated organization-owned lifecycle override
   read and replace endpoints for entity status machines.
 - `user/`: Current-user profile routes. Billing is organization-scoped under

@@ -41,8 +41,96 @@ the current semantic graph directly.
 
 Declarative organization process compiler. It turns visual process definitions
 into runtime contracts for graph-derived role permissions, screen manifests,
-navigation, entity workflows, field policies, action nodes, services, and
-sockets.
+navigation, producer-output workflows and field policies, action nodes,
+services, and sockets.
+
+An entity-emitting socket is identified by
+`producerOutputId = nodeId:outputSocketId`. Compilation emits
+`producerOutputs[producerOutputId]`, which owns that output's workflow, field
+policy, and lineage bindings. `entityTypeIndex` lists matching output ids for
+schema discovery only; runtime workflow selection always requires the exact
+producer output id.
+
+Validation is producer-scoped and fail-closed: an action that resolves an
+entity type must declare a `producerOutputId` that exists in
+`producerOutputs` and emits that entity type, and every producer lifecycle
+region with states must declare an entry state that is one of its states.
+Workflow synthesis never selects a first or default state — a region without a
+declared entry state is a validation error naming the producer output and
+region, and compilation of such a definition throws before any workflow is
+emitted.
+Validation also emits non-operational warnings: any process node whose values
+cannot reach a persistence effect (reverse reachability over graph edges with
+`effect.*` nodes as the operational sinks) is reported as inspect-only. An
+intentionally inspectable pure-data subgraph therefore stays valid while being
+surfaced as dead-end diagnostics through the compiled `warnings` channel the
+designer already renders.
+
+Activation runs one further producer-scoped binding pass,
+`validateLineageBindingResolution`, beside `validateRequiredInputAvailability`.
+Every `entry:*` edge into a Lineage composition must resolve: the entry must
+exist on the target record, the source node must resolve to a process record,
+the ancestor entity type must be derivable (source entity port, source record
+type, or entry declaration) and must not be `organization`, and a lineage key
+must exist for the ancestor type. An entity-emitting lineage source socket must
+also resolve to a producer output record — by exact `nodeId:outputSocketId`
+key, by authored socket alias, or as the single same-type candidate — because
+`compileLineageBindings` carries that identity on every binding as
+`sourceProducerOutputId`. Each error names the edge id plus the responsible
+node, entry, and socket, so a dropped lineage binding is an activation failure
+instead of a silently missing runtime binding. Dataflow edge incompatibilities
+and required-input availability errors carry the same producer context: an
+entity edge error names the source `producerOutputId`, and a required effect
+input error on a producer names `producerOutputId` alongside the socket id.
+
+Producer outputs are owned by origin effects only (`effect.createEntity`,
+`effect.runProducer`, `effect.runCommand`). Consumer effects — Update, Change
+Status, Archive, Delete, Send, Generate Attachment — transform entities that
+arrived over an input wire: they mint no producer output, carry no producer
+identity of their own, and their derived actions bind to the upstream
+producer resolved from the entity input wire (through consumer chains and
+joins, with a single same-type candidate as the read-source fallback).
+Normalization prunes consumer-owned outputs and stale own-node bindings from
+persisted drafts, `migrateProducerOutputIdentities` does the same at the
+server boundary, and `syncProcessNodeProducerOutputs` never creates them in
+the designer — so each entity path has exactly one workflow anchor: where it
+begins. Status-change transitions synthesized from consumer actions land on
+the origin's machine, and downstream identity resolution
+(`resolveSourceProducerOutputId`, `upstreamProducerOutputId`) attributes
+consumer outputs to the upstream producer.
+
+Same-type producer paths converge only through the explicit `producer.join`
+node. It has exactly two required entity-stream inputs (`primary`,
+`secondary`, both List-access sockets of one authored entity type), one
+entity-stream output, and a `selectedProducerOutputId` that must name one of
+its connected sources; the evaluator concatenates both streams while the
+compiler resolves the output's producer identity as the selected source, and
+`syncProcessNodeProducerOutputs` deliberately creates no producer output for
+the join itself. `validateDataflowEdges` rejects implicit convergence — any
+other node receiving entity streams from two distinct producer outputs of the
+same entity type fails with the target node, both producer outputs, and both
+edge ids named — and rejects a join with an unconnected stream input or a
+selection outside its connected sources. Downstream identity resolution
+(lineage `sourceProducerOutputId`, edge diagnostics) is join-aware, so a
+joined stream reads as exactly one producer.
+
+Diagnostics are structured records: `validateProcessDefinition` returns a
+`diagnostics` array beside `errors`, where each record carries `{ message,
+nodeId?, edgeId?, socketId?, producerOutputId? }` graph anchors. Edge,
+join/convergence, required-input availability, and lineage-binding diagnostics
+emit anchors (graph node id, edge id, socket id, and producer output id where
+applicable); `errors` strings remain the derived `message` list so existing
+consumers are unchanged. The activation adapter merges the package
+diagnostics with the availability and lineage passes, so the validate and
+activate responses carry one anchored diagnostic list the designer can focus.
+
+`migrateProducerOutputIdentities()` is the one-way persisted-definition
+rewrite for v4 records created before that identity was stored. It derives
+entity sockets from the registered node/command catalog, writes the stable
+node-and-socket key onto the producer and its derived action, and moves a
+detached entity profile only when exactly one producer owns that entity
+contract. Missing or ambiguous ownership returns graph-addressable diagnostics;
+the migration never selects the first same-type producer.
 
 Compiler entry points are separated by responsibility. `normalization.js`,
 `validation.js`, `action-compilation.js`, `screen-compilation.js`,
@@ -51,11 +139,25 @@ package boundaries; `index.js` is only the public barrel. Runtime and UI
 consumers import these public boundaries rather than compiler implementation
 state.
 
+`contract-diff.js` owns the semantic Apply diff between two compiled
+contracts: `diffProcessContracts(previous, next)` reports added/removed/changed
+actions (with the changed semantic fields), screens, and role grants;
+per-entity-type CRUD capability changes; per-producer workflow changes (states
+with region prefixes, `from->to` transitions, entry states); field-policy
+section changes; and `removedEntityStatuses` — primary-region statuses whose
+removal strands live entities, computed per entity type as the union of that
+type's producers. `hasProcessContractChanges` is the emptiness check. The diff
+is pure over compiled outputs; callers recompile both sides because the stored
+`compiled` snapshot is inspection-only.
+
 Process definitions use canonical semantic records as the editing source of
-truth. `definitionToCanvas()` projects those records into deterministic Vue
-Flow nodes and `canvasToDefinition()` writes canvas layout/edges back while
-preserving role-grant, service-identity, lifecycle, service, and socket
-records.
+truth. `definitionToCanvas()` projects process nodes and status definitions
+into deterministic Vue Flow nodes and `canvasToDefinition()` writes canvas
+layout/edges back; deleting one of those canvas nodes deletes its record.
+Every other record kind — producer outputs, actions, services, sockets, value
+inputs — is panel-owned: it is never projected as a canvas node and survives
+the canvas round trip untouched, so focused panels (not duplicate canvas
+anchors) own its lifecycle.
 
 Durable orchestration resolves every data edge through the source node's
 declared data ports before reading or evaluating it. A sole data output is the
@@ -90,7 +192,13 @@ Process lifecycle profiles and action nodes compile directly to normalized
 workflow, but action-only graphs also synthesize workflows: create actions add
 their target status as a state, and status-mutating `updateEntity` actions add
 transitions with the process role ids and entity access requirements from the
-action grant.
+action grant. Compilation preserves the authored workflow structure: every
+region in `workflow.regions` round-trips through compilation with its states,
+transitions, and region-level metadata, the source `primaryRegion` is kept, and
+workflow-level contracts (any top-level keys beyond the v2 structural fields)
+are carried into the emitted machine. Synthesized action states and transitions
+always land in the primary region; sibling regions pass through unchanged.
+Compilation never collapses a multi-region workflow into `regions.main`.
 Runtime adapters must not treat lifecycle data as visual-only metadata.
 
 `src/templates.js` contains starter process templates for organization
@@ -176,9 +284,15 @@ definition normalization repeats that inference so a saved graph never depends
 on inspector state. Parentage remains a field of a composed Lineage block, not
 an extra Create socket. The compiler emits `lineageBindings` from those graph
 edges: each binding carries `{ childEntityType, ancestorEntityType, lineageKey,
-sourceNode, sourceSocket, consumingNode, consumingSocket }`. The child type is
+producerOutputId, sourceProducerOutputId, sourceNode, sourceSocket,
+consumingNode, consumingSocket }`. `producerOutputId` is the consuming
+Create/Run Producer output and `sourceProducerOutputId` the entity-emitting
+source output, so same-type producers keep separate bindings; deduplication
+uses that full identity and never merges bindings merely because child type,
+ancestor type, and lineage key match. The child type is
 derived from the Create/Modify entity consumer wired to the composed block, so
-persisted composers need no manually selected `targetEntityType`. Compiled lineage bindings are the authoritative
+persisted composers need no manually selected `targetEntityType`. Each
+compiled producer output exposes only its own `lineageBindings`. Compiled lineage bindings are the authoritative
 hierarchy contract for the active process. Home eligibility, root scoping, and
 inferred child regions use those bindings exclusively; static domain
 containment neither creates nor repairs process hierarchy. Once resolved, the compiler recognizes one lineage entity
@@ -276,11 +390,27 @@ construction contract, so generated artifact actions open the file creator
 rather than the generic identity-name dialog.
 Domain construction contracts own structural input metadata during compilation:
 field id, label, path, type, and accepted entity types come from the current
-domain registry, not stale action snapshots. Process projections set every
-input `required: false`; stored graph inputs may keep non-structural values
-such as defaults but cannot make an input required. Queue creation therefore
-compiles to an empty queue shell action instead of blocking on cassette-design
-selection.
+domain registry, not stale action snapshots. Process projections preserve the
+domain-declared `required` flag through `socket()`, `normalizePortSpec`, and the
+compiler's derived-input projections; a construction or command input whose
+domain contract declares a `default` projects as non-required because that
+default satisfies it. Queue creation therefore still compiles to a queue shell
+action that prompts for its name rather than blocking on an unconnected
+cassette-design selection.
+Required inputs have exactly one availability contract, enforced at activation
+by `validateRequiredInputAvailability` after `validateProcessDefinition` and
+type/access inference. A required input is satisfied by a connected upstream
+value, an authored `inputDefaults` fallback, a domain-owned `default`, a
+generated manual prompt (manual actions only), or the run context (manual
+actions only). Activation rejects a required input with none of these sources;
+a prompt never satisfies an automatically evaluated data path, so an
+event-triggered effect must be complete without a UI prompt. The emptiness rule
+is shared by authored fallbacks and domain defaults: `null`/`undefined` never
+satisfy; an empty collection or attachment never satisfies a required
+entity-list/attachment input; an empty string or zero satisfies a required
+primitive only where the domain type permits. On a List/Tree-declared socket
+only an actual array or data tree uses the collection rule; a scalar fallback
+is one broadcast item and satisfies by the scalar rules.
 Relations composed by the process graph are executable process contracts even
 when they are not global CNC-domain relations. A manual effect that consumes a
 composed relation derives `Link <target>` for the owner action surface and a
@@ -288,6 +418,11 @@ contextual `Unlink <target>` operation for each rendered linked reference. Both
 carry the exact relation key, target type, cardinality, and access grants. Link
 prompts for a target; Unlink receives the already-rendered target reference and
 therefore never opens an entity selector.
+The compiled contract preserves the authored owner type, entry key, target
+type, and scalar/array cardinality. Array cardinality is inferred from the
+typed Collect Array output when the relation entry is not a global domain
+relation; a same-target domain relation does not rename an independently
+authored graph entry.
 When a relation entry is fed by a typed Create Entity effect, the compiled Link
 contract retains that effect as its embedded creator. The creator is not exposed
 as an unrelated top-level action: it is authorized and executed only through
@@ -301,11 +436,25 @@ The compiler places that creator
 contract on the Link input and grants the exposed role scoped artifact write
 access through the same action window. Command- and workflow-produced kinds
 remain separate process effects and are not presented as file uploads.
-The compiler fallback construction mode is only `genericCreate`; any
-entity-specific constructor such as baked cassette designs or OCCS template
-creation must be declared by the domain construction registry. This keeps the
-process compiler reusable and prevents hidden domain behavior from living in the
-generic package.
+There is no compiler construction-mode fallback. Missing domain construction
+stays `null` through normalization and validation, so Create Entity and Run
+Producer reject an entity or mode that the domain construction registry does not
+declare. Effective creation authority is the intersection of those declared
+modes and the registered runtime handlers (`projectEntityProcessCapabilities`):
+`createModes` is that intersection and `create` is derived as
+`createModes.length > 0`, never from the presence of a service `create` method.
+Typed constructors such as baked cassette designs or OCCS template creation are
+bound to named handlers at the application registry, not inferred by the
+package.
+The CNC registry-wide Create acceptance matrix covers all 14 creatable entity
+contracts and every declared mode. Generic modes expose their constructible
+canonical blocks rather than duplicate leaf constructor sockets; typed modes
+expose their exact required/defaulted inputs and typed entity constraints, then
+the same allowed blocks and typed initial-status socket. Creator and attachment
+restrictions remain on the normalized construction input consumed by generated
+manual forms. None of these contracts declares `parentEnforcement`: ancestry is
+validated from typed Lineage composition and compiled from actual graph edges,
+while root creation remains an owning-service decision.
 Create and update effects never own leaf mutation fields. Create consumes
 constructible typed blocks plus a dedicated status value. Update consumes an entity,
 connected modified/replacement blocks, and status; only values present in connected
@@ -357,10 +506,115 @@ access runs once per matched branch, and Tree access receives the complete
 structure. The authoring projection filters any typed list
 with the same data algebra: read/deconstruct the compared field over the list,
 evaluate it through the polymorphic Logic node to obtain an aligned Boolean
-mask, and pass the original list plus mask to `collection.filter`. The runtime
-retains lower-level predicate and patch operations for execution/migration,
-but they are not separate authoring concepts. Only `effect.*` nodes may
-persist changes or invoke external work.
+mask, and pass the original list plus mask to `collection.filter`. Filter and
+Dispatch are selectors, not replacements: they return the original entity
+values and require an equal-length mask with the same branch paths, rejecting
+any branch or item mismatch instead of silently repeating the last mask entry.
+Comparison semantics are scalar for status and enum values — `status.state.primary`
+travels through the ordinary Get Field/Logic dataflow as the primary status id
+string and compares as a scalar, and enum values compare as their scalar string
+form — while typed entity references compare structurally by their serialized
+`{ type, id }` shape. The runtime retains lower-level predicate and patch
+operations for execution/migration, but they are not separate authoring
+concepts. Only `effect.*` nodes may persist changes or invoke external work.
+
+Create Entity, Modify Entity, Change Status, Archive Entity, and Delete Entity use the same type-agnostic
+effect mapper (`executeProcessEffectNode` in `evaluator.js`). It preflights
+every input tree before invoking the runtime adapter: scalar item packets may
+broadcast, list/tree packets must have equal item counts and aligned branch
+paths, a multi-item branch cannot be broadcast across tree branches, and Cross
+matching is rejected for mutations. A preflight failure fails the step and run
+before the first write. Each aligned tuple then makes one authorized service
+call in branch/item order, and the mapped data tree preserves those paths,
+order, and item slots. Their input sockets declare List access in the catalog
+so the designer and edge validation advertise collection consumption; edge
+compatibility stays type-based, so item, list, and tree sources all wire
+validly into the same socket. A single item source is one broadcast item, and
+the same broadcast rule applies to run-context values and authored
+`inputDefaults` on these sockets: a scalar is wrapped as a one-item packet
+rather than rejected as a list arity error, while an array spreads into one
+packet item per entry.
+
+When every aligned call succeeds the step output is exactly the historical
+effect result: a single aligned item yields the bare service DTO, and a
+list/tree input yields the bare shape-preserving data tree — no reporting
+envelope is added. When any aligned call fails the step still completes and
+its output becomes `{ result, failures, completedMutations }`: `result` is the
+shape-preserving tree in which each failed slot carries its own
+`{ operation, branchPath, itemIndex, entityRef?, error }` MutationFailure
+record, `failures` is the flat list of those records, and
+`completedMutations` identifies each write that finished (operation, branch
+path, item index, entity ref when known). These calls are not
+collection-atomic: a later failure does not roll back earlier writes or
+prevent subsequent aligned items from being attempted, so earlier completed
+mutations remain applied and are identified through `completedMutations`.
+Change Status carries optional region, path, metadata, and lifecycle evidence to
+the workflow engine and emits the updated entity DTO rather than the transition
+wrapper. Archive Entity resolves to the domain's named archive intent when one
+exists, otherwise to its `ARCHIVED` transition. Delete Entity is available only
+when the canonical capability projection combines `operations.delete` with a
+registered runtime `processDelete` adapter. Archive and delete retain the same
+Item/List/Tree topology and per-slot failure contract as the other mutations.
+Manual hard deletion compiles as an admin action; generated surfaces render it
+only from the current user's action manifest and require confirmation.
+Each successful Create call publishes one typed `created` invalidation only
+after construction, authored block application, and initial-status persistence
+have all succeeded. Publication does not alter the shape-preserving effect
+result or make a collection mutation atomic.
+
+Collection construction has one fixed-arity constructor. Make List
+(`collection.makeList`) exposes exactly four optional item sockets
+(`item1`–`item4`, `MAKE_LIST_INPUTS` in `node-catalog.js`), each accepting at
+most one wire like any single-value socket; a fifth independent value needs a
+second Make List or an upstream Concat. Wired and defaulted sockets are
+consumed in socket order, unwired sockets are skipped, and a fully
+unconnected Make List evaluates to the empty list, so the constructor never
+fails on missing inputs. Concat (`collection.concat`) stays the two-list
+join: it retains element type, branch topology, and order, and an empty side
+contributes nothing. Collect Array (`collection.packArray`) and Expand Array
+(`collection.unpackArray`) remain the explicit persisted-array boundary —
+packing one branch into one stored array value and expanding it back —
+including the empty array; arbitrary JSON text is never treated as a typed
+array. Element-type compatibility is enforced at the wire: connecting a
+source whose type does not match the constructor's element type is rejected
+by edge validation rather than coerced.
+
+Ordering, grouping, and windows consume the original item list plus an aligned
+key list produced by Get Field, never hidden raw property paths. Sort takes
+`items` + `keys` (both required) and returns the original items in the aligned
+key order, exposing one canonical `direction` (`asc`/`desc`, default asc) read
+by the evaluator and written by the inspector; equal keys keep their original
+order (stable) and null keys sort after non-null keys in ascending order.
+Distinct takes `items` plus an optional `keys` list: with keys it keeps the
+first item per aligned key value, without keys it dedups the items themselves
+by structural equality rather than serializing a whole entity. Group By keeps
+`items` + `keys` and groups by the aligned key, appending a group index to each
+source branch path. Sort, Distinct, and Group By reuse the strict
+`alignSelectorPackets` alignment shared with Filter/Dispatch, rejecting any
+branch-path or per-branch item-count mismatch instead of repeating the last
+key. Slice `start`/`end` and Item At `index` are authorable integer fallbacks
+with native negative-index and empty-list semantics; Item At resolves an
+absent, out-of-range, or empty index to null.
+
+Entity read sources are authoring nodes, not repository readers. Current Entity
+(`read.currentEntity`), Entity by ID (`read.entityById`), Entity by Reference
+(`read.resolveEntityRef`), Parent (`read.parent`), Children (`read.children`),
+Related (`read.related`), and Select Entities (`read.queryEntities`) all resolve
+through the registered entity service boundary (`processGetById` /
+`processList`) with the complete run auth context, never an unfiltered
+collection read. Current Entity adopts the entity type when action and screen
+context agree on one type; only ambiguous context leaves the type
+author-selectable.
+Entity by ID consumes an id socket with an explicitly selected
+entity type; Entity by Reference consumes a typed reference directly. Parent and
+Children derive from the domain `containment` (lineage) contract and resolve by
+the declared lineage key; Related derives from the domain `relations` contract
+and resolves each stored reference by its declared target type. A missing or
+denied entity fails clearly instead of returning a silent empty value, while a
+root entity with no declared parent yields null and an absent relation value
+yields an empty list. The designer exposes per-entity read choices through the
+capability projection: Select Entities and Children require the `list` binding,
+and the remaining read sources require `getById`.
 
 Structural selectors come from `domain.blockSchemas`; open-block entry behavior
 comes from `domain.blockComposition`; entity readers and
@@ -377,14 +631,49 @@ reference or an array assembled by Collect Array. Modify Relations replaces the
 connected entry value; list operations express collection changes beforehand.
 Attachments accept named typed
 attachment references, and Data/Summary/Provenance accept named typed values.
-Renaming an entry does not break its wire. The evaluator lowers Lineage entity
+Renaming an entry does not break its wire. Fixed-field and open-entry
+composers both evaluate through aligned tuple matching, so list-shaped inputs
+emit one composed block per aligned input tuple and multi-entity creation
+needs no separate loop node. The evaluator lowers Lineage entity
 references to the declared stored id key and Get Field restores that id as the
 declared typed reference. Get Field on other open blocks authors the local key
 and output type explicitly rather than selecting invented global fields;
 Deconstruct Entity exposes blocks; Get Field reads one selected field from a
-block. Status remains a dedicated lifecycle socket and never travels through a
-generic mutable block. Producer services resolve their declared
+block. Deconstruct Entity and Get Block select only blocks declared by the
+incoming entity contract (the entity's `blocks` list plus its field-access
+policy block prefixes, including the framework-owned `attachments` open block).
+Compilation rejects any other selected block with the same
+`uses block <block> outside <entityType>` diagnostic used by the legacy block
+kinds, and the evaluator enforces the identical check whenever the domain
+contract is supplied to the run or preview environment, so an undeclared block
+fails instead of silently reading `undefined`. All three reads evaluate through
+`mapDataPacket`, so item, list, and branched-tree inputs keep their branch
+paths and item order in the output, and the managed read-only blocks
+(`origin`, `status`, `provenance`, `summary`) are readable through them even
+though writes to those blocks are rejected. Status remains a dedicated
+lifecycle socket and never travels through a
+generic mutable block. Status-based find/filter reads `status.state.primary`
+as a scalar through Get Field and compares it with scalar equality; it never
+constructs or mutates the status block. Producer services resolve their declared
 entity/entity-list construction references at the effect boundary.
+
+A missing field is never the same value as a present `null`
+(`missing-field.js`). Path reads produce a frozen marker object carrying the
+reserved `$missingField` key and the read path whenever a segment is absent —
+including below a present `null` — so the distinction survives every packet
+operation (`structuredClone` drops symbols and class instances, which is why
+the marker is a plain object). Logic `isNull` is true only for a present
+`null` and `isNotNull` only for a present non-null value; Coalesce and
+required validation treat a missing value as absent; Required and validation
+error messages name the missing path instead of reporting a null; patch
+append/remove and Compose/Modify Block treat a missing value as absent
+content rather than writing the marker into an entity. The marker never
+crosses a runtime boundary as-is: `serializeProcessResult` is the single
+conversion point for result emission and rewrites every marker, at any depth,
+to the serializable tag `{ missing: true, path }` while leaving present
+`null` values untouched. The process-definitions preview and manual-run
+service responses are emitted through this helper, so no missing value
+silently degrades to `null` over JSON.
 
 `orchestration.js` executes the full runtime control plane. Effect nodes have
 only two execution modes: `manual`, which is exposed through authorized UI, and
@@ -398,7 +687,10 @@ Manual effect inputs resolve the supplied entity from the persisted run context
 when no data wire overrides that socket. Entity access remains resolved from
 persisted run input through the authorized feature service.
 Manual generic Create actions expose `identity.name` as a prompt when
-no Identity block supplies it. Manual field values are resolved into either
+no Identity block supplies it. Generated prompts exist only on manual actions
+and never satisfy an automatically evaluated data path; a required input on an
+event-triggered effect must be connected, defaulted, or supplied by the run
+context. Manual field values are resolved into either
 fixed field sockets or stable open-block entry sockets by canonical field path,
 so a composer node is optional for user-entered creation data. Wired sources
 take precedence and suppress the corresponding prompt. Source nodes such as
@@ -441,10 +733,6 @@ role may access after the status change. Create-action access grants are
 conditioned by the created status in the same way, so `admin` on "create project
 as NEW" means admin over `project` entities whose current primary status is
 `NEW`, not global project admin.
-`requiredEntityProfileTypes(definition, domain)` projects command-declared
-profile requirements across `runCommand` actions and command-backed services.
-Activation validation and designer authoring consume that projection instead
-of embedding command-specific entity lists.
 Action access compiles through status-scoped access windows. A create action
 opens the first window for the created entity state. A status-mutating update
 action inherits the incoming entity window until its `action.access.modified`
@@ -508,18 +796,47 @@ template (`home`, `entityList`, `entityDetail`, `workspaceLanes`, `table`,
 `formAction`, or app-owned system templates such as `route`,
 `organizationOverview`, and `organizationAccount`), typed
 entity sources, template regions, required access, and manual process action
-ids. A source describes an entity type plus list/single loading mode; a region
-binds a template slot to one source and a domain display surface. The
+ids. Each source has a stable id and label, entity type, list/single loading
+mode, independent required access, and the mode-specific loading contract:
+single sources carry one scalar identifier, while list sources carry a flat
+scalar filter map and may carry the canonical compiled-lineage binding fields.
+Each region has a stable id and label and independently selects its template
+slot, source, registered domain display surface, and action ids. Screen
+bindings are arbitrary keyed literal string, number, or boolean values, or
+valid `$assignment.<key>` references; nested values and null are invalid. The
 `supporting` slot is reserved for generated/system templates with secondary
 accounting or history regions. Assignment bindings replace `$assignment.*`
-placeholders in screen routes, scopes, source identifiers, and source filters,
+placeholders in screen routes, authored scopes, bindings, source identifiers,
+source filters, required-access scopes, and grant rules,
 so one user can receive overloaded copies of the same screen for different
 projects or entities. Screens with incomplete bindings are skipped with
-compiler warnings. User-specific compiled screens use canonical generated
+compiler warnings. `discoverAssignmentBindingRequirements()` walks those
+locations plus process role/action access and returns each selected key with its
+scalar type and contributing locations. User-specific compiled screens use canonical generated
 routes under `/screens/:screenKey`; the original semantic route is preserved as
 `sourceRoute` for audit/debug context. Manual screen actions execute through the
 active process action runtime, which verifies the user's compiled action
 manifest before delegating to entity, status, socket, or command services.
+`screen.required` is only a frontend requirement. Compilation does not copy it
+into role grants: assignment compilation resolves all additive authored grants
+first and includes a screen only when those grants cover its requirement.
+`screen-contract.js` owns the authored screen contract: normalization, the
+canonical region surface registry (`SCREEN_REGION_SURFACES`: `card`, `compact`,
+`detail`, `table`, `workspace` — the surfaces the generated region components
+render), and pre-activation validation. `validateScreenContract` runs inside
+`validateProcessDefinition`, so `compileProcessDefinition` and the
+activation adapter reject malformed screens before anything is compiled.
+Beyond template/source/region membership it rejects: duplicate source or
+region ids; single-mode sources without a resolvable identifier (the runtime
+could only render a missing-identifier error); non-scalar identifiers and
+filter values; filters that are not flat scalar maps; malformed or empty
+`$screen.*`/`$assignment.*` placeholders; `$screen.bindings.<key>` references
+to bindings the screen does not declare; region surfaces outside the registry;
+region-level action ids missing from the process action manifest; template
+slot/cardinality violations (`workspaceLanes` renders only `main`/`left`/
+`center`/`right` and keys regions by slot, so one region per slot); and screen
+bindings that are neither literal scalars nor `$assignment.<key>` references
+and therefore can never resolve at compile time.
 Each user assignment also receives a compiler-synthesized `home` screen when
 that user has generated list screens. The home screen is prepended to the
 user's screen and navigation manifests so it becomes the process start screen.
@@ -600,9 +917,9 @@ the individual status-scoped grants when it filters returned records, while
 edit/admin affordances come from action and field grants rather than the
 route-level screen requirement.
 
-Compiled field policies replace the base domain field set for an organization
-when present. `read` fields are public display fields, `write` fields require
-write grants, and `private` fields require admin grants. Socket definitions are
+Each compiled producer output owns its field policy. `read` fields are public
+display fields, `write` fields require write grants, and `private` fields
+require admin grants. Socket definitions are
 compiled as runtime contracts. Outbound sockets consume a concrete entity and
 produce a projected payload for another organization. Inbound sockets represent
 receiver inputs from another organization and produce a received entity into the

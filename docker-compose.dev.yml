@@ -19,6 +19,11 @@ services:
       - NODE_OPTIONS=${NODE_OPTIONS:---max-old-space-size=4096}
       - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest
+      - LIVEKIT_PUBLIC_URL=${LIVEKIT_PUBLIC_URL:-ws://localhost:7880}
+      - LIVEKIT_INTERNAL_URL=${LIVEKIT_INTERNAL_URL:-ws://livekit:7880}
+      - NUXT_DEV_HTTPS=${NUXT_DEV_HTTPS:-false}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-devsecret}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       - NUXT_DEV_HMR_HOST=${NUXT_DEV_HMR_HOST:-}
       - NUXT_DEV_HMR_PROTOCOL=${NUXT_DEV_HMR_PROTOCOL:-ws}
@@ -28,16 +33,32 @@ services:
       - CONFIG_BOT_CORTEX_PATH=${CONFIG_BOT_CORTEX_PATH:-/opt/cutkit-cortex}
     depends_on:
       - mongo
+      - livekit
     networks:
       - cutkit-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    command: npm run dev -- --host 0.0.0.0
+    command: sh -c 'npm run dev -- --host 0.0.0.0 $( [ "$NUXT_DEV_HTTPS" = "true" ] && echo --https )'
+    restart: unless-stopped
+
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: cutkit_livekit
+    command: --config /etc/livekit.yaml
+    volumes:
+      - ./livekit.dev.yaml:/etc/livekit.yaml:ro
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    networks:
+      - cutkit-network
     restart: unless-stopped
 
   mongo:
     image: mongo:4.4
     container_name: cutkit_mongo
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
     volumes:
@@ -45,6 +66,12 @@ services:
     networks:
       - cutkit-network
     restart: always
+    healthcheck:
+      test: ["CMD", "mongo", "--quiet", "--eval", "try { db.adminCommand('ismaster').ok } catch (e) { 0 }"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
 
   user-file-processing-worker:
     image: ghcr.io/1suo/file-processing-worker:latest

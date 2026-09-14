@@ -1,0 +1,871 @@
+* WAITING Original architecture repair request (verbatim; unimplemented after rollback)
+  :PROPERTIES:
+  :ID: original-architecture-repair-request-2026-07-13
+  :END:
+
+  For each task, EXPLORE HOW RELATED ENTITIES AND CODE ACT IN PROJECT CONTEXT AND ARCHITECTURE, THEN REPHRASE IN PROJECT TERMS AND ARCHITECTURAL CORRECTNESS, AND THEN EXECUTE:
+
+** WAITING Task 1
+   1. Snapping should snap to other cassettes with tool gap, grid doesn't help here. And need btn to rotate cassette by 90deg.
+
+** WAITING Task 2
+   2. Make sure artifact is valid entity, it's generic creation flow includes camera and upload.
+
+** WAITING Task 3
+   3. Analyze and refactor queue page and actions. In queue entries, there is hardcoded cassette adding. Instead it needs to follow project standards of generated actions: each process or entity that has cassette design as output and is available in org process in designer, should result in option to add cassette design. It includes uploading dxf, creating from cassette, adding from library that holds cassettes, adding from facade (which isn't implemented, just for example). Check if nesting run should be a _revision_ of queue instead of multiple rows; and only sheets for chosen one is displayed.
+
+** WAITING Task 4
+   4. Check that parent-child relationship model works consistently in app as architectural pattern. Now I see multiple corrupted behaviors. When I add something as parent entity in designer, child entities should be created and displayed in it's screen, not in main page anymore since it's not top level.
+
+** WAITING Task 5
+   5. Need to develop syntax by which child will hold lineage link not to parent alone but to it's revision, for example with ":" or smth. Need to be optional and need usage system/UI where exists.
+
+** WAITING Task 6
+   6. Need to extend architecture to enable such relationships: linked entities that are not "children" but probably just a link; for example library that is used in project but no one is actually a child; and integrate into display. If it's already possible, tell how to do such things.
+
+** WAITING Task 7
+   7. Nesting (or some post-nesting service) should detect similar sheet designs, make it one actual sheet design, and create such number of sheet instances (which are assumed future physical sheet digital twins).
+
+** WAITING Task 8
+   8. Need "machine" entity that holds dimensions, offset from sheet boundary; nesting settings should take it's system seeded default and serialize when sending to nesting. Tool and material still persist, and define items gap and sheet size and thickness (new option to add in virtual material). In cassette, need preserved parameter to hold material thickness, that can be used as regular parameter and is passed to queue items from nesting settings.
+
+** WAITING Task 9
+   9. In process designer, need to unify all the entity change nodes, including changing status, and it just holds all the sockets as entity (derived in real time), rewriting only those plugged (change status, lineage, data, etc). Need to review all the UI in process designer (now ugly). Need to check that assembling/disassembling default blocks work and are true to data/architecture; need to ensure we have all the nodes to actually assemble it.
+
+** WAITING Task 10
+   10. Navigation breadcrumbs should use hierarchy! Now it's flat list always.
+
+** WAITING Original context and constraint
+   : This prompt was claimed by previous agent to be executed, but everything done SOOO POORLY! Many things are completely broken or not done at all, some randomly named "actions" appeared in random places
+
+   Note that there is Status object that handles some already
+
+* WAITING Architecture repair execution plan
+  :PROPERTIES:
+  :ID: architecture-repair-execution-plan-2026-07-15
+  :END:
+
+  Review status: blocking relations/provenance feedback incorporated;
+  implementation completed and validated on 2026-07-15.
+  This plan replaces the two reverted implementation attempts and treats the
+  current =local= tree as the only implementation baseline.
+
+** Summary
+
+   Implement all ten tasks as one coordinated contract migration. Replace
+   hardcoded queue/UI behavior with process-compiled capabilities, separate
+   entity containment from ordinary links, add revision-aware references,
+   introduce machine profiles, consolidate entity mutation, and normalize
+   nesting output by cassette composition.
+
+   Infrastructure must not hardcode organization lifecycle states. Active
+   organizations use their compiled process workflows and the Status engine.
+   Domain workflow defaults apply only when no active organization process
+   exists, or for genuinely system-owned runtime mechanics.
+
+** Public contracts and architecture
+
+*** Entity relations and containment
+
+    - Extend =@cutkit/core= with one canonical =EntityRef= value:
+      ={ type, id, revisionId? }=. The optional revision ID identifies an
+      immutable =entity_revision= for that same source entity. Runtime results,
+      process ports, relations, and provenance use this exact value shape.
+    - Add canonical =relations= and =provenance= entity blocks. A relation entry
+      contains one =EntityRef= or a cardinality-declared list of =EntityRef=
+      values. A provenance entry contains a =source: EntityRef= plus immutable
+      derivation facts such as scope, revision number, content hash, source
+      status, and parameters.
+    - Use =relations= for non-owning links such as a project using a cassette
+      library. Relations must not affect ownership, access ancestry, top-level
+      list placement, or breadcrumbs.
+    - Use =provenance= for immutable derivation evidence and for an optional
+      exact immediate-parent revision captured at child creation. Provenance is
+      never an editable relation and never changes containment or access.
+    - Reserve =lineage= for containment and access ancestry.
+    - Replace =cncSummaries= as the implicit parent/child registry with explicit
+      containment declarations containing parent type, child type, lineage key,
+      and optional aggregate policy. Keep summary aggregation separate.
+    - Add process-authored relation declarations to entity profiles so relation
+      sockets, traversal, persistence, and display derive from one contract.
+
+*** Revision-aware references
+
+    - Keep scalar =lineage.<parentType>Id= fields for access and queries.
+    - When child creation pins the immediate parent revision, store
+      =provenance.parent.source = { type, id, revisionId }=. The =type= and =id=
+      must match the declared containment parent and the scalar lineage parent
+      ID. Never add revision keys to =lineage= and never encode composite IDs
+      with delimiters.
+    - Ordinary relations may independently pin a revision through the same
+      optional =EntityRef.revisionId= field.
+    - No revision means follow the entity; a revision means reproduce the
+      relationship against that exact immutable snapshot.
+    - Migrate cassette-design derivation from =data.derivedFrom= to
+      =provenance.derivedFrom= and entity-revision source metadata from sibling
+      =entityType/entityId= fields to =data.source: { type, id }=. Do not retain
+      dual-read compatibility paths after migration.
+
+*** Machine, tool, material, and queue settings
+
+    - Add a =machine= entity with public system records and organization-owned
+      records.
+    - Seed a system default with a 3000 x 1500 mm working area and zero uniform
+      sheet-boundary offset.
+    - Replace queue nesting spacing/settings with explicit =machineId=,
+      =toolProfileId=, material mode/source references, and virtual material
+      width, length, and thickness.
+    - The selected tool's =kerf= is the exact nesting and manual-editor item
+      gap. Remove the independent spacing override and do not retain a fallback.
+    - Nesting runs store immutable serialized machine, tool, and material
+      snapshots. The strict worker payload is derived from those snapshots.
+    - Reserve ordinary OCCS parameter =T= for selected material thickness.
+      Queue material selection injects =T= into parametric cassette items;
+      queue item editing cannot override it independently.
+
+*** Process actions
+
+    - Replace separate =changeStatus= actions with one canonical =updateEntity=
+      action kind and migrate stored process definitions.
+    - Derive the action's entity type, writable block/field/relation sockets,
+      and output entity type live from the connected entity profile.
+    - Rewrite only connected sockets. A connected status socket calls the
+      Status engine and never patches the status block as ordinary data.
+    - Extend compiled action manifests with normalized entity input/output
+      contracts. Consumers derive capabilities from those contracts, not from
+      action IDs, labels, or UI-local lists.
+
+** Implementation by task
+
+*** Task 1: cassette-aware sheet editing
+
+    - Replace grid-coordinate snapping with magnetic snapping against other
+      transformed cassette production contours/bounds.
+    - Generate candidate translations at exactly the selected tool kerf and
+      reject candidates that overlap or violate minimum clearance.
+    - Clamp placements to the usable sheet polygon after machine boundary
+      offset. Keep the grid visual only; it no longer controls placement.
+    - Add a selected-placement rotate control that rotates exactly 90 degrees
+      in the canonical worker rotation unit, then recomputes bounds, snapping,
+      and clamping before persistence.
+
+*** Task 2: artifact-first camera/upload flow
+
+    - Bring artifacts fully onto the backend Golden Path: authenticated
+      create/list/detail/delete services, repository-owned persistence and file
+      cleanup, workflow-derived initial status, access filtering, DTO
+      serialization, and entity invalidation.
+    - Generated attachment inputs support ordinary upload and camera capture.
+      Both persist the immutable file and create an artifact entity first.
+    - Geometry capture consumes an artifact reference instead of owning a
+      separately uploaded photo. DXF cassette import likewise consumes an
+      artifact before producing a cassette design.
+
+*** Task 3: generated queue composition and run presentation
+
+    - Add typed cassette-design producer contracts for baking a readable
+      cassette template, importing a DXF artifact, and selecting an existing
+      readable cassette design.
+    - Any future process action or entity source whose compiled output is
+      =cassette_design=, including a future facade flow, automatically qualifies
+      without a QueueEditor change.
+    - In active-process mode, populate the queue's add-design menu only from
+      producer actions and readable sources in the user's compiled manifest.
+      Outside process mode, use the domain/system manifest rather than
+      hardcoded Vue controls.
+    - Library-backed creation resolves readable cassette templates through the
+      declared project/library relation and normal access policy.
+    - Remove the hardcoded cassette/template selector and DXF upload button.
+      Append successful producer outputs through the canonical queue update
+      boundary as ={ id, entityType: "cassette_design", quantity, parameters }=.
+    - Keep =nesting_run= as a child entity rather than a queue revision because
+      it is an independently actionable async attempt with parameters, status,
+      failure history, and selection provenance.
+    - Present runs through one selector and render sheet designs only for the
+      currently selected run. Project production output continues to show only
+      the accepted run.
+
+*** Tasks 4 and 6: hierarchy and non-owning links
+
+    - Make parent-bound creation require the parent, inherit complete ancestry,
+      optionally record =provenance.parent= with the configured parent revision,
+      and publish the child via normal entity events.
+    - Generated top-level sources exclude rows carrying a declared parent
+      lineage key. The same entity type may still have both root records and
+      child records.
+    - Generated parent details derive child sources and child create actions
+      from containment declarations, never from summary counters.
+    - Add relation sockets to entity/update nodes. Connecting a related entity
+      writes the declared =relations= entry without changing containment.
+    - Implement project-to-library as the first explicit non-owning relation and
+      render it through shared entity relation primitives.
+    - Make related-entity traversal nodes select a declared relation key and
+      cardinality rather than only an unconstrained target type.
+
+*** Task 5: revision-pinned containment evidence and relations
+
+    - Keep lineage construction unchanged as the cumulative ancestor-ID map.
+      When configured, parent-bound creation resolves the parent's current
+      immutable revision and records it in =provenance.parent.source=.
+    - Expose revision pinning in process authoring and display pinned revisions
+      through shared revision/entity reference UI.
+    - Move existing ad hoc derivation records to canonical provenance without
+      turning them into relations. Migrate editable non-owning links to canonical
+      relations separately.
+
+*** Task 7: composition-based sheet designs and sheet twins
+
+    - Collapse worker layouts by cassette composition multiset only: sorted
+      cassette-design IDs plus each design's count.
+    - Geometry, placement order, material, and machine data do not split equal
+      compositions. The first layout in stable worker order becomes the
+      representative editable geometry.
+    - Create one =sheet_design= per unique composition and store its composition
+      hash and aggregate sheet count.
+    - At nesting completion, create one =sheet= entity per collapsed quantity,
+      linked through sheet-design, run, queue, and project lineage.
+    - Resolve each new sheet's initial state from the active organization's
+      compiled sheet workflow. The nesting task emits facts and entity refs but
+      never names or forces an organization lifecycle state.
+    - Run selection binds material sources to existing sheet twins instead of
+      creating duplicates. Later lifecycle movement occurs only through
+      process-defined update/status wiring.
+    - Remove hardcoded queue/run/sheet state checks from orchestration wherever
+      process intents or compiled actions own the decision.
+
+*** Task 8: machine/material/OCCS nesting flow
+
+    - Register the machine feature, service/repository/model, APIs, access
+      policy, system seed, organization CRUD, frontend metadata, and generated
+      entity surfaces.
+    - Validate that selected material dimensions fit the selected machine
+      working area.
+    - Convert machine boundary offset to the worker's usable =sheet_polygon=
+      while preserving full physical sheet dimensions on runs/designs/sheets.
+    - Warehouse material supplies width, length, and thickness from canonical
+      specs. Virtual material requires all three before nesting.
+    - Resolve machine and tool entities before enqueueing and serialize exact
+      values into the run snapshot. Derive worker =space= only from tool kerf.
+    - Ensure default OCCS cassette templates declare =T=, baking evaluates it as
+      an ordinary numeric parameter, and material changes propagate =T= to all
+      parametric queue items. Static imported designs remain fixed geometry.
+
+*** Task 9: unified mutation and process designer repair
+
+    - Migrate every stored =changeStatus= action to =updateEntity= with a status
+      input while preserving grants, transition windows, evidence contracts,
+      authored display metadata, and graph edges.
+    - Expose one typed entity input/output plus live writable identity, data,
+      specs, summary, attachments, relation, and status sockets permitted by the
+      entity field policy.
+    - Execute combined mutations through the status runtime boundary: resolve
+      graph values, validate field policy/access/relation/transition contracts,
+      persist allowed field changes plus the Status-engine snapshot/history in
+      one Mongo transaction. Reject combined mutations when the Mongo topology
+      cannot provide that transaction; do not fall back to partial ordered
+      writes. Status is never patched as ordinary entity data.
+    - Repair block algebra so entity decomposition emits every canonical block,
+      field readers consume one typed block, block composers assemble typed
+      block patches, and update actions assemble the final entity patch from
+      connected values only.
+    - Remove obsolete action/node kinds during migration instead of preserving
+      adapters.
+    - Refactor the designer with existing design-system primitives: compact
+      typed nodes/sockets, one entity-update palette item, reusable status value
+      nodes, dense configuration in the selected-node inspector, localized
+      labels, and typed edge validation.
+
+*** Task 10: hierarchical navigation breadcrumbs
+
+    - Make route breadcrumbs and =TraceChain= consume the same containment
+      resolver.
+    - Render hub, each accessible ancestor, and the current entity in order.
+    - Resolve sibling menus within the same parent scope.
+    - Use compiled generated detail routes in process mode and enforce the same
+      access checks as entity screens. Ordinary relations never appear as
+      ancestry.
+
+** Migration and rollout
+
+   - Add a dry-run/apply migration for artifact records backing existing
+     geometry-capture photos and DXF uploads, then replace those consumers with
+     artifact relations.
+   - Migrate =data.derivedFrom= records into canonical provenance,
+     =entity_revision.data.entityType/entityId= into =data.source=, editable
+     non-owning links into relations, and any revision-like lineage fields into
+     =provenance.parent=. Remove the old shapes after apply.
+   - Migrate =changeStatus= process actions to unified updates and recompile all
+     active process contracts before removing the old compiled shape.
+   - Backfill existing run layout composition metadata non-destructively,
+     report duplicate compositions for review, and create missing sheet twins
+     without deleting historical sheet designs, revisions, or references.
+   - Move queue settings to machine/tool/material contracts. Assign the seeded
+     system machine when missing. Queues without a tool or material thickness
+     remain editable drafts but nesting is rejected until the required values
+     are selected; old spacing is not read as a fallback.
+   - Reject activation of a process that exposes nesting without accessible
+     =nesting_run=, =sheet_design=, and =sheet= output profiles/workflows.
+   - Update all affected architecture, feature, process, component, OCCS, and
+     script READMEs in the implementation session. Add completion notes to the
+     ten tasks only after implementation and validation actually succeed.
+
+** Validation and acceptance
+
+*** Relationship and navigation coverage
+
+    - Root and child records of the same type route to the correct generated
+      source.
+    - Child creation inherits ancestry and optionally records an exact parent
+      revision in provenance without adding a lineage revision field.
+    - Linked libraries do not become children or change access lineage.
+    - Child regions, root filters, relation traversal, TraceChain, and route
+      breadcrumbs use the same declarations.
+
+*** Artifact and queue coverage
+
+    - Upload and camera-shaped payloads create artifacts first.
+    - Geometry and DXF processing consume artifact refs.
+    - Artifact list/detail/delete access is consistent and file cleanup remains
+      service-owned.
+    - Only manifest-exposed cassette-design producers appear in process mode.
+    - Template, artifact import, existing design, and future generic producer
+      outputs append canonical queue items; unauthorized actions never appear.
+    - Only the selected run's sheets are rendered.
+
+*** Nesting and sheet coverage
+
+    - Tool kerf is the sole item gap.
+    - Machine/material snapshots are immutable and worker payloads use the
+      usable offset polygon.
+    - Missing tool or thickness blocks execution.
+    - Equal cassette composition collapses regardless of placement geometry.
+    - Sheet twin count equals collapsed multiplicity.
+    - No executor writes organization lifecycle literals.
+    - Neighbor snapping preserves kerf clearance, rejects overlap, honors
+      usable sheet polygons plus boundary offset, and keeps four successive
+      rotations reversible/in-bounds.
+
+*** Process and OCCS coverage
+
+    - Migrated status actions retain access, workflow, display, and evidence
+      semantics.
+    - Only connected fields change; validation failures leave entity and status
+      history unchanged, and combined mutations require Mongo transaction
+      support before any status history/entity patch write is accepted.
+    - Decompose/read/compose/update port combinations round-trip and reject
+      incompatible connections.
+    - =T= evaluates in OCCS templates/designs and changes with selected material
+      thickness without creating aliases or overrides.
+
+*** Required commands
+
+    - Run focused Vitest suites while implementing.
+    - Run =node scripts/check-arch.js=.
+    - Run =npm run framework:validate=.
+    - Run design-system and framework package specs.
+    - Run OCCS evaluator, renderer, and toolkit checks.
+    - Run process compiler/runtime suites and migration integrity checks.
+    - Run focused Playwright workflows when the existing app stack is available.
+    - Do not run =npm run build= or start a development server.
+
+** Locked decisions and assumptions
+
+   - Same sheet design means the same cassette-design/count multiset. The first
+     worker layout is the canonical representative.
+   - Active organization processes are authoritative for lifecycle states.
+     Infrastructure must not introduce a =PLANNED= or other business state.
+   - A nesting run remains an entity rather than an entity revision.
+   - Machine boundary offset is a uniform inset in millimeters.
+   - Tool kerf, not diameter or a queue override, defines nesting and snapping
+     clearance.
+   - =T= is the reserved material-thickness parameter and is material-bound.
+   - Upload/camera creation produces an artifact before downstream processing.
+   - Active-process queue inputs come only from the compiled process manifest.
+
+** Agent Notes
+
+*** [2026-07-15] Architecture repair implementation attempt invalidated by review
+
+    The previous completion note was inaccurate. Follow-up review found blocking
+    implementation defects: destructive sheet-design migration, parametric
+    =T= changes not re-baking geometry, process definitions writing foreign
+    feature collections, transaction-only combined mutations on the checked-in
+    standalone Mongo topology, false validation reporting, and incomplete
+    canonical block documentation.
+
+*** [2026-07-15] Corrective repair after review
+
+    Corrective implementation scope:
+    - Sheet-design composition migration is non-destructive: it backfills
+      metadata, reports duplicate compositions, and creates missing sheet twins
+      without deleting historical designs, revisions, or references.
+    - Parametric queue items whose queued parameters differ from saved baked
+      geometry are evaluated from the source cassette provenance during nesting,
+      including material-bound =T= changes, without persisting duplicate
+      cassette designs or DXFs.
+    - Process-definition runtime no longer performs generic collection reads or
+      writes for business entities. Parent context is passed to owning feature
+      create services, and non-status updates delegate to owning feature
+      =update()= methods.
+    - Combined status/entity mutations require Mongo transactions; standalone
+      Mongo rejects those combined mutations instead of using partial ordered
+      writes.
+    - Machine contracts include required origin/status blocks, and public
+      canonical block docs include relations/provenance.
+    - Queue composition UI exposes existing cassette designs by real
+      =cassette_designs:read= permission and accepts process producers only
+      from current =contracts.outputs= compiled output contracts.
+    - Sheet-editor snapping uses axis-aligned neighbor bounds, kerf clearance,
+      transformed-polygon overlap checks, and rectangular rotated-boundary
+      clamping.
+
+    Validation report superseded:
+    - Follow-up review found the claimed framework/package validation was not
+      reproducible. Treat the validation list from this note as invalidated;
+      see the subsequent repair note for the corrected validation record.
+
+*** [2026-07-15] Follow-up repair after review findings
+
+    Corrective implementation scope:
+    - Kept composition-based sheet-design collapse as the locked requirement
+      and corrected nesting/sheet-design docs that still described one design
+      per physical layout.
+    - Replaced persistent parametric nesting re-bake with request-local source
+      cassette evaluation, so material-bound =T= changes update worker geometry
+      without creating duplicate =cassette_design= rows or GridFS DXFs.
+    - Restored =solveNesting= execution grants to cassette/cassette-design read
+      access only.
+    - Removed QueueEditor's legacy output-shape fallback; process producers now
+      require current =contracts.outputs=.
+    - Removed the invalid generic non-status feature-service update call.
+      Non-status process updates now fail unless an owning feature
+      process-update handler is introduced. This line is superseded by the
+      next repair note; process-update handlers now exist for project and queue
+      process mutations.
+    - Removed standalone Mongo fallback for combined status/entity patches.
+      Combined mutations require transactions and fail before partial writes
+      when topology cannot provide them.
+    - Downgraded sheet-editor snapping documentation to the implemented
+      behavior: axis-aligned neighbor bounds, kerf clearance,
+      transformed-polygon overlap checks, and rectangular boundary clamping.
+      This line is superseded by the next repair note; snapping now uses
+      transformed edge-normal candidates and usable sheet-polygon clamping.
+
+    Validation run:
+    - =npx vitest run server/features/nesting/operations.spec.js server/features/process-definitions/process-definitions.spec.js server/core/machines/service.spec.js server/scripts/migrate-sheet-design-compositions.spec.js utils/sheetLayoutEditor.spec.js shared/framework-packages.spec.js shared/design-system.spec.js utils/occs/evaluate.spec.js utils/occs/parameters.spec.js server/features/parametric-cassettes/service.spec.js= passed: 10 files, 128 tests.
+    - =npm run framework:write-manifest= regenerated =framework.manifest.json=; =npm run framework:manifest= and =npm run framework:validate= passed.
+    - =node scripts/check-arch.js= passed with the existing non-blocking migration inventory.
+    - Changed Vue SFC parse check for =components/QueueEditor.vue= passed.
+    - =git diff --check= passed.
+
+*** [2026-07-15] Repair of remaining review findings
+
+    Corrective implementation scope:
+    - Non-status process =updateEntity= no longer disables the action path.
+      Process definitions authorize and validate the action, then call the
+      owning service's explicit =processUpdate(id, patch, auth)= handler.
+      Registered entity services that own repositories/models expose that
+      handler through their own feature boundary for allowed canonical block
+      paths, so process definitions do not call incompatible generic
+      =update()= signatures.
+    - Sheet editor snapping now generates magnetic candidates from transformed
+      cassette contour edges, filters with transformed polygon clearance, and
+      clamps placements/rotations/additions against a usable sheet polygon when
+      present. Rectangular bounds remain only the fallback for virtual
+      rectangle sheets.
+    - The stale validation concern was rechecked on this branch:
+      =npm run framework:manifest= and =npm run framework:validate= both pass
+      without regenerating or changing =framework.manifest.json=.
+
+    Validation run:
+    - =npx vitest run utils/sheetLayoutEditor.spec.js server/features/process-definitions/process-definitions.spec.js server/features/queues/queues.spec.js= passed: 3 files, 48 tests.
+    - Vue SFC parse check for =components/SheetDesignEditor.vue= passed.
+    - =npm run framework:manifest= passed.
+    - =npm run framework:validate= passed.
+    - =node scripts/check-arch.js= passed with the existing non-blocking
+      migration inventory.
+
+*** [2026-07-15] Queue cassette producer visibility and row display repair
+
+    Corrective implementation scope:
+    - Generated queue cassette producers were absent when an active process had
+      stale compiled user action manifests without =contracts.outputs=.
+      Auth hydration now recompiles that active process runtime in memory from
+      the semantic process source, so QueueEditor still receives strict current
+      action contracts without accepting legacy output shapes in the UI. If the
+      semantic source still contains legacy =changeStatus= actions, hydration
+      first applies the existing =changeStatus= to =updateEntity= migration in
+      memory before compiling; the stored migration scripts remain the durable
+      cleanup path.
+    - Saved queue item rows now hydrate missing referenced =cassette_design=
+      DTOs through the canonical detail endpoint and let =EntityInlineRef=
+      fetch when the row does not already have the design object. This fixes
+      id-only/unknown cassette rows after reload or list redaction.
+
+    Validation run:
+    - =npx vitest run server/features/process-definitions/runtime.spec.js utils/queue-producers.spec.js utils/queue-items.spec.js= passed: 3 files, 9 tests.
+    - Vue SFC parse check for =components/QueueEditor.vue= and
+      =components/entities/Queue/QueueEntryCard.vue= passed.
+    - Follow-up log review found the app was still 500ing on legacy
+      =changeStatus= semantic actions during auth hydration. The runtime fix
+      was validated with =npx vitest run server/features/process-definitions/runtime.spec.js server/scripts/migrate-process-update-actions.spec.js= and =node scripts/check-arch.js=.
+    - Follow-up browser/runtime check exposed that importing
+      =server/scripts/migrate-process-update-actions.js= from app runtime made
+      Nitro preserve the script's relative =../../packages/processes= import
+      as container-absolute =/packages/processes=. Runtime now uses a
+      feature-local pure normalizer; the script imports that helper and remains
+      the durable persistence path.
+    - Queue workspace repair: fixed default machine seeding so =/api/machines=
+      no longer attempts a duplicate =machine-system-default= insert when an
+      old system record lacks =data.systemKey=. The queue nesting output panel
+      now treats runs as current output/revision state: accepted queue output
+      run first, latest readable run otherwise, with no all-runs selector in
+      the production workspace.
+    - Validation: =npx vitest run server/features/machines/repository.spec.js server/features/machines/machines.spec.js utils/queue-runs.spec.js utils/queue-items.spec.js utils/queue-producers.spec.js= passed; =node scripts/check-arch.js= passed.
+    - Queue producer/row repair: generated queue cassette producer actions now
+      come from the current queue-detail screen action ids and are accepted
+      only when their compiled =contracts.outputs= includes
+      =cassette_design=. Saved queue rows render the related cassette design
+      through compact inline refs instead of embedding a full cassette-design
+      card in the row header.
+    - Validation: =npx vitest run utils/queue-producers.spec.js utils/queue-items.spec.js utils/queue-runs.spec.js components/generated/action-visibility.spec.js= passed; Vue SFC parse check for =QueueEditor.vue=, =QueueEntryCard.vue=, and =GeneratedEntityDetail.vue= passed.
+    - Follow-up repair after browser validation: =GeneratedRegion= now passes
+      the union of region action ids and screen action ids into generated
+      details. This preserves direct region actions while allowing contextual
+      screen-level queue cassette producers to reach =QueueEditor= when the
+      main queue detail region already has its own action list.
+    - Validation: local =vitest= run for queue producer/item/run helpers and
+      generated action visibility passed; Vue SFC parse check for
+      =GeneratedRegion.vue=, =QueueEditor.vue=, =GeneratedEntityDetail.vue=,
+      and =QueueEntryCard.vue= passed.
+
+*** [2026-07-15] Queue producer append repair after browser failure
+
+    Follow-up browser feedback showed that generated cassette-design actions
+    still did not appear or append in the queue composer for process-scoped
+    users. Root causes:
+    - =GeneratedEntityDetail= only forwarded queue producers from screen/region
+      action ids, while queue composition producers are current user-manifest
+      actions whose =contracts.outputs= exposes =cassette_design=.
+    - =QueueEditor= still hid Add and blocked =addEntry()/saveQueue()= behind
+      raw =queues:write=, so process producer actions could create a design but
+      not add it to the queue.
+    - Queue item panel headers still rendered an embedded relation ref card
+      instead of a simple row identity.
+
+    Corrective implementation:
+    - Queue detail now passes manifest-exposed cassette-design producer actions
+      into =QueueEditor= while keeping normal generated header/action buttons
+      screen-scoped.
+    - Process-mode producer execution sends queue context plus
+      =queueAppend.quantity= to the active process action endpoint. The server
+      appends the produced =cassette_design= through the queue feature's
+      explicit =processUpdate()= boundary with a narrow action-scoped queue
+      write grant, then emits queue invalidation. The browser refreshes queue
+      data instead of calling the generic queue PATCH path.
+    - Existing-design selection remains available only when the user has a real
+      queue write grant; no frontend compatibility fallback for obsolete
+      =outputs= shapes was added.
+    - Queue item headers now render the hydrated cassette-design identity or a
+      typed id chip, not an inline relation card.
+
+*** [2026-07-15] Existing cassette-design source append repair
+
+    Follow-up audit found the previous repair still left one Task 3 source
+    incomplete: process-scoped users could run generated cassette-design
+    producer actions, but selecting an existing readable =cassette_design=
+    still required raw =queues:write= and therefore did not satisfy the
+    readable entity-source path.
+
+    Corrective implementation:
+    - Added an active-process queue item endpoint for existing design sources.
+      It loads the readable queue and readable cassette design through their
+      owning feature services, then appends the canonical queue item through
+      queue =processUpdate()= with a narrow request-local queue write grant.
+    - =QueueEditor= now shows the existing-design source in process mode when
+      the user can read cassette designs, and posts that selection to the
+      active-process queue item endpoint before refreshing queue data.
+    - Updated stale queue UI docs that still described screen-scoped producers
+      and inline relation-card row headers.
+
+*** [2026-07-15] Process assignment legacy status-action compile repair
+
+    Browser/E2E setup exposed that registering or assigning a user into the
+    active process still failed when the semantic process source contained old
+    =changeStatus= actions. Auth hydration had an in-memory repair, but
+    =assignUserToActiveProcessInternal()= recompiled the active semantic source
+    directly and therefore raised unknown action-kind errors before Playwright
+    could exercise the generated queue detail UI.
+
+    Corrective implementation:
+    - Active process assignment now applies the feature-local
+      =changeStatus= -> =updateEntity= normalizer before validating role ids
+      and recompiling. Because assignment persists the active process, this
+      also stores the canonical semantic action kind instead of repeatedly
+      relying on runtime hydration repair.
+    - Added service coverage proving a legacy status action compiles into a
+      current =updateEntity= action with strict =contracts.inputs= and
+      =contracts.outputs= after assignment.
+
+    Validation:
+    - =npx vitest run server/features/process-definitions/process-definitions.spec.js=
+      passed: 1 file, 23 tests.
+
+*** [2026-07-15] Generated queue producer default-template UI repair
+
+    Playwright against the generated queue detail showed that =Add Entry= was
+    visible and the manifest-generated =Create cassette design= option was
+    present, but the action dialog kept =Add= disabled when the process role
+    could not list cassette templates. The server-side
+    =bakeCassetteDesignFromTemplate= action already supports resolving the
+    default constructable cassette template, so the UI was stricter than the
+    process action contract.
+
+    Corrective implementation:
+    - In process mode, QueueEditor now omits an empty/unreadable
+      =templateId= selector for =bakeCassetteDesignFromTemplate= producers and
+      treats that field as satisfied, allowing the server action to resolve the
+      default template.
+    - When no template-specific parameter list is visible, QueueEditor still
+      sends current material thickness as =T= so material-bound generated
+      designs receive the queue nesting thickness.
+
+    Validation:
+    - Vue SFC parse check for =components/QueueEditor.vue= passed.
+    - Playwright against
+      =/screens/auto_queue_detail?entityId=q-EI1Vtn51= found exactly one
+      accessible =Add Entry= button, verified it opened the
+      =Create cassette design Создано= producer menu, and captured the primary
+      in-grid button surface.
+    - Playwright against
+      =/screens/auto_queue_detail?entityId=q-EI1Vtn51= as a process-role user
+      showed =Add Entry= enabled, the =Create cassette design= producer
+      option visible, the template selector omitted when unreadable, and the
+      final =Add= button enabled after entering a design name.
+
+*** [2026-07-15] Entity revision stale-index execution repair
+
+    Full Playwright execution of the generated cassette-design producer reached
+    the process action endpoint but failed while creating the cassette geometry
+    revision. The local database still had the old
+    =entity_revision_content_hash= index name on
+    =(data.entityType, data.entityId, data.scope, data.contentHash)=, while the
+    current repository creates the same named index on
+    =(data.source.type, data.source.id, data.scope, data.contentHash)=.
+    Mongo rejected the duplicate name/key mismatch before the design could be
+    persisted.
+
+    Corrective implementation:
+    - Entity revision index setup now compares existing named index keys and
+      drops/recreates the content/latest indexes when an older database has the
+      same index name on the pre-source-key shape.
+    - Revision hash/latest lookups, DTO serialization, and derived provenance
+      now read both current =data.source= records and existing
+      =data.entityType/entityId= records so old snapshots can still be reused
+      without producing invalid provenance.
+    - Entity revision docs now describe the current =data.source= index
+      contract instead of the old =data.entityType/entityId= fields.
+
+    Validation:
+    - Added repository coverage for replacing the stale index and keeping the
+      current one unchanged, plus legacy revision source/provenance coverage.
+    - Full Playwright execution of the generated queue producer returned 200
+      from
+      =/api/process-definitions/active/actions/action_1782325155992/execute=
+      and refreshed the queue row list with =E2E generated design 4=.
+    - =node scripts/check-arch.js= passed with the existing non-blocking
+      migration inventory.
+
+*** [2026-07-15] Queue composer visible add and legacy row display repair
+
+    Follow-up browser review showed the generated queue composer did have an
+    =Add Entry= action, but it was only a small panel-header control. In the
+    visible cassette grid this was too easy to miss and did not read as the
+    primary interface for adding cassettes/designs to the queue. The same queue
+    also contained an old explicit =entityType: cassette= parametric item, so
+    the row appeared as a raw id when the referenced template was not readable
+    to the process role.
+
+    Corrective implementation:
+    - =QueueEditor= now renders an in-grid =Add Entry= tile in addition to the
+      panel-header action whenever process/generated producers are available.
+    - Queue item resolution now hydrates explicit legacy
+      =entityType: cassette= rows from readable cassette templates while still
+      refusing to reinterpret untyped ids as templates.
+    - =QueueEntryCard= fallback chips now show a localized source type, for
+      example =Cassette: type-...=, instead of an internal
+      =cassette:type-...= string.
+
+    Validation:
+    - Added queue-item helper coverage for explicit legacy cassette-template
+      rows and preserved the no-untyped-template-reinterpretation guard.
+    - Vue SFC parse check for =components/QueueEditor.vue= and
+      =components/entities/Queue/QueueEntryCard.vue= passed.
+    - Playwright against
+      =/screens/auto_queue_detail?entityId=q-EI1Vtn51= showed both the header
+      =Add Entry= action and the new in-grid =Add Entry= tile, with the legacy
+      explicit cassette row rendered as =Cassette: type-2-o3rCZZ=.
+
+*** [2026-07-15] Queue composer action button surface repair
+
+    Follow-up browser feedback confirmed legacy row labels were fixed, but the
+    Add action surface was still not acceptable: it appeared as duplicated weak
+    buttons instead of a clear queue-composition action.
+
+    Corrective implementation:
+    - Removed the duplicate panel-header Add button from generated/process
+      queue composition so the header stays focused on view controls.
+    - Made the in-grid Add tile the primary action surface. The whole tile is
+      clickable and keyboard accessible, and the visible button uses the
+      primary PrimeVue action style.
+
+    Validation:
+    - Vue SFC parse check for =components/QueueEditor.vue= passed.
+
+*** [2026-07-15] Queue composer action button accessibility repair
+
+    Playwright validation of the primary Add tile found a strict role conflict:
+    both the tile container and its inner button exposed the same accessible
+    =Add Entry= button. The tile remains the visual/click surface, but only the
+    PrimeVue button now owns the accessible button role/name.
+
+    Validation:
+    - Vue SFC parse check for =components/QueueEditor.vue= passed.
+
+*** [2026-07-15] Queue composer header source-picker correction
+
+    Follow-up design review rejected the in-grid Add tile. Queue composition
+    already has a panel header action slot, and add/delete controls must follow
+    access-gated action placement instead of introducing page-local tiles or
+    special-case controls.
+
+    Corrective implementation:
+    - =QueueEditor= now exposes a single =Add Entry= source picker in the
+      cassette panel header, next to the grid/table view controls.
+    - The picker still keeps sources separated: readable existing
+      =cassette_design= records are one source, and each current
+      process/generated producer that outputs =cassette_design= is a separate
+      menu item.
+    - Removed the rejected in-grid Add tile. No delete special-case was added;
+      queue row deletion remains owned by the existing queue editor access and
+      action contract.
+
+    Validation:
+    - Vue SFC parse check for =components/QueueEditor.vue= passed.
+    - =git diff --check= passed.
+
+*** [2026-07-15] Queue legacy cassette row hydration cleanup
+
+    Browser validation of the header source picker surfaced one remaining
+    relation leak: explicit legacy =entityType: cassette= rows were displayed
+    correctly, but the missing-design hydration pass still tried to fetch their
+    ids from =/api/cassette-designs/:id= and logged avoidable 404s.
+
+    Corrective implementation:
+    - =QueueEditor= missing-design hydration now skips explicit cassette
+      template rows and only probes ids that may be cassette-design rows.
+
+    Validation:
+    - Vue SFC parse check for =components/QueueEditor.vue= passed.
+    - =git diff --check= passed.
+
+*** [2026-07-15] Queue cassette-design source producer architecture repair
+
+    Follow-up review clarified that the Add menu must not be a local list of
+    one available process action. It must expose the existing architectural
+    source pattern: every domain/process source capable of producing or
+    containing =cassette_design= should be a distinct option.
+
+    Corrective implementation:
+    - Added a queue design producer resolver that starts from
+      =cncDomain.producers=, filters direct sources by feature access, and
+      binds matching compiled process actions by construction mode.
+    - The queue Add menu now separates existing cassette designs, library
+      cassette templates, DXF import, and any other compiled process producer
+      whose current contract outputs =cassette_design=.
+    - DXF process import now receives queue context through the existing
+      process action execution body so the produced design is appended by the
+      process/queue boundary.
+    - Legacy =changeStatus= actions are normalized at the process compiler
+      boundary so registration, assignment, auth hydration, and run-nesting
+      paths cannot crash on stored legacy action records.
+
+    Validation:
+    - =npx vitest run utils/queue-design-producers.spec.js utils/queue-producers.spec.js packages/processes/src/index.spec.js server/features/process-definitions/process-definitions.spec.js= passed: 4 files, 98 tests.
+    - Vue SFC parse check for =components/QueueEditor.vue= and
+      =components/CassetteEditorDialog.vue= passed.
+    - Locale JSON parse check for =i18n/locales/en.json= and
+      =i18n/locales/ru.json= passed.
+    - =git diff --check= passed.
+
+*** [2026-07-15] Queue library cassette producer selection repair
+
+    Browser review of the source-picker flow showed that the "From library
+    cassette" producer opened a template selector without an explicit library
+    container selection, and the options could be empty because it reused the
+    project relation filter instead of the selected library source.
+
+    Corrective implementation:
+    - The library cassette producer dialog now prompts for a readable library
+      first and then loads cassette templates scoped to that
+      =lineage.libraryId=.
+    - Selecting a library refreshes the template selector and cassette
+      parameter controls before the process action is executed.
+
+    Validation:
+    - Vue SFC parse check for =components/QueueEditor.vue= passed.
+    - =npx vitest run utils/queue-design-producers.spec.js utils/queue-producers.spec.js= passed: 2 files, 7 tests.
+    - =git diff --check= passed.
+
+* WAITING Process designer rework
+  [2026-07-18 Sat 09:30]
+** WAITING Architecture rework
+   Process designer must be a complete representation of cutkit-core, with cnc-domain as implementation; so just like core we should re-use it in different domains.
+** WAITING Node composition
+   It should contain "create entity", which creates every entity possible; "modify entity" which includes any edit, including status change.
+   Need to investigate how entities are composed, and how standard blocks and their entries look like. For them, need to refactor node set so that it allows to create/modify any of it in any reasonable way. Nodes should be grouped and have labels in palette.
+** WAITING Design rework
+   Nodes layouts should be redesigned so that it looks good, minimal, with no bloat labels and with proper spacing; all labels and text should be true to data and nodes (there is much arbitrary stuff like "cassette" hardcoded labels, status ID instead of name, etc). Colors should be applied to groups, icons should not be slop.
+
+** Agent Notes
+*** [2026-07-18] Core/domain projection, generic composition, and compact canvas
+
+    Implementation:
+    - Added =CANONICAL_ENTITY_BLOCKS= to =@cutkit/core= and a reusable
+      =createProcessDesignerContract(domain)= projection in =@cutkit/processes=.
+      The projection covers core blocks and domain entities, workflows,
+      commands, tasks, events, hooks, effects, attachment kinds, construction,
+      field access, and field groups without importing CNC.
+    - The organization route now supplies =cncDomain= as the implementation,
+      derives entity/command/field/construction/attachment choices from the
+      generic projection, and exposes mode-specific constructor sockets.
+    - Entity decomposition and block value composition now cover every
+      canonical core block declared by the concrete entity. Field readers carry
+      the originating entity type so downstream block entries stay domain-true.
+    - The palette is grouped and labeled. Action editing moved to the inspector;
+      action/entity nodes are compact semantic summaries, operation colors are
+      group-based, and lifecycle nodes display authored state labels before ids.
+
+    Files changed:
+    - =packages/core/src/index.js=
+    - =packages/processes/src/designer.js=, =packages/processes/src/ports.js=,
+      =packages/processes/src/index.js=, and focused package tests
+    - =pages/organization/process.vue=
+    - =components/process-designer/ProcessActionNode.vue=,
+      =ProcessEntityNode.vue=, and =ProcessNode.vue=
+    - =i18n/locales/en.json= and =i18n/locales/ru.json=
+
+    Documentation updated:
+    - =packages/core/README.md=
+    - =packages/processes/README.md=
+    - =components/README.md=
+    - =components/process-designer/README.md=
+    - =pages/organization/README.md=
+
+    Validation:
+    - =npx vitest run packages/processes/src/designer.spec.js packages/processes/src/index.spec.js= passed: 2 files, 71 tests.
+    - Vue SFC parse and script/template compile checks passed for the route and changed node components.
+    - =npm run framework:validate= passed.
+    - =node scripts/check-arch.js= passed.
+    - Locale JSON parse and =git diff --check= passed.
+    - =shared/localization.spec.js= has only three pre-existing failures outside this task: =nesting.selectMachine=, =nesting.thickness=, and =common.rotate=.

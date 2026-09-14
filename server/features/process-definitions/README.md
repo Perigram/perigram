@@ -1,11 +1,13 @@
 # COMPONENT: Process Definitions
 
 Organization-owned process definitions store the visual process graph and the
-compiled runtime contract for organization-role grants, entity workflows, field
-policies, service availability, sockets, screen manifests, and navigation.
-Runtime role permissions are derived from the graph during compilation:
-entity-profile access and screen requirements create grants, screen manifests
-create navigation, and service run/view access uses service identities
+compiled runtime contract for organization-role grants, producer-output
+workflows and field policies, service availability, sockets, screen manifests,
+and navigation. Runtime workflow resolution requires the exact
+`producerOutputId`; entity type is only schema metadata and an index key.
+Runtime role permissions are derived from the graph during compilation: role,
+entity-profile, and action access create grants; screen requirements only
+consume those grants and screen manifests create navigation. Service run/view access uses service identities
 instead of user roles. If a role has grants but no authored screen for the
 granted entity feature, compilation creates a generated entity-list screen for
 that role/feature instead of relying on static app navigation.
@@ -16,33 +18,107 @@ process transpiler round-trip, compiles the runtime contract, archives the
 previous active process for the organization, marks the selected process
 `ACTIVE`, and stores its id on the organization.
 
+Validation and activation also produce the semantic Apply diff against the
+organization's current active definition. Both sides are recompiled from their
+canonical authored records (never the inspection-only stored `compiled`
+snapshot) and compared through `diffProcessContracts`
+(`packages/processes/src/contract-diff.js`): added/removed/changed actions,
+screens, and role grants; per-entity-type CRUD capability changes; per-producer
+workflow state/transition/entry changes; field-policy section changes; and the
+entity statuses the next contract removes. The validate response carries the
+diff for the designer's Apply summary. Activation is a migration gate for the
+last category: when live entities still hold a removed workflow state
+(checked through the registered entity services with the activating actor's
+auth context), activation fails with HTTP 409 and `migrationRequired` data
+naming each entity type, its removed states, and the affected count — the
+author first migrates those entities through the status engine or keeps the
+states. Entity types whose status check cannot run do not block activation,
+and a previous contract that can no longer be compiled (domain drift) makes
+the diff unavailable rather than blocking activation.
+
 Creation, update, validation, and activation accept only the current semantic
-source at `dataflowVersion: 4`. These boundaries never migrate or rewrite the
-authored graph. Definitions with a missing or different dataflow version are
-rejected, and starter templates are authored directly in the current format.
-Normalization used by validation and compilation is an in-memory projection;
-draft saves and activation persist the authored graph and semantic records
-without replacing them with that projection.
+source at `dataflowVersion: 4`. Definitions with a missing or different
+dataflow version are rejected, and starter templates are authored directly in
+the current format. During the producer-output protocol cutover, these
+boundaries run the package-owned, one-way producer identity rewrite. Save and
+activation persist the rewritten semantic records and clear stale compiled
+output. Validation checks the same rewrite in memory. A definition with zero or
+multiple candidate entity outputs fails with node/socket diagnostics instead
+of selecting by entity type. Other normalization used by validation and
+compilation remains an in-memory projection and does not replace authored graph
+records.
 
 The feature boundary is split into explicit collaborators. `compiler-adapter.js`
 owns current-protocol validation and activation projections,
 `relation-option-resolver.js` owns scoped relation choices, `run-repository.js`
-owns the intentionally ephemeral manual-run lifecycle, and `runtime.js` owns
-active-process compilation/auth hydration. Organization configuration is read
-and changed through the registered organization service. Neither runtime nor
-the feature service imports another feature's repository.
+owns the durable run/invocation/wait/receipt execution store, and `runtime.js`
+owns active-process compilation/auth hydration. Organization configuration is
+read and changed through the registered organization service. Neither runtime
+nor the feature service imports another feature's repository.
 
 ## Process execution
 
-Manual process actions run synchronously in memory. `POST
-/api/process-definitions/:id/runs` starts a manual v4 trigger and drives it to a
-terminal state without persisting run/step collections. Effect nodes are either
-manual or automatic-from-socket. There is no scheduled/wait boundary and no
-durable run persistence; date or event-triggered automation is not part of the
+`POST /api/process-definitions/:id/runs` starts a manual v4 trigger backed by
+durable MongoDB execution records. Runs, steps, invocations, waits, outputs, and
+receipts retain revision, producer, control-scope, and invocation identity.
+Before an effect is dispatched, its invocation snapshots the expected completion
+sockets and connected routes. Dispatch leaves the task non-terminal: only a
+durable receipt can supply terminal output and advance those routes.
+
+Receipt ingestion claims the invocation revision and advances the run in one
+MongoDB transaction. Duplicate or concurrent delivery is therefore an
+idempotent no-op after the first commit. Dispatched invocations without receipts
+remain discoverable after restart for continuation or retry.
+
+Task completion closes the loop end to end. `executeManualRun` records the
+enqueued task-run id on the invocation dispatch (`dispatch.taskRunId`, resolved
+from the command result's task/job references), the task runtime's terminal
+boundary (`completeTaskRun`/`failTaskRun`/`cancelTaskRun` in
+`server/core/tasks`) notifies the process layer, and `ingestTaskCompletion`
+correlates by that task-run id, projects the terminal `TaskResult` entities
+onto the invocation's expected completion sockets, and — inside the same
+receipt transaction — resumes the waiting graph step
+(`resumeProcessRun`): the step succeeds with the projected output, its
+snapshotted control token is re-queued on the recorded `completed` routes, and
+the run continues. After the transaction commits, `continueStoredRun` drives
+the run to settled or the next async boundary with the originating actor
+context. Terminal task failure or cancellation enters the same receipt
+transaction through `failInvocation`; with no authored failure route in the
+graph language the run is marked failed/cancelled. The
+`process-reconciliation` plugin re-checks unreceipted invocations against
+terminal task runs every 30 seconds, so a crash between task finalization and
+ingestion redelivers exactly once. The completion snapshot intentionally lists
+socket ids (not a duplicated typed contract): per-output persistence owner and
+timing are declared once on the command/task boundary and enforced where the
+result is produced and where it is projected.
+
+Effect nodes are
+either manual or automatic-from-socket. Date or event-triggered automation is
+not part of the
 supported process contract. The originating actor/access snapshot is carried on
 the run object so the action re-enters the normal feature access boundary; it
 includes the compiled `effectivePermissions` consumed by entity adapters, so
 the execution has the same access context as the action that started it.
+
+Preview and manual-run responses leave the process runtime through
+`serializeProcessResult` from
+[`packages/processes`](../../../packages/processes/README.md): evaluator
+missing-field markers are converted to the machine-readable tag
+`{ missing: true, path }` at any depth, while present `null` values stay
+`null`. Consumers can therefore distinguish an absent field from a nullable
+one directly from the JSON response.
+
+Activation validates every effect node's entity service binding against the
+registered capability record. `effect.createEntity` and `effect.runProducer`
+require `create`, `effect.updateEntity` requires `processUpdate`, and
+`effect.changeStatus` requires a domain status workflow. A node whose selected
+entity lacks the required capability is rejected as a deterministic
+`validation.errors` entry (HTTP 400 at activation) instead of failing later at
+runtime. The enforcement pass consumes the per-entity `processCapabilities`
+record documented in [server/runtime/README.md](../../runtime/README.md) and is
+a no-op when the registry exposes no capability map. The capability derivation
+itself is the canonical projection in
+[`packages/processes`](../../../packages/processes/README.md).
 
 The pure scheduler lives in `@cutkit/processes`. This service supplies only
 authorized read adapters and effect adapters. Reads use registered entity
@@ -59,6 +135,14 @@ target entity schema when projecting constructible or writable values. Stored
 process nodes retain selected block paths but not copied schema snapshots, so
 runtime behavior follows the activated domain contract rather than stale graph
 metadata.
+Create, update, and status effects receive one scalar input tuple per invocation
+from the package-owned effect mapper. Every invocation independently re-enters
+the registered service/status boundary with the complete auth context. A fully
+successful mapped step keeps the historical bare effect result; a step with
+failed aligned items completes with a `{ result, failures, completedMutations }`
+output whose shape-preserving result tree carries each MutationFailure record in
+its own slot. No collection transaction or rollback is implied: completed writes
+stay applied when a later item fails, and `completedMutations` identifies them.
 Process definition management also accepts the active organization membership's
 stored `organizations` grants as a narrow recovery path. Membership role labels
 and sole-member status do not imply process management access; the recovery path
@@ -121,6 +205,11 @@ the semantic `data.statusDefinitions` record and writes the same display
 contract at runtime. This keeps existing active process definitions rendering
 the authored severity and icon without requiring an immediate compiled-runtime
 rebuild.
+The successful Create boundary publishes one typed `created` invalidation with
+the created entity type/id after the optional initial status has persisted.
+Constructor, block, or status failures publish nothing. Mapped Create execution
+therefore emits one event per completed tuple while retaining its ordinary
+item/list/tree result topology and partial-failure reporting contract.
 Generic Create receives block-composed data. `identity.name` and
 `identity.slug` are projected to the owning service's `name`/`slug` inputs;
 `data` and `specs` values are projected only where the service has no explicit
@@ -139,6 +228,25 @@ operations before Modify Block receives the replacement value, then persisted
 through the target feature's `processUpdate()` contract. Manual Update
 effects compile into the normal generated action manifest; Relations data
 connections without an effect remain non-executable dataflow.
+Change Status forwards authored region/path scope and lifecycle evidence to the
+status runtime and returns the updated entity DTO. Archive uses the compiled
+domain archive intent or `ARCHIVED` state, while hard deletion delegates to the
+registered `processDelete(id, auth)` adapter only after domain and runtime
+capability checks. Delete actions must be manual, admin-scoped, and present in
+the caller's compiled action manifest; collection topology and failure behavior
+remain owned by the shared process mutation mapper documented in
+[`@cutkit/processes`](../../../packages/processes/README.md).
+Immediately before a compiled Create constructor or Modify persistence call,
+the effect adapter normalizes each connected Relations replacement against the
+current graph-declared owner/key/target/cardinality contract. It resolves every
+target through its registered `processGetById` adapter with the run auth
+context, applies ordinary read access (including active-organization
+isolation), and removes duplicate targets from many-valued replacements by the
+same entity type/id identity used by Link and Unlink. A revision pin does not
+make a second association to the same entity.
+Failure leaves the owner persistence method uncalled. This check is local to
+compiled effects because entity services do not have the graph metadata;
+non-relation patches keep their existing service semantics.
 Compiled process-relation actions execute directly at the active-definition
 boundary, including for dataflow-v4 definitions: Link merges the selected typed
 reference according to relation cardinality, while contextual Unlink removes
@@ -237,6 +345,20 @@ expose `processList`/`processGetById` adapters as defined in
 [server/runtime/README.md](../../runtime/README.md). Process evaluation calls only
 these adapters; it never guesses positional feature-service auth arguments. This covers current/exact entity reads, parent resolution,
 relation-target validation, update-target loading, and socket projection.
+
+The process-definition service owns source-query planning. It pushes only a
+source equality predicate with a normal persisted-field path into the concrete
+`processList` filter and still evaluates the predicate in memory. Sort, slice,
+compound predicates, and unsafe paths remain residual because the runtime
+adapter deliberately has no portable filter capability contract.
+Parent, Children, and Related reads resolve from the domain `containment` and
+`relations` contracts via the pure helpers in `entity-sources.js`: Parent loads
+the declared lineage parent through `processGetById`, Children query declared
+children through `processList` with the lineage-key filter, and Related resolves
+each stored relation reference through `processGetById` by its declared target
+type. They receive the full auth context and never fall back to an unfiltered
+repository read. A missing or denied parent/relation target fails clearly;
+root entities and empty relation values return null or an empty list.
 Returned models are serialized before entity-typed field predicates are evaluated in memory. Predicate
 conditions and gates remain process algebra values; they are not translated
 into database filters. The runtime does not infer service signatures, read
@@ -260,7 +382,12 @@ therefore cannot activate without profiles for the run, sheet design, and
 physical sheet records that the command persists; the validator does not
 hardcode that list independently of the domain command contract.
 Status-mutating `updateEntity` actions go through the status runtime with the
-connected entity patch attached to the status mutation. Non-status
+connected entity patch attached to the status mutation. Both `updateEntity`
+paths emit the updated typed entity DTO as the node result, matching the
+declared non-nullable entity output type: the status path returns the entity
+snapshot written by the transactional status-plus-patch boundary, not the
+transition wrapper (status/actions/effects), so downstream nodes and generated
+screens always receive a current typed entity. Non-status
 `updateEntity` actions are not executed through a generic service signature:
 after loading the target through its owning feature service and checking write
 access, the runtime delegates the flattened canonical block patch to the
@@ -295,6 +422,10 @@ write grant. There is no queue-specific append endpoint or copied item model.
 Activation and the process-construction migration normalize stored create
 actions whose construction mode no longer belongs to the selected entity type
 before recompiling the active runtime contract.
+Active-runtime compilation also applies the deterministic producer-identity
+migration in memory, so an older active definition remains executable before
+the persisted migration is applied. It still fails on ambiguous ownership and
+never selects a producer by entity type.
 Compiled process access is windowed by graph state. Status-mutating update
 nodes do not append permanent grants; they inherit the incoming entity access
 until edited, then replace the target-status role set with the node's selected

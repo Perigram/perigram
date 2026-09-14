@@ -1,153 +1,295 @@
 # UI Component Audit
 
-Date: 2026-06-12
+Date: 2026-08-21
 
-This audit is a working contract for UI cleanup. It is not a deletion list.
-Every entry is inspected through the same ten questions:
+This is the canonical human-readable UI inventory. It separates PrimeVue/Aura
+system ownership from application primitives and derived composition. The matrix
+is observational: an `owned` or `overridden` entry records current ownership;
+it does not grant an exception to the zero-styling policy. A `violation` is a
+mechanically visible conflict that should converge toward PrimeVue defaults or a
+registered shared primitive.
 
-1. What business job does this surface do?
-2. Where is it used in frontend layout?
-3. Which DTO blocks does it own?
-4. Should status be interactive, read-only, or hidden?
-5. Which relationships must be shown as entity references?
-6. Which actions belong here and which belong elsewhere?
-7. What nested click or popover behavior must be preserved?
-8. Is the information density correct for the user's workflow?
-9. What responsive constraint prevents overflow or scroll waste?
-10. What refactor decision follows from the answers?
+## Scope And Reconciliation
 
-## Refactors Applied From This Audit
+In scope: every `.vue` file below `components/`, `layouts/`, and `pages/`,
+plus root `error.vue`, including dormant or version-suffixed files. Each ID is
+derived from its repository path by lowercasing and replacing non-alphanumeric
+runs with hyphens. `shared/design-system.spec.js` enumerates the filesystem and
+fails for missing, stale, duplicate, or non-path-derived inventory rows. It also
+reconciles the mechanism keys below. Existing projection tests reconcile token
+exports with runtime CSS, and registry tests reconcile registered primitives with
+their files and UI-lab examples.
 
-- `WarehouseHub.vue` was too top-heavy: it rendered toolbar, selector, four stat
-  panels, and a nested `WarehouseDetail` before the actual inventory tabs. The
-  hub now keeps compact warehouse context above the tabs and leaves full
-  `WarehouseDetail` for detail-page contexts.
-- `EntityStatus`, `StatusBadge`, and `EntityCard` now bound inline status width
-  so long state names and action rails do not consume card-title rows.
-- Entity cards must keep canonical body content in the default `EntityCard`
-  slot. Inline/compact popovers reuse that body; components must not hide all
-  body content behind `variant === 'card'`.
-- Asset child routes now use `StandardPage` directly because `/assets/cassettes`
-  and sibling routes are not children of `/assets/index.vue`.
-- `CatalogDetail.vue` now uses `EntityPage` and hides status through the shared
-  `showStatus` contract instead of rebuilding entity header chrome locally.
-- `SheetDetail.vue` now renders source warehouse, material pile, and nesting-run
-  context as `EntityInlineRef` rows when lineage ids are available.
-- `UserCard.vue` now owns card selection on its wrapper with
-  `isInteractiveEventTarget`, matching other selectable cards.
+Ownership classes:
 
-## Entity Components
+- `system-owned`: non-component mechanism that projects or centralizes the design system; generic visuals still defer to PrimeVue/Aura.
+- `shared/domain primitive`: exact component path in the domain primitive registry; it owns semantics, data visualization, or reusable layout.
+- `derived usage`: every unregistered component, route, layout, generated renderer, or other composition that consumes system and primitive contracts.
 
-Format per row: business job / frontend context / DTO blocks / status / relationships / actions / click-popover / density / responsive / decision.
+Mechanism dispositions describe the active system boundary. Component rows use
+the four convergence dispositions below and include current occurrence counts;
+`compliant` means the analyzer found no local ownership concern.
 
-- `Artifact/ArtifactCard.vue`: file output preview / cards and artifact refs / identity, data, attachments, lineage / hidden / queue and nesting-run refs / preview open only / preview click must not trigger parent card / enough facts plus preview action / preview owns aspect / keep preview-owned click and no lifecycle chrome.
-- `BatchPile/BatchPileCard.vue`: requisition-sourced stock batch / material receipt cards / identity, specs, data.stock, lineage / hidden for batch surface / requisition ref / no local lifecycle / inline ref popover must show requisition body / stock plus specs is enough / compact tags wrap / keep separate from manual `PileCard`.
-- `Cassette/CassetteCard.vue`: persisted cassette entity / base cassette cards and refs / identity, data, revisions / interactive only if workflow exists / geometry revision ref / no edit footer here / revision ref clickable / current facts enough / DataBlock wraps / keep distinct from template/design/instance.
-- `CassetteDesign/CassetteDesignCard.vue`: baked design from template and geometry version / design refs and sheet design placements / identity, data, lineage, revisions / hidden / template and revision refs / no local transitions / refs must not route to templates when design is intended / geometry summary should remain compact / relation chips wrap / keep source template and revision visible.
-- `CassetteInstance/CassetteInstanceCard.vue`: produced physical cassette / warehouse and queue output cards / identity, data, lineage, status / interactive if workflow exists / design, template, queue refs / no ad hoc cut action / thumbnail and refs must keep click behavior / source context is primary / body wraps under thumbnail / keep fetches silent for missing stale refs.
-- `CassetteInstance/CassetteInstanceDetail.vue`: produced cassette detail / detail route or deep drilldown / identity, data, lineage, status / interactive via EntityPage / design, template, sheet, pile, warehouse refs / page actions only / refs open entity popovers / source and material context are important / sidebar grid at large screens / keep detail, do not embed inside list hubs.
-- `CassetteTemplate/CassetteTemplateCard.vue`: reusable parametric template / template library and design source refs / identity, data.definition, revisions / hidden / geometry revision ref / edit belongs to designer manager / revision ref clickable / parameters plus revision enough / DataBlock wraps / keep template separate from design.
-- `Catalog/CatalogCard.vue`: material catalog definition / catalog list and material selectors / identity, data.options, lineage / hidden / manufacturer org ref / catalog admin actions elsewhere / org ref popover / options summary enough / compact body wraps / keep as base material record, not stock.
-- `Catalog/CatalogDetail.vue`: catalog detail / dormant but meaningful detail component / identity, data.options, lineage / hidden through `EntityPage showStatus=false` / organization and color refs / page actions only / relation refs clickable / options and colors shown / two-column detail grid / refactored to EntityPage.
-- `Color/ColorCard.vue`: catalog color or finish / color list and selectors / identity, data, lineage / hidden / catalog ref / no lifecycle / catalog ref popover / swatch and catalog enough / swatch fixed, text wraps / keep catalog relation.
-- `EntityRevision/EntityRevisionCard.vue`: immutable source revision / provenance rows and revision refs / identity, data.version, lineage / hidden / source entity ref / no mutation / source ref clickable / version summary enough / DataBlock wraps / keep as standard provenance surface.
-- `LayerStandard/LayerStandardCard.vue`: drawing layer standard / CAD layer panels and assets / identity, data.code, data.defaultPenId / hidden / pen ref resolves through `PenTemplateCard` when the pen DTO is loaded / edit elsewhere / no parent hijack in canvas layer panel / code plus semantic name enough / compact tags wrap / keep as entity concept in DrawingCanvas panels.
-- `Material/MaterialCard.vue`: base material record / material library / identity, data / hidden / no stock refs / no lifecycle / card popover body required / base facts only / DataBlock wraps / keep distinct from stock piles.
-- `MaterialPile/MaterialSummary.vue`: pile aggregate summary / inventory summaries / stock data / read-only / pile source context / no local transitions / no popover ownership / summary only / compact / keep only as summary helper.
-- `MaterialPile/PileCard.vue`: manual warehouse stock pile / warehouse inventory tab and queue material pool / identity, specs, data.stock, lineage / interactive if stock workflow exists / warehouse and catalog refs / edit/delete emitted to hub / refs and footer must not select card / stock count first / compact tags wrap / keep as manual stock surface.
-- `NestingRun/NestingRunCard.vue`: generated nesting candidate/run / queue run lists / identity, data.metrics, status / interactive plus choose action / queue and material context by lineage / choose/delete via status or footer policy / geometry/click actions preserved / result metrics first / metric tags wrap / keep action priority inside status contract.
-- `Organization/OrganizationCard.vue`: tenant/org identity / user profile and admin org lists / identity, data / hidden / users are separate pages / invite actions elsewhere / popover body required / name/type enough / compact tags wrap / keep.
-- `PenTemplate/PenTemplateCard.vue`: CAD pen style / layer standard panels and assets / identity, data.stroke / hidden / none / edit elsewhere / color swatch is data, not theme / stroke facts enough / swatch fixed / keep.
-- `Project/ProjectCard.vue`: project workspace entry / project lists and refs / identity, data.summary, status / interactive via workflow / queues via detail page, not card body / open/select in page list / card click must ignore nested status / concise summary enough / thumbnail only in card variant / keep.
-- `Project/ProjectDetail.vue`: project workspace shell / project route / identity, status, queues, history / interactive via EntityPage / queues as compact cards / create queue actions in route / tabs and cards clickable / queues are primary content / grid avoids local card chrome / keep.
-- `Queue/QueueCard.vue`: production job queue / project queue lists and refs / identity, data.job, status / interactive plus nesting commands / artifacts and materials in detail / footer actions only in card variant / status and footer must not open card / material and item summary first / compact facts wrap / keep.
-- `Queue/QueueDetail.vue`: queue execution detail / queue route / identity, status, artifacts, material consumption / interactive via EntityPage / artifacts and consumed material refs / choose/run actions through status / table rows and refs clickable / execution facts primary / table framed / keep.
-- `Queue/QueueEntryCard.vue`: queue editor cassette row / QueueEditor grid / item id/type/qty/parameters / no lifecycle / cassette design/template ref / quantity/dimension inputs local / inputs and refs must not select parent / row density appropriate / controls wrap under preview / keep.
-- `Remnant/RemnantCard.vue`: reusable leftover geometry / warehouse remnant tabs and refs / identity, specs, data.geometry, lineage, status / interactive if workflow exists / sheet and warehouse refs / no local cut actions / geometry preview must keep canvas clicks / geometry first / preview aspect owned / keep.
-- `Remnant/RemnantDetail.vue`: remnant detail / drilldown detail page / identity, specs, geometry, lineage, status / interactive via EntityPage / pile, sheet, warehouse refs / page actions only / refs clickable / provenance plus geometry primary / sidebar grid / keep.
-- `Requisition/RequisitionCard.vue`: procurement request / requisition lists / identity, data.items, status / interactive with status actions / manufacturer and project refs / receive/transition through status / refs clickable / item count and totals enough / actions wrap / keep.
-- `Requisition/RequisitionDetail.vue`: procurement detail / requisition route / identity, items, status, history / interactive via EntityPage / item material refs when available / receive actions via status / rows clickable / item table primary / grid detail layout / keep.
-- `Sheet/SheetCard.vue`: physical sheet inventory / warehouse sheet tabs and queue material refs / identity, specs, status, lineage / interactive if workflow exists / warehouse, pile, nesting run refs / no local transitions / refs and status click safe / dimensions first / SpecsBlock handles compact / keep.
-- `Sheet/SheetDetail.vue`: sheet detail / drilldown detail page / identity, specs, status, history / interactive via EntityPage / source warehouse, pile, and run refs use `EntityInlineRef` / page actions only / refs clickable / physical facts primary / sidebar grid / refactored.
-- `SheetDesign/SheetDesignCard.vue`: digital sheet design / design lists and queue planning / identity, specs, geometry / hidden / cassette design placements in detail / no local lifecycle / geometry click safe / geometry plus dimensions enough / preview aspect owned / keep.
-- `SheetDesign/SheetDesignDetail.vue`: design composition / sheet design route / identity, specs, geometry, placements / hidden or page status only if workflow exists / cassette design refs, not cassette template links / page actions elsewhere / placement refs clickable / geometry and placements primary / sidebar grid / keep relation key `cassetteDesign`.
-- `ToolProfile/ToolProfileCard.vue`: CNC tool profile / asset tool library / identity, data.tool / hidden / none / edit elsewhere / card popover body required / diameter/speed facts enough / compact tags wrap / keep.
-- `User/UserCard.vue`: user identity and role / admin and org user tables/cards / identity, data.role/email / hidden / org relation elsewhere / row/card select emitted from wrapper / click handler respects child targets / email/role enough / compact tags wrap / refactored.
-- `Warehouse/WarehouseCard.vue`: facility identity / warehouse refs and org profile / identity, data.stats / hidden / inventory lives in hub / edit elsewhere / card popover body required / type and stock counts enough / tags wrap / keep.
-- `Warehouse/WarehouseDetail.vue`: facility detail / detail contexts only / identity, data, computed stats / hidden / inventory tabs live in hub / edit action only / should not be nested above inventory tabs / stats useful but secondary / grid stats wrap / keep but do not embed in `WarehouseHub`.
+## Visual Ownership Contract
 
-## Shared Components
+Each generic visual concern has one owner. PrimeVue Aura owns control and
+container typography defaults, padding and spacing, borders, radii, shadows,
+container chrome, and hover, active, disabled, invalid, and keyboard-focus
+states. The application preset may project the primary brand palette but must
+not redefine those generic concerns. Runtime CSS, Tailwind utilities, wrappers,
+shared primitives, and derived components are consumers, never alternate theme
+owners.
 
-- `ActionToolbar.vue`: section/page command row / StandardPage and hubs / title/subtitle/action slots / no status / no entity refs / owns action alignment / buttons clickable / compact title density / wraps actions / keep.
-- `DrawingCanvas.vue`: normalized CAD/geometry renderer / previews, designer, artifacts / geometry layers and controls / no status / layer standards and pens as entities / emits drawing operations / canvas clicks must not bubble to cards / high-density by domain need / owns aspect and pan/zoom / keep.
-- `EntityCard.vue`: canonical entity card shell / all entity cards / identity,status,trace slots / delegates to EntityStatus / trace as lineage / footer actions only / parent click ignores interactive targets / body reused in popovers / bounded status rail / keep as only Card owner.
-- `EntityInlineRef.vue`: compact relation renderer / card/detail relation rows / fetched entity DTO / uses referenced card policy / one referenced entity / no extra actions / popover must show full referenced card body / compact by design / width bounded / keep and prefer over TraceLink for relations.
-- `EntityPage.vue`: canonical entity detail shell / detail components/routes / identity,status,trace,info/sidebar / interactive via EntityStatus when `showStatus` is true / TraceChain only / page actions slot / header controls clickable / compact header, content below / responsive sidebar / keep.
-- `EntityRefInput.vue`: typed entity selector / admin forms / selected entity summary / read-only badge only / selected entity ref / selection action only / dropdown click safe / form density / full width / keep.
-- `ErrorBoundary.vue`: local error containment / wrapper surfaces / error state / no status / none / retry slot / no popover / minimal / bounded / keep.
-- `GeometryPreview.vue`: entity geometry preview / cards/details / data.geometry / no status / none / emits as interactive target / preview click must not open card / geometry primary / aspect from DrawingCanvas / keep.
-- `NameEditPopover.vue`: single-field edit / card footers and identity actions / identity.name or equivalent / no status / none / save/cancel local / popover click safe / compact / inline width / keep instead of full dialog for rename.
-- `ResponsiveGrid.vue`: repeated card layout / pages and hubs / none / no status / none / none / no click / density by variant / fixed grid tracks / keep.
-- `StandardDialog.vue`: dialog chrome / forms and confirmations / none / no status / none / save/cancel slots / modal click contained / form density / size prop / keep as Dialog owner.
-- `StandardPage.vue`: route page shell / app pages / title/subtitle/breadcrumb slots / no status / none / page actions / no entity click / app layout owns route padding / max-w-app / refactored.
-- `StateBlock.vue`: empty/loading/error state / pages and panels / state/message / no status / none / action slot / action click safe / intentionally sparse / centered bounded width / keep.
-- `TableFrame.vue`: DataTable wrapper / operational tables / none / no status / row refs inside table / none / table clicks delegated / dense table chrome / overflow hidden / keep.
-- `TypedSettingsForm.vue`: typed admin field form / config/workbench / schema fields / no status except field choices / entity fields through EntityRefInput / emits model updates / form controls clickable / dense / grid by field type / keep.
-- `blocks/DataBlock.vue`: DTO fact renderer / cards/details / explicit field paths / no status / object refs formatted but not linked / none / no click by default / hides non-displayable data / dl grid wraps / keep.
-- `blocks/IdentityBlock.vue`: canonical identity renderer / all cards/pages/refs / identity block only / no status / none / none / chip click inherited / minimal / truncates through parent / keep.
-- `blocks/SpecsBlock.vue`: canonical dimensions renderer / physical cards/details / specs block / no status / none / none / no click / physical dimensions first / compact/default variants / keep.
-- `blocks/StatusBadge.vue`: read-only status tag / EntityStatus and read-only selectors / status.state / read-only / none / none / no parent hijack when inside EntityStatus / atomic / truncates inside bounded rail / keep.
-- `links/TraceChain.vue`: ancestry breadcrumb / EntityCard and EntityPage / lineage / no status / ancestry only / navigate through TraceLink / links clickable / compact ancestry / wraps / keep.
-- `links/TraceLink.vue`: explicit navigation link / lineage and status location / type/id/label / no status / one route target / navigation only / click must not open parent card / atomic / inline / keep, not for relation summaries.
-- `status/EntityStatus.vue`: status display and transitions / EntityCard and EntityPage / status.lifecycle / interactive if workflow exists / StatusLocation only / transition actions here / popover click safe / inline badge plus menu / bounded rail / keep.
-- `status/StatusHistory.vue`: lifecycle timeline / status popover/sidebar / status events / read-only / none / fetch history / links/buttons safe / compact fallback event / scrollable in parent / keep.
-- `status/StatusLocation.vue`: mutable current location / EntityStatus / status.lifecycle.data.location / read-only / warehouse TraceLink if location / no actions / link safe / compact / inline wrap / keep.
+Application ownership is limited to semantic typography roles, reusable layout
+constraints, registered shared or domain primitives, derived semantic
+composition, and narrowly allowlisted data-driven visuals. Operational
+workspaces belong to registered primitives or derived semantic composition;
+third-party integration sizing is a reusable layout constraint. Primitives own
+structure, content rules, and domain
+behavior while delegating generic chrome and states to PrimeVue. Derived
+components may compose primitives and approved layout contracts but may not
+introduce generic visual language. Geometry and process visualization qualifies
+for narrow allowlisting only when its visual value is driven by data. Behavior
+PrimeVue genuinely cannot provide belongs to a registered primitive or derived
+semantic composition, not a separate visual exception. Every inline binding is
+classified by exact file in the inventory rather than broadening the theme.
+Allowlisted bindings are also pinned to their normalized expressions, preventing
+an allowed file from silently gaining or changing a visual exception.
 
-## Operational Hubs And Feature Components
+Violations have four dispositions: `remove` when Aura already supplies the
+concern, `replace` when an Aura component or registered primitive owns it,
+`centralize` when a repeated semantic type or layout role is legitimate, and
+`narrowly allowlist` only for an irreducible exception above.
 
-- `WarehouseHub.vue`: facility inventory workflow / `/warehouses` / selected warehouse plus inventories / no status in hub header / tabs use entity cards / create/edit/delete dialogs / tabs and refs clickable / inventory tabs must be above detail bulk / compact stat tags / refactored.
-- `PilesTab.vue`: manual stock tab / WarehouseHub / pile collection / card status policy / pile cards / create/edit/delete emits / footer click safe / stock-first / grid cards / keep.
-- `SheetsTab.vue`: sheet inventory tab / WarehouseHub / sheet collection / card status policy / sheet cards / no local actions / refs safe / inventory-first / grid cards / keep.
-- `RemnantsTab.vue`: reusable remnants tab / WarehouseHub / remnant collection / card status policy / remnant cards / no local actions / geometry click safe / geometry-first / grid cards / keep.
-- `CassetteInstancesTab.vue`: produced cassette tab / WarehouseHub / instance collection / card status policy / instance cards / no local actions / source refs safe / production output-first / grid cards / keep.
-- `CassetteManager.vue`: cassette template manager / assets/admin surfaces / cassette DTO list / card policy / template/design refs through cards / create/edit/delete manager-owned / footer click safe / designer entry visible / ResponsiveGrid / keep.
-- `QueueEditor.vue`: queue composition tool / queue route / queue job item DTO / queue status in header / cassette refs and material pool / queue item edit actions local / inputs must not trigger card popover / dense operational editor / grid/table toggle / keep.
-- `CassetteThumbnail.vue`: cassette visual preview / cassette cards and queue editor / geometry definition / no status / none / canvas controls / click safe / visual-first / aspect owned / keep.
-- `CassetteDesignerV2.vue`: persisted OCCS template designer / workbench and cassette manager / OCCS definition, graph tree / no lifecycle here / template source external / save/load/reset designer actions / canvas and panel clicks local / high-density CAD tool / responsive columns / keep.
+| Inventory finding | Disposition under this contract |
+|---|---|
+| PrimeVue/Aura/Tailwind/Nuxt foundation | compliant; add no design-system dependency. |
+| 25 registered primitives and UI-lab coverage | compliant semantic ownership; primitives delegate generic chrome and states to Material. |
+| Generic preset typography, spacing, borders, radii, shadows, and states | remove; the preset retains only the primary palette. |
+| Application motion scales and component-specific spacing tokens | remove; generic transitions and spacing belong to Material, while unavailable interaction behavior stays local to its owning derived composition. |
+| Duplicated runtime token values and `!important` PrimeVue overrides | remove; the token module is the sole textual source and Nuxt projects its CSS variables. |
+| Forced root size, two-level toolbar mapping, type utilities, and arbitrary 10/11px type | centralize into the eight complete application roles: page title, section heading, body, label, supporting, metric, technical, and prose. |
+| Element-wide `p`, `blockquote`, heading, and technical-element styling | remove; prose and technical text opt into their semantic aliases explicitly. |
+| Global focus suppression | remove and restore Material interaction states. |
+| Raw surface borders and `shadow-sm` | replace with Material components or an existing semantic contract. |
+| Hand-built bordered/rounded derived containers | replace with PrimeVue containers or a registered primitive. Domain primitives retain structure only; Material owns their generic chrome. |
+| Scoped CSS, inline bindings, render-function styles, and visual utilities | reusable layout and derived semantic composition are compliant; typography, color, border, radius, shadow, and state styling is remove, replace, or centralize. Render-function styles do not bypass classification. Only exact data-driven visuals, including data-driven geometry/process values, may be narrowly allowlisted. |
+| Missing canonical component audit | centralize here; reconciliation covers every repository Vue file and mechanism. |
+| Missing repository-wide guards | centralize in `shared/design-system.spec.js`; the audit and enforcement use this same boundary. |
 
-## Pages And Layouts
+The convergence removed the generic preset/runtime overrides, centralized
+motion/dock visual contracts, direct global
+PrimeVue selectors and variable declarations, element-wide
+typography, raw type utilities, arbitrary 10/11px typography, and global focus suppression. Nuxt now
+emits application CSS variables from `assets/tokens/index.js`; repository checks
+reject raw typography treatments, raw surface borders, nonsemantic radii/shadows,
+non-allowlisted scoped CSS, and focus suppression. Remaining standard utility
+typography, arbitrary layout, generic chrome, local state, and important
+overrides are explicitly counted below with their required disposition; updating
+the inventory records debt but does not authorize it as an exception.
 
-- `layouts/app.vue`: authenticated app shell / all app pages / auth/navigation / no entity status / nav links / shell actions / page content owns clicks / dense operational chrome / owns route padding / keep.
-- `layouts/ui-lab-layout.vue`: demo shell / `/test/ui-lab` / manifest demos / no status / demo refs / lab controls / demo click safe / dense inspection / constrained lab width / keep.
-- `pages/index.vue`: public landing and redirect gate / root route / auth store / no entity status / projects redirect / auth actions / hero clicks only / marketing density / responsive hero / keep.
-- `pages/auth/login.vue`: login form / public auth / credentials / no status / invitation links / submit action / form controls safe / minimal / centered / keep.
-- `pages/auth/register.vue`: registration form / public auth / user/org payload / no status / terms link / submit action / form controls safe / minimal / centered / keep.
-- `pages/invitation/[token].vue`: invitation acceptance / public token route / invitation DTO / no entity status / org/user context / accept/register actions / form safe / task-focused / centered / keep.
-- `pages/terms-and-conditions.vue`: legal content / public route / static content / no status / none / none / links safe / readable / StandardPage / keep.
-- `pages/projects/index.vue`: project list / authenticated route / project collection / project cards own status / project refs / create/search actions / card clicks safe / list-first / ResponsiveGrid / keep.
-- `pages/project/[slug].vue`: project workspace / project route shell / project DTO / EntityPage status / child tabs / project actions / tabs safe / workspace-first / page tabs / keep.
-- `pages/project/[slug]/index.vue`: project overview / child route / project summary / inherited page status / queues/artifacts refs / local actions / cards safe / summary density / grid / keep.
-- `pages/project/[slug]/queues.vue`: project queues / child route / queue collection / queue cards own status / project lineage / create/open actions / status safe / queues-first / ResponsiveGrid / keep.
-- `pages/project/[slug]/queue/[queueId].vue`: queue editor/detail / child route / queue DTO / queue status / cassette/material refs / queue operations / editor controls safe / operational density high / editor responsive / keep.
-- `pages/project/[slug]/artifacts.vue`: project artifacts / child route / artifact collection / hidden / queue/run refs / preview/download actions / preview click safe / output-first / table/grid / keep.
-- `pages/project/[slug]/data.vue`: project data tables / child route / project-scoped resources / entity cards own status / entity refs / import/open actions / table controls safe / data-first / TableFrame / keep.
-- `pages/project/[slug]/sheet-designs.vue`: sheet design list / child route / design collection / card hidden / design refs / open actions / preview safe / design-first / grid / keep.
-- `pages/project/[slug]/sheet-design/[sheetDesignId].vue`: sheet design detail / child route / design DTO / detail policy / cassette design refs / page actions / refs safe / geometry-first / detail grid / keep.
-- `pages/warehouses/index.vue`: warehouse operations / authenticated route / WarehouseHub / hub no status header / warehouse inventory cards / create/edit/delete in hub / tabs safe / inventory above detail / compact header / refactored via hub.
-- `pages/requisitions/index.vue`: requisition list / authenticated route / requisition collection / cards own status / org/project refs / create/open actions / status safe / procurement-first / grid/table / keep.
-- `pages/catalog/index.vue`: catalog route / authenticated route / catalog collection / hidden status / org refs / catalog actions / cards safe / library-first / shared page shell / keep.
-- `pages/assets/index.vue`: asset root redirect / authenticated root redirect only / no status / no child refs / redirect action / no entity click / compact loading state / `StandardPage` shell without tabs or `NuxtPage` / refactored.
-- `pages/assets/cassettes.vue`: cassette manager route / authenticated route / cassette/template collections / card policy / design/template refs / manager actions / designer safe / manager-first / `StandardPage` shell / refactored.
-- `pages/assets/layer-standards.vue`: layer standards route / authenticated route / layer standard collection / hidden / pen refs when available / asset actions / cards safe / standards-first / `StandardPage` shell / refactored.
-- `pages/assets/pens.vue`: pen templates route / authenticated route / pen collection / hidden / none / asset actions / cards safe / asset-first / `StandardPage` shell / refactored.
-- `pages/assets/templates.vue`: template placeholder route / authenticated route / none yet / no status / none / navigation only / no entity click / sparse state acceptable / `StandardPage` shell / refactored.
-- `pages/assets/tools.vue`: tool profiles route / authenticated route / tool collection / hidden / none / asset actions / cards safe / tool-first / `StandardPage` shell / refactored.
-- `pages/profile/index.vue`: user profile and orgs / authenticated route / user/org/billing data / hidden / organization cards / billing/org actions / table/card safe / account-first / responsive grids / keep.
-- `pages/organization/users.vue`: org user admin / authenticated route / user/invitation lists / hidden / users/org implicit / invite/approve actions / table controls safe / dense admin / TableFrame / keep.
-- `pages/admin/index.vue`: admin landing / admin route / admin navigation / no status / links / admin nav actions / links safe / compact / grid/list / keep.
-- `pages/admin/users.vue`: admin users / admin route / user collection / hidden / org refs if shown / admin actions / table safe / dense admin / TableFrame / keep.
-- `pages/admin/support.vue`: support/admin page / admin route / support data / no status / user refs if shown / admin actions / form/table safe / task-focused / shared shell / keep.
-- `pages/admin/config-bot.vue`: config bot / admin route / generated package data / no entity status / citations/targets / generate/apply actions / form controls safe / dense tool / panels / keep.
-- `pages/admin/workbench.vue`: domain workbench / admin route / fixtures/workflows/designer / local status workflows / many entity refs / scenario actions / demo clicks safe / intentionally dense / lab-like layout / keep.
-- `pages/designer-test.vue`: designer test route / dev route / cassette designer fixture / no status / none / test actions / canvas safe / dev density / responsive designer / keep.
-- `pages/test/ui-lab.vue`: design-system lab / test route / manifest/factory DTOs / demo status / demo relations / variant controls / demos safe / inspection density / lab grid / keep.
+Application-owned radius and shadow values are removed. Reusable Tailwind aliases
+consume Material variables directly, and registered entity card/popover structures no
+longer override Material borders, elevation, or interaction states.
+
+## Mechanism Inventory
+
+| ID | Mechanism | Primary ownership | Intended boundary | Sources | Current disposition |
+|---|---|---|---|---|---|
+| `mechanism-aura` | PrimeVue/Aura baseline | system-owned | Generic controls, containers, typography, chrome, and interaction states. | `@primeuix/themes/aura`; `assets/presets/re_l.js` | default: Aura is the sole generic visual owner. |
+| `mechanism-token-source` | Application token source | shared/domain primitive | Semantic typography roles, reusable layout constraints, domain signals, geometry, and data-driven roles only. | `assets/tokens/index.js`; `assets/tokens/README.md` | owned: sole textual source for application visual values. |
+| `mechanism-primevue-projection` | PrimeVue semantic/component projection | system-owned | Projects the brand primary palette and the zinc surface scale; generic component defaults remain Aura-owned. | `assets/tokens/index.js`; `assets/presets/re_l.js` | default: component projection covers app-shell anatomy only; semantic projection is primary palette plus zinc surfaces. |
+| `mechanism-tailwind-projection` | Tailwind theme projection | system-owned | Expose semantic app aliases and reusable layout constraints. | `assets/tokens/index.js:L164-L343`; `tailwind.config.js:L1-L15` | owned: `tailwindThemeExtension`; usage is recorded per Vue row. |
+| `mechanism-css-variable-projection` | CSS variable projection | system-owned | Expose light and dark `--ck-*` values for app-owned semantic roles. | `assets/tokens/index.js` exports `cssVariableTokens` and `darkCssVariableTokens`; `nuxt.config.js`; `shared/design-system.spec.js` | owned: Nuxt emits both projections directly from the token source. |
+| `mechanism-preset` | PrimeVue preset | system-owned | Install Aura plus the bounded primary palette, zinc surface scale, and app-shell component tokens (transparent tab strips, explorer-density trees). | `assets/presets/re_l.js`; `nuxt.config.js` | default: no generic component overrides. |
+| `mechanism-tailwind-aliases` | Tailwind aliases | system-owned | Layout utilities plus token-backed app semantic aliases. | `tailwind.config.js:L1-L16`; `assets/tokens/index.js:L164-L343` | owned: aliases are projected from tokens; raw and arbitrary usage remains component drift. |
+| `mechanism-global-css` | Global CSS layers | system-owned | Font loading/inheritance, page background, app-shell behavior, and active global integrations only. | `assets/css/fonts.css`; `assets/css/main.css`; `assets/css/variants.css` | owned: HTML elements carry no application type role and generic controls remain Material-owned. |
+| `mechanism-runtime-overrides` | Runtime PrimeVue overrides | system-owned | No independent visual-value or generic PrimeVue override source. | `assets/css/main.css`; `shared/design-system.spec.js` | default: PrimeVue variable declarations, component selectors, and important rules are rejected. |
+| `mechanism-scoped-css` | Vue local/scoped CSS | shared/domain primitive | Exact reusable layout only; Material-owned padding is not layout. | Every inventory row with a CSS disposition; `shared/design-system.spec.js` allowlist. | compliant only at exact files and property sets; all other scoped CSS is a violation. |
+| `mechanism-primitive-registry` | Primitive registry | shared/domain primitive | Canonical registered shared/domain surfaces and component paths. | `packages/domain-cnc/src/ui.js:L46-L72`; `utils/design-system-contract.js` | owned: exact registry paths define shared/domain primitive rows; all other Vue rows are derived usage. |
+| `mechanism-runtime-registry` | Vue runtime bindings | shared/domain primitive | Bind the domain contract to Vue components and factories. | `utils/design-system.js`; `framework.manifest.json` | owned: runtime binding remains distinct from the pure domain contract. |
+| `mechanism-ui-lab` | UI lab coverage | derived usage | Render every registered primitive and entity contract for visual inspection. | `pages/test/ui-lab.vue:L480-L547`; `pages/test/README.md:L8-L24` | owned: existing tests reconcile primitive keys with examples. |
+| `mechanism-enforcement` | Automated enforcement | system-owned | Reconcile inventory, projections, registries, UI lab, wrappers, palettes, and known design-system boundaries. | `shared/design-system.spec.js` | owned: inventory enumeration fails on missing, stale, duplicate, or misidentified Vue rows. |
+
+## Component Inventory
+
+This generated matrix records durable ownership plus current source-derived
+visual findings. Counts are occurrences, not exemptions. Run
+`node scripts/ui-visual-inventory.js` after an intentional visual change;
+`shared/design-system.spec.js` fails when source and this matrix diverge.
+
+| ID | Path | Primary ownership | Current disposition |
+|---|---|---|---|
+| `ui-components-artifactlayouteditor-vue` | `components/ArtifactLayoutEditor.vue` | derived usage | centralize:layout (1); replace:chrome (4) |
+| `ui-components-artifacts-artifacttexteditor-vue` | `components/artifacts/ArtifactTextEditor.vue` | derived usage | compliant |
+| `ui-components-artifacts-artifactviewer-vue` | `components/artifacts/ArtifactViewer.vue` | derived usage | centralize:layout (2); replace:chrome (2) |
+| `ui-components-artifacts-sketcheditor-vue` | `components/artifacts/SketchEditor.vue` | derived usage | replace:chrome (1) |
+| `ui-components-artifactstable-vue` | `components/ArtifactsTable.vue` | derived usage | compliant |
+| `ui-components-assetslibrary-vue` | `components/AssetsLibrary.vue` | derived usage | replace:chrome (2); narrowly-allowlist:inline-data-driven (1) |
+| `ui-components-authprogress-vue` | `components/AuthProgress.vue` | derived usage | compliant |
+| `ui-components-calls-callpanel-vue` | `components/calls/CallPanel.vue` | derived usage | replace:chrome (1); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (1) |
+| `ui-components-calls-callprejoin-vue` | `components/calls/CallPrejoin.vue` | derived usage | replace:chrome (5) |
+| `ui-components-calls-calltile-vue` | `components/calls/CallTile.vue` | derived usage | replace:chrome (5) |
+| `ui-components-calls-callworkspacepage-vue` | `components/calls/CallWorkspacePage.vue` | derived usage | replace:chrome (4); compliant:scoped-layout |
+| `ui-components-cassettedesigner-vue` | `components/CassetteDesigner.vue` | derived usage | replace:chrome (3); narrowly-allowlist:inline-data-driven (1) |
+| `ui-components-cassettedesignerv2-vue` | `components/CassetteDesignerV2.vue` | derived usage | centralize:layout (1); replace:chrome (59); narrowly-allowlist:inline-data-driven (2) |
+| `ui-components-cassetteeditordialog-vue` | `components/CassetteEditorDialog.vue` | derived usage | centralize:layout (6); replace:chrome (2) |
+| `ui-components-cassetteexpressioneditor-vue` | `components/CassetteExpressionEditor.vue` | derived usage | replace:chrome (17); remove:state (1) |
+| `ui-components-cassettefoldedpreview-vue` | `components/CassetteFoldedPreview.vue` | derived usage | centralize:layout (2); replace:chrome (4); remove:state (1) |
+| `ui-components-cassettemanager-vue` | `components/CassetteManager.vue` | derived usage | compliant |
+| `ui-components-cassettethumbnail-vue` | `components/CassetteThumbnail.vue` | derived usage | replace:chrome (4) |
+| `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | replace:chrome (20); remove:state (1); compliant:scoped-layout |
+| `ui-components-config-bot-configbotcitationlist-vue` | `components/config-bot/ConfigBotCitationList.vue` | derived usage | replace:chrome (4) |
+| `ui-components-config-bot-configbotdraftpreview-vue` | `components/config-bot/ConfigBotDraftPreview.vue` | derived usage | centralize:layout (1); replace:chrome (12) |
+| `ui-components-config-bot-configbotgeneratedpreview-vue` | `components/config-bot/ConfigBotGeneratedPreview.vue` | derived usage | replace:chrome (8) |
+| `ui-components-config-bot-configbotvalidationpanel-vue` | `components/config-bot/ConfigBotValidationPanel.vue` | derived usage | replace:chrome (4) |
+| `ui-components-entities-artifact-artifactcard-vue` | `components/entities/Artifact/ArtifactCard.vue` | derived usage | compliant |
+| `ui-components-entities-artifact-artifactdetail-vue` | `components/entities/Artifact/ArtifactDetail.vue` | derived usage | centralize:layout (1) |
+| `ui-components-entities-artifacttemplate-artifacttemplatecard-vue` | `components/entities/ArtifactTemplate/ArtifactTemplateCard.vue` | derived usage | compliant |
+| `ui-components-entities-batchpile-batchpilecard-vue` | `components/entities/BatchPile/BatchPileCard.vue` | derived usage | compliant |
+| `ui-components-entities-batchpile-batchpilesummary-vue` | `components/entities/BatchPile/BatchPileSummary.vue` | derived usage | replace:chrome (4) |
+| `ui-components-entities-cassette-cassettecard-vue` | `components/entities/Cassette/CassetteCard.vue` | derived usage | compliant |
+| `ui-components-entities-cassettedesign-cassettedesigncard-vue` | `components/entities/CassetteDesign/CassetteDesignCard.vue` | derived usage | compliant |
+| `ui-components-entities-cassetteinstance-cassetteinstancecard-vue` | `components/entities/CassetteInstance/CassetteInstanceCard.vue` | derived usage | compliant |
+| `ui-components-entities-cassetteinstance-cassetteinstancedetail-vue` | `components/entities/CassetteInstance/CassetteInstanceDetail.vue` | derived usage | compliant |
+| `ui-components-entities-cassettetemplate-cassettetemplatecard-vue` | `components/entities/CassetteTemplate/CassetteTemplateCard.vue` | derived usage | compliant |
+| `ui-components-entities-catalog-catalogcard-vue` | `components/entities/Catalog/CatalogCard.vue` | derived usage | compliant |
+| `ui-components-entities-catalog-catalogdetail-vue` | `components/entities/Catalog/CatalogDetail.vue` | derived usage | compliant |
+| `ui-components-entities-color-colorcard-vue` | `components/entities/Color/ColorCard.vue` | derived usage | replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
+| `ui-components-entities-entityrevision-entityrevisioncard-vue` | `components/entities/EntityRevision/EntityRevisionCard.vue` | derived usage | compliant |
+| `ui-components-entities-facade-facadecard-vue` | `components/entities/Facade/FacadeCard.vue` | derived usage | compliant |
+| `ui-components-entities-facadepattern-facadepatterncard-vue` | `components/entities/FacadePattern/FacadePatternCard.vue` | derived usage | compliant |
+| `ui-components-entities-geometrycapture-geometrycapturecard-vue` | `components/entities/GeometryCapture/GeometryCaptureCard.vue` | derived usage | replace:chrome (5) |
+| `ui-components-entities-geometrycapture-geometrycapturedetail-vue` | `components/entities/GeometryCapture/GeometryCaptureDetail.vue` | derived usage | replace:chrome (17) |
+| `ui-components-entities-geometrycapture-photogeometryoverlay-vue` | `components/entities/GeometryCapture/PhotoGeometryOverlay.vue` | derived usage | replace:chrome (4) |
+| `ui-components-entities-layerstandard-layerstandardcard-vue` | `components/entities/LayerStandard/LayerStandardCard.vue` | derived usage | compliant |
+| `ui-components-entities-library-librarycard-vue` | `components/entities/Library/LibraryCard.vue` | derived usage | compliant |
+| `ui-components-entities-material-materialcard-vue` | `components/entities/Material/MaterialCard.vue` | derived usage | compliant |
+| `ui-components-entities-materialpile-materialsummary-vue` | `components/entities/MaterialPile/MaterialSummary.vue` | derived usage | compliant |
+| `ui-components-entities-materialpile-pilecard-vue` | `components/entities/MaterialPile/PileCard.vue` | derived usage | compliant |
+| `ui-components-entities-nestingrun-nestingruncard-vue` | `components/entities/NestingRun/NestingRunCard.vue` | derived usage | compliant |
+| `ui-components-entities-organization-organizationcard-vue` | `components/entities/Organization/OrganizationCard.vue` | derived usage | compliant |
+| `ui-components-entities-pentemplate-pentemplatecard-vue` | `components/entities/PenTemplate/PenTemplateCard.vue` | derived usage | replace:chrome (5); narrowly-allowlist:inline-data-driven (1) |
+| `ui-components-entities-profiletemplate-profiletemplatecard-vue` | `components/entities/ProfileTemplate/ProfileTemplateCard.vue` | derived usage | compliant |
+| `ui-components-entities-project-projectcard-vue` | `components/entities/Project/ProjectCard.vue` | derived usage | compliant |
+| `ui-components-entities-project-projectdetail-vue` | `components/entities/Project/ProjectDetail.vue` | derived usage | compliant |
+| `ui-components-entities-project-projectindexcard-vue` | `components/entities/Project/ProjectIndexCard.vue` | derived usage | centralize:layout (1); replace:chrome (16) |
+| `ui-components-entities-queue-queuecard-vue` | `components/entities/Queue/QueueCard.vue` | derived usage | compliant |
+| `ui-components-entities-queue-queuedetail-vue` | `components/entities/Queue/QueueDetail.vue` | derived usage | compliant |
+| `ui-components-entities-queue-queueentrycard-vue` | `components/entities/Queue/QueueEntryCard.vue` | derived usage | remove:important-override (2); compliant:scoped-layout |
+| `ui-components-entities-queue-queuesourcecard-vue` | `components/entities/Queue/QueueSourceCard.vue` | derived usage | replace:chrome (7) |
+| `ui-components-entities-remnant-remnantcard-vue` | `components/entities/Remnant/RemnantCard.vue` | derived usage | compliant |
+| `ui-components-entities-remnant-remnantdetail-vue` | `components/entities/Remnant/RemnantDetail.vue` | derived usage | compliant |
+| `ui-components-entities-requisition-requisitioncard-vue` | `components/entities/Requisition/RequisitionCard.vue` | derived usage | compliant |
+| `ui-components-entities-requisition-requisitiondetail-vue` | `components/entities/Requisition/RequisitionDetail.vue` | derived usage | replace:chrome (2); narrowly-allowlist:inline-data-driven (1) |
+| `ui-components-entities-sheet-sheetcard-vue` | `components/entities/Sheet/SheetCard.vue` | derived usage | replace:chrome (3); narrowly-allowlist:inline-data-driven (2) |
+| `ui-components-entities-sheet-sheetdetail-vue` | `components/entities/Sheet/SheetDetail.vue` | derived usage | replace:chrome (8); narrowly-allowlist:inline-data-driven (2) |
+| `ui-components-entities-sheetdesign-sheetdesigncard-vue` | `components/entities/SheetDesign/SheetDesignCard.vue` | derived usage | compliant |
+| `ui-components-entities-sheetdesign-sheetdesigndetail-vue` | `components/entities/SheetDesign/SheetDesignDetail.vue` | derived usage | compliant |
+| `ui-components-entities-toolprofile-toolprofilecard-vue` | `components/entities/ToolProfile/ToolProfileCard.vue` | derived usage | compliant |
+| `ui-components-entities-user-usercard-vue` | `components/entities/User/UserCard.vue` | derived usage | compliant |
+| `ui-components-entities-warehouse-warehousecard-vue` | `components/entities/Warehouse/WarehouseCard.vue` | derived usage | compliant |
+| `ui-components-entities-warehouse-warehousedetail-vue` | `components/entities/Warehouse/WarehouseDetail.vue` | derived usage | compliant |
+| `ui-components-facadedesigner-vue` | `components/FacadeDesigner.vue` | derived usage | replace:chrome (12) |
+| `ui-components-facadepatterndesigner-vue` | `components/FacadePatternDesigner.vue` | derived usage | replace:chrome (9) |
+| `ui-components-footer-vue` | `components/Footer.vue` | derived usage | compliant |
+| `ui-components-generated-generatedactionbutton-vue` | `components/generated/GeneratedActionButton.vue` | derived usage | compliant |
+| `ui-components-generated-generatedartifactcreator-vue` | `components/generated/GeneratedArtifactCreator.vue` | derived usage | compliant |
+| `ui-components-generated-generatedcassettedesigneraction-vue` | `components/generated/GeneratedCassetteDesignerAction.vue` | derived usage | compliant |
+| `ui-components-generated-generatedcassettedesignerworkspacepage-vue` | `components/generated/GeneratedCassetteDesignerWorkspacePage.vue` | derived usage | compliant |
+| `ui-components-generated-generateddeletebutton-vue` | `components/generated/GeneratedDeleteButton.vue` | derived usage | compliant |
+| `ui-components-generated-generatedentitycollection-vue` | `components/generated/GeneratedEntityCollection.vue` | derived usage | remove:state (2) |
+| `ui-components-generated-generatedentitydetail-vue` | `components/generated/GeneratedEntityDetail.vue` | derived usage | compliant |
+| `ui-components-generated-generatedentitydetailbody-vue` | `components/generated/GeneratedEntityDetailBody.vue` | derived usage | compliant |
+| `ui-components-generated-generatedentityfile-vue` | `components/generated/GeneratedEntityFile.vue` | derived usage | replace:chrome (6) |
+| `ui-components-generated-generatedfacadedesignerworkspacepage-vue` | `components/generated/GeneratedFacadeDesignerWorkspacePage.vue` | derived usage | compliant |
+| `ui-components-generated-generatedfacadepatterndesignerworkspacepage-vue` | `components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue` | derived usage | compliant |
+| `ui-components-generated-generatedhomescreen-vue` | `components/generated/GeneratedHomeScreen.vue` | derived usage | centralize:layout (2); remove:state (1) |
+| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (13); remove:important-override (11) |
+| `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | compliant |
+| `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | replace:chrome (11) |
+| `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
+| `ui-components-generated-generatedprojectactionpalette-vue` | `components/generated/GeneratedProjectActionPalette.vue` | derived usage | compliant |
+| `ui-components-generated-generatedprojectworkspace-vue` | `components/generated/GeneratedProjectWorkspace.vue` | derived usage | replace:chrome (10); remove:important-override (27); compliant:scoped-layout |
+| `ui-components-generated-generatedqueuedetail-vue` | `components/generated/GeneratedQueueDetail.vue` | derived usage | compliant |
+| `ui-components-generated-generatedregion-vue` | `components/generated/GeneratedRegion.vue` | derived usage | compliant |
+| `ui-components-generated-generatedscreen-vue` | `components/generated/GeneratedScreen.vue` | derived usage | centralize:layout (1) |
+| `ui-components-generated-generatedworkspacepage-vue` | `components/generated/GeneratedWorkspacePage.vue` | derived usage | replace:chrome (3) |
+| `ui-components-generated-generatedworkspacepane-vue` | `components/generated/GeneratedWorkspacePane.vue` | derived usage | replace:chrome (3) |
+| `ui-components-generated-generatedworkspacepanemenu-vue` | `components/generated/GeneratedWorkspacePaneMenu.vue` | derived usage | compliant |
+| `ui-components-generated-generatedworkspacetabs-vue` | `components/generated/GeneratedWorkspaceTabs.vue` | derived usage | replace:chrome (3); remove:important-override (2) |
+| `ui-components-languageswitcher-vue` | `components/LanguageSwitcher.vue` | derived usage | compliant |
+| `ui-components-partlibrary-vue` | `components/PartLibrary.vue` | derived usage | replace:chrome (3) |
+| `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:layout (2); replace:chrome (5) |
+| `ui-components-permissionrulebuilder-vue` | `components/PermissionRuleBuilder.vue` | derived usage | replace:chrome (8) |
+| `ui-components-process-designer-processnode-vue` | `components/process-designer/ProcessNode.vue` | derived usage | replace:chrome (23); remove:important-override (9); narrowly-allowlist:inline-data-driven (4) |
+| `ui-components-process-designer-processscreenpreview-vue` | `components/process-designer/ProcessScreenPreview.vue` | derived usage | replace:chrome (12) |
+| `ui-components-process-designer-processstatusdefinitionnode-vue` | `components/process-designer/ProcessStatusDefinitionNode.vue` | derived usage | replace:chrome (14); remove:important-override (6); narrowly-allowlist:inline-data-driven (3) |
+| `ui-components-profilesketcheditor-vue` | `components/ProfileSketchEditor.vue` | derived usage | centralize:layout (2); replace:chrome (13) |
+| `ui-components-projectstatistics-vue` | `components/ProjectStatistics.vue` | derived usage | compliant |
+| `ui-components-queueeditor-vue` | `components/QueueEditor.vue` | derived usage | replace:chrome (8); compliant:scoped-layout; compliant:inline-layout (1) |
+| `ui-components-shared-actiontoolbar-vue` | `components/shared/ActionToolbar.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-blocks-datablock-vue` | `components/shared/blocks/DataBlock.vue` | shared/domain primitive | compliant:scoped-layout |
+| `ui-components-shared-blocks-identityblock-vue` | `components/shared/blocks/IdentityBlock.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-blocks-specsblock-vue` | `components/shared/blocks/SpecsBlock.vue` | shared/domain primitive | replace:chrome (8); compliant:scoped-layout |
+| `ui-components-shared-blocks-statusbadge-vue` | `components/shared/blocks/StatusBadge.vue` | shared/domain primitive | replace:chrome (9) |
+| `ui-components-shared-communicationmenu-vue` | `components/shared/CommunicationMenu.vue` | derived usage | replace:chrome (2); remove:important-override (3) |
+| `ui-components-shared-designerdialog-vue` | `components/shared/DesignerDialog.vue` | shared/domain primitive | compliant:scoped-layout |
+| `ui-components-shared-designersurface-vue` | `components/shared/DesignerSurface.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (2); compliant:scoped-layout |
+| `ui-components-shared-drawingcanvas-vue` | `components/shared/DrawingCanvas.vue` | shared/domain primitive | replace:chrome (14) |
+| `ui-components-shared-entityactionspopover-vue` | `components/shared/EntityActionsPopover.vue` | derived usage | compliant |
+| `ui-components-shared-entitycard-vue` | `components/shared/EntityCard.vue` | shared/domain primitive | centralize:layout (2) |
+| `ui-components-shared-entityinlineref-vue` | `components/shared/EntityInlineRef.vue` | derived usage | centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
+| `ui-components-shared-entitymultiselect-vue` | `components/shared/EntityMultiSelect.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-entitypage-vue` | `components/shared/EntityPage.vue` | shared/domain primitive | compliant:scoped-layout |
+| `ui-components-shared-entitypreview-vue` | `components/shared/EntityPreview.vue` | derived usage | replace:chrome (1) |
+| `ui-components-shared-entityrefinput-vue` | `components/shared/EntityRefInput.vue` | derived usage | compliant |
+| `ui-components-shared-entityrelationsblock-vue` | `components/shared/EntityRelationsBlock.vue` | derived usage | centralize:layout (3) |
+| `ui-components-shared-entityselect-vue` | `components/shared/EntitySelect.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-entitysurfacecontent-vue` | `components/shared/EntitySurfaceContent.vue` | derived usage | compliant |
+| `ui-components-shared-entityworkspace-vue` | `components/shared/EntityWorkspace.vue` | derived usage | compliant:scoped-layout |
+| `ui-components-shared-errorboundary-vue` | `components/shared/ErrorBoundary.vue` | derived usage | replace:chrome (2) |
+| `ui-components-shared-geometrypreview-vue` | `components/shared/GeometryPreview.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-links-tracechain-vue` | `components/shared/links/TraceChain.vue` | shared/domain primitive | centralize:layout (1) |
+| `ui-components-shared-links-tracelink-vue` | `components/shared/links/TraceLink.vue` | shared/domain primitive | replace:chrome (2) |
+| `ui-components-shared-metricpanel-vue` | `components/shared/MetricPanel.vue` | derived usage | replace:chrome (3) |
+| `ui-components-shared-motiondock-vue` | `components/shared/MotionDock.vue` | derived usage | replace:chrome (8); replace:inline-visual (2); replace:render-visual (4) |
+| `ui-components-shared-nameeditpopover-vue` | `components/shared/NameEditPopover.vue` | derived usage | compliant |
+| `ui-components-shared-responsivegrid-vue` | `components/shared/ResponsiveGrid.vue` | shared/domain primitive | centralize:layout (4); compliant:scoped-layout |
+| `ui-components-shared-scrollablepanel-vue` | `components/shared/ScrollablePanel.vue` | derived usage | remove:important-override (3) |
+| `ui-components-shared-standarddialog-vue` | `components/shared/StandardDialog.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-standardpage-vue` | `components/shared/StandardPage.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-stateblock-vue` | `components/shared/StateBlock.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-status-entitystatus-vue` | `components/shared/status/EntityStatus.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-status-statushistory-vue` | `components/shared/status/StatusHistory.vue` | shared/domain primitive | centralize:layout (1); replace:chrome (3) |
+| `ui-components-shared-status-statuslocation-vue` | `components/shared/status/StatusLocation.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-status-statustransitiondialog-vue` | `components/shared/status/StatusTransitionDialog.vue` | derived usage | compliant |
+| `ui-components-shared-supportmessagecontent-vue` | `components/shared/SupportMessageContent.vue` | derived usage | compliant |
+| `ui-components-shared-tableframe-vue` | `components/shared/TableFrame.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-threeviewport-vue` | `components/shared/ThreeViewport.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-typedsettingsform-vue` | `components/shared/TypedSettingsForm.vue` | derived usage | compliant |
+| `ui-components-shared-useraccountmenu-vue` | `components/shared/UserAccountMenu.vue` | derived usage | replace:chrome (4); remove:important-override (1) |
+| `ui-components-shared-workspacelanes-vue` | `components/shared/WorkspaceLanes.vue` | derived usage | compliant |
+| `ui-components-shared-workspacesplitnode-vue` | `components/shared/WorkspaceSplitNode.vue` | derived usage | replace:chrome (2); remove:important-override (2) |
+| `ui-components-sheetdesigneditor-vue` | `components/SheetDesignEditor.vue` | derived usage | replace:chrome (4) |
+| `ui-components-templatesmanager-vue` | `components/TemplatesManager.vue` | derived usage | compliant |
+| `ui-components-themeswitcher-vue` | `components/ThemeSwitcher.vue` | derived usage | compliant |
+| `ui-components-userform-vue` | `components/UserForm.vue` | derived usage | compliant |
+| `ui-error-vue` | `error.vue` | derived usage | compliant |
+| `ui-layouts-app-vue` | `layouts/app.vue` | derived usage | centralize:layout (4); replace:chrome (6); remove:state (1); remove:important-override (2) |
+| `ui-layouts-ui-lab-layout-vue` | `layouts/ui-lab-layout.vue` | derived usage | centralize:layout (2); replace:chrome (10); remove:state (2) |
+| `ui-pages-auth-login-vue` | `pages/auth/login.vue` | derived usage | replace:chrome (1) |
+| `ui-pages-auth-register-vue` | `pages/auth/register.vue` | derived usage | replace:chrome (1) |
+| `ui-pages-chats-vue` | `pages/chats.vue` | derived usage | compliant |
+| `ui-pages-index-vue` | `pages/index.vue` | derived usage | centralize:layout (5); replace:chrome (4) |
+| `ui-pages-invitation-token-vue` | `pages/invitation/[token].vue` | derived usage | replace:chrome (3) |
+| `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
+| `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | compliant |
+| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (7); replace:chrome (25); remove:state (1); replace:inline-visual (1) |
+| `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | compliant |
+| `ui-pages-profile-index-vue` | `pages/profile/index.vue` | derived usage | replace:chrome (4) |
+| `ui-pages-screens-screenkey-vue` | `pages/screens/[screenKey].vue` | derived usage | compliant |
+| `ui-pages-screens-index-vue` | `pages/screens/index.vue` | derived usage | compliant |
+| `ui-pages-terms-and-conditions-vue` | `pages/terms-and-conditions.vue` | derived usage | replace:chrome (2) |
+| `ui-pages-test-ui-lab-vue` | `pages/test/ui-lab.vue` | derived usage | replace:chrome (12) |

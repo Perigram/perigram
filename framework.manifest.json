@@ -161,6 +161,15 @@
       "preview": {
         "mode": "workbook"
       }
+    },
+    {
+      "bucket": "sketches",
+      "key": "SKETCH",
+      "kind": "SKETCH",
+      "mimeType": "application/json",
+      "preview": {
+        "mode": "sketch"
+      }
     }
   ],
   "commands": [
@@ -587,7 +596,9 @@
         "entityType": "sheet",
         "fieldPaths": [
           "specs.area",
+          "specs.color",
           "specs.length",
+          "specs.material",
           "specs.width"
         ],
         "group": "material",
@@ -603,7 +614,9 @@
           "server/features/remnants/README.md"
         ],
         "entityType": "remnant",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "specs.area"
+        ],
         "group": "material",
         "key": "remnant",
         "labelKey": "entities.remnant",
@@ -1104,28 +1117,18 @@
         "--ck-border-subtle": "var(--p-content-border-color)",
         "--ck-bounded-grid-item-max-width": "32rem",
         "--ck-bounded-grid-item-min-width": "24rem",
-        "--ck-chrome-background": "#fefefc",
-        "--ck-chrome-border": "#c7c7bf",
-        "--ck-chrome-foreground": "#0c0c0b",
-        "--ck-chrome-muted": "#6d6d66",
+        "--ck-chrome-background": "var(--p-surface-100)",
+        "--ck-chrome-border": "var(--p-content-border-color)",
+        "--ck-chrome-foreground": "var(--p-text-color)",
+        "--ck-chrome-muted": "var(--p-text-muted-color)",
         "--ck-chrome-signal-height": "0.25rem",
-        "--ck-chrome-subtle": "#f4f4f0",
+        "--ck-chrome-subtle": "var(--p-surface-200)",
         "--ck-compact-preview-width": "10rem",
         "--ck-details-gap": "1.5rem",
         "--ck-dialog-lg": "56rem",
         "--ck-dialog-md": "42rem",
         "--ck-dialog-sm": "24rem",
         "--ck-dialog-xl": "72rem",
-        "--ck-dock-gap": "0.25rem",
-        "--ck-dock-indicator-inset": "0.125rem",
-        "--ck-dock-indicator-size": "0.375rem",
-        "--ck-dock-inset": "0.75rem",
-        "--ck-dock-label-offset": "0.5rem",
-        "--ck-dock-label-padding": "0.125rem 0.5rem",
-        "--ck-dock-padding": "0.25rem",
-        "--ck-ease-enter": "cubic-bezier(0, 0, 0, 1)",
-        "--ck-ease-exit": "cubic-bezier(0.3, 0, 1, 1)",
-        "--ck-ease-standard": "cubic-bezier(0.2, 0, 0, 1)",
         "--ck-entity-popover-min-width": "18.75rem",
         "--ck-entity-tone-command": "#ff4b00",
         "--ck-entity-tone-fabrication": "#dc3a45",
@@ -1133,13 +1136,10 @@
         "--ck-entity-tone-output": "#3f5eff",
         "--ck-entity-tone-system": "#795ee5",
         "--ck-floating-menu-min-width": "12.5rem",
-        "--ck-font-mono": "'JetBrains Mono', monospace",
-        "--ck-font-ui": "'JetBrains Mono', monospace",
+        "--ck-font-mono": "'IBM Plex Mono', monospace",
+        "--ck-font-serif": "'IBM Plex Serif', serif",
+        "--ck-font-ui": "'IBM Plex Sans', sans-serif",
         "--ck-grid-gap": "1.25rem",
-        "--ck-label-tracking": "0.04em",
-        "--ck-motion-emphasis": "220ms",
-        "--ck-motion-fast": "100ms",
-        "--ck-motion-normal": "160ms",
         "--ck-page-background": "var(--p-surface-100)",
         "--ck-page-max-width": "1600px",
         "--ck-preview-dialog-height": "95vh",
@@ -1156,12 +1156,9 @@
         "--ck-primary-950": "#321000",
         "--ck-primary-ink": "#a93300",
         "--ck-process-canvas-background": "var(--p-surface-50)",
-        "--ck-radius-full": "9999px",
-        "--ck-radius-panel": "6px",
-        "--ck-radius-ui": "3px",
+        "--ck-scrollbar-thumb": "color-mix(in srgb, var(--p-text-color) 32%, transparent)",
+        "--ck-scrollbar-thumb-hover": "color-mix(in srgb, var(--p-text-color) 55%, transparent)",
         "--ck-selection-background": "color-mix(in srgb, var(--p-primary-color) 20%, transparent)",
-        "--ck-shadow-card": "none",
-        "--ck-shadow-overlay": "0 12px 28px rgb(16 16 14 / 0.14)",
         "--ck-signal-data": "var(--ck-entity-tone-material)",
         "--ck-signal-decision": "var(--ck-primary-500)",
         "--ck-signal-effect": "var(--ck-entity-tone-fabrication)",
@@ -1179,24 +1176,12 @@
         "--ck-status-neutral": "var(--p-surface-500)",
         "--ck-status-success": "var(--p-emerald-600)",
         "--ck-status-warning": "var(--p-amber-700)",
-        "--ck-subtle-background": "var(--p-surface-100)",
+        "--ck-subtle-background": "var(--p-surface-200)",
         "--ck-support-chat-admin-height": "calc(100vh - 12rem)",
         "--ck-support-chat-admin-message-max": "80%",
         "--ck-support-chat-height": "31.25rem",
         "--ck-support-chat-message-max": "85%",
         "--ck-support-chat-width": "25rem",
-        "--ck-surface-0": "#fefefc",
-        "--ck-surface-100": "#ecece7",
-        "--ck-surface-200": "#dfdfd9",
-        "--ck-surface-300": "#c7c7bf",
-        "--ck-surface-400": "#999992",
-        "--ck-surface-50": "#f4f4f0",
-        "--ck-surface-500": "#6d6d66",
-        "--ck-surface-600": "#4e4e49",
-        "--ck-surface-700": "#343431",
-        "--ck-surface-800": "#232321",
-        "--ck-surface-900": "#161615",
-        "--ck-surface-950": "#0c0c0b",
         "--ck-surface-raised": "var(--p-content-background)",
         "--ck-swatch-size": "2.625rem",
         "--ck-table-action-column-width": "3rem"
@@ -1222,20 +1207,6 @@
           "subtle": "var(--ck-subtle-background)",
           "text": "var(--p-text-color)",
           "textMuted": "var(--p-text-muted-color)"
-        },
-        "dock": {
-          "baseItemSize": 32,
-          "distance": 96,
-          "gap": "0.25rem",
-          "height": 64,
-          "indicatorInset": "0.125rem",
-          "indicatorSize": "0.375rem",
-          "inset": "0.75rem",
-          "labelOffset": "0.5rem",
-          "labelPadding": "0.125rem 0.5rem",
-          "magnification": 40,
-          "padding": "0.25rem",
-          "panelHeight": 40
         },
         "entityTone": {
           "command": "var(--ck-entity-tone-command)",
@@ -1267,28 +1238,6 @@
           "swatchSize": "2.625rem",
           "tableActionColumnWidth": "3rem"
         },
-        "motion": {
-          "easing": {
-            "enter": "cubic-bezier(0, 0, 0, 1)",
-            "exit": "cubic-bezier(0.3, 0, 1, 1)",
-            "standard": "cubic-bezier(0.2, 0, 0, 1)"
-          },
-          "emphasis": "220ms",
-          "fast": "100ms",
-          "normal": "160ms",
-          "seconds": {
-            "emphasis": 0.22,
-            "fast": 0.1,
-            "normal": 0.16
-          },
-          "spring": {
-            "dock": {
-              "damping": 16,
-              "mass": 0.1,
-              "stiffness": 180
-            }
-          }
-        },
         "palette": {
           "primary": {
             "50": "#fff0e9",
@@ -1302,30 +1251,7 @@
             "800": "#7c2600",
             "900": "#5c1c00",
             "950": "#321000"
-          },
-          "surface": {
-            "0": "#fefefc",
-            "50": "#f4f4f0",
-            "100": "#ecece7",
-            "200": "#dfdfd9",
-            "300": "#c7c7bf",
-            "400": "#999992",
-            "500": "#6d6d66",
-            "600": "#4e4e49",
-            "700": "#343431",
-            "800": "#232321",
-            "900": "#161615",
-            "950": "#0c0c0b"
           }
-        },
-        "radius": {
-          "full": "9999px",
-          "panel": "6px",
-          "ui": "3px"
-        },
-        "shadow": {
-          "card": "none",
-          "overlay": "0 12px 28px rgb(16 16 14 / 0.14)"
         },
         "signal": {
           "data": "var(--ck-signal-data)",
@@ -1349,19 +1275,71 @@
           "warning": "var(--ck-status-warning)"
         },
         "typography": {
-          "labelTracking": "0.04em",
-          "mono": "'JetBrains Mono', monospace",
-          "ui": "'JetBrains Mono', monospace"
+          "mono": "'IBM Plex Mono', monospace",
+          "roles": {
+            "body": {
+              "fontFamily": "ui",
+              "fontSize": "1rem",
+              "fontWeight": "400",
+              "lineHeight": "1.5rem"
+            },
+            "label": {
+              "fontFamily": "ui",
+              "fontSize": "0.875rem",
+              "fontWeight": "600",
+              "letterSpacing": "0.02em",
+              "lineHeight": "1.25rem"
+            },
+            "metric": {
+              "fontFamily": "ui",
+              "fontSize": "1.75rem",
+              "fontVariantNumeric": "tabular-nums",
+              "fontWeight": "700",
+              "lineHeight": "2rem"
+            },
+            "page-title": {
+              "fontFamily": "ui",
+              "fontSize": "clamp(1.75rem, 1.5rem + 1vw, 2.25rem)",
+              "fontWeight": "700",
+              "lineHeight": "1.15"
+            },
+            "prose": {
+              "fontFamily": "serif",
+              "fontSize": "1rem",
+              "fontWeight": "400",
+              "lineHeight": "1.625"
+            },
+            "section-heading": {
+              "fontFamily": "ui",
+              "fontSize": "1.25rem",
+              "fontWeight": "700",
+              "lineHeight": "1.5rem"
+            },
+            "supporting": {
+              "fontFamily": "ui",
+              "fontSize": "0.75rem",
+              "fontWeight": "400",
+              "lineHeight": "1rem"
+            },
+            "technical": {
+              "fontFamily": "mono",
+              "fontSize": "0.875rem",
+              "fontWeight": "400",
+              "lineHeight": "1.25rem"
+            }
+          },
+          "serif": "'IBM Plex Serif', serif",
+          "ui": "'IBM Plex Sans', sans-serif"
         }
       },
       "tailwindThemeExtension": {
         "borderRadius": {
-          "panel": "var(--ck-radius-panel)",
-          "ui": "var(--ck-radius-ui)"
+          "panel": "var(--p-border-radius-lg)",
+          "ui": "var(--p-border-radius-md)"
         },
         "boxShadow": {
-          "card": "var(--ck-shadow-card)",
-          "overlay": "var(--ck-shadow-overlay)"
+          "card": "var(--p-card-shadow)",
+          "overlay": "var(--p-overlay-popover-shadow)"
         },
         "colors": {
           "chrome": "var(--ck-chrome-background)",
@@ -1437,16 +1415,14 @@
         },
         "fontFamily": {
           "mono": "var(--ck-font-mono)",
-          "sans": "var(--ck-font-ui)"
+          "sans": "var(--ck-font-ui)",
+          "serif": "var(--ck-font-serif)"
         },
         "height": {
           "preview-dialog": "var(--ck-preview-dialog-height)",
           "support-chat": "var(--ck-support-chat-height)",
           "support-chat-admin": "var(--ck-support-chat-admin-height)",
           "swatch": "var(--ck-swatch-size)"
-        },
-        "letterSpacing": {
-          "label": "var(--ck-label-tracking)"
         },
         "maxWidth": {
           "app": "var(--ck-page-max-width)",
@@ -1456,23 +1432,15 @@
           "dialog-xl": "var(--ck-dialog-xl)",
           "entity-popover": "var(--ck-entity-popover-min-width)",
           "floating-menu": "var(--ck-floating-menu-min-width)",
-          "support-chat": "var(--ck-support-chat-width)"
+          "support-chat": "var(--ck-support-chat-width)",
+          "support-chat-admin-message": "var(--ck-support-chat-admin-message-max)",
+          "support-chat-message": "var(--ck-support-chat-message-max)"
         },
         "minHeight": {
           "support-chat": "var(--ck-support-chat-height)"
         },
-        "transitionDuration": {
-          "DEFAULT": "var(--ck-motion-normal)",
-          "emphasis": "var(--ck-motion-emphasis)",
-          "fast": "var(--ck-motion-fast)",
-          "normal": "var(--ck-motion-normal)"
-        },
-        "transitionTimingFunction": {
-          "DEFAULT": "var(--ck-ease-standard)",
-          "enter": "var(--ck-ease-enter)",
-          "exit": "var(--ck-ease-exit)"
-        },
         "width": {
+          "support-chat": "var(--ck-support-chat-width)",
           "swatch": "var(--ck-swatch-size)"
         }
       }
@@ -2012,6 +1980,12 @@
     {
       "kind": "lineage",
       "source": "organization",
+      "target": "supportMessage",
+      "via": "lineage.organizationId"
+    },
+    {
+      "kind": "lineage",
+      "source": "organization",
       "target": "user",
       "via": "lineage.organizationId"
     },
@@ -2395,7 +2369,8 @@
       "label": "Solve nesting",
       "outputs": [
         "nesting_run",
-        "sheet_design"
+        "sheet_design",
+        "sheet"
       ],
       "service": "nesting",
       "tasks": [

@@ -196,6 +196,24 @@ process-designer data sockets for older imports; new code should read
 `cncEntityConstruction` directly. Post-creation data mutation belongs in an
 `updateEntity` process action.
 
+`getEntityConstruction()` has no generic-create fallback. It returns the explicit
+construction contract or `null`, so construction presence is the canonical
+create signal: an entity is process-creatable only when it declares an explicit
+construction entry. Excluded entities fall into two documented classes. Meta
+admin/config master data are authored or provisioned outside the process graph
+(`artifact_template`, `facade_pattern`, `layer_standard`, `machine`,
+`organization`, `pen_template`, `process_definition`, `profile_template`,
+`tool_profile`, `user`). System- or command-produced records are created by
+their owning service or task, not by a process create action (`entity_revision`,
+`geometry_capture`, `nesting_run`, `sheet`, `sheet_design`). `cassette_instance`
+is deliberately absent from the construction registry: instances are derived at
+nesting time through the `cassette-instances` service
+`createFromSheet`/`createFromCutSheet` constructors, not authored from an empty
+process graph. The explicit creatable entities are `artifact` (upload
+constructor), `cassette`, `cassette_design` (typed bake/import constructors),
+`catalog`, `color`, `facade`, `library`, `material`, `material_pile`,
+`project`, `queue`, `remnant`, `requisition`, and `warehouse`.
+
 `profile_template` is reusable master data for OCCS profile-section sketches.
 Cassette templates insert profile workpieces as snapshots with a
 `profileTemplateId` reference so old templates remain reproducible when the
@@ -207,6 +225,14 @@ This package may declare UI policy: entity surface keys, status visibility,
 icons, docs, component paths, field groups, surface contracts, and field paths.
 It must not import Vue components. `@cutkit/vue` turns this metadata into
 frontend lookup helpers.
+
+Entity icons are CSS class strings. CNC production entities (cassette
+template/design/instance, sheet design/instance, remnant) use the
+`ck-entity-icon-*` classes of the generated `ck-entity-icons` icon font (built
+from `public/icons/data-model/cnc-domain/*.svg` into `public/fonts/` by
+`npm run icons:build`, classes emitted into `assets/css/main.css`); they
+render in `currentColor` anywhere a PrimeIcon class is accepted. All other
+entities use PrimeIcon (`pi pi-*`) classes.
 
 `cncBlockFieldSchemas` projects the explicit framework-owned
 `CANONICAL_BLOCK_SCHEMAS`; it is not generated from entity field inventories.
@@ -233,15 +259,25 @@ be added to the structural registry (normally through its UI descriptor or an
 explicit exact access entry) before record, predicate, or patch nodes can use
 it.
 
-Commands that persist an entity hierarchy beyond their immediate return refs
-declare `requiredEntityProfiles`. `solveNesting` requires `nesting_run`,
-`sheet_design`, and physical `sheet` profiles, and declares all three output
-entity types because task completion persists all three.
+Every command and task entity output is declared as a per-output record
+`{ type, persistenceOwner, timing }`. `persistenceOwner` is `commandOwned`
+when the registered command/task business boundary persists the entity (all
+current CNC outputs) and `graphOwned` when the result only carries raw
+construction data for an explicit Create/Modify Entity graph node. `timing` is
+`immediate` for outputs present in the synchronous command return and
+`completion` for outputs that only exist after the queued task finishes —
+`solveNesting` declares `nesting_run` immediate while `sheet_design` and
+`sheet` are completion outputs of `nesting.solve`. The legacy
+`requiredEntityProfiles` requirement key is gone; result boundaries enforce
+the per-output contract (see `server/core/commands/README.md`).
 
 Display constructor metadata is split from access policy:
 
 - `ui-fields.js` declares reusable entity field groups such as summary,
   geometry, stock, production, relations, and provenance.
+  Facade and facade-pattern summary counts are declared here and rendered
+  through `EntitySurfaceContent`; their cards do not own local `DataBlock`
+  descriptor arrays.
   Aggregate child-count facts may also mark `role: 'childCount'`; generated
   cards use that metadata together with explicit `summary.*Preview`
   `entityRefList` fields to swap a numeric count for a compact child gallery.
@@ -275,6 +311,15 @@ Entity definitions may declare operation capabilities such as
 process-derived access grants before showing destructive controls. A delete
 button requires both the domain capability and an active `delete`/admin grant
 for the exact entity; endpoint presence alone is not enough.
+
+The process capability matrix is derived from four domain signals, never from
+inferred collection presence: construction presence means create,
+`operations.delete` means hard delete, a workflow `ARCHIVED` state means archive,
+and the runtime service `processUpdate` method means update. The canonical
+projection that combines these signals with the explicit runtime bindings lives
+in [`packages/processes`](../processes/README.md)
+(`projectEntityProcessCapabilities`); this package owns only the domain half of
+that derivation.
 
 Entity definitions may also declare `meta: true` for configuration,
 administration, or provenance records that are not operational work items.

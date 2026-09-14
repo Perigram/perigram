@@ -22,6 +22,24 @@ should call `getAppRegistry()`.
   `processList(filters, auth)` and `processGetById(id, auth)` bindings for each
   feature's concrete list/detail signatures; process entity nodes use those
   uniform boundaries instead of guessing positional service arguments.
+- A per-entity `processCapabilities` record spread onto each registered service
+  as `{ create, createModes, processUpdate, delete, archive }`. `create` is
+  derived from `createModes`, the intersection of the domain-declared
+  construction modes and the registered `constructionHandlers` for that entity;
+  it is never inferred from the presence of a service `create` method.
+  `processUpdate` mirrors `service.processUpdate`; hard-delete-capable services
+  expose one `processDelete(id, auth)` adapter that translates the canonical
+  process context into the feature service's existing remove signature. The
+  `delete` capability requires that adapter, while `archive` requires a domain
+  workflow `ARCHIVED` state and runtime archive binding.
+  Each declared construction mode is bound to a named handler on the entity's
+  `constructionHandlers` map (`genericCreate` maps to `service.create`, typed
+  modes to their named constructor). Every entity service must declare the
+  capability record, and the registry build throws on a missing binding, on a
+  `true` flag that does not resolve to a real service method, or on a declared
+  construction mode that lacks a registered handler (fail-fast drift check).
+  Activation, authoring, and effect execution all consume this same per-mode
+  record instead of re-detecting service methods.
 - Command handlers: `saveCassetteTemplate`, `solveNesting`,
   `generateAttachment`, `convertArtifact`, `generateConfigBotDraft`,
   `reindexConfigBotKnowledge`.

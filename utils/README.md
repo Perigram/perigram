@@ -19,7 +19,7 @@ Shared frontend utility modules used by Vue pages/components.
   such as project workspace rows, project detail facts, and selected warehouse
   inventory context without changing the reusable core library contract.
 - `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`.
-- `status-engine.js`: Compatibility status severity/icon mapping and entity route/icon registry used by shared status and trace components. New source-of-truth UI, artifact, and route metadata belongs in `@cutkit/domain-cnc` and is adapted by `@cutkit/vue`.
+- `status-engine.js`: Compatibility status severity/icon mapping and entity route/icon registry used by shared status and trace components. New source-of-truth UI, artifact, and route metadata belongs in `@cutkit/domain-cnc` and is adapted by `@cutkit/vue`. Entity icons are CSS class strings: PrimeIcon classes, or the `ck-entity-icon-*` classes of the generated `ck-entity-icons` icon font (see `scripts/build-entity-icons.js`) used by CNC production entities. Keep both registries in sync when changing entity icons.
 - `status-actions.js`: Converts workflow definitions into default `EntityStatus` action buttons so cards do not use hardcoded state transitions. Respects transition `display` (`inline`, `menu`, `hidden`) and hides self-loop metadata transitions by default. Callers may pass a workflow override; otherwise the utility uses the committed `@cutkit/domain-cnc` workflows. Also exposes `hasWorkflow()` so UI primitives can avoid server action lookups for workflow-less entity types without importing the domain package directly.
 - `status-location.js`: Normalizes typed current location facts from `status.lifecycle.data.location` for status surfaces. Supported UI types are `warehouse`, `coordinates`, and `address`.
 - `entity-events.js`: Browser-local entity change event helpers. Status
@@ -64,7 +64,9 @@ Shared frontend utility modules used by Vue pages/components.
 - `entity-hierarchy.js`: Consumes canonical entity identity and effective
   compiled Lineage projections for ancestry, root/sibling scope, and trace
   context. Route trace exclusions require the route value to match both the
-  compiled lineage key and the entity's actual ancestor id.
+  compiled lineage key and the entity's actual ancestor id. Shared trace
+  exclusions also remove the active organization and exact enclosing entity
+  contexts before rendering ancestry.
 - `artifact-viewer.js` and `artifact-detail.js`: Pure Artifact presentation
   dispatch for preview/editor mode and detail revision/file state.
 - `navigation-breadcrumbs.js` and `billing-presentation.js`: Pure organization

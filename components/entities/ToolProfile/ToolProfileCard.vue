@@ -11,7 +11,11 @@
         </div>
       </template>
       <template #compact-content>
-        <div v-if="angle" class="mt-3 text-sm text-muted-color">{{ $t('toolProfile.angle') }}: {{ angle }}°</div>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <Tag v-if="diameter" :value="`D${diameter}`" severity="secondary" size="small" />
+          <Tag v-if="kerf" :value="`${$t('toolProfile.kerf')} ${kerf} mm`" severity="info" size="small" />
+          <span v-if="angle" class="text-muted-color text-body">{{ angle }}°</span>
+        </div>
       </template>
       <Divider />
       <DataBlock entity-type="toolProfile" :entity="tool" :fields="FIELDS" />

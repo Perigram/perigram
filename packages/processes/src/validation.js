@@ -1,4 +1,6 @@
 export {
-  requiredEntityProfileTypes,
-  validateProcessDefinition
+  requiredEffectCapability,
+  validateProcessDefinition,
+  validateRequiredInputAvailability,
+  validateLineageBindingResolution
 } from './compiler-core.js';

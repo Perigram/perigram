@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { ref } from 'vue';
 import { definitionToCanvas } from '~/packages/processes/src/index.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
@@ -6,9 +7,32 @@ import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSel
 import { useProcessDesignerPersistence } from '~/composables/useProcessDesignerPersistence.js';
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 import { useProcessDesignerInspector } from '~/composables/useProcessDesignerInspector.js';
+import { useProcessDesignerScreens } from '~/composables/useProcessDesignerScreens.js';
+import { compileScreens } from '~/packages/processes/src/compiler-core.js';
+import { normalizeScreenContract, validateScreenContract } from '~/packages/processes/src/screen-contract.js';
 import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
 
 describe('process designer interaction boundaries', () => {
+  it('uses producer-output ownership instead of the removed entity-profile helper', () => {
+    const designer = readFileSync(new URL('../pages/organization/process.vue', import.meta.url), 'utf8');
+
+    expect(designer).toContain('syncProcessNodeProducerOutputs');
+    expect(designer).not.toContain('requiredEntityProfileTypes');
+    expect(designer).not.toContain('ensureRequiredEntityProfiles');
+  });
+
+  it('uses the shared annotated summary and typed grant editor without raw grant JSON', () => {
+    const designer = readFileSync(new URL('../pages/organization/process.vue', import.meta.url), 'utf8');
+    const team = readFileSync(new URL('../pages/organization/users.vue', import.meta.url), 'utf8');
+    const editor = readFileSync(new URL('../components/PermissionEditor.vue', import.meta.url), 'utf8');
+    expect(designer).toContain('deriveRoleAccessSummary');
+    expect(designer).toContain('<PermissionEditor');
+    expect(team).toContain('previewAssignmentAccess');
+    expect(team).toContain("field.type === 'number'");
+    expect(team).toContain("field.type === 'boolean'");
+    expect(editor).not.toContain('advancedPermissionJson');
+  });
+
   it('orders active, draft, and archived process definitions and selects a projectable definition', () => {
     const catalog = useProcessDefinitionCatalog({ definitionToCanvas });
     const current = createPersistedAcceptanceFixture().processDefinition;
@@ -147,5 +171,101 @@ describe('process designer interaction boundaries', () => {
     expect(draft.value.data.processNodes).toEqual({ target: { id: 'target' } });
     expect(clearSemanticConnection).toHaveBeenCalledWith(expect.objectContaining({ id: 'connection' }));
     expect(syncInferredActionInputs).toHaveBeenCalledOnce();
+  });
+
+  it('authors complete screen sources, regions, and typed bindings through the canonical contract', () => {
+    const screen = {
+      id: 'operations',
+      label: 'Operations',
+      template: 'table',
+      entityType: 'queue',
+      required: { feature: 'queues', level: 'read' },
+      bindings: {},
+      sources: [],
+      regions: [],
+      actions: []
+    };
+    const draft = ref({ data: { screens: { operations: screen } } });
+    const screens = useProcessDesignerScreens({
+      draft,
+      selectedScreenId: ref('operations'),
+      createScreen: vi.fn(),
+      normalizeScreenContract,
+      defaultEntityType: () => 'queue',
+      featureForEntityType: entityType => `${entityType}s`
+    });
+
+    screens.sync(screen);
+    const source = screen.sources[0];
+    screens.renameSource(screen, source, 'queue_source');
+    source.label = 'Queue source';
+    source.required = { feature: 'queues', level: 'write' };
+    screens.addScalar(source.filters, 'status', 'READY');
+    screens.setScalarType(source.filters, 'status', 'number');
+    source.filters.status = 3;
+    Object.assign(screens.addLineageBinding(source), {
+      childEntityType: 'queue', ancestorEntityType: 'project', lineageKey: 'projectId',
+      sourceNode: 'project-source', sourceSocket: 'project', consumingNode: 'queue-source', consumingSocket: 'queue'
+    });
+    const region = screen.regions[0];
+    region.id = 'queue_table';
+    region.label = 'Queue table';
+    region.slot = 'supporting';
+    region.surface = 'table';
+    region.actions = ['start'];
+    screens.addScalar(screen.bindings, 'limit');
+    screens.setScalarType(screen.bindings, 'limit', 'number');
+    screen.bindings.limit = 25;
+    screens.addScalar(screen.bindings, 'enabled');
+    screens.setScalarType(screen.bindings, 'enabled', 'boolean');
+    screens.addScalar(screen.bindings, 'title', 'Queues');
+    screens.addScalar(screen.bindings, 'projectId');
+    screens.setScalarType(screen.bindings, 'projectId', 'assignment');
+    screen.bindings.projectId = '$assignment.projectId';
+
+    const errors = [];
+    const normalized = validateScreenContract(screen, {
+      screenId: screen.id,
+      entities: new Set(['queue', 'project']),
+      actions: { start: {} },
+      errors
+    });
+    const compiled = compileScreens({ operations: normalized }).operations;
+
+    expect(errors).toEqual([]);
+    expect(compiled.bindings).toEqual({ limit: 25, enabled: false, title: 'Queues', projectId: '$assignment.projectId' });
+    expect(compiled.sources[0]).toMatchObject({
+      id: 'queue_source', label: 'Queue source', entityType: 'queue', mode: 'list',
+      required: { feature: 'queues', level: 'write' }, filters: { status: 3 }
+    });
+    expect(compiled.sources[0].lineageBindings).toEqual([{
+      childEntityType: 'queue', ancestorEntityType: 'project', lineageKey: 'projectId',
+      sourceNode: 'project-source', sourceSocket: 'project', consumingNode: 'queue-source', consumingSocket: 'queue'
+    }]);
+    expect(compiled.regions[0]).toEqual({
+      id: 'queue_table', label: 'Queue table', slot: 'supporting', sourceId: 'queue_source', surface: 'table', actions: ['start']
+    });
+  });
+
+  it('switches source modes without retaining fields invalid for the canonical mode', () => {
+    const screen = normalizeScreenContract({
+      id: 'detail', template: 'table', entityType: 'queue', required: { feature: 'queues', level: 'read' },
+      bindings: { entityId: '$assignment.queueId' },
+      sources: [{ id: 'queues', entityType: 'queue', mode: 'list', filters: { status: 'READY' }, lineageBindings: [{ lineageKey: 'projectId' }] }],
+      regions: [{ id: 'main', slot: 'main', sourceId: 'queues', surface: 'table', actions: [] }]
+    });
+    const screens = useProcessDesignerScreens({
+      draft: ref({ data: { screens: { detail: screen } } }), selectedScreenId: ref('detail'), createScreen: vi.fn(),
+      normalizeScreenContract, defaultEntityType: () => 'queue', featureForEntityType: () => 'queues'
+    });
+
+    screens.setSourceMode(screen, screen.sources[0], 'single');
+    expect(screen.sources[0]).toMatchObject({ mode: 'single', identifier: '$assignment.entityId', filters: {}, lineageBindings: [] });
+    const errors = [];
+    validateScreenContract(screen, { screenId: screen.id, entities: new Set(['queue']), errors });
+    expect(errors).toEqual([]);
+    expect(compileScreens({ detail: screen }).detail.sources[0].identifier).toBe('$assignment.entityId');
+    screens.setSourceMode(screen, screen.sources[0], 'list');
+    expect(screen.sources[0]).toMatchObject({ mode: 'list', identifier: null, filters: {}, lineageBindings: [] });
   });
 });

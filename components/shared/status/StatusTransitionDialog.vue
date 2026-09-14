@@ -122,7 +122,7 @@ function reset() {
   >
     <div class="flex flex-col gap-4">
       <div v-if="hasDescription" class="flex flex-col gap-2">
-        <label class="text-sm font-medium" for="status-transition-note">
+        <label class="text-label" for="status-transition-note">
           {{ t('status.evidenceDescription') }}
         </label>
         <Textarea
@@ -141,7 +141,7 @@ function reset() {
         class="flex min-w-0 flex-col gap-2"
       >
         <div class="flex min-w-0 items-center gap-2">
-          <span class="truncate text-sm font-medium">{{ attachmentLabel(slot, config) }}</span>
+          <span class="truncate text-label">{{ attachmentLabel(slot, config) }}</span>
           <Tag v-if="config.required" :value="t('status.evidenceRequired')" severity="warn" size="small" />
         </div>
         <FileUpload

@@ -32,9 +32,12 @@ Authenticated route groups continue to use `layout: 'app'` and `middleware:
 `pages/screens/[screenKey].vue` is the generated operational screen route for
 active organization processes. It looks up the current user's compiled screen
 manifest from the auth store and renders it through the fixed generated screen
-runtime, including the compiler-synthesized `home` template. Process navigation
-points to `/screens/:screenKey`; the route does not load arbitrary Vue
-components from process data. The auth middleware is the sole hydration
+runtime, including the compiler-synthesized `home` screen, whose template is
+overloaded into the Discord-style home workspace shell (sidebar navigation
+plus the tab/split pane area; see
+[components/generated/README.md](../components/generated/README.md)). Process
+navigation points to `/screens/:screenKey`; the route does not load arbitrary
+Vue components from process data. The auth middleware is the sole hydration
 boundary: generated routes must render the hydrated manifest directly and not
 re-fetch `/api/auth/me` on mount or screen-key changes, because replacing that
 manifest unmounts an already-rendered operational workspace.
@@ -157,5 +160,4 @@ architecturally meaningful are not deleted during UI refactors.
 
 ## Related
 
-- [admin pages](./admin/README.md)
 - [organization pages](./organization/README.md)

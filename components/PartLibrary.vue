@@ -9,7 +9,7 @@
     </div>
 
     <div class="flex flex-col items-center justify-center gap-3 py-20 border border-dashed rounded opacity-60">
-      <i class="pi pi-inbox text-4xl"></i>
+      <i class="pi pi-inbox"></i>
       <p class="m-0">{{ $t('profile.partLibraryComingSoon') }}</p>
     </div>
 
@@ -33,6 +33,3 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 
 const showUploadDialog = ref(false);
 </script>
-
-<style scoped>
-</style>

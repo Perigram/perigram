@@ -6,18 +6,21 @@ import { assertEntityAccess } from '~/server/core/access/service.js';
 import { executeCommand } from '~/server/core/commands/service.js';
 import { createStatusState } from '~/server/core/blocks/index.js';
 import { statusService } from '~/server/core/machines/service.js';
-import * as cassetteService from '~/server/features/cassettes/service.js';
 import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
 import * as entityEventService from '~/server/features/entity-events/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { normalizeEntityType } from '~/server/runtime/entities.js';
 import {
   compileProcessDefinition,
+  diffProcessContracts,
   hasCanonicalProcessSource,
+  normalizeProcessDefinition,
   PROCESS_DATAFLOW_VERSION,
   applyPatch,
   evaluateEntityPredicate,
   previewProcessDataflow,
+  resumeProcessRun,
+  serializeProcessResult,
   validateRoundTrip
 } from '~/packages/processes/src/index.js';
 import { createProcessFromTemplate } from '~/server/features/process-definitions/process-templates.js';
@@ -42,13 +45,30 @@ import {
   currentProcessDefinition,
   validateActivatableProcess
 } from './compiler-adapter.js';
-import { executeManualRun, resumeDueRuns as resumeStoredRuns } from './run-repository.js';
+import {
+  continueStoredRun,
+  executeManualRun,
+  getRunRepository
+} from './run-repository.js';
+import {
+  processChildEntities,
+  processParentEntity,
+  processRelatedEntities
+} from './entity-sources.js';
 
 export async function list(auth) {
   const organizationId = resolveOrganizationId(auth);
   await assertOrgAccess(auth, organizationId, 'read');
   const raws = await repository.find({ 'lineage.organizationId': toFlexibleId(organizationId) });
-  return raws.map(raw => new ProcessDefinition(raw).toJSON());
+  // Summaries only: the list is a picker surface. Shipping full records
+  // (graph + persisted compiled snapshots) made the response megabytes once
+  // activations accumulated; full data loads per id on selection.
+  return raws.map(raw => ({
+    _id: raw._id,
+    identity: raw.identity ? { ...raw.identity } : {},
+    status: raw.status ? structuredClone(raw.status) : {},
+    lineage: raw.lineage ? { ...raw.lineage } : {}
+  }));
 }
 
 export async function findRoleReferences(organizationId, roleId) {
@@ -63,7 +83,7 @@ function definitionReferencesRole(data = {}, roleId) {
   if (Object.hasOwn(data.roleGrants || {}, roleId)) return true;
   const serialized = JSON.stringify({
     graph: data.graph,
-    entityProfiles: data.entityProfiles,
+    producerOutputs: data.producerOutputs,
     actions: data.actions,
     services: data.services,
     sockets: data.sockets,
@@ -121,7 +141,7 @@ export async function create(payload = {}, auth) {
       slug: standardSlugify(name, { keepCase: false })
     },
     lineage: { organizationId: toFlexibleId(organizationId) },
-    data: currentProcessDefinition(payload.data || payload)
+    data: currentProcessDefinition(payload.data || payload, getDomain())
   });
   applyProcessStatus(process, 'DRAFT', auth.userId, 'Process draft created');
   const created = await repository.create(process);
@@ -136,22 +156,79 @@ export async function update(id, payload = {}, auth) {
   if (payload.identity?.name || payload.name) {
     process.identity.name = payload.identity?.name || payload.name;
   }
-  process.data = currentProcessDefinition(payload.data || payload);
+  process.data = currentProcessDefinition(payload.data || payload, getDomain());
   process.data.compiled = null;
   const updated = await repository.updateById(id, process);
   return new ProcessDefinition(updated).toJSON();
 }
 
+// The semantic Apply diff recomputes both sides from the canonical authored
+// definitions instead of trusting the stored `compiled` snapshot (which is
+// inspection-only). Returns null when there is no distinct active definition
+// or the previous contract can no longer be compiled for comparison.
+async function activeContractBaseline(process, auth) {
+  const active = await repository.findActiveByOrganization(process.lineage.organizationId);
+  if (!active || String(active._id) === String(process._id)) return null;
+  try {
+    const data = currentProcessDefinition(active.data, getDomain());
+    const roles = await loadOrganizationRoles(process.lineage.organizationId);
+    return compileProcessDefinition(data, getDomain(), { roles });
+  } catch {
+    return null;
+  }
+}
+
+async function contractDiffFor(process, auth) {
+  const baseline = await activeContractBaseline(process, auth);
+  if (!baseline) return null;
+  const roles = await loadOrganizationRoles(process.lineage.organizationId);
+  try {
+    return diffProcessContracts(baseline, compileProcessDefinition(process.data, getDomain(), { roles }));
+  } catch {
+    return null;
+  }
+}
+
+// Activation must not silently orphan live entities on workflow states the
+// next contract removes: the author first migrates those entities (through
+// the status engine) or keeps the states. Entity types whose status check
+// cannot run are not treated as affected.
+async function assertNoStrandedEntityStatuses(process, auth, nextCompiled) {
+  const baseline = await activeContractBaseline(process, auth);
+  if (!baseline) return;
+  const removed = diffProcessContracts(baseline, nextCompiled).removedEntityStatuses;
+  const affected = [];
+  for (const { entityType, statuses } of removed) {
+    let entities = [];
+    try {
+      entities = await queryProcessGraphEntities(entityType, {}, auth);
+    } catch {
+      continue;
+    }
+    const count = entities.filter(entity => statuses.includes(entity?.status?.state?.primary)).length;
+    if (count) affected.push({ entityType, statuses, count });
+  }
+  if (affected.length) {
+    const detail = affected.map(item => `${item.entityType} ${item.statuses.join(', ')} (${item.count})`).join('; ');
+    throw createError({
+      statusCode: 409,
+      message: `Removed workflow states still used by active entities require a migration decision: ${detail}`,
+      data: { migrationRequired: true, affected }
+    });
+  }
+}
+
 export async function validate(id, auth) {
   const process = await loadAuthorized(id, auth, 'write');
-  assertCurrentProcessDefinition(process.data);
+  process.data = currentProcessDefinition(process.data, getDomain());
   assertCanonicalProcessSource(process.data);
-  return validateActivatableProcess(process.data, getDomain(), await loadOrganizationRoles(process.lineage.organizationId));
+  const validation = validateActivatableProcess(process.data, getDomain(), await loadOrganizationRoles(process.lineage.organizationId));
+  return { ...validation, diff: await contractDiffFor(process, auth) };
 }
 
 export async function activate(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
-  assertCurrentProcessDefinition(process.data);
+  process.data = currentProcessDefinition(process.data, getDomain());
   assertCanonicalProcessSource(process.data);
   const roles = await loadOrganizationRoles(process.lineage.organizationId);
   const validation = validateActivatableProcess(process.data, getDomain(), roles);
@@ -166,6 +243,7 @@ export async function activate(id, auth) {
     ...process.data,
     compiled: compileProcessDefinition(process.data, getDomain(), { roles })
   };
+  await assertNoStrandedEntityStatuses(process, auth, process.data.compiled);
   await repository.archiveActiveByOrganization(process.lineage.organizationId, auth.userId);
   applyProcessStatus(process, 'ACTIVE', auth.userId, 'Process activated');
   const updated = await repository.updateById(id, process);
@@ -208,7 +286,17 @@ export async function archive(id, auth) {
   return new ProcessDefinition(updated).toJSON();
 }
 
-export async function startRun(id, payload = {}, auth = {}) {
+function manualRunEnvironment(definition, auth = {}) {
+  return {
+    executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data),
+    isAsyncBoundary: (request, result) => request.kind === 'effect.runCommand' && hasAsyncOutputBoundary(result),
+    catalogContext: catalogContextFromDefinition(definition.data),
+    domain: getDomain(),
+    data: run => processDataEnvironment(auth, run)
+  };
+}
+
+export async function startRun(id, payload = {}, auth = {}, options = {}) {
   const process = await loadAuthorized(id, auth, 'read');
   const definition = process.toJSON();
   if (Number(definition.data?.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
@@ -216,12 +304,12 @@ export async function startRun(id, payload = {}, auth = {}) {
   }
   const organizationId = resolveOrganizationId(auth);
   const actor = buildRunActor(auth, organizationId);
-  return executeManualRun(definition, payload, {
+  const runRepository = options.runRepository || getRunRepository(await repository.getConnection());
+  return serializeProcessResult(await executeManualRun(definition, payload, {
     actor,
-    executeEffect: (request, run) => executeDurableEffect(request, auth, run, definition.data),
-    catalogContext: catalogContextFromDefinition(definition.data),
-    data: run => processDataEnvironment(auth, run)
-  });
+    repository: runRepository,
+    ...manualRunEnvironment(definition, auth)
+  }));
 }
 
 function buildRunActor(auth, organizationId) {
@@ -249,8 +337,130 @@ function catalogContextFromDefinition(processData) {
   };
 }
 
-export async function resumeDueRuns() {
-  return resumeStoredRuns();
+async function loadRunRecord(runRepository, runId) {
+  const runRecord = await runRepository.collection('runs').findOne({ _id: String(runId) });
+  if (!runRecord) throw createError({ statusCode: 404, message: 'Process run not found' });
+  return runRecord;
+}
+
+function projectedCompletionOutput(invocation, taskResult = {}) {
+  const expected = invocation.expectedCompletionSockets || [];
+  const entities = expected.length
+    ? (taskResult.entities || []).filter(entity => expected.includes(entity?.type))
+    : (taskResult.entities || []);
+  return {
+    entities,
+    attachments: taskResult.attachments || [],
+    data: taskResult.data || {},
+    events: taskResult.events || []
+  };
+}
+
+function failRunState(state, { error, cancelled }) {
+  const next = structuredClone(state);
+  const failure = { message: error?.message || String(error || 'Task failed'), statusCode: error?.statusCode || null };
+  const pendingStepId = next.pendingEffect?.stepId;
+  if (pendingStepId) {
+    const step = next.steps.find(item => item.id === pendingStepId);
+    if (step) {
+      step.status = cancelled ? 'cancelled' : 'failed';
+      step.error = failure;
+      step.completedAt = new Date().toISOString();
+    }
+  }
+  delete next.pendingEffect;
+  next.status = cancelled ? 'cancelled' : 'failed';
+  next.error = failure;
+  next.updatedAt = new Date().toISOString();
+  return next;
+}
+
+export async function ingestTaskCompletion({ taskRunId, taskResult = {} } = {}) {
+  const runRepository = getRunRepository(await repository.getConnection());
+  const invocation = await runRepository.findInvocationByTaskRunId(taskRunId);
+  if (!invocation) return { applied: false, reason: 'uncorrelated' };
+  const runRecord = await loadRunRecord(runRepository, invocation.runId);
+  const definition = runRecord.definition;
+  const actor = runRecord.state?.context?.actor || {};
+
+  const ingested = await runRepository.ingestReceipt({
+    invocationId: invocation.invocationId,
+    socketId: '',
+    output: projectedCompletionOutput(invocation, taskResult)
+  }, {
+    advance: async ({ invocation: claimed, output, session }) => {
+      const current = await runRepository.collection('runs').findOne({ _id: claimed.runId }, { session });
+      const resumed = await resumeProcessRun(current.state, definition.data, {
+        invocationId: claimed.invocationId,
+        output
+      }, {
+        catalogContext: catalogContextFromDefinition(definition.data),
+        domain: getDomain(),
+        data: run => processDataEnvironment(actor, run)
+      });
+      return { state: resumed };
+    }
+  });
+  if (!ingested.applied) return ingested;
+
+  const refreshed = await loadRunRecord(runRepository, invocation.runId);
+  await continueStoredRun(refreshed, definition, {}, {
+    actor,
+    repository: runRepository,
+    ...manualRunEnvironment(definition, actor)
+  });
+  return ingested;
+}
+
+export async function failTaskInvocation({ taskRunId, error = null, cancelled = false } = {}) {
+  const runRepository = getRunRepository(await repository.getConnection());
+  const invocation = await runRepository.findInvocationByTaskRunId(taskRunId);
+  if (!invocation) return { applied: false, reason: 'uncorrelated' };
+  return runRepository.failInvocation(invocation.invocationId, { error, cancelled }, {
+    advance: async ({ invocation: claimed, session }) => {
+      const current = await runRepository.collection('runs').findOne({ _id: claimed.runId }, { session });
+      return { state: failRunState(current.state, { error, cancelled }) };
+    }
+  });
+}
+
+export async function reconcileProcessTaskRuns() {
+  const runRepository = getRunRepository(await repository.getConnection());
+  const { getTaskRunById } = await import('../../core/tasks/service.js');
+  const pending = await runRepository.findUnreceiptedInvocations();
+  const summary = { scanned: pending.length, ingested: 0, failed: 0, skipped: 0 };
+  for (const invocation of pending) {
+    const taskRunId = invocation.dispatch?.taskRunId;
+    if (!taskRunId) {
+      summary.skipped += 1;
+      continue;
+    }
+    let taskRun = null;
+    try {
+      taskRun = await getTaskRunById(String(taskRunId));
+    } catch {
+      summary.skipped += 1;
+      continue;
+    }
+    if (!taskRun || !['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(taskRun.status)) {
+      summary.skipped += 1;
+      continue;
+    }
+    const outcome = taskRun.status === 'SUCCEEDED'
+      ? await ingestTaskCompletion({ taskRunId: String(taskRunId), taskResult: taskRun.output || {} })
+      : await failTaskInvocation({
+        taskRunId: String(taskRunId),
+        error: taskRun.error || { message: `Task run ${taskRun.status}` },
+        cancelled: taskRun.status === 'CANCELLED'
+      });
+    if (outcome?.applied) {
+      if (taskRun.status === 'SUCCEEDED') summary.ingested += 1;
+      else summary.failed += 1;
+    } else {
+      summary.skipped += 1;
+    }
+  }
+  return summary;
 }
 
 export async function preview({ definition, nodeId = '', trigger = {}, inputs = {} } = {}, auth = {}) {
@@ -260,9 +470,14 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
     throw createError({ statusCode: 400, message: `Preview requires dataflow version ${PROCESS_DATAFLOW_VERSION}` });
   }
   const run = { context: { inputs }, trigger };
-  return await previewProcessDataflow(definition, { trigger, inputs }, {
+  // Preview results cross the HTTP boundary, so the missing-field markers
+  // produced by the evaluator are converted to their serializable tag here —
+  // the single emission conversion point shared with any runtime result
+  // emission (see packages/processes/src/missing-field.js).
+  return serializeProcessResult(await previewProcessDataflow(definition, { trigger, inputs }, {
     targetNodeId: nodeId,
     previewLimit: 100,
+    domain: getDomain(),
     catalogContext: record => {
       const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
       return {
@@ -273,7 +488,7 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
       };
     },
     data: processDataEnvironment(auth, run)
-  });
+  }));
 }
 
 export async function projectEntityThroughSocket({ socketId, entityId, targetOrganizationId } = {}, auth = {}) {
@@ -506,23 +721,25 @@ export async function resolveProcessGraphEntity(entityType, candidate, { entityI
   return entity?.toJSON ? entity.toJSON() : entity;
 }
 
-async function queryProcessGraphEntities(entityType, auth = {}) {
-  const service = getAppRegistry().getEntityService(entityType);
-  if (!service?.processList) throw new Error(`Entity service cannot query ${entityType} from a process`);
-  const entities = await service.processList({}, auth);
-  return (entities || []).map(entity => entity?.toJSON ? entity.toJSON() : entity);
+// List adapters have feature-specific filter contracts. Equality on a normal
+// persisted field is the one source predicate they all already share; leave
+// every other predicate for the evaluator rather than risking a narrower read.
+export function processQueryFilters(predicate) {
+  if (predicate?.kind !== 'field' || predicate.operation !== 'eq') return {};
+  if (!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(predicate.path || '')) return {};
+  return { [predicate.path]: predicate.value };
 }
 
-function createActionPayload(data = {}, organizationId = '') {
-  const payload = { ...(data || {}) };
-  delete payload.linkCreatedTo;
-  if (organizationId) {
-    payload.lineage = {
-      ...(payload.lineage || {}),
-      organizationId
-    };
-  }
-  return normalizeCreationPayload(payload);
+export async function executeProcessQuery(processList, predicate, auth) {
+  const values = await processList(processQueryFilters(predicate), auth);
+  return predicate ? values.filter(entity => evaluateEntityPredicate(predicate, entity)) : values;
+}
+
+async function queryProcessGraphEntities(entityType, filters = {}, auth = {}) {
+  const service = getAppRegistry().getEntityService(entityType);
+  if (!service?.processList) throw new Error(`Entity service cannot query ${entityType} from a process`);
+  const entities = await service.processList(filters, auth);
+  return (entities || []).map(entity => entity?.toJSON ? entity.toJSON() : entity);
 }
 
 async function linkCreatedEntityToContextRelation({ action = {}, data = {}, entities = {}, created = null, auth = {} } = {}) {
@@ -576,33 +793,25 @@ async function linkCreatedEntityToContextRelation({ action = {}, data = {}, enti
 function entityInputId(value) {
   if (!value) return null;
   if (typeof value !== 'object') return value;
+  const tree = Array.isArray(value.branches) ? value : (Array.isArray(value.result?.branches) ? value.result : null);
+  if (tree) {
+    const items = tree.branches.flatMap(branch => branch.items || []).filter(item => item && !item.error);
+    return items.length === 1 ? entityInputId(items[0]) : null;
+  }
   return value.id || value._id || value.identity?.uid || null;
 }
 
-function normalizeCreationPayload(payload = {}) {
-  const normalized = { ...payload };
-  if (normalized.identity?.name && !normalized.name) normalized.name = normalized.identity.name;
-  if (normalized.identity?.slug && !normalized.slug) normalized.slug = normalized.identity.slug;
-  if (normalized.lineage && typeof normalized.lineage === 'object' && !Array.isArray(normalized.lineage)) {
-    for (const [key, value] of Object.entries(normalized.lineage)) {
-      if (normalized[key] === undefined) normalized[key] = value;
-    }
-  }
-  for (const block of ['data', 'specs', 'summary']) {
-    if (!normalized[block] || typeof normalized[block] !== 'object' || Array.isArray(normalized[block])) continue;
-    for (const [key, value] of Object.entries(normalized[block])) {
-      if (normalized[key] === undefined) normalized[key] = value;
-    }
-  }
-  return normalized;
-}
-
 async function applyProcessOutputStatuses({ actionId, result = {}, processData = {}, organizationId, auth = {} } = {}) {
-  const statusByEntityType = commandOutputStatusMap(actionId, processData);
-  if (!statusByEntityType.size) return;
+  const statusesByEntityType = commandOutputStatusMap(actionId, processData);
+  if (!statusesByEntityType.size) return;
   for (const entityRef of result.entities || []) {
     const entityType = normalizeEntityType(entityRef.type || entityRef.entityType || '');
-    const targetState = statusByEntityType.get(entityType);
+    const statusTargets = statusesByEntityType.get(entityType) || [];
+    if (statusTargets.length > 1) {
+      throw new Error(`Process command action ${actionId} has ambiguous status outputs for ${entityType}`);
+    }
+    const statusTarget = statusTargets[0];
+    const targetState = statusTarget?.targetState;
     const targetId = entityRef.id || entityRef._id;
     if (!entityType || !targetState || !targetId) continue;
     await statusService.setInitialStateForOrganization(
@@ -611,7 +820,11 @@ async function applyProcessOutputStatuses({ actionId, result = {}, processData =
       targetState,
       organizationId,
       auth.userId,
-      processStatusMetadata({ entityType, status: { to: targetState } }, `Created by process command action ${actionId}`, processData)
+      processStatusMetadata({
+        entityType,
+        producerOutputId: statusTarget.producerOutputId,
+        status: { to: targetState }
+      }, `Created by process command action ${actionId}`, processData)
     );
     await entityEventService.publishEntityChanged(auth, {
       type: entityType,
@@ -660,7 +873,8 @@ function entityId(entity = {}) {
 
 function hasAsyncOutputBoundary(result = {}) {
   return (result.tasks || []).length > 0
-    || (result.jobs || []).some(job => ['task_run', 'task'].includes(job?.type));
+    || (result.raw?.tasks || []).length > 0
+    || [...(result.jobs || []), ...(result.raw?.jobs || [])].some(job => ['task_run', 'task'].includes(job?.type));
 }
 
 function commandOutputStatusMap(actionId, processData = {}) {
@@ -686,43 +900,20 @@ function commandOutputStatusMap(actionId, processData = {}) {
       || String(edge.sourceHandle || '').replace(/^output:/, '')
     );
     const targetState = targetAction.status?.to || targetAction.access?.statusTo;
-    if (entityType && targetState) map.set(entityType, targetState);
+    if (entityType && targetState) {
+      const targets = map.get(entityType) || [];
+      targets.push({ targetState, producerOutputId: targetAction.producerOutputId || null });
+      map.set(entityType, targets);
+    }
   }
   return map;
-}
-
-async function executeBakeCassetteDesign(action = {}, data = {}, organizationId, auth = {}, processData = {}, entities = {}) {
-  const templateId = data.templateId || data.cassetteId || data.provenance?.derivedFrom?.source?.id
-    || entities.cassette
-    || await defaultCassetteTemplateId(auth, organizationId, action);
-  if (!templateId) throw createError({ statusCode: 400, message: 'Cassette template is required' });
-  const created = await cassetteService.createDesignFromTemplate(
-    templateId,
-    data.parameters || {},
-    auth.userId,
-    organizationId,
-    auth.role,
-    createActionExecutionAuth(auth, action)
-  );
-  const targetState = action.status?.to;
-  if (!targetState) return created;
-  const targetId = created?._id || created?.identity?.uid;
-  if (!targetId) return created;
-  const status = await statusService.setInitialStateForOrganization(
-    resolveActionEntityType(action),
-    targetId,
-    targetState,
-    organizationId,
-    auth.userId,
-    processStatusMetadata(action, `Created by process action ${action.id}`, processData)
-  );
-  return { ...created, status };
 }
 
 function processStatusMetadata(action = {}, note = '', processData = {}) {
   const display = actionStatusDisplayMetadata(action, processData);
   return {
     note,
+    ...(action.producerOutputId ? { producerOutputId: action.producerOutputId } : {}),
     ...(display ? { display } : {})
   };
 }
@@ -771,16 +962,6 @@ function statusDisplayMetadata(status = {}) {
     ...(status.icon ? { icon: status.icon } : {})
   };
   return Object.keys(display).length ? display : null;
-}
-
-async function defaultCassetteTemplateId(auth = {}, organizationId, action = {}) {
-  const template = await cassetteService.findDefaultConstructableTemplate?.(
-    auth.userId,
-    organizationId,
-    auth.role,
-    createActionExecutionAuth(auth, action)
-  );
-  return template?._id || template?.identity?.uid || null;
 }
 
 export async function getByIdInternal(id) {
@@ -866,6 +1047,8 @@ function commandExecutionGrants(action = {}) {
 function executionActionsForAction(action = {}) {
   if (action.actionKind === 'runCommand') return { run: true };
   if (action.actionKind === 'updateEntity') return { update: true, edit: true };
+  if (action.actionKind === 'archiveEntity') return { update: true, edit: true, archive: true };
+  if (action.actionKind === 'deleteEntity') return { delete: true };
   return { create: true };
 }
 
@@ -935,24 +1118,14 @@ function pickMutationData(data = {}, action = {}, entities = {}) {
   return picked;
 }
 
-async function normalizeProcessMutation(entityType, mutation = {}, action = {}, auth = {}) {
-  const policy = getEntityFieldAccessPolicy(entityType) || getDomain().fieldAccess?.[entityType];
-  const writable = action.access?.level === 'admin'
-    ? [...(policy?.write || []), ...(policy?.admin || [])]
-    : [...(policy?.write || [])];
-  const fields = action.mutation?.fields || [];
-  for (const field of fields) {
-    if (!fieldPathAllowed(field, writable)) {
-      throw createError({ statusCode: 400, message: `Action cannot update protected field ${field}` });
-    }
-  }
-
+async function normalizeProcessMutation(entityType, mutation = {}, relationContracts = [], auth = {}) {
   if (!mutation.relations) return mutation;
   const normalizedRelations = {};
   for (const [key, value] of Object.entries(mutation.relations)) {
-    const relation = (getDomain().relations || []).find(item => item.ownerType === entityType && item.key === key);
-    const input = (action.inputs || []).find(item => item.relationKey === key || item.id === `relation:${key}`);
-    if (!relation || !input) {
+    const relation = relationContracts.find(item => (
+      normalizeEntityType(item.ownerType) === normalizeEntityType(entityType) && item.key === key
+    ));
+    if (!relation) {
       throw createError({ statusCode: 400, message: `Action cannot write undeclared relation ${entityType}.${key}` });
     }
     const values = Array.isArray(value) ? value : [value];
@@ -966,10 +1139,36 @@ async function normalizeProcessMutation(entityType, mutation = {}, action = {}, 
       throw createError({ statusCode: 400, message: `Relation ${entityType}.${key} accepts exactly one entity` });
     }
     normalizedRelations[key] = relation.cardinality === 'many'
-      ? Array.from(new Map(refs.map(ref => [`${ref.type}:${ref.id}:${ref.revisionId || ''}`, ref])).values())
+      ? Array.from(new Map(refs.map(ref => [`${ref.type}:${ref.id}`, ref])).values())
       : refs[0];
   }
   return { ...mutation, relations: normalizedRelations };
+}
+
+function processRelationContracts(record = {}, processData = {}) {
+  const actionId = String(record.entryTriggerId || record.id || '');
+  return normalizeProcessDefinition(processData, getDomain()).actions?.[actionId]?.mutation?.relationContracts || [];
+}
+
+function declaredRelationValues(value, contracts = []) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.fromEntries(contracts
+    .filter(contract => Object.hasOwn(value, contract.key))
+    .map(contract => [contract.key, value[contract.key]]));
+}
+
+async function normalizeProcessPatchRelations(entityType, patch = {}, contracts = [], auth = {}) {
+  const relations = Object.fromEntries(contracts.flatMap(contract => (
+    Object.hasOwn(patch, `relations.${contract.key}`)
+      ? [[contract.key, patch[`relations.${contract.key}`]]]
+      : []
+  )));
+  if (!Object.keys(relations).length) return patch;
+  const normalized = await normalizeProcessMutation(entityType, { relations }, contracts, auth);
+  return {
+    ...patch,
+    ...Object.fromEntries(Object.entries(normalized.relations).map(([key, value]) => [`relations.${key}`, value]))
+  };
 }
 
 async function assertRelationTargetAvailable(ref, relation = {}, auth = {}) {
@@ -1000,10 +1199,6 @@ function normalizeRelationRef(value, targetType) {
     throw createError({ statusCode: 400, message: `Relation target must be ${targetType}` });
   }
   return { ...ref, type: targetType };
-}
-
-function fieldPathAllowed(path, patterns = []) {
-  return patterns.some(pattern => pattern === path || (pattern.endsWith('.*') && (path === pattern.slice(0, -2) || path.startsWith(pattern.slice(0, -1)))));
 }
 
 async function persistProcessEntityPatch(entityType, targetId, patch, auth) {
@@ -1055,6 +1250,9 @@ function setByPath(target, path, value) {
 }
 
 function processDataEnvironment(auth, run) {
+  const domain = getDomain();
+  const resolveEntity = (entityType, idOrRef) => resolveProcessGraphEntity(entityType, idOrRef, { auth });
+  const queryEntities = (entityType, filters) => queryProcessGraphEntities(entityType, filters, auth);
   return {
     currentEntity: async entityType => {
       const candidate = run.context?.inputs?.entities?.[entityType] || run.context?.inputs?.entity;
@@ -1062,10 +1260,13 @@ function processDataEnvironment(auth, run) {
     },
     entityById: (entityType, id) => resolveProcessGraphEntity(entityType, id, { auth }),
     resolveEntityRef: ref => resolveProcessGraphEntity(ref.type, ref, { auth }),
+    parentEntity: (entity, entityType) => processParentEntity(domain.containment, resolveEntity, entity, entityType),
+    childEntities: (entity, entityType) => processChildEntities(domain.containment, queryEntities, entity, entityType),
+    relatedEntities: (entity, relationKey, entityType) => processRelatedEntities(domain.relations, resolveEntity, entity, relationKey, entityType),
     queryEntities: async (entityType, predicate) => {
-      const values = await queryProcessGraphEntities(entityType, auth);
-      if (!predicate) return values;
-      return values.filter(entity => evaluateEntityPredicate(predicate, entity));
+      const service = getAppRegistry().getEntityService(entityType);
+      if (!service?.processList) throw new Error(`Entity service cannot query ${entityType} from a process`);
+      return executeProcessQuery(service.processList, predicate, auth);
     }
   };
 }
@@ -1074,7 +1275,7 @@ async function executeDurableEffect(request, auth, run, processData) {
   return await performDurableEffect(request, auth, processData);
 }
 
-async function performDurableEffect({ kind, record, inputs }, auth, processData = {}) {
+export async function performDurableEffect({ kind, record, inputs }, auth, processData = {}) {
   if (kind === 'effect.runCommand') {
     if (!record.commandId) throw new Error('Command effect requires commandId');
     return await executeCommand(record.commandId, commandEffectPayload(record.commandId, inputs), auth);
@@ -1083,71 +1284,65 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
   if (!entityType) throw new Error(`${kind} requires entityType`);
   const service = getAppRegistry().getEntityService(entityType);
   if (!service) throw new Error(`Entity service missing for ${entityType}`);
+  const requiredCapability = {
+    'effect.archiveEntity': 'archive',
+    'effect.deleteEntity': 'delete'
+  }[kind];
+  if (requiredCapability && service.processCapabilities?.[requiredCapability] !== true) {
+    throw new Error(`${entityType} does not support process ${requiredCapability}`);
+  }
+  if (kind === 'effect.deleteEntity' && !getDomain().entities?.find(entity => entity.type === entityType)?.operations?.delete) {
+    throw new Error(`${entityType} does not declare hard deletion`);
+  }
+  const relationContracts = ['effect.createEntity', 'effect.updateEntity'].includes(kind)
+    ? processRelationContracts(record, processData)
+    : [];
   if (kind === 'effect.createEntity' || kind === 'effect.runProducer') {
     const constructionDraft = processConstructionInputRecord(record, inputs);
-    const blockDraft = kind === 'effect.createEntity' ? processBlockInputRecord(record, inputs) : {};
+    let blockDraft = kind === 'effect.createEntity' ? processBlockInputRecord(record, inputs) : {};
+    const relationValues = declaredRelationValues(inputs.relations, relationContracts);
+    if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
+    const executionAuth = createActionExecutionAuth(auth, record);
+    blockDraft = await normalizeProcessMutation(entityType, blockDraft, relationContracts, executionAuth);
     const draft = { ...blockDraft, ...constructionDraft };
     const targetState = inputs['status.state.primary'] || record.status?.to;
     const statusMetadata = draft.status?.metadata && typeof draft.status.metadata === 'object'
       ? draft.status.metadata
       : {};
     delete draft.status;
-    const parentEntities = {};
-    if (entityType === 'cassette_design' && record.construction?.mode === 'bakeCassetteDesignFromTemplate') {
-      const created = await executeBakeCassetteDesign({
-        ...record,
-        status: { ...(record.status || {}), to: targetState || '' }
-      }, draft, resolveOrganizationId(auth), auth, processData, parentEntities);
-      return await applyTypedConstructionBlocks(record, blockDraft, created, service, auth);
+    const mode = record.construction?.mode || '';
+    const handler = service.constructionHandlers?.[mode];
+    if (typeof handler !== 'function') {
+      throw new Error(`No registered handler for construction mode ${mode || '(none)'} on ${entityType}`);
     }
-    if (entityType === 'cassette_design' && record.construction?.mode === 'importCassetteDesignFromArtifact') {
-      const data = draft;
-      const imported = await cassetteService.importFromArtifact(
-        data.artifactId,
-        data.name || data.identity?.name,
-        auth.userId,
-        resolveOrganizationId(auth),
-        auth.role,
-        createActionExecutionAuth(auth, record),
-        data.layerMapping || null,
-        data.parameters || null
-      );
-      const created = await applyTypedConstructionBlocks(record, blockDraft, imported.design, service, auth);
-      if (!targetState) return created;
-      const targetId = created?._id || created?.identity?.uid;
-      const status = await statusService.setInitialStateForOrganization(
-        entityType,
-        targetId,
-        targetState,
-        resolveOrganizationId(auth),
-        auth.userId,
-        processStatusMetadata(record, `Created by process effect ${record.id}`, processData)
-      );
-      return { ...created, status };
-    }
-    if (!service.create) throw new Error(`Entity service cannot create ${entityType}`);
-    const created = await service.create(
-      createActionPayload(draft, resolveOrganizationId(auth)),
-      auth.userId,
-      resolveOrganizationId(auth),
-      auth.role,
-      createActionExecutionAuth(auth, record)
-    );
+    const organizationId = resolveOrganizationId(auth);
+    const created = await handler(draft, {
+      userId: auth.userId,
+      organizationId,
+      role: auth.role,
+      executionAuth,
+      applyTypedBlocks: result => applyTypedConstructionBlocks(record, blockDraft, result, service, auth)
+    });
     const dto = created?.toJSON ? created.toJSON() : created;
-    const targetId = dto?._id || dto?.identity?.uid;
-    if (!targetState || !targetId) return dto;
-    const status = await statusService.setInitialStateForOrganization(
-      entityType,
-      targetId,
-      targetState,
-      resolveOrganizationId(auth),
-      auth.userId,
-      {
-        ...statusMetadata,
-        ...processStatusMetadata(record, `Created by process effect ${record.id}`, processData)
-      }
-    );
-    return { ...dto, status };
+    const targetId = entityId(dto);
+    const result = targetState && targetId
+      ? {
+          ...dto,
+          status: await statusService.setInitialStateForOrganization(
+            entityType,
+            targetId,
+            targetState,
+            organizationId,
+            auth.userId,
+            {
+              ...statusMetadata,
+              ...processStatusMetadata(record, `Created by process effect ${record.id}`, processData)
+            }
+          )
+        }
+      : dto;
+    await publishActionEntityEvent(auth, entityType, result, 'created', 'process-create');
+    return result;
   }
   const target = normalizeEntityRef(inputs.entity);
   if (!target?.id) throw new Error(`${kind} requires an entity reference`);
@@ -1160,18 +1355,22 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
       value: statusValue
     };
     if (statusChange) {
-      const patch = Object.fromEntries(persistedChanges.map(change => {
+      let patch = Object.fromEntries(persistedChanges.map(change => {
         if ((change.operation || 'set') !== 'set') throw new Error(`Status transition patch does not support ${change.operation}`);
         return [change.path, change.value];
       }));
-      return await statusService.transitionWithResult({
+      Object.assign(patch, Object.fromEntries(Object.entries(declaredRelationValues(inputs.relations, relationContracts))
+        .map(([key, value]) => [`relations.${key}`, value])));
+      patch = await normalizeProcessPatchRelations(entityType, patch, relationContracts, auth);
+      const result = await statusService.transitionWithResult({
         entityType,
         targetId: target.id,
         targetState: typeof statusChange.value === 'string' ? statusChange.value : statusChange.value?.id,
         auth,
-        context: { source: 'process-run' },
+        context: effectTransitionContext(record, inputs),
         patch: Object.keys(patch).length ? patch : null
       });
+      return result.entity;
     }
     let patch;
     if (persistedChanges.every(change => (change.operation || 'set') === 'set')) {
@@ -1186,6 +1385,9 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
         return [change.path, value];
       }));
     }
+    Object.assign(patch, Object.fromEntries(Object.entries(declaredRelationValues(inputs.relations, relationContracts))
+      .map(([key, value]) => [`relations.${key}`, value])));
+    patch = await normalizeProcessPatchRelations(entityType, patch, relationContracts, auth);
     if (!service.processUpdate) throw new Error(`Entity service cannot update ${entityType}`);
     return await service.processUpdate(target.id, patch, auth);
   }
@@ -1194,14 +1396,29 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
       if ((change.operation || 'set') !== 'set') throw new Error(`Status transition patch does not support ${change.operation}`);
       return [change.path, change.value];
     }));
-    return await statusService.transitionWithResult({
+    const result = await statusService.transitionWithResult({
       entityType,
       targetId: target.id,
       targetState: typeof inputs.status === 'string' ? inputs.status : inputs.status?.id,
       auth,
-      context: { source: 'process-run' },
+      context: effectTransitionContext(record, inputs),
       patch: Object.keys(patch).length ? patch : null
     });
+    return result.entity;
+  }
+  if (kind === 'effect.archiveEntity') {
+    const result = await statusService.transitionWithResult({
+      entityType,
+      targetId: target.id,
+      ...(record.archiveIntent ? { intent: record.archiveIntent } : { targetState: 'ARCHIVED' }),
+      auth,
+      context: effectTransitionContext(record, inputs)
+    });
+    return result.entity;
+  }
+  if (kind === 'effect.deleteEntity') {
+    if (!service.processDelete) throw new Error(`Entity service cannot delete ${entityType}`);
+    return await service.processDelete(target.id, auth);
   }
   if (kind === 'effect.sendEntity') {
     return await projectEntityThroughSocket({
@@ -1218,6 +1435,17 @@ async function performDurableEffect({ kind, record, inputs }, auth, processData 
     }, auth);
   }
   throw new Error(`Unsupported process effect ${kind}`);
+}
+
+function effectTransitionContext(record = {}, inputs = {}) {
+  return {
+    source: 'process-run',
+    ...(record.producerOutputId ? { producerOutputId: record.producerOutputId } : {}),
+    ...(inputs.region || record.region ? { region: inputs.region || record.region } : {}),
+    ...(inputs.path || record.path ? { path: inputs.path || record.path } : {}),
+    ...(inputs.metadata || record.metadata ? { metadata: inputs.metadata || record.metadata } : {}),
+    ...(inputs.lifecycle || record.lifecycle ? { lifecycle: inputs.lifecycle || record.lifecycle } : {})
+  };
 }
 
 async function applyTypedConstructionBlocks(record = {}, blockDraft = {}, created = null, service = null, auth = {}) {

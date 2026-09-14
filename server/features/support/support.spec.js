@@ -1,13 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  connectionsPublish: vi.fn(),
   repository: {
     findConversationMessages: vi.fn(),
     findReadStates: vi.fn(),
     markRead: vi.fn(),
     insert: vi.fn(),
     find: vi.fn(),
-    findSince: vi.fn()
+    findSince: vi.fn(),
+    insertGroup: vi.fn(),
+    findGroupById: vi.fn(),
+    findGroupsByParticipant: vi.fn(async () => []),
+    deleteGroupById: vi.fn()
   },
   usersService: {
     getById: vi.fn(),
@@ -31,6 +36,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('./repository.js', () => mocks.repository);
+vi.mock('~/server/features/connections/service.js', () => ({
+  publish: mocks.connectionsPublish,
+  registerTopicAuthorizer: vi.fn()
+}));
 vi.mock('~/server/features/cassette-designs/service.js', () => mocks.cassetteDesignsService);
 vi.mock('~/server/features/cassettes/service.js', () => mocks.cassettesService);
 vi.mock('~/server/features/catalogs/service.js', () => mocks.catalogsService);
@@ -627,5 +636,108 @@ describe('support communication service', () => {
         label: 'Iklya 1'
       })
     ]);
+  });
+  it('creates group chats with the creator plus reachable participants', async () => {
+    mocks.usersService.list.mockResolvedValue([
+      { toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} }) },
+      { toJSON: () => ({ _id: 'user-c', identity: { name: 'User C' }, data: {} }) }
+    ]);
+    mocks.repository.insertGroup.mockImplementation(async doc => ({ ...doc, _id: 'group-1' }));
+
+    const group = await supportService.createGroup(auth, { name: 'Workshop', participantIds: ['user-b', 'user-outsider'] });
+
+    expect(group).toMatchObject({
+      _id: 'group-1',
+      identity: { name: 'Workshop' },
+      participants: ['user-a', 'user-b']
+    });
+    expect(mocks.repository.insertGroup).toHaveBeenCalledWith(expect.objectContaining({
+      lineage: { organizationId: 'org-1' },
+      participants: ['user-a', 'user-b']
+    }));
+    await expect(supportService.createGroup(auth, { name: '   ' })).rejects.toMatchObject({ statusCode: 400 });
+    await expect(supportService.createGroup({ ...auth, organizationId: null }, { name: 'X' })).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('resolves group conversation contexts for members and admins only', async () => {
+    mocks.repository.findGroupById.mockResolvedValue({
+      _id: 'group-1',
+      identity: { name: 'Workshop' },
+      origin: { userId: 'user-a' },
+      lineage: { organizationId: 'org-1' },
+      participants: ['user-a', 'user-b']
+    });
+
+    await expect(supportService.getConversationContextByKey(auth, 'group:group-1')).resolves.toMatchObject({
+      kind: 'group',
+      conversationKey: 'group:group-1',
+      participants: ['user-a', 'user-b'],
+      name: 'Workshop'
+    });
+    const outsider = { ...auth, userId: 'user-c' };
+    await expect(supportService.getConversationContextByKey(outsider, 'group:group-1')).rejects.toMatchObject({ statusCode: 403 });
+    const admin = { ...outsider, isAdmin: true };
+    await expect(supportService.getConversationContextByKey(admin, 'group:group-1')).resolves.toMatchObject({ kind: 'group' });
+    mocks.repository.findGroupById.mockResolvedValue(null);
+    await expect(supportService.getConversationContextByKey(auth, 'group:missing')).rejects.toMatchObject({ statusCode: 404 });
+  });
+
+  it('deletes groups only for the creator or admins', async () => {
+    mocks.repository.findGroupById.mockResolvedValue({
+      _id: 'group-1',
+      identity: { name: 'Workshop' },
+      origin: { userId: 'user-a' },
+      lineage: { organizationId: 'org-1' },
+      participants: ['user-a', 'user-b']
+    });
+
+    await expect(supportService.deleteGroup({ ...auth, userId: 'user-b' }, 'group-1')).rejects.toMatchObject({ statusCode: 403 });
+    await expect(supportService.deleteGroup(auth, 'group-1')).resolves.toEqual({ deleted: true });
+    expect(mocks.repository.deleteGroupById).toHaveBeenCalledWith('group-1');
+  });
+
+  it('merges member groups into the conversation inbox, including message-less groups', async () => {
+    mocks.repository.findConversationMessages.mockResolvedValue([
+      {
+        conversationKey: 'group:group-1',
+        conversationKind: 'group',
+        participants: ['user-a', 'user-b'],
+        message: 'hello workshop',
+        senderUserId: 'user-b',
+        timestamp: new Date('2026-06-27T10:00:00.000Z')
+      }
+    ]);
+    mocks.repository.findGroupsByParticipant.mockResolvedValue([
+      {
+        _id: 'group-1',
+        identity: { name: 'Workshop' },
+        origin: { userId: 'user-a' },
+        lineage: { organizationId: 'org-1' },
+        participants: ['user-a', 'user-b']
+      },
+      {
+        _id: 'group-2',
+        identity: { name: 'Night Shift' },
+        origin: { userId: 'user-b' },
+        lineage: { organizationId: 'org-1' },
+        participants: ['user-a']
+      }
+    ]);
+    mocks.repository.findReadStates.mockResolvedValue([]);
+
+    const conversations = await supportService.listUserConversations(auth);
+
+    expect(conversations.find(item => item.conversationKey === 'group:group-1')).toMatchObject({
+      conversationKind: 'group',
+      groupName: 'Workshop',
+      lastMessage: 'hello workshop',
+      unreadCount: 1,
+      participant: null
+    });
+    expect(conversations.find(item => item.conversationKey === 'group:group-2')).toMatchObject({
+      groupName: 'Night Shift',
+      lastMessage: '',
+      timestamp: null
+    });
   });
 });

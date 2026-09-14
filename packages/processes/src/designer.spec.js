@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { createProcessDesignerContract } from './designer.js';
+import { createProcessDesignerContract, syncProcessNodeProducerOutputs } from './designer.js';
 import { getProcessNodeDefinition } from './node-catalog.js';
 
 describe('process designer domain contract', () => {
@@ -45,6 +45,29 @@ describe('process designer domain contract', () => {
       }
     }
   };
+
+  it('persists the stable producer identity for an entity-emitting effect node', () => {
+    const data = { producerOutputs: {} };
+    const node = {
+      id: 'processNode_1785860422855',
+      kind: 'effect.createEntity',
+      outputs: [{
+        id: 'result',
+        type: { base: 'entity', entityType: 'work_item', nullable: false }
+      }]
+    };
+
+    expect(syncProcessNodeProducerOutputs(data, node)).toEqual(['processNode_1785860422855:result']);
+    expect(node.producerOutputId).toBe('processNode_1785860422855:result');
+    expect(data.producerOutputs[node.producerOutputId]).toEqual({
+      producerOutputId: 'processNode_1785860422855:result',
+      nodeId: 'processNode_1785860422855',
+      outputSocketId: 'result',
+      entityType: 'work_item',
+      lifecycle: { mode: 'defaultCreated' },
+      fields: { read: [], write: [], private: [] }
+    });
+  });
 
   it('projects a domain implementation through framework-owned designer contracts', () => {
     const contract = createProcessDesignerContract(domain);
@@ -98,18 +121,110 @@ describe('process designer domain contract', () => {
     ]);
   });
 
-  it('provides generic construction for any registered entity', () => {
+  it('does not infer generic construction for entities without an explicit contract', () => {
     const contract = createProcessDesignerContract(domain);
 
-    expect(contract.construction('result')).toEqual({
+    expect(contract.construction('result')).toBeNull();
+    expect(contract.construction('work_item')).toMatchObject({
       modes: ['genericCreate'],
-      defaultMode: 'genericCreate',
-      inputs: []
+      defaultMode: 'genericCreate'
     });
   });
 
-  it('presents authoring operations by concern without exposing runtime plumbing', () => {
+  it('filters per-operation entity options by the matching domain signal', () => {
     const contract = createProcessDesignerContract(domain);
+
+    expect(contract.createEntityOptions).toEqual([{ label: 'Work item', value: 'work_item' }]);
+    expect(contract.updateEntityOptions).toEqual([{ label: 'Work item', value: 'work_item' }]);
+    expect(contract.changeStatusOptions).toEqual([{ label: 'Work item', value: 'work_item' }]);
+    expect(contract.deleteEntityOptions).toEqual([]);
+    expect(contract.archivableEntityOptions).toEqual([]);
+    expect(contract.paletteGroups.flatMap(group => group.items).map(item => item.kind)).not.toContain('effect.deleteEntity');
+    expect(contract.paletteGroups.flatMap(group => group.items).map(item => item.kind)).not.toContain('effect.archiveEntity');
+  });
+
+  it('gates list and get-by-id entity choices by the serialized capability projection', () => {
+    const contract = createProcessDesignerContract(domain, {
+      work_item: { list: true, getById: true },
+      result: { list: false, getById: true }
+    });
+
+    expect(contract.listableEntityOptions).toEqual([{ label: 'Work item', value: 'work_item' }]);
+    expect(contract.readableEntityOptions).toEqual([
+      { label: 'Work item', value: 'work_item' },
+      { label: 'result', value: 'result' }
+    ]);
+  });
+
+  it('falls back to every entity for read choices when no capability projection is loaded', () => {
+    const contract = createProcessDesignerContract(domain);
+
+    expect(contract.listableEntityOptions).toEqual([
+      { label: 'Work item', value: 'work_item' },
+      { label: 'result', value: 'result' }
+    ]);
+    expect(contract.readableEntityOptions).toEqual([
+      { label: 'Work item', value: 'work_item' },
+      { label: 'result', value: 'result' }
+    ]);
+  });
+
+  it('derives create options and modes from a serialized capability projection when present', () => {
+    const contract = createProcessDesignerContract(domain, {
+      work_item: { createModes: ['genericCreate'] },
+      result: { createModes: [] }
+    });
+
+    expect(contract.createEntityOptions).toEqual([{ label: 'Work item', value: 'work_item' }]);
+    expect(contract.createModes('work_item')).toEqual(['genericCreate']);
+    expect(contract.createModes('result')).toEqual([]);
+  });
+
+  it('filters an entity whose declared mode has no effective runtime handler', () => {
+    const contract = createProcessDesignerContract({
+      ...domain,
+      construction: {
+        ...domain.construction,
+        result: { modes: ['deriveResult'], defaultMode: 'deriveResult', inputs: [] }
+      }
+    }, {
+      work_item: { createModes: ['genericCreate'] },
+      result: { createModes: [] }
+    });
+
+    expect(contract.createEntityOptions).toEqual([{ label: 'Work item', value: 'work_item' }]);
+    expect(contract.createModes('result')).toEqual([]);
+  });
+
+  it('exposes delete and archive options only for entities with those capabilities', () => {
+    const contract = createProcessDesignerContract({
+      ...domain,
+      entities: [
+        ...domain.entities,
+        { type: 'queue', label: 'Queue', blocks: ['identity'], operations: { delete: true } },
+        { type: 'library', label: 'Library', blocks: ['identity'] }
+      ],
+      workflows: {
+        ...domain.workflows,
+        queue: { label: 'Queue lifecycle', regions: { main: { states: { DRAFT: {}, ARCHIVED: {} } } } },
+        library: { label: 'Library lifecycle', regions: { main: { states: { ACTIVE: {} } } } }
+      }
+    }, {
+      work_item: { delete: false, archive: false },
+      result: { delete: false, archive: false },
+      queue: { delete: true, archive: true },
+      library: { delete: false, archive: false }
+    });
+
+    expect(contract.deleteEntityOptions).toEqual([{ label: 'Queue', value: 'queue' }]);
+    expect(contract.archivableEntityOptions).toEqual([{ label: 'Queue', value: 'queue' }]);
+  });
+
+  it('presents authoring operations by concern without exposing runtime plumbing', () => {
+    const contract = createProcessDesignerContract(domain, {
+      work_item: { delete: true, archive: true },
+      result: { delete: false, archive: false }
+    });
     const groups = Object.fromEntries(contract.paletteGroups.map(group => [group.id, group.items]));
     const items = contract.paletteGroups.flatMap(group => group.items);
 
@@ -121,14 +236,24 @@ describe('process designer domain contract', () => {
     expect(groups.entities.map(item => item.kind || item.type)).toEqual([
       'effect.createEntity',
       'effect.updateEntity',
+      'effect.changeStatus',
+      'effect.archiveEntity',
+      'effect.deleteEntity',
       'effect.runCommand',
       'statusDefinition',
+      'read.currentEntity',
+      'read.entityById',
+      'read.resolveEntityRef',
       'read.queryEntities',
+      'read.parent',
+      'read.children',
+      'read.related',
       'record.deconstruct',
       'record.composeBlock',
       'record.modifyBlock',
       'record.getBlock',
-      'record.getField'
+      'record.getField',
+      'producer.join'
     ]);
     expect(groups.values.map(item => item.kind)).toEqual([
       'source.literalItem',
@@ -138,6 +263,19 @@ describe('process designer domain contract', () => {
       'value.dateTime'
     ]);
     expect(groups.listTree.map(item => item.kind)).not.toContain('tree.cross');
+    expect(groups.listTree[0]).toMatchObject({ id: 'makeList', kind: 'collection.makeList' });
+    expect(groups.listTree.map(item => item.kind)).not.toEqual(expect.arrayContaining([
+      'collection.reverse',
+      'collection.shift',
+      'collection.partition',
+      'tree.flatten',
+      'tree.graft',
+      'tree.simplify',
+      'tree.branch',
+      'tree.transpose',
+      'tree.clean',
+      'tree.stats'
+    ]));
     expect(items.map(item => item.kind)).not.toContain('control.manualTrigger');
     expect(items.map(item => item.kind)).not.toContain('control.entityChangedTrigger');
     expect(items.map(item => item.kind)).not.toContain('control.domainEventTrigger');

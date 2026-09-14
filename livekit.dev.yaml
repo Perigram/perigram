@@ -1,0 +1,16 @@
+# Dev-only LiveKit configuration: fixed dev keys, single UDP media port.
+# The app container reads the same key pair from LIVEKIT_API_KEY/SECRET.
+port: 7880
+rtc:
+  tcp_port: 7881
+  udp_port: 7882
+turn:
+  enabled: false
+keys:
+  devkey: devsecret
+# Room events fan into /api/livekit/webhook so active calls appear live in
+# the sidebar Calls menu; `app` is the compose service name.
+webhook:
+  api_key: devkey
+  urls:
+    - http://app:3000/api/livekit/webhook

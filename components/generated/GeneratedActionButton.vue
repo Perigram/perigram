@@ -4,7 +4,7 @@
     :label="iconOnly ? undefined : actionLabel"
     :icon="actionIcon"
     size="small"
-    severity="secondary"
+    :severity="actionSeverity"
     :outlined="!iconOnly && !menuItem"
     :rounded="iconOnly"
     :text="iconOnly || menuItem"
@@ -34,9 +34,12 @@ const authStore = useAuthStore();
 const { t, te } = useI18n();
 const action = computed(() => authStore.actionManifest.find(item => item.actionId === props.actionId));
 const actionLabel = computed(() => generatedActionLabel(action.value || {}, props.actionId, { t, te }));
+const actionSeverity = computed(() => action.value?.actionKind === 'deleteEntity' ? 'danger' : 'secondary');
 const actionIcon = computed(() => {
   if (action.value?.relationMutation?.operation === 'link') return 'pi pi-link';
   if (action.value?.actionKind === 'createEntity') return 'pi pi-plus';
+  if (action.value?.actionKind === 'archiveEntity') return 'pi pi-box';
+  if (action.value?.actionKind === 'deleteEntity') return 'pi pi-trash';
   if (action.value?.actionKind === 'updateEntity' && action.value?.status?.to) return 'pi pi-arrow-right-arrow-left';
   if (action.value?.actionKind === 'updateEntity') return 'pi pi-pencil';
   if (action.value?.actionKind === 'sendToOrganization') return 'pi pi-send';

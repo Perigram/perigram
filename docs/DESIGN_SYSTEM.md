@@ -4,10 +4,10 @@
 
 CutKit uses PrimeVue 4, Tailwind utilities, and a small app token layer. The design system is code-driven:
 
-- `assets/tokens/index.js` owns semantic app tokens and exports PrimeVue/Tailwind projections.
-- `assets/presets/re_l.js` is the PrimeVue preset and consumes component token overrides.
+- `assets/tokens/index.js` owns app semantic tokens and exports bounded PrimeVue/Tailwind projections.
+- `assets/presets/re_l.js` extends Aura with the primary brand palette only.
 - `tailwind.config.js` exposes semantic Tailwind aliases backed by PrimeVue `--p-*` and CutKit `--ck-*` variables.
-- `assets/css/main.css` declares runtime `--ck-*` variables and only global layout helpers.
+- `assets/css/main.css` contains global app-shell, integration, and layout rules; it does not override PrimeVue selectors or variables.
 - `packages/domain-cnc/src/index.js` defines the CNC entity card/demo contract
   without importing Vue.
 - `utils/design-system-contract.js` re-exports that contract for existing UI
@@ -16,28 +16,35 @@ CutKit uses PrimeVue 4, Tailwind utilities, and a small app token layer. The des
 
 ## Token Policy
 
-Use PrimeVue semantic variables for shared component state. Use CutKit `--ck-*`
-tokens for the app surface stack, typography, geometry, elevation, motion, and
-domain signal roles that PrimeVue does not own.
+PrimeVue/Aura owns generic controls, containers, typography defaults, spacing,
+borders, radii, shadows, and interaction states. Use CutKit `--ck-*` tokens only
+for semantic typography, reusable layout constraints, and data-driven domain,
+geometry, or process visuals consumed by registered primitives or derived
+semantic composition. The
+authoritative ownership matrix and exception policy live in
+[the UI component audit](./UI_COMPONENT_AUDIT.md).
 
-Motion is reserved for direct interaction feedback: compact contextual controls
-may use the semantic duration/easing/spring scale through shared primitives,
-but operational screens must not acquire ambient animation. CSS and JavaScript
-motion share the same reduced-motion policy, preserving control state and
-keyboard behavior without spatial travel.
+Motion is behavior, not a second theme layer. Interaction-specific motion that
+PrimeVue cannot provide stays inside its owning derived composition; generic
+state transitions use Aura's duration. JavaScript motion must honor reduced
+motion while preserving control state and keyboard behavior.
 
-The active visual language is a hard editorial engineering instrument:
-near-white chrome and work surfaces in light mode, ink chrome in dark mode, a
-single signal-orange action channel, 3px control radii, 6px container radii,
-structural rules, and elevation only for overlays. JetBrains Mono is the global
-application face, keeping dense labels, values, controls, and technical content
-visually coherent. Signal orange marks intent, selection, and keyboard focus
-rather than ambient decoration; the rail uses the same token as a slim signal
-rule. Structural cards use border feedback on hover instead of an outward
-shadow, because their roots clip media. Light and dark schemes have distinct
-form and table surfaces, so a component must not force a light token into dark
-mode. Avoid gradients, ornamental backgrounds, and page-local theme colors;
-promote durable visual decisions to `assets/tokens/index.js`.
+Typography uses eight complete token-backed roles: `page-title`,
+`section-heading`, `body`, `label`, `supporting`, `metric`, `technical`, and
+`prose`. `assets/tokens/index.js` defines each role's Plex family, size, line
+height, weight, tracking, and numeric behavior once; `tailwind.config.js`
+generates the corresponding `text-*` aliases. `page-title` is the only
+responsive role. Generic controls retain Aura typography, while technical and
+prose content opt in explicitly even when rendered through a form surface.
+Element names never select an application role, so changing operational markup
+between `p`, `blockquote`, headings, `pre`, or `code` cannot change its type.
+`assets/css/fonts.css` only loads the families and establishes inheritance.
+Raw size, weight, leading, tracking, mono, and serif utilities are prohibited
+in Vue surfaces. The only local font-size exception is a documented runtime
+data value that directly represents visualization geometry or information
+magnitude; it cannot compact labels, controls, headings, or status text. Avoid gradients,
+ornamental backgrounds, and page-local theme colors; promote durable semantic
+decisions to `assets/tokens/index.js` without recreating Aura component chrome.
 
 `status-*` aliases are for application feedback (`info`, `success`, `warning`,
 `danger`, and `neutral`). `entity-*` aliases own the compact family tones used
@@ -56,29 +63,12 @@ empty-state prose unless the workflow would be ambiguous or blocked without
 them. Prefer compact controls, clear placement, icons, typed labels, and
 domain-specific data surfaces over explanatory text.
 
-The production app shell (`layouts/app.vue`), UI lab shell, shared entity cards,
-and process canvas consume the same projections. `cssVariableTokens` is
-mirrored in `assets/css/main.css`, which also owns a narrow PrimeVue runtime
-bridge for the active `--p-*` surface, form, action, card, table, and overlay
-variables. This makes a hot-reloaded screen render the same palette as a fresh
-PrimeVue preset boot. The design-system test checks that every declared runtime
-token exists and that no route-active component uses a raw Tailwind palette
-utility. The Tailwind primary scale includes `primary-50` to `primary-950`, so
-focus utilities such as `ring-primary-200` resolve through the active PrimeVue
-theme instead of falling back or disappearing.
-
-The runtime bridge also normalizes PrimeVue avatar media to a square
-`object-fit: cover` crop. PrimeVue's default image fit must not distort portrait
-or landscape uploads, and callers do not need page-local descendant selectors.
-
-The global `html` root font size is 14px. This keeps rem-based PrimeVue and
-Tailwind controls compact enough for information-dense engineering workflows;
-new shared sizing should remain token-backed rather than compensating with
-page-local font-size overrides.
-
-Interactive controls suppress browser and PrimeVue fallback outlines/shadows.
-Components own their selected and keyboard-focus presentation and must not add
-a second generic focus border.
+The production app shell, UI lab, shared primitives, and process canvas consume
+the same projections. Nuxt emits `cssVariableTokens` and
+`darkCssVariableTokens` directly; runtime CSS must not mirror token values,
+define `--p-*` variables, target `.p-*` selectors, or use `!important`. Aura
+remains the single owner of generic focus and control states. The design-system
+suite enforces this boundary.
 
 Allowed local hardcoded visual values are limited to real data, such as pen stroke colors, DXF layer colors, or uploaded asset metadata. Page-local decorative colors, radii, animation durations, chat/dialog dimensions, swatch sizes, and max-widths must be promoted to tokens or removed.
 
@@ -135,7 +125,8 @@ lifecycle snapshot sources instead of reading arbitrary page state.
 
 Shared ownership:
 
-- `EntityCard` owns card chrome and is the only non-legacy direct owner of PrimeVue `Card`.
+- `EntityCard` owns semantic card structure and is the only non-legacy direct
+  owner of PrimeVue `Card`; Aura owns the rendered card chrome and states.
 - `EntitySelect` and `EntityMultiSelect` own PrimeVue Select/MultiSelect in app
   components. Canonical entity options use compact `EntityInlineRef` cards with
   previews. Selected entity refs render outside the PrimeVue value/chip area;
@@ -143,7 +134,8 @@ Shared ownership:
   overlay, keyboard, and selection behavior remain owned by PrimeVue. Non-entity
   options delegate without changing PrimeVue slots or behavior.
 - Entity-specific cards pass custom lifecycle commands through `EntityCard` `statusActions`; they should not rebuild identity/status title rows just to customize status buttons.
-- `StandardDialog` owns dialog chrome and is the only direct owner of PrimeVue `Dialog`.
+- `StandardDialog` owns semantic dialog structure and is the only direct owner
+  of PrimeVue `Dialog`; Aura owns the rendered dialog chrome and states.
 - `StandardPage` owns page shell width and spacing.
 - `ActionToolbar`, `ResponsiveGrid`, `StateBlock`, and `TableFrame` own repeated page-level layout patterns.
 - `ResponsiveGrid`'s `bounded` variant uses the shared bounded-item min/max

@@ -171,14 +171,14 @@ const eventKey = (event, index) => event._id || `${eventState(event)}-${event.ti
             </small>
             <time
               v-if="formatTime(event.timestamp)"
-              class="ml-auto text-right text-xs text-muted-color"
+              class="ml-auto text-right text-muted-color text-supporting"
               :datetime="dateTimeAttribute(event.timestamp)"
             >
               {{ formatTime(event.timestamp) }}
             </time>
           </div>
 
-          <p v-if="eventNote(event)" class="m-0 mt-2 min-w-0 break-words text-sm italic">
+          <p v-if="eventNote(event)" class="m-0 mt-2 min-w-0 break-words italic text-body">
             {{ eventNote(event) }}
           </p>
 
@@ -189,7 +189,7 @@ const eventKey = (event, index) => event._id || `${eventState(event)}-${event.ti
               :href="attachment.url"
               target="_blank"
               rel="noopener"
-              class="inline-flex min-w-0 items-center gap-1 text-sm text-[var(--ck-primary-ink)] no-underline"
+              class="inline-flex min-w-0 items-center gap-1 text-[var(--ck-primary-ink)] no-underline text-body"
             >
               <i class="pi pi-paperclip shrink-0"></i>
               <span class="truncate">{{ attachment.label }}</span>

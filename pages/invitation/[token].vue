@@ -6,9 +6,9 @@
         >
             <div class="mb-6 flex flex-col items-center gap-3 text-center">
                 <span class="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-contrast">
-                    <i class="pi pi-building text-xl" aria-hidden="true"></i>
+                    <i class="pi pi-building" aria-hidden="true"></i>
                 </span>
-                <h1 class="m-0 text-xl">{{ $t('auth.invitationTitle') }}</h1>
+                <h1 class="m-0 text-page-title">{{ $t('auth.invitationTitle') }}</h1>
             </div>
             <StateBlock v-if="loading" state="loading" :message="$t('auth.fetchingInvitation')" />
             

@@ -12,7 +12,7 @@ import {
   resolveProcessNodePorts,
   validateProcessEdges
 } from './ports.js';
-import { getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
+import { CONSUMER_EFFECT_KINDS, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForEntityType, lineageRelationsForParent } from './hierarchy-utils.js';
@@ -106,12 +106,23 @@ export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
 export function normalizeProcessDefinition(definition = {}, domain = {}) {
   const data = definition.data || definition;
   const graph = normalizeGraph(data.graph);
-  const processNodes = inferOpenBlockEntries(
+  const processNodes = inferCurrentEntityTypes(inferOpenBlockEntries(
     normalizeProcessInputDefaults(normalizeProcessNodesForDomain(data.processNodes, domain), domain),
     graph,
     domain
-  );
-  const effectActions = deriveEffectActions(data.actions, processNodes, graph, domain);
+  ), data.actions, data.screens);
+  const producerOutputs = normalizeRecord(data.producerOutputs);
+  // Consumer effects own no producer outputs: prune stale records/identities
+  // (pre-protocol definitions minted them per node) so the workflow stays
+  // anchored at the origin of each entity path.
+  for (const [recordId, node] of Object.entries(processNodes)) {
+    if (!CONSUMER_EFFECT_KINDS.includes(node.kind)) continue;
+    delete node.producerOutputId;
+    for (const [producerOutputId, output] of Object.entries(producerOutputs)) {
+      if (String(output?.nodeId) === String(node.id || recordId)) delete producerOutputs[producerOutputId];
+    }
+  }
+  const effectActions = deriveEffectActions(data.actions, processNodes, graph, domain, producerOutputs);
   const normalized = inferProcessDataflowContracts({
     schemaVersion: data.schemaVersion || PROCESS_SCHEMA_VERSION,
     dataflowVersion: data.dataflowVersion,
@@ -120,7 +131,7 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     graph,
     roleGrants: normalizeRecord(data.roleGrants),
     servicePrincipals: normalizeRecord(data.servicePrincipals),
-    entityProfiles: normalizeRecord(data.entityProfiles),
+    producerOutputs,
     actions: normalizeActions(deriveRelationMutationActions(effectActions, domain)),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
@@ -131,6 +142,21 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     compiled: data.compiled || null
   });
   return normalized;
+}
+
+function inferCurrentEntityTypes(processNodes = {}, actions = {}, screens = {}) {
+  const contextTypes = new Set([
+    ...Object.values(normalizeRecord(actions)),
+    ...Object.values(normalizeRecord(screens))
+  ].flatMap(record => [record?.entityType, ...(record?.inputs || []).map(input => input?.entityType)])
+    .filter(Boolean));
+  if (contextTypes.size !== 1) return processNodes;
+  const [entityType] = contextTypes;
+  return Object.fromEntries(Object.entries(processNodes).map(([id, node]) => [id,
+    node?.kind === 'read.currentEntity' && !node.entityType
+      ? { ...node, entityType, entityTypeInferred: true }
+      : node
+  ]));
 }
 
 function inferOpenBlockEntries(processNodes = {}, graph = {}, domain = {}) {
@@ -166,12 +192,16 @@ function normalizeProcessInputDefaults(processNodes = {}, domain = {}) {
     let ports = [];
     try { ports = resolveCatalogNodePorts(record, catalogContext(domain, record)).inputs; } catch { ports = []; }
     const accessById = new Map(ports.map(port => [port.id, port.access || 'item']));
+    const mutationEffect = ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'].includes(record.kind);
     return [id, {
       ...record,
-      inputDefaults: Object.fromEntries(Object.entries(record.inputDefaults).map(([socketId, value]) => [
-        socketId,
-        isDataTree(value) ? value : createDataTree(value, accessById.get(socketId) || 'item')
-      ]))
+      inputDefaults: Object.fromEntries(Object.entries(record.inputDefaults).map(([socketId, value]) => {
+        const access = accessById.get(socketId) || 'item';
+        // Mapped mutation sockets declare List access; a scalar authored
+        // default is one broadcast item, not an arity error.
+        const shape = mutationEffect && access === 'list' && !Array.isArray(value) && !isDataTree(value) ? 'item' : access;
+        return [socketId, isDataTree(value) ? value : createDataTree(value, shape)];
+      }))
     }];
   }));
 }
@@ -191,6 +221,13 @@ function normalizeProcessNodesForDomain(value = {}, domain = {}) {
         ...node,
         entries: node.entries.map(({ cardinality, operation, ...entry }) => entry)
       };
+    }
+    if (node?.kind === 'effect.archiveEntity' && node.entityType) {
+      const workflow = domain.workflows?.[node.entityType];
+      const archiveTransition = Object.values(workflow?.regions || {})
+        .flatMap(region => region.transitions || [])
+        .find(transition => transition.to === 'ARCHIVED' && transition.intent);
+      return [id, { ...node, archiveIntent: archiveTransition?.intent || '' }];
     }
     if (node?.kind !== 'effect.createEntity' || !node.entityType) return [id, node];
     const schemas = entityFieldSchemas(domain, node.entityType);
@@ -219,7 +256,7 @@ function normalizeProcessNodesForDomain(value = {}, domain = {}) {
   }));
 }
 
-function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain = {}) {
+function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain = {}, producerOutputs = {}) {
   const derived = { ...(actions || {}) };
   for (const [nodeId, node] of Object.entries(processNodes)) {
     if (!node.kind?.startsWith('effect.')) continue;
@@ -228,6 +265,8 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       'effect.createEntity': 'createEntity',
       'effect.runProducer': 'createEntity',
       'effect.updateEntity': 'updateEntity',
+      'effect.archiveEntity': 'archiveEntity',
+      'effect.deleteEntity': 'deleteEntity',
       'effect.runCommand': 'runCommand',
       'effect.sendEntity': 'sendToOrganization',
       'effect.generateAttachment': 'runCommand'
@@ -240,16 +279,22 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       ...promptContract.wiredFields
     ]);
     const statusTo = processDefaultValue(node.inputDefaults?.['status.state.primary']) || node.status?.to || '';
+    // Consumer effects bind to the upstream producer of their entity input
+    // wire; a stale own-node binding from a persisted draft is ignored.
+    const producerOutputId = CONSUMER_EFFECT_KINDS.includes(node.kind)
+      ? upstreamProducerOutputId({ graph, processNodes, producerOutputs }, node) || ''
+      : node.producerOutputId || derived[actionId]?.producerOutputId || '';
     derived[actionId] = {
       ...(derived[actionId] || {}),
       id: actionId,
       label: node.label || derived[actionId]?.label || actionKind,
       actionKind,
+      ...(producerOutputId ? { producerOutputId } : {}),
       entityType: node.entityType || derived[actionId]?.entityType || '',
       commandId: node.commandId || derived[actionId]?.commandId || '',
       parentEntityType: promptContract.parentEntityType || derived[actionId]?.parentEntityType || '',
       construction: node.kind === 'effect.createEntity'
-        ? (node.construction?.mode || 'genericCreate') === 'genericCreate' && node.blocks?.length
+        ? node.construction?.mode === 'genericCreate' && node.blocks?.length
           ? { mode: 'genericCreate', inputs: [], blockComposed: true }
           : {
               ...(node.construction || derived[actionId]?.construction || {}),
@@ -270,7 +315,8 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
           path,
           type: promptContract.schemas.find(field => field.path === path)?.type?.base || 'json',
           prompt: !suppliedFields.has(path),
-          required: false,
+          required: !suppliedFields.has(path)
+            && promptContract.schemas.find(field => field.path === path)?.required === true,
           ...(Object.hasOwn(promptContract.defaults, path) ? { default: promptContract.defaults[path] } : {})
         }))
       },
@@ -320,7 +366,7 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
           entityType: relation.targetType,
           relationKey: relation.key,
           cardinality: relation.cardinality || 'one',
-          required: false,
+          required: true,
           prompt: operation === 'link',
           ...(operation === 'link' && creator ? { creator } : {})
         };
@@ -328,6 +374,7 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
           id,
           label: `${operation === 'link' ? 'Link' : 'Unlink'} ${relation.targetType.replace(/_/g, ' ')}`,
           actionKind: 'updateEntity',
+          producerOutputId: sourceAction.producerOutputId,
           entityType: sourceAction.entityType,
           relationMutation: {
             key: relation.key,
@@ -344,7 +391,7 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
           access: sourceAction.access,
           trigger: { mode: 'manual' },
           inputs: [
-            { id: 'entity', entityType: sourceAction.entityType, required: false },
+            { id: 'entity', entityType: sourceAction.entityType, required: true },
             input
           ],
           outputs: [{ id: 'entity', entityType: sourceAction.entityType }]
@@ -398,7 +445,7 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
     ...(record.entries || []).map(entry => `${record.block}.${entry.key}`).filter(path => !path.endsWith('.'))
   ]))];
   const defaultIdentityFields = node.kind === 'effect.createEntity'
-    && (node.construction?.mode || 'genericCreate') === 'genericCreate'
+    && node.construction?.mode === 'genericCreate'
     && !composers.some(record => record.block === 'identity')
     ? ['identity.name']
     : [];
@@ -412,21 +459,31 @@ function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
   const relationContracts = composers
     .filter(record => record.compositionMode === 'relations' || record.block === 'relations')
     .flatMap(record => (record.entries || []).map(entry => {
-      const declared = declaredRelationForTarget(domain, node.entityType, entry.entityType);
+      const declared = declaredRelationForTarget(domain, node.entityType, entry.entityType, entry.key);
       const composerNode = (graph.nodes || []).find(item => String(item.data?.refId || item.id) === String(record.id));
       const entryEdge = composerNode && (graph.edges || []).find(edge => (
         String(edge.target) === String(composerNode.id)
         && normalizeHandle(edge.targetHandle) === `entry:${entry.id}`
       ));
       const sourceRecord = entryEdge ? recordByGraphNode.get(String(entryEdge.source)) : null;
+      let sourcePort = null;
+      if (sourceRecord && entryEdge) {
+        try {
+          sourcePort = catalogPortForHandle(
+            resolveCatalogNodePorts(sourceRecord, catalogContext(domain, sourceRecord)).outputs,
+            entryEdge.sourceHandle
+          );
+        } catch {}
+      }
       const processCreator = sourceRecord?.kind === 'effect.createEntity'
         && sourceRecord.entityType === (declared?.targetType || entry.entityType)
         ? { actionId: String(sourceRecord.id) }
         : null;
       return {
+      ownerType: node.entityType,
       key: declared?.key || entry.key,
       targetType: declared?.targetType || entry.entityType,
-      cardinality: declared?.cardinality || (entry.type?.base === 'array' ? 'many' : 'one'),
+      cardinality: declared?.cardinality || (entry.type?.base === 'array' || sourcePort?.type?.base === 'array' ? 'many' : 'one'),
       ...(processCreator ? { creator: processCreator } : {}),
       ...(hasDomainAttachmentKinds(declared?.targetType || entry.entityType, domain) ? {
         creator: {
@@ -473,32 +530,28 @@ function attachmentCreatorKinds(selectedKinds = [], domain = {}) {
   }));
 }
 
-function declaredRelationForTarget(domain = {}, ownerType = '', targetType = '') {
+function declaredRelationForTarget(domain = {}, ownerType = '', targetType = '', key = '') {
   const matches = (domain.relations || []).filter(relation => (
-    relation.ownerType === ownerType && relation.targetType === targetType
+    relation.ownerType === ownerType && relation.targetType === targetType && relation.key === key
   ));
   return matches.length === 1 ? matches[0] : null;
 }
 
-export function requiredEntityProfileTypes(definition = {}, domain = {}) {
-  const process = normalizeProcessDefinition(definition);
-  const commandIds = [
-    ...Object.values(process.actions)
-      .filter(action => action?.actionKind === 'runCommand')
-      .map(action => action.commandId),
-    ...Object.values(process.services).map(service => service?.commandId)
-  ].filter(Boolean);
-
-  return [...new Set(commandIds.flatMap(commandId =>
-    domain.commands?.[commandId]?.requiredEntityProfiles || []
-  ))];
+export function requiredEffectCapability(kind = '') {
+  if (kind === 'effect.createEntity' || kind === 'effect.runProducer') return 'create';
+  if (kind === 'effect.updateEntity') return 'processUpdate';
+  if (kind === 'effect.changeStatus') return 'statusMutation';
+  if (kind === 'effect.archiveEntity') return 'archive';
+  if (kind === 'effect.deleteEntity') return 'delete';
+  return null;
 }
 
-export function validateProcessDefinition(definition = {}, domain = {}, { roles = {} } = {}) {
+export function validateProcessDefinition(definition = {}, domain = {}, { roles = {}, capabilities } = {}) {
   const process = normalizeProcessDefinition(definition, domain);
   const lineageBindings = compileLineageBindings(process, domain);
   const organizationRoles = normalizeRoleCatalog(roles);
   const errors = [];
+  const diagnostics = [];
   const warnings = [];
   const nodeIds = new Set(process.graph.nodes.map(node => node.id));
   const entities = new Set((domain.entities || []).map(entity => entity.type));
@@ -509,13 +562,17 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     if (!nodeIds.has(edge.target)) errors.push(`Edge ${edge.id} references missing target node ${edge.target}`);
   }
   errors.push(...validateProcessEdges(process));
-  if (Number(process.dataflowVersion) === PROCESS_DATAFLOW_VERSION) errors.push(...validateDataflowEdges(process, domain));
+  if (Number(process.dataflowVersion) === PROCESS_DATAFLOW_VERSION) {
+    const edgeDiagnostics = validateDataflowEdges(process, domain);
+    diagnostics.push(...edgeDiagnostics);
+    errors.push(...edgeDiagnostics.map(diagnostic => diagnostic.message));
+  }
 
   for (const node of process.graph.nodes) {
     const refId = node.data?.refId;
     if (!refId) continue;
     if (node.type === 'role' && !organizationRoles[refId]) errors.push(`Role node ${node.id} references missing organization role ${refId}`);
-    if (node.type === 'entity' && !process.entityProfiles[refId]) errors.push(`Entity node ${node.id} references missing entity profile ${refId}`);
+    if (node.type === 'entity' && !process.producerOutputs[refId]) errors.push(`Entity node ${node.id} references missing producer output ${refId}`);
     if (node.type === 'action' && !process.actions[refId]) errors.push(`Action node ${node.id} references missing action ${refId}`);
     if (node.type === 'service' && !process.services[refId]) errors.push(`Service node ${node.id} references missing service ${refId}`);
     if (node.type === 'socket' && !process.sockets[refId]) errors.push(`Socket node ${node.id} references missing socket ${refId}`);
@@ -524,20 +581,32 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     if (node.type === 'processNode' && !process.processNodes[refId]) errors.push(`Process node ${node.id} references missing process node ${refId}`);
   }
 
-  for (const [profileId, profile] of Object.entries(process.entityProfiles)) {
-    if (!entities.has(profile.entityType)) errors.push(`Entity profile ${profileId} uses unknown entity type ${profile.entityType}`);
-    validateFieldList(profile.fields?.read, domain, profile.entityType, `entity profile ${profileId} read fields`, errors, 'read');
-    validateFieldList(profile.fields?.write, domain, profile.entityType, `entity profile ${profileId} write fields`, errors, 'write');
-    validateFieldList(profile.fields?.private, domain, profile.entityType, `entity profile ${profileId} private fields`, errors, 'admin');
-    for (const relationKey of profile.relations || []) {
-      if (!(domain.relations || []).some(relation => relation.ownerType === profile.entityType && relation.key === relationKey)) {
-        errors.push(`Entity profile ${profileId} uses undeclared relation ${profile.entityType}.${relationKey}`);
+  for (const [producerOutputId, output] of Object.entries(process.producerOutputs)) {
+    if (producerOutputId !== output.producerOutputId) errors.push(`Producer output key ${producerOutputId} must match producerOutputId`);
+    if (!output.nodeId || !output.outputSocketId) errors.push(`Producer output ${producerOutputId} requires nodeId and outputSocketId`);
+    if (producerOutputId !== `${output.nodeId}:${output.outputSocketId}`) errors.push(`Producer output ${producerOutputId} must be derived from nodeId and outputSocketId`);
+    if (!entities.has(output.entityType)) errors.push(`Producer output ${producerOutputId} uses unknown entity type ${output.entityType}`);
+    validateFieldList(output.fields?.read, domain, output.entityType, `producer output ${producerOutputId} read fields`, errors, 'read');
+    validateFieldList(output.fields?.write, domain, output.entityType, `producer output ${producerOutputId} write fields`, errors, 'write');
+    validateFieldList(output.fields?.private, domain, output.entityType, `producer output ${producerOutputId} private fields`, errors, 'admin');
+    for (const relationKey of output.relations || []) {
+      if (!(domain.relations || []).some(relation => relation.ownerType === output.entityType && relation.key === relationKey)) {
+        errors.push(`Producer output ${producerOutputId} uses undeclared relation ${output.entityType}.${relationKey}`);
       }
     }
     try {
-      compileLifecycle(profile, domain);
+      const lifecycle = compileLifecycle(output, domain);
+      for (const [regionId, region] of Object.entries(lifecycle.regions || {})) {
+        const stateIds = Object.keys(region.states || {});
+        if (!stateIds.length) continue;
+        if (!region.initial) {
+          errors.push(`Producer output ${producerOutputId} region ${regionId} declares states ${stateIds.join(', ')} but no entry state`);
+        } else if (!region.states[region.initial]) {
+          errors.push(`Producer output ${producerOutputId} region ${regionId} entry state ${region.initial} is not declared`);
+        }
+      }
     } catch (error) {
-      errors.push(`Entity profile ${profileId} lifecycle is invalid: ${error.message}`);
+      errors.push(`Producer output ${producerOutputId} lifecycle is invalid: ${error.message}`);
     }
   }
 
@@ -554,12 +623,31 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     }
   }
 
+  const actionWindows = compileActionAccessWindows(process, domain, lineageBindings);
   for (const [actionId, action] of Object.entries(process.actions)) {
+    const actionWindow = actionWindows.get(actionId);
+    const resolvedActionEntityType = actionEntityType(action)
+      || actionWindow?.input?.entityType
+      || actionWindow?.outputs?.[0]?.entityType
+      || null;
+    if (resolvedActionEntityType && !action.producerOutputId) {
+      errors.push(`Action ${actionId} on ${resolvedActionEntityType} requires producerOutputId`);
+    } else if (action.producerOutputId) {
+      const producerOutput = process.producerOutputs?.[action.producerOutputId];
+      if (!producerOutput) {
+        errors.push(`Action ${actionId} uses unknown producerOutputId ${action.producerOutputId}`);
+      } else if (resolvedActionEntityType && producerOutput.entityType !== resolvedActionEntityType) {
+        errors.push(`Action ${actionId} producerOutputId emits ${producerOutput.entityType}, not ${resolvedActionEntityType}`);
+      }
+    }
     validateAction(actionId, action, { entities, commands, roles: organizationRoles, domain, errors, statusDefinitions: process.statusDefinitions, process, lineageBindings });
   }
 
   for (const [nodeId, node] of Object.entries(process.processNodes)) {
     validateProcessNode(nodeId, node, { entities, domain, errors });
+  }
+  if (capabilities) {
+    validateEffectCapabilities(process, domain, capabilities, errors);
   }
   for (const [inputId, input] of Object.entries(process.valueInputs)) {
     if (!PROCESS_SCALAR_KINDS.includes(input.valueType)) errors.push(`Value input ${inputId} uses unknown type ${input.valueType || '(empty)'}`);
@@ -601,7 +689,338 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     if (!organizationRoles[roleId]) errors.push(`Process grants reference missing organization role ${roleId}`);
   }
 
-  return { ok: errors.length === 0, errors, warnings, definition: process };
+  warnings.push(...unreachableNodeDiagnostics(process));
+
+  return { ok: errors.length === 0, errors, warnings, diagnostics, definition: process };
+}
+
+// Pure/read subgraphs stay valid on purpose; this reports the nodes whose
+// values can never reach a persistence effect or any other operational sink,
+// so an inspect-only island is surfaced as non-operational instead of failing.
+function unreachableNodeDiagnostics(process = {}) {
+  const nodes = (process.graph?.nodes || []).filter(node => node.type === 'processNode');
+  const recordsByGraphId = new Map(nodes.map(node => [
+    String(node.id),
+    process.processNodes?.[String(node.data?.refId || node.id)]
+  ]));
+  const predecessors = new Map(nodes.map(node => [String(node.id), []]));
+  for (const edge of process.graph?.edges || []) {
+    if (!predecessors.has(String(edge.target))) continue;
+    predecessors.get(String(edge.target)).push(String(edge.source));
+  }
+  const operational = [];
+  for (const [nodeId, record] of recordsByGraphId) {
+    if (record?.kind?.startsWith('effect.')) operational.push(nodeId);
+  }
+  const reachingOperational = new Set(operational);
+  const queue = [...operational];
+  while (queue.length) {
+    const current = queue.shift();
+    for (const predecessor of predecessors.get(current) || []) {
+      if (reachingOperational.has(predecessor)) continue;
+      reachingOperational.add(predecessor);
+      queue.push(predecessor);
+    }
+  }
+  const warnings = [];
+  for (const [nodeId, record] of recordsByGraphId) {
+    if (reachingOperational.has(nodeId)) continue;
+    warnings.push(`Process node ${nodeId} (${record?.kind || 'unknown'}) is non-operational: its values cannot reach any persistence effect`);
+  }
+  return warnings;
+}
+
+// Inputs whose value is resolvable from the manual run context even without a
+// wire, fallback, or prompt: the current entity, the change-status target, and
+// the initial create status.
+const CONTEXT_RESOLVABLE_PORTS = new Set(['entity', 'parent', 'status', 'status.state.primary']);
+
+function edgeHandle(handle = '') {
+  return String(handle || '').replace(/^(input|output|data|control|success|failure):/, '');
+}
+
+function isDataEdge(edge = {}) {
+  return edge.role !== 'control'
+    && !String(edge.sourceHandle || '').startsWith('control:')
+    && !String(edge.targetHandle || '').startsWith('control:');
+}
+
+// One emptiness rule shared by authored fallbacks and domain defaults: an
+// explicit null/undefined is absence and never satisfies; entity/block values
+// must be non-null references; entity-list/array/attachment values must be
+// non-empty; enum/status values must be a declared member; unconstrained
+// primitives accept any type-valid value including ''/0/false. A scalar on a
+// List/Tree-declared socket is one broadcast item and satisfies by the scalar
+// rules; only actual arrays/trees use the collection non-empty rule.
+function inputValueSatisfies(value, port, declared = {}) {
+  const scalar = isDataTree(value) ? value.branches?.[0]?.items?.[0] : value;
+  if (scalar === null || scalar === undefined) return false;
+  const type = port.type || {};
+  const base = type.base || type.kind || '';
+  const collection = base === 'array' || base === 'entity_list'
+    || ((port.access === 'list' || port.access === 'tree')
+      && (Array.isArray(scalar) || Boolean(scalar && typeof scalar === 'object' && Array.isArray(scalar.branches))));
+  if (collection) {
+    if (Array.isArray(scalar)) return scalar.length > 0;
+    if (scalar && typeof scalar === 'object' && Array.isArray(scalar.branches)) {
+      return scalar.branches.some(branch => Array.isArray(branch.items) && branch.items.length > 0);
+    }
+    return false;
+  }
+  if (['entity', 'entityRef', 'revisionRef'].includes(base)) {
+    if (typeof scalar !== 'object') return false;
+    return Boolean(scalar.id || scalar._id || scalar.identity || scalar.entityId || scalar.type);
+  }
+  if (['block', 'predicate', 'patch', 'record', 'taskRef'].includes(base)) return typeof scalar === 'object';
+  if (base === 'attachmentRef' || base === 'attachment' || base === 'opaque') {
+    return typeof scalar === 'string' ? scalar.length > 0 : typeof scalar === 'object';
+  }
+  if (base === 'enum' || base === 'status') {
+    if (typeof scalar !== 'string' || scalar === '') return false;
+    const options = Array.isArray(declared.options) ? declared.options : [];
+    if (!options.length) return true;
+    const members = options.map(option => typeof option === 'object' && option !== null ? option.value : option);
+    return members.includes(scalar);
+  }
+  return true;
+}
+
+// The manual action surface prompts the inputs it can ask the user for: Link
+// targets, the manual generic Create identity block, typed construction inputs
+// that are not explicitly non-promptable, and command parameters/entities whose
+// display contract exposes them. A prompt only ever satisfies a manual path.
+function promptableInputIds(record = {}, domain = {}) {
+  const ids = new Set();
+  const kind = record.kind;
+  const construction = record.construction || {};
+  const contract = domain.construction?.[record.entityType] || {};
+  const modeInputs = contract.modeInputs?.[construction.mode] || [];
+  const declaredInputs = Array.isArray(construction.inputs) ? construction.inputs : [];
+  const contractInputs = Array.isArray(contract.inputs) ? contract.inputs : [];
+  if (kind === 'effect.createEntity' || kind === 'effect.runProducer') {
+    if (kind === 'effect.createEntity' && construction.mode === 'genericCreate') {
+      ids.add('identity');
+      ids.add('name');
+    }
+    for (const input of [...modeInputs, ...declaredInputs, ...contractInputs]) {
+      if (!input) continue;
+      if (input.prompt !== false && input.id) ids.add(input.id);
+      if (input.path && input.path !== 'name') ids.add(input.path);
+    }
+  }
+  if (kind === 'effect.runCommand') {
+    const command = domain.commands?.[record.commandId] || {};
+    for (const input of command.input?.abstractEntities || []) {
+      if (input.prompt !== false && (input.name || input.type || input.capability)) {
+        ids.add(input.name || input.type || input.capability);
+      }
+    }
+    for (const input of command.input?.entities || []) {
+      if (input.prompt !== false && (input.name || input.type)) ids.add(input.name || input.type);
+    }
+    for (const input of command.input?.parameters || []) {
+      if (input.display !== 'hidden' && input.name) ids.add(input.name);
+    }
+  }
+  return ids;
+}
+
+// The domain-declared metadata (default, options) for a required input port.
+function declaredInputMetadata(record = {}, domain = {}, portId = '') {
+  const construction = record.construction || {};
+  const contract = domain.construction?.[record.entityType] || {};
+  const constructionInputs = [
+    ...(construction.inputs || []),
+    ...(contract.modeInputs?.[construction.mode] || []),
+    ...(contract.inputs || [])
+  ];
+  const constructionMatch = constructionInputs.find(input => (input.id || input.path) === portId);
+  if (constructionMatch) return constructionMatch;
+  const command = domain.commands?.[record.commandId] || {};
+  const commandInputs = [
+    ...(command.input?.abstractEntities || []),
+    ...(command.input?.entities || []),
+    ...(command.input?.parameters || [])
+  ];
+  return commandInputs.find(input => (input.name || input.type || input.capability) === portId) || {};
+}
+
+// Exactly one activation-time availability contract for required inputs. A
+// required input is satisfied by a connected upstream value, an authored
+// fallback, a domain-owned default, a generated manual prompt (manual actions
+// only), or the run context (manual actions only). A prompt or run context
+// never satisfies an automatically evaluated path, so an event-triggered effect
+// must be complete without a UI prompt.
+export function validateRequiredInputAvailability(process = {}, domain = {}) {
+  const errors = [];
+  const nodes = process.graph?.nodes || [];
+  const edges = process.graph?.edges || [];
+  for (const [recordId, record] of Object.entries(process.processNodes || {})) {
+    if (!record?.kind?.startsWith('effect.')) continue;
+    const manual = (record.trigger?.mode || 'manual') === 'manual';
+    const graphNode = nodes.find(node => String(node.data?.refId || node.id) === String(recordId));
+    let ports = [];
+    try { ports = resolveCatalogNodePorts(record, catalogContext(domain, record)).inputs; } catch { continue; }
+    const promptable = promptableInputIds(record, domain);
+    for (const port of ports.filter(item => item.role === 'data' && item.required)) {
+      const sources = [];
+      if (edges.some(edge => String(edge.target) === String(graphNode?.id)
+        && isDataEdge(edge) && edgeHandle(edge.targetHandle) === port.id)) {
+        sources.push('connected');
+      }
+      if (Object.hasOwn(record.inputDefaults || {}, port.id)
+        && inputValueSatisfies(record.inputDefaults[port.id], port, declaredInputMetadata(record, domain, port.id))) {
+        sources.push('fallback');
+      }
+      const declared = declaredInputMetadata(record, domain, port.id);
+      if (Object.hasOwn(declared, 'default')
+        && inputValueSatisfies(declared.default, port, declared)) {
+        sources.push('default');
+      }
+      if (manual) {
+        if (promptable.has(port.id)) sources.push('prompt');
+        if (CONTEXT_RESOLVABLE_PORTS.has(port.id)) sources.push('runtime context');
+      }
+      if (!sources.length) {
+        const producerContext = record.producerOutputId
+          ? ` of producer output ${record.producerOutputId}`
+          : '';
+        errors.push({
+          message:
+            `Required input ${port.id} on ${record.kind} node ${record.label || recordId}${producerContext} has no available source `
+            + (manual ? '(connected, fallback, default, manual prompt, or runtime context)' : '(connected, fallback, or default; a manual prompt cannot satisfy an automatically evaluated path)'),
+          nodeId: String(graphNode?.id || recordId),
+          socketId: port.id,
+          ...(record.producerOutputId ? { producerOutputId: record.producerOutputId } : {})
+        });
+      }
+    }
+  }
+  return errors;
+}
+
+// A consumer effect's producer context is the upstream producer of its
+// entity input wire: follow incoming data edges (through consumer nodes)
+// until an origin node or join provides the identity. The graph path by
+// which the entity enters supplies the workflow context.
+function upstreamProducerOutputId(process, node, visited = new Set()) {
+  if (!node?.id || visited.has(String(node.id))) return null;
+  visited.add(String(node.id));
+  const recordsByGraphId = new Map((process.graph?.nodes || []).map(graphNode => [
+    String(graphNode.id),
+    (process.processNodes || {})[String(graphNode.data?.refId || graphNode.id)]
+  ]));
+  for (const edge of process.graph?.edges || []) {
+    if (String(edge.target) !== String(node.id)) continue;
+    const source = recordsByGraphId.get(String(edge.source));
+    if (!source) continue;
+    if (source.kind === 'producer.join' && source.selectedProducerOutputId) {
+      const selected = process.producerOutputs?.[source.selectedProducerOutputId];
+      if (selected) return source.selectedProducerOutputId;
+      continue;
+    }
+    if (source.producerOutputId && process.producerOutputs?.[source.producerOutputId]) {
+      return source.producerOutputId;
+    }
+    if (CONSUMER_EFFECT_KINDS.includes(source.kind)) {
+      const upstream = upstreamProducerOutputId(process, source, visited);
+      if (upstream) return upstream;
+    }
+  }
+  // Read sources and unmarked origins resolve by single same-type candidate,
+  // exactly like downstream identity resolution does.
+  const sourceEntityType = node?.entityType;
+  if (sourceEntityType) {
+    const matching = Object.values(process.producerOutputs || {})
+      .filter(output => output?.entityType === sourceEntityType);
+    if (matching.length === 1) return matching[0].producerOutputId;
+  }
+  return null;
+}
+
+function resolveSourceProducerOutputId(process, source, sourcePort) {
+  if (!source?.id) return null;
+  // An explicit producer-path Join routes its output under the producer
+  // output its configuration selects, so downstream identity resolution sees
+  // exactly one producer.
+  if (source.kind === 'producer.join' && source.selectedProducerOutputId) {
+    return process.producerOutputs?.[source.selectedProducerOutputId]
+      ? source.selectedProducerOutputId
+      : null;
+  }
+  if (CONSUMER_EFFECT_KINDS.includes(source.kind)) {
+    return upstreamProducerOutputId(process, source);
+  }
+  const candidates = Object.values(process.producerOutputs || {})
+    .filter(output => output?.nodeId === source.id);
+  const exactKey = sourcePort?.id ? `${source.id}:${sourcePort.id}` : '';
+  const exact = exactKey && candidates.find(output => (
+    output.producerOutputId === exactKey || output.outputSocketId === sourcePort.id
+  ));
+  if (exact) return exact.producerOutputId;
+  const portEntityType = sourcePort?.type?.entityType || sourcePort?.type?.itemType?.entityType || '';
+  const matching = portEntityType
+    ? candidates.filter(output => output.entityType === portEntityType)
+    : candidates;
+  return matching.length === 1 ? matching[0].producerOutputId : null;
+}
+
+export function validateLineageBindingResolution(process = {}, domain = {}) {
+  const errors = [];
+  const push = (message, anchors = {}) => errors.push({ message, ...anchors });
+  const recordsByGraphId = new Map((process.graph?.nodes || []).map(node => [
+    String(node.id),
+    (process.processNodes || {})[String(node.data?.refId || node.id)]
+  ]));
+  for (const edge of process.graph?.edges || []) {
+    const target = recordsByGraphId.get(String(edge.target));
+    if (!target || target.compositionMode !== 'ancestors') continue;
+    const handle = normalizeHandle(edge.targetHandle);
+    if (!handle.startsWith('entry:')) continue;
+    const entryId = handle.replace(/^entry:/, '');
+    const entry = (target.entries || []).find(item => item.id === entryId);
+    const anchors = { edgeId: edge.id, nodeId: String(edge.target), socketId: handle };
+    if (!entry) {
+      push(`Edge ${edge.id} targets missing lineage entry ${entryId} on ${target.id || target.label}`, anchors);
+      continue;
+    }
+    const source = recordsByGraphId.get(String(edge.source));
+    if (!source) {
+      push(`Edge ${edge.id} cannot resolve lineage source node ${String(edge.source)} for entry ${entry.id} on ${target.id}`, anchors);
+      continue;
+    }
+    let sourcePort = null;
+    try {
+      sourcePort = catalogPortForHandle(
+        resolveCatalogNodePorts(source, catalogContext(domain, source)).outputs,
+        edge.sourceHandle
+      );
+    } catch { sourcePort = null; }
+    const portEntityType = sourcePort?.type?.entityType || sourcePort?.type?.itemType?.entityType || '';
+    const ancestorType = portEntityType || source.entityType || entry.entityType || '';
+    if (!ancestorType) {
+      push(`Edge ${edge.id} cannot resolve an ancestor entity type for lineage entry ${entry.id} on ${target.id} from source ${source.id}`, anchors);
+      continue;
+    }
+    if (ancestorType === 'organization') {
+      push(`Edge ${edge.id} lineage entry ${entry.id} on ${target.id} cannot use organization as an ancestor`, anchors);
+      continue;
+    }
+    const lineageKey = entry.key || lineageKeyForEntityType(ancestorType);
+    if (!lineageKey) {
+      push(`Edge ${edge.id} lineage entry ${entry.id} on ${target.id} has no lineage key for ancestor type ${ancestorType}`, anchors);
+      continue;
+    }
+    if (portEntityType && sourcePort?.id
+      && !resolveSourceProducerOutputId(process, source, sourcePort)) {
+      push(
+        `Edge ${edge.id} lineage source socket ${source.id}:${sourcePort.id} on ${source.id} emits entity type ${portEntityType} `
+        + `but has no resolvable producer output record`,
+        anchors
+      );
+    }
+  }
+  return errors;
 }
 
 export function compileProcessDefinition(definition = {}, domain = {}, { roles = {} } = {}) {
@@ -618,15 +1037,24 @@ export function compileProcessDefinition(definition = {}, domain = {}, { roles =
   const compiledRoles = compileRoles(process, domain, organizationRoles, lineageBindings);
   const compiledScreens = compileScreens(process, domain, compiledRoles, lineageBindings);
   const workflows = compileWorkflows(process, domain, lineageBindings);
+  const fieldPolicies = compileFieldPolicies(process.producerOutputs, domain);
+  const compiledActions = compileActions(process.actions, process, domain, lineageBindings);
+  const producerOutputs = Object.fromEntries(Object.entries(process.producerOutputs).map(([producerOutputId, output]) => [producerOutputId, {
+    ...output,
+    producerOutputId,
+    workflow: workflows[producerOutputId],
+    fieldPolicy: fieldPolicies[producerOutputId],
+    actions: Object.values(compiledActions).filter(action => action.producerOutputId === producerOutputId),
+    lineageBindings: lineageBindings.filter(binding => binding.producerOutputId === producerOutputId)
+  }]));
 
   return {
     schemaVersion: PROCESS_SCHEMA_VERSION,
     activatedAt: new Date().toISOString(),
     roles: compiledRoles,
     servicePrincipals: process.servicePrincipals,
-    workflows,
-    fieldPolicies: compileFieldPolicies(process.entityProfiles, domain),
-    actions: compileActions(process.actions, process, domain, lineageBindings),
+    producerOutputs,
+    actions: compiledActions,
     statusDefinitions: compileStatusDefinitions(process.statusDefinitions),
     valueInputs: compileValueInputs(process.valueInputs),
     processNodes: compileProcessNodes(process.processNodes),
@@ -657,6 +1085,8 @@ export function compileLineageBindings(process = {}, domain = {}) {
     let outputs = [];
     try { outputs = resolveCatalogNodePorts(source, catalogContext(domain, source)).outputs; } catch { outputs = []; }
     const sourcePort = catalogPortForHandle(outputs, edge.sourceHandle);
+    const sourceProducerOutputId = resolveSourceProducerOutputId(process, source, sourcePort)
+      || source.producerOutputId || null;
     const ancestorType = sourcePort?.type?.entityType
       || sourcePort?.type?.itemType?.entityType
       || source.entityType
@@ -664,23 +1094,47 @@ export function compileLineageBindings(process = {}, domain = {}) {
       || '';
     if (!ancestorType) continue;
     const lineageKey = entry.key || lineageKeyForEntityType(ancestorType);
-    const downstreamTypes = (graph.edges || [])
+    const consumers = (graph.edges || [])
       .filter(candidate => String(candidate.source) === String(edge.target))
       .filter(candidate => normalizeHandle(candidate.sourceHandle) === 'block')
       .filter(candidate => normalizeHandle(candidate.targetHandle) === 'lineage')
-      .map(candidate => recordsByGraphId.get(String(candidate.target))?.entityType)
-      .filter(Boolean);
+      .map(candidate => ({ node: recordsByGraphId.get(String(candidate.target)), edge: candidate }))
+      .filter(({ node }) => node);
+    const producerConsumers = consumers.filter(({ node }) => (
+      ['effect.createEntity', 'effect.runProducer'].includes(node.kind)
+    ));
+    if (!lineageKey || ancestorType === 'organization') continue;
+    if (producerConsumers.length) {
+      for (const { node } of producerConsumers) {
+        const childEntityType = node.entityType || target.targetEntityType || target.entityType || '';
+        if (!childEntityType) continue;
+      bindings.push({
+        childEntityType,
+        ancestorEntityType: ancestorType,
+        lineageKey,
+        producerOutputId: node.producerOutputId || null,
+        sourceProducerOutputId,
+        sourceNode: String(edge.source),
+        sourceSocket: String(edge.sourceHandle || ''),
+        consumingNode: String(edge.target),
+        consumingSocket: String(edge.targetHandle || '')
+      });
+      }
+      continue;
+    }
     const childTypes = [...new Set([
       target.targetEntityType,
       target.entityType,
-      ...downstreamTypes
+      ...consumers.map(({ node }) => node.entityType)
     ].filter(Boolean))];
-    if (!childTypes.length || !lineageKey || ancestorType === 'organization') continue;
+    if (!childTypes.length) continue;
     for (const childEntityType of childTypes) {
       bindings.push({
         childEntityType,
         ancestorEntityType: ancestorType,
         lineageKey,
+        producerOutputId: null,
+        sourceProducerOutputId,
         sourceNode: String(edge.source),
         sourceSocket: String(edge.sourceHandle || ''),
         consumingNode: String(edge.target),
@@ -689,7 +1143,17 @@ export function compileLineageBindings(process = {}, domain = {}) {
     }
   }
   const unique = new Map(bindings.map(binding => [
-    `${binding.childEntityType}:${binding.ancestorEntityType}:${binding.lineageKey}`,
+    [
+      binding.producerOutputId,
+      binding.sourceProducerOutputId,
+      binding.childEntityType,
+      binding.ancestorEntityType,
+      binding.lineageKey,
+      binding.sourceNode,
+      binding.sourceSocket,
+      binding.consumingNode,
+      binding.consumingSocket
+    ].join(':'),
     binding
   ]));
   return [...unique.values()];
@@ -716,19 +1180,6 @@ export function resolveNavigation({ access } = {}) {
 
 export function resolveScreens({ access } = {}) {
   return access?.screens || [];
-}
-
-export function resolveWorkflow({ compiled, entityType, fallbackWorkflow = null } = {}) {
-  return compiled?.workflows?.[entityType] || fallbackWorkflow;
-}
-
-export function resolveFieldPolicy({ compiled, entityType, basePolicy = null } = {}) {
-  const processPolicy = compiled?.fieldPolicies?.[entityType];
-  if (!processPolicy) return basePolicy;
-  return {
-    ...(basePolicy || {}),
-    ...processPolicy
-  };
 }
 
 function normalizeGraph(graph = {}) {
@@ -834,12 +1285,12 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
   const workflows = {};
   const actionWindows = compileActionAccessWindows(process, domain, lineageBindings);
   const graphContext = buildActionGraphContext(process);
-  for (const profile of Object.values(process.entityProfiles || {})) {
-    workflows[profile.entityType] = compileLifecycle(profile, domain);
+  for (const output of Object.values(process.producerOutputs || {})) {
+    workflows[output.producerOutputId] = compileLifecycle(output, domain);
   }
 
-  const builders = new Map(Object.entries(workflows).map(([entityType, workflow]) => [
-    entityType,
+  const builders = new Map(Object.entries(workflows).map(([producerOutputId, workflow]) => [
+    producerOutputId,
     workflowBuilderFromWorkflow(workflow)
   ]));
 
@@ -847,8 +1298,8 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     const kind = action.actionKind || 'createEntity';
     if (!['createEntity', 'updateEntity'].includes(kind)) continue;
     const entityType = actionEntityType(action) || actionWindows.get(actionId)?.outputs?.[0]?.entityType || actionWindows.get(actionId)?.input?.entityType;
-    if (!entityType) continue;
-    const builder = ensureWorkflowBuilder(builders, entityType);
+    if (!entityType || !action.producerOutputId) continue;
+    const builder = primaryRegionBuilder(ensureWorkflowBuilder(builders, action.producerOutputId));
 
     if (kind === 'createEntity') {
       const targetState = actionTargetState(action, process);
@@ -873,19 +1324,21 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
     }
   }
 
-  for (const [entityType, builder] of builders) {
-    if (!Object.keys(builder.states).length) continue;
-    applyStatusDefinitionMetadata(builder, entityType, process.statusDefinitions);
-    workflows[entityType] = normalizeWorkflow({
+  for (const [producerOutputId, builder] of builders) {
+    if (!Object.values(builder.regions).some(region => Object.keys(region.states).length)) continue;
+    for (const region of Object.values(builder.regions)) {
+      applyStatusDefinitionMetadata(region, process.producerOutputs?.[producerOutputId]?.entityType, process.statusDefinitions);
+    }
+    workflows[producerOutputId] = normalizeWorkflow({
+      ...builder.contracts,
       schemaVersion: 2,
-      primaryRegion: 'main',
-      regions: {
-        main: {
-          initial: builder.initial || Object.keys(builder.states)[0],
-          states: builder.states,
-          transitions: builder.transitions
-        }
-      }
+      primaryRegion: builder.primaryRegion,
+      regions: Object.fromEntries(Object.entries(builder.regions).map(([regionId, region]) => [regionId, {
+        ...region.contracts,
+        initial: region.initial,
+        states: region.states,
+        transitions: region.transitions
+      }]))
     });
   }
 
@@ -934,19 +1387,42 @@ function applyStatusDefinitionMetadata(builder, entityType, statusDefinitions = 
   }
 }
 
+const WORKFLOW_STRUCTURAL_KEYS = new Set(['schemaVersion', 'primaryRegion', 'initial', 'states', 'transitions', 'regions']);
+const REGION_STRUCTURAL_KEYS = new Set(['id', 'initial', 'states', 'transitions']);
+
+function carriedContracts(source = {}, structuralKeys) {
+  return Object.fromEntries(Object.entries(source).filter(([key]) => !structuralKeys.has(key)));
+}
+
 function workflowBuilderFromWorkflow(workflow = {}) {
-  const regionId = workflow.primaryRegion || 'main';
-  const region = workflow.regions?.[regionId] || {};
+  const sourceRegions = workflow.regions && typeof workflow.regions === 'object' ? workflow.regions : {};
+  const primaryRegion = workflow.primaryRegion || (sourceRegions.main ? 'main' : Object.keys(sourceRegions)[0]) || 'main';
+  const regions = {};
+  for (const [regionId, region] of Object.entries(sourceRegions)) {
+    regions[regionId] = {
+      contracts: carriedContracts(region, REGION_STRUCTURAL_KEYS),
+      initial: region.initial || '',
+      states: { ...(region.states || {}) },
+      transitions: [...(region.transitions || [])]
+    };
+  }
+  if (!Object.keys(regions).length) {
+    regions[primaryRegion] = { contracts: {}, initial: '', states: {}, transitions: [] };
+  }
   return {
-    initial: region.initial || '',
-    states: { ...(region.states || {}) },
-    transitions: [...(region.transitions || [])]
+    contracts: carriedContracts(workflow, WORKFLOW_STRUCTURAL_KEYS),
+    primaryRegion,
+    regions
   };
+}
+
+function primaryRegionBuilder(builder) {
+  return builder.regions[builder.primaryRegion] || Object.values(builder.regions)[0];
 }
 
 function ensureWorkflowBuilder(builders, entityType) {
   if (!builders.has(entityType)) {
-    builders.set(entityType, { initial: '', states: {}, transitions: [] });
+    builders.set(entityType, workflowBuilderFromWorkflow());
   }
   return builders.get(entityType);
 }
@@ -954,7 +1430,6 @@ function ensureWorkflowBuilder(builders, entityType) {
 function addWorkflowState(builder, state) {
   if (!state) return;
   builder.states[state] ||= { canUpdateMeta: true };
-  builder.initial ||= state;
 }
 
 function upsertWorkflowTransition(builder, transition) {
@@ -1012,13 +1487,17 @@ export function compileAssignmentAccess({ assignment = {}, roles = {}, screens =
         sourceRoleIds: [...new Set([...(existing.sourceRoleIds || []), roleId])]
       });
     }
-    for (const screen of Object.values(screens)) {
-      if (!screenAppliesToRole(screen, roleId)) continue;
+  }
+  for (const screen of Object.values(screens)) {
+    const sourceRoleIds = roleIds.filter(roleId => screenAppliesToRole(screen, roleId));
+    if (!sourceRoleIds.length) continue;
+    for (const roleId of sourceRoleIds) {
       const compiledScreen = compileScreenForAssignment(screen, assignment, roleId);
       if (compiledScreen.incomplete.length) {
         incompleteBindings.push(...compiledScreen.incomplete.map(binding => ({ roleId, screenId: screen.id, binding })));
         continue;
       }
+      if (![screen.required, ...(screen.sources || []).map(source => source.required)].every(required => requirementHasAuthoredGrant(required, permissions))) continue;
       mergeCompiledScreen(screenMap, compiledScreen.screen);
     }
   }
@@ -1105,7 +1584,7 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
     grants: Array.isArray(process.roleGrants?.[roleId]) ? [...process.roleGrants[roleId]] : [],
     actions: []
   }]));
-  for (const profile of Object.values(process.entityProfiles || {})) {
+  for (const profile of Object.values(process.producerOutputs || {})) {
     const feature = resolveEntityFeature(domain, profile.entityType);
     for (const level of ['read', 'write', 'admin']) {
       for (const roleId of profile.allowedRoles?.[level] || []) {
@@ -1113,14 +1592,6 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
         roles[roleId].grants ||= [];
         upsertGrant(roles[roleId].grants, { feature, level });
       }
-    }
-  }
-  for (const screen of Object.values(process.screens || {})) {
-    const grant = grantFromScreenRequired(screen.required);
-    if (!grant) continue;
-    for (const roleId of screen.roleIds || []) {
-      if (!roles[roleId]) continue;
-      upsertGrant(roles[roleId].grants, grant);
     }
   }
   const actionWindows = compileActionAccessWindows(process, domain, lineageBindings);
@@ -1194,18 +1665,22 @@ function exposedActionFeature(action = {}, actionWindow = null, access = {}, dom
   return actionWindow?.primaryGrant?.feature || grantFromAction(action, access, domain)?.feature || null;
 }
 
+// Authored action roles are the primary declaration of whom the action
+// belongs to: they receive the surfaced action and the status-scoped grant
+// for the resulting state. Executability derived from the input window only
+// fills in when the action declares no roles of its own.
 function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
   const kind = action.actionKind || 'createEntity';
-  if (kind === 'updateEntity' && actionTargetState(action)) {
-    const executable = executableRoleIdsForWindow(actionWindow?.input, access);
-    if (executable.length) return [...new Set(executable)];
-  }
   const explicitGrants = access.grants?.length ? access.grants : grantsFromRoleIds(access.roleIds || [], access.level);
   const explicit = explicitGrants
     .filter(grant => ACCESS_ORDER[normalizeAccessLevel(grant.level)] >= ACCESS_ORDER.write)
     .map(grant => grant.roleId)
     .filter(Boolean);
-  if (explicit.length) return explicit;
+  if (explicit.length) return [...new Set(explicit)];
+  if (kind === 'updateEntity' && actionTargetState(action)) {
+    const executable = executableRoleIdsForWindow(actionWindow?.input, access);
+    if (executable.length) return [...new Set(executable)];
+  }
   return [...new Set((actionWindow?.outputs || []).flatMap(output => {
     const grants = output.roleGrants || grantsFromRoleIds(output.roleIds || [], output.level || access.level);
     return grants
@@ -1215,6 +1690,12 @@ function actionExposureRoleIds(action = {}, access = {}, actionWindow = null) {
 }
 
 function actionExposureRoleIdsForInput(action = {}, access = {}, inputWindow = null) {
+  const explicitGrants = access.grants?.length ? access.grants : grantsFromRoleIds(access.roleIds || [], access.level);
+  const explicit = explicitGrants
+    .filter(grant => ACCESS_ORDER[normalizeAccessLevel(grant.level)] >= ACCESS_ORDER.write)
+    .map(grant => grant.roleId)
+    .filter(Boolean);
+  if (explicit.length) return [...new Set(explicit)];
   if ((action.actionKind || 'createEntity') !== 'updateEntity' || !actionTargetState(action)) return actionExposureRoleIds(action, access, null);
   const executable = executableRoleIdsForWindow(inputWindow, access);
   if (executable.length) return [...new Set(executable)];
@@ -1236,18 +1717,6 @@ function actionStatusForExposure(action = {}, actionWindow = null, access = {}, 
   const targetStatus = actionTargetState(action, process) || access.statusTo || actionWindow?.outputs?.[0]?.status || '';
   if (!status.to && targetStatus) status.to = targetStatus;
   return status;
-}
-
-function grantFromScreenRequired(required = null) {
-  if (!required?.feature || !required?.level) return null;
-  return {
-    feature: required.feature,
-    level: required.level,
-    actions: required.actions,
-    scope: required.scope,
-    transitions: required.transitions,
-    rule: required.rule
-  };
 }
 
 function grantFromAction(action = {}, access = {}, domain = {}) {
@@ -1520,9 +1989,9 @@ function outputHandleId(action = {}, kind = '') {
 
 function effectiveActionParentEntityType(action = {}, incoming = null, lineageBindings = []) {
   const entityType = action.entityType || action.outputs?.find(output => output.entityType)?.entityType || '';
-  const compiledParents = lineageBindings
+  const compiledParents = [...new Set(lineageBindings
     .filter(binding => binding.childEntityType === entityType && binding.ancestorEntityType)
-    .map(binding => binding.ancestorEntityType);
+    .map(binding => binding.ancestorEntityType))];
   const candidates = [
     ...compiledParents,
     incoming?.parentInput ? incoming.entityType : '',
@@ -1564,11 +2033,11 @@ function actionInputsForExposure(action = {}, parentEntityType = '', domain = {}
       required: false
     });
   }
-  const construction = normalizeConstruction(action.construction, action.entityType, domain);
+  const construction = normalizeConstruction(action.construction, action.entityType, domain) || { inputs: [] };
   const constructionInputs = new Map((construction.inputs || []).map(input => [input.id || input.path, input]));
   const contract = constructionContract(domain, action.entityType);
   return inputs.filter(input => (
-    !contract.derived
+    !contract?.derived
     || !input.constructionInputId
     || constructionInputs.has(input.constructionInputId)
   )).map(input => {
@@ -1598,7 +2067,7 @@ function commandActionInputs(command = {}) {
       entityType: input.type || '',
       capability: input.capability || '',
       accepts: input.accepts || [],
-      required: false,
+      required: Boolean(input.required),
       multiple: Boolean(input.multiple),
       abstract: true,
       prompt: false
@@ -1610,7 +2079,7 @@ function commandActionInputs(command = {}) {
         label: input.label || input.name || input.type,
         entityType: input.type,
         kind: 'entity',
-        required: false,
+        required: Boolean(input.required),
         prompt: input.prompt !== false,
         path: `entities.${input.name || input.type}`
       })),
@@ -1622,7 +2091,7 @@ function commandActionInputs(command = {}) {
       options: input.options || [],
       optionsFromEntity: input.optionsFromEntity || '',
       default: input.default ?? null,
-      required: false,
+      required: Boolean(input.required && input.default === undefined),
       prompt: input.display !== 'hidden',
       path: `parameters.${input.name}`,
       dataPath: `parameters.${input.name}`,
@@ -1651,7 +2120,7 @@ function deriveActionWindowScope(action = {}, incoming = null, lineageBindings =
 
 function commandOutputEntityTypes(domain = {}, commandId = '') {
   const output = domain.commands?.[commandId]?.output || {};
-  return [...new Set(output.entities || [])].filter(Boolean);
+  return [...new Set((output.entities || []).map(entry => entry?.type).filter(Boolean))];
 }
 
 function deriveCommandOutputScope(outputEntityType = '', incoming = null, lineageBindings = []) {
@@ -1667,32 +2136,41 @@ function deriveCommandOutputScope(outputEntityType = '', incoming = null, lineag
 }
 
 function windowGrants(window = {}, action = {}, access = {}) {
-  const byLevel = new Map();
+  const grouped = new Map();
   for (const roleGrant of window.roleGrants || grantsFromRoleIds(window.roleIds || [], window.level)) {
     if (!roleGrant.roleId) continue;
-    const level = normalizeAccessLevel(roleGrant.level || window.level);
-    if (!byLevel.has(level)) byLevel.set(level, []);
-    byLevel.get(level).push(roleGrant.roleId);
+    const { roleId, ...dimensions } = roleGrant;
+    const normalized = { ...dimensions, level: normalizeAccessLevel(dimensions.level || window.level) };
+    const key = JSON.stringify(normalized);
+    if (!grouped.has(key)) grouped.set(key, { dimensions: normalized, roleIds: [] });
+    grouped.get(key).roleIds.push(roleId);
   }
-  return [...byLevel.entries()].map(([level, roleIds]) => windowGrant(window, action, access, level, [...new Set(roleIds)]));
+  return [...grouped.values()].map(({ dimensions, roleIds }) => windowGrant(window, action, access, dimensions, [...new Set(roleIds)]));
 }
 
-function windowGrant(window = {}, action = {}, access = {}, level = window.level, roleIds = window.roleIds || []) {
+function windowGrant(window = {}, action = {}, access = {}, dimensions = {}, roleIds = window.roleIds || []) {
   const grant = {
+    ...dimensions,
     feature: window.feature,
-    level: normalizeAccessLevel(level || window.level || 'read'),
+    level: normalizeAccessLevel(dimensions.level || window.level || 'read'),
     roleIds,
     sourceActionId: action.id,
     sourcePath: window.sourcePath
   };
-  if (window.scope) grant.scope = window.scope;
-  if (window.status) grant.rule = { fact: 'primaryStatus', equals: window.status };
+  if (window.scope) grant.scope = { ...(dimensions.scope || {}), ...window.scope };
+  if (window.status) grant.rule = mergeGrantRules(dimensions.rule, { fact: 'primaryStatus', equals: window.status });
   if ((action.actionKind || 'createEntity') === 'updateEntity' && actionTargetState(action)) {
     const from = access.statusFrom || action.status?.from || '';
     const to = access.statusTo || action.status?.to || window.status || '';
-    if (from || to) grant.transitions = [{ from: from || undefined, to: to || undefined }];
+    if (from || to) grant.transitions = [...(dimensions.transitions || []), { from: from || undefined, to: to || undefined }];
   }
   return grant;
+}
+
+function mergeGrantRules(left, right) {
+  if (!left) return right;
+  if (!right) return left;
+  return { all: [left, right] };
 }
 
 function resolveEntityFeature(domain = {}, entityType) {
@@ -1761,7 +2239,7 @@ export function compileScreens(processOrScreens = {}, domain = {}, compiledRoles
     screens,
     roles: compiledRoles,
     domain,
-    entityProfiles: processOrScreens.entityProfiles || {},
+    producerOutputs: processOrScreens.producerOutputs || {},
     actions: processOrScreens.actions || {},
     graph: processOrScreens.graph || {},
     lineageBindings
@@ -1781,6 +2259,7 @@ export function compileScreens(processOrScreens = {}, domain = {}, compiledRoles
       entityType: normalized.entityType || null,
       required: normalized.required || null,
       roleIds: normalized.roleIds || [],
+      scope: normalized.scope || {},
       bindings: normalized.bindings || {},
       sources,
       regions: normalized.regions,
@@ -1794,7 +2273,7 @@ function withCompiledLineage(source = {}, screen = {}, lineageBindings = []) {
   return { ...source, lineageBindings: lineageBindings.map(binding => ({ ...binding })) };
 }
 
-function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, entityProfiles = {}, actions = {}, graph = {}, lineageBindings = [] } = {}) {
+function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, producerOutputs = {}, actions = {}, graph = {}, lineageBindings = [] } = {}) {
   const inferred = {};
   const graphContext = buildActionGraphContext({ actions, graph });
   const existingKeys = new Set(Object.values(screens).flatMap(screen => {
@@ -1807,7 +2286,7 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, ent
     const grantsByFeature = groupGrantsByFeature(role.grants || []);
     for (const [feature, grants] of grantsByFeature) {
       const entityType = entityTypeFromFeature(domain, feature)
-        || entityTypeFromProfiles(entityProfiles, domain, feature);
+        || entityTypeFromProducerOutputs(producerOutputs, domain, feature);
       if (!entityType || existingKeys.has(`${roleId}:${feature}`)) continue;
       const id = `auto_${roleId}_${entityType}`;
       const detailId = `${id}_detail`;
@@ -2029,8 +2508,8 @@ function entityTypeFromFeature(domain = {}, feature) {
   ))?.type || null;
 }
 
-function entityTypeFromProfiles(entityProfiles = {}, domain = {}, feature) {
-  const entityType = Object.values(entityProfiles)
+function entityTypeFromProducerOutputs(producerOutputs = {}, domain = {}, feature) {
+  const entityType = Object.values(producerOutputs)
     .find(profile => resolveEntityFeature(domain, profile.entityType) === feature)
     ?.entityType || null;
   const definition = (domain.entities || []).find(entity => entity.type === entityType);
@@ -2059,7 +2538,7 @@ function compileScreenForAssignment(screen = {}, assignment = {}, roleId = null)
     placement: screen.placement,
     entityType: screen.entityType,
     required: screen.required,
-    scope: screen.bindings || {},
+    scope: { ...(screen.scope || {}), ...(screen.bindings || {}) },
     sources: screen.sources || [],
     regions: screen.regions || [],
     actions: screen.actions || [],
@@ -2203,10 +2682,10 @@ function dedupeNavigation(items = []) {
   return [...byKey.values()];
 }
 
-function compileFieldPolicies(entityProfiles = {}, domain = {}) {
+function compileFieldPolicies(producerOutputs = {}, domain = {}) {
   const policies = {};
-  for (const profile of Object.values(entityProfiles)) {
-    policies[profile.entityType] = {
+  for (const profile of Object.values(producerOutputs)) {
+    policies[profile.producerOutputId] = {
       read: profile.fields?.read || [],
       write: profile.fields?.write || [],
       private: profile.fields?.private || [],
@@ -2283,6 +2762,12 @@ export function compileActions(actions = {}, process = {}, domain = {}, lineageB
     const parentEntityType = effectiveActionParentEntityType(action, graphContext.parentIncomingByActionId.get(id), lineageBindings);
     const actionWindow = actionWindows.get(id);
     const resolvedEntityType = actionEntityType(action) || actionWindow?.input?.entityType || actionWindow?.outputs?.[0]?.entityType || null;
+    if (resolvedEntityType && !action.producerOutputId) throw new Error(`Action ${id} requires producerOutputId`);
+    const producerOutput = action.producerOutputId ? process.producerOutputs?.[action.producerOutputId] : null;
+    if (action.producerOutputId && !producerOutput) throw new Error(`Action ${id} uses unknown producerOutputId ${action.producerOutputId}`);
+    if (producerOutput && producerOutput.entityType !== resolvedEntityType) {
+      throw new Error(`Action ${id} producerOutputId emits ${producerOutput.entityType}, not ${resolvedEntityType}`);
+    }
     const normalizedAction = resolvedEntityType && !action.entityType ? { ...action, entityType: resolvedEntityType } : action;
     const inputs = actionInputsForExposure(normalizedAction, parentEntityType, domain).map(input => (
       input.id === 'entity' && !input.entityType && resolvedEntityType ? { ...input, entityType: resolvedEntityType } : input
@@ -2292,6 +2777,7 @@ export function compileActions(actions = {}, process = {}, domain = {}, lineageB
       id: action.id || id,
       label: displayActionLabel(action, id, process),
       actionKind: action.actionKind || 'createEntity',
+      producerOutputId: action.producerOutputId || null,
       entityType: resolvedEntityType,
       parentEntityType: parentEntityType || null,
       parentRevision: resolveParentRevision(action.parentRevision, parentEntityType, domain),
@@ -2396,6 +2882,7 @@ function compileStatusDefinitions(statusDefinitions = {}) {
     color: definition.color || '',
     severity: definition.severity || definition.color || '',
     icon: definition.icon || '',
+    region: definition.region || '',
     ...(definition.lifecycle ? { lifecycle: clonePlain(definition.lifecycle) } : {})
   }]));
 }
@@ -2422,10 +2909,14 @@ function compileProcessNodes(processNodes = {}) {
     relationKey: node.relationKey || '',
     relationCardinality: node.relationCardinality || '',
     block: node.block || '',
-    path: node.path || '',
+    path: Array.isArray(node.path) ? [...node.path] : node.path || '',
     valueType: node.valueType || '',
     structure: node.structure || 'item',
     operation: node.operation || '',
+    region: node.region || '',
+    archiveIntent: node.archiveIntent || '',
+    metadata: node.metadata ? clonePlain(node.metadata) : null,
+    lifecycle: node.lifecycle ? clonePlain(node.lifecycle) : null,
     template: node.template || '',
     inputs: Array.isArray(node.inputs) ? node.inputs.map(input => ({ ...input })) : [],
     outputs: Array.isArray(node.outputs) ? node.outputs.map(output => ({ ...output })) : []
@@ -2434,13 +2925,14 @@ function compileProcessNodes(processNodes = {}) {
 
 function normalizeConstruction(construction = {}, entityType = '', domain = {}) {
   const contract = constructionContract(domain, entityType);
-  const requestedMode = construction.mode || contract.defaultMode || defaultConstructionMode(entityType);
+  if (!contract) return null;
+  const source = construction || {};
   const modes = Array.isArray(contract.modes) ? contract.modes : [];
-  const mode = modes.includes(requestedMode)
-    ? requestedMode
-    : (contract.defaultMode || modes[0] || defaultConstructionMode(entityType));
-  const declaredInputs = Array.isArray(construction.inputs) ? construction.inputs : [];
-  const blocksOwnConstruction = construction.blockComposed && mode === 'genericCreate';
+  const mode = source.mode
+    ? source.mode
+    : (modes.includes(contract.defaultMode) ? contract.defaultMode : (modes[0] || ''));
+  const declaredInputs = Array.isArray(source.inputs) ? source.inputs : [];
+  const blocksOwnConstruction = source.blockComposed && mode === 'genericCreate';
   const contractInputs = (contract.modeInputs?.[mode] || contract.inputs || [])
     .filter(input => !blocksOwnConstruction || (
       input.id !== 'name'
@@ -2457,12 +2949,12 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
     if (contract.derived && !contractInput) continue;
     inputsById.set(key, contractInput
       ? mergeConstructionInput(contractInput, input)
-      : { ...input, required: false }
+      : { ...input }
     );
   }
   return {
     mode,
-    ...(construction.blockComposed ? { blockComposed: true } : {}),
+    ...(source.blockComposed ? { blockComposed: true } : {}),
     inputs: [...inputsById.values()]
   };
 }
@@ -2474,7 +2966,7 @@ function isCanonicalBlockConstructionPath(path = '') {
 
 function normalizeConstructionInput(input = {}, domain = {}) {
   if (typeof input.creator?.attachmentKinds !== 'string') {
-    return { ...input, required: false };
+    return { ...input };
   }
   return {
     ...input,
@@ -2483,8 +2975,7 @@ function normalizeConstructionInput(input = {}, domain = {}) {
       attachmentKinds: Object.values(domain.attachmentKinds || {})
         .filter(kind => ['upload', 'capture', 'editor'].includes(kind.creation?.mode))
         .map(kind => ({ kind: kind.kind || kind.id, creation: kind.creation }))
-    },
-    required: false
+    }
   };
 }
 
@@ -2508,7 +2999,7 @@ function mergeConstructionInput(contractInput = {}, declaredInput = {}) {
     default: declaredInput.default ?? contractInput.default,
     value: declaredInput.value ?? contractInput.value,
     prompt: declaredInput.prompt ?? contractInput.prompt,
-    required: false
+    required: Boolean(declaredInput.required === true || contractInput.required === true)
   };
 }
 
@@ -2516,13 +3007,13 @@ function normalizeInputPolicy(inputPolicy = {}) {
   return {
     prompt: inputPolicy.prompt !== false,
     fields: Array.isArray(inputPolicy.fields)
-      ? inputPolicy.fields.map(field => ({ ...field, required: false }))
+      ? inputPolicy.fields.map(field => ({ ...field, required: field.required === true }))
       : []
   };
 }
 
 function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, entityType = '', domain = {}) {
-  const normalizedConstruction = normalizeConstruction(construction, entityType, domain);
+  const normalizedConstruction = normalizeConstruction(construction, entityType, domain) || { inputs: [] };
   const policyFields = Array.isArray(inputPolicy.fields) ? inputPolicy.fields : [];
   const fieldsById = new Map(
     normalizedConstruction.inputs
@@ -2532,17 +3023,17 @@ function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, entityT
   for (const field of policyFields) {
     const key = field.id || field.path;
     const constructionField = normalizedConstruction.inputs.find(input => (input.id || input.path) === key);
-    if (constructionContract(domain, entityType).derived && !constructionField) continue;
+    if (constructionContract(domain, entityType)?.derived && !constructionField) continue;
     const merged = constructionField
       ? mergeConstructionInput(constructionField, field)
       : {
           ...(fieldsById.get(key) || {}),
           ...field
         };
-    if (merged.prompt || !constructionField) fieldsById.set(key, { ...merged, required: false });
+    if (merged.prompt || !constructionField) fieldsById.set(key, { ...merged });
     else fieldsById.delete(key);
   }
-  const fields = [...fieldsById.values()].map(field => ({ ...field, required: false }));
+  const fields = [...fieldsById.values()];
   return {
     prompt: inputPolicy.prompt !== false && fields.some(field => field.prompt),
     fields
@@ -2553,10 +3044,6 @@ function compiledInputPolicy(action = {}, domain = {}) {
   return (action.actionKind || 'createEntity') === 'createEntity'
     ? normalizeActionInputPolicy(action.inputPolicy, action.construction, action.entityType, domain)
     : normalizeInputPolicy(action.inputPolicy);
-}
-
-function defaultConstructionMode() {
-  return 'genericCreate';
 }
 
 function displayActionLabel(action = {}, id = '', process = {}) {
@@ -2609,7 +3096,7 @@ function normalizeActionAccess(access = {}) {
   const grants = Array.isArray(access.grants)
     ? access.grants
         .filter(grant => grant?.roleId)
-        .map(grant => ({ roleId: grant.roleId, level: normalizeAccessLevel(grant.level || level) }))
+        .map(grant => ({ ...grant, roleId: grant.roleId, level: normalizeAccessLevel(grant.level || level) }))
     : grantsFromRoleIds(Array.isArray(access.roleIds) ? access.roleIds : [], level);
   return {
     level: maxGrantLevel(grants, level),
@@ -2622,6 +3109,16 @@ function normalizeActionAccess(access = {}) {
   };
 }
 
+function requirementHasAuthoredGrant(required = null, permissions = {}) {
+  if (!required?.feature) return true;
+  const requiredLevel = normalizeAccessLevel(required.level || 'read');
+  return (permissions[required.feature] || []).some(grant => {
+    if (ACCESS_ORDER[normalizeAccessLevel(grant.level || 'read')] < ACCESS_ORDER[requiredLevel]) return false;
+    if (grant.actions && required.actions && Object.entries(required.actions).some(([action, enabled]) => enabled === true && grant.actions[action] !== true)) return false;
+    return true;
+  });
+}
+
 function normalizeAccessLevel(level) {
   return ['read', 'write', 'admin'].includes(level) ? level : 'write';
 }
@@ -2629,14 +3126,14 @@ function normalizeAccessLevel(level) {
 function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors, statusDefinitions = {}, process = {}, lineageBindings = [] }) {
   const kind = action.actionKind || 'createEntity';
   const normalizedAccess = normalizeActionAccess(action.access);
-  if (!['createEntity', 'updateEntity', 'runCommand', 'sendToOrganization'].includes(kind)) {
+  if (!['createEntity', 'updateEntity', 'archiveEntity', 'deleteEntity', 'runCommand', 'sendToOrganization'].includes(kind)) {
     errors.push(`Action ${actionId} uses unknown action kind ${kind}`);
     return;
   }
   if (kind === 'runCommand') {
     if (!action.commandId) errors.push(`Action ${actionId} must select a command`);
     if (action.commandId && !commands.has(action.commandId)) errors.push(`Action ${actionId} uses unknown command ${action.commandId}`);
-  } else if (kind !== 'updateEntity') {
+  } else if (!['updateEntity', 'archiveEntity', 'deleteEntity'].includes(kind)) {
     if (!action.entityType) errors.push(`Action ${actionId} must select an entity type`);
     if (action.entityType && !entities.has(action.entityType)) errors.push(`Action ${actionId} uses unknown entity type ${action.entityType}`);
   }
@@ -2669,6 +3166,13 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
     if (!(action.mutation?.fields || []).length && !hasTargetStatus) {
       errors.push(`Action ${actionId} must connect at least one writable field, relation, or status`);
     }
+  }
+  if (kind === 'archiveEntity' || kind === 'deleteEntity') {
+    const entityType = action.entityType || action.inputs?.find(input => input.entityType)?.entityType || inferConnectedActionEntityType(actionId, process);
+    if (!entityType) errors.push(`Action ${actionId} must receive an entity input`);
+    if (entityType && !entities.has(entityType)) errors.push(`Action ${actionId} input uses unknown entity type ${entityType}`);
+    if (kind === 'deleteEntity' && normalizedAccess.level !== 'admin') errors.push(`Action ${actionId} must use admin access for hard deletion`);
+    if (kind === 'deleteEntity' && (action.trigger?.mode || 'manual') !== 'manual') errors.push(`Action ${actionId} hard deletion must be manual`);
   }
   const canInheritAccess = kind === 'runCommand' && action.inputs?.some(input => input.entityType);
   if ((!action.access && !canInheritAccess) || !Array.isArray(normalizedAccess.grants) || !['read', 'write', 'admin'].includes(normalizedAccess.level)) {
@@ -2731,6 +3235,33 @@ function inferConnectedActionEntityType(actionId, process = {}) {
     if (sourceType) return sourceType;
   }
   return '';
+}
+
+function validateEffectCapabilities(process = {}, domain = {}, capabilities = {}, errors = []) {
+  for (const [nodeId, node] of Object.entries(process.processNodes || {})) {
+    if (!node.entityType) continue;
+    const capability = requiredEffectCapability(node.kind);
+    if (!capability) continue;
+    if (capability === 'statusMutation') {
+      if (!domain.workflows?.[node.entityType]) {
+        errors.push(`Process node ${nodeId} cannot change ${node.entityType}: entity has no status workflow`);
+      }
+      continue;
+    }
+    const record = capabilities[node.entityType];
+    if (capability === 'create') {
+      const construction = normalizeConstruction(node.construction, node.entityType, domain);
+      const mode = construction?.mode || '';
+      if (!record || !(Array.isArray(record.createModes) ? record.createModes : []).includes(mode)) {
+        errors.push(`Process node ${nodeId} cannot create ${node.entityType} with construction mode ${mode || '(none)'}: no registered runtime handler`);
+      }
+      continue;
+    }
+    if (!record || record[capability] !== true) {
+      const verb = capability === 'delete' ? 'delete' : capability === 'archive' ? 'archive' : 'update';
+      errors.push(`Process node ${nodeId} cannot ${verb} ${node.entityType}: entity service lacks ${capability} support`);
+    }
+  }
 }
 
 function validateProcessNode(nodeId, node = {}, { entities, domain, errors }) {
@@ -2889,6 +3420,16 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
   if (node.kind === 'record.deconstruct' && !node.blocks?.length) {
     errors.push(`Process node ${nodeId} must expose at least one declared block`);
   }
+  if (['record.getBlock', 'record.deconstruct'].includes(node.kind)
+    && node.entityType && entities.has(node.entityType)) {
+    const declaredBlocks = entityBlocks(domain, node.entityType);
+    const selectedBlocks = node.kind === 'record.getBlock' ? [node.block].filter(Boolean) : (node.blocks || []);
+    for (const block of selectedBlocks) {
+      if (!declaredBlocks.includes(block)) {
+        errors.push(`Process node ${nodeId} uses block ${block} outside ${node.entityType}`);
+      }
+    }
+  }
   if (['effect.createEntity', 'effect.updateEntity'].includes(node.kind)) {
     const statusTarget = processDefaultValue(node.inputDefaults?.['status.state.primary']) || node.status?.to || node.statusRef;
     if (node.kind === 'effect.updateEntity' && !node.blocks?.length && !statusTarget) {
@@ -2897,11 +3438,15 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
     if (node.kind === 'effect.createEntity') {
       const construction = normalizeConstruction(node.construction, node.entityType, domain);
       const contract = constructionContract(domain, node.entityType);
-      if (!contract.modes.includes(construction.mode)) {
-        errors.push(`Process node ${nodeId} cannot create ${node.entityType} with construction mode ${construction.mode}`);
-      }
-      if (contract.derived && construction.mode === 'genericCreate') {
-        errors.push(`Process node ${nodeId} must use a typed construction mode for derived entity ${node.entityType}`);
+      if (!contract || !construction) {
+        errors.push(`Process node ${nodeId} cannot create ${node.entityType}: entity has no construction contract`);
+      } else {
+        if (!contract.modes.includes(construction.mode)) {
+          errors.push(`Process node ${nodeId} cannot create ${node.entityType} with construction mode ${construction.mode}`);
+        }
+        if (contract.derived && construction.mode === 'genericCreate') {
+          errors.push(`Process node ${nodeId} must use a typed construction mode for derived entity ${node.entityType}`);
+        }
       }
     }
     const allowedBlocks = new Set(entityFieldSchemas(domain, node.entityType)
@@ -2928,7 +3473,7 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
     if (!(domain.producers || []).some(producer => producer.id === node.producerId)) {
       errors.push(`Process node ${nodeId} must select a registered producer`);
     }
-    if (!contract.modes.includes(construction.mode) || construction.mode === 'genericCreate') {
+    if (!contract || !construction || !contract.modes.includes(construction.mode) || construction.mode === 'genericCreate') {
       errors.push(`Process node ${nodeId} must use a declared service construction mode for ${node.entityType}`);
     }
   }
@@ -3018,8 +3563,13 @@ function validateOpenBlockEntries(nodeId, node, composition, entities, domain, e
   }
 }
 
+// Edge diagnostics are structured records so the designer can focus the exact
+// graph element; `errors` strings are derived from `message` at the assembly
+// boundary.
 function validateDataflowEdges(process, domain) {
   const errors = [];
+  const push = (message, anchors = {}) => errors.push({ message, ...anchors });
+  const entityEdgesByTarget = new Map();
   const graphNodes = new Map((process.graph?.nodes || []).map(node => [String(node.id), node]));
   for (const edge of process.graph?.edges || []) {
     const sourceNode = graphNodes.get(String(edge.source));
@@ -3032,15 +3582,29 @@ function validateDataflowEdges(process, domain) {
     const sourcePort = catalogPortForHandle(sourcePorts, edge.sourceHandle);
     const targetPort = catalogPortForHandle(targetPorts, edge.targetHandle);
     if (!sourcePort) {
-      errors.push(`Edge ${edge.id} references missing output ${edge.sourceHandle} on ${sourceRecord.id}`);
+      push(`Edge ${edge.id} references missing output ${edge.sourceHandle} on ${sourceRecord.id}`,
+        { edgeId: edge.id, nodeId: String(edge.target), socketId: String(edge.sourceHandle || '') });
       continue;
     }
     if (!targetPort) {
-      errors.push(`Edge ${edge.id} references missing input ${edge.targetHandle} on ${targetRecord.id}`);
+      push(`Edge ${edge.id} references missing input ${edge.targetHandle} on ${targetRecord.id}`,
+        { edgeId: edge.id, nodeId: String(edge.target), socketId: String(edge.targetHandle || '') });
       continue;
     }
+    const edgeSourceEntityType = sourcePort.type?.entityType || sourcePort.type?.itemType?.entityType || '';
+    const edgeSourceProducerId = edgeSourceEntityType
+      ? resolveSourceProducerOutputId(process, sourceRecord, sourcePort)
+      : null;
+    const producerLabel = edgeSourceProducerId ? ` from producer output ${edgeSourceProducerId}` : '';
     const compatibility = processSocketsCompatible(sourcePort, targetPort);
-    if (!compatibility.ok) errors.push(`Edge ${edge.id} is incompatible: ${compatibility.reason}`);
+    if (!compatibility.ok) {
+      push(`Edge ${edge.id}${producerLabel} is incompatible: ${compatibility.reason}`, {
+        edgeId: edge.id,
+        nodeId: String(edge.target),
+        socketId: targetPort.id,
+        ...(edgeSourceProducerId ? { producerOutputId: edgeSourceProducerId } : {})
+      });
+    }
     if (compatibility.ok
       && ['record.composeBlock', 'record.modifyBlock'].includes(sourceRecord.kind)
       && ['effect.createEntity', 'effect.updateEntity'].includes(targetRecord.kind)) {
@@ -3062,22 +3626,39 @@ function validateDataflowEdges(process, domain) {
         const wholeBlockAccepted = path === sourceRecord.block
           && targetSchemas.some(field => field[requiredAccess] !== false);
         if (!openBlockAccepted && !openRelationsAccepted && !wholeBlockAccepted && (!targetSchema || targetSchema[requiredAccess] === false)) {
-          errors.push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: field is not ${requiredAccess}`);
+          push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: field is not ${requiredAccess}`,
+            { edgeId: edge.id, nodeId: String(edge.target), socketId: targetPort.id });
         }
         if (sourceRecord.compositionMode && sourceRecord.compositionMode !== 'relations' && targetSchema) {
           const key = path.slice(sourceRecord.block.length + 1);
           const entry = (sourceRecord.entries || []).find(item => item.key === key);
           const sourceType = openCompositionEntryType(entry, sourceRecord.compositionMode, sourceRecord.compositionValueBase);
           if (sourceType && !processTypesEquivalent(sourceType, targetSchema.type)) {
-            errors.push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: composed entry type does not match the entity field`);
+            push(`Edge ${edge.id} cannot send ${path} to ${targetRecord.entityType}: composed entry type does not match the entity field`,
+              { edgeId: edge.id, nodeId: String(edge.target), socketId: targetPort.id });
           }
         }
       }
     }
+    if (compatibility.ok) {
+      const portEntityType = sourcePort.type?.entityType || sourcePort.type?.itemType?.entityType || '';
+      const portEntityStream = sourcePort.type?.base === 'entity'
+        || (sourcePort.type?.base === 'array' && sourcePort.type?.itemType?.base === 'entity');
+      if (portEntityStream && portEntityType) {
+        const producerOutputId = resolveSourceProducerOutputId(process, sourceRecord, sourcePort);
+        if (producerOutputId) {
+          entityEdgesByTarget.set(targetRecord.id, [
+            ...(entityEdgesByTarget.get(targetRecord.id) || []),
+            { edgeId: edge.id, socketId: targetPort.id, producerOutputId, entityType: portEntityType }
+          ]);
+        }
+      }
+    }
   }
+  errors.push(...validateProducerJoinAndConvergence(process, domain, entityEdgesByTarget));
   for (const role of ['data', 'control']) {
     const cycle = findGraphCycle(process, role);
-    if (cycle.length) errors.push(`${role === 'data' ? 'Data' : 'Control'} graph contains a cycle: ${cycle.join(' → ')}`);
+    if (cycle.length) push(`${role === 'data' ? 'Data' : 'Control'} graph contains a cycle: ${cycle.join(' → ')}`);
   }
   const triggers = (process.graph?.nodes || []).filter(node => {
     const record = process.processNodes?.[String(node.data?.refId || node.id)];
@@ -3089,7 +3670,69 @@ function validateDataflowEdges(process, domain) {
     const record = process.processNodes?.[String(node.data?.refId || node.id)];
     if ((record?.kind?.startsWith('effect.') || record?.kind?.startsWith('control.'))
       && !record.kind.endsWith('Trigger') && !reachable.has(String(node.id))) {
-      errors.push(`Operational node ${record.id || node.id} is not reachable from a trigger`);
+      push(`Operational node ${record.id || node.id} is not reachable from a trigger`, { nodeId: String(node.id) });
+    }
+  }
+  return errors;
+}
+
+// Same-type producer paths may converge only through an explicit
+// `producer.join` whose configuration selects the surviving producer output.
+// Every other consumer receiving entity streams from two distinct producer
+// outputs of the same entity type is an implicit workflow convergence and is
+// rejected with the responsible node, producer outputs, and edges named.
+function validateProducerJoinAndConvergence(process, domain, entityEdgesByTarget) {
+  const errors = [];
+  const push = (message, anchors = {}) => errors.push({ message, ...anchors });
+  const recordsById = new Map(Object.entries(process.processNodes || {})
+    .map(([id, record]) => [record.id || id, record]));
+  const graphIdFor = new Map((process.graph?.nodes || []).map(node => [
+    String(node.data?.refId || node.id),
+    String(node.id)
+  ]));
+  for (const [targetId, entries] of entityEdgesByTarget) {
+    const record = recordsById.get(targetId);
+    if (!record) continue;
+    const nodeId = graphIdFor.get(targetId) || targetId;
+    if (record.kind === 'producer.join') {
+      const sockets = new Map(entries.map(entry => [entry.socketId, entry]));
+      for (const input of ['primary', 'secondary']) {
+        if (!sockets.has(input)) {
+          push(`Join ${record.id || targetId} requires a connected ${input} entity stream`, { nodeId, socketId: input });
+        }
+      }
+      const candidateIds = [...new Set(entries.map(entry => entry.producerOutputId))];
+      if (!record.selectedProducerOutputId) {
+        if (candidateIds.length) {
+          push(`Join ${record.id || targetId} must select the resulting producer output from ${candidateIds.join(', ')}`, { nodeId });
+        }
+      } else if (!candidateIds.includes(record.selectedProducerOutputId)) {
+        push(
+          `Join ${record.id || targetId} selects producer output ${record.selectedProducerOutputId}, `
+          + `which is not among its connected sources ${candidateIds.join(', ')}`,
+          { nodeId, producerOutputId: record.selectedProducerOutputId }
+        );
+      }
+      continue;
+    }
+    const byType = new Map();
+    for (const entry of entries) {
+      let producers = byType.get(entry.entityType);
+      if (!producers) {
+        producers = new Map();
+        byType.set(entry.entityType, producers);
+      }
+      producers.set(entry.producerOutputId, entry);
+    }
+    for (const [entityType, producers] of byType) {
+      if (producers.size < 2) continue;
+      const [first, second] = [...producers.values()];
+      push(
+        `${record.kind} node ${record.id || targetId} implicitly converges ${entityType} producer outputs `
+        + `${first.producerOutputId} (edge ${first.edgeId}) and ${second.producerOutputId} (edge ${second.edgeId}); `
+        + `use an explicit producer join`,
+        { nodeId, edgeId: first.edgeId, socketId: first.socketId, producerOutputId: first.producerOutputId }
+      );
     }
   }
   return errors;
@@ -3245,6 +3888,10 @@ function validateConstruction(actionId, action = {}, domain = {}, errors = []) {
   const entityType = action.entityType || '';
   const contract = constructionContract(domain, entityType);
   const construction = normalizeConstruction(action.construction, entityType, domain);
+  if (!contract || !construction) {
+    errors.push(`Action ${actionId} cannot create ${entityType}: entity has no construction contract`);
+    return;
+  }
   if (!contract.modes.includes(construction.mode)) {
     errors.push(`Action ${actionId} cannot create ${entityType} with construction mode ${construction.mode}`);
   }
@@ -3255,11 +3902,7 @@ function validateConstruction(actionId, action = {}, domain = {}, errors = []) {
 }
 
 function constructionContract(domain = {}, entityType = '') {
-  return domain.construction?.[entityType] || {
-    modes: ['genericCreate'],
-    defaultMode: 'genericCreate',
-    inputs: []
-  };
+  return domain.construction?.[entityType] || null;
 }
 
 function validateFieldList(fields = [], domain = {}, entityType, label, errors, access = 'read') {
@@ -3305,23 +3948,6 @@ function validateMutationGrantLevels(actionId, fields = [], domain = {}, entityT
 function fieldPathAllowed(path, allowed = []) {
   if (!path || typeof path !== 'string') return false;
   return allowed.some(pattern => pattern === path || (pattern.endsWith('.*') && (path === pattern.slice(0, -2) || path.startsWith(pattern.slice(0, -1)))));
-}
-
-function getFieldPolicy(fieldAccess, entityType) {
-  const key = String(entityType || '');
-  const camel = key.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
-  const snake = key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
-  return fieldAccess[key] || fieldAccess[camel] || fieldAccess[snake] || null;
-}
-
-function entityBlocks(domain = {}, entityType = '') {
-  const entity = (domain.entities || []).find(item => item.type === entityType);
-  const policy = getFieldPolicy(domain.fieldAccess || {}, entityType) || {};
-  const policyBlocks = ['read', 'write', 'admin']
-    .flatMap(access => policy[access] || [])
-    .map(path => String(path).split('.')[0])
-    .filter(Boolean);
-  return [...new Set([...(entity?.blocks || []), ...policyBlocks])];
 }
 
 function getByPath(source, path) {

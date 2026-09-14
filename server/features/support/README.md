@@ -3,7 +3,10 @@
 Support chat is a capability module backed by the `supportMessages`
 collection. It is not a v24 entity module, but API routes still delegate message
 normalization and conversation selection to `service.js`, while `repository.js`
-owns raw MongoDB access.
+owns raw MongoDB access. Realtime delivery rides the shared connections layer
+([connections feature](../connections/README.md)): message and read events
+publish to `conversation:<key>` topics, inbox pings to participant `user:`
+topics, and support-channel changes to the `admin-support` topic.
 
 ## Conversation Contract
 
@@ -13,6 +16,7 @@ Messages have a deterministic `conversationKey`:
 |---|---|---|
 | User to support | `support:<userId>` | The customer user id |
 | User to user | `direct:<sorted-user-id-a>:<sorted-user-id-b>` | Both user ids, sorted |
+| Group chat | `group:<chatGroupId>` | The persisted group's member ids |
 
 Legacy support messages without `conversationKey` remain readable through the
 support-channel match for the same `userId`. New writes always persist
@@ -26,6 +30,27 @@ threads.
 An explicit recipient equal to the authenticated user creates the deterministic
 `direct:<userId>:<userId>` self-conversation; only a missing recipient selects
 the legacy customer-support channel.
+
+## Group Chats
+
+Group chats unify multi-user chat with LiveKit calls: each group is a
+persisted `chat_groups` document (canonical `identity`, `status`/`origin`,
+org `lineage`, plus a `participants` user-id list) and owns the derived
+`call:group:<groupId>` room minted by the
+[livekit feature](../livekit/README.md).
+
+- `POST /api/support/groups` creates one (`{ name, participantIds }`);
+  participants must be organization-reachable users and the creator is
+  always included. Creation pings every participant's inbox topic.
+- `DELETE /api/support/groups/:id` removes one; the creating member or an
+  admin may delete.
+- Group conversations appear in the user's inbox through
+  `GET /api/support/conversations`, including groups without messages yet;
+  summaries carry `groupName`, `groupId`, and `groupCreatorId`, and
+  message/read/typing events ride `conversation:group:<id>` with the same
+  participant admission as direct threads.
+- Messaging a group passes `conversationKey: "group:<id>"` to
+  `GET/POST /api/support/messages` instead of `recipientUserId`.
 
 Conversation read state is stored in `supportConversationReads` as
 `{ conversationKey, userId, lastReadAt, updatedAt }`. Conversation lists compute
@@ -97,16 +122,20 @@ survives write-time validation.
 
 | Endpoint | Responsibility |
 |---|---|
-| `GET /api/support/conversations` | Snapshot of the current user's support/direct conversation list with unread counts. |
+| `GET /api/support/conversations` | Snapshot of the current user's support/direct/group conversation list with unread counts. |
+| `POST /api/support/groups` | Creates a group chat (`{ name, participantIds }`). |
+| `DELETE /api/support/groups/:id` | Deletes a group chat (creator or admin). |
 | `POST /api/support/read` | Marks an authorized conversation read for the current user. |
 | `GET /api/support/entity-types` | Returns generated-screen entity source types readable by the current user. |
 | `GET /api/support/entity-options?type=<type>&q=<query>&recipientUserId=<id>` | Returns readable entity options for chat attachment refs and flags recipient chat-only visibility for direct chats. |
-| `GET /api/support/messages` | SSE stream for the current user's support conversation. |
-| `GET /api/support/messages?recipientUserId=<id>` | SSE stream for a direct user conversation. |
-| `POST /api/support/messages` | Send support or direct user message, depending on `recipientUserId`. |
-| `GET /api/support/admin/:user_id` | Admin SSE stream for a customer support conversation. |
+| `POST /api/support/typing` | Ephemeral typing signal; authorized like a read, published to the conversation topic, never persisted. |
+| `GET /api/support/messages` | REST snapshot of the current user's support conversation; changes arrive over the connections stream. |
+| `GET /api/support/messages?recipientUserId=<id>` | REST snapshot of a direct user conversation. |
+| `GET /api/support/messages?conversationKey=group:<id>` | REST snapshot of a group conversation. |
+| `POST /api/support/messages` | Send support, direct (`recipientUserId`), or group (`conversationKey`) message. Publishes `message`/`read`/inbox events through the connections layer. |
+| `GET /api/support/admin/:user_id` | REST snapshot of the admin support conversation. |
 | `POST /api/support/admin/:user_id` | Admin reply to a customer support conversation. |
-| `GET /api/support/admin/chatlist` | Admin support-thread list; excludes direct user conversations. |
+| `GET /api/support/admin/chatlist` | Admin support-thread list snapshot; excludes direct user conversations. Refreshes via the `admin-support` connections topic. |
 
 Concrete chat option loaders are registered for current domain list services
 such as projects, queues, cassettes, cassette designs, nesting runs, sheet

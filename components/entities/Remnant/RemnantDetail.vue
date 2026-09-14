@@ -4,53 +4,43 @@
             <Button icon="pi pi-qrcode" text :aria-label="$t('common.printTag')" />
         </template>
 
-        <Panel>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="flex flex-col">
-                    <small>{{ $t('results.area') }}</small>
-                    <span>{{ formattedArea }}</span>
-                </div>
-                <div class="flex flex-col">
-                    <small>{{ $t('results.material') }}</small>
-                    <EntityInlineRef v-if="pile" type="materialPile" :entity="pile" />
-                    <span v-else>—</span>
-                </div>
-            </div>
-        </Panel>
-
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
-            <div class="lg:col-span-3">
-                <Panel :header="$t('warehouse.recoveredArea')">
-                    <GeometryPreview :entity="remnant" />
-                </Panel>
-            </div>
-
-            <div class="lg:col-span-3">
-                <Panel :header="$t('common.traceability')">
-                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div v-if="sheet" class="flex items-center justify-between gap-4">
-                            <small class="text-muted-color">{{ $t('results.sheet') }}</small>
-                            <EntityInlineRef type="sheet" :entity="sheet" />
-                        </div>
-                        <div v-if="warehouse" class="flex items-center justify-between gap-4">
-                            <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
-                            <EntityInlineRef type="warehouse" :entity="warehouse" />
-                        </div>
+        <template #sidebar>
+            <Panel :header="$t('common.source')">
+                <div class="flex flex-col gap-3">
+                    <div class="flex items-center justify-between gap-4">
+                        <small class="text-muted-color">{{ $t('results.material') }}</small>
+                        <EntityInlineRef v-if="pile" type="materialPile" :entity="pile" />
+                        <span v-else>—</span>
                     </div>
-                </Panel>
-            </div>
+                    <div v-if="sheet" class="flex items-center justify-between gap-4">
+                        <small class="text-muted-color">{{ $t('results.sheet') }}</small>
+                        <EntityInlineRef type="sheet" :entity="sheet" />
+                    </div>
+                    <div v-if="warehouse" class="flex items-center justify-between gap-4">
+                        <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
+                        <EntityInlineRef type="warehouse" :entity="warehouse" />
+                    </div>
+                </div>
+            </Panel>
 
-            <div class="flex flex-col gap-8">
-                <Panel :header="$t('requisition.lifecycleTimeline')">
-                    <StatusHistory :entity="remnant" entity-type="remnant" />
-                </Panel>
-            </div>
+            <Panel :header="$t('requisition.lifecycleTimeline')">
+                <StatusHistory :entity="remnant" entity-type="remnant" />
+            </Panel>
+        </template>
+
+        <div class="flex flex-col gap-6">
+            <MetricPanel :metrics="remnantMetrics" />
+
+            <Panel :header="$t('warehouse.recoveredArea')">
+                <GeometryPreview :entity="remnant" />
+            </Panel>
         </div>
     </EntityPage>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
@@ -58,6 +48,9 @@ import { useEntity } from '~/composables/useEntity';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import MetricPanel from '~/components/shared/MetricPanel.vue';
+
+const { t } = useI18n();
 
 const props = defineProps({
     remnant: {
@@ -80,6 +73,9 @@ const formattedArea = computed(() => {
     const area = Number(specs.value.area || 0);
     return `${area.toFixed(2)} m²`;
 });
+const remnantMetrics = computed(() => [
+    { key: 'area', label: t('results.area'), value: formattedArea.value }
+]);
 
 watch(pileId, async (id) => {
     pile.value = null;

@@ -1,5 +1,6 @@
 import { schemaWebSite } from './utils/schema'
 import Re_L from './assets/presets/re_l'
+import { cssVariableTokens, darkCssVariableTokens } from './assets/tokens/index.js'
 import { fileURLToPath } from 'node:url'
 
 const resolveRoot = (path) => fileURLToPath(new URL(path, import.meta.url))
@@ -22,6 +23,8 @@ const portableAliases = {
     '#packages': resolveRoot('./packages'),
     '#utils': resolveRoot('./utils')
 }
+const cssDeclarations = tokens => Object.entries(tokens).map(([name, value]) => `${name}:${value}`).join(';')
+const appTokenStyles = `:root{${cssDeclarations(cssVariableTokens)}}.dark-mode{${cssDeclarations(darkCssVariableTokens)}}`
 
 export default defineNuxtConfig({
     compatibilityDate: '2025-07-15',
@@ -188,6 +191,7 @@ export default defineNuxtConfig({
                 lang: 'ru'
             },
             title: 'CutKit - CNC Manufacturing Platform',
+            style: [{ textContent: appTokenStyles }],
             meta: [
                 { charset: 'utf-8' },
                 {

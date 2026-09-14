@@ -5,6 +5,7 @@ import {
   getProcessNodeDefinition,
   resolveCatalogNodePorts
 } from './node-catalog.js';
+import { processSocketsCompatible } from './types.js';
 
 describe('process v4 node catalog', () => {
   it('uses unique namespaced kinds and one declared family/level per node', () => {
@@ -131,6 +132,52 @@ describe('process v4 node catalog', () => {
     expect(automaticModify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity', 'status.state.primary']);
   });
 
+  it('declares List consumption on every mapped mutation effect input socket', () => {
+    const context = {
+      fieldSchemas: [
+        { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }
+      ]
+    };
+    for (const [kind, record] of [
+      ['effect.createEntity', { kind: 'effect.createEntity', entityType: 'project', blocks: ['identity'] }],
+      ['effect.updateEntity', { kind: 'effect.updateEntity', entityType: 'project', blocks: ['identity'] }],
+      ['effect.changeStatus', { kind: 'effect.changeStatus', entityType: 'project' }],
+      ['effect.archiveEntity', { kind: 'effect.archiveEntity', entityType: 'project' }],
+      ['effect.deleteEntity', { kind: 'effect.deleteEntity', entityType: 'project' }]
+    ]) {
+      const ports = resolveCatalogNodePorts(record, context);
+      expect(ports.inputs.length, kind).toBeGreaterThan(0);
+      expect(ports.inputs.every(input => input.access === 'list'), kind).toBe(true);
+    }
+    const typedCreate = resolveCatalogNodePorts({
+      kind: 'effect.createEntity',
+      entityType: 'cassette_design',
+      construction: {
+        mode: 'bakeCassetteDesignFromTemplate',
+        inputs: [{ id: 'templateId', type: 'entity', entityType: 'cassette', required: true }]
+      }
+    }, context);
+    expect(typedCreate.inputs.every(input => input.access === 'list')).toBe(true);
+  });
+
+  it('accepts item, list, and tree sources on mapped mutation sockets', () => {
+    const modify = resolveCatalogNodePorts({
+      kind: 'effect.updateEntity',
+      entityType: 'project',
+      blocks: ['identity']
+    }, {
+      fieldSchemas: [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } }]
+    });
+    const entitySocket = modify.inputs.find(input => input.id === 'entity');
+    const blockSocket = modify.inputs.find(input => input.id === 'identity');
+    for (const access of ['item', 'list', 'tree']) {
+      const entitySource = { id: 'entities', label: 'entities', role: 'data', access, type: { base: 'entity', entityType: 'project' } };
+      expect(processSocketsCompatible(entitySource, entitySocket).ok, `entity ${access}`).toBe(true);
+      const blockSource = { id: 'block', label: 'block', role: 'data', access, type: { base: 'block', block: 'identity' } };
+      expect(processSocketsCompatible(blockSource, blockSocket).ok, `block ${access}`).toBe(true);
+    }
+  });
+
   it('composes and modifies one selected block from its own fields', () => {
     const context = {
       fieldSchemas: [
@@ -248,13 +295,18 @@ describe('process v4 node catalog', () => {
             { name: 'materialMode', type: 'enum', options: ['VIRTUAL', 'WAREHOUSE'] }
           ]
         },
-        output: { entities: ['nesting_run', 'sheet'] }
+        output: {
+          entities: [
+            { type: 'nesting_run', persistenceOwner: 'commandOwned', timing: 'immediate' },
+            { type: 'sheet', persistenceOwner: 'commandOwned', timing: 'completion' }
+          ]
+        }
       }
     });
 
     expect(ports.inputs).toMatchObject([
-      { id: 'queue', required: false, type: { base: 'entityRef', entityType: 'queue' } },
-      { id: 'machineId', required: false, type: { base: 'entityRef', entityType: 'machine' } },
+      { id: 'queue', required: true, type: { base: 'entityRef', entityType: 'queue' } },
+      { id: 'machineId', required: true, type: { base: 'entityRef', entityType: 'machine' } },
       { id: 'materialMode', type: { base: 'enum' } }
     ]);
     expect(ports.outputs.map(output => output.id)).toEqual(['completed', 'nesting_run', 'sheet']);
@@ -308,5 +360,46 @@ describe('process v4 node catalog', () => {
       entityType: 'project',
       blocks: ['identity']
     }, context).outputs[0]).toMatchObject({ access: 'item', type: { base: 'block', block: 'identity' } });
+  });
+
+  it('exposes items plus aligned keys for Sort, Distinct, and Group By', () => {
+    expect(resolveCatalogNodePorts({ kind: 'collection.sort' }).inputs.map(input => [input.id, input.required, input.access]))
+      .toEqual([['items', true, 'list'], ['keys', true, 'list']]);
+    expect(resolveCatalogNodePorts({ kind: 'collection.distinct' }).inputs.map(input => [input.id, input.required, input.access]))
+      .toEqual([['items', true, 'list'], ['keys', false, 'list']]);
+    expect(resolveCatalogNodePorts({ kind: 'collection.groupBy' }).inputs.map(input => [input.id, input.required, input.access]))
+      .toEqual([['items', true, 'list'], ['keys', true, 'list']]);
+    expect(resolveCatalogNodePorts({ kind: 'collection.sort' }).outputs[0].id).toBe('items');
+    expect(resolveCatalogNodePorts({ kind: 'collection.itemAt' }).inputs[1]).toMatchObject({ id: 'index', required: false });
+  });
+
+  it('fixes Make List at four optional single-wire item sockets feeding one list output', () => {
+    const ports = resolveCatalogNodePorts({
+      kind: 'collection.makeList',
+      type: { base: 'entityRef', entityType: 'queue' }
+    });
+
+    expect(ports.inputs.map(input => [input.id, input.required, input.access, Boolean(input.multiple)]))
+      .toEqual([
+        ['item1', false, 'item', false],
+        ['item2', false, 'item', false],
+        ['item3', false, 'item', false],
+        ['item4', false, 'item', false]
+      ]);
+    expect(ports.inputs.every(input => input.type.base === 'entityRef' && input.type.entityType === 'queue')).toBe(true);
+    expect(ports.outputs).toHaveLength(1);
+    expect(ports.outputs[0]).toMatchObject({ id: 'value', access: 'list', type: { base: 'entityRef', entityType: 'queue' } });
+  });
+
+  it('keeps Concat as a two-list join that retains element type and list access', () => {
+    const ports = resolveCatalogNodePorts({
+      kind: 'collection.concat',
+      type: { base: 'entityRef', entityType: 'queue' }
+    });
+
+    expect(ports.inputs.map(input => [input.id, input.required, input.access]))
+      .toEqual([['left', true, 'list'], ['right', true, 'list']]);
+    expect(ports.inputs.every(input => input.type.base === 'entityRef' && input.type.entityType === 'queue')).toBe(true);
+    expect(ports.outputs[0]).toMatchObject({ id: 'value', access: 'list', type: { base: 'entityRef', entityType: 'queue' } });
   });
 });

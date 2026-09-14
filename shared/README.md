@@ -23,6 +23,19 @@ imported through server modules that Nitro externalizes.
   access checks.
 - `ui-permissions.js`: Compatibility UI resolver backed by the same grant
   evaluator as the server access engine.
+- `role-access-summary.js`: Annotated derived role access summary for process
+  role review surfaces (Team page role dialog, process designer role tab). It
+  derives the effective profile, screen, action, and workflow-transition access
+  lines for a set of organization role ids from process definition data and
+  annotates every line with the contributing record: an authored role/profile/
+  action/transition grant, a screen requirement consuming separate capability,
+  a status-window rule, or a level fallback.
+- `assignment-access-preview.js`: Assignment review over the existing process
+  assignment compiler, shared evaluator, and compiled field policies. Concrete
+  entity/status/lineage context yields allow/deny results; missing conditional
+  context stays unresolved, including for screens whose separately authored
+  capability is conditional. Active owner membership adds only the separately
+  attributed recovery overlay.
 - `*.spec.js`: Contract tests for shared framework and permission behavior.
 
 Import-alias rules are defined in [scripts/README.md](../scripts/README.md).
@@ -120,5 +133,4 @@ on each array item instead of copying the whole object.
 ## Related
 - [users feature](../server/features/users/README.md) - Stores membership and
   copied permission data on user records.
-- [admin pages](../pages/admin/README.md) - Workbench editor for permission
   template drafts and UI action visibility drafts.

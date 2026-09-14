@@ -1,4 +1,5 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
+import { CONSUMER_EFFECT_KINDS } from './node-catalog.js';
 
 const BLOCK_PRESENTATION = {
   identity: { defaultPath: 'identity.name', icon: 'pi pi-id-card', fields: ['identity.uid', 'identity.name', 'identity.slug', 'identity.serial', 'identity.reference'] },
@@ -43,14 +44,24 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
     items: [
       paletteItem('createEntity', 'effect.createEntity'),
       paletteItem('modifyEntity', 'effect.updateEntity'),
+      paletteItem('changeStatus', 'effect.changeStatus'),
+      paletteItem('archiveEntity', 'effect.archiveEntity'),
+      paletteItem('deleteEntity', 'effect.deleteEntity'),
       paletteItem('runService', 'effect.runCommand'),
       definitionPaletteItem('defineStatus', 'statusDefinition'),
+      paletteItem('currentEntity', 'read.currentEntity'),
+      paletteItem('findEntityById', 'read.entityById'),
+      paletteItem('findEntityByReference', 'read.resolveEntityRef'),
       paletteItem('selectEntities', 'read.queryEntities'),
+      paletteItem('parentEntity', 'read.parent'),
+      paletteItem('childEntities', 'read.children'),
+      paletteItem('relatedEntities', 'read.related'),
       paletteItem('deconstructEntity', 'record.deconstruct'),
       paletteItem('composeBlock', 'record.composeBlock'),
       paletteItem('modifyBlock', 'record.modifyBlock'),
       paletteItem('readBlock', 'record.getBlock'),
-      paletteItem('readField', 'record.getField')
+      paletteItem('readField', 'record.getField'),
+      paletteItem('joinProducers', 'producer.join')
     ]
   },
   {
@@ -72,6 +83,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   {
     id: 'listTree',
     items: [
+      paletteItem('makeList', 'collection.makeList'),
       paletteItem('collectArray', 'collection.packArray'),
       paletteItem('expandArray', 'collection.unpackArray'),
       paletteItem('joinLists', 'collection.concat'),
@@ -80,19 +92,9 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('listCount', 'collection.count'),
       paletteItem('filterList', 'collection.filter'),
       paletteItem('sortItems', 'collection.sort'),
-      paletteItem('reverseItems', 'collection.reverse'),
-      paletteItem('shiftItems', 'collection.shift'),
-      paletteItem('partitionItems', 'collection.partition'),
       paletteItem('dispatchItems', 'collection.dispatch'),
       paletteItem('removeDuplicates', 'collection.distinct'),
-      paletteItem('groupItems', 'collection.groupBy'),
-      paletteItem('flattenTree', 'tree.flatten'),
-      paletteItem('graftTree', 'tree.graft'),
-      paletteItem('simplifyTree', 'tree.simplify'),
-      paletteItem('treeBranch', 'tree.branch'),
-      paletteItem('transposeTree', 'tree.transpose'),
-      paletteItem('cleanTree', 'tree.clean'),
-      paletteItem('treeStatistics', 'tree.stats')
+      paletteItem('groupItems', 'collection.groupBy')
     ]
   }
 ].map(group => Object.freeze({
@@ -100,20 +102,79 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   items: Object.freeze(group.items)
 })));
 
-export function createProcessDesignerContract(domain = {}) {
+export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
+  if (!node.id) return [];
+  const pruneOwnOutputs = () => {
+    const producerOutputs = data.producerOutputs ||= {};
+    for (const [producerOutputId, output] of Object.entries(producerOutputs)) {
+      if (output?.nodeId === node.id) delete producerOutputs[producerOutputId];
+    }
+  };
+  // The explicit producer join routes its output under the producer output
+  // its configuration selects; it must never become a producer anchor itself.
+  if (node.kind === 'producer.join') {
+    pruneOwnOutputs();
+    return [];
+  }
+  // Consumer effects transform entities that arrived over an input wire:
+  // they own no producer output and carry no producer identity of their own.
+  if (CONSUMER_EFFECT_KINDS.includes(node.kind)) {
+    pruneOwnOutputs();
+    delete node.producerOutputId;
+    return [];
+  }
+  const outputs = (node.outputs || []).filter(output => (
+    output?.id && output.type?.base === 'entity' && output.type?.entityType
+  ));
+  const producerOutputs = data.producerOutputs ||= {};
+  const outputIds = new Set(outputs.map(output => `${node.id}:${output.id}`));
+
+  for (const [producerOutputId, output] of Object.entries(producerOutputs)) {
+    if (output?.nodeId === node.id && !outputIds.has(producerOutputId)) delete producerOutputs[producerOutputId];
+  }
+
+  for (const output of outputs) {
+    const producerOutputId = `${node.id}:${output.id}`;
+    producerOutputs[producerOutputId] = {
+      ...producerOutputs[producerOutputId],
+      producerOutputId,
+      nodeId: node.id,
+      outputSocketId: output.id,
+      entityType: output.type.entityType,
+      lifecycle: producerOutputs[producerOutputId]?.lifecycle || { mode: 'defaultCreated' },
+      fields: producerOutputs[producerOutputId]?.fields || { read: [], write: [], private: [] }
+    };
+  }
+
+  if (node.kind?.startsWith('effect.') && outputIds.size === 1) {
+    [node.producerOutputId] = outputIds;
+  }
+  return [...outputIds];
+}
+
+export function createProcessDesignerContract(domain = {}, capabilities = null) {
   const entities = Array.isArray(domain.entities) ? domain.entities : [];
   const entityByType = new Map(entities.map(entity => [entity.type, entity]));
+
+  function capabilityFor(entityType = '') {
+    return capabilities ? (lookupEntityContract(capabilities, entityType) || null) : null;
+  }
+
+  function createModes(entityType = '') {
+    if (capabilities) {
+      const capability = capabilityFor(entityType);
+      return Array.isArray(capability?.createModes) ? [...capability.createModes] : [];
+    }
+    const contract = lookupEntityContract(domain.construction, entityType);
+    return contract && Array.isArray(contract.modes) ? [...contract.modes] : [];
+  }
 
   function fieldPolicy(entityType = '') {
     return lookupEntityContract(domain.fieldAccess, entityType) || {};
   }
 
   function construction(entityType = '') {
-    return lookupEntityContract(domain.construction, entityType) || {
-      modes: ['genericCreate'],
-      defaultMode: 'genericCreate',
-      inputs: []
-    };
+    return lookupEntityContract(domain.construction, entityType) || null;
   }
 
   function blocks(entityType = '') {
@@ -153,11 +214,62 @@ export function createProcessDesignerContract(domain = {}) {
     items: group.items
   }));
 
+  const entityOption = entity => ({ label: entity.label || entity.type, value: entity.type });
+
+  const listableEntityOptions = entities
+    .filter(entity => capabilities ? Boolean(capabilityFor(entity.type)?.list) : true)
+    .map(entityOption);
+
+  const readableEntityOptions = entities
+    .filter(entity => capabilities ? Boolean(capabilityFor(entity.type)?.getById) : true)
+    .map(entityOption);
+
+  const createEntityOptions = entities
+    .filter(entity => createModes(entity.type).length > 0)
+    .map(entityOption);
+
+  const updateEntityOptions = entities
+    .filter(entity => capabilities
+      ? Boolean(capabilityFor(entity.type)?.processUpdate)
+      : (lookupEntityContract(domain.fieldSchemas, entity.type) || []).some(schema => schema.writable === true))
+    .map(entityOption);
+
+  const changeStatusOptions = entities
+    .filter(entity => capabilities
+      ? Boolean(capabilityFor(entity.type)?.statusMutation)
+      : Boolean((domain.workflows || {})[entity.type]))
+    .map(entityOption);
+
+  const deleteEntityOptions = entities
+    .filter(entity => capabilities && Boolean(capabilityFor(entity.type)?.delete))
+    .map(entityOption);
+
+  const archivableEntityOptions = entities
+    .filter(entity => capabilities && Boolean(capabilityFor(entity.type)?.archive))
+    .map(entityOption);
+
+  const enabledPaletteGroups = paletteGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => (
+      item.kind !== 'effect.deleteEntity' || deleteEntityOptions.length > 0
+    ) && (
+      item.kind !== 'effect.archiveEntity' || archivableEntityOptions.length > 0
+    ))
+  }));
+
   return {
     domain,
-    paletteGroups,
+    paletteGroups: enabledPaletteGroups,
     blocks: CANONICAL_ENTITY_BLOCKS.map(id => ({ id, label: id, ...BLOCK_PRESENTATION[id] })),
-    entityOptions: entities.map(entity => ({ label: entity.label || entity.type, value: entity.type })),
+    entityOptions: entities.map(entityOption),
+    listableEntityOptions,
+    readableEntityOptions,
+    createEntityOptions,
+    createModes,
+    updateEntityOptions,
+    changeStatusOptions,
+    deleteEntityOptions,
+    archivableEntityOptions,
     workflowOptions: Object.entries(domain.workflows || {}).map(([entityType, workflow]) => ({ label: workflow.label || entityType, value: entityType })),
     commandOptions: definitionOptions(domain.commands),
     taskOptions: definitionOptions(domain.tasks),

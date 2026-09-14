@@ -24,7 +24,7 @@ export function normalizePortSpec(io = {}, fallback = {}) {
     accepts: Array.isArray(source.accepts) ? [...source.accepts] : [],
     multiple,
     optional: Boolean(source.optional || source.required === false || fallback.optional),
-    required: false,
+    required: Boolean(source.required === true || (source.required == null && fallback.required === true)),
     projection: Boolean(source.projection || kind === 'projection')
   };
 }
@@ -492,7 +492,7 @@ function normalizeHandleId(handle = '', direction = 'output') {
 function recordForNode(process = {}, node = {}) {
   const refId = String(node.data?.refId || node.id || '');
   const key = {
-    entity: 'entityProfiles',
+    entity: 'producerOutputs',
     action: 'actions',
     service: 'services',
     socket: 'sockets',

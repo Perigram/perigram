@@ -498,6 +498,32 @@ describe('status service lifecycle payloads', () => {
     expect(entity.status.lifecycle).toEqual({ actors: [], attachments: {}, data: {} });
   });
 
+  it('strips producer output provenance from persisted entity status metadata', async () => {
+    const id = new ObjectId();
+    const projectId = new ObjectId();
+    await db.collection('projects').insertOne({ _id: projectId, identity: { uid: projectId, name: 'Project' } });
+    await db.collection('cassette_instances').insertOne({
+      _id: id,
+      identity: { uid: id, name: 'Cassette 3' },
+      lineage: { projectId },
+      status: { state: 'PRODUCED', userId: 'creator', timestamp: new Date(), metadata: {} }
+    });
+
+    await statusService.transition('cassette_instance', id, 'MILLED', 'operator-1', transitionAuth, {
+      producerOutputId: 'create_cassette:entity',
+      metadata: { note: 'Milled on line 2', producerOutputId: 'create_cassette:entity' }
+    });
+
+    const entity = await db.collection('cassette_instances').findOne({ _id: id });
+    expect(entity.status.state.primary).toBe('MILLED');
+    expect(entity.status.metadata.note).toBe('Milled on line 2');
+    expect(entity.status.metadata).not.toHaveProperty('producerOutputId');
+
+    const event = await db.collection('status_events').findOne({ targetId: id });
+    expect(event.status.metadata.note).toBe('Milled on line 2');
+    expect(event.status.metadata).not.toHaveProperty('producerOutputId');
+  });
+
   it('fills status display metadata from the active workflow state', async () => {
     const id = new ObjectId();
     const workflowSpy = vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
@@ -516,6 +542,11 @@ describe('status service lifecycle payloads', () => {
               canUpdateMeta: true
             }
           },
+          transitions: []
+        },
+        quality: {
+          initial: 'UNVERIFIED',
+          states: { UNVERIFIED: {}, VERIFIED: {} },
           transitions: []
         }
       }
@@ -538,6 +569,7 @@ describe('status service lifecycle payloads', () => {
       severity: 'danger',
       icon: 'pi pi-trash'
     });
+    expect(entity.status.state.active).toEqual({ main: 'DELETED', quality: 'UNVERIFIED' });
     workflowSpy.mockRestore();
   });
 

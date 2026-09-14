@@ -1,3 +1,7 @@
+// Entity construction contracts authoring a fresh process graph. `cassette_instance`
+// is deliberately absent: instances are derived at nesting time via the
+// `cassette-instances` service `createFromSheet`/`createFromCutSheet` constructors,
+// not authored from an empty graph.
 export const cncEntityConstruction = {
   artifact: {
     modes: ['uploadArtifact'],
@@ -71,21 +75,57 @@ export const cncEntityConstruction = {
     },
     inputs: []
   },
-  cassette_instance: {
+  catalog: {
     modes: ['genericCreate'],
     defaultMode: 'genericCreate',
     inputs: [
-      { id: 'cassetteDesignId', label: 'Cassette design', path: 'data.cassetteDesignId', type: 'entity', entityType: 'cassette_design', required: true }
+      { id: 'name', label: 'Catalog name', path: 'name', type: 'string', required: true, prompt: true }
+    ]
+  },
+  color: {
+    modes: ['genericCreate'],
+    defaultMode: 'genericCreate',
+    inputs: [
+      { id: 'name', label: 'Color name', path: 'name', type: 'string', required: true, prompt: true }
+    ]
+  },
+  material: {
+    modes: ['genericCreate'],
+    defaultMode: 'genericCreate',
+    inputs: [
+      { id: 'name', label: 'Material name', path: 'name', type: 'string', required: true, prompt: true }
+    ]
+  },
+  material_pile: {
+    modes: ['genericCreate'],
+    defaultMode: 'genericCreate',
+    inputs: [
+      { id: 'name', label: 'Material pile name', path: 'name', type: 'string', required: true, prompt: true }
+    ]
+  },
+  remnant: {
+    modes: ['genericCreate'],
+    defaultMode: 'genericCreate',
+    inputs: [
+      { id: 'name', label: 'Remnant name', path: 'name', type: 'string', required: true, prompt: true }
+    ]
+  },
+  requisition: {
+    modes: ['genericCreate'],
+    defaultMode: 'genericCreate',
+    inputs: [
+      { id: 'name', label: 'Requisition name', path: 'name', type: 'string', required: true, prompt: true }
+    ]
+  },
+  warehouse: {
+    modes: ['genericCreate'],
+    defaultMode: 'genericCreate',
+    inputs: [
+      { id: 'name', label: 'Warehouse name', path: 'name', type: 'string', required: true, prompt: true }
     ]
   }
 };
 
 export function getEntityConstruction(entityType) {
-  return cncEntityConstruction[entityType] || {
-    modes: ['genericCreate'],
-    defaultMode: 'genericCreate',
-    inputs: [
-      { id: 'name', label: 'Name', path: 'name', type: 'string', required: false, prompt: true }
-    ]
-  };
+  return cncEntityConstruction[entityType] || null;
 }

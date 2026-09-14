@@ -13,7 +13,7 @@
     <InputText
       v-else
       :model-value="modelValue ?? ''"
-      class="w-full font-mono"
+      class="w-full text-technical"
       @update:model-value="value => emit('update:modelValue', value)"
     />
   </div>

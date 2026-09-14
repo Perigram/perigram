@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { advanceProcessRun, createProcessRun, previewProcessDataflow, runProcessUntilSettled } from './orchestration.js';
+import { advanceProcessRun, createProcessRun, previewProcessDataflow, resumeProcessRun, runProcessUntilSettled } from './orchestration.js';
+import { isMissingField } from './missing-field.js';
 
 function process(records, nodes, edges) {
   return {
@@ -33,6 +34,118 @@ const catalogContext = record => ({
 });
 
 describe('durable process orchestration', () => {
+  it.each(['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'])(
+    'routes %s through the shared mapped mutation boundary',
+    async kind => {
+      const inputId = kind === 'effect.createEntity' ? 'identity' : 'entity';
+      const definition = process([
+        { id: 'values', kind: 'source.literalList', value: kind === 'effect.createEntity'
+          ? [{ name: 'One' }, { name: 'Two' }]
+          : [{ type: 'project', id: 'p1' }, { type: 'project', id: 'p2' }] },
+        { id: 'mutation', kind, entityType: 'project', trigger: { mode: 'manual' }, blocks: kind === 'effect.createEntity' ? ['identity'] : [] }
+      ], ['values', 'mutation'], [data('values', 'mutation', inputId)]);
+      const executeEffect = vi.fn(async ({ inputs }) => kind === 'effect.createEntity'
+        ? { type: 'project', id: inputs.identity.name }
+        : inputs.entity);
+
+      const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+        executeEffect,
+        catalogContext
+      });
+
+      expect(completed.status).toBe('succeeded');
+      expect(executeEffect).toHaveBeenCalledTimes(2);
+      expect(completed.steps[0].output).toEqual({ branches: [{ path: [], items: kind === 'effect.createEntity'
+        ? [{ type: 'project', id: 'One' }, { type: 'project', id: 'Two' }]
+        : [{ type: 'project', id: 'p1' }, { type: 'project', id: 'p2' }] }] });
+    }
+  );
+
+  it('keeps the bare effect result and idempotency key for a single mapped item', async () => {
+    const definition = process([
+      { id: 'modify', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'manual' }, blocks: [] }
+    ], ['modify'], []);
+    const updated = { type: 'project', id: 'project-1', identity: { name: 'Renamed' } };
+    const executeEffect = vi.fn().mockResolvedValue(updated);
+
+    const completed = await runProcessUntilSettled(
+      createProcessRun(definition, { nodeId: 'modify' }, {
+        context: { inputs: { entity: { type: 'project', id: 'project-1' } } }
+      }),
+      definition,
+      { executeEffect, catalogContext }
+    );
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledOnce();
+    expect(executeEffect.mock.calls[0][0].idempotencyKey).toBe(completed.steps[0].idempotencyKey);
+    expect(completed.steps[0].output).toEqual(updated);
+  });
+
+  it('completes a mapped mutation step with a failure-carrying output when a later item fails', async () => {
+    const definition = process([
+      { id: 'values', kind: 'source.literalList', value: [
+        { type: 'project', id: 'p1' },
+        { type: 'project', id: 'p2' },
+        { type: 'project', id: 'p3' }
+      ] },
+      { id: 'mutation', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'manual' }, blocks: [] },
+      { id: 'stop', kind: 'control.stopSuccess' }
+    ], ['values', 'mutation', 'stop'], [
+      data('values', 'mutation', 'entity'),
+      control('mutation', 'completed', 'stop')
+    ]);
+    const executeEffect = vi.fn(async ({ inputs }) => {
+      if (inputs.entity.id === 'p2') throw new Error('write denied');
+      return inputs.entity;
+    });
+
+    const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+      executeEffect,
+      catalogContext
+    });
+
+    expect(completed.status).toBe('succeeded');
+    expect(executeEffect).toHaveBeenCalledTimes(3);
+    const step = completed.steps.find(item => item.nodeId === 'mutation');
+    expect(step.status).toBe('succeeded');
+    expect(step.output.failures).toEqual([{
+      operation: 'effect.updateEntity',
+      branchPath: [],
+      itemIndex: 1,
+      entityRef: { type: 'project', id: 'p2' },
+      error: { name: 'Error', message: 'write denied' }
+    }]);
+    expect(step.output.completedMutations.map(item => item.entityRef.id)).toEqual(['p1', 'p3']);
+    expect(step.output.result.branches[0].items[1]).toEqual(step.output.failures[0]);
+    expect(completed.steps.some(item => item.nodeId === 'stop')).toBe(true);
+  });
+
+  it('fails the run before the first write on incompatible mutation inputs', async () => {
+    const definition = process([
+      { id: 'entities', kind: 'source.literalList', value: [
+        { type: 'project', id: 'p1' },
+        { type: 'project', id: 'p2' },
+        { type: 'project', id: 'p3' }
+      ] },
+      { id: 'names', kind: 'source.literalList', value: [{ name: 'One' }, { name: 'Two' }] },
+      { id: 'mutation', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'manual' }, blocks: ['identity'] }
+    ], ['entities', 'names', 'mutation'], [
+      data('entities', 'mutation', 'entity'),
+      data('names', 'mutation', 'identity')
+    ]);
+    const executeEffect = vi.fn();
+
+    const failed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+      executeEffect,
+      catalogContext
+    });
+
+    expect(failed.status).toBe('failed');
+    expect(failed.error.message).toContain('items must be scalar or aligned');
+    expect(executeEffect).not.toHaveBeenCalled();
+  });
+
   it('resolves a connected status definition at execution time', async () => {
     const definition = process([{
       id: 'update',
@@ -205,6 +318,81 @@ describe('durable process orchestration', () => {
     expect(failed.steps.some(step => step.nodeId === 'stop')).toBe(false);
   });
 
+  it('keeps an externally dispatched effect waiting without emitting completion', async () => {
+    const definition = process([
+      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
+      { id: 'stop', kind: 'control.stopSuccess' }
+    ], ['start', 'stop'], [control('start', 'completed', 'stop')]);
+
+    const waiting = await advanceProcessRun(createProcessRun(definition, {}), definition, {
+      executeEffect: async () => ({ __processEffectPending: true, invocationId: 'invocation-1' })
+    });
+
+    expect(waiting.status).toBe('waiting');
+    expect(waiting.pendingEffect).toEqual(expect.objectContaining({
+      nodeId: 'start',
+      invocationId: 'invocation-1'
+    }));
+    expect(waiting.steps[0]).toEqual(expect.objectContaining({
+      status: 'waiting',
+      invocationId: 'invocation-1',
+      output: null
+    }));
+    expect(waiting.tokens).toEqual([]);
+    expect(waiting.steps.some(step => step.nodeId === 'stop')).toBe(false);
+  });
+
+  it('resumes a waiting effect with its completion output and continues the run', async () => {
+    const definition = process([
+      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
+      { id: 'stop', kind: 'control.stopSuccess' }
+    ], ['start', 'stop'], [control('start', 'completed', 'stop')]);
+
+    const waiting = await advanceProcessRun(createProcessRun(definition, {}), definition, {
+      executeEffect: async () => ({ __processEffectPending: true, invocationId: 'invocation-1' })
+    });
+    expect(waiting.status).toBe('waiting');
+
+    const resumed = await resumeProcessRun(waiting, definition, {
+      invocationId: 'invocation-1',
+      output: { entities: [{ type: 'sheet', id: 'sheet-1' }] }
+    }, {
+      catalogContext: () => ({
+        command: { output: { entities: [{ type: 'sheet', persistenceOwner: 'commandOwned', timing: 'completion' }] } }
+      })
+    });
+
+    expect(resumed.status).toBe('running');
+    expect(resumed.pendingEffect).toBeUndefined();
+    expect(resumed.steps[0]).toEqual(expect.objectContaining({
+      status: 'succeeded',
+      invocationId: 'invocation-1',
+      output: { entities: [{ type: 'sheet', id: 'sheet-1' }] }
+    }));
+    expect(resumed.tokens).toHaveLength(1);
+    expect(resumed.tokens[0].nodeId).toBe('stop');
+    expect(resumed.tokens[0].values['start:sheet']).toBeTruthy();
+
+    const finished = await runProcessUntilSettled(resumed, definition, {});
+    expect(finished.status).toBe('succeeded');
+  });
+
+  it('leaves the waiting run unchanged for a different invocation completion', async () => {
+    const definition = process([
+      { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } }
+    ], ['start'], []);
+
+    const waiting = await advanceProcessRun(createProcessRun(definition, {}), definition, {
+      executeEffect: async () => ({ __processEffectPending: true, invocationId: 'invocation-1' })
+    });
+
+    const untouched = await resumeProcessRun(waiting, definition, {
+      invocationId: 'invocation-other',
+      output: { entities: [] }
+    }, {});
+    expect(untouched).toEqual(waiting);
+  });
+
   it('waits for every fork branch at join-all', async () => {
     const definition = process([
       { id: 'start', kind: 'effect.runCommand', commandId: 'start', trigger: { mode: 'manual' } },
@@ -291,7 +479,7 @@ describe('durable process orchestration', () => {
       .mockResolvedValueOnce({ entities: [{ type: 'project', id: 'project-1' }] })
       .mockResolvedValueOnce({ ok: true });
     const catalogContext = record => record.commandId === 'createProject'
-      ? { command: { output: { entities: ['project'] } } }
+      ? { command: { output: { entities: [{ type: 'project', persistenceOwner: 'commandOwned', timing: 'immediate' }] } } }
       : {};
     const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
       executeEffect,
@@ -599,6 +787,70 @@ describe('durable process orchestration', () => {
     expect(result.nodes.count.outputs.value.branches[0].items).toEqual([2]);
     expect(result.nodes.effect).toBeUndefined();
     expect(executeEffect).not.toHaveBeenCalled();
+  });
+
+  it('advances run and step statuses on a read-only graph without entering the effect boundary', async () => {
+    const definition = process([
+      { id: 'trigger', kind: 'control.manualTrigger' },
+      { id: 'entities', kind: 'read.queryEntities', entityType: 'queue' },
+      { id: 'count', kind: 'collection.count', type: { base: 'entity' } }
+    ], ['trigger', 'entities', 'count'], [
+      { id: 'trigger-entities', source: 'trigger', sourceHandle: 'data:entity', target: 'entities', targetHandle: 'data:value', role: 'data' },
+      control('trigger', 'out', 'entities'),
+      { id: 'entities-count', source: 'entities', sourceHandle: 'data:entities', target: 'count', targetHandle: 'data:value', role: 'data' }
+    ]);
+    const executeEffect = vi.fn();
+    const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {
+      executeEffect,
+      catalogContext,
+      data: { queryEntities: async () => [{ _id: 'q1' }, { _id: 'q2' }] }
+    });
+
+    expect(completed.status).toBe('succeeded');
+    expect(completed.steps.length).toBeGreaterThan(0);
+    expect(completed.steps.every(step => ['succeeded', 'skipped'].includes(step.status))).toBe(true);
+    expect(executeEffect).not.toHaveBeenCalled();
+  });
+
+  it('previews secret and opaque values as redacted', async () => {
+    const definition = process([
+      { id: 'secrets', kind: 'source.literalList', value: [{ secretRef: 'vault/1' }, { opaqueType: 'geometry' }, { safe: 1 }] }
+    ], ['secrets'], []);
+    const result = await previewProcessDataflow(definition, {}, { catalogContext });
+    expect(result.nodes.secrets.outputs.value.branches[0].items).toEqual(['[redacted]', '[redacted]', { safe: 1 }]);
+  });
+
+  it('keeps missing fields distinct from present nulls in preview', async () => {
+    const definition = process([
+      { id: 'block', kind: 'source.literalItem', value: { name: null } },
+      { id: 'name', kind: 'record.getField', block: 'identity', path: 'identity.name' },
+      { id: 'reference', kind: 'record.getField', block: 'identity', path: 'identity.reference' }
+    ], ['block', 'name', 'reference'], [
+      data('block', 'name', 'block'),
+      data('block', 'reference', 'block')
+    ]);
+    const result = await previewProcessDataflow(definition, {}, { catalogContext });
+    const [presentNull] = result.nodes.name.outputs.value.branches[0].items;
+    const [missing] = result.nodes.reference.outputs.value.branches[0].items;
+    expect(presentNull).toBeNull();
+    expect(isMissingField(missing)).toBe(true);
+  });
+
+  it('reports branch paths, item counts, and truncation under a preview limit', async () => {
+    const definition = process([
+      {
+        id: 'tree',
+        kind: 'source.literalTree',
+        value: { branches: [{ path: [0], items: [1, 2] }, { path: [1], items: [3] }] }
+      }
+    ], ['tree'], []);
+    const result = await previewProcessDataflow(definition, {}, { catalogContext, previewLimit: 2 });
+    const tree = result.nodes.tree.outputs.value;
+    expect(tree.branchCount).toBe(2);
+    expect(tree.itemCount).toBe(3);
+    expect(tree.truncated).toBe(true);
+    expect(tree.branches[0]).toMatchObject({ path: [0], itemCount: 2, items: [1, 2] });
+    expect(tree.branches[1]).toMatchObject({ path: [1], itemCount: 1, items: [] });
   });
 
 });

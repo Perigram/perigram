@@ -22,13 +22,13 @@
         option-value="kind"
       />
       <label class="flex flex-col gap-1">
-        <span class="text-xs text-muted-color">{{ $t('common.name') }}</span>
+        <span class="text-muted-color text-supporting">{{ $t('common.name') }}</span>
         <InputText v-model="name" class="w-full" />
       </label>
       <div v-if="creationMode !== 'editor'" class="flex flex-col items-start gap-2">
         <input ref="fileInput" class="hidden" type="file" :accept="accept" :capture="capture" @change="selectNativeFile">
         <Button :label="$t('generatedScreen.selectArtifactFile')" icon="pi pi-upload" size="small" severity="secondary" outlined @click="fileInput?.click()" />
-        <span v-if="file" class="text-sm text-muted-color">{{ file.name }}</span>
+        <span v-if="file" class="text-muted-color text-body">{{ file.name }}</span>
       </div>
     </div>
   </StandardDialog>
@@ -92,8 +92,11 @@ async function upload() {
   uploading.value = true;
   try {
     const form = new FormData();
+    const initialConfig = definition.value.creation?.initial;
     const initial = creationMode.value === 'editor'
-      ? new File([''], `${name.value || 'artifact'}${kind.value.includes('CSV') ? '.csv' : '.txt'}`, { type: kind.value.includes('CSV') ? 'text/csv' : 'text/plain' })
+      ? initialConfig
+        ? new File([initialConfig.content || ''], initialConfig.fileName || 'artifact', { type: initialConfig.mimeType || 'text/plain' })
+        : new File([''], `${name.value || 'artifact'}${kind.value.includes('CSV') ? '.csv' : '.txt'}`, { type: kind.value.includes('CSV') ? 'text/csv' : 'text/plain' })
       : file.value;
     form.append('file', initial);
     form.append('type', kind.value);

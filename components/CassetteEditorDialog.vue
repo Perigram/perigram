@@ -12,7 +12,7 @@
     <div class="flex flex-col gap-6 py-2">
       <div v-if="!isUploading" class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-4 items-end">
         <div class="flex flex-col gap-2 min-w-0">
-          <label for="cassetteName" class="font-medium">{{ $t('cassette.name') }}</label>
+          <label for="cassetteName" class="text-label">{{ $t('cassette.name') }}</label>
           <InputText
             id="cassetteName"
             v-model="name"
@@ -23,7 +23,7 @@
         </div>
 
         <div class="flex flex-col gap-2">
-          <label class="font-medium">{{ $t('cassette.selectFile') }}</label>
+          <label class="text-label">{{ $t('cassette.selectFile') }}</label>
           <FileUpload
             mode="basic"
             accept=".dxf"
@@ -39,7 +39,7 @@
 
       <div v-if="isUploading" class="flex flex-col items-center justify-center py-12 gap-4">
         <ProgressSpinner class="w-12 h-12" />
-        <p class="font-medium">{{ $t('common.uploading') }}</p>
+        <p class="text-label">{{ $t('common.uploading') }}</p>
       </div>
 
       <div v-if="showMappingSection && !isUploading" class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_26rem] gap-6 min-h-[28rem]">
@@ -62,7 +62,7 @@
               <div class="w-12 h-12 border rounded-full flex items-center justify-center">
                 <i class="pi pi-image"></i>
               </div>
-              <p class="font-medium">{{ $t('cassette.noPreview') }}</p>
+              <p class="text-label">{{ $t('cassette.noPreview') }}</p>
             </div>
           </div>
         </Panel>

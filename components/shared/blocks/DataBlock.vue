@@ -2,20 +2,20 @@
   <div v-if="visibleRows.length" class="data-block-container">
   <dl
     class="data-block m-0"
-    :class="variant === 'compact' ? 'flex flex-wrap gap-x-4 gap-y-1 text-sm' : 'data-block-default grid grid-cols-1 gap-3'"
+    :class="variant === 'compact' ? 'flex flex-wrap gap-x-4 gap-y-1 text-body' : 'data-block-default grid grid-cols-1 gap-3'"
   >
     <div
       v-for="row in visibleRows"
       :key="row.label"
       :class="variant === 'compact'
         ? 'inline-flex min-w-0 items-baseline gap-1.5'
-        : 'min-w-0 rounded-ui border border-content-border bg-content px-3 py-2'"
+        : 'min-w-0 rounded-ui border border-content-border px-3 py-2'"
     >
-      <dt class="min-w-0 text-xs text-muted-color">
+      <dt class="min-w-0 text-muted-color text-supporting">
         {{ row.label }}
       </dt>
       <dd
-        class="m-0 min-w-0 break-words font-medium"
+        class="m-0 min-w-0 break-words text-technical"
         :class="variant === 'compact' ? '' : 'mt-1'"
       >
         {{ row.display }}

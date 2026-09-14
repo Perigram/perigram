@@ -1,12 +1,14 @@
 # COMPONENT: Components
 
 ## Style Guide
-- **PrimeVue:** All components MUST use PrimeVue for UI elements (buttons, inputs, tables, dialogs).
-- **Zero Styling Policy:** Components MUST avoid manual styling (colors, text sizes, backgrounds, etc.). Rely on PrimeVue theme presets and `assets/tokens/` projections. No custom CSS except for layout purposes.
-- **Motion:** Motion is contextual feedback, not ambient decoration. Use the
-  semantic duration/easing/spring values in `assets/tokens/` through shared
-  primitives such as `MotionDock`; JavaScript motion must respect
-  `useReducedMotion()`. Do not add perpetual, global, or page-local animation
+- **PrimeVue:** All generic controls and containers MUST use unmodified PrimeVue Aura appearance. The app preset supplies only the brand primary palette and the zinc surface scale; feature code must not restyle PrimeVue typography, padding, borders, radii, shadows, or interaction states.
+- **Zero Styling Policy:** Components MUST avoid manual visual styling. Feature code may own layout and data-driven styling only. Reusable domain entity surfaces, operational workspaces, geometry/process designers, and recurring layouts use the registered shared primitives and semantic aliases from `assets/tokens/`.
+- **Motion:** Motion is contextual behavior, not an application theme concern.
+  Keep interaction-specific motion inside the owning derived composition, use
+  the preset's transition duration for generic states, and respect
+  `useReducedMotion()`. JavaScript motion uses the GSAP patterns from
+  `composables/useMotion.js` — do not introduce another motion library. Do not
+  add perpetual, global, or page-local animation
   to otherwise static operational controls.
 - **Layout:** Use Tailwind CSS utility classes for layout (flex, grid, spacing, alignment).
 - **Minimal Text Chrome:** Do not add page/panel headers, descriptions,
@@ -27,7 +29,9 @@
 - **Permission Editing:** `PermissionEditor.vue` edits the same grant shape used
   by `shared/access-control.js`: each feature has one or more explicit grants
   with level, action overrides, lineage/entity trait filters, transition
-  filters, logical rule conditions, and advanced JSON for the selected grant.
+  filters, and nested logical rule conditions. It is the typed grant editor for
+  both direct permissions and Process Designer access; raw grant JSON is not an
+  authoring surface.
   The main editing surface is a unified filter builder: grants render as
   accordions in the selected access area, and the grant level is edited inline
   as `Allow <level> when <predicate>` above the filter expression. Each
@@ -88,7 +92,7 @@ All entity-related components MUST use these patterns:
 | Audit log | `<StatusHistory :entity="..." entity-type="..." />` |
 | Detail page header | `<EntityPage :entity="..." entity-type="..." />` |
 | CRUD + status operations | `useEntity(type, id)` |
-| Card/container chrome | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout |
+| Entity/container structure | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout; Aura owns generic chrome |
 | Section/page action rows | `<ActionToolbar>` |
 | Route-level aggregate facts | `<MetricPanel>` |
 | Repeated card grids | `<ResponsiveGrid>` |
@@ -102,9 +106,8 @@ All entity-related components MUST use these patterns:
 | Single-field rename/edit | `<NameEditPopover>` |
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
 | Entity dropdowns | `<EntitySelect>` / `<EntityMultiSelect>` with explicit `entity-type` |
-| Compact contextual canvas/workspace actions | `<MotionDock :items="..." />` |
+| Compact contextual canvas/workspace actions | PrimeVue `<Dock>` via `components/process-designer/ProcessDesignerDock.vue` (GSAP magnification from `composables/useMotion.js`) |
 
-`WorkflowDesignerV2.vue` is the shared v2 state-machine editor used by the admin
 workbench and organization workflow overrides page. It normalizes flat legacy
 workflows into a `regions` contract, edits the selected region's states and
 transitions, and keeps lifecycle metadata, transition capabilities, access JSON,
@@ -309,16 +312,26 @@ actions do not have an existing entity row. Parent-bound collection actions also
 emit the source and region context so the generated screen can pass the active
 parent id from screen scope to the process action endpoint, or open a parent
 selector when the target entity list is not already scoped to that parent.
-The generated `home` template is the user's process start screen. It renders
-compiler-selected top-level entity-list sources as horizontal card sections and
-uses the region's compiled action ids for section-level create buttons and
-entity-card action footers. Entity-card actions use the same status/entity
-filters as collection screens. The home template must reuse the same entity
-primitives and generated action execution path as collection screens; it must
-not invent static dashboard widgets, hardcoded domain routes, or per-card
-create buttons. Each home section resolves its open-list button from the
-compiled region route or the matching compiled entity-list screen in the
-current screen manifest; it must not construct list routes from entity names.
+The generated `home` template is the user's process start screen. Its desktop
+surface is the Discord-style `GeneratedHomeWorkspace` overload (see
+[components/generated/README.md](./generated/README.md)): entities live in the
+sidebar's Tree explorer grouped by home section with containment hierarchy,
+the active entity opens in the recursive tab/split pane area, generated
+create buttons render on their section folders and on entity rows through
+their compiled detail-screen child regions, the pinned communication block
+exposes chats (a registered workspace page tab with the built-in inbox rail)
+and the LiveKit channel list with create/delete, and the sidebar
+footer carries the user controls that the desktop navbar owns on other
+routes. The desktop sidebar does not link out to hub entity-list screens.
+Mobile keeps the previous stacked home sections
+(`GeneratedHomeScreen`) with section-level create buttons, entity-card action
+footers, and the open-list button resolved from the compiled entity-list
+screen. Both surfaces use the region's compiled action ids and the
+same status/entity filters as collection screens. The home template must
+reuse the same entity primitives and generated action execution path as
+collection screens; it must not invent static dashboard widgets, hardcoded
+domain routes, or per-card create buttons. Mobile must not construct list
+routes from entity names.
 Home root filtering is derived at runtime from the domain containment graph,
 compiled source metadata, and canonical `lineage.*Id` references. The lineage
 fallback covers active manifests whose domain containment catalog does not
@@ -329,7 +342,7 @@ empty child sections are omitted as well. Empty top-level sections remain
 available when they own a top-level create action. Record filtering still
 suppresses a descendant when any non-organization ancestor is readable, not
 only when its immediate parent is a Home section.
-Home sections are true horizontal carousels: entity cards keep a stable
+Mobile home sections are true horizontal carousels: entity cards keep a stable
 non-shrinking width and overflow horizontally instead of shrinking every card
 to fit the viewport. The fixed width belongs on the carousel item wrapper, not
 on `<EntityCard>` itself, because shared entity cards have variant root
@@ -550,11 +563,12 @@ Row-bound generated actions pass the concrete row entity plus collection context
 to the action runtime; command actions resolve the entity key from the action
 input contract, so a `solveNesting` button on a queue card submits
 `entities.queue` for that exact queue.
-Generated collection, home, and detail surfaces also render the standard
-generated delete icon when the active process grants `delete`/admin access for
-the exact entity and the domain UI endpoint has a canonical single-entity route.
-The delete control calls the same `useEntity(...).remove()` boundary as other
-entity UI and refreshes the generated screen after success.
+Generated collection, home, detail, and inline surfaces render hard deletion
+only as a compiled manual `deleteEntity` action present in the current user's
+action manifest. The action is capability-gated during authoring and activation,
+requires admin access, executes through the process mutation boundary, asks for
+confirmation, and refreshes the generated screen after success. Generated
+surfaces never synthesize delete visibility from domain declarations and grants.
 Parent-bound create actions render once in the matching generated collection
 toolbar only when at least one visible row can satisfy the parent contract; the
 input dialog then asks for that parent entity and filters the selector to rows
@@ -621,16 +635,44 @@ field-access policy.
 
 ## Visual Tokens
 
-`assets/tokens/index.js` is the source for app-level visual tokens. Tailwind aliases, PrimeVue component overrides, and global `--ck-*` CSS variables must stay aligned with it.
+`assets/tokens/index.js` is the sole textual source for app-owned visual values. Nuxt projects its light and dark CSS variable maps into the document, Tailwind consumes its semantic aliases, and the PrimeVue preset projects only the primary brand palette and zinc surface scale onto Aura. Do not duplicate token values in runtime CSS or add generic PrimeVue component-token overrides.
 
-Current app chrome uses `bg-page`, `bg-chrome`, `bg-process-canvas`, `chrome-signal-rule`, `bg-subtle`, `rounded-ui`, `rounded-panel`, `shadow-card`, and `shadow-overlay`. `bg-chrome` is a near-white utility bar in light mode and the ink instrument rail in dark mode, while `bg-process-canvas` is the dedicated graph-work surface and `chrome-signal-rule` renders its token-backed action boundary; their foreground and border tokens are consumed with direct CSS-variable utilities where HMR needs to see the change immediately. Structural cards are deliberately non-elevated and use in-place border feedback on hover; `shadow-overlay` is reserved for floating UI. JetBrains Mono is the token-backed global interface face; `font-mono` remains available when a component needs to state that technical treatment explicitly. New shared wrappers should consume these aliases instead of local shadows, arbitrary backgrounds, or one-off radii.
+Aura owns generic control and container typography, spacing, borders, radii, shadows, hover, active, disabled, invalid, and keyboard-focus states. App tokens are bounded to domain entity tones, status/process signals, operational workspace constraints, reusable layout dimensions, motion, and app-shell chrome. The `rounded-ui`, `rounded-panel`, `shadow-card`, and `shadow-overlay` utility aliases consume Aura variables directly; they do not define application radius or elevation values.
 
-For shell/layout chrome that must update reliably during Nuxt dev HMR, direct CSS-variable utilities such as `bg-[var(--ck-page-background)]` and `[box-shadow:var(--ck-shadow-card)]` are acceptable. This avoids depending on a Tailwind config restart for newly added aliases.
+Application typography has exactly eight complete roles: `text-page-title`,
+`text-section-heading`, `text-body`, `text-label`, `text-supporting`,
+`text-metric`, `text-technical`, and `text-prose`. Each alias supplies its font
+family, size, line height, weight, tracking, and numeric behavior from
+`assets/tokens/index.js`; usage sites must not compose those treatments from
+raw size, weight, tracking, leading, mono, or serif utilities. Only
+`page-title` scales responsively. PrimeVue controls inherit Aura typography
+unless their content itself has a technical or prose role. HTML elements such
+as `p`, `blockquote`, headings, `pre`, and `code` never select an application
+role by themselves. Non-role font sizing is limited to locally documented
+runtime data that directly encodes visualization geometry or information
+magnitude, never ordinary copy or compact UI.
 Nested active app surfaces must use semantic aliases such as `bg-content` or
 `bg-subtle`, not raw palette utilities like `bg-surface-50`, so dark mode uses
-the app token overrides consistently.
+the app token overrides consistently. The surface contract is flat:
+the gray page is the single canvas, structural
+containers — panes, tab strips, workspace and layout wrappers, chats, and
+call surfaces — paint no background at all; `bg-content` belongs to
+overlays and controls (dialogs, popovers, inputs, chips over media) and
+`bg-subtle` to in-surface insets (bubbles, hover rows, placeholders),
+never to layout boxes. PrimeVue `Splitter` roots are forced transparent
+(`!bg-transparent`) because Aura paints `content.background` on them, which
+would give split pane areas a painted surface the rest of the shell does not
+have. Pane-hosted surfaces size their internal layout
+through container queries on their own width, never viewport
+breakpoints. A container query cannot restyle the container element itself,
+so a surface that needs its own flex direction to switch (for example the
+chats two-pane split) declares the container on an outer wrapper and keeps
+the direction rule on the inner layout node.
 
-Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, or transition durations. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Legacy global grid helpers are not used in active components; detail surfaces spell out their responsive grid tracks locally when a shared primitive is not a fit.
+Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, typography, or transition durations. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. App scrollbars are themed globally in `assets/css/main.css` from
+`--ck-scrollbar-thumb` / `--ck-scrollbar-thumb-hover` (text-color mixes that
+follow each scheme): a floating rounded pill thumb over a fully transparent
+track with no arrow buttons; only the IDE tab strips hide them entirely. Scoped CSS is limited to exact reusable-layout declarations enforced by `shared/design-system.spec.js`; padding remains Aura-owned spacing. Inline bindings are either exact reusable layout or derived semantic composition, or narrowly allowlisted when their visual value is driven by data.
 
 ## UI Inventory Policy
 
@@ -646,12 +688,16 @@ Dormant components are inspected and may be refactored, but are not removed by
 automated cleanup. Legacy components such as old dashboard/footer widgets must
 be removed only by an explicit human cleanup decision.
 
-The current component-by-component cleanup audit lives in
-[docs/UI_COMPONENT_AUDIT.md](../docs/UI_COMPONENT_AUDIT.md). It applies the
-same ten questions to entity components, shared primitives, hubs, pages, and
-layouts: business job, frontend context, DTO ownership, status policy,
-relationships, actions, nested click behavior, density, responsive constraints,
-and the resulting refactor decision.
+The canonical component and mechanism inventory lives in
+[docs/UI_COMPONENT_AUDIT.md](../docs/UI_COMPONENT_AUDIT.md). It classifies every
+repository Vue file as system-owned, a shared/domain primitive, or derived usage
+and records source-derived dispositions for typography, layout, chrome, states,
+important overrides, and scoped CSS. Run `node scripts/ui-visual-inventory.js`
+after an intentional visual change. The design-system test derives the same
+findings, checks path-derived IDs, and validates scoped layout declarations by
+property. It also rejects every runtime PrimeVue selector or variable
+declaration and all `!important` rules in global runtime CSS, so stale rows,
+broad whole-file CSS exceptions, and a second runtime visual layer fail.
 
 ## Composables Rule
 
@@ -987,8 +1033,10 @@ Artifact-template management lives at `pages/assets/templates.vue` and uses the
 `ArtifactTemplateCard` entity surface. `ArtifactLayoutEditor` edits normalized
 template and generated-artifact items and emits data only; owning surfaces call
 the canonical revision-backed APIs. Template and artifact deletion uses
-`GeneratedDeleteButton`, so visibility follows entity capability plus active
-process access rather than local role checks.
+`GeneratedDeleteButton` on these static management surfaces, so visibility
+follows the domain delete contract and ordinary entity permission grants. This
+component is not used by generated process surfaces, whose deletion contract is
+the compiled manual action described above.
 
 - User-visible labels, headings, dialog headers, toast summaries/details, placeholders, and accessible labels must use `$t(...)` in templates or `t(...)` from `useI18n()` in script.
 - Keep `i18n/locales/en.json` and `i18n/locales/ru.json` structurally aligned whenever adding keys.
@@ -1000,7 +1048,6 @@ process access rather than local role checks.
 PrimeVue Button, Tag, Badge do not inherit font-size from containers. Always add `size="small"` to these elements inside compact and inline variant contexts.
 
 ## Related
-- [components/hubs/README.md](./hubs/README.md) — workflow-level pages that compose entity cards and shared primitives
 - [components/entities/README.md](./entities/README.md) — manifest-backed entity card contracts
 - [components/shared/README.md](./shared/README.md) — shared block components, layout containers
 - [composables/README.md](../composables/README.md) — useEntity, useBlocks

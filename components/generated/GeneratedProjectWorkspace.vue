@@ -24,7 +24,7 @@
       <Splitter
         :gutter-size="1"
         :pt="workspaceSplitterPt"
-        class="hidden h-full min-h-0 !border-0 lg:flex"
+        class="hidden h-full min-h-0 !border-0 !bg-transparent lg:flex"
         @resizeend="resizeWorkspaceShell"
       >
         <SplitterPanel
@@ -33,7 +33,7 @@
           :min-size="10"
           :class="['min-h-0 min-w-0 overflow-hidden !border-0', { '!hidden': !explorerOpen }]"
         >
-          <section class="project-explorer flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content">
+          <section class="project-explorer flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
             <Tree
               v-model:selection-keys="selectionKeys"
               v-model:expanded-keys="expandedKeys"
@@ -47,14 +47,6 @@
               <template #default="{ node }">
                 <div v-if="node.data?.item?.kind === 'entity'" class="flex min-w-0 max-w-full flex-1 items-center gap-1 overflow-hidden" data-explorer-entity>
                   <IdentityBlock :entity="node.data.item.entity" variant="compact" class="min-w-0 flex-1" />
-                  <EntityActionsPopover v-if="explorerEntityCanDelete(node.data.item)">
-                    <GeneratedDeleteButton
-                      :entity="node.data.item.entity"
-                      :entity-type="node.data.item.type"
-                      menu-item
-                      @deleted="handleExplorerEntityDeleted(node.data.item)"
-                    />
-                  </EntityActionsPopover>
                 </div>
                 <div v-else class="flex min-w-0 flex-1 items-center gap-2">
                   <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
@@ -80,7 +72,6 @@
               <GeneratedWorkspacePane
                 :item="itemForPane(pane)"
                 :tabs="tabItemsForPane(pane)"
-                :available-tabs="workspaceItems"
                 :action-entries="actionEntriesForPane(pane)"
                 :closeable="paneCount > 1"
                 @execute-action="executeWorkspaceAction"
@@ -89,7 +80,7 @@
                 @refresh="$emit('refresh')"
                 @select-tab="key => selectPaneTab(pane.id, key)"
                 @close-tab="key => closePaneTab(pane.id, key)"
-                @add-tab="key => selectPaneTab(pane.id, key)"
+                @add-tab="openEmptyPaneTab(pane.id)"
                 @split="orientation => splitPane(pane.id, orientation)"
                 @close="closePane(pane.id)"
               />
@@ -113,7 +104,6 @@
           class="min-h-0 flex-1"
           :item="itemForPane(activePane)"
           :tabs="tabItemsForPane(activePane)"
-          :available-tabs="workspaceItems"
           :action-entries="actionEntriesForPane(activePane)"
           :splittable="false"
           @execute-action="executeWorkspaceAction"
@@ -122,7 +112,7 @@
           @refresh="$emit('refresh')"
           @select-tab="key => selectPaneTab(activePane.id, key)"
           @close-tab="key => closePaneTab(activePane.id, key)"
-          @add-tab="key => selectPaneTab(activePane.id, key)"
+          @add-tab="openEmptyPaneTab(activePane.id)"
         />
       </div>
     </div>
@@ -138,10 +128,8 @@ import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
 import EntitySelect from '~/components/shared/EntitySelect.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import EntityActionsPopover from '~/components/shared/EntityActionsPopover.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import GeneratedProjectActionPalette from '~/components/generated/GeneratedProjectActionPalette.vue';
-import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
@@ -153,8 +141,9 @@ import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
-import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { projectExplorerHierarchy } from '~/utils/project-explorer-hierarchy.js';
+import { emptyTabItem, emptyTabKey, isEmptyTabKey } from '~/utils/workspace-empty-tabs.js';
+import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
 import {
   closeWorkspaceLeaf,
   createWorkspaceLeaf,
@@ -192,9 +181,11 @@ const paneTree = ref(createWorkspaceLeaf('pane-1'));
 const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
 const linkedEntityItems = ref([]);
+const linkedChildItems = ref([]);
 const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
 let openedEntityLoadSequence = 0;
+let linkedChildLoadSequence = 0;
 const explorerTreePt = {
   root: { class: '!min-w-0 !max-w-full !overflow-hidden' },
   node: { class: '!min-w-0 !max-w-full !overflow-hidden' },
@@ -250,7 +241,7 @@ const entityItems = computed(() => [
     region: section.region
   })))
 ].filter(item => item?.entity && entityId(item.entity)));
-const workspaceEntityItems = computed(() => [...entityItems.value, ...linkedEntityItems.value, ...openedEntityItems.value]
+const workspaceEntityItems = computed(() => [...entityItems.value, ...linkedEntityItems.value, ...linkedChildItems.value, ...openedEntityItems.value]
   .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index));
 const explorerHierarchy = computed(() => projectExplorerHierarchy({
   projectItem: projectItem.value,
@@ -260,6 +251,11 @@ const explorerHierarchy = computed(() => projectExplorerHierarchy({
 }));
 const linkedRefs = computed(() => Object.values(project.value?.relations || {})
   .flatMap(value => resolveEntityRelationRefs(value)));
+const linkedChildSources = computed(() => linkedExplorerChildSources({
+  linkedItems: linkedEntityItems.value,
+  screens: authStore.screenManifest,
+  containment: effectiveContainment()
+}));
 const cassetteItems = computed(() => workspaceEntityItems.value.filter(item => item.type === 'cassette'));
 const projectActions = computed(() => projectContextActionEntries({
   actionManifest: authStore.actionManifest,
@@ -401,6 +397,20 @@ watch(linkedRefs, async refs => {
   linkedEntityItems.value = loaded.filter(Boolean);
 }, { immediate: true });
 
+watch(linkedChildSources, async sources => {
+  const sequence = ++linkedChildLoadSequence;
+  const loaded = await Promise.all(sources.map(async source => {
+    try {
+      const entities = await $fetch(domainUi.getListEndpoint(source.entityType, source.filters));
+      return (Array.isArray(entities) ? entities : []).map(entity => workspaceEntityItem(source.entityType, entity));
+    } catch {
+      return [];
+    }
+  }));
+  if (sequence !== linkedChildLoadSequence) return;
+  linkedChildItems.value = loaded.flat();
+}, { immediate: true, deep: true });
+
 watch(openedEntityRefs, async refs => {
   const sequence = ++openedEntityLoadSequence;
   const loaded = await Promise.all(refs.map(async reference => {
@@ -439,39 +449,6 @@ function explorerEntityNode(item, prefix = '') {
   };
 }
 
-function explorerEntityCanDelete(item) {
-  return item?.type !== 'project' && canDeleteGeneratedEntity({
-    authStore,
-    domainUi,
-    entity: item?.entity,
-    entityType: item?.type
-  });
-}
-
-function handleExplorerEntityDeleted(item) {
-  const removedKeys = new Set([
-    item.key,
-    ...openedPageRefs.value
-      .filter(page => page.entityType === item.type && page.entityId === entityId(item.entity))
-      .map(page => page.key)
-  ]);
-  openedEntityRefs.value = openedEntityRefs.value.filter(reference => reference.key !== item.key);
-  openedEntityItems.value = openedEntityItems.value.filter(candidate => candidate.key !== item.key);
-  linkedEntityItems.value = linkedEntityItems.value.filter(candidate => candidate.key !== item.key);
-  openedPageRefs.value = openedPageRefs.value.filter(page => !removedKeys.has(page.key));
-  let nextTree = paneTree.value;
-  for (const pane of workspaceLeaves(nextTree)) {
-    const tabKeys = (pane.tabKeys || []).filter(key => !removedKeys.has(key));
-    const selectionKey = removedKeys.has(pane.selectionKey)
-      ? (tabKeys[tabKeys.length - 1] || '')
-      : pane.selectionKey;
-    nextTree = updateWorkspaceLeaf(nextTree, pane.id, { tabKeys, selectionKey });
-  }
-  paneTree.value = nextTree;
-  syncActiveSelection();
-  emit('refresh');
-}
-
 function selectByKey(key) {
   if (!workspaceItems.value.some(item => item.key === key) || !activePane.value) return;
   selectPaneTab(activePane.value.id, key);
@@ -479,11 +456,27 @@ function selectByKey(key) {
 
 function selectPaneTab(paneId, key) {
   const pane = panes.value.find(item => item.id === paneId);
-  if (!pane || !workspaceItems.value.some(item => item.key === key)) return;
-  const tabKeys = [...new Set([...(pane.tabKeys || []), key])];
-  paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, { selectionKey: key, tabKeys });
+  if (!pane) return;
+  if (!isEmptyTabKey(key) && !workspaceItems.value.some(item => item.key === key)) return;
+  paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, {
+    selectionKey: key,
+    tabKeys: withPaneTab(pane, key)
+  });
   activePaneId.value = paneId;
   syncActiveSelection();
+}
+
+// Opening a real item replaces the pane's selected empty tab instead of
+// piling placeholders beside it; empty tabs never accumulate duplicates.
+function withPaneTab(pane, key) {
+  const replacing = !isEmptyTabKey(key) && isEmptyTabKey(pane.selectionKey)
+    ? [pane.selectionKey]
+    : [];
+  return [...new Set([...(pane.tabKeys || []).filter(tabKey => !replacing.includes(tabKey)), key])];
+}
+
+function openEmptyPaneTab(paneId) {
+  selectPaneTab(paneId, emptyTabKey());
 }
 
 function closePaneTab(paneId, key) {
@@ -607,8 +600,7 @@ function itemForPane(pane) {
 
 function tabItemsForPane(pane) {
   return (pane?.tabKeys || [])
-    .map(key => workspaceItems.value.find(item => item.key === key))
-    .filter(Boolean);
+    .map(key => workspaceItems.value.find(item => item.key === key) || emptyTabItem(key));
 }
 
 function actionEntriesForPane(pane) {
@@ -734,9 +726,4 @@ function entityId(entity = null) {
   overflow: hidden;
 }
 
-@container (max-width: 14rem) {
-  .project-explorer-tree :deep(.p-tree-node-children) {
-    padding-inline-start: 0;
-  }
-}
 </style>

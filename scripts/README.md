@@ -11,6 +11,12 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 
 ## Core Files
 
+- `build-entity-icons.js`: Builds the `ck-entity-icons` font from the CNC
+  domain SVGs in `public/icons/data-model/cnc-domain/` via fantasticon,
+  writes `public/fonts/cnc-domain/ck-entity-icons.{woff2,ttf}`, and rewrites
+  the marked `ck-entity-icons` block in `assets/css/main.css` so icon
+  codepoints never drift from the class definitions. Run as
+  `npm run icons:build` after adding or editing source SVGs.
 - `check-arch.js`: Architecture guardrail for v24 backend features, API layer
   boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
   retired vocabulary, portable-runtime import rules, concrete CNC domain leaks
@@ -31,9 +37,29 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   `npm run docs:validate`.
 - `framework-inspect.js`: Framework/package inspection utility used during
   extraction checks.
+- `ui-visual-inventory.js`: Derives the canonical Vue visual inventory from
+  current source and rewrites the component matrix in
+  `docs/UI_COMPONENT_AUDIT.md`. It classifies typography, arbitrary layout,
+  chrome, state, important-override, scoped-style, inline-style, and render-style
+  findings
+  under the same dispositions consumed by `shared/design-system.spec.js`.
+  Inline exceptions are exact file/category/binding-expression entries, so
+  adding or changing a binding requires explicit classification.
+  Template findings are extracted from `class` and `:class` values so PrimeVue
+  boolean props such as `rounded` are not mistaken for utility styling.
+  Render-function style bindings are replacement debt rather than an enforcement
+  bypass. Utility classes assembled in Vue script string literals are classified
+  with template utilities, so moving visual ownership into script does not bypass
+  the inventory. Component
+  ownership is derived from the domain primitive registry: exact registered
+  paths are shared/domain primitives and every other Vue file is derived usage.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
   string `status.state` / `origin.state` values and `status_events` records to
   the v2 structured status shape. Supports `--dry-run`.
+- `server/scripts/migrate-call-channels-to-groups.js`: One-shot migration of
+  the retired livekit `call_channels` collection into unified support
+  `chat_groups` (participants start as the creating member; same ids keep
+  room identity). Drops `call_channels` after copying. Supports `--dry-run`.
 - `server/scripts/migrate-process-update-actions.js`: Rewrites legacy
   `changeStatus` process actions into canonical `updateEntity` actions with a
   status mutation input and recompiles active runtime contracts. Run before
@@ -94,8 +120,11 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 server feature structure against `server/features/_template/README.md`, keeps
 repositories/services/API routes on their assigned layers, rejects Nuxt
 root-alias imports inside portable runtime modules under `shared/`,
-`test-data/`, and `packages/`, and rejects parent-relative cross-root imports
-from `shared/` and non-spec `test-data/` modules. Cross-root portable imports
+`test-data/`, and `packages/`, rejects parent-relative cross-root imports
+from `shared/` and non-spec `test-data/` modules, and verifies every relative
+dynamic `import()` under `server/` resolves to a real file (a bad relative
+specifier passes vite-node until its code path runs but fails the whole Nitro
+bundle, which serves 503 on every route). Cross-root portable imports
 should use the package imports declared in `package.json` (`#shared/...`,
 `#packages/...`, `#utils/...`) so direct Node loaders and Nuxt/Nitro SSR builds
 resolve the same graph.
@@ -118,6 +147,25 @@ agent edit core files ad hoc.
 every internal relative link in the README tree against the repository and
 flags verbatim paragraphs that appear in more than one README, so canonical
 contracts stay in one canonical file instead of being restated in several.
+
+`npx vitest run shared/design-system.spec.js` enforces the PrimeVue-first visual
+boundary. It rejects raw font-size, weight, line-height, tracking, and family
+utilities outside the eight semantic typography aliases, raw palette/surface borders,
+nonsemantic radii and shadows, non-allowlisted scoped CSS, duplicated runtime
+theme overrides, direct global PrimeVue selectors or variable declarations,
+`!important` runtime rules, and global focus suppression. It also reconciles source-derived
+visual concern counts with the canonical audit. Token-backed aliases such as
+`bg-content`, `rounded-ui`, `shadow-card`, and `shadow-overlay` are consumers of
+Aura/application tokens, not generic chrome overrides. Scoped-style exceptions name one
+exact category per file; every exception category is limited to an exact set of
+properties rather than granting whole-file visual ownership. Aura-owned padding
+is excluded from general layout exceptions. Allowlisted inline style bindings
+pin their exact file, visual category, and normalized binding expressions;
+every other inline or render-function style is recorded as replacement debt and
+must move to PrimeVue or declarative classified contracts.
+Reusable layout and derived semantic composition are compliant application
+usage; only data-driven visuals are narrowly allowlisted. None of
+these categories may own generic component chrome or states.
 
 ## Related
 

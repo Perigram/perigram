@@ -41,7 +41,7 @@
         </div>
 
         <svg
-          class="h-[28rem] w-full rounded-ui bg-content"
+          class="h-[28rem] w-full rounded-ui"
           :viewBox="viewBox"
           role="img"
           :aria-label="$t('cassette.v2.profileEditor.preview')"
@@ -179,12 +179,12 @@
             />
             <div class="flex items-center gap-2">
               <Checkbox v-model="orthoMode" binary />
-              <label class="text-sm text-muted-color">{{ $t('cassette.v2.profileEditor.ortho') }}</label>
+              <label class="text-muted-color text-label">{{ $t('cassette.v2.profileEditor.ortho') }}</label>
             </div>
           </div>
           <small class="text-muted-color">{{ $t('cassette.v2.profileEditor.segmentLength') }}: {{ currentSegmentLength }}</small>
           <div class="flex items-center gap-2">
-            <label class="min-w-28 text-sm text-muted-color">{{ $t('cassette.v2.profileEditor.cornerFillet') }}</label>
+            <label class="min-w-28 text-muted-color text-label">{{ $t('cassette.v2.profileEditor.cornerFillet') }}</label>
             <InputNumber
               :model-value="selectedPoint ? selectedFilletRadius : 0"
               input-class="w-full"

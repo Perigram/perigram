@@ -49,8 +49,16 @@ describe('process programming algebra', () => {
           inputs: [{ id: 'label', kind: 'string' }]
         }
       },
-      entityProfiles: {
-        queue: { id: 'queue', entityType: 'queue' }
+      producerOutputs: {
+        'queue:entity': {
+          id: 'queue:entity',
+          producerOutputId: 'queue:entity',
+          nodeId: 'queue',
+          outputSocketId: 'entity',
+          entityType: 'queue',
+          lifecycle: { mode: 'defaultCreated' },
+          fields: { read: [], write: [], private: [] }
+        }
       },
       processNodes: {
         decompose: { id: 'decompose', kind: 'entityDecompose', entityType: 'queue' },
@@ -59,7 +67,7 @@ describe('process programming algebra', () => {
       },
       graph: {
         nodes: [
-          { id: 'queue', type: 'entity' },
+          { id: 'queue', type: 'entity', data: { refId: 'queue:entity' } },
           { id: 'decompose', type: 'processNode' },
           { id: 'read', type: 'processNode' },
           { id: 'template', type: 'processNode' },

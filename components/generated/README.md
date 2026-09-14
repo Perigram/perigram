@@ -13,6 +13,60 @@ source choices are scoped by the opened owner, compiled process Lineage
 bindings, declared relations, and derivation provenance; the component never
 substitutes a global entity list for that scoped contract.
 
+## Manual Prompt Forms
+
+`GeneratedScreen.vue` maps each prompted action field to a shared typed
+control keyed purely off the field type: `entity`/`entityList` use the shared
+entity pickers, `enum` uses a Select over the declared options, `boolean` uses
+a ToggleSwitch, `date`/`dateTime` use a DatePicker (time selection only for
+`dateTime`), `number`/text use InputText, and `object`/`json` use
+`GeneratedObjectInput.vue`. Boolean and date prompt values are tri-state: an
+untouched field stays `null` and is omitted from the submission payload
+instead of being coerced to `false` or the current time; once touched, the
+control submits a real boolean or an ISO string (`YYYY-MM-DD` for `date`,
+full ISO for `dateTime`).
+
+The pure `action-inputs.js` contract combines compiled `inputPolicy.fields`
+with normalized construction inputs, removes duplicate field ids, selects
+required/prompted controls, and builds the nested submission payload. This is
+the shared executable boundary for generic block-composed Create forms, typed
+entity-reference constructors, cassette parameters, and upload-backed artifact
+creators; focused specs exercise it without mounting the entire screen.
+
+`GeneratedObjectInput.vue` is the generic structured editor for `object`/`json`
+prompt fields. When the field carries a JSON schema with declared
+`properties` that cover every key of the current value, it renders one typed
+row per property (InputText for string/number, yes/no Select for boolean,
+Select for `enum`; nested object/array values edit as single-line JSON text
+and are parsed back on emit). Otherwise it renders add/removable key/value
+rows, coercing each value through `JSON.parse` with a plain-string fallback.
+Empty or missing keys and empty values are omitted from the emitted object.
+The raw JSON textarea remains only as a fallback for values that do not fit
+the structured model (non-object values or unparseable JSON strings). The
+editor derives everything from the field type and schema; domain-specific
+editors (for example cassette parameters or artifact template values) stay in
+`GeneratedScreen.vue` and must not be folded into it.
+
+## Action Results
+
+After a successful action post, `GeneratedScreen.applyActionResult` patches the
+affected source states synchronously through the source-patch path owned by
+`useGeneratedScreen` (see
+[composables/README.md](../../composables/README.md)): relation mutations apply
+`result.owner` and `result.created` to their respective entity types, other
+results apply `result.entity` (or the bare result), and `runCommand` actions
+apply every `entities` output. A created entity enters a list source only when
+it satisfies that source's resolved filters, so a successful procedural action
+is visible without a page reload; the shared entity sync event remains the
+backstop for changes made outside this screen. Successful `createEntity`
+actions additionally navigate to the created entity's detail route. A mapped
+mutation response is either a bare shape-preserving data tree (zero failures)
+or a failure-carrying `{ result, failures, completedMutations }` envelope;
+every completed item is applied to matching source state, while failed slots
+hold their MutationFailure record and remain described by the response's
+`failures` list. Navigation occurs only when a mapped create has one completed
+entity, because a collection result has no single detail destination.
+
 ## Overload Registry
 
 `overloads.js` owns app default overloads for generated surfaces. Overloads are
@@ -29,19 +83,124 @@ Use the registry instead of adding entity checks directly inside
 `GeneratedScreen.vue`, `GeneratedEntityDetail.vue`, or generated collections.
 The current default overloads are:
 
+- `home` screens render `GeneratedHomeWorkspace.vue`, the Discord-style
+  operational shell described below.
 - project `entityDetail` screens render `GeneratedProjectWorkspace.vue`, an
   IDE-style project workspace over the generated project source and child
   sources.
 - queue detail bodies render `GeneratedQueueDetail.vue`.
 - sheet-design detail bodies render `SheetDesignEditor.vue`.
 
+## Home Workspace
+
+`GeneratedHomeWorkspace.vue` renders the generated `home` template as a
+Discord-style operational shell:
+
+- Desktop (`md` and up) is a fixed two-column bounded workspace: a sidebar and
+  the recursive pane area. Mobile keeps the previous stacked home sections
+  (`GeneratedHomeScreen.vue`) inside a self-scrolling container, so the mobile
+  contract is unchanged.
+- The sidebar owns navigation for the whole shell. Below the brand header, a
+  pinned communication nav renders the shared `CommunicationMenu.vue`
+  (components/shared): Chats and Calls as proper PrimeVue `TieredMenu`
+  items instead of hand-written rows.
+  Chats open as the registered entity-less `chats` workspace page (see
+  `workspace-pages.js`): a tab in the main pane area rendering `ChatSupport`
+  full-page with its built-in inbox rail — chats are not a floating surface
+  on this route and the desktop floating launcher is hidden; the Chats menu
+  item carries the unread badge. The full-page chat splits into inbox rail
+  plus thread through a container query on its host wrapper at 44rem; the
+  row direction lives on the inner `.chat-page` node because a container
+  query cannot restyle its own container element. The Calls submenu lists direct/group
+  conversations from the chats store (choosing one rings the room through
+  `/api/livekit/invite`) and, below a separator, currently joinable rooms
+  from `/api/livekit/active-rooms` with participant-count badges, labeled
+  from the chats store and organization data, kept live by refetching on
+  `call.activity` events arriving on the caller's `user:`/`org:` topics.
+  Every call opens as
+  an ephemeral `call` workspace tab (`CallWorkspacePage.vue` — stage plus
+  the conversation chat rail) in the active pane, never a floating dialog;
+  the tab disappears when its `CallPanel` reports the call closed and is
+  never persisted with the pane layout. Active rooms reach the sidebar
+  Calls menu live through the LiveKit webhook fanout into `call.activity`
+  events (see
+  [server/features/livekit/README.md](../../server/features/livekit/README.md));
+  `livekit.dev.yaml` points the webhook at the compose-internal app
+  endpoint. `CallPanel` stays usable in small
+  panes: tiles keep a small minimum height, the speaker stage scrolls
+  instead of overflowing, and the wide side-strip/two-column arrangements
+  apply only from the panel's own 40rem container width. Entity-less page definitions marked
+  `ephemeral: true` are runtime-parameterized like this and never appear in
+  add-tab lists.
+- Entity navigation is a PrimeVue `Tree` explorer at Aura defaults in a
+  self-scrolling wrapper. Home entity-list sections render as non-selectable
+  folder nodes (entity-type icon and `generatedRegionLabel` label owned by
+  the tree itself) and section folders expand/collapse. The tree
+  passthroughs are layout-only: nested rows indent inside the row content so
+  hover/selection keep the full row width, and the node label owns the
+  remaining width so trailing row controls align to the row end.
+- Entity rows are inline entity entries through the shared component:
+  `EntityInlineRef variant="inline"` with `interactive: false` (non-expanding
+  inline card, no detail popup), followed by the icon-variant `EntityStatus`
+  and the separate ellipsis control at the end of the row. The tree owns
+  selection. Entity nodes carry no tree-level icon — the inline chip owns the
+  entity icon, and a tree icon would duplicate it.
+- Generated mutation buttons follow the hierarchy and live behind one
+  ellipsis menu per row: section folders expose the region's compiled create
+  actions, and each entity row resolves the create actions of its entity
+  type's compiled detail-screen child collection regions
+  (`generatedDetailScreenForEntityType`) with the row entity bound as the
+  opened parent through `mergeCollectionActionContext`, plus the compiled
+  relation Link actions of the detail screen's main region, which execute
+  against the row entity itself. The ellipsis opens a
+  popover of menu-item `GeneratedActionButton`s and only renders when the
+  row has actions. Nothing is hardcoded per entity type; a row without
+  compiled mutations shows no ellipsis.
+- The explorer shows the full hierarchy like the project page: entities nest
+  beneath a loaded ancestor through the effective containment graph and
+  canonical `lineage.*Id` references, and declared relation links participate
+  beside containment — expanding a row resolves its relation refs
+  (`resolveEntityRelationRefs` over the canonical DTO, fetching the full
+  record when the list DTO omits relations) and nests the referenced
+  entities under the row. Section roots never nest. Entity nodes whose type
+  declares containment children or carries relation refs are expandable;
+  expanding lazily loads children through the compiled detail-screen list
+  sources (`linkedExplorerChildSources`) scoped to the parent's lineage and
+  merges them into the workspace item pool. Entities opened through nested
+  pane navigation nest the same way.
+- Selecting an explorer row opens or selects that entity as a tab in the
+  active pane; the active pane's selected key drives the tree selection. The
+  desktop sidebar does not link out to hub entity-list screens; the full
+  hierarchy is navigable in place.
+- The sidebar footer mounts the shared `UserAccountMenu`, so on this route the
+  desktop top navbar is hidden and its user controls live in the sidebar
+  (`layouts/app.vue` resolves this from the active screen template).
+- The pane area is the same recursive `WorkspaceSplitNode` tree used by the
+  project workspace: IDE-style file tabs, wheel-scrollable tab strips, split
+  right/down, pane-local close, registered workspace pages (for example the
+  cassette designer), and `GeneratedEntityFile` bodies that scope each
+  entity's own compiled detail screen. There is no Explorer header or project
+  action strip; collection creation belongs to sidebar sections and entity
+  operations belong to the opened file tabs.
+- Tab and pane state persists as versioned browser UI state scoped to the
+  current user and organization (`utils/home-workspace-state.js`). It stores
+  the pane tree, tab selections, opened entity references, and opened page
+  references using the same normalization contract as the project workspace,
+  minus explorer fields. Entities opened through nested detail navigation are
+  hydrated through the entity store like project workspace files; lazily
+  fetched explorer children stay session-local.
+
 ## Project Workspace
 
 `GeneratedProjectWorkspace.vue` renders project `entityDetail` screens as a
 bounded IDE-style Explorer and file workspace:
 
-- the Explorer is a dense PrimeVue tree containing the opened project and only
-  child collections loaded by the screen's list regions. It is independently
+- the Explorer is a dense PrimeVue tree containing the opened project, child
+  collections loaded by the project screen, and direct child collections
+  declared by a linked entity's own compiled detail screen. Linked children are
+  fetched through that source's resolved filters (for example,
+  `cassette?libraryId=<linked-library-id>`), never from a bounded summary
+  preview. It is independently
   scrollable, starts directly below the workspace action strip without a local
   header, occupies the compact 15% side of the workspace split, and can collapse
   so file panes use the full workspace width. Its visibility is controlled from
@@ -71,9 +230,13 @@ bounded IDE-style Explorer and file workspace:
   with that pane. `GeneratedEntityFile` is the pane adapter: each entity tab
   owns its DTO-backed icon-only interactive lifecycle status and close affordance;
   tabs without a persisted status state do not synthesize an `UNKNOWN` badge. The tab
-  strip ends with an add-tab picker. Pane-level split and close commands live in
+  strip's add control opens a new empty tab (IDE-like) instead of a content
+  picker; the empty tab renders the pane's open-content prompt, and the first
+  real item opened into that pane replaces it. Tab keys that no longer resolve
+  to a workspace item (for example a restored stale call room) render as empty
+  tabs. Pane-level split and close commands live in
   one ellipsis menu. The add button follows the last tab instead of consuming
-  the far edge of the header. Generated entity-action buttons render inside the active
+  the far edge of the header, inside the strip's border run. Generated entity-action buttons render inside the active
   tab body below the strip only when the operational detail overload does not
   own its action surface. Cassette, queue, and sheet-design editors own that
   surface completely, including deletion. The body mounts the canonical
@@ -99,7 +262,9 @@ bounded IDE-style Explorer and file workspace:
   and mounts `CassetteDesignerV2` through the shared designer surface so the
   designer owns the pane rather than a dialog. Linked entities and source-loaded children use the same
   page-opening lookup; relation navigation does not reduce their capabilities.
-  Additional app-owned pages register through the same fixed registry.
+  Additional app-owned pages register through the same fixed registry; pages
+  without an entity binding (for example `chats`) are always-openable tabs in
+  the home workspace.
 - PrimeVue splitters form a recursive split tree. A pane can split right or
   down, and nested horizontal/vertical splits keep independent selections and
   scrolling. Split proportions, Explorer width/visibility, active pane,
@@ -165,8 +330,12 @@ same overload from the user's active screen manifest. The resulting frame is
 flush to the app boundary and body scrolling is disabled. Explorer, editor, and
 file panes own their scrolling independently.
 
-`GeneratedActionButton`, `GeneratedDeleteButton`, and
-`GeneratedCassetteDesignerAction` render in the active project tab body.
+`GeneratedActionButton` and `GeneratedCassetteDesignerAction` render in the
+active project tab body. Generated hard deletion is a manual compiled
+`deleteEntity` action rendered through `GeneratedActionButton`; `GeneratedScreen`
+owns its confirmation and process-action execution. `GeneratedDeleteButton` is
+reserved for static management surfaces and must not be added to generated
+process screens.
 Regular entity pages and cards may use their menu-item presentation inside
 entity ellipsis menus; presentation does not change action resolution or access.
 Generated relation-link actions render with a link icon and the target entity
@@ -180,10 +349,9 @@ refresh behavior come from the compiled relation-action contract; editors must
 not match entity types or relation keys locally.
 Generated action placement is concern-based and has one owner: create actions
 belong to collection/region surfaces, relation mutations to relation-aware
-entity surfaces, and entity operations to the opened entity surface. Project
-entity deletion is a management operation owned by the Explorer row ellipsis;
-it is confirmed before execution, removed from the tab body, and closes every
-tab/page reference to the deleted entity after success.
+entity surfaces, and entity operations to the opened entity surface. Generated
+deletion is owned by the compiled action placement for the entity; it is never
+synthesized from domain operations or permission grants.
 
 The Project Explorer projects declared containment within compiled collection
 folders. Parent entities remain selectable files and become expandable when

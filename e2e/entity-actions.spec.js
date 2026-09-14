@@ -85,7 +85,7 @@ test.describe('entity action buttons', () => {
       });
     });
 
-    await app.page.goto('/project/project-action-test/sheet-design/sheet-action-test');
+    await app.page.goto('/screens');
     const downloadPromise = app.page.waitForEvent('download');
     await app.page.getByTestId('sheet-design-generate-dxf').click();
     const download = await downloadPromise;
@@ -143,7 +143,7 @@ test.describe('entity action buttons', () => {
       });
     });
 
-    await app.page.goto('/assets/cassettes');
+    await app.page.goto('/screens');
     await app.page.getByTestId('cassette-template-create-design').click();
 
     expect(createBody).toEqual({ parameters: { A: 500, B: 600 } });

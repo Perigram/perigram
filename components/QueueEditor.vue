@@ -7,7 +7,7 @@
         >
             <template v-if="showQueueNavigation && queues?.length > 0" #left>
                 <div class="flex shrink-0 items-center justify-between gap-2 px-1">
-                    <span class="font-medium">{{ $t('project.queues') }}</span>
+                    <span class="text-label">{{ $t('project.queues') }}</span>
                     <Button
                         v-if="canCreateQueue"
                         icon="pi pi-plus"
@@ -123,11 +123,11 @@
                                     <InputNumber v-model="nestingOptions.virtualLength" :min="100" :placeholder="$t('nesting.length')" size="small" />
                                     <InputNumber v-model="nestingOptions.virtualThickness" :min="0.01" :min-fraction-digits="1" :max-fraction-digits="3" :placeholder="$t('nesting.thickness')" size="small" />
                                 </div>
-                                <div class="rounded-panel border border-content-border bg-content p-3">
+                                <div class="rounded-panel border border-content-border p-3">
                                     <div class="flex items-center justify-between gap-3">
                                         <div class="flex min-w-0 items-center gap-2">
-                                            <i class="pi pi-file"></i>
-                                            <span class="truncate font-medium">{{ $t('nesting.virtualSheet') }}</span>
+                                            <i class="ck-entity-icon ck-entity-icon-sheet-instance"></i>
+                                            <span class="truncate text-label">{{ $t('nesting.virtualSheet') }}</span>
                                         </div>
                                         <span>{{ virtualSheetLabel }}</span>
                                     </div>
@@ -309,7 +309,7 @@
                         <label>{{ field.label || field.id }}</label>
                         <Select
                             v-if="field.type === 'entity'"
-                            v-model="producerValues[field.id]"
+                            :model-value="producerValues[field.id]"
                             :options="producerFieldOptions[field.id] || []"
                             option-label="label"
                             option-value="value"
@@ -317,25 +317,39 @@
                             class="w-full"
                             size="small"
                             :disabled="field.id === 'templateId' && !producerValues.libraryId"
-                            @change="onProducerFieldChange(field)"
+                            @update:model-value="value => updateProducerField(field, value)"
                         />
                         <MultiSelect
                             v-else-if="field.type === 'entityList'"
-                            v-model="producerValues[field.id]"
+                            :model-value="producerValues[field.id]"
                             :options="producerFieldOptions[field.id] || []"
                             option-label="label"
                             option-value="value"
                             :entity-type="field.entityType || field.accepts?.[0] || ''"
                             class="w-full"
                             size="small"
+                            @update:model-value="value => updateProducerField(field, value)"
                         />
                         <InputNumber v-else-if="field.type === 'number'" v-model="producerValues[field.id]" fluid size="small" />
                         <Textarea v-else-if="field.type === 'object'" v-model="producerValues[field.id]" rows="3" auto-resize />
                         <InputText v-else-if="field.type !== 'cassetteParameters'" v-model="producerValues[field.id]" class="w-full" size="small" />
-                        <div v-else class="grid grid-cols-2 gap-3">
-                            <div v-for="parameter in producerParameterNames" :key="parameter" class="flex flex-col gap-1">
-                                <label>{{ parameter }}</label>
-                                <InputNumber v-model="producerParameters[parameter]" :disabled="parameter === 'T'" fluid size="small" />
+                        <div v-else class="flex flex-col gap-3">
+                            <div
+                                ref="cassettePreviewFrame"
+                                class="relative h-56 overflow-hidden rounded-ui border border-content-border bg-subtle"
+                            >
+                                <CassetteThumbnail
+                                    v-if="producerParameterNames.length"
+                                    :cassette="templateForProducer()"
+                                    :dimensions="producerPreviewDimensions"
+                                    hide-dimension-layer
+                                />
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div v-for="parameter in producerParameterNames" :key="parameter" class="flex flex-col gap-1">
+                                    <label>{{ parameter }}</label>
+                                    <InputNumber v-model="producerParameters[parameter]" :disabled="parameter === 'T'" fluid size="small" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -384,6 +398,7 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import FileUpload from 'primevue/fileupload';
 import ConfirmDialog from 'primevue/confirmdialog';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
+import CassetteThumbnail from './CassetteThumbnail.vue';
 import QueueEntryCard from '~/components/entities/Queue/QueueEntryCard.vue';
 import QueueCard from '~/components/entities/Queue/QueueCard.vue';
 import QueueSourceCard from '~/components/entities/Queue/QueueSourceCard.vue';
@@ -396,6 +411,7 @@ import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
 import EntityWorkspace from '~/components/shared/EntityWorkspace.vue';
 import ScrollablePanel from '~/components/shared/ScrollablePanel.vue';
 import { entitySelectLabel, namedSelectOptions } from '~/utils/selectOptions';
+import { useStateTransition } from '~/composables/useMotion.js';
 import { onEntityChanged } from '~/utils/entity-events.js';
 import { occsParameterNames } from '~/utils/occs/parameters.js';
 import { canonicalQueueItem, queueItemTemplateId } from '~/utils/queue-items.js';
@@ -442,6 +458,10 @@ const selectedProducer = ref(null);
 const producerValues = ref({});
 const producerFieldOptions = ref({});
 const producerParameters = ref({});
+const producerPreviewDimensions = ref({});
+const cassettePreviewFrame = ref(null);
+const cassettePreviewTransition = useStateTransition(cassettePreviewFrame);
+let producerPreviewTimer = null;
 const producerExecuting = ref(false);
 const producerResourcesReady = ref(false);
 const cassettes = ref([]);
@@ -520,6 +540,30 @@ const libraryOptions = computed(() => libraries.value
 const producerParameterNames = computed(() => {
     const template = templateForProducer();
     return template ? getCassetteParameters(template) : [];
+});
+const syncProducerPreviewDimensions = () => {
+    if (!producerParameterNames.value.length) {
+        producerPreviewDimensions.value = {};
+        return;
+    }
+    producerPreviewDimensions.value = { ...producerParameters.value };
+};
+watch(producerParameterNames, () => {
+    if (producerPreviewTimer) clearTimeout(producerPreviewTimer);
+    syncProducerPreviewDimensions();
+}, { immediate: true });
+watch(producerParameters, () => {
+    if (!producerParameterNames.value.length) return;
+    if (producerPreviewTimer) clearTimeout(producerPreviewTimer);
+    producerPreviewTimer = setTimeout(async () => {
+        producerPreviewTimer = null;
+        cassettePreviewTransition.capture();
+        syncProducerPreviewDimensions();
+        await cassettePreviewTransition.play();
+    }, 250);
+}, { deep: true });
+onUnmounted(() => {
+    if (producerPreviewTimer) clearTimeout(producerPreviewTimer);
 });
 const uploadProducerActionBody = computed(() => {
     if (!selectedProducer.value?.actionId) return {};
@@ -633,6 +677,11 @@ async function onProducerFieldChange(field = {}) {
         return;
     }
     if (field.id === 'templateId') syncProducerParameters();
+}
+
+async function updateProducerField(field = {}, value) {
+    producerValues.value[field.id] = value;
+    await onProducerFieldChange(field);
 }
 
 async function startProducer(producer) {

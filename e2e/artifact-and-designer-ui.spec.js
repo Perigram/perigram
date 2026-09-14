@@ -47,7 +47,7 @@ test.describe('artifact and designer UI', () => {
       const items = Array.isArray(list) ? list : list.items || [];
       if (items.length) {
         await app.page.goto(`/api/cassettes/${items[0]._id}`);
-        await app.page.waitForLoadState('networkidle');
+        await app.page.waitForLoadState('load');
         await app.page.waitForTimeout(1000);
       }
     }
@@ -56,7 +56,7 @@ test.describe('artifact and designer UI', () => {
 
   test('invitation page renders centered form without errors', async ({ app }) => {
     await app.page.goto('/invitation/invalid-token');
-    await app.page.waitForLoadState('networkidle');
+    await app.page.waitForLoadState('load');
     await expect(app.page.locator('.p-message, [role="alert"]').first()).toBeVisible({ timeout: 5000 });
   });
 });

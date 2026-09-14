@@ -1,25 +1,26 @@
 <template>
   <section
     v-if="item?.entity"
-    class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content"
+    class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
   >
-    <header data-pane-header class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome pr-1 text-[var(--ck-chrome-foreground)]">
+    <div data-pane-header class="flex shrink-0 items-stretch">
       <GeneratedWorkspaceTabs
         :tabs="tabs"
-        :available-tabs="availableTabs"
         :active-key="item.key"
         @select="$emit('select-tab', $event)"
         @close="$emit('close-tab', $event)"
         @add="$emit('add-tab', $event)"
         @refresh="$emit('refresh')"
       />
-      <GeneratedWorkspacePaneMenu
-        :splittable="splittable"
-        :closeable="closeable"
-        @split="$emit('split', $event)"
-        @close="$emit('close')"
-      />
-    </header>
+      <div class="flex shrink-0 items-center border-b border-chrome-border pr-1">
+        <GeneratedWorkspacePaneMenu
+          :splittable="splittable"
+          :closeable="closeable"
+          @split="$emit('split', $event)"
+          @close="$emit('close')"
+        />
+      </div>
+    </div>
 
     <div
       v-if="tabActionIds.length"
@@ -95,7 +96,6 @@ import { useAuthStore } from '~/stores/auth';
 const props = defineProps({
   item: { type: Object, default: null },
   tabs: { type: Array, default: () => [] },
-  availableTabs: { type: Array, default: () => [] },
   actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true },

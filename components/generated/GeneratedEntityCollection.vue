@@ -43,7 +43,7 @@
           <button
             v-if="isIdentityNameField(field.path) && detailRouteFor(data)"
             type="button"
-            class="min-w-0 max-w-full truncate text-left font-medium text-[var(--ck-primary-ink)] underline-offset-4 hover:underline"
+            class="min-w-0 max-w-full truncate text-left text-[var(--ck-primary-ink)] underline-offset-4 hover:underline text-label"
             @click="openEntity(data)"
           >
             {{ formatCell(data, field.path) }}
@@ -100,7 +100,7 @@
         suppress-child-summaries
         relation-variant="compact"
       />
-      <template v-if="hasEditorAction || entityActionsFor(entity).length || entityCanDelete(entity) || detailRouteFor(entity)" #footer>
+      <template v-if="hasEditorAction || entityActionsFor(entity).length || detailRouteFor(entity)" #footer>
         <div class="flex flex-wrap justify-end gap-2">
           <Button
             v-if="detailRouteFor(entity)"
@@ -124,11 +124,6 @@
             :key="action.actionId"
             :action-id="action.actionId"
             @execute="action => $emit('execute-action', action, entity, actionContext)"
-          />
-          <GeneratedDeleteButton
-            :entity="entity"
-            :entity-type="entityType"
-            @deleted="$emit('refresh')"
           />
         </div>
       </template>
@@ -154,14 +149,11 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { entityEditorActionFor, entityHasEditorAction } from '~/components/generated/entity-editor-action.js';
-import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 import { entityHierarchyIds } from '~/utils/entity-hierarchy.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
-import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { generatedActionRendersAt } from '~/components/generated/action-placement.js';
 
@@ -181,7 +173,6 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action', 'open-entity', 'open-page']);
 
 const authStore = useAuthStore();
-const domainUi = useCutkitDomainUi();
 const editorActionComponent = computed(() => entityEditorActionFor(props.entityType));
 const hasEditorAction = computed(() => entityHasEditorAction(props.entityType));
 const { t } = useI18n();
@@ -250,15 +241,6 @@ function entityActionsFor(entity) {
     !parentBoundCreateAppliesToEntityType(action, props.entityType)
     && actionAppliesToEntity(action, entity, props.entityType)
   ));
-}
-
-function entityCanDelete(entity = {}) {
-  return canDeleteGeneratedEntity({
-    authStore,
-    domainUi,
-    entity,
-    entityType: props.entityType
-  });
 }
 
 function dedupeActions(actions = []) {

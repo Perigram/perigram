@@ -24,6 +24,8 @@ export {
   createEntityRef,
   createProvenance,
   createTaskResult,
+  normalizeEntityOutputContracts,
+  validateResultEntityOutputs,
   createData,
   createStatusState,
   getPrimaryState,

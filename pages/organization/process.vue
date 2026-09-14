@@ -35,12 +35,7 @@
           @connect-end="endSocketConnection"
           @connect="onConnect"
         >
-          <template #node-entity="props"><ProcessEntityNode v-bind="props" /></template>
-          <template #node-action="props"><ProcessActionNode v-bind="props" /></template>
-          <template #node-service="props"><ProcessServiceNode v-bind="props" /></template>
-          <template #node-socket="props"><ProcessSocketNode v-bind="props" /></template>
           <template #node-statusDefinition="props"><ProcessStatusDefinitionNode v-bind="props" /></template>
-          <template #node-valueInput="props"><ProcessValueInputNode v-bind="props" /></template>
           <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
         </VueFlow>
         <template #fallback><div class="absolute inset-0" /></template>
@@ -48,7 +43,7 @@
 
       <div
         v-if="contextPalette.open"
-        class="absolute z-30 flex max-h-80 w-72 flex-col gap-2 overflow-y-auto rounded-ui border border-content-border bg-content p-2 shadow-card"
+        class="absolute z-30 flex max-h-80 w-72 flex-col gap-2 overflow-y-auto rounded-ui border border-content-border p-2 shadow-card"
         :style="{ left: `${contextPalette.x}px`, top: `${contextPalette.y}px` }"
         @mousedown.stop
         @click.stop
@@ -65,7 +60,7 @@
           <Button icon="pi pi-times" text size="small" :aria-label="$t('processDesigner.closeOperationPalette')" @click="closeContextPalette" />
         </div>
         <div v-for="group in contextPaletteGroups" :key="group.id" class="flex flex-col gap-1">
-          <span class="text-xs font-semibold text-muted-color">{{ paletteGroupLabel(group.id) }}</span>
+          <span class="text-muted-color text-supporting">{{ paletteGroupLabel(group.id) }}</span>
           <Button
             v-for="item in group.items"
             :key="item.id"
@@ -83,33 +78,35 @@
         </Message>
       </div>
 
-      <div v-if="!nodes.length" class="absolute inset-x-4 top-8 z-10 flex justify-center lg:left-[20rem] lg:right-[28rem]">
+      <div v-if="!nodes.length" class="absolute inset-x-4 top-8 z-10 flex justify-center">
         <StateBlock :message="emptyCanvasMessage" />
       </div>
 
       <template v-if="paletteOpen" #palette>
-        <div class="flex w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 rounded-ui border border-content-border bg-content p-3 shadow-card">
-        <div class="flex items-center gap-1">
-          <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
-        </div>
-        <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
-          <span class="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-color">{{ paletteGroupLabel(group.id) }}</span>
-          <div class="grid grid-cols-2 gap-1.5">
-            <Button
-              v-for="item in group.items"
-              :key="item.id"
-              :icon="item.icon"
-              :label="paletteLabel(item)"
-              :aria-label="paletteLabel(item)"
-              v-tooltip.right="paletteDescription(item)"
-              size="small"
-              text
-              class="min-w-0 justify-start border border-transparent bg-subtle px-2 hover:border-content-border"
-              @click="addNode(item)"
-            />
+        <Panel :header="$t('processDesigner.palette')" class="w-72">
+          <div class="flex flex-col gap-3">
+            <div class="flex items-center gap-1">
+              <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
+            </div>
+            <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
+              <span class="px-1 uppercase text-muted-color text-supporting">{{ paletteGroupLabel(group.id) }}</span>
+              <div class="grid grid-cols-2 gap-1.5">
+                <Button
+                  v-for="item in group.items"
+                  :key="item.id"
+                  :icon="item.icon"
+                  :label="paletteLabel(item)"
+                  :aria-label="paletteLabel(item)"
+                  v-tooltip.right="paletteDescription(item)"
+                  size="small"
+                  text
+                  class="min-w-0 justify-start border border-transparent bg-subtle px-2 hover:border-content-border"
+                  @click="addNode(item)"
+                />
+              </div>
+            </div>
           </div>
-        </div>
-        </div>
+        </Panel>
       </template>
 
       <template #dock>
@@ -120,15 +117,8 @@
         />
       </template>
 
-      <Popover ref="processMenu" @hide="onDockPopoverHide('process')">
-        <div
-          class="flex min-w-72 flex-col gap-2"
-          @mousedown.stop
-          @click.stop
-          @mouseenter="keepDockPopover('process')"
-          @mouseleave="scheduleDockPopoverClose('process')"
-          @focusin="keepDockPopover('process')"
-        >
+      <Popover ref="processMenu">
+        <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
           <Select
             v-if="processOptions.length"
             :model-value="selectedProcessId"
@@ -140,8 +130,6 @@
             size="small"
             :aria-label="$t('processDesigner.title')"
             @update:model-value="selectProcessDefinition"
-            @show="pinDockPopover('process')"
-            @hide="unpinDockPopover('process')"
           />
           <Button
             icon="pi pi-file-plus"
@@ -156,264 +144,24 @@
         </div>
       </Popover>
 
-      <Popover ref="canvasMenu" @hide="onDockPopoverHide('navigation')">
-        <div
-          class="grid grid-cols-5 gap-0.5"
-          @mousedown.stop
-          @click.stop
-          @mouseenter="keepDockPopover('navigation')"
-          @mouseleave="scheduleDockPopoverClose('navigation')"
-          @focusin="keepDockPopover('navigation')"
-        >
-          <Button icon="pi pi-minus" text size="small" v-tooltip.top="$t('drawing.zoomOut')" :aria-label="$t('drawing.zoomOut')" @click="zoomCanvasOut" />
-          <Button icon="pi pi-expand" text size="small" v-tooltip.top="$t('processDesigner.frameAll')" :aria-label="$t('processDesigner.frameAll')" @click="frameAllNodes" />
-          <Button icon="pi pi-crosshairs" text size="small" v-tooltip.top="$t('processDesigner.frameSelection')" :aria-label="$t('processDesigner.frameSelection')" @click="frameSelectedNodes" />
-          <Button icon="pi pi-plus" text size="small" v-tooltip.top="$t('drawing.zoomIn')" :aria-label="$t('drawing.zoomIn')" @click="zoomCanvasIn" />
-          <Button icon="pi pi-refresh" text size="small" v-tooltip.top="$t('processDesigner.resetZoom')" :aria-label="$t('processDesigner.resetZoom')" @click="resetCanvasZoom" />
-        </div>
-      </Popover>
-
       <template v-if="inspectorOpen" #inspector>
-        <aside class="flex w-[26rem] min-h-0 flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-card">
-        <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
-          <TabList>
-            <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
-            <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
-            <Tab value="screens">{{ $t('organization.screens') }}</Tab>
-          </TabList>
-          <TabPanels class="min-h-0 flex-1 overflow-y-auto">
+        <Panel
+          class="flex h-full min-h-0 w-[26rem] flex-col"
+          :pt="{ content: { class: 'flex min-h-0 flex-1 flex-col' } }"
+        >
+          <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
+            <TabList>
+              <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
+              <Tab value="roles">{{ $t('processDesigner.roles') }}</Tab>
+              <Tab value="screens">{{ $t('organization.screens') }}</Tab>
+            </TabList>
+            <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
                 <div v-if="!['action', 'statusDefinition', 'processNode'].includes(selectedNode.type)" class="flex flex-col gap-1">
                   <label>{{ $t('processDesigner.label') }}</label>
                   <InputText v-model="selectedRecord.label" />
                 </div>
-
-                <template v-if="selectedNode.type === 'entity'">
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.entityType') }}</label>
-                    <Select v-model="selectedEntity.entityType" :options="entityTypeOptions" option-label="label" option-value="value" @change="syncEntityDefaults" />
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.lifecycleMode') }}</label>
-                    <Select v-model="selectedEntity.lifecycle.mode" :options="lifecycleModes" option-label="label" option-value="value" />
-                  </div>
-
-                  <Panel :header="$t('processDesigner.statusMachine')">
-                    <div class="flex flex-col gap-3">
-                      <div class="flex flex-wrap gap-2">
-                        <Tag v-for="state in lifecycleStateEntries" :key="state.value" :value="state.label" size="small" />
-                      </div>
-                      <div class="flex gap-2">
-                        <InputText v-model="newStateId" class="min-w-0 flex-1" :placeholder="$t('processDesigner.stateId')" />
-                        <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addState')" size="small" @click="addLifecycleState" />
-                      </div>
-                      <div class="flex flex-col gap-2">
-                        <div v-for="(transition, index) in lifecycleTransitions" :key="`${transition.from}-${transition.to}-${index}`" class="rounded-ui border border-content-border p-2">
-                          <div class="grid grid-cols-2 gap-2">
-                            <Select :model-value="transition.from" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { from: value })" />
-                            <Select :model-value="transition.to" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { to: value })" />
-                          </div>
-                          <div class="mt-2 flex items-center gap-2">
-                            <MultiSelect :model-value="transition.access?.processRoleIds || []" :options="roleOptions" option-label="label" option-value="value" display="chip" class="min-w-0 flex-1" @update:model-value="value => updateTransitionRoles(index, value)" />
-                            <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeLifecycleTransition(index)" />
-                          </div>
-                        </div>
-                      </div>
-                      <Button icon="pi pi-arrow-right" :label="$t('processDesigner.addTransition')" size="small" severity="secondary" outlined @click="addLifecycleTransition" />
-                    </div>
-                  </Panel>
-
-                  <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.readRoles') }}</label>
-                      <MultiSelect v-model="selectedEntity.allowedRoles.read" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.writeRoles') }}</label>
-                      <MultiSelect v-model="selectedEntity.allowedRoles.write" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.adminRoles') }}</label>
-                      <MultiSelect v-model="selectedEntity.allowedRoles.admin" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.publicFields') }}</label>
-                      <MultiSelect v-model="selectedEntity.fields.read" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.writeFields') }}</label>
-                      <MultiSelect v-model="selectedEntity.fields.write" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.privateFields') }}</label>
-                      <MultiSelect v-model="selectedEntity.fields.private" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.relations') }}</label>
-                      <MultiSelect v-model="selectedEntity.relations" :options="relationOptionsForEntity(selectedEntity.entityType)" option-label="label" option-value="value" display="chip" class="w-full" @change="syncNodeData" />
-                    </div>
-                  </div>
-                </template>
-
-                <template v-else-if="selectedNode.type === 'action'">
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.label') }}</label>
-                    <InputText v-model="selectedAction.label" @update:model-value="syncNodeData" />
-                  </div>
-                  <div v-if="['createEntity', 'sendToOrganization'].includes(selectedAction.actionKind)" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.entityType') }}</label>
-                    <Select v-model="selectedAction.entityType" :options="entityTypeOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'runCommand'" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.commandId') }}</label>
-                    <Select v-model="selectedAction.commandId" :options="commandOptions" option-label="label" option-value="value" @change="syncSelectedAction" />
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.trigger') }}</label>
-                    <Select v-model="selectedAction.trigger.mode" :options="localizedTriggerModeOptions()" option-label="label" option-value="value" @change="syncSelectedAction" />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'updateEntity'" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.writeFields') }}</label>
-                    <MultiSelect v-model="selectedAction.mutation.fields" :options="fieldOptionsForSelectedAction" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedAction" />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'sendToOrganization'" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.projectedFields') }}</label>
-                    <MultiSelect v-model="selectedAction.projection.fields" :options="fieldOptionsForSelectedAction" option-label="label" option-value="value" display="chip" class="w-full" @change="syncSelectedAction" />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'createEntity' && (constructionModeOptions(selectedAction.entityType).length > 1 || selectedAction.entityType === 'artifact')" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.constructionMode') }}</label>
-                    <Select v-model="selectedAction.construction.mode" :options="constructionModeOptions(selectedAction.entityType)" option-label="label" option-value="value" @change="syncSelectedAction" />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'createEntity' && selectedAction.entityType === 'artifact'" class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.allowedArtifactCreation') }}</label>
-                    <MultiSelect
-                      :model-value="artifactCreationKinds(selectedAction)"
-                      :options="artifactUploadKindOptions"
-                      option-label="label"
-                      option-value="value"
-                      display="chip"
-                      filter
-                      :placeholder="$t('processDesigner.allUploadArtifactKinds')"
-                      @update:model-value="value => updateArtifactCreationKinds(selectedAction, value)"
-                    />
-                  </div>
-                  <div v-if="selectedAction.actionKind === 'createEntity' && parentRevisionScopeOptions(selectedAction.parentEntityType).length" class="flex flex-col gap-2">
-                    <div class="flex items-center gap-2">
-                      <Checkbox
-                        :model-value="selectedAction.parentRevision?.enabled === true"
-                        binary
-                        input-id="pin-parent-revision"
-                        @update:model-value="updateParentRevisionEnabled"
-                      />
-                      <label for="pin-parent-revision">{{ $t('processDesigner.pinParentRevision') }}</label>
-                    </div>
-                    <div v-if="selectedAction.parentRevision?.enabled" class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.revisionScope') }}</label>
-                      <Select
-                        v-model="selectedAction.parentRevision.scope"
-                        :options="parentRevisionScopeOptions(selectedAction.parentEntityType)"
-                        option-label="label"
-                        option-value="value"
-                        @change="syncSelectedAction"
-                      />
-                    </div>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between gap-2">
-                      <label>{{ $t('processDesigner.roles') }}</label>
-                      <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addRole')" text size="small" @click="addSelectedActionGrant" />
-                    </div>
-                    <div v-for="(grant, index) in selectedActionGrants" :key="`${grant.roleId}-${index}`" class="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto] gap-2">
-                      <Select :model-value="grant.roleId" :options="roleOptions" option-label="label" option-value="value" size="small" @update:model-value="value => updateSelectedActionGrant(index, { roleId: value })" />
-                      <Select :model-value="grant.level" :options="accessLevelOptions" option-label="label" option-value="value" size="small" @update:model-value="value => updateSelectedActionGrant(index, { level: value })" />
-                      <Button icon="pi pi-trash" :aria-label="$t('common.delete')" text severity="danger" size="small" @click="removeSelectedActionGrant(index)" />
-                    </div>
-                    <Button v-if="selectedAction.actionKind === 'updateEntity' && inheritedActionAccessLabels(selectedAction, selectedNode).length" icon="pi pi-refresh" :label="$t('common.reset')" text size="small" class="self-start" @click="resetActionAccess(selectedAction.id)" />
-                  </div>
-                </template>
-
-                <template v-else-if="selectedNode.type === 'service'">
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.commandId') }}</label>
-                    <Select v-model="selectedService.commandId" :options="commandOptions" option-label="label" option-value="value" @change="syncServiceFromCommand" />
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.runPrincipals') }}</label>
-                      <MultiSelect v-model="selectedService.access.runPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.viewPrincipals') }}</label>
-                      <MultiSelect v-model="selectedService.access.viewPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.serviceBillingMode') }}</label>
-                      <Select v-model="selectedService.billing.mode" :options="serviceBillingModeOptions" option-label="label" option-value="value" />
-                    </div>
-                    <div v-if="selectedService.billing.mode === 'prepaidTokens'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      <div class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.serviceTokenCost') }}</label>
-                        <InputNumber v-model="selectedService.billing.tokenCost" :min="0" :max-fraction-digits="2" class="w-full" />
-                      </div>
-                      <div class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.serviceMeterKey') }}</label>
-                        <InputText v-model="selectedService.billing.meterKey" class="w-full" />
-                      </div>
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <Panel :header="$t('processDesigner.inputs')">
-                      <div class="flex flex-wrap gap-2">
-                        <Tag v-for="input in selectedService.inputs" :key="input.id" :value="input.entityType || input.id" size="small" />
-                      </div>
-                    </Panel>
-                    <Panel :header="$t('processDesigner.outputs')">
-                      <div class="flex flex-wrap gap-2">
-                        <Tag v-for="output in selectedService.outputs" :key="output.id" :value="output.entityType || output.id" size="small" severity="success" />
-                      </div>
-                    </Panel>
-                  </div>
-                </template>
-
-                <template v-else-if="selectedNode.type === 'socket'">
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.direction') }}</label>
-                    <Select v-model="selectedSocket.direction" :options="socketDirections" option-label="label" option-value="value" />
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.entityType') }}</label>
-                    <Select v-model="selectedSocket.entityType" :options="entityTypeOptions" option-label="label" option-value="value" />
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.projectedFields') }}</label>
-                      <MultiSelect v-model="selectedSocket.projection.fields" :options="fieldOptionsForSelectedSocket" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.excludedFields') }}</label>
-                      <MultiSelect v-model="selectedSocket.projection.excludeFields" :options="fieldOptionsForSelectedSocket" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                  </div>
-                  <div class="grid grid-cols-1 gap-3">
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.sendRoles') }}</label>
-                      <MultiSelect v-model="selectedSocket.access.sendRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.receiveRoles') }}</label>
-                      <MultiSelect v-model="selectedSocket.access.receiveRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-                    </div>
-                  </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.receiverLifecycle') }}</label>
-                    <Select v-model="selectedSocket.receiverLifecycle.mode" :options="lifecycleModes" option-label="label" option-value="value" />
-                  </div>
-                </template>
 
                 <template v-else-if="selectedNode.type === 'statusDefinition'">
                   <div class="grid grid-cols-2 gap-2">
@@ -501,15 +249,122 @@
                   <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeStatusDefinition(selectedStatusDefinition.id)" />
                 </template>
 
-                <template v-else-if="selectedNode.type === 'valueInput'">
-                  <Tag :value="processPortTypeLabel(selectedValueInput.outputs?.[0]?.kind || selectedValueInput.valueType)" severity="info" size="small" />
-                </template>
 
                 <template v-else-if="selectedNode.type === 'processNode'">
+                  <div v-if="selectedProcessNode.kind?.startsWith('effect.')" class="flex flex-col gap-2">
+                    <label>{{ $t('processDesigner.actionRoles') }}</label>
+                    <MultiSelect
+                      :model-value="selectedProcessNodeGrantRoleIds"
+                      :options="roleOptions"
+                      option-label="label"
+                      option-value="value"
+                      display="chip"
+                      class="w-full"
+                      @update:model-value="updateSelectedProcessNodeGrantRoles"
+                    />
+                    <div
+                      v-for="(grant, index) in selectedProcessNodeGrants"
+                      :key="grant.roleId"
+                      class="flex items-center gap-2"
+                    >
+                      <span class="min-w-0 flex-1 truncate text-supporting">{{ roleOptions.find(option => option.value === grant.roleId)?.label || grant.roleId }}</span>
+                      <Select
+                        :model-value="grant.level || 'write'"
+                        :options="accessLevelOptions"
+                        option-label="label"
+                        option-value="value"
+                        class="w-28 shrink-0"
+                        size="small"
+                        @update:model-value="value => updateSelectedProcessNodeGrantLevel(index, value)"
+                      />
+                    </div>
+                    <div v-if="selectedProcessNodeAccessDetail" class="text-supporting text-muted-color">{{ selectedProcessNodeAccessDetail }}</div>
+                    <div v-if="selectedProcessNodeEffectiveAccess.length" class="flex flex-wrap gap-1">
+                      <span
+                        v-for="item in selectedProcessNodeEffectiveAccess"
+                        :key="item.label"
+                        class="max-w-full truncate rounded-ui border border-content-border px-1.5 py-0.5 text-supporting"
+                        :class="item.inherited ? 'text-muted-color' : ''"
+                      >{{ item.label }}</span>
+                    </div>
+                  </div>
+                  <Panel v-if="selectedEntityAvailable" :header="$t('processDesigner.createdEntity')" class="mt-0">
+                        <div class="flex flex-col gap-3">
+                          <Tag :value="`${selectedEntity.producerOutputId} · ${selectedEntity.entityType}`" severity="info" size="small" />
+        <div class="flex flex-col gap-1">
+          <label>{{ $t('processDesigner.lifecycleMode') }}</label>
+          <Select v-model="selectedEntity.lifecycle.mode" :options="lifecycleModes" option-label="label" option-value="value" />
+        </div>
+
+        <Panel :header="$t('processDesigner.statusMachine')">
+          <div class="flex flex-col gap-3">
+            <div class="flex flex-wrap gap-2">
+              <Tag v-for="state in lifecycleStateEntries" :key="state.value" :value="state.label" size="small" />
+            </div>
+            <div class="flex gap-2">
+              <InputText v-model="newStateId" class="min-w-0 flex-1" :placeholder="$t('processDesigner.stateId')" />
+              <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addState')" size="small" @click="addLifecycleState" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <div v-for="(transition, index) in lifecycleTransitions" :key="`${transition.from}-${transition.to}-${index}`" class="rounded-ui border border-content-border p-2">
+                <div class="grid grid-cols-2 gap-2">
+                  <Select :model-value="transition.from" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { from: value })" />
+                  <Select :model-value="transition.to" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { to: value })" />
+                </div>
+                <div class="mt-2 flex items-center gap-2">
+                  <MultiSelect :model-value="transition.access?.processRoleIds || []" :options="roleOptions" option-label="label" option-value="value" display="chip" class="min-w-0 flex-1" @update:model-value="value => updateTransitionRoles(index, value)" />
+                  <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeLifecycleTransition(index)" />
+                </div>
+              </div>
+            </div>
+            <Button icon="pi pi-arrow-right" :label="$t('processDesigner.addTransition')" size="small" severity="secondary" outlined @click="addLifecycleTransition" />
+          </div>
+        </Panel>
+
+        <Panel :header="$t('processDesigner.entityAccess')">
+          <div class="flex flex-col gap-3">
+            <small class="text-muted-color -mt-2">{{ $t('processDesigner.entityAccessHelp', { type: selectedEntity.entityType }) }}</small>
+            <div class="grid grid-cols-1 gap-3">
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.canView') }}</label>
+                <MultiSelect v-model="selectedEntity.allowedRoles.read" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.canEdit') }}</label>
+                <MultiSelect v-model="selectedEntity.allowedRoles.write" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.canManage') }}</label>
+                <MultiSelect v-model="selectedEntity.allowedRoles.admin" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-3">
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.fieldsVisible') }}</label>
+                <MultiSelect v-model="selectedEntity.fields.read" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.fieldsEditable') }}</label>
+                <MultiSelect v-model="selectedEntity.fields.write" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.fieldsHidden') }}</label>
+                <MultiSelect v-model="selectedEntity.fields.private" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label>{{ $t('processDesigner.relations') }}</label>
+                <MultiSelect v-model="selectedEntity.relations" :options="relationOptionsForEntity(selectedEntity.entityType)" option-label="label" option-value="value" display="chip" class="w-full" @change="syncNodeData" />
+              </div>
+            </div>
+          </div>
+        </Panel>
+
+                        </div>
+                  </Panel>
                   <div v-if="selectedProcessNode.kind && !selectedProcessNode.kind.startsWith('effect.') && !selectedProcessNode.kind.startsWith('control.') && !selectedProcessNode.kind.startsWith('source.')" class="flex flex-col gap-2">
                     <label>{{ $t('processDesigner.dataMatching') }}</label>
                     <Select v-model="selectedProcessNode.matching" :options="dataMatchingOptions" option-label="label" option-value="value" size="small" @change="syncNodeData" />
-                    <div v-for="input in processNodeInputs(selectedProcessNode).filter(item => item.role === 'data')" :key="input.id" class="flex items-center gap-2 text-xs">
+                    <div v-for="input in processNodeInputs(selectedProcessNode).filter(item => item.role === 'data')" :key="input.id" class="flex items-center gap-2 text-supporting">
                       <span class="min-w-0 flex-1 truncate">{{ input.label }}</span>
                       <label class="flex items-center gap-1"><Checkbox :model-value="Boolean(selectedProcessNode.inputTransforms?.[input.id]?.simplify)" binary @update:model-value="value => updateInputTransform(selectedProcessNode, input.id, 'simplify', value)" />{{ $t('processDesigner.simplify') }}</label>
                       <label class="flex items-center gap-1"><Checkbox :model-value="Boolean(selectedProcessNode.inputTransforms?.[input.id]?.flatten)" binary @update:model-value="value => updateInputTransform(selectedProcessNode, input.id, 'flatten', value)" />{{ $t('processDesigner.flatten') }}</label>
@@ -524,9 +379,12 @@
                     <Message v-if="selectedNodePreview?.error" severity="error">{{ selectedNodePreview.error }}</Message>
                     <Message v-else-if="!selectedNodePreview" severity="secondary">{{ $t('processDesigner.previewHint') }}</Message>
                     <div v-else class="flex flex-col gap-2">
-                      <section v-for="output in selectedNodePreviewOutputs" :key="output.id" class="rounded-ui border border-content-border bg-subtle p-2 text-xs">
+                      <section v-for="output in selectedNodePreviewOutputs" :key="output.id" class="rounded-ui border border-content-border bg-subtle p-2 text-supporting">
                         <div class="mb-2 flex items-center justify-between gap-2">
-                          <strong class="truncate">{{ output.label }}</strong>
+                          <span class="flex min-w-0 items-baseline gap-2">
+                            <strong class="truncate">{{ output.label }}</strong>
+                            <span v-if="output.type" class="shrink-0 text-muted">{{ output.type }}</span>
+                          </span>
                           <span class="text-muted">{{ $t('processDesigner.previewCounts', { branches: output.tree.branchCount, items: output.tree.itemCount }) }}</span>
                         </div>
                         <div v-for="branch in output.tree.branches" :key="branch.path.join(';')" class="mb-1 grid grid-cols-[auto_minmax(0,1fr)] gap-2 last:mb-0">
@@ -540,6 +398,71 @@
                   <div v-if="selectedProcessNode.kind === 'effect.runCommand'" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.service') }}</label>
                     <Select v-model="selectedProcessNode.commandId" :options="commandOptions" option-label="label" option-value="value" filter @change="syncNodeData" />
+                  </div>
+                  <Panel v-if="selectedProcessNode.kind === 'effect.runCommand' && selectedProcessNode.commandId" :header="$t('processDesigner.commandService')" toggleable collapsed>
+                    <div class="flex flex-col gap-3">
+                      <Message v-if="!selectedCommandService" severity="secondary">{{ $t('processDesigner.commandServiceNone') }}</Message>
+                      <div v-if="selectedCommandService" class="flex flex-col gap-3">
+                        <div class="flex flex-col gap-1">
+                          <label>{{ $t('processDesigner.runPrincipals') }}</label>
+                          <MultiSelect v-model="selectedCommandService.access.runPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                          <label>{{ $t('processDesigner.viewPrincipals') }}</label>
+                          <MultiSelect v-model="selectedCommandService.access.viewPrincipals" :options="servicePrincipalOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                          <label>{{ $t('processDesigner.serviceBillingMode') }}</label>
+                          <Select v-model="selectedCommandService.billing.mode" :options="serviceBillingModeOptions" option-label="label" option-value="value" />
+                        </div>
+                        <div v-if="selectedCommandService.billing.mode === 'prepaidTokens'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <div class="flex flex-col gap-1">
+                            <label>{{ $t('processDesigner.serviceTokenCost') }}</label>
+                            <InputNumber v-model="selectedCommandService.billing.tokenCost" :min="0" :max-fraction-digits="2" class="w-full" />
+                          </div>
+                          <div class="flex flex-col gap-1">
+                            <label>{{ $t('processDesigner.serviceMeterKey') }}</label>
+                            <InputText v-model="selectedCommandService.billing.meterKey" class="w-full" />
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        v-if="!selectedCommandService"
+                        icon="pi pi-plus"
+                        :label="$t('processDesigner.commandServiceCreate')"
+                        size="small"
+                        severity="secondary"
+                        outlined
+                        @click="createCommandServiceForSelectedNode"
+                      />
+                      <Button
+                        v-else
+                        icon="pi pi-trash"
+                        :label="$t('common.delete')"
+                        severity="danger"
+                        outlined
+                        size="small"
+                        @click="removeSelectedCommandService"
+                      />
+                    </div>
+                  </Panel>
+                  <div v-if="selectedProcessNode.kind === 'producer.join'" class="flex flex-col gap-1">
+                    <label>{{ $t('processDesigner.entityType') }}</label>
+                    <Select
+                      :model-value="selectedProcessNode.entityType"
+                      :options="entityTypeOptions"
+                      option-label="label"
+                      option-value="value"
+                      @update:model-value="value => updateJoinEntityType(selectedProcessNode, value)"
+                    />
+                    <label>{{ $t('processDesigner.joinResultProducer') }}</label>
+                    <Select
+                      :model-value="selectedProcessNode.selectedProducerOutputId"
+                      :options="joinProducerOptions"
+                      option-label="label"
+                      option-value="value"
+                      @update:model-value="value => updateJoinSelectedProducer(selectedProcessNode, value)"
+                    />
                   </div>
                   <div v-if="selectedProcessNode.kind === 'effect.createEntity' && (constructionModeOptions(selectedProcessNode.entityType).length > 1 || selectedProcessNode.entityType === 'artifact')" class="flex flex-col gap-1">
                     <label>{{ $t('processDesigner.constructionMode') }}</label>
@@ -595,7 +518,7 @@
                     <div
                       v-for="(entry, index) in selectedProcessNode.entries || []"
                       :key="entry.id"
-                      class="rounded-ui border border-content-border bg-content p-2"
+                      class="rounded-ui border border-content-border p-2"
                     >
                       <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
                         <div class="grid min-w-0 gap-2">
@@ -629,7 +552,7 @@
                             v-if="openBlockComposition(selectedProcessNode).mode === 'relations' && entry.entityType === 'artifact'"
                             class="flex flex-col gap-1"
                           >
-                            <span class="text-xs text-muted-color">{{ $t('processDesigner.allowedArtifactCreation') }}</span>
+                            <span class="text-muted-color text-supporting">{{ $t('processDesigner.allowedArtifactCreation') }}</span>
                             <MultiSelect
                               :model-value="entry.attachmentKinds || []"
                               :options="artifactUploadKindOptions"
@@ -708,49 +631,6 @@
                       @update:model-value="updateOpenBlockReadAttachmentKind"
                     />
                   </div>
-                  <div v-if="selectedProcessNode.kind?.startsWith('effect.')" class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between gap-2">
-                      <label>{{ $t('processDesigner.roles') }}</label>
-                      <Button
-                        icon="pi pi-plus"
-                        text
-                        size="small"
-                        :aria-label="$t('processDesigner.addRole')"
-                        :disabled="!nextSelectedProcessNodeRoleId"
-                        @click="addSelectedProcessNodeGrant"
-                      />
-                    </div>
-                    <div
-                      v-for="(grant, index) in selectedProcessNodeGrants"
-                      :key="`${grant.roleId}-${index}`"
-                      class="grid grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_auto] gap-2"
-                    >
-                      <Select
-                        :model-value="grant.roleId"
-                        :options="selectedProcessNodeRoleOptions(index)"
-                        option-label="label"
-                        option-value="value"
-                        size="small"
-                        @update:model-value="value => updateSelectedProcessNodeGrant(index, { roleId: value })"
-                      />
-                      <Select
-                        :model-value="grant.level || 'write'"
-                        :options="accessLevelOptions"
-                        option-label="label"
-                        option-value="value"
-                        size="small"
-                        @update:model-value="value => updateSelectedProcessNodeGrant(index, { level: value })"
-                      />
-                      <Button
-                        icon="pi pi-trash"
-                        text
-                        severity="danger"
-                        size="small"
-                        :aria-label="$t('common.delete')"
-                        @click="removeSelectedProcessNodeGrant(index)"
-                      />
-                    </div>
-                  </div>
                 </template>
 
               </div>
@@ -778,11 +658,58 @@
                     <InputText v-model="selectedRoleRecord.label" @change="saveSelectedRole" />
                   </div>
                   <div class="flex flex-wrap gap-1">
-                    <Tag v-for="item in selectedRoleAccessSummary" :key="item" :value="item" size="small" />
+                    <Tag v-for="item in selectedRoleAccessSummary" :key="item.key" :value="`${item.text} · ${item.contributor.label}`" size="small" />
                   </div>
                   <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedRole" />
                   <Button icon="pi pi-users" :label="$t('organization.openTeam')" severity="secondary" outlined size="small" @click="navigateTo('/organization/users')" />
                 </div>
+
+                <Panel v-if="socketList.length" :header="$t('processDesigner.sockets')" toggleable collapsed>
+                  <div class="flex flex-col gap-3">
+                    <div class="flex flex-wrap gap-2">
+                      <Tag
+                        v-for="socket in socketList"
+                        :key="socket.id"
+                        :value="socket.label || socket.id"
+                        :severity="selectedSocketId === socket.id ? 'success' : 'secondary'"
+                        class="cursor-pointer"
+                        @click="selectedSocketId = socket.id"
+                      />
+                    </div>
+                    <div v-if="selectedSocketRecord" class="flex flex-col gap-3">
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.direction') }}</label>
+                        <Select v-model="selectedSocketRecord.direction" :options="socketDirections" option-label="label" option-value="value" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.entityType') }}</label>
+                        <Select v-model="selectedSocketRecord.entityType" :options="entityTypeOptions" option-label="label" option-value="value" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.projectedFields') }}</label>
+                        <MultiSelect v-model="selectedSocketRecord.projection.fields" :options="fieldOptionsForSelectedSocket" option-label="label" option-value="value" display="chip" class="w-full" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.excludedFields') }}</label>
+                        <MultiSelect v-model="selectedSocketRecord.projection.excludeFields" :options="fieldOptionsForSelectedSocket" option-label="label" option-value="value" display="chip" class="w-full" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.sendRoles') }}</label>
+                        <MultiSelect v-model="selectedSocketRecord.access.sendRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.receiveRoles') }}</label>
+                        <MultiSelect v-model="selectedSocketRecord.access.receiveRoles" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.receiverLifecycle') }}</label>
+                        <Select v-model="selectedSocketRecord.receiverLifecycle.mode" :options="lifecycleModes" option-label="label" option-value="value" />
+                      </div>
+                      <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeSelectedSocket" />
+                    </div>
+                    <Button icon="pi pi-plus" :label="$t('processDesigner.addSocket')" size="small" severity="secondary" outlined @click="addSocket" />
+                  </div>
+                </Panel>
               </div>
             </TabPanel>
 
@@ -849,11 +776,36 @@
                       <label>{{ $t('processDesigner.sources') }}</label>
                       <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addSource')" size="small" text @click="addSelectedScreenSource" />
                     </div>
-                    <div v-for="(source, index) in selectedScreenRecord.sources" :key="source.id || index" class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
-                      <InputText v-model="source.id" size="small" />
-                      <Select v-model="source.entityType" :options="entityTypeOptions" option-label="label" option-value="value" size="small" @change="syncSelectedScreenUi" />
-                      <Select v-model="source.mode" :options="screenSourceModeOptions" option-label="label" option-value="value" size="small" />
-                      <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedScreenSource(index)" />
+                    <div v-for="(source, index) in selectedScreenRecord.sources" :key="index" class="flex flex-col gap-2">
+                      <div class="grid grid-cols-2 gap-2">
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceId') }}</label><InputText :model-value="source.id" size="small" @update:model-value="value => screenEditing.renameSource(selectedScreenRecord, source, value)" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceLabel') }}</label><InputText v-model="source.label" size="small" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.entityType') }}</label><Select :model-value="source.entityType" :options="entityTypeOptions" option-label="label" option-value="value" size="small" @update:model-value="value => screenEditing.setSourceEntityType(selectedScreenRecord, source, value)" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceMode') }}</label><Select :model-value="source.mode" :options="screenSourceModeOptions" option-label="label" option-value="value" size="small" @update:model-value="value => screenEditing.setSourceMode(selectedScreenRecord, source, value)" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.requiredFeature') }}</label><Select v-model="source.required.feature" :options="screenFeatureOptions" option-label="label" option-value="value" size="small" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.requiredLevel') }}</label><Select v-model="source.required.level" :options="accessLevelOptions" option-label="label" option-value="value" size="small" /></div>
+                      </div>
+                      <div v-if="source.mode === 'single'" class="flex flex-col gap-1">
+                        <label>{{ $t('processDesigner.identifier') }}</label>
+                        <InputText v-model="source.identifier" size="small" />
+                      </div>
+                      <div v-else class="flex flex-col gap-2">
+                        <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.filters') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addFilter')" size="small" text @click="screenEditing.addScalar(source.filters, 'path', '')" /></div>
+                        <div v-for="row in screenEditing.scalarRows(source.filters)" :key="row.key" class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
+                          <InputText :model-value="row.key" :aria-label="$t('processDesigner.key')" size="small" @change="event => screenEditing.renameScalar(source.filters, row.key, event.target.value)" />
+                          <Select :model-value="row.type" :options="screenScalarTypeOptions" option-label="label" option-value="value" size="small" :aria-label="$t('processDesigner.valueType')" @update:model-value="value => screenEditing.setScalarType(source.filters, row.key, value)" />
+                          <InputNumber v-if="row.type === 'number'" v-model="source.filters[row.key]" size="small" />
+                          <Checkbox v-else-if="row.type === 'boolean'" v-model="source.filters[row.key]" binary :aria-label="$t('processDesigner.value')" />
+                          <InputText v-else v-model="source.filters[row.key]" :aria-label="$t('processDesigner.value')" size="small" />
+                          <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeScalar(source.filters, row.key)" />
+                        </div>
+                        <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.lineageBindings') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addLineageBinding')" size="small" text @click="screenEditing.addLineageBinding(source)" /></div>
+                        <div v-for="(binding, bindingIndex) in source.lineageBindings" :key="bindingIndex" class="grid grid-cols-2 gap-2">
+                          <div v-for="field in screenLineageBindingFields" :key="field" class="flex flex-col gap-1"><label>{{ $t(`processDesigner.lineageBindingFields.${field}`) }}</label><InputText v-model="binding[field]" size="small" /></div>
+                          <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeLineageBinding(source, bindingIndex)" />
+                        </div>
+                      </div>
+                      <div class="flex justify-end"><Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedScreenSource(index)" /></div>
                     </div>
                   </div>
                   <div class="flex flex-col gap-2">
@@ -861,10 +813,13 @@
                       <label>{{ $t('processDesigner.regions') }}</label>
                       <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addRegion')" size="small" text @click="addSelectedScreenRegion" />
                     </div>
-                    <div v-for="(region, index) in selectedScreenRecord.regions" :key="region.id || index" class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
-                      <Select v-model="region.slot" :options="screenSlotOptions" option-label="label" option-value="value" size="small" />
-                      <Select v-model="region.sourceId" :options="selectedScreenSourceOptions" option-label="label" option-value="value" size="small" />
-                      <Select v-model="region.surface" :options="screenSurfaceOptions" option-label="label" option-value="value" size="small" />
+                    <div v-for="(region, index) in selectedScreenRecord.regions" :key="index" class="grid grid-cols-2 gap-2">
+                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionId') }}</label><InputText v-model="region.id" size="small" /></div>
+                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionLabel') }}</label><InputText v-model="region.label" size="small" /></div>
+                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionSlot') }}</label><Select v-model="region.slot" :options="screenSlotOptions" option-label="label" option-value="value" size="small" /></div>
+                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.regionSource') }}</label><Select v-model="region.sourceId" :options="selectedScreenSourceOptions" option-label="label" option-value="value" size="small" /></div>
+                      <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.surface') }}</label><Select v-model="region.surface" :options="screenSurfaceOptions" option-label="label" option-value="value" size="small" /></div>
+                      <div class="flex flex-col gap-1"><label>{{ $t('common.actions.title') }}</label><MultiSelect v-model="region.actions" :options="screenActionOptions" option-label="label" option-value="value" display="chip" size="small" class="w-full" /></div>
                       <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedScreenRegion(index)" />
                     </div>
                   </div>
@@ -878,9 +833,17 @@
                       <Select v-model="selectedScreenRecord.required.level" :options="accessLevelOptions" option-label="label" option-value="value" />
                     </div>
                   </div>
-                  <div class="flex flex-col gap-1">
-                    <label>{{ $t('processDesigner.entityBinding') }}</label>
-                    <InputText v-model="selectedScreenRecord.bindings.entityId" />
+                  <Button icon="pi pi-filter" :label="$t('processDesigner.editGrantConditions')" severity="secondary" outlined size="small" @click="openGrantEditor('screen', 0, selectedScreenRecord.required.feature)" />
+                  <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-2"><label>{{ $t('processDesigner.bindings') }}</label><Button icon="pi pi-plus" :aria-label="$t('processDesigner.addBinding')" size="small" text @click="screenEditing.addScalar(selectedScreenRecord.bindings, 'binding')" /></div>
+                    <div v-for="row in screenEditing.scalarRows(selectedScreenRecord.bindings)" :key="row.key" class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
+                      <InputText :model-value="row.key" :aria-label="$t('processDesigner.key')" size="small" @change="event => screenEditing.renameScalar(selectedScreenRecord.bindings, row.key, event.target.value)" />
+                      <Select :model-value="row.type" :options="screenBindingTypeOptions" option-label="label" option-value="value" size="small" :aria-label="$t('processDesigner.valueType')" @update:model-value="value => screenEditing.setScalarType(selectedScreenRecord.bindings, row.key, value)" />
+                      <InputNumber v-if="row.type === 'number'" v-model="selectedScreenRecord.bindings[row.key]" size="small" />
+                      <Checkbox v-else-if="row.type === 'boolean'" v-model="selectedScreenRecord.bindings[row.key]" binary :aria-label="$t('processDesigner.value')" />
+                      <InputText v-else v-model="selectedScreenRecord.bindings[row.key]" :aria-label="$t('processDesigner.value')" size="small" />
+                      <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="screenEditing.removeScalar(selectedScreenRecord.bindings, row.key)" />
+                    </div>
                   </div>
                   <div class="flex flex-col gap-1">
                     <label>{{ $t('common.actions.title') }}</label>
@@ -893,26 +856,36 @@
             </TabPanel>
           </TabPanels>
         </Tabs>
-        </aside>
+        </Panel>
       </template>
 
-      <div v-if="validation" class="absolute bottom-16 left-3 z-10 max-w-xl">
-        <div class="flex flex-col gap-2">
+      <div v-if="validation" class="pointer-events-none absolute inset-x-0 bottom-16 z-10 flex justify-center px-4">
+        <div class="pointer-events-auto flex max-w-xl flex-col gap-2">
           <Message :severity="validation.ok ? 'success' : 'error'">
             {{ validation.ok ? (validation.message || $t('processDesigner.validationOk')) : validation.errors.join('; ') }}
           </Message>
           <Message v-for="warning in validation.warnings || []" :key="warning" severity="warn">{{ warning }}</Message>
+          <Message v-if="validationDiffLines.length" severity="info">
+            <div class="flex flex-col gap-1">
+              <span>{{ $t('processDesigner.applyDiffTitle') }}</span>
+              <span v-for="line in validationDiffLines" :key="line">{{ line }}</span>
+            </div>
+          </Message>
         </div>
       </div>
 
       </DesignerWorkspace>
     </DesignerSurface>
 
+    <StandardDialog v-model:visible="showGrantEditor" :header="$t('processDesigner.editGrantConditions')" size="xl">
+      <PermissionEditor :permissions="grantEditorPermissions" :features="permissionFeatureOptions" @save="saveGrantEditor" />
+    </StandardDialog>
+
   </StandardPage>
 </template>
 
 <script setup>
-import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { SelectionMode, VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -939,6 +912,7 @@ import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import PermissionEditor from '~/components/PermissionEditor.vue';
 import {
   canvasToDefinition,
   compileProcessDefinition,
@@ -948,20 +922,15 @@ import {
   PROCESS_DATAFLOW_VERSION,
   processSocketsCompatible,
   processType,
-  requiredEntityProfileTypes,
-  resolveCatalogNodePorts
+  resolveCatalogNodePorts,
+  syncProcessNodeProducerOutputs
 } from '~/packages/processes/src/index.js';
-import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS } from '~/packages/processes/src/screen-contract.js';
+import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain } from '@cutkit/domain-cnc';
-import ProcessActionNode from '~/components/process-designer/ProcessActionNode.vue';
-import ProcessEntityNode from '~/components/process-designer/ProcessEntityNode.vue';
-import ProcessServiceNode from '~/components/process-designer/ProcessServiceNode.vue';
-import ProcessSocketNode from '~/components/process-designer/ProcessSocketNode.vue';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
-import ProcessValueInputNode from '~/components/process-designer/ProcessValueInputNode.vue';
 import MotionDock from '~/components/shared/MotionDock.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
@@ -974,7 +943,17 @@ import { useProcessDesignerRoles } from '~/composables/useProcessDesignerRoles.j
 import { useProcessDesignerScreens } from '~/composables/useProcessDesignerScreens.js';
 import { useProcessDesignerPalette } from '~/composables/useProcessDesignerPalette.js';
 import { useProcessDesignerInspector } from '~/composables/useProcessDesignerInspector.js';
+import {
+  defaultProcessNodeOperation,
+  defaultProcessNodeValueType,
+  humanizeNodeLabel,
+  iconForProcessNode,
+  useProcessDesignerNodeRecords
+} from '~/composables/useProcessDesignerNodeRecords.js';
+import { useProcessDesignerPreview } from '~/composables/useProcessDesignerPreview.js';
+import { useProcessDesignerWorkflow } from '~/composables/useProcessDesignerWorkflow.js';
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
+import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
 
 const { t, te } = useI18n();
 const toast = useToast();
@@ -992,17 +971,16 @@ const processLoadError = ref('');
 const nodes = ref([]);
 const edges = ref([]);
 const validation = ref(null);
-const dataflowPreview = ref(null);
-const previewingData = ref(false);
 const applyingProcess = ref(false);
 const savingDraft = ref(false);
 const creatingDraft = ref(false);
 const savedDraftSignature = ref('');
 const organizationRoles = ref({});
-const newStateId = ref('');
 const canvasFrame = ref(null);
 const compiledPreview = ref(null);
 const compiledPreviewError = ref('');
+const showGrantEditor = ref(false);
+const grantEditorTarget = ref(null);
 const paletteQuery = ref('');
 const contextPaletteSearch = ref(null);
 const contextPalette = ref({
@@ -1016,12 +994,9 @@ const contextPalette = ref({
 const canvasKeyboardActive = ref(false);
 const { fitView, getViewport, setViewport, zoomIn, zoomOut, zoomTo } = useVueFlow();
 const {
-  canvasMenu,
-  dockPopover,
   inspectTab,
   inspectorOpen,
   paletteOpen,
-  pinnedDockPopover,
   processMenu,
   selectedPrincipalId,
   selectedRoleId,
@@ -1052,20 +1027,41 @@ const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInfer
   portForHandle,
   syncProcessNode
 });
-const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen });
+const designer = reactive(createProcessDesignerContract(cncDomain));
 
-const designer = createProcessDesignerContract(cncDomain);
+
+
+
+
+const {
+  processNodeOperations,
+  processNodeOperationLabels,
+  createServicePrincipal,
+  createEntityProfile,
+  createService,
+  createSocket,
+  createStatusDefinition,
+  createValueInput,
+  createProcessNode,
+  defaultEntityType,
+  defaultFeature
+} = useProcessDesignerNodeRecords({
+  designer,
+  translate: key => t(key),
+  featureForEntityType,
+  relationOptionsForEntity,
+  syncEntityProfileIo,
+  initialStatusForEntity,
+  syncProcessNode
+});
+
 const {
   ensureRecord,
   factoryForType,
   recordKeyForType,
   selectedRecord,
   selectedEntity,
-  selectedAction,
-  selectedService,
-  selectedSocket,
   selectedStatusDefinition,
-  selectedValueInput,
   selectedProcessNode
 } = useProcessDesignerInspector({
   draft,
@@ -1080,6 +1076,59 @@ const {
     processNode: createProcessNode
   }
 });
+
+const {
+  dataflowPreview,
+  previewingData,
+  validationDiffLines,
+  selectedNodePreview,
+  selectedNodeSupportsPreview,
+  selectedNodePreviewOutputs,
+  previewDataflow,
+  formatPreviewPath,
+  formatPreviewItem,
+  formatPreviewItems,
+  focusValidationDiagnostic,
+  focusFirstValidationDiagnostic
+} = useProcessDesignerPreview({
+  t,
+  validation,
+  selectedNode,
+  selectedNodeId,
+  selectedProcessNode,
+  processNodeOutputs,
+  persistence,
+  serializeProcess: () => serializeProcess(),
+  nodes,
+  edges,
+  selectNode,
+  selectEdge
+});
+
+const {
+  newStateId,
+  lifecycleWorkflow,
+  lifecycleRegion,
+  lifecycleStateIds,
+  lifecycleStateEntries,
+  lifecycleStateOptions,
+  lifecycleTransitions,
+  ensureCustomLifecycleRegion,
+  addLifecycleState,
+  addLifecycleTransition,
+  updateTransition,
+  updateTransitionRoles,
+  removeLifecycleTransition
+} = useProcessDesignerWorkflow({
+  selectedEntity,
+  cncDomain
+});
+
+
+const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen, normalizeScreenContract, defaultEntityType, featureForEntityType });
+
+
+
 const {
   deleteGraphSelection,
   selectedGraphEdges,
@@ -1138,7 +1187,10 @@ const screenTemplateOptions = SCREEN_TEMPLATES
   .map(value => ({ label: value, value }));
 const screenSourceModeOptions = SCREEN_SOURCE_MODES.map(value => ({ label: value, value }));
 const screenSlotOptions = SCREEN_REGION_SLOTS.map(value => ({ label: value, value }));
-const screenSurfaceOptions = ['card', 'compact', 'detail', 'table', 'workspace'].map(value => ({ label: value, value }));
+const screenSurfaceOptions = SCREEN_REGION_SURFACES.map(value => ({ label: value, value }));
+const screenLineageBindingFields = SCREEN_LINEAGE_BINDING_FIELDS;
+const screenScalarTypeOptions = ['string', 'number', 'boolean', 'assignment'].map(value => ({ label: t(`processDesigner.scalarTypes.${value}`), value }));
+const screenBindingTypeOptions = screenScalarTypeOptions;
 const screenPlacementOptions = [
   { label: 'hub', value: 'hub' },
   { label: 'detail', value: 'detail' },
@@ -1151,86 +1203,6 @@ const accessLevelOptions = [
 ];
 const processValueTypeOptions = ['string', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'entityRef', 'status'].map(value => ({ label: value, value }));
 const dataMatchingOptions = ['longest', 'shortest', 'cross'].map(value => ({ label: t(`processDesigner.matching.${value}`), value }));
-const processNodeOperations = {
-  'value.math': ['add', 'subtract', 'multiply', 'divide', 'modulo', 'power', 'min', 'max', 'absolute', 'negate', 'round', 'floor', 'ceil', 'sqrt', 'clamp'],
-  'value.string': ['concat', 'replace', 'substring', 'split', 'join', 'length', 'lower', 'upper', 'trim'],
-  'value.logic': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull', 'and', 'or', 'xor', 'nand', 'nor', 'xnor', 'not'],
-  'value.dateTime': ['addDays', 'addHours', 'addMinutes', 'addMonths', 'addDuration', 'subtractDuration', 'differenceDays', 'differenceHours', 'differenceMinutes', 'startOfDay', 'endOfDay'],
-  'predicate.field': ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull'],
-  'predicate.logic': ['and', 'or', 'not'],
-  'collection.sort': ['asc', 'desc'],
-  'record.fieldChange': ['set', 'unset', 'append', 'remove']
-};
-const processNodeOperationLabels = {
-  add: t('processDesigner.operationLabels.add'),
-  subtract: t('processDesigner.operationLabels.subtract'),
-  multiply: t('processDesigner.operationLabels.multiply'),
-  divide: t('processDesigner.operationLabels.divide'),
-  modulo: t('processDesigner.operationLabels.modulo'),
-  power: t('processDesigner.operationLabels.power'),
-  min: t('processDesigner.operationLabels.min'),
-  max: t('processDesigner.operationLabels.max'),
-  absolute: t('processDesigner.operationLabels.absolute'),
-  negate: t('processDesigner.operationLabels.negate'),
-  round: t('processDesigner.operationLabels.round'),
-  floor: t('processDesigner.operationLabels.floor'),
-  ceil: t('processDesigner.operationLabels.ceil'),
-  sqrt: t('processDesigner.operationLabels.sqrt'),
-  clamp: t('processDesigner.operationLabels.clamp'),
-  current: t('processDesigner.useCurrentEntity'),
-  parent: t('processDesigner.useParentEntity'),
-  children: t('processDesigner.useChildEntities'),
-  related: t('processDesigner.useRelatedEntities'),
-  concat: t('processDesigner.useJoinText'),
-  template: t('processDesigner.useBuildText'),
-  replace: t('processDesigner.useReplaceText'),
-  lower: t('processDesigner.useLowerText'),
-  upper: t('processDesigner.useUpperText'),
-  trim: t('processDesigner.useTrimText'),
-  substring: t('processDesigner.operationLabels.substring'),
-  split: t('processDesigner.operationLabels.split'),
-  join: t('processDesigner.operationLabels.join'),
-  length: t('processDesigner.operationLabels.length'),
-  eq: t('processDesigner.useEquals'),
-  neq: t('processDesigner.useNotEquals'),
-  gt: t('processDesigner.useGreaterThan'),
-  gte: t('processDesigner.useGreaterOrEqual'),
-  lt: t('processDesigner.useLessThan'),
-  lte: t('processDesigner.useLessOrEqual'),
-  contains: t('processDesigner.useContains'),
-  startsWith: t('processDesigner.operationLabels.startsWith'),
-  endsWith: t('processDesigner.operationLabels.endsWith'),
-  isNull: t('processDesigner.operationLabels.isEmpty'),
-  isNotNull: t('processDesigner.operationLabels.isNotEmpty'),
-  exists: t('processDesigner.useExists'),
-  and: t('processDesigner.useAllConditions'),
-  or: t('processDesigner.useAnyCondition'),
-  xor: t('processDesigner.useExclusiveCondition'),
-  nand: t('processDesigner.operationLabels.nand'),
-  nor: t('processDesigner.operationLabels.nor'),
-  xnor: t('processDesigner.operationLabels.xnor'),
-  not: t('processDesigner.useInvertCondition'),
-  first: t('processDesigner.useFirstItem'),
-  last: t('processDesigner.useLastItem'),
-  index: t('processDesigner.useIndexedItem'),
-  asc: t('processDesigner.operationLabels.ascending'),
-  desc: t('processDesigner.operationLabels.descending'),
-  set: t('processDesigner.operationLabels.set'),
-  unset: t('processDesigner.operationLabels.clear'),
-  append: t('processDesigner.operationLabels.append'),
-  remove: t('processDesigner.operationLabels.remove'),
-  addDays: t('processDesigner.operationLabels.addDays'),
-  addHours: t('processDesigner.operationLabels.addHours'),
-  addMinutes: t('processDesigner.operationLabels.addMinutes'),
-  addMonths: t('processDesigner.operationLabels.addMonths'),
-  addDuration: t('processDesigner.operationLabels.addDuration'),
-  subtractDuration: t('processDesigner.operationLabels.subtractDuration'),
-  differenceDays: t('processDesigner.operationLabels.differenceDays'),
-  differenceHours: t('processDesigner.operationLabels.differenceHours'),
-  differenceMinutes: t('processDesigner.operationLabels.differenceMinutes'),
-  startOfDay: t('processDesigner.operationLabels.startOfDay'),
-  endOfDay: t('processDesigner.operationLabels.endOfDay')
-};
 const relationMutationOptions = [
   { label: t('processDesigner.operationLabels.link'), value: 'append' },
   { label: t('processDesigner.operationLabels.unlink'), value: 'remove' },
@@ -1257,11 +1229,11 @@ const statusIconOptions = [
 ];
 const accessLevelRank = { read: 1, write: 2, admin: 3 };
 const defaultEdgeOptions = { type: 'default' };
-let dockPopoverCloseTimer = null;
 
 const activeName = computed(() => draft.value?.identity?.name || '');
 const isActiveProcess = computed(() => draft.value?.status?.state?.primary === 'ACTIVE');
 const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
+const dockSeparator = { separator: true };
 const designerDockItems = computed(() => [
   {
     icon: () => h('i', { class: 'pi pi-th-large', 'aria-hidden': 'true' }),
@@ -1322,20 +1294,6 @@ const emptyCanvasMessage = computed(() => {
   if (processLoadError.value) return processLoadError.value;
   return t('processDesigner.noActiveDraft');
 });
-const selectedNodePreview = computed(() => selectedNode.value ? dataflowPreview.value?.nodes?.[selectedNode.value.id] || null : null);
-const selectedNodeSupportsPreview = computed(() => {
-  const kind = selectedProcessNode.value?.kind || '';
-  return Boolean(kind && !kind.startsWith('effect.') && !kind.startsWith('control.'));
-});
-const selectedNodePreviewOutputs = computed(() => {
-  const outputs = selectedNodePreview.value?.outputs || {};
-  const ports = processNodeOutputs(selectedProcessNode.value || {});
-  return Object.entries(outputs).map(([id, tree]) => ({
-    id,
-    label: ports.find(port => port.id === id)?.label || id,
-    tree
-  }));
-});
 const selectedStatusAttachmentEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.attachments || {})
   .map(([key, schema]) => ({ key, schema })));
 const selectedStatusSnapshotEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.snapshots || {})
@@ -1344,11 +1302,6 @@ const statusDefinitionList = computed(() => Object.values(draft.value?.data?.sta
 const processStatusOptions = computed(() => statusDefinitionList.value
   .filter(status => status.statusId)
   .map(status => ({ label: status.label || status.statusId, value: status.statusId, refId: status.id })));
-const selectedProcessNodeGrants = computed(() => selectedProcessNode.value.access?.grants || []);
-const nextSelectedProcessNodeRoleId = computed(() => {
-  const selected = new Set(selectedProcessNodeGrants.value.map(grant => grant.roleId));
-  return roleOptions.value.find(option => !selected.has(option.value))?.value || '';
-});
 const selectedEntityFeature = computed(() => selectedEntity.value.entityType ? featureForEntityType(selectedEntity.value.entityType) : defaultFeature());
 
 const roles = computed(() => organizationRoles.value);
@@ -1365,6 +1318,38 @@ const selectedScreenRegion = computed(() => ensureSelectedScreenRegion());
 const roleOptions = computed(() => roleList.value.map(role => ({ label: role.label || role.id, value: role.id })));
 const servicePrincipalOptions = computed(() => servicePrincipalList.value.map(principal => ({ label: principal.label || principal.id, value: principal.id })));
 const entityTypeOptions = computed(() => designer.entityOptions);
+const joinProducerOptions = computed(() => {
+  const node = selectedProcessNode.value;
+  if (node?.kind !== 'producer.join') return [];
+  const producerOutputs = draft.value?.data?.producerOutputs || {};
+  const options = [];
+  for (const edge of edges.value || []) {
+    if (String(edge.target) !== String(selectedNodeId.value)) continue;
+    const sourceNode = (nodes.value || []).find(item => String(item.id) === String(edge.source));
+    const record = draft.value?.data?.processNodes?.[String(sourceNode?.data?.refId || sourceNode?.id)];
+    if (!record) continue;
+    if (record.kind === 'producer.join') {
+      if (record.selectedProducerOutputId && producerOutputs[record.selectedProducerOutputId]) {
+        options.push(producerOutputs[record.selectedProducerOutputId]);
+      }
+      continue;
+    }
+    for (const output of Object.values(producerOutputs)) {
+      if (output.nodeId === record.id && output.entityType === node.entityType) options.push(output);
+    }
+  }
+  return [...new Map(options.filter(Boolean).map(output => [output.producerOutputId, output])).values()]
+    .map(output => ({ label: `${output.producerOutputId} (${output.entityType})`, value: output.producerOutputId }));
+});
+function updateJoinEntityType(node, entityType) {
+  node.entityType = entityType;
+  node.selectedProducerOutputId = '';
+  syncNodeData();
+}
+function updateJoinSelectedProducer(node, selectedProducerOutputId) {
+  node.selectedProducerOutputId = selectedProducerOutputId;
+  syncNodeData();
+}
 const optionalEntityTypeOptions = computed(() => [{ label: 'None', value: '' }, ...entityTypeOptions.value]);
 const commandOptions = computed(() => designer.commandOptions);
 const screenActionOptions = computed(() => Object.values(draft.value?.data?.actions || {}).map(action => ({
@@ -1379,21 +1364,131 @@ const screenFeatureOptions = computed(() => (cncDomain.entities || []).map(entit
   label: entity.label || entity.type,
   value: featureForEntityType(entity.type)
 })));
-const fieldOptionsForSelectedEntity = computed(() => fieldOptions(selectedEntity.value.entityType));
-const selectedActionEntityType = computed(() => actionEntityType(selectedAction.value) || (selectedNode.value ? inferIncomingEntityContract(selectedNode.value.id).entityType : ''));
-const fieldOptionsForSelectedAction = computed(() => fieldOptions(selectedActionEntityType.value));
-const fieldOptionsForSelectedSocket = computed(() => fieldOptions(selectedSocket.value.entityType));
-const selectedActionGrants = computed(() => normalizeDesignerAccess(selectedAction.value.access).grants);
-const lifecycleWorkflow = computed(() => workflowForEntity(selectedEntity.value));
-const lifecycleRegion = computed(() => lifecycleWorkflow.value.regions?.main || lifecycleWorkflow.value.regions?.[lifecycleWorkflow.value.primaryRegion] || null);
-const lifecycleStateIds = computed(() => Object.keys(lifecycleRegion.value?.states || {}).filter(key => !key.includes('.')));
-const lifecycleStateEntries = computed(() => lifecycleStateIds.value.map(value => ({
-  label: lifecycleRegion.value?.states?.[value]?.label || value,
-  value
+const permissionFeatureOptions = computed(() => screenFeatureOptions.value.map(option => ({
+  key: option.value,
+  label: option.label,
+  actions: ['view', 'create', 'update', 'delete', 'run', 'send', 'approve', 'reject', 'fulfill']
 })));
-const lifecycleStateOptions = computed(() => lifecycleStateEntries.value);
-const lifecycleTransitions = computed(() => lifecycleRegion.value?.transitions || []);
-const selectedRoleAccessSummary = computed(() => selectedRoleId.value ? roleAccessSummary(selectedRoleId.value) : []);
+const fieldOptionsForSelectedEntity = computed(() => fieldOptions(selectedEntity.value.entityType));
+const fieldOptionsForSelectedSocket = computed(() => fieldOptions(selectedSocketRecord.value?.entityType));
+const serviceList = computed(() => Object.values(draft.value?.data?.services || {}));
+const socketList = computed(() => Object.values(draft.value?.data?.sockets || {}));
+const selectedServiceId = ref('');
+const selectedSocketId = ref('');
+const selectedServiceRecord = computed(() => draft.value?.data?.services?.[selectedServiceId.value] || serviceList.value[0] || null);
+const selectedSocketRecord = computed(() => draft.value?.data?.sockets?.[selectedSocketId.value] || socketList.value[0] || null);
+const selectedEntityAvailable = computed(() => Boolean(selectedEntity.value?.producerOutputId));
+const selectedCommandService = computed(() => {
+  const node = selectedProcessNode.value;
+  if (node?.kind !== 'effect.runCommand' || !node.commandId) return null;
+  return serviceList.value.find(service => service.commandId === node.commandId) || null;
+});
+function createCommandServiceForSelectedNode() {
+  const node = selectedProcessNode.value;
+  if (node?.kind !== 'effect.runCommand' || !node.commandId) return;
+  const id = `service_${Date.now()}`;
+  const record = createService(id);
+  record.commandId = node.commandId;
+  const command = cncDomain.commands?.[node.commandId];
+  record.label = command?.label || node.commandId;
+  record.serviceType = command?.service || '';
+  record.inputs = commandInputs(command);
+  record.outputs = commandOutputs(command);
+  draft.value.data.services ||= {};
+  draft.value.data.services[id] = record;
+  syncNodeData();
+}
+function removeSelectedCommandService() {
+  const record = selectedCommandService.value;
+  if (!record) return;
+  delete draft.value.data.services[record.id];
+  syncNodeData();
+}
+function addSocket() {
+  const id = `socket_${Date.now()}`;
+  draft.value.data.sockets ||= {};
+  draft.value.data.sockets[id] = createSocket(id);
+  selectedSocketId.value = id;
+}
+function removeSelectedSocket() {
+  if (!selectedSocketRecord.value) return;
+  delete draft.value.data.sockets[selectedSocketRecord.value.id];
+  selectedSocketId.value = '';
+}
+const ACCESS_LEVEL_ORDER = { read: 0, write: 1, admin: 2 };
+const selectedProcessNodeAccessDetail = computed(() => {
+  const node = selectedProcessNode.value;
+  if (!node?.kind || !['effect.changeStatus', 'effect.archiveEntity', 'effect.updateEntity'].includes(node.kind)) return '';
+  const incoming = node.id ? inferIncomingEntityContract(node.id) : {};
+  const from = incoming.status || '';
+  const to = node.status?.to || '';
+  if (!from && !to) return '';
+  return [from || '?', to || '?'].join(' -> ');
+});
+const selectedProcessNodeEffectiveAccess = computed(() => {
+  const node = selectedProcessNode.value;
+  const entityType = node?.entityType || node?.targetEntityType || '';
+  if (!node?.kind?.startsWith('effect.') || !entityType) return [];
+  const byRole = new Map();
+  const record = (roleId, level, inherited) => {
+    const current = byRole.get(roleId);
+    if (current && ACCESS_LEVEL_ORDER[current.level] >= ACCESS_LEVEL_ORDER[level]) return;
+    byRole.set(roleId, { roleId, level, inherited });
+  };
+  for (const grant of node.access?.grants || []) {
+    if (grant.roleId) record(grant.roleId, grant.level || node.access?.level || 'write', false);
+  }
+  for (const output of Object.values(draft.value?.data?.producerOutputs || {})) {
+    if (output.entityType !== entityType) continue;
+    for (const level of ['read', 'write', 'admin']) {
+      for (const roleId of output.allowedRoles?.[level] || []) record(roleId, level, true);
+    }
+  }
+  return [...byRole.values()]
+    .map(item => ({
+      label: `${roles.value[item.roleId]?.label || item.roleId}: ${item.level}${item.inherited ? ' (from entity access)' : ''}`,
+      inherited: item.inherited
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label));
+});
+const selectedProcessNodeGrants = computed(() => (selectedProcessNode.value?.access?.grants || []).filter(grant => grant.roleId));
+const selectedProcessNodeGrantRoleIds = computed(() => [
+  ...new Set((selectedProcessNodeGrants.value || []).map(grant => grant.roleId).filter(Boolean))
+]);
+function updateSelectedProcessNodeGrantRoles(roleIds = []) {
+  const node = selectedProcessNode.value;
+  if (!node) return;
+  const current = node.access?.grants || [];
+  const kept = current.filter(grant => roleIds.includes(grant.roleId));
+  const added = roleIds
+    .filter(roleId => !kept.some(grant => grant.roleId === roleId))
+    .map(roleId => ({ roleId, level: node.kind === 'effect.deleteEntity' ? 'admin' : 'write' }));
+  node.access = { ...(node.access || {}), grants: [...kept, ...added] };
+  syncNodeData();
+}
+function updateSelectedProcessNodeGrantLevel(index, level) {
+  const node = selectedProcessNode.value;
+  if (!node) return;
+  const grants = [...(node.access?.grants || [])];
+  if (grants[index]) grants[index] = { ...grants[index], level: level || 'write' };
+  node.access = { ...(node.access || {}), grants };
+  syncNodeData();
+}
+const selectedRoleAccessSummary = computed(() => selectedRoleId.value
+  ? flattenRoleAccessSummary(deriveRoleAccessSummary({ process: draft.value, roleIds: [selectedRoleId.value] }))
+  : []);
+const selectedRoleGrantPermissions = computed(() => Object.fromEntries((draft.value?.data?.roleGrants?.[selectedRoleId.value] || [])
+  .reduce((entries, grant) => {
+    if (!entries.has(grant.feature)) entries.set(grant.feature, []);
+    entries.get(grant.feature).push(withoutKeys(grant, ['feature']));
+    return entries;
+  }, new Map())));
+const grantEditorPermissions = computed(() => {
+  const target = grantEditorTarget.value;
+  if (!target?.feature) return {};
+  const grant = grantForEditorTarget(target);
+  return { [target.feature]: [withoutKeys(grant || { level: 'read' }, ['roleId', 'feature'])] };
+});
 const compiledScreenPreview = computed(() => Object.values(compiledPreview.value?.screens || {})
   .filter(screen => screen && typeof screen === 'object' && !Array.isArray(screen))
   .map(screen => {
@@ -1431,11 +1526,11 @@ function schedulePreviewRecompute() {
 
 onMounted(() => {
   loadActiveOrCreateLocal();
+  loadProcessCapabilities();
   window.addEventListener('keydown', handleCanvasKeydown);
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleCanvasKeydown);
-  if (dockPopoverCloseTimer) clearTimeout(dockPopoverCloseTimer);
   if (previewRecomputeTimer) clearTimeout(previewRecomputeTimer);
 });
 
@@ -1449,12 +1544,38 @@ async function loadActiveOrCreateLocal() {
     processDefinitions.value = normalizeProcessList(active, definitions);
     const initial = pickInitialProcess(active, processDefinitions.value);
     if (initial) {
+      if (!initial.data) {
+        try {
+          const full = await persistence.loadById(initial._id);
+          upsertProcessDefinition(full);
+          setDraft(full);
+          return;
+        } catch (error) {
+          processLoadError.value = error?.data?.message || error?.message || t('processDesigner.noActiveDraft');
+          return;
+        }
+      }
       setDraft(initial);
       return;
     }
     processLoadError.value = t('processDesigner.noActiveDraft');
   } finally {
     loadingProcess.value = false;
+  }
+}
+
+async function loadProcessCapabilities() {
+  try {
+    const response = await $fetch('/api/admin/domain');
+    const capabilities = response?.processCapabilities || null;
+    if (!capabilities) return;
+    const refreshed = createProcessDesignerContract(cncDomain, capabilities);
+    designer.createEntityOptions = refreshed.createEntityOptions;
+    designer.createModes = refreshed.createModes;
+    designer.listableEntityOptions = refreshed.listableEntityOptions;
+    designer.readableEntityOptions = refreshed.readableEntityOptions;
+  } catch {
+    // keep the domain-derived options when the projection cannot be loaded
   }
 }
 
@@ -1468,12 +1589,24 @@ async function loadOrganizationRoles() {
     : Object.keys(organizationRoles.value)[0] || null;
 }
 
-function selectProcessDefinition(processId) {
+async function selectProcessDefinition(processId) {
   selectedProcessId.value = processId === null || processId === undefined ? null : String(processId);
   const selected = processDefinitions.value.find(process => String(process._id) === selectedProcessId.value);
   if (!selected) return;
+  closeProcessMenu();
+  // List entries are summaries; load the full record before editing.
+  if (!selected.data) {
+    try {
+      const full = await persistence.loadById(selectedProcessId.value);
+      upsertProcessDefinition(full);
+      setDraft(full);
+      return;
+    } catch (error) {
+      toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message, life: 5000 });
+      return;
+    }
+  }
   setDraft(selected);
-  closeDockPopover('process');
 }
 
 function upsertProcessDefinition(process) {
@@ -1503,7 +1636,7 @@ async function createDraftFromDock() {
   creatingDraft.value = true;
   try {
     await createDraft({ empty: true });
-    closeDockPopover('process');
+    closeProcessMenu();
     toast.add({ severity: 'success', summary: t('processDesigner.newDraft'), life: 2400 });
   } catch (error) {
     toast.add({
@@ -1551,32 +1684,22 @@ async function saveDraftFromDock() {
   }
 }
 
-async function previewDataflow() {
-  if (!draft.value || !selectedNodeSupportsPreview.value) return;
-  previewingData.value = true;
-  try {
-    const definition = serializeProcess();
-    dataflowPreview.value = await persistence.previewDraft(definition, selectedNodeId.value);
-  } catch (error) {
-    dataflowPreview.value = { nodes: { [selectedNodeId.value]: { error: error?.data?.message || error.message } } };
-  } finally {
-    previewingData.value = false;
-  }
-}
 
-function formatPreviewPath(path = []) {
-  return `{${path.join(';')}}`;
-}
 
-function formatPreviewItems(items = []) {
-  return items.map(item => typeof item === 'string' ? JSON.stringify(item) : JSON.stringify(item)).join(', ');
-}
+
+
+
 
 async function activateDraft() {
   await saveDraft();
   const result = await persistence.validateDraft(draft.value._id);
   validation.value = result;
-  if (!result.ok) throw new Error(result.errors?.[0] || t('processDesigner.validationFailed'));
+  if (!result.ok) {
+    focusFirstValidationDiagnostic(result);
+    const failure = new Error(result.errors?.[0] || t('processDesigner.validationFailed'));
+    failure.data = result;
+    throw failure;
+  }
   const activated = await persistence.activateDraft(draft.value._id);
   upsertProcessDefinition(activated);
   setDraft(activated);
@@ -1600,68 +1723,22 @@ async function applyProcess() {
     validation.value = {
       ok: false,
       errors: [message],
-      warnings: []
+      warnings: [],
+      ...(error?.data?.diagnostics ? { diagnostics: error.data.diagnostics } : {})
     };
+    focusFirstValidationDiagnostic(validation.value);
     toast.add({ severity: 'error', summary: t('processDesigner.apply'), detail: message, life: 5000 });
   } finally {
     applyingProcess.value = false;
   }
 }
 
-function popoverFor(panel) {
-  return panel === 'process' ? processMenu.value : canvasMenu.value;
+function toggleProcessMenu(event) {
+  processMenu.value?.toggle?.(event);
 }
 
-function openDockPopover(panel, event) {
-  const previousPanel = dockPopover.value;
-  keepDockPopover(panel);
-  if (previousPanel && previousPanel !== panel) popoverFor(previousPanel)?.hide?.();
-  dockPopover.value = panel;
-  popoverFor(panel)?.show?.(event);
-}
-
-function keepDockPopover(panel) {
-  if (dockPopoverCloseTimer) {
-    clearTimeout(dockPopoverCloseTimer);
-    dockPopoverCloseTimer = null;
-  }
-  dockPopover.value = panel;
-}
-
-function pinDockPopover(panel) {
-  keepDockPopover(panel);
-  pinnedDockPopover.value = panel;
-}
-
-function unpinDockPopover(panel) {
-  if (pinnedDockPopover.value === panel) pinnedDockPopover.value = null;
-  scheduleDockPopoverClose(panel);
-}
-
-function scheduleDockPopoverClose(panel) {
-  if (pinnedDockPopover.value === panel) return;
-  if (dockPopoverCloseTimer) clearTimeout(dockPopoverCloseTimer);
-  dockPopoverCloseTimer = setTimeout(() => {
-    if (dockPopover.value === panel) closeDockPopover(panel);
-    dockPopoverCloseTimer = null;
-  }, 160);
-}
-
-function closeDockPopover(panel = null) {
-  if (dockPopoverCloseTimer) {
-    clearTimeout(dockPopoverCloseTimer);
-    dockPopoverCloseTimer = null;
-  }
-  if (panel && dockPopover.value !== panel) return;
-  if (!panel || pinnedDockPopover.value === panel) pinnedDockPopover.value = null;
-  const activePanel = panel || dockPopover.value;
-  dockPopover.value = null;
-  if (activePanel) popoverFor(activePanel)?.hide?.();
-}
-
-function onDockPopoverHide(panel) {
-  if (dockPopover.value === panel) dockPopover.value = null;
-  if (pinnedDockPopover.value === panel) pinnedDockPopover.value = null;
+function closeProcessMenu() {
+  processMenu.value?.hide?.();
 }
 
 function setDraft(value) {
@@ -1748,7 +1825,6 @@ function addNode(item, position = nextNodePosition()) {
 
 function handleDesignerPointerDown(event) {
   canvasKeyboardActive.value = Boolean(event.target?.closest?.('.vue-flow'));
-  if (!event.target?.closest?.('.process-designer-dock')) closeDockPopover();
 }
 
 function handleDesignerFocus(event) {
@@ -1962,7 +2038,7 @@ function decorateEdge(edge = {}) {
     animated: selected,
     style: {
       stroke: selected ? 'var(--p-primary-color)' : processSocketColor(sourcePort),
-      strokeWidth: selected ? 3 : 1.5
+      strokeWidth: selected ? 3 : 2
     }
   };
 }
@@ -2106,7 +2182,6 @@ function syncNodeData() {
     node.data.entityType = record.entityType;
     node.data.commandId = record.commandId;
     node.data.triggerMode = record.trigger?.mode;
-    node.data.actionKindLabel = node.type === 'action' ? actionHeaderLabel(record) : null;
     node.data.actionTitleLabel = node.type === 'action' ? actionTitleLabel(record) : null;
     node.data.eventLabel = node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null;
     node.data.actionRecord = node.type === 'action' ? record : null;
@@ -2119,7 +2194,6 @@ function syncNodeData() {
     node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
     node.data.fieldOptions = node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [];
     node.data.onActionUpdate = node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data.refId, updates, options) : null;
-    node.data.onActionResetAccess = node.type === 'action' ? () => resetActionAccess(record.id || node.data.refId) : null;
     node.data.valueInputRecord = node.type === 'valueInput' ? record : null;
     node.data.onValueInputUpdate = node.type === 'valueInput' ? updates => updateValueInputRecord(record.id || node.data.refId, updates) : null;
     node.data.processNodeRecord = node.type === 'processNode' ? record : null;
@@ -2192,9 +2266,6 @@ function syncOpenBlockEntryContracts() {
   }
 }
 
-function createServicePrincipal(id) {
-  return { id, label: id };
-}
 
 function paletteLabel(item) {
   if (item.labelKey && te(item.labelKey)) return t(item.labelKey);
@@ -2224,49 +2295,10 @@ function paletteGroupLabel(id) {
   return te(key) ? t(key) : humanizeNodeLabel(id);
 }
 
-function humanizeNodeLabel(value = '') {
-  return String(value)
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/[._]/g, ' ')
-    .replace(/^./, letter => letter.toUpperCase());
-}
 
-function defaultEntityType() {
-  return designer.entityOptions[0]?.value || '';
-}
 
-function defaultFeature() {
-  return featureForEntityType(defaultEntityType());
-}
 
-function createEntityProfile(id) {
-  const workflow = createCreatedWorkflow();
-  const profile = {
-    id,
-    entityType: defaultEntityType(),
-    label: id,
-    lifecycle: { mode: 'defaultCreated', workflow },
-    fields: { read: ['identity.*', 'status.*', 'lineage.*'], write: [], private: [] },
-    relations: relationOptionsForEntity(defaultEntityType()).map(option => option.value),
-    stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
-    allowedRoles: { read: [], write: [], admin: [] }
-  };
-  syncEntityProfileIo(profile);
-  return profile;
-}
 
-function createService(id) {
-  return {
-    id,
-    label: id,
-    serviceType: '',
-    commandId: '',
-    inputs: [],
-    outputs: [],
-    access: { runPrincipals: [], viewPrincipals: [] },
-    billing: { mode: 'none', tokenCost: 0, meterKey: '' }
-  };
-}
 
 function createAction(id, actionKind = 'createEntity') {
   const action = {
@@ -2290,21 +2322,7 @@ function createAction(id, actionKind = 'createEntity') {
   return action;
 }
 
-function createSocket(id, direction = 'outbound') {
-  return {
-    id,
-    label: id,
-    direction,
-    entityType: defaultEntityType(),
-    projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
-    receiverLifecycle: { mode: 'defaultCreated', workflow: null },
-    access: { sendRoles: [], receiveRoles: [] }
-  };
-}
 
-function createStatusDefinition(id) {
-  return { id, label: '', statusId: 'STATUS', severity: 'info', color: 'info', icon: 'pi pi-circle-fill' };
-}
 
 function removeStatusDefinition(id) {
   if (!id) return;
@@ -2330,77 +2348,7 @@ function removeStatusDefinition(id) {
   syncNodeData();
 }
 
-function createValueInput(id, structure = 'item') {
-  return {
-    id,
-    label: t(`processDesigner.paletteItems.${structure === 'list' ? 'literalList' : 'literal'}`),
-    valueType: 'string',
-    structure,
-    value: structure === 'list' ? '[]' : ''
-  };
-}
 
-function createProcessNode(id, kind = 'source.literalItem') {
-  const entityKind = processNodeRequiresEntitySelection(kind);
-  const fieldKind = ['record.getField', 'record.fieldChange', 'predicate.field'].includes(kind);
-  const node = {
-    id,
-    label: kind,
-    kind,
-    entityType: entityKind ? defaultEntityType() : '',
-    path: '',
-    type: processType(kind === 'source.currentTime' ? 'dateTime' : 'json'),
-    operation: defaultProcessNodeOperation(kind),
-    value: kind === 'source.literalList' ? [] : kind === 'source.literalTree' ? { branches: [] } : null,
-    fields: [],
-    cases: [],
-    icon: iconForProcessNode(kind),
-    inputs: [],
-    outputs: []
-  };
-  if (kind === 'effect.createEntity') {
-    node.entityType = entityTypeOptions.value[0]?.value || '';
-  }
-  if (kind.startsWith('effect.')) {
-    node.trigger = { mode: 'manual' };
-    node.access = { level: 'write', grants: [] };
-    node.entryTriggerId = id;
-  }
-  if (kind === 'source.literalList') node.access = 'list';
-  if (kind === 'source.literalTree') node.access = 'tree';
-  if (fieldKind) {
-    const fields = kind === 'record.getField' ? designer.fieldsForBlock() : designer.fieldsForEntity(node.entityType);
-    node.path = fields
-      .find(field => field[kind === 'record.fieldChange' ? 'writable' : 'readable'] !== false)?.value || '';
-  }
-  if (['effect.createEntity', 'effect.runProducer'].includes(kind)) node.status = { to: initialStatusForEntity(node.entityType) };
-  if (kind === 'record.deconstruct') {
-    node.blocks = designer.blocksForEntity(node.entityType).map(block => block.id);
-  }
-  if (['record.getBlock', 'record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(kind)) {
-    const access = kind === 'record.composeBlock' ? 'constructible'
-      : kind === 'record.modifyBlock' ? 'writable'
-        : 'readable';
-    const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(kind);
-    const availableFields = (structural ? designer.fieldsForBlock() : designer.fieldsForEntity(node.entityType))
-      .filter(field => field[access] !== false);
-    node.block = availableFields[0]?.block || designer.blocksForEntity(node.entityType)[0]?.id || designer.blocks[0]?.id || '';
-    if (kind === 'record.getField') {
-      node.path = availableFields.find(field => field.block === node.block)?.value || '';
-    }
-    if (['record.composeBlock', 'record.modifyBlock'].includes(kind)) {
-      node.fields = availableFields.filter(field => field.block === node.block).slice(0, 1).map(field => field.value);
-    }
-  }
-  if (kind === 'read.related') {
-    node.relationKey = relationOptionsForEntity(node.entityType)[0]?.value || '';
-  }
-  if (kind === 'effect.runCommand') node.commandId = designer.commandOptions[0]?.value || '';
-  if (kind === 'effect.generateAttachment') node.attachmentKind = designer.attachmentKindOptions[0]?.value || '';
-  if (kind === 'control.domainEventTrigger') node.eventId = designer.eventOptions[0]?.value || '';
-  syncProcessNode(node);
-  return node;
-}
 
 async function addRole() {
   const organizationId = authStore.organizationData?._id || authStore.userData?.organizationId || authStore.memberships?.[0]?.organizationId;
@@ -2479,13 +2427,16 @@ function createScreen(id) {
     bindings: {},
     sources: [{
       id: entityType || id,
+      label: '',
       entityType,
       mode: 'list',
       required: { feature, level: 'read' },
-      filters: {}
+      filters: {},
+      lineageBindings: []
     }],
     regions: [{
       id: 'main',
+      label: '',
       slot: 'main',
       sourceId: entityType || id,
       surface: 'card',
@@ -2500,113 +2451,31 @@ function removeSelectedScreen() {
 }
 
 function syncSelectedScreenUi() {
-  if (!selectedScreenRecord.value) return;
-  selectedScreenRecord.value.required ||= { feature: defaultFeature(), level: 'read' };
-  selectedScreenRecord.value.roleIds ||= [];
-  selectedScreenRecord.value.bindings ||= {};
-  selectedScreenRecord.value.actions ||= [];
-  const normalized = normalizeScreenContract(selectedScreenRecord.value);
-  selectedScreenRecord.value.kind = 'route';
-  selectedScreenRecord.value.template = normalized.template;
-  selectedScreenRecord.value.sources = normalized.sources;
-  selectedScreenRecord.value.regions = normalized.regions;
-  const entityType = selectedScreenRecord.value.entityType || selectedScreenRecord.value.sources[0]?.entityType || '';
-  if (entityType) {
-    const feature = featureForEntityType(entityType);
-    selectedScreenRecord.value.required.feature = feature;
-    for (const source of selectedScreenRecord.value.sources) {
-      const sourceFeature = featureForEntityType(source.entityType || entityType);
-      source.required = { ...(source.required || {}), feature: sourceFeature, level: source.required?.level || selectedScreenRecord.value.required.level || 'read' };
-    }
-  }
-  const source = ensureSelectedScreenSource();
-  const region = ensureSelectedScreenRegion();
-  if (source && region) {
-    source.mode = selectedScreenRecord.value.template === 'entityDetail' || selectedScreenRecord.value.template === 'formAction' ? 'single' : source.mode || 'list';
-    for (const screenRegion of selectedScreenRecord.value.regions || []) {
-      if (!selectedScreenRecord.value.sources.some(item => item.id === screenRegion.sourceId)) screenRegion.sourceId = source.id;
-      screenRegion.actions = selectedScreenRecord.value.actions || [];
-    }
-  }
+  screenEditing.sync(selectedScreenRecord.value);
 }
 
 function ensureSelectedScreenSource() {
-  const screen = selectedScreenRecord.value;
-  if (!screen) return {};
-  screen.sources ||= [];
-  if (!screen.sources.length) {
-    const entityType = screen.entityType || defaultEntityType();
-    screen.sources.push({
-      id: entityType || 'source',
-      entityType,
-      mode: screen.template === 'entityDetail' ? 'single' : 'list',
-      required: screen.required || { feature: featureForEntityType(entityType), level: 'read' },
-      filters: {}
-    });
-  }
-  return screen.sources[0];
+  return selectedScreenRecord.value ? screenEditing.ensureSource(selectedScreenRecord.value) : {};
 }
 
 function ensureSelectedScreenRegion() {
-  const screen = selectedScreenRecord.value;
-  if (!screen) return {};
-  const source = ensureSelectedScreenSource();
-  screen.regions ||= [];
-  if (!screen.regions.length) {
-    screen.regions.push({
-      id: 'main',
-      slot: screen.template === 'workspaceLanes' ? 'center' : 'main',
-      sourceId: source.id,
-      surface: screen.template === 'entityDetail' ? 'detail' : 'card',
-      actions: screen.actions || []
-    });
-  }
-  return screen.regions[0];
+  return selectedScreenRecord.value ? screenEditing.ensureRegion(selectedScreenRecord.value) : {};
 }
 
 function addSelectedScreenSource() {
-  const screen = selectedScreenRecord.value;
-  if (!screen) return;
-  screen.sources ||= [];
-  const entityType = screen.entityType || defaultEntityType();
-  const id = uniqueRecordId('source', Object.fromEntries(screen.sources.map(source => [source.id, source])));
-  screen.sources.push({
-    id,
-    entityType,
-    mode: screen.template === 'entityDetail' ? 'single' : 'list',
-    required: { feature: featureForEntityType(entityType), level: screen.required?.level || 'read' },
-    filters: {}
-  });
+  screenEditing.addSource(selectedScreenRecord.value);
 }
 
 function removeSelectedScreenSource(index) {
-  const screen = selectedScreenRecord.value;
-  if (!screen?.sources || screen.sources.length <= 1) return;
-  const [removed] = screen.sources.splice(index, 1);
-  for (const region of screen.regions || []) {
-    if (region.sourceId === removed?.id) region.sourceId = screen.sources[0]?.id || '';
-  }
+  screenEditing.removeSource(selectedScreenRecord.value, index);
 }
 
 function addSelectedScreenRegion() {
-  const screen = selectedScreenRecord.value;
-  if (!screen) return;
-  const source = ensureSelectedScreenSource();
-  screen.regions ||= [];
-  const id = uniqueRecordId('region', Object.fromEntries(screen.regions.map(region => [region.id, region])));
-  screen.regions.push({
-    id,
-    slot: screen.template === 'workspaceLanes' ? 'right' : 'main',
-    sourceId: source.id,
-    surface: screen.template === 'entityDetail' ? 'detail' : 'card',
-    actions: screen.actions || []
-  });
+  screenEditing.addRegion(selectedScreenRecord.value);
 }
 
 function removeSelectedScreenRegion(index) {
-  const screen = selectedScreenRecord.value;
-  if (!screen?.regions || screen.regions.length <= 1) return;
-  screen.regions.splice(index, 1);
+  screenEditing.removeRegion(selectedScreenRecord.value, index);
 }
 
 function featureForEntityType(entityType) {
@@ -2614,76 +2483,7 @@ function featureForEntityType(entityType) {
   return entity?.collection || `${entityType}s`;
 }
 
-function uniqueRecordId(prefix, records = {}) {
-  let index = Object.keys(records).length + 1;
-  let id = `${prefix}_${index}`;
-  while (records[id]) {
-    index += 1;
-    id = `${prefix}_${index}`;
-  }
-  return id;
-}
 
-function addLifecycleState() {
-  const id = newStateId.value.trim().toUpperCase().replace(/\s+/g, '_');
-  if (!id) return;
-  const region = ensureCustomLifecycleRegion();
-  region.states[id] ||= { canUpdateMeta: true };
-  if (!region.initial) region.initial = id;
-  newStateId.value = '';
-}
-
-function syncSelectedAction() {
-  syncActionIo(selectedAction.value, selectedNode.value);
-  ensureRequiredEntityProfiles(selectedAction.value, selectedNode.value);
-  syncNodeData();
-}
-
-function ensureRequiredEntityProfiles(action = {}, anchorNode = null) {
-  const requiredTypes = requiredEntityProfileTypes({ actions: { [action.id || 'action']: action } }, cncDomain);
-  const existingTypes = new Set(Object.values(draft.value?.data?.entityProfiles || {}).map(profile => profile.entityType));
-  const missingTypes = requiredTypes.filter(entityType => !existingTypes.has(entityType));
-  if (!missingTypes.length) return;
-
-  draft.value.data.entityProfiles ||= {};
-  const anchor = anchorNode?.position || { x: 0, y: 0 };
-  const grants = normalizeDesignerAccess(action.access).grants;
-  missingTypes.forEach((entityType, index) => {
-    const id = uniqueEntityProfileId(entityType);
-    const profile = createEntityProfileForType(id, entityType, grants);
-    draft.value.data.entityProfiles[id] = profile;
-    nodes.value.push(enrichNodeData({
-      id,
-      type: 'entity',
-      position: { x: anchor.x + 360, y: anchor.y + index * 160 },
-      data: { refId: id, label: profile.label, entityType }
-    }));
-  });
-}
-
-function uniqueEntityProfileId(entityType) {
-  const base = `entity_${entityType}`;
-  if (!draft.value?.data?.entityProfiles?.[base] && !nodes.value.some(node => node.id === base)) return base;
-  return `${base}_${Date.now()}`;
-}
-
-function createEntityProfileForType(id, entityType, grants = []) {
-  const profile = createEntityProfile(id);
-  profile.entityType = entityType;
-  profile.label = entityTypeOptions.value.find(option => option.value === entityType)?.label || entityType;
-  profile.lifecycle = cncDomain.workflows?.[entityType]
-    ? { mode: 'domainDefault', workflow: null }
-    : { mode: 'defaultCreated', workflow: createCreatedWorkflow() };
-  profile.relations = relationOptionsForEntity(entityType).map(option => option.value);
-  profile.allowedRoles = { read: [], write: [], admin: [] };
-  for (const grant of grants) {
-    if (profile.allowedRoles[grant.level] && !profile.allowedRoles[grant.level].includes(grant.roleId)) {
-      profile.allowedRoles[grant.level].push(grant.roleId);
-    }
-  }
-  syncEntityProfileIo(profile);
-  return profile;
-}
 
 function syncActionIo(action = {}, node = null) {
   action.trigger ||= { mode: 'manual' };
@@ -2819,7 +2619,7 @@ function syncActionConstruction(action = {}) {
 }
 
 function constructionModeOptions(entityType = '') {
-  return (constructionContractForEntity(entityType).modes || []).map(value => ({ label: value, value }));
+  return designer.createModes(entityType).map(value => ({ label: value, value }));
 }
 
 function constructionInputsForMode(contract = {}, mode = '') {
@@ -2872,12 +2672,6 @@ function syncParentRevision(action = {}) {
   }
 }
 
-function updateParentRevisionEnabled(enabled) {
-  selectedAction.value.parentRevision ||= { enabled: false, scope: '' };
-  selectedAction.value.parentRevision.enabled = enabled === true;
-  syncParentRevision(selectedAction.value);
-  syncNodeData();
-}
 
 function applyStatusDefinitionToAction(action = {}) {
   if (!action.statusRef) return;
@@ -2891,7 +2685,7 @@ function applyStatusDefinitionToAction(action = {}) {
 }
 
 function constructionContractForEntity(entityType) {
-  return designer.construction(entityType);
+  return designer.construction(entityType) || {};
 }
 
 function syncSocketIo(socket = {}) {
@@ -3000,7 +2794,12 @@ function syncProcessNode(node = {}) {
     delete node.fieldSchemas;
   }
   if (node.type?.base === 'block') delete node.type.entityType;
-  node.operation ||= defaultProcessNodeOperation(node.kind);
+  if (node.kind === 'collection.sort') {
+    node.direction = ['asc', 'desc'].includes(node.direction) ? node.direction : 'asc';
+    delete node.operation;
+  } else {
+    node.operation ||= defaultProcessNodeOperation(node.kind);
+  }
   node.type = node.type?.base ? processType(node.type.base, node.type) : processType('json');
   node.access = node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : (node.access || 'item');
   node.matching = ['longest', 'shortest', 'cross'].includes(node.matching) ? node.matching : 'longest';
@@ -3123,6 +2922,7 @@ function syncProcessNode(node = {}) {
   node.label = node.kind;
   node.inputs = processNodeInputs(node);
   node.outputs = processNodeOutputs(node);
+  syncProcessNodeProducerOutputs(draft.value.data, node);
   node.inputDefaults ||= {};
   const inputIds = new Set(node.inputs.map(input => input.id));
   for (const inputId of Object.keys(node.inputDefaults)) {
@@ -3147,14 +2947,7 @@ function applyInferredProcessNodeInputs(record = {}) {
   if (record?.kind) syncProcessNode(record);
 }
 
-function defaultProcessNodeValueType(kind = '', operation = '') {
-  if (kind === 'compare') return ['gt', 'gte', 'lt', 'lte'].includes(operation) ? 'number' : 'string';
-  return 'string';
-}
 
-function defaultProcessNodeOperation(kind = '') {
-  return (processNodeOperations[kind] || [''])[0] || '';
-}
 
 function processNodeOperationOptions(kind = '') {
   const record = typeof kind === 'object' ? kind : { kind };
@@ -3269,7 +3062,7 @@ function processNodeSummary(node = {}) {
     node.path || fields,
     node.block,
     showsType && node.type ? formatProcessType(node.type) : '',
-    node.operation
+    node.kind === 'collection.sort' ? node.direction : node.operation
   ].filter(Boolean).join(' · ');
 }
 
@@ -3292,6 +3085,14 @@ function writableEntityBlocks(entityType = '') {
 }
 
 function processEntityTypeOptions(node = {}) {
+  const kind = node.kind || '';
+  if (kind === 'effect.createEntity' || kind === 'effect.runProducer') return designer.createEntityOptions;
+  if (kind === 'effect.updateEntity') return designer.updateEntityOptions;
+  if (kind === 'effect.changeStatus') return designer.changeStatusOptions;
+  if (kind === 'effect.archiveEntity') return designer.archivableEntityOptions;
+  if (kind === 'effect.deleteEntity') return designer.deleteEntityOptions;
+  if (kind === 'read.queryEntities' || kind === 'read.children') return designer.listableEntityOptions;
+  if (kind.startsWith('read.')) return designer.readableEntityOptions;
   return entityTypeOptions.value;
 }
 
@@ -3321,9 +3122,10 @@ function declaredRelationsForProfile(profile = {}) {
 }
 
 function declaredRelationsForEntity(entityType = '') {
-  const profiles = Object.values(draft.value?.data?.entityProfiles || {}).filter(profile => profile.entityType === entityType);
-  if (!profiles.length) return [];
-  const keys = new Set(profiles.flatMap(profile => profile.relations || []));
+  const keys = new Set(Object.values(draft.value?.data?.producerOutputs || {})
+    .filter(output => output.entityType === entityType)
+    .flatMap(output => output.relations || []));
+  if (!keys.size) return [];
   return (cncDomain.relations || []).filter(relation => relation.ownerType === entityType && keys.has(relation.key));
 }
 
@@ -3356,16 +3158,6 @@ function processPortLabel(node = {}, port = {}) {
   return processSocketLabel(port.label || port.id);
 }
 
-function iconForProcessNode(kind = '') {
-  if (kind.startsWith('source.')) return 'pi pi-circle-fill';
-  if (kind.startsWith('value.')) return 'pi pi-sliders-h';
-  if (kind.startsWith('collection.') || kind.startsWith('tree.')) return 'pi pi-list';
-  if (kind.startsWith('record.')) return 'pi pi-box';
-  if (kind.startsWith('predicate.')) return 'pi pi-filter';
-  if (kind.startsWith('read.')) return 'pi pi-database';
-  if (kind.startsWith('effect.')) return 'pi pi-bolt';
-  return 'pi pi-directions';
-}
 
 function fieldLabel(entityType = '', path = '') {
   return fieldOptions(entityType).find(option => option.value === path)?.label || path || t('processDesigner.field');
@@ -3379,9 +3171,8 @@ function initialSocketStatus(socket = {}) {
 }
 
 function initialStatusForEntity(entityType) {
-  const profile = Object.values(draft.value?.data?.entityProfiles || {}).find(item => item.entityType === entityType);
-  if (!profile) return '';
-  const workflow = workflowForEntity(profile);
+  const workflow = cncDomain.workflows?.[entityType];
+  if (!workflow) return '';
   const region = workflow.regions?.[workflow.primaryRegion] || Object.values(workflow.regions || {})[0];
   return region?.initial || '';
 }
@@ -3391,7 +3182,6 @@ function actionKindLabel(actionKind) {
 }
 
 function nodeDisplayLabel(record = {}, node = {}) {
-  if (node.type === 'action') return actionTitleLabel(record) || actionKindLabel(record.actionKind) || record.entityType || record.commandId || node.data?.label || '';
   return record.label || record.entityType || record.commandId || node.data?.label || '';
 }
 
@@ -3455,7 +3245,7 @@ function normalizeDesignerAccess(access = {}) {
   const grants = Array.isArray(access?.grants)
     ? access.grants
         .filter(grant => grant?.roleId)
-        .map(grant => ({ roleId: grant.roleId, level: normalizeAccessLevel(grant.level || level) }))
+        .map(grant => ({ ...grant, roleId: grant.roleId, level: normalizeAccessLevel(grant.level || level) }))
     : (access?.roleIds || []).map(roleId => ({ roleId, level }));
   const normalizedLevel = grants.reduce((current, grant) => (
     accessLevelRank[grant.level] > accessLevelRank[current] ? grant.level : current
@@ -3468,37 +3258,9 @@ function normalizeDesignerAccess(access = {}) {
   };
 }
 
-function addSelectedActionGrant() {
-  const used = new Set(selectedActionGrants.value.map(grant => grant.roleId));
-  const role = roleOptions.value.find(option => !used.has(option.value));
-  if (!role) return;
-  setSelectedActionGrants([...selectedActionGrants.value, { roleId: role.value, level: 'write' }]);
-}
 
-function updateSelectedActionGrant(index, updates = {}) {
-  setSelectedActionGrants(selectedActionGrants.value.map((grant, grantIndex) => (
-    grantIndex === index ? { ...grant, ...updates } : grant
-  )));
-}
 
-function removeSelectedActionGrant(index) {
-  setSelectedActionGrants(selectedActionGrants.value.filter((_, grantIndex) => grantIndex !== index));
-}
 
-function setSelectedActionGrants(grants = []) {
-  const seen = new Set();
-  const normalized = grants.filter(grant => {
-    if (!grant.roleId || seen.has(grant.roleId)) return false;
-    seen.add(grant.roleId);
-    return true;
-  });
-  updateActionRecord(selectedAction.value.id, {
-    access: {
-      ...(selectedAction.value.access || {}),
-      grants: normalized
-    }
-  }, { syncIo: true });
-}
 
 function createInputSockets(action = {}) {
   const contract = constructionContractForEntity(action.entityType);
@@ -3630,34 +3392,9 @@ function principalLabels(principalIds = []) {
   return principalIds.map(principalId => servicePrincipals.value[principalId]?.label || principalId).filter(Boolean);
 }
 
-function addLifecycleTransition() {
-  const region = ensureCustomLifecycleRegion();
-  const states = Object.keys(region.states);
-  if (states.length < 2) return;
-  region.transitions.push({ from: states[0], to: states[1], access: { processRoleIds: [] } });
-}
 
-function updateTransition(index, updates) {
-  const region = ensureCustomLifecycleRegion();
-  region.transitions[index] = { ...region.transitions[index], ...updates };
-}
 
-function updateTransitionRoles(index, roleIds) {
-  const region = ensureCustomLifecycleRegion();
-  const transition = region.transitions[index] || {};
-  region.transitions[index] = {
-    ...transition,
-    access: {
-      ...(transition.access || {}),
-      processRoleIds: roleIds
-    }
-  };
-}
 
-function removeLifecycleTransition(index) {
-  const region = ensureCustomLifecycleRegion();
-  region.transitions.splice(index, 1);
-}
 
 function workflowForEntity(profile = {}) {
   if (profile.lifecycle?.mode === 'domainDefault' && cncDomain.workflows?.[profile.entityType]) return normalizeWorkflow(cncDomain.workflows[profile.entityType]);
@@ -3665,35 +3402,7 @@ function workflowForEntity(profile = {}) {
   return normalizeWorkflow(createCreatedWorkflow());
 }
 
-function ensureCustomLifecycleRegion() {
-  selectedEntity.value.lifecycle ||= {};
-  if (selectedEntity.value.lifecycle.mode !== 'custom') {
-    selectedEntity.value.lifecycle = {
-      mode: 'custom',
-      workflow: workflowForEntity(selectedEntity.value)
-    };
-  }
-  const workflow = normalizeWorkflow(selectedEntity.value.lifecycle.workflow || createCreatedWorkflow());
-  selectedEntity.value.lifecycle.workflow = workflow;
-  const regionId = workflow.primaryRegion || 'main';
-  workflow.regions[regionId] ||= { id: regionId, label: 'Lifecycle', initial: 'CREATED', states: { CREATED: { canUpdateMeta: true } }, transitions: [] };
-  return workflow.regions[regionId];
-}
 
-function createCreatedWorkflow() {
-  return {
-    schemaVersion: 2,
-    primaryRegion: 'main',
-    regions: {
-      main: {
-        label: 'Lifecycle',
-        initial: 'CREATED',
-        states: { CREATED: { canUpdateMeta: true } },
-        transitions: []
-      }
-    }
-  };
-}
 
 function parseJson(source, fallback) {
   try {
@@ -3719,7 +3428,6 @@ function enrichNodeData(node) {
       label: nodeDisplayLabel(record, node),
       entityType: record.entityType,
       commandId: record.commandId,
-      actionKindLabel: node.type === 'action' ? actionHeaderLabel(record) : null,
       actionTitleLabel: node.type === 'action' ? actionTitleLabel(record) : null,
       actionRecord: node.type === 'action' ? record : null,
       entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
@@ -3731,7 +3439,6 @@ function enrichNodeData(node) {
       triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
       fieldOptions: node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [],
       onActionUpdate: node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data?.refId, updates, options) : null,
-      onActionResetAccess: node.type === 'action' ? () => resetActionAccess(record.id || node.data?.refId) : null,
       valueInputRecord: node.type === 'valueInput' ? record : null,
       onValueInputUpdate: node.type === 'valueInput' ? updates => updateValueInputRecord(record.id || node.data?.refId, updates) : null,
       processNodeRecord: node.type === 'processNode' ? record : null,
@@ -4079,46 +3786,6 @@ function setSelectedProcessNodeGrants(grants) {
   });
 }
 
-function addSelectedProcessNodeGrant() {
-  if (!nextSelectedProcessNodeRoleId.value) return;
-  setSelectedProcessNodeGrants([
-    ...selectedProcessNodeGrants.value,
-    { roleId: nextSelectedProcessNodeRoleId.value, level: 'write' }
-  ]);
-}
-
-function selectedProcessNodeRoleOptions(index) {
-  const usedByOthers = new Set(selectedProcessNodeGrants.value
-    .filter((_, grantIndex) => grantIndex !== index)
-    .map(grant => grant.roleId));
-  return roleOptions.value.filter(option => !usedByOthers.has(option.value));
-}
-
-function updateSelectedProcessNodeGrant(index, updates) {
-  setSelectedProcessNodeGrants(selectedProcessNodeGrants.value.map((grant, grantIndex) => (
-    grantIndex === index ? { ...grant, ...updates } : grant
-  )));
-}
-
-function removeSelectedProcessNodeGrant(index) {
-  setSelectedProcessNodeGrants(selectedProcessNodeGrants.value.filter((_, grantIndex) => grantIndex !== index));
-}
-
-function resetActionAccess(actionId) {
-  const action = draft.value?.data?.actions?.[actionId];
-  if (!action || action.actionKind !== 'updateEntity') return;
-  const node = nodes.value.find(item => item.data?.refId === actionId);
-  const inherited = node ? inferIncomingEntityContract(node.id).access : null;
-  if (!inherited?.grants?.length) return;
-  action.access = {
-    ...(action.access || {}),
-    grants: inherited.grants.map(grant => ({ ...grant })),
-    modified: false
-  };
-  action.access = normalizeDesignerAccess(action.access);
-  syncActionIo(action, node);
-  syncNodeData();
-}
 
 function stripRuntimeNodeData(node) {
   const runtimeFreeNode = { ...node };
@@ -4224,58 +3891,49 @@ function fieldPolicyForEntity(entityType) {
   return entityType ? designer.fieldPolicy(entityType) : {};
 }
 
-function syncEntityDefaults() {
-  selectedEntity.value.label = selectedEntity.value.entityType;
-  selectedEntity.value.relations = relationOptionsForEntity(selectedEntity.value.entityType).map(option => option.value);
-  selectedEntity.value.fields ||= { read: [], write: [], private: [] };
-  if (!selectedEntity.value.fields.read?.length) {
-    selectedEntity.value.fields.read = ['identity.*', 'status.*', 'lineage.*']
-      .filter(path => fieldOptionsForSelectedEntity.value.some(item => item.value === path));
-  }
-  syncEntityProfileIo(selectedEntity.value);
+function syncServiceFromCommand(service = selectedServiceRecord.value) {
+  const command = cncDomain.commands?.[service?.commandId];
+  if (!command || !service) return;
+  service.label = command.label || command.id;
+  service.serviceType = command.service;
+  service.inputs = commandInputs(command);
+  service.outputs = commandOutputs(command);
   syncNodeData();
 }
 
-function syncServiceFromCommand() {
-  const command = cncDomain.commands?.[selectedService.value.commandId];
-  if (!command) return;
-  selectedService.value.label = command.label || command.id;
-  selectedService.value.serviceType = command.service;
-  selectedService.value.inputs = commandInputs(command);
-  selectedService.value.outputs = commandOutputs(command);
-  ensureRequiredEntityProfiles({
-    id: selectedService.value.id,
-    actionKind: 'runCommand',
-    commandId: selectedService.value.commandId,
-    access: { grants: [] }
-  }, selectedNode.value);
-  syncNodeData();
+
+function openGrantEditor(kind, index, feature) {
+  if (!feature) return;
+  grantEditorTarget.value = { kind, index, feature };
+  showGrantEditor.value = true;
 }
 
-function roleAccessSummary(roleId) {
-  const items = [];
-  for (const profile of Object.values(draft.value?.data?.entityProfiles || {})) {
-    for (const level of ['read', 'write', 'admin']) {
-      if ((profile.allowedRoles?.[level] || []).includes(roleId)) items.push(`${profile.entityType}:${level}`);
-    }
-  }
-  for (const action of Object.values(draft.value?.data?.actions || {})) {
-    if (normalizeDesignerAccess(action.access).roleIds.includes(roleId)) {
-      const summary = actionAccessSummary(action);
-      if (summary) items.push(summary);
-    }
-  }
-  for (const screen of Object.values(draft.value?.data?.screens || {})) {
-    if ((screen.roleIds || []).includes(roleId)) items.push(`${screen.label || screen.id}:screen`);
-  }
-  for (const profile of Object.values(draft.value?.data?.entityProfiles || {})) {
-    for (const region of Object.values(workflowForEntity(profile).regions || {})) {
-      for (const transition of region.transitions || []) {
-        if ((transition.access?.processRoleIds || []).includes(roleId)) items.push(`${profile.entityType}:${transition.from}->${transition.to}`);
-      }
-    }
-  }
-  return [...new Set(items)];
+function grantForEditorTarget(target = {}) {
+  if (target.kind === 'screen') return selectedScreenRecord.value?.required;
+  return null;
+}
+
+function saveGrantEditor(permissions = {}) {
+  const target = grantEditorTarget.value;
+  if (!target) return;
+  const grant = permissionGrants(permissions).find(item => item.feature === target.feature);
+  if (!grant) return;
+  const previous = grantForEditorTarget(target) || {};
+  const next = { ...withoutKeys(grant, ['feature']), ...(previous.roleId ? { roleId: previous.roleId } : {}) };
+  if (target.kind === 'screen' && selectedScreenRecord.value) selectedScreenRecord.value.required = { feature: target.feature, ...next };
+  showGrantEditor.value = false;
+}
+
+function permissionGrants(permissions = {}) {
+  return Object.entries(permissions).flatMap(([feature, value]) => {
+    if (!value || value === 'none') return [];
+    const grants = Array.isArray(value) ? value : [value];
+    return grants.filter(grant => grant && grant.level && grant.level !== 'none').map(grant => ({ feature, ...grant }));
+  });
+}
+
+function withoutKeys(value = {}, keys = []) {
+  return Object.fromEntries(Object.entries(value || {}).filter(([key]) => !keys.includes(key)));
 }
 
 function onConnect(connection) {
@@ -4354,7 +4012,7 @@ function applySemanticConnection(connection = {}) {
   const target = nodes.value.find(item => item.id === connection.target);
   if (!source || !target) return;
   const action = target.type === 'action' ? draft.value?.data?.actions?.[target.data?.refId] : null;
-  const entityProfile = target.type === 'entity' ? draft.value?.data?.entityProfiles?.[target.data?.refId] : null;
+  const entityProfile = target.type === 'entity' ? draft.value?.data?.producerOutputs?.[target.data?.refId] : null;
   const processNode = target.type === 'processNode' ? draft.value?.data?.processNodes?.[target.data?.refId] : null;
 
   if (source.type === 'statusDefinition') {
@@ -4656,10 +4314,10 @@ function effectiveActionAccessLabels(action = {}, node = {}) {
   const currentRoleIds = new Set(normalizeDesignerAccess(action.access).roleIds);
   const accessByRole = new Map();
 
-  for (const profile of Object.values(draft.value?.data?.entityProfiles || {})) {
-    if (profile.entityType !== entityType) continue;
+  for (const output of Object.values(draft.value?.data?.producerOutputs || {})) {
+    if (output.entityType !== entityType) continue;
     for (const level of ['read', 'write', 'admin']) {
-      for (const roleId of profile.allowedRoles?.[level] || []) {
+      for (const roleId of output.allowedRoles?.[level] || []) {
         addEffectiveRoleAccess(accessByRole, roleId, level, '');
       }
     }

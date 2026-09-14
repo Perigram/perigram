@@ -1,4 +1,17 @@
 export const cncEntityFieldGroups = {
+  facade: {
+    summary: [
+      { path: 'data.parts.length', i18n: 'facade.parts', display: 'count', priority: 10 },
+      { path: 'data.partAssignments.length', i18n: 'facade.assignments', display: 'count', priority: 20 },
+      { path: 'relations.sourceModel', i18n: 'facade.sourceModel', display: 'entityRef', entityType: 'artifact', priority: 30 },
+      { path: 'relations.patterns', i18n: 'facade.patterns', display: 'entityRefList', entityType: 'facadePattern', priority: 40 }
+    ]
+  },
+  facadePattern: {
+    summary: [
+      { path: 'data.graph.nodes.length', i18n: 'facadePattern.nodes', display: 'count', priority: 10 }
+    ]
+  },
   project: {
     summary: [
       { path: 'summary.queueCount', i18n: 'project.queues', display: 'count', role: 'childCount', priority: 10 },
@@ -130,6 +143,10 @@ export const cncEntityFieldGroups = {
     ]
   },
   sheet: {
+    identity: [
+      { path: 'specs.color', i18n: 'sheets.materialColor', display: 'text', priority: 10 },
+      { path: 'specs.material', i18n: 'sheets.material', display: 'text', priority: 20 }
+    ],
     specs: [
       { path: 'specs.width', i18n: 'queue.width', suffix: ' mm', display: 'dimension', priority: 10 },
       { path: 'specs.length', i18n: 'queue.length', suffix: ' mm', display: 'dimension', priority: 20 },
@@ -139,6 +156,9 @@ export const cncEntityFieldGroups = {
   remnant: {
     geometry: [
       { path: 'data.geometry.preview', i18n: 'common.details', role: 'previewSource', display: 'geometry', priority: 10 }
+    ],
+    specs: [
+      { path: 'specs.area', i18n: 'results.area', suffix: ' m²', display: 'area', priority: 15 }
     ],
     relations: [
       { path: 'data.source.sheetId', i18n: 'entities.sheet', display: 'entityRef', entityType: 'sheet', priority: 20 }

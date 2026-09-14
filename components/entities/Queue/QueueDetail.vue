@@ -1,83 +1,62 @@
 <template>
     <EntityPage :entity="queue" entity-type="queue">
         <template #actions>
-                <Button :label="$t('queue.nestingConfig')" icon="pi pi-sliders-h" severity="secondary" outlined />
-                <Button
-                  v-if="queueCommandActions.length"
-                  :label="queueCommandActions[0].label"
-                  :icon="queueCommandActions[0].icon"
-                  :severity="queueCommandActions[0].severity || 'secondary'"
-                  outlined
-                  @click="queueCommandActions[0].command?.()"
-                />
+            <Button :label="$t('queue.nestingConfig')" icon="pi pi-sliders-h" severity="secondary" outlined />
+            <Button
+                v-if="queueCommandActions.length"
+                :label="queueCommandActions[0].label"
+                :icon="queueCommandActions[0].icon"
+                :severity="queueCommandActions[0].severity || 'secondary'"
+                outlined
+                @click="queueCommandActions[0].command?.()"
+            />
         </template>
 
-        <div class="grid grid-cols-1 lg:grid-cols-4 gap-10">
-             <!-- Left: Components & Layouts -->
-            <div class="lg:col-span-3 flex flex-col gap-10">
-                 <!-- Artifacts (Nesting Layouts) -->
-                <div v-if="queue.artifacts?.length" class="flex flex-col gap-4">
-                    <h3 class="flex items-center gap-3">
-                        <i class="pi pi-map"></i>
-                        {{ $t('queues.artifacts') }}
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <EntityInlineRef v-for="artId in queue.artifacts" :key="artId" type="artifact" :id="artId" />
+        <template #sidebar>
+            <Panel :header="$t('requisition.lifecycleTimeline')">
+                <StatusHistory :entity="queue" entity-type="queue" />
+            </Panel>
+
+            <Panel v-if="materialConsumption.length" :header="$t('queue.materialConsumption')">
+                <div class="flex flex-col gap-3">
+                    <div
+                        v-for="item in materialConsumption"
+                        :key="`${item.type}-${item.id}`"
+                        class="flex items-center justify-between gap-3"
+                    >
+                        <EntityInlineRef v-if="item.entityType" :type="item.entityType" :id="item.id" />
+                        <span v-else>{{ item.id }}</span>
+                        <Tag :value="item.count" severity="warn" size="small" />
                     </div>
                 </div>
+            </Panel>
 
-                <!-- Job Items -->
-                <div class="flex flex-col gap-4">
-                    <h3 class="flex items-center gap-3">
-                        <i class="pi pi-list"></i>
-                        {{ $t('queue.jobComposition') }}
-                    </h3>
-                    <TableFrame>
-                    <DataTable :value="queue.relations?.cassettes || []" responsiveLayout="scroll">
-                        <Column :header="$t('file.type')">
-                            <template #body="{ data }">
-                                <Tag :value="data.type" severity="secondary" />
-                            </template>
-                        </Column>
-                        <Column field="id" :header="$t('queue.entryId')">
-                             <template #body="{ data }">
-                                <span class="opacity-60 italic">{{ data.id }}</span>
-                            </template>
-                        </Column>
-                    </DataTable>
-                    </TableFrame>
-                </div>
-            </div>
+            <MetricPanel :metrics="overviewMetrics" />
+        </template>
 
-            <!-- Right: Metadata & Materials -->
-            <div class="flex flex-col gap-8">
-                <Panel :header="$t('requisition.lifecycleTimeline')">
-                    <StatusHistory :entity="queue" entity-type="queue" />
-                </Panel>
+        <div class="flex flex-col gap-8">
+            <template v-if="queue.artifacts?.length">
+                <ActionToolbar :title="$t('queues.artifacts')" :level="2" />
+                <ResponsiveGrid variant="bounded" responsive-context="container">
+                    <EntityInlineRef v-for="artId in queue.artifacts" :key="artId" type="artifact" :id="artId" />
+                </ResponsiveGrid>
+            </template>
 
-                <Panel v-if="materialConsumption.length" :header="$t('queue.materialConsumption')">
-                    <div class="flex flex-col gap-3">
-                        <div
-                            v-for="item in materialConsumption"
-                            :key="`${item.type}-${item.id}`"
-                            class="flex items-center justify-between gap-3"
-                        >
-                            <EntityInlineRef v-if="item.entityType" :type="item.entityType" :id="item.id" />
-                            <span v-else>{{ item.id }}</span>
-                            <Tag :value="item.count" severity="warn" size="small" />
-                        </div>
-                    </div>
-                </Panel>
-
-                 <Panel :header="$t('project.overview')">
-                    <div class="flex flex-col gap-4 py-2">
-                        <div class="flex justify-between items-center">
-                            <span class="opacity-60">{{ $t('queue.runs') }}</span>
-                            <span class="text-xl">{{ queue.summary?.runCount || 0 }}</span>
-                        </div>
-                    </div>
-                </Panel>
-            </div>
+            <ActionToolbar :title="$t('queue.jobComposition')" :level="2" />
+            <TableFrame>
+                <DataTable :value="queue.relations?.cassettes || []">
+                    <Column :header="$t('file.type')">
+                        <template #body="{ data }">
+                            <Tag :value="data.type" severity="secondary" />
+                        </template>
+                    </Column>
+                    <Column field="id" :header="$t('queue.entryId')">
+                        <template #body="{ data }">
+                            <span class="italic text-muted-color">{{ data.id }}</span>
+                        </template>
+                    </Column>
+                </DataTable>
+            </TableFrame>
         </div>
     </EntityPage>
 </template>
@@ -93,7 +72,10 @@ import Column from 'primevue/column';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import TableFrame from '~/components/shared/TableFrame.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
+import MetricPanel from '~/components/shared/MetricPanel.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 
 const props = defineProps({
     queue: { type: Object, required: true }
@@ -101,11 +83,16 @@ const props = defineProps({
 
 const emit = defineEmits(['run-nesting']);
 const { t } = useI18n();
+
 const materialConsumption = computed(() => (props.queue.data?.materialConsumption?.sources || [])
     .map(source => ({
         ...source,
         entityType: materialSourceEntityType(source)
     })));
+
+const overviewMetrics = computed(() => [
+    { key: 'runs', label: t('queue.runs'), value: props.queue.summary?.runCount || 0 }
+]);
 
 function materialSourceEntityType(source = {}) {
     if (source.type === 'PILE') return 'materialPile';

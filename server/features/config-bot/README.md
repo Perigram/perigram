@@ -69,4 +69,4 @@ Ollama is optional and controlled by:
 - [Server features](../README.md)
 - [Command runtime](../../core/commands/README.md)
 - [Runtime registry](../../runtime/README.md)
-- [Admin pages](../../../pages/admin/README.md)
+- [Admin pages](../../../

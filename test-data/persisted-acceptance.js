@@ -52,16 +52,22 @@ export function createPersistedAcceptanceFixture() {
       viewport: { x: 0, y: 0, zoom: 1 }
     },
     roleGrants: {},
-    entityProfiles: {
-      project: {
-        id: 'project',
+    producerOutputs: {
+      'project_source:result': {
+        id: 'project_source:result',
+        producerOutputId: 'project_source:result',
+        nodeId: 'project_source',
+        outputSocketId: 'result',
         entityType: 'project',
         lifecycle: { mode: 'domainDefault' },
         fields: { read: ['identity.*', 'status.*', 'lineage.*'], write: [], private: [] },
         allowedRoles: { read: [ids.role], write: [ids.role], admin: [] }
       },
-      artifact: {
-        id: 'artifact',
+      'create_artifact:result': {
+        id: 'create_artifact:result',
+        producerOutputId: 'create_artifact:result',
+        nodeId: 'create_artifact',
+        outputSocketId: 'result',
         entityType: 'artifact',
         lifecycle: { mode: 'domainDefault' },
         fields: { read: ['identity.*', 'status.*', 'lineage.*'], write: [], private: [] },
@@ -79,6 +85,7 @@ export function createPersistedAcceptanceFixture() {
         id: 'project_source',
         kind: 'effect.createEntity',
         entityType: 'project',
+        producerOutputId: 'project_source:result',
         label: 'Create project',
         construction: { mode: 'genericCreate' },
         trigger: { mode: 'manual' },
@@ -98,6 +105,7 @@ export function createPersistedAcceptanceFixture() {
         id: 'create_artifact',
         kind: 'effect.createEntity',
         entityType: 'artifact',
+        producerOutputId: 'create_artifact:result',
         label: 'Upload artifact',
         construction: { mode: 'uploadArtifact' },
         trigger: { mode: 'manual' },

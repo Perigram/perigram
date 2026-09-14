@@ -8,7 +8,7 @@ export class ProcessDefinition extends BaseEntity {
       sourceTemplateId: null,
       graph: { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } },
       roleGrants: {},
-      entityProfiles: {},
+      producerOutputs: {},
       services: {},
       sockets: {},
       compiled: null,

@@ -3,288 +3,12 @@
 @tailwind utilities;
 
 html {
-    font-size: 14px;
-}
-
-:root {
-    --ck-page-background: var(--p-surface-100);
-    --ck-process-canvas-background: var(--p-surface-50);
-    --ck-chrome-background: #fefefc;
-    --ck-chrome-foreground: #0c0c0b;
-    --ck-chrome-muted: #6d6d66;
-    --ck-chrome-subtle: #f4f4f0;
-    --ck-chrome-border: #c7c7bf;
-    --ck-subtle-background: var(--p-surface-100);
-    --ck-surface-raised: var(--p-content-background);
-    --ck-border-subtle: var(--p-content-border-color);
-    --ck-selection-background: color-mix(in srgb, var(--p-primary-color) 20%, transparent);
-    --ck-primary-ink: #a93300;
-    --ck-font-ui: 'JetBrains Mono', monospace;
-    --ck-font-mono: 'JetBrains Mono', monospace;
-    --ck-label-tracking: 0.04em;
-    --ck-status-info: var(--p-primary-color);
-    --ck-status-success: var(--p-emerald-600);
-    --ck-status-warning: var(--p-amber-700);
-    --ck-status-danger: var(--p-red-600);
-    --ck-status-neutral: var(--p-surface-500);
-    --ck-entity-tone-command: #ff4b00;
-    --ck-entity-tone-fabrication: #dc3a45;
-    --ck-entity-tone-output: #3f5eff;
-    --ck-entity-tone-material: #0d9069;
-    --ck-entity-tone-system: #795ee5;
-    --ck-signal-identity: var(--p-surface-500);
-    --ck-signal-entity: var(--ck-entity-tone-command);
-    --ck-signal-reference: var(--ck-entity-tone-output);
-    --ck-signal-structure: var(--ck-entity-tone-system);
-    --ck-signal-data: var(--ck-entity-tone-material);
-    --ck-signal-quantity: #d39700;
-    --ck-signal-decision: var(--ck-primary-500);
-    --ck-signal-projection: var(--ck-entity-tone-system);
-    --ck-signal-external: var(--ck-entity-tone-output);
-    --ck-signal-value: var(--ck-entity-tone-system);
-    --ck-signal-effect: var(--ck-entity-tone-fabrication);
-    --ck-signal-temporal: var(--ck-entity-tone-output);
-    --ck-page-max-width: 1600px;
-    --ck-chrome-signal-height: 0.25rem;
-    --ck-grid-gap: 1.25rem;
-    --ck-bounded-grid-item-min-width: 24rem;
-    --ck-bounded-grid-item-max-width: 32rem;
-    --ck-compact-preview-width: 10rem;
-    --ck-details-gap: 1.5rem;
-    --ck-dialog-sm: 24rem;
-    --ck-dialog-md: 42rem;
-    --ck-dialog-lg: 56rem;
-    --ck-dialog-xl: 72rem;
-    --ck-support-chat-width: 25rem;
-    --ck-support-chat-height: 31.25rem;
-    --ck-support-chat-admin-height: calc(100vh - 12rem);
-    --ck-support-chat-message-max: 85%;
-    --ck-support-chat-admin-message-max: 80%;
-    --ck-entity-popover-min-width: 18.75rem;
-    --ck-swatch-size: 2.625rem;
-    --ck-floating-menu-min-width: 12.5rem;
-    --ck-preview-dialog-height: 95vh;
-    --ck-table-action-column-width: 3rem;
-    --ck-radius-ui: 3px;
-    --ck-radius-panel: 6px;
-    --ck-radius-full: 9999px;
-    --ck-shadow-card: none;
-    --ck-shadow-overlay: 0 12px 28px rgb(16 16 14 / 0.14);
-    --ck-motion-fast: 100ms;
-    --ck-motion-normal: 160ms;
-    --ck-motion-emphasis: 220ms;
-    --ck-ease-standard: cubic-bezier(0.2, 0, 0, 1);
-    --ck-ease-enter: cubic-bezier(0, 0, 0, 1);
-    --ck-ease-exit: cubic-bezier(0.3, 0, 1, 1);
-    --ck-dock-inset: 0.75rem;
-    --ck-dock-gap: 0.25rem;
-    --ck-dock-padding: 0.25rem;
-    --ck-dock-label-offset: 0.5rem;
-    --ck-dock-label-padding: 0.125rem 0.5rem;
-    --ck-dock-indicator-size: 0.375rem;
-    --ck-dock-indicator-inset: 0.125rem;
-
-    /*
-     * Runtime bridge for PrimeVue. The Nuxt preset owns the same semantic
-     * values on a cold boot; these variables keep a hot-reloaded page aligned
-     * with the token contract instead of retaining the previous preset.
-     */
-    --ck-primary-50: #fff0e9;
-    --ck-primary-100: #ffdaca;
-    --ck-primary-200: #ffb396;
-    --ck-primary-300: #ff8b60;
-    --ck-primary-400: #ff6733;
-    --ck-primary-500: #ff4b00;
-    --ck-primary-600: #db4100;
-    --ck-primary-700: #a93300;
-    --ck-primary-800: #7c2600;
-    --ck-primary-900: #5c1c00;
-    --ck-primary-950: #321000;
-    --ck-surface-0: #fefefc;
-    --ck-surface-50: #f4f4f0;
-    --ck-surface-100: #ecece7;
-    --ck-surface-200: #dfdfd9;
-    --ck-surface-300: #c7c7bf;
-    --ck-surface-400: #999992;
-    --ck-surface-500: #6d6d66;
-    --ck-surface-600: #4e4e49;
-    --ck-surface-700: #343431;
-    --ck-surface-800: #232321;
-    --ck-surface-900: #161615;
-    --ck-surface-950: #0c0c0b;
-
-    --p-primary-50: var(--ck-primary-50) !important;
-    --p-primary-100: var(--ck-primary-100) !important;
-    --p-primary-200: var(--ck-primary-200) !important;
-    --p-primary-300: var(--ck-primary-300) !important;
-    --p-primary-400: var(--ck-primary-400) !important;
-    --p-primary-500: var(--ck-primary-500) !important;
-    --p-primary-600: var(--ck-primary-600) !important;
-    --p-primary-700: var(--ck-primary-700) !important;
-    --p-primary-800: var(--ck-primary-800) !important;
-    --p-primary-900: var(--ck-primary-900) !important;
-    --p-primary-950: var(--ck-primary-950) !important;
-    --p-surface-0: var(--ck-surface-0) !important;
-    --p-surface-50: var(--ck-surface-50) !important;
-    --p-surface-100: var(--ck-surface-100) !important;
-    --p-surface-200: var(--ck-surface-200) !important;
-    --p-surface-300: var(--ck-surface-300) !important;
-    --p-surface-400: var(--ck-surface-400) !important;
-    --p-surface-500: var(--ck-surface-500) !important;
-    --p-surface-600: var(--ck-surface-600) !important;
-    --p-surface-700: var(--ck-surface-700) !important;
-    --p-surface-800: var(--ck-surface-800) !important;
-    --p-surface-900: var(--ck-surface-900) !important;
-    --p-surface-950: var(--ck-surface-950) !important;
-
-    --p-primary-color: var(--ck-primary-500) !important;
-    --p-primary-contrast-color: var(--ck-surface-950) !important;
-    --p-primary-emphasis-color: var(--ck-primary-600) !important;
-    --p-primary-hover-color: var(--ck-primary-600) !important;
-    --p-primary-active-color: var(--ck-primary-700) !important;
-    --p-content-background: var(--ck-surface-0) !important;
-    --p-content-hover-background: var(--ck-surface-100) !important;
-    --p-content-border-color: var(--ck-surface-300) !important;
-    --p-content-color: var(--ck-surface-950) !important;
-    --p-text-color: var(--ck-surface-950) !important;
-    --p-text-hover-color: var(--ck-surface-900) !important;
-    --p-text-muted-color: var(--ck-surface-500) !important;
-    --p-text-hover-muted-color: var(--ck-surface-600) !important;
-    --p-highlight-background: var(--ck-primary-100) !important;
-    --p-highlight-focus-background: var(--ck-primary-200) !important;
-    --p-highlight-color: var(--ck-primary-900) !important;
-    --p-highlight-focus-color: var(--ck-primary-900) !important;
-    --p-form-field-background: var(--ck-surface-0) !important;
-    --p-form-field-disabled-background: var(--ck-surface-100) !important;
-    --p-form-field-filled-background: var(--ck-surface-50) !important;
-    --p-form-field-filled-hover-background: var(--ck-surface-100) !important;
-    --p-form-field-filled-focus-background: var(--ck-surface-0) !important;
-    --p-form-field-border-color: var(--ck-surface-300) !important;
-    --p-form-field-hover-border-color: var(--ck-surface-400) !important;
-    --p-form-field-focus-border-color: var(--ck-primary-600) !important;
-    --p-form-field-color: var(--ck-surface-900) !important;
-    --p-form-field-placeholder-color: var(--ck-surface-500) !important;
-    --p-button-primary-background: var(--ck-primary-500) !important;
-    --p-button-primary-hover-background: var(--ck-primary-600) !important;
-    --p-button-primary-active-background: var(--ck-primary-700) !important;
-    --p-button-primary-color: var(--ck-surface-950) !important;
-    --p-button-secondary-background: var(--ck-surface-0) !important;
-    --p-button-secondary-hover-background: var(--ck-surface-200) !important;
-    --p-button-secondary-active-background: var(--ck-surface-300) !important;
-    --p-button-secondary-border-color: var(--ck-surface-300) !important;
-    --p-button-secondary-color: var(--ck-surface-900) !important;
-    --p-card-background: var(--ck-surface-0) !important;
-    --p-panel-background: var(--ck-surface-0) !important;
-    --p-panel-header-background: var(--ck-surface-100) !important;
-    --p-datatable-header-cell-background: var(--ck-surface-100) !important;
-    --p-datatable-row-background: var(--ck-surface-0) !important;
-    --p-datatable-row-hover-background: var(--ck-surface-50) !important;
-    --p-dialog-background: var(--ck-surface-0) !important;
-    --p-drawer-background: var(--ck-surface-0) !important;
-    --p-menu-background: var(--ck-surface-0) !important;
-    --p-popover-background: var(--ck-surface-0) !important;
-    --p-tag-info-background: var(--ck-primary-50) !important;
-    --p-tag-info-color: var(--ck-primary-700) !important;
-    --p-tag-secondary-background: var(--ck-surface-100) !important;
-    --p-tag-secondary-color: var(--ck-surface-600) !important;
-}
-
-.dark-mode {
-    --ck-page-background: var(--p-surface-950);
-    --ck-process-canvas-background: var(--p-surface-950);
-    --ck-chrome-background: #0c0c0b;
-    --ck-chrome-foreground: #fffdf8;
-    --ck-chrome-muted: #bdbdb5;
-    --ck-chrome-subtle: #20201d;
-    --ck-chrome-border: #393933;
-    --ck-subtle-background: var(--p-surface-800);
-    --ck-primary-ink: var(--ck-primary-300);
-    --ck-status-success: var(--p-emerald-400);
-    --ck-status-warning: var(--p-amber-400);
-    --ck-status-danger: var(--p-red-400);
-    --ck-signal-identity: var(--p-surface-400);
-    --ck-entity-tone-command: #ff8b60;
-    --ck-entity-tone-fabrication: #ff7079;
-    --ck-entity-tone-output: #8292ff;
-    --ck-entity-tone-material: #47ba91;
-    --ck-entity-tone-system: #ae9aff;
-    --ck-signal-quantity: #f2bc36;
-    --ck-shadow-card: none;
-    --ck-shadow-overlay: 0 14px 32px rgb(0 0 0 / 0.38);
-
-    --p-primary-color: var(--ck-primary-400) !important;
-    --p-primary-contrast-color: var(--ck-surface-950) !important;
-    --p-primary-emphasis-color: var(--ck-primary-300) !important;
-    --p-primary-hover-color: var(--ck-primary-300) !important;
-    --p-primary-active-color: var(--ck-primary-200) !important;
-    --p-content-background: var(--ck-surface-900) !important;
-    --p-content-hover-background: var(--ck-surface-800) !important;
-    --p-content-border-color: var(--ck-surface-700) !important;
-    --p-content-color: var(--ck-surface-50) !important;
-    --p-text-color: var(--ck-surface-50) !important;
-    --p-text-hover-color: var(--ck-surface-0) !important;
-    --p-text-muted-color: var(--ck-surface-400) !important;
-    --p-text-hover-muted-color: var(--ck-surface-300) !important;
-    --p-highlight-background: color-mix(in srgb, var(--ck-primary-500), transparent 86%) !important;
-    --p-highlight-focus-background: color-mix(in srgb, var(--ck-primary-500), transparent 76%) !important;
-    --p-highlight-color: var(--ck-primary-100) !important;
-    --p-highlight-focus-color: var(--ck-primary-50) !important;
-    --p-form-field-background: var(--ck-surface-950) !important;
-    --p-form-field-disabled-background: var(--ck-surface-900) !important;
-    --p-form-field-filled-background: var(--ck-surface-900) !important;
-    --p-form-field-filled-hover-background: var(--ck-surface-800) !important;
-    --p-form-field-filled-focus-background: var(--ck-surface-950) !important;
-    --p-form-field-border-color: var(--ck-surface-700) !important;
-    --p-form-field-hover-border-color: var(--ck-surface-600) !important;
-    --p-form-field-focus-border-color: var(--ck-primary-400) !important;
-    --p-form-field-color: var(--ck-surface-50) !important;
-    --p-form-field-placeholder-color: var(--ck-surface-400) !important;
-    --p-button-primary-background: var(--ck-primary-400) !important;
-    --p-button-primary-hover-background: var(--ck-primary-300) !important;
-    --p-button-primary-active-background: var(--ck-primary-200) !important;
-    --p-button-primary-color: var(--ck-surface-950) !important;
-    --p-button-secondary-background: var(--ck-surface-800) !important;
-    --p-button-secondary-hover-background: var(--ck-surface-700) !important;
-    --p-button-secondary-active-background: var(--ck-surface-600) !important;
-    --p-button-secondary-border-color: var(--ck-surface-700) !important;
-    --p-button-secondary-color: var(--ck-surface-50) !important;
-    --p-card-background: var(--ck-surface-900) !important;
-    --p-panel-background: var(--ck-surface-900) !important;
-    --p-panel-header-background: var(--ck-surface-800) !important;
-    --p-datatable-header-cell-background: var(--ck-surface-800) !important;
-    --p-datatable-row-background: var(--ck-surface-900) !important;
-    --p-datatable-row-hover-background: var(--ck-surface-800) !important;
-    --p-dialog-background: var(--ck-surface-900) !important;
-    --p-drawer-background: var(--ck-surface-900) !important;
-    --p-menu-background: var(--ck-surface-900) !important;
-    --p-popover-background: var(--ck-surface-900) !important;
-    --p-tag-info-background: var(--ck-primary-950) !important;
-    --p-tag-info-color: var(--ck-primary-300) !important;
-    --p-tag-secondary-background: var(--ck-surface-800) !important;
-    --p-tag-secondary-color: var(--ck-surface-300) !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    :root {
-        --ck-motion-fast: 1ms;
-        --ck-motion-normal: 1ms;
-        --ck-motion-emphasis: 1ms;
-    }
-}
-
-html {
     background: var(--ck-page-background);
 }
 
 body {
     background: var(--ck-page-background);
     color: var(--p-text-color);
-}
-
-/* App controls own their selected state; suppress browser/PrimeVue focus rings. */
-:where(button, a, input, textarea, select, [tabindex]):focus {
-    outline: none !important;
-    box-shadow: none !important;
 }
 
 .workspace-tab-strip {
@@ -295,28 +19,52 @@ body {
     display: none;
 }
 
+/* App-wide themed scrollbars: a floating rounded pill thumb on a fully
+   transparent track, no arrow buttons, with a hover step. Tokens ride the
+   PrimeVue text color so both schemes stay in theme. */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ck-scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 0.625rem;
+    height: 0.625rem;
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: var(--ck-scrollbar-thumb);
+    border: 0.1875rem solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--ck-scrollbar-thumb-hover);
+    border: 0.1875rem solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+}
+
+*::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
 ::selection {
     background: var(--ck-selection-background);
 }
 
-/* PrimeVue Card/Panel roots own hard-edged chrome; clip child backgrounds/media to it. */
-.p-card,
-.p-panel {
-    overflow: hidden;
-    border: 1px solid var(--p-content-border-color);
-    box-shadow: var(--ck-shadow-card);
-}
-
-/* Light chrome is near-white; dark mode supplies the ink instrument rail. */
-.bg-chrome {
-    color: var(--ck-chrome-foreground);
-    border-color: var(--ck-chrome-border) !important;
-}
-
 .chrome-signal-rule {
-    border-top-color: var(--p-primary-color) !important;
+    border-top-color: var(--p-primary-color);
     border-top-style: solid;
-    border-top-width: var(--ck-chrome-signal-height) !important;
+    border-top-width: var(--ck-chrome-signal-height);
 }
 
 .process-designer-canvas .vue-flow__connection-path {
@@ -328,16 +76,18 @@ body {
     stroke-linecap: square;
 }
 
-.bg-chrome :where(.p-button-text, .p-button-secondary) {
-    color: var(--ck-chrome-foreground) !important;
+/* Sockets stay visually compact while their grab target grows:
+   the invisible ::after pad makes thin wires and 12px handles easy
+   to grab without enlarging the rendered node chrome. */
+.process-designer-canvas .vue-flow__handle {
+    cursor: crosshair;
 }
 
-.bg-chrome :where(.p-button-text:hover, .p-button-secondary:hover) {
-    background: var(--ck-chrome-subtle) !important;
-}
-
-:where(.p-button-label, .p-tab-label, .p-datatable-column-title, .p-tag-value) {
-    letter-spacing: var(--ck-label-tracking);
+.process-designer-canvas .vue-flow__handle::after {
+    content: '';
+    inset: -0.375rem;
+    position: absolute;
+    border-radius: inherit;
 }
 
 .entity-inline-chip {
@@ -346,16 +96,6 @@ body {
     max-width: 100%;
     min-width: 0;
     vertical-align: baseline;
-    border: 1px solid var(--ck-inline-ref-border, var(--p-content-border-color));
-    background: var(--ck-inline-ref-bg, var(--ck-subtle-background));
-    color: var(--ck-inline-ref-fg, var(--p-text-color));
-    box-shadow: var(--ck-inline-ref-shadow, none);
-    font-weight: var(--ck-inline-ref-font-weight, 500);
-    white-space: nowrap;
-    line-height: 1.15;
-    font-size: 0.92em;
-    padding: 0.18rem 0.5rem;
-    border-radius: var(--ck-radius-ui);
 }
 
 .entity-inline-chip-icon {
@@ -364,6 +104,64 @@ body {
     opacity: 0.9;
     margin-right: 0.35rem;
 }
+
+/* ck-entity-icons:start */
+/* GENERATED by scripts/build-entity-icons.js — do not edit by hand. */
+@font-face {
+    font-family: 'ck-entity-icons';
+    src: url('/fonts/cnc-domain/ck-entity-icons.woff2?f47ea3b1249f0fd15586b96a238a4402') format('woff2'),
+        url('/fonts/cnc-domain/ck-entity-icons.ttf?f47ea3b1249f0fd15586b96a238a4402') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
+}
+
+/* Custom CNC entity icon font (built from public/icons/data-model/cnc-domain).
+   Behaves like a PrimeIcon class string in every surface (<i :class>, PrimeVue
+   Tree/Menu/Tab icon props) and follows the active color scheme.
+   font-size compensates the 24-grid live-area padding so these glyphs match
+   PrimeIcons' edge-to-edge em fill at the same nominal size. */
+.ck-entity-icon {
+    font-family: 'ck-entity-icons';
+    font-size: 1.23em;
+    font-style: normal;
+    font-weight: normal;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    display: inline-block;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.ck-entity-icon-workpiece::before {
+    content: "\f101";
+}
+
+.ck-entity-icon-sheet-instance::before {
+    content: "\f102";
+}
+
+.ck-entity-icon-sheet-design::before {
+    content: "\f103";
+}
+
+.ck-entity-icon-remnant::before {
+    content: "\f104";
+}
+
+.ck-entity-icon-cassette-template::before {
+    content: "\f105";
+}
+
+.ck-entity-icon-cassette-instance::before {
+    content: "\f106";
+}
+
+.ck-entity-icon-cassette-design::before {
+    content: "\f107";
+}
+/* ck-entity-icons:end */
 
 .entity-inline-chip-label {
     flex: 1 1 auto;
@@ -386,12 +184,6 @@ body {
     min-width: 0;
     gap: 0.625rem;
     min-height: 4.75rem;
-    border: 1px solid var(--ck-border-subtle);
-    background: var(--ck-surface-raised);
-    color: var(--p-text-color);
-    border-radius: var(--ck-radius-ui);
-    box-shadow: var(--ck-shadow-card);
-    padding: 0.5rem;
 }
 
 .entity-inline-compact-preview {
@@ -402,9 +194,6 @@ body {
     height: 3.75rem;
     flex: 0 0 auto;
     overflow: hidden;
-    border-radius: calc(var(--ck-radius-ui) - 0.125rem);
-    background: var(--ck-subtle-background);
-    border: 1px solid var(--ck-border-subtle);
 }
 
 .entity-inline-compact-preview > *,
@@ -417,8 +206,6 @@ body {
     width: 100%;
     height: 100%;
     aspect-ratio: auto;
-    border: 0;
-    border-radius: 0;
 }
 
 .entity-inline-compact-preview :where(img) {
@@ -449,21 +236,6 @@ body {
     align-items: center;
 }
 
-.entity-inline-compact-status-row :where(.p-tag) {
-    max-width: 100%;
-    min-width: 0;
-    font-size: 0.62rem;
-    line-height: 1;
-}
-
-.entity-inline-compact :where(.p-card, .p-panel) {
-    box-shadow: none;
-}
-
-.entity-inline-compact :where(.p-card-content) {
-    padding: 0;
-}
-
 .entity-inline-compact :where(dl) {
     max-height: 1.35rem;
     overflow: hidden;
@@ -490,7 +262,6 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem 0.875rem;
-    font-size: 0.875rem;
 }
 
 .entity-card-popup-content :where(.data-block > div) {
@@ -498,9 +269,6 @@ body {
     min-width: 0;
     align-items: baseline;
     gap: 0.375rem;
-    border: 0;
-    background: transparent;
-    padding: 0;
 }
 
 .entity-card-popup-content :where(.data-block dd) {
@@ -517,47 +285,4 @@ body {
     .grid-details {
         @apply grid grid-cols-1 lg:grid-cols-4 gap-[var(--ck-details-gap)];
     }
-}
-
-/* Input components fill available width by default */
-/* .p-inputchips, */
-/* .p-select, */
-/* .p-password, */
-/* .p-textarea, */
-/* .p-inputnumber, */
-.p-inputtext {
-    width: 100%;
-}
-
-/* PrimeVue Avatar's image defaults to `object-fit: fill`, which distorts
-   portrait uploads inside its square frame. Avatar media is always cropped. */
-.p-avatar {
-    overflow: hidden;
-}
-
-.p-avatar .p-avatar-image,
-.p-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-
-.p-tabs-list {
-    overflow-x: auto;
-    overflow-y: hidden;
-    white-space: nowrap;
-    flex-wrap: nowrap !important;
-}
-
-/* DataView Transparency (PrimeVue 4 Idiomatic Way) */
-:root {
-    --p-dataview-background: transparent;
-    --p-dataview-content-background: transparent;
-    --p-dataview-header-background: transparent;
-    --p-dataview-footer-background: transparent;
-    --p-dataview-border-width: 0;
-    --p-dataview-content-border-width: 0;
-    --p-dataview-header-border-width: 0;
-    --p-dataview-footer-border-width: 0;
 }

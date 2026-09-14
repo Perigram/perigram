@@ -22,8 +22,10 @@ function featureToEntityType(feature) {
 }
 const CAPABILITY_FEATURES = [
   'config-bot',
+  'connections',
   'entity-events',
   'files',
+  'livekit',
   'billing',
   'artifact-conversions',
   'invitations',
@@ -219,8 +221,6 @@ const dtoContractFiles = [
   ...walkDir('components/entities').filter(file => file.endsWith('.vue')),
   ...walkDir('components/shared').filter(file => file.endsWith('.vue')),
   ...walkDir('composables').filter(file => file.endsWith('.js')),
-  ...walkDir('pages/projects').filter(file => file.endsWith('.vue')),
-  ...walkDir('pages/project').filter(file => file.endsWith('.vue')),
   ...walkDir('pages/test').filter(file => file.endsWith('.vue')),
   ...walkDir('test-data').filter(file => file.endsWith('.js'))
 ];
@@ -563,11 +563,8 @@ const staticBoundarySpecs = new Set([
   'components/ui-rework-review.spec.js',
   'components/generated/project-workspace.spec.js',
   'components/generated/project-file-operations.spec.js',
-  'components/designers/designer-workspace.spec.js',
   'components/entities/Artifact/artifact-detail.spec.js',
-  'components/artifacts/artifact-viewer.spec.js',
-  'components/artifacts/artifact-text-editor.spec.js',
-  'layouts/app.spec.js'
+  'components/artifacts/artifact-viewer.spec.js'
 ]);
 const specFiles = walkDir('.').filter(file => file.endsWith('.spec.js') && !file.includes('node_modules'));
 specFiles.forEach(file => {
@@ -580,6 +577,39 @@ specFiles.forEach(file => {
     errors++;
   }
 });
+
+console.log('\n--- Dynamic import resolution ---');
+// A bad relative dynamic import resolves fine under vite-node until the code
+// path runs, but Nitro resolves it statically and the whole server bundle
+// fails (every route 503). Guard the whole class: every relative import()
+// specifier under server/ must resolve to a real file.
+for (const file of walkDir('server').filter(item => item.endsWith('.js') && !item.endsWith('.spec.js'))) {
+  const relFile = path.relative('.', file);
+  const content = fs.readFileSync(file, 'utf8');
+  for (const match of content.matchAll(/import\s*\(\s*['"](\.[^'"]+)['"]\s*\)/g)) {
+    const resolved = path.resolve(path.dirname(file), match[1]);
+    if (!fs.existsSync(resolved)) {
+      console.error(`❌ ${relFile} dynamic import '${match[1]}' does not resolve to a file`);
+      errors++;
+    }
+  }
+}
+
+console.log('\n--- Bare workspace-package imports ---');
+// Bare `@cutkit/*` specifiers resolve only where workspace symlinks exist
+// (a host install); the dev container runs Nitro with its own node_modules
+// that has none, so such imports 500 at request time. Cross-root imports
+// must use the package.json `imports` subpaths (#packages/..., #shared/...,
+// #utils/...).
+for (const file of [...walkDir('server'), ...walkDir('shared')]) {
+  if (!file.endsWith('.js') || file.endsWith('.spec.js')) continue;
+  const relFile = path.relative('.', file);
+  const content = fs.readFileSync(file, 'utf8');
+  for (const match of content.matchAll(/(?:from\s+['"]|import\s*\(\s*['"])@cutkit\//g)) {
+    console.error(`❌ ${relFile} imports bare workspace package near '${match[0].trim()}' — use #packages/... instead`);
+    errors++;
+  }
+}
 
 console.log('\n--- Verification Summary ---');
 if (errors === 0) {

@@ -97,7 +97,9 @@ describe('current process dataflow contract', () => {
     expect(canvas.nodes).toEqual([
       expect.objectContaining({ id: 'create', type: 'processNode', data: expect.objectContaining({ refId: 'create' }) })
     ]);
-    expect(canvasToDefinition(canvas, definition).actions).toEqual({});
+    // Actions are panel-owned definition records: the canvas never projects
+    // or deletes them.
+    expect(canvasToDefinition(canvas, definition).actions).toEqual(definition.actions);
   });
 
   it('preserves valid graph nodes, viewport, and edges across Save and reload round trips', () => {

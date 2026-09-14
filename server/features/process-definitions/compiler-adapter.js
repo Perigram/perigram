@@ -1,25 +1,47 @@
 import { createError } from 'h3';
 import {
   normalizeProcessDefinition,
+  migrateProducerOutputIdentities,
   PROCESS_DATAFLOW_VERSION,
-  requiredEntityProfileTypes,
-  validateProcessDefinition
+  validateProcessDefinition,
+  validateRequiredInputAvailability,
+  validateLineageBindingResolution
 } from '~/packages/processes/src/index.js';
+import { getAppRegistry } from '~/server/runtime/app-registry.js';
+
+function capabilityBindings(domain = {}) {
+  const registry = getAppRegistry();
+  const capabilities = {};
+  for (const entity of domain.entities || []) {
+    const record = registry?.getEntityService?.(entity.type)?.processCapabilities;
+    if (record) capabilities[entity.type] = record;
+  }
+  return capabilities;
+}
 
 export function validateActivatableProcess(data = {}, domain = {}, roles = {}) {
-  const validation = validateProcessDefinition(data, domain, { roles });
+  const capabilities = capabilityBindings(domain);
+  const validation = validateProcessDefinition(data, domain, {
+    roles,
+    ...(Object.keys(capabilities).length ? { capabilities } : {})
+  });
   const process = validation.definition || normalizeProcessDefinition(data);
-  const requiredTypes = requiredEntityProfileTypes(process, domain);
-  if (!requiredTypes.length) return validation;
-  const profiledTypes = new Set(Object.values(process.entityProfiles || {}).map(profile => profile.entityType));
-  const missing = requiredTypes.filter(entityType => !profiledTypes.has(entityType));
-  if (!missing.length) return validation;
+  const availability = validateRequiredInputAvailability(process, domain);
+  const lineageResolution = validateLineageBindingResolution(process, domain);
+  const errors = [
+    ...(validation.errors || []),
+    ...availability.map(diagnostic => diagnostic.message),
+    ...lineageResolution.map(diagnostic => diagnostic.message)
+  ];
+  if (!errors.length) return validation;
   return {
     ...validation,
     ok: false,
-    errors: [
-      ...(validation.errors || []),
-      `Nesting exposure requires entity profiles and workflows for: ${missing.join(', ')}`
+    errors,
+    diagnostics: [
+      ...(validation.diagnostics || []),
+      ...availability,
+      ...lineageResolution
     ]
   };
 }
@@ -33,7 +55,15 @@ export function assertCurrentProcessDefinition(data = {}) {
   }
 }
 
-export function currentProcessDefinition(data = {}) {
+export function currentProcessDefinition(data = {}, domain = {}) {
   assertCurrentProcessDefinition(data);
-  return structuredClone(data);
+  const migration = migrateProducerOutputIdentities(data, domain);
+  if (migration.errors.length) {
+    throw createError({
+      statusCode: 400,
+      message: migration.errors.join('; '),
+      data: { errors: migration.errors }
+    });
+  }
+  return migration.data;
 }

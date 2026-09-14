@@ -1,6 +1,6 @@
 <template>
   <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
-    <div class="overflow-auto rounded-ui border border-content-border bg-content p-3">
+    <div class="overflow-auto rounded-ui border border-content-border p-3">
       <svg
         v-if="activePage"
         class="h-auto min-h-80 w-full"
@@ -35,6 +35,7 @@
               :stroke="selectedItem?.id === item.id ? 'var(--p-primary-color)' : 'currentColor'"
               vector-effect="non-scaling-stroke"
             />
+            <!-- Data-driven exception: saved document typography controls canvas geometry. -->
             <text
               v-if="item.kind === 'text'"
               :x="item.x"
@@ -68,11 +69,11 @@
       <template v-if="selectedItem">
         <div class="grid grid-cols-2 gap-2">
           <label class="flex flex-col gap-1">
-            <span class="text-xs text-muted-color">{{ $t('artifactTemplates.moveX') }}</span>
+            <span class="text-muted-color text-supporting">{{ $t('artifactTemplates.moveX') }}</span>
             <InputNumber v-model="selectedItem.offset.x" size="small" :max-fraction-digits="3" />
           </label>
           <label class="flex flex-col gap-1">
-            <span class="text-xs text-muted-color">{{ $t('artifactTemplates.moveY') }}</span>
+            <span class="text-muted-color text-supporting">{{ $t('artifactTemplates.moveY') }}</span>
             <InputNumber v-model="selectedItem.offset.y" size="small" :max-fraction-digits="3" />
           </label>
         </div>
@@ -87,15 +88,15 @@
           </label>
           <template v-if="selectedItem.variable">
             <label class="flex flex-col gap-1">
-              <span class="text-xs text-muted-color">{{ $t('artifactTemplates.variableName') }}</span>
+              <span class="text-muted-color text-supporting">{{ $t('artifactTemplates.variableName') }}</span>
               <InputText v-model="selectedItem.variable.name" size="small" />
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-xs text-muted-color">{{ $t('artifactTemplates.variableType') }}</span>
+              <span class="text-muted-color text-supporting">{{ $t('artifactTemplates.variableType') }}</span>
               <Select v-model="selectedItem.variable.type" :options="variableTypes" option-label="label" option-value="value" size="small" />
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-xs text-muted-color">{{ $t('artifactTemplates.defaultValue') }}</span>
+              <span class="text-muted-color text-supporting">{{ $t('artifactTemplates.defaultValue') }}</span>
               <InputText v-model="selectedItem.variable.default" size="small" />
             </label>
           </template>

@@ -3,10 +3,12 @@
     <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
     <StateBlock v-else-if="error" state="error" :message="errorMessage" />
     <StateBlock v-else-if="actionError" state="error" :message="actionError" />
-    <GeneratedHomeScreen
-      v-else-if="screen.template === 'home'"
+    <component
+      :is="screenOverload.component"
+      v-else-if="screenOverload"
       :screen="screen"
       :source-state="sourceState"
+      :screen-actions="screen.actions || []"
       @refresh="load"
       @execute-action="executeAction"
     />
@@ -17,15 +19,6 @@
     <GeneratedOrganizationOverview
       v-else-if="screen.template === 'organizationOverview'"
       :screen="screen"
-    />
-    <component
-      :is="screenOverload.component"
-      v-else-if="screenOverload"
-      :screen="screen"
-      :source-state="sourceState"
-      :screen-actions="screen.actions || []"
-      @refresh="load"
-      @execute-action="executeAction"
     />
     <WorkspaceLanes v-else-if="screen.template === 'workspaceLanes'" class="min-h-[32rem]">
       <template v-if="regionBySlot.left" #left>
@@ -116,7 +109,7 @@
       </template>
       <div class="flex flex-col gap-3">
         <div v-for="field in promptFields" :key="field.id" class="flex flex-col gap-1">
-          <span v-if="!(relationCreatorMode && field.creator?.actionId)" class="text-xs text-muted-color">{{ field.label || field.id }}</span>
+          <span v-if="!(relationCreatorMode && field.creator?.actionId)" class="text-muted-color text-supporting">{{ field.label || field.id }}</span>
           <div
             v-if="field.type === 'cassetteParameters'"
             class="grid grid-cols-2 gap-2"
@@ -126,7 +119,7 @@
               :key="parameter.name"
               class="flex flex-col gap-1"
             >
-              <span class="text-xs text-muted-color">{{ parameter.name }}</span>
+              <span class="text-muted-color text-supporting">{{ parameter.name }}</span>
               <InputText
                 v-model="promptValues[field.id][parameter.name]"
                 type="number"
@@ -142,7 +135,7 @@
               :key="variable.name"
               class="flex flex-col gap-1"
             >
-              <span class="text-xs text-muted-color">{{ variable.name }}</span>
+              <span class="text-muted-color text-supporting">{{ variable.name }}</span>
               <Select
                 v-if="variable.type === 'boolean'"
                 v-model="promptValues[field.id][variable.name]"
@@ -157,11 +150,21 @@
               />
             </label>
           </div>
-          <Textarea
-            v-else-if="field.type === 'object'"
+          <GeneratedObjectInput
+            v-else-if="field.type === 'object' || field.type === 'json'"
             v-model="promptValues[field.id]"
-            rows="3"
-            auto-resize
+            :schema="field.schema || null"
+          />
+          <ToggleSwitch
+            v-else-if="field.type === 'boolean'"
+            v-model="promptValues[field.id]"
+          />
+          <DatePicker
+            v-else-if="field.type === 'date' || field.type === 'dateTime'"
+            v-model="promptValues[field.id]"
+            :show-time="field.type === 'dateTime'"
+            hour-format="24"
+            class="w-full"
           />
           <div v-else-if="field.type === 'entity'" class="flex flex-col gap-2">
             <Select
@@ -195,7 +198,7 @@
             />
             <div v-if="relationCreatorMode && field.creator?.actionId" class="flex flex-col gap-3">
               <label v-for="creatorField in relationCreatorFields" :key="creatorField.id" class="flex flex-col gap-1">
-                <span class="text-xs text-muted-color">{{ creatorField.label || creatorField.id }}</span>
+                <span class="text-muted-color text-supporting">{{ creatorField.label || creatorField.id }}</span>
                 <Select
                   v-if="creatorField.type === 'entity'"
                   v-model="relationCreatorValues[creatorField.id]"
@@ -207,7 +210,7 @@
                 />
                 <div v-else-if="creatorField.type === 'cassetteParameters'" class="grid grid-cols-2 gap-2">
                   <label v-for="parameter in relationCreatorParameterFields(creatorField)" :key="parameter.name" class="flex flex-col gap-1">
-                    <span class="text-xs text-muted-color">{{ parameter.name }}</span>
+                    <span class="text-muted-color text-supporting">{{ parameter.name }}</span>
                     <InputText v-model="relationCreatorValues[creatorField.id][parameter.name]" type="number" />
                   </label>
                 </div>
@@ -251,21 +254,23 @@
 <script setup>
 import { computed, reactive, ref, toRef, watch } from 'vue';
 import Button from 'primevue/button';
+import DatePicker from 'primevue/datepicker';
 import InputText from 'primevue/inputtext';
 import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import Select from '~/components/shared/EntitySelect.vue';
-import Textarea from 'primevue/textarea';
+import ToggleSwitch from 'primevue/toggleswitch';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 import { useI18n } from 'vue-i18n';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import WorkspaceLanes from '~/components/shared/WorkspaceLanes.vue';
-import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
 import GeneratedOrganizationAccount from '~/components/generated/GeneratedOrganizationAccount.vue';
 import GeneratedOrganizationOverview from '~/components/generated/GeneratedOrganizationOverview.vue';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCreator.vue';
+import GeneratedObjectInput from '~/components/generated/GeneratedObjectInput.vue';
 import { entityIdentifier, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
@@ -276,12 +281,21 @@ import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-la
 import { occsQueueParameters } from '~/utils/occs/parameters.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
 import { routeContextTraceExclusions } from '~/utils/entity-hierarchy.js';
+import {
+  artifactCreatorForAction,
+  collectActionInputFields,
+  hasUploadCreator,
+  initialPromptValue,
+  promptData,
+  promptedFields
+} from '~/components/generated/action-inputs.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
 });
 
 const toast = useToast();
+const confirm = useConfirm();
 const { t, te } = useI18n();
 const authStore = useAuthStore();
 const route = useRoute();
@@ -337,7 +351,9 @@ const dialogSaveLabel = computed(() => pendingAction.value
   : t('common.save'));
 const errorMessage = computed(() => error.value?.data?.message || error.value?.message || t('generatedScreen.loadFailed'));
 const screenTitle = computed(() => generatedScreenLabel(screen.value, { t, te }));
-const pageTitle = computed(() => screen.value?.template === 'entityDetail' ? '' : screenTitle.value);
+// Workspace overloads (project IDE, home shell) own the whole viewport; they
+// render no outer page title.
+const pageTitle = computed(() => screenOverload.value || screen.value?.template === 'entityDetail' ? '' : screenTitle.value);
 const screenOverload = computed(() => resolveGeneratedScreenOverload(screen.value));
 const booleanOptions = computed(() => [
   { label: t('common.yes'), value: true },
@@ -349,6 +365,15 @@ async function executeAction(action, entity = null, context = {}) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
+    if (action.actionKind === 'deleteEntity') {
+      confirm.require({
+        message: t('messages.confirmDelete'),
+        header: t('common.confirmation'),
+        icon: 'pi pi-exclamation-triangle',
+        accept: () => postAction(action, entity, context.data || {}, context)
+      });
+      return;
+    }
     const artifactCreator = artifactCreatorForAction(action);
     if (artifactCreator) {
       pendingAction.value = action;
@@ -390,18 +415,6 @@ function closeInputDialog() {
   inputDialogVisible.value = false;
   pendingAction.value = null;
   pendingEntity.value = null;
-}
-
-function hasUploadCreator(field = {}) {
-  return Boolean(field.creator?.entityType)
-    && field.creator.attachmentKinds?.some(item => ['upload', 'capture', 'editor'].includes(item.creation?.mode));
-}
-
-function artifactCreatorForAction(action = {}) {
-  if (action.actionKind !== 'createEntity' || !action.entityType) return null;
-  const field = [...(action.construction?.inputs || []), ...(action.inputPolicy?.fields || [])]
-    .find(input => input.creator?.entityType);
-  return hasUploadCreator(field) ? field.creator : null;
 }
 
 function openArtifactCreator(field = {}) {
@@ -469,7 +482,8 @@ async function postAction(action, entity = null, data = {}, context = {}) {
         parameters: { ...(context?.parameters || {}), ...(data?.parameters || {}) }
       }
     });
-    applyActionResult(action, result);
+    if (action.actionKind === 'deleteEntity') await load();
+    else applyActionResult(action, result);
     await openCreatedEntity(action, result);
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
   } catch (err) {
@@ -479,6 +493,11 @@ async function postAction(action, entity = null, data = {}, context = {}) {
 
 function applyActionResult(action = {}, result = null) {
   if (!result || typeof result !== 'object') return;
+  const mapped = mappedMutationItems(result);
+  if (mapped) {
+    for (const entity of mapped) applyEntitySnapshot(action.entityType, entity?.entity || entity);
+    return;
+  }
   if (action.actionKind === 'runCommand') {
     for (const output of result.entities || []) {
       if (output?.entity) applyEntitySnapshot(output.type, output.entity);
@@ -486,15 +505,32 @@ function applyActionResult(action = {}, result = null) {
     return;
   }
   if (result.owner) applyEntitySnapshot(action.entityType, result.owner);
-  if (result.created) applyEntitySnapshot(action.relationMutation?.targetType || action.entityType, result.created);
+  if (result.created) {
+    for (const entity of mappedMutationItems(result.created) || [result.created]) {
+      applyEntitySnapshot(action.relationMutation?.targetType || action.entityType, entity);
+    }
+  }
   if (!result.owner && !result.created) {
     applyEntitySnapshot(action.entityType, result.entity || result);
   }
 }
 
+// A mapped mutation response is either a bare shape-preserving data tree
+// (zero failures) or a failure-carrying `{ result, failures, ... }` envelope.
+// Failed slots hold their MutationFailure record, so only items without an
+// `error` payload are completed entity snapshots.
+function mappedMutationItems(result) {
+  const tree = Array.isArray(result?.branches) ? result : result?.result;
+  if (!Array.isArray(tree?.branches)) return null;
+  return tree.branches.flatMap(branch => branch.items || []).filter(item => item && !item.error);
+}
+
 async function openCreatedEntity(action = {}, result = null) {
   if (action.actionKind !== 'createEntity' || !result || typeof result !== 'object') return;
-  const entity = result.created || (!result.owner ? (result.entity || result) : null);
+  const mapped = mappedMutationItems(result);
+  const entity = mapped
+    ? (mapped.length === 1 ? mapped[0] : null)
+    : result.created || (!result.owner ? (result.entity || result) : null);
   const entityType = action.relationMutation?.targetType || action.entityType;
   const route = detailRouteForEntity({
     entity,
@@ -553,16 +589,6 @@ function syncCassetteParameterValues(fields = promptedFields(pendingAction.value
   }
 }
 
-function initialPromptValue(field = {}) {
-  if (field.type === 'entityList') return Array.isArray(field.default) ? field.default : [];
-  if (field.type === 'cassetteParameters') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
-  if (field.editor === 'artifactTemplateValues') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
-  if (field.type === 'enum') return field.default ?? field.options?.[0] ?? '';
-  const value = field.default ?? '';
-  if (field.type === 'object' && value && typeof value !== 'string') return JSON.stringify(value, null, 2);
-  return value;
-}
-
 function fieldOptions(field = {}) {
   const options = field.options || [];
   const sourceFieldId = field.optionsFromEntity;
@@ -617,16 +643,6 @@ async function loadPromptOptions(fields = []) {
       const options = await entityOptions(field.entityType || field.accepts?.[0], field).catch(() => []);
       promptOptions[field.id] = options;
     }));
-}
-
-function promptFieldHidden(field = {}, action = pendingAction.value) {
-  if (!field) return false;
-  const parentType = action?.parentEntityType || action?.inputs?.find(input => input.id === 'parent')?.entityType || '';
-  const templateEntityType = field.templateEntityType || field.entityType || '';
-  return action?.actionKind === 'createEntity'
-    && templateEntityType
-    && parentType === templateEntityType
-    && field.id === (field.templateFieldId || 'templateId');
 }
 
 async function entityOptions(entityType, field = {}) {
@@ -705,63 +721,6 @@ function entityOption(entity = {}, entityType = '') {
   };
 }
 
-function collectActionInputFields(action = {}) {
-  if (action.actionKind === 'runCommand') {
-    return (action.inputs || [])
-      .filter(field => field.prompt !== false)
-      .map(field => ({
-        ...field,
-        type: field.entityType ? 'entity' : (field.type || (field.kind === 'json' ? 'object' : field.kind) || 'string'),
-        path: field.path || (field.entityType ? `entities.${field.id}` : `parameters.${field.id}`)
-      }));
-  }
-  const policyFields = action.inputPolicy?.fields || [];
-  const constructionFields = action.construction?.inputs || action.inputs || [];
-  return [...policyFields, ...constructionFields]
-    .filter((field, index, fields) => fields.findIndex(item => item.id === field.id) === index);
-}
-
-function promptedFields(action = {}) {
-  return collectActionInputFields(action)
-    .filter(field => !promptFieldHidden(field, action))
-    .filter(field => field?.prompt || field?.required);
-}
-
-function promptData(fields = [], values = {}) {
-  const data = {};
-  for (const field of fields) {
-    const value = normalizePromptValue(field, values[field.id] ?? field.default);
-    if (value === undefined || value === '') continue;
-    setByPath(data, field.path || field.id, value);
-  }
-  return data;
-}
-
-function normalizePromptValue(field = {}, value) {
-  if (field.type === 'number') return value === '' ? undefined : Number(value);
-  if (field.type === 'entityList') return normalizeEntityListValue(field, value);
-  if (field.type === 'cassetteParameters') return normalizeCassetteParameters(value);
-  if (field.type === 'object') {
-    if (!value) return {};
-    try {
-      return typeof value === 'string' ? JSON.parse(value) : value;
-    } catch {
-      return {};
-    }
-  }
-  return value;
-}
-
-function normalizeCassetteParameters(value = {}) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-  return Object.fromEntries(Object.entries(value)
-    .filter(([, item]) => item !== '' && item !== null && item !== undefined)
-    .map(([key, item]) => {
-      const numeric = Number(item);
-      return [key, Number.isFinite(numeric) ? numeric : item];
-    }));
-}
-
 watch(
   () => [promptValues.templateId, pendingAction.value?.actionId || pendingAction.value?.id || ''],
   () => {
@@ -778,27 +737,4 @@ watch(
   }
 );
 
-function normalizeEntityListValue(field = {}, value = []) {
-  const ids = Array.isArray(value) ? value.filter(Boolean) : [value].filter(Boolean);
-  if (field.accepts?.includes('cassette_design')) {
-    return ids.map((id, index) => ({
-      entryId: `${field.id || 'entry'}_${index + 1}`,
-      id,
-      entityType: 'cassette_design',
-      quantity: 1
-    }));
-  }
-  return ids.map(id => ({ id }));
-}
-
-function setByPath(target, path, value) {
-  const parts = String(path || '').split('.').filter(Boolean);
-  if (!parts.length) return;
-  let cursor = target;
-  for (const part of parts.slice(0, -1)) {
-    cursor[part] ||= {};
-    cursor = cursor[part];
-  }
-  cursor[parts[parts.length - 1]] = value;
-}
 </script>

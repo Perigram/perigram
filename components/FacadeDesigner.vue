@@ -2,16 +2,16 @@
   <DesignerSurface>
     <DesignerWorkspace layout="lanes" class="h-full">
     <template #palette>
-      <div class="flex min-h-0 flex-col gap-3 rounded-ui border border-content-border bg-content p-3">
+      <div class="flex min-h-0 flex-col gap-3 rounded-ui border border-content-border p-3">
         <Button :label="$t('facade.save')" icon="pi pi-save" size="small" :loading="saving" :disabled="!facade?._id" @click="save" />
         <Select v-model="selectedPatternId" :options="patternOptions" option-label="label" option-value="value" entity-type="facadePattern" :placeholder="$t('facade.patterns')" />
       </div>
     </template>
 
-    <ThreeViewport :scene="modelGroup" class="rounded-ui border border-content-border bg-content" @select="selectPart" />
+    <ThreeViewport :scene="modelGroup" class="rounded-ui border border-content-border" @select="selectPart" />
 
     <template #inspector>
-      <div class="flex min-h-0 flex-col gap-3 rounded-ui border border-content-border bg-content p-3">
+      <div class="flex min-h-0 flex-col gap-3 rounded-ui border border-content-border p-3">
         <IdentityBlock v-if="selectedPart" :entity="{ identity: { name: selectedPart.label } }" variant="compact" />
         <StateBlock v-else :message="$t('facade.parts')" icon="pi pi-objects-column" />
         <div v-if="selectedPart" class="flex flex-col gap-2">

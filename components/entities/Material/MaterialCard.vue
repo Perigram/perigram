@@ -8,9 +8,10 @@
         <Tag v-if="material.data?.code" :value="material.data.code" severity="secondary" size="small" />
       </template>
       <template #compact-content>
-        <p v-if="material.data?.description" class="mt-3 mb-0 text-sm text-muted-color">
-          {{ material.data.description }}
-        </p>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <Tag v-if="material.data?.code" :value="material.data.code" severity="secondary" size="small" />
+          <span v-if="material.data?.thickness" class="text-muted-color text-body">{{ material.data.thickness }} mm</span>
+        </div>
       </template>
       <Divider />
       <DataBlock entity-type="material" :entity="material" :fields="FIELDS" />

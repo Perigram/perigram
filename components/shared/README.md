@@ -165,6 +165,8 @@ generated workspace panes, and dialog content. `DesignerDialog` is the only
 dialog host for standalone designer launches. It fills the viewport and mounts
 its content through `DesignerSurface`, so a cassette designer opened from an
 entity action uses the same sizing contract as route and pane designers.
+The host keeps the preset's dialog-content padding; its scoped PrimeVue integration
+owns only the flex sizing needed for the designer surface.
 
 ### `ThreeViewport.vue`
 
@@ -348,7 +350,9 @@ When only an id is provided, it resolves the DTO through the entity store's
 access-filtered optional-reference lookup, resolves the matching design-system
 entity card, and renders that card with
 `variant="inline"`. The referenced entity card owns the click/keyboard popover
-and reuses its canonical body inside that popover. In generated surfaces,
+and reuses its canonical body inside that popover; `interactive: false`
+renders the inline card non-expandable for non-interactive rows such as
+explorer entries and static summaries. In generated surfaces,
 the popover action row is access-aware: `EntityInlineRef` resolves the
 referenced entity's generated detail-screen actions, forwards them to
 `EntityCard`, and invokes the surrounding generated screen's action executor
@@ -478,7 +482,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 
 ## Layout Containers (`components/shared/`)
 
-- **`ActionToolbar.vue`**: Responsive title/subtitle/actions row for pages, sections, and tab panels. Use instead of ad hoc `flex justify-between` header markup.
+- **`ActionToolbar.vue`**: Responsive title/subtitle/actions row for pages, sections, and tab panels. It owns the semantic display/title/body typography roles. Use it instead of ad hoc heading chrome.
 - **`MetricPanel.vue`**: Route-level summary panel for aggregate collection or
   workflow facts. Pages pass translated metric descriptors
   `{ key, label, value }` and may use the default slot for route actions. Use it
@@ -486,7 +490,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   replacement for entity-specific `DataBlock`, `SpecsBlock`, or
   `EntitySurfaceContent`. Vertical metric panels collapse to a two-column
   compact grid below the normal desktop breakpoint and become a stacked rail at
-  `lg` and wider.
+  `lg` and wider. It delegates container chrome to PrimeVue `Panel`; callers own only metric data and layout orientation.
 - **`ResponsiveGrid.vue`**: Token-backed responsive grid for cards and
   repeated item surfaces. Variants: `cards` (default), `dense`, `wide`,
   `bounded`. Grid
@@ -510,29 +514,14 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   identity and status. `EntityCard footer-display="inline"` is reserved for a
   small caller-owned primary navigation choice, such as opening or switching
   the organization represented by a profile card.
-- **`MotionDock.vue`**: Shared compact bottom action dock adapted from the Vue
-  Bits Dock block and backed by `motion-v`. Use it for a small, contextual set
-  of canvas or workspace commands—not global navigation or ordinary page
-  actions. Callers supply `{ icon, label, onClick, pressed?, disabled?,
-  attention?, hasPopup?, onHoverStart?, onHoverEnd?, onFocus?, onBlur? }`
-  items; the primitive owns its token-backed geometry, spring, labels,
-  keyboard buttons, focus state, and surface treatment. Use the optional
-  hover/focus hooks only when a caller owns a contextual popover anchored to
-  that action; the dock does not own page-specific panels. Its rendered button
-  refs bind pointer, focus, and click listeners after mount so contextual
-  actions remain interactive after SSR hydration.
-  `useReducedMotion()` disables magnification and label travel while retaining
-  static labels and every action's normal keyboard behavior. Do not recreate
-  the interaction with a page-local toolbar or add fixed dark surfaces,
-  shadows, or motion constants.
 - **`ScrollablePanel.vue`**: PrimeVue `Panel` wrapper for bounded workspace
   sections whose header remains fixed while the panel content scrolls. It
   supports an `actions` slot for header controls and `:scroll-content="false"`
   for content-height panels. `density="compact"` reduces header and content
   padding for IDE-style navigation and inspector lanes without changing the
   global PrimeVue panel density.
-- **`StateBlock.vue`**: Standard loading/empty/error state block with icon, message, optional description, and action slot.
-- **`TableFrame.vue`**: Standard bordered/elevated frame around PrimeVue `DataTable` surfaces; owns the token-backed DataTable header-cell background override.
+- **`StateBlock.vue`**: Standard loading/empty/error layout with icon, semantic body/caption roles, optional description, and action slot. It does not recreate bordered container chrome. The root `error.vue` surface uses this primitive for failures and recovery actions.
+- **`TableFrame.vue`**: Reusable overflow boundary around PrimeVue `DataTable` surfaces. DataTable chrome remains preset-owned.
 - **`StandardDialog.vue`**: Dialog wrapper with standardized footer and responsiveness.
 - **`StandardPage.vue`**: Route-level page shell for title, subtitle,
   breadcrumbs, and page actions. The authenticated `app` layout owns outer
@@ -546,6 +535,21 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   parameters and lifecycle hook settings so those surfaces do not fall back to
   raw JSON editors. Entity type helper text is shown only for `entityId`
   selectors, not workflow-state selectors.
+- **`UserAccountMenu.vue`**: The single shared account control: a PrimeVue
+  popover with organization switching, chats entry, theme toggle, profile, and
+  logout, plus a customizable trigger through the `#trigger` slot (default is
+  the round avatar button). The desktop navbar and the mobile bottom panel
+  render it for the avatar/profile buttons, and the generated home workspace
+  sidebar renders the panel-style trigger. It only flips the `theme-mode`
+  cookie; the app layout applies the theme class.
+- **`CommunicationMenu.vue`**: The shared sidebar communication control: a
+  PrimeVue `TieredMenu` whose items are Chats (unread badge, opens the chats
+  workspace page) and Calls (submenu with every direct/group conversation
+  that can be rung plus the joinable active call rooms with participant
+  badges). Conversations, unread counts, and organization labels come from
+  the auth/support stores; the active-room snapshot is passed in by the
+  host and actions are delegated through `open-chats`/`start-call`/
+  `join-room` events.
 - **`EntityRefInput.vue`**: Typed entity reference selector used by
   `TypedSettingsForm` for `entityId` fields. It prefers workbench/scenario
   entity options and falls back to a manual id input only when no typed options
@@ -567,14 +571,18 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   from `data.type` or lifecycle state.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
 - **`EntityPage.vue`**: Root layout for all entity detail views. Features a compact header with identity, optional inline status, an `actions` slot, an `info` slot for summary data, and optional `sidebar`. Trace breadcrumbs are hidden by default and appear only when a caller opts in with `showTrace`; callers can pass exact `traceExclusions` derived from the current compiled context. Generated entity-detail screens also suppress the outer `StandardPage` title so the entity header is the only title surface. Page headers use the shared inline status popover, including compact lifecycle history, and normally collapse the `actions` slot into `EntityActionsPopover`; canonical hub entities may select `actionsDisplay="inline"` for a small set of primary child-screen routes. Detail surfaces for static master-data entities can pass `:show-status="false"` instead of rendering local header chrome. Pane adapters pass `:show-header="false"` so their own tabs/status/actions remain the sole chrome while the canonical body and sidebar layout are retained. The wrapper is an inline-size query container: the header splits at 32rem and the sidebar receives its second track at 48rem of actual parent width. It appends its entity to the displayed-context stack so nested traces do not repeat any represented ancestor. Operational overloads compose their workspace primitives inside this canonical shell instead of adding overload-specific layout modes to `EntityPage`.
-- **`EntityCard.vue`**: Shared entity card chrome built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`). Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `statusActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title. PrimeVue `Card`/`Panel` roots are globally overflow-clipped in `assets/css/main.css` so header media and top-slot backgrounds cannot paint outside the token-backed rounded border. Card hover feedback is an in-place primary border, rather than an outward shadow, so it remains visible inside that clipping boundary.
+- **`EntityCard.vue`**: Shared entity card structure built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`) while the preset owns its border, radius, shadow, spacing, and interaction states. Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `statusActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title.
   Full-card footer actions and generated inline/compact popover actions render
   through `EntityActionsPopover`, including access-gated deletion.
-  Compact cards can opt into `density="dense"` for selector/list rows that need
-  tighter padding while keeping the same identity/status contract.
 - **`NameEditPopover.vue`**: Compact single-field rename control for entity names and other one-field edits. Use it near identity or action clusters instead of opening a full dialog when the only editable field is a name.
 
 `EntityStatus` action objects support `display: 'inline' | 'menu' | 'hidden'`. Workflow transitions default to inline actions, self-loop metadata transitions are hidden, and only lifecycle transitions should be passed into the status surface. Inline/card status surfaces use the badge itself as the popover trigger and do not render a second ellipsis button beside the badge; expanded/full status surfaces show up to two inline actions by default and put overflow actions, current location, metadata, and compact status history in the popover. Entity card title/status rows and status menus are allowed to wrap, and inline status rails are deliberately bounded so compact containers do not let status text or action buttons displace identity content.
+
+`TraceChain` omits ancestry already represented by the surrounding entity
+context. The active organization is always part of the authenticated app
+context, so its lineage reference is not repeated on generated cards, entity
+pages, or inline popovers; other project and production ancestors remain
+visible unless their exact entity is also displayed by an enclosing context.
 
 `EntityCard` owns inline and compact expansion. Inline and compact variants open
 the shared entity popover on click/keyboard activation. Entity-specific card
@@ -603,7 +611,7 @@ primary action is a custom preview, such as `ArtifactCard`, can pass
 
 Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `EntityCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `WorkspaceLanes`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.
 
-Shared wrappers also own token-backed visual chrome. When a wrapper needs a new width, radius, spacing, or motion value, add it to `assets/tokens/index.js` and project it through Tailwind or CSS variables instead of hardcoding it in feature components.
+Shared wrappers own semantic structure and reusable layout constraints, while PrimeVue/Aura owns their generic visual chrome. New application tokens are limited to semantic typography, layout, domain signals, visualization, and motion; wrappers must not add radius, shadow, border, or interaction-state values.
 
 ## Demo Contract
 

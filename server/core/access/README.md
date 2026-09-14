@@ -43,6 +43,15 @@ entity field paths. Entity access callers can also pass an explicit action such
 as `create`; grants with `actions.create === false` then deny the create
 operation even when their level would otherwise satisfy `write`.
 
+The action names used in access grants (`create`, `update`, `delete`) align with
+the activation-time service-capability check (`create`↔`service.create`,
+`update`↔`service.processUpdate`, `delete`↔`service.remove`), so a process whose
+effect targets an entity lacking the binding is rejected before any
+action-scoped grant is computed. The capability projection is documented in
+[`packages/processes`](../../../packages/processes/README.md); see the
+activation enforcement contract in
+[process-definitions/README.md](../../features/process-definitions/README.md).
+
 Workflow transitions and command definitions declare required feature
 permissions; the engine evaluates those requirements against the current entity
 and transition. Processors and handlers perform domain work after access has
@@ -57,6 +66,10 @@ adds `effectivePermissions` compiled from the user's process role assignments.
 The evaluator consumes those grants before membership permissions. No separate
 process-specific access engine exists; process roles compile into the same
 grant shape documented here.
+Process Designer and Team preview that shape through the shared typed grant
+builder and assignment preview. Decisions use this evaluator with concrete
+entity, status, action, transition, and lineage context; screen layout never
+implies backend authority.
 
 Legacy helpers such as `requirePermission()` and service-level
 `hasLineagePermission()` callers must pass the full auth context, not a reduced
@@ -65,6 +78,11 @@ Legacy helpers such as `requirePermission()` and service-level
 only when the organization has no active process-derived grants for the user.
 Status transition auth preserves `effectivePermissions` so lifecycle access
 compiled from process roles is checked during transition execution as well.
+Manual process execution first rejects an action absent from the caller's
+compiled role assignment. An allowed Create then receives only request-local
+grants for the target feature and constructor source entity types; these grants
+let registered services perform their normal create/read checks and are never
+added to the user's persisted role permissions.
 
 ## Related
 

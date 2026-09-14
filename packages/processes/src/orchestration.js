@@ -1,5 +1,5 @@
-import { createDataPacket, packetValue } from './data-tree.js';
-import { executeProcessDataNode } from './evaluator.js';
+import { createDataPacket, isDataTree, packetValue } from './data-tree.js';
+import { executeProcessDataNode, executeProcessEffectNode } from './evaluator.js';
 import { resolveCatalogNodePorts } from './node-catalog.js';
 
 export const PROCESS_RUN_STATUSES = Object.freeze(['running', 'waiting', 'succeeded', 'failed', 'cancelled']);
@@ -125,6 +125,40 @@ export async function advanceProcessRun(runInput, definition, environment = {}) 
   return run;
 }
 
+export async function resumeProcessRun(runInput, definition, completion = {}, environment = {}) {
+  const run = structuredClone(runInput);
+  if (run.status !== 'waiting' || !run.pendingEffect) return run;
+  const pending = run.pendingEffect;
+  if (completion.invocationId && pending.invocationId && String(completion.invocationId) !== String(pending.invocationId)) {
+    return run;
+  }
+  const process = processData(definition);
+  const node = processNode(process, pending.nodeId);
+  if (!node) throw new Error(`Cannot resume pending effect: node ${pending.nodeId} is not in the process graph`);
+  const record = process.processNodes[recordId(node)];
+  const step = run.steps.find(item => item.id === pending.stepId);
+  if (!step) throw new Error(`Cannot resume pending effect: step ${pending.stepId} not found`);
+  const now = instant(environment.now);
+  const output = completion.output == null ? {} : completion.output;
+  step.status = 'succeeded';
+  step.output = structuredClone(output);
+  step.completedAt = now;
+  delete run.pendingEffect;
+  run.status = 'running';
+  run.wakeAt = null;
+  const outputValues = await effectOutputValues(node.id, record, output, environment);
+  enqueueEdges(run, outgoingControl(process, node.id, 'completed'), {
+    ...(pending.controlToken || { nodeId: node.id, attempt: step.attempt }),
+    values: {
+      ...((pending.controlToken || {}).values || {}),
+      ...outputValues
+    }
+  });
+  if (!run.tokens.length) run.status = 'succeeded';
+  run.updatedAt = now;
+  return run;
+}
+
 export async function runProcessUntilSettled(run, definition, environment = {}, options = {}) {
   const maxSteps = Number(options.maxSteps) || 1000;
   let current = run;
@@ -152,16 +186,40 @@ async function executeOperationalNode({ run, process, node, record, current, ste
   }
   if (record.kind.startsWith('effect.')) {
     if (!environment.executeEffect) throw new Error(`Effect executor is required for ${record.kind}`);
-    const result = await environment.executeEffect({
-      kind: record.kind,
-      record,
-      inputs: Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [id, packetValue(packet, 'item')])),
-      idempotencyKey: step.idempotencyKey,
-      attempt: step.attempt,
-      run
-    });
+    const mutationKinds = ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'];
+    const result = mutationKinds.includes(record.kind)
+      ? await executeProcessEffectNode(record, inputs, (mutationInputs, location) => environment.executeEffect({
+          kind: record.kind,
+          record,
+          inputs: mutationInputs,
+          idempotencyKey: location.single
+            ? step.idempotencyKey
+            : `${step.idempotencyKey}:${location.branchPath.join('.') || 'root'}:${location.itemIndex}`,
+          attempt: step.attempt,
+          run
+        }))
+      : await environment.executeEffect({
+          kind: record.kind,
+          record,
+          inputs: Object.fromEntries(Object.entries(inputs).map(([id, packet]) => [id, packetValue(packet, 'item')])),
+          idempotencyKey: step.idempotencyKey,
+          attempt: step.attempt,
+          run
+        });
+    if (result?.__processEffectPending === true) {
+      step.status = 'waiting';
+      step.invocationId = result.invocationId || null;
+      run.status = 'waiting';
+      run.pendingEffect = {
+        stepId: step.id,
+        nodeId: node.id,
+        invocationId: result.invocationId || null,
+        controlToken: structuredClone(current)
+      };
+      return;
+    }
     step.output = structuredClone(result);
-    const outputValues = await effectOutputValues(node.id, record, result, environment);
+    const outputValues = await effectOutputValues(node.id, record, effectOutputResult(result), environment);
     enqueueEdges(run, outgoingControl(process, node.id, 'completed'), {
       ...current,
       values: {
@@ -246,6 +304,13 @@ async function executeOperationalNode({ run, process, node, record, current, ste
   throw new Error(`Token reached non-operational node ${record.kind}`);
 }
 
+function effectOutputResult(result) {
+  // A failure-carrying mapped mutation wraps its shape-preserving result tree;
+  // downstream data outputs consume the tree, not the reporting envelope.
+  if (result && Array.isArray(result.failures) && result.result) return result.result;
+  return result;
+}
+
 async function effectOutputValues(nodeId, record, result, environment) {
   const ports = resolveCatalogNodePorts(record, environment.catalogContext?.(record) || {});
   const values = {};
@@ -274,13 +339,13 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
   for (const port of dataInputs) {
     const runValue = processRunInput(run.context?.inputs || {}, record, port.id, environment);
     if (runValue !== undefined) {
-      inputs[port.id] = createDataPacket(structuredClone(runValue), port.access || 'item');
+      inputs[port.id] = runContextPacket(runValue, port.access);
       continue;
     }
     const edge = incomingData(process, node.id, port.id);
     if (!edge) {
       if (Object.hasOwn(record.inputDefaults || {}, port.id)) {
-        inputs[port.id] = createDataPacket(structuredClone(record.inputDefaults[port.id]), port.access || 'item');
+        inputs[port.id] = runContextPacket(record.inputDefaults[port.id], port.access);
         continue;
       }
       continue;
@@ -293,6 +358,14 @@ async function resolveNodeInputs(process, node, run, environment, tokenContext) 
     }
   }
   return inputs;
+}
+
+// Run-context values and authored defaults for a List-declared socket arrive
+// as either an array (one packet item per entry) or a single value, which the
+// mapped mutation contract broadcasts as one item rather than rejecting.
+function runContextPacket(value, access = 'item') {
+  const shape = access === 'list' && !Array.isArray(value) && !isDataTree(value) ? 'item' : access;
+  return createDataPacket(structuredClone(value), shape || 'item');
 }
 
 function processRunInput(inputs = {}, record = {}, portId = '', environment = {}) {
@@ -374,7 +447,11 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
     }
   }
   const dataInputs = ports.inputs.filter(port => port.role === 'data');
-  const allowsInputlessEvaluation = record.kind.startsWith('source.') || record.kind.startsWith('read.');
+  // Make List evaluates inputless on purpose: every item socket is optional,
+  // so a fully unconnected constructor yields the empty list.
+  const allowsInputlessEvaluation = record.kind.startsWith('source.')
+    || record.kind.startsWith('read.')
+    || record.kind === 'collection.makeList';
   if (!Object.keys(inputs).length && (
     dataInputs.some(port => port.required)
     || (dataInputs.length && !allowsInputlessEvaluation)
@@ -385,6 +462,7 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
   }
   const packet = await executeProcessDataNode(record, inputs, {
     ...(environment.data || {}),
+    domain: environment.domain,
     inputs: run.context?.inputs,
     trigger: run.trigger,
     now: environment.now,

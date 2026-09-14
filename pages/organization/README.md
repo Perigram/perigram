@@ -27,12 +27,21 @@ active process definition, and writes assignments through
 `/api/process-definitions/active/assignments`. It is the operational owner for
 assigning actual users to abstract process roles. It does not expose membership
 role labels as process roles. Invites, user creation, and assignment editing all
-preserve multiple selected process role ids. The role dialog derives assignment
-binding fields from selected process screens instead of showing raw JSON, and
-previews graph-derived access plus compiled screen routes from the current role
-selection before saving. Missing assignment bindings are still surfaced from the
-compiled active process so overloaded/scoped screens do not silently disappear
-when a user lacks a required project or entity binding.
+preserve multiple selected process role ids. The role dialog derives typed
+assignment binding fields from every canonical `$assignment` use in selected
+role/action grants, screen routes, scopes, bindings and requirements, and source
+identifiers and filters. Preview as Assignment runs the package assignment
+compiler and shared evaluator with edited role ids, bindings, and optional
+entity/status/lineage context. It shows allowed, denied, or unresolved entities,
+fields, transitions, actions, and screens; fields also consume compiled field
+policies. The role review is the shared annotated
+summary from `shared/role-access-summary.js`: it covers entity profiles,
+screens, actions, and workflow transitions (read from the compiled workflow
+contract of the active process), and every rendered line names the record that
+contributed it: an authored grant, a screen requirement consuming separate
+capability, a status-window rule, or a level fallback. Missing bindings come
+from the edited candidate assignment. Active owner membership is a separately
+attributed organization/team recovery overlay, never a process-role grant.
 The route expects `/api/users` to return canonical user DTO blocks with
 `identity.name`, `data.email`, and membership summary fields visible under
 `users:read`; it derives the active organization id from the loaded organization
@@ -44,13 +53,15 @@ process definitions with Vue Flow, persists drafts through
 activates compiled runtime contracts for access, screen manifests, navigation,
 entity workflows, services, sockets, and field policies. The checkmark apply
 button saves or forks the visible graph, activates the resulting process
-definition, and records activation warnings/errors in the validation popup so
-operators can inspect the result without a persistent canvas panel.
+definition, and records activation warnings/errors in the centered canvas
+validation feedback so operators can inspect the result without a persistent
+canvas panel.
 The route uses the authenticated app layout with a full canvas workspace and
-the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell. Its graph palette,
-inspector, and dock are supplied through the shell's named slots, matching the
-shared designer contract used by Cassette, Facade, and Facade Pattern. The
-graph palette is a compact, descriptive control with four
+the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell. The
+dock is supplied through the shell's dock slot, matching the shared designer
+contract used by Cassette, Facade, and Facade Pattern; the palette and
+inspector render as PrimeVue `Drawer` side panels inside the canvas workspace.
+The graph palette is a compact, descriptive control with four
 concerns only: Entities, Values, Lists and trees, and Events. Its framework
 metadata comes from `createProcessDesignerContract(cncDomain)`; the route
 supplies CNC as the active domain implementation rather than importing
@@ -60,21 +71,22 @@ entity reads, and trigger-payload plumbing cannot be added as unexplained empty
 nodes. Value input selects its type in one node. Logic/comparison, text, math,
 and date each select their operation in one node. Grasshopper-style list/tree
 operations provide selection and structure work without a second entity-query
-language. The persistent panel renders those operations as a readable
+language. The persistent drawer renders those operations as a readable
 two-column grid; the full job description is a tooltip, not permanent panel
 prose.
-The properties pane is a bounded floating aside; its tab body owns vertical
-scrolling so long entity lifecycle and role forms remain reachable without
-moving the canvas. Palette and inspector rails are opaque structural surfaces
-around a compact icon-only bottom dock. Process selection and New Draft live in
-a focused popup; validation and view controls open their own popups. Unsaved
-work is signaled by the active save control and a dot rather than a text badge.
-The dock is the shared `MotionDock.vue` installation of the Vue Bits Dock
-interaction: `process.vue` maps the page actions into its item API, while the
-design system supplies its compact scale, spring, token-backed shell, and
-reduced-motion policy. This keeps the external block's proximity interaction
-without introducing its published fixed black surface, border, or shadow
-treatment.
+The palette and inspector are non-modal, non-dismissable drawers (left and
+right, `closeOnEscape` disabled so canvas Escape keeps clearing graph
+selection); each drawer owns its vertical scrolling so long entity lifecycle
+and role forms remain reachable without moving the canvas, and either closes
+independently to recover the canvas. The bottom dock is PrimeVue `Dock`
+wrapped by `components/process-designer/ProcessDesignerDock.vue`:
+`process.vue` maps the page actions into its item API, and
+`ProcessDesignerDockItem.vue` keeps proximity magnification and hover labels
+on the GSAP motion patterns while honoring reduced motion. Dock items are
+grouped by concern with separators: drawer toggles, direct canvas view
+controls, Save and Apply, and the Folder. Process selection and New Draft live
+in the Folder's click-anchored popover. Unsaved work is signaled by the active
+save control and a dot rather than a text badge.
 Saved graphs containing legacy role/user layout nodes have those non-canvas
 nodes filtered out at load, and entity/service/socket nodes are reconstructed
 from the process records so active definitions do not open to a blank canvas.
@@ -91,6 +103,10 @@ validation error instead of guessing a canvas.
 Palette captions are presentation-only and are localized when the canvas is
 rendered. Persisted process-node labels keep the canonical operation kind, so
 the locale used while authoring cannot leak into generated action buttons.
+Entity-producing operation sockets create their producer-output contracts from
+the operation node and output socket identity. The designer does not create
+detached entity profiles when a command is selected; command entity outputs are
+owned by their emitting process node.
 On load, the route fetches the active process and the current process list,
 selects the active process first, and falls back to the newest usable draft or
 saved definition only when active is unavailable. Empty canvases show a passive
@@ -112,7 +128,8 @@ Derived input/output socket specifications remain on the node rails and their
 hover/focus metadata; the inspector does not duplicate them as a table. The
 remaining inspector surfaces are:
 
-- the roles tab edits labels and shows a derived access summary;
+- the roles tab edits labels and base grants through the shared typed builder,
+  and shows the same annotated summary as Team;
 - the service access tab owns service runtime identities;
 - entity nodes own entity type, lifecycle mode, inline status-machine
   states/transitions, transition role access, node role access, and
@@ -137,10 +154,16 @@ remaining inspector surfaces are:
 - socket nodes own direction, entity type, projected/excluded fields,
   send/receive roles, and receiver lifecycle.
 
-The screens tab owns screen id, label, generated UI template, source
-entity/mode rows, display region rows, route, placement, required access, role
-ids, assignment binding, and screen action ids; that surface follows the
-generated-screen manifest described above.
+The screens tab owns screen identity, generated UI template, route, placement,
+role ids, required access, source and region rows, typed bindings, and action
+ids. It exposes the complete canonical authored shape from the
+[`@cutkit/processes` screen contract](../../packages/processes/README.md), while
+the focused screen composable owns its mutations and mode normalization. Each
+required access record gates the screen against capability authored elsewhere;
+screen editing never writes role grants. Each display region keeps an
+independent action list: new regions start empty, sync
+never copies screen-level action ids into regions or overwrites region actions,
+and region actions are edited only through that region's row.
 
 Role and user assignment records are intentionally not Vue Flow nodes. Roles are
 reusable human process responsibilities assigned onto entity access rules,
@@ -155,11 +178,11 @@ Action nodes are the preferred process-design surface for new behavior because
 they describe what happens. Entity profiles remain process resources for
 lifecycle and field-policy contracts, while action nodes reference those
 resources and compile into runtime trigger contracts.
-Entity creation actions expose an optional parent input socket and derive the
-parent contract from the incoming edge instead of a parent-type dropdown.
-The designer always renders that optional socket so a parent can be wired. Until
-an entity edge is connected it is a generic parent target and compiles as a root
-create; after wiring it relabels to the concrete parent entity type.
+Entity creation actions have no generic parent input socket. Ancestry is
+authored by composing typed entity references through a Lineage block; the
+compiler derives containment bindings only from those graph edges. Relations
+blocks remain non-owning associations and can feed Create or Modify effects
+without becoming lineage or generic parent selectors.
 Update-entity actions consume their entity from the incoming edge, expose one
 left-side data socket per selected mutable field, and compile those selected
 fields against the domain field policy for the concrete incoming entity type.

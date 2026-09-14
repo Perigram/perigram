@@ -16,7 +16,6 @@
                 v-for="(item, index) in items"
                 :key="index"
                 :mouseX="mouseX"
-                :spring="spring"
                 :distance="distance"
                 :magnification="magnification"
                 :baseItemSize="baseItemSize"
@@ -38,18 +37,23 @@
      * and permission notice must be retained in substantial copies. The included
      * Commons Clause restriction prohibits selling, sublicensing, or redistributing
      * the components themselves. This local adaptation keeps the published motion
-     * model while resolving visual treatment through CutKit design tokens.
+     * model — animated through the shared GSAP motion patterns in
+     * composables/useMotion.js — while resolving visual treatment through CutKit
+     * design tokens.
      */
-    import { AnimatePresence, Motion, useMotionValue, useSpring, useTransform } from 'motion-v'
-    import type { ConcreteComponent, CSSProperties, PropType } from 'vue'
+    import type { CSSProperties, PropType } from 'vue'
     import { computed, defineComponent, h, onMounted, onUnmounted, ref, watch } from 'vue'
-    import { designTokens } from '~/assets/tokens/index.js'
     import { useReducedMotion } from '~/composables/useReducedMotion.js'
+    import { useEnterExit, useFollowValue } from '~/composables/useMotion.js'
 
-    const MotionComponent = Motion as unknown as ConcreteComponent
-    const AnimatePresenceComponent = AnimatePresence as unknown as ConcreteComponent
-
-    export type SpringOptions = NonNullable<Parameters<typeof useSpring>[1]>
+    const dockDefaults = {
+        distance: 96,
+        panelHeight: 40,
+        baseItemSize: 32,
+        height: 64,
+        magnification: 40,
+        follow: { duration: 0.3, ease: 'power3.out' },
+    }
 
     export type DockItemData = {
         icon: unknown
@@ -66,116 +70,10 @@
         onBlur?: (event: FocusEvent) => void
     }
 
-    const DockIcon = defineComponent({
-        name: 'DockIcon',
-        props: {
-            className: { type: String, default: '' },
-        },
-        render() {
-            return h(
-                'span',
-                {
-                    style: {
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    } satisfies CSSProperties,
-                    class: this.className,
-                },
-                this.$slots.default?.(),
-            )
-        },
-    })
-
-    const DockLabel = defineComponent({
-        name: 'DockLabel',
-        props: {
-            className: { type: String, default: '' },
-            isHovered: {
-                type: Object as PropType<ReturnType<typeof useMotionValue<number>>>,
-                required: true,
-            },
-            reducedMotion: { type: Boolean, required: true },
-        },
-        setup(props) {
-            const isVisible = ref(false)
-            let unsubscribe: (() => void) | null = null
-
-            onMounted(() => {
-                unsubscribe = props.isHovered.on('change', (latest: number) => {
-                    isVisible.value = latest === 1
-                })
-            })
-
-            onUnmounted(() => {
-                unsubscribe?.()
-            })
-
-            return { isVisible }
-        },
-        render() {
-            const labelStyle: CSSProperties = {
-                position: 'absolute',
-                bottom: '100%',
-                transform: 'translateX(-50%)',
-                marginBottom: 'var(--ck-dock-label-offset)',
-                width: 'fit-content',
-                whiteSpace: 'pre',
-                borderRadius: 'var(--ck-radius-ui)',
-                border: '1px solid var(--p-content-border-color)',
-                backgroundColor: 'var(--p-content-background)',
-                padding: 'var(--ck-dock-label-padding)',
-                fontSize: '0.75rem',
-                color: 'var(--p-text-color)',
-                boxShadow: 'none',
-            }
-
-            if (this.reducedMotion) {
-                return this.isVisible
-                    ? h(
-                          'div',
-                          {
-                              class: this.className,
-                              role: 'tooltip',
-                              style: labelStyle,
-                          },
-                          this.$slots.default?.(),
-                      )
-                    : null
-            }
-
-            return h(AnimatePresenceComponent, {}, () =>
-                this.isVisible
-                    ? [
-                          h(
-                              MotionComponent,
-                              {
-                                  key: 'label',
-                                  as: 'div',
-                                  class: this.className,
-                                  role: 'tooltip',
-                                  style: labelStyle,
-                                  initial: { opacity: 0, y: 0 },
-                                  animate: { opacity: 1, y: -6 },
-                                  exit: { opacity: 0, y: 0 },
-                                  transition: { duration: designTokens.motion.seconds.normal },
-                              },
-                              () => this.$slots.default?.(),
-                          ),
-                      ]
-                    : [],
-            )
-        },
-    })
-
     const DockItem = defineComponent({
         name: 'DockItem',
         props: {
-            mouseX: {
-                type: Object as PropType<ReturnType<typeof useMotionValue<number>>>,
-                required: true,
-            },
-            spring: { type: Object as PropType<SpringOptions>, required: true },
+            mouseX: { type: Number, default: Infinity },
             distance: { type: Number, required: true },
             baseItemSize: { type: Number, required: true },
             magnification: { type: Number, required: true },
@@ -184,50 +82,50 @@
         },
         setup(props) {
             const itemRef = ref<HTMLButtonElement | null>(null)
-            const isHovered = useMotionValue(0)
-            const currentSize = ref(props.baseItemSize)
+            const labelRef = ref<HTMLDivElement | null>(null)
             const isFocused = ref(false)
+            const isHovered = ref(false)
 
-            const mouseDistance = useTransform(props.mouseX, (value: number) => {
-                const rect = itemRef.value?.getBoundingClientRect() ?? { x: 0, width: props.baseItemSize }
-                return value - rect.x - props.baseItemSize / 2
-            })
+            const size = useFollowValue(props.baseItemSize, dockDefaults.follow)
 
-            const targetSize = useTransform(mouseDistance, (distanceFromPointer: number) => {
-                if (props.reducedMotion) return props.baseItemSize
+            const labelVisible = computed(() => isHovered.value || isFocused.value)
+            useEnterExit(labelRef, labelVisible, { y: 6, duration: 0.16 })
 
+            const updateSizeForPointer = (mouseX: number) => {
+                if (props.reducedMotion || !Number.isFinite(mouseX)) return
+                const rect = itemRef.value?.getBoundingClientRect()
+                if (!rect) return
+                const distanceFromPointer = mouseX - rect.x - props.baseItemSize / 2
                 const clamped = Math.max(-props.distance, Math.min(props.distance, distanceFromPointer))
                 const proximity = 1 - Math.abs(clamped) / props.distance
-                return props.baseItemSize + (props.magnification - props.baseItemSize) * proximity
-            })
+                size.set(props.baseItemSize + (props.magnification - props.baseItemSize) * proximity)
+            }
 
-            const size = useSpring(targetSize, props.spring)
+            watch(() => props.mouseX, updateSizeForPointer)
 
             watch(
                 () => ({ baseItemSize: props.baseItemSize, reducedMotion: props.reducedMotion }),
                 ({ baseItemSize, reducedMotion }) => {
-                    currentSize.value = baseItemSize
-
                     if (reducedMotion) size.jump(baseItemSize)
                     else size.set(baseItemSize)
                 },
             )
 
             const handleHoverStart = (event: MouseEvent) => {
-                isHovered.set(1)
+                isHovered.value = true
                 props.item.onHoverStart?.(event)
             }
             const handleHoverEnd = (event: MouseEvent) => {
-                isHovered.set(0)
+                isHovered.value = false
                 props.item.onHoverEnd?.(event)
             }
             const handleFocus = (event: FocusEvent) => {
-                isHovered.set(1)
+                isHovered.value = true
                 isFocused.value = true
                 props.item.onFocus?.(event)
             }
             const handleBlur = (event: FocusEvent) => {
-                isHovered.set(0)
+                isHovered.value = false
                 isFocused.value = false
                 props.item.onBlur?.(event)
             }
@@ -237,13 +135,12 @@
             const setItemRef = (element: HTMLButtonElement | null) => {
                 itemRef.value = element
             }
-            let unsubscribeSize: (() => void) | null = null
+            const setLabelRef = (element: HTMLDivElement | null) => {
+                labelRef.value = element
+            }
             let boundButton: HTMLButtonElement | null = null
 
             onMounted(() => {
-                unsubscribeSize = size.on('change', (latest: number) => {
-                    currentSize.value = latest
-                })
                 boundButton = itemRef.value
                 boundButton?.addEventListener('mouseenter', handleHoverStart)
                 boundButton?.addEventListener('mouseleave', handleHoverEnd)
@@ -253,7 +150,6 @@
             })
 
             onUnmounted(() => {
-                unsubscribeSize?.()
                 boundButton?.removeEventListener('mouseenter', handleHoverStart)
                 boundButton?.removeEventListener('mouseleave', handleHoverEnd)
                 boundButton?.removeEventListener('focus', handleFocus)
@@ -262,10 +158,10 @@
             })
 
             return {
-                currentSize,
-                isHovered,
-                isFocused,
+                currentSize: size.current,
+                labelVisible,
                 setItemRef,
+                setLabelRef,
                 handleHoverStart,
                 handleHoverEnd,
                 handleFocus,
@@ -284,7 +180,7 @@
                 boxSizing: 'border-box',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 'var(--ck-radius-ui)',
+                borderRadius: 'var(--p-border-radius-md)',
                 backgroundColor:
                     this.item.pressed || this.isFocused ? 'var(--p-content-hover-background)' : 'transparent',
                 border: this.isFocused ? '1px solid var(--p-primary-color)' : '1px solid transparent',
@@ -293,24 +189,63 @@
                 opacity: this.item.disabled ? 0.45 : 1,
                 outline: 'none',
                 transition:
-                    'background-color var(--ck-motion-fast) var(--ck-ease-standard), border-color var(--ck-motion-fast) var(--ck-ease-standard), opacity var(--ck-motion-fast) var(--ck-ease-standard)',
+                    'background-color var(--p-transition-duration), border-color var(--p-transition-duration), opacity var(--p-transition-duration)',
             }
             const indicatorStyle: CSSProperties = {
                 position: 'absolute',
-                top: 'var(--ck-dock-indicator-inset)',
-                right: 'var(--ck-dock-indicator-inset)',
-                width: 'var(--ck-dock-indicator-size)',
-                height: 'var(--ck-dock-indicator-size)',
-                borderRadius: 'var(--ck-radius-full)',
+                top: '0.125rem',
+                right: '0.125rem',
+                width: '0.375rem',
+                height: '0.375rem',
+                borderRadius: 'var(--p-border-radius-xl)',
                 backgroundColor: 'var(--p-primary-color)',
                 border: '1px solid var(--p-content-background)',
             }
+            const labelStyle: CSSProperties = {
+                position: 'absolute',
+                bottom: '100%',
+                transform: 'translateX(-50%)',
+                marginBottom: 'var(--p-tooltip-gutter)',
+                width: 'fit-content',
+                whiteSpace: 'pre',
+                borderRadius: 'var(--p-border-radius-md)',
+                border: '1px solid var(--p-content-border-color)',
+                backgroundColor: 'var(--p-content-background)',
+                padding: 'var(--p-tooltip-padding)',
+                fontSize: '0.75rem',
+                color: 'var(--p-text-color)',
+                boxShadow: 'none',
+                opacity: 0,
+            }
             const children = [
-                h(DockIcon, {}, () => [icon]),
-                h(DockLabel, { isHovered: this.isHovered, reducedMotion: this.reducedMotion }, () => [this.item.label]),
+                h(
+                    'span',
+                    {
+                        style: {
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        } satisfies CSSProperties,
+                    },
+                    [icon],
+                ),
             ]
 
-            if (this.item.attention) children.splice(1, 0, h('span', { style: indicatorStyle, 'aria-hidden': 'true' }))
+            if (this.item.attention) children.push(h('span', { style: indicatorStyle, 'aria-hidden': 'true' }))
+
+            if (!this.reducedMotion || this.labelVisible) {
+                children.push(
+                    h(
+                        'div',
+                        {
+                            ref: this.setLabelRef,
+                            role: 'tooltip',
+                            style: this.reducedMotion ? { ...labelStyle, opacity: 1 } : labelStyle,
+                        },
+                        [this.item.label],
+                    ),
+                )
+            }
 
             return h(
                 'button',
@@ -336,66 +271,45 @@
             items: { type: Array as PropType<DockItemData[]>, required: true },
             ariaLabel: { type: String, default: '' },
             className: { type: String, default: '' },
-            distance: { type: Number, default: designTokens.dock.distance },
-            panelHeight: { type: Number, default: designTokens.dock.panelHeight },
-            baseItemSize: { type: Number, default: designTokens.dock.baseItemSize },
-            dockHeight: { type: Number, default: designTokens.dock.height },
-            magnification: { type: Number, default: designTokens.dock.magnification },
-            spring: {
-                type: Object as PropType<SpringOptions>,
-                default: () => ({ ...designTokens.motion.spring.dock }),
-            },
+            distance: { type: Number, default: dockDefaults.distance },
+            panelHeight: { type: Number, default: dockDefaults.panelHeight },
+            baseItemSize: { type: Number, default: dockDefaults.baseItemSize },
+            dockHeight: { type: Number, default: dockDefaults.height },
+            magnification: { type: Number, default: dockDefaults.magnification },
         },
         setup(props) {
-            const mouseX = useMotionValue(Infinity)
-            const isHovered = useMotionValue(0)
-            const currentHeight = ref(props.panelHeight)
+            const mouseX = ref(Infinity)
+            const isHovered = ref(false)
             const reducedMotion = useReducedMotion()
 
             const maxHeight = computed(() =>
                 Math.max(props.dockHeight, props.magnification + props.magnification / 2 + 4),
             )
-            const heightRow = useTransform(isHovered, (hovered: number) =>
-                !reducedMotion.value && hovered === 1 ? maxHeight.value : props.panelHeight,
-            )
-            const height = useSpring(heightRow, props.spring)
+            const height = useFollowValue(props.panelHeight, dockDefaults.follow)
 
             watch([() => props.panelHeight, maxHeight, reducedMotion], () => {
-                const nextHeight = !reducedMotion.value && isHovered.get() === 1 ? maxHeight.value : props.panelHeight
+                const nextHeight = !reducedMotion.value && isHovered.value ? maxHeight.value : props.panelHeight
 
                 if (reducedMotion.value) {
-                    currentHeight.value = props.panelHeight
+                    mouseX.value = Infinity
                     height.jump(nextHeight)
-                    mouseX.set(Infinity)
                 } else height.set(nextHeight)
-            })
-
-            let unsubscribeHeight: (() => void) | null = null
-
-            onMounted(() => {
-                unsubscribeHeight = height.on('change', (latest: number) => {
-                    currentHeight.value = latest
-                })
-            })
-
-            onUnmounted(() => {
-                unsubscribeHeight?.()
             })
 
             const handleMouseMove = (event: MouseEvent) => {
                 if (reducedMotion.value) return
 
-                isHovered.set(1)
-                mouseX.set(event.clientX)
+                isHovered.value = true
+                mouseX.value = event.clientX
             }
             const handleMouseLeave = () => {
-                isHovered.set(0)
-                mouseX.set(Infinity)
+                isHovered.value = false
+                mouseX.value = Infinity
             }
             const outerStyle = computed<CSSProperties>(() => ({
-                height: `${currentHeight.value}px`,
+                height: `${height.current.value}px`,
                 scrollbarWidth: 'none',
-                margin: '0 var(--ck-dock-inset)',
+                margin: '0 var(--p-toolbar-padding)',
                 display: 'flex',
                 maxWidth: '100%',
                 alignItems: 'center',
@@ -403,18 +317,18 @@
             const panelStyle = computed<CSSProperties>(() => ({
                 height: `${props.panelHeight}px`,
                 position: 'absolute',
-                bottom: 'var(--ck-dock-inset)',
+                bottom: 'var(--p-toolbar-padding)',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 display: 'flex',
                 alignItems: 'center',
                 width: 'fit-content',
-                maxWidth: 'calc(100% - var(--ck-dock-inset) - var(--ck-dock-inset))',
-                gap: 'var(--ck-dock-gap)',
-                borderRadius: 'var(--ck-radius-panel)',
+                maxWidth: 'calc(100% - var(--p-toolbar-padding) - var(--p-toolbar-padding))',
+                gap: 'var(--p-toolbar-gap)',
+                borderRadius: 'var(--p-border-radius-lg)',
                 backgroundColor: 'var(--p-content-background)',
                 border: '1px solid var(--p-content-border-color)',
-                padding: 'var(--ck-dock-padding)',
+                padding: 'var(--p-toolbar-padding)',
                 boxShadow: 'none',
                 zIndex: 30,
             }))

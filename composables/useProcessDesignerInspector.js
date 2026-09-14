@@ -1,7 +1,8 @@
 import { computed } from 'vue';
+import { CONSUMER_EFFECT_KINDS } from '~/packages/processes/src/node-catalog.js';
 
 const RECORD_KEYS = Object.freeze({
-  entity: 'entityProfiles',
+  entity: 'producerOutputs',
   action: 'actions',
   service: 'services',
   socket: 'sockets',
@@ -37,6 +38,35 @@ export function useProcessDesignerInspector({ draft, selectedNode, factories }) 
     return ensureRecord(recordKeyForType(type), node, factoryForType(type));
   }
 
+  // The entity-producing process node is the only workflow editing anchor:
+  // selecting it resolves its producer output directly instead of projecting
+  // a second detached entity canvas node. Node-synced outputs may not yet
+  // carry the editor shape (the old entity-node factory seeded it lazily), so
+  // resolution seeds the same defaults the editor binds to.
+  function producerOutputForProcessNode() {
+    const node = selectedNode.value;
+    if (node?.type !== 'processNode') return {};
+    const record = selectedRecordFor('processNode');
+    // Consumer effects never anchor the created-entity panel — a stale
+    // producerOutputId on a loaded pre-protocol draft must not resurrect it.
+    if (CONSUMER_EFFECT_KINDS.includes(record?.kind)) return {};
+    const producerOutputs = draft.value?.data?.producerOutputs || {};
+    const byId = record?.producerOutputId && producerOutputs[record.producerOutputId]
+      ? producerOutputs[record.producerOutputId]
+      : null;
+    // Origin self-heal: resolve by ownership when the recorded id is stale
+    // (legacy socket keys, sync ordering) so the panel follows the node.
+    const owned = Object.values(producerOutputs)
+      .filter(output => String(output?.nodeId) === String(record?.id || node.id));
+    const producerOutput = byId || (owned.length === 1 ? owned[0] : null);
+    if (!producerOutput) return {};
+    producerOutput.lifecycle ||= { mode: 'defaultCreated' };
+    producerOutput.allowedRoles ||= { read: [], write: [], admin: [] };
+    producerOutput.fields ||= { read: [], write: [], private: [] };
+    producerOutput.relations ||= [];
+    return producerOutput;
+  }
+
   return {
     ensureRecord,
     factoryForType,
@@ -46,7 +76,11 @@ export function useProcessDesignerInspector({ draft, selectedNode, factories }) 
       if (!node) return {};
       return ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
     }),
-    selectedEntity: computed(() => selectedRecordFor('entity')),
+    selectedEntity: computed(() => (
+      Object.keys(producerOutputForProcessNode()).length
+        ? producerOutputForProcessNode()
+        : selectedRecordFor('entity')
+    )),
     selectedAction: computed(() => selectedRecordFor('action')),
     selectedService: computed(() => selectedRecordFor('service')),
     selectedSocket: computed(() => selectedRecordFor('socket')),

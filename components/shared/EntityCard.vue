@@ -14,11 +14,11 @@
             <slot name="inline-extra" />
         </span>
         
-        <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
+        <Popover ref="op">
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
             <TraceChain v-if="effectivePopupShowTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" />
-                    <small v-if="inlineTypeLabel" class="text-xs uppercase tracking-[0.08em] text-muted-color">
+                    <small v-if="inlineTypeLabel" class="uppercase text-muted-color text-supporting">
                         {{ inlineTypeLabel }}
                     </small>
                     <div class="flex flex-wrap items-start justify-between gap-3">
@@ -53,13 +53,6 @@
                             menu-item
                             @execute="executeInlineAction"
                         />
-                        <GeneratedDeleteButton
-                            v-if="inlineCanDelete"
-                            :entity="inlineActionEntity"
-                            :entity-type="inlineActionEntityType"
-                            menu-item
-                            @deleted="closePopup"
-                        />
                         <Button
                             v-if="inlineDetailRoute"
                             :label="$t('common.open')"
@@ -80,8 +73,8 @@
     <!-- Compact: identity + status in a card row -->
     <template v-else-if="variant === 'compact'">
         <Card
-            class="h-full overflow-hidden border border-content-border [box-shadow:var(--ck-shadow-card)] transition-colors duration-normal hover:border-primary"
-            :class="[{ 'cursor-pointer': expandable }, compactDensityClass]"
+            class="h-full overflow-hidden"
+            :class="{ 'cursor-pointer': expandable }"
             :role="expandable ? 'button' : undefined"
             :tabindex="expandable ? 0 : undefined"
             data-entity-card-interactive="true"
@@ -114,18 +107,18 @@
                 </div>
             </div>
             <template v-if="$slots.subtitle">
-                <div class="mt-2 text-sm text-muted-color">
+                <div class="mt-2 text-muted-color text-body">
                     <slot name="subtitle" />
                 </div>
             </template>
             <slot name="compact-content" />
             </template>
         </Card>
-        <Popover ref="op" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
+        <Popover ref="op">
             <div class="w-[min(34rem,calc(100vw-3rem))]">
                 <div class="flex flex-col gap-4 p-4">
                     <TraceChain v-if="effectivePopupShowTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" />
-                    <small v-if="inlineTypeLabel" class="text-xs uppercase tracking-[0.08em] text-muted-color">
+                    <small v-if="inlineTypeLabel" class="uppercase text-muted-color text-supporting">
                         {{ inlineTypeLabel }}
                     </small>
                     <div class="flex flex-wrap items-start justify-between gap-3">
@@ -160,13 +153,6 @@
                             menu-item
                             @execute="executeInlineAction"
                         />
-                        <GeneratedDeleteButton
-                            v-if="inlineCanDelete"
-                            :entity="inlineActionEntity"
-                            :entity-type="inlineActionEntityType"
-                            menu-item
-                            @deleted="closePopup"
-                        />
                         <Button
                             v-if="inlineDetailRoute"
                             :label="$t('common.open')"
@@ -184,9 +170,9 @@
         </Popover>
     </template>
 
-    <!-- Card: full chrome — tracechain / identity+status / body / footer -->
+    <!-- Card: full semantic structure; visual chrome remains Aura-owned. -->
     <template v-else>
-        <Card class="h-full overflow-hidden border border-content-border [box-shadow:var(--ck-shadow-card)] transition-colors duration-normal hover:border-primary">
+        <Card class="h-full overflow-hidden">
             <template #header v-if="$slots.header">
                 <slot name="header" />
             </template>
@@ -215,7 +201,7 @@
                 </template>
             </template>
             <template #subtitle v-if="$slots.subtitle">
-                <div class="text-sm text-muted-color">
+                <div class="text-muted-color text-body">
                     <slot name="subtitle" />
                 </div>
             </template>
@@ -238,7 +224,7 @@
 import { computed, inject, onMounted, onUnmounted, ref, unref } from 'vue';
 /**
  * EntityCard - v24 Standardized
- * Shared entity card chrome: TraceChain + IdentityBlock + EntityStatus.
+ * Shared entity card structure: TraceChain + IdentityBlock + EntityStatus.
  * Entity-specific cards use this as their container, providing only
  * entity-specific body/footer content via slots.
  *
@@ -261,7 +247,6 @@ import Card from 'primevue/card';
 import Popover from 'primevue/popover';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
-import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { entityUiFor } from '~/utils/status-engine';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
@@ -293,7 +278,6 @@ const inlineTypeLabelRef = inject('entityInlineTypeLabel', '');
 const inlineActionIdsRef = inject('entityInlineActionIds', []);
 const inlineActionEntityRef = inject('entityInlineActionEntity', null);
 const inlineActionEntityTypeRef = inject('entityInlineActionEntityType', '');
-const inlineCanDeleteRef = inject('entityInlineCanDelete', false);
 const inlineShowCassetteDesignerRef = inject('entityInlineShowCassetteDesigner', false);
 const inlineExecuteActionRef = inject('entityInlineExecuteAction', null);
 const statusWorkflowsRef = inject('statusWorkflows', null);
@@ -324,21 +308,15 @@ const traceExclusions = computed(() => {
         id
     }));
 });
-const compactDensityClass = computed(() => props.density === 'dense'
-    ? '[&_.p-card-body]:!p-3 [&_.p-card-content]:!p-0'
-    : ''
-);
 const inlineDetailRoute = computed(() => unref(inlineDetailRouteRef));
 const inlineTypeLabel = computed(() => unref(inlineTypeLabelRef) || '');
 const inlineActionIds = computed(() => unref(inlineActionIdsRef) || []);
 const inlineActionEntity = computed(() => unref(inlineActionEntityRef) || props.entity);
 const inlineActionEntityType = computed(() => unref(inlineActionEntityTypeRef) || props.entityType);
-const inlineCanDelete = computed(() => Boolean(unref(inlineCanDeleteRef)));
 const inlineShowCassetteDesigner = computed(() => Boolean(unref(inlineShowCassetteDesignerRef)));
 const inlinePopupHasActions = computed(() => (
     inlineShowCassetteDesigner.value
     || inlineActionIds.value.length
-    || inlineCanDelete.value
 ));
 
 function openInlineDetail(event) {

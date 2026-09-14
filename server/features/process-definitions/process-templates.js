@@ -82,7 +82,8 @@ export const PROCESS_TEMPLATES = {
       artifact_templates: 'admin',
       organizations: 'admin',
       users: 'admin',
-      layer_standards: 'read'
+      layer_standards: 'read',
+      livekit: 'write'
     },
     entities: COMMON_ENTITY_PROFILES,
     services: COMMON_SERVICES
@@ -100,7 +101,8 @@ export const PROCESS_TEMPLATES = {
       artifact_templates: 'admin',
       organizations: 'admin',
       users: 'admin',
-      layer_standards: 'read'
+      layer_standards: 'read',
+      livekit: 'write'
     },
     entities: {
       entity_catalog: {
@@ -126,7 +128,8 @@ export const PROCESS_TEMPLATES = {
       materials: 'read',
       artifacts: 'admin',
       artifact_templates: 'admin',
-      layer_standards: 'read'
+      layer_standards: 'read',
+      livekit: 'write'
     },
     entities: {
       entity_project: {
@@ -149,7 +152,8 @@ export const PROCESS_TEMPLATES = {
       artifacts: 'admin',
       artifact_templates: 'admin',
       materials: 'read',
-      layer_standards: 'read'
+      layer_standards: 'read',
+      livekit: 'write'
     },
     entities: {},
     services: {}

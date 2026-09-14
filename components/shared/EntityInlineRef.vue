@@ -12,10 +12,8 @@ import TraceChain from '~/components/shared/links/TraceChain.vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
-import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
 import { generatedDetailActionIds } from '~/components/generated/detail-screen-actions.js';
-import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
@@ -112,9 +110,13 @@ const resolvedId = computed(() => normalizedId.value
 );
 const icon = computed(() => domainUi.getIcon?.(props.type) || 'pi pi-box');
 const cardComponent = computed(() => CARD_COMPONENTS[contract.value?.key] || null);
+// `interactive: false` renders the inline entity card non-expandable, so
+// non-interactive rows (explorer entries, static summaries) can consume the
+// inline card without its detail popup.
 const cardProps = computed(() => ({
   [contract.value?.propName || 'entity']: resolved.value,
-  variant: 'inline'
+  variant: 'inline',
+  expandable: props.interactive
 }));
 const detailRoute = computed(() => {
   if (!props.allowDetailRoute || !authStore.processActive || !resolvedId.value) return null;
@@ -130,7 +132,6 @@ provide('entityInlineTypeLabel', computed(() => contract.value?.labelKey ? t(con
 provide('entityInlineActionIds', computed(() => popupActionIds.value));
 provide('entityInlineActionEntity', resolved);
 provide('entityInlineActionEntityType', generatedEntityType);
-provide('entityInlineCanDelete', computed(() => popupCanDelete.value));
 provide('entityInlineShowCassetteDesigner', computed(() => popupShowCassetteDesigner.value));
 provide('entityInlineExecuteAction', executePopupAction);
 const toneStyle = computed(() => entityToneStyle(props.type));
@@ -178,17 +179,10 @@ const popupActions = computed(() => {
     .map(action => [action.actionId, action])).values());
 });
 const popupActionIds = computed(() => popupActions.value.map(action => action.actionId));
-const popupCanDelete = computed(() => canDeleteGeneratedEntity({
-  authStore,
-  domainUi,
-  entity: resolved.value,
-  entityType: generatedEntityType.value
-}));
 const popupShowCassetteDesigner = computed(() => generatedEntityType.value === 'cassette');
 const popupHasActions = computed(() => (
   popupShowCassetteDesigner.value
   || popupActionIds.value.length
-  || popupCanDelete.value
 ));
 
 watch(
@@ -412,7 +406,7 @@ function tonePalette(role) {
             :icon="icon"
             :fields="fields"
           />
-          <span v-else class="min-w-0 flex-1 truncate font-medium text-sm">
+          <span v-else class="min-w-0 flex-1 truncate text-label">
             {{ normalizedId || $t('common.notAvailable') }}
           </span>
         </span>
@@ -436,11 +430,11 @@ function tonePalette(role) {
       </span>
     </span>
 
-    <Popover v-if="interactive" ref="compactOp" class="[box-shadow:var(--ck-shadow-overlay)] border border-content-border">
+    <Popover v-if="interactive" ref="compactOp">
       <div class="w-[min(34rem,calc(100vw-3rem))]">
         <div class="flex flex-col gap-4 p-4">
           <TraceChain v-if="resolved" :entity="resolved" :entity-type="type" />
-          <small class="text-xs uppercase tracking-[0.08em] text-muted-color">
+          <small class="uppercase text-muted-color text-supporting">
             {{ compactTypeLabel }}
           </small>
           <div v-if="resolved" class="flex flex-wrap items-start justify-between gap-3">
@@ -474,12 +468,6 @@ function tonePalette(role) {
               :action-id="actionId"
               @execute="executePopupAction"
             />
-            <GeneratedDeleteButton
-              v-if="popupCanDelete"
-              :entity="resolved"
-              :entity-type="generatedEntityType"
-              @deleted="closeCompactPopup"
-            />
             <Button
               v-if="detailRoute"
               icon="pi pi-external-link"
@@ -495,11 +483,12 @@ function tonePalette(role) {
     </Popover>
   </span>
 
-  <span v-else class="entity-inline-tone inline-flex min-w-0 max-w-full items-center align-middle" :style="toneStyle">
+  <span v-else class="entity-inline-tone inline-flex min-w-0 max-w-full items-center align-middle" :class="{ 'pointer-events-none': !interactive }" :style="toneStyle">
     <component
       v-if="resolved && cardComponent"
       :is="cardComponent"
       v-bind="cardProps"
+      class="min-w-0 max-w-full"
       data-entity-card-interactive="true"
     />
     <IdentityBlock

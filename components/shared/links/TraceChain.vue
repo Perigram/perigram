@@ -1,6 +1,6 @@
 <template>
     <nav v-if="items.length > 0" class="max-w-full" :aria-label="$t('common.traceability')">
-        <ol class="flex max-w-full flex-wrap items-center gap-1 text-xs text-muted-color">
+        <ol class="flex max-w-full flex-wrap items-center gap-1 text-muted-color text-supporting">
             <li v-for="(item, index) in visibleItems" :key="`${item.type}-${item.id || index}`" class="flex min-w-0 items-center gap-1">
                 <Button
                     v-if="item.type === 'separator'"
@@ -33,7 +33,7 @@
                     :slug="item.slug"
                     class="max-w-[14rem]"
                 />
-                <i v-if="index < visibleItems.length - 1" class="pi pi-chevron-right shrink-0 text-[0.625rem] text-muted-color"></i>
+                <i v-if="index < visibleItems.length - 1" class="pi pi-chevron-right shrink-0 text-muted-color"></i>
             </li>
         </ol>
     </nav>
@@ -54,7 +54,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { entityUiFor } from '~/utils/status-engine';
-import { containmentAncestors, entityHierarchyIds, normalizeHierarchyType, projectHierarchyRoute } from '~/utils/entity-hierarchy.js';
+import { containmentAncestors, normalizeHierarchyType, projectHierarchyRoute, traceContextExclusions, visibleTraceAncestors } from '~/utils/entity-hierarchy.js';
 
 const props = defineProps({
     entity: { type: Object, default: null },
@@ -85,28 +85,20 @@ const FALLBACK_LABELS = {
 };
 
 const activeLineage = computed(() => props.lineage || entityLineage.value);
-const effectiveExclusions = computed(() => {
-    const contextExclusions = (unref(displayedEntityContexts) || []).flatMap(displayed => {
-        if (!displayed?.type) return [];
-        return entityHierarchyIds(displayed.entity || {}).map(id => ({
-            type: displayed.type,
-            id
-        }));
-    });
-    return [
-        ...props.exclude,
-        ...contextExclusions
-    ].filter(displayed => displayed.type && displayed.id);
-});
+const effectiveExclusions = computed(() => traceContextExclusions({
+    exclusions: props.exclude,
+    displayedContexts: unref(displayedEntityContexts) || [],
+    activeOrganizationId: authStore.organizationData?._id || authStore.userData?.organizationId || ''
+}));
 
-const items = computed(() => containmentAncestors(
-    { ...(props.entity || {}), lineage: activeLineage.value || {} },
-    props.entityType || props.entity?.entityType || '',
-    effectiveContainment()
-).filter(ref => !effectiveExclusions.value.some(item => (
-    normalizeHierarchyType(item?.type) === normalizeHierarchyType(ref.type)
-    && String(item?.id || '') === String(ref.id || '')
-  ))));
+const items = computed(() => visibleTraceAncestors(
+    containmentAncestors(
+        { ...(props.entity || {}), lineage: activeLineage.value || {} },
+        props.entityType || props.entity?.entityType || '',
+        effectiveContainment()
+    ),
+    effectiveExclusions.value
+));
 
 const findContextEntity = (type, id) => {
     const context = unref(entityContext);
@@ -148,9 +140,7 @@ const routeForItem = (item) => {
     const scopedRoute = projectHierarchyRoute({ type: item.type, id: item.id, entity: resolvedEntity, project });
     if (scopedRoute) return scopedRoute;
     const config = entityUiFor(item.type);
-    return typeof config?.route === 'function'
-        ? config.route(item.id, project?.identity?.slug || project?.identity?.uid || item.slug)
-        : null;
+    return null;
 };
 
 const generatedEntityType = (type) => {

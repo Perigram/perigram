@@ -1,4 +1,9 @@
 export function createTemplate({ id, label, adminLabel, grants, entities, services }) {
+  const producerOutputs = Object.fromEntries(Object.entries(entities).map(([nodeId, output]) => {
+    const outputSocketId = output.outputSocketId || 'entity';
+    const producerOutputId = `${nodeId}:${outputSocketId}`;
+    return [producerOutputId, { ...output, producerOutputId, nodeId, outputSocketId }];
+  }));
   const organizationRoles = {
     role_admin: {
       id: 'role_admin',
@@ -23,11 +28,11 @@ export function createTemplate({ id, label, adminLabel, grants, entities, servic
   const graph = {
     nodes: [
       { id: 'role_admin', type: 'role', position: { x: 80, y: 80 }, data: { refId: 'role_admin', label: adminLabel } },
-      ...Object.keys(entities).map((entityId, index) => ({
-        id: entityId,
+      ...Object.values(producerOutputs).map((output, index) => ({
+        id: output.nodeId,
         type: 'entity',
         position: { x: 360, y: 80 + index * 120 },
-        data: { refId: entityId, label: entities[entityId].label, entityType: entities[entityId].entityType }
+        data: { refId: output.producerOutputId, label: output.label, entityType: output.entityType }
       })),
       ...Object.keys(services).map((serviceId, index) => ({
         id: serviceId,
@@ -50,7 +55,7 @@ export function createTemplate({ id, label, adminLabel, grants, entities, servic
       graph,
       roleGrants,
       servicePrincipals,
-      entityProfiles: entities,
+      producerOutputs,
       actions: {},
       services,
       sockets: {},

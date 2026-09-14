@@ -135,13 +135,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     // --- HUB DEFINITIONS (Level 1) ---
     // Entirely dynamic based on role/org state and permissions
     const hubConfigs = [
-        { id: 'projects', entity: 'projects', level: 'read', nameKey: 'features.projects', to: '/projects', icon: 'pi pi-folder' },
-        { id: 'warehouses', entity: 'warehouses', level: 'read', nameKey: 'features.warehouses', to: '/warehouses', icon: 'pi pi-building' },
-        { id: 'catalog', entity: 'catalogs', level: 'read', nameKey: 'features.catalogs', to: '/catalog', icon: 'pi pi-palette' },
-        { id: 'requisitions', entity: 'requisitions', level: 'read', nameKey: 'features.requisitions', to: '/requisitions', icon: 'pi pi-shopping-cart' },
-        { id: 'assets', entity: 'cassettes', level: 'read', nameKey: 'features.assets', to: '/assets/cassettes', icon: 'pi pi-objects-column' },
         { id: 'organization', entity: 'organizations', level: 'read', nameKey: 'organization.workspace', to: '/organization', icon: 'pi pi-building' },
-        { id: 'admin', entity: 'organizations', level: 'admin', nameKey: 'nav.admin', to: '/admin', icon: 'pi pi-cog' },
     ];
 
     const visibleProcessNavigation = computed(() => resolveVisibleNavigation(
@@ -195,28 +189,6 @@ export const useNavigationStore = defineStore('navigation', () => {
                 icon: config.icon
             }));
     });
-
-    const assetSiblings = computed(() => [
-        { id: '/assets/cassettes', name: t('nav.cassettes'), to: '/assets/cassettes', entity: 'cassettes' },
-        { id: '/assets/pens', name: t('nav.pens'), to: '/assets/pens', entity: 'cassettes' },
-        { id: '/assets/layer-standards', name: t('nav.layerStandards'), to: '/assets/layer-standards', entity: 'cassettes' },
-        { id: '/assets/tools', name: t('nav.tools'), to: '/assets/tools', entity: 'cassettes' },
-        { id: '/assets/templates', name: t('nav.templates'), to: '/assets/templates', entity: 'cassettes' },
-    ].filter(a => authStore.hasPermission(a.entity, 'read') && processAllowsRoute(a.to)));
-
-    const projectSectionSiblings = (projectSlug) => [
-        { id: 'queues', name: t('project.queues'), to: `/project/${projectSlug}/queues` },
-        { id: 'sheet-designs', name: t('sheetDesign.sheetDesigns'), to: `/project/${projectSlug}/sheet-designs` },
-        { id: 'data', name: t('project.data'), to: `/project/${projectSlug}/data` },
-        { id: 'artifacts', name: t('queues.artifacts'), to: `/project/${projectSlug}/artifacts` },
-        { id: 'details', name: t('common.details'), to: `/project/${projectSlug}/details` },
-    ].filter(item => processAllowsRoute(item.to));
-
-    const resolveProjectSectionId = (parts) => {
-        if (parts[2] === 'queue') return 'queues';
-        if (parts[2] === 'sheet-design') return 'sheet-designs';
-        return parts[2] || 'queues';
-    };
 
     // Master breadcrumb generator
     const resolveBreadcrumbs = (path, query = {}) => {
@@ -274,79 +246,6 @@ export const useNavigationStore = defineStore('navigation', () => {
             }
         }
 
-        // --- Level 2: Project Context ---
-        if (parts[0] === 'project' && parts[1] && !(currentHierarchyPath.value === path && currentHierarchy.value.length)) {
-            const projectName = entitySelectLabel(currentProject.value, parts[1]);
-            const projectSlug = parts[1];
-
-            nav.push({
-                id: projectSlug,
-                name: projectName,
-                to: `/project/${projectSlug}/queues`,
-                siblings: Array.isArray(globalStore.projectsList)
-                        ? globalStore.projectsList.map(projectSiblingOption).filter(Boolean)
-                        : [],
-            });
-
-            const sectionSiblings = projectSectionSiblings(projectSlug);
-            const currentSection = sectionSiblings.find(section => section.id === resolveProjectSectionId(parts)) || sectionSiblings[0];
-            if (currentSection) {
-                nav.push({
-                    id: currentSection.id,
-                    name: currentSection.name,
-                    to: currentSection.to,
-                    siblings: sectionSiblings.map(section => siblingOption(section.name, section.to)),
-                });
-            }
-        }
-
-        // --- Level 2: Library Context ---
-        if (currentSectionId === 'assets' || parts[0] === 'assets') {
-            const currentAssetTabId = parts[1] || 'cassettes';
-            const currentAssetTab = assetSiblings.value.find((t) => t.to.endsWith(currentAssetTabId));
-
-            if (currentAssetTab) {
-                nav.push({
-                    name: currentAssetTab.name,
-                    to: currentAssetTab.to,
-                    siblings: assetSiblings.value.map((t) => siblingOption(t.name, t.to)),
-                });
-            }
-        }
-
-        // --- Level 2: Admin Context ---
-        if (parts[0] === 'admin') {
-             const adminTabs = [
-                { id: 'workbench', name: t('admin.workbench.title'), to: '/admin' },
-                { id: 'workflows', name: t('admin.workflows.title'), to: '/admin/workflows' },
-                { id: 'users', name: t('features.users'), to: '/admin/users' },
-                { id: 'config-bot', name: t('admin.configBot.title'), to: '/admin/config-bot' },
-                { id: 'support', name: t('admin.workbench.short.support'), to: '/admin/support' },
-             ].filter(item => processAllowsRoute(item.to));
-             const currentTabId = parts[1] || 'workbench';
-             const currentTab = adminTabs.find(t => t.id === currentTabId);
-             if (currentTab) {
-                 nav.push({
-                     name: currentTab.name,
-                     to: currentTab.to,
-                     siblings: adminTabs.map(t => siblingOption(t.name, t.to))
-                 });
-             }
-             if (currentTab?.id === 'workbench') {
-                 const section = Array.isArray(query.section) ? query.section[0] : query.section;
-                 const workbenchSections = [
-                    { id: 'entities', name: t('admin.workbench.entities'), to: '/admin?section=entities' },
-                    { id: 'context', name: t('admin.workbench.sectionsContext'), to: '/admin?section=context' },
-                    { id: 'commands', name: t('admin.workbench.sectionsCommands'), to: '/admin?section=commands' },
-                 ];
-                 const currentSection = workbenchSections.find(item => item.id === section) || workbenchSections[0];
-                 nav.push({
-                    name: currentSection.name,
-                    to: currentSection.to,
-                    siblings: workbenchSections.map(item => siblingOption(item.name, item.to))
-                 });
-             }
-        }
 
         if (currentHierarchyPath.value === path && currentHierarchy.value.length) {
             for (const item of currentHierarchy.value) {

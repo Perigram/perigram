@@ -13,8 +13,10 @@ import {
 import * as factories from '../test-data/factories.js';
 import {
   cssVariableTokens,
+  darkCssVariableTokens,
   designTokens,
   primeComponentTokens,
+  primeSemanticTokens,
   tailwindThemeExtension
 } from '../assets/tokens/index.js';
 import { cncWorkflows } from '../packages/domain-cnc/src/index.js';
@@ -23,6 +25,19 @@ import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { resolveEntityRelationRefs } from '../utils/entity-relations.js';
 import { STATUS_MAPPINGS } from '../utils/status-engine.js';
 import { getWorkflowStatusActions } from '../utils/status-actions.js';
+import {
+  analyzeVueVisuals,
+  inventoryId,
+  inventoryOwnership,
+  INLINE_STYLE_EXCEPTIONS,
+  inlineStyleAttributes,
+  renderStyleBindings,
+  repositoryVueInventory,
+  SCOPED_EXCEPTION_PROPERTIES,
+  SCOPED_STYLE_EXCEPTIONS,
+  scopedStyleDeclarations,
+  scriptStringLiterals
+} from '../scripts/ui-visual-inventory.js';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 
@@ -45,7 +60,73 @@ const usedVueFiles = () => ['components', 'layouts', 'pages']
   ))
   .map((file) => path.relative(REPO_ROOT, file));
 
+const repositoryVueFiles = () => [
+  ...['components', 'layouts', 'pages'].flatMap((dir) => walkFiles(
+    path.join(REPO_ROOT, dir),
+    (file) => file.endsWith('.vue')
+  )),
+  path.join(REPO_ROOT, 'error.vue')
+]
+  .filter((file) => fs.existsSync(file))
+  .map((file) => path.relative(REPO_ROOT, file))
+  .sort();
+
 describe('Design system manifest', () => {
+  it('reconciles every repository Vue file and design-system mechanism with the canonical audit', () => {
+    const source = fs.readFileSync(path.join(REPO_ROOT, 'docs/UI_COMPONENT_AUDIT.md'), 'utf8');
+    const rows = Array.from(source.matchAll(/^\| `(ui-[^`]+)` \| `([^`]+\.vue)` \|/gm));
+    const documentedFiles = rows.map(([, , file]) => file).sort();
+    const expectedFiles = repositoryVueFiles();
+    const expectedMechanisms = [
+      'aura',
+      'token-source',
+      'primevue-projection',
+      'tailwind-projection',
+      'css-variable-projection',
+      'preset',
+      'tailwind-aliases',
+      'global-css',
+      'runtime-overrides',
+      'scoped-css',
+      'primitive-registry',
+      'runtime-registry',
+      'ui-lab',
+      'enforcement'
+    ];
+    const documentedMechanisms = Array.from(source.matchAll(/^\| `(mechanism-[^`]+)` \|/gm))
+      .map(([, id]) => id.replace('mechanism-', ''))
+      .sort();
+
+    expect(documentedFiles).toEqual(expectedFiles);
+    expect(new Set(documentedFiles).size).toBe(documentedFiles.length);
+    expect(rows.filter(([, id, file]) => id !== inventoryId(file))).toEqual([]);
+    expect(documentedMechanisms).toEqual(expectedMechanisms.sort());
+  });
+
+  it('reconciles current visual findings with every canonical inventory row', () => {
+    const source = fs.readFileSync(path.join(REPO_ROOT, 'docs/UI_COMPONENT_AUDIT.md'), 'utf8');
+    const documented = new Map(Array.from(
+      source.matchAll(/^\| `(ui-[^`]+)` \| `([^`]+\.vue)` \| [^|]+ \| ([^|]+) \|$/gm),
+      match => [match[2], match[3].trim()]
+    ));
+
+    for (const { file, findings } of repositoryVueInventory(REPO_ROOT)) {
+      expect(documented.get(file), file).toBe(findings.join('; '));
+    }
+  });
+
+  it('derives component ownership from the primitive registry', () => {
+    const source = fs.readFileSync(path.join(REPO_ROOT, 'docs/UI_COMPONENT_AUDIT.md'), 'utf8');
+    const documented = new Map(Array.from(
+      source.matchAll(/^\| `ui-[^`]+` \| `([^`]+\.vue)` \| ([^|]+) \|/gm),
+      match => [match[1], match[2].trim()]
+    ));
+
+    for (const file of repositoryVueFiles()) {
+      expect(documented.get(file), file).toBe(inventoryOwnership(file));
+    }
+  });
+
   it('declares the standard entity card variants', () => {
     expect(DESIGN_SYSTEM_VARIANTS).toEqual(['card', 'compact', 'inline']);
   });
@@ -96,7 +177,6 @@ describe('Design system manifest', () => {
 
     expect(exampleKeys).toEqual(primitiveKeys);
     expect(source).toContain('DESIGN_SYSTEM_PRIMITIVES');
-    expect(source).toContain('cutkit:ui-lab-feedback:v1');
   });
 
   it('keeps design-system runtime exports distinct from contract exports', () => {
@@ -225,17 +305,6 @@ describe('Design system manifest', () => {
     });
   });
 
-  it('keeps local workflow preview transitions out of the server status API', () => {
-    const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/EntityStatus.vue'), 'utf8');
-    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
-    const store = fs.readFileSync(path.join(REPO_ROOT, 'stores/workbenchFixtures.js'), 'utf8');
-
-    expect(entityStatus).toContain("inject('statusTransitionHandler'");
-    expect(entityStatus).toContain('useLocalTransition');
-    expect(workbench).toContain("provide('statusTransitionHandler'");
-    expect(workbench).toContain('handleWorkbenchStatusTransition');
-    expect(store).toContain('transitionEntityStatus');
-  });
 
   it('gives the UI lab test user a real access model', () => {
     const user = factories.createMockUser();
@@ -253,57 +322,118 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.height['support-chat']).toBe('var(--ck-support-chat-height)');
     expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
-    expect(primeComponentTokens.dataview.root.background).toBe('transparent');
+    expect(primeComponentTokens).toEqual({
+      tabs: { tablist: { background: 'transparent' }, tabpanel: { background: 'transparent' } },
+      tree: { root: { background: 'transparent' } }
+    });
+    expect(Object.keys(primeSemanticTokens)).toEqual(['primary', 'colorScheme']);
+    expect(Object.keys(primeSemanticTokens.colorScheme)).toEqual(['light', 'dark']);
+    expect(primeSemanticTokens.colorScheme.light.surface[100]).toBe('{zinc.100}');
+    expect(primeSemanticTokens.colorScheme.dark.surface[950]).toBe('{zinc.950}');
     expect(designTokens.palette.primary[500]).toBe('#ff4b00');
-    expect(designTokens.palette.surface[50]).toBe('#f4f4f0');
     expect(cssVariableTokens['--ck-primary-700']).toBe(designTokens.palette.primary[700]);
-    expect(cssVariableTokens['--ck-surface-100']).toBe(designTokens.palette.surface[100]);
-    expect(cssVariableTokens['--ck-chrome-background']).toBe('#fefefc');
+    expect(cssVariableTokens['--ck-chrome-background']).toBe('var(--p-surface-100)');
+    expect(cssVariableTokens['--ck-page-background']).toBe('var(--p-surface-100)');
+    expect(darkCssVariableTokens['--ck-chrome-background']).toBe('var(--p-surface-950)');
+    expect(darkCssVariableTokens['--ck-page-background']).toBe('var(--p-surface-950)');
+    expect(cssVariableTokens['--ck-chrome-border']).toBe('var(--p-content-border-color)');
     expect(cssVariableTokens['--ck-process-canvas-background']).toBe('var(--p-surface-50)');
+    expect(darkCssVariableTokens['--ck-process-canvas-background']).toBe('var(--p-surface-950)');
     expect(tailwindThemeExtension.colors['process-canvas']).toBe('var(--ck-process-canvas-background)');
-    expect(designTokens.shadow.card).toBe('none');
-    expect(designTokens.motion.emphasis).toBe('220ms');
-    expect(designTokens.motion.seconds.normal).toBe(0.16);
-    expect(designTokens.motion.easing.standard).toBe('cubic-bezier(0.2, 0, 0, 1)');
-    expect(designTokens.motion.spring.dock).toEqual({ mass: 0.1, stiffness: 180, damping: 16 });
-    expect(cssVariableTokens['--ck-motion-emphasis']).toBe(designTokens.motion.emphasis);
-    expect(tailwindThemeExtension.transitionTimingFunction.DEFAULT).toBe('var(--ck-ease-standard)');
+    expect(designTokens).not.toHaveProperty('radius');
+    expect(designTokens).not.toHaveProperty('shadow');
+    expect(tailwindThemeExtension.borderRadius.ui).toBe('var(--p-border-radius-md)');
+    expect(tailwindThemeExtension.borderRadius.panel).toBe('var(--p-border-radius-lg)');
+    expect(tailwindThemeExtension.boxShadow.card).toBe('var(--p-card-shadow)');
+    expect(tailwindThemeExtension.boxShadow.overlay).toBe('var(--p-overlay-popover-shadow)');
+    expect(designTokens).not.toHaveProperty('motion');
+    expect(designTokens).not.toHaveProperty('dock');
+    expect(tailwindThemeExtension).not.toHaveProperty('transitionDuration');
+    expect(tailwindThemeExtension).not.toHaveProperty('transitionTimingFunction');
   });
 
   it('keeps runtime visual tokens and Tailwind semantic aliases in sync', () => {
     const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
+    const nuxtConfig = fs.readFileSync(path.join(REPO_ROOT, 'nuxt.config.js'), 'utf8');
 
-    for (const tokenName of Object.keys(cssVariableTokens)) {
-      expect(runtimeCss, `${tokenName} is missing from the runtime token layer`).toContain(`${tokenName}:`);
+    expect(designTokens.typography.ui).toContain('IBM Plex Sans');
+    expect(designTokens.typography.mono).toContain('IBM Plex Mono');
+    expect(designTokens.typography.serif).toContain('IBM Plex Serif');
+    expect(cssVariableTokens['--ck-font-serif']).toBe(designTokens.typography.serif);
+    expect(tailwindThemeExtension.fontFamily.serif).toBe('var(--ck-font-serif)');
+    expect(Object.keys(designTokens.typography.roles)).toEqual([
+      'page-title',
+      'section-heading',
+      'body',
+      'label',
+      'supporting',
+      'metric',
+      'technical',
+      'prose'
+    ]);
+    for (const role of Object.values(designTokens.typography.roles)) {
+      expect(role).toEqual(expect.objectContaining({
+        fontFamily: expect.any(String),
+        fontSize: expect.any(String),
+        lineHeight: expect.any(String),
+        fontWeight: expect.any(String)
+      }));
     }
-
-    expect(designTokens.typography.ui).toContain('JetBrains Mono');
-    expect(designTokens.typography.labelTracking).toBe('0.04em');
-    expect(runtimeCss).toContain('--p-button-primary-background:');
-    expect(runtimeCss).toContain('--p-card-background:');
-    expect(runtimeCss).toContain('--ck-primary-ink:');
-    expect(runtimeCss).toContain('.bg-chrome');
+    expect(designTokens.typography.roles['page-title'].fontSize).toContain('clamp(');
+    expect(Object.entries(designTokens.typography.roles).filter(([name, role]) => name !== 'page-title' && role.fontSize.includes('clamp('))).toEqual([]);
+    expect(tailwindThemeExtension).not.toHaveProperty('fontSize');
+    expect(nuxtConfig).toContain("import { cssVariableTokens, darkCssVariableTokens } from './assets/tokens/index.js'");
+    expect(nuxtConfig).toContain('cssDeclarations(cssVariableTokens)');
+    expect(nuxtConfig).toContain('cssDeclarations(darkCssVariableTokens)');
+    expect(nuxtConfig.match(/\n\s*app:\s*\{/g)).toHaveLength(1);
+    expect(runtimeCss).not.toContain('.dark-mode');
+    expect(runtimeCss).not.toMatch(/--p-[\w-]+\s*:/);
+    expect(runtimeCss).not.toMatch(/[^{}]*\.p-[\w-]+[^{}]*\{/);
+    expect(runtimeCss).not.toContain('!important');
+    expect(fs.readdirSync(path.join(REPO_ROOT, 'assets/css')).filter(file => file.endsWith('.css')).sort())
+      .toEqual(['fonts.css', 'main.css', 'variants.css']);
     expect(runtimeCss).toContain('.chrome-signal-rule');
     expect(runtimeCss).toContain('border-top-width: var(--ck-chrome-signal-height)');
-    expect(runtimeCss).toContain('--ck-chrome-background: #fefefc;');
-    expect(runtimeCss).toContain('--ck-process-canvas-background: var(--p-surface-50);');
-    expect(runtimeCss).toContain('--ck-shadow-card: none;');
-    expect(runtimeCss).toContain('--ck-motion-emphasis: 220ms;');
-    expect(runtimeCss).toContain('--ck-ease-standard: cubic-bezier(0.2, 0, 0, 1);');
-    expect(runtimeCss).toContain('@media (prefers-reduced-motion: reduce)');
-    expect(runtimeCss).toContain('background: var(--ck-inline-ref-bg, var(--ck-subtle-background));');
+    expect(cssVariableTokens['--ck-chrome-background']).toBe('var(--p-surface-100)');
+    expect(cssVariableTokens['--ck-page-background']).toBe('var(--p-surface-100)');
+    expect(darkCssVariableTokens['--ck-chrome-background']).toBe('var(--p-surface-950)');
+    expect(darkCssVariableTokens['--ck-page-background']).toBe('var(--p-surface-950)');
+    expect(cssVariableTokens['--ck-chrome-border']).toBe('var(--p-content-border-color)');
+    expect(cssVariableTokens['--ck-process-canvas-background']).toBe('var(--p-surface-50)');
+    expect(Object.keys(cssVariableTokens).filter(token => /(?:radius|shadow)/.test(token))).toEqual([]);
+    expect(Object.keys(darkCssVariableTokens).filter(token => /(?:radius|shadow)/.test(token))).toEqual([]);
+    expect(Object.keys(cssVariableTokens).filter(token => /(?:motion|ease|dock)/.test(token))).toEqual([]);
+    expect(runtimeCss).not.toMatch(/--ck-(?:radius|shadow)/);
     expect(tailwindThemeExtension.colors.primary[200]).toBe('var(--p-primary-200)');
     expect(tailwindThemeExtension.colors.primary.ink).toBe('var(--ck-primary-ink)');
     expect(tailwindThemeExtension.colors.status.danger).toBe('var(--ck-status-danger)');
     expect(tailwindThemeExtension.colors.status.info).toBe('var(--ck-status-info)');
     expect(tailwindThemeExtension.colors.entity.command).toBe('var(--ck-entity-tone-command)');
     expect(tailwindThemeExtension.colors.signal.entity).toBe('var(--ck-signal-entity)');
-    expect(tailwindThemeExtension.letterSpacing.label).toBe('var(--ck-label-tracking)');
+    expect(tailwindThemeExtension).not.toHaveProperty('letterSpacing');
 
     const appLayout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
     const uiLabLayout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/ui-lab-layout.vue'), 'utf8');
     expect(appLayout).toContain('chrome-signal-rule');
     expect(uiLabLayout).toContain('chrome-signal-rule');
+  });
+
+  it('assigns typography roles on their owning surfaces', () => {
+    const fontsCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/fonts.css'), 'utf8');
+    const dataBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/DataBlock.vue'), 'utf8');
+    const actionToolbar = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/ActionToolbar.vue'), 'utf8');
+    const artifactViewer = fs.readFileSync(path.join(REPO_ROOT, 'components/artifacts/ArtifactViewer.vue'), 'utf8');
+    const artifactTextEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/artifacts/ArtifactTextEditor.vue'), 'utf8');
+    const supportMessageContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/SupportMessageContent.vue'), 'utf8');
+
+    expect(fontsCss).toContain(':where(input, button, select, textarea)');
+    expect(fontsCss).not.toMatch(/:where\((?:p|blockquote|h[1-6]|code|pre)/);
+    expect(fontsCss).not.toContain('.ck-prose');
+    expect(dataBlock).toContain('text-technical');
+    expect(actionToolbar).toContain("props.level <= 1 ? 'text-page-title' : 'text-section-heading'");
+    expect(artifactViewer).toContain('text-technical');
+    expect(artifactTextEditor).toContain('text-prose');
+    expect(supportMessageContent).not.toContain('text-prose');
   });
 
   it('keeps shared status and entity accents inside the token system', () => {
@@ -321,6 +451,79 @@ describe('Design system manifest', () => {
     const offenders = usedVueFiles().filter((file) => rawPaletteUtility.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')));
 
     expect(offenders).toEqual([]);
+  });
+
+  it('rejects feature-level visual drift outside explicit layout and data styling', () => {
+    const rawTypography = /\b(?:text-(?:xs|sm|base|lg|xl|[2-9]xl|\[(?:\d+(?:\.\d+)?)(?:px|rem|em)\])|font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black|mono|serif)|tracking-(?:tighter|tight|normal|wide|wider|widest|\[[^\]]+\])|leading-(?:none|tight|snug|normal|relaxed|loose|\[[^\]]+\]))\b/;
+    const staticFontSize = /\bfont-size=["']\d/;
+    const dynamicFontSizeFiles = new Set([
+      'components/ArtifactLayoutEditor.vue',
+      'components/SheetDesignEditor.vue',
+      'components/shared/DrawingCanvas.vue'
+    ]);
+    const rawSurfaceBorder = /\bborder-surface-\d+\b/;
+    const nonsemanticShadow = /\bshadow-(?:sm|md|lg|xl|2xl)\b/;
+    const nonsemanticRadius = /!?\brounded-(?:sm|md|lg|xl|2xl|3xl)\b/;
+    const files = usedVueFiles();
+
+    expect(files.filter(file => rawTypography.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(files.filter(file => staticFontSize.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(new Set(files.filter(file => /:font-size=/.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'))))).toEqual(dynamicFontSizeFiles);
+    for (const file of dynamicFontSizeFiles) {
+      expect(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')).toContain('Data-driven exception:');
+    }
+    expect(files.filter(file => rawSurfaceBorder.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(files.filter(file => nonsemanticShadow.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(files.filter(file => file !== 'components/process-designer/ProcessNode.vue' && nonsemanticRadius.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(files.filter((file) => {
+      const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
+      const scopedBody = source.match(/<style\s+scoped[^>]*>([\s\S]*?)<\/style>/)?.[1]?.trim();
+      return scopedBody && !SCOPED_STYLE_EXCEPTIONS[file];
+    })).toEqual([]);
+
+    for (const [file, category] of Object.entries(SCOPED_STYLE_EXCEPTIONS)) {
+      const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
+      expect(source, `${file} must retain its ${category} scoped exception`).toMatch(/<style\s+scoped/);
+      const allowedProperties = SCOPED_EXCEPTION_PROPERTIES[category];
+      expect(allowedProperties, `${file} has unknown scoped exception category`).toBeTruthy();
+      expect(scopedStyleDeclarations(source).filter(property => !allowedProperties.has(property)), file).toEqual([]);
+    }
+    expect(new Set(Object.values(SCOPED_STYLE_EXCEPTIONS))).toEqual(new Set(['layout']));
+    expect(SCOPED_EXCEPTION_PROPERTIES.layout.has('padding')).toBe(false);
+    expect(new Set(Object.values(INLINE_STYLE_EXCEPTIONS).map(([category]) => category)))
+      .toEqual(new Set(['data-driven', 'layout']));
+
+    for (const [file, [category, expectedStyles]] of Object.entries(INLINE_STYLE_EXCEPTIONS)) {
+      expect(files, `${file} must retain its ${category} inline exception`).toContain(file);
+      const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
+      expect(inlineStyleAttributes(source), `${file} changed its ${category} inline exception surface`).toEqual(expectedStyles);
+    }
+
+    expect(analyzeVueVisuals(
+      'components/AssetsLibrary.vue',
+      '<template><div :style="{ borderRadius: \'1rem\' }" /></template>'
+    )).toContain('replace:inline-visual (1)');
+    expect(analyzeVueVisuals(
+      'components/QueueEditor.vue',
+      '<template><div style="width: var(--ck-table-action-column-width)" /></template>'
+    )).toContain('compliant:inline-layout (1)');
+    expect(analyzeVueVisuals(
+      'components/AssetsLibrary.vue',
+      '<template><div :style="{ backgroundColor: penForm.stroke.color }" /></template>'
+    )).toContain('narrowly-allowlist:inline-data-driven (1)');
+    const renderVisual = '<script>\nexport default {\n  render() { return h(\'div\', { style: { borderRadius: \'1rem\' } }) }\n}\n</script>';
+    expect(renderStyleBindings(renderVisual)).toHaveLength(1);
+    expect(analyzeVueVisuals('components/RenderSurface.vue', renderVisual)).toContain('replace:render-visual (1)');
+    const scriptClasses = '<script setup>\nconst classes = [\'text-xs\', selected ? `rounded shadow-sm` : \'\']\n</script>';
+    expect(scriptStringLiterals(scriptClasses)).toEqual(['text-xs', 'rounded shadow-sm', '']);
+    expect(analyzeVueVisuals('components/ScriptClasses.vue', scriptClasses)).toEqual([
+      'centralize:typography (1)',
+      'replace:chrome (2)'
+    ]);
+
+    const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
+    expect(runtimeCss).not.toMatch(/:where\(button, a, input[^}]+outline:\s*none/s);
+    expect(runtimeCss).not.toMatch(/\.entity-card-popup-content[^{}]*\{[^}]*(?:font-size|background|border|padding)\s*:/s);
   });
 
   it('uses existing semantic variables for SVG designer label contrast', () => {
@@ -427,86 +630,8 @@ describe('Design system manifest', () => {
     }
   });
 
-  it('exposes ConfigBot as a draft-only admin tool', () => {
-    const page = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/config-bot.vue'), 'utf8');
-    const preview = fs.readFileSync(path.join(REPO_ROOT, 'components/config-bot/ConfigBotDraftPreview.vue'), 'utf8');
-    const layout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
-    const navigation = fs.readFileSync(path.join(REPO_ROOT, 'stores/navigation.js'), 'utf8');
 
-    expect(page).toContain('/api/config-bot/generate');
-    expect(page).toContain('/api/config-bot/chat');
-    expect(page).toContain('/api/admin/config-bot/reindex');
-    expect(page).toContain("writes: 'draft-only'");
-    expect(page).not.toContain('applyPackage');
-    expect(preview).toContain('ActionToolbar');
-    expect(preview).toContain('StateBlock');
-    expect(layout).toContain("router.push('/admin/config-bot')");
-    expect(navigation).toContain("to: '/admin/config-bot'");
-  });
 
-  it('exposes command definitions and runs in the admin workbench', () => {
-    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
-    const service = fs.readFileSync(path.join(REPO_ROOT, 'server/core/commands/service.js'), 'utf8');
-    const adapter = fs.readFileSync(path.join(REPO_ROOT, 'server/adapters/cnc-domain.js'), 'utf8');
-
-    expect(workbench).toContain('sectionsCommands');
-    expect(workbench).toContain('activeWorkbenchSection');
-    expect(workbench).toContain('activeEntityTab');
-    expect(workbench).toContain('globalWorkbenchTabs');
-    expect(workbench).toContain('entityWorkbenchTabs');
-    expect(workbench).toContain("value: 'entities'");
-    expect(workbench).toContain("value: 'context'");
-    expect(workbench).toContain("value: 'commands'");
-    expect(workbench).toContain("const entityWorkbenchTabs = [");
-    expect(workbench).toContain('/api/admin/commands');
-    expect(workbench).toContain('/api/admin/commands/runs');
-    expect(workbench).toContain('/api/admin/tasks');
-    expect(workbench).toContain('runSelectedCommand');
-    expect(workbench).toContain("command.kind !== 'task'");
-    expect(workbench).toContain('selectedCommandTaskDefinitions');
-    expect(workbench).toContain('selectedCommandTaskRuns');
-    expect(workbench).toContain('commandRelatedTaskIds');
-    expect(workbench).toContain('visibleCommands');
-    expect(workbench).toContain('commandSearch');
-    expect(workbench).toContain('commandsRegistry');
-    expect(workbench).toContain('handlerRegistered');
-    expect(workbench).not.toContain("admin.operations.registry");
-    expect(workbench).not.toContain('input.type === selectedEntity.value?.type');
-    expect(workbench).toContain('noCommands');
-    expect(workbench).toContain('commandEntityFields');
-    expect(workbench).toContain("type: 'entityId'");
-    expect(workbench).toContain('lastCommandRun');
-    expect(workbench).toContain('TypedSettingsForm');
-    expect(workbench).toContain('hookContracts');
-    expect(workbench).toContain('parameters: commandParameters.value');
-    expect(workbench).not.toContain("from 'primevue/datatable'");
-    expect(workbench).not.toContain('TableFrame');
-    expect(service).toContain('commandRunsRepository.create');
-    expect(service).toContain('handlerRegistered');
-    expect(service).not.toContain("features/nesting/operations.js");
-    expect(service).not.toContain("features/artifacts/operations.js");
-    expect(adapter).not.toContain("features/nesting/operations.js");
-    expect(adapter).not.toContain("features/artifacts/operations.js");
-    expect(adapter).toContain('cncDomain');
-    expect(fs.readFileSync(path.join(REPO_ROOT, 'server/api/admin/commands/index.get.js'), 'utf8')).toContain('listCommands');
-    expect(service).toContain("status: 'SUCCEEDED'");
-    expect(service).toContain("status: 'FAILED'");
-  });
-
-  it('merges data-model review fields into UI lab entity rows', () => {
-    const source = fs.readFileSync(path.join(REPO_ROOT, 'pages/test/ui-lab.vue'), 'utf8');
-
-    expect(source).toContain('loadReviewModels');
-    expect(source).toContain('reviewModelForRow');
-    expect(source).toContain('uiLabReviewModelForRow');
-    expect(source).toContain("!field.name.startsWith('lineage.')");
-    expect(source).toContain('reviewFieldFeedbackFor');
-    expect(source).toContain('reviewExpanded');
-    expect(source).toContain('toggleReview');
-    expect(source).toContain('expandedReviews = ref(new Set())');
-    expect(source).toContain('uiLab.review.title');
-    expect(source).toContain('cutkit:ui-lab-feedback:v1');
-  });
 
   it('keeps entity cards on shared EntityCard title chrome', () => {
     const offenders = walkFiles(
@@ -518,29 +643,15 @@ describe('Design system manifest', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('keeps entity-card hover feedback inside clipped card roots', () => {
+  it('leaves entity card and popover chrome to Aura', () => {
     const entityCard = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityCard.vue'), 'utf8');
+    const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
 
-    expect(entityCard).toContain('transition-colors duration-normal hover:border-primary');
-    expect(entityCard).not.toContain('hover:[box-shadow:var(--ck-shadow-card-hover)]');
-    expect(entityCard).not.toContain('--ck-shadow-card-hover');
+    expect(entityCard).not.toMatch(/border-content-border|shadow-|box-shadow|hover:border|\.p-card-|!p-/);
+    expect(runtimeCss).not.toMatch(/--ck-(?:radius|shadow)/);
+    expect(runtimeCss).not.toMatch(/\.entity-inline-(?:chip|compact)[^{]*\{[^}]*(?:background|border(?:-radius)?|box-shadow|padding)\s*:/s);
   });
 
-  it('keeps embedded previews and statuses from conflicting with parent card clicks', () => {
-    const entityCard = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityCard.vue'), 'utf8');
-    const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/EntityStatus.vue'), 'utf8');
-    const artifactCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Artifact/ArtifactCard.vue'), 'utf8');
-    const cassetteCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Cassette/CassetteCard.vue'), 'utf8');
-    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
-
-    expect(entityCard).toContain('isInteractiveEventTarget');
-    expect(entityCard).toContain('expandable');
-    expect(entityStatus).toContain('data-entity-card-interactive="true"');
-    expect(artifactCard).toContain(':expandable="false"');
-    expect(workbench).toContain('listeners: { click: previewArtifactOutput }');
-    expect(cassetteCard).toContain('CassetteThumbnail');
-    expect(cassetteCard).not.toContain("path: 'data.type'");
-  });
 
   it('keeps nesting runs focused on sheet design outputs', () => {
     const nestingRunCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/NestingRun/NestingRunCard.vue'), 'utf8');
@@ -577,7 +688,8 @@ describe('Design system manifest', () => {
     expect(editor).toContain('clampSheetPlacement');
     expect(editor).toContain('majorGridSize');
     expect(editor).toContain('selectedSnapPoint');
-    expect(generatedDetail).toContain(":show-identity=\"showIdentity || entityType === 'sheet_design'\"");
+    expect(generatedDetail).toContain(':show-identity="showIdentity || forceIdentityForEditor"');
+    expect(generatedDetail).toContain('entityEditorForcesIdentity(props.entityType)');
     expect(relationBlock).toContain(':variant="itemVariant"');
   });
 
@@ -610,10 +722,10 @@ describe('Design system manifest', () => {
     expect(generatedHome).toContain('shrink-0');
     expect(generatedHome).toContain('suppress-child-summaries');
     expect(generatedHome).toContain('relation-variant="compact"');
-    expect(generatedHome).toContain('GeneratedCassetteDesignerAction');
+    expect(generatedHome).toContain('entityEditorActionFor');
     expect(generatedCollection).toContain('suppress-child-summaries');
     expect(generatedCollection).toContain('relation-variant="compact"');
-    expect(generatedCollection).toContain('GeneratedCassetteDesignerAction');
+    expect(generatedCollection).toContain('entityEditorActionFor');
     expect(generatedHome).toContain('pi pi-external-link');
     expect(generatedCollection).toContain('pi pi-external-link');
     expect(relationsBlock).toContain('overflow-x-auto');
@@ -671,21 +783,6 @@ describe('Design system manifest', () => {
     expect(queueEditor).not.toContain('canEditQueue.value || Boolean(processRunNestingAction.value)');
   });
 
-  it('keeps manual workbench forms explicit about type and lineage choices', () => {
-    const workbench = fs.readFileSync(path.join(REPO_ROOT, 'pages/admin/workbench.vue'), 'utf8');
-    const manualEntities = fs.readFileSync(path.join(REPO_ROOT, 'test-data/workbench-manual-entities.js'), 'utf8');
-    const typedSettingsForm = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/TypedSettingsForm.vue'), 'utf8');
-
-    expect(workbench).toContain('manualEntityTypeLabel');
-    expect(workbench).toContain('manualEntityDefinitions');
-    expect(workbench).toContain('DESIGN_SYSTEM_ENTITIES');
-    expect(workbench).toContain('canCreateManualEntity');
-    expect(workbench).toContain(':disabled="!canCreateManualEntity"');
-    expect(manualEntities).not.toContain("if (field.type === 'entityId')");
-    expect(manualEntities).not.toContain('draft[field.name] = value');
-    expect(typedSettingsForm).toContain("field.type === 'entityId'");
-    expect(typedSettingsForm).not.toContain('field.entityType && `entity:${field.entityType}`');
-  });
 
   it('keeps entity details on shared EntityPage header chrome', () => {
     const offenders = walkFiles(

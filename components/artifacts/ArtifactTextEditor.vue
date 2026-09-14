@@ -5,7 +5,7 @@
         <template #editor="{ data, field }"><InputText v-model="data[field]" size="small" /></template>
       </Column>
     </DataTable>
-    <Textarea v-else v-model="content" auto-resize class="min-h-80 w-full flex-1 font-mono text-sm" />
+    <Textarea v-else v-model="content" auto-resize class="min-h-80 w-full flex-1 text-prose" />
     <div class="flex justify-end">
       <Button :label="$t('common.save')" icon="pi pi-save" size="small" :loading="saving" @click="save" />
     </div>

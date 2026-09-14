@@ -7,6 +7,12 @@
       mode="viewer"
       show-layer-panel
     />
+    <DrawingCanvas
+      v-else-if="hasFile && mode === 'sketch'"
+      :source="fileUrl"
+      source-type="sketch"
+      mode="viewer"
+    />
     <img v-else-if="hasFile && mode === 'image'" :src="blobUrl || fileUrl" class="mx-auto block max-h-full max-w-full object-contain" :alt="artifact.identity?.name || ''">
     <iframe v-else-if="hasFile && mode === 'pdf'" :src="blobUrl || fileUrl" class="h-full min-h-[32rem] w-full border-0" :title="artifact.identity?.name || 'PDF'" />
     <div v-else-if="hasFile && mode === 'docx'" ref="docxHost" class="min-h-[32rem] bg-white p-6 text-black" />
@@ -15,7 +21,7 @@
         <Column v-for="column in columns" :key="column" :field="column" :header="column" />
       </DataTable>
     </TableFrame>
-    <pre v-else-if="hasFile && mode === 'text'" class="whitespace-pre-wrap break-words p-4 font-mono text-sm">{{ text }}</pre>
+    <pre v-else-if="hasFile && mode === 'text'" class="whitespace-pre-wrap break-words p-4 text-technical">{{ text }}</pre>
     <StateBlock v-else-if="!hasFile" state="empty" :message="$t('artifacts.previewUnavailable')" />
     <StateBlock v-else-if="error" state="error" :message="error" />
     <StateBlock v-else state="empty" :message="$t('artifacts.previewUnavailable')" />
@@ -55,7 +61,7 @@ async function load() {
   releaseBlob();
   text.value = ''; rows.value = []; columns.value = []; error.value = '';
   if (!hasFile.value) return;
-  if (['dxf', 'svg'].includes(mode.value)) return;
+  if (['dxf', 'svg', 'sketch'].includes(mode.value)) return;
   try {
     const response = await fetch(fileUrl.value);
     if (!response.ok) throw new Error(response.statusText);

@@ -86,7 +86,7 @@ function queueState(queue) {
               mode="thumbnail"
             />
             <div v-else class="flex aspect-[16/9] items-center justify-center">
-              <i class="pi pi-folder text-3xl text-muted-color"></i>
+              <i class="pi pi-folder text-muted-color"></i>
             </div>
           </div>
           <EntitySurfaceContent
@@ -99,17 +99,17 @@ function queueState(queue) {
 
         <div class="min-w-0 rounded-ui border border-content-border bg-subtle p-3">
           <div class="mb-3 flex min-w-0 items-center justify-between gap-3">
-            <div class="min-w-0 text-sm font-medium">{{ $t('project.queues') }}</div>
+            <div class="min-w-0 text-label">{{ $t('project.queues') }}</div>
             <Tag :value="queueCount" severity="secondary" size="small" />
           </div>
           <div v-if="visibleQueues.length" class="flex min-w-0 flex-col gap-2">
             <div
               v-for="queue in visibleQueues"
               :key="queue._id"
-              class="rounded-ui border border-content-border bg-content px-3 py-2"
+              class="rounded-ui border border-content-border px-3 py-2"
             >
               <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                <div class="min-w-0 truncate text-sm font-medium">
+                <div class="min-w-0 truncate text-label">
                   #{{ queue.queueNumber || '-' }} {{ queue.name || $t('common.unnamed') }}
                 </div>
                 <StatusBadge class="shrink-0" :state="queueState(queue)" />
@@ -128,19 +128,19 @@ function queueState(queue) {
           <small v-else class="text-muted-color">{{ $t('queue.empty') }}</small>
         </div>
 
-        <div class="flex min-w-0 flex-col rounded-ui border border-content-border bg-content p-3">
+        <div class="flex min-w-0 flex-col rounded-ui border border-content-border p-3">
           <div class="grid grid-cols-2 gap-3 xl:grid-cols-1">
             <div>
               <small class="text-muted-color">{{ $t('project.queues') }}</small>
-              <div class="text-xl font-semibold">{{ queueCount }}</div>
+              <div class="text-section-heading">{{ queueCount }}</div>
             </div>
             <div>
               <small class="text-muted-color">{{ $t('results.sheets') }}</small>
-              <div class="text-xl font-semibold">{{ totalSheets }}</div>
+              <div class="text-section-heading">{{ totalSheets }}</div>
             </div>
             <div>
               <small class="text-muted-color">{{ $t('project.totalArea') }}</small>
-              <div class="text-xl font-semibold">{{ totalArea }} m²</div>
+              <div class="text-section-heading">{{ totalArea }} m²</div>
             </div>
           </div>
           <Divider />

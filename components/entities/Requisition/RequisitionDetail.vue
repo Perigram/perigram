@@ -1,16 +1,17 @@
 <template>
     <EntityPage :entity="requisition" entity-type="requisition">
 
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
-            <div class="lg:col-span-3 flex flex-col gap-8">
-                <!-- Items List -->
-                <div class="flex flex-col gap-4">
-                    <div class="flex items-center gap-2">
-                        <i class="pi pi-list"></i>
-                        <h2 class="m-0 text-base">{{ $t('requisition.orderComposition') }}</h2>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <template #sidebar>
+            <Panel :header="$t('requisition.lifecycleTimeline')">
+                <StatusHistory entity-type="requisition" :entity="requisition" />
+            </Panel>
+        </template>
+
+        <div class="flex flex-col gap-8">
+            <div class="flex flex-col gap-4">
+                <ActionToolbar :title="$t('requisition.orderComposition')" :level="2" />
+
+                <ResponsiveGrid variant="wide" responsive-context="container">
                         <Panel v-for="(item, idx) in requisition.items" :key="idx">
                             <template #header>
                                 <div class="flex justify-between items-center">
@@ -27,28 +28,20 @@
                             <div class="flex justify-between items-center">
                                 <div class="flex flex-col">
                                     <small>{{ $t('common.quantity') }}</small>
-                                    <span class="text-xl">{{ item.quantity }}</span>
+                                    <span class="text-section-heading">{{ item.quantity }}</span>
                                 </div>
                                 <div class="flex flex-col text-right">
                                     <small>{{ $t('common.subtotal') }}</small>
-                                    <span class="text-xl">${{ item.totalPrice?.toFixed(2) }}</span>
+                                    <span class="text-section-heading">${{ item.totalPrice?.toFixed(2) }}</span>
                                 </div>
                             </div>
                         </Panel>
-                    </div>
-                </div>
-
-                <Fieldset :legend="$t('requisition.internalNotes')" v-if="requisition.notes" toggleable>
-                    <p>{{ requisition.notes }}</p>
-                </Fieldset>
+                </ResponsiveGrid>
             </div>
 
-            <!-- Sidebar -->
-            <div class="flex flex-col gap-8">
-                <Panel :header="$t('requisition.lifecycleTimeline')">
-                    <StatusHistory entity-type="requisition" :entity="requisition" />
-                </Panel>
-            </div>
+            <Fieldset :legend="$t('requisition.internalNotes')" v-if="requisition.notes" toggleable>
+                <p>{{ requisition.notes }}</p>
+            </Fieldset>
         </div>
     </EntityPage>
 </template>
@@ -60,6 +53,8 @@ import Divider from 'primevue/divider';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
+import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 
 defineProps({
     requisition: {

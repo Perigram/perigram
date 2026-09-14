@@ -2,10 +2,10 @@
   <div :class="nodeFrameClass" :title="data.purpose || data.summary || ''">
     <div :class="['absolute inset-x-0 top-0 h-0.5 rounded-t-ui', accent.stripe]"></div>
     <div class="flex items-center gap-1.5 border-b border-content-border pb-1.5">
-      <span :class="['flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle text-xs', accent.icon]">
+      <span :class="['flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle text-supporting', accent.icon]">
         <i :class="record.icon || data.icon || 'pi pi-sitemap'" aria-hidden="true"></i>
       </span>
-      <strong class="min-w-0 flex-1 truncate text-xs text-color">{{ data.kindLabel || record.kind }}</strong>
+      <strong class="min-w-0 flex-1 truncate text-color text-label">{{ data.kindLabel || record.kind }}</strong>
     </div>
 
     <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-2 flex flex-col gap-1.5" @mousedown.stop @click.stop>
@@ -30,12 +30,12 @@
       </div>
       <Select
         v-if="operationOptions.length"
-        :model-value="record.operation"
+        :model-value="operationValue"
         :options="operationOptions"
         option-label="label"
         option-value="value"
         size="small"
-        @update:model-value="value => update({ operation: value })"
+        @update:model-value="updateOperation"
       />
       <Select
         v-if="record.kind === 'control.domainEventTrigger'"
@@ -126,7 +126,7 @@
             :style="handleStyle(row.input)"
             :aria-label="socketTitle(row.input)"
           />
-          <span class="block truncate text-[11px] leading-5">{{ row.input.label }}</span>
+          <span class="block truncate text-supporting">{{ row.input.label }}</span>
           <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5" @mousedown.stop @click.stop>
             <ToggleSwitch
               v-if="row.input.base === 'boolean'"
@@ -180,7 +180,7 @@
             :style="handleStyle(row.output)"
             :aria-label="socketTitle(row.output)"
           />
-          <span class="block truncate text-[11px] leading-5">{{ row.output.label }}</span>
+          <span class="block truncate text-supporting">{{ row.output.label }}</span>
         </div>
         <div v-else></div>
       </div>
@@ -202,12 +202,12 @@
       <div v-for="row in eventSocketRows" :key="row.key" class="grid min-h-7 grid-cols-2 gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <Handle :id="socketHandleId(row.input)" type="target" :position="Position.Left" :class="handleClass(row.input, 'left')" :style="handleStyle(row.input)" />
-          <span class="block truncate text-[11px] leading-5">{{ row.input.label }}</span>
+          <span class="block truncate text-supporting">{{ row.input.label }}</span>
         </div>
         <div v-else></div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
           <Handle :id="socketHandleId(row.output)" type="source" :position="Position.Right" :class="handleClass(row.output, 'right')" :style="handleStyle(row.output)" />
-          <span class="block truncate text-[11px] leading-5">{{ row.output.label }}</span>
+          <span class="block truncate text-supporting">{{ row.output.label }}</span>
         </div>
         <div v-else></div>
       </div>
@@ -256,13 +256,13 @@ const showsFieldSelect = computed(() => (
   && !showsFieldSet.value
   && !(fieldOptions.value.length === 1 && fieldOptions.value[0].value === record.value.block)
 ));
-const showEntitySelect = computed(() => (
+const showEntitySelect = computed(() => (!record.value.entityTypeInferred && (
   (['record.', 'predicate.', 'read.', 'effect.'].some(prefix => record.value.kind?.startsWith(prefix))
     && !['record.getField', 'record.composeBlock', 'record.modifyBlock', 'record.construct', 'effect.runCommand', 'effect.runProducer'].includes(record.value.kind))
   || record.value.kind === 'control.entityChangedTrigger'
   || (record.value.kind === 'control.manualTrigger' && record.value.entityType)
   || (record.value.kind === 'source.literalItem' && record.value.type?.base === 'entityRef')
-));
+)));
 const showBlockSelect = computed(() => (
   ['record.getBlock', 'record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.value.kind)
   && (props.data.processBlockOptions || []).length
@@ -322,6 +322,16 @@ const accent = computed(() => {
 
 function update(updates) {
   props.data.onProcessNodeUpdate?.(updates);
+}
+
+const operationValue = computed(() => (
+  record.value.kind === 'collection.sort'
+    ? record.value.direction || 'asc'
+    : record.value.operation
+));
+
+function updateOperation(value) {
+  update(record.value.kind === 'collection.sort' ? { direction: value } : { operation: value });
 }
 
 function updateEffectTriggerMode(mode) {
@@ -402,7 +412,10 @@ function showInlineFallback(input) {
 
 function supportsInlineValue(input) {
   return ['string', 'id', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'status', 'entityRef'].includes(input.base)
-    && input.access === 'item';
+    && (input.access === 'item'
+      // Mapped mutation sockets declare List consumption; an inline scalar
+      // fallback is stored as one broadcast item.
+      || (input.access === 'list' && ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus'].includes(record.value.kind)));
 }
 
 function inputDefault(id) {
@@ -487,7 +500,7 @@ function socketClass(item, side) {
 
 function handleClass(item, side) {
   return [
-    '!top-1/2 !h-2.5 !w-2.5 !-translate-y-1/2',
+    '!top-1/2 !h-3 !w-3 !-translate-y-1/2',
     item.access === 'tree' ? '!rounded-none' : item.access === 'list' ? '!rounded-sm' : '!rounded-full',
     side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
   ];

@@ -1,0 +1,2881 @@
+# TODO: Process Designer procedural entity CRUD
+
+Status: WAITING
+
+This plan completes the Process Designer as a procedural entity-dataflow
+authoring surface. The target is exhaustive composition of organization-scoped
+entity reads, selection, canonical-block transformations, persistence, role
+access, and generated interfaces. Long-running service orchestration is not the
+priority of this plan, except for the exact async service-completion boundary
+defined under Producer-scoped entity workflows.
+
+Canonical architecture remains in
+[`packages/processes/README.md`](./packages/processes/README.md),
+[`components/process-designer/README.md`](./components/process-designer/README.md),
+[`server/features/process-definitions/README.md`](./server/features/process-definitions/README.md),
+and [`server/core/access/README.md`](./server/core/access/README.md). Update those
+owners with each implemented contract instead of turning this TODO into a
+second specification.
+
+## Required authoring model
+
+- [x] Keep iteration below the node language. Item access maps over matched
+  items, List access runs once per branch, and Tree access receives the whole
+  structure. Create, Modify, Change Status, and Delete must consume and return
+  item/list/tree topology through those same solver rules. Do not add `For
+  Each`, Batch, Bulk, Map, or collection-specific mutation nodes.
+- [x] Keep transport shape separate from value type. A List of entity refs is
+  not an array-valued entity field; Collect Array and Expand Array remain the
+  explicit boundary between data-tree topology and a persisted `array` value.
+- [x] Keep nodes declarative and domain-independent. Entity types, canonical
+  blocks, fields, relations, construction modes, status contracts, commands,
+  and capabilities must come from the active domain and runtime registry.
+- [x] Keep access and persistence at service boundaries. Graph evaluation may
+  select and transform readable DTOs, but every read/write/delete/status action
+  must still re-enter the registered entity service, access engine, or status
+  engine with the complete auth context.
+- [x] Keep ordinary CRUD synchronous for now. Do not introduce schedules,
+  general-purpose wait nodes, retry-control nodes, compensation nodes, or
+  service-management UI as prerequisites for this plan. Durable suspension is
+  limited to a Run Service invocation whose declared completion outputs are
+  consumed by the graph.
+
+##### Agent Notes — 2026-09-11 authoring-model constraints verified
+
+All five keep-constraints are enforced and pinned by existing coverage, so
+they are ticked as satisfied invariants rather than new work: mutation nodes
+share the solver's item/list/tree mapping with no iteration nodes in the
+authoring palette (`designer.spec.js` palette contract; runtime-only
+`control.forEach` stays out of the palette); Collect/Expand Array remain the
+persisted-array boundary with round-trip tests; node contracts resolve from
+the domain/runtime registry (capability projection, catalog ports);
+reads/effects re-enter registered services with the full auth context
+(`entity-sources.spec.js`, durable effect adapter tests); ordinary CRUD stays
+synchronous with durable suspension exactly at the Run Service async boundary
+(`run-repository.spec.js`), and the designer has no scheduling/retry/queue
+surface (Run Service keep-constraint note).
+
+## P0 — make the contracts truthful
+
+### Entity process capabilities
+
+- [x] Add one canonical process-capability projection for every registered
+  entity type: list/query, get-by-id, create modes, writable blocks/fields,
+  relation mutations, status mutation, archive, and hard delete. Derive it from
+  domain declarations plus explicit runtime bindings; do not infer create or
+  delete support from the existence of an entity collection.
+- [x] Make the designer filter entity choices per operation. Create Entity must
+  show only process-creatable entities and valid construction modes; Modify,
+  Change Status, and Delete must apply their own capabilities independently.
+- [x] Make activation reject a node whose selected entity/service binding
+  cannot perform its declared operation. A graph that validates must not later
+  fail only because the registered service lacks `create`, `processUpdate`,
+  status support, or delete support.
+- [x] Remove the generic-create fallback for entity types that have no explicit
+  process construction contract. Every excluded entity must have a documented
+  domain reason, and every included entity must be constructible from a fresh
+  graph.
+- [x] Add a contract test that iterates the complete domain entity registry and
+  proves palette availability, compiler validation, and registered service
+  capability agree for every CRUD operation.
+
+#### Agent Notes
+
+2026-08-15 — completed the "Entity process capabilities" checkboxes above.
+
+- Canonical projection: `packages/processes/src/capabilities.js`
+  (`projectEntityProcessCapabilities`) intersects domain construction, field
+  schemas, relations, workflows, and `operations.delete` with an explicit
+  service-bindings map; no create/delete inference from collection presence.
+  See [packages/processes/README.md](./packages/processes/README.md).
+- Runtime bindings: `server/runtime/app-registry.js` declares a per-entity
+  `processCapabilities` record `{ create, processUpdate, delete, archive }`,
+  throws on a missing entry or a `true` flag that does not resolve to a real
+  service method, and spreads it onto each registered service. See
+  [server/runtime/README.md](./server/runtime/README.md).
+- Designer filtering: `packages/processes/src/designer.js` exposes
+  `createEntityOptions`, `updateEntityOptions`, `changeStatusOptions`,
+  `deleteEntityOptions`, and `archivableEntityOptions`;
+  `pages/organization/process.vue` branches `processEntityTypeOptions` on the
+  node kind and defaults Create Entity to the first creatable entity. See
+  [components/process-designer/README.md](./components/process-designer/README.md).
+- Activation enforcement: `packages/processes/src/compiler-core.js` adds
+  `requiredEffectCapability` plus a gated capability pass that rejects
+  create/update/changeStatus effects lacking the binding as deterministic
+  `validation.errors` (HTTP 400), and `compiler-adapter.js` threads the registry
+  capabilities through `validateActivatableProcess`. See
+  [server/features/process-definitions/README.md](./server/features/process-definitions/README.md).
+- Generic-create fallback removed: `packages/domain-cnc/src/entity-construction.js`
+  returns `null` for entities without an explicit construction contract and adds
+  explicit entries for `catalog`, `color`, `material`, `material_pile`,
+  `remnant`, `requisition`, and `warehouse`. See
+  [packages/domain-cnc/README.md](./packages/domain-cnc/README.md).
+- Contract test: `server/runtime/app-registry.spec.js` iterates
+  `cncDomain.entities` and proves the declared `processCapabilities` flags agree
+  with the actual service methods (`create`↔`service.create`,
+  `processUpdate`↔`service.processUpdate`, `delete`↔`service.remove`) and with a
+  workflow `ARCHIVED` state for `archive`, per CRUD operation.
+
+Validation: `npx vitest run packages/processes packages/domain-cnc server/runtime`
+passed; `npx vitest run server/features/process-definitions/process-definitions.spec.js`
+passes 5/6 (the "rejects activation when the authored graph is not the current
+protocol" case is a pre-existing failure unrelated to this task);
+`node scripts/check-arch.js`, `npm run framework:validate`, and
+`node scripts/check-docs.js` ran before the docs commit.
+
+#### Corrective plan — mode-aware construction capabilities
+
+Status: WAITING. The plan below is complete: process creatability now resolves
+to the registered per-mode construction handlers, and the projected capability
+record is the single activation/authoring/execution contract.
+
+- [x] Replace the boolean create authority with explicit runtime support per
+  construction mode. Effective `createModes` must be the intersection of the
+  domain-declared modes and registered runtime handlers; derive `create` only
+  as `effectiveCreateModes.length > 0`. Bind `genericCreate` to
+  `service.create` and every typed mode to its named handler instead of treating
+  all creation as a generic service call.
+- [x] Remove the compiler's remaining implicit `genericCreate` contract.
+  Missing domain construction must remain `null` through normalization and
+  validation, and Create Entity / Run Producer must reject an entity or mode
+  that is not explicitly declared.
+- [x] Reconcile every declared construction mode with execution. Preserve the
+  specialized cassette-design bake/import paths as typed mode bindings; resolve
+  the `cassette_instance` mismatch by either providing its declared
+  `genericCreate` execution boundary or removing that domain construction
+  contract with the owning-domain reason. Do not expose the ten internal
+  service `create` methods whose entity types have no process construction
+  contract.
+- [x] Make the projected capability record the consumed activation and
+  authoring contract. Activation must validate the selected construction mode,
+  not a raw entity-level boolean. The designer must receive effective entity
+  options and modes from that projection (or from a serialized registry-owned
+  projection), rather than independently reconstructing process support from
+  `domain.construction`.
+- [x] Keep Create Entity and Run Producer checks mode-specific. A producer is
+  valid only when its selected producer/construction handler is registered;
+  ordinary Create Entity is valid only for its selected construction mode.
+  Update and Change Status continue to use their independent capabilities.
+- [x] Replace the current method-presence test with a registry-wide, per-mode
+  contract test proving palette modes, compiler acceptance, and runtime
+  handlers agree for every domain entity. Cover an internal `service.create`
+  with no construction contract, generic creation, cassette-design typed
+  creation, an unsupported mode, and the resolved cassette-instance contract.
+- [x] After the executable contract passes, correct the canonical owner docs
+  and these Agent Notes. Remove the documented compiler fallback and describe
+  mode-aware projection/activation without duplicating the per-entity matrix.
+
+Acceptance: no entity or construction mode appears in the designer unless the
+same mode activates and executes through a registered handler; no internal
+service method becomes process-authorable without an explicit domain contract;
+and no missing construction contract falls back to `genericCreate`.
+
+##### Agent Notes
+
+2026-08-17 — completed the mode-aware construction capability plan above.
+
+- Execution boundary: `server/features/process-definitions/service.js`
+  `performDurableEffect` now resolves the effect's construction mode on the
+  target service's `constructionHandlers` map and invokes that bound handler
+  (including the `genericCreate` binding). The hardcoded
+  `uploadArtifact`/`bakeCassetteDesignFromTemplate`/
+  `importCassetteDesignFromArtifact`/`genericCreate` branches were deleted;
+  create-status and typed-block post-processing still run after a successful
+  handler call. See [server/runtime/README.md](./server/runtime/README.md).
+- Compiler fallback removed: `packages/processes/src/compiler-core.js`
+  `constructionContract`/`normalizeConstruction` return `null` for an entity
+  without a construction contract, and Create Entity / Run Producer reject an
+  undeclared entity or mode; `packages/processes/src/node-catalog.js` no longer
+  defaults the port contract to `genericCreate`.
+- `cassette_instance` resolved by removal:
+  `packages/domain-cnc/src/entity-construction.js` drops the `cassette_instance`
+  entry (instances are derived at nesting time through the `cassette-instances`
+  service, not authored from an empty graph), and the domain README and
+  construction spec were corrected to match. See
+  [packages/domain-cnc/README.md](./packages/domain-cnc/README.md).
+- Mode-aware projection/activation: `packages/processes/src/capabilities.js`
+  derives `createModes` as the declared-mode/handler intersection and `create`
+  as `createModes.length > 0`; `packages/processes/src/designer.js`,
+  `pages/organization/process.vue`, and `server/api/admin/domain/index.get.js`
+  feed the serialized registry-owned projection into the designer.
+- Contract test: `server/runtime/app-registry.spec.js` iterates the domain
+  entities and proves declared modes == runtime handlers == capability
+  `createModes` == palette presence, plus execution-dispatch cases for generic
+  and typed creation, an internal `service.create` with no contract, an
+  unsupported mode, and the null `cassette_instance` contract.
+
+Validation: `npx vitest run packages/processes packages/domain-cnc
+server/runtime` passed; `npx vitest run
+server/features/process-definitions/process-definitions.spec.js` passes 5/6 (the
+"rejects activation when the authored graph is not the current protocol" case
+is a pre-existing failure unrelated to this task); `node scripts/check-arch.js`
+and `npm run framework:validate` passed; `node scripts/check-docs.js` reports
+only pre-existing broken links to unrelated deleted docs.
+
+### Required inputs and value availability
+
+- [x] Restore the catalog's real `required` flag. Do not make every socket
+  optional in `socket()` or confuse an unconnected manual prompt with an
+  optional runtime value.
+- [x] Represent input availability explicitly: connected upstream value,
+  authored fallback, domain-owned default, generated manual prompt, or runtime
+  context. Activation must reject required inputs that have none of these
+  sources.
+- [x] Keep generated prompts limited to manual actions. An automatically
+  evaluated data path must be complete without a UI prompt.
+- [x] Validate availability after type/access inference so a required entity,
+  block, array, attachment, enum, or construction input cannot be satisfied by
+  an incompatible scalar fallback.
+- [x] Add focused tests for required primitive, entity, entity-list, block,
+  status, attachment, and command inputs, with connected/defaulted/prompted and
+  missing cases.
+
+##### Agent Notes
+
+2026-08-18 — implemented the required-input availability contract.
+
+- Real `required` propagation: `packages/processes/src/node-catalog.js`
+  `socket()` honors its `_required` argument instead of hardcoding
+  `required: false`; `packages/processes/src/ports.js` `normalizePortSpec`
+  derives `required` from the real flag; `packages/processes/src/compiler-core.js`
+  stops forcing `required: false` at the derived-input sites (construction
+  inputs, command inputs, input policies, relation link/entity inputs). A
+  construction or command input with a domain `default` still projects as
+  non-required. See
+  [packages/processes/README.md](./packages/processes/README.md).
+- One activation-time availability pass: new
+  `validateRequiredInputAvailability` in `compiler-core.js`, exported through
+  `validation.js`, consumed by `validateActivatableProcess` in
+  `server/features/process-definitions/compiler-adapter.js`. It resolves the
+  five sources (connected edge, authored `inputDefaults` fallback, domain
+  default, manual-only prompt, manual-only run context) and rejects required
+  effect inputs with no source. A prompt never satisfies an automatically
+  evaluated path.
+- Manual classification: Link targets and manual generic Create
+  `identity.name`/typed construction inputs and command entities/parameters
+  (with `display !== 'hidden'`) are the promptable inputs; the entity/status
+  ports resolve from the manual run context.
+- Emptiness semantics: `null`/`undefined` never satisfy; empty entity-list and
+  attachment fallbacks/defaults never satisfy; scalar fallbacks cannot satisfy
+  entity/block/array/attachment/opaque ports after type/access inference;
+  empty string/zero satisfy primitives; enum/status fallbacks must be a
+  declared member where options exist.
+- Tests: updated `node-catalog.spec.js`, `ports.spec.js`, and `index.spec.js`
+  assertions that locked in `required: false`; added `availability.spec.js`
+  covering connected, fallback (empty/incompatible/null), default, enum
+  membership, manual-vs-automatic prompt, runtime context, and
+  hidden-command-parameter cases.
+
+Validation: `npx vitest run packages/processes` passed (218 tests);
+`npx vitest run packages/domain-cnc server/runtime
+server/features/process-definitions` passes except the pre-existing
+"rejects activation when the authored graph is not the current protocol"
+permission-denied case; `node scripts/check-arch.js` and
+`npm run framework:validate` passed.
+
+### Item/list/tree persistence semantics
+
+- [x] Define one lower-level effect-mapping contract used by Create, Modify,
+  Change Status, Archive, and Delete. Delete joined the mapper in the later
+  Status/archive/delete correction. Item
+  inputs map over aligned packets, the output preserves branch paths and item
+  order, and no mutation node contains its own loop implementation.
+- [x] Define multi-input matching for persistence nodes. Item values may
+  broadcast over an entity list; aligned lists follow the chosen matching
+  rule; incompatible branch lengths or unsafe Cross mutation must fail before
+  the first write.
+- [x] Define mutation failure reporting below the graph language. Return the
+  operation, branch path, item index, entity ref when known, and underlying
+  service error. Do not add success/failure fan-out nodes merely to represent
+  collection execution mechanics.
+- [x] Do not claim collection-wide atomicity when mutations are separate
+  service calls. Make the execution result identify completed mutations if a
+  later item fails, and make generated UI refresh those entities.
+- [x] Test the same mutation contract with item, list, branched tree, broadcast
+  scalar, and aligned value-tree inputs; verify Create, Modify, Status, Archive,
+  and Delete use it.
+
+#### Agent Notes — 2026-08-21
+
+Implemented the recorded effect-mapping verdict without adding mutation-specific
+loops. `executeProcessEffectNode` in
+`packages/processes/src/evaluator.js` preflights scalar-or-aligned branch/item
+lengths and branch paths, rejects Cross before invoking the adapter, obtains the
+per-item invocation plan from `solveDataTrees`, and runs one authorized effect
+call per aligned tuple. Create Entity, Modify Entity, and Change Status delegate
+through that mapper in `orchestration.js`; other effects keep their existing
+singular contracts. A preflight failure fails the step and run before the first
+write, so incompatible branch lengths or unsafe Cross matching never partially
+persist.
+
+Run-status semantics for mapped mutations: a step whose aligned calls all
+succeed keeps the historical output contract byte-for-byte — one aligned item
+yields the bare structuredCloned effect result (and the step idempotency key is
+reused unchanged), a list/tree input yields the bare shape-preserving data
+tree. A step with any failed aligned item still completes (the run continues)
+and its output becomes `{ result, failures, completedMutations }`: `result` is
+the shape-preserving tree with each failed slot carrying its own
+`{ operation, branchPath, itemIndex, entityRef?, error }` MutationFailure
+record, `failures` is the flat record list, and `completedMutations`
+identifies every write that finished. Calls continue after an item failure and
+completed writes stay applied — nothing claims or implies collection-wide
+atomicity or rollback. Downstream data outputs consume the unwrapped result
+tree. `GeneratedScreen` applies each completed item (slots without an `error`
+payload) to matching loaded sources and only opens a create detail route when
+the mapped result has exactly one completed entity.
+
+Coverage: `evaluator.spec.js` runs one mutation contract against item, list,
+scalar-broadcast, aligned value-tree, and branched-tree inputs, asserts the
+zero-failure bare outputs, the strict preflight rejections (no write
+attempted), and partial-failure reporting including the single-failed-item
+envelope; `orchestration.spec.js` proves Create, Modify, and Change Status
+route through the mapper, that a later item failure completes the step with
+the failure-carrying output while the run proceeds, and that misaligned inputs
+fail the run before the first `executeEffect` call. Hard deletion was added
+later through the capability, node, confirmation, and execution contract in the
+Status/archive/delete correction.
+
+#### Agent Notes — 2026-08-21 (effect socket access declaration)
+
+Closed the remaining wiring half of this section: Create Entity, Modify
+Entity, and Change Status input sockets now declare List access in
+`effectInputs` (`packages/processes/src/node-catalog.js`), so list and tree
+sources are advertised and wire validly into mutation sockets while edge
+compatibility stays type-based (`processSocketsCompatible`/
+`portSpecsCompatible` unchanged). A single item source remains valid as one
+broadcast item: run-context values and authored `inputDefaults` scalars on
+these sockets wrap as one-item packets instead of throwing list arity errors
+(`runContextPacket` in `orchestration.js`, scalar-tolerant default
+normalization in `compiler-core.js`), and a scalar fallback on a
+List/Tree-declared socket satisfies required-input availability by the scalar
+rules — only actual arrays/trees use the collection non-empty rule. The
+designer keeps inline scalar fallback editors on mapped mutation sockets
+(`ProcessNode.vue`). `node-catalog.spec.js` asserts the List declarations and
+that item, list, and tree sources are all compatible with Modify Entity
+sockets; the existing orchestration specs prove scalar run-context entities
+and scalar defaults still drive Modify/Change Status unchanged. Delete was
+subsequently routed through the mapper; `effect.runProducer`, `sendEntity`,
+`generateAttachment`, and `runCommand` keep item access because they do not
+route through it.
+
+## P0 — complete entity acquisition and selection
+
+### Entity sources
+
+- [x] Expose Current Entity as an authoring node. Its entity type must be
+  inferred from the manual action/screen context where possible and selectable
+  only when the context cannot determine it.
+- [x] Expose Entity by ID/Reference. Accept a typed entity reference directly;
+  accept an ID only with an explicit entity type. Return a typed readable entity
+  and fail clearly when access denies it or it does not exist.
+- [x] Complete Select Entities as the organization-scoped list source for every
+  process-listable entity. Preserve the service's access filtering; never use
+  an unfiltered repository read.
+- [x] Expose Parent, Children, and Related Entities from declared Lineage and
+  relation contracts. The node must offer only relations valid for the incoming
+  entity type and return exact typed entity references/DTOs.
+- [x] Add source tests for root entities, lineage children, relation targets,
+  missing references, cross-organization references, and per-entity read denial.
+
+#### Agent Notes — 2026-08-19
+
+Implemented the Entity sources subsection. Runtime read functions
+`parentEntity`, `childEntities`, and `relatedEntities` are now wired into
+`processDataEnvironment` through the pure helpers in
+`server/features/process-definitions/entity-sources.js`, resolving from the
+domain `containment`/`relations` contracts via `processList`/`processGetById`
+with the complete auth context (never an unfiltered repository read).
+`currentEntity`, `entityById`, and `resolveEntityRef` were already wired.
+`queryProcessGraphEntities` now accepts lineage-key filters. The authoring
+palette exposes Current Entity (`read.currentEntity`), Entity by ID
+(`read.entityById`), Entity by Reference (`read.resolveEntityRef`), Parent
+(`read.parent`), Children (`read.children`), and Related (`read.related`),
+alongside Select Entities. The designer contract now emits
+`listableEntityOptions`/`readableEntityOptions` from the capability projection,
+and the designer gates Select Entities/Children by `list` and the other read
+sources by `getById`. Current Entity's entity type remains node-selected and is
+resolved from the run context (`inputs.entities[type]`); context inference from
+manual action/screen placement is left for the placement-aware authoring work
+since the runtime has no such signal today. The source matrix lives in
+`entity-sources.spec.js` (root, children, relation, missing, cross-org, and
+read-denial).
+
+### Filter and find paths
+
+- [x] Make this ordinary path work for every readable scalar field:
+  `Select Entities -> Deconstruct/Get Block -> Get Field -> Logic -> Filter`.
+  Field extraction and Logic must map over the source topology so the Boolean
+  mask stays aligned with the original entities.
+- [x] Cover equality, inequality, numeric/date comparisons, contains,
+  starts/ends with, null/not-null, Boolean AND/OR/NOT, enum values, status, and
+  typed entity-reference equality. Do not require raw predicate JSON.
+- [x] Preserve the original entities through Filter and Dispatch; masks are
+  selectors, not replacement values. Reject mask/item branch mismatches before
+  returning misleading results.
+- [x] Support several conditions by composing Logic nodes. Do not add a second
+  query-language or a monolithic advanced-filter node.
+- [x] Add an internal query-planning optimization only after semantics are
+  correct: safe source-adjacent predicates, sort, and slice may be pushed into
+  `processList` filters, but the graph result must be identical to in-memory
+  evaluation and service access checks remain authoritative.
+
+#### Agent Notes — 2026-09-05
+
+Added service-owned source-query planning for the universally supported safe
+case: an equality predicate on a normal persisted-field path. The concrete
+`processList` adapter still receives the authoritative auth context and the
+evaluator retains the predicate as residual evaluation, so planned and
+unplanned results match. Sort, slice, compound predicates, and unsafe paths
+remain in memory because the runtime intentionally has no portable filter
+capability contract. Focused regression: `query-planning.spec.js`.
+- [x] Add end-to-end tests for find-by-field, combined conditions, status
+  selection, relation-reference selection, empty results, and denied records.
+
+#### Agent Notes — 2026-08-19
+
+Closed the ordinary find/filter authoring path. `filterPackets`/`dispatchPackets`
+no longer reuse `combineDataPackets`' default "longest" matching (which silently
+repeated the last mask entry on a length mismatch). They now align the Boolean
+mask to the item list with equal branch paths and equal per-branch item counts
+via `alignSelectorPackets`, rejecting any branch or item mismatch, and return the
+original entity values unchanged. Comparison semantics are pinned and tested:
+`status.state.primary` travels through Get Field as a scalar status id string and
+compares with scalar equality, enum values compare as scalar strings, and typed
+entity references compare structurally by their serialized `{ type, id }` shape
+through the existing `same()`/`compare()` operators. Added end-to-end
+evaluator tests for find-by-field, combined Logic conditions, status selection,
+relation-reference selection, empty results, and authorized-only (denied-excluded)
+reads, plus mask/item and mask/branch mismatch rejection. Source-adjacent query
+planning remains deferred until these in-memory semantics are exercised end to
+end.
+
+### Ordering, grouping, and windows
+
+- [x] Change Sort Items to accept the original item list plus an aligned key
+  list produced by Get Field. Return the original items in key order; do not
+  require hidden/raw property paths inside Sort.
+- [x] Use one canonical `direction` property (`asc` or `desc`) from inspector
+  through evaluator. Remove the current `operation`/`direction` mismatch and
+  test both directions.
+- [x] Define stable ordering for equal keys and deterministic placement of null
+  values. Cover string, number, date/date-time, enum, status, and identity
+  values.
+- [x] Make Distinct optionally consume aligned keys so complete entities can be
+  deduplicated by a field without losing the original entity values.
+- [x] Keep Group By as items plus aligned keys and preserve source branch paths.
+- [x] Complete Slice and Item At with authorable start/end/index fallbacks,
+  negative-index behavior where supported, empty-list behavior, and exact
+  output topology.
+- [x] Test practical paths such as “most recent ten”, “first matching entity”,
+  “unique entities by reference”, and “entities grouped by status”.
+
+#### Agent Notes — 2026-08-19
+
+Implemented the aligned-key-sockets contract for Sort, Distinct, Group By,
+Slice, and Item At. `collection.sort` now exposes `items` + `keys` (both
+required) and sorts the original items by the strictly aligned key list via the
+shared `alignSelectorPackets` helper, removing the hidden `record.path`/`readPath`
+key mechanism; one canonical `direction` (`asc`/`desc`, default asc) is read by
+the evaluator and written by the inspector (the inline Sort selector now writes
+`direction`, and `syncProcessNode` defaults it and drops `operation`), so the
+former `operation`/`direction` mismatch is gone and both directions are tested.
+Stable ordering is explicit (equal keys keep original order via an index
+tiebreak) and null keys sort after non-null keys in ascending order.
+`collection.distinct` exposes `items` + optional `keys`; with keys it keeps the
+first item per aligned key, without keys it dedups the items themselves by
+structural equality instead of whole-entity JSON. `collection.groupBy` keeps
+`items` + `keys` but switches from `combineDataPackets` longest-match to strict
+`alignSelectorPackets` alignment (rejecting length/branch mismatches) and
+preserves source branch paths by appending the group index. Slice `start`/`end`
+and Item At `index` are now authorable integer fallbacks (the index socket is no
+longer required) with native negative-index and empty-list semantics; Item At
+resolves absent/out-of-range/empty indices to null, and Slice was fixed to map
+optional start/end positionally. Added catalog contract and evaluator tests for
+most-recent-ten (Sort+Slice), first-matching-entity and negative/absent index
+(Item At), unique-entities-by-reference and no-keys dedup (Distinct), and
+entities-grouped-by-status (Group By), plus mismatch rejection for Sort and
+Group By.
+
+### Collection construction
+
+- [x] Expose Make List only where authors need to combine several independent
+  item values into one data-tree list. Its number of inputs must be explicit
+  and stable; do not permit several wires into an ordinary single-value socket.
+- [x] Keep Concat for joining existing lists, and verify it retains item type,
+  branch topology, and order.
+- [x] Keep Collect Array/Expand Array as the explicit persisted-array boundary.
+  Add array/map value-type authoring where a canonical block field or command
+  input actually declares those types; do not treat arbitrary JSON text as a
+  typed array.
+- [x] Test construction of relation arrays, attachment arrays, command
+  entity-list inputs, empty lists, and mixed incompatible element types.
+
+#### Agent Notes — 2026-08-21
+
+Implemented the recorded verdict (run 2026-08-19): Make List is a fixed
+input-count constructor with exactly four optional item sockets
+(`item1`–`item4`, exported as `MAKE_LIST_INPUTS` from
+`packages/processes/src/node-catalog.js`), each a non-multiple single-value
+socket so connection validation rejects a second wire like any other
+single-value input. The node now appears first in the designer palette's
+Lists/trees group (`designer.js`), the catalog emits the four item sockets
+plus one list output (`node-catalog.js`), the evaluator consumes connected
+and authored-fallback sockets in socket order via `solveDataTrees` and a
+fully unconnected Make List evaluates to the empty list (`evaluator.js`,
+`orchestration.js` inputless-evaluation allowance), and connection inference
+treats the four sockets as generic-type drivers like the former `value`
+socket (`useProcessDesignerConnectionInference.js`). The inspector needed no
+change: `ProcessNode.vue` renders catalog-resolved ports and the generic
+inline fallback editor already covers optional primitive sockets. Concat,
+Collect Array, and Expand Array were not changed; their behavior is pinned by
+tests instead — Concat order/branch-topology/empty-side joins and Collect/
+Expand round-trip including the empty array and non-array rejection
+(`evaluator.spec.js`), plus Concat's two-list catalog contract
+(`node-catalog.spec.js`). Construction coverage added: relation arrays and
+attachment arrays (Make List → Collect Array → Compose Block relations/
+attachments), command entity-list input arrays, empty lists, and mixed
+incompatible element types rejected at edge validation
+(`v4-validation.spec.js`), plus the one-wire-per-socket accept/reject pair.
+
+## P0 — complete canonical-block CRUD
+
+### Decompose and read
+
+- [x] Make Deconstruct Entity accept item/list/tree entities and emit each
+  declared canonical block with identical topology.
+- [x] Make Get Block equivalent for one selected block and reject blocks not
+  declared by the incoming entity contract.
+- [x] Make Get Field consume fixed and open canonical blocks without storing
+  schema snapshots. Restore typed entity refs for Lineage/Relations and typed
+  attachment/array/map values where declared.
+- [x] Distinguish a missing field from a present nullable field in preview and
+  evaluator results so Logic, fallback values, Unset, and validation behave
+  predictably.
+
+#### Agent Notes
+
+- 2026-08-21 (agent/missing-field-serializer-20260821): implemented the
+  missing-vs-nullable distinction per the accepted correction direction.
+  `readPath` in `packages/processes/src/evaluator.js` now returns a frozen
+  `$missingField` marker (plain object, so it survives the packet pipeline's
+  `structuredClone` calls) when a path segment is absent, including below a
+  present `null`; `packages/processes/src/missing-field.js` owns the marker,
+  `isMissingField`, and `serializeProcessResult`, the single conversion point
+  that rewrites markers to the serializable tag `{ missing: true, path }` at
+  emission boundaries. Logic `isNull`/`isNotNull` are strict (`null` only for
+  present null), Coalesce and required validation treat missing as absent,
+  Required/validation errors name the missing path, patch append/remove and
+  Compose/Modify Block treat missing as absent content (markers are never
+  written into entities). The process-definitions preview and manual-run
+  service responses emit through `serializeProcessResult`. Tests:
+  `packages/processes/src/missing-field.spec.js` (13 tests) and a
+  preview-path round-trip test in
+  `server/features/process-definitions/process-definitions.spec.js` asserting
+  both the missing tag and a present null survive JSON unchanged. The other
+  four bullets were open in that session and were completed by the later
+  Decompose/read closeout; the pre-existing
+  activation-protocol test failure noted on 2026-08-15 is unchanged and
+  unrelated.
+
+- [x] Cover every canonical block family used by the CNC domain, including
+  identity, lineage, relations/data, specs, attachments, summary, provenance,
+  and status as read-only or writable according to its real policy.
+
+#### Agent Notes — 2026-08-28 reconciliation
+
+The separate Decompose/read closeout was merged into `local`. Its declared-block
+work supplied the missing coverage; its missing-field commits duplicated the
+already-merged serializer work and were not taken. The original checkboxes and
+the correction queue now reflect that merged outcome; no duplicate work was
+redone. The topology and full-block-family anchors are
+`packages/processes/src/evaluator.spec.js` and the declared-block validation in
+`packages/processes/src/node-catalog.js` / `compiler-core.js`.
+
+### Compose Block
+
+- [x] For fixed blocks, expose only domain-declared constructible fields with
+  their exact types, units, enum/schema qualifiers, and required/default rules.
+- [x] For open blocks, keep stable author-defined entries: Lineage key plus
+  typed ancestor, Relation key plus accepted entity type, Attachment kind plus
+  typed reference, and named Data/Summary/Provenance entries only where policy
+  permits them.
+- [x] Let each selected field receive item/list/tree values through ordinary
+  solver matching. Compose Block must emit one block for each aligned input
+  tuple, not require a separate loop node.
+- [x] Reject duplicate open keys, service-owned fields, unknown schema paths,
+  incompatible units/types, and fields that are readable but not constructible.
+- [x] Test complete creation blocks, partial optional blocks, open relation and
+  lineage blocks, collection-valued fields, and multi-entity block output.
+
+#### Agent Notes — 2026-08-28 reconciliation
+
+The merged Compose Block list tests
+(`packages/processes/src/evaluator.spec.js:256-286`) cover aligned fixed-field
+and open-entry inputs with one composed block per tuple. The five original
+bullets were already implemented; the explicit list-output test was the only
+correction gap. The unmerged
+`agent/compose-block-bookkeeping-20260826-090351` commit only repeats this
+checkbox/note update and is not implementation to recover.
+
+### Modify Block
+
+- [x] DONE 2026-08-19 — Preserve unselected fields from the incoming block and
+  replace only connected or explicitly defaulted selected fields. The
+  evaluator clones the incoming block and writes only connected paths;
+  inputDefaults merge into packets so an explicitly defaulted selected field
+  is also written (evaluator.js:21-22, 116-150; orchestration.js:282-283;
+  evaluator.spec.js:118-136; Agent Notes below).
+- [ ] OUT OF SCOPE — Support Set/Replace and Unset for eligible fixed/open
+  entries, and Append/Remove only for collection-valued fields with element
+  type validation. The v4 dataflow is replace-only: migration-v4.js:16-25
+  rejects any modifyBlock entry whose operation is not `replace` and strips
+  entry.operation/cardinality, and the set-only persistence boundary rejects
+  unsets/undefined (service.js:1076-1104, 1099). Collection changes are
+  composed with list/tree nodes before the block socket
+  (processes/README.md:328-333), not expressed as modifyBlock operations.
+- [ ] PARTIAL 2026-08-19 (absent=preserve half) / OUT OF SCOPE (explicit
+  null-vs-Unset half) — Make modification intent explicit in the node record
+  and preview. An absent input must mean "preserve", not "set null"; explicit
+  null and Unset must remain distinct. The absent=preserve half is TODO #1's
+  already-implemented preserve semantics (evaluator.js:21-22, 116-150; Agent
+  Notes below). The explicit-null-vs-Unset distinction is out of scope: the v4
+  migration strips all non-replace operation metadata (migration-v4.js:16-25)
+  and the set-only persistence boundary never materializes a null assignment
+  (service.js:1076-1104, 1099).
+- [x] DONE 2026-08-19 — Apply field write policy at the consuming persistence
+  node as well as the block editor, because the same canonical block can be
+  valid for one entity type and non-writable for another. Implemented in three
+  layers: Modify Block validation rejects fields with writable===false and
+  managed blocks (compiler-core.js:3053-3075); effect.updateEntity rejects
+  blocks outside its writable set and edge validation rejects composer/modifier
+  wiring whose fields are not writable (compiler-core.js:3104-3120,
+  3241-3272); the service filters field.writable !== false and applies the
+  field-access policy (service.js:874-884, 1217).
+- [x] DONE 2026-08-19 — Test the full read-modify-write path:
+  `Current/Selected Entity -> Get Block -> Modify Block -> Modify Entity`,
+  including list/tree inputs and preservation of untouched fields. Graph-level
+  proof runs Deconstruct (identity) -> Modify Block -> Update Entity through
+  processUpdate and asserts identity.slug preserved while identity.name (list
+  source) and identity.reference (tree source) are applied
+  (process-definitions.spec.js:121-166; Agent Notes below).
+
+#### Agent Notes — 2026-08-19
+
+Closed the remaining read-modify-write gap for the block editor. The
+`record.modifyBlock` node preserves unselected fields (the combined packet
+starts from the incoming block and only connected paths are replaced), and
+`processBlockInputChanges` at the consuming `effect.updateEntity` node
+applies the entity service's writable-field policy: it emits `set` changes
+only for writable fields present in the replacement block, so untouched
+fields survive without an explicit copy. Graph-level proof:
+`server/features/process-definitions/process-definitions.spec.js` runs a real
+`startRun` over the chain Deconstruct (identity) -> Modify Block
+(`identity.name` fed from a list source) -> Update Entity, asserting
+`processUpdate` receives `{identity.uid, identity.name, identity.slug}` with
+the source list value applied and the unconnected slug preserved, and that
+the persisted entity keeps `identity.slug` after the name change. List/tree
+inputs flow through the block socket as a single replacement value
+(list/tree composition happens before the block socket), so the v4
+set-only semantics remain the only persistence mode.
+
+##### Agent Notes — 2026-08-19 (list/tree field sockets)
+
+The graph-level read-modify-write proof above now feeds both dynamic field
+sockets of `record.modifyBlock`: `identity.name` from a `source.literalList`
+and `identity.reference` from a `source.literalTree`, both composed before the
+block socket. The evaluator still emits one replacement identity block, so the
+block socket carries a single replace-only value into `effect.updateEntity`;
+`processUpdate` receives `identity.reference` alongside `identity.uid`,
+`identity.name`, and the preserved `identity.slug`, and the persisted entity
+retains the untouched slug while applying the list and tree values.
+
+##### Agent Notes — 2026-08-19 (section reconciliation)
+
+The Modify Block bullets above are reconciled against repository evidence. TODO
+#1 (preserve-unselected) is DONE: the evaluator clones the incoming block and
+writes only connected paths, with inputDefaults merged into packets
+(`packages/processes/src/evaluator.js:21-22, 116-150`;
+`orchestration.js:282-283`), proven at node level by
+`evaluator.spec.js:118-136`. TODO #4 (write policy at the consuming persistence
+node) is DONE in three layers: Modify Block validation rejects
+`writable === false` and managed blocks (`compiler-core.js:3053-3075`);
+`effect.updateEntity` rejects blocks outside its writable set and edge
+validation rejects composer/modifier wiring whose fields are not writable
+(`compiler-core.js:3104-3120, 3241-3272`); the service filters
+`field.writable !== false` and applies the field-access policy
+(`server/features/process-definitions/service.js:874-884, 1217`). TODO #2/#3
+(Unset, Append/Remove) and the explicit-null-vs-Unset half of the
+modification-intent TODO are OUT OF SCOPE: the v4 migration rejects any
+modifyBlock operation other than `replace` and strips entry.operation/
+cardinality (`migration-v4.js:16-25`), the set-only persistence boundary
+rejects unsets/undefined (`service.js:1076-1104, 1099`), and collection changes
+are composed with list/tree nodes before the block socket
+(`processes/README.md:328-333`). The absent=preserve half of the
+modification-intent TODO is attributed to TODO #1's implemented preserve
+semantics. TODO #5 (full read-modify-write test) is DONE via the separate
+graph-level test piece: `process-definitions.spec.js:121-166` chains
+Deconstruct -> Modify Block -> Update Entity through `processUpdate` with list
+and tree field inputs and asserts `identity.slug` is preserved.
+
+## P0 — complete persistence operations
+
+### Create Entity
+
+- [x] Make a fresh graph able to create every process-creatable domain entity
+  through either generic canonical blocks or an explicit typed construction
+  mode. Do not depend on legacy Entity/Action/Service canvas records being
+  preseeded by a template.
+- [x] Project exact constructor sockets, requiredness, creator constraints,
+  accepted attachment/entity kinds, and domain defaults from the selected
+  construction contract.
+- [x] Accept constructible blocks, Lineage, Relations, initial status, and typed
+  constructor inputs without duplicating leaf fields on the persistence node.
+- [x] Validate parent/ancestor requirements and compile Lineage bindings from
+  actual connected lineage data, not entity-name special cases.
+- [x] Return the created typed entity with the same item/list/tree topology as
+  its construction inputs and publish normal entity invalidation events.
+- [x] Test root creation, child creation, relation-bearing creation, typed
+  derived construction, collection creation through mapped inputs, denied
+  creation, and generated manual forms.
+
+#### Agent Notes — 2026-08-21
+
+Closed all six Create Entity bullets under the fixed no-`parentEnforcement`
+verdict. The registry matrix in `server/runtime/app-registry.spec.js` now walks
+all 14 creatable CNC contracts and every mode, proving normalized requiredness,
+defaults, creator/attachment restrictions, typed entity and accepted-kind
+references, constructible block sockets (including open Lineage/Relations),
+List access, initial status, runtime handler parity, and the deliberate absence
+of `parentEnforcement`. Existing focused graph specs remain the executable
+evidence for root creation, Project -> Compose Lineage -> child creation,
+relation-bearing creation, graph-derived Lineage bindings, and mapped
+item/list/tree output; no duplicate runtime path was added.
+
+The open generated-form investigation is closed by extracting the existing pure
+field/payload logic to `components/generated/action-inputs.js` and testing both
+generic block-composed and typed-reference/upload-backed Create forms. Manual
+execution denial is now explicit acceptance coverage for the existing compiled
+role-assignment gate and request-local constructor grants. The one actual
+runtime divergence was repaired in
+`server/features/process-definitions/service.js`: a successful Create now
+publishes the normal typed `created` invalidation after constructor, block, and
+optional initial-status persistence succeeds. The returned DTO/data-tree shape
+is unchanged. Validation: `packages/processes/src` 310/310 tests; Create
+registry/manual-form tests 13/13; denied manual Create test 1/1;
+`node scripts/check-arch.js`, `npm run framework:validate`, and
+`node scripts/check-docs.js` all pass.
+
+### Modify Entity
+
+- [x] DONE 2026-08-19 (already implemented) — Require a typed current
+  entity/reference and accept only blocks writable for that entity type.
+  Preserve all unconnected blocks. The `effect.updateEntity` entity socket is
+  a required typed entityRef (node-catalog.js:621-627); the compiler rejects
+  updateEntity nodes with no writable block or status target and blocks
+  outside the writable set (compiler-core.js:3085-3120); at runtime
+  `processBlockInputChanges` emits set-changes only for writable fields
+  present in the incoming block and `processUpdate` patches a clone of the
+  full document, so untouched blocks survive (service.js:1211-1230;
+  process-update-handler.js:37-55; graph proof process-definitions.spec.js).
+- [x] DONE 2026-08-21 — Support one entity with one block, a list/tree of
+  entities with aligned block changes, and scalar/block broadcasting through
+  the common solver. Modify Entity now uses the shared type-agnostic effect
+  mapper documented under Item/list/tree persistence semantics, including
+  aligned list/tree output and scalar/block broadcasting; no node-local loop
+  was added.
+- [x] DONE 2026-08-19 (already implemented) — Keep ordinary metadata mutation
+  separate from status transition so each re-enters its correct service
+  boundary. When one authored action requests both, use the existing
+  transactional status-plus-patch boundary and fail rather than partially
+  applying it where transactions are unavailable. The combined path routes
+  through `statusService.transitionWithResult` with the block patch
+  (service.js:1076-1089); `performTransition` writes status event plus entity
+  snapshot with preferTransaction and throws rather than partially applying
+  (machines/service.js:457-469, 498-515). A separate `effect.changeStatus`
+  node exists for status-only mutations (node-catalog.js:628-632;
+  service.js:1107-1120).
+- [x] DONE 2026-08-19 — Return updated typed entities, not opaque success
+  flags, so downstream reads and generated screens receive current DTOs. The
+  plain-metadata path already returned the `processUpdate` DTO
+  (process-update-handler.js:52-54); the status-plus-patch path leaked the
+  raw `transitionWithResult` wrapper `{entity, status, actions, effects}`
+  where the catalog declares a non-nullable entity result
+  (node-catalog.js:727-730; orchestration.js:249-266). Fixed: the status
+  branch now returns `result.entity` (service.js:1081-1089). Graph-level
+  proof in process-definitions.spec.js asserts a Modify Entity node with
+  both writable blocks and a status target emits the patched typed entity
+  DTO with identity fields preserved and no wrapper keys.
+- [ ] PARTIAL 2026-08-19 (output shape) / OUT OF SCOPE (Unset, Append/Remove) —
+  Test identity/data/spec/relation changes, explicit Unset, collection
+  Append/Remove, denied fields, stale refs, and item/list/tree output shape.
+  Identity-block changes and item output shape (including the combined
+  status-plus-patch shape) are covered by the graph-level specs in
+  process-definitions.spec.js; denied fields are covered by the writable-set
+  compiler/service rejection evidence in bullet 1; stale refs already throw
+  at the persistence boundary (process-update-handler.js:39). Explicit Unset
+  and collection Append/Remove are out of scope per the Modify Block
+  decision: the v4 migration rejects any non-`replace` operation
+  (migration-v4.js:16-25) and the persistence boundary rejects unsets
+  (service.js:1092-1102). List/tree output shape is covered by the shared
+  effect-mapper tests; this checkbox remains open only for the unsupported
+  Unset and Append/Remove cases.
+
+#### Agent Notes — 2026-08-19
+
+Reconciled the Modify Entity bullets against repository evidence and fixed
+the one real defect. Bullets 1 and 3 were already satisfied (typed entityRef
+socket, writable-set enforcement, preserve semantics, and the transactional
+status-plus-patch boundary with hard failure when transactions are
+unavailable). Bullet 4 had a genuine contract break: the status-plus-patch
+branch of `effect.updateEntity` returned the raw `transitionWithResult`
+wrapper while the catalog declares a non-nullable typed entity result, so
+downstream nodes received `{entity, status, actions, effects}` where an
+entity was declared. The branch now returns `result.entity`
+(service.js:1081-1089); the wrapper's entity field is the post-transition
+snapshot with the patch applied, so unwrapping loses no state and changes no
+persistence or authorization behavior, and `effect.changeStatus` keeps its
+own contract untouched. Added a graph-level spec that runs a Modify Entity
+node with both a writable identity block (Deconstruct -> Modify Block chain)
+and a status target through `startRun`, asserting the emitted step output is
+the patched typed entity DTO (identity.slug preserved, list/tree field
+values applied, status transitioned, no `actions`/`effects` wrapper keys).
+Bullet 2 and the list/tree half of bullet 5 were subsequently completed by the
+shared effect-mapping contract. The Unset and Append/Remove halves of bullet 5
+stay out of scope per the Modify Block replace-only decision.
+
+### Relations and lineage
+
+- [x] Treat Lineage construction as ancestry and Relations as associations.
+  Do not add generic parent dropdowns or infer containment from arbitrary
+  relation names.
+- [x] Provide explicit Link and Unlink authoring through typed relation block
+  modification or the smallest derived action contract. Both paths must use
+  declared owner/target types and service authorization.
+- [x] Support one-to-one and one-to-many relation values, including building a
+  persisted relation array from a data-tree list through Collect Array.
+- [x] Prevent cross-organization links unless the domain operation explicitly
+  permits transfer through a socket/service boundary.
+- [x] Test link, unlink, replace, duplicate prevention, missing targets,
+  reverse/display projection, and lineage-scope effects.
+
+### Status, archive, and delete
+
+- [x] Keep initial status on Create and workflow transition on existing
+  entities as separate typed operations. Status changes must use the status
+  engine, transition authorization, lifecycle evidence, and history.
+- [x] Fix workflow compilation so every authored v2 region, state, transition,
+  hook, lifecycle schema, and access contract is preserved. Never collapse a
+  multi-region workflow into `regions.main`.
+- [x] Model archive through a domain workflow state/intent when that is the
+  entity's contract. Do not silently equate archive with hard deletion.
+- [x] Add Delete Entity only for entity types whose process capabilities and
+  registered service explicitly allow hard deletion. Generated UI must require
+  an authorized manual action and confirmation.
+- [x] Map item/list/tree status and delete inputs below the node language and
+  return updated/deleted refs in corresponding topology.
+- [x] Test multi-region status changes, evidence-required transitions,
+  archive, denied transitions, deletable and non-deletable types, and collection
+  inputs.
+
+#### Agent Notes
+
+2026-08-19 — completed the workflow-compilation checkbox above; verified the
+first and third checkboxes are already satisfied by existing architecture.
+
+- Region preservation: `packages/processes/src/compiler-core.js`
+  `workflowBuilderFromWorkflow` now seeds a builder per region in
+  `workflow.regions` instead of reading only the primary region, and
+  `compileWorkflows` re-emits every region with the source `primaryRegion` and
+  carries workflow-level contracts (top-level keys beyond the v2 structural
+  fields) plus region-level metadata into the emitted machine. Synthesized
+  action states/transitions land in the primary region; sibling regions pass
+  through unchanged. Coverage: `packages/processes/src/index.spec.js` asserts
+  the full region map, `primaryRegion`, and workflow-level contracts for custom
+  lifecycles, and that action-synthesized transitions do not drop sibling
+  regions. See [packages/processes/README.md](./packages/processes/README.md).
+- Create-vs-transition separation (first checkbox) is already satisfied: the
+  node catalog has a dedicated `effect.changeStatus` node distinct from create
+  (`packages/processes/src/node-catalog.js`); runtime creation calls
+  `statusService.setInitialStateForOrganization` and transitions call
+  `statusService.transitionWithResult` with source `process-run`
+  (`server/features/process-definitions/service.js`), i.e. through the status
+  engine with hooks, lifecycle validation, and `status_events` history per
+  [server/core/machines/README.md](./server/core/machines/README.md).
+- Archive-as-state (third checkbox) is already satisfied structurally:
+  `packages/processes/src/capabilities.js` derives archive only when the runtime
+  binding allows it and a workflow region has an `ARCHIVED` state, the designer
+  exposes `archivableEntityOptions`, and archive executes as a normal status
+  transition to `ARCHIVED` through the status engine — never as hard deletion.
+  The later Status/archive/delete correction added the mapped archive/delete
+  effects and focused coverage described in its Agent Notes.
+
+## P1 — make organization scope authorable and reviewable
+
+### Agent Notes
+
+- 2026-08-19: Bullet 3 (derived role summary with contributor labels) is
+  partially implemented: `shared/role-access-summary.js` now provides one
+  annotated derived-summary implementation covering entity profiles, screens,
+  actions, and workflow transitions, with every line naming its contributing
+  record (authored grant, screen-derived grant from `screen.required`,
+  status-window rule, or level fallback). The Team page role dialog
+  (`pages/organization/users.vue`) renders from it and no longer carries a
+  local `derivedRoleAccessSummary`; transition lines come from the compiled
+  workflow contract of the active process. Remaining for the bullet: swap the
+  process designer's local `roleAccessSummary` in
+  `pages/organization/process.vue` onto the same shared implementation so both
+  surfaces consume one source. The other bullets were open in that session and
+  were completed by the later organization-scope correction (typed
+  grant-dimension controls, silent screen-derived grants, complete
+  `$assignment` binding discovery, assignment preview explanations, and the
+  access test matrix); the roles-as-identities bullet was already enforced by
+  compiler/spec invariants and reads as a keep constraint.
+
+- [x] Expose the access engine's real grant dimensions in typed controls where
+  the process needs them: feature/level, entity or lineage scope, allowed
+  actions, status windows, transitions, and composable rules. Do not use raw
+  grant JSON.
+- [x] Keep organization roles as identities and Team assignments as user data.
+  The graph may reference role IDs and `$assignment.*` values but must not
+  create user-assignment nodes.
+- [x] Make entity-profile, action, status-transition, and screen access
+  contributions visible in one derived role summary. Label which authored
+  record contributed each effective permission.
+- [x] Stop screen layout from silently granting backend capability. Either make
+  screens consume already-authored grants or make any generated grant an
+  explicit, separately confirmed access edit.
+- [x] Discover required assignment binding keys from every supported location:
+  screen route/scope/bindings, source identifiers, source filters, access
+  scopes, and rules.
+- [x] Add “preview as assignment” using a concrete set of role IDs and bindings.
+  Show accessible entities, fields, transitions, actions, screens, and the
+  explanation for each allow/deny result.
+- [x] Test users with one role, several additive roles, overloaded assignments,
+  missing bindings, status-scoped access, lineage-scoped access, and owner
+  recovery authority.
+
+## P1 — complete generated interface construction
+
+- [x] Expose the complete semantic screen source contract: stable id/label,
+  entity type, list/single mode, required access, identifier, filters, and
+  assignment bindings.
+- [x] Expose the complete region contract: stable id/label, template slot,
+  source, domain surface, and independent action list. Do not copy the screen's
+  global action list into every region.
+- [x] Support arbitrary typed screen bindings instead of only
+  `bindings.entityId`, with autocomplete from the selected template, sources,
+  lineage, and assignment requirements.
+- [x] DONE 2026-08-20 — Validate unique source/region IDs, required
+  single-source identifiers, filter types/placeholders, surface registry
+  values, region action IDs, template slot/cardinality rules, and unresolved
+  assignment bindings before activation. `validateScreenContract` now rejects
+  duplicate source/region ids, single-mode sources without a resolvable
+  identifier, non-scalar identifiers/filter values, non-object filter maps,
+  malformed/empty `$screen.*`/`$assignment.*` placeholders, `$screen.bindings.*`
+  references to undeclared bindings, region surfaces outside the new canonical
+  `SCREEN_REGION_SURFACES` registry, region-level action ids missing from the
+  process action manifest, `workspaceLanes` slot/cardinality violations, and
+  statically unresolvable screen bindings (screen-contract.js:51-172;
+  screen-contract.spec.js; Agent Notes below).
+- [x] DONE 2026-08-20 — Generate manual CRUD forms from unconnected promptable
+  inputs with shared typed controls. Entity refs/lists use entity pickers;
+  scalar, enum, date, number, Boolean, and schema fields use ordinary PrimeVue
+  controls. Boolean prompt fields now render a ToggleSwitch, date/dateTime
+  fields a DatePicker (time only for dateTime), and object/json fields the new
+  generic `GeneratedObjectInput` structured editor (schema-driven typed rows,
+  key/value rows otherwise, raw JSON textarea only as fallback)
+  (components/generated/GeneratedScreen.vue:160-176, 568-580, 756-785;
+  components/generated/GeneratedObjectInput.vue; Agent Notes below).
+- [x] DONE 2026-08-20 — Refresh or patch every affected generated source after
+  mapped create, modify, status, relation, or delete results. Do not require a
+  full page reload to observe a successful procedural action. Browser proof: a
+  mapped relation action's owner snapshot patches the project card in place —
+  no source list refetch, no page reload
+  (e2e/process-generated-screen.spec.js "patches the affected list source in
+  place after a mapped relation action result"; Agent Notes below).
+- [ ] PARTIAL 2026-08-20 — Add concrete-role/user previews and browser tests for
+  list, detail, workspace, table, and form-action templates with filters,
+  bindings, regional actions, CRUD forms, and denied actions. Browser matrix
+  delivered over every screen variant the active compiled process instantiates:
+  all seven `entityList` endpoints (contracted source endpoint, access-rule
+  status filter, toolbar create action, denied delete), `entityDetail` with
+  single-source `$screen.scope.entityId` identifier resolution, filtered child
+  sources, and region-scoped actions, `entityDetail` without contracted
+  actions, the `home` screen's per-source sections, and the create-form
+  prompt-post + created-entity detail navigation
+  (e2e/process-generated-screen.spec.js; Agent Notes below). Residuals
+  dispositioned in the closeout Agent Notes: `workspaceLanes`/`table`/
+  `formAction` templates have no authored screens in the seeded process to
+  drive, and concrete-role/user previews do not exist as a designer feature;
+  both remain open process-authoring/designer work, not delivered test coverage.
+
+### Agent Notes — 2026-08-20
+
+Reconciled all seven checkboxes against current code before implementing
+(session scope: the pre-activation validation rule set):
+
+1. **Source contract exposure — open in this session; completed later.** The contract schema and
+   compiler already carry the full source shape (id/label/entityType/mode/
+   required/identifier/filters/lineageBindings;
+   packages/processes/src/screen-contract.js:94-136, compiler-core.js:1953-1985),
+   but the designer screens tab only edits entityType+mode per source
+   (pages/organization/process.vue:850-887).
+2. **Region contract exposure — open in this session; completed later.** Same schema
+   support exists for regions, but `syncSelectedScreenUi` copies the screen's
+   global actions into every region on each sync
+   (pages/organization/process.vue:2542-2545, 2566-2581) — the exact behavior
+   this checkbox forbids.
+3. **Arbitrary typed bindings — open in this session; completed later.** Bindings editing is a
+   single InputText bound to `bindings.entityId`
+   (pages/organization/process.vue:850-887). The compiler/runtime already
+   resolve arbitrary binding keys.
+4. **Pre-activation validation — DONE (this session).** See checkbox above.
+   `SCREEN_REGION_SURFACES` (`card`, `compact`, `detail`, `table`, `workspace`)
+   is the canonical shared surface registry exported from
+   `packages/processes/src/screen-contract.js`; the designer page now consumes
+   it instead of a hardcoded list (pages/organization/process.vue:954, 1141).
+   Enforcement flows through the existing activation path unchanged:
+   `validateProcessDefinition` → `validateScreenContract`
+   (packages/processes/src/compiler-core.js:599-609), reached by
+   `compileProcessDefinition` (throws on errors) and the server activation
+   adapter `validateActivatableProcess`
+   (server/features/process-definitions/compiler-adapter.js:21-42). Slot/
+   cardinality is scoped to `workspaceLanes` (`main`/`left`/`center`/`right`,
+   one region per slot) because that renderer keys regions by slot and would
+   silently drop duplicates; other templates render all regions.
+   "Unresolved bindings" is enforced statically: binding values must be
+   literal scalars or `$assignment.<key>` references, and `$screen.bindings.*`
+   placeholders in identifiers/filters must reference declared bindings.
+   Per-assignment key absence cannot be activation-rejected (assignments are
+   runtime data) and remains a compile-time skip with `incompleteBindings`
+   diagnostics (packages/processes/src/index.spec.js:1612-1643).
+5. **Generated typed CRUD forms — open in this session; completed later.** Manual prompt form exists with
+   entity/entityList pickers, enum Select, number/text InputText, object
+   Textarea (components/generated/GeneratedScreen.vue:117-238); boolean and
+   date/date-time controls for ordinary prompt fields are missing, and
+   schema/object fields remain raw JSON.
+6. **Post-action refresh/patch — appears already implemented, needs browser
+   proof.** applyActionResult patches owner/created/entity snapshots,
+   useGeneratedScreen patches/removes matching source items with filter-match
+   insertion, and an onEntityChanged listener refreshes affected sources
+   (components/generated/GeneratedScreen.vue:480-493;
+   composables/useGeneratedScreen.js:68-130). Left unchecked pending browser
+   evidence owned by checkbox 7.
+7. **Template-matrix browser tests — still open.**
+   e2e/process-generated-screen.spec.js holds only one endpoint smoke test.
+
+Validation: `npx vitest run packages/processes` (265 passed, incl. 24
+screen-contract specs covering every new rule plus activation-path rejection
+through `validateProcessDefinition`/`compileProcessDefinition`);
+`npx vitest run server/features/process-definitions` (25 passed, 1
+pre-existing unrelated failure: "rejects activation when the authored graph
+is not the current protocol" fails with "Permission denied" on the base
+checkout too). Architecture contract documented in
+packages/processes/README.md (screen records section).
+
+### Agent Notes — 2026-08-20 (typed prompt controls)
+
+Session scope: checkbox 5 (generated typed CRUD forms) only; the remaining
+open checkboxes (1-3, 6-7) are designer-UI and browser-test concerns outside
+this session's assignment.
+
+5. **Generated typed CRUD forms — DONE (this session).** The per-type control
+   mapping in `components/generated/GeneratedScreen.vue` was extended in
+   place, following the established convention and the `ProcessNode.vue`
+   literal-input precedent (ToggleSwitch for boolean, DatePicker with
+   `show-time` for dateTime, `hour-format="24"`). No new domain-specific
+   hardcoded cases were added; every control is keyed purely off field
+   type/schema. Decisions on the two deferred refinements:
+   - **Boolean tri-state:** untouched boolean fields initialize to `null`
+     and are omitted from the submission payload; the ToggleSwitch resolves
+     to a real boolean only once touched. This avoids silently posting
+     `false` over server-side state on update actions.
+   - **Object-editor nesting/coercion:** `GeneratedObjectInput.vue` renders
+     schema-driven typed rows when the field carries a JSON schema whose
+     declared properties cover the current value, otherwise add/removable
+     key/value rows. Nesting is handled by single-line JSON text at the leaf
+     level (parsed back on emit), not recursive rows; scalar coercion is
+     `JSON.parse` with plain-string fallback. The raw JSON textarea remains
+     only for values that do not fit the structured model (non-object or
+     unparseable). Empty object values are now omitted from submission
+     instead of posting `{}`.
+   Relation-creator inline fields (the embedded create-related-entity form)
+   keep their existing InputText fallback; they are a separate special-case
+   surface and were out of scope.
+
+Validation: `npx vitest run components/generated` (41 passed); SFC compile
+check for both touched components; `npx vitest run shared/localization.spec.js`
+(3 passed, 1 pre-existing failure covering only untouched files:
+FacadeDesigner.vue, QueueEditor.vue, SheetDesignEditor.vue, ui-lab.vue);
+`node scripts/check-docs.js` (passed). Control contract documented in
+components/generated/README.md (Manual Prompt Forms section).
+
+### Agent Notes — 2026-08-20 (P1 closeout reconciliation)
+
+Session scope: documentation closeout for the whole section. Every checkbox was
+re-verified against the current checkout before disposition; no runtime or
+designer code changed in this session, so the docs commit is the only commit.
+
+1. **Source contract exposure — deferred in this session; completed later.** Re-verified: the gap
+   is UI-only (schema/compiler already carry the full source shape;
+   packages/processes/src/screen-contract.js:94-136), and the designer screens
+   tab still edits only entityType+mode (pages/organization/process.vue:850-887).
+   Reasonable and worth implementing, but it is a dedicated designer-UI session
+   (source id/label, required access, identifier, filters, assignment bindings
+   editors), not a documentation change. Left open.
+2. **Region contract exposure — deferred in this session; completed later.**
+   `syncSelectedScreenUi` still copies the screen's global actions into every
+   region on each sync (pages/organization/process.vue:2542-2545) and
+   `ensureSelectedScreenRegion` seeds new regions the same way
+   (pages/organization/process.vue:2566-2581) — the exact behavior this
+   checkbox forbids. Fix belongs to the same designer-UI session as checkbox 1
+   (independent per-region action lists). Left open.
+3. **Arbitrary typed bindings — deferred in this session; completed later.** Re-verified: bindings
+   editing is still a single InputText bound to `bindings.entityId`
+   (pages/organization/process.vue:850-887) while the compiler/runtime already
+   resolve arbitrary binding keys. Same designer-UI session as checkboxes 1-2.
+   Left open.
+4. **Pre-activation validation — implemented 2026-08-20.** See checkbox entry
+   and Agent Notes above; unchanged this session.
+5. **Generated typed CRUD forms — implemented 2026-08-20.** See checkbox entry
+   and typed-prompt-controls Agent Notes above; unchanged this session.
+6. **Post-action refresh/patch — already implemented, code evidence recorded.**
+   `applyActionResult` patches owner/created/entity snapshots (and every
+   `entities` output of runCommand actions) synchronously after a successful
+   post (components/generated/GeneratedScreen.vue:492-504);
+   `useGeneratedScreen` replaces matching items in place, inserts only on
+   filter match, removes deleted ids from list sources, patches single-mode
+   sources only on identifier match, and falls back to a debounced reload for
+   snapshot-less events via the `onEntityChanged` listener
+   (composables/useGeneratedScreen.js:68-130). No page reload is required.
+   This session documented the contract in the canonical READMEs
+   (components/generated/README.md "Action Results";
+   composables/README.md "useGeneratedScreen"). The checkbox stays unchecked
+   only because browser evidence is owned by checkbox 7.
+7. **Template-matrix browser tests — deferred with reason.** Re-verified:
+   e2e/process-generated-screen.spec.js still holds only one endpoint smoke
+   test. Real browser evidence needs a Playwright session against a running
+   app (dev-server startup is outside this session's scope). Left open; when
+   scheduled it must also supply the browser proof for checkbox 6.
+
+Files changed (docs only): composables/README.md,
+components/generated/README.md, TODO-process-designer.md.
+
+Validation: `node scripts/check-docs.js` (passed). No code paths changed, so
+no test suites were re-run; cited line numbers were re-read from the current
+checkout on branch `agent/p1-docs-closeout-20260820`.
+
+### Agent Notes — 2026-08-20 (region action independence)
+
+Session scope: checkbox 2's action-independence defect only (the forbidden
+copy from screen global actions into region action lists). Region id/label
+exposure and checkboxes 1, 3, 6, 7 remained open in that session; later
+corrections completed 1, 3, and 6, while 7 retains its documented residuals.
+
+2. **Region action independence — fixed (this session).** New regions are now
+   seeded with an empty action list in `createScreen` (unchanged),
+   `ensureSelectedScreenRegion`, and `addSelectedScreenRegion`;
+   `syncSelectedScreenUi` no longer overwrites `region.actions` from
+   `screen.actions` on any sync — it only guarantees the array shape via
+   `||= []` (pages/organization/process.vue). Region-scoped actions are
+   edited explicitly through a new per-region MultiSelect in the region rows
+   of the screens tab (add/edit/remove), reusing the existing
+   `screenActionOptions`. The contract layer already preserved region-local
+   actions (`normalizeRegions` defaults to `[]`;
+   packages/processes/src/screen-contract.js:235-243), so no schema change
+   was needed. Checkbox 2 stays open only for region id/label editing.
+
+Files changed (code): pages/organization/process.vue.
+Files changed (docs): pages/organization/README.md, TODO-process-designer.md.
+
+Validation: `npx vitest run packages/processes` (265 passed); SFC compile
+check for pages/organization/process.vue (passed); grep invariant that no
+`region.actions` seeding from screen actions remains (passed);
+`node scripts/check-docs.js` (passed). Acceptance path: create a region →
+its action list is empty; change screen-level action ids → sync leaves every
+region's action list untouched; add/remove action ids in a region row → only
+that region changes.
+
+### Agent Notes — 2026-08-20 (generated screen browser evidence)
+
+Session scope: checkboxes 6 and 7 — browser proof of post-action refresh and
+the template-matrix browser tests, delivered by extending the existing
+e2e/process-generated-screen.spec.js in place (13 tests total). Entity and
+action execute/options endpoints are route-mocked so every variant is hermetic;
+screen contract resolution stays live through the real authenticated session
+(`app.switchToAssignedOrganization`).
+
+6. **Post-action refresh/patch — DONE (this session).** The refresh test
+   drives a card-level relation action end-to-end: it mocks the execute
+   endpoint to return an owner snapshot with a changed name, then asserts the
+   project card updates in place, the source list endpoint is not refetched
+   (request counter), the page does not reload (window marker survives), and
+   the URL stays on the generated list screen. This is the browser evidence
+   the previous sessions deferred.
+7. **Template-matrix browser tests — browser matrix delivered, two residuals
+   recorded.** The matrix is derived from the canonical contract dimensions
+   (source entityType/mode, binding shapes, region action scoping) over every
+   screen variant the active compiled process instantiates: all seven
+   `entityList` endpoints (project/queue/library/cassette/artifact/facade/
+   cassette_design) assert the contracted source endpoint, access-rule status
+   filter presence/absence, toolbar create action, and permission-denied
+   delete; `entityDetail` asserts single-source `$screen.scope.entityId`
+   identifier resolution, filtered child sources, and region-scoped actions
+   (no leakage from unrelated screens); a second `entityDetail` posture asserts
+   a screen without contracted actions renders no generated action buttons;
+   the `home` screen asserts every contracted source section renders from its
+   own endpoint; the create-form test covers the form-action flow (prompt post
+   + created-entity detail navigation). Residuals: (a) the seeded process
+   instantiates only `home`/`entityList`/`entityDetail` templates, so
+   `workspaceLanes`/`table`/`formAction` template instances have no endpoint
+   variants to drive until such screens are authored into the process;
+   (b) concrete-role/user previews do not exist as a designer feature yet.
+   Both are process-authoring/designer work, not test work; the checkbox stays
+   unchecked until the owner dispositions those residuals.
+
+Files changed (code): e2e/process-generated-screen.spec.js.
+Files changed (docs): e2e/README.md, TODO-process-designer.md.
+
+Validation: `E2E_BASE_URL=http://localhost:3000 npx playwright test
+e2e/process-generated-screen.spec.js` (13 passed against the running dev
+stack, branch `agent/p1-screen-e2e-evidence-20260820-2145`);
+`node scripts/check-docs.js` (passed). Acceptance path: the refresh test is
+the checkbox-6 proof cited above; the seven parametrized list-variant tests
+plus detail/home/create-form tests are the checkbox-7 matrix.
+
+### Agent Notes — 2026-08-20 (P1 evidence trail closeout)
+
+Session scope: documentation-only closeout of the checkbox 6/7 evidence trail.
+No runtime, designer, or test code changed in this session.
+
+6. **Post-action refresh/patch — DONE, evidence confirmed.** Checked above with
+   the browser proof delivered in the generated-screen-browser-evidence
+   session: e2e/process-generated-screen.spec.js "patches the affected list
+   source in place after a mapped relation action result" asserts the owner
+   snapshot patches the project card in place, the source list endpoint is not
+   refetched (request counter), the page does not reload (window marker
+   survives), and the URL stays on the generated list screen.
+7. **Template-matrix browser tests — PARTIAL, residuals remain open.** The
+   checkbox remains unchecked because the delivered browser matrix
+   (e2e/process-generated-screen.spec.js, 13 tests): the seven parametrized
+   `entityList` variants, both `entityDetail` postures, the `home` screen
+   per-source sections, and the create-form flow. The two residuals recorded in
+   the previous session are dispositioned as follows: (a) `workspaceLanes`,
+   `table`, and `formAction` templates have no authored screens in the seeded
+   process, so there are no endpoint variants for a browser test to drive —
+   covering them requires authoring such screens into a process, which is
+   process-authoring work outside this section's test scope; (b)
+   concrete-role/user previews do not exist as a designer feature, so there is
+   no surface to test — adding the feature is designer work, not test work.
+   Neither residual is a test gap in the delivered matrix; both become
+   actionable only when the corresponding authoring/designer work is scheduled.
+   The coverage boundary is documented in e2e/README.md so the suite's scope
+   stays truthful.
+
+### Agent Notes — 2026-08-27 (audit and bookkeeping correction)
+
+Spot-checked the checked notes and cited code/tests in the current checkout.
+The capability, mode-aware construction, mapped mutation, entity source,
+collection, relation, status/archive/delete, access-preview, and generated
+screen claims have current anchors in their cited files/tests (e11, e18, e19).
+The overstated claims are corrected above: Current Entity placement inference
+remains unimplemented (e12); Modify Block Unset, Append/Remove, and explicit
+null-vs-Unset authoring remain unsupported (e13); Modify Entity Unset and
+Append/Remove coverage remains out of scope (e14); and the generated-interface
+matrix lacks workspace/table/form-action and concrete-role/user preview
+surfaces (e15).
+
+The producer-scoped correction remains wholly unchecked: current compiler,
+transpiler, server adapter/model, and designer paths consume entity-type or
+entity-profile contracts and contain no producerOutputId implementation (e16).
+The deleted producer-workflows session and the four commits on
+agent/decompose-read-blocks-20260821 were absent from the prior TODO notes. The
+declared-block work was integrated through the separate closeout; its
+missing-field work duplicated existing local commits and was not retaken. No
+duplicate work was redone (e17).
+
+Files changed (docs only): e2e/README.md, TODO-process-designer.md.
+
+Validation: `node scripts/check-docs.js` (passed). No code paths changed, so no
+test suites were re-run; the cited browser evidence was re-read from
+e2e/process-generated-screen.spec.js on the current checkout (branch
+`agent/p1-evidence-trail-closeout-20260820-2345`).
+
+### Agent Notes — 2026-08-28 (ledger and worktree reconciliation)
+
+This note supersedes stale completion wording in earlier historical notes. The
+original Decompose/read, Compose Block, Status/archive/delete, generated-screen
+source/region/binding, and organization-scope checkboxes now agree with their
+completed correction sections and merged tests. Modify Entity list/tree mapping
+is complete through the shared effect mapper; its remaining coverage checkbox
+is open only for unsupported Unset and Append/Remove behavior. Modify Block is
+replace-only, and collection operations occur in list/tree nodes before the
+block socket (`packages/processes/README.md`, "Process model and compilation").
+`data.compiled` is an inspection-only activation snapshot; runtime boundaries
+recompile the canonical graph instead of executing that snapshot
+(`server/features/process-definitions/runtime.js` and the process READMEs).
+The completed generated-screen and organization-scope dispositions are anchored
+by `components/process-designer/README.md` and `server/core/access/README.md`.
+
+Worktree and branch disposition was reconciled without repeating merged work:
+
+- `local` already contains the generated-interface correction, Decompose/read
+  closeout, Compose Block list tests, Create correction,
+  Status/archive/delete correction, and organization-scope preview work.
+- `agent/compose-block-bookkeeping-20260826-090351` has one unmerged
+  documentation-only commit, `58c01235`, that duplicates the Compose
+  checkbox/note update.
+- The `agent/process-designer-fresh-20260827-1615` worktree is empty after its
+  merged `0e07e5e7` bookkeeping commit; the
+  `agent/v9-process-designer-recovery-20260828` worktree is empty after its
+  older `80ee0f31` base.
+- The create-entity worktree has no post-creation task commit; the separate
+  Create correction was already merged into `local`, so there is no
+  implementation to recover from that worktree.
+- The Decompose/read worktree's declared-block work was integrated through the
+  separate closeout; its missing-field commits duplicate work already on
+  `local` and remain unmerged.
+- `agent/process-audit-followup-20260821-2024` has one unmerged documentation
+  commit, `37014d11`, that queues follow-through; it is not evidence that those
+  capabilities were implemented.
+
+Capabilities still absent remain open: Current Entity placement inference,
+query planning, producer-output identity and producer-keyed compilation,
+command/task persistence ownership, durable invocation/wait/receipt storage,
+access-surface option provenance, complete Output Preview,
+unreachable/dead-end diagnostics, semantic Apply diff, automatic casting, P2
+cleanup, the User TODOs, and every end-to-end acceptance-matrix item. Historical
+notes that called the generated-interface or organization-scope originals open
+describe their earlier session state; their later correction notes are the
+current implementation disposition.
+
+#### Agent Notes — 2026-08-30 verified worktree disposition
+
+The verified live inventory is seven worktrees: the primary `local` checkout
+and six non-current worktrees (e67). The primary checkout is the sole
+integration target. Every non-current worktree is outside this process-designer
+reconciliation, and none of its regressive `TODO-process-designer.md` edits is
+adopted:
+
+1. The design-centralization worktree's unrelated work remains preserved and
+   unmerged; its stale ledger regression is excluded (e71).
+2. The design-system convergence and semantic-typography worktrees' unrelated
+   work remains preserved and unmerged; their shared stale ledger regression is
+   excluded (e72).
+3. The design-system inventory-enforcement worktree's unrelated work remains
+   preserved and unmerged; its stale ledger regression is excluded (e73).
+4. Both V9 design-recovery worktrees' unrelated recovery work remains preserved
+   and unmerged; their stale ledger regressions are excluded (e69, e74).
+
+Capability disposition in this same reconciliation: fixed-field and open-entry
+aligned-tuple Compose behavior is implemented (e26, e27); declared-block
+Decompose/read validation is implemented (e28, e29); archive/delete effects are
+capability-gated (e34); and generated-screen source and mutation ownership is
+implemented (e35). Access-surface truthfulness remains open (e36). Stored
+compiled data is neither editable-design nor runtime authority (e39).
+Producer-output identity and persistence ownership remain ledger-open claims
+(e58, e60, e61); this reconciliation does not present them as independently
+verified implementation findings. The duplicate Compose bookkeeping change is
+not integrated because current tests already verify the behavior (e26, e27).
+
+#### Agent Notes — 2026-08-30 six-worktree ledger delta rejection
+
+The live inventory remains seven worktrees: the dirty primary `local` checkout
+and these six non-current design worktrees (e149). Their Process Designer ledger
+deltas were compared with current HEAD and rejected individually:
+
+1. **design-centralization — stale and regressive.** It changes `WAITING` to
+   `READY`, reopens completed declared-block, Compose, delete/archive, screen,
+   and access work, restores obsolete mutation acceptance wording, and removes
+   the current reconciliation notes (e150).
+2. **design-convergence — stale and regressive.** It repeats those completed-work
+   reopenings and removes the current reconciliation evidence (e151).
+3. **design-system-enforcement — stale and regressive.** It reopens completed
+   declared-block, Compose, status/delete, generated-interface, and access work
+   while removing the current reconciliation evidence (e152).
+4. **semantic-typography — duplicate and regressive.** Its ledger delta is the
+   same stale regression as design-convergence, not distinct Process Designer
+   implementation work (e153).
+5. **V9 design-recovery — stale and regressive.** It restores `READY`, reopens
+   completed work, restores obsolete Unset/Append/Remove acceptance wording,
+   and removes the reconciliation notes (e154).
+6. **V9 design-goal — duplicate and regressive.** It duplicates the same stale
+   V9 ledger regression and contributes no distinct correction (e155).
+
+None of these deltas is merged, staged, cherry-picked, or used to rewrite a
+branch. Their unrelated work and the primary checkout's unrelated dirty files
+remain untouched. The ledger therefore remains `WAITING`, and the preceding
+reconciliation notes remain authoritative.
+
+#### Agent Notes — 2026-08-31 eight-worktree reconciliation
+
+All eight linked non-current worktrees were compared with current HEAD. No
+Process Designer delta from them is integrated; each is rejected as follows:
+
+1. **design-centralization — stale and regressive.** Its ledger delta changes
+   `WAITING` to `READY`, reopens completed capabilities, restores obsolete
+   acceptance wording, and removes current reconciliation evidence (e38).
+2. **design-convergence — stale and regressive.** It repeats the ledger
+   regression, removes canonical screen/access documentation, and deletes
+   focused typed-grant and generated-screen tests (e39, e40).
+3. **design-system-enforcement — stale and regressive.** It reopens completed
+   Process Designer capabilities and deletes the same focused screen/access
+   tests (e41).
+4. **semantic-typography — duplicate and out of scope.** It duplicates the
+   design-convergence ledger regression; its distinct edits are unrelated
+   typography changes rather than open Process Designer work (e42).
+5. **V9 design-recovery — stale and regressive.** It reopens completed work,
+   restores obsolete mutation semantics, and removes current reconciliation
+   evidence (e43).
+6. **V9 design-goal — duplicate and regressive.** It contributes no distinct
+   implementation beyond the same stale V9 ledger regression (e44).
+7. **producer-contract-replacement — incompatible.** It removes the durable
+   run, invocation, wait, output, step, receipt, retry, and receipt-ingestion
+   protocol and restores transient recovery behavior (e45).
+8. **process-producer-scope — incomplete and incompatible.** It replaces the
+   durable execution protocol, retains detached `entityProfiles` as the source
+   of synthesized producer-output IDs, migrates metadata back onto those
+   profiles, and covers only a subset of the required contract (e46, e47, e48,
+   e49).
+
+Accordingly, no linked-worktree delta is merged, staged, or cherry-picked. The
+existing reconciliation evidence above remains intact, completed requirements
+remain closed, and the ledger remains `WAITING` (e13, e36).
+
+#### Agent Notes — 2026-09-01 surviving-worktree bounded inventory
+
+This follow-up makes the previous verdict auditable without reconsidering it.
+The comparison basis is current HEAD, bounded to this ledger,
+`components/process-designer`, and `packages/processes`; paths outside that
+boundary were not inventoried.
+
+- `process-producer-scope-20260830` is at
+  `1aba23bc210125bb3ff9caaf356d6e83aed9254a`, with no commits relative to
+  current HEAD. Its working status contains four modified package files and one
+  untracked test. The table includes both that working delta and the bounded
+  current-HEAD diff (e9).
+- `producer-contract-replacement-20260830` is at
+  `f7635ed5e794686e4bd0b5616440bbccd6d17471`, with no commits relative to
+  current HEAD and a clean working status. Its table is therefore the bounded
+  current-HEAD diff (e26).
+
+`process-producer-scope-20260830`:
+
+| File | Classification | Current-HEAD mapping and disposition |
+| --- | --- | --- |
+| `TODO-process-designer.md` | conflicting | It reopens completed items and removes current reconciliation and validation notes. Discard it and keep this ledger's existing incomplete/incompatible verdict (e3, e9). |
+| `components/process-designer/ProcessNode.vue` | still-useful | Making the selector visible even when an entity is inferred is a useful UI observation, but it is not separable evidence that the producer contract is complete. Keep only the observation; do not reuse the patch (e10). |
+| `components/process-designer/README.md` | incomplete | Restoring explicit tree transforms to the primary-palette description covers only palette presentation and does not resolve the recorded producer-contract failure. Keep only the palette/tree observation (e3, e11). |
+| `packages/processes/README.md` | conflicting | It replaces current producer-output identity and producer-scoped policy documentation with detached profiles and type-global policies. Discard it in favor of the current contract (e3, e12). |
+| `packages/processes/src/algebra.js` | conflicting | It changes the current `producerOutputs` record back to detached `entityProfiles`. Discard it (e3, e13). |
+| `packages/processes/src/compiler-core.js` | conflicting | It restores detached profiles and type-keyed workflows/policies, weakens action validation, and synthesizes identities instead of preserving producer identity. Discard it (e3, e14). |
+| `packages/processes/src/designer.js` | incomplete | Its limited Current Entity inference is worth retaining as an observation, but the same patch restores procedural collection/tree nodes and covers only part of the contract. Do not reuse the mixed patch (e3, e15). |
+| `packages/processes/src/designer.spec.js` | conflicting | It removes current assertions that procedural collection/tree nodes stay outside the primary palette. Keep the current tests and discard the patch (e16). |
+| `packages/processes/src/evaluator.js` | still-useful | Passing `producerOutputId` to Current Entity is consistent with producer-scoped runtime lookup, but this isolated callback change does not complete the contract. Preserve the observation only (e3, e17). |
+| `packages/processes/src/orchestration.js` | still-useful | Passing `producerOutputId` into operational effects is useful producer-scoping evidence, but is incomplete without the durable protocol. Preserve the observation only (e3, e18). |
+| `packages/processes/src/ports.js` | conflicting | It resolves entity nodes from detached `entityProfiles` rather than current producer outputs. Discard it (e3, e19). |
+| `packages/processes/src/process-designer-remaining.spec.js` | conflicting | It deletes current coverage for unambiguous inference and ambiguous-context selection. Keep the current test artifact (e20). |
+| `packages/processes/src/producer-contract.spec.js` | incomplete | The untracked test checks independent metadata and fail-closed lookup, but derives its outputs from detached profiles. Keep the test intent only; discard this implementation (e3, e21). |
+| `packages/processes/src/producer-output-contract.spec.js` | conflicting | It deletes current node-and-output-socket identity, `entityTypeIndex`, and action `producerOutputId` coverage. Keep the current contract tests (e22). |
+| `packages/processes/src/templates.js` | conflicting | It replaces generated producer outputs with detached entity profiles. Discard it (e3, e23). |
+| `packages/processes/src/transpiler.js` | conflicting | It replaces producer outputs with profiles in canonical-source and round-trip handling. Discard it (e3, e24). |
+| `packages/processes/src/validation.js` | conflicting | It replaces producer-output requirements with entity-profile requirements. Discard it (e3, e25). |
+
+`producer-contract-replacement-20260830`:
+
+| File | Classification | Current-HEAD mapping and disposition |
+| --- | --- | --- |
+| `TODO-process-designer.md` | conflicting | It reopens completed items and removes current validation notes. Discard it and keep the existing incompatible verdict (e2, e26). |
+| `components/process-designer/ProcessNode.vue` | still-useful | Selector visibility for inferred entities remains a useful UI observation, but does not justify importing an incompatible branch. Preserve the observation only (e2, e27). |
+| `components/process-designer/README.md` | incomplete | Its explicit-tree-transform palette description is only a presentation fragment and does not address the removed producer or durable-execution contracts. Preserve the observation only (e2, e28). |
+| `packages/processes/README.md` | conflicting | It removes current producer identity, inference, and producer-scoped policy documentation in favor of detached profiles and type-global policies. Discard it (e2, e29). |
+| `packages/processes/src/algebra.js` | conflicting | It changes producer-output records back to detached entity profiles. Discard it (e2, e30). |
+| `packages/processes/src/compiler-core.js` | conflicting | It removes compiled producer outputs, `entityTypeIndex`, and action producer validation while restoring type-keyed workflows/policies. Discard it (e2, e31). |
+| `packages/processes/src/designer.js` | conflicting | It restores procedural collection/tree nodes to the primary palette contrary to the current designer contract. Keep the current artifact (e32). |
+| `packages/processes/src/designer.spec.js` | conflicting | It removes the current primary-palette exclusion assertions. Keep the current tests (e33). |
+| `packages/processes/src/ports.js` | conflicting | It resolves entities from detached profiles rather than producer outputs. Discard it (e2, e34). |
+| `packages/processes/src/process-designer-remaining.spec.js` | conflicting | It deletes current inference and ambiguous-context selection coverage. Keep the current tests (e35). |
+| `packages/processes/src/producer-output-contract.spec.js` | conflicting | It deletes current producer identity, index, and action-output coverage. Keep the current tests (e36). |
+| `packages/processes/src/templates.js` | conflicting | It replaces generated producer outputs with detached profiles. Discard it (e2, e37). |
+| `packages/processes/src/transpiler.js` | conflicting | It replaces producer outputs with profiles throughout canonical serialization and round trips. Discard it (e2, e38). |
+| `packages/processes/src/validation.js` | conflicting | It replaces producer-output requirements with profile requirements. Discard it (e2, e39). |
+
+No patch in either table is classified `already-integrated`: where current HEAD
+already has the required contract or coverage, the worktree patch removes or
+replaces it and is therefore classified `conflicting`. No worktree delta was
+merged, staged, or cherry-picked during this reconciliation. The earlier
+`incompatible` and `incomplete and incompatible` verdicts remain unchanged,
+and the ledger remains `WAITING` (e2, e3, e4).
+
+No implementation mutation is required for the two reopened scopes: current
+HEAD already rejects undeclared Get Block and Deconstruct selections in the
+compiler and enforces the same declared-block rule in the evaluator at runtime
+(e5, e6); its evaluator tests already verify aligned list-shaped Compose Block
+tuple emission (e7). Declared-block enforcement and Compose bookkeeping are
+therefore already satisfied at current HEAD.
+
+#### Agent Notes — 2026-08-30 workflow-execution persistence baseline
+
+Current HEAD has no authoritative durable workflow-execution store to extend.
+The settled baseline is:
+
+1. `server/features/process-definitions/run-repository.js` owns only an
+   in-memory finite run lifecycle, and `resumeDueRuns()` returns no runs.
+   `packages/processes/src/orchestration.js` advances cloned run snapshots and
+   returns the updated transient snapshot.
+2. The only current transactional state-record pattern is entity lifecycle
+   persistence documented by `server/core/machines/README.md`: it writes the
+   entity's current status and append-only `status_events` history together in
+   a Mongo transaction when the transition also patches the entity.
+3. `server/core/events/service.js` is an in-process dispatch boundary, not a
+   durable append-only event stream; its publisher performs no persistence.
+4. `server/core/commands/repository.js` updates mutable `command_runs` history
+   in place with `$set`, while `server/core/commands/service.js` invokes the
+   registered handler synchronously between the running and terminal updates.
+   Commands have no durable outbox or inbox.
+
+The chosen mutable-state-records implementation family extends this transient
+baseline rather than replacing an existing durable authority. Transactional
+mutable run, invocation, and wait records are the recovery authority: recovery
+starts from nonterminal persisted records, and advancement atomically
+compare-and-sets state while inserting uniquely constrained completion
+receipts, persisting projected outputs, and consuming waits. Append-only
+execution history is retained as subordinate evidence, not recovery authority.
+
+The six non-current worktrees remain preserved and unmerged, and none of their
+stale ledger deltas is imported: completed declared-block, Compose,
+delete/archive, screen, and access work remains recorded as done.
+
+#### Agent Notes — 2026-09-11 continuation session
+
+Session scope: audit the ledger against current `local`, disposition the
+worktree inventory, and repair the highest-priority defect found.
+
+- **Broken suite repaired.** The merged producer-output cutover left
+  `packages/processes` red at `local` HEAD: 49 `index.spec.js` tests and one
+  `algebra.spec.js` test still authored the pre-cutover protocol (detached
+  `entityProfiles`, unbound entity actions, `compiled.workflows[entityType]`
+  assertions) while `compileActions` now fails closed without
+  `producerOutputId`. All 50 were migrated to the authored producer-output
+  protocol (explicit `producerOutputs` records keyed
+  `<nodeId>:<outputSocketId>`, explicit action/process-node
+  `producerOutputId`, producer-scoped workflow assertions). No compiler code
+  changed; fixtures now match the contract pinned by
+  `producer-output-contract.spec.js`. Five passing tests still carry inert
+  `entityProfiles` fixture blocks (ignored by normalization); they are
+  harmless legacy-fixture cleanup, not contract work.
+- **Observation, no change:** `validateProcessDefinition` does not itself
+  require `producerOutputId` on entity actions (only `compileActions` throws),
+  so a definition can validate and still fail compilation. Activation compiles
+  in the same request, so the end-to-end boundary stays fail-closed; recorded
+  here in case a later task wants validation to reject it directly.
+- **Query planning merged.** `agent/process-filter-graph-20260905`
+  (`feat: plan safe process queries` + `neo:` docs) implements the deferred
+  query-planning checkbox above and was merged unchanged; its ledger note is
+  the 2026-09-05 section.
+- **Worktree disposition (this session):** `graph-diagnostics-20260905` branch
+  was already contained in `local` (clean worktree, removed);
+  `graph-p1challenge-20260907` and `graph-p1diag-20260906` sat exactly at
+  `local` HEAD with no commits and no dirty files (empty sessions, removed);
+  `graph-filter-20260905` held the query-planning work (merged, removed); the
+  four `/tmp` worktrees were already missing on disk (pruned; branches kept).
+  The `.agent-worktrees/process-producer-scope-20260830` branch is merged into
+  `local`; its dirty files are exactly the bounded-inventory-rejected patches,
+  so that worktree was removed (branch kept).
+  `producer-contract-replacement-20260830` (branch merged, clean) worktree was
+  removed for the same reason. The stale `persisted-producer-migration`,
+  `architecture-recovery`, and `quarantine-producer-rewrite` branches remain
+  unmerged and superseded by the merged producer-migration commits of
+  2026-09-02; they are discardable but were left for the owner. The four
+  design worktrees and the two `solution-lod-v9-recovery` worktrees remain
+  preserved per the earlier verdicts.
+
+Validation: `npx vitest run packages/processes packages/domain-cnc
+server/runtime` 369 passed; `npx vitest run server/features/process-definitions`
+42 passed plus `run-repository.spec.js`, which is a `node:test` file (6 passed
+under `node --test`; vitest reports it as "no test suite", pre-existing harness
+mismatch); `node scripts/check-arch.js`, `npm run framework:validate`, and
+`node scripts/check-docs.js` all pass.
+
+### Agent Notes — 2026-09-11 unreachable node diagnostics
+
+Closed the unreachable/dead-end checkbox above. `validateProcessDefinition`
+(`packages/processes/src/compiler-core.js`) now computes reverse reachability
+over graph edges with `effect.*` nodes as the operational sinks and emits one
+warning per process node whose values cannot reach any persistence effect:
+`Process node <id> (<kind>) is non-operational: its values cannot reach any
+persistence effect`. Pure-data subgraphs stay valid (warnings only) and flow
+through the existing compiled `warnings` channel the designer already renders
+(`pages/organization/process.vue` Message list and activation preview).
+Coverage: `packages/processes/src/reachability-diagnostics.spec.js` pins the
+inspect-only island (valid + warned), the chain-feeding-effect case (no
+warnings), the dead-end sibling branch, and effect-only definitions.
+Validation: `npx vitest run packages/processes` 348 passed;
+`server/features/process-definitions/process-definitions.spec.js` 21 passed;
+`node scripts/check-arch.js` and `node scripts/check-docs.js` pass.
+
+#### Agent Notes — 2026-09-11 second continuation session
+
+Session scope: audit the ledger against `local`, disposition the surviving
+worktree inventory, and close the next diagnostics slice.
+
+- **Audit.** Re-ran the focused battery at `local` HEAD: `packages/processes
+  packages/domain-cnc server/runtime` 388 passed;
+  `server/features/process-definitions` 42 passed (plus the `node:test`
+  run-repository suite, 8 passed); `node scripts/check-arch.js`,
+  `npm run framework:validate`, and `node scripts/check-docs.js` pass. The two
+  check-docs broken links seen in the primary checkout point at
+  `docs/DEPLOYMENT.md` and `docs/FRAMEWORK_EXTRACTION_STATUS.md`, which are
+  deleted only by the primary checkout's unrelated dirty working tree; the
+  committed state is clean. The 2026-09-11 ledger claims above remain truthful.
+- **Worktree disposition.** The six surviving non-current worktrees were
+  re-compared with current HEAD, bounded to this ledger and the Process
+  Designer paths. `design-centralization-fresh` and
+  `design-system-inventory-enforcement` have no committed Process Designer
+  delta; `design-convergence` and `semantic-typography` carry only typography
+  class renames in designer components (`text-xs` to semantic label classes);
+  the two `solution-lod-v9-recovery` worktrees have no commits beyond their
+  old base (one holds a two-line dirty docs edit). Nothing to merge for this
+  ledger; all six remain preserved for their design-system owner per the
+  standing verdicts.
+- **Diagnostics slice.** Closed the socket/edge/binding half of the
+  producer-scoped activation diagnostics checkbox (see the updated partial note
+  under that checkbox): producer-named required-input availability errors,
+  producer-named entity edge incompatibilities, the
+  `validateLineageBindingResolution` activation pass, and socket-alias-aware
+  `sourceProducerOutputId` resolution in `compileLineageBindings`. The explicit
+  Join contract, policy/role/access attachment diagnostics, and canvas Apply
+  focus remain open.
+
+Files changed (code): `packages/processes/src/compiler-core.js`,
+`packages/processes/src/validation.js`,
+`packages/processes/src/producer-binding-diagnostics.spec.js` (new),
+`server/features/process-definitions/compiler-adapter.js`.
+Files changed (docs): `packages/processes/README.md`,
+`TODO-process-designer.md`.
+
+Validation: `npx vitest run packages/processes packages/domain-cnc
+server/runtime server/features/process-definitions` 433 passed (plus the known
+vitest/node:test harness-mismatch file, 8 passed under `node --test`);
+`node scripts/check-arch.js`, `npm run framework:validate`, and
+`node scripts/check-docs.js` all pass.
+
+## P1 — validation and diagnostics
+
+- [x] Make Apply validate the complete fresh-graph path: domain capabilities,
+  required value availability, typed connections, collection alignment,
+  block policy, entity service bindings, workflow preservation, access, screens,
+  and semantic canvas round-trip.
+- [x] Add unreachable/dead-end diagnostics for values that cannot reach a
+  persistence or visible output. Keep an intentionally inspectable pure-data
+  subgraph valid, but report it as non-operational.
+- [x] Make Output Preview evaluate all pure/read nodes over item/list/tree data
+  and show branch paths, item counts, sampled typed values, null/missing state,
+  and field-access redaction. It must never execute persistence effects.
+
+##### Agent Notes — 2026-09-11 output preview closeout
+
+The evaluation core already existed (`previewProcessDataflow` in
+`packages/processes/src/orchestration.js`: every non-effect/non-control node,
+per-output trees through the real read environment, effect suppression). This
+session closed the display and evidence gaps rather than adding a second
+preview path:
+
+- Sampled typed values: the designer inspector now shows each output's
+  declared socket type (`formatProcessType` from the resolved catalog ports)
+  beside its label and branch/item counts
+  (`pages/organization/process.vue` `selectedNodePreviewOutputs`).
+- Null/missing state: preview items render a present `null` as `null` and a
+  serialized missing-field tag as `missing(<path>)`
+  (`formatPreviewItem`); package coverage pins the marker surviving preview
+  evaluation distinct from a present nullable field
+  (`orchestration.spec.js`).
+- Field-access redaction stays enforced at the boundaries the architecture
+  already owns: preview entity reads re-enter the registered services with the
+  author's complete auth context (private-field policies applied by the access
+  engine), and value-shape redaction rewrites secret/opaque items to
+  `[redacted]` — now pinned by a focused preview test.
+- Topology evidence: branch paths (integer segments), per-branch item counts,
+  and truncation under a preview limit are pinned with a literal-tree fixture;
+  effect suppression was already pinned and is unchanged.
+
+Validation: `npx vitest run packages/processes` 356 passed; SFC compile check
+for `pages/organization/process.vue` passed; the full focused battery
+(`packages/processes packages/domain-cnc server/runtime
+server/features/process-definitions`) passed 436 tests plus the `node:test`
+run-repository suite (8 passed); `node scripts/check-arch.js`,
+`npm run framework:validate`, and `node scripts/check-docs.js` all pass.
+- [x] Add a semantic Apply diff: changed CRUD capabilities, grants, workflows,
+  screens, actions, field policies, and entity statuses that would become
+  invalid. Require a migration decision when active entities use removed
+  workflow states.
+
+##### Agent Notes — 2026-09-11 semantic apply diff
+
+- Pure diff: `packages/processes/src/contract-diff.js`
+  (`diffProcessContracts`, `hasProcessContractChanges`) compares two compiled
+  contracts — actions (semantic fields incl. access level, producer binding,
+  trigger), screens, role grants, per-entity-type CRUD capability sets,
+  per-producer workflow states/transitions/entries, field-policy sections, and
+  `removedEntityStatuses` (per entity type, the union of that type's producers'
+  primary-region states). Coverage: `contract-diff.spec.js` (9 tests incl.
+  same-type producer unions and a status surviving on another producer).
+- Surface: `validate` now returns `diff` beside `ok`/`errors`/`warnings`
+  (`server/features/process-definitions/service.js`). Both sides recompile
+  from canonical authored records — the stored `compiled` snapshot stays
+  inspection-only; an uncompilable previous contract (domain drift) or absent
+  active definition yields `diff: null`, not a blocked validation.
+- Migration gate: `activate` fails with HTTP 409 + `migrationRequired` data
+  (entity type, removed states, affected count) when live entities still hold
+  a removed workflow state, checked through the registered entity services
+  with the activating actor's auth context; the previous active definition is
+  not archived in that case. Entity types whose status check cannot run do not
+  block. Server coverage: the migration-decision rejection, the
+  removed-state-with-no-live-entities activation, and the diff response shape
+  in `process-definitions.spec.js`.
+- Designer: the Apply/validation panel renders a localized semantic-change
+  summary (actions/screens/roles counts, workflow/field-policy producer
+  changes, per-type CRUD capability deltas, removed-state lines) from
+  `validation.diff` (`pages/organization/process.vue`
+  `validationDiffLines`); en/ru locale keys added.
+
+Validation: `npx vitest run packages/processes packages/domain-cnc
+server/runtime server/features/process-definitions` 447 passed (plus the
+`node:test` run-repository suite, 8 passed); `shared/localization.spec.js`
+fails only on the documented pre-existing FacadeDesigner/QueueEditor keys;
+SFC compile check passed; `node scripts/check-arch.js`,
+`npm run framework:validate`, and `node scripts/check-docs.js` all pass.
+- [x] Keep `data.compiled` as an inspection-only activation snapshot. Runtime
+  auth hydration and manual execution recompile the canonical graph and never
+  prefer the stored snapshot, so the compiled artifact is not runtime authority.
+
+## P2 — remove misleading and unnecessary surface area
+
+- [x] Reduce the primary collection palette to operations required by the CRUD
+  paths above: Make List, Collect/Expand Array, Concat, Filter/Dispatch, Sort,
+  Item At, Slice, Count, Distinct, and Group By.
+- [x] Remove or hide Reverse, Shift, Partition, Flatten, Graft, Simplify, Branch,
+  Transpose, Clean, and Tree Statistics until a documented procedural entity
+  case requires them. Do not create an “Advanced” drawer merely to retain
+  unused nodes.
+- [x] Remove legacy Action, Entity, Service, Socket, Value Input, Role, and User
+  canvas components/inspectors after migration proves current v4 semantic
+  records no longer need them. Definition-plane resources belong in focused
+  panels, not duplicate executable nodes.
+  Closed 2026-09-11 (panels-first removal): the transpiler now distinguishes
+  canvas-owned records (`processNodes`, `statusDefinitions` — projected,
+  deletable from the canvas) from panel-owned records (`producerOutputs`,
+  `actions`, `services`, `sockets`, `valueInputs` — never projected, survive
+  the canvas round trip untouched). The five legacy canvas node slots
+  (entity/action/service/socket/valueInput) and their components are deleted
+  (including the already-dead Role/User components); the producer workflow
+  inspector now opens on the entity-producing process node
+  (`useProcessDesignerInspector` resolves the node's `producerOutputId`;
+  pinned by its spec), and services/sockets are edited in collapsible Roles-tab
+  panels with add/remove. Persisted definitions migrate naturally: previously
+  stored record-node canvas entries are dropped on the next save while their
+  records persist. Authored standalone actions remain unauthored by design
+  (they were already dropped by the canvas filter on every save); value-input
+  records were never editable on canvas (read-only tag) and stay
+  panel-preserved. Coverage: transpiler round-trip specs
+  (`current-dataflow.spec.js`, `index.spec.js` "keeps definition-plane records
+  off the canvas…"), inspector spec producer-anchor case, SFC compile, full
+  battery green.
+- [x] Keep Run Service as one typed command leaf operation required by a CRUD
+  path. Do not add service lifecycle, scheduling, worker, retry, or queue
+  management to the Process Designer.
+  Verified 2026-09-11: the Run Service surface is exactly the
+  `effect.runCommand` process node (command Select plus its typed
+  construction/command sockets); no scheduling, worker, retry, or queue UI
+  exists anywhere in the designer, and async completion stays the runtime-owned
+  durable wait/receipt boundary. Constraint recorded in
+  `components/process-designer/README.md` (authoring capability matrix note).
+- [x] Split `pages/organization/process.vue` by real ownership: node-record
+  factories/synchronization, entity/block inspector, roles/access, screens,
+  workflow/statuses, graph interaction, preview, and persistence. The page must
+  remain the composition root.
+  Closed 2026-09-12 over three verified slices (`c0724c07`, `d1628a93`):
+  node-record factories + operation maps → `useProcessDesignerNodeRecords.js`
+  (injected designer/translator/sync context); output preview + apply-diff
+  display + diagnostics focus → `useProcessDesignerPreview.js`;
+  lifecycle/status-machine editors → `useProcessDesignerWorkflow.js`. With
+  the pre-existing composables (selection, palette, graph editing, screens,
+  roles, inspector, persistence, definition catalog) every concern named by
+  this checkbox has an owner outside the page, and the page keeps template +
+  sync/io glue + inspector handlers as the composition root (4,726 → 4,401
+  lines). Gates: 495-test unit battery green per slice; deterministic e2e
+  (9 passed / 0 failed, twice consecutively) after per-run organization
+  isolation (`d7efc89b`) and replacing `networkidle` waits — the earlier
+  red suite was polluted shared state plus a degraded dev container, both
+  diagnosed and fixed during this closeout.
+- [x] Use ordinary PrimeVue controls for scalar/enum/role/schema/process-record
+  choices and shared entity pickers only for canonical entity DTO/reference
+  choices.
+  Verified 2026-09-11: every Select/MultiSelect in the process designer renders
+  in plain PrimeVue mode over scalar option lists (entity types, commands,
+  roles, fields, statuses); no designer control passes shared entity-picker
+  props (`entity-mode`/`:entities` usages: none), and entity pickers appear
+  only where canonical entity DTO/reference choices belong — generated manual
+  forms and entity surfaces.
+- [x] Remove stale documentation and archived-plan claims that imply event
+  automation, waits, durable runs, or complete CRUD paths that current UI and
+  runtime cannot demonstrate.
+  Audited 2026-09-11 across the canonical READMEs: date/event automation is
+  correctly documented as outside the contract, the durable wait/receipt/
+  ingestion protocol is now real and accurately described, and the one stale
+  claim found — `run-repository.js` described as the "intentionally ephemeral
+  manual-run lifecycle" — is corrected to the durable execution store
+  (`server/features/process-definitions/README.md`). Archived plan files under
+  `docs/` are the owner's uncommitted deletions in the primary checkout and
+  were not touched.
+
+## Corrections queue — re-launch scopes
+
+Sections below received design verdicts from solution-lod runs but no
+implementation or bookkeeping, or were only partially closed. Each subsection
+is a self-contained re-launch scope: the recorded verdict is the design input,
+not something to re-derive. Close the listed bullets in the original section,
+add Agent Notes there, and validate per the Implementation protocol.
+
+### Correction: Item/list/tree persistence semantics
+
+Verdict on record (run 2026-08-19): one generic, type-agnostic effect-mapping
+contract shared by all mutation effect nodes; mutation inputs routed through
+`solveDataTrees` with a per-aligned-item invocation boundary;
+`MutationFailure` records `{operation, branchPath, itemIndex, entityRef?,
+error}`; results carry `failures` and `completedMutations` lists; result tree
+is shape-preserving; `effect.deleteEntity` was added by the later
+Status/archive/delete correction.
+
+- [x] Implement the shared effect-mapping contract below the node language in
+  `packages/processes/src/evaluator.js`, wired into Create, Modify, Status,
+  Archive, and Delete.
+- [x] Implement multi-input matching for persistence nodes per the verdict.
+- [x] Implement mutation failure reporting (`failures` + `completedMutations`)
+  without claiming collection-wide atomicity.
+- [x] Test the same mutation node against item, list, and branched-tree inputs.
+
+### Correction: Collection construction
+
+Verdict on record (run 2026-08-19): Make List gets a fixed input-count
+contract — 4 optional item sockets, at most one wire each; Concat, Collect
+Array, and Expand Array stay as they are.
+
+- [x] Implement the Make List fixed-socket contract (catalog, designer palette,
+  inspector) if not already matching; verify Concat/Collect/Expand behavior
+  with tests rather than changes.
+- [x] Test relation arrays, attachment arrays, command entity-list inputs,
+  empty lists, and mixed incompatible element types.
+
+### Correction: Decompose and read
+
+Verdict on record (run 2026-08-19): attachments become a framework-owned open
+block declared in core (`CANONICAL_BLOCK_SCHEMAS` /
+`CANONICAL_BLOCK_COMPOSITION` in `packages/core/src/index.js`).
+
+- [x] Verify Deconstruct Entity, Get Block, and Get Field against item/list/
+  tree inputs and the full CNC block family, including the attachments block
+  per the verdict; implement only where behavior diverges.
+- [x] Distinguish missing field from present nullable field in preview and
+  runtime errors.
+- [x] Close the five original bullets with tests and bookkeeping.
+
+### Correction: Compose Block
+
+Verdict on record (two runs, 2026-08-19): all five bullets are functionally
+implemented and documented (catalog ports, evaluator, compiler validation, UI,
+domain schemas, tests); the single genuine gap is the missing explicit
+multi-entity/list-input compose output test. Do not add required/default
+declarations to fixed block fields — an open compose socket is a composition
+affordance, not an error.
+
+- [x] Add the focused multi-entity/list-input `composeBlock` output test in
+  `packages/processes/src` (one composed block per aligned input tuple).
+- [x] Tick the five original bullets and add Agent Notes. Bookkeeping plus one
+  test; no runtime changes expected.
+
+### Correction: Create Entity
+
+Verdict on record (run 2026-08-19): no creatable entity type declares a
+mandatory parent or containment relation; all 14 construction contracts in
+`entity-construction.js` lack parentEnforcement; manual-form/task-form
+consumer of promptable inputs was the open investigation.
+
+- [x] Verify Create Entity against every process-creatable domain entity:
+  constructor sockets, requiredness, creator constraints, constructible
+  blocks, Lineage, Relations, initial status, typed references.
+- [x] Verify parent/ancestor validation and Lineage binding compilation;
+  implement only where behavior diverges from the contract.
+- [x] Test root creation, child creation, relation-bearing creation, typed
+  references, and denied creation; close the six original bullets.
+
+#### Agent Notes — 2026-08-21
+
+Correction complete. The full evidence and the sole runtime repair are recorded
+under the original Create Entity task above. No construction contract gained
+`parentEnforcement`; ancestor semantics remain graph-derived Lineage bindings.
+
+### Correction: Relations and lineage
+
+Verdict on record (two runs, 2026-08-19): only the forward/source-side
+relation read is covered (`entity-sources.spec.js` exercises
+`processRelatedEntities` as an owner-side forward read).
+
+- [x] Verify Lineage-as-ancestry vs Relations-as-associations semantics and
+  explicit Link/Unlink authoring through typed relation blocks; implement
+  gaps only.
+- [x] Verify one-to-one and one-to-many relation values, including building a
+  persisted relation array from a data-tree list through Collect Array.
+- [x] Verify cross-organization link prevention; test link, unlink, replace,
+  duplicate prevention, missing targets, and denied relations.
+
+#### Agent Notes — 2026-08-21
+
+Correction complete. Lineage remains graph-derived ancestry and Relations
+remain typed non-owning associations. Compiled Create and Modify effects now
+validate graph-declared relation owner/key/target/cardinality contracts before
+the owning persistence call, resolving targets through authorized registered
+services and deduplicating many-valued replacements. Runtime coverage now pins
+one/many replacement, Collect Array cardinality, Link, Unlink, copy-on-write
+replacement, duplicate handling, missing targets, denied reads, and
+cross-organization rejection. Existing forward related reads, generated detail
+actions, reverse/display projections, and lineage-scoped compiler coverage were
+verified without runtime changes.
+Replacement deduplication also uses the Link/Unlink target identity
+(`type` plus `id`), so pinned and unpinned references cannot create two
+associations to the same entity.
+
+### Correction: Status, archive, and delete
+
+One bullet closed 2026-08-19 (workflow compilation preserves all authored v2
+regions/contracts). Verdict on record: a single topology-aware mutation effect
+boundary — status and delete effects declare their own item/list/tree mapping.
+
+- [x] Verify initial status on Create and workflow transitions on existing
+  entities across the authored regions now preserved by the compiler fix.
+- [x] Decide and implement archive modeling through a domain workflow
+  state/intent where that is the honest contract.
+- [x] Gate Delete Entity on process capabilities and domain delete contracts;
+  implement `effect.deleteEntity` per the Item/list/tree verdict only for
+  capable entity types.
+- [x] Test multi-region status changes, evidence-required transitions, and
+  item/list/tree status/delete inputs.
+
+#### Agent Notes — 2026-08-21
+
+Correction complete. Create initial-status writes preserve every authored
+region initial while replacing the primary region, and Change Status now
+compiles and forwards region/path scope plus metadata and lifecycle evidence,
+returning the updated entity DTO. Archive is an explicit mapped effect: it uses
+the domain's named archive intent when declared (notably process definitions)
+and otherwise transitions to the domain `ARCHIVED` state. Hard deletion is an
+admin-only manual mapped effect exposed only when the canonical capability
+projection combines `operations.delete` with a registered runtime delete
+binding; one `processDelete(id, auth)` registry adapter translates the existing
+feature service signatures.
+
+Generated process surfaces no longer infer delete controls from domain support
+and grants. They render only an authorized compiled delete action, confirm it,
+and execute it through the active process. Shared mapper coverage pins status,
+archive, and delete item/list/branched-tree topology; compiler, runtime, status
+engine, capability-denial, archive-intent, lifecycle-evidence, and generated
+action tests cover the remaining cases.
+
+### Correction: P1 — generated interface follow-through
+
+Four bullets closed 2026-08-20 (contract validation, typed CRUD forms,
+post-action refresh/patch, browser evidence). Verdicts on record in the
+section Agent Notes: bullets 1–3 are designer-UI gaps — the schema and
+compiler already carry the full shapes; only the screens tab UI is thin.
+
+- [x] Expose the complete semantic screen source contract in the designer
+  (stable id/label, entityType, mode, required/identifier, filters,
+  lineageBindings) — schema support exists in
+  `packages/processes/src/screen-contract.js:94-136`; extend
+  `pages/organization/process.vue:850-887`.
+- [x] Expose the complete region contract (stable id/label, template slot,
+  region actions) in the designer.
+- [x] Support arbitrary typed screen bindings instead of only the currently
+  authorable subset.
+
+#### Agent Notes — 2026-08-21
+
+Completed the three designer-UI gaps without changing the existing screen
+schema. The Screens tab now authors each source's stable identity, entity type,
+mode-specific identifier or typed flat filters, independent required access,
+and complete lineage binding rows; each region authors stable identity, slot,
+source, surface, and its own action list. Screen bindings use arbitrary keyed
+string, number, boolean, or assignment-reference values. Screen mutation and
+mode cleanup moved into `useProcessDesignerScreens`, which normalizes through
+the canonical `packages/processes/src/screen-contract.js` contract.
+
+Focused behavior coverage exercises list/single mode switching, source-id
+reference updates, every supported binding value type, canonical validation,
+and compiler round-trip of authored sources, lineage bindings, regions, and
+bindings. The following organization-scope and producer-scoped corrections are
+unchanged.
+
+### Correction: P1 — organization scope follow-through
+
+Verdicts and partial implementation on record (run 2026-08-19/20): shared
+annotated role access summary implemented (`shared/role-access-summary.js`,
+rendered on the Team page); remaining bullets were dispositioned as design
+decisions in the section Agent Notes.
+
+- [x] Expose the access engine's real grant dimensions in typed controls where
+  the designer edits access.
+- [x] Make entity-profile, action, status-transition, and screen access
+  reviewable from one place per the recorded verdict.
+- [x] Stop screen layout from silently granting backend capability per the
+  recorded verdict.
+- [x] Discover required assignment binding keys from every supported location.
+- [x] Add "preview as assignment" with concrete role IDs and bindings.
+- [x] Test one role, several additive roles, overloaded assignments, and
+  denied cases.
+
+#### Agent Notes — 2026-08-21
+
+Completed against the existing access evaluator and assignment compiler.
+Process Designer now reuses the typed nested permission builder for process base
+grants and action/effect/screen conditions; action normalization preserves
+action maps, entity/lineage scope, transition restrictions, and nested rules.
+Designer and Team both render `shared/role-access-summary.js`. Raw grant JSON,
+assignment nodes, and a second authorization model were not introduced.
+
+Screen requirements are capability consumers: screen records no longer add
+role grants, assignment compilation resolves all selected roles first, and a
+screen is included only when separately authored grants cover its requirement.
+Authored screen scope survives compilation and resolves with screen bindings.
+The package binding projection discovers typed keys from routes, scopes,
+bindings, source identifiers/filters/requirements, role and action access
+scopes, transitions, action maps, and nested rules.
+
+Team's Preview as Assignment evaluates edited role ids and typed bindings
+through the package compiler, canonical grant evaluator, and compiled field
+policies. Concrete entity/status/lineage context resolves conditional entity,
+field, action, and transition decisions; absent context stays unresolved.
+Candidate compilation supplies screens and missing bindings. Active owner
+membership is displayed and tested as a separately attributed
+`organizations:admin`/`users:admin` recovery overlay, not a process role grant.
+Focused coverage includes one role, additive roles, overloaded and missing
+bindings, denial, status and lineage scopes, fields, actions, transitions,
+screens, complete action-grant dimensions, and owner recovery.
+
+Follow-up verification now evaluates each compiled screen and source requirement
+through the shared grant evaluator with the matching preview context. A
+status-scoped grant therefore reports its screen denied for a concrete
+non-matching status and unresolved when that context is absent, rather than
+treating assignment compilation's candidate screen as an unconditional allow.
+
+### Correction: Producer-scoped entity workflows
+
+Status: READY. The architecture finding is complete; the implementation below
+must replace the current entity-type/profile contract as one protocol change,
+not add a compatibility lookup beside it.
+
+#### Chosen contract
+
+`entityType` identifies a domain schema only. It must never select a process
+workflow, field policy, access window, lineage path, initial status, or
+transition. Every executable node output that emits an entity has a stable
+`producerOutputId`, derived from the stable process-node id and output-socket id.
+The compiled workflow identity is that producer/output identity, including when
+two outputs emit the same entity type or one node has several entity outputs.
+Node-only identity is insufficient because it would merge those sockets.
+
+Compilation must emit authoritative producer-keyed records and a non-authoritative
+type index:
+
+- `producerOutputs[producerOutputId]` owns `entityType`, source node/socket,
+  workflow, field policy, role/access contributions, and graph-derived lineage
+  and relationship bindings.
+- `entityTypeIndex[entityType]` is an ordered set of all matching
+  `producerOutputId` values for schema discovery, diagnostics, and designer
+  choices only. A runtime path must not select its first or sole entry as an
+  implicit workflow.
+- Every compiled action, screen source, access window, execution token, and
+  status operation that consumes an entity carries the applicable
+  `producerOutputId`. Runtime workflow and policy APIs require that context and
+  fail on missing, unknown, entity-type-mismatched, or ambiguous identities.
+- An entity is not permanently assigned to a process workflow. The graph path
+  by which it enters the current operation supplies the workflow context. This
+  allows the same persisted entity to enter distinct typed graph paths without
+  storing process definition, action, node, or workflow identifiers on it.
+
+Producer configuration replaces detached entity profiles. Create Entity owns
+its construction mode, explicit initial domain status, field policy, grants,
+and connected canonical blocks. Other entity-producing outputs own their entry
+status and downstream transition contract. Typed graph edges supply
+construction values, relations, parentage, lineage, access inheritance, and
+the consuming producer context. A lifecycle, policy, or relation declaration
+that is not attached to an executable producer output or connected executable
+configuration has no runtime meaning.
+
+Lineage and relationship bindings must preserve both ends of the graph path:
+`sourceProducerOutputId`, source node/socket, consuming producer/output id, and
+consuming node/socket, in addition to entity types and field/relation keys.
+Deduplication uses that full identity. It must not merge bindings merely because
+their child type, ancestor/target type, and storage key match.
+
+#### Designer editing and activation diagnostics
+
+The entity-producing node is the only workflow editing anchor. Selecting a
+Create Entity output, Run Service entity output, task-completion entity output,
+or other entity-producing socket opens an integrated **Workflow** inspector for
+that exact `producerOutputId`. The inspector shows the stable producer/output
+identity beside the schema-only `entityType` and edits its entry state,
+transitions, field policy, role grants, and access behavior. A multi-output node
+uses an explicit output selector; editing one output must not mutate another.
+The canvas must give same-type outputs distinct path labels/accents and preserve
+their identities when nodes are moved, renamed, saved, or round-tripped.
+
+The designer must not offer an Entity Profile palette item, create a hidden
+profile while adding a command, or show an "add missing profile" repair. Remove
+`entityProfiles`, `requiredEntityProfiles`, and profile-presence validation from
+the authored and compiled protocols. Policy, role/access, lineage, relationship,
+and construction context is visible either in the selected producer inspector
+or as a typed connected executable node/socket; there is no second detached
+place that can silently override the producer.
+
+Same-type producer paths remain separate in workflow preview, generated action
+placement, access summary, and runtime tracing. Connecting both paths to an
+ordinary same-type consumer does not merge their workflow meaning. Convergence
+is legal only through an explicit Join operation whose input sockets retain
+their source `producerOutputId` values and whose configuration chooses a
+compatible resulting producer workflow. Activation rejects an implicit
+convergence or a join whose entry states, transition contract, field policy, or
+access contract cannot be reconciled explicitly.
+
+Activation validates each producer output as an independent unit after typed
+port resolution and before compilation. It must verify:
+
+- every required constructor/block input has one valid connected or explicitly
+  allowed local source, with compatible value type, Item/List/Tree access, and
+  cardinality;
+- lineage parentage and relationship associations come from declared typed
+  connections, use valid source/target entity types and keys, and retain both
+  producer identities without type-only deduplication;
+- policy, role, and access contributions are attached to that producer or reach
+  it through a typed executable connection, with no detached or type-global
+  contribution;
+- exactly one valid entry/initial domain status is configured for the producer,
+  and every transition has known endpoints, a connected source entity flow, and
+  valid authorization/evidence contracts; and
+- every outgoing entity flow retains producer context until an explicit valid
+  join selects a new producer workflow identity.
+
+Diagnostics are graph-addressable records, not entity-type summaries. Each
+error includes `producerOutputId` and `nodeId`; socket errors also include
+`socketId` and connection errors include `edgeId` plus source/target handles.
+Transition errors include the producer-local transition and endpoint ids. Apply
+focuses the responsible node, output, socket, edge, or transition in the canvas
+and never reports only "project workflow invalid" when several project
+producers exist.
+
+Each producer workflow declares its entry/initial domain status and every
+allowed transition explicitly. Create applies its declared initial status
+through the status engine after atomic entity creation. Command-owned producers
+must persist and return an entity in their declared entry status; completion
+projection validates that contract. Compilation rejects missing entry states,
+unknown states, undeclared transition endpoints, and several candidate states.
+The designer must not copy a status from the first same-type record or invent a
+default status. Graph step states such as queued, running, waiting, completed,
+and failed remain process-run/step state and never become entity domain status.
+
+#### Persistence ownership
+
+Every command and task entity output must declare one persistence owner; mixed
+implicit behavior is invalid:
+
+- `commandOwned` outputs are persisted inside the registered command/task
+  business boundary (directly or through its declared effects) and return typed
+  persisted entity references/DTOs. The graph may route them but must not create
+  or persist them again.
+- `graphOwned` outputs return typed raw construction data, never an entity
+  reference and never a hidden `createEntity`/`updateEntity` effect. That data
+  reaches an explicit Create/Modify Entity node through typed sockets; that
+  graph node owns authorization, atomic persistence, producer identity, initial
+  status, lineage, relations, and invalidation.
+
+The ownership declaration belongs on each declared output because one command
+may expose several outputs with different timing or ownership. CommandResult and
+TaskResult validation must reject an entity on a `graphOwned` output, raw
+construction data on a `commandOwned` output, undeclared persistence effects,
+and an output whose result timing differs from its declaration. Existing
+handlers that already persist cassettes, conversions, and nesting runs become
+explicit `commandOwned` outputs; no adapter may infer ownership from handler
+behavior.
+
+#### Asynchronous completion
+
+Entity outputs declare whether they are available `immediate` or `completion`.
+The immediate command return may populate only declared `immediate` sockets for
+which that return actually contains a value. A task reference, placeholder, or
+entity expected only from task completion must not populate a `completion`
+socket. Immediate packets are persisted on the current invocation and may be
+read by already-runnable graph work, but the invocation does not emit its
+`completed` control token while any consumed completion output is pending.
+
+Every operational execution is a durable invocation, not merely a node id. The
+run store must persist `process_runs` and `process_step_invocations`; each
+invocation records its run id, step id, invocation id, process definition and
+compiled-contract revision, producer node id, control-token/scope identity,
+attempt, idempotency key, status, immediate output packets, and terminal output
+packets. A Run Service invocation that returns a pending task creates exactly
+one `process_invocation_wait` with a unique wait token and these immutable
+fields:
+
+- run id, step id, invocation id, producer node id, invocation attempt, and
+  invocation idempotency key;
+- task run id plus task id, task attempt/correlation identity, and the command
+  run id when one exists;
+- a versioned/hashable expected-output contract containing each completion
+  socket id, producer output id, timing, structured value/entity type, access
+  shape, nullability, and persistence owner; and
+- the compiled outgoing route snapshot for those outputs and the completion,
+  failure, and cancellation control sockets, expressed as edge id plus exact
+  target node/socket ids.
+
+The wait is the authoritative correlation boundary. Completion ingestion must
+look it up by wait token and task correlation; it must never reconstruct a
+process invocation by searching entity ids, process events, entity type, or the
+latest task for a node. The immutable contract and route snapshot ensure that
+activation or draft edits made after suspension cannot redirect an in-flight
+invocation.
+
+After the task runtime has durably finalized and normalized its terminal
+TaskResult, it submits a completion envelope containing a stable completion id,
+wait token, task run/id/attempt correlation, terminal outcome, and normalized
+output. Delivery is retriable: a terminal-task reconciliation pass must
+resubmit any correlated task whose wait has no receipt, so a crash between task
+finalization and process ingestion cannot strand the run. The task completion
+API must not directly evaluate graph edges.
+
+Ingestion performs one database transaction and compare-and-set:
+
+1. Load the waiting invocation and verify the wait token, task correlation,
+   invocation attempt, and expected-contract version/hash.
+2. Validate and project only declared `completion` values from the normalized
+   TaskResult. Enforce each output's persistence owner and reject missing,
+   extra, mistimed, or mistyped values before changing the run.
+3. Insert a `process_completion_receipt` unique on both completion identity and
+   wait token, persist the projected output packets, atomically change the wait
+   from `waiting` to `consumed`, and change that exact invocation from `waiting`
+   to `resumable`.
+4. Append continuation tokens only for the recorded connected output/control
+   routes whose socket contracts were satisfied. Unconnected sockets and edges
+   from another invocation, node, attempt, or newer compiled graph are never
+   evaluated.
+
+A repeated envelope that matches an existing receipt returns that receipt as a
+successful no-op. A stale attempt or conflicting completion identity cannot
+consume the wait. Claiming a `resumable` invocation is likewise a conditional
+state transition, so concurrent ingestion or workers cannot advance the run
+twice. Downstream effects continue to use invocation-derived idempotency keys;
+the guarantee is exact-once durable graph advancement, not an assumption that
+external side effects are transactional.
+
+Task failure or cancellation enters through the same receipt transaction and
+resumes only that invocation's recorded failure/cancellation route, or marks
+the run failed when no such route is authored. It never publishes success data
+or the `completed` token.
+
+This requires durable process run, step, output, and wait persistence for async
+paths. Correlation and process provenance belong to those execution records and
+task/command run linkage, never to entity status metadata. Ordinary synchronous
+CRUD remains synchronous; durable waiting is required only when a graph consumes
+a declared asynchronous output.
+
+#### Required implementation
+
+- [x] Replace `workflows[entityType]` and `fieldPolicies[entityType]` with
+  producer-output-keyed records plus `entityTypeIndex`; update compiler output,
+  serialization, auth hydration, generated actions/screens, status resolution,
+  and policy resolution together.
+- [x] Add stable producer/output identities to every entity-emitting catalog
+  socket and preserve them through canvas round-trip, normalization, compiled
+  actions, access windows, and runtime output packets.
+- [x] Move lifecycle, entry status, field policy, grants, relations, and role
+  contributions from detached entity profiles onto producer-local or connected
+  executable graph contracts. Delete profile requirements, profile canvas
+  creation, `requiredEntityProfiles`, and activation checks based on entity-type
+  presence; remove the Entity Profile palette/repair path entirely.
+- [x] Make the designer edit each producer output independently. Two Create
+  Project nodes must retain separate statuses, transitions, policies, grants,
+  and downstream paths; changing one must not synchronize or rewrite the other.
+  Use the integrated producer/output Workflow inspector and visibly label the
+  stable output identity beside the schema-only entity type.
+- [x] Require `producerOutputId` in workflow/status/policy/action runtime calls.
+  Keep type-only APIs for domain schema lookup only and fail closed if execution
+  context does not identify one producer output.
+
+  #### Agent Notes — 2026-09-01 producer-output runtime closeout
+
+  Relation creators now resolve through the same exact producer-output action
+  resolver as their owning action; the aggregate test proves distinct same-type
+  field policies and transitions, and the migration/runtime/repository focused
+  checks prove detached-profile removal, fail-closed identity, and durable
+  producer identity. Changed `packages/processes/src/producer-output-contract.spec.js`
+  and `server/features/process-definitions/{runtime.js,service.js,runtime-producer-output.spec.js,README.md}`.
+  Focused Vitest: 10 passed; run-repository Node tests: 6 passed. Architecture
+  and docs checks remain blocked only by pre-existing `.agent-worktrees` scans
+  and already-deleted documentation targets outside this task's owned diff.
+- [x] Compile construction, lineage, relations, and access only from typed graph
+  connections. Include source and consumer producer/socket identity in binding
+  keys and remove type-only binding deduplication.
+- [x] Add per-output command/task metadata for persistence owner and result
+  timing; validate handler results/effects against it and migrate every existing
+  command/task declaration without behavior inference.
+- [x] Add durable run/invocation/wait/receipt storage and task-completion
+  ingestion. Snapshot the versioned output contract and exact connected routes
+  at suspension; project final async outputs into the waiting invocation before
+  emitting `completed`; recover delivery after crashes; and use transactional
+  compare-and-set plus unique completion/wait constraints for attempt-safe,
+  exact-once graph advancement.
+- [x] Remove process/action ids from entity status writes and from the
+  command-output-status migration. Add a data migration that removes existing
+  process provenance from entity status metadata while retaining legitimate
+  display, lifecycle evidence, and transition-local audit metadata.
+- [x] Remove every first-type-match and hardcoded status path in designer sync,
+  workflow compilation, command-output projection, migrations, and runtime
+  fallbacks. Activation must report the producer output and missing/ambiguous
+  state instead of selecting one.
+- [x] Add producer-scoped activation diagnostics for constructor sockets, typed
+  edges, lineage/relationship bindings, policy/role/access contributions,
+  joins, entry states, and transitions. Every error must identify the
+  responsible producer plus its socket, edge, or transition where applicable,
+  and Apply must focus that graph element.
+  Partial 2026-09-11: producer-scoped action-binding and entry-state
+  diagnostics are enforced (unknown/missing `producerOutputId`, type mismatch,
+  missing/undeclared region entry state), each error naming the producer output
+  and region/action; the socket/edge/binding/join diagnostics and canvas Apply
+  focus remain open.
+  Partial 2026-09-11 (second slice): socket, edge, and lineage-binding
+  diagnostics now carry producer identity. Required-input availability errors
+  name the owning `producerOutputId` beside the socket id; dataflow edge
+  incompatibilities name the source `producerOutputId` when the source socket
+  emits an entity; the new `validateLineageBindingResolution` activation pass
+  rejects a lineage `entry:*` edge whose entry, source record, ancestor entity
+  type, lineage key, or organization-ancestor rule fails, and an
+  entity-emitting lineage source socket with no resolvable producer output
+  record (exact key, authored socket alias, or single same-type candidate).
+  `compileLineageBindings` resolves `sourceProducerOutputId` through the same
+  resolution instead of only the record flag, so read-source lineage bindings
+  keep their source identity. Coverage:
+  `packages/processes/src/producer-binding-diagnostics.spec.js` (8 tests).
+  Third slice 2026-09-11: the joins half is implemented — the explicit
+  `producer.join` node (two required entity-stream inputs, one output,
+  `selectedProducerOutputId`, no producer output of its own) plus
+  implicit-convergence rejection in `validateDataflowEdges` naming the
+  consumer node, both producer outputs, and both edges; join validity
+  (connected streams, selection among sources) and join-aware downstream
+  identity resolution are enforced and pinned by
+  `packages/processes/src/producer-join.spec.js` (8 tests). Design decisions
+  not pinned by the recorded verdict, stated here: data semantics are
+  stream concatenation; the node has exactly two fixed inputs; the output
+  carries no `producerOutputId` of its own (identity is the selected
+  source's).
+  Closed 2026-09-11 (fourth slice): diagnostics became structured records —
+  `validateProcessDefinition` returns `diagnostics` entries
+  `{ message, nodeId?, edgeId?, socketId?, producerOutputId? }` from the edge,
+  join/convergence, availability, and lineage passes (`errors` stays the
+  derived message list), and the activation adapter merges one anchored list
+  into the validate/activate responses. Apply focuses the first anchored
+  diagnostic's edge or node on the canvas (`focusFirstValidationDiagnostic`).
+  Policy/role/access attachment is verified as structurally enforced: field
+  policies, `allowedRoles`, and action access windows are compiled
+  producer-keyed only, the type-keyed `resolveWorkflow`/`resolveFieldPolicy`
+  helpers and detached profiles are gone, and unbound entity actions are
+  rejected at validation time. Anchor coverage: availability
+  (`availability.spec.js` "anchors availability diagnostics…"), lineage
+  (`producer-binding-diagnostics.spec.js` "anchors lineage diagnostics…"),
+  and convergence/join (`producer-join.spec.js` diagnostics assertions).
+- [x] Replace the persisted process protocol in one migration. Rewrite profile
+  data onto producer outputs only where graph ownership is unambiguous; fail the
+  migration with actionable node/output diagnostics rather than preserving a
+  detached-profile or type-global fallback.
+
+#### Agent Notes — 2026-09-11 lineage binding identity
+
+Closed the typed-binding-keys checkbox above. `compileLineageBindings`
+(`packages/processes/src/compiler-core.js`) now derives each binding's child
+type from the consuming Create/Run Producer node, carries
+`producerOutputId` (the consuming producer output) and
+`sourceProducerOutputId` (the entity-emitting source output) on every
+binding, and deduplicates on the full nine-field identity — child type,
+ancestor type, lineage key, both producer output ids, and both node/socket
+ends — so same-type lineage edges from different source sockets into
+different consuming producers remain separate compiled bindings.
+Type-only merging is gone, and the per-producer attachment
+(`compiled.producerOutputs[id].lineageBindings`), which previously filtered on
+a field bindings never carried, now returns exactly that producer's bindings.
+`effectiveActionParentEntityType` deduplicates the ancestor candidates the
+richer binding set can produce. Construction, relations, and access were
+already producer-scoped (per-output construction contracts, per-output
+`relations` declarations, action access windows carrying producer ids).
+Coverage: the Project -> Compose Lineage -> Queue spec pins the new identity
+fields and per-producer attachment; a new same-type two-producer spec proves
+separate bindings and per-producer isolation. Validation: `npx vitest run
+packages/processes` 345 passed; `node scripts/check-arch.js`,
+`npm run framework:validate`, and `node scripts/check-docs.js` pass.
+
+#### Agent Notes — 2026-09-11 durable task completion ingestion
+
+Closed the durable storage and ingestion checkbox above:
+
+- **Correlation.** `executeManualRun`'s durable effect dispatcher records the
+  enqueued task-run id on the invocation dispatch (`dispatch.taskRunId`),
+  resolved from the command result's task/job references (including
+  `raw.jobs` task-run entries — the shape real handlers such as `solveNesting`
+  return; the async-boundary detector now also honors those). The repository
+  exposes `findInvocationByTaskRunId` behind a `dispatch.taskRunId + receiptId`
+  index.
+- **Resume semantics.** `packages/processes` gains `resumeProcessRun`: the
+  waiting step succeeds with the projected completion output, its snapshotted
+  control token (now stored on `run.pendingEffect.controlToken`) is re-queued
+  on the recorded `completed` routes with per-socket output values, and the run
+  returns to `running`. Mismatched invocation ids leave the run untouched.
+- **Ingestion.** The task runtime's terminal boundary
+  (`completeTaskRun`/`failTaskRun`/`cancelTaskRun`) notifies the process layer;
+  `ingestTaskCompletion` correlates by task-run id, projects the terminal
+  `TaskResult` entities onto the expected completion sockets, and — inside the
+  receipt transaction — resumes the step via `resumeProcessRun`, persisting
+  the advanced run state atomically with the receipt. After commit,
+  `continueStoredRun` (the extracted settled loop shared with
+  `executeManualRun`) drives the run to settled or the next async boundary
+  under the originating actor. Failure/cancellation enter the same transaction
+  through `failInvocation`; with no authored failure route in the graph
+  language, the run is marked failed/cancelled with a failure receipt.
+- **Recovery.** The `process-reconciliation` plugin scans unreceipted
+  invocations every 30 seconds and redelivers terminal task outcomes
+  (`reconcileProcessTaskRuns`), closing the task-finalize/ingest crash window.
+- **Recorded deviation.** The completion snapshot lists socket ids rather than
+  a duplicated versioned typed contract: per-output persistence owner and
+  timing are declared once on the command/task boundary and enforced at the
+  result boundary and projection, instead of being copied into every snapshot.
+- Coverage: `run-repository.spec.js` (node:test, 8 cases) adds end-to-end
+  correlation → resume → continuation → duplicate no-op and failure ingestion;
+  `orchestration.spec.js` pins `resumeProcessRun` resume/mismatch behavior.
+
+Validation: `node --test server/features/process-definitions/run-repository.
+spec.js` 8 passed; `npx vitest run packages/processes
+server/features/process-definitions server/core` 418 passed (plus the known
+vitest/node:test harness-mismatch file); the full `server` battery matches the
+primary checkout exactly (11 pre-existing failures unchanged); `node scripts/
+check-arch.js`, `npm run framework:validate`, and `node scripts/check-docs.js`
+all pass.
+
+#### Agent Notes — 2026-09-11 command output ownership and timing
+
+Closed the per-output metadata checkbox above:
+
+- **Declaration contract.** Every command and task entity output in
+  `packages/domain-cnc/src/{commands,tasks}.js` is now a
+  `{ type, persistenceOwner, timing }` record. All current CNC outputs are
+  `commandOwned` (persisted inside the command/task boundary); timings follow
+  real handler behavior — `solveNesting` declares `nesting_run` immediate with
+  `sheet_design`/`sheet` completion, `nesting.solve` declares all three
+  completion (including the `sheet` output the task result demonstrably
+  persists but previously did not declare), and `convertArtifact`,
+  `saveCassetteTemplate`, `cassette.bakeTemplate`, and `vision.extractGeometry`
+  declare their persisted outputs. The legacy `requiredEntityProfiles` key and
+  the dead `requiredProducerOutputEntityTypes` helper (never consumed by
+  validation or activation) are removed with their re-exports and spec.
+- **Result enforcement.** `@cutkit/core` owns
+  `normalizeEntityOutputContracts`/`validateResultEntityOutputs`
+  (re-exported through `server/core/blocks`). `executeCommand` validates the
+  final immediate result (handler entities plus effect-contributed entities)
+  against the command's declared outputs; `completeTaskRun` validates terminal
+  task results at completion phase. Violations — undeclared entity types,
+  completion outputs in an immediate result, command-owned outputs without
+  persisted references, graph-owned outputs carrying persisted entities —
+  fail the run with a 500 contract error. Completion results may re-report
+  immediate-declared outputs (the nesting task legitimately re-reports its
+  run), which is the documented rule; early population of completion outputs
+  is what stays forbidden.
+- **Consumers.** Compiler command-output types, the node catalog's command
+  output sockets, and devtools projections read the record `type` field; the
+  domain-builder validator enforces the record shape for ConfigBot drafts.
+  Fixtures (`index.spec.js`, `node-catalog.spec.js`, `orchestration.spec.js`,
+  `framework-packages.spec.js`, `artifact-conversions.spec.js`) author the
+  records. No graphOwned output exists in the CNC domain yet; the validation
+  rule is pinned by `packages/core/src/entity-output-contracts.spec.js` and
+  the declaration matrix by
+  `packages/domain-cnc/src/command-output-contracts.spec.js`.
+- Durable ingestion remains the next scope: completion ingestion projects
+  TaskResult values through these same declared contracts.
+
+Validation: `npx vitest run packages/domain-cnc packages/core
+packages/processes utils server/features/config-bot server/core/machines`
+565 passed; full `server` battery matches the primary checkout exactly (the
+pre-existing cassettes Mongo-namespace, localization, entity-select, and
+framework-manifest failures are unchanged); `node scripts/check-arch.js`,
+`npm run framework:validate`, and `node scripts/check-docs.js` all pass.
+
+#### Agent Notes — 2026-09-11 producer-scope audit closeout
+
+Verified two already-implemented checkboxes and recorded the exact durable
+ingestion boundary:
+
+- **Designer per-output independence (ticked).**
+  `composables/useProcessDesignerInspector.spec.js` proves same-type producer
+  outputs keep independent lifecycle records keyed by their stable
+  `producerOutputId`; `components/process-designer/ProcessEntityNode.vue`
+  displays the `nodeId:outputSocketId` reference beside the schema-only entity
+  type; compiled independence (separate workflows, field policies, and
+  lineage bindings per producer output) is pinned by
+  `producer-output-contract.spec.js`.
+- **Persisted protocol migration (ticked).**
+  `server/scripts/migrate-process-producer-identities.js` rewrites v4 records
+  to stable node/socket identities, moves a detached profile only when exactly
+  one producer owns the entity contract, and its spec pins the ambiguous-record
+  failure ("fails the record instead of selecting one ambiguous socket"); no
+  detached-profile or type-global fallback is preserved.
+- **Durable execution boundary (partial note added to the checkbox).** The
+  durable storage/CAS/receipt/recovery layer is implemented and tested in
+  `run-repository.js` (6 `node:test` cases, including exact-once concurrent
+  delivery and crash-redelivery acceptance). The unimplemented remainder is the
+  ingestion wiring itself: no caller invokes `ingestRunReceipt`, the task
+  `complete` endpoint performs no process correlation, `resumeDueRuns` has no
+  reconciliation caller, and failure/cancellation routes are absent. The
+  per-output persistence-owner and result-timing metadata is the prerequisite
+  next scope because ingestion validates completion values against it.
+
+Validation: `node --test server/features/process-definitions/run-repository.
+spec.js` 6 passed; `npx vitest run composables` and
+`shared/process-designer-ui.spec.js` pass; `node scripts/check-docs.js` OK. No
+runtime code changed in this audit slice.
+
+#### Agent Notes — 2026-09-11 producer entry-state diagnostics
+
+Closed the first-type-match checkbox and the entry-state portion of the
+activation-diagnostics checkbox:
+
+- **No silent entry-state selection.** `compileWorkflows` no longer defaults a
+  region's `initial` to its first state (`addWorkflowState`'s `initial ||=`
+  and the assembly `|| Object.keys(region.states)[0]` are removed in
+  `packages/processes/src/compiler-core.js`). A region with states and no
+  declared entry state now fails: validation reports it producer-scoped, and
+  compilation of such a definition throws through the existing
+  validation-first path.
+- **Producer-scoped validation.** `validateProcessDefinition` now resolves each
+  action's entity type exactly as `compileActions` does (via the shared action
+  access windows) and rejects an entity action with no `producerOutputId`, an
+  unknown producer output id, or a producer output emitting a different entity
+  type — the previous validation gap where a definition could validate and
+  still fail compilation. Producer lifecycle regions with states must declare
+  an entry state that is one of their states. Errors name the action or
+  producer output (and region/state).
+- Coverage: `producer-output-contract.spec.js` adds undeclared-entry-state
+  rejection, declared-initial preservation (no first-state regression),
+  validation-time binding rejection, and unknown/mistyped producer binding
+  rejection. `v4-validation.spec.js` and `server/runtime/app-registry.spec.js`
+  fixtures now author the explicit producer binding the protocol requires.
+
+Validation: `npx vitest run packages/processes` 338 passed;
+`server/features/process-definitions server/runtime packages/domain-cnc
+server/core/machines server/features/workflow-overrides
+shared/process-designer-ui.spec.js composables` 109 passed plus the
+`node:test` run-repository suite (6 passed); `node scripts/check-arch.js`,
+`npm run framework:validate`, and `node scripts/check-docs.js` all pass.
+
+#### Agent Notes — 2026-09-11 producer provenance and designer resolution
+
+Closed the type-keyed compiled records and entity-status provenance checkboxes
+above and most of the first-type-match scope:
+
+- **Type-keyed compiled records fully retired.** The compiler already emitted
+  producer-keyed `producerOutputs` plus the non-authoritative `entityTypeIndex`;
+  this session deleted the last dead type-keyed consumers
+  (`resolveWorkflow`/`resolveFieldPolicy` in
+  `packages/processes/src/compiler-core.js`, re-exported via
+  `access-compilation.js`, referenced by nothing). Grep confirms no compiled
+  `workflows[...]`/`fieldPolicies[...]` reads remain; `domain.workflows[type]`
+  stays as the allowed domain-schema lookup. Auth hydration, generated
+  actions/screens, and status resolution were already fail-closed on
+  `producerOutputId`.
+- **Entity status writes carry no process provenance.** The status engine
+  already stripped `producerOutputId` on the initial-status paths; the
+  transition path now strips it too through one shared
+  `persistableStatusMetadata` helper (`server/core/machines/service.js`),
+  pinned by a new spec asserting both the entity snapshot and the status event
+  exclude it. `migrate-process-command-output-statuses.js` no longer writes
+  `processId`/`actionId` (or the note embedding them) into status metadata and
+  resolves each target's workflow from
+  `compiled.producerOutputs[producerOutputId].workflow` — no type-keyed
+  fallback; unmapped actions are skipped with a diagnostic. New
+  `server/scripts/migrate-strip-status-process-provenance.js` (default
+  dry-run, `--apply` to write) strips the documented provenance keys and the
+  legacy migration note from `status.metadata` across domain entity
+  collections; append-only `status_events` history is intentionally left
+  untouched (documented in `server/core/machines/README.md` and
+  `server/scripts/README.md`).
+- **Designer sync resolves through the authored protocol.**
+  `pages/organization/process.vue` no longer reads `entityProfiles`: canvas
+  entity-node connections and relation choices read `producerOutputs`,
+  role-access summaries read the producer output's authored `allowedRoles`,
+  and new Create nodes seed `status.to` from the domain-declared workflow
+  initial (the compiler's own `domainDefault` resolution) instead of the first
+  persisted same-type profile. Entity types without a domain workflow seed no
+  status and fail activation with the missing entry state.
+  Remaining for the first-type-match checkbox: the workflow-compilation
+  first-state default and producer-scoped activation diagnostics.
+
+Validation: `npx vitest run packages/processes
+server/features/process-definitions/query-planning.spec.js
+server/core/machines server/features/workflow-overrides` 363 passed;
+`shared/process-designer-ui.spec.js` + composables 14 passed; SFC compile
+check for `pages/organization/process.vue` passed; `node scripts/check-arch.js`,
+`npm run framework:validate`, and `node scripts/check-docs.js` all pass.
+
+#### Acceptance tests
+
+- [x] Compile two Create Entity nodes for the same `entityType` and assert two
+  workflows and field policies survive under distinct producer/output ids while
+  the type index contains both.
+  Pinned 2026-09-11: `producer-output-contract.spec.js` "compiles two same-type
+  producers into independent workflows and field policies" (distinct entry
+  states, separate workflow/fieldPolicy records, `entityTypeIndex` lists both).
+- [ ] Start from New Draft, add same-type Create and Run Service producers, and
+  prove no standalone profile node or `requiredEntityProfiles` repair is created
+  or required. Edit each output in the integrated Workflow inspector and prove
+  saving/round-trip preserves independent settings and visible identities.
+  Partial: `requiredEntityProfiles` and the profile palette/repair path are
+  removed and producer-output independence through the inspector is pinned by
+  `composables/useProcessDesignerInspector.spec.js`; the New-Draft
+  same-type-producer browser walkthrough remains open as designer e2e.
+- [x] Prove runtime workflow, policy, action, and transition resolution fails
+  without producer context and resolves the correct same-type producer when it
+  is supplied.
+  Pinned 2026-09-11: `runtime-producer-output.spec.js` ("requires the
+  authoritative producer output identity", "resolves the exact same-type
+  producer among candidates and never falls back to the first", type-mismatch
+  rejection); action binding rejection is pinned at validation time in
+  `producer-output-contract.spec.js`.
+- [x] Prove same-type lineage/relation edges from different source sockets and
+  into different consuming producers remain separate compiled bindings.
+  Pinned: `index.spec.js` "keeps same-type lineage bindings separate by full
+  producer and socket identity" (two project producers, two queue producers,
+  separate bindings and per-producer attachment).
+- [x] Prove each producer's explicit initial status and transitions compile and
+  execute independently; missing/ambiguous/unknown statuses fail activation and
+  no designer or migration chooses a first/default status.
+  Closed 2026-09-11: compile-side rejection and declared-initial preservation
+  are pinned (`producer-output-contract.spec.js` entry-state specs; migration
+  ambiguous-record failure), and the execution half is pinned by
+  `process-definitions.spec.js` "executes independent initial statuses for two
+  same-type producers" — each producer's authored initial status reaches the
+  status engine with its own `producerOutputId` binding.
+- [ ] Connect same-type producer paths to an ordinary consumer and prove
+  activation rejects implicit workflow convergence. Connect them through an
+  explicit compatible Join and prove the selected result identity is retained.
+  Assert each failure identifies the exact producer, socket/edge, or transition
+  and that Apply focuses that graph element.
+  Partial 2026-09-11: compile-level proof delivered — implicit convergence
+  rejection (node + both producer outputs + both edge ids named), join
+  validity diagnostics, and selected-identity retention through a downstream
+  lineage binding are pinned by `producer-join.spec.js`; structured
+  diagnostics now anchor every such failure (`nodeId`/`edgeId`/
+  `socketId`/`producerOutputId`) and Apply focuses the first anchored element
+  on the canvas. Open: the browser walkthrough.
+- [ ] Prove `commandOwned` outputs route already-persisted entities exactly once
+  and `graphOwned` outputs route raw typed data to an explicit persistence node;
+  reject cross-mode results and effects.
+  Partial: cross-mode result rejection and the declaration matrix are pinned
+  (`packages/core/src/entity-output-contracts.spec.js`,
+  `packages/domain-cnc/src/command-output-contracts.spec.js`); every current
+  CNC command/task output is `commandOwned`, and the domain intentionally
+  declares no `graphOwned` output yet (no handler returns raw construction
+  data), so the graphOwned routing half stays open until a domain procedure
+  needs one — the validation rule that will govern it is already pinned.
+- [ ] Prove an async nesting-style command emits only values present in its
+  immediate result and no completion-only entity early. Assert the persisted
+  wait identifies the run, step, producer node, invocation, task correlation,
+  attempt, versioned socket contract, and route snapshot.
+  Partial: early-population rejection, immediate/completion timing, correlation,
+  and route snapshot are pinned (`run-repository.spec.js`,
+  `command-output-contracts.spec.js`); the recorded deviation stands — the
+  snapshot lists socket ids rather than a duplicated versioned typed contract.
+- [x] Deliver final run/design/sheet outputs and prove only the exact suspended
+  invocation's connected completion sockets advance. Redeliver concurrently,
+  retry after a simulated task-finalization/ingestion crash, and send a stale
+  attempt plus a conflicting completion id; assert one receipt, one resume, and
+  one set of continuation tokens.
+  Pinned 2026-09-11: `run-repository.spec.js` — "concurrent duplicate receipt
+  delivery advances connected routes exactly once", "restart discovers
+  dispatched invocation without receipt and accepts redelivery once"
+  (crash/retry/attempt 2), "conflicting completion identity cannot consume the
+  wait twice" (new), the task-completion correlation/resume/continuation test,
+  and the failure-ingestion exactly-once test.
+- [x] Prove graph run/step status changes cannot mutate entity domain status and
+  entity status metadata contains no process definition, action, node, producer,
+  or workflow identifier.
+  Closed 2026-09-11: the metadata half is pinned (the machines provenance spec
+  asserts both the entity snapshot and status event exclude
+  `producerOutputId`; the strip-provenance migration exists), and the boundary
+  half is pinned by `orchestration.spec.js` "advances run and step statuses on
+  a read-only graph without entering the effect boundary" — run/step status
+  transitions never invoke the effect/status engines, which are the only
+  entity-status writers.
+
+#### Agent Notes — 2026-08-20
+
+Architecture investigation completed. Current workflow and field-policy maps
+overwrite same-type producers; detached profiles remain independent lifecycle
+authorities; lineage deduplication omits producer identity; designer status sync
+uses the first matching entity type; command/task outputs do not declare
+persistence owner or result timing; and task completion cannot resume the
+synchronous in-memory process runner. Existing action-keyed access windows are
+the model to extend because they already retain graph-path identity. The chosen
+replacement is producer-output identity, not node-only identity and not an
+entity-type-primary variants map. Implementation remains READY under the tasks
+and acceptance tests above.
+
+The async finding was refined to make the suspension boundary implementable.
+The existing in-memory runner has step ids and attempts but no durable
+invocation repository; task completion persists normalized output independently
+and has no process-ingestion callback. The required replacement stores one wait
+per pending invocation, snapshots its expected completion sockets and connected
+routes, and ingests terminal task output through a durable receipt. A unique
+receipt plus transactional wait/invocation compare-and-set provides exact-once
+graph advancement, while retry/reconciliation after task finalization provides
+delivery. Process definition, producer node, invocation, and task provenance
+stay on run/step/wait/receipt records and are never copied to produced entities.
+
+##### Agent Notes — 2026-09-11 acceptance evidence reconciliation
+
+Verified every acceptance row against current specs before touching anything;
+ticked only rows with direct pinned evidence and added the two missing focused
+tests where the gap was cheap: same-type producer compile independence
+(`producer-output-contract.spec.js`) and exact same-type runtime resolution
+(`runtime-producer-output.spec.js`), plus the conflicting-completion-identity
+exactly-once case (`run-repository.spec.js`, now 9 node:test cases). Also
+closed the P2 Run Service keep-constraint checkbox by verification (the Run
+Service surface is exactly the `effect.runCommand` leaf; no
+scheduling/worker/retry/queue UI exists) and recorded the canvas-node removal
+scope finding under its checkbox: the underlying records are all runtime-live,
+so that removal needs its panels-first session. Session worktree
+`agent/process-designer-legacy-nodes-20260911-174129`.
+
+## Required acceptance matrix
+
+No task set is complete until the following processes can be built from New
+Draft, saved, applied, assigned to a user, opened through generated UI, and run
+without editing JSON or seeding legacy canvas records.
+
+- [ ] Find all readable entities of a type, read a scalar field, filter by two
+  composed conditions, sort by another field in both directions, take a window,
+  and render the result.
+- [ ] Find one entity by typed reference and by ID, read each canonical block,
+  and distinguish missing, nullable, and populated fields.
+- [ ] Traverse from an entity to its parent, children, and declared relations,
+  then filter and sort the related entities.
+- [ ] Compose fixed and open blocks from scalar, entity-ref, list, and
+  array-valued inputs; create one entity and a mapped list/tree of entities.
+- [ ] Read an existing block, replace selected fields, compose collection
+  changes with list/tree nodes before the block socket, persist the replacement,
+  and prove untouched fields survive. Modify Block is replace-only; Unset and
+  Append/Remove are not block operations in this acceptance path.
+- [ ] Create a child with canonical Lineage, link and unlink declared Relations,
+  and reject an undeclared or cross-organization association.
+- [ ] Set initial status, perform an authorized status transition with required
+  evidence, preserve secondary workflow regions, and archive through a declared
+  lifecycle intent.
+- [ ] Delete an explicitly deletable entity and prove Delete is unavailable for
+  an entity without that capability.
+- [x] Apply the same Create, Modify, Status, and Delete nodes to item, list, and
+  branched-tree inputs without adding iteration/control nodes.
+- [ ] Assign two roles and bindings to one user, prove additive scoped access,
+  and explain why each CRUD action, field, status transition, and screen is
+  visible or denied.
+- [ ] Build list/detail/workspace screens with source filters, single-source
+  identifiers, arbitrary bindings, independent region actions, and generated
+  typed CRUD forms.
+- [ ] Start from an empty process and use a registered typed command needed by
+  an entity procedure without manually creating hidden entity-profile, service,
+  or socket records.
+
+#### Agent Notes — 2026-08-31 remaining Process Designer validation
+
+- **Current Entity inference:** `packages/processes/src/compiler-core.js` now
+  infers one entity type when action and screen context are unambiguous, while
+  `components/process-designer/ProcessNode.vue` keeps the selector only for
+  ambiguous context. Focused inference tests pass.
+- **Complete Apply validation:** the existing package validator, screen-contract,
+  and current-dataflow round-trip suites pass together (56 tests), covering the
+  fresh semantic graph contracts listed above.
+- **P2 palette cleanup:** `packages/processes/src/designer.js` retains the
+  CRUD-path list operations and removes the listed procedural collection/tree
+  nodes from the authoring palette without removing runtime compatibility.
+- **Mapped persistence:** the evaluator suite proves Create, Modify, Status,
+  Archive, and Delete mapping over item, list, and branched-tree packets; the
+  focused package/compiler/evaluator/orchestration run passes 205 tests.
+- **Validation:** `node scripts/check-arch.js`, `npm run framework:validate`, and
+  `node scripts/check-docs.js` pass. The service acceptance suite has 17 passing
+  tests and two blocked persistence cases because no MongoDB connection is
+  available to the durable run repository. Those acceptance rows and the
+  overall ledger therefore remain unchecked and `WAITING`.
+- **Documentation:** the Current Entity context rule and primary-palette
+  boundary are recorded in `packages/processes/README.md` and
+  `components/process-designer/README.md`. No migration is required because the
+  normalized graph contract remains v4-compatible.
+
+## Implementation protocol
+
+- [x] Implement tasks in dependency order: truthful contracts, entity sources
+  and selection, block transformations, persistence, access, interfaces,
+  diagnostics, then cleanup.
+- [x] For each completed task, add a child **Agent Notes** section here with the
+  date, exact checkbox, files changed, migrations, validation, and acceptance
+  path demonstrated. Change only tasks owned by the implementing session.
+- [x] Update the canonical README for every changed architecture or contract;
+  link to it from Agent Notes instead of duplicating it here.
+- [x] Replace changed persisted/API/runtime contracts and migrate current data
+  in the same task. Do not add legacy fallbacks, dual reads, or adapter shims.
+- [x] Run focused package/evaluator/compiler/service/UI tests for each task,
+  `node scripts/check-arch.js` for backend changes,
+  `npm run framework:validate` for framework/package contracts, and
+  `node scripts/check-docs.js` before every documentation commit.
+- [x] Treat catalog/source assertions as boundary checks only. Browser evidence
+  owns fresh-graph interaction; compiler/evaluator/service tests own semantics;
+  the acceptance matrix owns end-to-end completion.
+
+##### Agent Notes — 2026-09-11 closeout
+
+The implementation protocol was followed for every task in this ledger:
+dependency-ordered execution, per-task Agent Notes with files/validation,
+canonical README updates per contract change, one-protocol replacements with
+data migrations (producer identities, status provenance, panel-owned records),
+and the full validation battery before each documentation commit. The
+protocol checkboxes are ticked as satisfied process rules; they are not
+one-shot work items.
+
+Remaining open work, each with its recorded reason: the `process.vue` split
+(browser-verification-gated re-launch note above), the browser walkthroughs
+(producer acceptance rows 2 and 6 and the fresh-graph acceptance matrix —
+they require a running designer stack, which agent sessions here do not
+start), `graphOwned` routing (no domain declaration exists to prove), and the
+async wait-record versioned-contract deviation (recorded as a deliberate
+implementation choice under durable task completion ingestion). The ledger
+therefore stays `WAITING`.
+
+## User notes — restored 2026-09-12
+
+Recovered from nvim undo history after the working-tree copy was overwritten
+(the tasks were never committed). The third line survived only as a truncated
+stub.
+
+- [x] Status change node doesn't allow changing access rights anymore. If it's
+  intended, need explanation.
+  Done 2026-09-12 (`3cf50adf`, corrected in `c36d7225`): effect-node
+  authorization is roles-only — one multiselect per node, no feature/entity
+  picker and no per-grant condition dialog — because the node is the complete
+  access context and the compiler derives `feature`/`statusFrom`/`statusTo`/
+  scope from it. Status-change nodes select only the target status; the source
+  state is derived from the incoming entity flow. The grant dialog remains
+  only for feature-owning surfaces (screens, process base grants).
+- [ ] In date node, need an ability to "catch" a date/time of action that
+  actually uses it (probably pass it as a variable, should behave accordingly,
+  and w/ added time cached)
+- [ ] Nothing … (line truncated in the recovered undo history — please
+  re-complete from memory)

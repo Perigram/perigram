@@ -15,7 +15,10 @@ import * as sheetsService from '~/server/features/sheets/service.js';
 import * as usersService from '~/server/features/users/service.js';
 import * as warehousesService from '~/server/features/warehouses/service.js';
 import { resolveProcessAuth } from '~/server/features/process-definitions/runtime.js';
+import * as connectionsService from '~/server/features/connections/service.js';
 import { actionToLevel, levelAtLeast, normalizePermissionGrants } from '#shared/access-control.js';
+import { createIdentity, createStatus } from '../../core/blocks/index.js';
+import { toFlexibleId } from '../../utils/objectid.js';
 import * as repository from './repository.js';
 import { MESSAGE_SENDER } from './const.js';
 
@@ -82,19 +85,121 @@ export function getAdminSupportContext(customerId) {
     };
 }
 
-export async function listMessages(match) {
-    return await repository.find(match, messageProjection());
+export function groupConversationKey(groupId) {
+    return `group:${groupId}`;
 }
 
-export async function listMessagesSince(match, timestamp) {
-    return await repository.findSince(match, timestamp, messageProjection());
+function groupDTO(group = null) {
+    if (!group) return null;
+    return {
+        _id: group._id,
+        identity: group.identity,
+        status: group.status,
+        origin: group.origin,
+        lineage: group.lineage,
+        participants: (group.participants || []).map(item => item?.toString?.() || item),
+        data: group.data || {}
+    };
+}
+
+/**
+ * Group chats are the persisted multi-participant conversation record and the
+ * livekit group-call room source: `{ conversationKey: 'group:<id>', room:
+ * 'call:group:<id>' }`. Participants must be organization-reachable users,
+ * and the creator is always a participant.
+ */
+export async function createGroup(auth, body = {}) {
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    const name = String(body?.name || '').trim();
+    if (!name) throw createError({ statusCode: 400, message: 'Group name is required' });
+    if (!auth.organizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
+
+    const requestedIds = (Array.isArray(body?.participantIds) ? body.participantIds : [])
+        .map(item => item?.toString?.().trim() || '')
+        .filter(Boolean);
+    const reachable = await usersService.list(auth.userId, auth.organizationId, auth.role, auth)
+        .catch(() => []);
+    const reachableIds = new Set(reachable.map(user => {
+        const dto = user?.toJSON ? user.toJSON() : user;
+        return dto?._id?.toString?.() || dto?._id || dto?.id;
+    }).filter(Boolean));
+    const participants = [...new Set([String(auth.userId), ...requestedIds.filter(id => reachableIds.has(id))])];
+
+    const status = createStatus('ACTIVE', auth.userId, { note: 'Chat group created' });
+    const created = await repository.insertGroup({
+        identity: createIdentity(name),
+        status,
+        origin: status,
+        lineage: { organizationId: toFlexibleId(auth.organizationId) },
+        participants,
+        data: {}
+    });
+    notifyInboxParticipants(participants, groupConversationKey(created._id));
+    return groupDTO(created);
+}
+
+export async function deleteGroup(auth, groupId = '') {
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    const group = await repository.findGroupById(groupId);
+    if (!group) throw createError({ statusCode: 404, message: 'Chat group not found' });
+    const isCreator = String(group.origin?.userId || '') === String(auth.userId);
+    if (!auth.isAdmin && !isCreator) throw createError({ statusCode: 403, message: 'Forbidden' });
+    await repository.deleteGroupById(groupId);
+    notifyInboxParticipants((group.participants || []).map(item => item?.toString?.() || item), groupConversationKey(group._id));
+    return { deleted: true };
+}
+
+/**
+ * Read-side group lookup shared with the livekit feature for group-room
+ * admission and webhook fanout; returns the group DTO or null.
+ */
+export async function findChatGroup(groupId) {
+    if (!groupId) return null;
+    return groupDTO(await repository.findGroupById(groupId));
+}
+
+export async function getGroupConversationContext(auth, groupId = '') {
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    const group = groupId ? await repository.findGroupById(groupId) : null;
+    if (!group) throw createError({ statusCode: 404, message: 'Chat group not found' });
+    const participants = (group.participants || []).map(item => item?.toString?.() || item);
+    if (!auth.isAdmin && !participants.includes(String(auth.userId))) {
+        throw createError({ statusCode: 403, message: 'Forbidden' });
+    }
+    const conversationKey = groupConversationKey(group._id);
+    return {
+        kind: 'group',
+        conversationKey,
+        participants,
+        match: { conversationKey },
+        name: group.identity?.name || conversationKey,
+        groupId: group._id
+    };
+}
+
+function notifyInboxParticipants(participants = [], conversationKey) {
+    for (const participant of participants) {
+        connectionsService.publish(`user:${participant}`, {
+            type: 'support.inbox',
+            conversationKey
+        });
+    }
+}
+
+export async function listMessages(match) {
+    return await repository.find(match, messageProjection());
 }
 
 export async function listUserConversations(auth) {
     const userId = auth?.userId;
     if (!userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
-    const messages = await repository.findConversationMessages(userConversationsMatch(userId), messageProjection());
-    return await buildConversationSummaries(messages, auth);
+    const [messages, groups] = await Promise.all([
+        repository.findConversationMessages(userConversationsMatch(userId), messageProjection()),
+        auth.organizationId
+            ? repository.findGroupsByParticipant(userId, auth.organizationId)
+            : Promise.resolve([])
+    ]);
+    return await buildConversationSummaries(messages, auth, { groups: groups.map(groupDTO) });
 }
 
 export async function listAdminSupportConversations(auth) {
@@ -107,7 +212,28 @@ export async function listAdminSupportConversations(auth) {
 
 export async function markConversationRead(auth, body = {}) {
     const context = await getConversationContextByKey(auth, body.conversationKey || null);
-    return await repository.markRead(context.conversationKey, auth.userId);
+    const read = await repository.markRead(context.conversationKey, auth.userId);
+    connectionsService.publish(`conversation:${context.conversationKey}`, {
+        type: 'read',
+        conversationKey: context.conversationKey,
+        userId: auth.userId,
+        at: read?.lastReadAt || new Date().toISOString()
+    });
+    return read;
+}
+
+/**
+ * Ephemeral typing signal: authorized like a read, published to the
+ * conversation topic, never persisted.
+ */
+export async function notifyTyping(auth, conversationKey = null) {
+    const context = await getConversationContextByKey(auth, conversationKey);
+    connectionsService.publish(`conversation:${context.conversationKey}`, {
+        type: 'typing',
+        conversationKey: context.conversationKey,
+        userId: auth.userId,
+        name: auth.name || ''
+    });
 }
 
 export async function listEntityOptions(auth, type, query = '', recipientUserId = null) {
@@ -149,7 +275,9 @@ export async function listEntityOptionTypes(auth = {}) {
 }
 
 export async function sendUserMessage(auth, body = {}) {
-    const context = await getUserConversationContext(auth, body.recipientUserId || null);
+    const context = body?.conversationKey?.startsWith('group:')
+        ? await getGroupConversationContext(auth, body.conversationKey.slice('group:'.length))
+        : await getUserConversationContext(auth, body.recipientUserId || null);
     return await insertMessage({
         context,
         sender: MESSAGE_SENDER.USER,
@@ -157,7 +285,9 @@ export async function sendUserMessage(auth, body = {}) {
         message: body.message,
         entityRefs: body.entityRefs,
         auth,
-        recipientUserId: context.kind === 'direct' ? context.participants.find(participant => participant !== auth.userId) : null
+        recipientUserId: context.kind === 'direct'
+            ? context.participants.find(participant => participant !== auth.userId)
+            : null
     });
 }
 
@@ -178,7 +308,7 @@ export async function sendAdminSupportMessage(auth, customerId, body = {}) {
 async function insertMessage({ context, sender, senderUserId, message, entityRefs, auth, recipientUserId = null }) {
     const refs = await normalizeEntityRefs(entityRefs, auth, { recipientUserId });
     const text = normalizeMessage(message, refs);
-    return await repository.insert({
+    const inserted = await repository.insert({
         userId: context.kind === 'support' ? context.participants[0] : null,
         conversationKey: context.conversationKey,
         conversationKind: context.kind,
@@ -189,7 +319,39 @@ async function insertMessage({ context, sender, senderUserId, message, entityRef
         entityRefs: refs,
         timestamp: new Date()
     }, messageProjection());
+    notifyConversationEvent(context, inserted);
+    return inserted;
 }
+
+/**
+ * Fanout for a persisted message: conversation subscribers receive the
+ * message, each participant's user topic receives an inbox ping for badge and
+ * list refreshes, and support-channel messages also ping the admin topic.
+ */
+function notifyConversationEvent(context, message) {
+    connectionsService.publish(`conversation:${context.conversationKey}`, {
+        type: 'message',
+        conversationKey: context.conversationKey,
+        message
+    });
+    for (const participant of context.participants || []) {
+        connectionsService.publish(`user:${participant}`, {
+            type: 'support.inbox',
+            conversationKey: context.conversationKey
+        });
+    }
+    if (context.kind === 'support') {
+        connectionsService.publish('admin-support', {
+            type: 'support.inbox',
+            conversationKey: context.conversationKey
+        });
+    }
+}
+
+connectionsService.registerTopicAuthorizer('conversation:', async (auth, topic) => {
+    const context = await getConversationContextByKey(auth, topic.slice('conversation:'.length));
+    return Boolean(context);
+});
 
 function normalizeMessage(message, entityRefs = []) {
     const text = typeof message === 'string' ? message.trim() : '';
@@ -229,16 +391,23 @@ async function normalizeEntityRefs(entityRefs = [], auth = {}, options = {}) {
 }
 
 async function buildConversationSummaries(messages, auth, options = {}) {
+    const groupsByKey = new Map((options.groups || [])
+        .map(group => [groupConversationKey(group._id), group]));
     const conversations = new Map();
     for (const message of messages) {
         const conversationKey = message.conversationKey || (message.userId ? supportConversationKey(message.userId) : null);
         if (!conversationKey) continue;
         if (options.adminSupportOnly && message.conversationKind === 'direct') continue;
+        const group = groupsByKey.get(conversationKey);
+        if (message.conversationKind === 'group' && !group) continue;
         if (!conversations.has(conversationKey)) {
             conversations.set(conversationKey, {
                 conversationKey,
                 conversationKind: message.conversationKind || 'support',
-                participants: normalizeParticipants(message),
+                participants: group ? group.participants : normalizeParticipants(message),
+                groupName: group ? group.identity?.name || conversationKey : undefined,
+                groupId: group ? group._id : undefined,
+                groupCreatorId: group ? group.origin?.userId : undefined,
                 lastMessage: message.message,
                 entityRefs: message.entityRefs || [],
                 senderUserId: message.senderUserId,
@@ -246,6 +415,24 @@ async function buildConversationSummaries(messages, auth, options = {}) {
                 unreadCount: 0
             });
         }
+    }
+
+    // Groups without messages still appear in the inbox as empty threads.
+    for (const [conversationKey, group] of groupsByKey) {
+        if (conversations.has(conversationKey)) continue;
+        conversations.set(conversationKey, {
+            conversationKey,
+            conversationKind: 'group',
+            participants: group.participants,
+            groupName: group.identity?.name || conversationKey,
+            groupId: group._id,
+            groupCreatorId: group.origin?.userId,
+            lastMessage: '',
+            entityRefs: [],
+            senderUserId: '',
+            timestamp: null,
+            unreadCount: 0
+        });
     }
 
     const keys = Array.from(conversations.keys());
@@ -264,10 +451,19 @@ async function buildConversationSummaries(messages, auth, options = {}) {
         enriched.push({
             ...summary,
             userId: summary.conversationKind === 'support' ? summary.participants[0] : undefined,
-            participant: await resolveConversationParticipant(summary, auth)
+            participant: summary.conversationKind === 'group'
+                ? null
+                : await resolveConversationParticipant(summary, auth)
         });
     }
-    return enriched.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
+    return enriched.sort((left, right) => {
+        if (!left.timestamp && !right.timestamp) {
+            return conversationLabel(left).localeCompare(conversationLabel(right));
+        }
+        if (!left.timestamp) return 1;
+        if (!right.timestamp) return -1;
+        return new Date(right.timestamp) - new Date(left.timestamp);
+    });
 }
 
 async function addReachableUserConversations(conversations, auth) {
@@ -321,7 +517,7 @@ async function resolveConversationParticipant(summary, auth) {
     return user ? user.toJSON() : { _id: otherUserId, identity: { name: otherUserId }, data: {} };
 }
 
-async function getConversationContextByKey(auth, conversationKey) {
+export async function getConversationContextByKey(auth, conversationKey) {
     if (!conversationKey) throw createError({ statusCode: 400, message: 'Conversation key is required' });
     if (conversationKey === supportConversationKey(auth.userId)) {
         return await getUserConversationContext(auth, null);
@@ -331,6 +527,9 @@ async function getConversationContextByKey(auth, conversationKey) {
         if (!parts.includes(auth.userId)) throw createError({ statusCode: 403, message: 'Forbidden' });
         const recipientUserId = parts.find(part => part !== auth.userId) || auth.userId;
         return await getUserConversationContext(auth, recipientUserId);
+    }
+    if (conversationKey.startsWith('group:')) {
+        return await getGroupConversationContext(auth, conversationKey.slice('group:'.length));
     }
     if (auth.isAdmin && conversationKey.startsWith('support:')) {
         return getAdminSupportContext(conversationKey.slice('support:'.length));
@@ -343,7 +542,8 @@ function userConversationsMatch(userId) {
         $or: [
             { conversationKey: supportConversationKey(userId) },
             { userId, conversationKey: { $exists: false } },
-            { conversationKind: 'direct', participants: userId }
+            { conversationKind: 'direct', participants: userId },
+            { conversationKind: 'group', participants: userId }
         ]
     };
 }
@@ -707,7 +907,11 @@ function directConversationKey(left, right) {
 }
 
 function conversationLabel(conversation) {
-    return conversation?.participant?.identity?.name || conversation?.participant?.name || conversation?.conversationKey || '';
+    return conversation?.groupName
+        || conversation?.participant?.identity?.name
+        || conversation?.participant?.name
+        || conversation?.conversationKey
+        || '';
 }
 
 function legacySupportMatch(userId) {

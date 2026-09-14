@@ -1,10 +1,10 @@
 import {
   compileProcessDefinition,
+  migrateProducerOutputIdentities,
   resolveRoleAssignmentAccess,
   resolveEffectiveAccess,
   resolveNavigation,
-  resolveScreens,
-  resolveWorkflow
+  resolveScreens
 } from '~/packages/processes/src/index.js';
 import { cncDomain } from '~/packages/domain-cnc/src/index.js';
 import * as repository from './repository.js';
@@ -28,7 +28,9 @@ export async function getActiveCompiledProcess(organizationId) {
 
 export function compileActiveProcessRuntime(data = null, roles = {}) {
   if (!data) return null;
-  return compileProcessDefinition({ ...data, compiled: null }, cncDomain, { roles });
+  const migration = migrateProducerOutputIdentities(data, cncDomain);
+  if (migration.errors.length) throw new Error(migration.errors.join('; '));
+  return compileProcessDefinition({ ...migration.data, compiled: null }, cncDomain, { roles });
 }
 
 export async function resolveProcessAuth(auth = {}) {
@@ -57,19 +59,29 @@ export async function resolveProcessAuth(auth = {}) {
     process: {
       active: true,
       schemaVersion: compiled.schemaVersion,
-      workflows: compiled.workflows || {},
+      producerOutputs: compiled.producerOutputs || {},
       lineageBindings: compiled.lineageBindings || []
     },
-    fieldPolicies: compiled.fieldPolicies || {},
     navigation: [...system.navigation, ...processNavigation],
     screens: [...system.screens, ...processScreens],
     roleAssignments: assignmentAccess
   };
 }
 
-export async function resolveProcessWorkflow({ organizationId, entityType, fallbackWorkflow = null } = {}) {
+export async function resolveProcessWorkflow({ organizationId, producerOutputId, entityType, fallbackWorkflow = null } = {}) {
   const compiled = await getActiveCompiledProcess(organizationId);
-  return resolveWorkflow({ compiled, entityType, fallbackWorkflow });
+  return resolveCompiledProducerOutputWorkflow({ compiled, producerOutputId, entityType, fallbackWorkflow });
+}
+
+export function resolveCompiledProducerOutputWorkflow({ compiled, producerOutputId, entityType, fallbackWorkflow = null } = {}) {
+  if (!compiled || !Object.keys(compiled.producerOutputs || {}).length) return fallbackWorkflow;
+  if (!producerOutputId) throw new Error('producerOutputId is required to resolve a process workflow');
+  const output = compiled.producerOutputs?.[producerOutputId];
+  if (!output) throw new Error(`Unknown producerOutputId ${producerOutputId}`);
+  if (entityType && output.entityType !== entityType) {
+    throw new Error(`producerOutputId ${producerOutputId} emits ${output.entityType}, not ${entityType}`);
+  }
+  return output.workflow || fallbackWorkflow;
 }
 
 export async function resolveProcessCommandService({ organizationId, commandId } = {}) {

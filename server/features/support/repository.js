@@ -1,7 +1,9 @@
 import { connectDB } from '~/server/db/mongo';
+import { toFlexibleId } from '~/server/utils/objectid.js';
 
 const COLLECTION = 'supportMessages';
 const READS_COLLECTION = 'supportConversationReads';
+const GROUPS_COLLECTION = 'chat_groups';
 
 export async function find(match, projection = {}) {
     const db = await connectDB();
@@ -11,10 +13,6 @@ export async function find(match, projection = {}) {
         .sort({ timestamp: 1 })
         .project(projection)
         .toArray();
-}
-
-export async function findSince(match, timestamp, projection = {}) {
-    return await find({ $and: [match, { timestamp: { $gt: timestamp } }] }, projection);
 }
 
 export async function insert(data, projection = {}) {
@@ -60,4 +58,31 @@ export async function markRead(conversationKey, userId, readAt = new Date()) {
         { upsert: true }
     );
     return await db.collection(READS_COLLECTION).findOne({ conversationKey, userId });
+}
+
+export async function insertGroup(data) {
+    const db = await connectDB();
+    const record = await db.collection(GROUPS_COLLECTION).insertOne(data);
+    return await db.collection(GROUPS_COLLECTION).findOne({ _id: record.insertedId });
+}
+
+export async function findGroupById(id) {
+    const db = await connectDB();
+    return await db.collection(GROUPS_COLLECTION).findOne({ _id: toFlexibleId(id) });
+}
+
+export async function findGroupsByParticipant(userId, organizationId) {
+    const db = await connectDB();
+    return await db.collection(GROUPS_COLLECTION)
+        .find({
+            participants: String(userId),
+            'lineage.organizationId': toFlexibleId(organizationId)
+        })
+        .sort({ 'identity.name': 1 })
+        .toArray();
+}
+
+export async function deleteGroupById(id) {
+    const db = await connectDB();
+    return await db.collection(GROUPS_COLLECTION).deleteOne({ _id: toFlexibleId(id) });
 }

@@ -59,6 +59,7 @@ commands.
 | `cassette-processing-worker` | `workers/cassette-processing/` | Claims `cassette.bakeTemplate`, bakes cassette geometry. |
 | `nesting-worker` | `workers/nesting/` | FastAPI HTTP solver for nesting geometry. |
 | `mongo` | Docker image | MongoDB documents and GridFS files. |
+| `livekit` | Docker image (`livekit/livekit-server`, `livekit.dev.yaml`) | Self-hosted WebRTC SFU for voice/video calls; rooms are derived and token-gated by the `livekit` capability module. |
 
 The geometry-capture worker source remains in `workers/geometry-capture/`, but
 the neural-network capture worker is not part of the Docker compose stack or
@@ -127,7 +128,6 @@ against the configured `E2E_BASE_URL`.
 | Pages and public entry | [pages/README.md](./pages/README.md) |
 | Workers | [workers/README.md](./workers/README.md) |
 | E2E workflow tests | [e2e/README.md](./e2e/README.md) |
-| Admin workbench | [pages/admin/README.md](./pages/admin/README.md) |
 | Scripts and guardrails | [scripts/README.md](./scripts/README.md) |
 | Deploy tooling (Forgejo autodeploy) | [deploy/README.md](./deploy/README.md) |
 | Schema specs | [docs/specs/README.md](./docs/specs/README.md) |

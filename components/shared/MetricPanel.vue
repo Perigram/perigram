@@ -1,29 +1,30 @@
 <template>
-  <section class="rounded-panel border border-content-border bg-content p-4 shadow-card">
+  <Panel>
     <div v-if="title || subtitle" class="mb-4 flex flex-col gap-1">
-      <h2 v-if="title" class="m-0 text-base font-semibold">{{ title }}</h2>
-      <p v-if="subtitle" class="m-0 text-sm text-muted-color">{{ subtitle }}</p>
+      <h2 v-if="title" class="m-0 text-section-heading">{{ title }}</h2>
+      <p v-if="subtitle" class="m-0 text-body text-muted-color">{{ subtitle }}</p>
     </div>
 
     <div :class="metricGridClass">
       <div
         v-for="metric in metrics"
         :key="metric.key || metric.label"
-        class="rounded-ui border border-content-border bg-subtle px-3 py-3"
+        class="px-3 py-3"
       >
-        <small class="text-muted-color">{{ metric.label }}</small>
-        <div class="mt-1 text-2xl font-semibold leading-tight">{{ metric.value }}</div>
+        <small class="text-label text-muted-color">{{ metric.label }}</small>
+        <div class="mt-1 text-metric">{{ metric.value }}</div>
       </div>
     </div>
 
     <div v-if="$slots.default" class="mt-4 border-t border-content-border pt-4">
       <slot />
     </div>
-  </section>
+  </Panel>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import Panel from 'primevue/panel';
 
 const props = defineProps({
   title: {

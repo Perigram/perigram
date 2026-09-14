@@ -3,7 +3,6 @@
     v-if="item?.kind === 'entity'"
     :item="item"
     :tabs="tabs"
-    :available-tabs="availableTabs"
     :action-entries="actionEntries"
     :closeable="closeable"
     :splittable="splittable"
@@ -22,11 +21,11 @@
     v-else-if="item?.kind === 'page'"
     :page="item"
     :tabs="tabs"
-    :available-tabs="availableTabs"
     :closeable="closeable"
     :splittable="splittable"
     @execute-action="(action, entry) => $emit('execute-action', action, entry)"
     @open-page="page => $emit('open-page', page)"
+    @open-call="request => $emit('open-call', request)"
     @refresh="$emit('refresh')"
     @select-tab="$emit('select-tab', $event)"
     @close-tab="$emit('close-tab', $event)"
@@ -36,28 +35,29 @@
   />
   <section
     v-else
-    class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-content"
+    class="flex h-full min-h-0 min-w-0 flex-col overflow-hidden"
     data-empty-workspace-pane
   >
-    <header data-pane-header class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome pr-1 text-[var(--ck-chrome-foreground)]">
+    <div data-pane-header class="flex shrink-0 items-stretch">
       <GeneratedWorkspaceTabs
         :tabs="tabs"
-        :available-tabs="availableTabs"
         active-key=""
         @select="$emit('select-tab', $event)"
         @close="$emit('close-tab', $event)"
         @add="$emit('add-tab', $event)"
         @refresh="$emit('refresh')"
       />
-      <GeneratedWorkspacePaneMenu
-        :splittable="splittable"
-        :closeable="closeable"
-        @split="$emit('split', $event)"
-        @close="$emit('close')"
-      />
-    </header>
+      <div class="flex shrink-0 items-center border-b border-chrome-border pr-1">
+        <GeneratedWorkspacePaneMenu
+          :splittable="splittable"
+          :closeable="closeable"
+          @split="$emit('split', $event)"
+          @close="$emit('close')"
+        />
+      </div>
+    </div>
     <div class="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-muted-color">
-      <i class="pi pi-folder-open text-2xl" aria-hidden="true" />
+      <i class="pi pi-folder-open" aria-hidden="true" />
       <span>{{ $t('project.openSomething') }}</span>
     </div>
   </section>
@@ -72,11 +72,10 @@ import GeneratedWorkspacePaneMenu from '~/components/generated/GeneratedWorkspac
 defineProps({
   item: { type: Object, default: null },
   tabs: { type: Array, default: () => [] },
-  availableTabs: { type: Array, default: () => [] },
   actionEntries: { type: Array, default: () => [] },
   closeable: { type: Boolean, default: false },
   splittable: { type: Boolean, default: true }
 });
 
-defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
+defineEmits(['execute-action', 'open-entity', 'open-page', 'open-call', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
 </script>

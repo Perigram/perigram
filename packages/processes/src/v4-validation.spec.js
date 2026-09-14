@@ -15,14 +15,18 @@ const domain = {
   blockSchemas: {
     identity: [{ path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item', nullable: false } }]
   },
+  construction: {
+    project: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [] }
+  },
   commands: {}
 };
 
-function definition(record) {
+function definition(record, extras = {}) {
   return {
     dataflowVersion: 4,
     processNodes: { node: { id: 'node', ...record } },
-    graph: { nodes: [{ id: 'node', type: 'processNode', data: { refId: 'node' } }], edges: [] }
+    graph: { nodes: [{ id: 'node', type: 'processNode', data: { refId: 'node' } }], edges: [] },
+    ...extras
   };
 }
 
@@ -549,6 +553,204 @@ describe('process v4 validation', () => {
     });
     expect(validateProcessDefinition(process, cassetteDomain).errors)
       .not.toContain('Process node node cannot persist block identity');
+  });
+
+  it('rejects create effects when the construction mode has no registered handler', () => {
+    const result = validateProcessDefinition(definition({
+      kind: 'effect.createEntity',
+      entityType: 'project',
+      construction: { mode: 'genericCreate' },
+      trigger: { mode: 'manual' }
+    }), domain, { capabilities: { project: { create: false, createModes: [], processUpdate: true, delete: true, archive: false } } });
+
+    expect(result.errors).toContain('Process node node cannot create project with construction mode genericCreate: no registered runtime handler');
+  });
+
+  it('rejects update effects when the entity service lacks processUpdate support', () => {
+    const result = validateProcessDefinition(definition({
+      kind: 'effect.updateEntity',
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      statusRef: 'ready',
+      inputDefaults: { 'status.state.primary': 'READY' }
+    }), domain, { capabilities: { project: { create: true, processUpdate: false, delete: true, archive: false } } });
+
+    expect(result.errors).toContain('Process node node cannot update project: entity service lacks processUpdate support');
+  });
+
+  it('rejects change status effects when the entity has no status workflow', () => {
+    const result = validateProcessDefinition(definition({
+      kind: 'effect.changeStatus',
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      inputDefaults: { 'status.state.primary': 'READY' }
+    }), domain, { capabilities: { project: { create: true, processUpdate: true, delete: true, archive: false } } });
+
+    expect(result.errors).toContain('Process node node cannot change project: entity has no status workflow');
+  });
+
+  it.each([
+    ['effect.archiveEntity', 'archive'],
+    ['effect.deleteEntity', 'delete']
+  ])('rejects %s when the canonical runtime capability is denied', (kind, verb) => {
+    const result = validateProcessDefinition(definition({
+      kind,
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      access: { level: kind === 'effect.deleteEntity' ? 'admin' : 'write', grants: [] }
+    }), domain, { capabilities: { project: { [verb]: false } } });
+
+    expect(result.errors).toContain(`Process node node cannot ${verb} project: entity service lacks ${verb} support`);
+  });
+
+  it('derives hard deletion as an admin-only manual compiled action', () => {
+    const deleteDefinition = definition({
+      kind: 'effect.deleteEntity',
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      access: { level: 'admin', grants: [] }
+    });
+    const normalized = normalizeProcessDefinition(deleteDefinition, {
+      ...domain,
+      entities: [{ ...domain.entities[0], operations: { delete: true } }]
+    });
+
+    expect(normalized.actions.node).toMatchObject({
+      actionKind: 'deleteEntity',
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      access: { level: 'admin' }
+    });
+    const denied = validateProcessDefinition(definition({
+      kind: 'effect.deleteEntity',
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      access: { level: 'write', grants: [] }
+    }), domain);
+    expect(denied.errors).toContain('Action node must use admin access for hard deletion');
+
+    const automatic = validateProcessDefinition(definition({
+      kind: 'effect.deleteEntity',
+      entityType: 'project',
+      trigger: { mode: 'automatic' },
+      access: { level: 'admin', grants: [] }
+    }), domain);
+    expect(automatic.errors).toContain('Action node hard deletion must be manual');
+  });
+
+  it('compiles status scope and the domain archive intent into mutation records', () => {
+    const scopedStatus = normalizeProcessDefinition(definition({
+      kind: 'effect.changeStatus',
+      entityType: 'project',
+      region: 'quality',
+      path: ['review', 'approved'],
+      trigger: { mode: 'manual' },
+      access: { level: 'write', grants: [] }
+    }), domain);
+    expect(scopedStatus.processNodes.node).toMatchObject({ region: 'quality', path: ['review', 'approved'] });
+
+    const archived = normalizeProcessDefinition(definition({
+      kind: 'effect.archiveEntity',
+      entityType: 'project',
+      trigger: { mode: 'manual' },
+      access: { level: 'write', grants: [] }
+    }), {
+      ...domain,
+      workflows: {
+        project: {
+          regions: {
+            main: {
+              states: { DRAFT: {}, ARCHIVED: {} },
+              transitions: [{ from: 'DRAFT', to: 'ARCHIVED', intent: 'archiveProject' }]
+            }
+          }
+        }
+      }
+    });
+    expect(archived.processNodes.node.archiveIntent).toBe('archiveProject');
+  });
+
+  it('does not enforce capabilities when none are supplied', () => {
+    const result = validateProcessDefinition(definition({
+      kind: 'effect.createEntity',
+      entityType: 'project',
+      producerOutputId: 'node:entity',
+      construction: { mode: 'genericCreate' },
+      status: { to: 'NEW' },
+      trigger: { mode: 'manual' }
+    }, {
+      producerOutputs: {
+        'node:entity': {
+          id: 'node:entity',
+          producerOutputId: 'node:entity',
+          nodeId: 'node',
+          outputSocketId: 'entity',
+          entityType: 'project',
+          lifecycle: { mode: 'defaultCreated' },
+          fields: { read: [], write: [], private: [] }
+        }
+      }
+    }), domain);
+
+    expect(result.errors).toEqual([]);
+  });
+
+  it('accepts one wire per Make List item socket and rejects a second wire into the same socket', () => {
+    const makeListProcess = edges => ({
+      dataflowVersion: 4,
+      processNodes: {
+        first: { id: 'first', kind: 'source.literalItem', type: { base: 'string' }, value: 'a' },
+        second: { id: 'second', kind: 'source.literalItem', type: { base: 'string' }, value: 'b' },
+        list: { id: 'list', kind: 'collection.makeList', type: { base: 'string' } }
+      },
+      graph: {
+        nodes: ['first', 'second', 'list'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges
+      }
+    });
+    const wire = (id, source, targetHandle) => ({
+      id,
+      source,
+      sourceHandle: 'data:value',
+      target: 'list',
+      targetHandle,
+      role: 'data'
+    });
+
+    const accepted = validateProcessDefinition(makeListProcess([
+      wire('e1', 'first', 'data:item1'),
+      wire('e2', 'second', 'data:item2')
+    ]), domain);
+    expect(accepted.errors).toEqual([]);
+
+    const rejected = validateProcessDefinition(makeListProcess([
+      wire('e1', 'first', 'data:item1'),
+      wire('e2', 'second', 'data:item1')
+    ]), domain);
+    expect(rejected.errors).toContain('Process node list input item1 has more than one connected value');
+  });
+
+  it('rejects a Make List wire whose element type is incompatible with the node type', () => {
+    const result = validateProcessDefinition({
+      dataflowVersion: 4,
+      processNodes: {
+        source: { id: 'source', kind: 'source.literalItem', type: { base: 'string' }, value: 'a' },
+        list: { id: 'list', kind: 'collection.makeList', type: { base: 'entityRef', entityType: 'queue' } }
+      },
+      graph: {
+        nodes: ['source', 'list'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
+        edges: [{
+          id: 'e1',
+          source: 'source',
+          sourceHandle: 'data:value',
+          target: 'list',
+          targetHandle: 'data:item1',
+          role: 'data'
+        }]
+      }
+    }, domain);
+
+    expect(result.errors.some(error => error.startsWith('Edge e1 is incompatible:'))).toBe(true);
   });
 });
 

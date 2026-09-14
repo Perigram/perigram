@@ -1,6 +1,6 @@
 import { createError } from 'h3';
 import { randomUUID } from 'node:crypto';
-import { createTaskResult } from '../blocks/index.js';
+import { createTaskResult, normalizeEntityOutputContracts, validateResultEntityOutputs } from '../blocks/index.js';
 import { getAppRegistry } from '../../runtime/app-registry.js';
 import * as repository from './repository.js';
 import { processEffects, processEvents } from '../effects/service.js';
@@ -107,11 +107,26 @@ export async function completeTaskRun(id, result = {}, claimToken = null) {
   const processedEffects = await processEffects(output.effects || [], effectContext);
   output.events = processedEvents.events;
   output.effects = mergeProcessedEffects(processedEvents, processedEffects);
-  return await repository.updateClaimedById(id, claimToken, {
+
+  const outputViolations = validateResultEntityOutputs({
+    contracts: normalizeEntityOutputContracts(task?.output),
+    entities: [
+      ...output.entities || [],
+      ...(output.effects?.entities || [])
+    ],
+    phase: 'completion'
+  });
+  if (outputViolations.length) {
+    throw createError({ statusCode: 500, message: `Task ${run.taskId} result violates its declared output contract: ${outputViolations.join('; ')}` });
+  }
+
+  const updated = await repository.updateClaimedById(id, claimToken, {
     status: task?.status?.succeeded || 'SUCCEEDED',
     output,
     finishedAt: new Date()
   });
+  await notifyProcessTaskOutcome({ taskRunId: String(id), status: 'SUCCEEDED', output });
+  return updated;
 }
 
 function mergeProcessedEffects(left, right) {
@@ -153,7 +168,7 @@ export async function failTaskRun(id, error, claimToken = null) {
     run,
     registry: getAppRegistry()
   });
-  return await repository.updateClaimedById(id, claimToken, {
+  const updated = await repository.updateClaimedById(id, claimToken, {
     status: task?.status?.failed || 'FAILED',
     error: { message: error?.message || String(error) },
     output: {
@@ -165,17 +180,21 @@ export async function failTaskRun(id, error, claimToken = null) {
     },
     finishedAt: new Date()
   });
+  await notifyProcessTaskOutcome({ taskRunId: String(id), status: 'FAILED', error: updated.error || error });
+  return updated;
 }
 
 export async function cancelTaskRun(id, reason = 'Cancelled') {
   const run = await repository.findById(id);
   if (!run) throw createError({ statusCode: 404, message: 'Task run not found' });
   if (TERMINAL_STATUSES.includes(run.status)) return run;
-  return await repository.updateById(id, {
+  const updated = await repository.updateById(id, {
     status: 'CANCELLED',
     error: { message: reason },
     finishedAt: new Date()
   });
+  await notifyProcessTaskOutcome({ taskRunId: String(id), status: 'CANCELLED', error: updated.error });
+  return updated;
 }
 
 export async function retryTaskRun(id) {
@@ -230,6 +249,19 @@ function validateFields(task, parameters) {
     result[field.name] = value;
   }
   return result;
+}
+
+async function notifyProcessTaskOutcome({ taskRunId, status, output = null, error = null }) {
+  try {
+    const processService = await import('../../features/process-definitions/service.js');
+    if (status === 'SUCCEEDED') {
+      await processService.ingestTaskCompletion({ taskRunId, taskResult: output || {} });
+    } else {
+      await processService.failTaskInvocation({ taskRunId, error, cancelled: status === 'CANCELLED' });
+    }
+  } catch (error) {
+    console.error(`[Task ${taskRunId}] Process ingestion failed:`, error.message);
+  }
 }
 
 function requireClaim(run, claimToken) {
