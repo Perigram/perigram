@@ -32,16 +32,17 @@ palette, inspector, or dock positioning outside `DesignerWorkspace`.
 
 `layout="lanes"` is for editors with persistent side panels, such as cassette
 and facade design. The canvas is the workspace background, edge to edge —
-never a boxed panel beside the rails: palette, inspector, and support render
-as floating rails docked over the canvas's left and right edges, owning their
-own scroll, chrome (rounded border, content background, overlay shadow), and
-capped widths (palette 17rem/42%, inspector 19rem/48%), so narrow hosts keep
-the full-bleed canvas instead of collapsing into one stacked column. Document
-actions (name, save, undo/redo) belong in the `toolbar` slot above the canvas,
-not in the palette. `layout="canvas"` is for graph editors whose palette and
+never a boxed panel beside the rails: palette and inspector render as
+floating rails docked over the canvas's left and right edges in explicit
+capped tracks (17rem/19rem that shrink on narrow hosts), owning their own
+scroll and chrome, so the workspace never collapses into one stacked column.
+The row floor keeps the layout visible even when a host breaks the
+bounded-height chain. Document actions (name, save, undo/redo) belong in the
+`toolbar` slot above the canvas, not in the palette; rail content composes as
+stacked collapsible sections rather than tab switches, and developer escape
+hatches such as raw document JSON open from the toolbar as dialogs instead of
+occupying rail space. `layout="canvas"` is for graph editors whose palette and
 inspector overlay a full canvas, such as process and facade-pattern design.
-At narrow widths the floating rails cap against the workspace width and
-remain individually scrollable.
 
 ## Use the Three viewport
 
