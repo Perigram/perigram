@@ -9,9 +9,14 @@ jobs:
       image: docker:cli
       options: --add-host forgejo.sodalab.pro:192.168.0.15
     steps:
-      - name: git for checkout
+      - name: tools
         run: apk add --no-cache git
-      - uses: actions/checkout@v4
+      - name: checkout
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone --depth 1 --branch "$GITHUB_REF_NAME" \
+            "https://x-access-token:${TOKEN}@forgejo.sodalab.pro/sodalab/perigram.git" .
       - name: build image
         run: docker build -t perigram:staging --build-arg PORT=3001 .
       - name: redeploy container
