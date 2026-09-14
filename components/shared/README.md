@@ -47,7 +47,11 @@ must never expand a card, toolbar, or screen beyond its assigned width.
 
 Primary identifier fallback: `name` → `slug` → `uid` → `'Unnamed'`.
 
-Props: `:entity` (required), `variant`, `icon` (inline only), `:fields` (optional extra fields array).
+Props: `:entity` (required), `variant`, `icon` (class string; rendered as the
+chip icon for the inline variant and as a small muted glyph before the name
+in the compact, default, and header variants — entity cards, collection
+titles, and detail page headers pass the `entityUiFor` registry icon),
+`:fields` (optional extra fields array).
 Rendering guard: block renders only when `props.entity` is present.
 Supported extra fields: `uid`, `slug`, `serial`, `reference`. By default, no extra fields are rendered.
 
