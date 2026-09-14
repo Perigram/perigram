@@ -33,69 +33,76 @@
 
     <DesignerWorkspace layout="lanes" class="min-h-0 flex-1">
       <template #toolbar>
-        <div class="flex flex-wrap items-center gap-2 px-1 pb-2">
-          <InputText
-            v-model="cassetteNameDraft"
-            :placeholder="$t('cassette.name')"
-            class="w-44"
-          />
-          <Select
-            :model-value="null"
-            :options="templateOptions"
-            option-label="label"
-            option-value="value"
-            entity-type="cassette"
-            :placeholder="$t('cassette.v2.loadTemplate')"
-            class="w-40"
-            @update:model-value="value => emit('load-template', value)"
-          />
-          <Button
-            icon="pi pi-save"
-            size="small"
-            :label="$t('common.save')"
-            :loading="savingTemplate"
-            :disabled="savingTemplate"
-            @click="saveTemplate"
-          />
-          <Button
-            icon="pi pi-copy"
-            severity="secondary"
-            size="small"
-            :label="$t('common.saveAs')"
-            :loading="savingTemplate"
-            :disabled="savingTemplate"
-            @click="saveTemplate({ saveAs: true })"
-          />
-          <Button
-            icon="pi pi-refresh"
-            severity="secondary"
-            size="small"
-            :label="$t('common.reset')"
-            @click="resetTree"
-          />
-          <div class="mx-1 h-6 w-px bg-content-border" aria-hidden="true"></div>
-          <Button
-            icon="pi pi-undo"
-            severity="secondary"
-            text
-            rounded
-            size="small"
-            :disabled="!canUndo"
-            :aria-label="$t('common.undo')"
-            v-tooltip.bottom="$t('common.undo')"
-            @click="undoDesignerChange"
-          />
-          <Button
-            icon="pi pi-replay"
-            severity="secondary"
-            text
-            rounded
-            size="small"
-            :disabled="!canRedo"
-            :aria-label="$t('common.redo')"
-            v-tooltip.bottom="$t('common.redo')"
-            @click="redoDesignerChange"
-          />
+        <div class="flex flex-wrap items-center gap-2 border-b border-chrome-border px-3 py-2">
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <InputText
+              v-model="cassetteNameDraft"
+              :placeholder="$t('cassette.name')"
+              class="w-44"
+            />
+            <Select
+              :model-value="null"
+              :options="templateOptions"
+              option-label="label"
+              option-value="value"
+              entity-type="cassette"
+              :placeholder="$t('cassette.v2.loadTemplate')"
+              class="w-40"
+              @update:model-value="value => emit('load-template', value)"
+            />
+          </div>
+          <div class="ml-auto flex shrink-0 items-center gap-1">
+            <Button
+              icon="pi pi-undo"
+              severity="secondary"
+              text
+              rounded
+              size="small"
+              :disabled="!canUndo"
+              :aria-label="$t('common.undo')"
+              v-tooltip.bottom="$t('common.undo')"
+              @click="undoDesignerChange"
+            />
+            <Button
+              icon="pi pi-replay"
+              severity="secondary"
+              text
+              rounded
+              size="small"
+              :disabled="!canRedo"
+              :aria-label="$t('common.redo')"
+              v-tooltip.bottom="$t('common.redo')"
+              @click="redoDesignerChange"
+            />
+            <div class="mx-1 h-6 w-px bg-content-border" aria-hidden="true"></div>
+            <Button
+              icon="pi pi-refresh"
+              severity="secondary"
+              text
+              rounded
+              size="small"
+              :aria-label="$t('common.reset')"
+              v-tooltip.bottom="$t('common.reset')"
+              @click="resetTree"
+            />
+            <Button
+              icon="pi pi-copy"
+              severity="secondary"
+              size="small"
+              :label="$t('common.saveAs')"
+              :loading="savingTemplate"
+              :disabled="savingTemplate"
+              @click="saveTemplate({ saveAs: true })"
+            />
+            <Button
+              icon="pi pi-save"
+              size="small"
+              :label="$t('common.save')"
+              :loading="savingTemplate"
+              :disabled="savingTemplate"
+              @click="saveTemplate"
+            />
+          </div>
         </div>
       </template>
 

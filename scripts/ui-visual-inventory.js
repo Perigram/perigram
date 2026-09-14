@@ -22,6 +22,8 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
 
 export const SCOPED_LAYOUT_PROPERTIES = new Set([
   'align-items',
+  'align-self',
+  'justify-self',
   'container-type',
   'display',
   'flex',
@@ -33,6 +35,8 @@ export const SCOPED_LAYOUT_PROPERTIES = new Set([
   'grid-template-rows',
   'justify-content',
   'left',
+  'margin',
+  'z-index',
   'max-height',
   'max-width',
   'min-height',
