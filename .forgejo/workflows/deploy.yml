@@ -8,11 +8,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: install
-        run: npm ci --no-audit --no-fund
+        run: export PATH=/run/current-system/sw/bin:$PATH && npm ci --no-audit --no-fund
       - name: build
-        run: npm run build
+        run: export PATH=/run/current-system/sw/bin:$PATH && npm run build
       - name: stage
-        run: |
-          rsync -a --delete .output/ /srv/perigram/
+        run: /run/current-system/sw/bin/rsync -a --delete .output/ /srv/perigram/
       - name: restart
-        run: systemctl restart perigram-serve
+        run: sudo /run/current-system/sw/bin/systemctl restart perigram-serve
