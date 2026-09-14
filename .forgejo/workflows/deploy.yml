@@ -8,8 +8,6 @@ jobs:
     container:
       image: docker:cli
       options: --add-host forgejo.sodalab.pro:192.168.0.15
-      volumes:
-        - /run/docker.sock:/var/run/docker.sock
     steps:
       - name: git for checkout
         run: apk add --no-cache git
