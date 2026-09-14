@@ -5,13 +5,18 @@ on:
 jobs:
   deploy:
     runs-on: deploy
+    container:
+      image: docker:cli
+      options: --add-host forgejo.sodalab.pro:192.168.0.15
+      volumes:
+        - /run/docker.sock:/var/run/docker.sock
     steps:
+      - name: git for checkout
+        run: apk add --no-cache git
       - uses: actions/checkout@v4
-      - name: install
-        run: export PATH=/run/current-system/sw/bin:$PATH && npm ci --no-audit --no-fund
-      - name: build
-        run: export PATH=/run/current-system/sw/bin:$PATH && npm run build
-      - name: stage
-        run: /run/current-system/sw/bin/rsync -a --delete .output/ /srv/perigram/
-      - name: restart
-        run: sudo /run/current-system/sw/bin/systemctl restart perigram-serve
+      - name: build image
+        run: docker build -t perigram:staging --build-arg PORT=3001 .
+      - name: redeploy container
+        run: |
+          docker rm -f perigram-staging || true
+          docker run -d --name perigram-staging --restart unless-stopped -p 3001:3001 perigram:staging
