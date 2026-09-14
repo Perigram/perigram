@@ -53,6 +53,7 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   ]],
   'components/QueueEditor.vue': ['layout', ['style="width: var(--ck-table-action-column-width)"']],
   'components/entities/Color/ColorCard.vue': ['data-driven', [':style="swatchStyle"', ':style="swatchStyle"']],
+  'components/shared/blocks/DataBlock.vue': ['data-driven', [':style="{ backgroundColor: row.swatch }"']],
   'components/entities/PenTemplate/PenTemplateCard.vue': ['data-driven', [':style="lineStyle"']],
   'components/entities/Requisition/RequisitionDetail.vue': ['data-driven', [':style="{ backgroundColor: item.colorHex || item.colorFallback || \'var(--p-content-border-color)\' }"']],
   'components/entities/Sheet/SheetDetail.vue': ['data-driven', [':style="{ backgroundColor: colorHex }"', ':style="geometryStyle"']],

@@ -177,6 +177,10 @@ export const cncEntityFieldGroups = {
     ]
   },
   color: {
+    summary: [
+      { path: 'data.visuals.hexCode', i18n: 'color.hexCode', display: 'swatch', priority: 10 },
+      { path: 'data.code', i18n: 'common.code', display: 'text', priority: 20 }
+    ],
     relations: [
       { path: 'lineage.catalogId', i18n: 'entities.catalog', display: 'entityRef', entityType: 'catalog', priority: 10 }
     ]

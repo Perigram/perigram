@@ -9,9 +9,25 @@
       :entity-type="entityType"
       :mode="display.surfaceContract.preview"
     />
-    <div :class="detailSplit ? 'entity-surface-facts flex min-w-0 flex-col gap-4' : 'flex min-w-0 flex-col gap-3'">
+    <div :class="detailSplit ? 'entity-surface-facts flex min-w-0 flex-col gap-5' : 'flex min-w-0 flex-col gap-3'">
+      <section
+        v-for="section in detailSections"
+        :key="section.name"
+        class="flex min-w-0 flex-col gap-2"
+      >
+        <small v-if="detailSections.length > 1" class="uppercase text-muted-color text-supporting">
+          {{ sectionLabel(section.name) }}
+        </small>
+        <DataBlock
+          :entity-type="display.entityType"
+          :entity="entity"
+          :access-entity="accessEntity"
+          :fields="section.fields"
+          :variant="dataVariant"
+        />
+      </section>
       <DataBlock
-        v-if="dataFields.length"
+        v-if="!sectioned && dataFields.length"
         :entity-type="display.entityType"
         :entity="entity"
         :access-entity="accessEntity"
@@ -35,10 +51,11 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityPreview from '~/components/shared/EntityPreview.vue';
 import EntityRelationsBlock from '~/components/shared/EntityRelationsBlock.vue';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  entityType: { type: String, required: true },
+  entityType: { type: String, default: '' },
   surface: { type: String, default: 'card' },
   accessEntity: { type: Object, default: null },
   suppressChildSummaries: { type: Boolean, default: false },
@@ -46,6 +63,8 @@ const props = defineProps({
   displayExtensions: { type: Object, default: null },
   displayOverrides: { type: Object, default: null }
 });
+
+const { t, te } = useI18n();
 
 const display = computed(() => resolveEntityDisplayContract({
   entityType: props.entityType,
@@ -68,8 +87,27 @@ const relationFields = computed(() => renderableFields.value.filter(field =>
 const showPreview = computed(() => display.value.surfaceContract.preview !== 'none');
 // The detail surface composes a real page body, not a tall card: geometry or
 // thumbnail media sits beside the fact column on wide containers and stacks
-// above it on narrow ones.
+// above it on narrow ones. Sectioned data display chunks the fact column by
+// field group with a small localized heading, so identity, specs, stock, and
+// production facts read as separate concerns instead of one flat grid.
+const sectioned = computed(() => props.surface === 'detail' && display.value.surfaceContract.dataDisplay === 'sectioned');
 const detailSplit = computed(() => props.surface === 'detail' && showPreview.value);
+const detailSections = computed(() => {
+  if (!sectioned.value) return [];
+  const byGroup = new Map();
+  for (const field of dataFields.value) {
+    const group = field.group || 'summary';
+    if (!byGroup.has(group)) byGroup.set(group, []);
+    byGroup.get(group).push(field);
+  }
+  return [...byGroup.entries()]
+    .map(([name, fields]) => ({ name, fields }))
+    .filter(section => section.fields.length);
+}
+function sectionLabel(name) {
+  const key = `entityGroups.${name}`;
+  return te?.(key) ? t(key) : name;
+}
 const dataVariant = computed(() =>
   display.value.surfaceContract.dataDisplay === 'compact' || display.value.surfaceContract.dataDisplay === 'inline'
     ? 'compact'

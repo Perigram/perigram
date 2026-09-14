@@ -649,7 +649,10 @@
           "server/features/colors/README.md"
         ],
         "entityType": "color",
-        "fieldPaths": [],
+        "fieldPaths": [
+          "data.code",
+          "data.visuals.hexCode"
+        ],
         "group": "master",
         "key": "color",
         "labelKey": "entities.color",

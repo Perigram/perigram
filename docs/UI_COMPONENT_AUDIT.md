@@ -229,7 +229,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-projectstatistics-vue` | `components/ProjectStatistics.vue` | derived usage | compliant |
 | `ui-components-queueeditor-vue` | `components/QueueEditor.vue` | derived usage | replace:chrome (8); compliant:scoped-layout; compliant:inline-layout (1) |
 | `ui-components-shared-actiontoolbar-vue` | `components/shared/ActionToolbar.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-blocks-datablock-vue` | `components/shared/blocks/DataBlock.vue` | shared/domain primitive | compliant:scoped-layout |
+| `ui-components-shared-blocks-datablock-vue` | `components/shared/blocks/DataBlock.vue` | shared/domain primitive | replace:chrome (1); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-shared-blocks-identityblock-vue` | `components/shared/blocks/IdentityBlock.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-blocks-specsblock-vue` | `components/shared/blocks/SpecsBlock.vue` | shared/domain primitive | replace:chrome (8); compliant:scoped-layout |
 | `ui-components-shared-blocks-statusbadge-vue` | `components/shared/blocks/StatusBadge.vue` | shared/domain primitive | replace:chrome (9) |

@@ -18,6 +18,7 @@
         class="m-0 min-w-0 break-words text-technical"
         :class="variant === 'compact' ? '' : 'mt-1'"
       >
+        <span v-if="row.swatch" class="mr-1.5 inline-block h-3 w-3 shrink-0 rounded-ui align-middle" :style="{ backgroundColor: row.swatch }" />
         {{ row.display }}
       </dd>
     </div>
@@ -73,7 +74,10 @@ const visibleRows = computed(() =>
                 falseLabel: t('common.no')
             });
             if (!display) return null;
-            return { label: t(field.i18n), display };
+            const swatch = field.display === 'swatch' && /^[0-9a-f]{3,8}$/i.test(String(raw).replace('#', ''))
+                ? `#${String(raw).replace('#', '')}`
+                : null;
+            return { label: t(field.i18n), display, swatch };
         })
         .slice(0, props.fieldLimit || undefined)
         .filter(Boolean)

@@ -1847,6 +1847,17 @@
     "materialSources": "Источники материала",
     "surfaceRange": "Диапазон поверхностей"
   },
+  "entityGroups": {
+    "identity": "Идентификация",
+    "summary": "Обзор",
+    "specs": "Характеристики",
+    "stock": "Склад",
+    "production": "Производство",
+    "relations": "Связи"
+  },
+  "color": {
+    "hexCode": "Hex"
+  },
   "entities": {
     "project": "Проект",
     "queue": "Очередь",

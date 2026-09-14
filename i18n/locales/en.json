@@ -1847,6 +1847,17 @@
     "materialSources": "Material sources",
     "surfaceRange": "Surface range"
   },
+  "entityGroups": {
+    "identity": "Identity",
+    "summary": "Overview",
+    "specs": "Specifications",
+    "stock": "Stock",
+    "production": "Production",
+    "relations": "Related"
+  },
+  "color": {
+    "hexCode": "Hex"
+  },
   "entities": {
     "project": "Project",
     "queue": "Queue",
