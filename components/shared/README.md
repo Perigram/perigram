@@ -112,7 +112,12 @@ and renders preview, data facts, and relation rows with the shared primitives.
 On the `detail` surface with a visible preview it composes a real page body:
 media and the fact column sit side by side from 48rem of the surface's own
 width and stack above it on narrower containers; card surfaces keep the
-simple preview-first stack. `EntityPreview` dispatches to existing preview
+simple preview-first stack. With `dataDisplay: 'sectioned'` the fact column
+chunks by field group (identity, overview, specs, stock, production) under
+small localized `entityGroups.*` headings, so detail pages read as separate
+concerns instead of one flat grid. `DataBlock` renders
+`display: 'swatch'` fields as a color dot beside the value for declared
+hex-color facts. `EntityPreview` dispatches to existing preview
 components such as
 `GeometryPreview` and `CassetteThumbnail`, and renders ordinary DTO thumbnails
 from `data.thumbnailUrl` or thumbnail attachment metadata for non-cassette

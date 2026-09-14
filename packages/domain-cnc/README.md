@@ -287,8 +287,15 @@ Display constructor metadata is split from access policy:
   generic card and popup surfaces can render `data.sheetDesignIds` as a
   relation gallery; custom nesting-run cards still filter that group to sheet
   designs so material source context stays in its dedicated source section.
+  Color summary facts declare the hex swatch through
+  `display: 'swatch'`, which `DataBlock` renders as a color dot beside the
+  value.
 - `ui-surfaces.js` declares which groups and display modes belong to surfaces
-  such as inline, compact, card, and detail.
+  such as inline, compact, card, and detail. Cards are recognition surfaces:
+  they compose preview, identity, and the leading summary/specs/stock facts
+  with relation chips, while production internals and revision provenance
+  render only on the detail surface. Noisy entities (queue, catalog,
+  geometry capture, warehouse) pin an explicit card group list there.
 - `field-access.js` remains the hard visibility boundary. A field group path
   that is not covered by field access must fail validation instead of rendering
   through a component-local escape hatch.
