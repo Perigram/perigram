@@ -18,7 +18,7 @@ jobs:
           git clone --depth 1 --branch "$GITHUB_REF_NAME" \
             "https://x-access-token:${TOKEN}@forgejo.sodalab.pro/sodalab/perigram.git" .
       - name: build image
-        run: docker build -t perigram:staging --build-arg PORT=3001 .
+        run: docker build --network=host -t perigram:staging --build-arg PORT=3001 .
       - name: redeploy container
         run: |
           docker rm -f perigram-staging || true
