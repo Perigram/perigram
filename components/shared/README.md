@@ -109,7 +109,11 @@ policy.
 Contract-driven body primitives for app constructors. `EntitySurfaceContent`
 resolves an entity type plus `surface` through `utils/entity-display-contract.js`
 and renders preview, data facts, and relation rows with the shared primitives.
-`EntityPreview` dispatches to existing preview components such as
+On the `detail` surface with a visible preview it composes a real page body:
+media and the fact column sit side by side from 48rem of the surface's own
+width and stack above it on narrower containers; card surfaces keep the
+simple preview-first stack. `EntityPreview` dispatches to existing preview
+components such as
 `GeometryPreview` and `CassetteThumbnail`, and renders ordinary DTO thumbnails
 from `data.thumbnailUrl` or thumbnail attachment metadata for non-cassette
 entities. `EntityRelationsBlock` renders relation descriptors through
@@ -508,12 +512,15 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   leaf nodes expose one scoped file slot and an active-pane marker. Split-tree
   mutation remains pure state owned by the caller.
 - **`EntityActionsPopover.vue`**: Shared ellipsis trigger and compact action
-  popover for entity-local commands. `EntityPage`, full `EntityCard` footers,
-  inline-card popovers, and generated entity files place edit/process/delete
-  commands inside this surface instead of expanding action buttons beside
-  identity and status. `EntityCard footer-display="inline"` is reserved for a
-  small caller-owned primary navigation choice, such as opening or switching
-  the organization represented by a profile card.
+  popover for entity-local commands. Disclosure is opt-in, not the default:
+  `EntityPage` action slots and full `EntityCard` footers render their
+  actions inline by default (`actionsDisplay` / `footerDisplay` default to
+  `inline`), and only a caller with a dense action set selects `menu`.
+  Inline-card popovers never nest a second ellipsis: generated actions and
+  the detail-route control render directly in the popover's action row.
+  `EntityCard footer-display="inline"` remains available for a
+  caller-owned primary navigation choice, such as opening or switching the
+  organization represented by a profile card.
 - **`ScrollablePanel.vue`**: PrimeVue `Panel` wrapper for bounded workspace
   sections whose header remains fixed while the panel content scrolls. It
   supports an `actions` slot for header controls and `:scroll-content="false"`
@@ -570,10 +577,34 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   Entity type comes from the picker prop or option record and is never inferred
   from `data.type` or lifecycle state.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
-- **`EntityPage.vue`**: Root layout for all entity detail views. Features a compact header with identity, optional inline status, an `actions` slot, an `info` slot for summary data, and optional `sidebar`. Trace breadcrumbs are hidden by default and appear only when a caller opts in with `showTrace`; callers can pass exact `traceExclusions` derived from the current compiled context. Generated entity-detail screens also suppress the outer `StandardPage` title so the entity header is the only title surface. Page headers use the shared inline status popover, including compact lifecycle history, and normally collapse the `actions` slot into `EntityActionsPopover`; canonical hub entities may select `actionsDisplay="inline"` for a small set of primary child-screen routes. Detail surfaces for static master-data entities can pass `:show-status="false"` instead of rendering local header chrome. Pane adapters pass `:show-header="false"` so their own tabs/status/actions remain the sole chrome while the canonical body and sidebar layout are retained. The wrapper is an inline-size query container: the header splits at 32rem and the sidebar receives its second track at 48rem of actual parent width. It appends its entity to the displayed-context stack so nested traces do not repeat any represented ancestor. Operational overloads compose their workspace primitives inside this canonical shell instead of adding overload-specific layout modes to `EntityPage`.
+- **`EntityPage.vue`**: Root layout for all entity detail views. The header
+  composes a small-caps localized entity-type label, the identity, the inline
+  status beside it, an `info` slot for summary data below, and an `actions`
+  slot that renders inline by default (`actionsDisplay: 'menu'` collapses it
+  into the ellipsis popover for dense action sets). The header block closes
+  with a structural bottom border instead of a PrimeVue divider. Trace
+  breadcrumbs are hidden by default and appear only when a caller opts in
+  with `showTrace`; callers can pass exact `traceExclusions` derived from
+  the current compiled context. Generated entity-detail screens also
+  suppress the outer `StandardPage` title so the entity header is the only
+  title surface. Pane adapters pass `:show-header="false"` so their own
+  tabs/status/actions remain the sole chrome while the canonical body and
+  sidebar layout are retained. The wrapper is an inline-size query
+  container: the header splits at 32rem and the sidebar receives its second
+  track at 48rem of actual parent width. It appends its entity to the
+  displayed-context stack so nested traces do not repeat any represented
+  ancestor. Operational overloads compose their workspace primitives inside
+  this canonical shell instead of adding overload-specific layout modes to
+  `EntityPage`.
 - **`EntityCard.vue`**: Shared entity card structure built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`) while the preset owns its border, radius, shadow, spacing, and interaction states. Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `statusActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title.
-  Full-card footer actions and generated inline/compact popover actions render
-  through `EntityActionsPopover`, including access-gated deletion.
+  Full-card footer actions render inline by default (`footer-display`);
+  the ellipsis menu stays available for deliberately dense footers.
+  Inline and compact variants share one expansion surface defined once in
+  `EntityCard`: a header row with the localized entity-type label and the
+  inline status, the identity, lineage context when forced, the same
+  canonical body the full card uses, and a trailing inline action row
+  (generated commands, the cassette-designer action, and a labeled
+  open-detail control) — never a nested ellipsis inside the popover.
 - **`NameEditPopover.vue`**: Compact single-field rename control for entity names and other one-field edits. Use it near identity or action clusters instead of opening a full dialog when the only editable field is a name.
 
 `EntityStatus` action objects support `display: 'inline' | 'menu' | 'hidden'`. Workflow transitions default to inline actions, self-loop metadata transitions are hidden, and only lifecycle transitions should be passed into the status surface. Inline/card status surfaces use the badge itself as the popover trigger and do not render a second ellipsis button beside the badge; expanded/full status surfaces show up to two inline actions by default and put overflow actions, current location, metadata, and compact status history in the popover. Entity card title/status rows and status menus are allowed to wrap, and inline status rails are deliberately bounded so compact containers do not let status text or action buttons displace identity content.

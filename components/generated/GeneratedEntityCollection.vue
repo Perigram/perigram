@@ -104,9 +104,9 @@
         <div class="flex flex-wrap justify-end gap-2">
           <Button
             v-if="detailRouteFor(entity)"
+            :label="$t('common.open')"
             icon="pi pi-external-link"
             text
-            rounded
             size="small"
             :aria-label="$t('common.open')"
             @click.stop="openEntity(entity)"
