@@ -40,16 +40,18 @@
               :placeholder="$t('cassette.name')"
               class="w-44"
             />
-            <Select
-              :model-value="null"
-              :options="templateOptions"
-              option-label="label"
-              option-value="value"
-              entity-type="cassette"
-              :placeholder="$t('cassette.v2.loadTemplate')"
-              class="w-40"
-              @update:model-value="value => emit('load-template', value)"
-            />
+            <div class="w-40">
+              <Select
+                :model-value="null"
+                :options="templateOptions"
+                option-label="label"
+                option-value="value"
+                entity-type="cassette"
+                :placeholder="$t('cassette.v2.loadTemplate')"
+                class="w-full"
+                @update:model-value="value => emit('load-template', value)"
+              />
+            </div>
           </div>
           <div class="ml-auto flex shrink-0 items-center gap-1">
             <Button
@@ -86,6 +88,16 @@
               @click="resetTree"
             />
             <Button
+              icon="pi pi-code"
+              severity="secondary"
+              text
+              rounded
+              size="small"
+              :aria-label="$t('cassette.v2.occsDraft')"
+              v-tooltip.bottom="$t('cassette.v2.occsDraft')"
+              @click="occsDialogVisible = true"
+            />
+            <Button
               icon="pi pi-copy"
               severity="secondary"
               size="small"
@@ -119,33 +131,25 @@
         </div>
       </Message>
 
-      <div class="flex flex-wrap gap-2">
-        <Button
-          v-for="tab in sideTabs"
-          :key="tab.value"
-          :icon="tab.icon"
-          :label="$t(tab.labelKey)"
-          :severity="activeSideTab === tab.value ? 'primary' : 'secondary'"
-          size="small"
-          @click="activeSideTab = tab.value"
-        />
-      </div>
-
-      <div v-if="activeSideTab === 'parameters'" class="flex min-h-0 min-w-0 flex-col gap-3 overflow-auto">
-        <div class="flex items-center justify-between gap-2">
-          <strong>{{ $t('cassette.v2.globalParameters') }}</strong>
-          <Button
-            icon="pi pi-plus"
-            severity="secondary"
-            text
-            rounded
-            size="small"
-            :aria-label="$t('common.add')"
-            v-tooltip.top="$t('common.add')"
-            @click="addGlobalParameter"
-          />
-        </div>
-        <div class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-1">
+      <Accordion :value="['parameters', 'layers']" multiple class="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+        <AccordionPanel value="parameters">
+        <AccordionHeader>
+          <span class="flex min-w-0 flex-1 items-center justify-between gap-2">
+            <span class="truncate">{{ $t('cassette.v2.globalParameters') }}</span>
+            <Button
+              icon="pi pi-plus"
+              severity="secondary"
+              text
+              rounded
+              size="small"
+              :aria-label="$t('common.add')"
+              v-tooltip.top="$t('common.add')"
+              @click.stop="addGlobalParameter"
+            />
+          </span>
+        </AccordionHeader>
+        <AccordionContent>
+          <div class="flex min-w-0 flex-col gap-3 py-2">
           <div v-for="parameter in globalParameterEntries" :key="parameter.key" class="flex min-w-0 flex-col gap-1">
             <div class="flex items-center justify-between gap-2">
               <label class="text-technical">{{ parameter.key }}</label>
@@ -168,43 +172,46 @@
               @update:model-value="value => updateGlobalParameter(parameter.key, value)"
             />
           </div>
-        </div>
-      </div>
-
-      <div v-else-if="activeSideTab === 'layers'" class="flex min-h-0 flex-col gap-3">
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex min-w-0 items-center gap-2">
-            <i class="pi pi-list text-muted-color" aria-hidden="true" />
-            <strong class="truncate">{{ $t('common.layers') }}</strong>
-            <Tag :value="visibleLayerSummary" severity="secondary" size="small" />
           </div>
-          <div class="flex items-center gap-1">
-            <Button
-              icon="pi pi-eye"
-              text
-              rounded
-              size="small"
-              severity="secondary"
-              :aria-label="$t('drawing.showAllLayers')"
-              :disabled="allLayersVisible"
-              v-tooltip.top="$t('drawing.showAllLayers')"
-              @click="showAllLayers"
-            />
-            <Button
-              icon="pi pi-eye-slash"
-              text
-              rounded
-              size="small"
-              severity="secondary"
-              :aria-label="$t('drawing.hideAllLayers')"
-              :disabled="visibleLayerNames.length === 0"
-              v-tooltip.top="$t('drawing.hideAllLayers')"
-              @click="hideAllLayers"
-            />
-          </div>
-        </div>
+        </AccordionContent>
+        </AccordionPanel>
 
-        <ScrollPanel class="min-h-0 flex-1 rounded-ui border border-content-border">
+        <AccordionPanel value="layers">
+        <AccordionHeader>
+          <span class="flex min-w-0 flex-1 items-center justify-between gap-2">
+            <span class="flex min-w-0 items-center gap-2">
+              <i class="pi pi-list text-muted-color" aria-hidden="true" />
+              <span class="truncate">{{ $t('common.layers') }}</span>
+              <Tag :value="visibleLayerSummary" severity="secondary" size="small" />
+            </span>
+            <span class="flex items-center gap-1" @click.stop>
+              <Button
+                icon="pi pi-eye"
+                text
+                rounded
+                size="small"
+                severity="secondary"
+                :aria-label="$t('drawing.showAllLayers')"
+                :disabled="allLayersVisible"
+                v-tooltip.top="$t('drawing.showAllLayers')"
+                @click="showAllLayers"
+              />
+              <Button
+                icon="pi pi-eye-slash"
+                text
+                rounded
+                size="small"
+                severity="secondary"
+                :aria-label="$t('drawing.hideAllLayers')"
+                :disabled="visibleLayerNames.length === 0"
+                v-tooltip.top="$t('drawing.hideAllLayers')"
+                @click="hideAllLayers"
+              />
+            </span>
+          </span>
+        </AccordionHeader>
+        <AccordionContent>
+          <div class="flex flex-col py-2">
           <div class="flex flex-col">
             <div
               v-for="row in layerRows"
@@ -228,12 +235,10 @@
               </div>
             </div>
           </div>
-        </ScrollPanel>
-      </div>
-
-      <div v-else class="flex min-h-0 flex-col gap-2">
-        <Textarea :model-value="occsJson" readonly rows="22" class="min-h-0 w-full flex-1 text-technical" />
-      </div>
+        </div>
+        </AccordionContent>
+        </AccordionPanel>
+      </Accordion>
       </aside>
       </template>
 
@@ -742,6 +747,15 @@
     </DesignerWorkspace>
 
     <StandardDialog
+      v-model:visible="occsDialogVisible"
+      :header="$t('cassette.v2.occsDraft')"
+      size="lg"
+      :show-default-footer="false"
+    >
+      <Textarea :model-value="occsJson" readonly rows="24" class="w-full text-technical" />
+    </StandardDialog>
+
+    <StandardDialog
       v-model:visible="profileDialogVisible"
       :header="$t('cassette.v2.profileEditor.title')"
       size="lg"
@@ -820,6 +834,10 @@ import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
+import Accordion from 'primevue/accordion';
+import AccordionPanel from 'primevue/accordionpanel';
+import AccordionHeader from 'primevue/accordionheader';
+import AccordionContent from 'primevue/accordioncontent';
 import ScrollPanel from 'primevue/scrollpanel';
 import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
@@ -898,11 +916,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['load-template', 'save-template']);
 
-const sideTabs = [
-  { value: 'parameters', labelKey: 'cassette.v2.parameters', icon: 'pi pi-sliders-h' },
-  { value: 'layers', labelKey: 'common.layers', icon: 'pi pi-list' },
-  { value: 'occs', labelKey: 'cassette.v2.occsDraft', icon: 'pi pi-code' }
-];
+
 const cassetteTree = ref(createCassetteV2GraphTree());
 const cassetteNameDraft = ref(t('cassette.newCassette'));
 const selectedNodeId = ref(cassetteTree.value.rootId);
@@ -916,7 +930,7 @@ const foldedPreviewWorkpieceId = ref('');
 const previewSource = ref(null);
 const cassettePreviewSource = ref(null);
 const previewError = ref('');
-const activeSideTab = ref('parameters');
+const occsDialogVisible = ref(false);
 const drawingLayers = ref([]);
 const visibleLayerNames = ref([]);
 const hiddenLayerNames = ref([]);
@@ -1925,7 +1939,6 @@ const resetTree = () => {
   selectedWorkpieceOverrideId.value = '';
   selectedRelationId.value = '';
   inspectorSelection.value = 'face';
-  activeSideTab.value = 'parameters';
   previewError.value = '';
   clearSessionDraft();
   resetDesignerHistory();

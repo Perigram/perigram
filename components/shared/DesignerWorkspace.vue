@@ -87,7 +87,7 @@ defineExpose({
    of a viewport breakpoint. */
 .designer-workspace__lanes {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 17rem) minmax(0, 1fr) minmax(0, 19rem);
   grid-template-rows: minmax(22rem, 1fr);
 }
 
@@ -103,15 +103,11 @@ defineExpose({
 
 .designer-workspace__palette {
   grid-area: 1 / 1;
-  width: 17rem;
-  max-width: 42%;
   margin: 0.75rem 0 0.75rem 0.75rem;
 }
 
 .designer-workspace__inspector {
   grid-area: 1 / 3;
-  width: 19rem;
-  max-width: 48%;
   margin: 0.75rem 0.75rem 0.75rem 0;
 }
 
