@@ -20,6 +20,11 @@ jobs:
       - name: build image
         run: docker build --network=host -t perigram:staging --build-arg PORT=3001 .
       - name: redeploy container
+        env:
+          NUXT_MONGODB_URI: ${{ secrets.NUXT_MONGODB_URI }}
         run: |
           docker rm -f perigram-staging || true
-          docker run -d --name perigram-staging --restart unless-stopped -p 3001:3001 perigram:staging
+          docker run -d --name perigram-staging --restart unless-stopped \
+            --network=host \
+            -e NUXT_MONGODB_URI \
+            perigram:staging
