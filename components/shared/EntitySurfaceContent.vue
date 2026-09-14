@@ -103,7 +103,7 @@ const detailSections = computed(() => {
   return [...byGroup.entries()]
     .map(([name, fields]) => ({ name, fields }))
     .filter(section => section.fields.length);
-}
+});
 function sectionLabel(name) {
   const key = `entityGroups.${name}`;
   return te?.(key) ? t(key) : name;
