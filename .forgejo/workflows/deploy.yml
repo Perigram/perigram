@@ -22,9 +22,17 @@ jobs:
       - name: redeploy container
         env:
           NUXT_MONGODB_URI: ${{ secrets.NUXT_MONGODB_URI }}
+          LIVEKIT_PUBLIC_URL: ${{ secrets.LIVEKIT_PUBLIC_URL }}
+          LIVEKIT_INTERNAL_URL: ${{ secrets.LIVEKIT_INTERNAL_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
         run: |
           docker rm -f perigram-staging || true
           docker run -d --name perigram-staging --restart unless-stopped \
             --network=host \
             -e NUXT_MONGODB_URI \
+            -e LIVEKIT_PUBLIC_URL \
+            -e LIVEKIT_INTERNAL_URL \
+            -e LIVEKIT_API_KEY \
+            -e LIVEKIT_API_SECRET \
             perigram:staging
