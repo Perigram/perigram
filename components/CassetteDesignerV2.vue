@@ -33,86 +33,22 @@
 
     <DesignerWorkspace layout="lanes" class="min-h-0 flex-1">
       <template #toolbar>
-        <div class="flex flex-wrap items-center gap-2 border-b border-chrome-border px-3 py-2">
-          <div class="flex min-w-0 flex-wrap items-center gap-2">
-            <InputText
-              v-model="cassetteNameDraft"
-              :placeholder="$t('cassette.name')"
-              class="w-44"
-            />
-            <div class="w-40">
-              <Select
-                :model-value="null"
-                :options="templateOptions"
-                option-label="label"
-                option-value="value"
-                entity-type="cassette"
-                :placeholder="$t('cassette.v2.loadTemplate')"
-                class="w-full"
-                @update:model-value="value => emit('load-template', value)"
-              />
-            </div>
-          </div>
-          <div class="ml-auto flex shrink-0 items-center gap-1">
-            <Button
-              icon="pi pi-undo"
-              severity="secondary"
-              text
-              rounded
-              size="small"
-              :disabled="!canUndo"
-              :aria-label="$t('common.undo')"
-              v-tooltip.bottom="$t('common.undo')"
-              @click="undoDesignerChange"
-            />
-            <Button
-              icon="pi pi-replay"
-              severity="secondary"
-              text
-              rounded
-              size="small"
-              :disabled="!canRedo"
-              :aria-label="$t('common.redo')"
-              v-tooltip.bottom="$t('common.redo')"
-              @click="redoDesignerChange"
-            />
-            <div class="mx-1 h-6 w-px bg-content-border" aria-hidden="true"></div>
-            <Button
-              icon="pi pi-refresh"
-              severity="secondary"
-              text
-              rounded
-              size="small"
-              :aria-label="$t('common.reset')"
-              v-tooltip.bottom="$t('common.reset')"
-              @click="resetTree"
-            />
-            <Button
-              icon="pi pi-code"
-              severity="secondary"
-              text
-              rounded
-              size="small"
-              :aria-label="$t('cassette.v2.occsDraft')"
-              v-tooltip.bottom="$t('cassette.v2.occsDraft')"
-              @click="occsDialogVisible = true"
-            />
-            <Button
-              icon="pi pi-copy"
-              severity="secondary"
-              size="small"
-              :label="$t('common.saveAs')"
-              :loading="savingTemplate"
-              :disabled="savingTemplate"
-              @click="saveTemplate({ saveAs: true })"
-            />
-            <Button
-              icon="pi pi-save"
-              size="small"
-              :label="$t('common.save')"
-              :loading="savingTemplate"
-              :disabled="savingTemplate"
-              @click="saveTemplate"
+        <div class="flex flex-wrap items-center gap-2 px-1 pb-2">
+          <InputText
+            v-model="cassetteNameDraft"
+            :placeholder="$t('cassette.name')"
+            class="w-44"
+          />
+          <div class="w-40">
+            <Select
+              :model-value="null"
+              :options="templateOptions"
+              option-label="label"
+              option-value="value"
+              entity-type="cassette"
+              :placeholder="$t('cassette.v2.loadTemplate')"
+              class="w-full"
+              @update:model-value="value => emit('load-template', value)"
             />
           </div>
         </div>
@@ -131,11 +67,10 @@
         </div>
       </Message>
 
-      <Accordion :value="['parameters', 'layers']" multiple class="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-        <AccordionPanel value="parameters">
-        <AccordionHeader>
-          <span class="flex min-w-0 flex-1 items-center justify-between gap-2">
-            <span class="truncate">{{ $t('cassette.v2.globalParameters') }}</span>
+      <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto">
+        <section class="flex min-w-0 flex-col gap-2">
+          <div class="flex items-center justify-between gap-2">
+            <small class="uppercase text-muted-color text-supporting">{{ $t('cassette.v2.globalParameters') }}</small>
             <Button
               icon="pi pi-plus"
               severity="secondary"
@@ -143,102 +78,53 @@
               rounded
               size="small"
               :aria-label="$t('common.add')"
-              v-tooltip.top="$t('common.add')"
-              @click.stop="addGlobalParameter"
+              @click="addGlobalParameter"
             />
-          </span>
-        </AccordionHeader>
-        <AccordionContent>
-          <div class="flex min-w-0 flex-col gap-3 py-2">
-          <div v-for="parameter in globalParameterEntries" :key="parameter.key" class="flex min-w-0 flex-col gap-1">
-            <div class="flex items-center justify-between gap-2">
-              <label class="text-technical">{{ parameter.key }}</label>
-              <Button
-                icon="pi pi-trash"
-                severity="danger"
-                text
-                rounded
-                size="small"
-                :aria-label="$t('common.delete')"
-                :disabled="usedParameterNames.has(parameter.key)"
-                v-tooltip.top="$t('common.delete')"
-                @click="deleteGlobalParameter(parameter.key)"
-              />
-            </div>
+          </div>
+          <div v-for="parameter in globalParameterEntries" :key="parameter.key" class="flex min-w-0 items-center gap-2">
+            <label class="w-14 shrink-0 truncate text-technical text-muted-color" :title="parameter.key">{{ parameter.key }}</label>
             <CassetteExpressionEditor
+              class="min-w-0 flex-1"
               :model-value="parameter.value"
               :parameters="expressionParametersForGlobal(parameter.key)"
               :parameter-names="expressionParameterNamesForGlobal(parameter.key)"
               @update:model-value="value => updateGlobalParameter(parameter.key, value)"
             />
+            <Button
+              icon="pi pi-trash"
+              severity="secondary"
+              text
+              rounded
+              size="small"
+              :aria-label="$t('common.delete')"
+              :disabled="usedParameterNames.has(parameter.key)"
+              @click="deleteGlobalParameter(parameter.key)"
+            />
           </div>
-          </div>
-        </AccordionContent>
-        </AccordionPanel>
+        </section>
 
-        <AccordionPanel value="layers">
-        <AccordionHeader>
-          <span class="flex min-w-0 flex-1 items-center justify-between gap-2">
-            <span class="flex min-w-0 items-center gap-2">
-              <i class="pi pi-list text-muted-color" aria-hidden="true" />
-              <span class="truncate">{{ $t('common.layers') }}</span>
-              <Tag :value="visibleLayerSummary" severity="secondary" size="small" />
-            </span>
-            <span class="flex items-center gap-1" @click.stop>
-              <Button
-                icon="pi pi-eye"
-                text
-                rounded
-                size="small"
-                severity="secondary"
-                :aria-label="$t('drawing.showAllLayers')"
-                :disabled="allLayersVisible"
-                v-tooltip.top="$t('drawing.showAllLayers')"
-                @click="showAllLayers"
-              />
-              <Button
-                icon="pi pi-eye-slash"
-                text
-                rounded
-                size="small"
-                severity="secondary"
-                :aria-label="$t('drawing.hideAllLayers')"
-                :disabled="visibleLayerNames.length === 0"
-                v-tooltip.top="$t('drawing.hideAllLayers')"
-                @click="hideAllLayers"
-              />
-            </span>
-          </span>
-        </AccordionHeader>
-        <AccordionContent>
-          <div class="flex flex-col py-2">
-          <div class="flex flex-col">
-            <div
-              v-for="row in layerRows"
-              :key="row.key"
-              class="flex items-start gap-3 border-b border-content-border px-3 py-3 last:border-b-0"
-            >
-              <Checkbox
-                :model-value="visibleLayerNames"
-                :value="row.layer.name"
-                :inputId="layerInputId(row.layer)"
-                size="small"
-                class="mt-1"
-                @update:model-value="updateVisibleLayerNames"
-              />
-              <div class="flex min-w-0 flex-1 flex-col gap-2">
-                <label :for="layerInputId(row.layer)" class="min-w-0">
-                  <IdentityBlock :entity="row.sourceEntity" variant="compact" :fields="row.layer.standardCode ? ['slug'] : []" />
-                </label>
-                <LayerStandardCard v-if="row.standard" :standard="row.standard" variant="inline" />
-                <PenTemplateCard v-if="row.pen" :pen="row.pen" variant="inline" />
-              </div>
-            </div>
+        <section class="flex min-w-0 flex-col gap-1">
+          <small class="uppercase text-muted-color text-supporting">{{ $t('common.layers') }}</small>
+          <div
+            v-for="row in layerRows"
+            :key="row.key"
+            class="flex min-w-0 items-center gap-2 py-0.5"
+          >
+            <Checkbox
+              :model-value="visibleLayerNames"
+              :value="row.layer.name"
+              :inputId="layerInputId(row.layer)"
+              size="small"
+              @update:model-value="updateVisibleLayerNames"
+            />
+            <label :for="layerInputId(row.layer)" class="min-w-0 flex-1 truncate">
+              <IdentityBlock :entity="row.sourceEntity" variant="inline" :fields="row.layer.standardCode ? ['slug'] : []" />
+            </label>
+            <LayerStandardCard v-if="row.standard" :standard="row.standard" variant="inline" />
+            <PenTemplateCard v-if="row.pen" :pen="row.pen" variant="inline" />
           </div>
-        </div>
-        </AccordionContent>
-        </AccordionPanel>
-      </Accordion>
+        </section>
+      </div>
       </aside>
       </template>
 
@@ -744,6 +630,10 @@
         </div>
       </aside>
       </template>
+
+      <template #dock>
+        <MotionDock :items="designerDockItems" :aria-label="$t('cassette.v2.parameters')" />
+      </template>
     </DesignerWorkspace>
 
     <StandardDialog
@@ -827,17 +717,14 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, h, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
-import Accordion from 'primevue/accordion';
-import AccordionPanel from 'primevue/accordionpanel';
-import AccordionHeader from 'primevue/accordionheader';
-import AccordionContent from 'primevue/accordioncontent';
+import MotionDock from '~/components/shared/MotionDock.vue';
 import ScrollPanel from 'primevue/scrollpanel';
 import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
@@ -931,6 +818,42 @@ const previewSource = ref(null);
 const cassettePreviewSource = ref(null);
 const previewError = ref('');
 const occsDialogVisible = ref(false);
+const designerDockItems = computed(() => [
+  {
+    icon: () => h('i', { class: 'pi pi-undo', 'aria-hidden': 'true' }),
+    label: t('common.undo'),
+    disabled: !canUndo.value,
+    onClick: undoDesignerChange
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-replay', 'aria-hidden': 'true' }),
+    label: t('common.redo'),
+    disabled: !canRedo.value,
+    onClick: redoDesignerChange
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
+    label: t('common.reset'),
+    onClick: resetTree
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-code', 'aria-hidden': 'true' }),
+    label: t('cassette.v2.occsDraft'),
+    onClick: () => { occsDialogVisible.value = true; }
+  },
+  {
+    icon: () => h('i', { class: savingTemplate.value ? 'pi pi-spinner pi-spin' : 'pi pi-copy', 'aria-hidden': 'true' }),
+    label: t('common.saveAs'),
+    disabled: savingTemplate.value,
+    onClick: () => saveTemplate({ saveAs: true })
+  },
+  {
+    icon: () => h('i', { class: savingTemplate.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
+    label: t('common.save'),
+    disabled: savingTemplate.value,
+    onClick: () => saveTemplate()
+  }
+]);
 const drawingLayers = ref([]);
 const visibleLayerNames = ref([]);
 const hiddenLayerNames = ref([]);
@@ -1271,8 +1194,6 @@ const usedParameterNames = computed(() => {
 });
 const occsJson = computed(() => JSON.stringify(createCassetteV2OccsDocument(cassetteTree.value, cassetteMarkContext.value), null, 2));
 const drawingLayerNames = computed(() => drawingLayers.value.map(layer => layer.name).filter(Boolean));
-const visibleLayerSummary = computed(() => `${visibleLayerNames.value.length}/${drawingLayerNames.value.length}`);
-const allLayersVisible = computed(() => drawingLayerNames.value.length > 0 && drawingLayerNames.value.every(name => visibleLayerNames.value.includes(name)));
 const sameEntityId = (left, right) => left?.toString?.() === right?.toString?.();
 const standardCode = (standard) => standard?.data?.code || standard?.code || null;
 const sourceLayerEntity = (layer) => ({
@@ -1805,17 +1726,6 @@ const updateVisibleLayerNames = (layers) => {
   const nextLayers = Array.isArray(layers) ? layers.filter(Boolean) : [];
   visibleLayerNames.value = nextLayers;
   updateHiddenLayers(nextLayers);
-};
-
-const showAllLayers = () => {
-  const nextLayers = [...drawingLayerNames.value];
-  visibleLayerNames.value = nextLayers;
-  updateHiddenLayers(nextLayers);
-};
-
-const hideAllLayers = () => {
-  visibleLayerNames.value = [];
-  updateHiddenLayers([]);
 };
 
 const defaultFaceRole = (node) => node?.role || (node?.parentId ? 'return_flange' : 'main');

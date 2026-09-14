@@ -20,16 +20,6 @@
         @keydown.enter.prevent
         @paste.prevent="handlePaste"
       />
-      <Button
-        icon="pi pi-question-circle"
-        severity="secondary"
-        text
-        rounded
-        size="small"
-        :aria-label="t('cassette.v2.expression.guideTitle')"
-        v-tooltip.top="guideText"
-        @mousedown.prevent
-      />
     </div>
 
     <div
@@ -104,11 +94,6 @@ const internalText = ref(String(props.modelValue ?? ''));
 const lastSelection = ref({ start: internalText.value.length, end: internalText.value.length });
 const isPanelActive = ref(false);
 let deactivateTimer = null;
-
-const guideText = computed(() => [
-  t('cassette.v2.expression.guide'),
-  props.allowAngleSuffix ? t('cassette.v2.expression.angleGuide') : null
-].filter(Boolean).join('\n'));
 
 const normalizeToken = (item, prefix = 'token') => {
   const key = typeof item === 'string' ? item : item.key;
