@@ -37,7 +37,7 @@
                     </template>
                     <template v-else>
                         <slot name="before-identity" />
-                        <IdentityBlock :entity="entity" variant="compact" />
+                        <IdentityBlock :entity="entity" variant="compact" :icon="entityConfig.icon" />
                     </template>
                 </div>
                 <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
@@ -76,7 +76,7 @@
                     <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
                         <div class="flex min-w-0 flex-1 items-center gap-2">
                             <slot name="before-identity" />
-                            <IdentityBlock :entity="entity" />
+                            <IdentityBlock :entity="entity" :icon="entityConfig.icon" />
                         </div>
                         <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
                             <EntityStatus
@@ -132,7 +132,7 @@
                         @transitioned="$emit('refresh')"
                     />
                 </div>
-                <IdentityBlock :entity="entity" variant="header" />
+                <IdentityBlock :entity="entity" variant="header" :icon="entityConfig.icon" />
                 <TraceChain
                     v-if="effectivePopupShowTrace"
                     :entity="entity"

@@ -78,7 +78,7 @@
                 class="min-w-0 max-w-full text-left text-[var(--ck-primary-ink)] underline-offset-4 hover:underline"
                 @click.stop="openEntity(entity)"
               >
-                <IdentityBlock :entity="entity" />
+                <IdentityBlock :entity="entity" :icon="entityIcon" />
               </button>
             </div>
             <div v-if="entity.status" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
@@ -155,6 +155,7 @@ import { entityHierarchyIds } from '~/utils/entity-hierarchy.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
+import { entityUiFor } from '~/utils/status-engine';
 import { generatedActionRendersAt } from '~/components/generated/action-placement.js';
 
 const props = defineProps({
@@ -175,6 +176,7 @@ const emit = defineEmits(['refresh', 'execute-action', 'open-entity', 'open-page
 const authStore = useAuthStore();
 const editorActionComponent = computed(() => entityEditorActionFor(props.entityType));
 const hasEditorAction = computed(() => entityHasEditorAction(props.entityType));
+const entityIcon = computed(() => entityUiFor(props.entityType).icon);
 const { t } = useI18n();
 const searchQuery = ref('');
 const statusFilter = ref('');

@@ -10,7 +10,7 @@ import { useIdentity } from '~/composables/useBlocks';
 const props = defineProps({
   entity: { type: Object, required: true },
   variant: { type: String, default: 'default' }, // default, compact, inline, header
-  icon: { type: String, default: null }, // used in inline variant for Chip icon
+  icon: { type: String, default: null }, // entity icon class; inline chip icon and title-row glyph
   fields: { type: Array, default: () => [] } // optional extra fields: slug, serial, reference, uid
 });
 
@@ -40,15 +40,21 @@ const identityMetaText = computed(() => identityMeta.value.map((item) => `${item
 <template>
   <div v-if="props.entity" class="identity-block min-w-0">
     <!-- Header Variant (Main Page Titles) -->
-    <div v-if="variant === 'header'" class="flex flex-col gap-1 min-w-0">
-      <span class="truncate" :title="primary">{{ primary }}</span>
-      <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>
+    <div v-if="variant === 'header'" class="flex min-w-0 items-center gap-2">
+      <i v-if="icon" :class="icon" class="shrink-0 text-muted-color" aria-hidden="true"></i>
+      <div class="flex flex-col gap-1 min-w-0">
+        <span class="truncate" :title="primary">{{ primary }}</span>
+        <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>
+      </div>
     </div>
 
     <!-- Compact Variant (Card rows, lists) -->
-    <div v-else-if="variant === 'compact'" class="flex flex-col min-w-0">
-      <span class="truncate" :title="primary">{{ primary }}</span>
-      <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>
+    <div v-else-if="variant === 'compact'" class="flex min-w-0 items-center gap-2">
+      <i v-if="icon" :class="icon" class="shrink-0 text-muted-color" aria-hidden="true"></i>
+      <div class="flex flex-col min-w-0">
+        <span class="truncate" :title="primary">{{ primary }}</span>
+        <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>
+      </div>
     </div>
 
     <!-- Inline Variant — text-inline pill with optional icon -->
@@ -62,9 +68,12 @@ const identityMetaText = computed(() => identityMeta.value.map((item) => `${item
     </span>
 
     <!-- Default (Card title area) -->
-    <div v-else class="flex flex-col gap-0.5 min-w-0">
-      <span class="truncate" :title="primary">{{ primary }}</span>
-      <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>
+    <div v-else class="flex min-w-0 items-center gap-2">
+      <i v-if="icon" :class="icon" class="shrink-0 text-muted-color" aria-hidden="true"></i>
+      <div class="flex flex-col gap-0.5 min-w-0">
+        <span class="truncate" :title="primary">{{ primary }}</span>
+        <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>
+      </div>
     </div>
   </div>
 </template>

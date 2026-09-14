@@ -10,6 +10,7 @@ import EntityActionsPopover from './EntityActionsPopover.vue';
 import { computed, inject, provide, unref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
+import { entityUiFor } from '~/utils/status-engine';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -36,6 +37,7 @@ const typeLabel = computed(() => {
   const label = t(key);
   return typeof label === 'string' ? label : '';
 });
+const entityIcon = computed(() => entityUiFor(props.entityType).icon);
 const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
 provide('displayedEntityContexts', computed(() => [
   ...(unref(parentDisplayedEntityContexts) || []),
@@ -57,7 +59,7 @@ provide('displayedEntityContexts', computed(() => [
             {{ effectiveTitle }}
           </div>
           <div class="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <IdentityBlock v-if="showIdentity" :entity="entity" variant="header" />
+            <IdentityBlock v-if="showIdentity" :entity="entity" variant="header" :icon="entityIcon" />
             <EntityStatus
               v-if="showStatus"
               :entity="entity"
