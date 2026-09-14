@@ -32,68 +32,85 @@
     </div>
 
     <DesignerWorkspace layout="lanes" class="min-h-0 flex-1">
-      <template #palette>
-      <aside class="order-3 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-ui border border-content-border p-3 lg:col-span-2 xl:order-1 xl:col-span-1">
-
-      <div class="flex shrink-0 flex-col gap-2 rounded-ui border border-content-border bg-subtle p-2">
-        <InputText
-          v-model="cassetteNameDraft"
-          :placeholder="$t('cassette.name')"
-          class="w-full"
-        />
-        <Select
-          :model-value="null"
-          :options="templateOptions"
-          option-label="label"
-          option-value="value"
-          entity-type="cassette"
-          :placeholder="$t('cassette.v2.loadTemplate')"
-          class="w-full"
-          @update:model-value="value => emit('load-template', value)"
-        />
-        <div class="flex items-center gap-1">
+      <template #toolbar>
+        <div class="flex flex-wrap items-center gap-2 px-1 pb-2">
+          <InputText
+            v-model="cassetteNameDraft"
+            :placeholder="$t('cassette.name')"
+            class="w-44"
+          />
+          <Select
+            :model-value="null"
+            :options="templateOptions"
+            option-label="label"
+            option-value="value"
+            entity-type="cassette"
+            :placeholder="$t('cassette.v2.loadTemplate')"
+            class="w-40"
+            @update:model-value="value => emit('load-template', value)"
+          />
           <Button
             icon="pi pi-save"
             size="small"
+            :label="$t('common.save')"
             :loading="savingTemplate"
             :disabled="savingTemplate"
-            :aria-label="$t('common.save')"
-            v-tooltip.top="$t('common.save')"
             @click="saveTemplate"
           />
           <Button
             icon="pi pi-copy"
             severity="secondary"
-            text
-            rounded
             size="small"
+            :label="$t('common.saveAs')"
             :loading="savingTemplate"
             :disabled="savingTemplate"
-            :aria-label="$t('common.saveAs')"
-            v-tooltip.top="$t('common.saveAs')"
             @click="saveTemplate({ saveAs: true })"
           />
           <Button
             icon="pi pi-refresh"
             severity="secondary"
+            size="small"
+            :label="$t('common.reset')"
+            @click="resetTree"
+          />
+          <div class="mx-1 h-6 w-px bg-content-border" aria-hidden="true"></div>
+          <Button
+            icon="pi pi-undo"
+            severity="secondary"
             text
             rounded
             size="small"
-            :aria-label="$t('common.reset')"
-            v-tooltip.top="$t('common.reset')"
-            @click="resetTree"
+            :disabled="!canUndo"
+            :aria-label="$t('common.undo')"
+            v-tooltip.bottom="$t('common.undo')"
+            @click="undoDesignerChange"
+          />
+          <Button
+            icon="pi pi-replay"
+            severity="secondary"
+            text
+            rounded
+            size="small"
+            :disabled="!canRedo"
+            :aria-label="$t('common.redo')"
+            v-tooltip.bottom="$t('common.redo')"
+            @click="redoDesignerChange"
           />
         </div>
-        <Message v-if="sessionDraftAvailable" severity="info" size="small" :closable="false">
-          <div class="flex flex-col gap-2">
-            <span>{{ $t('cassette.v2.autosaveDraftAvailable') }}</span>
-            <div class="flex flex-wrap gap-1">
-              <Button :label="$t('cassette.v2.recoverDraft')" size="small" @click="recoverSessionDraft" />
-              <Button :label="$t('cassette.v2.discardDraft')" severity="secondary" text size="small" @click="discardSessionDraft" />
-            </div>
+      </template>
+
+      <template #palette>
+      <aside class="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3">
+
+      <Message v-if="sessionDraftAvailable" severity="info" size="small" :closable="false">
+        <div class="flex flex-col gap-2">
+          <span>{{ $t('cassette.v2.autosaveDraftAvailable') }}</span>
+          <div class="flex flex-wrap gap-1">
+            <Button :label="$t('cassette.v2.recoverDraft')" size="small" @click="recoverSessionDraft" />
+            <Button :label="$t('cassette.v2.discardDraft')" severity="secondary" text size="small" @click="discardSessionDraft" />
           </div>
-        </Message>
-      </div>
+        </div>
+      </Message>
 
       <div class="flex flex-wrap gap-2">
         <Button
@@ -213,7 +230,7 @@
       </aside>
       </template>
 
-      <section ref="editorSurfaceRef" class="relative order-1 min-h-0 min-w-0 overflow-hidden xl:order-2">
+      <section ref="editorSurfaceRef" class="relative h-full min-h-0 w-full overflow-hidden">
       <DrawingCanvas
         :source="drawingCanvasSource"
         source-type="geometry-preview"
@@ -232,30 +249,6 @@
         @designer-section-edit="handleDesignerSectionEdit"
         @designer-fold-angle-edit="handleDesignerFoldAngleEdit"
       />
-      <div class="absolute left-3 top-3 z-[80] flex gap-1 rounded-ui border border-content-border bg-content p-1 shadow-overlay">
-        <Button
-          icon="pi pi-undo"
-          severity="secondary"
-          text
-          rounded
-          size="small"
-          :disabled="!canUndo"
-          :aria-label="$t('common.undo')"
-          v-tooltip.bottom="$t('common.undo')"
-          @click="undoDesignerChange"
-        />
-        <Button
-          icon="pi pi-replay"
-          severity="secondary"
-          text
-          rounded
-          size="small"
-          :disabled="!canRedo"
-          :aria-label="$t('common.redo')"
-          v-tooltip.bottom="$t('common.redo')"
-          @click="redoDesignerChange"
-        />
-      </div>
       <div
         v-if="inlineEditor"
         class="absolute z-[120] min-w-64 rounded-ui border border-content-border bg-content p-2 shadow-overlay"
@@ -553,8 +546,8 @@
       </section>
 
       <template #inspector>
-      <aside class="order-2 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden xl:order-3">
-        <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-ui border border-content-border bg-content p-3">
+      <aside class="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3">
+        <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
           <div class="flex items-center justify-between gap-2">
             <strong class="truncate">{{ $t('cassette.v2.workpieces') }}</strong>
             <div class="flex items-center gap-1">
@@ -727,7 +720,7 @@
           </ScrollPanel>
         </div>
 
-        <div class="hidden shrink-0 overflow-hidden lg:block lg:h-56 xl:h-64">
+        <div class="h-48 shrink-0 overflow-hidden">
           <CassetteFoldedPreview
             :preview="cassettePreviewSource?.foldedPreview"
             :selected-face-id="selectedNodeId"

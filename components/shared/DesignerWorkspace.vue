@@ -12,20 +12,34 @@
       <slot name="toolbar" />
     </header>
 
-    <div v-if="layout === 'lanes'" class="designer-workspace__lanes grid min-h-0 min-w-0 flex-1 gap-3 overflow-hidden">
-      <aside v-if="$slots.palette" class="designer-workspace__palette min-h-0 min-w-0 overflow-auto">
-        <slot name="palette" />
-      </aside>
-      <main class="designer-workspace__canvas relative min-h-0 min-w-0 overflow-hidden">
+    <!-- Lanes: the canvas is the workspace background, edge to edge; palette,
+         inspector, and support are floating rails docked over it. The rails
+         cap their own width against the workspace width, so narrow hosts
+         keep the full-bleed canvas instead of collapsing into one stacked
+         column. -->
+    <div v-if="layout === 'lanes'" class="designer-workspace__lanes relative min-h-0 min-w-0 flex-1 overflow-hidden">
+      <main class="designer-workspace__canvas absolute inset-0 min-h-0 min-w-0 overflow-hidden">
         <slot />
         <div v-if="$slots.dock" class="absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
           <slot name="dock" />
         </div>
       </main>
-      <aside v-if="$slots.inspector" class="designer-workspace__inspector min-h-0 min-w-0 overflow-auto">
+      <aside
+        v-if="$slots.palette"
+        class="designer-workspace__rail designer-workspace__palette absolute inset-y-3 left-3 z-20 min-h-0 overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
+      >
+        <slot name="palette" />
+      </aside>
+      <aside
+        v-if="$slots.inspector"
+        class="designer-workspace__rail designer-workspace__inspector absolute inset-y-3 right-3 z-20 min-h-0 overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
+      >
         <slot name="inspector" />
       </aside>
-      <aside v-if="$slots.support" class="designer-workspace__support min-h-0 min-w-0 overflow-auto">
+      <aside
+        v-if="$slots.support"
+        class="designer-workspace__rail designer-workspace__support absolute bottom-3 left-3 z-20 min-h-0 overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
+      >
         <slot name="support" />
       </aside>
     </div>
@@ -65,34 +79,35 @@ defineExpose({
 </script>
 
 <style scoped>
-.designer-workspace__lanes {
-  grid-template-areas:
-    'canvas'
-    'palette'
-    'inspector'
-    'support';
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(18rem, 1fr) auto auto auto;
-}
-
 .designer-workspace {
   container-type: inline-size;
 }
 
-.designer-workspace__palette { grid-area: palette; }
-.designer-workspace__canvas { grid-area: canvas; }
-.designer-workspace__inspector { grid-area: inspector; }
-.designer-workspace__support { grid-area: support; }
+.designer-workspace__rail {
+  display: flex;
+  flex-direction: column;
+}
 
-@container (min-width: 80rem) {
-  .designer-workspace__lanes {
-    grid-template-areas: 'palette canvas inspector';
-    grid-template-columns: minmax(16rem, 20rem) minmax(0, 1fr) minmax(18rem, 22rem);
-    grid-template-rows: minmax(0, 1fr);
-  }
+.designer-workspace__palette {
+  width: 17rem;
+  max-width: 42%;
+}
 
+.designer-workspace__inspector {
+  width: 19rem;
+  max-width: 48%;
+}
+
+.designer-workspace__support {
+  left: 20rem;
+  width: 17rem;
+  max-width: 42%;
+  max-height: 45%;
+}
+
+@container (max-width: 48rem) {
   .designer-workspace__support {
-    display: none;
+    left: 3rem;
   }
 }
 </style>

@@ -132,7 +132,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-calls-calltile-vue` | `components/calls/CallTile.vue` | derived usage | replace:chrome (5) |
 | `ui-components-calls-callworkspacepage-vue` | `components/calls/CallWorkspacePage.vue` | derived usage | replace:chrome (4); compliant:scoped-layout |
 | `ui-components-cassettedesigner-vue` | `components/CassetteDesigner.vue` | derived usage | replace:chrome (3); narrowly-allowlist:inline-data-driven (1) |
-| `ui-components-cassettedesignerv2-vue` | `components/CassetteDesignerV2.vue` | derived usage | centralize:layout (1); replace:chrome (59); narrowly-allowlist:inline-data-driven (2) |
+| `ui-components-cassettedesignerv2-vue` | `components/CassetteDesignerV2.vue` | derived usage | centralize:layout (1); replace:chrome (44); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-cassetteeditordialog-vue` | `components/CassetteEditorDialog.vue` | derived usage | centralize:layout (6); replace:chrome (2) |
 | `ui-components-cassetteexpressioneditor-vue` | `components/CassetteExpressionEditor.vue` | derived usage | replace:chrome (17); remove:state (1) |
 | `ui-components-cassettefoldedpreview-vue` | `components/CassetteFoldedPreview.vue` | derived usage | centralize:layout (2); replace:chrome (4); remove:state (1) |
@@ -190,7 +190,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-entities-user-usercard-vue` | `components/entities/User/UserCard.vue` | derived usage | compliant |
 | `ui-components-entities-warehouse-warehousecard-vue` | `components/entities/Warehouse/WarehouseCard.vue` | derived usage | compliant |
 | `ui-components-entities-warehouse-warehousedetail-vue` | `components/entities/Warehouse/WarehouseDetail.vue` | derived usage | compliant |
-| `ui-components-facadedesigner-vue` | `components/FacadeDesigner.vue` | derived usage | replace:chrome (12) |
+| `ui-components-facadedesigner-vue` | `components/FacadeDesigner.vue` | derived usage | compliant |
 | `ui-components-facadepatterndesigner-vue` | `components/FacadePatternDesigner.vue` | derived usage | replace:chrome (9) |
 | `ui-components-footer-vue` | `components/Footer.vue` | derived usage | compliant |
 | `ui-components-generated-generatedactionbutton-vue` | `components/generated/GeneratedActionButton.vue` | derived usage | compliant |
@@ -236,7 +236,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-communicationmenu-vue` | `components/shared/CommunicationMenu.vue` | derived usage | replace:chrome (2); remove:important-override (3) |
 | `ui-components-shared-designerdialog-vue` | `components/shared/DesignerDialog.vue` | shared/domain primitive | compliant:scoped-layout |
 | `ui-components-shared-designersurface-vue` | `components/shared/DesignerSurface.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (2); compliant:scoped-layout |
+| `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (2); replace:chrome (12); compliant:scoped-layout |
 | `ui-components-shared-drawingcanvas-vue` | `components/shared/DrawingCanvas.vue` | shared/domain primitive | replace:chrome (14) |
 | `ui-components-shared-entityactionspopover-vue` | `components/shared/EntityActionsPopover.vue` | derived usage | compliant |
 | `ui-components-shared-entitycard-vue` | `components/shared/EntityCard.vue` | shared/domain primitive | centralize:layout (1) |

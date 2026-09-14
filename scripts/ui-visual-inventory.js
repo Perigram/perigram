@@ -32,6 +32,8 @@ export const SCOPED_LAYOUT_PROPERTIES = new Set([
   'grid-template-columns',
   'grid-template-rows',
   'justify-content',
+  'left',
+  'max-height',
   'max-width',
   'min-height',
   'min-width',
