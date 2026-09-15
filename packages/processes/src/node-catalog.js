@@ -694,15 +694,11 @@ function effectInputs(kind, types) {
     socket('entity', types.entityRef, DATA, true, 'list'),
     socket('status', processType('status', { entityType: types.entity.entityType }), DATA, true, 'list'),
     socket('changes', types.patch, DATA, false, 'list'),
-    socket('region', processType('string'), DATA, false, 'list'),
-    socket('path', processType('array', { itemType: processType('string') }), DATA, false, 'list'),
-    socket('metadata', processType('json'), DATA, false, 'list'),
-    socket('lifecycle', processType('json'), DATA, false, 'list')
+    socket('note', processType('string'), DATA, false, 'list')
   ];
   if (kind === 'effect.archiveEntity') return [
     socket('entity', types.entityRef, DATA, true, 'list'),
-    socket('metadata', processType('json'), DATA, false, 'list'),
-    socket('lifecycle', processType('json'), DATA, false, 'list')
+    socket('note', processType('string'), DATA, false, 'list')
   ];
   if (kind === 'effect.deleteEntity') return [socket('entity', types.entityRef, DATA, true, 'list')];
   if (kind === 'effect.sendEntity') return [socket('entity', types.entityRef, DATA, true)];

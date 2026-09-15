@@ -2762,6 +2762,7 @@
     "showAdvancedOperations": "Show advanced operations",
     "hideAdvancedOperations": "Hide advanced operations",
     "statusId": "Status ID",
+    "parentStatus": "Parent status",
     "statusInUse": "Status is in use",
     "statusInUseHelp": "Disconnect or reconfigure the Change Status action first.",
     "automaticConversion": "Automatic conversion to {type}",

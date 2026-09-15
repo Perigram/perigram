@@ -69,7 +69,12 @@ The panel shows the entity type's display label and icon with a "Producer
 output" tag, the stable `nodeId:outputSocketId` identity as a muted code
 line, the producer's declared relation keys, and a hint that statuses and
 transitions come from the domain lifecycle, wired status definitions, and
-action nodes. It contains no status-machine or entity-access editors: node
+action nodes.
+Status definition nodes author an optional parent status (inline select and
+inspector field, options being the other definitions' status ids). A child
+definition wires into producers and Change Status nodes like any status; its
+selectable value is the dotted nested state id, and validation rejects
+unknown or cyclic parents. It contains no status-machine or entity-access editors: node
 wiring is the single authoring path for lifecycle and access, and the
 `useProcessDesignerWorkflow` panel editor was removed with it.
 `useProcessDesignerScreens` owns source/region creation, source-id reference
