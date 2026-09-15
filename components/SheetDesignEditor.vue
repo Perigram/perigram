@@ -1,6 +1,6 @@
 <template>
   <DesignerSurface>
-    <DesignerWorkspace layout="lanes" class="h-full">
+    <DesignerWorkspace layout="lanes" class="h-full" :top-dock-items="documentDockItems">
       <div class="relative h-full w-full overflow-hidden bg-subtle">
       <span class="absolute top-3 left-3 z-10 rounded-ui bg-content px-2 py-1 text-supporting shadow-overlay">
         {{ $t('toolProfile.kerf') }}: {{ toolKerf }} mm
@@ -106,10 +106,6 @@
         </g>
       </svg>
       </div>
-
-      <template #topDock>
-        <MotionDock :items="documentDockItems" :aria-label="$t('common.save')" />
-      </template>
 
       <template #dock>
         <MotionDock :items="canvasDockItems" :aria-label="$t('sheetDesign.editor')" />

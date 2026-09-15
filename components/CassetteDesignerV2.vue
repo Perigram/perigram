@@ -31,7 +31,7 @@
       </div>
     </div>
 
-    <DesignerWorkspace layout="lanes" class="min-h-0 flex-1">
+    <DesignerWorkspace layout="lanes" class="min-h-0 flex-1" :top-dock-items="documentDockItems">
 
       <template #palette>
       <aside class="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3">
@@ -640,10 +640,6 @@
         </div>
       </Popover>
 
-      <template #topDock>
-        <MotionDock :items="documentDockItems" :aria-label="$t('cassette.v2.parameters')" />
-      </template>
-
       <template #dock>
         <MotionDock :items="canvasDockItems" :aria-label="$t('common.undo')" />
       </template>
@@ -857,6 +853,7 @@ const documentDockItems = computed(() => [
     onClick: event => openDockPopover('rename', event),
     hasPopup: true
   },
+  { separator: true },
   {
     icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
     label: t('common.reset'),
@@ -867,6 +864,7 @@ const documentDockItems = computed(() => [
     label: t('cassette.v2.occsDraft'),
     onClick: () => { occsDialogVisible.value = true; }
   },
+  { separator: true },
   {
     icon: () => h('i', { class: savingTemplate.value ? 'pi pi-spinner pi-spin' : 'pi pi-copy', 'aria-hidden': 'true' }),
     label: t('common.saveAs'),

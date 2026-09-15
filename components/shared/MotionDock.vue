@@ -170,6 +170,18 @@
             }
         },
         render() {
+            if ((this.item as DockItemData & { separator?: boolean }).separator) {
+                return h('span', {
+                    style: {
+                        width: '1px',
+                        height: `${Math.round(this.baseItemSize * 0.7)}px`,
+                        flex: '0 0 auto',
+                        alignSelf: 'center',
+                        backgroundColor: 'var(--p-content-border-color)',
+                    } satisfies CSSProperties,
+                    'aria-hidden': 'true',
+                })
+            }
             const icon = typeof this.item.icon === 'function' ? (this.item.icon as () => unknown)() : this.item.icon
             const itemStyle: CSSProperties = {
                 width: `${this.currentSize}px`,

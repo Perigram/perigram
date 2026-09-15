@@ -21,8 +21,8 @@
     <div v-if="layout === 'lanes'" class="designer-workspace__lanes min-h-0 min-w-0 flex-1 overflow-hidden">
       <main class="designer-workspace__canvas relative min-h-0 min-w-0 overflow-hidden">
         <slot />
-        <div v-if="$slots.topDock" class="absolute inset-x-0 top-3 z-30 flex justify-center px-3">
-          <slot name="topDock" />
+        <div v-if="dockTopItems.length" class="absolute inset-x-0 top-3 z-30 flex justify-center px-3">
+          <MotionDock :items="dockTopItems" :aria-label="$t('designer.panels')" />
         </div>
         <div v-if="$slots.dock" class="absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
           <slot name="dock" />
@@ -51,13 +51,13 @@
 
     <main v-else class="relative min-h-0 min-w-0 flex-1 overflow-hidden">
       <slot />
-      <div v-if="$slots.topDock" class="absolute inset-x-0 top-3 z-30 flex justify-center px-3">
-        <slot name="topDock" />
+      <div v-if="dockTopItems.length" class="absolute inset-x-0 top-3 z-30 flex justify-center px-3">
+        <MotionDock :items="dockTopItems" :aria-label="$t('designer.panels')" />
       </div>
-      <div v-if="hasPalette && !compact && panels.palette" class="absolute left-3 top-14 z-20 max-h-[calc(100%-8rem)] overflow-auto">
+      <div v-if="hasPalette && !compact && panels.palette" class="absolute top-14 left-3 z-20 w-[17rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
         <slot name="palette" />
       </div>
-      <aside v-if="hasInspector && !compact && panels.inspector" class="absolute bottom-16 right-3 top-14 z-20 min-h-0 max-w-[calc(100%-1.5rem)] overflow-auto">
+      <aside v-if="hasInspector && !compact && panels.inspector" class="absolute top-14 right-3 bottom-16 z-20 w-[22rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
         <slot name="inspector" />
       </aside>
       <div v-if="$slots.dock" class="absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
@@ -65,27 +65,6 @@
       </div>
     </main>
 
-    <!-- Panel visibility is one PrimeVue SelectButton (multi-select,
-         icon-only options) pinned to the top-right edge; in lanes mode it
-         rides left of an open inspector rail. Selection state is the same
-         panels state the rails and the compact overlay use. -->
-    <SelectButton
-      v-if="panelOptions.length"
-      v-model="openPanels"
-      :options="panelOptions"
-      option-value="value"
-      multiple
-      :allow-empty="true"
-      size="small"
-      class="absolute top-3 z-30"
-      :class="!compact && layout === 'lanes' && panels.inspector ? 'right-80' : 'right-3'"
-      :aria-label="$t('designer.panels')"
-      data-designer-panel-controls
-    >
-      <template #option="{ option }">
-        <i :class="[option.icon, option.flip ? '-scale-x-100' : '']" :title="$t(option.labelKey)" aria-hidden="true" />
-      </template>
-    </SelectButton>
     <aside
       v-if="compact && compactPanelOpen"
       class="absolute inset-x-3 top-14 z-20 flex min-h-0 max-h-[55%] flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
@@ -114,8 +93,9 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, useSlots, watch } from 'vue';
-import SelectButton from 'primevue/selectbutton';
+import { computed, h, onBeforeUnmount, onMounted, provide, reactive, ref, useSlots, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import MotionDock from '~/components/shared/MotionDock.vue';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -129,10 +109,14 @@ const props = defineProps({
     type: String,
     default: 'lanes',
     validator: value => ['lanes', 'canvas'].includes(value)
-  }
+  },
+  // Document commands (open/load, rename, save...) rendered after the
+  // workspace-owned panel toggles inside the shared top dock.
+  topDockItems: { type: Array, default: () => [] }
 });
 
 const slots = useSlots();
+const { t } = useI18n();
 const workspace = ref(null);
 
 const hasPalette = computed(() => Boolean(slots.palette));
@@ -146,29 +130,42 @@ const compact = ref(false);
 const compactTab = ref('palette');
 
 const PANEL_KEYS = ['palette', 'inspector', 'support'];
-const panelOptions = computed(() => [
-  hasPalette.value ? { value: 'palette', icon: 'pi pi-sidebar', labelKey: 'designer.palette' } : null,
-  hasInspector.value ? { value: 'inspector', icon: 'pi pi-sidebar', flip: true, labelKey: 'designer.inspector' } : null,
-  hasSupport.value ? { value: 'support', icon: 'pi pi-window-maximize', labelKey: 'designer.support' } : null
+
+function togglePanelFromDock(panel) {
+  if (compact.value) {
+    const sole = panels[panel] && PANEL_KEYS.every(key => !panels[key] || key === panel);
+    for (const key of PANEL_KEYS) panels[key] = sole ? false : key === panel;
+    if (!sole) compactTab.value = panel;
+    return;
+  }
+  panels[panel] = !panels[panel];
+}
+
+const panelDockItems = computed(() => [
+  hasPalette.value ? {
+    icon: () => h('i', { class: 'pi pi-align-left', 'aria-hidden': 'true' }),
+    label: t('designer.palette'),
+    pressed: panels.palette,
+    onClick: () => togglePanelFromDock('palette')
+  } : null,
+  hasInspector.value ? {
+    icon: () => h('i', { class: 'pi pi-align-right', 'aria-hidden': 'true' }),
+    label: t('designer.inspector'),
+    pressed: panels.inspector,
+    onClick: () => togglePanelFromDock('inspector')
+  } : null,
+  hasSupport.value ? {
+    icon: () => h('i', { class: 'pi pi-window-maximize', 'aria-hidden': 'true' }),
+    label: t('designer.support'),
+    pressed: panels.support,
+    onClick: () => togglePanelFromDock('support')
+  } : null,
+  (hasPalette.value || hasInspector.value || hasSupport.value) && props.topDockItems.length
+    ? { separator: true }
+    : null
 ].filter(Boolean));
 
-const openPanels = computed({
-  get: () => PANEL_KEYS.filter(panel => panels[panel] && panelOptions.value.some(option => option.value === panel)),
-  set(values) {
-    const selected = new Set(values);
-    if (compact.value) {
-      // Compact keeps the unified overlay single-tab: selecting an option
-      // makes it the sole open panel; deselecting the active tab closes it.
-      const added = values.find(value => !panels[value]);
-      for (const panel of PANEL_KEYS) panels[panel] = added ? panel === added : false;
-      if (added) compactTab.value = added;
-      return;
-    }
-    for (const panel of PANEL_KEYS) {
-      panels[panel] = selected.has(panel) && panelOptions.value.some(option => option.value === panel);
-    }
-  }
-});
+const dockTopItems = computed(() => [...panelDockItems.value, ...props.topDockItems]);
 
 function toggle(panel) {
   panels[panel] = !panels[panel];

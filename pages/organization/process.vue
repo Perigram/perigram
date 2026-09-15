@@ -3,6 +3,7 @@
     <DesignerSurface>
       <DesignerWorkspace
         ref="canvasFrame"
+        :top-dock-items="documentDockItems"
         layout="canvas"
         class="relative h-full min-h-0 overflow-hidden bg-process-canvas"
         @mousedown.capture="handleDesignerPointerDown"
@@ -83,8 +84,7 @@
       </div>
 
       <template #palette>
-        <Panel :header="$t('processDesigner.palette')" class="w-72">
-          <div class="flex flex-col gap-3">
+        <div class="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
             <div class="flex items-center gap-1">
               <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
             </div>
@@ -106,15 +106,6 @@
               </div>
             </div>
           </div>
-        </Panel>
-      </template>
-
-      <template #topDock>
-        <MotionDock
-          :items="documentDockItems"
-          :aria-label="$t('processDesigner.title')"
-          class-name="process-designer-dock"
-        />
       </template>
 
       <template #dock>
@@ -175,10 +166,7 @@
       </Popover>
 
       <template #inspector>
-        <Panel
-          class="flex h-full min-h-0 w-[26rem] flex-col"
-          :pt="{ content: { class: 'flex min-h-0 flex-1 flex-col' } }"
-        >
+        <div class="flex h-full min-h-0 flex-col">
           <Tabs v-model:value="inspectTab" class="flex min-h-0 flex-1 flex-col">
             <TabList>
               <Tab value="inspector">{{ $t('processDesigner.inspector') }}</Tab>
@@ -830,7 +818,7 @@
             </TabPanel>
           </TabPanels>
         </Tabs>
-        </Panel>
+        </div>
       </template>
 
       <div v-if="validation" class="pointer-events-none absolute inset-x-0 bottom-16 z-10 flex justify-center px-4">
@@ -1208,6 +1196,7 @@ const documentDockItems = computed(() => [
     disabled: !draft.value?._id || isActiveProcess.value,
     hasPopup: true
   },
+  { separator: true },
   {
     icon: () => h('i', { class: savingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
     label: t('common.save'),

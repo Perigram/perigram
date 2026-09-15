@@ -1,6 +1,6 @@
 <template>
   <DesignerSurface>
-    <DesignerWorkspace layout="canvas" class="h-full">
+    <DesignerWorkspace layout="canvas" class="h-full" :top-dock-items="dockItems">
     <template #palette>
       <div class="flex w-52 flex-col gap-2 rounded-ui border border-content-border p-3 shadow-overlay">
         <span class="text-label">{{ $t('facadePattern.nodes') }}</span>
@@ -23,12 +23,6 @@
       </template>
     </VueFlow>
 
-    <template #topDock>
-      <MotionDock
-        :items="dockItems"
-        :aria-label="$t('facadePattern.save')"
-      />
-    </template>
     </DesignerWorkspace>
   </DesignerSurface>
 </template>
