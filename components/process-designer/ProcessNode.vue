@@ -187,18 +187,18 @@
     </div>
 
     <div v-if="eventSocketRows.length" class="mt-2 border-t border-content-border pt-2">
-      <SelectButton
+      <label
         v-if="record.kind?.startsWith('effect.')"
-        :model-value="record.trigger?.mode === 'event' ? 'event' : 'manual'"
-        :options="data.processTriggerModeOptions || []"
-        option-label="label"
-        option-value="value"
-        size="small"
-        class="nodrag nowheel mb-1.5"
+        class="nodrag nowheel mb-1.5 flex min-h-7 cursor-pointer items-center justify-between gap-2"
         @mousedown.stop
         @click.stop
-        @update:model-value="updateEffectTriggerMode"
-      />
+      >
+        <span class="text-supporting">{{ autoTriggerLabel }}</span>
+        <ToggleSwitch
+          :model-value="record.trigger?.mode === 'event'"
+          @update:model-value="value => updateEffectTriggerMode(value ? 'event' : 'manual')"
+        />
+      </label>
       <div v-for="row in eventSocketRows" :key="row.key" class="grid min-h-7 grid-cols-2 gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <Handle :id="socketHandleId(row.input)" type="target" :position="Position.Left" :class="handleClass(row.input, 'left')" :style="handleStyle(row.input)" />
@@ -222,7 +222,6 @@ import DatePicker from 'primevue/datepicker';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Select from '~/components/shared/EntitySelect.vue';
-import SelectButton from 'primevue/selectbutton';
 import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useI18n } from 'vue-i18n';
@@ -338,6 +337,10 @@ function updateEffectTriggerMode(mode) {
   if (!mode) return;
   update({ trigger: { mode: mode === 'event' ? 'event' : 'manual' } });
 }
+
+const autoTriggerLabel = computed(() => (
+  (props.data.processTriggerModeOptions || []).find(option => option.value === 'event')?.label || 'Auto'
+));
 
 function updateValueType(base) {
   const updates = { type: { ...(record.value.type || {}), base } };
