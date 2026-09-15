@@ -31,26 +31,28 @@ and dock content through named `DesignerWorkspace` slots. A canvas designer
 must not recreate its own floating palette, inspector, or dock positioning
 outside `DesignerWorkspace`.
 
-Dock commands are the designer's action surface: document-level actions
-(open/load, rename, undo/redo, reset, save) render as `MotionDock` items in
-the `dock` slot. Popups toggle on click and close on confirm, selection, or
-outside click — pure command clusters use the PrimeVue popup `Menu`, while
-pickers and rename prompts use `Popover`; hover-open popups with hand-rolled
-close timers are not allowed. Designers must not keep document actions in a
-top toolbar ribbon.
+Dock commands split by concern into two `MotionDock`s: the **top dock**
+(`topDock` slot) carries document operations (open/load, rename, reset,
+save), the **bottom dock** (`dock` slot) carries canvas and content commands
+(undo/redo, navigation, add/upload/rotate/delete). Popups toggle on click and
+close on confirm, selection, or outside click — pure command clusters use the
+PrimeVue popup `Menu`, while pickers and rename prompts use `Popover`;
+hover-open popups with hand-rolled close timers are not allowed.
+
+Panel visibility is one PrimeVue `SelectButton` (multi-select, icon-only
+sidebar options — mirrored for the right-hand inspector) pinned by the
+workspace to the top-right edge, beside the top dock. Wide hosts toggle the
+rails/overlays directly; compact hosts (below 48rem of the workspace's own
+width) hide the rails and open one bounded tabbed overlay (60% height cap)
+whose active tab follows the selection. Crossing the compact boundary resets
+to the mode's defaults — rails up when wide, canvas clear when compact — and
+the state is exposed through the workspace ref (`panels`, `toggle`,
+`setPanel`) for designer code; slot content compiles in the parent scope, so
+use the ref API, not provide/inject.
 
 `layout="lanes"` is for editors with persistent side panels, such as cassette
 and facade design. The canvas is the workspace background, edge to edge —
-never a boxed panel beside the rails — and panel visibility is
-workspace-owned: edge chevrons toggle the palette and inspector rails on
-wide hosts, while hosts below 48rem of the workspace's own width switch to a
-compact mode that hides the rails and folds every provided panel into one
-bounded tabbed overlay (60% height cap) opened from a single floating
-toggle. Crossing the compact boundary resets to the mode's defaults — rails
-up when wide, canvas clear when compact — and the state is exposed through
-the workspace ref (`panels`, `toggle`, `openPanel`, `setPanel`) so designer
-docks drive the same state (slot content compiles in the parent scope, so
-use the ref API, not provide/inject). The row floor keeps the layout visible
+never a boxed panel beside the rails. The row floor keeps the layout visible
 even when a host breaks the bounded-height chain. Document identity (name,
 template) belongs in the `toolbar` slot above the canvas, while canvas-level
 commands render through the shared `MotionDock` in the `dock` slot; rail
