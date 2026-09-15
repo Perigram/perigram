@@ -153,6 +153,12 @@ const INDEXES = {
   // Colors Collection
   colors: [
     { keys: { 'lineage.catalogId': 1 }, options: { name: 'lineage_catalog_idx' } }
+  ],
+
+  // Idempotency Keys Collection (offline outbox replay dedupe)
+  idempotency_keys: [
+    { keys: { key: 1 }, options: { unique: true, name: 'key_unique' } },
+    { keys: { createdAt: 1 }, options: { expireAfterSeconds: 604800, name: 'created_ttl' } }
   ]
 };
 

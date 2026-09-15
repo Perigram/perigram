@@ -38,7 +38,18 @@ export default defineNuxtConfig({
 
     css: ['primeicons/primeicons.css', './assets/css/fonts.css', './assets/css/main.css'],
 
-    modules: ['@nuxtjs/i18n', '@primevue/nuxt-module', '@nuxtjs/tailwindcss', '@pinia/nuxt'],
+    modules: ['@nuxtjs/i18n', '@primevue/nuxt-module', '@nuxtjs/tailwindcss', '@pinia/nuxt', '@vite-pwa/nuxt'],
+
+    pwa: {
+        strategies: 'injectManifest',
+        filename: 'sw.js',
+        registerType: 'autoUpdate',
+        manifest: false,
+        injectManifest: {
+            globPatterns: ['**/*.{js,css,woff2,webmanifest}'],
+            maximumFileSizeToCacheInBytes: 4 * 1024 * 1024
+        }
+    },
 
     imports: {
         dirs: ['stores']

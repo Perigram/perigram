@@ -156,6 +156,7 @@
             v-if="!supportDialog && !isChatsRoute && !isGeneratedHomeRoute"
             class="fixed bottom-8 right-8 z-[999] hidden h-14 w-14 shadow-overlay md:inline-flex"
         />
+        <OfflineOutboxBadge v-if="authStore.userIsSet" />
     </div>
 </template>
 
@@ -168,6 +169,7 @@
     import Menu from 'primevue/menu'
     import ChatSupport from '~/components/ChatSupport.vue'
     import UserAccountMenu from '~/components/shared/UserAccountMenu.vue'
+    import OfflineOutboxBadge from '~/components/shared/OfflineOutboxBadge.vue'
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'
     import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'

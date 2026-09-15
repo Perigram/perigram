@@ -124,6 +124,9 @@ Routes are grouped into sub-directories corresponding to features:
 ## Conventions
 - **Method Suffixes:** Files are named `[action].[method].js` (e.g., `index.get.js`, `create.post.js`).
 - **Thin Wrappers:** API handlers should be minimal, delegating all business logic to the corresponding [Server Features](../features/README.md).
+- **Idempotency:** mutating routes honor the `Idempotency-Key` header through
+  the cross-cutting middleware; replays of already-executed requests are
+  short-circuited (see [core/idempotency](../core/idempotency/README.md)).
 ## Authentication
 Most routes require authentication, which is handled by `server/middleware/auth.js`.
 Responsibilities:
