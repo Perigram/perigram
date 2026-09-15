@@ -111,6 +111,24 @@ internal container-only endpoint. `NUXT_DEV_HMR_CLIENT_PORT` defaults to
 The E2E command assumes the app stack is already running and uses Playwright
 against the configured `E2E_BASE_URL`.
 
+## Progressive Web App
+
+The app is installable as a standalone PWA. The contract lives in three places:
+
+- `public/manifest.webmanifest` declares the install surface (name, `start_url: /`,
+  `display: standalone`, icons). Splash and title-bar colors are `#09090b`
+  (dark `--ck-page-background`, Aura `zinc.950`); light-mode browser chrome uses
+  `#f4f4f5` through the `prefers-color-scheme: light` `theme-color` meta.
+- `public/icon.svg` is the single source-of-truth logo mark. The rasterized
+  favicon/`apple-touch-icon`/PWA PNG set in `public/favicon/` is generated from
+  it (Inkscape exports at 16/32/48/180/192/512; `favicon.ico` packs 16/32/48).
+  Regenerate all sizes when the SVG changes instead of editing PNGs by hand.
+- `public/sw.js` is a minimal service worker: cache-first for immutable
+  same-origin GETs (`/_nuxt/`, `/icons/`, `/fonts/`, `/favicon/`, the SVG icon,
+  the manifest), network-only for everything else, so SSR pages, auth, and API
+  traffic are never served from cache. `plugins/pwa.client.js` registers it
+  only in production builds, keeping Vite HMR in dev uncached.
+
 ## Documentation Map
 
 | Area | Doc |
