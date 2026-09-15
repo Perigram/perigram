@@ -35,14 +35,20 @@ Dock commands split by concern into two `MotionDock`s: the **top dock**
 (`top-dock-items` prop) carries document operations grouped
 view/file/commit-last (open/load, rename, save/save-as, then destructive and
 utility items), the **bottom dock** (`dock` slot) carries canvas and content
-commands (undo/redo, navigation, add/upload/rotate/delete with the
-destructive item last in its group). The top dock floats top-anchored
+commands. Every canvas-capable designer exposes the same first-level zoom
+cluster in the bottom dock (zoom out, zoom in, reset/fit — plus frame
+selection on graph canvases), undo/redo where the editor owns a history,
+and content operations (sheet add/upload/rotate/delete with the destructive
+item last in its group); DrawingCanvas hides its internal zoom cluster in
+designer mode and exposes the commands for the dock instead. The top dock
+floats top-anchored
 (`MotionDock` `placement="top"`) inside a full-width positioned wrapper, on
 the exact top line of the panel rails with the same 12px canvas inset; the
 bottom dock anchors near the canvas bottom between the rails. Popups toggle
-on click and close on confirm, selection, or outside click — pure command
-clusters use the PrimeVue popup `Menu`, while pickers and rename prompts use
-`Popover`; hover-open popups with hand-rolled close timers are not allowed.
+on click and close on confirm, selection, or outside click — pickers and
+rename prompts use `Popover`. Every dock item carries a label that renders
+as its hover tooltip, and the dock pill uses one symmetric padding so
+pressed-state items keep identical gaps.
 
 Panel visibility lives inside the top dock as its leading items: the
 workspace prepends pressed-state toggles (`pi-align-left` palette,
