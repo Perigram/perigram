@@ -610,15 +610,8 @@
       </aside>
       </template>
 
-      <Popover ref="dockMenu" @hide="onDockPopoverHide()">
-        <div
-          class="flex min-w-72 flex-col gap-2"
-          @mousedown.stop
-          @click.stop
-          @mouseenter="keepDockPopover()"
-          @mouseleave="scheduleDockPopoverClose()"
-          @focusin="keepDockPopover()"
-        >
+      <Popover ref="dockMenu">
+        <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
           <InputText
             v-if="dockPopoverPanel === 'rename'"
             v-model="cassetteNameDraft"
@@ -836,59 +829,28 @@ const previewError = ref('');
 const occsDialogVisible = ref(false);
 const dockMenu = ref(null);
 const dockPopoverPanel = ref(null);
-let dockPopoverCloseTimer = null;
 
 function openDockPopover(panel, event) {
   dockPopoverPanel.value = panel;
-  if (dockPopoverCloseTimer) {
-    clearTimeout(dockPopoverCloseTimer);
-    dockPopoverCloseTimer = null;
-  }
-  dockMenu.value?.show?.(event);
-}
-
-function keepDockPopover() {
-  if (dockPopoverCloseTimer) {
-    clearTimeout(dockPopoverCloseTimer);
-    dockPopoverCloseTimer = null;
-  }
-}
-
-function scheduleDockPopoverClose() {
-  if (dockPopoverCloseTimer) clearTimeout(dockPopoverCloseTimer);
-  dockPopoverCloseTimer = setTimeout(() => {
-    closeDockPopover();
-    dockPopoverCloseTimer = null;
-  }, 160);
+  dockMenu.value?.toggle(event);
 }
 
 function closeDockPopover() {
   dockPopoverPanel.value = null;
-  dockMenu.value?.hide?.();
+  dockMenu.value?.hide();
 }
 
-function onDockPopoverHide() {
-  dockPopoverPanel.value = null;
-}
 const designerDockItems = computed(() => [
   {
     icon: () => h('i', { class: 'pi pi-folder-open', 'aria-hidden': 'true' }),
     label: t('cassette.v2.loadTemplate'),
     onClick: event => openDockPopover('open', event),
-    onHoverStart: event => openDockPopover('open', event),
-    onHoverEnd: () => scheduleDockPopoverClose(),
-    onFocus: event => openDockPopover('open', event),
-    onBlur: () => scheduleDockPopoverClose(),
     hasPopup: true
   },
   {
     icon: () => h('i', { class: 'pi pi-pencil', 'aria-hidden': 'true' }),
     label: t('common.rename'),
     onClick: event => openDockPopover('rename', event),
-    onHoverStart: event => openDockPopover('rename', event),
-    onHoverEnd: () => scheduleDockPopoverClose(),
-    onFocus: event => openDockPopover('rename', event),
-    onBlur: () => scheduleDockPopoverClose(),
     hasPopup: true
   },
   {

@@ -117,15 +117,8 @@
         />
       </template>
 
-      <Popover ref="renameMenu" @hide="onDockPopoverHide('rename')">
-        <div
-          class="flex min-w-72 flex-col gap-2"
-          @mousedown.stop
-          @click.stop
-          @mouseenter="keepDockPopover('rename')"
-          @mouseleave="scheduleDockPopoverClose('rename')"
-          @focusin="keepDockPopover('rename')"
-        >
+      <Popover ref="renameMenu">
+        <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
           <InputText
             v-model="renameDraftName"
             :placeholder="$t('processDesigner.title')"
@@ -144,32 +137,10 @@
         </div>
       </Popover>
 
-      <Popover ref="canvasMenu" @hide="onDockPopoverHide('navigation')">
-        <div
-          class="grid grid-cols-5 gap-0.5"
-          @mousedown.stop
-          @click.stop
-          @mouseenter="keepDockPopover('navigation')"
-          @mouseleave="scheduleDockPopoverClose('navigation')"
-          @focusin="keepDockPopover('navigation')"
-        >
-          <Button icon="pi pi-minus" text size="small" v-tooltip.top="$t('drawing.zoomOut')" :aria-label="$t('drawing.zoomOut')" @click="zoomCanvasOut" />
-          <Button icon="pi pi-expand" text size="small" v-tooltip.top="$t('processDesigner.frameAll')" :aria-label="$t('processDesigner.frameAll')" @click="frameAllNodes" />
-          <Button icon="pi pi-crosshairs" text size="small" v-tooltip.top="$t('processDesigner.frameSelection')" :aria-label="$t('processDesigner.frameSelection')" @click="frameSelectedNodes" />
-          <Button icon="pi pi-plus" text size="small" v-tooltip.top="$t('drawing.zoomIn')" :aria-label="$t('drawing.zoomIn')" @click="zoomCanvasIn" />
-          <Button icon="pi pi-refresh" text size="small" v-tooltip.top="$t('processDesigner.resetZoom')" :aria-label="$t('processDesigner.resetZoom')" @click="resetCanvasZoom" />
-        </div>
-      </Popover>
+      <Menu ref="canvasMenu" :model="navigationMenuItems" :popup="true" />
 
-      <Popover ref="processMenu" @hide="onDockPopoverHide('process')">
-        <div
-          class="flex min-w-72 flex-col gap-2"
-          @mousedown.stop
-          @click.stop
-          @mouseenter="keepDockPopover('process')"
-          @mouseleave="scheduleDockPopoverClose('process')"
-          @focusin="keepDockPopover('process')"
-        >
+      <Popover ref="processMenu">
+        <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
           <Select
             v-if="processOptions.length"
             :model-value="selectedProcessId"
@@ -180,9 +151,7 @@
             class="w-full"
             size="small"
             :aria-label="$t('processDesigner.title')"
-            @update:model-value="selectProcessDefinition"
-            @show="pinDockPopover('process')"
-            @hide="unpinDockPopover('process')"
+            @update:model-value="value => { selectProcessDefinition(value); processMenu.hide(); }"
           />
           <Button
             icon="pi pi-file-plus"
@@ -959,6 +928,7 @@ import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
+import Menu from 'primevue/menu';
 import Message from 'primevue/message';
 import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
 import Panel from 'primevue/panel';
@@ -1340,31 +1310,19 @@ const designerDockItems = computed(() => [
   {
     icon: () => h('i', { class: 'pi pi-arrows-alt', 'aria-hidden': 'true' }),
     label: t('processDesigner.canvasNavigation'),
-    onClick: event => openDockPopover('navigation', event),
-    onHoverStart: event => openDockPopover('navigation', event),
-    onHoverEnd: () => scheduleDockPopoverClose('navigation'),
-    onFocus: event => openDockPopover('navigation', event),
-    onBlur: () => scheduleDockPopoverClose('navigation'),
+    onClick: event => canvasMenu.value?.toggle(event),
     hasPopup: true
   },
   {
     icon: () => h('i', { class: 'pi pi-folder', 'aria-hidden': 'true' }),
     label: t('processDesigner.title'),
-    onClick: event => openDockPopover('process', event),
-    onHoverStart: event => openDockPopover('process', event),
-    onHoverEnd: () => scheduleDockPopoverClose('process'),
-    onFocus: event => openDockPopover('process', event),
-    onBlur: () => scheduleDockPopoverClose('process'),
+    onClick: event => processMenu.value?.toggle(event),
     hasPopup: true
   },
   {
     icon: () => h('i', { class: renamingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-pencil', 'aria-hidden': 'true' }),
     label: t('common.rename'),
     onClick: event => openRenamePopover(event),
-    onHoverStart: event => openRenamePopover(event),
-    onHoverEnd: () => scheduleDockPopoverClose('rename'),
-    onFocus: event => openRenamePopover(event),
-    onBlur: () => scheduleDockPopoverClose('rename'),
     disabled: !draft.value?._id || isActiveProcess.value,
     hasPopup: true
   }
@@ -1823,71 +1781,20 @@ async function applyProcess() {
 
 const canvasMenu = ref(null);
 const renameMenu = ref(null);
-const dockPopover = ref(null);
-const pinnedDockPopover = ref(null);
-let dockPopoverCloseTimer = null;
 const renameDraftName = ref('');
 const renamingDraft = ref(false);
 
-function popoverFor(panel) {
-  if (panel === 'process') return processMenu.value;
-  if (panel === 'rename') return renameMenu.value;
-  return canvasMenu.value;
-}
-
-function openDockPopover(panel, event) {
-  const previousPanel = dockPopover.value;
-  keepDockPopover(panel);
-  if (previousPanel && previousPanel !== panel) popoverFor(previousPanel)?.hide?.();
-  dockPopover.value = panel;
-  popoverFor(panel)?.show?.(event);
-}
-
-function keepDockPopover(panel) {
-  if (dockPopoverCloseTimer) {
-    clearTimeout(dockPopoverCloseTimer);
-    dockPopoverCloseTimer = null;
-  }
-  dockPopover.value = panel;
-}
-
-function pinDockPopover(panel) {
-  keepDockPopover(panel);
-  pinnedDockPopover.value = panel;
-}
-
-function unpinDockPopover(panel) {
-  if (pinnedDockPopover.value === panel) pinnedDockPopover.value = null;
-  scheduleDockPopoverClose(panel);
-}
-
-function scheduleDockPopoverClose(panel) {
-  if (pinnedDockPopover.value === panel) return;
-  if (dockPopoverCloseTimer) clearTimeout(dockPopoverCloseTimer);
-  dockPopoverCloseTimer = setTimeout(() => {
-    if (dockPopover.value === panel) closeDockPopover(panel);
-    dockPopoverCloseTimer = null;
-  }, 160);
-}
-
-function closeDockPopover(panel = null) {
-  if (dockPopoverCloseTimer) {
-    clearTimeout(dockPopoverCloseTimer);
-    dockPopoverCloseTimer = null;
-  }
-  if (panel && dockPopover.value !== panel) return;
-  if (!panel || pinnedDockPopover.value === panel) pinnedDockPopover.value = null;
-  dockPopover.value = null;
-}
-
-function onDockPopoverHide(panel) {
-  if (dockPopover.value === panel) dockPopover.value = null;
-  if (pinnedDockPopover.value === panel) pinnedDockPopover.value = null;
-}
+const navigationMenuItems = computed(() => [
+  { label: t('drawing.zoomOut'), icon: 'pi pi-minus', command: zoomCanvasOut },
+  { label: t('processDesigner.frameAll'), icon: 'pi pi-expand', command: frameAllNodes },
+  { label: t('processDesigner.frameSelection'), icon: 'pi pi-crosshairs', command: frameSelectedNodes },
+  { label: t('drawing.zoomIn'), icon: 'pi pi-plus', command: zoomCanvasIn },
+  { label: t('processDesigner.resetZoom'), icon: 'pi pi-refresh', command: resetCanvasZoom }
+]);
 
 function openRenamePopover(event) {
   renameDraftName.value = draft.value?.identity?.name || '';
-  openDockPopover('rename', event);
+  renameMenu.value?.toggle(event);
 }
 
 async function applyDraftRename() {
@@ -1898,7 +1805,7 @@ async function applyDraftRename() {
     const updated = await persistence.renameDraft(draft.value._id, name);
     upsertProcessDefinition(updated);
     setDraft(updated);
-    closeDockPopover('rename');
+    renameMenu.value?.hide();
     toast.add({ severity: 'success', summary: t('common.rename'), life: 2000 });
   } catch (error) {
     toast.add({
