@@ -65,6 +65,16 @@ exactly once, where the entity path begins. A status-change node's target
 status is authored by wiring a status definition socket (or the node's
 inline status control), never a duplicate inspector select; the source state
 is derived at compile time from the incoming entity flow.
+The panel header shows the entity type's display label and icon with a
+"Producer output" tag; the stable `nodeId:outputSocketId` identity is a
+muted code line under it, not a prominent raw tag. Lifecycle mode options
+are localized ("Standard (created)" / "Domain lifecycle" / "Custom"). In
+non-custom modes the status machine is read-only: state tags plus a hint
+that the output inherits the domain or standard machine, and a single
+"Customize" action copies the resolved machine into a producer-local custom
+workflow (the same copy-on-edit the status-definition wiring performs).
+State and transition editors render only in custom mode, so editing never
+silently flips an inherited lifecycle.
 `useProcessDesignerScreens` owns source/region creation, source-id reference
 updates, mode normalization, lineage rows, and typed scalar-map mutations. The
 Screens tab renders those mutations against the canonical

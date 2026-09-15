@@ -343,7 +343,14 @@
                   </div>
                   <Panel v-if="selectedEntityAvailable" :header="$t('processDesigner.createdEntity')" class="mt-0">
                         <div class="flex flex-col gap-3">
-                          <Tag :value="`${selectedEntity.producerOutputId} · ${selectedEntity.entityType}`" severity="info" size="small" />
+                          <div class="flex min-w-0 items-center justify-between gap-2">
+                            <div class="flex min-w-0 items-center gap-2">
+                              <i :class="entityIconFor(selectedEntity.entityType)" />
+                              <strong class="truncate">{{ entityTypeLabelFor(selectedEntity.entityType) }}</strong>
+                            </div>
+                            <Tag :value="$t('processDesigner.producerOutputTag')" severity="secondary" size="small" />
+                          </div>
+                          <code class="text-supporting text-muted-color break-all">{{ selectedEntity.producerOutputId }}</code>
         <div class="flex flex-col gap-1">
           <label>{{ $t('processDesigner.lifecycleMode') }}</label>
           <Select v-model="selectedEntity.lifecycle.mode" :options="lifecycleModes" option-label="label" option-value="value" />
@@ -354,23 +361,29 @@
             <div class="flex flex-wrap gap-2">
               <Tag v-for="state in lifecycleStateEntries" :key="state.value" :value="state.label" size="small" />
             </div>
-            <div class="flex gap-2">
-              <InputText v-model="newStateId" class="min-w-0 flex-1" :placeholder="$t('processDesigner.stateId')" />
-              <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addState')" size="small" @click="addLifecycleState" />
-            </div>
-            <div class="flex flex-col gap-2">
-              <div v-for="(transition, index) in lifecycleTransitions" :key="`${transition.from}-${transition.to}-${index}`" class="rounded-ui border border-content-border p-2">
-                <div class="grid grid-cols-2 gap-2">
-                  <Select :model-value="transition.from" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { from: value })" />
-                  <Select :model-value="transition.to" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { to: value })" />
-                </div>
-                <div class="mt-2 flex items-center gap-2">
-                  <MultiSelect :model-value="transition.access?.processRoleIds || []" :options="roleOptions" option-label="label" option-value="value" display="chip" class="min-w-0 flex-1" @update:model-value="value => updateTransitionRoles(index, value)" />
-                  <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeLifecycleTransition(index)" />
+            <template v-if="selectedEntity.lifecycle.mode === 'custom'">
+              <div class="flex gap-2">
+                <InputText v-model="newStateId" class="min-w-0 flex-1" :placeholder="$t('processDesigner.stateId')" />
+                <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addState')" size="small" @click="addLifecycleState" />
+              </div>
+              <div class="flex flex-col gap-2">
+                <div v-for="(transition, index) in lifecycleTransitions" :key="`${transition.from}-${transition.to}-${index}`" class="rounded-ui border border-content-border p-2">
+                  <div class="grid grid-cols-2 gap-2">
+                    <Select :model-value="transition.from" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { from: value })" />
+                    <Select :model-value="transition.to" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { to: value })" />
+                  </div>
+                  <div class="mt-2 flex items-center gap-2">
+                    <MultiSelect :model-value="transition.access?.processRoleIds || []" :options="roleOptions" option-label="label" option-value="value" display="chip" class="min-w-0 flex-1" @update:model-value="value => updateTransitionRoles(index, value)" />
+                    <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeLifecycleTransition(index)" />
+                  </div>
                 </div>
               </div>
-            </div>
-            <Button icon="pi pi-arrow-right" :label="$t('processDesigner.addTransition')" size="small" severity="secondary" outlined @click="addLifecycleTransition" />
+              <Button icon="pi pi-arrow-right" :label="$t('processDesigner.addTransition')" size="small" severity="secondary" outlined @click="addLifecycleTransition" />
+            </template>
+            <template v-else>
+              <Message severity="secondary">{{ $t('processDesigner.lifecycleInheritedHint', { source: lifecycleInheritedSource }) }}</Message>
+              <Button icon="pi pi-pencil" :label="$t('processDesigner.customizeLifecycle')" size="small" severity="secondary" outlined @click="ensureCustomLifecycleRegion" />
+            </template>
           </div>
         </Panel>
 
@@ -980,7 +993,7 @@ import {
 } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
-import { cncDomain } from '@cutkit/domain-cnc';
+import { cncDomain, cncUiSurfaces } from '@cutkit/domain-cnc';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
@@ -1226,11 +1239,22 @@ const serviceBillingModeOptions = [
   { label: t('processDesigner.serviceBillingNone'), value: 'none' },
   { label: t('processDesigner.serviceBillingPrepaidTokens'), value: 'prepaidTokens' }
 ];
-const lifecycleModes = [
-  { label: 'defaultCreated', value: 'defaultCreated' },
-  { label: 'domainDefault', value: 'domainDefault' },
-  { label: 'custom', value: 'custom' }
-];
+const lifecycleModes = computed(() => [
+  { label: t('processDesigner.lifecycleModeDefaultCreated'), value: 'defaultCreated' },
+  { label: t('processDesigner.lifecycleModeDomainDefault'), value: 'domainDefault' },
+  { label: t('processDesigner.lifecycleModeCustom'), value: 'custom' }
+]);
+const lifecycleInheritedSource = computed(() => (
+  selectedEntity.value?.lifecycle?.mode === 'domainDefault' && cncDomain.workflows?.[selectedEntity.value.entityType]
+    ? t('processDesigner.lifecycleSourceDomain')
+    : t('processDesigner.lifecycleSourceStandard')
+));
+function entityTypeLabelFor(entityType) {
+  return entityTypeOptions.value.find(option => option.value === entityType)?.label || entityType || '';
+}
+function entityIconFor(entityType) {
+  return cncUiSurfaces.find(surface => surface.entityType === entityType)?.icon || 'pi pi-box';
+}
 const socketDirections = [
   { label: 'outbound', value: 'outbound' },
   { label: 'inbound', value: 'inbound' }
