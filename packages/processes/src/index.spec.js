@@ -3877,6 +3877,66 @@ describe('@cutkit/processes compiler', () => {
     ]);
   });
 
+  it('nests status definitions under their parent status and exposes the dotted state id', () => {
+    const compiled = compileProcessDefinition({
+      roles: { role_operator: { id: 'role_operator' } },
+      producerOutputs: producerOutputRecords([['projectMain', 'project', {
+        lifecycle: {
+          mode: 'custom',
+          workflow: {
+            schemaVersion: 2,
+            primaryRegion: 'main',
+            regions: { main: { initial: 'PRODUCTION', states: { PRODUCTION: {}, DONE: {} }, transitions: [] } }
+          }
+        },
+        fields: { read: [], write: [], private: [] }
+      }]]),
+      statusDefinitions: {
+        production: { id: 'production', statusId: 'PRODUCTION', label: 'Production' },
+        cut: { id: 'cut', statusId: 'cut', label: 'Cut', parentStatusId: 'PRODUCTION' }
+      },
+      actions: {
+        mark_cut: {
+          id: 'mark_cut',
+          actionKind: 'updateEntity',
+          entityType: 'project',
+          producerOutputId: 'projectMain:entity',
+          status: { to: 'PRODUCTION.cut' },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_operator'] }
+        }
+      }
+    }, domain);
+
+    const workflow = compiled.producerOutputs['projectMain:entity'].workflow;
+    expect(workflow.regions.main.states['PRODUCTION.cut']).toMatchObject({ label: 'Cut' });
+    expect(workflow.regions.main.states['PRODUCTION.cut'].path).toEqual(['PRODUCTION', 'cut']);
+    expect(workflow.regions.main.states.PRODUCTION.label).toBe('Production');
+    expect(compiled.actions.mark_cut.status.to).toBe('PRODUCTION.cut');
+    expect(compiled.statusDefinitions.cut.parentStatusId).toBe('PRODUCTION');
+  });
+
+  it('rejects unknown and cyclic status definition parents', () => {
+    const base = {
+      producerOutputs: producerOutputRecords([['projectMain', 'project']]),
+      statusDefinitions: {}
+    };
+    const unknown = structuredClone(base);
+    unknown.statusDefinitions = { orphan: { id: 'orphan', statusId: 'CUT', parentStatusId: 'GHOST' } };
+    const unknownResult = validateProcessDefinition(unknown, domain);
+    expect(unknownResult.ok).toBe(false);
+    expect(unknownResult.errors.join('\n')).toContain('references unknown parent status GHOST');
+
+    const cyclic = structuredClone(base);
+    cyclic.statusDefinitions = {
+      one: { id: 'one', statusId: 'ONE', parentStatusId: 'TWO' },
+      two: { id: 'two', statusId: 'TWO', parentStatusId: 'ONE' }
+    };
+    const cyclicResult = validateProcessDefinition(cyclic, domain);
+    expect(cyclicResult.ok).toBe(false);
+    expect(cyclicResult.errors.join('\n')).toContain('cyclic parent status chain');
+  });
+
   it('keeps same-type lineage bindings separate by full producer and socket identity', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,

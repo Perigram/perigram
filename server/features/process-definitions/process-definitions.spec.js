@@ -478,21 +478,20 @@ describe('current process-definition service contract', () => {
       expect.objectContaining({ producerOutputId: 'create_b:result' }));
   });
 
-  it('passes authored region and lifecycle evidence to status execution and returns the entity DTO', async () => {
-    const entity = { _id: 'sheet-1', type: 'sheet', status: { state: { primary: 'AVAILABLE', active: { main: 'AVAILABLE', quality: 'UNVERIFIED' } } } };
-    statusService.transitionWithResult.mockResolvedValue({ entity: { ...entity, status: { state: { primary: 'AVAILABLE', active: { main: 'AVAILABLE', quality: 'VERIFIED' } } } }, actions: [], effects: [] });
+  it('passes the authored note to status execution as metadata and returns the entity DTO', async () => {
+    const entity = { _id: 'sheet-1', type: 'sheet', status: { state: { primary: 'AVAILABLE' } } };
+    statusService.transitionWithResult.mockResolvedValue({ entity: { ...entity, status: { state: { primary: 'VERIFIED' } } }, actions: [], effects: [] });
     getAppRegistry.mockReturnValue({
       getEntityService: type => type === 'sheet' ? {} : organizationService
     });
 
     const result = await performDurableEffect({
       kind: 'effect.changeStatus',
-      record: { kind: 'effect.changeStatus', entityType: 'sheet', producerOutputId: 'sheet_source:entity', region: 'quality' },
+      record: { kind: 'effect.changeStatus', entityType: 'sheet', producerOutputId: 'sheet_source:entity' },
       inputs: {
         entity: { type: 'sheet', id: 'sheet-1' },
         status: 'VERIFIED',
-        metadata: { note: 'Inspection complete' },
-        lifecycle: { attachments: { photos: [{ fileId: 'proof-1' }] } }
+        note: 'Inspection complete'
       }
     }, adminAuth());
 
@@ -501,9 +500,7 @@ describe('current process-definition service contract', () => {
       context: {
         source: 'process-run',
         producerOutputId: 'sheet_source:entity',
-        region: 'quality',
-        metadata: { note: 'Inspection complete' },
-        lifecycle: { attachments: { photos: [{ fileId: 'proof-1' }] } }
+        metadata: { note: 'Inspection complete' }
       }
     }));
     expect(result).toEqual(expect.objectContaining({ _id: 'sheet-1' }));

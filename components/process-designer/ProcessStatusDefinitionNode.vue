@@ -23,6 +23,16 @@
         :placeholder="$t('common.label')"
         @update:model-value="value => update({ label: value })"
       />
+      <Select
+        :model-value="record.parentStatusId || ''"
+        :options="parentOptions"
+        option-label="label"
+        option-value="value"
+        size="small"
+        class="w-full"
+        :placeholder="$t('processDesigner.parentStatus')"
+        @update:model-value="value => update({ parentStatusId: value || '' })"
+      />
     </div>
 
     <div class="relative mt-2 flex min-h-7 min-w-0 flex-col justify-center border-b border-content-border py-1 pr-3 text-right" :title="$t('processDesigner.socketLabels.status')">
@@ -43,6 +53,7 @@
   import { computed } from 'vue';
   import { Handle, Position } from '@vue-flow/core';
   import InputText from 'primevue/inputtext';
+  import Select from 'primevue/select';
   import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
   const props = defineProps({
@@ -51,6 +62,8 @@
   });
 
   const record = computed(() => props.data.statusDefinitionRecord || props.data);
+  const parentOptions = computed(() => (props.data.statusParentOptions || [])
+    .filter(option => option.value !== record.value.statusId));
   const toneColor = computed(() => ({
     success: 'var(--ck-status-success)',
     info: 'var(--ck-status-info)',

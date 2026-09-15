@@ -2752,6 +2752,7 @@
     "showAdvancedOperations": "Показать сложные операции",
     "hideAdvancedOperations": "Скрыть сложные операции",
     "statusId": "ID статуса",
+    "parentStatus": "Родительский статус",
     "statusInUse": "Статус используется",
     "statusInUseHelp": "Сначала отключите или перенастройте действие изменения статуса.",
     "automaticConversion": "Автоматическое преобразование в {type}",

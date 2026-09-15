@@ -1457,13 +1457,11 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
 }
 
 function effectTransitionContext(record = {}, inputs = {}) {
+  const note = inputs.note ?? record.note;
   return {
     source: 'process-run',
     ...(record.producerOutputId ? { producerOutputId: record.producerOutputId } : {}),
-    ...(inputs.region || record.region ? { region: inputs.region || record.region } : {}),
-    ...(inputs.path || record.path ? { path: inputs.path || record.path } : {}),
-    ...(inputs.metadata || record.metadata ? { metadata: inputs.metadata || record.metadata } : {}),
-    ...(inputs.lifecycle || record.lifecycle ? { lifecycle: inputs.lifecycle || record.lifecycle } : {})
+    ...(note != null && note !== '' ? { metadata: { note: String(note) } } : {})
   };
 }
 
