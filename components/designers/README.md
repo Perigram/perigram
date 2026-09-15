@@ -33,10 +33,11 @@ outside `DesignerWorkspace`.
 
 Dock commands are the designer's action surface: document-level actions
 (open/load, rename, undo/redo, reset, save) render as `MotionDock` items in
-the `dock` slot, with popovers anchored to their dock item through hover,
-focus, and click handlers that keep, pin, and delayed-close per panel (see
-the process designer's dock popover helpers). Designers must not keep
-document actions in a top toolbar ribbon.
+the `dock` slot. Popups toggle on click and close on confirm, selection, or
+outside click — pure command clusters use the PrimeVue popup `Menu`, while
+pickers and rename prompts use `Popover`; hover-open popups with hand-rolled
+close timers are not allowed. Designers must not keep document actions in a
+top toolbar ribbon.
 
 `layout="lanes"` is for editors with persistent side panels, such as cassette
 and facade design. The canvas is the workspace background, edge to edge —
