@@ -32,6 +32,9 @@ COPY workers/nesting/requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt --break-system-packages
 
 COPY --from=build /src/.output /src/.output
+# Nuxt 3.19.3 nitro runtime resolves inline public assets against the server
+# chunk directory; mirror the public assets there so static serving works.
+COPY --from=build /src/.output/public /src/.output/server/chunks/public
 COPY --from=build /src/server/scripts /src/server/scripts
 COPY --from=build /src/server/features /src/server/features
 COPY --from=build /src/public /src/public
