@@ -1184,8 +1184,8 @@ const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== s
 const dockSeparator = { separator: true };
 const documentDockItems = computed(() => [
   {
-    icon: () => h('i', { class: 'pi pi-folder', 'aria-hidden': 'true' }),
-    label: t('processDesigner.title'),
+    icon: () => h('i', { class: 'pi pi-folder-open', 'aria-hidden': 'true' }),
+    label: t('common.open'),
     onClick: event => processMenu.value?.toggle(event),
     hasPopup: true
   },
