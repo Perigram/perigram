@@ -1,7 +1,7 @@
 <template>
   <DesignerSurface>
     <DesignerWorkspace layout="lanes" class="h-full" :top-dock-items="documentDockItems">
-      <div class="relative h-full w-full overflow-hidden bg-subtle">
+      <div class="relative h-full w-full overflow-hidden">
       <span class="absolute top-3 left-3 z-10 rounded-ui bg-content px-2 py-1 text-supporting shadow-overlay">
         {{ $t('toolProfile.kerf') }}: {{ toolKerf }} mm
       </span>

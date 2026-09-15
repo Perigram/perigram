@@ -715,8 +715,8 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    class="relative flex overflow-hidden rounded-ui border border-content-border bg-subtle"
-    :class="[canvasFrameClass, canvasAspectClass]"
+    class="relative flex overflow-hidden"
+    :class="[isDesigner ? '' : 'rounded-ui border border-content-border bg-subtle', canvasFrameClass, canvasAspectClass]"
   >
     <div v-if="loading" class="flex h-full w-full items-center justify-center">
       <ProgressSpinner class="h-8 w-8" />

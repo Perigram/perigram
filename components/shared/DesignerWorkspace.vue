@@ -13,7 +13,7 @@
       <slot name="toolbar" />
     </header>
 
-    <div v-if="dockTopItems.length" class="flex shrink-0 justify-center px-3 pb-3" data-designer-top-dock>
+    <div v-if="dockTopItems.length" class="relative flex shrink-0 justify-center px-3 pb-3" data-designer-top-dock>
       <MotionDock :items="dockTopItems" :aria-label="$t('designer.panels')" />
     </div>
 
