@@ -73,6 +73,7 @@
     "uploading": "Uploading...",
     "created": "Created",
     "open": "Open",
+    "rename": "Rename",
     "doNotUse": "Do not use",
     "toggleTheme": "Toggle Theme",
     "backToList": "Back to List",
@@ -2773,7 +2774,6 @@
     "service": "Service",
     "joinResultProducer": "Resulting producer output",
     "actionRoles": "Action roles",
-
     "entityAccess": "Entity data access",
     "entityAccessHelp": "Access to {type} entities and fields.",
     "canView": "Can view entities",

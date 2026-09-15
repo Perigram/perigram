@@ -32,27 +32,6 @@
     </div>
 
     <DesignerWorkspace layout="lanes" class="min-h-0 flex-1">
-      <template #toolbar>
-        <div class="flex flex-wrap items-center gap-2 px-1 pb-2">
-          <InputText
-            v-model="cassetteNameDraft"
-            :placeholder="$t('cassette.name')"
-            class="w-44"
-          />
-          <div class="w-40">
-            <Select
-              :model-value="null"
-              :options="templateOptions"
-              option-label="label"
-              option-value="value"
-              entity-type="cassette"
-              :placeholder="$t('cassette.v2.loadTemplate')"
-              class="w-full"
-              @update:model-value="value => emit('load-template', value)"
-            />
-          </div>
-        </div>
-      </template>
 
       <template #palette>
       <aside class="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3">
@@ -631,6 +610,43 @@
       </aside>
       </template>
 
+      <Popover ref="dockMenu" @hide="onDockPopoverHide()">
+        <div
+          class="flex min-w-72 flex-col gap-2"
+          @mousedown.stop
+          @click.stop
+          @mouseenter="keepDockPopover()"
+          @mouseleave="scheduleDockPopoverClose()"
+          @focusin="keepDockPopover()"
+        >
+          <InputText
+            v-if="dockPopoverPanel === 'rename'"
+            v-model="cassetteNameDraft"
+            :placeholder="$t('cassette.name')"
+            class="w-full"
+            :aria-label="$t('common.rename')"
+          />
+          <Select
+            v-else-if="dockPopoverPanel === 'open'"
+            :model-value="null"
+            :options="templateOptions"
+            option-label="label"
+            option-value="value"
+            entity-type="cassette"
+            :placeholder="$t('cassette.v2.loadTemplate')"
+            class="w-full"
+            @update:model-value="value => { emit('load-template', value); closeDockPopover(); }"
+          />
+          <Button
+            v-if="dockPopoverPanel === 'rename'"
+            icon="pi pi-check"
+            :label="$t('common.save')"
+            size="small"
+            @click="closeDockPopover()"
+          />
+        </div>
+      </Popover>
+
       <template #dock>
         <MotionDock :items="designerDockItems" :aria-label="$t('cassette.v2.parameters')" />
       </template>
@@ -818,7 +834,63 @@ const previewSource = ref(null);
 const cassettePreviewSource = ref(null);
 const previewError = ref('');
 const occsDialogVisible = ref(false);
+const dockMenu = ref(null);
+const dockPopoverPanel = ref(null);
+let dockPopoverCloseTimer = null;
+
+function openDockPopover(panel, event) {
+  dockPopoverPanel.value = panel;
+  if (dockPopoverCloseTimer) {
+    clearTimeout(dockPopoverCloseTimer);
+    dockPopoverCloseTimer = null;
+  }
+  dockMenu.value?.show?.(event);
+}
+
+function keepDockPopover() {
+  if (dockPopoverCloseTimer) {
+    clearTimeout(dockPopoverCloseTimer);
+    dockPopoverCloseTimer = null;
+  }
+}
+
+function scheduleDockPopoverClose() {
+  if (dockPopoverCloseTimer) clearTimeout(dockPopoverCloseTimer);
+  dockPopoverCloseTimer = setTimeout(() => {
+    closeDockPopover();
+    dockPopoverCloseTimer = null;
+  }, 160);
+}
+
+function closeDockPopover() {
+  dockPopoverPanel.value = null;
+  dockMenu.value?.hide?.();
+}
+
+function onDockPopoverHide() {
+  dockPopoverPanel.value = null;
+}
 const designerDockItems = computed(() => [
+  {
+    icon: () => h('i', { class: 'pi pi-folder-open', 'aria-hidden': 'true' }),
+    label: t('cassette.v2.loadTemplate'),
+    onClick: event => openDockPopover('open', event),
+    onHoverStart: event => openDockPopover('open', event),
+    onHoverEnd: () => scheduleDockPopoverClose(),
+    onFocus: event => openDockPopover('open', event),
+    onBlur: () => scheduleDockPopoverClose(),
+    hasPopup: true
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-pencil', 'aria-hidden': 'true' }),
+    label: t('common.rename'),
+    onClick: event => openDockPopover('rename', event),
+    onHoverStart: event => openDockPopover('rename', event),
+    onHoverEnd: () => scheduleDockPopoverClose(),
+    onFocus: event => openDockPopover('rename', event),
+    onBlur: () => scheduleDockPopoverClose(),
+    hasPopup: true
+  },
   {
     icon: () => h('i', { class: 'pi pi-undo', 'aria-hidden': 'true' }),
     label: t('common.undo'),

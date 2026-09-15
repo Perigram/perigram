@@ -24,14 +24,19 @@
     </VueFlow>
 
     <template #dock>
-      <Button :label="$t('facadePattern.save')" icon="pi pi-save" :loading="saving" :disabled="readOnly || !pattern?._id" @click="save" />
+      <MotionDock
+        :items="dockItems"
+        :aria-label="$t('facadePattern.save')"
+      />
     </template>
     </DesignerWorkspace>
   </DesignerSurface>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, h, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import MotionDock from '~/components/shared/MotionDock.vue';
 import { VueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -39,6 +44,16 @@ import Button from 'primevue/button';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import { FACADE_PATTERN_NODE_TYPES } from '~/utils/facade-patterns/index.js';
+
+const { t } = useI18n();
+const dockItems = computed(() => [
+  {
+    icon: () => h('i', { class: saving.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
+    label: t('facadePattern.save'),
+    disabled: props.readOnly || !props.pattern?._id,
+    onClick: () => save()
+  }
+]);
 
 const props = defineProps({ pattern: { type: Object, required: true }, readOnly: { type: Boolean, default: false } });
 const emit = defineEmits(['saved']);

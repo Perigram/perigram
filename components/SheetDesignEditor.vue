@@ -1,17 +1,10 @@
 <template>
-  <div class="flex min-h-0 flex-col gap-3">
-    <ActionToolbar>
-      <template #actions>
-        <Tag :value="`${$t('toolProfile.kerf')}: ${toolKerf} mm`" severity="secondary" size="small" />
-        <Button icon="pi pi-plus" size="small" :disabled="!editable" :aria-label="$t('sheetDesign.addCassette')" v-tooltip.top="$t('sheetDesign.addCassette')" @click="openAddDialog" />
-        <Button icon="pi pi-upload" severity="secondary" text rounded size="small" :disabled="!editable" :aria-label="$t('common.upload')" v-tooltip.top="$t('common.upload')" @click="uploadVisible = true" />
-        <Button icon="pi pi-refresh" severity="secondary" text rounded size="small" :disabled="!editable || selectedIndex < 0" :aria-label="$t('common.rotate')" v-tooltip.top="$t('common.rotate')" @click="rotateSelected" />
-        <Button icon="pi pi-trash" severity="danger" text rounded size="small" :disabled="!editable || selectedIndex < 0" :aria-label="$t('common.delete')" v-tooltip.top="$t('common.delete')" @click="removeSelected" />
-        <Button icon="pi pi-save" size="small" :loading="saving" :disabled="!editable || saving" :aria-label="$t('common.save')" v-tooltip.top="$t('common.save')" @click="save" />
-      </template>
-    </ActionToolbar>
-
-    <div class="aspect-[3/2] min-h-72 overflow-hidden rounded-ui border border-content-border bg-subtle">
+  <DesignerSurface>
+    <DesignerWorkspace layout="lanes" class="h-full">
+      <div class="relative h-full w-full overflow-hidden bg-subtle">
+      <span class="absolute top-3 left-3 z-10 rounded-ui bg-content px-2 py-1 text-supporting shadow-overlay">
+        {{ $t('toolProfile.kerf') }}: {{ toolKerf }} mm
+      </span>
       <svg
         ref="svgRef"
         class="h-full w-full touch-none"
@@ -112,7 +105,12 @@
           />
         </g>
       </svg>
-    </div>
+      </div>
+
+      <template #dock>
+        <MotionDock :items="dockItems" :aria-label="$t('sheetDesign.editor')" />
+      </template>
+    </DesignerWorkspace>
 
     <StandardDialog v-model:visible="addVisible" :header="$t('sheetDesign.addCassette')" size="md">
       <Select
@@ -131,18 +129,19 @@
     </StandardDialog>
 
     <CassetteEditorDialog v-model="uploadVisible" @saved="addUploadedCassette" />
-  </div>
+    </DesignerSurface>
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, h, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Select from '~/components/shared/EntitySelect.vue';
-import Tag from 'primevue/tag';
-import ActionToolbar from '~/components/shared/ActionToolbar.vue';
+import DesignerSurface from '~/components/shared/DesignerSurface.vue';
+import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
+import MotionDock from '~/components/shared/MotionDock.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import CassetteEditorDialog from '~/components/CassetteEditorDialog.vue';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
@@ -160,6 +159,39 @@ import {
   sheetPlacementSource,
   sheetPlacementTransform
 } from '~/utils/sheetLayoutEditor.js';
+
+const dockItems = computed(() => [
+  {
+    icon: () => h('i', { class: 'pi pi-plus', 'aria-hidden': 'true' }),
+    label: t('sheetDesign.addCassette'),
+    disabled: !props.editable,
+    onClick: () => openAddDialog()
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-upload', 'aria-hidden': 'true' }),
+    label: t('common.upload'),
+    disabled: !props.editable,
+    onClick: () => { uploadVisible.value = true; }
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
+    label: t('common.rotate'),
+    disabled: !props.editable || selectedIndex.value < 0,
+    onClick: () => rotateSelected()
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-trash', 'aria-hidden': 'true' }),
+    label: t('common.delete'),
+    disabled: !props.editable || selectedIndex.value < 0,
+    onClick: () => removeSelected()
+  },
+  {
+    icon: () => h('i', { class: saving.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
+    label: t('common.save'),
+    disabled: !props.editable || saving.value,
+    onClick: () => save()
+  }
+]);
 
 const props = defineProps({
   design: { type: Object, required: true },
