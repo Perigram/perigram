@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   canvasToDefinition,
-  createTemplate,
   definitionToCanvas,
   normalizeProcessDefinition,
   PROCESS_DATAFLOW_VERSION
 } from './index.js';
+import { createTemplate } from './test-support.js';
 
 const SYNTHETIC_TEMPLATES = [
   createTemplate({

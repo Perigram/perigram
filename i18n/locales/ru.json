@@ -1348,13 +1348,6 @@
     "organization": "Организация",
     "organizationName": "Название организации",
     "organizationType": "Тип организации",
-    "processTemplate": "Стартовый процесс",
-    "processTemplates": {
-      "contractor": "Процесс подрядчика",
-      "manufacturer": "Процесс поставщика",
-      "customer": "Процесс заказчика",
-      "serviceProvider": "Процесс сервисной организации"
-    },
     "createOrg": "Создать организацию",
     "accessPreset": "Пресет доступа",
     "selectAccessPreset": "Выберите пресет доступа",
@@ -2870,10 +2863,6 @@
     "lifecycleModeDefaultCreated": "Стандартный (created)",
     "lifecycleModeDomainDefault": "Доменный цикл",
     "lifecycleModeCustom": "Настраиваемый",
-    "lifecycleInheritedHint": "Этот выход наследует {source} машину статусов. Настройте её, чтобы менять статусы и переходы только для этого выхода.",
-    "lifecycleSourceDomain": "доменную",
-    "lifecycleSourceStandard": "стандартную",
-    "customizeLifecycle": "Настроить",
     "statusMachine": "Машина статусов",
     "stateId": "ID статуса",
     "addState": "Добавить статус",
@@ -3015,7 +3004,8 @@
     "applyDiffWorkflows": "Рабочие процессы",
     "applyDiffFieldPolicies": "Политики полей",
     "applyDiffCapabilities": "CRUD-возможности",
-    "applyDiffRemovedStatuses": "{entityType}: удалены состояния {statuses} — перед активацией требуется решение о миграции"
+    "applyDiffRemovedStatuses": "{entityType}: удалены состояния {statuses} — перед активацией требуется решение о миграции",
+    "producerWorkflowHint": "Статусы и переходы задаются доменным жизненным циклом, подключаемыми определениями статусов и узлами действий — но не этой панелью."
   },
   "generatedScreen": {
     "home": "Главная",

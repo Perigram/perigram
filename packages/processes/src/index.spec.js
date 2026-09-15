@@ -3,7 +3,6 @@ import {
   canvasToDefinition,
   compileProcessDefinition as compileContract,
   createDefaultCreatedWorkflow,
-  createTemplate,
   definitionToCanvas,
   normalizeProcessDefinition,
   portSpecsCompatible,
@@ -12,6 +11,7 @@ import {
   validateProcessDefinition as validateContract,
   validateRoundTrip
 } from './index.js';
+import { createTemplate } from './test-support.js';
 
 const SOURCE_STATE = 'SOURCE_STATE';
 const TARGET_STATE = 'TARGET_STATE';
