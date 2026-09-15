@@ -170,6 +170,18 @@
             }
         },
         render() {
+            if ((this.item as DockItemData & { separator?: boolean }).separator) {
+                return h('span', {
+                    style: {
+                        width: '1px',
+                        height: `${Math.round(this.baseItemSize * 0.7)}px`,
+                        flex: '0 0 auto',
+                        alignSelf: 'center',
+                        backgroundColor: 'var(--p-content-border-color)',
+                    } satisfies CSSProperties,
+                    'aria-hidden': 'true',
+                })
+            }
             const icon = typeof this.item.icon === 'function' ? (this.item.icon as () => unknown)() : this.item.icon
             const itemStyle: CSSProperties = {
                 width: `${this.currentSize}px`,
@@ -271,6 +283,7 @@
             items: { type: Array as PropType<DockItemData[]>, required: true },
             ariaLabel: { type: String, default: '' },
             className: { type: String, default: '' },
+            placement: { type: String as PropType<'top' | 'bottom'>, default: 'bottom' },
             distance: { type: Number, default: dockDefaults.distance },
             panelHeight: { type: Number, default: dockDefaults.panelHeight },
             baseItemSize: { type: Number, default: dockDefaults.baseItemSize },
@@ -317,18 +330,22 @@
             const panelStyle = computed<CSSProperties>(() => ({
                 height: `${props.panelHeight}px`,
                 position: 'absolute',
-                bottom: 'var(--p-toolbar-padding)',
+                ...(props.placement === 'top'
+                    ? { top: '0' }
+                    : { bottom: 'var(--p-toolbar-padding)' }),
                 left: '50%',
                 transform: 'translateX(-50%)',
                 display: 'flex',
                 alignItems: 'center',
                 width: 'fit-content',
                 maxWidth: 'calc(100% - var(--p-toolbar-padding) - var(--p-toolbar-padding))',
+                overflowX: 'auto',
+                scrollbarWidth: 'none',
                 gap: 'var(--p-toolbar-gap)',
                 borderRadius: 'var(--p-border-radius-lg)',
                 backgroundColor: 'var(--p-content-background)',
                 border: '1px solid var(--p-content-border-color)',
-                padding: 'var(--p-toolbar-padding)',
+                padding: '0.5rem',
                 boxShadow: 'none',
                 zIndex: 30,
             }))

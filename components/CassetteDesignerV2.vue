@@ -31,190 +31,85 @@
       </div>
     </div>
 
-    <DesignerWorkspace layout="lanes" class="min-h-0 flex-1">
+    <DesignerWorkspace layout="lanes" class="min-h-0 flex-1" :top-dock-items="documentDockItems">
+
       <template #palette>
-      <aside class="order-3 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden rounded-ui border border-content-border p-3 lg:col-span-2 xl:order-1 xl:col-span-1">
+      <aside class="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3">
 
-      <div class="flex shrink-0 flex-col gap-2 rounded-ui border border-content-border bg-subtle p-2">
-        <InputText
-          v-model="cassetteNameDraft"
-          :placeholder="$t('cassette.name')"
-          class="w-full"
-        />
-        <Select
-          :model-value="null"
-          :options="templateOptions"
-          option-label="label"
-          option-value="value"
-          entity-type="cassette"
-          :placeholder="$t('cassette.v2.loadTemplate')"
-          class="w-full"
-          @update:model-value="value => emit('load-template', value)"
-        />
-        <div class="flex items-center gap-1">
-          <Button
-            icon="pi pi-save"
-            size="small"
-            :loading="savingTemplate"
-            :disabled="savingTemplate"
-            :aria-label="$t('common.save')"
-            v-tooltip.top="$t('common.save')"
-            @click="saveTemplate"
-          />
-          <Button
-            icon="pi pi-copy"
-            severity="secondary"
-            text
-            rounded
-            size="small"
-            :loading="savingTemplate"
-            :disabled="savingTemplate"
-            :aria-label="$t('common.saveAs')"
-            v-tooltip.top="$t('common.saveAs')"
-            @click="saveTemplate({ saveAs: true })"
-          />
-          <Button
-            icon="pi pi-refresh"
-            severity="secondary"
-            text
-            rounded
-            size="small"
-            :aria-label="$t('common.reset')"
-            v-tooltip.top="$t('common.reset')"
-            @click="resetTree"
-          />
-        </div>
-        <Message v-if="sessionDraftAvailable" severity="info" size="small" :closable="false">
-          <div class="flex flex-col gap-2">
-            <span>{{ $t('cassette.v2.autosaveDraftAvailable') }}</span>
-            <div class="flex flex-wrap gap-1">
-              <Button :label="$t('cassette.v2.recoverDraft')" size="small" @click="recoverSessionDraft" />
-              <Button :label="$t('cassette.v2.discardDraft')" severity="secondary" text size="small" @click="discardSessionDraft" />
-            </div>
+      <Message v-if="sessionDraftAvailable" severity="info" size="small" :closable="false">
+        <div class="flex flex-col gap-2">
+          <span>{{ $t('cassette.v2.autosaveDraftAvailable') }}</span>
+          <div class="flex flex-wrap gap-1">
+            <Button :label="$t('cassette.v2.recoverDraft')" size="small" @click="recoverSessionDraft" />
+            <Button :label="$t('cassette.v2.discardDraft')" severity="secondary" text size="small" @click="discardSessionDraft" />
           </div>
-        </Message>
-      </div>
-
-      <div class="flex flex-wrap gap-2">
-        <Button
-          v-for="tab in sideTabs"
-          :key="tab.value"
-          :icon="tab.icon"
-          :label="$t(tab.labelKey)"
-          :severity="activeSideTab === tab.value ? 'primary' : 'secondary'"
-          size="small"
-          @click="activeSideTab = tab.value"
-        />
-      </div>
-
-      <div v-if="activeSideTab === 'parameters'" class="flex min-h-0 min-w-0 flex-col gap-3 overflow-auto">
-        <div class="flex items-center justify-between gap-2">
-          <strong>{{ $t('cassette.v2.globalParameters') }}</strong>
-          <Button
-            icon="pi pi-plus"
-            severity="secondary"
-            text
-            rounded
-            size="small"
-            :aria-label="$t('common.add')"
-            v-tooltip.top="$t('common.add')"
-            @click="addGlobalParameter"
-          />
         </div>
-        <div class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-1">
-          <div v-for="parameter in globalParameterEntries" :key="parameter.key" class="flex min-w-0 flex-col gap-1">
-            <div class="flex items-center justify-between gap-2">
-              <label class="text-technical">{{ parameter.key }}</label>
-              <Button
-                icon="pi pi-trash"
-                severity="danger"
-                text
-                rounded
-                size="small"
-                :aria-label="$t('common.delete')"
-                :disabled="usedParameterNames.has(parameter.key)"
-                v-tooltip.top="$t('common.delete')"
-                @click="deleteGlobalParameter(parameter.key)"
-              />
-            </div>
+      </Message>
+
+      <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto">
+        <section class="flex min-w-0 flex-col gap-2">
+          <div class="flex items-center justify-between gap-2">
+            <small class="uppercase text-muted-color text-supporting">{{ $t('cassette.v2.globalParameters') }}</small>
+            <Button
+              icon="pi pi-plus"
+              severity="secondary"
+              text
+              rounded
+              size="small"
+              :aria-label="$t('common.add')"
+              @click="addGlobalParameter"
+            />
+          </div>
+          <div v-for="parameter in globalParameterEntries" :key="parameter.key" class="flex min-w-0 items-center gap-2">
+            <label class="w-14 shrink-0 truncate text-technical text-muted-color" :title="parameter.key">{{ parameter.key }}</label>
             <CassetteExpressionEditor
+              class="min-w-0 flex-1"
               :model-value="parameter.value"
               :parameters="expressionParametersForGlobal(parameter.key)"
               :parameter-names="expressionParameterNamesForGlobal(parameter.key)"
               @update:model-value="value => updateGlobalParameter(parameter.key, value)"
             />
-          </div>
-        </div>
-      </div>
-
-      <div v-else-if="activeSideTab === 'layers'" class="flex min-h-0 flex-col gap-3">
-        <div class="flex items-center justify-between gap-2">
-          <div class="flex min-w-0 items-center gap-2">
-            <i class="pi pi-list text-muted-color" aria-hidden="true" />
-            <strong class="truncate">{{ $t('common.layers') }}</strong>
-            <Tag :value="visibleLayerSummary" severity="secondary" size="small" />
-          </div>
-          <div class="flex items-center gap-1">
             <Button
-              icon="pi pi-eye"
+              icon="pi pi-trash"
+              severity="secondary"
               text
               rounded
               size="small"
-              severity="secondary"
-              :aria-label="$t('drawing.showAllLayers')"
-              :disabled="allLayersVisible"
-              v-tooltip.top="$t('drawing.showAllLayers')"
-              @click="showAllLayers"
+              :aria-label="$t('common.delete')"
+              :disabled="usedParameterNames.has(parameter.key)"
+              @click="deleteGlobalParameter(parameter.key)"
             />
-            <Button
-              icon="pi pi-eye-slash"
-              text
-              rounded
+          </div>
+        </section>
+
+        <section class="flex min-w-0 flex-col gap-1">
+          <small class="uppercase text-muted-color text-supporting">{{ $t('common.layers') }}</small>
+          <div
+            v-for="row in layerRows"
+            :key="row.key"
+            class="flex min-w-0 items-center gap-2 py-0.5"
+          >
+            <Checkbox
+              :model-value="visibleLayerNames"
+              :value="row.layer.name"
+              :inputId="layerInputId(row.layer)"
               size="small"
-              severity="secondary"
-              :aria-label="$t('drawing.hideAllLayers')"
-              :disabled="visibleLayerNames.length === 0"
-              v-tooltip.top="$t('drawing.hideAllLayers')"
-              @click="hideAllLayers"
+              @update:model-value="updateVisibleLayerNames"
             />
+            <label :for="layerInputId(row.layer)" class="min-w-0 flex-1 truncate">
+              <IdentityBlock :entity="row.sourceEntity" variant="inline" :fields="row.layer.standardCode ? ['slug'] : []" />
+            </label>
+            <LayerStandardCard v-if="row.standard" :standard="row.standard" variant="inline" />
+            <PenTemplateCard v-if="row.pen" :pen="row.pen" variant="inline" />
           </div>
-        </div>
-
-        <ScrollPanel class="min-h-0 flex-1 rounded-ui border border-content-border">
-          <div class="flex flex-col">
-            <div
-              v-for="row in layerRows"
-              :key="row.key"
-              class="flex items-start gap-3 border-b border-content-border px-3 py-3 last:border-b-0"
-            >
-              <Checkbox
-                :model-value="visibleLayerNames"
-                :value="row.layer.name"
-                :inputId="layerInputId(row.layer)"
-                size="small"
-                class="mt-1"
-                @update:model-value="updateVisibleLayerNames"
-              />
-              <div class="flex min-w-0 flex-1 flex-col gap-2">
-                <label :for="layerInputId(row.layer)" class="min-w-0">
-                  <IdentityBlock :entity="row.sourceEntity" variant="compact" :fields="row.layer.standardCode ? ['slug'] : []" />
-                </label>
-                <LayerStandardCard v-if="row.standard" :standard="row.standard" variant="inline" />
-                <PenTemplateCard v-if="row.pen" :pen="row.pen" variant="inline" />
-              </div>
-            </div>
-          </div>
-        </ScrollPanel>
-      </div>
-
-      <div v-else class="flex min-h-0 flex-col gap-2">
-        <Textarea :model-value="occsJson" readonly rows="22" class="min-h-0 w-full flex-1 text-technical" />
+        </section>
       </div>
       </aside>
       </template>
 
-      <section ref="editorSurfaceRef" class="relative order-1 min-h-0 min-w-0 overflow-hidden xl:order-2">
+      <section ref="editorSurfaceRef" class="relative h-full min-h-0 w-full overflow-hidden">
       <DrawingCanvas
+        ref="drawingCanvasRef"
         :source="drawingCanvasSource"
         source-type="geometry-preview"
         mode="designer"
@@ -232,30 +127,6 @@
         @designer-section-edit="handleDesignerSectionEdit"
         @designer-fold-angle-edit="handleDesignerFoldAngleEdit"
       />
-      <div class="absolute left-3 top-3 z-[80] flex gap-1 rounded-ui border border-content-border bg-content p-1 shadow-overlay">
-        <Button
-          icon="pi pi-undo"
-          severity="secondary"
-          text
-          rounded
-          size="small"
-          :disabled="!canUndo"
-          :aria-label="$t('common.undo')"
-          v-tooltip.bottom="$t('common.undo')"
-          @click="undoDesignerChange"
-        />
-        <Button
-          icon="pi pi-replay"
-          severity="secondary"
-          text
-          rounded
-          size="small"
-          :disabled="!canRedo"
-          :aria-label="$t('common.redo')"
-          v-tooltip.bottom="$t('common.redo')"
-          @click="redoDesignerChange"
-        />
-      </div>
       <div
         v-if="inlineEditor"
         class="absolute z-[120] min-w-64 rounded-ui border border-content-border bg-content p-2 shadow-overlay"
@@ -553,8 +424,8 @@
       </section>
 
       <template #inspector>
-      <aside class="order-2 flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden xl:order-3">
-        <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-ui border border-content-border bg-content p-3">
+      <aside class="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-hidden p-3">
+        <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
           <div class="flex items-center justify-between gap-2">
             <strong class="truncate">{{ $t('cassette.v2.workpieces') }}</strong>
             <div class="flex items-center gap-1">
@@ -727,7 +598,7 @@
           </ScrollPanel>
         </div>
 
-        <div class="hidden shrink-0 overflow-hidden lg:block lg:h-56 xl:h-64">
+        <div class="h-48 shrink-0 overflow-hidden">
           <CassetteFoldedPreview
             :preview="cassettePreviewSource?.foldedPreview"
             :selected-face-id="selectedNodeId"
@@ -739,7 +610,50 @@
         </div>
       </aside>
       </template>
+
+      <Popover ref="dockMenu">
+        <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
+          <InputText
+            v-if="dockPopoverPanel === 'rename'"
+            v-model="cassetteNameDraft"
+            :placeholder="$t('cassette.name')"
+            class="w-full"
+            :aria-label="$t('common.rename')"
+          />
+          <Select
+            v-else-if="dockPopoverPanel === 'open'"
+            :model-value="null"
+            :options="templateOptions"
+            option-label="label"
+            option-value="value"
+            entity-type="cassette"
+            :placeholder="$t('cassette.v2.loadTemplate')"
+            class="w-full"
+            @update:model-value="value => { emit('load-template', value); closeDockPopover(); }"
+          />
+          <Button
+            v-if="dockPopoverPanel === 'rename'"
+            icon="pi pi-check"
+            :label="$t('common.save')"
+            size="small"
+            @click="closeDockPopover()"
+          />
+        </div>
+      </Popover>
+
+      <template #dock>
+        <MotionDock :items="canvasDockItems" :aria-label="$t('common.undo')" />
+      </template>
     </DesignerWorkspace>
+
+    <StandardDialog
+      v-model:visible="occsDialogVisible"
+      :header="$t('cassette.v2.occsDraft')"
+      size="lg"
+      :show-default-footer="false"
+    >
+      <Textarea :model-value="occsJson" readonly rows="24" class="w-full text-technical" />
+    </StandardDialog>
 
     <StandardDialog
       v-model:visible="profileDialogVisible"
@@ -813,13 +727,14 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, h, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
+import MotionDock from '~/components/shared/MotionDock.vue';
 import ScrollPanel from 'primevue/scrollpanel';
 import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
@@ -898,11 +813,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['load-template', 'save-template']);
 
-const sideTabs = [
-  { value: 'parameters', labelKey: 'cassette.v2.parameters', icon: 'pi pi-sliders-h' },
-  { value: 'layers', labelKey: 'common.layers', icon: 'pi pi-list' },
-  { value: 'occs', labelKey: 'cassette.v2.occsDraft', icon: 'pi pi-code' }
-];
+
 const cassetteTree = ref(createCassetteV2GraphTree());
 const cassetteNameDraft = ref(t('cassette.newCassette'));
 const selectedNodeId = ref(cassetteTree.value.rootId);
@@ -910,13 +821,96 @@ const selectedWorkpieceOverrideId = ref('');
 const selectedRelationId = ref('');
 const inspectorSelection = ref('face');
 const editorSurfaceRef = ref(null);
+const drawingCanvasRef = ref(null);
 const inlineEditor = ref(null);
 const pendingAttachmentSourceId = ref('');
 const foldedPreviewWorkpieceId = ref('');
 const previewSource = ref(null);
 const cassettePreviewSource = ref(null);
 const previewError = ref('');
-const activeSideTab = ref('parameters');
+const occsDialogVisible = ref(false);
+const dockMenu = ref(null);
+const dockPopoverPanel = ref(null);
+
+function openDockPopover(panel, event) {
+  dockPopoverPanel.value = panel;
+  dockMenu.value?.toggle(event);
+}
+
+function closeDockPopover() {
+  dockPopoverPanel.value = null;
+  dockMenu.value?.hide();
+}
+
+const documentDockItems = computed(() => [
+  {
+    icon: () => h('i', { class: 'pi pi-folder-open', 'aria-hidden': 'true' }),
+    label: t('cassette.v2.loadTemplate'),
+    onClick: event => openDockPopover('open', event),
+    hasPopup: true
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-pencil', 'aria-hidden': 'true' }),
+    label: t('common.rename'),
+    onClick: event => openDockPopover('rename', event),
+    hasPopup: true
+  },
+  { separator: true },
+  {
+    icon: () => h('i', { class: savingTemplate.value ? 'pi pi-spinner pi-spin' : 'pi pi-copy', 'aria-hidden': 'true' }),
+    label: t('common.saveAs'),
+    disabled: savingTemplate.value,
+    onClick: () => saveTemplate({ saveAs: true })
+  },
+  {
+    icon: () => h('i', { class: savingTemplate.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
+    label: t('common.save'),
+    disabled: savingTemplate.value,
+    onClick: () => saveTemplate()
+  },
+  { separator: true },
+  {
+    icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
+    label: t('common.reset'),
+    onClick: resetTree
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-code', 'aria-hidden': 'true' }),
+    label: t('cassette.v2.occsDraft'),
+    onClick: () => { occsDialogVisible.value = true; }
+  }
+]);
+
+const canvasDockItems = computed(() => [
+  {
+    icon: () => h('i', { class: 'pi pi-undo', 'aria-hidden': 'true' }),
+    label: t('common.undo'),
+    disabled: !canUndo.value,
+    onClick: undoDesignerChange
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-replay', 'aria-hidden': 'true' }),
+    label: t('common.redo'),
+    disabled: !canRedo.value,
+    onClick: redoDesignerChange
+  },
+  { separator: true },
+  {
+    icon: () => h('i', { class: 'pi pi-search-minus', 'aria-hidden': 'true' }),
+    label: t('drawing.zoomOut'),
+    onClick: () => drawingCanvasRef.value?.zoomOut()
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-search-plus', 'aria-hidden': 'true' }),
+    label: t('drawing.zoomIn'),
+    onClick: () => drawingCanvasRef.value?.zoomIn()
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
+    label: t('drawing.resetView'),
+    onClick: () => drawingCanvasRef.value?.resetView()
+  }
+]);
 const drawingLayers = ref([]);
 const visibleLayerNames = ref([]);
 const hiddenLayerNames = ref([]);
@@ -1257,8 +1251,6 @@ const usedParameterNames = computed(() => {
 });
 const occsJson = computed(() => JSON.stringify(createCassetteV2OccsDocument(cassetteTree.value, cassetteMarkContext.value), null, 2));
 const drawingLayerNames = computed(() => drawingLayers.value.map(layer => layer.name).filter(Boolean));
-const visibleLayerSummary = computed(() => `${visibleLayerNames.value.length}/${drawingLayerNames.value.length}`);
-const allLayersVisible = computed(() => drawingLayerNames.value.length > 0 && drawingLayerNames.value.every(name => visibleLayerNames.value.includes(name)));
 const sameEntityId = (left, right) => left?.toString?.() === right?.toString?.();
 const standardCode = (standard) => standard?.data?.code || standard?.code || null;
 const sourceLayerEntity = (layer) => ({
@@ -1793,17 +1785,6 @@ const updateVisibleLayerNames = (layers) => {
   updateHiddenLayers(nextLayers);
 };
 
-const showAllLayers = () => {
-  const nextLayers = [...drawingLayerNames.value];
-  visibleLayerNames.value = nextLayers;
-  updateHiddenLayers(nextLayers);
-};
-
-const hideAllLayers = () => {
-  visibleLayerNames.value = [];
-  updateHiddenLayers([]);
-};
-
 const defaultFaceRole = (node) => node?.role || (node?.parentId ? 'return_flange' : 'main');
 
 const updateFaceRole = (nodeId, role) => {
@@ -1925,7 +1906,6 @@ const resetTree = () => {
   selectedWorkpieceOverrideId.value = '';
   selectedRelationId.value = '';
   inspectorSelection.value = 'face';
-  activeSideTab.value = 'parameters';
   previewError.value = '';
   clearSessionDraft();
   resetDesignerHistory();

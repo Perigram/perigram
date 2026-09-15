@@ -32,18 +32,6 @@
                     <InputText id="organization-name" v-model="form.organizationName" class="w-full" required />
                 </div>
 
-                <div v-if="!invitationToken" class="flex flex-col gap-1">
-                    <label for="organization-template">{{ $t('auth.processTemplate') }}</label>
-                    <Select 
-                        id="organization-template"
-                        v-model="form.processTemplateId"
-                        :options="processTemplateOptions"
-                        optionLabel="label"
-                        optionValue="value"
-                        class="w-full"
-                    />
-                </div>
-
                 <Button type="submit" :label="$t('auth.signup')" :loading="loading" class="w-full mt-2" />
             </form>
 
@@ -82,8 +70,7 @@ const form = ref({
     name: '',
     email: '',
     password: '',
-    organizationName: '',
-    processTemplateId: 'contractor'
+    organizationName: ''
 });
 
 const loading = ref(false);
@@ -99,12 +86,6 @@ const loginTarget = computed(() => ({
         ...(invitationToken.value ? { invitation: invitationToken.value } : {})
     }
 }));
-const processTemplateOptions = computed(() => ([
-    { label: t('auth.processTemplates.contractor'), value: 'contractor' },
-    { label: t('auth.processTemplates.manufacturer'), value: 'manufacturer' },
-    { label: t('auth.processTemplates.customer'), value: 'customer' },
-    { label: t('auth.processTemplates.serviceProvider'), value: 'serviceProvider' }
-]));
 
 const handleRegister = async () => {
     loading.value = true;

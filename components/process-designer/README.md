@@ -65,6 +65,13 @@ exactly once, where the entity path begins. A status-change node's target
 status is authored by wiring a status definition socket (or the node's
 inline status control), never a duplicate inspector select; the source state
 is derived at compile time from the incoming entity flow.
+The panel shows the entity type's display label and icon with a "Producer
+output" tag, the stable `nodeId:outputSocketId` identity as a muted code
+line, the producer's declared relation keys, and a hint that statuses and
+transitions come from the domain lifecycle, wired status definitions, and
+action nodes. It contains no status-machine or entity-access editors: node
+wiring is the single authoring path for lifecycle and access, and the
+`useProcessDesignerWorkflow` panel editor was removed with it.
 `useProcessDesignerScreens` owns source/region creation, source-id reference
 updates, mode normalization, lineage rows, and typed scalar-map mutations. The
 Screens tab renders those mutations against the canonical

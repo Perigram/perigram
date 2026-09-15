@@ -44,7 +44,7 @@ Current owners:
 
 | File | Current responsibility |
 |---|---|
-| [components/CassetteDesigner.vue](../../components/CassetteDesigner.vue) | Owns editor state as `{ params, extrusions, layers }`, renders parameters with `InputNumber`, adds extrusions by clicked boundary edge index, saves through `saveCassetteTemplate`. |
+| `components/CassetteDesigner.vue` (deleted; superseded by `components/CassetteDesignerV2.vue`) | Historically owned editor state as `{ params, extrusions, layers }`, rendered parameters with `InputNumber`, added extrusions by clicked boundary edge index, and saved through `saveCassetteTemplate`. |
 | [components/shared/DrawingCanvas.vue](../../components/shared/DrawingCanvas.vue) | For `source-type="parametric-cassette"`, calls `renderCassetteToSVG()`, normalizes the result into `{ viewBox, layers }`, and emits edge-index designer actions. |
 | [utils/cassetteRenderer.js](../../utils/cassetteRenderer.js) | Browser-side Nodi WASM renderer. Loads `/Cassette.json`, builds a Nodi graph, and returns the largest evaluated curve as boundary. |
 | [server/utils/cassetteGraphBuilder.js](../../server/utils/cassetteGraphBuilder.js) | Converts `{ params, extrusions }` into Nodi nodes: parameter numbers, one root rectangle from `A/B`, then a linear chain of grow operations by numeric edge index. |

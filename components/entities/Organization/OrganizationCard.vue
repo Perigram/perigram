@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <EntityCard :entity="organization" entity-type="organization" :variant="variant" :show-trace="false" :show-status="false" footer-display="inline">
+    <EntityCard :entity="organization" entity-type="organization" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <Avatar :label="avatarLabel" shape="circle" size="large" />
       </template>

@@ -1,6 +1,6 @@
 <template>
   <DesignerSurface>
-    <DesignerWorkspace layout="canvas" class="h-full">
+    <DesignerWorkspace layout="canvas" class="h-full" :top-dock-items="dockItems">
     <template #palette>
       <div class="flex w-52 flex-col gap-2 rounded-ui border border-content-border p-3 shadow-overlay">
         <span class="text-label">{{ $t('facadePattern.nodes') }}</span>
@@ -24,21 +24,52 @@
     </VueFlow>
 
     <template #dock>
-      <Button :label="$t('facadePattern.save')" icon="pi pi-save" :loading="saving" :disabled="readOnly || !pattern?._id" @click="save" />
+      <MotionDock :items="canvasDockItems" :aria-label="$t('drawing.zoomIn')" />
     </template>
+
     </DesignerWorkspace>
   </DesignerSurface>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
-import { VueFlow } from '@vue-flow/core';
+import { computed, h, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import MotionDock from '~/components/shared/MotionDock.vue';
+import { VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import { FACADE_PATTERN_NODE_TYPES } from '~/utils/facade-patterns/index.js';
+
+const { t } = useI18n();
+const { zoomIn, zoomOut, fitView } = useVueFlow();
+const canvasDockItems = computed(() => [
+  {
+    icon: () => h('i', { class: 'pi pi-search-minus', 'aria-hidden': 'true' }),
+    label: t('drawing.zoomOut'),
+    onClick: () => zoomOut({ duration: 120 })
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-search-plus', 'aria-hidden': 'true' }),
+    label: t('drawing.zoomIn'),
+    onClick: () => zoomIn({ duration: 120 })
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-expand', 'aria-hidden': 'true' }),
+    label: t('drawing.resetView'),
+    onClick: () => fitView({ padding: 0.16, duration: 180 })
+  }
+]);
+const dockItems = computed(() => [
+  {
+    icon: () => h('i', { class: saving.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
+    label: t('facadePattern.save'),
+    disabled: props.readOnly || !props.pattern?._id,
+    onClick: () => save()
+  }
+]);
 
 const props = defineProps({ pattern: { type: Object, required: true }, readOnly: { type: Boolean, default: false } });
 const emit = defineEmits(['saved']);

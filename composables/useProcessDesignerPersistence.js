@@ -19,6 +19,10 @@ export function useProcessDesignerPersistence({ request = $fetch } = {}) {
     return request(`/api/process-definitions/${id}`, { method: 'PATCH', body: { data } });
   }
 
+  function renameDraft(id, name) {
+    return request(`/api/process-definitions/${id}`, { method: 'PATCH', body: { name } });
+  }
+
   function loadProcessById(id) {
     return request(`/api/process-definitions/${id}`);
   }
@@ -38,5 +42,5 @@ export function useProcessDesignerPersistence({ request = $fetch } = {}) {
     });
   }
 
-  return { activateDraft, createDraft, loadById: loadProcessById, loadWorkspace, previewDraft, saveDraft, validateDraft };
+  return { activateDraft, createDraft, loadById: loadProcessById, loadWorkspace, previewDraft, renameDraft, saveDraft, validateDraft };
 }

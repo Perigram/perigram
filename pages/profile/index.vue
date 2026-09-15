@@ -126,10 +126,6 @@
                     <InputText v-model="orgForm.name" required class="w-full" autofocus />
                 </div>
                 <div class="flex flex-col gap-1">
-                    <label>{{ $t('auth.processTemplate') }} *</label>
-                    <Select v-model="orgForm.processTemplateId" :options="processTemplateOptions" optionLabel="label" optionValue="value" class="w-full" />
-                </div>
-                <div class="flex flex-col gap-1">
                     <label>{{ $t('profile.email') }} *</label>
                     <InputText v-model="orgForm.email" type="email" required class="w-full" />
                 </div>
@@ -224,16 +220,9 @@ const organizationMemberships = computed(() => authStore.memberships.map(members
 
 const orgForm = ref({
     name: '',
-    processTemplateId: 'contractor',
     email: user.value.email || '',
 });
 
-const processTemplateOptions = [
-    { label: t('auth.processTemplates.contractor'), value: 'contractor' },
-    { label: t('auth.processTemplates.manufacturer'), value: 'manufacturer' },
-    { label: t('auth.processTemplates.customer'), value: 'customer' },
-    { label: t('auth.processTemplates.serviceProvider'), value: 'serviceProvider' },
-];
 
 const createOrganization = async () => {
     submittingOrg.value = true;

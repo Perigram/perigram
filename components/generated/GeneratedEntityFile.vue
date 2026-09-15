@@ -35,9 +35,10 @@
       />
     </div>
 
-    <div class="min-h-0 flex-1 overflow-auto p-4">
+    <div :class="boundedDetail ? 'min-h-0 flex-1 overflow-hidden' : 'min-h-0 flex-1 overflow-auto p-4'">
       <GeneratedEntityDetail
         :key="`${item.type}:${entityId}`"
+        :flush="boundedDetail"
         :entity="item.entity"
         :entity-type="item.type"
         :screen-key="detailScreen?.screenKey || detailScreen?.id || ''"
@@ -78,6 +79,7 @@
 <script setup>
 import { computed } from 'vue';
 import GeneratedEntityDetail from '~/components/generated/GeneratedEntityDetail.vue';
+import { resolveGeneratedEntityDetailOverload } from '~/components/generated/overloads.js';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTabs.vue';
 import GeneratedWorkspacePaneMenu from '~/components/generated/GeneratedWorkspacePaneMenu.vue';
@@ -128,6 +130,13 @@ const detailMainRegion = computed(() => loadedDetailScreen.value.regions.find(re
   detailSourceState(region.sourceId).source?.mode === 'single'
 )) || loadedDetailScreen.value.regions[0] || null);
 const detailChildRegions = computed(() => loadedDetailScreen.value.regions.filter(region => region !== detailMainRegion.value));
+// Bounded operational overloads (designers/editors) own the whole file body:
+// without child regions they fill the pane directly instead of scrolling
+// inside it through the canonical EntityPage chrome.
+const boundedDetail = computed(() => (
+    Boolean(resolveGeneratedEntityDetailOverload(props.item?.type))
+    && detailChildRegions.value.length === 0
+));
 const detailChildActionIds = computed(() => [...new Set(detailChildRegions.value.flatMap(region => region.actions || []))]);
 const detailActionContext = computed(() => ({
   parentEntity: props.item?.entity || null,

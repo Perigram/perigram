@@ -1749,6 +1749,42 @@ SFC compile check passed; `node scripts/check-arch.js`,
   auth hydration and manual execution recompile the canonical graph and never
   prefer the stored snapshot, so the compiled artifact is not runtime authority.
 
+### Agent Notes — 2026-09-12 starter templates and producer panel editors removed
+
+User-directed removals, both merged from the designer UX direction that node
+wiring is the only authoring path:
+
+- **Starter process templates deleted.** `PROCESS_TEMPLATES`
+  (`server/features/process-definitions/process-templates.js`),
+  `createActiveFromTemplate`, `createTemplate` from the `@cutkit/processes`
+  barrel, the signup/organization template pickers
+  (`pages/auth/register.vue`, `pages/profile/index.vue`), the
+  `processTemplateId` plumbing in the register API and organizations service,
+  and the historical `migrate-org-types-to-processes.js` script are gone.
+  Organization creation and signup now call `createActiveEmptyProcess()`: an
+  explicitly empty, compiled, ACTIVE v4 definition with `roleGrants:
+  { role_admin: [] }` and no grants, producer outputs, or screens. A new
+  organization starts with zero authored entity access; the creator's owner
+  membership still carries `organizations:admin`/`users:admin` for tenant
+  management. The template fixture builder moved to the spec-only
+  `packages/processes/src/test-support.js`.
+- **Producer panel status/access editors deleted.** The "Created entity"
+  inspector panel no longer renders the lifecycle-mode select, status-machine
+  editor, or entity-access (allowedRoles/fields) editors — nor the
+  `useProcessDesignerWorkflow` composable they used. The panel keeps the
+  identity header (label, icon, muted `nodeId:outputSocketId`), the
+  producer's declared relations, and a hint pointing at the real authoring
+  paths (domain lifecycle, status-definition wiring, action nodes, typed
+  grants). Compiled producer lifecycle/field-policy/allowedRoles data and
+  their consumers are unchanged — only the duplicate editor surface is gone.
+
+Validation: `npx vitest run packages/processes shared composables
+server/features/process-definitions/process-definitions.spec.js` all pass;
+SFC compile checks for both touched pages pass; the framework manifest was
+regenerated and the UI component audit row for `process.vue` updated to the
+reduced chrome count; `node scripts/check-arch.js` and
+`node scripts/check-docs.js` pass.
+
 ## P2 — remove misleading and unnecessary surface area
 
 - [x] Reduce the primary collection palette to operations required by the CRUD

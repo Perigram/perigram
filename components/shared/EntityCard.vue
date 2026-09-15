@@ -13,61 +13,6 @@
             <IdentityBlock :entity="entity" variant="inline" :icon="entityConfig.icon" />
             <slot name="inline-extra" />
         </span>
-        
-        <Popover ref="op">
-            <div class="w-[min(34rem,calc(100vw-3rem))]">
-                <div class="flex flex-col gap-4 p-4">
-            <TraceChain v-if="effectivePopupShowTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" />
-                    <small v-if="inlineTypeLabel" class="uppercase text-muted-color text-supporting">
-                        {{ inlineTypeLabel }}
-                    </small>
-                    <div class="flex flex-wrap items-start justify-between gap-3">
-                        <IdentityBlock :entity="entity" />
-                        <EntityStatus
-                            v-if="effectiveShowStatus"
-                            :entity="entity"
-                            :entity-type="entityType"
-                            variant="inline"
-                            :actions="statusActions"
-                            @refresh="$emit('refresh')"
-                            @transitioned="$emit('refresh')"
-                        />
-                    </div>
-                    <div class="entity-card-popup-content flex flex-col gap-3">
-                        <slot name="expanded">
-                            <slot />
-                        </slot>
-                        <slot name="footer" />
-                    </div>
-                    <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex justify-end" @click.stop>
-                      <EntityActionsPopover>
-                        <GeneratedCassetteDesignerAction
-                            v-if="inlineShowCassetteDesigner"
-                            :entity="inlineActionEntity"
-                            menu-item
-                        />
-                        <GeneratedActionButton
-                            v-for="actionId in inlineActionIds"
-                            :key="actionId"
-                            :action-id="actionId"
-                            menu-item
-                            @execute="executeInlineAction"
-                        />
-                        <Button
-                            v-if="inlineDetailRoute"
-                            :label="$t('common.open')"
-                            icon="pi pi-external-link"
-                            text
-                            size="small"
-                            class="w-full justify-start"
-                            :aria-label="$t('common.open')"
-                            @click="openInlineDetail"
-                        />
-                      </EntityActionsPopover>
-                    </div>
-                </div>
-            </div>
-        </Popover>
     </template>
 
     <!-- Compact: identity + status in a card row -->
@@ -92,7 +37,7 @@
                     </template>
                     <template v-else>
                         <slot name="before-identity" />
-                        <IdentityBlock :entity="entity" variant="compact" />
+                        <IdentityBlock :entity="entity" variant="compact" :icon="entityConfig.icon" />
                     </template>
                 </div>
                 <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
@@ -114,60 +59,6 @@
             <slot name="compact-content" />
             </template>
         </Card>
-        <Popover ref="op">
-            <div class="w-[min(34rem,calc(100vw-3rem))]">
-                <div class="flex flex-col gap-4 p-4">
-                    <TraceChain v-if="effectivePopupShowTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" />
-                    <small v-if="inlineTypeLabel" class="uppercase text-muted-color text-supporting">
-                        {{ inlineTypeLabel }}
-                    </small>
-                    <div class="flex flex-wrap items-start justify-between gap-3">
-                        <IdentityBlock :entity="entity" />
-                        <EntityStatus
-                            v-if="effectiveShowStatus"
-                            :entity="entity"
-                            :entity-type="entityType"
-                            variant="inline"
-                            :actions="statusActions"
-                            @refresh="$emit('refresh')"
-                            @transitioned="$emit('refresh')"
-                        />
-                    </div>
-                    <div class="entity-card-popup-content flex flex-col gap-3">
-                        <slot name="expanded">
-                            <slot />
-                        </slot>
-                        <slot name="footer" />
-                    </div>
-                    <div v-if="inlinePopupHasActions || inlineDetailRoute" class="flex justify-end" @click.stop>
-                      <EntityActionsPopover>
-                        <GeneratedCassetteDesignerAction
-                            v-if="inlineShowCassetteDesigner"
-                            :entity="inlineActionEntity"
-                            menu-item
-                        />
-                        <GeneratedActionButton
-                            v-for="actionId in inlineActionIds"
-                            :key="actionId"
-                            :action-id="actionId"
-                            menu-item
-                            @execute="executeInlineAction"
-                        />
-                        <Button
-                            v-if="inlineDetailRoute"
-                            :label="$t('common.open')"
-                            icon="pi pi-external-link"
-                            text
-                            size="small"
-                            class="w-full justify-start"
-                            :aria-label="$t('common.open')"
-                            @click="openInlineDetail"
-                        />
-                      </EntityActionsPopover>
-                    </div>
-                </div>
-            </div>
-        </Popover>
     </template>
 
     <!-- Card: full semantic structure; visual chrome remains Aura-owned. -->
@@ -185,7 +76,7 @@
                     <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
                         <div class="flex min-w-0 flex-1 items-center gap-2">
                             <slot name="before-identity" />
-                            <IdentityBlock :entity="entity" />
+                            <IdentityBlock :entity="entity" :icon="entityConfig.icon" />
                         </div>
                         <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
                             <EntityStatus
@@ -209,7 +100,7 @@
                 <slot />
             </template>
             <template #footer>
-                <div v-if="$slots.footer" class="flex justify-end" @click.stop>
+                <div v-if="$slots.footer" class="flex flex-wrap items-center justify-end gap-2" @click.stop>
                   <EntityActionsPopover v-if="footerDisplay === 'menu'">
                     <slot name="footer" />
                   </EntityActionsPopover>
@@ -218,6 +109,72 @@
             </template>
         </Card>
     </template>
+
+    <!-- One shared expansion surface for inline and compact variants: type
+         label + identity header, lineage context, the same canonical body
+         the full card uses, and an inline action row — generated commands
+         and the detail route render directly, never behind a second
+         ellipsis inside the popover. -->
+    <Popover v-if="variant === 'inline' || variant === 'compact'" ref="op">
+        <div class="w-[min(34rem,calc(100vw-3rem))]">
+            <div class="flex flex-col gap-3 p-4">
+                <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                    <small v-if="inlineTypeLabel" class="uppercase text-muted-color text-supporting">
+                        {{ inlineTypeLabel }}
+                    </small>
+                    <EntityStatus
+                        v-if="effectiveShowStatus"
+                        :entity="entity"
+                        :entity-type="entityType"
+                        variant="inline"
+                        :actions="statusActions"
+                        @refresh="$emit('refresh')"
+                        @transitioned="$emit('refresh')"
+                    />
+                </div>
+                <IdentityBlock :entity="entity" variant="header" :icon="entityConfig.icon" />
+                <TraceChain
+                    v-if="effectivePopupShowTrace"
+                    :entity="entity"
+                    :entity-type="entityType"
+                    :exclude="traceExclusions"
+                />
+                <div class="entity-card-popup-content flex flex-col gap-3">
+                    <slot name="expanded">
+                        <slot />
+                    </slot>
+                    <slot name="footer" />
+                </div>
+                <Divider v-if="inlinePopupHasActions || inlineDetailRoute" class="m-0" />
+                <div
+                    v-if="inlinePopupHasActions || inlineDetailRoute"
+                    class="flex flex-wrap items-center justify-end gap-2"
+                    @click.stop
+                >
+                    <GeneratedCassetteDesignerAction
+                        v-if="inlineShowCassetteDesigner"
+                        :entity="inlineActionEntity"
+                    />
+                    <GeneratedActionButton
+                        v-for="actionId in inlineActionIds"
+                        :key="actionId"
+                        :action-id="actionId"
+                        size="small"
+                        @execute="executeInlineAction"
+                    />
+                    <Button
+                        v-if="inlineDetailRoute"
+                        :label="$t('common.open')"
+                        icon="pi pi-external-link"
+                        text
+                        size="small"
+                        :aria-label="$t('common.open')"
+                        @click="openInlineDetail"
+                    />
+                </div>
+            </div>
+        </div>
+    </Popover>
 </template>
 
 <script setup>
@@ -236,7 +193,7 @@ import { computed, inject, onMounted, onUnmounted, ref, unref } from 'vue';
  *   default          — body content (card variant)
  *   compact-content  — extra content in compact row
  *   inline-extra     — suffix in inline row
- *   footer           — footer actions (card variant)
+ *   footer           — footer actions (card variant; inline by default)
  */
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
@@ -244,6 +201,7 @@ import TraceChain from '~/components/shared/links/TraceChain.vue';
 import EntityActionsPopover from '~/components/shared/EntityActionsPopover.vue';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
+import Divider from 'primevue/divider';
 import Popover from 'primevue/popover';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
@@ -268,7 +226,7 @@ const props = defineProps({
     displayOverrides: { type: Object, default: null },
     contextEntity: { type: Object, default: null },
     contextEntityType: { type: String, default: '' },
-    footerDisplay: { type: String, default: 'menu', validator: value => ['menu', 'inline'].includes(value) }
+    footerDisplay: { type: String, default: 'inline', validator: value => ['menu', 'inline'].includes(value) }
 });
 
 const emit = defineEmits(['refresh']);
@@ -312,7 +270,6 @@ const inlineDetailRoute = computed(() => unref(inlineDetailRouteRef));
 const inlineTypeLabel = computed(() => unref(inlineTypeLabelRef) || '');
 const inlineActionIds = computed(() => unref(inlineActionIdsRef) || []);
 const inlineActionEntity = computed(() => unref(inlineActionEntityRef) || props.entity);
-const inlineActionEntityType = computed(() => unref(inlineActionEntityTypeRef) || props.entityType);
 const inlineShowCassetteDesigner = computed(() => Boolean(unref(inlineShowCassetteDesignerRef)));
 const inlinePopupHasActions = computed(() => (
     inlineShowCassetteDesigner.value

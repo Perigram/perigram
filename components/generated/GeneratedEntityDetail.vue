@@ -1,6 +1,25 @@
 <template>
+  <!-- Flush mode: a bounded operational overload (designer/editor) owns the
+       whole file body, so the canonical EntityPage chrome is bypassed and the
+       body fills the pane directly instead of scrolling inside it. -->
+  <div
+    v-if="entity && flush"
+    class="flex h-full min-h-0 w-full flex-col"
+  >
+    <GeneratedEntityDetailBody
+      :entity="entity"
+      :entity-type="entityType"
+      :surface="surface"
+      :screen-key="screenKey"
+      :actions="resolvedBodyActions"
+      :suppress-child-summaries="suppressChildSummaries"
+      mode="file"
+      @refresh="$emit('refresh')"
+    />
+    <slot />
+  </div>
   <EntityPage
-    v-if="entity"
+    v-else-if="entity"
     :entity="entity"
     :entity-type="entityType"
     :show-trace="!embedded"
@@ -41,7 +60,7 @@
 </template>
 
 <script setup>
-import { computed, provide } from 'vue';
+import { computed, inject, provide, unref } from 'vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import GeneratedEntityDetailBody from '~/components/generated/GeneratedEntityDetailBody.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
@@ -67,6 +86,7 @@ const props = defineProps({
   showIdentity: { type: Boolean, default: false },
   openActionsInWorkspace: { type: Boolean, default: false },
   embedded: { type: Boolean, default: false },
+  flush: { type: Boolean, default: false },
   suppressChildSummaries: { type: Boolean, default: false },
   traceExclusions: { type: Array, default: () => [] }
 });
@@ -76,6 +96,13 @@ const emit = defineEmits(['refresh', 'execute-action', 'open-page']);
 const authStore = useAuthStore();
 const editorActionComponent = computed(() => entityEditorActionFor(props.entityType));
 const forceIdentityForEditor = computed(() => entityEditorForcesIdentity(props.entityType));
+const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
+if (props.flush) {
+  provide('displayedEntityContexts', computed(() => [
+    ...(unref(parentDisplayedEntityContexts) || []),
+    { type: props.entityType, entity: props.entity }
+  ]));
+}
 provide('generatedExecuteAction', (action, entity, context = {}) => {
   emit('execute-action', action, entity, context);
 });

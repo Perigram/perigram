@@ -13,6 +13,7 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/shared/DesignerDialog.vue': 'layout',
   'components/shared/DesignerWorkspace.vue': 'layout',
   'components/shared/EntityPage.vue': 'layout',
+  'components/shared/EntitySurfaceContent.vue': 'layout',
   'components/shared/EntityWorkspace.vue': 'layout',
   'components/shared/ResponsiveGrid.vue': 'layout',
   'components/shared/blocks/DataBlock.vue': 'layout',
@@ -21,6 +22,8 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
 
 export const SCOPED_LAYOUT_PROPERTIES = new Set([
   'align-items',
+  'align-self',
+  'justify-self',
   'container-type',
   'display',
   'flex',
@@ -31,6 +34,11 @@ export const SCOPED_LAYOUT_PROPERTIES = new Set([
   'grid-template-columns',
   'grid-template-rows',
   'justify-content',
+  'left',
+  'margin',
+  'position',
+  'z-index',
+  'max-height',
   'max-width',
   'min-height',
   'min-width',
@@ -44,7 +52,6 @@ export const SCOPED_EXCEPTION_PROPERTIES = Object.freeze({
 
 export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   'components/AssetsLibrary.vue': ['data-driven', [':style="{ backgroundColor: penForm.stroke.color }"']],
-  'components/CassetteDesigner.vue': ['data-driven', [':style="{ position: \'absolute\', left: addDialog.screenX + \'px\', top: addDialog.screenY + \'px\', transform: \'translate(-50%, -100%)\' }"']],
   'components/calls/CallPanel.vue': ['data-driven', [':style="{ left: `${reaction.left}%` }"']],
   'components/CassetteDesignerV2.vue': ['data-driven', [
     ':style="{ left: `${inlineEditor.x}px`, top: `${inlineEditor.y}px` }"',
@@ -52,6 +59,7 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
   ]],
   'components/QueueEditor.vue': ['layout', ['style="width: var(--ck-table-action-column-width)"']],
   'components/entities/Color/ColorCard.vue': ['data-driven', [':style="swatchStyle"', ':style="swatchStyle"']],
+  'components/shared/blocks/DataBlock.vue': ['data-driven', [':style="{ backgroundColor: row.swatch }"']],
   'components/entities/PenTemplate/PenTemplateCard.vue': ['data-driven', [':style="lineStyle"']],
   'components/entities/Requisition/RequisitionDetail.vue': ['data-driven', [':style="{ backgroundColor: item.colorHex || item.colorFallback || \'var(--p-content-border-color)\' }"']],
   'components/entities/Sheet/SheetDetail.vue': ['data-driven', [':style="{ backgroundColor: colorHex }"', ':style="geometryStyle"']],

@@ -22,11 +22,23 @@ const previewFor = (key) => {
   return 'none';
 };
 
+// Card surfaces answer "what is this and what is its primary fact": preview,
+// identity, the leading summary/specs/stock facts, and relation chips.
+// Production internals and revision provenance belong to the detail surface,
+// and noisy entities pin an explicit card group list.
+const CARD_GROUP_OVERRIDES = {
+  queue: ['summary'],
+  catalog: ['summary'],
+  geometryCapture: ['summary'],
+  warehouse: ['summary']
+};
+
 const cardGroupsFor = (key) => {
+  if (CARD_GROUP_OVERRIDES[key]) return CARD_GROUP_OVERRIDES[key];
   const groups = cncEntityFieldGroups[key] || {};
   const orderedGroups = key === 'nestingRun'
-    ? ['summary', 'production', 'specs', 'stock', 'geometry', 'relations', 'provenance']
-    : ['summary', 'specs', 'stock', 'geometry', 'relations', 'provenance'];
+    ? ['summary', 'production', 'identity', 'specs', 'stock', 'geometry', 'relations']
+    : ['summary', 'identity', 'specs', 'stock', 'geometry', 'relations'];
   return orderedGroups
     .filter(group => groups[group]);
 };

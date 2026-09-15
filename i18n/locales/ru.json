@@ -73,6 +73,7 @@
     "uploading": "Загрузка...",
     "created": "Создано",
     "open": "Открыть",
+    "rename": "Переименовать",
     "doNotUse": "Не использовать",
     "toggleTheme": "Сменить тему",
     "backToList": "Назад к списку",
@@ -99,6 +100,12 @@
     "note": "Примечание",
     "history": "История",
     "refresh": "Обновить"
+  },
+  "designer": {
+    "panels": "Панели",
+    "palette": "Палитра",
+    "inspector": "Инспектор",
+    "support": "Поддержка"
   },
   "drawing": {
     "showAllLayers": "Показать все слои",
@@ -1347,13 +1354,6 @@
     "organization": "Организация",
     "organizationName": "Название организации",
     "organizationType": "Тип организации",
-    "processTemplate": "Стартовый процесс",
-    "processTemplates": {
-      "contractor": "Процесс подрядчика",
-      "manufacturer": "Процесс поставщика",
-      "customer": "Процесс заказчика",
-      "serviceProvider": "Процесс сервисной организации"
-    },
     "createOrg": "Создать организацию",
     "accessPreset": "Пресет доступа",
     "selectAccessPreset": "Выберите пресет доступа",
@@ -1846,6 +1846,17 @@
     "projectFacts": "Данные проекта",
     "materialSources": "Источники материала",
     "surfaceRange": "Диапазон поверхностей"
+  },
+  "entityGroups": {
+    "identity": "Идентификация",
+    "summary": "Обзор",
+    "specs": "Характеристики",
+    "stock": "Склад",
+    "production": "Производство",
+    "relations": "Связи"
+  },
+  "color": {
+    "hexCode": "Hex"
   },
   "entities": {
     "project": "Проект",
@@ -2762,7 +2773,6 @@
     "service": "Сервис",
     "joinResultProducer": "Итоговый выход производителя",
     "actionRoles": "Роли действия",
-
     "entityAccess": "Доступ к данным сущности",
     "entityAccessHelp": "Доступ к сущностям {type} и их полям.",
     "canView": "Могут просматривать сущности",
@@ -2855,6 +2865,10 @@
     "constructionMode": "Режим создания",
     "revisionScope": "Область ревизии родителя",
     "lifecycleMode": "Режим жизненного цикла",
+    "producerOutputTag": "Выход продюсера",
+    "lifecycleModeDefaultCreated": "Стандартный (created)",
+    "lifecycleModeDomainDefault": "Доменный цикл",
+    "lifecycleModeCustom": "Настраиваемый",
     "statusMachine": "Машина статусов",
     "stateId": "ID статуса",
     "addState": "Добавить статус",
@@ -2996,7 +3010,8 @@
     "applyDiffWorkflows": "Рабочие процессы",
     "applyDiffFieldPolicies": "Политики полей",
     "applyDiffCapabilities": "CRUD-возможности",
-    "applyDiffRemovedStatuses": "{entityType}: удалены состояния {statuses} — перед активацией требуется решение о миграции"
+    "applyDiffRemovedStatuses": "{entityType}: удалены состояния {statuses} — перед активацией требуется решение о миграции",
+    "producerWorkflowHint": "Статусы и переходы задаются доменным жизненным циклом, подключаемыми определениями статусов и узлами действий — но не этой панелью."
   },
   "generatedScreen": {
     "home": "Главная",

@@ -236,7 +236,12 @@ bounded IDE-style Explorer and file workspace:
   to a workspace item (for example a restored stale call room) render as empty
   tabs. Pane-level split and close commands live in
   one ellipsis menu. The add button follows the last tab instead of consuming
-  the far edge of the header, inside the strip's border run. Generated entity-action buttons render inside the active
+  the far edge of the header, inside the strip's border run. File bodies of
+  bounded operational overloads (the cassette/facade/queue/sheet-design
+  editors) render flush: when the entity type has a detail overload and the
+  detail screen declares no child regions, the body fills the pane boundary
+  without the scrolling EntityPage chrome, so the editor owns the whole file.
+  Generated entity-action buttons render inside the active
   tab body below the strip only when the operational detail overload does not
   own its action surface. Cassette, queue, and sheet-design editors own that
   surface completely, including deletion. The body mounts the canonical

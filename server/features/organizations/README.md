@@ -51,9 +51,10 @@ Key fields:
   screen and requires `organizations:admin`. When an active process exists,
   those checks use the compiled effective permissions.
 - `createInitialForUser()` is the narrow public-signup helper. It creates the
-  first organization for a newly registered user, seeds the starter template's
-  organization roles and creator assignment, creates and activates a process,
-  and writes the user's initial owner membership/lineage. The creator
+  first organization for a newly registered user, seeds the organization's
+  `role_admin` identity and creator assignment, creates and activates an
+  explicitly empty process, and writes the user's initial owner
+  membership/lineage. The creator
   membership stores explicit `organizations:admin` and `users:admin` grants so
   tenant management remains reachable even if the active process graph later
   removes operational organization screens. Active process assignments provide

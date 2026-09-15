@@ -73,6 +73,7 @@
     "uploading": "Uploading...",
     "created": "Created",
     "open": "Open",
+    "rename": "Rename",
     "doNotUse": "Do not use",
     "toggleTheme": "Toggle Theme",
     "backToList": "Back to List",
@@ -99,6 +100,12 @@
     "note": "Note",
     "history": "History",
     "refresh": "Refresh"
+  },
+  "designer": {
+    "panels": "Panels",
+    "palette": "Palette",
+    "inspector": "Inspector",
+    "support": "Support"
   },
   "drawing": {
     "showAllLayers": "Show all layers",
@@ -1347,13 +1354,6 @@
     "organization": "Organization",
     "organizationName": "Organization name",
     "organizationType": "Organization type",
-    "processTemplate": "Starter process",
-    "processTemplates": {
-      "contractor": "Contractor process",
-      "manufacturer": "Supplier process",
-      "customer": "Customer process",
-      "serviceProvider": "Service provider process"
-    },
     "createOrg": "Create Organization",
     "accessPreset": "Access preset",
     "selectAccessPreset": "Select access preset",
@@ -1846,6 +1846,17 @@
     "projectFacts": "Project facts",
     "materialSources": "Material sources",
     "surfaceRange": "Surface range"
+  },
+  "entityGroups": {
+    "identity": "Identity",
+    "summary": "Overview",
+    "specs": "Specifications",
+    "stock": "Stock",
+    "production": "Production",
+    "relations": "Related"
+  },
+  "color": {
+    "hexCode": "Hex"
   },
   "entities": {
     "project": "Project",
@@ -2762,7 +2773,6 @@
     "service": "Service",
     "joinResultProducer": "Resulting producer output",
     "actionRoles": "Action roles",
-
     "entityAccess": "Entity data access",
     "entityAccessHelp": "Access to {type} entities and fields.",
     "canView": "Can view entities",
@@ -2855,6 +2865,10 @@
     "constructionMode": "Construction mode",
     "revisionScope": "Parent revision scope",
     "lifecycleMode": "Lifecycle mode",
+    "producerOutputTag": "Producer output",
+    "lifecycleModeDefaultCreated": "Standard (created)",
+    "lifecycleModeDomainDefault": "Domain lifecycle",
+    "lifecycleModeCustom": "Custom",
     "statusMachine": "Status machine",
     "stateId": "Status ID",
     "addState": "Add status",
@@ -2996,7 +3010,8 @@
     "applyDiffWorkflows": "Workflows",
     "applyDiffFieldPolicies": "Field policies",
     "applyDiffCapabilities": "CRUD capabilities",
-    "applyDiffRemovedStatuses": "{entityType}: removed states {statuses} — a migration decision is required before activation"
+    "applyDiffRemovedStatuses": "{entityType}: removed states {statuses} — a migration decision is required before activation",
+    "producerWorkflowHint": "Statuses and transitions come from the domain lifecycle, wired status definitions, and action nodes — never from this panel."
   },
   "generatedScreen": {
     "home": "Home",
