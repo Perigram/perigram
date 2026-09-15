@@ -107,8 +107,12 @@
       </svg>
       </div>
 
+      <template #topDock>
+        <MotionDock :items="documentDockItems" :aria-label="$t('common.save')" />
+      </template>
+
       <template #dock>
-        <MotionDock :items="dockItems" :aria-label="$t('sheetDesign.editor')" />
+        <MotionDock :items="canvasDockItems" :aria-label="$t('sheetDesign.editor')" />
       </template>
     </DesignerWorkspace>
 
@@ -160,7 +164,16 @@ import {
   sheetPlacementTransform
 } from '~/utils/sheetLayoutEditor.js';
 
-const dockItems = computed(() => [
+const documentDockItems = computed(() => [
+  {
+    icon: () => h('i', { class: saving.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
+    label: t('common.save'),
+    disabled: !props.editable || saving.value,
+    onClick: () => save()
+  }
+]);
+
+const canvasDockItems = computed(() => [
   {
     icon: () => h('i', { class: 'pi pi-plus', 'aria-hidden': 'true' }),
     label: t('sheetDesign.addCassette'),
@@ -184,12 +197,6 @@ const dockItems = computed(() => [
     label: t('common.delete'),
     disabled: !props.editable || selectedIndex.value < 0,
     onClick: () => removeSelected()
-  },
-  {
-    icon: () => h('i', { class: saving.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
-    label: t('common.save'),
-    disabled: !props.editable || saving.value,
-    onClick: () => save()
   }
 ]);
 

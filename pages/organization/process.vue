@@ -82,7 +82,7 @@
         <StateBlock :message="emptyCanvasMessage" />
       </div>
 
-      <template v-if="paletteOpen" #palette>
+      <template #palette>
         <Panel :header="$t('processDesigner.palette')" class="w-72">
           <div class="flex flex-col gap-3">
             <div class="flex items-center gap-1">
@@ -109,10 +109,18 @@
         </Panel>
       </template>
 
+      <template #topDock>
+        <MotionDock
+          :items="documentDockItems"
+          :aria-label="$t('processDesigner.title')"
+          class-name="process-designer-dock"
+        />
+      </template>
+
       <template #dock>
         <MotionDock
-          :items="designerDockItems"
-          :aria-label="$t('processDesigner.title')"
+          :items="canvasDockItems"
+          :aria-label="$t('processDesigner.canvasNavigation')"
           class-name="process-designer-dock"
         />
       </template>
@@ -166,7 +174,7 @@
         </div>
       </Popover>
 
-      <template v-if="inspectorOpen" #inspector>
+      <template #inspector>
         <Panel
           class="flex h-full min-h-0 w-[26rem] flex-col"
           :pt="{ content: { class: 'flex min-h-0 flex-1 flex-col' } }"
@@ -967,12 +975,6 @@ const {
   selectedScreenId
 } = useProcessDesignerPanels();
 
-// Panel visibility is owned by the shared designer workspace so the dock
-// toggles, the lane chevrons, and the compact overlay agree everywhere.
-// Slot content compiles in this component's scope, so the state comes
-// through the workspace ref's exposed API instead of provide/inject.
-const paletteOpen = computed(() => canvasFrame.value?.panels.palette ?? true);
-const inspectorOpen = computed(() => canvasFrame.value?.panels.inspector ?? true);
 const { compareProcessDefinitions, normalizeProcessList, pickInitialProcess } = useProcessDefinitionCatalog({ definitionToCanvas });
 const persistence = useProcessDesignerPersistence();
 const rolePersistence = useProcessDesignerRoles();
@@ -1192,18 +1194,19 @@ const activeName = computed(() => draft.value?.identity?.name || '');
 const isActiveProcess = computed(() => draft.value?.status?.state?.primary === 'ACTIVE');
 const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
 const dockSeparator = { separator: true };
-const designerDockItems = computed(() => [
+const documentDockItems = computed(() => [
   {
-    icon: () => h('i', { class: 'pi pi-th-large', 'aria-hidden': 'true' }),
-    label: t('processDesigner.palette'),
-    onClick: () => canvasFrame.value?.toggle('palette'),
-    pressed: paletteOpen.value
+    icon: () => h('i', { class: 'pi pi-folder', 'aria-hidden': 'true' }),
+    label: t('processDesigner.title'),
+    onClick: event => processMenu.value?.toggle(event),
+    hasPopup: true
   },
   {
-    icon: () => h('i', { class: 'pi pi-sliders-h', 'aria-hidden': 'true' }),
-    label: t('processDesigner.inspector'),
-    onClick: () => canvasFrame.value?.toggle('inspector'),
-    pressed: inspectorOpen.value
+    icon: () => h('i', { class: renamingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-pencil', 'aria-hidden': 'true' }),
+    label: t('common.rename'),
+    onClick: event => openRenamePopover(event),
+    disabled: !draft.value?._id || isActiveProcess.value,
+    hasPopup: true
   },
   {
     icon: () => h('i', { class: savingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
@@ -1217,24 +1220,14 @@ const designerDockItems = computed(() => [
     label: t('processDesigner.apply'),
     onClick: applyProcess,
     disabled: !draft.value?._id || isActiveProcess.value || applyingProcess.value || savingDraft.value || creatingDraft.value
-  },
+  }
+]);
+
+const canvasDockItems = computed(() => [
   {
     icon: () => h('i', { class: 'pi pi-arrows-alt', 'aria-hidden': 'true' }),
     label: t('processDesigner.canvasNavigation'),
     onClick: event => canvasMenu.value?.toggle(event),
-    hasPopup: true
-  },
-  {
-    icon: () => h('i', { class: 'pi pi-folder', 'aria-hidden': 'true' }),
-    label: t('processDesigner.title'),
-    onClick: event => processMenu.value?.toggle(event),
-    hasPopup: true
-  },
-  {
-    icon: () => h('i', { class: renamingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-pencil', 'aria-hidden': 'true' }),
-    label: t('common.rename'),
-    onClick: event => openRenamePopover(event),
-    disabled: !draft.value?._id || isActiveProcess.value,
     hasPopup: true
   }
 ]);

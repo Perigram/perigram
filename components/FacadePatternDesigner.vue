@@ -23,7 +23,7 @@
       </template>
     </VueFlow>
 
-    <template #dock>
+    <template #topDock>
       <MotionDock
         :items="dockItems"
         :aria-label="$t('facadePattern.save')"

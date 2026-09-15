@@ -640,8 +640,12 @@
         </div>
       </Popover>
 
+      <template #topDock>
+        <MotionDock :items="documentDockItems" :aria-label="$t('cassette.v2.parameters')" />
+      </template>
+
       <template #dock>
-        <MotionDock :items="designerDockItems" :aria-label="$t('cassette.v2.parameters')" />
+        <MotionDock :items="canvasDockItems" :aria-label="$t('common.undo')" />
       </template>
     </DesignerWorkspace>
 
@@ -840,7 +844,7 @@ function closeDockPopover() {
   dockMenu.value?.hide();
 }
 
-const designerDockItems = computed(() => [
+const documentDockItems = computed(() => [
   {
     icon: () => h('i', { class: 'pi pi-folder-open', 'aria-hidden': 'true' }),
     label: t('cassette.v2.loadTemplate'),
@@ -852,18 +856,6 @@ const designerDockItems = computed(() => [
     label: t('common.rename'),
     onClick: event => openDockPopover('rename', event),
     hasPopup: true
-  },
-  {
-    icon: () => h('i', { class: 'pi pi-undo', 'aria-hidden': 'true' }),
-    label: t('common.undo'),
-    disabled: !canUndo.value,
-    onClick: undoDesignerChange
-  },
-  {
-    icon: () => h('i', { class: 'pi pi-replay', 'aria-hidden': 'true' }),
-    label: t('common.redo'),
-    disabled: !canRedo.value,
-    onClick: redoDesignerChange
   },
   {
     icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
@@ -886,6 +878,21 @@ const designerDockItems = computed(() => [
     label: t('common.save'),
     disabled: savingTemplate.value,
     onClick: () => saveTemplate()
+  }
+]);
+
+const canvasDockItems = computed(() => [
+  {
+    icon: () => h('i', { class: 'pi pi-undo', 'aria-hidden': 'true' }),
+    label: t('common.undo'),
+    disabled: !canUndo.value,
+    onClick: undoDesignerChange
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-replay', 'aria-hidden': 'true' }),
+    label: t('common.redo'),
+    disabled: !canRedo.value,
+    onClick: redoDesignerChange
   }
 ]);
 const drawingLayers = ref([]);

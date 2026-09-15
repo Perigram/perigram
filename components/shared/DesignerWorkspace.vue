@@ -21,6 +21,9 @@
     <div v-if="layout === 'lanes'" class="designer-workspace__lanes min-h-0 min-w-0 flex-1 overflow-hidden">
       <main class="designer-workspace__canvas relative min-h-0 min-w-0 overflow-hidden">
         <slot />
+        <div v-if="$slots.topDock" class="absolute inset-x-0 top-3 z-30 flex justify-center px-3">
+          <slot name="topDock" />
+        </div>
         <div v-if="$slots.dock" class="absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
           <slot name="dock" />
         </div>
@@ -44,34 +47,17 @@
         <slot name="support" />
       </aside>
 
-      <button
-        v-if="hasPalette && !compact"
-        type="button"
-        class="absolute top-1/2 z-20 -translate-y-1/2 rounded-ui border border-content-border bg-content p-1 text-muted-color shadow-overlay"
-        :class="panels.palette ? 'left-72' : 'left-3'"
-        :aria-label="$t('designer.palette')"
-        @click="toggle('palette')"
-      >
-        <i :class="panels.palette ? 'pi pi-angle-double-left' : 'pi pi-angle-double-right'" aria-hidden="true" />
-      </button>
-      <button
-        v-if="hasInspector && !compact"
-        type="button"
-        class="absolute top-1/2 z-20 -translate-y-1/2 rounded-ui border border-content-border bg-content p-1 text-muted-color shadow-overlay"
-        :class="panels.inspector ? 'right-80' : 'right-3'"
-        :aria-label="$t('designer.inspector')"
-        @click="toggle('inspector')"
-      >
-        <i :class="panels.inspector ? 'pi pi-angle-double-right' : 'pi pi-angle-double-left'" aria-hidden="true" />
-      </button>
     </div>
 
     <main v-else class="relative min-h-0 min-w-0 flex-1 overflow-hidden">
       <slot />
-      <div v-if="hasPalette && !compact && panels.palette" class="absolute left-3 top-3 z-20 max-h-[calc(100%-6rem)] overflow-auto">
+      <div v-if="$slots.topDock" class="absolute inset-x-0 top-3 z-30 flex justify-center px-3">
+        <slot name="topDock" />
+      </div>
+      <div v-if="hasPalette && !compact && panels.palette" class="absolute left-3 top-14 z-20 max-h-[calc(100%-8rem)] overflow-auto">
         <slot name="palette" />
       </div>
-      <aside v-if="hasInspector && !compact && panels.inspector" class="absolute bottom-16 right-3 top-3 z-20 min-h-0 max-w-[calc(100%-1.5rem)] overflow-auto">
+      <aside v-if="hasInspector && !compact && panels.inspector" class="absolute bottom-16 right-3 top-14 z-20 min-h-0 max-w-[calc(100%-1.5rem)] overflow-auto">
         <slot name="inspector" />
       </aside>
       <div v-if="$slots.dock" class="absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
@@ -79,20 +65,30 @@
       </div>
     </main>
 
-    <!-- Compact: one bounded tabbed surface over the canvas for every
-         provided panel, opened from the single floating toggle. -->
-    <button
-      v-if="compact && (hasPalette || hasInspector || hasSupport)"
-      type="button"
-      class="absolute top-3 right-3 z-30 flex items-center gap-2 rounded-ui border border-content-border bg-content px-2 py-1 text-muted-color shadow-overlay"
+    <!-- Panel visibility is one PrimeVue SelectButton (multi-select,
+         icon-only options) pinned to the top-right edge; in lanes mode it
+         rides left of an open inspector rail. Selection state is the same
+         panels state the rails and the compact overlay use. -->
+    <SelectButton
+      v-if="panelOptions.length"
+      v-model="openPanels"
+      :options="panelOptions"
+      option-value="value"
+      multiple
+      :allow-empty="true"
+      size="small"
+      class="absolute top-3 z-30"
+      :class="!compact && layout === 'lanes' && panels.inspector ? 'right-80' : 'right-3'"
       :aria-label="$t('designer.panels')"
-      @click="toggleCompactPanels"
+      data-designer-panel-controls
     >
-      <i class="pi pi-objects-column" aria-hidden="true" />
-    </button>
+      <template #option="{ option }">
+        <i :class="[option.icon, option.flip ? '-scale-x-100' : '']" :title="$t(option.labelKey)" aria-hidden="true" />
+      </template>
+    </SelectButton>
     <aside
       v-if="compact && compactPanelOpen"
-      class="absolute inset-x-3 top-3 z-20 flex min-h-0 max-h-[60%] flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
+      class="absolute inset-x-3 top-14 z-20 flex min-h-0 max-h-[55%] flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
       data-designer-compact-panels
     >
       <Tabs :value="compactTab" class="flex min-h-0 flex-1 flex-col">
@@ -119,6 +115,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, provide, reactive, ref, useSlots, watch } from 'vue';
+import SelectButton from 'primevue/selectbutton';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -148,6 +145,31 @@ const panels = reactive({ palette: true, inspector: true, support: false });
 const compact = ref(false);
 const compactTab = ref('palette');
 
+const PANEL_KEYS = ['palette', 'inspector', 'support'];
+const panelOptions = computed(() => [
+  hasPalette.value ? { value: 'palette', icon: 'pi pi-sidebar', labelKey: 'designer.palette' } : null,
+  hasInspector.value ? { value: 'inspector', icon: 'pi pi-sidebar', flip: true, labelKey: 'designer.inspector' } : null,
+  hasSupport.value ? { value: 'support', icon: 'pi pi-window-maximize', labelKey: 'designer.support' } : null
+].filter(Boolean));
+
+const openPanels = computed({
+  get: () => PANEL_KEYS.filter(panel => panels[panel] && panelOptions.value.some(option => option.value === panel)),
+  set(values) {
+    const selected = new Set(values);
+    if (compact.value) {
+      // Compact keeps the unified overlay single-tab: selecting an option
+      // makes it the sole open panel; deselecting the active tab closes it.
+      const added = values.find(value => !panels[value]);
+      for (const panel of PANEL_KEYS) panels[panel] = added ? panel === added : false;
+      if (added) compactTab.value = added;
+      return;
+    }
+    for (const panel of PANEL_KEYS) {
+      panels[panel] = selected.has(panel) && panelOptions.value.some(option => option.value === panel);
+    }
+  }
+});
+
 function toggle(panel) {
   panels[panel] = !panels[panel];
 }
@@ -158,31 +180,10 @@ function setPanel(panel, value) {
 
 const compactPanelOpen = computed(() => panels.palette || panels.inspector || panels.support);
 
-function toggleCompactPanels() {
-  const anyOpen = compactPanelOpen.value;
-  const first = hasPalette.value ? 'palette' : (hasInspector.value ? 'inspector' : 'support');
-  for (const panel of ['palette', 'inspector', 'support']) {
-    panels[panel] = anyOpen ? false : panel === first;
-  }
-  if (!anyOpen) compactTab.value = first;
-}
-
-function openPanel(panel) {
-  if (!compactPanelOpen.value) compactTab.value = panel;
-  if (compact.value) {
-    for (const candidate of ['palette', 'inspector', 'support']) {
-      panels[candidate] = candidate === panel;
-    }
-  } else {
-    panels[panel] = true;
-  }
-}
-
 provide('designerWorkspacePanels', {
   panels,
   compact,
   toggle,
-  openPanel,
   setPanel,
   isPanelOpen: panel => Boolean(panels[panel])
 });
@@ -222,7 +223,6 @@ defineExpose({
   panels,
   compact,
   toggle,
-  openPanel,
   setPanel
 });
 </script>
