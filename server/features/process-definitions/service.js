@@ -23,7 +23,6 @@ import {
   serializeProcessResult,
   validateRoundTrip
 } from '~/packages/processes/src/index.js';
-import { createProcessFromTemplate } from '~/server/features/process-definitions/process-templates.js';
 import {
   cncDomain,
   getBlockFieldSchema,
@@ -251,13 +250,33 @@ export async function activate(id, auth) {
   return new ProcessDefinition(updated).toJSON();
 }
 
-export async function createActiveFromTemplate({ organizationId, templateId, actorId } = {}) {
+export async function createActiveEmptyProcess({ organizationId, actorId } = {}) {
   if (!organizationId) throw createError({ statusCode: 400, message: 'Organization id is required' });
 
-  const process = new ProcessDefinition(createProcessFromTemplate({
-    templateId,
-    organizationId: toFlexibleId(organizationId)
-  }));
+  const organizationIdValue = toFlexibleId(organizationId);
+  const process = new ProcessDefinition({
+    identity: {
+      uid: `process-${organizationIdValue}`,
+      name: 'Process',
+      slug: 'process'
+    },
+    lineage: { organizationId: organizationIdValue },
+    data: {
+      schemaVersion: 1,
+      dataflowVersion: PROCESS_DATAFLOW_VERSION,
+      graph: { nodes: [], edges: [] },
+      roleGrants: { role_admin: [] },
+      producerOutputs: {},
+      actions: {},
+      services: {},
+      sockets: {},
+      screens: {},
+      statusDefinitions: {},
+      valueInputs: {},
+      processNodes: {},
+      compiled: null
+    }
+  });
   assertCurrentProcessDefinition(process.data);
 
   const roles = await loadOrganizationRoles(organizationId);
@@ -270,7 +289,7 @@ export async function createActiveFromTemplate({ organizationId, templateId, act
     ...process.data,
     compiled: compileProcessDefinition(process.data, getDomain(), { roles })
   };
-  applyProcessStatus(process, 'ACTIVE', actorId || 'SYSTEM', 'Process activated from starter template');
+  applyProcessStatus(process, 'ACTIVE', actorId || 'SYSTEM', 'Process activated (empty)');
 
   await repository.archiveActiveByOrganization(organizationId, actorId || 'SYSTEM');
   const created = await repository.create(process);

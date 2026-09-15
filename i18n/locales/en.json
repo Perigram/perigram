@@ -1348,13 +1348,6 @@
     "organization": "Organization",
     "organizationName": "Organization name",
     "organizationType": "Organization type",
-    "processTemplate": "Starter process",
-    "processTemplates": {
-      "contractor": "Contractor process",
-      "manufacturer": "Supplier process",
-      "customer": "Customer process",
-      "serviceProvider": "Service provider process"
-    },
     "createOrg": "Create Organization",
     "accessPreset": "Access preset",
     "selectAccessPreset": "Select access preset",
@@ -2870,10 +2863,6 @@
     "lifecycleModeDefaultCreated": "Standard (created)",
     "lifecycleModeDomainDefault": "Domain lifecycle",
     "lifecycleModeCustom": "Custom",
-    "lifecycleInheritedHint": "This output inherits the {source} status machine. Customize it to edit states and transitions for this output only.",
-    "lifecycleSourceDomain": "domain",
-    "lifecycleSourceStandard": "standard",
-    "customizeLifecycle": "Customize",
     "statusMachine": "Status machine",
     "stateId": "Status ID",
     "addState": "Add status",
@@ -3015,7 +3004,8 @@
     "applyDiffWorkflows": "Workflows",
     "applyDiffFieldPolicies": "Field policies",
     "applyDiffCapabilities": "CRUD capabilities",
-    "applyDiffRemovedStatuses": "{entityType}: removed states {statuses} — a migration decision is required before activation"
+    "applyDiffRemovedStatuses": "{entityType}: removed states {statuses} — a migration decision is required before activation",
+    "producerWorkflowHint": "Statuses and transitions come from the domain lifecycle, wired status definitions, and action nodes — never from this panel."
   },
   "generatedScreen": {
     "home": "Home",

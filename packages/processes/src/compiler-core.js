@@ -29,10 +29,6 @@ export {
 } from './transpiler.js';
 
 export {
-  createTemplate
-} from './templates.js';
-
-export {
   PROCESS_SCALAR_KINDS,
   PROCESS_DATAFLOW_VERSION,
   PROCESS_STRUCTURES,

@@ -320,80 +320,11 @@
                             <Tag :value="$t('processDesigner.producerOutputTag')" severity="secondary" size="small" />
                           </div>
                           <code class="text-supporting text-muted-color break-all">{{ selectedEntity.producerOutputId }}</code>
-        <div class="flex flex-col gap-1">
-          <label>{{ $t('processDesigner.lifecycleMode') }}</label>
-          <Select v-model="selectedEntity.lifecycle.mode" :options="lifecycleModes" option-label="label" option-value="value" />
-        </div>
-
-        <Panel :header="$t('processDesigner.statusMachine')">
-          <div class="flex flex-col gap-3">
-            <div class="flex flex-wrap gap-2">
-              <Tag v-for="state in lifecycleStateEntries" :key="state.value" :value="state.label" size="small" />
-            </div>
-            <template v-if="selectedEntity.lifecycle.mode === 'custom'">
-              <div class="flex gap-2">
-                <InputText v-model="newStateId" class="min-w-0 flex-1" :placeholder="$t('processDesigner.stateId')" />
-                <Button icon="pi pi-plus" :aria-label="$t('processDesigner.addState')" size="small" @click="addLifecycleState" />
-              </div>
-              <div class="flex flex-col gap-2">
-                <div v-for="(transition, index) in lifecycleTransitions" :key="`${transition.from}-${transition.to}-${index}`" class="rounded-ui border border-content-border p-2">
-                  <div class="grid grid-cols-2 gap-2">
-                    <Select :model-value="transition.from" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { from: value })" />
-                    <Select :model-value="transition.to" :options="lifecycleStateOptions" option-label="label" option-value="value" @update:model-value="value => updateTransition(index, { to: value })" />
-                  </div>
-                  <div class="mt-2 flex items-center gap-2">
-                    <MultiSelect :model-value="transition.access?.processRoleIds || []" :options="roleOptions" option-label="label" option-value="value" display="chip" class="min-w-0 flex-1" @update:model-value="value => updateTransitionRoles(index, value)" />
-                    <Button icon="pi pi-trash" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeLifecycleTransition(index)" />
-                  </div>
-                </div>
-              </div>
-              <Button icon="pi pi-arrow-right" :label="$t('processDesigner.addTransition')" size="small" severity="secondary" outlined @click="addLifecycleTransition" />
-            </template>
-            <template v-else>
-              <Message severity="secondary">{{ $t('processDesigner.lifecycleInheritedHint', { source: lifecycleInheritedSource }) }}</Message>
-              <Button icon="pi pi-pencil" :label="$t('processDesigner.customizeLifecycle')" size="small" severity="secondary" outlined @click="ensureCustomLifecycleRegion" />
-            </template>
-          </div>
-        </Panel>
-
-        <Panel :header="$t('processDesigner.entityAccess')">
-          <div class="flex flex-col gap-3">
-            <small class="text-muted-color -mt-2">{{ $t('processDesigner.entityAccessHelp', { type: selectedEntity.entityType }) }}</small>
-            <div class="grid grid-cols-1 gap-3">
-              <div class="flex flex-col gap-1">
-                <label>{{ $t('processDesigner.canView') }}</label>
-                <MultiSelect v-model="selectedEntity.allowedRoles.read" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label>{{ $t('processDesigner.canEdit') }}</label>
-                <MultiSelect v-model="selectedEntity.allowedRoles.write" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label>{{ $t('processDesigner.canManage') }}</label>
-                <MultiSelect v-model="selectedEntity.allowedRoles.admin" :options="roleOptions" option-label="label" option-value="value" display="chip" class="w-full" />
-              </div>
-            </div>
-            <div class="grid grid-cols-1 gap-3">
-              <div class="flex flex-col gap-1">
-                <label>{{ $t('processDesigner.fieldsVisible') }}</label>
-                <MultiSelect v-model="selectedEntity.fields.read" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label>{{ $t('processDesigner.fieldsEditable') }}</label>
-                <MultiSelect v-model="selectedEntity.fields.write" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label>{{ $t('processDesigner.fieldsHidden') }}</label>
-                <MultiSelect v-model="selectedEntity.fields.private" :options="fieldOptionsForSelectedEntity" option-label="label" option-value="value" display="chip" class="w-full" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <label>{{ $t('processDesigner.relations') }}</label>
-                <MultiSelect v-model="selectedEntity.relations" :options="relationOptionsForEntity(selectedEntity.entityType)" option-label="label" option-value="value" display="chip" class="w-full" @change="syncNodeData" />
-              </div>
-            </div>
-          </div>
-        </Panel>
-
+                          <div class="flex flex-col gap-1">
+                            <label>{{ $t('processDesigner.relations') }}</label>
+                            <MultiSelect v-model="selectedEntity.relations" :options="relationOptionsForEntity(selectedEntity.entityType)" option-label="label" option-value="value" display="chip" class="w-full" @change="syncNodeData" />
+                          </div>
+                          <small class="text-muted-color">{{ $t('processDesigner.producerWorkflowHint') }}</small>
                         </div>
                   </Panel>
                   <div v-if="selectedProcessNode.kind && !selectedProcessNode.kind.startsWith('effect.') && !selectedProcessNode.kind.startsWith('control.') && !selectedProcessNode.kind.startsWith('source.')" class="flex flex-col gap-2">
@@ -987,7 +918,6 @@ import {
   useProcessDesignerNodeRecords
 } from '~/composables/useProcessDesignerNodeRecords.js';
 import { useProcessDesignerPreview } from '~/composables/useProcessDesignerPreview.js';
-import { useProcessDesignerWorkflow } from '~/composables/useProcessDesignerWorkflow.js';
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
 
@@ -1141,25 +1071,6 @@ const {
   selectEdge
 });
 
-const {
-  newStateId,
-  lifecycleWorkflow,
-  lifecycleRegion,
-  lifecycleStateIds,
-  lifecycleStateEntries,
-  lifecycleStateOptions,
-  lifecycleTransitions,
-  ensureCustomLifecycleRegion,
-  addLifecycleState,
-  addLifecycleTransition,
-  updateTransition,
-  updateTransitionRoles,
-  removeLifecycleTransition
-} = useProcessDesignerWorkflow({
-  selectedEntity,
-  cncDomain
-});
-
 
 const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen, normalizeScreenContract, defaultEntityType, featureForEntityType });
 
@@ -1214,11 +1125,6 @@ const lifecycleModes = computed(() => [
   { label: t('processDesigner.lifecycleModeDomainDefault'), value: 'domainDefault' },
   { label: t('processDesigner.lifecycleModeCustom'), value: 'custom' }
 ]);
-const lifecycleInheritedSource = computed(() => (
-  selectedEntity.value?.lifecycle?.mode === 'domainDefault' && cncDomain.workflows?.[selectedEntity.value.entityType]
-    ? t('processDesigner.lifecycleSourceDomain')
-    : t('processDesigner.lifecycleSourceStandard')
-));
 function entityTypeLabelFor(entityType) {
   return entityTypeOptions.value.find(option => option.value === entityType)?.label || entityType || '';
 }
