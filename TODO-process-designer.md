@@ -1785,6 +1785,35 @@ regenerated and the UI component audit row for `process.vue` updated to the
 reduced chrome count; `node scripts/check-arch.js` and
 `node scripts/check-docs.js` pass.
 
+### Agent Notes — 2026-09-12 nested status authoring and status-effect socket cleanup
+
+- **Nested states are authored on status nodes.** Status definition records
+  carry an optional `parentStatusId` referencing another definition's status
+  id, edited through the inline canvas-node select and the inspector.
+  Compilation nests the child under its parent state and the compiled
+  workflow flattens it to the dotted id with its `path`
+  (`PRODUCTION.cut`); the designer's status options present the dotted id so
+  nested states are wired and targeted like any other status. Unknown and
+  cyclic parents are validation errors naming the definition. Engine region
+  support is unchanged (domain-declared workflows); graph authoring targets
+  nested states through the dotted status value instead of `path`/`region`
+  sockets.
+- **Slop sockets removed.** `effect.changeStatus` and `effect.archiveEntity`
+  no longer expose the raw `region`, `path`, `metadata`, and `lifecycle`
+  json sockets; Change Status gains a typed `note` string that the effect
+  boundary persists as `status.metadata.note`. Normalization drops persisted
+  edges into the removed sockets, so stale drafts load cleanly.
+  Coverage: `index.spec.js` pins nested compile (dotted id, path, decoration,
+  action target), parent validation (unknown + cyclic), and the note context
+  contract is pinned in `process-definitions.spec.js`.
+
+Validation: `npx vitest run packages/processes server/features/process-definitions
+server/runtime packages/domain-cnc server/core/machines
+shared/process-designer-ui.spec.js shared/localization.spec.js composables`
+502 passed (plus the known node:test harness-mismatch file); SFC compile
+checks pass; `node scripts/check-arch.js` and `node scripts/check-docs.js`
+pass.
+
 ## P2 — remove misleading and unnecessary surface area
 
 - [x] Reduce the primary collection palette to operations required by the CRUD
