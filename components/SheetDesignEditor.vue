@@ -188,7 +188,6 @@ const canvasDockItems = computed(() => [
     disabled: !props.editable || selectedIndex.value < 0,
     onClick: () => rotateSelected()
   },
-  { separator: true },
   {
     icon: () => h('i', { class: 'pi pi-trash', 'aria-hidden': 'true' }),
     label: t('common.delete'),

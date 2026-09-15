@@ -283,6 +283,7 @@
             items: { type: Array as PropType<DockItemData[]>, required: true },
             ariaLabel: { type: String, default: '' },
             className: { type: String, default: '' },
+            placement: { type: String as PropType<'top' | 'bottom'>, default: 'bottom' },
             distance: { type: Number, default: dockDefaults.distance },
             panelHeight: { type: Number, default: dockDefaults.panelHeight },
             baseItemSize: { type: Number, default: dockDefaults.baseItemSize },
@@ -329,13 +330,17 @@
             const panelStyle = computed<CSSProperties>(() => ({
                 height: `${props.panelHeight}px`,
                 position: 'absolute',
-                bottom: 'var(--p-toolbar-padding)',
+                ...(props.placement === 'top'
+                    ? { top: '0' }
+                    : { bottom: 'var(--p-toolbar-padding)' }),
                 left: '50%',
                 transform: 'translateX(-50%)',
                 display: 'flex',
                 alignItems: 'center',
                 width: 'fit-content',
                 maxWidth: 'calc(100% - var(--p-toolbar-padding) - var(--p-toolbar-padding))',
+                overflowX: 'auto',
+                scrollbarWidth: 'none',
                 gap: 'var(--p-toolbar-gap)',
                 borderRadius: 'var(--p-border-radius-lg)',
                 backgroundColor: 'var(--p-content-background)',
