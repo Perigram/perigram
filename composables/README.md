@@ -240,6 +240,30 @@ await transition(type, id, newState, { region: 'qa' });
 
 ---
 
+## Offline Mutations & Outbox
+
+On the client, `useEntity` CRUD, `useStatusController.transition`, and
+generated screen actions post through the outbox store (`stores/outbox.js`,
+backed by the IndexedDB queue and typed `OfflineQueuedError` in
+`utils/outbox.js`). Online calls pass through unchanged but carry an
+`Idempotency-Key` header (see
+[server/core/idempotency](../server/core/idempotency/README.md)). When the
+browser is offline — or the network fails mid-flight — the operation is
+queued in IndexedDB and the caller receives `OfflineQueuedError`: entity
+composables surface its message through their `error` ref without faking
+local state, and generated action dialogs treat it as accepted (info toast,
+no result application). When connectivity returns, the store replays
+operations sequentially through the same endpoints and emits the shared
+entity-event contract with `source: 'outbox'`, so open screens apply snapshots
+or schedule debounced reloads exactly like local mutations. Replayed 4xx
+responses park the operation as failed in the `OfflineOutboxBadge` panel for
+manual retry/discard; network and 5xx failures stop the flush and retry
+later. Reads need no app code: the service worker serves cached
+`GET /api/**` responses when the network is unavailable (root README, PWA
+section).
+
+---
+
 ## useStatusHistory
 
 Fetches and reactively manages the audit log (`status_events`) for an entity.
@@ -344,6 +368,7 @@ Used by `<TraceChain>` component.
 | `queues.js` | Nesting jobs state |
 | `cassettes.js` | User templates and designs |
 | `global.js` | Layout, notifications, shared lookup lists |
+| `outbox.js` | Offline mutation queue, connectivity state, replay |
 
 `auth.js` prefers server-provided `effectivePermissions` and `navigation` when
 the active organization has an active process definition. Membership

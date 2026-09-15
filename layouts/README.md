@@ -7,6 +7,10 @@ Nuxt layout shells for public and authenticated app surfaces.
 - `app.vue`: Authenticated workspace chrome with desktop sticky header, mobile
   bottom navigation, route breadcrumbs, theme toggle, user/profile entry,
   support entry, and bounded workspace sizing for production workspace routes.
+- The layout mounts the shared `OfflineOutboxBadge` for authenticated users:
+  a floating indicator that appears when the browser is offline, a mutation is
+  queued in the outbox, or a replay failed. It is the single sync-state
+  surface for offline mutations (see the root README PWA section).
 - The desktop header is hidden on the generated home screen: that route's
   Discord-style workspace overload owns the full viewport and mounts brand,
   communication entries (chats as a workspace page tab and the LiveKit
