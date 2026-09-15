@@ -36,6 +36,7 @@ export const SCOPED_LAYOUT_PROPERTIES = new Set([
   'justify-content',
   'left',
   'margin',
+  'position',
   'z-index',
   'max-height',
   'max-width',

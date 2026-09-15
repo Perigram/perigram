@@ -101,6 +101,12 @@
     "history": "История",
     "refresh": "Обновить"
   },
+  "designer": {
+    "panels": "Панели",
+    "palette": "Палитра",
+    "inspector": "Инспектор",
+    "support": "Поддержка"
+  },
   "drawing": {
     "showAllLayers": "Показать все слои",
     "hideAllLayers": "Скрыть все слои",

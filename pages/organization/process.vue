@@ -961,13 +961,18 @@ const canvasKeyboardActive = ref(false);
 const { fitView, getViewport, setViewport, zoomIn, zoomOut, zoomTo } = useVueFlow();
 const {
   inspectTab,
-  inspectorOpen,
-  paletteOpen,
   processMenu,
   selectedPrincipalId,
   selectedRoleId,
   selectedScreenId
 } = useProcessDesignerPanels();
+
+// Panel visibility is owned by the shared designer workspace so the dock
+// toggles, the lane chevrons, and the compact overlay agree everywhere.
+// Slot content compiles in this component's scope, so the state comes
+// through the workspace ref's exposed API instead of provide/inject.
+const paletteOpen = computed(() => canvasFrame.value?.panels.palette ?? true);
+const inspectorOpen = computed(() => canvasFrame.value?.panels.inspector ?? true);
 const { compareProcessDefinitions, normalizeProcessList, pickInitialProcess } = useProcessDefinitionCatalog({ definitionToCanvas });
 const persistence = useProcessDesignerPersistence();
 const rolePersistence = useProcessDesignerRoles();
@@ -1191,13 +1196,13 @@ const designerDockItems = computed(() => [
   {
     icon: () => h('i', { class: 'pi pi-th-large', 'aria-hidden': 'true' }),
     label: t('processDesigner.palette'),
-    onClick: () => { paletteOpen.value = !paletteOpen.value; },
+    onClick: () => canvasFrame.value?.toggle('palette'),
     pressed: paletteOpen.value
   },
   {
     icon: () => h('i', { class: 'pi pi-sliders-h', 'aria-hidden': 'true' }),
     label: t('processDesigner.inspector'),
-    onClick: () => { inspectorOpen.value = !inspectorOpen.value; },
+    onClick: () => canvasFrame.value?.toggle('inspector'),
     pressed: inspectorOpen.value
   },
   {

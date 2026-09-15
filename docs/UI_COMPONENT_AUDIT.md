@@ -235,7 +235,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-communicationmenu-vue` | `components/shared/CommunicationMenu.vue` | derived usage | replace:chrome (2); remove:important-override (3) |
 | `ui-components-shared-designerdialog-vue` | `components/shared/DesignerDialog.vue` | shared/domain primitive | compliant:scoped-layout |
 | `ui-components-shared-designersurface-vue` | `components/shared/DesignerSurface.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (2); replace:chrome (12); compliant:scoped-layout |
+| `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (3); replace:chrome (28); compliant:scoped-layout |
 | `ui-components-shared-drawingcanvas-vue` | `components/shared/DrawingCanvas.vue` | shared/domain primitive | replace:chrome (14) |
 | `ui-components-shared-entityactionspopover-vue` | `components/shared/EntityActionsPopover.vue` | derived usage | compliant |
 | `ui-components-shared-entitycard-vue` | `components/shared/EntityCard.vue` | shared/domain primitive | centralize:layout (1) |

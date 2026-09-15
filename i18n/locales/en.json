@@ -101,6 +101,12 @@
     "history": "History",
     "refresh": "Refresh"
   },
+  "designer": {
+    "panels": "Panels",
+    "palette": "Palette",
+    "inspector": "Inspector",
+    "support": "Support"
+  },
   "drawing": {
     "showAllLayers": "Show all layers",
     "hideAllLayers": "Hide all layers",
