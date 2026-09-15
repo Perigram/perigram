@@ -431,7 +431,10 @@ main/supporting proportions from
 main/supporting split and repeated cards respond to the actual editor pane
 width after a workspace split instead of the browser viewport width.
 Sheet-design details similarly mount `SheetDesignEditor` when the active user
-has a concrete `sheet_designs:write` grant. The editor mutates nesting source
+has a concrete `sheet_designs:write` grant. The editor runs on the shared
+designer shell (`DesignerSurface` + `DesignerWorkspace`) with a full-bleed
+sheet canvas and its commands (add/upload/rotate/delete/save) in the shared
+dock. The editor mutates nesting source
 items and placements, resolves OCCS layer pens through the shared layer
 standards, snaps transformed cassette production-contour edges with tool-kerf
 clearance, checks transformed polygon clearance before accepting a placement,

@@ -22,13 +22,21 @@ independent lane scrolling to a designer. A designer may position feature-local
 handles and popovers inside its default-slot canvas.
 
 Every operational designer uses this contract: Cassette and Facade use the
-`lanes` composition, while Process and Facade Pattern use the `canvas`
-composition. Every designer first mounts through `DesignerSurface`, which owns
-the full-height flex boundary in route and pane hosts. `DesignerDialog` uses
-the same surface for dialog entry points and occupies the entire viewport. The
-designer then supplies palette, inspector, and dock content through named
-`DesignerWorkspace` slots. A canvas designer must not recreate its own floating
-palette, inspector, or dock positioning outside `DesignerWorkspace`.
+`lanes` composition, while Process, Facade Pattern, and the sheet-design
+editor use the `canvas`/rail composition. Every designer first mounts through
+`DesignerSurface`, which owns the full-height flex boundary in route and pane
+hosts. `DesignerDialog` uses the same surface for dialog entry points and
+occupies the entire viewport. The designer then supplies palette, inspector,
+and dock content through named `DesignerWorkspace` slots. A canvas designer
+must not recreate its own floating palette, inspector, or dock positioning
+outside `DesignerWorkspace`.
+
+Dock commands are the designer's action surface: document-level actions
+(open/load, rename, undo/redo, reset, save) render as `MotionDock` items in
+the `dock` slot, with popovers anchored to their dock item through hover,
+focus, and click handlers that keep, pin, and delayed-close per panel (see
+the process designer's dock popover helpers). Designers must not keep
+document actions in a top toolbar ribbon.
 
 `layout="lanes"` is for editors with persistent side panels, such as cassette
 and facade design. The canvas is the workspace background, edge to edge —
