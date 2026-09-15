@@ -32,12 +32,17 @@ must not recreate its own floating palette, inspector, or dock positioning
 outside `DesignerWorkspace`.
 
 Dock commands split by concern into two `MotionDock`s: the **top dock**
-(`topDock` slot) carries document operations (open/load, rename, reset,
-save), the **bottom dock** (`dock` slot) carries canvas and content commands
-(undo/redo, navigation, add/upload/rotate/delete). Popups toggle on click and
-close on confirm, selection, or outside click — pure command clusters use the
-PrimeVue popup `Menu`, while pickers and rename prompts use `Popover`;
-hover-open popups with hand-rolled close timers are not allowed.
+(`top-dock-items` prop) carries document operations grouped
+view/file/commit-last (open/load, rename, save/save-as, then destructive and
+utility items), the **bottom dock** (`dock` slot) carries canvas and content
+commands (undo/redo, navigation, add/upload/rotate/delete with the
+destructive item last in its group). The top dock floats top-anchored
+(`MotionDock` `placement="top"`) inside a full-width positioned wrapper, on
+the exact top line of the panel rails with the same 12px canvas inset; the
+bottom dock anchors near the canvas bottom between the rails. Popups toggle
+on click and close on confirm, selection, or outside click — pure command
+clusters use the PrimeVue popup `Menu`, while pickers and rename prompts use
+`Popover`; hover-open popups with hand-rolled close timers are not allowed.
 
 Panel visibility lives inside the top dock as its leading items: the
 workspace prepends pressed-state toggles (`pi-align-left` palette,
@@ -50,9 +55,10 @@ defaults — rails up when wide, canvas clear when compact — and the state is
 exposed through the workspace ref (`panels`, `toggle`, `setPanel`) for
 designer code; slot content compiles in the parent scope, so use the ref
 API, not provide/inject. Panels share one surface contract in both layouts:
-rounded bordered content-background rails with overlay shadow, sized by the
-workspace wrappers (17rem palette, 22rem inspector) — designers must not add
-their own panel borders, widths, or positioning.
+full-height rounded bordered content-background rails with overlay shadow,
+running the same 12px insets top and bottom, sized by the workspace wrappers
+(17rem palette, 22rem inspector) — designers must not add their own panel
+borders, widths, or positioning.
 
 `layout="lanes"` is for editors with persistent side panels, such as cassette
 and facade design. The canvas is the workspace background, edge to edge —
