@@ -113,17 +113,12 @@ against the configured `E2E_BASE_URL`.
 
 ## Progressive Web App
 
-The app is an installable, offline-capable PWA built on `@vite-pwa/nuxt` with a
-custom Workbox service worker (`public/sw.js`, `injectManifest` strategy; the
-module compiles it and injects the build-asset precache manifest).
+The app is an installable, offline-capable PWA with a hand-rolled service
+worker (`public/sw.js`, registered by `plugins/pwa.client.js` in production
+builds only).
 
-- Online behavior is unchanged: page navigations and `GET /api/**` reads go to
-  the server first (`NetworkFirst`) so SSR stays authoritative. When the
-  network fails, the service worker serves the last rendered HTML
-  (`cutkit-html`) or the last JSON response (`cutkit-api`), so previously seen
-  screens keep rendering offline. Build assets and fonts are precached with
-  exact revision hashes; realtime streams (`/api/connections/`) are never
-  cached.
+- Build assets and fonts are cached cache-first (immutable hashed names);
+  `plugins/pwa.client.js` registers the worker without a build plugin.
 - Offline mutations are queued in a client-side IndexedDB outbox
   (`utils/outbox.js`, `stores/outbox.js`) and replayed through the same API
   endpoints when connectivity returns. Entity CRUD (`useEntity`), status
@@ -141,6 +136,10 @@ module compiles it and injects the build-asset precache manifest).
   rasterized set in `public/favicon/` is generated from it (Inkscape exports
   at 16/32/48/180/192/512; `favicon.ico` packs 16/32/48). Regenerate all sizes
   when the SVG changes instead of editing PNGs by hand.
+- The production image mirrors `.output/public` into
+  `.output/server/chunks/public` (Dockerfile): the Nuxt 3.19.3 nitro runtime
+  resolves inline public assets against the server chunk directory, and
+  without the mirror every static asset request 500s.
 
 ## Documentation Map
 
