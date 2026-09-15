@@ -39,16 +39,20 @@ close on confirm, selection, or outside click — pure command clusters use the
 PrimeVue popup `Menu`, while pickers and rename prompts use `Popover`;
 hover-open popups with hand-rolled close timers are not allowed.
 
-Panel visibility is one PrimeVue `SelectButton` (multi-select, icon-only
-sidebar options — mirrored for the right-hand inspector) pinned by the
-workspace to the top-right edge, beside the top dock. Wide hosts toggle the
-rails/overlays directly; compact hosts (below 48rem of the workspace's own
-width) hide the rails and open one bounded tabbed overlay (60% height cap)
-whose active tab follows the selection. Crossing the compact boundary resets
-to the mode's defaults — rails up when wide, canvas clear when compact — and
-the state is exposed through the workspace ref (`panels`, `toggle`,
-`setPanel`) for designer code; slot content compiles in the parent scope, so
-use the ref API, not provide/inject.
+Panel visibility lives inside the top dock as its leading items: the
+workspace prepends pressed-state toggles (`pi-align-left` palette,
+`pi-align-right` inspector) before the designer's document commands,
+separated by a dock separator. Wide hosts toggle the rails/overlays
+directly; compact hosts (below 48rem of the workspace's own width) hide the
+rails and open one bounded tabbed overlay (60% height cap) whose active tab
+follows the toggle. Crossing the compact boundary resets to the mode's
+defaults — rails up when wide, canvas clear when compact — and the state is
+exposed through the workspace ref (`panels`, `toggle`, `setPanel`) for
+designer code; slot content compiles in the parent scope, so use the ref
+API, not provide/inject. Panels share one surface contract in both layouts:
+rounded bordered content-background rails with overlay shadow, sized by the
+workspace wrappers (17rem palette, 22rem inspector) — designers must not add
+their own panel borders, widths, or positioning.
 
 `layout="lanes"` is for editors with persistent side panels, such as cassette
 and facade design. The canvas is the workspace background, edge to edge —
