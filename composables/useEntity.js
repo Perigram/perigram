@@ -4,6 +4,8 @@ import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 import { useStatusController } from './useStatusController';
 import { useCutkitDomainUi } from './useCutkitDomainUi';
 import { emitEntityCreated, emitEntityDeleted, emitEntityUpdated } from '~/utils/entity-events.js';
+import { useOutboxStore } from '~/stores/outbox';
+import { isOfflineQueuedError } from '~/utils/outbox.js';
 
 /**
  * Unified Entity Composable - v24 Standardized
@@ -87,16 +89,18 @@ export const useEntity = (type, identifier = null) => {
   const update = async (updates, id = identifier || entity.value?._id) => {
     loading.value = true;
     try {
-      const data = await $fetch(getSingleEndpoint(id), entityFetchOptions({
+      const data = await mutateOffline({
+        url: getSingleEndpoint(id),
         method: 'PATCH',
-        body: updates
-      }));
+        body: updates,
+        meta: { kind: 'entity', entityType: type, entityId: id, change: 'updated', reason: 'update' }
+      });
       entity.value = data;
       emitEntityUpdated({ type, id: data?._id || id, entity: data });
       publishEntityMutation({ type, id: data?._id || id, change: 'updated', reason: 'update' });
       return data;
     } catch (err) {
-      error.value = err.data?.message || `Failed to update ${type}`;
+      error.value = queuedOrErrorMessage(err, `Failed to update ${type}`);
       throw err;
     } finally {
       loading.value = false;
@@ -111,13 +115,18 @@ export const useEntity = (type, identifier = null) => {
       error.value = null;
     try {
       const url = domainUi.getListEndpoint(type);
-      const result = await $fetch(url, entityFetchOptions({ method: 'POST', body: data }));
+      const result = await mutateOffline({
+        url,
+        method: 'POST',
+        body: data,
+        meta: { kind: 'entity', entityType: type, change: 'created', reason: 'create' }
+      });
       entity.value = result;
       emitEntityCreated({ type, id: result?._id, entity: result });
       publishEntityMutation({ type, id: result?._id, change: 'created', reason: 'create' });
       return result;
     } catch (err) {
-      error.value = err.data?.message || `Failed to create ${type}`;
+      error.value = queuedOrErrorMessage(err, `Failed to create ${type}`);
       throw err;
     } finally {
       loading.value = false;
@@ -133,12 +142,16 @@ export const useEntity = (type, identifier = null) => {
     try {
       const removedId = id || entity.value?._id;
       const removedEntity = entity.value;
-      await $fetch(getSingleEndpoint(id), entityFetchOptions({ method: 'DELETE' }));
+      await mutateOffline({
+        url: getSingleEndpoint(id),
+        method: 'DELETE',
+        meta: { kind: 'entity', entityType: type, entityId: removedId, change: 'deleted', reason: 'delete' }
+      });
       entity.value = null;
       emitEntityDeleted({ type, id: removedId, entity: removedEntity });
       publishEntityMutation({ type, id: removedId, change: 'deleted', reason: 'delete' });
     } catch (err) {
-      error.value = err.data?.message || `Failed to delete ${type}`;
+      error.value = queuedOrErrorMessage(err, `Failed to delete ${type}`);
       throw err;
     } finally {
       loading.value = false;
@@ -206,6 +219,19 @@ function entityFetchOptions(options = {}) {
       ...(options.headers || {})
     }
   };
+}
+
+async function mutateOffline({ url, method, body, meta }) {
+  if (typeof window === 'undefined') {
+    return $fetch(url, entityFetchOptions({ method, body }));
+  }
+  const outbox = useOutboxStore();
+  return outbox.mutate({ url, method, body, meta });
+}
+
+function queuedOrErrorMessage(err, fallback) {
+  if (isOfflineQueuedError(err)) return err.message;
+  return err.data?.message || fallback;
 }
 
 function publishEntityMutation(detail = {}) {

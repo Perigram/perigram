@@ -824,6 +824,16 @@
     "uploadLogo": "Upload Logo",
     "noTemplates": "No templates yet. Create one to use in PDF generation."
   },
+  "outbox": {
+    "offline": "Offline",
+    "pending": "{count} pending sync",
+    "failed": "{count} failed",
+    "syncing": "Syncing…",
+    "queuedTitle": "Saved offline",
+    "queuedNotice": "Change queued — it will sync when back online.",
+    "retry": "Retry",
+    "discard": "Discard"
+  },
   "metadata": {
     "title": "Project Metadata",
     "customerInfo": "Customer Information",
