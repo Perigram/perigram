@@ -38,7 +38,7 @@ the diff unavailable rather than blocking activation.
 
 Creation, update, validation, and activation accept only the current semantic
 source at `dataflowVersion: 4`. Definitions with a missing or different
-dataflow version are rejected, and starter templates are authored directly in
+dataflow version are rejected, and new definitions are authored directly in
 the current format. During the producer-output protocol cutover, these
 boundaries run the package-owned, one-way producer identity rewrite. Save and
 activation persist the rewritten semantic records and clear stale compiled
@@ -165,10 +165,14 @@ Authenticated runtime hydration includes those compiled workflows under
 contract to suppress non-informative status chrome for one-state lifecycles;
 they do not infer visibility from status names or entity types.
 
-`createActiveFromTemplate()` is the organization-bootstrap path used by signup
-and organization creation. The organization service first stores the template's
-role identities and creator assignment, then this feature compiles the starter
-process against that catalog, activates it, and stores the active process id.
+`createActiveEmptyProcess()` is the organization-bootstrap path used by signup
+and organization creation. The organization service stores the organization's
+own `role_admin` identity and the creator assignment, then this feature creates
+an explicitly empty v4 definition (no grants, no producer outputs, no screens),
+compiles and activates it, and stores the active process id. There are no
+starter templates: a new organization starts with zero authored access, and the
+creator's owner membership still carries `organizations:admin`/`users:admin`
+for tenant management.
 
 Process definitions never store role identities or user assignments. Their
 `data.roleGrants` record maps stable organization role ids to process-owned base
