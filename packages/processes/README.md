@@ -548,9 +548,12 @@ path, item index, entity ref when known). These calls are not
 collection-atomic: a later failure does not roll back earlier writes or
 prevent subsequent aligned items from being attempted, so earlier completed
 mutations remain applied and are identified through `completedMutations`.
-Change Status carries optional region, path, metadata, and lifecycle evidence to
-the workflow engine and emits the updated entity DTO rather than the transition
-wrapper. Archive Entity resolves to the domain's named archive intent when one
+Change Status carries an optional `note` string that the workflow engine
+persists as `status.metadata.note` on the transition, and emits the updated
+entity DTO rather than the transition wrapper. The former raw `region`, `path`,
+`metadata`, and `lifecycle` json sockets are gone: nested workflow states are
+targeted through their dotted status id (`PRODUCTION.cut`) from the typed status
+input, and normalization drops any persisted edges into the removed sockets. Archive Entity resolves to the domain's named archive intent when one
 exists, otherwise to its `ARCHIVED` transition. Delete Entity is available only
 when the canonical capability projection combines `operations.delete` with a
 registered runtime `processDelete` adapter. Archive and delete retain the same
@@ -706,7 +709,12 @@ definition reference while execution resolves its current status id. Status
 definitions compile into workflow state metadata
 (`label`, `color`, `severity`, `icon`) and into the compiled action target
 state, so runtime execution and UI status rendering use the same value and
-visual metadata. They also carry lifecycle evidence schema
+visual metadata. A definition may declare an optional `parentStatusId`
+referencing another definition's status id: the child compiles as a nested
+workflow state under that parent, and compiled workflows flatten it to its
+dotted id with its state `path` (`PRODUCTION.cut` -> `['PRODUCTION', 'cut']`),
+so a nested state is selected and targeted like any other status value.
+Unknown or cyclic parents are validation errors naming the definition. They also carry lifecycle evidence schema
 (`description`, `attachments`, and `snapshots`) onto the generated workflow
 state. Runtime status actions use that state schema to require operator notes,
 store proof files as entity attachments, and capture declared relation

@@ -113,21 +113,34 @@ against the configured `E2E_BASE_URL`.
 
 ## Progressive Web App
 
-The app is installable as a standalone PWA. The contract lives in three places:
+The app is an installable, offline-capable PWA built on `@vite-pwa/nuxt` with a
+custom Workbox service worker (`public/sw.js`, `injectManifest` strategy; the
+module compiles it and injects the build-asset precache manifest).
 
-- `public/manifest.webmanifest` declares the install surface (name, `start_url: /`,
-  `display: standalone`, icons). Splash and title-bar colors are `#09090b`
-  (dark `--ck-page-background`, Aura `zinc.950`); light-mode browser chrome uses
-  `#f4f4f5` through the `prefers-color-scheme: light` `theme-color` meta.
-- `public/icon.svg` is the single source-of-truth logo mark. The rasterized
-  favicon/`apple-touch-icon`/PWA PNG set in `public/favicon/` is generated from
-  it (Inkscape exports at 16/32/48/180/192/512; `favicon.ico` packs 16/32/48).
-  Regenerate all sizes when the SVG changes instead of editing PNGs by hand.
-- `public/sw.js` is a minimal service worker: cache-first for immutable
-  same-origin GETs (`/_nuxt/`, `/icons/`, `/fonts/`, `/favicon/`, the SVG icon,
-  the manifest), network-only for everything else, so SSR pages, auth, and API
-  traffic are never served from cache. `plugins/pwa.client.js` registers it
-  only in production builds, keeping Vite HMR in dev uncached.
+- Online behavior is unchanged: page navigations and `GET /api/**` reads go to
+  the server first (`NetworkFirst`) so SSR stays authoritative. When the
+  network fails, the service worker serves the last rendered HTML
+  (`cutkit-html`) or the last JSON response (`cutkit-api`), so previously seen
+  screens keep rendering offline. Build assets and fonts are precached with
+  exact revision hashes; realtime streams (`/api/connections/`) are never
+  cached.
+- Offline mutations are queued in a client-side IndexedDB outbox
+  (`utils/outbox.js`, `stores/outbox.js`) and replayed through the same API
+  endpoints when connectivity returns. Entity CRUD (`useEntity`), status
+  transitions (`useStatusController`), and generated process actions route
+  through the outbox; queued operations raise a typed `OfflineQueuedError`,
+  and the floating `OfflineOutboxBadge` shows sync state with per-operation
+  retry/discard. Successful replays emit the shared entity-event contract, so
+  open screens reconcile as if the mutation happened locally.
+- Replayed mutations carry an `Idempotency-Key` header deduped by
+  `server/core/idempotency` (see
+  [its README](./server/core/idempotency/README.md) for the contract).
+- Realtime features (connections SSE, LiveKit calls, live chat updates) and
+  file uploads remain online-only.
+- `public/icon.svg` stays the favicon/install-icon source of truth; the
+  rasterized set in `public/favicon/` is generated from it (Inkscape exports
+  at 16/32/48/180/192/512; `favicon.ico` packs 16/32/48). Regenerate all sizes
+  when the SVG changes instead of editing PNGs by hand.
 
 ## Documentation Map
 

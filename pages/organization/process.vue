@@ -193,6 +193,17 @@
                       />
                     </div>
                     <div class="flex min-w-0 flex-col gap-1">
+                      <label>{{ $t('processDesigner.parentStatus') }}</label>
+                      <Select
+                        :model-value="selectedStatusDefinition.parentStatusId || ''"
+                        :options="statusParentOptions.filter(option => option.value !== selectedStatusDefinition.statusId)"
+                        option-label="label"
+                        option-value="value"
+                        show-clear
+                        @update:model-value="value => updateStatusDefinitionRecord(selectedStatusDefinition.id, { parentStatusId: value || '' })"
+                      />
+                    </div>
+                    <div class="flex min-w-0 flex-col gap-1">
                       <label>{{ $t('processDesigner.icon') }}</label>
                       <Select
                         :model-value="selectedStatusDefinition.icon"
@@ -1256,9 +1267,29 @@ const selectedStatusAttachmentEntries = computed(() => Object.entries(selectedSt
 const selectedStatusSnapshotEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.snapshots || {})
   .map(([key, schema]) => ({ key, schema })));
 const statusDefinitionList = computed(() => Object.values(draft.value?.data?.statusDefinitions || {}));
-const processStatusOptions = computed(() => statusDefinitionList.value
+const processStatusOptions = computed(() => {
+  const definitions = statusDefinitionList.value.filter(status => status.statusId);
+  const byStatusId = new Map(definitions.map(status => [status.statusId, status]));
+  return definitions.map(status => {
+    const parts = [];
+    let cursor = status;
+    const seen = new Set();
+    while (cursor && !seen.has(cursor.statusId)) {
+      seen.add(cursor.statusId);
+      parts.unshift(cursor.statusId);
+      cursor = cursor.parentStatusId ? byStatusId.get(cursor.parentStatusId) : null;
+    }
+    const value = parts.join('.');
+    return {
+      label: parts.length > 1 ? value : (status.label || status.statusId),
+      value,
+      refId: status.id
+    };
+  });
+});
+const statusParentOptions = computed(() => statusDefinitionList.value
   .filter(status => status.statusId)
-  .map(status => ({ label: status.label || status.statusId, value: status.statusId, refId: status.id })));
+  .map(status => ({ label: status.label || status.statusId, value: status.statusId })));
 const selectedEntityFeature = computed(() => selectedEntity.value.entityType ? featureForEntityType(selectedEntity.value.entityType) : defaultFeature());
 
 const roles = computed(() => organizationRoles.value);
@@ -2190,6 +2221,7 @@ function syncNodeData() {
     node.data.statusDefinitionRecord = node.type === 'statusDefinition' ? record : null;
     node.data.onStatusDefinitionUpdate = node.type === 'statusDefinition' ? updates => updateStatusDefinitionRecord(record.id || node.data.refId, updates) : null;
     node.data.onStatusDefinitionDelete = node.type === 'statusDefinition' ? () => removeStatusDefinition(record.id || node.data.refId) : null;
+    node.data.statusParentOptions = node.type === 'statusDefinition' ? statusParentOptions.value : [];
     node.data.processValueTypeOptions = ['valueInput', 'processNode'].includes(node.type) ? processValueTypeOptions : [];
     node.data.processEntityTypeOptions = node.type === 'processNode' ? processEntityTypeOptions(record) : [];
     node.data.processOperationOptions = node.type === 'processNode' ? processNodeOperationOptions(record) : [];
@@ -3443,6 +3475,7 @@ function enrichNodeData(node) {
       processRelationOptions: node.type === 'processNode' ? relationOptionsForEntity(record.entityType) : [],
       processEventOptions: node.type === 'processNode' ? designer.eventOptions : [],
       processStatusOptions: node.type === 'processNode' ? processStatusOptions.value : [],
+      statusParentOptions: node.type === 'statusDefinition' ? statusParentOptions.value : [],
       processTriggerModeOptions: node.type === 'processNode' ? localizedTriggerModeOptions() : [],
       processRoleOptions: node.type === 'processNode' ? roleOptions.value : [],
       processAccessLevelOptions: node.type === 'processNode' ? accessLevelOptions : [],
@@ -4083,13 +4116,26 @@ function applyStatusDefinitionToEntity(status = {}, profile = {}) {
     workflow: workflowForEntity(profile)
   };
   const region = ensureLifecycleRegion(profile);
-  region.states[status.statusId] = {
-    ...(region.states[status.statusId] || {}),
+  const decorated = {
     label: status.label || status.statusId,
     color: status.color || status.severity || 'info',
     severity: status.severity || status.color || 'info',
     icon: status.icon || 'pi pi-circle-fill',
     canUpdateMeta: true
+  };
+  const parentStatusId = status.parentStatusId || '';
+  if (parentStatusId) {
+    region.states[parentStatusId] ||= { canUpdateMeta: true };
+    region.states[parentStatusId].states ||= {};
+    region.states[parentStatusId].states[status.statusId] = {
+      ...(region.states[parentStatusId].states[status.statusId] || {}),
+      ...decorated
+    };
+    return;
+  }
+  region.states[status.statusId] = {
+    ...(region.states[status.statusId] || {}),
+    ...decorated
   };
   if (!region.initial) region.initial = status.statusId;
 }

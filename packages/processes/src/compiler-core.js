@@ -99,6 +99,22 @@ export function createDefaultCreatedWorkflow(label = 'Lifecycle') {
   });
 }
 
+const REMOVED_STATUS_EFFECT_INPUTS = new Set(['metadata', 'lifecycle', 'region', 'path']);
+
+function withoutRemovedStatusEffectEdges(graph, processNodes) {
+  const recordByGraphId = new Map((graph.nodes || []).map(node => [
+    String(node.id),
+    processNodes[String(node.data?.refId || node.id)]
+  ]));
+  graph.edges = (graph.edges || []).filter(edge => {
+    const record = recordByGraphId.get(String(edge.target));
+    if (!record || !['effect.changeStatus', 'effect.archiveEntity'].includes(record.kind)) return true;
+    const handle = String(edge.targetHandle || '').replace(/^(input|data):/, '');
+    return !REMOVED_STATUS_EFFECT_INPUTS.has(handle);
+  });
+  return graph;
+}
+
 export function normalizeProcessDefinition(definition = {}, domain = {}) {
   const data = definition.data || definition;
   const graph = normalizeGraph(data.graph);
@@ -118,6 +134,7 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
       if (String(output?.nodeId) === String(node.id || recordId)) delete producerOutputs[producerOutputId];
     }
   }
+  withoutRemovedStatusEffectEdges(graph, processNodes);
   const effectActions = deriveEffectActions(data.actions, processNodes, graph, domain, producerOutputs);
   const normalized = inferProcessDataflowContracts({
     schemaVersion: data.schemaVersion || PROCESS_SCHEMA_VERSION,
@@ -651,9 +668,28 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
   }
   validateProcessNodeConnections(process, errors, domain);
 
+  const statusDefinitionIds = new Set(Object.values(process.statusDefinitions)
+    .map(status => status.statusId)
+    .filter(Boolean));
   for (const [statusId, status] of Object.entries(process.statusDefinitions)) {
     if (!status.statusId) errors.push(`Status definition ${statusId} must define statusId`);
     if (status.entityType && !entities.has(status.entityType)) errors.push(`Status definition ${statusId} uses unknown entity type ${status.entityType}`);
+    const parentStatusId = status.parentStatusId || '';
+    if (!parentStatusId) continue;
+    if (!statusDefinitionIds.has(parentStatusId)) {
+      errors.push(`Status definition ${statusId} references unknown parent status ${parentStatusId}`);
+      continue;
+    }
+    const seen = new Set([status.statusId]);
+    let cursor = status;
+    while (cursor?.parentStatusId) {
+      if (seen.has(cursor.parentStatusId)) {
+        errors.push(`Status definition ${statusId} has a cyclic parent status chain`);
+        break;
+      }
+      seen.add(cursor.parentStatusId);
+      cursor = Object.values(process.statusDefinitions).find(item => item.statusId === cursor.parentStatusId) || null;
+    }
   }
 
   for (const [socketId, socket] of Object.entries(process.sockets)) {
@@ -1371,15 +1407,24 @@ function applyStatusDefinitionMetadata(builder, entityType, statusDefinitions = 
   for (const definition of Object.values(statusDefinitions || {})) {
     if (definition.entityType && definition.entityType !== entityType) continue;
     const statusId = definition.statusId || definition.id;
-    if (!statusId || !builder.states[statusId]) continue;
-    builder.states[statusId] = {
-      ...(builder.states[statusId] || {}),
+    if (!statusId) continue;
+    const decorated = {
       label: definition.label || statusId,
       color: definition.color || definition.severity || '',
       severity: definition.severity || definition.color || '',
       icon: definition.icon || '',
       ...(definition.lifecycle ? { lifecycle: clonePlain(definition.lifecycle) } : {})
     };
+    const parentStatusId = definition.parentStatusId || '';
+    if (parentStatusId) {
+      const parent = builder.states[parentStatusId];
+      if (!parent) continue;
+      parent.states ||= {};
+      parent.states[statusId] = { ...(parent.states[statusId] || {}), ...decorated };
+      continue;
+    }
+    if (!builder.states[statusId]) continue;
+    builder.states[statusId] = { ...(builder.states[statusId] || {}), ...decorated };
   }
 }
 
@@ -2879,6 +2924,7 @@ function compileStatusDefinitions(statusDefinitions = {}) {
     severity: definition.severity || definition.color || '',
     icon: definition.icon || '',
     region: definition.region || '',
+    parentStatusId: definition.parentStatusId || '',
     ...(definition.lifecycle ? { lifecycle: clonePlain(definition.lifecycle) } : {})
   }]));
 }

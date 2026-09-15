@@ -262,6 +262,8 @@ import ToggleSwitch from 'primevue/toggleswitch';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useI18n } from 'vue-i18n';
+import { useOutboxStore } from '~/stores/outbox';
+import { isOfflineQueuedError } from '~/utils/outbox.js';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -473,8 +475,10 @@ async function postAction(action, entity = null, data = {}, context = {}) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
-    const result = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`, {
-      method: 'POST',
+    const result = await actionOffline({
+      url: `/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`,
+      entityType: action.entityType,
+      entityId: entity?._id || entity?.identity?.uid || null,
       body: {
         entityId: entity?._id || entity?.identity?.uid || null,
         entities: { ...actionEntities(action, entity, context), ...(data?.entities || {}) },
@@ -487,8 +491,25 @@ async function postAction(action, entity = null, data = {}, context = {}) {
     await openCreatedEntity(action, result);
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
   } catch (err) {
+    if (isOfflineQueuedError(err)) {
+      toast.add({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+      return;
+    }
     showActionError(err);
   }
+}
+
+async function actionOffline({ url, entityType, entityId, body }) {
+  if (typeof window === 'undefined') {
+    return $fetch(url, { method: 'POST', body });
+  }
+  const outbox = useOutboxStore();
+  return outbox.mutate({
+    url,
+    method: 'POST',
+    body,
+    meta: { kind: 'action', entityType, entityId, reason: 'process-action' }
+  });
 }
 
 function applyActionResult(action = {}, result = null) {
