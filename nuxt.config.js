@@ -199,6 +199,17 @@ export default defineNuxtConfig({
                     content: 'width=device-width, initial-scale=1'
                 },
                 {
+                    hid: 'theme-color',
+                    name: 'theme-color',
+                    content: '#09090b'
+                },
+                {
+                    hid: 'theme-color-light',
+                    name: 'theme-color',
+                    media: '(prefers-color-scheme: light)',
+                    content: '#f4f4f5'
+                },
+                {
                     hid: 'description',
                     name: 'description',
                     content: 'CutKit manages CNC cassette templates, nesting runs, material inventory, generated artifacts, and production lifecycle tracking.'
@@ -220,6 +231,15 @@ export default defineNuxtConfig({
                 }
             ],
             link: [
+                {
+                    rel: 'manifest',
+                    href: '/manifest.webmanifest'
+                },
+                {
+                    rel: 'icon',
+                    type: 'image/svg+xml',
+                    href: '/icon.svg'
+                },
                 {
                     rel: 'apple-touch-icon',
                     sizes: '180x180',
