@@ -109,6 +109,7 @@
 
       <section ref="editorSurfaceRef" class="relative h-full min-h-0 w-full overflow-hidden">
       <DrawingCanvas
+        ref="drawingCanvasRef"
         :source="drawingCanvasSource"
         source-type="geometry-preview"
         mode="designer"
@@ -820,6 +821,7 @@ const selectedWorkpieceOverrideId = ref('');
 const selectedRelationId = ref('');
 const inspectorSelection = ref('face');
 const editorSurfaceRef = ref(null);
+const drawingCanvasRef = ref(null);
 const inlineEditor = ref(null);
 const pendingAttachmentSourceId = ref('');
 const foldedPreviewWorkpieceId = ref('');
@@ -855,17 +857,6 @@ const documentDockItems = computed(() => [
   },
   { separator: true },
   {
-    icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
-    label: t('common.reset'),
-    onClick: resetTree
-  },
-  {
-    icon: () => h('i', { class: 'pi pi-code', 'aria-hidden': 'true' }),
-    label: t('cassette.v2.occsDraft'),
-    onClick: () => { occsDialogVisible.value = true; }
-  },
-  { separator: true },
-  {
     icon: () => h('i', { class: savingTemplate.value ? 'pi pi-spinner pi-spin' : 'pi pi-copy', 'aria-hidden': 'true' }),
     label: t('common.saveAs'),
     disabled: savingTemplate.value,
@@ -876,6 +867,17 @@ const documentDockItems = computed(() => [
     label: t('common.save'),
     disabled: savingTemplate.value,
     onClick: () => saveTemplate()
+  },
+  { separator: true },
+  {
+    icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
+    label: t('common.reset'),
+    onClick: resetTree
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-code', 'aria-hidden': 'true' }),
+    label: t('cassette.v2.occsDraft'),
+    onClick: () => { occsDialogVisible.value = true; }
   }
 ]);
 
@@ -891,6 +893,22 @@ const canvasDockItems = computed(() => [
     label: t('common.redo'),
     disabled: !canRedo.value,
     onClick: redoDesignerChange
+  },
+  { separator: true },
+  {
+    icon: () => h('i', { class: 'pi pi-search-minus', 'aria-hidden': 'true' }),
+    label: t('drawing.zoomOut'),
+    onClick: () => drawingCanvasRef.value?.zoomOut()
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-search-plus', 'aria-hidden': 'true' }),
+    label: t('drawing.zoomIn'),
+    onClick: () => drawingCanvasRef.value?.zoomIn()
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
+    label: t('drawing.resetView'),
+    onClick: () => drawingCanvasRef.value?.resetView()
   }
 ]);
 const drawingLayers = ref([]);

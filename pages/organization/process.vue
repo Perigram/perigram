@@ -136,7 +136,6 @@
         </div>
       </Popover>
 
-      <Menu ref="canvasMenu" :model="navigationMenuItems" :popup="true" />
 
       <Popover ref="processMenu">
         <div class="flex min-w-72 flex-col gap-2" @mousedown.stop @click.stop>
@@ -1214,10 +1213,29 @@ const documentDockItems = computed(() => [
 
 const canvasDockItems = computed(() => [
   {
-    icon: () => h('i', { class: 'pi pi-arrows-alt', 'aria-hidden': 'true' }),
-    label: t('processDesigner.canvasNavigation'),
-    onClick: event => canvasMenu.value?.toggle(event),
-    hasPopup: true
+    icon: () => h('i', { class: 'pi pi-search-minus', 'aria-hidden': 'true' }),
+    label: t('drawing.zoomOut'),
+    onClick: zoomCanvasOut
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-search-plus', 'aria-hidden': 'true' }),
+    label: t('drawing.zoomIn'),
+    onClick: zoomCanvasIn
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-expand', 'aria-hidden': 'true' }),
+    label: t('processDesigner.frameAll'),
+    onClick: frameAllNodes
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-crosshairs', 'aria-hidden': 'true' }),
+    label: t('processDesigner.frameSelection'),
+    onClick: frameSelectedNodes
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-refresh', 'aria-hidden': 'true' }),
+    label: t('processDesigner.resetZoom'),
+    onClick: resetCanvasZoom
   }
 ]);
 const processOptions = computed(() => processDefinitions.value.map(process => ({
@@ -1672,18 +1690,10 @@ async function applyProcess() {
   }
 }
 
-const canvasMenu = ref(null);
 const renameMenu = ref(null);
 const renameDraftName = ref('');
 const renamingDraft = ref(false);
 
-const navigationMenuItems = computed(() => [
-  { label: t('drawing.zoomOut'), icon: 'pi pi-minus', command: zoomCanvasOut },
-  { label: t('processDesigner.frameAll'), icon: 'pi pi-expand', command: frameAllNodes },
-  { label: t('processDesigner.frameSelection'), icon: 'pi pi-crosshairs', command: frameSelectedNodes },
-  { label: t('drawing.zoomIn'), icon: 'pi pi-plus', command: zoomCanvasIn },
-  { label: t('processDesigner.resetZoom'), icon: 'pi pi-refresh', command: resetCanvasZoom }
-]);
 
 function openRenamePopover(event) {
   renameDraftName.value = draft.value?.identity?.name || '';

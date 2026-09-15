@@ -434,6 +434,8 @@ const zoomOut = () => zoomAt(null, 1.25);
 const resetView = () => {
   viewBox.value = applyPreviewInset(parseViewBox(drawing.value?.viewBox));
 };
+
+defineExpose({ zoomIn, zoomOut, resetView });
 const showAllLayers = () => {
   visibleLayerSelection.value = [...layerNames.value];
 };
@@ -1048,7 +1050,7 @@ onBeforeUnmount(() => {
           </g>
         </svg>
 
-        <div v-if="isViewer" class="absolute bottom-4 right-4 flex gap-2">
+        <div v-if="isViewer && !isDesigner" class="absolute bottom-4 right-4 flex gap-2">
           <Button icon="pi pi-search-minus" rounded severity="secondary" :aria-label="$t('drawing.zoomOut')" @click="zoomOut" />
           <Button icon="pi pi-refresh" rounded severity="secondary" :aria-label="$t('drawing.resetView')" @click="resetView" />
           <Button icon="pi pi-search-plus" rounded severity="secondary" :aria-label="$t('drawing.zoomIn')" @click="zoomIn" />

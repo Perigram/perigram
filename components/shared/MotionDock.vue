@@ -345,7 +345,7 @@
                 borderRadius: 'var(--p-border-radius-lg)',
                 backgroundColor: 'var(--p-content-background)',
                 border: '1px solid var(--p-content-border-color)',
-                padding: 'var(--p-toolbar-padding)',
+                padding: '0.5rem',
                 boxShadow: 'none',
                 zIndex: 30,
             }))
