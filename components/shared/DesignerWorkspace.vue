@@ -13,6 +13,10 @@
       <slot name="toolbar" />
     </header>
 
+    <div v-if="dockTopItems.length" class="flex shrink-0 justify-center px-3 pb-3" data-designer-top-dock>
+      <MotionDock :items="dockTopItems" :aria-label="$t('designer.panels')" />
+    </div>
+
     <!-- Lanes: the canvas is the workspace background, edge to edge; palette
          and inspector are floating rails docked over it. Panel visibility is
          workspace-owned: edge chevrons toggle the rails on wide hosts, while
@@ -21,9 +25,6 @@
     <div v-if="layout === 'lanes'" class="designer-workspace__lanes min-h-0 min-w-0 flex-1 overflow-hidden">
       <main class="designer-workspace__canvas relative min-h-0 min-w-0 overflow-hidden">
         <slot />
-        <div v-if="dockTopItems.length" class="absolute inset-x-0 top-3 z-30 flex justify-center px-3">
-          <MotionDock :items="dockTopItems" :aria-label="$t('designer.panels')" />
-        </div>
         <div v-if="$slots.dock" class="absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
           <slot name="dock" />
         </div>
@@ -51,13 +52,10 @@
 
     <main v-else class="relative min-h-0 min-w-0 flex-1 overflow-hidden">
       <slot />
-      <div v-if="dockTopItems.length" class="absolute inset-x-0 top-3 z-30 flex justify-center px-3">
-        <MotionDock :items="dockTopItems" :aria-label="$t('designer.panels')" />
-      </div>
-      <div v-if="hasPalette && !compact && panels.palette" class="absolute top-14 left-3 z-20 w-[17rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
+      <div v-if="hasPalette && !compact && panels.palette" class="designer-workspace__rail absolute top-3 bottom-16 left-3 z-20 w-[17rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
         <slot name="palette" />
       </div>
-      <aside v-if="hasInspector && !compact && panels.inspector" class="absolute top-14 right-3 bottom-16 z-20 w-[22rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
+      <aside v-if="hasInspector && !compact && panels.inspector" class="designer-workspace__rail absolute top-3 right-3 bottom-16 z-20 w-[22rem] max-w-[45%] overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay">
         <slot name="inspector" />
       </aside>
       <div v-if="$slots.dock" class="absolute inset-x-0 bottom-3 z-20 flex justify-center px-3">
@@ -67,7 +65,7 @@
 
     <aside
       v-if="compact && compactPanelOpen"
-      class="absolute inset-x-3 top-14 z-20 flex min-h-0 max-h-[55%] flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
+      class="absolute inset-x-3 top-3 z-20 flex min-h-0 max-h-[55%] flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
       data-designer-compact-panels
     >
       <Tabs :value="compactTab" class="flex min-h-0 flex-1 flex-col">
