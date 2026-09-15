@@ -41,19 +41,23 @@ top toolbar ribbon.
 
 `layout="lanes"` is for editors with persistent side panels, such as cassette
 and facade design. The canvas is the workspace background, edge to edge —
-never a boxed panel beside the rails: palette and inspector render as
-floating rails docked over the canvas's left and right edges in explicit
-capped tracks (17rem/19rem that shrink on narrow hosts), owning their own
-scroll and chrome, so the workspace never collapses into one stacked column.
-The row floor keeps the layout visible even when a host breaks the
-bounded-height chain. Document identity (name, template) belongs in the
-`toolbar` slot above the canvas, while canvas-level commands (undo/redo,
-reset, raw document, save) render through the shared `MotionDock` in the
-`dock` slot, matching the process designer's dock; rail content composes as
-plain labeled sections — one-line parameter rows (name, expression, remove)
-and one-line layer rows (visibility, layer chip, standard and pen inline
-chips) — without collapse controls, aggregate show/hide commands, or count
-badges. `layout="canvas"` is for graph editors whose palette and
+never a boxed panel beside the rails — and panel visibility is
+workspace-owned: edge chevrons toggle the palette and inspector rails on
+wide hosts, while hosts below 48rem of the workspace's own width switch to a
+compact mode that hides the rails and folds every provided panel into one
+bounded tabbed overlay (60% height cap) opened from a single floating
+toggle. Crossing the compact boundary resets to the mode's defaults — rails
+up when wide, canvas clear when compact — and the state is exposed through
+the workspace ref (`panels`, `toggle`, `openPanel`, `setPanel`) so designer
+docks drive the same state (slot content compiles in the parent scope, so
+use the ref API, not provide/inject). The row floor keeps the layout visible
+even when a host breaks the bounded-height chain. Document identity (name,
+template) belongs in the `toolbar` slot above the canvas, while canvas-level
+commands render through the shared `MotionDock` in the `dock` slot; rail
+content composes as plain labeled sections — one-line parameter rows (name,
+expression, remove) and one-line layer rows (visibility, layer chip,
+standard and pen inline chips) — without collapse controls, aggregate
+show/hide commands, or count badges. `layout="canvas"` is for graph editors whose palette and
 inspector overlay a full canvas, such as process and facade-pattern design.
 
 ## Use the Three viewport
