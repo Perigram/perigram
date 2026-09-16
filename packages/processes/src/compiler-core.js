@@ -2997,7 +2997,11 @@ function normalizeConstruction(construction = {}, entityType = '', domain = {}) 
   return {
     mode,
     ...(source.blockComposed ? { blockComposed: true } : {}),
-    inputs: [...inputsById.values()]
+    // Declared inputs may re-carry the authored 'userCreatable' selector
+    // over the contract's expanded kinds; one final idempotent pass keeps
+    // every emitted creator on the canonical expanded [{ kind, creation }]
+    // shape whatever the action node declared.
+    inputs: [...inputsById.values()].map(input => normalizeConstructionInput(input, domain))
   };
 }
 
@@ -3075,7 +3079,7 @@ function normalizeActionInputPolicy(inputPolicy = {}, construction = {}, entityT
     if (merged.prompt || !constructionField) fieldsById.set(key, { ...merged });
     else fieldsById.delete(key);
   }
-  const fields = [...fieldsById.values()];
+  const fields = [...fieldsById.values()].map(field => normalizeConstructionInput(field, domain));
   return {
     prompt: inputPolicy.prompt !== false && fields.some(field => field.prompt),
     fields

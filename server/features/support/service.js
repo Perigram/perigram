@@ -716,14 +716,26 @@ function scopedEntityOptionSources(auth = {}) {
 /**
  * Mirrors the client-side `artifactCreatorForAction` detection: a
  * createEntity action whose inputs carry an upload/capture/editor creator.
+ * Compiled manifests carry attachment kinds as the expanded
+ * `[{ kind, creation }]` array; unknown shapes score no creator credit
+ * instead of throwing (a malformed manifest must not take down messaging).
  */
 function hasArtifactCreatorAction(auth = {}) {
     return (auth.roleAssignments?.actions || []).some(action => (
         action?.actionKind === 'createEntity'
         && [...(action.construction?.inputs || []), ...(action.inputPolicy?.fields || [])]
-            .some(field => field?.creator?.entityType
-                && (field.creator.attachmentKinds || []).some(kind => ['upload', 'capture', 'editor'].includes(kind.creation?.mode)))
+            .some(field => field?.creator?.entityType && userCreatableAttachmentKinds(field.creator.attachmentKinds))
     ));
+}
+
+function userCreatableAttachmentKinds(kinds) {
+    if (Array.isArray(kinds)) {
+        return kinds.some(kind => ['upload', 'capture', 'editor'].includes(kind?.creation?.mode));
+    }
+    if (kinds && typeof kinds === 'object') {
+        return Object.values(kinds).some(kind => ['upload', 'capture', 'editor'].includes(kind?.creation?.mode));
+    }
+    return false;
 }
 
 function sourceRequirementAllowed(auth = {}, requirement = {}) {
