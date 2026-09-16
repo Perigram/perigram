@@ -32,6 +32,14 @@ Pinia stores for client state and API orchestration.
   store loads `/api/support/conversations` only after `auth.userIsSet` is true
   and refreshes it on a short interval so login/auth hydration cannot leave the
   drawer with only its synthetic support row.
+- `calls.js`: Shared LiveKit call-activity state. Connects once per app
+  (mounted by the app layout) to `call.invite` on the user topic and
+  `call.activity` on the user/org topics, keeps the
+  `/api/livekit/active-rooms` snapshot fresh (debounced refetch), exposes
+  incoming invites with a 30s TTL for the floating `IncomingCalls`
+  notifications, and maps a conversation key to its ongoing room (mirroring
+  the server's derived room-name contract through `utils/call-rooms.js`)
+  for the home sidebar rows and the chat ongoing-call banner.
 - `entityEvents.js`: Browser-local entity synchronization helpers. Successful
   mutations publish a complete entity snapshot to the browser-local
   `utils/entity-events.js` contract used by shared stores and generated screens.

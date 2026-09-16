@@ -113,23 +113,26 @@ Discord-style operational shell:
   row direction lives on the inner `.chat-page` node because a container
   query cannot restyle its own container element. The Calls submenu lists direct/group
   conversations from the chats store (choosing one rings the room through
-  `/api/livekit/invite`) and, below a separator, currently joinable rooms
-  from `/api/livekit/active-rooms` with participant-count badges, labeled
-  from the chats store and organization data, kept live by refetching on
-  `call.activity` events arriving on the caller's `user:`/`org:` topics.
+  `/api/livekit/invite`) — ongoing rooms are not menu entries.
+  Below the menu, the sidebar lists currently joinable rooms as persistent
+  rows (icon, label, participant count; clicking the row joins) sourced from
+  the shared `calls` store (`stores/calls.js`), which keeps the
+  `/api/livekit/active-rooms` snapshot fresh on `call.activity` events and
+  also drives the global `IncomingCalls` ring cards — only brand-new invites
+  float; ongoing calls stay in the sidebar and in chats.
   Every call opens as
   an ephemeral `call` workspace tab (`CallWorkspacePage.vue` — stage plus
   the conversation chat rail) in the active pane, never a floating dialog;
   the tab disappears when its `CallPanel` reports the call closed and is
-  never persisted with the pane layout. Active rooms reach the sidebar
-  Calls menu live through the LiveKit webhook fanout into `call.activity`
+  never persisted with the pane layout. Room activity reaches the store
+  live through the LiveKit webhook fanout into `call.activity`
   events (see
   [server/features/livekit/README.md](../../server/features/livekit/README.md));
   `livekit.dev.yaml` points the webhook at the compose-internal app
   endpoint. `CallPanel` stays usable in small
   panes: tiles keep a small minimum height, the speaker stage scrolls
-  instead of overflowing, and the wide side-strip/two-column arrangements
-  apply only from the panel's own 40rem container width. Entity-less page definitions marked
+  instead of overflowing, and the wide side-strip arrangement
+  applies only from the panel's own 40rem container width. Entity-less page definitions marked
   `ephemeral: true` are runtime-parameterized like this and never appear in
   add-tab lists.
 - Entity navigation is a PrimeVue `Tree` explorer at Aura defaults in a
