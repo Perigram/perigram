@@ -148,6 +148,7 @@ import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import { openEntityInWorkspace } from '~/utils/entity-workspace-open.js';
 import { entityEditorActionFor, entityHasEditorAction } from '~/components/generated/entity-editor-action.js';
 import { useAuthStore } from '~/stores/auth';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
@@ -253,6 +254,13 @@ function openEntity(entity) {
   if (props.openInWorkspace) {
     emit('open-entity', { entity, entityType: props.entityType });
     return;
+  }
+  // Desktop standalone lists open entities inside the home workspace
+  // instead of a separate route.
+  if (typeof window !== 'undefined'
+    && !window.matchMedia?.('(max-width: 767px)')?.matches) {
+    const id = entity?._id || entity?.id || entity?.identity?.uid || '';
+    if (openEntityInWorkspace({ entityType: props.entityType, entityId: String(id || '') })) return;
   }
   const route = detailRouteFor(entity);
   if (route) navigateTo(route);

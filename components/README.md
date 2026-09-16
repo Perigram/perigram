@@ -1072,9 +1072,14 @@ Entity-linked chats ride the same surfaces: the inbox is one unified
 timestamp-ordered list across person, group, and entity chats — the avatar
 glyph (person image/letter, group icon, entity type icon) carries the kind,
 and all placeholders stay neutral (subtle surface, muted ink) instead of
-primary. Entity thread titles link into the generated detail route of their
-entity, and group thread headers carry their member profiles inline through
-`EntityInlineRef`. Entity threads show a children toggle that switches between the
+primary. Entity thread titles open the entity as a home-workspace tab on desktop
+(detail route on mobile), the inbox carries a top-level/all grouping switch
+for entity chats, and group thread headers carry their member profiles
+inline through `EntityInlineRef`. On desktop, entity opens from chat
+surfaces and standalone lists route through
+`utils/entity-workspace-open.js` — a live pane-tab open when the home
+workspace is mounted, a pending request consumed on mount otherwise — so
+everything stays inside the home framework. Entity threads show a children toggle that switches between the
 composed subtree view and messages linked to the entity itself, and the
 composer of a composed view carries chips of the immediate child entities seen
 in the thread, none selected linking the send to the composed entity; the
