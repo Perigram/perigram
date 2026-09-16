@@ -500,10 +500,10 @@
                                 type="button"
                                 :disabled="Boolean(replyTo)"
                                 class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                                :class="composerEntity?.type === chip.type && String(composerEntity?.id) === String(chip.id)
+                                :class="isChipSelected(chip)
                                     ? 'bg-primary text-primary-contrast'
                                     : 'bg-subtle text-muted-color hover:opacity-80'"
-                                :aria-pressed="composerEntity?.type === chip.type && String(composerEntity?.id) === String(chip.id)"
+                                :aria-pressed="isChipSelected(chip)"
                                 @click="drillStripTo(chip)"
                             >
                                 <i :class="domainUi.getIcon(chip.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
@@ -1369,7 +1369,7 @@ const stripChildren = computed(() => {
         if (!child?.type || !child?.id) continue
         const key = `${child.type}:${child.id}`
         if (!byKey.has(key)) {
-            byKey.set(key, { key, type: child.type, name: child.name || child.id, entity: null })
+            byKey.set(key, { key, type: child.type, id: String(child.id), name: child.name || child.id, entity: null })
         }
     }
     return [...byKey.values()]
@@ -1439,7 +1439,13 @@ watch([activeConversationKey, () => activeConversation.value?.entityType, () => 
     )
 }, { immediate: true })
 
-async function drillStripTo(chip) {
+async // Selection is exactly one target: key-based comparison so chips from any
+// source (loaded or path-derived) match reliably.
+const isChipSelected = (chip) => Boolean(composerEntity.value)
+    && composerEntity.value.type === chip.type
+    && String(composerEntity.value.id) === String(chip.id ?? (chip.key || '').split(':').slice(1).join(':'))
+
+function drillStripTo(chip) {
     if (replyTo.value) return
     composerEntityTouched = true
     composerEntity.value = { type: chip.type, id: chip.id, name: chip.name }
