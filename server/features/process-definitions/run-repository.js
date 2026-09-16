@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
-// Aliased static imports: the previous lazy `await import('../../../packages/…')`
-// specifiers resolved against the bundled nitro dev entry and broke every
-// manual action execution in dev with ERR_MODULE_NOT_FOUND; plain relative
-// static specifiers get rebased by the bundler the same way, so the alias
-// form (which resolves to an absolute file URL) is required.
+// Aliased static imports: the previous lazy relative-import specifiers
+// resolved against the bundled nitro dev entry and broke every manual action
+// execution in dev with ERR_MODULE_NOT_FOUND; plain relative static
+// specifiers get rebased by the bundler the same way, so the alias form
+// (which resolves to an absolute file URL) is required.
 import { advanceProcessRun, createProcessRun } from '~/packages/processes/src/index.js';
 
 const COLLECTION_NAMES = Object.freeze({

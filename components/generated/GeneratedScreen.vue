@@ -284,7 +284,6 @@ import GeneratedOrganizationOverview from '~/components/generated/GeneratedOrgan
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCreator.vue';
 import GeneratedObjectInput from '~/components/generated/GeneratedObjectInput.vue';
-import EntityChatPanel from '~/components/shared/EntityChatPanel.vue';
 import { entityIdentifier, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
@@ -334,18 +333,6 @@ const regionBySlot = computed(() => Object.fromEntries(
 ));
 const detailMainRegion = computed(() => screen.value.regions.find(region => sourceState(region.sourceId).source?.mode === 'single') || screen.value.regions[0] || null);
 const detailChildRegions = computed(() => screen.value.regions.filter(region => region !== detailMainRegion.value));
-// Main entity of a detail screen: the entity chat panel pins to it.
-const detailEntity = computed(() => (detailMainRegion.value
-  ? sourceState(detailMainRegion.value.sourceId)?.entity || null
-  : null));
-const detailEntityType = computed(() => (detailMainRegion.value
-  ? sourceState(detailMainRegion.value.sourceId)?.source?.entityType || ''
-  : ''));
-const detailEntityId = computed(() => {
-  const entity = detailEntity.value;
-  const id = entity?._id || entity?.identity?.uid || '';
-  return id ? String(id) : '';
-});
 const detailChildActionIds = computed(() => [...new Set(detailChildRegions.value.flatMap(region => region.actions || []))]);
 const detailActionContext = computed(() => {
   const state = detailMainRegion.value ? sourceState(detailMainRegion.value.sourceId) : null;

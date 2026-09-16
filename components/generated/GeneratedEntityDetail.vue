@@ -16,6 +16,10 @@
       mode="file"
       @refresh="$emit('refresh')"
     />
+    <!-- Composed entity chat rides the canonical detail chrome so every
+         surface that renders an entity detail body — abstract pages and
+         bounded implementation panes alike — carries the thread. -->
+    <EntityChatPanel :type="entityType" :id="entityIdValue" />
     <slot />
   </div>
   <EntityPage
@@ -38,6 +42,7 @@
       @refresh="$emit('refresh')"
     />
     <slot />
+    <EntityChatPanel :type="entityType" :id="entityIdValue" />
     <template v-if="editorActionComponent || headerActionIds.length" #actions>
       <component
         :is="editorActionComponent"
@@ -63,6 +68,7 @@
 import { computed, inject, provide, unref } from 'vue';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import GeneratedEntityDetailBody from '~/components/generated/GeneratedEntityDetailBody.vue';
+import EntityChatPanel from '~/components/shared/EntityChatPanel.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { useAuthStore } from '~/stores/auth';
 import { entityEditorActionFor, entityEditorForcesIdentity } from '~/components/generated/entity-editor-action.js';
@@ -94,6 +100,10 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action', 'open-page']);
 
 const authStore = useAuthStore();
+const entityIdValue = computed(() => {
+  const id = props.entity?._id || props.entity?.id || props.entity?.identity?.uid || '';
+  return id ? String(id) : '';
+});
 const editorActionComponent = computed(() => entityEditorActionFor(props.entityType));
 const forceIdentityForEditor = computed(() => entityEditorForcesIdentity(props.entityType));
 const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
