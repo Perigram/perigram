@@ -583,16 +583,16 @@
                              children so the group owns their radius; addon
                              wrappers would draw extra boxes. -->
                         <InputGroup>
-                            <Button
-                                icon="pi pi-paperclip"
-                                severity="secondary"
-                                text
-                                rounded
-                                size="small"
-                                :disabled="attachmentPickerEmpty"
-                                :aria-label="$t('support.attach')"
-                                @click="openAttachmentPicker($event)"
-                            />
+                            <InputGroupAddon>
+                                <Button
+                                    icon="pi pi-paperclip"
+                                    severity="secondary"
+                                    variant="text"
+                                    :disabled="attachmentPickerEmpty"
+                                    :aria-label="$t('support.attach')"
+                                    @click="openAttachmentPicker($event)"
+                                />
+                            </InputGroupAddon>
                             <Textarea
                                 :placeholder="$t('support.typeMessage')"
                                 class="min-w-0 flex-1"
@@ -602,24 +602,25 @@
                                 rows="1"
                                 autoResize
                             />
-                            <Button
-                                v-if="voiceRecordingSupported"
-                                icon="pi pi-microphone"
-                                severity="secondary"
-                                text
-                                rounded
-                                size="small"
-                                :aria-label="$t('support.recordVoice')"
-                                @click="startVoiceRecording"
-                            />
-                            <Button
-                                icon="pi pi-send"
-                                @click="sendMessage"
-                                :disabled="(!message.trim() && !entityRefs.length) || isLoading"
-                                rounded
-                                size="small"
-                                :aria-label="$t('support.send')"
-                            />
+                            <InputGroupAddon v-if="voiceRecordingSupported">
+                                <Button
+                                    icon="pi pi-microphone"
+                                    severity="secondary"
+                                    variant="text"
+                                    :aria-label="$t('support.recordVoice')"
+                                    @click="startVoiceRecording"
+                                />
+                            </InputGroupAddon>
+                            <InputGroupAddon>
+                                <Button
+                                    icon="pi pi-send"
+                                    severity="secondary"
+                                    variant="text"
+                                    :disabled="(!message.trim() && !entityRefs.length) || isLoading"
+                                    :aria-label="$t('support.send')"
+                                    @click="sendMessage"
+                                />
+                            </InputGroupAddon>
                         </InputGroup>
                     </div>
                 </div>
@@ -757,6 +758,7 @@ import Select from '~/components/shared/EntitySelect.vue'
 import EntityMultiSelect from '~/components/shared/EntityMultiSelect.vue'
 import Textarea from 'primevue/textarea'
 import InputGroup from 'primevue/inputgroup'
+import InputGroupAddon from 'primevue/inputgroupaddon'
 import Menu from 'primevue/menu'
 import ToggleSwitch from 'primevue/toggleswitch'
 import DatePicker from 'primevue/datepicker'
@@ -1089,6 +1091,9 @@ const sendMessage = async () => {
         entityRefs.value = []
         replyTo.value = null
     } catch (error) {
+        // A failed send keeps the typed text for retry but releases the
+        // reply lock, so the composer (and target strip) never wedges.
+        replyTo.value = null
         console.error('Failed to send message:', error)
     } finally {
         isLoading.value = false
