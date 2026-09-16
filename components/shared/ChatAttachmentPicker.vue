@@ -1,19 +1,10 @@
 <template>
   <Popover ref="popover">
-    <div class="flex min-w-64 max-w-72 flex-col gap-1" data-testid="chat-attachment-picker">
-      <small class="px-2 pb-1 text-muted-color">{{ $t('support.attach') }}</small>
-      <!-- Entity-creation entries compose from the user scope: the same
-           generated action buttons the surfaces render, one per create
-           action, above the browse tree. -->
-      <GeneratedActionButton
-        v-for="action in createActions"
-        :key="action.actionId || action.id"
-        :action-id="action.actionId || action.id"
-        menu-item
-        @execute="chooseCreateAction"
-      />
-      <Divider v-if="createActions.length && types.length" class="my-1" />
-      <div v-if="types.length" class="max-h-80 overflow-y-auto">
+    <!-- The sidebar verbatim: home-screen sections with their collection
+         action menus, lazily loaded entity rows, pure lineage nesting — no
+         attachment chrome. -->
+    <div class="flex min-w-64 max-w-72 flex-col" data-testid="chat-attachment-picker">
+      <div class="max-h-80 overflow-y-auto">
         <Tree
           v-model:selection-keys="selectionKeys"
           v-model:expanded-keys="expandedKeys"
@@ -22,60 +13,71 @@
           :aria-label="$t('support.attach')"
           :pt="treePt"
           @node-expand="expandNode"
-          @node-select="selectNode"        >
+          @node-select="selectNode"
+        >
           <template #default="{ node }">
-            <span class="flex min-w-0 flex-1 items-center gap-1">
+            <span class="flex min-w-0 flex-1 items-center gap-2">
               <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
               <i
                 v-if="node.data?.option?.recipientHasAccess === false"
                 class="pi pi-exclamation-triangle shrink-0 text-status-warning"
                 :aria-label="$t('support.recipientChatOnlyWarning', { label: node.label })"
               />
+              <Button
+                v-if="sectionActionsFor(node.data?.section).length"
+                icon="pi pi-ellipsis-v"
+                text
+                rounded
+                size="small"
+                severity="secondary"
+                class="shrink-0"
+                :aria-label="$t('common.add')"
+                @click.stop="toggleSectionActions($event, node)"
+              />
             </span>
           </template>
         </Tree>
       </div>
-      <StateBlock
-        v-if="!types.length && !createActions.length"
-        :message="$t('support.noAttachmentOptions')"
-        icon="pi pi-paperclip"
-      />
     </div>
+    <Menu ref="actionsMenu" :model="sectionActionItems" :popup="true">
+      <template #item="{ item }">
+        <GeneratedActionButton :action-id="item.actionId" menu-item @execute="chooseSectionAction" />
+      </template>
+    </Menu>
   </Popover>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
 import Button from 'primevue/button'
-import Divider from 'primevue/divider'
+import Menu from 'primevue/menu'
 import Popover from 'primevue/popover'
 import Tree from 'primevue/tree'
 import { useI18n } from 'vue-i18n'
-import StateBlock from '~/components/shared/StateBlock.vue'
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue'
+import { isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js'
+import { generatedRegionLabel } from '~/utils/generated-labels.js'
 import { useAuthStore } from '~/stores/auth'
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
 
 /**
- * Sidebar-explorer attachment picker for the chat composer: the same tree
- * structure as the home explorer with entity-type sections preserved as the
- * default roots. Sections expand to the support entity-options list (with
- * direct-recipient chat-only warnings); entities expand further into their
- * containment/relation children through the same lazy mechanics the home
- * explorer uses. Tapping an entity selects it and closes the picker.
+ * Sidebar-explorer attachment picker: the exact home-sidebar hierarchy —
+ * home-screen sections (with their collection create actions behind the
+ * section ellipsis, exactly like the sidebar), lazily loaded entity rows,
+ * and pure lineage nesting beneath. Tapping an entity selects it and closes
+ * the picker; tapping a section action runs the generated create flow.
  */
 const props = defineProps({
-  types: { type: Array, default: () => [] },
-  createActions: { type: Array, default: () => [] },
   recipientUserId: { type: String, default: '' }
 })
 
 const emit = defineEmits(['select', 'create-action'])
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const popover = ref(null)
+const actionsMenu = ref(null)
 const selectionKeys = ref({})
 const expandedKeys = ref({})
 const sectionOptions = ref(new Map())
@@ -83,12 +85,11 @@ const sectionOptionsLoaded = ref(new Set())
 const childrenByParentKey = ref(new Map())
 const loadedChildrenKeys = ref(new Set())
 const loadingKeys = ref(new Set())
+const sectionActionEntries = ref([])
 const authStore = useAuthStore()
 const domainUi = useCutkitDomainUi()
 const effectiveContainment = useEffectiveContainment()
 
-// Dense rows like the home explorer rail; the indent lives in the row content
-// padding so long labels keep their truncation width.
 const treePt = {
   nodeChildren: { style: { paddingInlineStart: '0' } },
   nodeContent: ({ props }) => ({
@@ -122,22 +123,64 @@ const loadingNode = (parentKey) => ({
   data: { loading: true }
 })
 
+// Home-screen sections, filtered like the sidebar: list sources whose type is
+// not a lineage-bound child (those appear nested under their parents).
+const sections = computed(() => {
+  const home = authStore.screenManifest.find(screen => screen.template === 'home')
+  if (!home) return []
+  return (home.regions || [])
+    .map(region => {
+      const source = (home.sources || []).find(candidate => candidate.id === region.sourceId) || {}
+      if (!source.entityType || source.mode === 'single') return null
+      const parentBound = (source.lineageBindings || [])
+        .some(binding => binding.ancestorEntityType && binding.ancestorEntityType !== 'organization')
+      if (parentBound) return null
+      return { region, source, label: generatedRegionLabel(region, source, { t, te }) }
+    })
+    .filter(Boolean)
+})
+
+function sectionActionsFor(section = null) {
+  if (!section?.region) return []
+  return [...new Set(section.region.actions || [])]
+    .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
+    .filter(Boolean)
+    .filter(action => action.actionKind === 'createEntity' && isGeneratedSurfaceAction(action))
+}
+
+const sectionActionItems = computed(() => sectionActionEntries.value.map(entry => ({
+  actionId: entry.actionId
+})))
+
+function toggleSectionActions(event, node) {
+  const section = node?.data?.section
+  if (!section) return
+  sectionActionEntries.value = sectionActionsFor(section)
+  actionsMenu.value?.toggle(event)
+}
+
+function chooseSectionAction(action) {
+  actionsMenu.value?.hide?.()
+  hide()
+  emit('create-action', action)
+}
+
 const isExpandable = (item) => {
   if (childrenByParentKey.value.get(item.key)?.length) return true
   if (loadedChildrenKeys.value.has(item.key)) return false
   return effectiveContainment().some(relation => relation.parentType === item.type)
 }
 
-const sectionChildren = (type) => {
-  const sectionKey = `type:${type.value}`
-  if (loadingKeys.value.has(sectionKey) && !sectionOptions.value.has(type.value)) return [loadingNode(sectionKey)]
-  const options = sectionOptions.value.get(type.value)
+const sectionChildren = (section) => {
+  const sectionKey = `type:${section.source.entityType}`
+  if (loadingKeys.value.has(sectionKey) && !sectionOptions.value.has(sectionKey)) return [loadingNode(sectionKey)]
+  const options = sectionOptions.value.get(sectionKey)
   if (!options) return []
   return options
     .filter(option => option?.value)
     .map(option => entityNode({
-      key: `${type.value}:${option.value}`,
-      type: type.value,
+      key: `${section.source.entityType}:${option.value}`,
+      type: section.source.entityType,
       entity: option.entity || null
     }, option))
 }
@@ -159,18 +202,19 @@ const entityNode = (item, option = null) => {
   }
 }
 
-const nodes = computed(() => props.types.map(type => {
-  const loaded = sectionOptionsLoaded.value.has(type.value)
-  const options = sectionOptions.value.get(type.value) || []
+const nodes = computed(() => sections.value.map(section => {
+  const sectionKey = `type:${section.source.entityType}`
+  const loaded = sectionOptionsLoaded.value.has(sectionKey)
+  const options = sectionOptions.value.get(sectionKey) || []
   return {
-    key: `type:${type.value}`,
-    label: type.label,
-    icon: iconFor(type.value),
+    key: sectionKey,
+    label: section.label,
+    icon: iconFor(section.source.entityType),
     selectable: false,
     // Sections stay expandable until a load proves them empty.
     leaf: Boolean(loaded) && !options.length,
-    data: { section: type },
-    children: sectionChildren(type)
+    data: { section },
+    children: sectionChildren(section)
   }
 }))
 
@@ -183,24 +227,24 @@ async function expandNode(node) {
   if (item) await loadChildrenFor(item)
 }
 
-async function loadSectionOptions(type) {
-  const sectionKey = `type:${type.value}`
-  if (sectionOptionsLoaded.value.has(type.value) || loadingKeys.value.has(sectionKey)) return
+async function loadSectionOptions(section) {
+  const sectionKey = `type:${section.source.entityType}`
+  if (sectionOptionsLoaded.value.has(sectionKey) || loadingKeys.value.has(sectionKey)) return
   loadingKeys.value = new Set([...loadingKeys.value, sectionKey])
   try {
     const loaded = await $fetch('/api/support/entity-options', {
       query: {
-        type: type.value,
+        type: section.source.entityType,
         ...(props.recipientUserId ? { recipientUserId: props.recipientUserId } : {})
       }
     })
-    sectionOptions.value = new Map([...sectionOptions.value, [type.value, loaded || []]])
+    sectionOptions.value = new Map([...sectionOptions.value, [sectionKey, loaded || []]])
   } catch (error) {
     console.error('Failed to load chat attachment options:', error)
-    sectionOptions.value = new Map([...sectionOptions.value, [type.value, []]])
+    sectionOptions.value = new Map([...sectionOptions.value, [sectionKey, []]])
   } finally {
     loadingKeys.value = new Set([...loadingKeys.value].filter(key => key !== sectionKey))
-    sectionOptionsLoaded.value = new Set([...sectionOptionsLoaded.value, type.value])
+    sectionOptionsLoaded.value = new Set([...sectionOptionsLoaded.value, sectionKey])
   }
 }
 
@@ -242,7 +286,6 @@ async function loadContainmentChildren(parent) {
   return loaded.flat()
 }
 
-
 function selectNode(node) {
   const option = node?.data?.option
   const item = node?.data?.item
@@ -262,13 +305,6 @@ function selectNode(node) {
   }
 }
 
-const hide = () => popover.value?.hide?.()
-
-function chooseCreateAction(action) {
-  hide()
-  emit('create-action', action)
-}
-
 // Each open starts from the section roots: options are recipient-scoped for
 // direct chats, so cached branches from another conversation must not leak.
 function toggle(event) {
@@ -281,6 +317,8 @@ function toggle(event) {
   loadingKeys.value = new Set()
   popover.value?.toggle(event)
 }
+
+const hide = () => popover.value?.hide?.()
 
 defineExpose({ toggle, hide })
 </script>
