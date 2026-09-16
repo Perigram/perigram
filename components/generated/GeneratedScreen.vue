@@ -80,15 +80,19 @@
         @refresh="load"
         @execute-action="executeAction"
       />
+      <!-- Entity-linked chat: every generated detail page exposes the
+           composed conversation for its main entity. It rides INSIDE this
+           branch (not as a separate v-if sibling): a standalone chain here
+           would detach the regions fallback below from the shared
+           v-if/v-else-if chain and render it under overloads like the home
+           workspace. -->
+      <EntityChatPanel
+        v-if="detailEntity"
+        :type="detailEntityType"
+        :id="detailEntityId"
+      />
     </GeneratedRegion>
-    <!-- Entity-linked chat: every generated detail page exposes the composed
-         conversation for its main entity. -->
-    <EntityChatPanel
-      v-if="screen.template === 'entityDetail' && detailEntity"
-      :type="detailEntityType"
-      :id="detailEntityId"
-    />
-    <div v-else-if="screen.template !== 'entityDetail'" class="flex flex-col gap-4">
+    <div v-else class="flex flex-col gap-4">
       <GeneratedRegion
         v-for="region in screen.regions"
         :key="region.id"

@@ -1082,7 +1082,10 @@ loaded, loading earlier pages while staying scroll-anchored otherwise; they
 open through a hover menu on desktop and swipe-to-reply on mobile, and the
 composer shows a cancelable reply bar. Generated detail pages expose the same
 composed conversation through the shared `EntityChatPanel` disclosure
-(see [shared components](./shared/README.md)).
+(see [shared components](./shared/README.md)); the panel renders inside the
+detail branch of the generated screen's `v-if` chain — never as a standalone
+`v-if` sibling, which would detach the regions fallback from the shared chain
+and render a raw region dump under overload screens like the home workspace.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data
