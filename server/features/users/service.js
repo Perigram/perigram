@@ -236,7 +236,9 @@ export async function saveAvatar(uid, file = {}, auth = {}) {
 export async function getAvatar(uid, auth = {}) {
   const raw = await usersRepository.findById(uid);
   if (!raw) throw createError({ statusCode: 404, message: 'User not found' });
-  assertCanReadUser(raw, auth);
+  // Avatars are shared profile chrome, not private data: they render beside
+  // every message in cross-organization support/admin conversations, so any
+  // authenticated caller may read them. Editing stays restricted below.
   const avatar = raw.data?.avatar;
   if (!avatar?.fileId) throw createError({ statusCode: 404, message: 'Avatar not found' });
   return {

@@ -85,11 +85,6 @@ const menuItems = computed(() => {
     label: authStore.userData.name || t('common.user'),
     items: [
       {
-        label: t('support.chatTitle'),
-        icon: 'pi pi-comments',
-        command: () => router.push('/chats')
-      },
-      {
         label: t('common.toggleTheme'),
         icon: themeIcon.value,
         command: toggleTheme
