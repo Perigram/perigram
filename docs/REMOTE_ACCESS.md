@@ -1,8 +1,9 @@
 # Remote Access Runbook
 
 This runbook covers the legacy R240 self-hosted path. Production currently runs
-on Railway; use [DEPLOYMENT.md](./DEPLOYMENT.md) for the active Railway app and
-database workflow. Keep this file for VPN/SSH access to the R240 host and for
+on Railway; see the root [README.md](../README.md) documentation map for the
+active deployment references. Keep this file for VPN/SSH access to the R240
+host and for
 the old Swarm rollout path. It intentionally does not store private keys, sudo
 passwords, full WireGuard configs, cookies, or tokens.
 

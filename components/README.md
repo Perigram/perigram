@@ -374,12 +374,22 @@ shell menus do not remain open behind or above the chat surface.
 The mobile app shell runs on PrimeVue `Tabs` as a bottom tab strip: home, the
 user's generated-screen shortcuts, and chats are real tabs of one strip, while
 the shortcut picker plus-action and the profile trigger (account menu with
-theme switching) are plain actions beside the strip. There is no floating chat
-bubble on mobile: every mobile chat entry point (tab selection, status-history
-actor chat) switches the strip to the chats tab, which renders the embedded
-chat surface as a sibling of routed content inside a bounded shell height, and
-the drawer surface stays desktop-only. Selecting a route tab navigates and
-returns the strip to routed content.
+theme switching) are plain actions beside the strip. Every tab navigates —
+the chats tab opens the bounded `/chats` route exactly like the home and
+shortcut tabs open their routes — so chat is a routed screen, never a state
+panel swapped over the current route. Other mobile chat entry points
+(status-history actor chat) navigate to `/chats` with the chat target preset,
+and the floating drawer surface stays desktop-only; there is no floating chat
+bubble on mobile. The strip chrome is adapted for a bottom bar through
+component `pt` (tabs stretch to equal widths across the full bar, the strip
+and its sliding accent line are dropped, and the selected indicator is the
+accent border on the tab's top edge). Two cascade rules force this: PrimeVue
+injects component styles at runtime after Tailwind, so (1) Tailwind display
+utilities (`hidden`, `md:flex`) must never sit directly on PrimeVue
+components — `.p-button`'s own `display` wins, which is why the desktop chat
+launcher is wrapped in a plain `hidden md:block` element — and (2) tab strip
+internals can only be restyled through `pt` inline styles, not utility
+classes.
 The mobile shell is gesture-fixed: the viewport meta disables browser
 pinch/double-tap page zoom, `assets/css/main.css` pins `html` `touch-action`
 to panning because Firefox ignores the `user-scalable` meta, and shell heights

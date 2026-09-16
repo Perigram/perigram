@@ -195,6 +195,14 @@ Discord-style operational shell:
 `GeneratedProjectWorkspace.vue` renders project `entityDetail` screens as a
 bounded IDE-style Explorer and file workspace:
 
+- the desktop split (Explorer + panes in a PrimeVue `Splitter`) and the mobile
+  single-pane view are exclusive branches of one workspace. Responsive
+  visibility belongs to plain wrapper elements around PrimeVue components,
+  never to `hidden`/`lg:flex` classes on the components themselves: PrimeVue
+  injects `.p-splitter`/`.p-button` display rules after Tailwind and wins the
+  cascade, which would stack the desktop split above the mobile view (see the
+  app-shell chat launcher note in
+  [components/README.md](../README.md)).
 - the Explorer is a dense PrimeVue tree containing the opened project, child
   collections loaded by the project screen, and direct child collections
   declared by a linked entity's own compiled detail screen. Linked children are

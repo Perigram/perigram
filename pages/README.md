@@ -147,8 +147,10 @@ overview. Billing, team, and process navigation stays inside that overview.
 conversation list and selected thread in a two-pane bounded workspace; mobile
 uses a single-pane list/thread flow. The desktop-only app-shell floating chat
 launcher opens the same inbox as a compact drawer, whose expand control
-navigates here; the launcher is absent on `/chats` itself, and mobile entry
-points use the app-shell chats tab instead of any floating surface. The full
+navigates here; the launcher is absent on `/chats` itself. Mobile entry points
+never float: the app-shell bottom chats tab navigates to this route like any
+other tab, and deep links such as status-history actor chat navigate here with
+the target thread preset. The full
 route passes its layout mode
 explicitly, keeps independent inbox/thread headers, and fills the bounded app
 workspace even when there are no persisted conversations. Selecting a persisted
