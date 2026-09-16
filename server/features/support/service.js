@@ -1,4 +1,5 @@
 import { createError } from 'h3';
+import * as artifactsService from '~/server/features/artifacts/service.js';
 import * as cassetteDesignsService from '~/server/features/cassette-designs/service.js';
 import * as cassettesService from '~/server/features/cassettes/service.js';
 import * as catalogsService from '~/server/features/catalogs/service.js';
@@ -24,8 +25,13 @@ import { MESSAGE_SENDER } from './const.js';
 
 const ENTITY_REF_LIMIT = 6;
 const ENTITY_OPTION_LIMIT = 20;
+const MESSAGE_PAGE_DEFAULT = 50;
+const MESSAGE_PAGE_MAX = 100;
+const ATTACHMENT_KINDS = ['audio'];
+const ATTACHMENT_DURATION_MAX_SECONDS = 600;
 const scopedList = (service) => (auth, filters) => service.list(auth.userId, auth.organizationId, auth.role, auth, filters);
 const ENTITY_OPTION_LOADERS = {
+    artifact: (auth, filters) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
     cassette: scopedList(cassettesService),
     cassette_design: scopedList(cassetteDesignsService),
     catalog: scopedList(catalogsService),
@@ -186,8 +192,20 @@ function notifyInboxParticipants(participants = [], conversationKey) {
     }
 }
 
-export async function listMessages(match) {
-    return await repository.find(match, messageProjection());
+/**
+ * Reads one conversation page in ascending order. `options.before` is an ISO
+ * timestamp cursor for lazy history loads; `options.limit` caps the page so
+ * opening a thread renders the newest slice, not the whole history.
+ */
+export async function listMessages(match, options = {}) {
+    const limit = Math.min(
+        Math.max(Number.parseInt(options.limit, 10) || MESSAGE_PAGE_DEFAULT, 1),
+        MESSAGE_PAGE_MAX
+    );
+    return await repository.find(match, messageProjection(), {
+        limit,
+        before: options.before || null
+    });
 }
 
 export async function listUserConversations(auth) {
@@ -284,6 +302,7 @@ export async function sendUserMessage(auth, body = {}) {
         senderUserId: auth.userId,
         message: body.message,
         entityRefs: body.entityRefs,
+        attachment: body.attachment,
         auth,
         recipientUserId: context.kind === 'direct'
             ? context.participants.find(participant => participant !== auth.userId)
@@ -301,13 +320,15 @@ export async function sendAdminSupportMessage(auth, customerId, body = {}) {
         senderUserId: auth.userId,
         message: body.message,
         entityRefs: body.entityRefs,
+        attachment: body.attachment,
         auth
     });
 }
 
-async function insertMessage({ context, sender, senderUserId, message, entityRefs, auth, recipientUserId = null }) {
+async function insertMessage({ context, sender, senderUserId, message, entityRefs, attachment, auth, recipientUserId = null }) {
     const refs = await normalizeEntityRefs(entityRefs, auth, { recipientUserId });
-    const text = normalizeMessage(message, refs);
+    const normalizedAttachment = normalizeAttachment(attachment);
+    const text = normalizeMessage(message, refs, normalizedAttachment);
     const inserted = await repository.insert({
         userId: context.kind === 'support' ? context.participants[0] : null,
         conversationKey: context.conversationKey,
@@ -317,6 +338,7 @@ async function insertMessage({ context, sender, senderUserId, message, entityRef
         senderUserId,
         message: text,
         entityRefs: refs,
+        ...(normalizedAttachment ? { attachment: normalizedAttachment } : {}),
         timestamp: new Date()
     }, messageProjection());
     notifyConversationEvent(context, inserted);
@@ -353,10 +375,39 @@ connectionsService.registerTopicAuthorizer('conversation:', async (auth, topic) 
     return Boolean(context);
 });
 
-function normalizeMessage(message, entityRefs = []) {
+function normalizeMessage(message, entityRefs = [], attachment = null) {
     const text = typeof message === 'string' ? message.trim() : '';
-    if (!text && !entityRefs.length) throw createError({ statusCode: 400, message: 'Message is required' });
+    if (!text && !entityRefs.length && !attachment) {
+        throw createError({ statusCode: 400, message: 'Message is required' });
+    }
     return text;
+}
+
+/**
+ * Voice messages are the one chat attachment channel: the client uploads the
+ * recording through the files feature and references it here by GridFS id, so
+ * the message document never embeds audio bytes and playback streams through
+ * the shared download route.
+ */
+function normalizeAttachment(attachment) {
+    if (!attachment || typeof attachment !== 'object') return null;
+    const kind = String(attachment.kind || '');
+    const fileId = String(attachment.fileId || '').trim();
+    if (!ATTACHMENT_KINDS.includes(kind)) {
+        throw createError({ statusCode: 400, message: 'Unsupported attachment kind' });
+    }
+    if (!fileId) {
+        throw createError({ statusCode: 400, message: 'Attachment file is required' });
+    }
+    const durationSeconds = Number(attachment.durationSeconds);
+    return {
+        kind,
+        fileId,
+        mimeType: typeof attachment.mimeType === 'string' ? attachment.mimeType.slice(0, 100) : '',
+        ...(Number.isFinite(durationSeconds)
+            ? { durationSeconds: Math.min(Math.max(durationSeconds, 0), ATTACHMENT_DURATION_MAX_SECONDS) }
+            : {})
+    };
 }
 
 async function normalizeEntityRefs(entityRefs = [], auth = {}, options = {}) {
@@ -410,6 +461,7 @@ async function buildConversationSummaries(messages, auth, options = {}) {
                 groupCreatorId: group ? group.origin?.userId : undefined,
                 lastMessage: message.message,
                 entityRefs: message.entityRefs || [],
+                attachment: message.attachment || null,
                 senderUserId: message.senderUserId,
                 timestamp: message.timestamp,
                 unreadCount: 0
@@ -646,12 +698,32 @@ function scopedEntityOptionSources(auth = {}) {
                 });
             }
         }
+        // Artifact creation actions grant their outputs as attachable chat
+        // refs even without a readable artifact list source: the chat
+        // attachment picker offers the org process's artifact creator and
+        // must be able to reference what it just created.
+        if (hasArtifactCreatorAction(auth) && !sources.some(source => source.entityType === 'artifact')) {
+            sources.push({ entityType: 'artifact', label: 'artifact', creatorOnly: true });
+        }
         return sources;
     }
 
     return Object.keys(ENTITY_OPTION_LOADERS)
         .filter(entityType => entityType !== 'user')
         .map(entityType => ({ entityType, label: entityType }));
+}
+
+/**
+ * Mirrors the client-side `artifactCreatorForAction` detection: a
+ * createEntity action whose inputs carry an upload/capture/editor creator.
+ */
+function hasArtifactCreatorAction(auth = {}) {
+    return (auth.roleAssignments?.actions || []).some(action => (
+        action?.actionKind === 'createEntity'
+        && [...(action.construction?.inputs || []), ...(action.inputPolicy?.fields || [])]
+            .some(field => field?.creator?.entityType
+                && (field.creator.attachmentKinds || []).some(kind => ['upload', 'capture', 'editor'].includes(kind.creation?.mode)))
+    ));
 }
 
 function sourceRequirementAllowed(auth = {}, requirement = {}) {
@@ -934,6 +1006,7 @@ function messageProjection() {
         conversationKey: 1,
         conversationKind: 1,
         participants: 1,
-        entityRefs: 1
+        entityRefs: 1,
+        attachment: 1
     };
 }

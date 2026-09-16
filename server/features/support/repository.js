@@ -5,14 +5,28 @@ const COLLECTION = 'supportMessages';
 const READS_COLLECTION = 'supportConversationReads';
 const GROUPS_COLLECTION = 'chat_groups';
 
-export async function find(match, projection = {}) {
+/**
+ * Conversation page read. With `options.limit` the newest `limit` messages
+ * (optionally older than `options.before`, an ISO timestamp cursor) come back
+ * still in ascending order, so callers consume one stable ordering for full
+ * snapshots and lazy-loaded history pages alike.
+ */
+export async function find(match, projection = {}, options = {}) {
     const db = await connectDB();
-    return await db
+    const query = { ...match };
+    if (options.before) {
+        const cursor = new Date(options.before);
+        if (!Number.isNaN(cursor.getTime())) {
+            query.timestamp = { ...(match.timestamp || {}), $lt: cursor };
+        }
+    }
+    let cursor = db
         .collection(COLLECTION)
-        .find(match)
-        .sort({ timestamp: 1 })
-        .project(projection)
-        .toArray();
+        .find(query)
+        .sort({ timestamp: -1, _id: -1 });
+    if (options.limit) cursor = cursor.limit(options.limit);
+    const page = await cursor.project(projection).toArray();
+    return page.reverse();
 }
 
 export async function insert(data, projection = {}) {

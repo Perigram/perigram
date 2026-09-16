@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   },
   cassetteDesignsService: { list: vi.fn() },
   cassettesService: { list: vi.fn() },
+  artifactsService: { list: vi.fn() },
   catalogsService: { list: vi.fn() },
   librariesService: { list: vi.fn() },
   projectsService: { list: vi.fn() },
@@ -42,6 +43,7 @@ vi.mock('~/server/features/connections/service.js', () => ({
 }));
 vi.mock('~/server/features/cassette-designs/service.js', () => mocks.cassetteDesignsService);
 vi.mock('~/server/features/cassettes/service.js', () => mocks.cassettesService);
+vi.mock('~/server/features/artifacts/service.js', () => mocks.artifactsService);
 vi.mock('~/server/features/catalogs/service.js', () => mocks.catalogsService);
 vi.mock('~/server/features/libraries/service.js', () => mocks.librariesService);
 vi.mock('~/server/features/users/service.js', () => mocks.usersService);
@@ -636,6 +638,125 @@ describe('support communication service', () => {
         label: 'Iklya 1'
       })
     ]);
+  });
+
+  it('paginates conversation history through a before cursor and limit', async () => {
+    mocks.repository.find.mockResolvedValue([]);
+
+    await supportService.listMessages(
+      { conversationKey: 'direct:user-a:user-b' },
+      { limit: 25, before: '2026-09-16T00:00:00.000Z' }
+    );
+
+    expect(mocks.repository.find).toHaveBeenCalledWith(
+      { conversationKey: 'direct:user-a:user-b' },
+      expect.any(Object),
+      { limit: 25, before: '2026-09-16T00:00:00.000Z' }
+    );
+  });
+
+  it('sends voice messages as attachment-only payloads referencing uploaded files', async () => {
+    mocks.repository.insert.mockImplementation(async (record) => record);
+    mocks.usersService.getById.mockResolvedValue({
+      memberships: [{ organizationId: 'org-1' }],
+      toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
+    });
+
+    const message = await supportService.sendUserMessage(auth, {
+      recipientUserId: 'user-b',
+      message: '   ',
+      attachment: { kind: 'audio', fileId: 'gridfs-1', mimeType: 'audio/webm', durationSeconds: 12 }
+    });
+
+    expect(message.message).toBe('');
+    expect(message.attachment).toEqual({
+      kind: 'audio',
+      fileId: 'gridfs-1',
+      mimeType: 'audio/webm',
+      durationSeconds: 12
+    });
+    expect(mocks.connectionsPublish).toHaveBeenCalledWith(
+      'conversation:direct:user-a:user-b',
+      expect.objectContaining({ type: 'message' })
+    );
+  });
+
+  it('rejects unsupported chat attachment kinds', async () => {
+    mocks.usersService.getById.mockResolvedValue({
+      memberships: [{ organizationId: 'org-1' }],
+      toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
+    });
+
+    await expect(supportService.sendUserMessage(auth, {
+      recipientUserId: 'user-b',
+      attachment: { kind: 'video', fileId: 'gridfs-1' }
+    })).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('allows artifact refs when the process exposes an artifact creation action', async () => {
+    mocks.repository.insert.mockImplementation(async (record) => record);
+    const artifact = {
+      toJSON: () => ({ _id: 'artifact-1', identity: { name: 'Scan' }, lineage: { organizationId: 'org-1' }, data: {} })
+    };
+    mocks.artifactsService.list.mockResolvedValue([artifact]);
+    mocks.processRuntime.resolveProcessAuth.mockImplementation(async (input) => ({
+      ...input,
+      process: { active: true },
+      effectivePermissions: {},
+      screens: [],
+      roleAssignments: {
+        actions: [{
+          actionKind: 'createEntity',
+          construction: {
+            inputs: [{
+              creator: {
+                entityType: 'artifact',
+                attachmentKinds: [{ kind: 'CAPTURE_PHOTO', creation: { mode: 'capture' } }]
+              }
+            }]
+          }
+        }]
+      }
+    }));
+    mocks.usersService.getById.mockResolvedValue({
+      memberships: [{ organizationId: 'org-1' }],
+      toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
+    });
+
+    const message = await supportService.sendUserMessage(auth, {
+      recipientUserId: 'user-b',
+      entityRefs: [{ type: 'artifact', id: 'artifact-1' }]
+    });
+
+    expect(message.entityRefs).toEqual([
+      expect.objectContaining({
+        type: 'artifact',
+        id: 'artifact-1',
+        label: 'Scan'
+      })
+    ]);
+  });
+
+  it('keeps artifacts unattachable in a process without an artifact creation action', async () => {
+    mocks.processRuntime.resolveProcessAuth.mockImplementation(async (input) => ({
+      ...input,
+      process: { active: true },
+      effectivePermissions: {},
+      screens: [],
+      roleAssignments: { actions: [] }
+    }));
+    mocks.usersService.getById.mockResolvedValue({
+      memberships: [{ organizationId: 'org-1' }],
+      toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
+    });
+
+    const message = await supportService.sendUserMessage(auth, {
+      recipientUserId: 'user-b',
+      message: 'no artifacts here',
+      entityRefs: [{ type: 'artifact', id: 'artifact-1' }]
+    });
+
+    expect(message.entityRefs).toEqual([]);
   });
   it('creates group chats with the creator plus reachable participants', async () => {
     mocks.usersService.list.mockResolvedValue([

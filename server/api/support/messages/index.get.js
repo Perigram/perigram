@@ -13,11 +13,18 @@ export default defineEventHandler(async (event) => {
     const context = conversationKey.startsWith('group:')
         ? await supportService.getGroupConversationContext(auth, conversationKey.slice('group:'.length))
         : await supportService.getUserConversationContext(auth, query.recipientUserId || null)
-    const messages = await supportService.listMessages(context.match)
+    // `limit`/`before` drive lazy history: the newest page loads first and
+    // older pages arrive keyed on the oldest loaded timestamp.
+    const limit = Math.min(Math.max(Number.parseInt(query.limit, 10) || 50, 1), 100)
+    const messages = await supportService.listMessages(context.match, {
+        limit,
+        before: query.before || null
+    })
     await supportService.markConversationRead(auth, { conversationKey: context.conversationKey })
 
     return {
         data: messages,
+        hasMore: messages.length >= limit,
         currentUserId: auth.userId,
         conversation: {
             conversationKey: context.conversationKey,
