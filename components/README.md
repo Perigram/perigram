@@ -1081,11 +1081,12 @@ surfaces and standalone lists route through
 workspace is mounted, a pending request consumed on mount otherwise — so
 everything stays inside the home framework. Entity threads show a children toggle that switches between the
 composed subtree view and messages linked to the entity itself, and the
-composer of a composed view carries chips of the immediate child entities seen
-in the thread, none selected linking the send to the composed entity; the
-latest chip preselects only in the top-level organization chat, so a thread
-opened inside a specific entity (panel or surface button) links its sends to
-that entity until a chip is deliberately picked. Replies quote their parent message above the bubble (sender
+composer of a composed view carries an exclusive target strip — the
+composed entity itself plus the immediate child entities seen in the thread,
+exactly one selected. Selecting a child links the send (and thereby creates
+that entity chat) to it; re-tapping the active target keeps it, so a send
+never silently falls back to the parent. The latest child preselects only in
+the top-level organization chat. Replies quote their parent message above the bubble (sender
 name plus snippet or voice marker) and jump to the quoted message when
 loaded, loading earlier pages while staying scroll-anchored otherwise; they
 open through a hover menu on desktop and swipe-to-reply on mobile, and the
