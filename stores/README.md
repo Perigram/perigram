@@ -40,10 +40,15 @@ Pinia stores for client state and API orchestration.
   incoming invites with a 30s TTL so accepting or declining anywhere stops
   the ring everywhere, parks accepted calls as a pending home-workspace
   tab, and keeps live WebRTC rooms across surface transfers (tab ↔
-  floating window) so a pop-out never drops the connection. Room↔conversation
-  mapping mirrors the server's derived room-name contract through
-  `utils/call-rooms.js` for the home sidebar rows and the chat
-  ongoing-call banner.
+  floating window) so a pop-out never drops the connection. Ringing is
+  room-scoped, not just time-scoped: each refreshed snapshot drops invites
+  whose room is no longer running (minus a grace window for stale
+  snapshots), so a caller hanging up before the callee answers stops the
+  ring immediately. The line machine tracks the local user's own
+  participation; the room lifecycle ("anyone still in it") is carried by
+  the snapshot and drives the sidebar rows and chat ongoing-call banner
+  through `activeRoomForConversation`, which mirrors the server's derived
+  room-name contract via `utils/call-rooms.js`.
 - `entityEvents.js`: Browser-local entity synchronization helpers. Successful
   mutations publish a complete entity snapshot to the browser-local
   `utils/entity-events.js` contract used by shared stores and generated screens.

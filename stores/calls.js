@@ -63,6 +63,25 @@ export const useCallsStore = defineStore('calls', () => {
         } catch {
             activeRooms.value = [];
         }
+        reconcileInvitesWithSnapshot();
+    }
+
+    // Room-scoped ring lifecycle: an invite lives while its room is alive —
+    // the caller (or anyone) staying in it. When a refreshed snapshot no
+    // longer lists the room, the ring stops immediately instead of waiting
+    // out its TTL. Fresh invites get a grace window so a snapshot taken just
+    // before the invite arrived cannot dismiss it.
+    const INVITE_SNAPSHOT_GRACE_MS = 5000;
+
+    function reconcileInvitesWithSnapshot() {
+        const liveRooms = new Set(activeRooms.value.map(item => item.room));
+        const now = Date.now();
+        for (const invite of [...incoming.value]) {
+            if (liveRooms.has(invite.room)) continue;
+            if (now - (invite.at || 0) < INVITE_SNAPSHOT_GRACE_MS) continue;
+            if (activeRoom.value === invite.room) continue;
+            dismissIncoming(invite.room);
+        }
     }
 
     function scheduleRefresh() {
@@ -84,7 +103,8 @@ export const useCallsStore = defineStore('calls', () => {
             room: payload.room,
             conversationKey: payload.conversationKey || '',
             from: payload.from || '',
-            fromName: payload.fromName || ''
+            fromName: payload.fromName || '',
+            at: Date.now()
         };
         incoming.value = [...incoming.value, invite];
         if (status.value === 'idle' || status.value === 'ringing') status.value = 'ringing';

@@ -53,6 +53,16 @@ ring banners kept ringing after an accept elsewhere). `CallPanel` reports
 `joinRoom`/`leaveRoom`, and joining also stops any remaining ring for the
 room.
 
+The machine tracks the local user's own participation; the room lifecycle
+— alive while *anyone* is in it — rides the activity snapshot: webhook
+`call.activity` events debounce into an `active-rooms` refetch that the
+server filters to rooms with at least one participant, and that snapshot
+drives the sidebar rows and the chat ongoing-call banner. Ringing is
+room-scoped as well: each refreshed snapshot drops invites whose room is
+no longer running (with a grace window so a snapshot taken just before an
+invite cannot dismiss it), so a caller hanging up before the callee
+answers stops the ring immediately instead of waiting out the 30s TTL.
+
 Surface transfers keep the WebRTC connection alive: popping a call out of
 its workspace tab (or docking a floating call back) marks the room as
 transferring; the unmounting `CallPanel` strips its listeners and parks
