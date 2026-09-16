@@ -15,6 +15,7 @@ import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCas
 import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/components/generated/action-visibility.js';
 import { generatedDetailActionIds } from '~/components/generated/detail-screen-actions.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
+import { openEntityChat } from '~/utils/entity-chat.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
 import { useEntity } from '~/composables/useEntity';
@@ -276,6 +277,17 @@ function openDetail(event) {
   if (detailRoute.value) navigateTo(detailRoute.value);
 }
 
+function openEntityChatFromRef(event) {
+  event?.stopPropagation?.();
+  requestCloseMobileTransientSurfaces();
+  compactOp.value?.hide?.();
+  openEntityChat({
+    type: generatedEntityType.value || props.type,
+    id: resolvedId.value,
+    name: resolved.value?.identity?.name || ''
+  });
+}
+
 function executePopupAction(action) {
   const executor = unref(generatedExecuteAction);
   if (typeof executor !== 'function' || !resolved.value) return;
@@ -457,7 +469,16 @@ function tonePalette(role) {
               :display-overrides="{ dataDisplay: 'compact' }"
             />
           </div>
-          <div v-if="popupHasActions || detailRoute" class="flex flex-wrap justify-end gap-2" @click.stop>
+          <div v-if="popupHasActions || detailRoute || resolvedId" class="flex flex-wrap justify-end gap-2" @click.stop>
+            <Button
+              v-if="resolvedId"
+              icon="pi pi-comments"
+              text
+              rounded
+              size="small"
+              :aria-label="$t('support.entityChat')"
+              @click="openEntityChatFromRef"
+            />
             <GeneratedCassetteDesignerAction
               v-if="popupShowCassetteDesigner"
               :entity="resolved"
