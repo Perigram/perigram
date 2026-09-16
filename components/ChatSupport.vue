@@ -1195,8 +1195,15 @@ const childChips = computed(() => {
 
 watch(childChips, (chips) => {
     if (composerEntityTouched) return
+    // Latest-child preselection belongs to the top-level (organization) chat
+    // only; a thread composed for a specific entity defaults to that entity,
+    // so a panel inside entity X links sends to X unless a chip is picked.
+    const conversation = activeConversation.value
     const latest = chips[0] || null
-    composerEntity.value = latest ? { type: latest.type, id: latest.id, name: latest.name } : null
+    const preferLatestChild = conversation?.entityType === 'organization'
+    composerEntity.value = preferLatestChild && latest
+        ? { type: latest.type, id: latest.id, name: latest.name }
+        : null
 }, { immediate: true })
 
 watch(activeConversationKey, () => {
