@@ -1503,6 +1503,40 @@ const selectComposerEntity = (chip) => {
         : null
 }
 
+// Desktop message menu: reply plus text utilities, PrimeVue-owned.
+const messageMenu = ref(null)
+let messageMenuTarget = null
+const messageMenuItems = computed(() => {
+    const items = [{
+        label: t('support.reply'),
+        icon: 'pi pi-reply',
+        command: () => {
+            messageMenu.value?.hide?.()
+            if (messageMenuTarget) openReply(messageMenuTarget)
+            messageMenuTarget = null
+        }
+    }]
+    if (messageMenuTarget?.message) {
+        items.push({
+            label: t('common.copy'),
+            icon: 'pi pi-copy',
+            command: () => {
+                messageMenu.value?.hide?.()
+                if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    navigator.clipboard.writeText(String(messageMenuTarget.message || '')).catch(() => {})
+                }
+                messageMenuTarget = null
+            }
+        })
+    }
+    return items
+})
+
+const openMessageMenu = (event, messageItem) => {
+    messageMenuTarget = messageItem || null
+    messageMenu.value?.toggle(event)
+}
+
 // Replies quote the target inline in the composer; sending carries the
 // parent id and the message payload clears the quote on success. In entity
 // views a reply links to the same entity the quoted message belongs to.
