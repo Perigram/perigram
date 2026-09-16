@@ -57,6 +57,26 @@ export function orgPresence(orgId) {
     return Array.from(online, ([userId, connectionCount]) => ({ userId, connections: connectionCount }));
 }
 
+export function userPresence(userId) {
+    if (!userId) return 0;
+    let count = 0;
+    for (const conn of connections.values()) {
+        if (String(conn.userId) === String(userId)) count += 1;
+    }
+    return count;
+}
+
+let publishListener = null;
+
+/**
+ * Registers a single publish observer (used by the notifications feature to
+ * fan user-topic events out as Web Push when the user has no live tab).
+ * The listener must never throw into the publish path.
+ */
+export function onPublish(listener) {
+    publishListener = typeof listener === 'function' ? listener : null;
+}
+
 function publishToTopic(topic, payload) {
     const envelope = JSON.stringify({ topic, payload, ts: Date.now() });
     for (const conn of connections.values()) {
@@ -127,6 +147,13 @@ export function connectionTopics(connectionId) {
 
 export function publish(topic, payload) {
     publishToTopic(topic, payload);
+    if (publishListener) {
+        try {
+            publishListener(topic, payload);
+        } catch {
+            /* notification fanout must never break realtime delivery */
+        }
+    }
 }
 
 /** Test-only: resets the in-memory connection registry between spec cases. */

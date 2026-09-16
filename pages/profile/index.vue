@@ -71,6 +71,24 @@
                                             <small>{{ $t('profile.languageHelp') }}</small>
                                         </div>
                                     </div>
+
+                                    <div class="flex flex-col gap-3">
+                                        <label for="notifications-toggle">{{ $t('notifications.settingsLabel') }}</label>
+                                        <div class="flex flex-col gap-2">
+                                            <div class="flex items-center gap-3">
+                                                <ToggleSwitch
+                                                    id="notifications-toggle"
+                                                    :model-value="browserNotifications.enabled.value"
+                                                    :disabled="browserNotifications.busy.value || !browserNotifications.canEnable.value"
+                                                    @update:model-value="toggleNotifications"
+                                                />
+                                                <small v-if="browserNotifications.permission.value === 'denied'">
+                                                    {{ $t('notifications.blockedHelp') }}
+                                                </small>
+                                                <small v-else>{{ $t('notifications.settingsHelp') }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                         </Panel>
                     </div>
@@ -148,6 +166,7 @@ import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import Avatar from 'primevue/avatar';
 import Select from '~/components/shared/EntitySelect.vue';
+import ToggleSwitch from 'primevue/toggleswitch';
 import Tag from 'primevue/tag';
 import InputText from 'primevue/inputtext';
 import { useToast } from 'primevue/usetoast';
@@ -157,6 +176,7 @@ import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import OrganizationCard from '~/components/entities/Organization/OrganizationCard.vue';
 import { useEntity } from '~/composables/useEntity';
+import { useBrowserNotifications } from '~/composables/useBrowserNotifications';
 import { selectOptionText } from '~/utils/selectOptions';
 
 definePageMeta({
@@ -272,6 +292,17 @@ const removeAvatar = async () => {
 };
 
 const currentLocale = ref(locale.value);
+const browserNotifications = useBrowserNotifications();
+const toggleNotifications = async (value) => {
+    if (value) {
+        const granted = await browserNotifications.enable();
+        if (!granted) {
+            toast.add({ severity: 'warn', summary: t('common.error'), detail: t('notifications.blockedHelp'), life: 4000 });
+        }
+    } else {
+        await browserNotifications.disable();
+    }
+};
 const availableLocales = computed(() => {
     return locales.value.map(l => ({
         code: selectOptionText(l?.code, l),

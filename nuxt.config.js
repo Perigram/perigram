@@ -89,6 +89,8 @@ export default defineNuxtConfig({
             currentTariffLabelKey: process.env.NUXT_BILLING_CURRENT_TARIFF_LABEL_KEY || '',
         },
         resendToken: process.env.RESEND_TOKEN || '',
+        vapidPublicKey: process.env.NUXT_VAPID_PUBLIC_KEY || '',
+        vapidPrivateKey: process.env.NUXT_VAPID_PRIVATE_KEY || '',
         public: {
             baseUrl: process.env.BASE_URL || 'http://localhost:3000',
             gitCommitSha: process.env.GIT_COMMIT_SHA || '',
