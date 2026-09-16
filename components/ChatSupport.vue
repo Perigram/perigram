@@ -489,7 +489,7 @@
                                     @click="truncateStripTrail(index)"
                                 >
                                     <i :class="domainUi.getIcon(crumb.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
-                                    <span class="max-w-28 truncate">{{ crumb.name }}</span>
+                                    <span class="max-w-28 truncate">{{ crumb.name || localizedEntityTypeLabel(crumb.type) }}</span>
                                 </button>
                             </template>
                         </div>
@@ -499,11 +499,15 @@
                                 :key="chip.key"
                                 type="button"
                                 :disabled="Boolean(replyTo)"
-                                class="flex shrink-0 items-center gap-1 rounded-ui bg-subtle px-2 py-1 text-muted-color text-supporting transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
+                                class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                                :class="composerEntity?.type === chip.type && String(composerEntity?.id) === String(chip.id)
+                                    ? 'bg-primary text-primary-contrast'
+                                    : 'bg-subtle text-muted-color hover:opacity-80'"
+                                :aria-pressed="composerEntity?.type === chip.type && String(composerEntity?.id) === String(chip.id)"
                                 @click="drillStripTo(chip)"
                             >
                                 <i :class="domainUi.getIcon(chip.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
-                                <span class="max-w-32 truncate">{{ chip.name }}</span>
+                                <span class="max-w-32 truncate">{{ chip.name || localizedEntityTypeLabel(chip.type) }}</span>
                             </button>
                         </div>
                     </div>
@@ -1435,12 +1439,15 @@ watch([activeConversationKey, () => activeConversation.value?.entityType, () => 
     )
 }, { immediate: true })
 
-function drillStripTo(chip) {
+async function drillStripTo(chip) {
     if (replyTo.value) return
     composerEntityTouched = true
-    stripTrail.value = [...stripTrail.value, chip]
     composerEntity.value = { type: chip.type, id: chip.id, name: chip.name }
-    loadStripChildren(chip.key, chip.type, chip.entity)
+    await loadStripChildren(chip.key, chip.type, chip.entity)
+    // Collapse into breadcrumbs only when the drilled target opens another
+    // level; single-level targets keep the flat list with the selection.
+    const children = stripChildrenByKey.value.get(chip.key) || []
+    if (children.length) stripTrail.value = [...stripTrail.value, chip]
 }
 
 function truncateStripTrail(index) {

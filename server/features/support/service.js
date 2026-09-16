@@ -247,11 +247,32 @@ export async function getEntityConversationContext(auth, entityKey = '') {
     let entity = await fetchLinkedEntity(scopedAuth, parsed.type, parsed.id);
     if (!entity) {
         // Child entities (cassettes, nesting runs, sheet designs) deny direct
-        // registry reads but stay readable through their scoped list sources
-        // — the same chat option window the attachment picker browses.
-        const options = await listEntityOptions(scopedAuth, parsed.type, parsed.id).catch(() => []);
-        const option = (options || []).find(item => String(item.value) === String(parsed.id));
-        if (option?.entity) entity = option.entity;
+        // registry reads but stay readable through their scoped list sources.
+        // Unlike the picker (first source per type), context validation unions
+        // EVERY generated source of the type, so parent-scoped child lists
+        // count too.
+        const sources = scopedEntityOptionSources(scopedAuth)
+            .filter(source => source.entityType === parsed.type);
+        const loader = ENTITY_OPTION_LOADERS[parsed.type] || null;
+        const scoped = sources.length
+            ? await loadEntityOptionsForSources(scopedAuth, parsed.type, sources).catch(() => [])
+            : [];
+        // The unfiltered org-scope list is the final pool: org members can
+        // discuss any org entity, including standalone children whose
+        // lineage never linked them to a readable parent.
+        const orgWide = loader ? await loader(scopedAuth, {}).catch(() => []) : [];
+        const seen = new Set();
+        const candidates = [...scoped, ...orgWide].filter(candidate => {
+            const dto = entityDto(candidate);
+            const id = String(dto?._id || dto?.id || '');
+            if (!id || seen.has(id)) return false;
+            seen.add(id);
+            return true;
+        });
+        const dto = candidates
+            .map(candidate => entityDto(candidate))
+            .find(dto => String(dto?._id || dto?.id || '') === String(parsed.id));
+        if (dto) entity = dto;
     }
     if (!entity) throw createError({ statusCode: 403, message: 'Forbidden' });
     const dto = entityDto(entity);
