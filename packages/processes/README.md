@@ -323,6 +323,13 @@ construction snapshots. Canonical block composition suppresses separate typed
 inputs only for `genericCreate`; a typed constructor may also accept canonical
 blocks, but its domain-declared service inputs remain present in the compiled
 creator and generated form.
+Compiled creators always carry attachment kinds as the expanded
+`[{ kind, creation }]` array: the domain-authored `'userCreatable'` selector
+(which means every domain kind with an `upload`/`capture`/`editor` creation
+mode) is expanded during compilation even when an authored action node
+re-declares it verbatim on a construction input or prompt field, so clients
+and services consume one shape and never need the domain registry to decode
+selector strings.
 The canonical node catalog resolves operation ports. Persisted socket snapshots
 do not override catalog contracts, and connecting a wire never mutates an open
 entry's semantic key or type. Lifecycle and control values retain their

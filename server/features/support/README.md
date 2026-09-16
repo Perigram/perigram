@@ -137,10 +137,13 @@ process, a readable artifact list source whitelists the type as usual; when no
 such source exists, the type is still whitelisted when the sender's compiled
 action manifest contains an artifact creation action (`createEntity` with an
 `upload`/`capture`/`editor` attachment-kind creator — the same detection the
-generated screens use). This is what lets the chat attachment picker offer
-"create artifact" and reference the freshly created artifact, without widening
-artifact reads past the process windows: option loading still goes through the
-scoped artifacts list service.
+generated screens use). Detection reads the compiler's canonical expanded
+attachment-kind arrays and scores no creator credit for unexpanded shapes
+rather than throwing, so a malformed manifest cannot take down entity-types,
+entity-options, or message sends. This is what lets the chat attachment picker
+offer "create artifact" and reference the freshly created artifact, without
+widening artifact reads past the process windows: option loading still goes
+through the scoped artifacts list service.
 
 ## Voice Messages
 

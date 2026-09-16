@@ -1038,7 +1038,9 @@ as a native audio player on the bubble plus a voice chip in previews.
 Attachments attach through the shared `ChatAttachmentPicker` (see
 [shared components](./shared/README.md)): a sequential tiered menu of the same
 type-then-entity structure as the home explorer, where one tap adds the ref
-and closes the picker — there is no separate add step. When the org process
+and closes the picker — there is no separate add step. The paperclip trigger
+stays disabled while no entity types are readable and no artifact creator is
+available, instead of opening an empty menu. When the org process
 compiles an artifact creation action, the picker also exposes "create
 artifact", and the created artifact attaches to the draft as an `artifact`
 entity ref. The composer loads attachment types from
