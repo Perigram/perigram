@@ -64,30 +64,30 @@
                     icon="pi pi-comments"
                 />
                 <div v-else class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-2 md:p-3">
-                    <template v-for="section in conversationSections" :key="section.key">
-                        <span class="px-2 pt-2 pb-1 text-label text-muted-color">{{ section.label }}</span>
-                        <button
-                            v-for="conversation in section.conversations"
-                            :key="conversation.conversationKey"
+                    <button
+                        v-for="conversation in conversationSections"
+                        :key="conversation.conversationKey"
                             type="button"
                             class="flex min-w-0 items-center gap-2 rounded-ui p-2 text-left transition-colors hover:bg-subtle md:gap-3"
                             :class="{ 'bg-subtle': isActiveConversation(conversation) }"
                             @click="openConversation(conversation)"
                         >
                             <div class="relative shrink-0">
+                                <!-- Neutral placeholders: unread ink belongs to badges,
+                                     not to letter/icon fallbacks. -->
                                 <Avatar
                                     v-if="conversation.conversationKind === 'entity'"
                                     :icon="entityConversationIcon(conversation)"
                                     shape="circle"
                                     size="normal"
-                                    class="bg-primary text-primary-contrast"
+                                    class="bg-subtle text-muted-color"
                                 />
                                 <Avatar
                                     v-else-if="conversation.conversationKind === 'group'"
                                     icon="pi pi-users"
                                     shape="circle"
                                     size="normal"
-                                    class="bg-primary text-primary-contrast"
+                                    class="bg-subtle text-muted-color"
                                 />
                                 <Avatar
                                     v-else
@@ -95,7 +95,7 @@
                                     :label="conversationLabel(conversation).charAt(0).toUpperCase()"
                                     shape="circle"
                                     size="normal"
-                                    class="bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                                    class="bg-subtle text-muted-color [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                                 />
                                 <span
                                     v-if="conversation.conversationKind === 'direct' && participantOnline(conversation)"
@@ -123,8 +123,7 @@
                                 </small>
                             </div>
                             <small v-if="conversation.timestamp" class="shrink-0 text-muted-color">{{ shortTime(conversation.timestamp) }}</small>
-                        </button>
-                    </template>
+                    </button>
                 </div>
             </aside>
 
@@ -149,13 +148,13 @@
                         v-if="activeConversation.conversationKind === 'entity'"
                         :icon="entityConversationIcon(activeConversation)"
                         shape="circle"
-                        class="shrink-0 bg-primary text-primary-contrast"
+                        class="shrink-0 bg-subtle text-muted-color"
                     />
                     <Avatar
                         v-else-if="activeConversation.conversationKind === 'group'"
                         icon="pi pi-users"
                         shape="circle"
-                        class="shrink-0 bg-primary text-primary-contrast"
+                        class="shrink-0 bg-subtle text-muted-color"
                     />
                     <Avatar
                         v-else
@@ -165,8 +164,35 @@
                         class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                     />
                     <div class="min-w-0 flex-1">
-                        <h2 class="m-0 truncate text-section-heading">{{ conversationLabel(activeConversation) }}</h2>
-                        <small v-if="conversationSubtitle" class="block truncate text-muted-color text-supporting">
+                        <h2 class="m-0 truncate text-section-heading">
+                            <button
+                                v-if="activeConversation.conversationKind === 'entity' && activeEntityDetailRoute"
+                                type="button"
+                                class="text-left underline-offset-4 transition-opacity hover:underline hover:opacity-80"
+                                @click="navigateTo(activeEntityDetailRoute)"
+                            >
+                                {{ conversationLabel(activeConversation) }}
+                            </button>
+                            <template v-else>{{ conversationLabel(activeConversation) }}</template>
+                        </h2>
+                        <!-- Group threads carry their member profiles inline;
+                             entity threads keep the scope subtitle. -->
+                        <div
+                            v-if="activeConversation.conversationKind === 'group'"
+                            class="flex min-w-0 flex-wrap items-center gap-1"
+                        >
+                            <EntityInlineRef
+                                v-for="participantId in groupParticipantIds"
+                                :key="participantId"
+                                type="user"
+                                :id="participantId"
+                                :fetch="true"
+                                :fields="[]"
+                                variant="inline"
+                                class="max-w-full"
+                            />
+                        </div>
+                        <small v-else-if="conversationSubtitle" class="block truncate text-muted-color text-supporting">
                             {{ conversationSubtitle }}
                         </small>
                     </div>
@@ -661,6 +687,7 @@ import { generatedActionLabel } from '~/utils/generated-labels.js'
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState'
 import { useConnections } from '~/composables/useConnections.js'
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
+import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useAuthStore } from '~/stores/auth'
 import { useSupportChatStore } from '~/stores/supportChat'
@@ -813,29 +840,36 @@ const newChatUserOptions = computed(() => newChatUsers.value)
 const displayConversations = computed(() => supportChatStore.conversations
     .filter(conversation => ['direct', 'group', 'entity'].includes(conversation.conversationKind)))
 
-const conversationSections = computed(() => {
-    const entity = []
-    const direct = []
-    const group = []
-    for (const conversation of displayConversations.value) {
-        if (conversation.conversationKind === 'entity') entity.push(conversation)
-        else if (conversation.conversationKind === 'group') group.push(conversation)
-        else direct.push(conversation)
-    }
-    // The synthesized root chat (whole-subtree view) pins above the leaves.
-    entity.sort((left, right) => Number(right.isEntityRoot || 0) - Number(left.isEntityRoot || 0))
-    return [
-        { key: 'entities', label: t('support.sectionEntities'), conversations: entity },
-        { key: 'direct', label: t('support.sectionDirect'), conversations: direct },
-        { key: 'group', label: t('support.sectionGroups'), conversations: group }
-    ].filter(section => section.conversations.length)
-})
+// One unified inbox: person, group, and entity chats share a single
+// timestamp-ordered list; the avatar glyph carries the kind.
+const conversationSections = computed(() => [...displayConversations.value].sort((left, right) => {
+    const leftTime = left.timestamp ? new Date(left.timestamp).getTime() : 0
+    const rightTime = right.timestamp ? new Date(right.timestamp).getTime() : 0
+    return rightTime - leftTime
+}))
 
 const isActiveConversation = (conversation) => activeConversation.value?.conversationKey === conversation.conversationKey
 
 const entityConversationIcon = (conversation) => (
     domainUi.getIcon(conversation?.entityType) || 'pi pi-box'
 )
+
+// The entity thread title links into the entity surface: the generated
+// detail route when the process manifest exposes one.
+const activeEntityDetailRoute = computed(() => {
+    const conversation = activeConversation.value
+    if (conversation?.conversationKind !== 'entity' || !conversation.entityId) return null
+    return detailRouteForEntity({
+        entity: { _id: conversation.entityId },
+        entityType: conversation.entityType,
+        screenKey: '',
+        manifest: authStore.screenManifest
+    }) || null
+})
+
+const groupParticipantIds = computed(() => (
+    (activeConversation.value?.participants || []).map(String).filter(Boolean)
+))
 
 const conversationSubtitle = computed(() => {
     const conversation = activeConversation.value
