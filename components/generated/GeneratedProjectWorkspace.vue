@@ -22,6 +22,20 @@
         :action-entries="projectActions"
         @execute-action="executeWorkspaceAction"
       />
+      <!-- The project workspace is a screen-level implementation that
+           bypasses the canonical detail chrome, so the entity chat entry
+           rides the actions strip directly. -->
+      <span class="ml-auto hidden lg:inline-flex">
+        <Button
+          icon="pi pi-comments"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="$t('support.entityChat')"
+          @click="openProjectChat"
+        />
+      </span>
     </header>
 
     <div class="min-h-0 flex-1 overflow-hidden">
@@ -128,6 +142,7 @@
 <script setup>
 import { computed, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
+import { openEntityChat } from '~/utils/entity-chat.js';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
 import Tree from 'primevue/tree';
@@ -206,6 +221,14 @@ const workspaceSplitterPt = computed(() => ({
 const regions = computed(() => props.screen.regions || []);
 const mainRegion = computed(() => regions.value.find(region => sourceStateForRegion(region).source?.mode === 'single') || regions.value[0] || null);
 const project = computed(() => mainRegion.value ? sourceStateForRegion(mainRegion.value).entity : null);
+const openProjectChat = () => {
+  const id = project.value?._id || project.value?.id || project.value?.identity?.uid || '';
+  openEntityChat({
+    type: 'project',
+    id: String(id || ''),
+    name: project.value?.identity?.name || ''
+  });
+};
 provide('displayedEntityContexts', computed(() => project.value ? [{ type: 'project', entity: project.value }] : []));
 const projectKey = computed(() => entityKey('project', project.value));
 const workspaceStorageKey = computed(() => projectWorkspaceStorageKey({
