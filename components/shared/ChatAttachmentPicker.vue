@@ -1,6 +1,7 @@
 <template>
   <Popover ref="popover">
     <PanelMenu
+      data-testid="chat-attachment-picker"
       v-model:expanded-keys="expandedKeys"
       :model="menuItems"
       class="w-72"
