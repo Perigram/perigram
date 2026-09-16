@@ -21,7 +21,7 @@
           :selection-key-code="true"
           multi-selection-key-code="Shift"
           :selection-mode="SelectionMode.Partial"
-          :pan-on-drag="false"
+          :pan-on-drag="touchPanDrag"
           pan-activation-key-code="Space"
           :pan-on-scroll="true"
           :zoom-on-scroll="false"
@@ -1512,15 +1512,29 @@ function schedulePreviewRecompute() {
   }, 120);
 }
 
+// Touch hosts have no pan-activation key: one-finger pane drag pans while
+// nodes stay draggable; mouse hosts keep the Space-activated precision pan.
+const touchPanDrag = ref(false);
+let touchPointerQuery = null;
+
 onMounted(() => {
   loadActiveOrCreateLocal();
   loadProcessCapabilities();
   window.addEventListener('keydown', handleCanvasKeydown);
+  touchPointerQuery = window.matchMedia?.('(pointer: coarse)') || null;
+  touchPanDrag.value = Boolean(touchPointerQuery?.matches);
+  touchPointerQuery?.addEventListener?.('change', syncTouchPanDrag);
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleCanvasKeydown);
   if (previewRecomputeTimer) clearTimeout(previewRecomputeTimer);
+  touchPointerQuery?.removeEventListener?.('change', syncTouchPanDrag);
+  touchPointerQuery = null;
 });
+
+function syncTouchPanDrag() {
+  touchPanDrag.value = Boolean(touchPointerQuery?.matches);
+}
 
 async function loadActiveOrCreateLocal() {
   loadingProcess.value = true;

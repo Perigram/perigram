@@ -834,6 +834,16 @@
     "retry": "Retry",
     "discard": "Discard"
   },
+  "notifications": {
+    "settingsLabel": "Desktop notifications",
+    "settingsHelp": "Messages, incoming calls, and status changes notify while the app is hidden; closed-tab delivery uses Web Push.",
+    "blockedHelp": "Notifications are blocked for this site in browser settings.",
+    "messageTitle": "New message",
+    "messageBody": "You have a new chat message",
+    "callTitle": "Incoming call",
+    "callBody": "Tap to answer",
+    "statusTitle": "Status changed"
+  },
   "metadata": {
     "title": "Project Metadata",
     "customerInfo": "Customer Information",

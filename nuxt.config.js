@@ -89,6 +89,8 @@ export default defineNuxtConfig({
             currentTariffLabelKey: process.env.NUXT_BILLING_CURRENT_TARIFF_LABEL_KEY || '',
         },
         resendToken: process.env.RESEND_TOKEN || '',
+        vapidPublicKey: process.env.NUXT_VAPID_PUBLIC_KEY || '',
+        vapidPrivateKey: process.env.NUXT_VAPID_PRIVATE_KEY || '',
         public: {
             baseUrl: process.env.BASE_URL || 'http://localhost:3000',
             gitCommitSha: process.env.GIT_COMMIT_SHA || '',
@@ -196,7 +198,12 @@ export default defineNuxtConfig({
                 { charset: 'utf-8' },
                 {
                     name: 'viewport',
-                    content: 'width=device-width, initial-scale=1'
+                    // The app is a PWA-style shell with its own canvas gesture
+                    // handling: pinch/double-tap page zoom stays disabled so
+                    // touch gestures never scale the shell. Firefox ignores
+                    // user-scalable, so assets/css/main.css also pins html
+                    // touch-action to panning only.
+                    content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
                 },
                 {
                     hid: 'theme-color',

@@ -145,9 +145,11 @@ overview. Billing, team, and process navigation stays inside that overview.
 
 `/chats` is the authenticated full-page conversation inbox. Desktop keeps the
 conversation list and selected thread in a two-pane bounded workspace; mobile
-uses a single-pane list/thread flow. The app shell's floating chat launcher
-opens the same inbox as a compact drawer, whose expand control navigates here;
-the launcher is absent on `/chats` itself. The full route passes its layout mode
+uses a single-pane list/thread flow. The desktop-only app-shell floating chat
+launcher opens the same inbox as a compact drawer, whose expand control
+navigates here; the launcher is absent on `/chats` itself, and mobile entry
+points use the app-shell chats tab instead of any floating surface. The full
+route passes its layout mode
 explicitly, keeps independent inbox/thread headers, and fills the bounded app
 workspace even when there are no persisted conversations. Selecting a persisted
 thread starts its SSE message stream on either the drawer or embedded route;

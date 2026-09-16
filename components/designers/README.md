@@ -56,7 +56,10 @@ workspace prepends pressed-state toggles (`pi-align-left` palette,
 separated by a dock separator. Wide hosts toggle the rails/overlays
 directly; compact hosts (below 48rem of the workspace's own width) hide the
 rails and open one bounded tabbed overlay (60% height cap) whose active tab
-follows the toggle. Crossing the compact boundary resets to the mode's
+follows the toggle. The compact overlay follows the popover contract: a
+workspace-owned backdrop under the panel closes it on any tap outside the
+panel, so touch hosts never need a close control. Crossing the compact
+boundary resets to the mode's
 defaults — rails up when wide, canvas clear when compact — and the state is
 exposed through the workspace ref (`panels`, `toggle`, `setPanel`) for
 designer code; slot content compiles in the parent scope, so use the ref
@@ -65,6 +68,14 @@ full-height rounded bordered content-background rails with overlay shadow,
 running the same 12px insets top and bottom, sized by the workspace wrappers
 (17rem palette, 22rem inspector) — designers must not add their own panel
 borders, widths, or positioning.
+
+Touch hosts navigate canvases with gestures, not mouse emulation:
+`DrawingCanvas` pans with one finger in viewer modes and pinch-zooms/pans
+with two fingers in every viewer/designer mode (designer keeps single-finger
+taps for face/edge interaction), Vue Flow graph canvases pan with one finger
+and pinch-zoom natively on coarse pointers, and the Three viewports keep
+their OrbitControls touch handling. Gesture-owning canvas roots declare
+`touch-action: none` so the page never claims the gesture.
 
 `layout="lanes"` is for editors with persistent side panels, such as cassette
 and facade design. The canvas is the workspace background, edge to edge —
