@@ -1448,7 +1448,7 @@ watch([activeConversationKey, () => activeConversation.value?.entityType, () => 
     )
 }, { immediate: true })
 
-async // Selection is exactly one target: key-based comparison so chips from any
+// Selection is exactly one target: key-based comparison so chips from any
 // source (loaded or path-derived) match reliably.
 const isChipSelected = (chip) => Boolean(composerEntity.value)
     && composerEntity.value.type === chip.type
