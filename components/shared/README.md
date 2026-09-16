@@ -449,9 +449,11 @@ default roots. When the org process exposes an artifact creation action, a
 "create artifact" entry sits above the tree. Sections expand into the
 `/api/support/entity-options` list for that type (loaded on demand, with the
 direct recipient id so chat-only visibility warnings stay accurate); entities
-expand further into their containment/relation children through the same lazy
-mechanics the home explorer uses (`linkedExplorerChildSources` list fetches
-plus relation-ref hydration). Tapping an entity selects it and closes the
+expand further through pure lineage nesting — containment children from the
+compiled detail sources (`linkedExplorerChildSources` list fetches), exactly
+the sidebar hierarchy. Relation-linked entities are deliberately skipped so
+the tree stays a hierarchy instead of a graph of every linked entity. Tapping
+an entity selects it and closes the
 picker in one step — there is no separate add button. Each open resets the
 tree, because option lists are recipient-scoped per conversation. The host
 owns the draft `entityRefs` and the `GeneratedArtifactCreator` dialog for the
