@@ -38,6 +38,11 @@ export async function insert(data, projection = {}) {
     );
 }
 
+export async function findById(id, projection = {}) {
+    const db = await connectDB();
+    return await db.collection(COLLECTION).findOne({ _id: toFlexibleId(id) }, { projection });
+}
+
 export async function findConversationMessages(match, projection = {}) {
     const db = await connectDB();
     return await db

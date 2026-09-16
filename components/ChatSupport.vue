@@ -17,7 +17,7 @@
             ]"
         >
             <aside
-                v-if="!activeConversation || fullPage"
+                v-if="(!activeConversation || fullPage) && !threadOnly"
                 class="chat-inbox flex min-h-0 flex-col overflow-hidden"
                 :class="fullPage ? 'chat-inbox--rail border-r border-chrome-border' : 'flex-1'"
             >
@@ -76,7 +76,14 @@
                         >
                             <div class="relative shrink-0">
                                 <Avatar
-                                    v-if="conversation.conversationKind === 'group'"
+                                    v-if="conversation.conversationKind === 'entity'"
+                                    :icon="entityConversationIcon(conversation)"
+                                    shape="circle"
+                                    size="normal"
+                                    class="bg-primary text-primary-contrast"
+                                />
+                                <Avatar
+                                    v-else-if="conversation.conversationKind === 'group'"
                                     icon="pi pi-users"
                                     shape="circle"
                                     size="normal"
@@ -128,6 +135,7 @@
             <section v-if="activeConversation" class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
                 <header class="flex shrink-0 items-center gap-2 border-b border-chrome-border px-3 py-3 md:gap-3 md:px-4">
                     <Button
+                        v-if="!threadOnly"
                         icon="pi pi-arrow-left"
                         severity="secondary"
                         text
@@ -138,7 +146,13 @@
                         @click="showInbox"
                     />
                     <Avatar
-                        v-if="activeConversation.conversationKind === 'group'"
+                        v-if="activeConversation.conversationKind === 'entity'"
+                        :icon="entityConversationIcon(activeConversation)"
+                        shape="circle"
+                        class="shrink-0 bg-primary text-primary-contrast"
+                    />
+                    <Avatar
+                        v-else-if="activeConversation.conversationKind === 'group'"
                         icon="pi pi-users"
                         shape="circle"
                         class="shrink-0 bg-primary text-primary-contrast"
@@ -158,7 +172,18 @@
                     </div>
                     <div class="flex shrink-0 items-center gap-1">
                         <Button
-                            v-if="activeConversation.conversationKind !== 'support'"
+                            v-if="activeConversation.conversationKind === 'entity'"
+                            icon="pi pi-sitemap"
+                            :severity="includeChildren ? 'secondary' : 'primary'"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('support.includeChildren')"
+                            :aria-pressed="includeChildren"
+                            @click="includeChildren = !includeChildren"
+                        />
+                        <Button
+                            v-if="activeConversation.conversationKind !== 'support' && activeConversation.conversationKind !== 'entity'"
                             icon="pi pi-phone"
                             severity="secondary"
                             text
@@ -223,8 +248,8 @@
                         text
                         size="small"
                         severity="secondary"
-                        :loading="loadingOlder"
-                        :disabled="loadingOlder"
+                        :loading="loadingOlder || loadingAnchor"
+                        :disabled="loadingOlder || loadingAnchor"
                         @click="loadOlderMessages"
                     />
                     <template
@@ -236,9 +261,41 @@
                         </Divider>
 
                         <div
-                            class="flex min-w-0 max-w-support-chat-message flex-col gap-1"
-                            :class="isOwnMessage(messageItem) ? 'ml-auto items-end' : 'mr-auto items-start'"
+                            :data-message-id="messageItem._id"
+                            class="flex min-w-0 max-w-support-chat-message touch-pan-y flex-col gap-1 transition-transform"
+                            :class="[
+                                isOwnMessage(messageItem) ? 'ml-auto items-end' : 'mr-auto items-start',
+                                swipeArmed.has(messageItem._id) ? 'translate-x-3' : '',
+                                highlightKey === String(messageItem._id) ? 'animate-pulse' : ''
+                            ]"
+                            @touchstart="onTouchStart($event, messageItem)"
+                            @touchmove="onTouchMove($event, messageItem)"
+                            @touchend="onTouchEnd(messageItem)"
                         >
+                            <button
+                                v-if="messageItem.parent"
+                                type="button"
+                                class="flex max-w-full min-w-0 flex-col gap-0.5 rounded-ui bg-subtle px-2 py-1 text-left"
+                                :aria-label="$t('support.goToMessage')"
+                                @click="goToMessage(messageItem.parent._id)"
+                            >
+                                <small class="text-muted-color text-supporting">
+                                    {{ messageItem.parent.senderName || $t('common.user') }}
+                                </small>
+                                <span class="flex min-w-0 items-center gap-1 text-supporting">
+                                    <i
+                                        v-if="messageItem.parent.attachment?.kind === 'audio'"
+                                        class="pi pi-microphone shrink-0 text-muted-color"
+                                        aria-hidden="true"
+                                    />
+                                    <span v-if="messageItem.parent.snippet" class="min-w-0 truncate [overflow-wrap:anywhere]">
+                                        {{ messageItem.parent.snippet }}
+                                    </span>
+                                    <span v-else-if="messageItem.parent.attachment?.kind === 'audio'" class="text-muted-color">
+                                        {{ $t('support.voiceMessage') }}
+                                    </span>
+                                </span>
+                            </button>
                             <audio
                                 v-if="messageItem.attachment?.kind === 'audio'"
                                 :src="attachmentUrl(messageItem.attachment)"
@@ -248,7 +305,7 @@
                             />
                             <div
                                 v-if="messageItem.message || (messageItem.entityRefs || []).length"
-                                class="max-w-full min-w-0 rounded-ui px-4 py-2 text-body"
+                                class="group relative max-w-full min-w-0 rounded-ui px-4 py-2 text-body"
                                 :class="isOwnMessage(messageItem)
                                     ? 'bg-primary text-primary-contrast'
                                     : 'bg-subtle'"
@@ -256,6 +313,39 @@
                                 <p class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
                                     <SupportMessageContent :message="messageItem" :viewer-user-id="currentUserId" />
                                 </p>
+                                <!-- Plain wrapper owns hover visibility: PrimeVue's runtime
+                                     .p-button display rule would defeat utility classes on the
+                                     button itself. -->
+                                <span
+                                    class="absolute -top-2 hidden opacity-0 transition-opacity group-hover:opacity-100 md:block"
+                                    :class="isOwnMessage(messageItem) ? '-left-8' : '-right-8'"
+                                >
+                                    <Button
+                                        icon="pi pi-reply"
+                                        severity="secondary"
+                                        text
+                                        rounded
+                                        size="small"
+                                        :aria-label="$t('support.reply')"
+                                        @click.stop="toggleReplyMenu($event, messageItem)"
+                                    />
+                                </span>
+                            </div>
+                            <div v-else class="group relative w-full">
+                                <span
+                                    class="absolute -top-3 hidden opacity-0 transition-opacity group-hover:opacity-100 md:block"
+                                    :class="isOwnMessage(messageItem) ? 'right-0' : 'left-0'"
+                                >
+                                    <Button
+                                        icon="pi pi-reply"
+                                        severity="secondary"
+                                        text
+                                        rounded
+                                        size="small"
+                                        :aria-label="$t('support.reply')"
+                                        @click.stop="toggleReplyMenu($event, messageItem)"
+                                    />
+                                </span>
                             </div>
                             <span class="px-1 text-muted-color text-supporting">{{ formatTime(messageItem.timestamp) }}</span>
                         </div>
@@ -269,6 +359,47 @@
                         class="px-1 text-muted-color text-supporting opacity-0"
                     >
                         {{ $t('support.typing', { name: typingName }) }}
+                    </div>
+                    <!-- Reply quote bar: the next send carries the parent id. -->
+                    <div v-if="replyTo" class="flex items-center gap-2 rounded-ui bg-subtle p-2">
+                        <i class="pi pi-reply shrink-0 text-muted-color" aria-hidden="true"></i>
+                        <span class="min-w-0 flex-1 truncate text-supporting text-muted-color">
+                            <template v-if="replyTo.parent">{{ replyTo.parent.senderName }}:</template>
+                            <template v-if="replyTo.message">{{ replyTo.message }}</template>
+                            <template v-else-if="replyTo.attachment?.kind === 'audio'">{{ $t('support.voiceMessage') }}</template>
+                        </span>
+                        <Button
+                            icon="pi pi-times"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('common.cancel')"
+                            @click="cancelReply"
+                        />
+                    </div>
+                    <!-- Entity link target: chips over the input pick the child the
+                         next message links to; none selected links to the composed
+                         entity itself. Latest child is preselected. -->
+                    <div
+                        v-if="activeConversation.conversationKind === 'entity' && childChips.length"
+                        class="flex gap-1 overflow-x-auto pb-1"
+                    >
+                        <button
+                            v-for="chip in childChips"
+                            :key="chip.key"
+                            type="button"
+                            class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors"
+                            :class="composerEntity?.type === chip.type && composerEntity?.id === chip.id
+                                ? 'bg-primary text-primary-contrast'
+                                : 'bg-subtle text-muted-color'"
+                            :aria-pressed="composerEntity?.type === chip.type && composerEntity?.id === chip.id"
+                            @click="selectComposerEntity(
+                                composerEntity?.type === chip.type && composerEntity?.id === chip.id ? null : chip
+                            )"
+                        >
+                            <i :class="domainUi.getIcon(chip.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
+                            <span class="max-w-32 truncate">{{ chip.name }}</span>
+                        </button>
                     </div>
                     <div v-if="messagePreviewVisible" class="rounded-ui bg-subtle p-2 text-muted-color text-body">
                         <SupportMessageContent :message="draftPreviewMessage" :viewer-user-id="currentUserId" />
@@ -437,6 +568,7 @@
                 />
             </div>
         </StandardDialog>
+        <Menu :model="replyMenuItems" ref="replyMenu" :popup="true" />
         <ConfirmDialog />
     </div>
 </template>
@@ -448,6 +580,7 @@ import Divider from 'primevue/divider'
 import Button from 'primevue/button'
 import ConfirmDialog from 'primevue/confirmdialog'
 import InputText from 'primevue/inputtext'
+import Menu from 'primevue/menu'
 import Select from '~/components/shared/EntitySelect.vue'
 import EntityMultiSelect from '~/components/shared/EntityMultiSelect.vue'
 import Textarea from 'primevue/textarea'
@@ -464,6 +597,7 @@ import CallPanel from '~/components/calls/CallPanel.vue'
 import { artifactCreatorForAction } from '~/components/generated/action-inputs.js'
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState'
 import { useConnections } from '~/composables/useConnections.js'
+import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useAuthStore } from '~/stores/auth'
 import { useSupportChatStore } from '~/stores/supportChat'
@@ -475,7 +609,9 @@ const props = defineProps({
     },
     fullPage: { type: Boolean, default: false },
     conversationKey: { type: String, default: '' },
-    openCallInPane: { type: Boolean, default: false }
+    openCallInPane: { type: Boolean, default: false },
+    // Detail-page panels pin one entity thread: no inbox, no back navigation.
+    threadOnly: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['open-call'])
@@ -503,6 +639,29 @@ const entityTypeOptions = ref([])
 const attachmentPicker = ref(null)
 const artifactCreatorVisible = ref(false)
 const activeConversation = ref(null)
+// Entity thread state: the children toggle switches between the composed
+// subtree view and messages linked to the entity itself; the composer link
+// target is the latest child chip by default and falls back to the composed
+// entity when nothing is selected.
+const includeChildren = ref(true)
+const composerEntity = ref(null)
+let composerEntityTouched = false
+// Reply state: quoted target for the next send, transient swipe arming, and
+// the anchored scroll highlight after jumping to a quoted message.
+const replyTo = ref(null)
+const swipeArmed = ref(new Set())
+const highlightKey = ref('')
+const loadingAnchor = ref(false)
+const replyMenu = ref(null)
+let replyMenuTarget = null
+const replyMenuItems = computed(() => [
+    {
+        label: t('support.reply'),
+        icon: 'pi pi-reply',
+        command: runReplyMenuAction
+    }
+])
+const domainUi = useCutkitDomainUi()
 const newChatVisible = ref(false)
 const newChatUserId = ref('')
 const newChatUsers = ref([])
@@ -592,15 +751,21 @@ const localizedEntityTypeLabel = (type) => {
 const newChatUserOptions = computed(() => newChatUsers.value)
 
 const displayConversations = computed(() => supportChatStore.conversations
-    .filter(conversation => conversation.conversationKind === 'direct' || conversation.conversationKind === 'group'))
+    .filter(conversation => ['direct', 'group', 'entity'].includes(conversation.conversationKind)))
 
 const conversationSections = computed(() => {
+    const entity = []
     const direct = []
     const group = []
     for (const conversation of displayConversations.value) {
-        (conversation.conversationKind === 'group' ? group : direct).push(conversation)
+        if (conversation.conversationKind === 'entity') entity.push(conversation)
+        else if (conversation.conversationKind === 'group') group.push(conversation)
+        else direct.push(conversation)
     }
+    // The synthesized root chat (whole-subtree view) pins above the leaves.
+    entity.sort((left, right) => Number(right.isEntityRoot || 0) - Number(left.isEntityRoot || 0))
     return [
+        { key: 'entities', label: t('support.sectionEntities'), conversations: entity },
         { key: 'direct', label: t('support.sectionDirect'), conversations: direct },
         { key: 'group', label: t('support.sectionGroups'), conversations: group }
     ].filter(section => section.conversations.length)
@@ -608,9 +773,18 @@ const conversationSections = computed(() => {
 
 const isActiveConversation = (conversation) => activeConversation.value?.conversationKey === conversation.conversationKey
 
+const entityConversationIcon = (conversation) => (
+    domainUi.getIcon(conversation?.entityType) || 'pi pi-box'
+)
+
 const conversationSubtitle = computed(() => {
     const conversation = activeConversation.value
     if (!conversation) return ''
+    if (conversation.conversationKind === 'entity') {
+        return includeChildren.value
+            ? t('support.includesChildren')
+            : localizedEntityTypeLabel(conversation.entityType)
+    }
     if (conversation.conversationKind === 'group') {
         return t('support.membersCount', { count: (conversation.participants || []).length })
     }
@@ -676,11 +850,19 @@ const sendMessage = async () => {
                 message: message.value,
                 recipientUserId: activeConversation.value.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null,
                 conversationKey: activeConversation.value.conversationKind === 'group' ? activeConversation.value.conversationKey : null,
+                entity: activeConversation.value.conversationKind === 'entity'
+                    ? (composerEntity.value || {
+                        type: activeConversation.value.entityType,
+                        id: activeConversation.value.entityId
+                    })
+                    : null,
+                parentMessageId: replyTo.value?._id || null,
                 entityRefs: payloadEntityRefs
             }
         })
         message.value = ''
         entityRefs.value = []
+        replyTo.value = null
     } catch (error) {
         console.error('Failed to send message:', error)
     } finally {
@@ -785,6 +967,13 @@ const stopAndSendVoiceRecording = () => {
                     message: message.value,
                     recipientUserId: activeConversation.value?.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null,
                     conversationKey: activeConversation.value?.conversationKind === 'group' ? activeConversation.value.conversationKey : null,
+                    entity: activeConversation.value?.conversationKind === 'entity'
+                        ? (composerEntity.value || {
+                            type: activeConversation.value.entityType,
+                            id: activeConversation.value.entityId
+                        })
+                        : null,
+                    parentMessageId: replyTo.value?._id || null,
                     attachment: {
                         kind: 'audio',
                         fileId: uploaded.id,
@@ -794,6 +983,7 @@ const stopAndSendVoiceRecording = () => {
                 }
             })
             message.value = ''
+            replyTo.value = null
         } catch (error) {
             console.error('Failed to send voice message:', error)
             toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 })
@@ -819,12 +1009,20 @@ const participantOnline = (conversation) => {
 const activeConversationKey = computed(() => activeConversation.value?.conversationKey || null)
 
 const conversationQuery = (extra = {}) => {
-    const isGroup = activeConversation.value.conversationKind === 'group'
-    const recipientUserId = isGroup ? null : participantUserId(activeConversation.value)
+    const conversation = activeConversation.value
+    if (conversation.conversationKind === 'entity') {
+        return {
+            ...extra,
+            entity: `${conversation.entityType}:${conversation.entityId}`,
+            includeChildren: includeChildren.value ? 1 : 0
+        }
+    }
+    const isGroup = conversation.conversationKind === 'group'
+    const recipientUserId = isGroup ? null : participantUserId(conversation)
     return {
         ...extra,
         ...(isGroup
-            ? { conversationKey: activeConversation.value.conversationKey }
+            ? { conversationKey: conversation.conversationKey }
             : (recipientUserId ? { recipientUserId } : {}))
     }
 }
@@ -842,10 +1040,16 @@ const loadConversation = async () => {
         hasMoreMessages.value = Boolean(snapshot?.hasMore)
         currentUserId.value = snapshot?.currentUserId || currentUserId.value
         if (snapshot?.conversation?.kind && activeConversation.value) {
-            activeConversation.value.conversationKey = snapshot.conversation.conversationKey || activeConversation.value.conversationKey
-            activeConversation.value.conversationKind = snapshot.conversation.kind
-            if (snapshot.conversation.name && !activeConversation.value.groupName) {
-                activeConversation.value.groupName = snapshot.conversation.name
+            const conversation = activeConversation.value
+            conversation.conversationKey = snapshot.conversation.conversationKey || conversation.conversationKey
+            conversation.conversationKind = snapshot.conversation.kind
+            if (snapshot.conversation.kind === 'entity') {
+                conversation.entityType = snapshot.conversation.entityType || conversation.entityType
+                conversation.entityId = snapshot.conversation.entityId || conversation.entityId
+                conversation.entityName = snapshot.conversation.name || conversation.entityName
+            }
+            if (snapshot.conversation.kind === 'group' && snapshot.conversation.name && !conversation.groupName) {
+                conversation.groupName = snapshot.conversation.name
             }
         }
         await supportChatStore.markRead(activeConversation.value.conversationKey)
@@ -862,26 +1066,37 @@ const loadConversation = async () => {
 // History pagination: `before` rides the timestamp of the oldest loaded
 // message; the merged page keeps ascending order and the scroll offset is
 // anchored to the previously-oldest content so the reading position holds.
-const loadOlderMessages = async () => {
+const fetchOlderPage = async () => {
     const oldest = messages.value[0]
-    if (!activeConversation.value || !oldest?.timestamp || loadingOlder.value || !hasMoreMessages.value) return
+    if (!activeConversation.value || !oldest?.timestamp || !hasMoreMessages.value) return null
+    const snapshot = await $fetch('/api/support/messages', {
+        query: conversationQuery({
+            limit: MESSAGES_PAGE_SIZE,
+            before: new Date(oldest.timestamp).toISOString()
+        })
+    })
+    const known = new Set(messages.value.map(item => item._id))
+    const older = (snapshot?.data || []).filter(item => !known.has(item._id))
+    return { older, hasMore: Boolean(snapshot?.hasMore) }
+}
+
+const anchorScrollAfterPrepend = (container, previousHeight, previousTop) => {
+    if (container) container.scrollTop = container.scrollHeight - previousHeight + previousTop
+}
+
+const loadOlderMessages = async () => {
+    if (loadingOlder.value || !hasMoreMessages.value) return
     loadingOlder.value = true
     const container = messagesContainer.value
     const previousHeight = container?.scrollHeight || 0
     const previousTop = container?.scrollTop || 0
     try {
-        const snapshot = await $fetch('/api/support/messages', {
-            query: conversationQuery({
-                limit: MESSAGES_PAGE_SIZE,
-                before: new Date(oldest.timestamp).toISOString()
-            })
-        })
-        const known = new Set(messages.value.map(item => item._id))
-        const older = (snapshot?.data || []).filter(item => !known.has(item._id))
-        if (older.length) messages.value = [...older, ...messages.value]
-        hasMoreMessages.value = Boolean(snapshot?.hasMore)
+        const page = await fetchOlderPage()
+        if (!page) return
+        if (page.older.length) messages.value = [...page.older, ...messages.value]
+        hasMoreMessages.value = page.hasMore
         await nextTick()
-        if (container) container.scrollTop = container.scrollHeight - previousHeight + previousTop
+        anchorScrollAfterPrepend(container, previousHeight, previousTop)
     } catch (error) {
         console.error('Failed to load earlier messages:', error)
     } finally {
@@ -891,8 +1106,151 @@ const loadOlderMessages = async () => {
 
 const handleMessagesScroll = () => {
     const container = messagesContainer.value
-    if (!container || !hasMoreMessages.value || loadingOlder.value) return
+    if (!container || !hasMoreMessages.value || loadingOlder.value || loadingAnchor.value) return
     if (container.scrollTop <= 60) loadOlderMessages()
+}
+
+// Immediate children seen in this thread: chips over the composer pick the
+// link target for the next message, latest first, latest preselected.
+const childChips = computed(() => {
+    const conversation = activeConversation.value
+    if (conversation?.conversationKind !== 'entity') return []
+    const byKey = new Map()
+    for (const messageItem of messages.value) {
+        const path = messageItem.entityPath || []
+        const index = path.findIndex(entry => entry.type === conversation.entityType && entry.id === conversation.entityId)
+        if (index < 0) continue
+        const child = path[index + 1]
+        if (!child?.type || !child?.id) continue
+        const key = `${child.type}:${child.id}`
+        const existing = byKey.get(key)
+        if (existing) {
+            if (new Date(messageItem.timestamp) > new Date(existing.timestamp)) existing.timestamp = messageItem.timestamp
+            continue
+        }
+        byKey.set(key, { ...child, key, timestamp: messageItem.timestamp })
+    }
+    return [...byKey.values()].sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp))
+})
+
+watch(childChips, (chips) => {
+    if (composerEntityTouched) return
+    const latest = chips[0] || null
+    composerEntity.value = latest ? { type: latest.type, id: latest.id, name: latest.name } : null
+}, { immediate: true })
+
+watch(activeConversationKey, () => {
+    replyTo.value = null
+    composerEntity.value = null
+    composerEntityTouched = false
+    includeChildren.value = true
+})
+
+// The children toggle re-queries the thread: the composed subtree view and
+// messages linked to the entity itself are different server-side matches.
+watch(includeChildren, () => {
+    if (activeConversation.value?.conversationKind === 'entity') loadConversation()
+})
+
+const selectComposerEntity = (chip) => {
+    composerEntityTouched = true
+    composerEntity.value = chip
+        ? { type: chip.type, id: chip.id, name: chip.name }
+        : null
+}
+
+// Replies quote the target inline in the composer; sending carries the
+// parent id and the message payload clears the quote on success.
+const openReply = (messageItem) => {
+    replyTo.value = messageItem || null
+}
+
+const cancelReply = () => {
+    replyTo.value = null
+}
+
+const toggleReplyMenu = (event, messageItem) => {
+    replyMenuTarget = messageItem || null
+    replyMenu.value?.toggle(event)
+}
+
+const runReplyMenuAction = () => {
+    replyMenu.value?.hide?.()
+    if (replyMenuTarget) openReply(replyMenuTarget)
+    replyMenuTarget = null
+}
+
+// Mobile swipe-to-reply: arm on a horizontal drag, commit past the
+// threshold on release. touch-pan-y keeps vertical scrolling native.
+let swipeState = null
+
+const onTouchStart = (event, messageItem) => {
+    const touch = event.touches?.[0]
+    if (!touch) return
+    swipeState = { key: messageItem._id, x: touch.clientX, y: touch.clientY, armed: false }
+}
+
+const onTouchMove = (event, messageItem) => {
+    if (!swipeState || swipeState.key !== messageItem._id) return
+    const touch = event.touches?.[0]
+    if (!touch) return
+    const dx = touch.clientX - swipeState.x
+    const dy = touch.clientY - swipeState.y
+    if (dx > 36 && dx > Math.abs(dy) * 1.5) {
+        swipeState.armed = true
+        swipeArmed.value = new Set([...swipeArmed.value, messageItem._id])
+    } else if (swipeState.armed && (dx < 18 || Math.abs(dy) > dx)) {
+        swipeState.armed = false
+        swipeArmed.value = new Set([...swipeArmed.value].filter(key => key !== messageItem._id))
+    }
+}
+
+const onTouchEnd = (messageItem) => {
+    const armed = swipeState?.armed && swipeState.key === messageItem._id
+    swipeState = null
+    swipeArmed.value = new Set([...swipeArmed.value].filter(key => key !== messageItem._id))
+    if (armed) openReply(messageItem)
+}
+
+// Jump to a quoted message: scroll+flash when loaded, otherwise walk older
+// pages (bounded) while staying anchored to the current reading position.
+const scrollToMessage = async (id) => {
+    await nextTick()
+    const container = messagesContainer.value
+    const target = container?.querySelector(`[data-message-id="${CSS.escape(String(id))}"]`)
+    if (!target) return false
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    highlightKey.value = String(id)
+    setTimeout(() => {
+        if (highlightKey.value === String(id)) highlightKey.value = ''
+    }, 1600)
+    return true
+}
+
+const goToMessage = async (id) => {
+    if (!id) return
+    if (messages.value.some(item => String(item._id) === String(id))) {
+        await scrollToMessage(id)
+        return
+    }
+    loadingAnchor.value = true
+    try {
+        for (let attempt = 0; attempt < 8 && hasMoreMessages.value; attempt++) {
+            const container = messagesContainer.value
+            const previousHeight = container?.scrollHeight || 0
+            const previousTop = container?.scrollTop || 0
+            const page = await fetchOlderPage()
+            if (!page) break
+            if (page.older.length) messages.value = [...page.older, ...messages.value]
+            hasMoreMessages.value = page.hasMore
+            await nextTick()
+            if (messages.value.some(item => String(item._id) === String(id))) break
+            anchorScrollAfterPrepend(container, previousHeight, previousTop)
+        }
+    } finally {
+        loadingAnchor.value = false
+    }
+    await scrollToMessage(id)
 }
 
 watch(
@@ -1195,6 +1553,18 @@ function openConversationByKey(key) {
         supportChatStore.markRead(key)
         return
     }
+    if (key.startsWith('entity:')) {
+        const [, entityType, entityId] = key.split(':')
+        activeConversation.value = {
+            conversationKey: key,
+            conversationKind: 'entity',
+            entityType,
+            entityId,
+            entityName: '',
+            lastMessage: ''
+        }
+        return
+    }
     if (key.startsWith('group:')) {
         activeConversation.value = {
             conversationKey: key,
@@ -1250,6 +1620,7 @@ const openConversation = async (conversation) => {
 }
 
 const showInbox = () => {
+    if (props.threadOnly) return
     activeConversation.value = null
     chatTarget.value = null
     conversationKeyTarget = ''
@@ -1289,6 +1660,9 @@ const openDirectTarget = async () => {
 }
 
 const conversationLabel = (conversation) => {
+    if (conversation?.conversationKind === 'entity') {
+        return conversation?.entityName || conversation?.entityType || t('support.sectionEntities')
+    }
     if (conversation?.conversationKind === 'group') {
         return conversation?.groupName || t('support.sectionGroups')
     }
