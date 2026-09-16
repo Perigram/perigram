@@ -818,6 +818,35 @@ describe('support communication service', () => {
       .rejects.toMatchObject({ statusCode: 400 });
   });
 
+  it('resolves child-entity contexts through the scoped option window', async () => {
+    // Direct registry reads deny cassettes; the scoped list window the
+    // picker browses still returns them, and the chat context follows it.
+    mocks.appRegistry.getEntityService.mockImplementation((type) => ({
+      processGetById: vi.fn(async () => (type === 'cassette'
+        ? null
+        : { toJSON: () => ({ _id: 'org-1', identity: { name: 'Org1' }, lineage: {} }) }))
+    }));
+    mocks.cassettesService.list.mockResolvedValue([
+      { toJSON: () => ({ _id: 'cassette-1', identity: { name: 'Iklya' }, lineage: { organizationId: 'org-1', libraryId: 'library-1' }, data: {} }) }
+    ]);
+
+    const context = await supportService.getEntityConversationContext({
+      ...auth,
+      process: { active: true, lineageBindings: [] },
+      screens: [{
+        id: 'library_detail',
+        sources: [{ id: 'cassette', entityType: 'cassette', mode: 'list' }]
+      }],
+      effectivePermissions: {}
+    }, 'entity:cassette:cassette-1');
+
+    expect(context).toMatchObject({
+      kind: 'entity',
+      conversationKey: 'entity:cassette:cassette-1',
+      entityName: 'Iklya'
+    });
+  });
+
   it('composes aggregated entity views through the entity path', () => {
     const context = {
       entityType: 'organization',

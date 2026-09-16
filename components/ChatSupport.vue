@@ -470,10 +470,12 @@
                             <button
                                 type="button"
                                 class="flex shrink-0 items-center gap-1 rounded-ui bg-subtle px-2 py-0.5 text-muted-color text-supporting transition-colors hover:opacity-80"
-                                :aria-label="activeConversation.entityName || localizedEntityTypeLabel(activeConversation.entityType)"
                                 @click="resetStripTrail()"
                             >
                                 <i :class="entityConversationIcon(activeConversation)" class="shrink-0" aria-hidden="true"></i>
+                                <span class="max-w-28 truncate">
+                                    {{ activeConversation.entityName || localizedEntityTypeLabel(activeConversation.entityType) }}
+                                </span>
                             </button>
                             <template v-for="(crumb, index) in stripTrail" :key="crumb.key">
                                 <i class="pi pi-angle-right shrink-0 text-muted-color text-supporting" aria-hidden="true"></i>
@@ -940,7 +942,8 @@ const displayConversations = computed(() => supportChatStore.conversations
     .filter(conversation => {
         if (['direct', 'group'].includes(conversation.conversationKind)) return true
         if (conversation.conversationKind !== 'entity') return false
-        return chatGrouping.value === 'all' ? Boolean(conversation.isLeafRow) : !conversation.isLeafRow
+        // Top-level grouping hides leaf rows; Detailed shows every entity chat.
+        return chatGrouping.value === 'all' || !conversation.isLeafRow
     }))
 
 // One unified inbox: person, group, and entity chats share a single
@@ -1337,7 +1340,36 @@ const stripTargetKey = computed(() => {
     return deepest?.key || `${conversation.entityType}:${conversation.entityId}`
 })
 
-const stripChildren = computed(() => stripChildrenByKey.value.get(stripTargetKey.value) || [])
+// Children of the current target: containment-sourced entries plus the
+// children already seen in this thread's message paths — the path-derived
+// set keeps the strip alive for targets without detail-screen sources (the
+// organization chat) and before lists load.
+const stripChildren = computed(() => {
+    const loaded = stripChildrenByKey.value.get(stripTargetKey.value) || []
+    const byKey = new Map(loaded.map(item => [item.key, item]))
+    const conversation = activeConversation.value
+    if (conversation?.conversationKind !== 'entity') return loaded
+    const pathIndex = (path) => path.findIndex(entry => (
+        entry.type === conversation.entityType && String(entry.id) === String(conversation.entityId)
+    ))
+    for (const messageItem of messages.value) {
+        const path = messageItem.entityPath || []
+        let base = -1
+        if (!stripTrail.value.length) {
+            base = pathIndex(path)
+        } else {
+            const deepest = stripTrail.value[stripTrail.value.length - 1]
+            base = path.findIndex(entry => entry.type === deepest.type && String(entry.id) === String(deepest.id))
+        }
+        const child = base >= 0 ? path[base + 1] : null
+        if (!child?.type || !child?.id) continue
+        const key = `${child.type}:${child.id}`
+        if (!byKey.has(key)) {
+            byKey.set(key, { key, type: child.type, name: child.name || child.id, entity: null })
+        }
+    }
+    return [...byKey.values()]
+})
 
 async function loadStripChildren(targetKey, targetType, targetEntity = null) {
     if (!targetKey || stripChildrenByKey.value.has(targetKey) || stripLoadingKeys.value.has(targetKey)) return
