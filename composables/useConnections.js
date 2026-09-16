@@ -28,6 +28,7 @@ async function syncSubscriptions() {
     }
     syncing = true
     let ok = false
+    let staleConnection = false
     try {
         await $fetch('/api/connections/subscriptions', {
             method: 'POST',
@@ -35,9 +36,21 @@ async function syncSubscriptions() {
         })
         ok = true
     } catch (error) {
-        console.error('Failed to sync connection subscriptions:', error)
+        // 403 means the server no longer knows this connection id (dev
+        // rebuilds and redeploys drop the in-memory registry): retrying the
+        // same id can never succeed, so reopen the stream — the fresh ready
+        // event carries a new id and desired topics resync.
+        if (error?.response?.status === 403 || error?.data?.statusCode === 403 || error?.statusCode === 403) {
+            staleConnection = true
+        } else {
+            console.error('Failed to sync connection subscriptions:', error)
+        }
     }
     syncing = false
+    if (staleConnection) {
+        resetStream()
+        return
+    }
     if (ok) {
         syncAttempts = 0
         if (pendingSync) {
@@ -56,6 +69,17 @@ async function syncSubscriptions() {
             }
         }, 750 * syncAttempts)
     }
+}
+
+function resetStream() {
+    if (source) {
+        source.close()
+        source = null
+    }
+    connectionId = null
+    status.value = 'reconnecting'
+    syncAttempts = 0
+    setTimeout(ensureConnection, 500)
 }
 
 function handleMessage(rawEvent) {
@@ -98,6 +122,9 @@ function ensureConnection() {
     }
     source.onerror = () => {
         status.value = 'error'
+        // A closed EventSource never recovers by itself (server rebuilds can
+        // terminate the stream); reopen so the ready event re-registers us.
+        if (source?.readyState === EventSource.CLOSED) resetStream()
     }
 }
 

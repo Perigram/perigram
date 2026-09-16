@@ -929,12 +929,21 @@ describe('support communication service', () => {
     })).rejects.toMatchObject({ statusCode: 400 });
   });
 
-  it('joins entity chats by the highest ancestor available to the reader', async () => {
-    const readable = new Set(['organization:org-1', 'project:project-1', 'library:library-1', 'queue:queue-1']);
+  it('joins entity chats at the top-level nodes of the lineage trees', async () => {
+    // Live lineage: the queue carries projectId; the walk climbs to the
+    // project whose type has no non-organization parent binding, even when
+    // the stored entityPath is degraded.
     mocks.appRegistry.getEntityService.mockImplementation((type) => ({
-      processGetById: vi.fn(async (id) => (readable.has(`${type}:${id}`)
-        ? { toJSON: () => ({ _id: id, identity: { name: id } }) }
-        : null))
+      processGetById: vi.fn(async (id) => {
+        const table = {
+          organization: { _id: 'org-1', identity: { name: 'Org1' }, lineage: {} },
+          project: { _id: 'project-1', identity: { name: 'P1' }, lineage: { organizationId: 'org-1' } },
+          library: { _id: 'library-1', identity: { name: 'Lib' }, lineage: { organizationId: 'org-1' } },
+          queue: { _id: 'queue-1', identity: { name: 'Queue 1' }, lineage: { organizationId: 'org-1', projectId: 'project-1' } }
+        };
+        const dto = table[type] && table[type]._id === String(id) ? table[type] : null;
+        return dto ? { toJSON: () => dto } : null;
+      })
     }));
     mocks.repository.findConversationMessages.mockResolvedValue([
       {
@@ -944,7 +953,6 @@ describe('support communication service', () => {
         entityLink: { type: 'queue', id: 'queue-1', name: 'Queue 1' },
         entityPath: [
           { type: 'organization', id: 'org-1', name: 'Org1' },
-          { type: 'project', id: 'project-1', name: 'P1' },
           { type: 'queue', id: 'queue-1', name: 'Queue 1' }
         ],
         message: 'nested',
@@ -964,11 +972,13 @@ describe('support communication service', () => {
     ]);
     mocks.repository.findReadStates.mockResolvedValue([]);
 
-    const conversations = await supportService.listUserConversations(auth);
+    const conversations = await supportService.listUserConversations({ ...auth, process: { active: true, lineageBindings: [
+      { childEntityType: 'queue', ancestorEntityType: 'project', lineageKey: 'projectId' }
+    ] } });
 
-    // The queue message rolls to its readable project ancestor; an entity
-    // whose ancestors are unreadable stays its own top row. Both groupings
-    // ship; the shell total counts top-level rows only.
+    // The queue message climbs its live lineage to the project (top-level
+    // type); the org-linked message keeps the organization row; the queue
+    // stays available as a Detailed leaf row.
     const entityRows = conversations.filter(item => item.conversationKind === 'entity');
     expect(entityRows).toEqual([
       expect.objectContaining({

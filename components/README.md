@@ -1036,14 +1036,14 @@ message page and prepends older pages on scroll-to-top through the
 record through `MediaRecorder`, upload through the files endpoint, and render
 as a native audio player on the bubble plus a voice chip in previews.
 Attachments attach through the shared `ChatAttachmentPicker` (see
-[shared components](./shared/README.md)): the home sidebar verbatim —
-home-screen sections (their labels, their collection create actions behind
-the section ellipsis), lazily loaded entity rows, and pure lineage nesting.
-One tap on an entity adds the ref and closes the picker; a section action
-runs the generated create flow (upload-creator dialog, typed prompt dialog,
-or direct execution) and the created entity attaches to the draft like any
-picked ref. The paperclip trigger stays disabled while the home screen
-exposes no list sections. The composer loads attachment types from
+[shared components](./shared/README.md)): the home sidebar verbatim, densely
+padded — home-screen sections whose create actions render as inline entries
+right beside the entity children (no second popup), lazily loaded rows, and
+pure lineage nesting. One tap on an entity adds the ref and closes the
+picker; an inline create entry runs the generated create flow
+(upload-creator dialog, typed prompt dialog, or direct execution) and the
+created entity attaches to the draft like any picked ref. The paperclip
+trigger stays disabled while the home screen exposes no list sections. The composer loads attachment types from
 `/api/support/entity-types`, which derives them from the user's generated
 screen source manifest at read access rather than a fixed chat list. Concrete
 attachment choices resolve through `/api/support/entity-options` when the
@@ -1081,12 +1081,11 @@ surfaces and standalone lists route through
 workspace is mounted, a pending request consumed on mount otherwise — so
 everything stays inside the home framework. Entity threads show a children toggle that switches between the
 composed subtree view and messages linked to the entity itself, and the
-composer of a composed view carries an exclusive target strip — the
-composed entity itself plus the immediate child entities seen in the thread,
-exactly one selected. Selecting a child links the send (and thereby creates
-that entity chat) to it; re-tapping the active target keeps it, so a send
-never silently falls back to the parent. The latest child preselects only in
-the top-level organization chat. Replies quote their parent message above the bubble (sender
+composer of a composed view carries a lineage drill-down strip: ALL children
+of the current target load through the containment sources the sidebar uses;
+picking a child drills the strip into its own children (and the next message
+lands there), with breadcrumbs of lineage icons walking back up. The
+composed entity itself is the target whenever no child is drilled. Replies quote their parent message above the bubble (sender
 name plus snippet or voice marker) and jump to the quoted message when
 loaded, loading earlier pages while staying scroll-anchored otherwise; they
 open through a hover menu on desktop and swipe-to-reply on mobile, and the
