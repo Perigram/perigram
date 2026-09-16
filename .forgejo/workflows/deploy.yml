@@ -26,6 +26,8 @@ jobs:
           LIVEKIT_INTERNAL_URL: ${{ secrets.LIVEKIT_INTERNAL_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          NUXT_VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          NUXT_VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
         run: |
           docker rm -f perigram-staging || true
           docker run -d --name perigram-staging --restart unless-stopped \
@@ -35,4 +37,6 @@ jobs:
             -e LIVEKIT_INTERNAL_URL \
             -e LIVEKIT_API_KEY \
             -e LIVEKIT_API_SECRET \
+            -e NUXT_VAPID_PUBLIC_KEY \
+            -e NUXT_VAPID_PRIVATE_KEY \
             perigram:staging
