@@ -1329,9 +1329,12 @@ watch(includeChildren, () => {
 })
 
 // While a reply is pending, its entity link is locked to the quoted
-// message and cannot be switched until the reply is discarded.
+// message and cannot be switched until the reply is discarded. Selection is
+// exclusive: re-tapping the active chip keeps it instead of silently
+// dropping the send to the composed entity.
 const selectComposerEntity = (chip) => {
     if (replyTo.value) return
+    if (chip && composerEntity.value?.type === chip.type && composerEntity.value?.id === chip.id) return
     composerEntityTouched = true
     composerEntity.value = chip
         ? { type: chip.type, id: chip.id, name: chip.name }
