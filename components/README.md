@@ -1072,7 +1072,11 @@ Entity-linked chats ride the same surfaces: the inbox is one unified
 timestamp-ordered list across person, group, and entity chats — the avatar
 glyph (person image/letter, group icon, entity type icon) carries the kind,
 and all placeholders stay neutral (subtle surface, muted ink) instead of
-primary. Entity thread titles open the entity as a home-workspace tab on desktop
+primary. The grouping switch narrows entity chats to their top-level nodes
+(entities with no resolvable lineage ancestors) and back to every entity
+chat. Child-entity threads (cassettes, nesting runs, sheet designs) resolve
+through the same scoped option window the attachment picker browses when
+direct registry reads deny them. Entity thread titles open the entity as a home-workspace tab on desktop
 (detail route on mobile), the inbox carries a top-level/all grouping switch
 for entity chats, and group thread headers carry their member profiles
 inline through `EntityInlineRef`. On desktop, entity opens from chat
