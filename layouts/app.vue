@@ -1,8 +1,13 @@
 <template>
+    <!-- The mobile chats tab bounds the shell like any workspace tab so the
+         thread scrolls internally instead of growing the page; the md override
+         releases that bound if the tab survives a viewport resize. -->
     <div
         :class="[
             'flex flex-col bg-page',
-            isBoundedWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'
+            mobileActiveTab === 'chats'
+                ? 'h-[100dvh] overflow-hidden md:h-auto md:min-h-[100dvh] md:overflow-visible'
+                : isBoundedWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
         ]"
     >
     <header v-if="!isGeneratedHomeRoute" class="chrome-signal-rule sticky top-0 z-50 hidden shrink-0 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur-md md:block">
@@ -70,41 +75,50 @@
             <slot v-else />
         </main>
 
-        <ChatSupport v-if="supportDialog && mobileActiveTab !== 'chats'" />
+        <ChatSupport v-if="supportDialog && !isMobileViewport" />
         <Menu ref="mobileScreenMenu" :model="mobileScreenMenuItems" :popup="true" />
         <nav
             v-if="authStore.userIsSet"
             class="chrome-signal-rule fixed inset-x-0 bottom-0 z-[998] border-t [border-color:var(--ck-chrome-border)] bg-chrome px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-overlay md:hidden"
             :aria-label="$t('nav.home')"
         >
+            <!-- Mobile app tabs run on PrimeVue Tabs: home, user shortcuts, and
+                 chats are real tabs of one tab strip, so the chats surface is a
+                 sibling tab of routed content instead of an overlay screen. The
+                 shortcut picker and profile trigger are actions, not tabs. -->
             <div class="mx-auto flex max-w-md items-center justify-around gap-1">
-                <Button
-                    icon="pi pi-home"
-                    text
-                    rounded
-                    :severity="isRouteActive(homeRoute) ? 'primary' : 'secondary'"
-                    :aria-label="$t('nav.home')"
-                    @click="navigateMobile(homeRoute)"
-                />
-                <div
-                    v-for="shortcut in mobileShortcutLinks"
-                    :key="shortcut.key"
-                    class="relative flex items-center"
-                    @pointerdown="startShortcutHold($event, shortcut.index)"
-                    @pointerup="clearShortcutHold"
-                    @pointerleave="clearShortcutHold"
-                    @pointercancel="clearShortcutHold"
-                    @contextmenu.prevent="openReplaceShortcutMenu($event, shortcut.index)"
-                >
-                    <Button
-                        :icon="shortcut.icon"
-                        text
-                        rounded
-                        :severity="isRouteActive(shortcut.to) ? 'primary' : 'secondary'"
-                        :aria-label="shortcut.label"
-                        @click="handleShortcutClick(shortcut)"
-                    />
-                </div>
+                <Tabs :value="mobileTabValue" class="min-w-0 flex-1" @update:value="selectMobileTab">
+                    <TabList class="[&_.p-tablist-list]:w-full [&_.p-tablist-list]:justify-around">
+                        <Tab value="home" :aria-label="$t('nav.home')">
+                            <i class="pi pi-home" aria-hidden="true" />
+                        </Tab>
+                        <Tab
+                            v-for="shortcut in mobileShortcutLinks"
+                            :key="shortcut.key"
+                            :value="`shortcut:${shortcut.key}`"
+                            :aria-label="shortcut.label"
+                            @pointerdown="startShortcutHold($event, shortcut.index)"
+                            @pointerup="clearShortcutHold"
+                            @pointerleave="clearShortcutHold"
+                            @pointercancel="clearShortcutHold"
+                            @contextmenu.prevent="openReplaceShortcutMenu($event, shortcut.index)"
+                        >
+                            <i :class="shortcut.icon" aria-hidden="true" />
+                        </Tab>
+                        <Tab value="chats" :aria-label="$t('support.openChat')">
+                            <span class="relative inline-flex">
+                                <i class="pi pi-comments" aria-hidden="true" />
+                                <Badge
+                                    v-if="supportChatStore.totalUnread"
+                                    :value="supportChatStore.totalUnread"
+                                    severity="danger"
+                                    size="small"
+                                    class="absolute -right-2 -top-2"
+                                />
+                            </span>
+                        </Tab>
+                    </TabList>
+                </Tabs>
                 <Button
                     v-if="mobileShortcutLinks.length < MOBILE_SHORTCUT_LIMIT"
                     icon="pi pi-plus"
@@ -114,23 +128,6 @@
                     :aria-label="$t('common.add')"
                     @click="openMobileScreenMenu"
                 />
-                <div class="relative flex items-center">
-                <Button
-                    icon="pi pi-comments"
-                    text
-                    rounded
-                    :severity="supportDialog ? 'primary' : 'secondary'"
-                    :aria-label="$t('support.openChat')"
-                    @click="openSupportDialog"
-                />
-                <Badge
-                    v-if="supportChatStore.totalUnread"
-                    :value="supportChatStore.totalUnread"
-                    severity="danger"
-                    size="small"
-                    class="absolute -right-1 -top-1"
-                />
-                </div>
                 <UserAccountMenu v-if="authStore.userIsSet">
                     <template #trigger="{ toggle }">
                         <Button
@@ -152,7 +149,7 @@
             rounded
             size="large"
             :aria-label="$t('support.openChat')"
-            @click="openSupportDialog"
+            @click="openDesktopChatDrawer"
             v-if="!supportDialog && !isChatsRoute && !isGeneratedHomeRoute"
             class="fixed bottom-8 right-8 z-[999] hidden h-14 w-14 shadow-overlay md:inline-flex"
         />
@@ -167,6 +164,9 @@
     import Button from 'primevue/button'
     import Badge from 'primevue/badge'
     import Menu from 'primevue/menu'
+    import Tabs from 'primevue/tabs'
+    import TabList from 'primevue/tablist'
+    import Tab from 'primevue/tab'
     import ChatSupport from '~/components/ChatSupport.vue'
     import UserAccountMenu from '~/components/shared/UserAccountMenu.vue'
     import OfflineOutboxBadge from '~/components/shared/OfflineOutboxBadge.vue'
@@ -198,6 +198,14 @@
     const mobileShortcutHoldTimer = ref(null)
     const MOBILE_SHORTCUT_LIMIT = 2
 
+    // Reactive mobile-viewport state: the chats drawer stays a desktop surface,
+    // while every mobile entry point switches the bottom tab strip to chats.
+    const isMobileViewport = ref(false)
+    let mobileViewportQuery = null
+    const syncMobileViewport = () => {
+        isMobileViewport.value = Boolean(mobileViewportQuery?.matches)
+    }
+
     // Sync protected project context with SSR cookies when route changes.
     watch([() => route.params.slug, () => authStore.userIsSet], async ([newSlug, isSet]) => {
         if (isSet) {
@@ -213,6 +221,9 @@
 
     // Fetch projects list once for breadcrumb siblings
     onMounted(async () => {
+        mobileViewportQuery = window.matchMedia?.('(max-width: 767px)') || null
+        syncMobileViewport()
+        mobileViewportQuery?.addEventListener?.('change', syncMobileViewport)
         if (authStore.userIsSet && globalStore.projectsList.length === 0) {
             await globalStore.getProjects()
         }
@@ -221,6 +232,8 @@
     })
 
     onUnmounted(() => {
+        mobileViewportQuery?.removeEventListener?.('change', syncMobileViewport)
+        mobileViewportQuery = null
         window.removeEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeMobileTransientSurfaces)
         clearShortcutHold()
     })
@@ -234,7 +247,7 @@
     }, { immediate: true })
 
     watch(supportDialog, (isOpen) => {
-        if (isOpen && isMobileViewport()) {
+        if (isOpen && isMobileViewport.value) {
             mobileActiveTab.value = 'chats'
         }
     })
@@ -350,10 +363,44 @@
         window.dispatchEvent(new CustomEvent(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT))
     }
 
-    const openSupportDialog = () => {
+    // The floating launcher is desktop-only: it opens the drawer surface.
+    // Mobile viewports never see a floating chat bubble; their entry is the
+    // chats tab of the bottom tab strip.
+    const openDesktopChatDrawer = () => {
         requestCloseTransientSurfaces()
-        if (isMobileViewport()) mobileActiveTab.value = 'chats'
         supportDialog.value = true
+    }
+
+    // --- Mobile app tabs (PrimeVue Tabs bottom strip) ---
+    const mobileTabValue = computed(() => {
+        if (mobileActiveTab.value === 'chats' || isChatsRoute.value) return 'chats'
+        const shortcut = mobileShortcutLinks.value.find(item => isRouteActive(item.to))
+        if (shortcut) return `shortcut:${shortcut.key}`
+        if (isRouteActive(homeRoute.value)) return 'home'
+        return null
+    })
+
+    const selectMobileTab = (value) => {
+        if (mobileShortcutHoldTriggered.value) {
+            mobileShortcutHoldTriggered.value = false
+            return
+        }
+        if (value === 'chats') {
+            if (isChatsRoute.value) return
+            // Close menus and inline popovers behind the chats surface first,
+            // then bring the chats tab forward like any other tab switch.
+            requestCloseTransientSurfaces()
+            mobileActiveTab.value = 'chats'
+            return
+        }
+        if (value === 'home') {
+            navigateMobile(homeRoute.value)
+            return
+        }
+        if (typeof value === 'string' && value.startsWith('shortcut:')) {
+            const shortcut = mobileShortcutLinks.value.find(item => `shortcut:${item.key}` === value)
+            if (shortcut?.to) navigateMobile(shortcut.to)
+        }
     }
 
     const navigateMobile = (to) => {
@@ -361,17 +408,6 @@
         requestCloseTransientSurfaces()
         router.push(to)
     }
-
-    const handleShortcutClick = (shortcut) => {
-        if (mobileShortcutHoldTriggered.value) {
-            mobileShortcutHoldTriggered.value = false
-            return
-        }
-        navigateMobile(shortcut.to)
-    }
-
-    const isMobileViewport = () => process.client
-        && window.matchMedia?.('(max-width: 767px)')?.matches
 
     const isRouteActive = (to) => {
         const target = String(to || '')

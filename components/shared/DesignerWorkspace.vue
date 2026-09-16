@@ -65,6 +65,15 @@
       </div>
     </main>
 
+    <!-- Compact overlay panels follow the popover contract: a tap on anything
+         outside the panel (the backdrop over the canvas area) closes it, so
+         touch hosts never need to hunt for a close control. -->
+    <div
+      v-if="compact && compactPanelOpen"
+      class="absolute inset-0 z-10"
+      data-designer-compact-backdrop
+      @pointerdown="closeCompactPanels"
+    />
     <aside
       v-if="compact && compactPanelOpen"
       class="absolute inset-x-3 top-16 z-20 flex min-h-0 max-h-[50%] flex-col overflow-hidden rounded-ui border border-content-border bg-content shadow-overlay"
@@ -176,6 +185,12 @@ function setPanel(panel, value) {
 }
 
 const compactPanelOpen = computed(() => panels.palette || panels.inspector || panels.support);
+
+function closeCompactPanels() {
+  panels.palette = false;
+  panels.inspector = false;
+  panels.support = false;
+}
 
 provide('designerWorkspacePanels', {
   panels,
