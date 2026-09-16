@@ -4,7 +4,7 @@
       v-model:expandedKeys="expandedKeys"
       :model="menuItems"
       multiple
-      class="w-72"
+      class="w-72 [&_.p-panelmenu-panel]:border-0"
       :aria-label="$t('support.attach')"
       @update:expandedKeys="handleExpand"
     />
@@ -144,11 +144,20 @@ const entityEntry = (item) => {
     : expandable
       ? [...entries, ...loadedChildren(key).map(child => entityEntry(child))]
       : undefined
+  // Submenu rows toggle only; leaves select. A row that both expands and
+  // commands closes the popup on expand (Pressing chevron = select + close).
+  if (items) {
+    return {
+      key,
+      label: item.name || entityLabel(item.entity, item.type),
+      icon: iconFor(item.type),
+      items
+    }
+  }
   return {
     key,
     label: item.name || entityLabel(item.entity, item.type),
     icon: iconFor(item.type),
-    items,
     command: () => {
       hide()
       emit('select', option
@@ -159,8 +168,7 @@ const entityEntry = (item) => {
             label: item.name || entityLabel(item.entity, item.type),
             entity: item.entity || null
           })
-    },
-    data: { option }
+    }
   }
 }
 
