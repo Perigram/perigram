@@ -623,7 +623,7 @@
                                 />
                             </InputGroupAddon>
                         </InputGroup>
-                    </div>                </div>
+                    </div>
                 </div>
                 <ChatAttachmentPicker
                     ref="attachmentPicker"
@@ -1454,7 +1454,7 @@ const isChipSelected = (chip) => Boolean(composerEntity.value)
     && composerEntity.value.type === chip.type
     && String(composerEntity.value.id) === String(chip.id ?? (chip.key || '').split(':').slice(1).join(':'))
 
-function drillStripTo(chip) {
+async function drillStripTo(chip) {
     if (replyTo.value) return
     composerEntityTouched = true
     composerEntity.value = { type: chip.type, id: chip.id, name: chip.name }
