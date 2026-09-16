@@ -758,6 +758,37 @@ describe('support communication service', () => {
 
     expect(message.entityRefs).toEqual([]);
   });
+
+  it('tolerates non-array attachment-kind shapes on creator actions instead of failing', async () => {
+    mocks.processRuntime.resolveProcessAuth.mockImplementation(async (input) => ({
+      ...input,
+      process: { active: true },
+      effectivePermissions: {},
+      screens: [],
+      roleAssignments: {
+        actions: [{
+          actionKind: 'createEntity',
+          entityType: 'artifact',
+          construction: {
+            inputs: [{ id: 'artifact', creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' } }]
+          }
+        }]
+      }
+    }));
+    mocks.usersService.getById.mockResolvedValue({
+      memberships: [{ organizationId: 'org-1' }],
+      toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
+    });
+
+    // Regression: a manifest whose creator kinds were not expanded by the
+    // compiler must degrade to "no creator credit", not throw a 500 that
+    // takes down entity-types, entity-options, and every message send.
+    await expect(supportService.listEntityOptionTypes(auth)).resolves.toEqual([]);
+    await expect(supportService.sendUserMessage(auth, {
+      recipientUserId: 'user-b',
+      message: 'unexpanded kinds must not break sends'
+    })).resolves.toBeTruthy();
+  });
   it('creates group chats with the creator plus reachable participants', async () => {
     mocks.usersService.list.mockResolvedValue([
       { toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} }) },

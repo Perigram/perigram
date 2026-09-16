@@ -344,6 +344,7 @@
                             text
                             rounded
                             size="small"
+                            :disabled="attachmentPickerEmpty"
                             :aria-label="$t('support.attach')"
                             @click="openAttachmentPicker($event)"
                         />
@@ -1005,7 +1006,11 @@ const scrollToBottom = async () => {
 
 // The attachment picker is the tiered menu over the same generated entity
 // sources the home explorer exposes: type rows first, options on drill-down,
-// and one tap selects, adds the ref, and closes the picker.
+// and one tap selects, adds the ref, and closes the picker. With no readable
+// types and no artifact creator the trigger stays disabled instead of
+// opening an empty menu.
+const attachmentPickerEmpty = computed(() => !entityTypeOptions.value.length && !artifactCreator.value)
+
 const openAttachmentPicker = (event) => {
     attachmentPicker.value?.toggle(event)
 }

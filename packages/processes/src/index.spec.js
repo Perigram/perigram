@@ -2151,6 +2151,77 @@ describe('@cutkit/processes compiler', () => {
     ]));
   });
 
+  it('expands the userCreatable attachment-kind selector on declared creator inputs', () => {
+    const artifactDomain = {
+      ...domain,
+      entities: [...domain.entities, { type: 'artifact' }],
+      attachmentKinds: {
+        DXF_SOURCE: { kind: 'DXF_SOURCE', creation: { mode: 'upload' } },
+        CAPTURE_PHOTO: { kind: 'CAPTURE_PHOTO', creation: { mode: 'capture' } },
+        SVG_PREVIEW: { kind: 'SVG_PREVIEW', creation: { mode: 'workflow' } }
+      },
+      construction: {
+        ...domain.construction,
+        artifact: {
+          modes: ['uploadArtifact'],
+          defaultMode: 'uploadArtifact',
+          modeInputs: {
+            uploadArtifact: [{
+              id: 'artifact',
+              type: 'artifactUpload',
+              required: true,
+              prompt: true,
+              creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' }
+            }]
+          }
+        }
+      }
+    };
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      roles: { role_admin: { id: 'role_admin', label: 'Admin' } },
+      producerOutputs: producerOutputRecords([['upload', 'artifact']]),
+      processNodes: {
+        upload: {
+          id: 'upload',
+          kind: 'effect.createEntity',
+          entityType: 'artifact',
+          producerOutputId: 'upload:entity',
+          construction: {
+            mode: 'uploadArtifact',
+            // Authored nodes re-carry the domain's selector string verbatim;
+            // compiled output must still expose expanded user-creatable kinds.
+            inputs: [{
+              id: 'artifact',
+              type: 'artifactUpload',
+              required: true,
+              prompt: true,
+              creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' }
+            }]
+          },
+          status: { to: INITIAL_STATE },
+          outputs: [{ id: 'result', role: 'data', type: { base: 'entity', shape: 'item', entityType: 'artifact' } }],
+          trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
+        }
+      },
+      graph: {
+        nodes: [{ id: 'upload', type: 'processNode', data: { refId: 'upload' } }],
+        edges: []
+      }
+    }, artifactDomain);
+
+    const expectedKinds = [
+      { kind: 'DXF_SOURCE', creation: { mode: 'upload' } },
+      { kind: 'CAPTURE_PHOTO', creation: { mode: 'capture' } }
+    ];
+    const action = compiled.actions.upload;
+    expect(action.construction.inputs.find(input => input.id === 'artifact').creator.attachmentKinds)
+      .toEqual(expectedKinds);
+    expect(action.inputPolicy.fields.find(field => field.id === 'artifact').creator.attachmentKinds)
+      .toEqual(expectedKinds);
+  });
+
   it('derives many cardinality for a graph relation fed by Collect Array', () => {
     const normalized = normalizeProcessDefinition({
       dataflowVersion: 4,
