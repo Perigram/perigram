@@ -198,14 +198,13 @@ const isExpandable = (item) => {
 }
 
 function handleExpand(keys) {
-  const targets = new Set(
-    Object.entries(keys)
-      .filter(([, open]) => open)
-      .map(([key]) => key)
-      .filter(key => !expandedKeys.value[key])
-  )
+  // v-model updates expandedKeys before this handler runs, so diffing
+  // against it never sees new keys; the loaders are idempotent and fire for
+  // every open key.
   expandedKeys.value = keys
-  for (const key of targets) loadChildrenForKey(key)
+  for (const [key, open] of Object.entries(keys)) {
+    if (open) loadChildrenForKey(key)
+  }
 }
 
 async function loadChildrenForKey(key) {
