@@ -70,10 +70,9 @@
         </main>
 
         <ChatSupport v-if="supportDialog && !isMobileViewport" />
-        <!-- Screen-shortcut picker: a Popover anchored at the profile trigger
-             (the entry lives inside the profile menu) or at the long-pressed
-             shortcut tab, so it always opens attached to the bottom bar and
-             flips above it. -->
+        <!-- Replace-shortcut picker for the long-press flow: anchored at the
+             pressed tab, flips above the bar. Adding shortcuts happens inline
+             in the profile menu instead. -->
         <Popover ref="mobileScreenMenu">
             <div class="flex min-w-56 flex-col gap-1">
                 <template v-for="(item, index) in mobileScreenMenuItems" :key="index">
@@ -141,24 +140,29 @@
                 </Tabs>
                 <UserAccountMenu v-if="authStore.userIsSet">
                     <template #items="{ hide }">
+                        <!-- Add-screen shortcuts are an inline section of this
+                             menu, mirroring the org/account sections: one tap
+                             adds the shortcut. No second popup is chained. -->
                         <section
-                            v-if="mobileShortcutLinks.length < MOBILE_SHORTCUT_LIMIT && mobileScreenMenuItems.length"
+                            v-if="mobileShortcutLinks.length < MOBILE_SHORTCUT_LIMIT && availableMobileGeneratedScreens.length"
                             class="flex flex-col gap-1"
                         >
+                            <small class="px-2 text-muted-color">{{ $t('nav.addScreen') }}</small>
                             <Button
-                                :label="$t('nav.addScreen')"
-                                icon="pi pi-plus"
+                                v-for="screen in availableMobileGeneratedScreens"
+                                :key="screen.screenKey"
+                                :label="screen.label"
+                                :icon="screen.icon"
                                 text
                                 severity="secondary"
                                 size="small"
                                 class="w-full !justify-start"
-                                @click="hide(); openMobileScreenMenu()"
+                                @click="addMobileScreenShortcut(screen); hide()"
                             />
                         </section>
                     </template>
                     <template #trigger="{ toggle }">
                         <Button
-                            ref="mobileProfileTrigger"
                             icon="pi pi-user"
                             text
                             rounded
@@ -488,19 +492,9 @@
         window.localStorage.setItem(mobileShortcutStorageKey.value, JSON.stringify(mobileShortcuts.value.slice(-MOBILE_SHORTCUT_LIMIT)))
     }
 
-    // The Add screen entry lives inside the profile menu: after that popover
-    // hides, the picker anchors at the profile trigger button so it stays
-    // attached to the bottom bar (anchoring at the unmounting menu item would
-    // position against a detached element).
-    const mobileProfileTrigger = ref(null)
-
-    const openMobileScreenMenu = () => {
-        mobileShortcutReplaceIndex.value = null
-        const anchor = mobileProfileTrigger.value?.$el || mobileProfileTrigger.value?.$?.el
-        if (!anchor) return
-        mobileScreenMenu.value?.show?.({ currentTarget: anchor, target: anchor }, anchor)
-    }
-
+    // The picker Popover serves only the long-press replace flow on a
+    // shortcut tab: it anchors at the still-mounted tab element. Adding
+    // shortcuts from the profile menu is inline and needs no anchor.
     const runMobileScreenMenuItem = (item) => {
         mobileScreenMenu.value?.hide?.()
         item?.command?.()
