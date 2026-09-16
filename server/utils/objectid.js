@@ -3,21 +3,36 @@ import { ObjectId } from 'mongodb';
 /**
  * Safely convert value to ObjectId if possible, otherwise return as-is (string)
  * Useful for v24 architecture where some IDs are strings and some are ObjectIds
+ *
+ * Route params arrive percent-encoded in this Nitro version (`%20`, `%28`,
+ * …), so flexible string ids containing characters that need URL encoding
+ * (spaces, parentheses, non-ASCII) are decoded here — the one coercion point
+ * every repository lookup already passes through.
  */
 export function toFlexibleId(value) {
   if (!value) return value;
-  
+
   if (value instanceof ObjectId) return value;
-  
+
   if (typeof value === 'string') {
+    const id = decodeRouteId(value);
     // Use official isValid instead of regex
-    if (ObjectId.isValid(value) && /^[0-9a-fA-F]{24}$/.test(value)) {
-      return new ObjectId(value);
+    if (ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
+      return new ObjectId(id);
     }
+    return id;
+  }
+
+  return value;
+}
+
+export function decodeRouteId(value) {
+  if (typeof value !== 'string' || !/%[0-9a-fA-F]{2}/.test(value)) return value;
+  try {
+    return decodeURIComponent(value);
+  } catch {
     return value;
   }
-  
-  return value;
 }
 
 /**

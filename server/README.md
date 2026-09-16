@@ -27,6 +27,12 @@ Feature modules follow `server/features/_template/README.md`:
 - `repository.js` owns MongoDB access and uses `toFlexibleId()`.
 - `service.js` owns orchestration and returns serialized DTOs.
 - Services do not call `db.collection` directly.
+
+`toFlexibleId()` is also the route-param normalization point: this Nitro
+version hands handlers percent-encoded params, so flexible string ids with
+URL-encodable characters (spaces, parentheses, non-ASCII) are decoded there
+before matching — every `[id]` lookup inherits the behavior without
+per-route decoding.
 - Feature services do not read or write another feature collection directly;
   cross-module work goes through service calls or registered effects.
 - Entity services do not self-register; `server/runtime/app-registry.js`
