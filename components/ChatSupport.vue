@@ -386,13 +386,13 @@
                                     :class="isOwnMessage(messageItem) ? '-left-8' : '-right-8'"
                                 >
                                     <Button
-                                        icon="pi pi-reply"
+                                        icon="pi pi-ellipsis-v"
                                         severity="secondary"
                                         text
                                         rounded
                                         size="small"
-                                        :aria-label="$t('support.reply')"
-                                        @click.stop="openReply(messageItem)"
+                                        :aria-label="$t('common.more')"
+                                        @click.stop="openMessageMenu($event, messageItem)"
                                     />
                                 </span>
                             </div>
@@ -402,13 +402,13 @@
                                     :class="isOwnMessage(messageItem) ? 'right-0' : 'left-0'"
                                 >
                                     <Button
-                                        icon="pi pi-reply"
+                                        icon="pi pi-ellipsis-v"
                                         severity="secondary"
                                         text
                                         rounded
                                         size="small"
-                                        :aria-label="$t('support.reply')"
-                                        @click.stop="openReply(messageItem)"
+                                        :aria-label="$t('common.more')"
+                                        @click.stop="openMessageMenu($event, messageItem)"
                                     />
                                 </span>
                             </div>
@@ -578,46 +578,52 @@
                             @click="stopAndSendVoiceRecording"
                         />
                     </div>
-                    <div v-else class="flex items-end gap-2">
-                        <Button
-                            icon="pi pi-paperclip"
-                            severity="secondary"
-                            text
-                            rounded
-                            size="small"
-                            :disabled="attachmentPickerEmpty"
-                            :aria-label="$t('support.attach')"
-                            @click="openAttachmentPicker($event)"
-                        />
-                        <Textarea
-                            :placeholder="$t('support.typeMessage')"
-                            class="min-w-0 flex-1"
-                            v-model="message"
-                            @input="handleTypingInput"
-                            @keydown="handleKeyDown"
-                            rows="1"
-                            autoResize
-                        />
-                        <Button
-                            v-if="voiceRecordingSupported"
-                            icon="pi pi-microphone"
-                            severity="secondary"
-                            text
-                            rounded
-                            size="small"
-                            :aria-label="$t('support.recordVoice')"
-                            @click="startVoiceRecording"
-                        />
-                        <Button
-                            icon="pi pi-send"
-                            @click="sendMessage"
-                            :disabled="(!message.trim() && !entityRefs.length) || isLoading"
-                            rounded
-                            size="small"
-                            class="flex-shrink-0"
-                            :aria-label="$t('support.send')"
-                        />
-                    </div>
+                    <div v-else>
+                        <InputGroup>
+                            <InputGroupAddon>
+                                <Button
+                                    icon="pi pi-paperclip"
+                                    severity="secondary"
+                                    text
+                                    rounded
+                                    size="small"
+                                    :disabled="attachmentPickerEmpty"
+                                    :aria-label="$t('support.attach')"
+                                    @click="openAttachmentPicker($event)"
+                                />
+                            </InputGroupAddon>
+                            <Textarea
+                                :placeholder="$t('support.typeMessage')"
+                                class="min-w-0 flex-1"
+                                v-model="message"
+                                @input="handleTypingInput"
+                                @keydown="handleKeyDown"
+                                rows="1"
+                                autoResize
+                            />
+                            <InputGroupAddon v-if="voiceRecordingSupported">
+                                <Button
+                                    icon="pi pi-microphone"
+                                    severity="secondary"
+                                    text
+                                    rounded
+                                    size="small"
+                                    :aria-label="$t('support.recordVoice')"
+                                    @click="startVoiceRecording"
+                                />
+                            </InputGroupAddon>
+                            <InputGroupAddon>
+                                <Button
+                                    icon="pi pi-send"
+                                    @click="sendMessage"
+                                    :disabled="(!message.trim() && !entityRefs.length) || isLoading"
+                                    rounded
+                                    size="small"
+                                    :aria-label="$t('support.send')"
+                                />
+                            </InputGroupAddon>
+                        </InputGroup>
+                    </div>                </div>
                 </div>
                 <ChatAttachmentPicker
                     ref="attachmentPicker"
@@ -751,6 +757,9 @@ import InputText from 'primevue/inputtext'
 import Select from '~/components/shared/EntitySelect.vue'
 import EntityMultiSelect from '~/components/shared/EntityMultiSelect.vue'
 import Textarea from 'primevue/textarea'
+import InputGroup from 'primevue/inputgroup'
+import InputGroupAddon from 'primevue/inputgroupaddon'
+import Menu from 'primevue/menu'
 import ToggleSwitch from 'primevue/toggleswitch'
 import DatePicker from 'primevue/datepicker'
 import { useI18n } from 'vue-i18n'

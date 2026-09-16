@@ -1092,8 +1092,10 @@ lands there), with breadcrumbs of lineage icons walking back up. The
 composed entity itself is the target whenever no child is drilled. Replies quote their parent message above the bubble (sender
 name plus snippet or voice marker) and jump to the quoted message when
 loaded, loading earlier pages while staying scroll-anchored otherwise; they
-open through a hover menu on desktop and swipe-to-reply on mobile, and the
-composer shows a cancelable reply bar. Generated detail pages expose the same
+open through the desktop hover message menu (PrimeVue Menu with reply and
+copy actions) and swipe-to-reply on mobile, and the composer shows a
+cancelable reply bar. The composer input is a PrimeVue InputGroup — attach,
+voice, and send sit in addons around the textarea. Generated detail pages expose the same
 composed conversation through the shared `EntityChatPanel` disclosure, and
 every entity surface carries a chat entry — the shared `EntityCard` renders
 it for all card variants (footer row and expansion popover), and
