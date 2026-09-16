@@ -1036,9 +1036,11 @@ message page and prepends older pages on scroll-to-top through the
 record through `MediaRecorder`, upload through the files endpoint, and render
 as a native audio player on the bubble plus a voice chip in previews.
 Attachments attach through the shared `ChatAttachmentPicker` (see
-[shared components](./shared/README.md)): a sequential tiered menu of the same
-type-then-entity structure as the home explorer, where one tap adds the ref
-and closes the picker — there is no separate add step. The paperclip trigger
+[shared components](./shared/README.md)): an explorer tree with the same
+sidebar structure as the home screen — entity-type sections as default roots,
+options expanding on demand, and entities lazily expanding into their
+containment/relation children — where one tap on an entity adds the ref and
+closes the picker; there is no separate add step. The paperclip trigger
 stays disabled while no entity types are readable and no artifact creator is
 available, instead of opening an empty menu. When the org process
 compiles an artifact creation action, the picker also exposes "create
