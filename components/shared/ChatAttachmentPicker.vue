@@ -1,42 +1,34 @@
 <template>
-  <Popover ref="popover" :pt="popoverPt">
-    <!-- The sidebar verbatim: home-screen sections with their collection
-         action menus, lazily loaded entity rows, pure lineage nesting — no
-         attachment chrome. -->
-    <div class="flex min-w-64 max-w-72 flex-col" data-testid="chat-attachment-picker">
-      <div class="max-h-80 overflow-y-auto">
-        <Tree
-          v-model:selection-keys="selectionKeys"
-          v-model:expanded-keys="expandedKeys"
-          :value="nodes"
-          selection-mode="single"
-          :aria-label="$t('support.attach')"
-          :pt="treePt"
-          @node-expand="expandNode"
-          @node-select="selectNode"
-        >
-          <template #default="{ node }">
-            <span class="flex min-w-0 flex-1 items-center gap-2">
-              <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
-              <i
-                v-if="node.data?.option?.recipientHasAccess === false"
-                class="pi pi-exclamation-triangle shrink-0 text-status-warning"
-                :aria-label="$t('support.recipientChatOnlyWarning', { label: node.label })"
-              />
-            </span>
-          </template>
-        </Tree>
-      </div>
-    </div>
+  <Popover ref="popover">
+    <PanelMenu
+      v-model:expanded-keys="expandedKeys"
+      :model="menuItems"
+      class="w-72"
+      :aria-label="$t('support.attach')"
+      @update:expanded-keys="handleExpand"
+    >
+      <template #item="{ item }">
+        <span class="flex min-w-0 flex-1 items-center gap-2">
+          <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
+          <i
+            v-if="item.data?.recipientHasAccess === false"
+            class="pi pi-exclamation-triangle shrink-0 text-status-warning"
+            :aria-label="$t('support.recipientChatOnlyWarning', { label: item.label })"
+          />
+        </span>
+      </template>
+    </PanelMenu>
   </Popover>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
+import PanelMenu from 'primevue/panelmenu'
 import Popover from 'primevue/popover'
-import Tree from 'primevue/tree'
 import { useI18n } from 'vue-i18n'
+import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue'
 import { isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js'
+import { generatedDetailScreenForEntityType } from '~/components/generated/detail-screen-actions.js'
 import { generatedActionLabel, generatedRegionLabel } from '~/utils/generated-labels.js'
 import { useAuthStore } from '~/stores/auth'
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
@@ -44,11 +36,11 @@ import { useEffectiveContainment } from '~/composables/useEffectiveContainment.j
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
 
 /**
- * Sidebar-explorer attachment picker: the exact home-sidebar hierarchy —
- * home-screen sections (with their collection create actions behind the
- * section ellipsis, exactly like the sidebar), lazily loaded entity rows,
- * and pure lineage nesting beneath. Tapping an entity selects it and closes
- * the picker; tapping a section action runs the generated create flow.
+ * PanelMenu attachment picker: home-screen sections as accordion roots whose
+ * children list generated create entries right beside entity entries — at
+ * every level (section collections and each entity's detail-screen child
+ * creates). Entities expand through pure lineage nesting; tapping an entity
+ * selects it and closes; tapping a create entry runs the generated flow.
  */
 const props = defineProps({
   recipientUserId: { type: String, default: '' }
@@ -58,29 +50,13 @@ const emit = defineEmits(['select', 'create-action'])
 
 const { t, te } = useI18n()
 const popover = ref(null)
-const selectionKeys = ref({})
 const expandedKeys = ref({})
-const sectionOptions = ref(new Map())
-const sectionOptionsLoaded = ref(new Set())
 const childrenByParentKey = ref(new Map())
-const loadedChildrenKeys = ref(new Set())
+const loadedKeys = ref(new Set())
 const loadingKeys = ref(new Set())
 const authStore = useAuthStore()
 const domainUi = useCutkitDomainUi()
 const effectiveContainment = useEffectiveContainment()
-
-const popoverPt = {
-  root: { style: { padding: '0.25rem' } }
-}
-
-const treePt = {
-  root: { style: { padding: '0', border: '0' } },
-  nodeChildren: { style: { paddingInlineStart: '0' } },
-  nodeContent: ({ props }) => ({
-    style: { paddingInlineStart: `${(Math.max(props.level || 1, 1) - 1) * 0.6}rem` }
-  }),
-  nodeLabel: { class: 'flex min-w-0 flex-1 items-center' }
-}
 
 const iconFor = (type) => domainUi.getIcon(type) || 'pi pi-box'
 
@@ -89,28 +65,14 @@ const entityId = (entity = null) => {
   return value ? String(value) : ''
 }
 
-const entityLabel = (entity = null, type = '') => {
-  return entity?.identity?.name || entity?.identity?.serial || entity?.identity?.uid || entityId(entity) || type
-}
+const entityLabel = (entity = null, type = '') => (
+  entity?.identity?.name || entity?.identity?.serial || entity?.identity?.uid
+  || entityId(entity) || type
+)
 
-const poolItem = (type, entity) => ({
-  key: `${type}:${entityId(entity)}`,
-  type,
-  entity
-})
-
-const loadingNode = (parentKey) => ({
-  key: `${parentKey}:loading`,
-  label: t('common.loading'),
-  selectable: false,
-  leaf: true,
-  data: { loading: true }
-})
-
-// Home-screen sections, filtered like the sidebar: list sources whose type is
-// not a lineage-bound child (those appear nested under their parents). The
-// source lineageBindings array is org-wide, so only bindings declaring this
-// source's type as the child count.
+// Home-screen sections, filtered like the sidebar: list sources whose type
+// is not a lineage-bound child. Source lineageBindings are org-wide, so only
+// bindings declaring this source's type as the child count.
 const sections = computed(() => {
   const home = authStore.screenManifest.find(screen => screen.template === 'home')
   if (!home) return []
@@ -127,184 +89,199 @@ const sections = computed(() => {
     .filter(Boolean)
 })
 
-function sectionActionsFor(section = null) {
-  if (!section?.region) return []
-  return [...new Set(section.region.actions || [])]
+function createActionsFor(actionIds = []) {
+  return [...new Set(actionIds)]
     .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
     .filter(Boolean)
     .filter(action => action.actionKind === 'createEntity' && isGeneratedSurfaceAction(action))
 }
 
-const isExpandable = (item) => {
-  if (childrenByParentKey.value.get(item.key)?.length) return true
-  if (loadedChildrenKeys.value.has(item.key)) return false
-  return effectiveContainment().some(relation => relation.parentType === item.type)
+// Child-type create entries for an entity: the createEntity actions of the
+// list regions on its type's compiled detail screen (the sidebar's
+// child-create derivation).
+function childCreateActions(entityType = '') {
+  const detailScreen = generatedDetailScreenForEntityType({
+    screens: authStore.screenManifest,
+    entityType
+  })
+  if (!detailScreen) return []
+  const actions = []
+  for (const region of detailScreen.regions || []) {
+    const source = (detailScreen.sources || []).find(candidate => candidate.id === region.sourceId)
+    if (!source || source.mode !== 'list' || source.entityType === entityType) continue
+    actions.push(...createActionsFor(region.actions))
+  }
+  return actions.filter((action, index, list) => (
+    list.findIndex(candidate => candidate.actionId === action.actionId) === index
+  ))
 }
+
+const createEntry = (parentKey, action) => ({
+  key: `${parentKey}:create:${action.actionId}`,
+  label: generatedActionLabel(action, action.actionId, { t, te }),
+  icon: 'pi pi-plus',
+  command: () => {
+    hide()
+    emit('create-action', action)
+  }
+})
 
 const sectionChildren = (section) => {
   const sectionKey = `type:${section.source.entityType}`
-  if (loadingKeys.value.has(sectionKey) && !sectionOptions.value.has(sectionKey)) return [loadingNode(sectionKey)]
-  const options = sectionOptions.value.get(sectionKey)
-  // Create entries ride the list right beside the entity children — the
-  // same generated buttons, as rows, not a second popup.
-  const createEntries = sectionActionsFor(section).map(action => ({
-    key: `${sectionKey}:create:${action.actionId}`,
-    label: generatedActionLabel(action, action.actionId, { t, te }),
-    icon: 'pi pi-plus',
-    selectable: true,
-    leaf: true,
-    data: { createAction: action }
+  const entries = createActionsFor(section.region.actions).map(action => createEntry(sectionKey, action))
+  if (loadingKeys.value.has(sectionKey) && !loadedKeys.value.has(sectionKey)) {
+    return [...entries, { key: `${sectionKey}:loading`, label: t('common.loading'), icon: 'pi pi-spinner pi-spin' }]
+  }
+  if (!loadedKeys.value.has(sectionKey)) return entries.length ? entries : undefined
+  return [...entries, ...loadedChildren(sectionKey).map(item => entityEntry(item))]
+}
+
+const loadedChildren = (parentKey) => (childrenByParentKey.value.get(parentKey) || [])
+  .map(child => ({
+    key: child.key,
+    type: child.type,
+    name: child.name,
+    entity: child.entity
   }))
-  if (!options) return createEntries
-  return [
-    ...createEntries,
-    ...options
-      .filter(option => option?.value)
-      .map(option => entityNode({
-        key: `${section.source.entityType}:${option.value}`,
-        type: section.source.entityType,
-        entity: option.entity || null
-      }, option))
-  ]
-}
 
-const entityNode = (item, option = null) => {
-  const children = childrenByParentKey.value.get(item.key)
-  const loading = loadingKeys.value.has(item.key) && !children
+const entityEntry = (item) => {
+  const key = item.key
+  const option = item.option || null
+  const entries = childCreateActions(item.type).map(action => createEntry(key, action))
   const expandable = isExpandable(item)
+  const children = loadingKeys.value.has(key) && !childrenByParentKey.value.has(key)
+    ? [...entries, { key: `${key}:loading`, label: t('common.loading'), icon: 'pi pi-spinner pi-spin' }]
+    : expandable
+      ? [...entries, ...loadedChildren(key).map(child => entityEntry(child))]
+      : undefined
   return {
-    key: item.key,
-    label: option?.label || entityLabel(item.entity, item.type),
+    key,
+    label: item.name || entityLabel(item.entity, item.type),
     icon: iconFor(item.type),
-    selectable: true,
-    leaf: !expandable,
-    data: { item, option },
-    children: loading ? [loadingNode(item.key)]
-      : expandable ? (children || []).map(child => entityNode(child))
-        : undefined
+    children,
+    command: () => {
+      hide()
+      emit('select', option
+        ? { ...option, type: item.type }
+        : {
+            type: item.type,
+            value: entityId(item.entity) || key.split(':').slice(1).join(':'),
+            label: item.name || entityLabel(item.entity, item.type),
+            entity: item.entity || null
+          })
+    },
+    data: { option }
   }
 }
 
-const nodes = computed(() => sections.value.map(section => {
-  const sectionKey = `type:${section.source.entityType}`
-  const loaded = sectionOptionsLoaded.value.has(sectionKey)
-  const options = sectionOptions.value.get(sectionKey) || []
-  const createEntries = sectionActionsFor(section)
-  return {
-    key: sectionKey,
-    label: section.label,
-    icon: iconFor(section.source.entityType),
-    selectable: false,
-    // Sections stay expandable until a load proves them empty; create
-    // entries alone keep them expandable too.
-    leaf: Boolean(loaded) && !options.length && !createEntries.length,
-    data: { section },
-    children: sectionChildren(section)
-  }
-}))
+const menuItems = computed(() => sections.value.map(section => ({
+  key: `type:${section.source.entityType}`,
+  label: section.label,
+  icon: iconFor(section.source.entityType),
+  children: sectionChildren(section)
+})))
 
-async function expandNode(node) {
-  if (node?.data?.section) {
-    await loadSectionOptions(node.data.section)
+const isExpandable = (item) => {
+  if ((childrenByParentKey.value.get(item.key) || []).length) return true
+  if (loadedKeys.value.has(item.key)) return false
+  return effectiveContainment().some(relation => relation.parentType === item.type)
+    || childCreateActions(item.type).length > 0
+}
+
+function handleExpand(keys) {
+  const targets = new Set(
+    Object.entries(keys)
+      .filter(([, open]) => open)
+      .map(([key]) => key)
+      .filter(key => !expandedKeys.value[key])
+  )
+  expandedKeys.value = keys
+  for (const key of targets) loadChildrenForKey(key)
+}
+
+async function loadChildrenForKey(key) {
+  if (!key || key.includes(':create:') || key.endsWith(':loading')) return
+  if (loadedKeys.value.has(key) || loadingKeys.value.has(key)) return
+  if (key.startsWith('type:')) {
+    await loadSectionOptions(key.slice('type:'.length), key)
     return
   }
-  const item = node?.data?.item
-  if (item) await loadChildrenFor(item)
+  const [type, ...rest] = key.split(':')
+  await loadChildren({ key, type, entity: { _id: rest.join(':') } })
 }
 
-async function loadSectionOptions(section) {
-  const sectionKey = `type:${section.source.entityType}`
-  if (sectionOptionsLoaded.value.has(sectionKey) || loadingKeys.value.has(sectionKey)) return
+async function loadSectionOptions(entityType, sectionKey) {
   loadingKeys.value = new Set([...loadingKeys.value, sectionKey])
   try {
     const loaded = await $fetch('/api/support/entity-options', {
       query: {
-        type: section.source.entityType,
+        type: entityType,
         ...(props.recipientUserId ? { recipientUserId: props.recipientUserId } : {})
       }
     })
-    sectionOptions.value = new Map([...sectionOptions.value, [sectionKey, loaded || []]])
+    const items = (loaded || [])
+      .filter(option => option?.value)
+      .map(option => ({
+        key: `type:${entityType}:${option.value}`,
+        type: entityType,
+        name: option.label,
+        entity: option.entity || null,
+        option
+      }))
+    childrenByParentKey.value = new Map([...childrenByParentKey.value, [sectionKey, items]])
   } catch (error) {
     console.error('Failed to load chat attachment options:', error)
-    sectionOptions.value = new Map([...sectionOptions.value, [sectionKey, []]])
+    childrenByParentKey.value = new Map([...childrenByParentKey.value, [sectionKey, []]])
   } finally {
-    loadingKeys.value = new Set([...loadingKeys.value].filter(key => key !== sectionKey))
-    sectionOptionsLoaded.value = new Set([...sectionOptionsLoaded.value, sectionKey])
+    loadingKeys.value = new Set([...loadingKeys.value].filter(k => k !== sectionKey))
+    loadedKeys.value = new Set([...loadedKeys.value, sectionKey])
   }
 }
 
-async function loadChildrenFor(parent) {
-  if (loadedChildrenKeys.value.has(parent.key) || loadingKeys.value.has(parent.key)) return
+async function loadChildren(parent) {
+  if (!parent?.key || loadedKeys.value.has(parent.key) || loadingKeys.value.has(parent.key)) return
   loadingKeys.value = new Set([...loadingKeys.value, parent.key])
   try {
     // Lineage only, mirroring the sidebar nesting: containment children from
     // the compiled detail sources. Relation-linked entities are skipped so
-    // the tree stays a hierarchy, not a graph of every linked entity.
-    const children = await loadContainmentChildren(parent)
+    // the menu stays a hierarchy.
+    const sources = linkedExplorerChildSources({
+      linkedItems: [parent],
+      screens: authStore.screenManifest,
+      containment: effectiveContainment()
+    })
+    const loaded = await Promise.all(sources.map(async source => {
+      try {
+        const entities = await $fetch(domainUi.getListEndpoint(source.entityType, source.filters))
+        return (Array.isArray(entities) ? entities : []).map(entity => ({
+          key: `${source.entityType}:${entityId(entity)}`,
+          type: source.entityType,
+          name: entityLabel(entity, source.entityType),
+          entity
+        }))
+      } catch {
+        return []
+      }
+    }))
     const seen = new Set([parent.key])
-    const merged = children.filter(item => {
-      if (!item?.entity || !entityId(item.entity) || seen.has(item.key)) return false
+    const merged = loaded.flat().filter(item => {
+      if (!item.key || seen.has(item.key)) return false
       seen.add(item.key)
       return true
     })
     childrenByParentKey.value = new Map([...childrenByParentKey.value, [parent.key, merged]])
   } finally {
-    loadingKeys.value = new Set([...loadingKeys.value].filter(key => key !== parent.key))
-    loadedChildrenKeys.value = new Set([...loadedChildrenKeys.value, parent.key])
+    loadingKeys.value = new Set([...loadingKeys.value].filter(k => k !== parent.key))
+    loadedKeys.value = new Set([...loadedKeys.value, parent.key])
   }
 }
 
-async function loadContainmentChildren(parent) {
-  const sources = linkedExplorerChildSources({
-    linkedItems: [parent],
-    screens: authStore.screenManifest,
-    containment: effectiveContainment()
-  })
-  const loaded = await Promise.all(sources.map(async source => {
-    try {
-      const entities = await $fetch(domainUi.getListEndpoint(source.entityType, source.filters))
-      return (Array.isArray(entities) ? entities : []).map(entity => poolItem(source.entityType, entity))
-    } catch {
-      return []
-    }
-  }))
-  return loaded.flat()
-}
-
-function selectNode(node) {
-  const createAction = node?.data?.createAction
-  if (createAction) {
-    hide()
-    emit('create-action', createAction)
-    return
-  }
-  const option = node?.data?.option
-  const item = node?.data?.item
-  if (option) {
-    hide()
-    emit('select', { ...option, type: option.type || item?.type })
-    return
-  }
-  if (item?.type && entityId(item.entity)) {
-    hide()
-    emit('select', {
-      type: item.type,
-      value: entityId(item.entity),
-      label: entityLabel(item.entity, item.type),
-      entity: item.entity
-    })
-  }
-}
-
-// Each open starts from the section roots: options are recipient-scoped for
-// direct chats, so cached branches from another conversation must not leak.
+// Each open resets: option lists are recipient-scoped per conversation, so
+// cached branches from another conversation must not leak.
 function toggle(event) {
-  selectionKeys.value = {}
   expandedKeys.value = {}
-  sectionOptions.value = new Map()
-  sectionOptionsLoaded.value = new Set()
   childrenByParentKey.value = new Map()
-  loadedChildrenKeys.value = new Set()
+  loadedKeys.value = new Set()
   loadingKeys.value = new Set()
   popover.value?.toggle(event)
 }
