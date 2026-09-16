@@ -171,11 +171,12 @@ plus one `org:<id>` inbox ping. The user inbox query includes
 `{ conversationKind: 'entity', organizationId }` so org-mates see each
 other's entity messages. Inbox entity chats ship in both groupings: top-level rows and per-entity
 `isLeafRow` rows for the detailed view — the client switches between them,
-and shell unread totals count top-level rows only. Rollup nodes are
-reader-relative: each message joins at the highest entityPath ancestor
-(below the organization) the reader can resolve through the registry read,
-so unreadable ancestors never absorb messages and degraded paths fall back
-to the highest available entry.
+and shell unread totals count top-level rows only. Rollup nodes are the top-level
+nodes of the lineage hierarchy trees: each message joins at the ancestor
+whose type carries no non-organization parent binding. The walk uses live
+lineage (entity lineage keys plus the compiled bindings through the registry
+read), never the stored entityPath, which can be degraded when ancestors
+failed to resolve at send time.
 Names denormalize into the path so quotes and inbox rows never join.
 
 ### Replies
