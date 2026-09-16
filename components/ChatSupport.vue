@@ -975,19 +975,6 @@ const conversationSections = computed(() => [...displayConversations.value].sort
 
 const isActiveConversation = (conversation) => activeConversation.value?.conversationKey === conversation.conversationKey
 
-// The inbox is a PrimeVue Listbox: single selection with keyboard navigation
-// and Aura's selected-option state; layout passthroughs keep the option rows
-// full-width flex rows for the rich row template.
-const inboxListboxPt = {
-    list: { class: 'flex min-h-full flex-col gap-1 overflow-y-auto p-2 md:p-3' },
-    option: { class: 'flex w-full min-w-0 rounded-ui' }
-}
-
-const openConversationByKey = (key) => {
-    const conversation = conversationSections.value.find(item => item.conversationKey === key)
-    if (conversation) openConversation(conversation)
-}
-
 const entityConversationIcon = (conversation) => (
     domainUi.getIcon(conversation?.entityType) || 'pi pi-box'
 )
