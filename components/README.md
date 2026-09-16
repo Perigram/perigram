@@ -1072,9 +1072,13 @@ launcher is hidden while that route is open. The route opts into full-page mode
 with explicit boolean props; the full-page grid has one bounded workspace row,
 separate inbox/thread headers, cover-cropped participant avatars, and accepts
 attachment-only sends when the draft contains structured entity references.
-Entity-linked chats ride the same surfaces: the inbox carries an entity
-section (synthesized organization root row pinned above per-entity rows with
-type icons), entity threads show a children toggle that switches between the
+Entity-linked chats ride the same surfaces: the inbox is one unified
+timestamp-ordered list across person, group, and entity chats — the avatar
+glyph (person image/letter, group icon, entity type icon) carries the kind,
+and all placeholders stay neutral (subtle surface, muted ink) instead of
+primary. Entity thread titles link into the generated detail route of their
+entity, and group thread headers carry their member profiles inline through
+`EntityInlineRef`. Entity threads show a children toggle that switches between the
 composed subtree view and messages linked to the entity itself, and the
 composer of a composed view carries chips of the immediate child entities seen
 in the thread, none selected linking the send to the composed entity; the
