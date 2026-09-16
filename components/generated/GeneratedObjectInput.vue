@@ -7,7 +7,7 @@
   />
   <div v-else class="flex flex-col gap-2">
     <div v-for="row in rows" :key="row.id" class="flex items-center gap-2">
-      <span v-if="mode === 'schema'" class="w-32 shrink-0 truncate text-muted-color text-supporting">{{ row.label }}</span>
+      <span v-if="mode === 'schema'" class="w-32 shrink-0 truncate text-muted text-supporting">{{ row.label }}</span>
       <InputText
         v-else
         v-model="row.key"

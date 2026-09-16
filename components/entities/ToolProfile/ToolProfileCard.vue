@@ -14,7 +14,7 @@
         <div class="mt-3 flex flex-wrap gap-2">
           <Tag v-if="diameter" :value="`D${diameter}`" severity="secondary" size="small" />
           <Tag v-if="kerf" :value="`${$t('toolProfile.kerf')} ${kerf} mm`" severity="info" size="small" />
-          <span v-if="angle" class="text-muted-color text-body">{{ angle }}°</span>
+          <span v-if="angle" class="text-muted text-body">{{ angle }}°</span>
         </div>
       </template>
       <Divider />

@@ -8,16 +8,16 @@
             <Panel :header="$t('common.source')">
                 <div class="flex flex-col gap-3">
                     <div class="flex items-center justify-between gap-4">
-                        <small class="text-muted-color">{{ $t('results.material') }}</small>
+                        <small class="text-muted">{{ $t('results.material') }}</small>
                         <EntityInlineRef v-if="pile" type="materialPile" :entity="pile" />
                         <span v-else>—</span>
                     </div>
                     <div v-if="sheet" class="flex items-center justify-between gap-4">
-                        <small class="text-muted-color">{{ $t('results.sheet') }}</small>
+                        <small class="text-muted">{{ $t('results.sheet') }}</small>
                         <EntityInlineRef type="sheet" :entity="sheet" />
                     </div>
                     <div v-if="warehouse" class="flex items-center justify-between gap-4">
-                        <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
+                        <small class="text-muted">{{ $t('entities.warehouse') }}</small>
                         <EntityInlineRef type="warehouse" :entity="warehouse" />
                     </div>
                 </div>

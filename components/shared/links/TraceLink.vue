@@ -13,7 +13,7 @@
     </NuxtLink>
     <span
         v-else
-        class="inline-flex min-w-0 items-center gap-1.5 rounded-ui p-1 text-muted-color"
+        class="inline-flex min-w-0 items-center gap-1.5 rounded-ui p-1 text-muted"
         data-entity-card-interactive="true"
     >
         <i :class="config.icon" class="shrink-0"></i>

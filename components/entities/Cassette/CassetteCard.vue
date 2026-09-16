@@ -9,7 +9,7 @@
         <CassetteThumbnail :cassette="cassette" />
         <DataBlock entity-type="cassette" :entity="cassetteForDisplay" :fields="FIELDS" />
         <div v-if="geometryRevisionId" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('revision.currentGeometry') }}</small>
+          <small class="text-muted">{{ $t('revision.currentGeometry') }}</small>
           <EntityInlineRef type="entityRevision" :id="geometryRevisionId" />
         </div>
       </div>

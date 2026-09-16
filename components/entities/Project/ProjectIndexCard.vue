@@ -86,7 +86,7 @@ function queueState(queue) {
               mode="thumbnail"
             />
             <div v-else class="flex aspect-[16/9] items-center justify-center">
-              <i class="pi pi-folder text-muted-color"></i>
+              <i class="pi pi-folder text-muted"></i>
             </div>
           </div>
           <EntitySurfaceContent
@@ -121,25 +121,25 @@ function queueState(queue) {
                 <Tag :value="`${queue.sheetCount || 0} ${$t('projectData.sheets')}`" severity="secondary" size="small" />
               </div>
             </div>
-            <small v-if="remainingQueueCount" class="text-muted-color">
+            <small v-if="remainingQueueCount" class="text-muted">
               +{{ remainingQueueCount }} {{ $t('project.queues') }}
             </small>
           </div>
-          <small v-else class="text-muted-color">{{ $t('queue.empty') }}</small>
+          <small v-else class="text-muted">{{ $t('queue.empty') }}</small>
         </div>
 
         <div class="flex min-w-0 flex-col rounded-ui border border-content-border p-3">
           <div class="grid grid-cols-2 gap-3 xl:grid-cols-1">
             <div>
-              <small class="text-muted-color">{{ $t('project.queues') }}</small>
+              <small class="text-muted">{{ $t('project.queues') }}</small>
               <div class="text-section-heading">{{ queueCount }}</div>
             </div>
             <div>
-              <small class="text-muted-color">{{ $t('results.sheets') }}</small>
+              <small class="text-muted">{{ $t('results.sheets') }}</small>
               <div class="text-section-heading">{{ totalSheets }}</div>
             </div>
             <div>
-              <small class="text-muted-color">{{ $t('project.totalArea') }}</small>
+              <small class="text-muted">{{ $t('project.totalArea') }}</small>
               <div class="text-section-heading">{{ totalArea }} m²</div>
             </div>
           </div>

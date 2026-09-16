@@ -27,7 +27,7 @@
             >
               <div class="flex items-center justify-between gap-2">
                 <Tag :value="region.slot || 'main'" size="small" severity="info" />
-                <span class="min-w-0 truncate text-muted-color text-supporting">{{ sourceLabel(screen, region.sourceId) }}</span>
+                <span class="min-w-0 truncate text-muted text-supporting">{{ sourceLabel(screen, region.sourceId) }}</span>
               </div>
               <div class="mt-2 flex flex-wrap gap-1">
                 <Tag
@@ -51,7 +51,7 @@
               </div>
             </div>
           </div>
-          <small class="mt-2 block truncate text-muted-color">{{ screen.route || screen.id }}</small>
+          <small class="mt-2 block truncate text-muted">{{ screen.route || screen.id }}</small>
         </div>
       </div>
     </div>

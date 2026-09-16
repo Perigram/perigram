@@ -17,7 +17,7 @@
         <div class="flex min-w-0 items-start justify-between gap-2">
           <div class="flex min-w-0 flex-col">
             <strong>{{ $t(activeOnboardingStep.titleKey) }}</strong>
-            <small class="text-muted-color">{{ $t(activeOnboardingStep.bodyKey) }}</small>
+            <small class="text-muted">{{ $t(activeOnboardingStep.bodyKey) }}</small>
           </div>
           <Button icon="pi pi-times" severity="secondary" text rounded size="small" :aria-label="$t('common.close')" @click="dismissOnboarding" />
         </div>
@@ -49,7 +49,7 @@
       <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-5 overflow-y-auto">
         <section class="flex min-w-0 flex-col gap-2">
           <div class="flex items-center justify-between gap-2">
-            <small class="uppercase text-muted-color text-supporting">{{ $t('cassette.v2.globalParameters') }}</small>
+            <small class="uppercase text-muted text-supporting">{{ $t('cassette.v2.globalParameters') }}</small>
             <Button
               icon="pi pi-plus"
               severity="secondary"
@@ -61,7 +61,7 @@
             />
           </div>
           <div v-for="parameter in globalParameterEntries" :key="parameter.key" class="flex min-w-0 items-center gap-2">
-            <label class="w-14 shrink-0 truncate text-technical text-muted-color" :title="parameter.key">{{ parameter.key }}</label>
+            <label class="w-14 shrink-0 truncate text-technical text-muted" :title="parameter.key">{{ parameter.key }}</label>
             <CassetteExpressionEditor
               class="min-w-0 flex-1"
               :model-value="parameter.value"
@@ -83,7 +83,7 @@
         </section>
 
         <section class="flex min-w-0 flex-col gap-1">
-          <small class="uppercase text-muted-color text-supporting">{{ $t('common.layers') }}</small>
+          <small class="uppercase text-muted text-supporting">{{ $t('common.layers') }}</small>
           <div
             v-for="row in layerRows"
             :key="row.key"
@@ -228,7 +228,7 @@
               v-tooltip.top="$t('cassette.v2.attachmentFields.sourceSnap')"
               @update:model-value="value => updateInlineAttachmentRelation({ sourceSnap: value })"
             />
-            <label class="flex min-w-0 flex-col gap-1 text-muted-color text-label" v-tooltip.top="$t('cassette.v2.attachmentFields.edgeMargin')">
+            <label class="flex min-w-0 flex-col gap-1 text-muted text-label" v-tooltip.top="$t('cassette.v2.attachmentFields.edgeMargin')">
               <span class="truncate">{{ $t('cassette.v2.attachmentFields.edgeMargin') }}</span>
               <CassetteExpressionEditor
                 :model-value="inlineEditorRelation.offsetX"
@@ -237,7 +237,7 @@
                 @update:model-value="value => updateInlineAttachmentRelation({ offsetX: value })"
               />
             </label>
-            <label class="flex min-w-0 flex-col gap-1 text-muted-color text-label" v-tooltip.top="$t('cassette.v2.attachmentFields.normalOffset')">
+            <label class="flex min-w-0 flex-col gap-1 text-muted text-label" v-tooltip.top="$t('cassette.v2.attachmentFields.normalOffset')">
               <span class="truncate">{{ $t('cassette.v2.attachmentFields.normalOffset') }}</span>
               <CassetteExpressionEditor
                 :model-value="inlineEditorRelation.offsetY"
@@ -246,7 +246,7 @@
                 @update:model-value="value => updateInlineAttachmentRelation({ offsetY: value })"
               />
             </label>
-            <label class="flex min-w-0 flex-col gap-1 text-muted-color text-label" v-tooltip.top="$t('cassette.v2.attachmentFields.rotation')">
+            <label class="flex min-w-0 flex-col gap-1 text-muted text-label" v-tooltip.top="$t('cassette.v2.attachmentFields.rotation')">
               <span class="truncate">{{ $t('cassette.v2.attachmentFields.rotation') }}</span>
               <CassetteExpressionEditor
                 :model-value="inlineEditorRelation.rotation"
@@ -303,7 +303,7 @@
             />
             <label
               v-if="inlineEditorRelation.placementMode === 'edgeArray'"
-              class="flex min-w-0 flex-col gap-1 text-muted-color text-label"
+              class="flex min-w-0 flex-col gap-1 text-muted text-label"
               v-tooltip.top="arrayValueLabel(inlineEditorRelation)"
             >
               <span class="truncate">{{ arrayValueLabel(inlineEditorRelation) }}</span>
@@ -565,9 +565,9 @@
                       :class="relationRow.relation.id === selectedRelationId ? 'border-primary bg-subtle' : 'border-content-border'"
                       @click="selectWorkpieceRelation(relationRow.relation.id, $event)"
                     >
-                      <span class="shrink-0 text-muted-color text-technical">{{ relationRow.arrow }}</span>
+                      <span class="shrink-0 text-muted text-technical">{{ relationRow.arrow }}</span>
                       <span class="truncate text-body">{{ relationRow.otherLabel }}</span>
-                      <small class="truncate text-muted-color">{{ relationRow.faceLabel }}</small>
+                      <small class="truncate text-muted">{{ relationRow.faceLabel }}</small>
                       <Tag
                         v-if="relationRow.relation.driver"
                         :value="$t('cassette.v2.driver')"

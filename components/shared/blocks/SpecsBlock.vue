@@ -48,7 +48,7 @@ const hasSpecs = computed(() => Boolean((canDisplayDimensions.value && formatted
   <div v-if="hasSpecs" class="specs-block min-w-0">
     <!-- Compact Variant -->
     <template v-if="variant === 'compact'">
-        <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-muted-color text-supporting">
+        <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-muted text-supporting">
             <span v-if="canDisplayDimensions && formattedDimensions" class="text-label">{{ formattedDimensions }}</span>
             <span v-for="row in metricRows" :key="row.key">{{ row.value }}</span>
         </div>
@@ -58,7 +58,7 @@ const hasSpecs = computed(() => Boolean((canDisplayDimensions.value && formatted
     <template v-else>
         <div class="specs-layout grid grid-cols-1 gap-3">
             <div v-if="canDisplayDimensions && formattedDimensions" class="min-w-0 rounded-ui border border-content-border px-3 py-3">
-                <small class="text-muted-color">{{ $t('catalog.dimensions') }}</small>
+                <small class="text-muted">{{ $t('catalog.dimensions') }}</small>
                 <div class="mt-1 break-words text-label">{{ formattedDimensions }}</div>
             </div>
             <dl v-if="metricRows.length" class="m-0 grid min-w-0 grid-cols-1 gap-2">
@@ -67,7 +67,7 @@ const hasSpecs = computed(() => Boolean((canDisplayDimensions.value && formatted
                     :key="row.key"
                     class="flex min-w-0 items-center justify-between gap-3 rounded-ui border border-content-border px-3 py-2"
                 >
-                    <dt class="min-w-0 text-muted-color text-supporting">{{ $t(row.label) }}</dt>
+                    <dt class="min-w-0 text-muted text-supporting">{{ $t(row.label) }}</dt>
                     <dd class="m-0 min-w-0 break-words text-right text-label">{{ row.value }}</dd>
                 </div>
             </dl>

@@ -41,7 +41,7 @@ const colorLabel = computed(() => colorName.value || materialName.value);
             <span class="h-5 w-5 shrink-0 rounded-ui" :style="{ backgroundColor: colorHex }" :aria-label="colorName" />
             <span class="truncate text-body">{{ colorLabel || sheet.identity?.name }}</span>
           </div>
-          <small v-if="materialName && colorName" class="shrink-0 text-muted-color">{{ materialName }}</small>
+          <small v-if="materialName && colorName" class="shrink-0 text-muted">{{ materialName }}</small>
         </div>
         <Divider />
         <SpecsBlock entity-type="sheet" :entity="sheet" />

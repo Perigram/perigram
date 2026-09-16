@@ -18,7 +18,7 @@
     />
     <div
       v-else
-      class="flex w-full items-center justify-center rounded-ui border border-content-border bg-subtle text-muted-color"
+      class="flex w-full items-center justify-center rounded-ui border border-content-border bg-subtle text-muted"
       :class="fixedFrame ? 'h-full' : 'aspect-[5/3]'"
     >
       <i :class="loading ? 'pi pi-spin pi-spinner' : 'pi pi-image'" />

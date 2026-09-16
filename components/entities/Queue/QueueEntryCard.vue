@@ -22,7 +22,7 @@
           />
           <Tag v-else :value="sourceLabel" severity="secondary" />
           <div class="flex shrink-0 items-center gap-1" data-entity-card-interactive="true" @click.stop>
-            <small class="text-muted-color">{{ $t('common.quantity') }}</small>
+            <small class="text-muted">{{ $t('common.quantity') }}</small>
             <InputNumber
               :model-value="entry.quantity"
               :min="1"
@@ -47,7 +47,7 @@
 
         <div v-if="parameterNames.length" class="queue-entry-card__parameters grid gap-2">
           <label v-for="parameter in parameterNames" :key="parameter" class="flex items-center gap-2">
-            <small class="min-w-6 text-muted-color">{{ parameter }}</small>
+            <small class="min-w-6 text-muted">{{ parameter }}</small>
             <InputNumber
               v-model="draftParameters[parameter]"
               :disabled="disabled || !configurable || lockedParameters.includes(parameter)"

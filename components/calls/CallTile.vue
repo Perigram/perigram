@@ -27,7 +27,7 @@
         />
         <span class="absolute bottom-2 left-2 flex items-center gap-2 rounded-ui bg-content px-2 py-1">
             <span class="text-supporting">{{ tile.name || tile.identity }}</span>
-            <i v-if="tile.muted" class="pi pi-microphone-slash text-muted-color" :aria-label="$t('call.muted')" />
+            <i v-if="tile.muted" class="pi pi-microphone-slash text-muted" :aria-label="$t('call.muted')" />
             <i v-if="tile.handRaised" class="pi pi-thumbs-up-fill text-status-warning" :aria-label="$t('call.handRaised')" />
             <i class="pi pi-wifi" :class="qualityClass" :aria-label="$t(`call.quality.${tile.quality || 'unknown'}`)" />
         </span>
@@ -60,7 +60,7 @@ const qualityClass = computed(() => {
     if (props.tile.quality === 'excellent' || props.tile.quality === 'good') return 'text-status-success';
     if (props.tile.quality === 'fair') return 'text-status-warning';
     if (props.tile.quality === 'poor' || props.tile.quality === 'lost') return 'text-status-danger';
-    return 'text-muted-color';
+    return 'text-muted';
 });
 
 // Spotlighted screen shares hug their live source proportions instead of

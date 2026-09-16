@@ -52,7 +52,7 @@ watch(catalogId, async (id) => {
         <MaterialSummary :pile="pile" />
         <SpecsBlock entity-type="materialPile" :entity="pile" />
         <div v-if="catalog" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('entities.catalog') }}</small>
+          <small class="text-muted">{{ $t('entities.catalog') }}</small>
           <EntityInlineRef type="catalog" :entity="catalog" />
         </div>
       </div>

@@ -25,7 +25,7 @@
           <!-- Ongoing calls live directly in the sidebar as persistent rows;
                only brand-new invites float (IncomingCalls). -->
           <div v-if="callsStore.activeRooms.length" class="mt-2 flex flex-col gap-1" data-active-calls>
-            <small class="px-2 text-muted-color">{{ $t('call.activeRooms') }}</small>
+            <small class="px-2 text-muted">{{ $t('call.activeRooms') }}</small>
             <button
               v-for="room in callsStore.activeRooms"
               :key="room.room"
@@ -36,7 +36,7 @@
             >
               <i :class="callRoomIcon(room.kind)" class="shrink-0 text-primary" aria-hidden="true" />
               <span class="min-w-0 flex-1 truncate text-label">{{ activeRoomLabel(room) }}</span>
-              <span class="shrink-0 text-muted-color text-supporting">{{ room.participants }}</span>
+              <span class="shrink-0 text-muted text-supporting">{{ room.participants }}</span>
             </button>
           </div>
         </nav>
@@ -77,7 +77,7 @@
               <span
                 v-else
                 class="group flex min-w-0 flex-1 items-center gap-1"
-                :class="node.data?.item?.key !== activePane?.selectionKey ? 'text-muted-color' : ''"
+                :class="node.data?.item?.key !== activePane?.selectionKey ? 'text-muted' : ''"
                 :data-entity-id="entityId(node.data?.item?.entity)"
               >
                 <span class="flex min-w-0 flex-1 items-center">

@@ -153,7 +153,7 @@ const previewPath = computed(() => {
           @click.stop="emit('remove', source)"
         />
       </div>
-      <div class="flex min-w-0 items-center justify-between gap-2 text-muted-color">
+      <div class="flex min-w-0 items-center justify-between gap-2 text-muted">
         <span class="truncate">{{ typeLabel }}</span>
         <span class="shrink-0">{{ availableLabel }}</span>
       </div>

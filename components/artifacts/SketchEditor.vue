@@ -49,7 +49,7 @@
                 @click="removeBackground"
             />
             <template v-if="originEntity">
-                <span class="text-muted-color text-supporting">{{ $t('sketch.originEntity') }}:</span>
+                <span class="text-muted text-supporting">{{ $t('sketch.originEntity') }}:</span>
                 <EntityInlineRef :type="originEntity.entityType" :id="originEntity.entityId" :fetch="false" />
                 <Button icon="pi pi-times" severity="secondary" text rounded size="small" :aria-label="$t('sketch.clearOrigin')" @click="clearOrigin" />
             </template>

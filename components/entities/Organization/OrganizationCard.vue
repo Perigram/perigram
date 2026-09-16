@@ -11,7 +11,7 @@
         </div>
       </template>
       <template #compact-content>
-        <div v-if="organization.data?.email" class="mt-3 text-muted-color text-body">{{ organization.data.email }}</div>
+        <div v-if="organization.data?.email" class="mt-3 text-muted text-body">{{ organization.data.email }}</div>
       </template>
       <div v-if="$slots.context && variant === 'card'" class="mb-3 flex flex-wrap gap-2">
         <slot name="context" />

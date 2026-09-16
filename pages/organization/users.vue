@@ -168,23 +168,23 @@
             <Panel :header="$t('organization.compiledAccessPreview')">
                 <div class="flex flex-col gap-3">
                     <div>
-                        <small class="text-muted-color">{{ $t('auth.permissions') }}</small>
+                        <small class="text-muted">{{ $t('auth.permissions') }}</small>
                         <div class="mt-1 flex flex-wrap gap-1">
                             <Tag v-for="line in selectedUserAccessSummary" :key="line.key" :value="`${line.text} · ${line.contributor.label}`" severity="secondary" size="small" />
                             <Tag v-if="!selectedUserAccessSummary.length" :value="$t('organization.noProcessAccess')" severity="secondary" size="small" />
                         </div>
                     </div>
                     <div>
-                        <small class="text-muted-color">{{ $t('organization.screens') }}</small>
+                        <small class="text-muted">{{ $t('organization.screens') }}</small>
                         <div class="mt-1 flex flex-col gap-1">
                             <span v-for="screen in selectedUserScreens" :key="screen.screenKey || screen.id" class="truncate text-body">
                                 {{ screen.labelKey ? $t(screen.labelKey) : (screen.label || screen.route) }} · {{ screen.route }}
                             </span>
-                            <span v-if="!selectedUserScreens.length" class="text-muted-color text-body">{{ $t('organization.noProcessScreens') }}</span>
+                            <span v-if="!selectedUserScreens.length" class="text-muted text-body">{{ $t('organization.noProcessScreens') }}</span>
                         </div>
                     </div>
                     <div v-for="group in assignmentPreviewGroups" :key="group.key">
-                        <small class="text-muted-color">{{ group.label }}</small>
+                        <small class="text-muted">{{ group.label }}</small>
                         <div class="mt-1 flex flex-col gap-1">
                             <span v-for="item in group.items" :key="item.key || item.screenKey || item.id" class="text-supporting">
                                 <Tag :value="item.allowed === null ? $t('organization.unresolved') : (item.allowed ? $t('organization.allowed') : $t('organization.denied'))" :severity="item.allowed === null ? 'warn' : (item.allowed ? 'success' : 'danger')" size="small" />

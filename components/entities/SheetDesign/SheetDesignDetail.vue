@@ -38,7 +38,7 @@
                             <Tag :value="item.count" size="small" />
                         </div>
                     </div>
-                    <div v-else class="text-muted-color">
+                    <div v-else class="text-muted">
                         {{ $t('common.notAvailable') }}
                     </div>
                 </Panel>
@@ -51,12 +51,12 @@
                         >
                             <div class="flex min-w-0 flex-col">
                                 <span class="truncate">{{ item.label || item.id }}</span>
-                                <small class="text-muted-color">{{ item.specs || $t('common.notAvailable') }}</small>
+                                <small class="text-muted">{{ item.specs || $t('common.notAvailable') }}</small>
                             </div>
                             <Tag :value="item.available || 1" size="small" />
                         </div>
                     </div>
-                    <div v-else class="text-muted-color">
+                    <div v-else class="text-muted">
                         {{ $t('common.notAvailable') }}
                     </div>
                 </Panel>

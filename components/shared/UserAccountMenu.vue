@@ -6,7 +6,7 @@
            hide so they can close it before opening another surface. -->
       <slot name="items" :hide="hide" />
       <section v-for="group in menuItems" :key="group.label" class="flex flex-col gap-1">
-        <small class="px-2 text-muted-color">{{ group.label }}</small>
+        <small class="px-2 text-muted">{{ group.label }}</small>
         <Button
           v-for="item in group.items"
           :key="item.label"

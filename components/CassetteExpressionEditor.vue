@@ -31,7 +31,7 @@
         :key="group.key"
         class="flex min-w-0 flex-wrap items-center gap-1"
       >
-        <small class="min-w-16 text-muted-color">{{ group.label }}</small>
+        <small class="min-w-16 text-muted">{{ group.label }}</small>
         <Button
           v-for="token in group.tokens"
           :key="token.key"
@@ -182,9 +182,9 @@ const tokenClass = (type) => ({
   parameter: 'rounded border border-content-border bg-subtle px-1',
   context: 'rounded border border-primary px-1 text-[var(--ck-primary-ink)]',
   function: 'rounded bg-subtle px-1 text-[var(--ck-primary-ink)]',
-  operator: 'px-0.5 text-muted-color',
+  operator: 'px-0.5 text-muted',
   number: '',
-  unit: 'text-muted-color',
+  unit: 'text-muted',
   unknown: ''
 }[type] || '');
 

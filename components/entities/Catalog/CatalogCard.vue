@@ -54,7 +54,7 @@ const CATALOG_FIELDS = resolveEntityDisplayFields({ entityType: 'catalog', surfa
       </template>
       <Divider />
       <div v-if="catalog.lineage?.manufacturerId" class="flex items-center justify-between gap-4">
-        <small class="text-muted-color">{{ $t('requisition.manufacturer') }}</small>
+        <small class="text-muted">{{ $t('requisition.manufacturer') }}</small>
         <EntityInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
       </div>
       <DataBlock entity-type="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />

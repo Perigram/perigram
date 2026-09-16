@@ -11,23 +11,23 @@
             <Panel :header="$t('catalog.sheetOptions')">
                 <div class="flex flex-col gap-4">
                     <div v-if="catalog.data?.material" class="flex flex-col gap-1">
-                        <small class="text-muted-color">{{ $t('catalog.coreMaterial') }}</small>
+                        <small class="text-muted">{{ $t('catalog.coreMaterial') }}</small>
                         <Tag :value="catalog.data.material" severity="secondary" />
                     </div>
                     <div v-if="foilThicknessOptions.length" class="flex flex-col gap-1">
-                        <small class="text-muted-color">{{ $t('catalog.foilOptions') }}</small>
+                        <small class="text-muted">{{ $t('catalog.foilOptions') }}</small>
                         <div class="flex flex-wrap gap-2">
                             <Tag v-for="value in foilThicknessOptions" :key="value" :value="`${value} mm`" severity="info" />
                         </div>
                     </div>
                     <div v-if="sheetThicknessOptions.length" class="flex flex-col gap-1">
-                        <small class="text-muted-color">{{ $t('catalog.sheetThicknessOptions') }}</small>
+                        <small class="text-muted">{{ $t('catalog.sheetThicknessOptions') }}</small>
                         <div class="flex flex-wrap gap-2">
                             <Tag v-for="value in sheetThicknessOptions" :key="value" :value="`${value} mm`" severity="warn" />
                         </div>
                     </div>
                     <div v-if="widthOptions.length" class="flex flex-col gap-1">
-                        <small class="text-muted-color">{{ $t('catalog.widths') }}</small>
+                        <small class="text-muted">{{ $t('catalog.widths') }}</small>
                         <div class="flex flex-wrap gap-2">
                             <Tag v-for="value in widthOptions" :key="value" :value="`${value} mm`" severity="success" />
                         </div>
@@ -42,7 +42,7 @@
                     <p v-if="catalog.data?.description" class="m-0">{{ catalog.data.description }}</p>
                     <DataBlock entity-type="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />
                     <div v-if="catalog.lineage?.manufacturerId" class="flex items-center justify-between gap-4">
-                        <small class="text-muted-color">{{ $t('requisition.manufacturer') }}</small>
+                        <small class="text-muted">{{ $t('requisition.manufacturer') }}</small>
                         <EntityInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
                     </div>
                 </div>

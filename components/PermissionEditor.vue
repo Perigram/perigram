@@ -2,7 +2,7 @@
     <div class="flex min-h-0 flex-col gap-4">
         <div class="flex flex-col gap-1">
             <h3 class="m-0">{{ $t('auth.featureAccessControl') }}</h3>
-            <p class="m-0 text-muted-color">{{ $t('auth.featureAccessControlHelp') }}</p>
+            <p class="m-0 text-muted">{{ $t('auth.featureAccessControlHelp') }}</p>
         </div>
 
         <div class="grid min-h-0 grid-cols-1 gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
@@ -31,7 +31,7 @@
                         <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
                             <div class="flex min-w-0 flex-col">
                                 <strong class="truncate">{{ selectedFeature.label }}</strong>
-                                <small class="text-muted-color">{{ $t('auth.permissionGrantCount', { count: selectedGrants.length }) }}</small>
+                                <small class="text-muted">{{ $t('auth.permissionGrantCount', { count: selectedGrants.length }) }}</small>
                             </div>
                             <div class="flex flex-wrap gap-2">
                                 <Button icon="pi pi-plus" :label="$t('auth.addGrant')" size="small" @click="addGrant" />
@@ -70,7 +70,7 @@
                                                     class="w-36"
                                                     @update:model-value="value => updateGrantAt(index, { level: value })"
                                                 />
-                                                <span class="pb-2 text-muted-color">{{ $t('auth.permissionWhen') }}</span>
+                                                <span class="pb-2 text-muted">{{ $t('auth.permissionWhen') }}</span>
                                             </div>
                                             <div class="flex flex-wrap items-center gap-2">
                                                 <Button

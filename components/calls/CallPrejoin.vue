@@ -2,7 +2,7 @@
     <div class="flex h-full min-h-0 flex-col items-center justify-center gap-6 p-4">
         <div class="flex flex-col items-center gap-2 text-center">
             <h2 class="m-0 text-section-heading">{{ $t('call.prejoin.title') }}</h2>
-            <p class="m-0 text-body text-muted-color">{{ room }}</p>
+            <p class="m-0 text-body text-muted">{{ room }}</p>
         </div>
 
         <div class="relative flex h-64 w-full max-w-md items-center justify-center overflow-hidden rounded-ui bg-subtle md:h-80">
@@ -22,11 +22,11 @@
 
         <div class="flex w-full max-w-md flex-col gap-3">
             <label class="flex flex-col gap-1">
-                <span class="text-muted-color text-supporting">{{ $t('call.devices.microphone') }}</span>
+                <span class="text-muted text-supporting">{{ $t('call.devices.microphone') }}</span>
                 <Select v-model="deviceId.audioinput" :options="audioInputs" option-label="label" option-value="deviceId" size="small" class="w-full" :aria-label="$t('call.devices.microphone')" />
             </label>
             <label class="flex flex-col gap-1">
-                <span class="text-muted-color text-supporting">{{ $t('call.devices.camera') }}</span>
+                <span class="text-muted text-supporting">{{ $t('call.devices.camera') }}</span>
                 <Select v-model="deviceId.videoinput" :options="videoInputs" option-label="label" option-value="deviceId" size="small" class="w-full" :aria-label="$t('call.devices.camera')" />
             </label>
         </div>

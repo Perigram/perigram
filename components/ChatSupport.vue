@@ -24,7 +24,7 @@
                 <div class="flex shrink-0 items-center justify-end gap-1 px-2 pt-2">
                     <label
                         v-if="hasEntityRows"
-                        class="mr-auto flex items-center gap-1 pl-1 text-muted-color text-supporting"
+                        class="mr-auto flex items-center gap-1 pl-1 text-muted text-supporting"
                         :title="$t('support.chatGroupingAll')"
                     >
                         <span>{{ $t('support.chatGroupingTop') }}</span>
@@ -89,14 +89,14 @@
                                     :icon="entityConversationIcon(conversation)"
                                     shape="circle"
                                     size="normal"
-                                    class="bg-subtle text-muted-color"
+                                    class="bg-subtle text-muted"
                                 />
                                 <Avatar
                                     v-else-if="conversation.conversationKind === 'group'"
                                     icon="pi pi-users"
                                     shape="circle"
                                     size="normal"
-                                    class="bg-subtle text-muted-color"
+                                    class="bg-subtle text-muted"
                                 />
                                 <Avatar
                                     v-else
@@ -104,7 +104,7 @@
                                     :label="conversationLabel(conversation).charAt(0).toUpperCase()"
                                     shape="circle"
                                     size="normal"
-                                    class="bg-subtle text-muted-color [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                                    class="bg-subtle text-muted [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                                 />
                                 <span
                                     v-if="conversation.conversationKind === 'direct' && participantOnline(conversation)"
@@ -117,12 +117,12 @@
                                     <span class="truncate text-label">{{ conversationLabel(conversation) }}</span>
                                     <small
                                         v-if="conversation.conversationKind === 'group'"
-                                        class="shrink-0 text-muted-color text-supporting"
+                                        class="shrink-0 text-muted text-supporting"
                                     >
                                         {{ $t('support.membersCount', { count: (conversation.participants || []).length }) }}
                                     </small>
                                 </div>
-                                <small class="block truncate text-muted-color">
+                                <small class="block truncate text-muted">
                                     <SupportMessageContent
                                         v-if="conversation.lastMessage"
                                         :message="conversationPreviewMessage(conversation)"
@@ -132,7 +132,7 @@
                                     <template v-else>{{ $t('support.noMessages') }}</template>
                                 </small>
                             </div>
-                            <small v-if="conversation.timestamp" class="shrink-0 text-muted-color">{{ shortTime(conversation.timestamp) }}</small>
+                            <small v-if="conversation.timestamp" class="shrink-0 text-muted">{{ shortTime(conversation.timestamp) }}</small>
                     </button>
                 </div>
             </aside>
@@ -158,13 +158,13 @@
                         v-if="activeConversation.conversationKind === 'entity'"
                         :icon="entityConversationIcon(activeConversation)"
                         shape="circle"
-                        class="shrink-0 bg-subtle text-muted-color"
+                        class="shrink-0 bg-subtle text-muted"
                     />
                     <Avatar
                         v-else-if="activeConversation.conversationKind === 'group'"
                         icon="pi pi-users"
                         shape="circle"
-                        class="shrink-0 bg-subtle text-muted-color"
+                        class="shrink-0 bg-subtle text-muted"
                     />
                     <Avatar
                         v-else
@@ -202,7 +202,7 @@
                                 class="max-w-full"
                             />
                         </div>
-                        <small v-else-if="conversationSubtitle" class="block truncate text-muted-color text-supporting">
+                        <small v-else-if="conversationSubtitle" class="block truncate text-muted text-supporting">
                             {{ conversationSubtitle }}
                         </small>
                     </div>
@@ -344,19 +344,19 @@
                                 :aria-label="$t('support.goToMessage')"
                                 @click="goToMessage(messageItem.parent._id)"
                             >
-                                <small class="text-muted-color text-supporting">
+                                <small class="text-muted text-supporting">
                                     {{ messageItem.parent.senderName || $t('common.user') }}
                                 </small>
                                 <span class="flex min-w-0 items-center gap-1 text-supporting">
                                     <i
                                         v-if="messageItem.parent.attachment?.kind === 'audio'"
-                                        class="pi pi-microphone shrink-0 text-muted-color"
+                                        class="pi pi-microphone shrink-0 text-muted"
                                         aria-hidden="true"
                                     />
                                     <span v-if="messageItem.parent.snippet" class="min-w-0 truncate [overflow-wrap:anywhere]">
                                         {{ messageItem.parent.snippet }}
                                     </span>
-                                    <span v-else-if="messageItem.parent.attachment?.kind === 'audio'" class="text-muted-color">
+                                    <span v-else-if="messageItem.parent.attachment?.kind === 'audio'" class="text-muted">
                                         {{ $t('support.voiceMessage') }}
                                     </span>
                                 </span>
@@ -412,7 +412,7 @@
                                     />
                                 </span>
                             </div>
-                            <span class="flex min-w-0 items-center gap-1 px-1 text-muted-color text-supporting">
+                            <span class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting">
                                 {{ formatTime(messageItem.timestamp) }}
                                 <!-- Messages linked to lower entities keep a
                                      subtle, clickable leaf chip inside the
@@ -435,14 +435,14 @@
                     <div
                         v-show="typingName"
                         ref="typingIndicatorRef"
-                        class="px-1 text-muted-color text-supporting opacity-0"
+                        class="px-1 text-muted text-supporting opacity-0"
                     >
                         {{ $t('support.typing', { name: typingName }) }}
                     </div>
                     <!-- Reply quote bar: the next send carries the parent id. -->
                     <div v-if="replyTo" class="flex items-center gap-2 rounded-ui bg-subtle p-2">
-                        <i class="pi pi-reply shrink-0 text-muted-color" aria-hidden="true"></i>
-                        <span class="min-w-0 flex-1 truncate text-supporting text-muted-color">
+                        <i class="pi pi-reply shrink-0 text-muted" aria-hidden="true"></i>
+                        <span class="min-w-0 flex-1 truncate text-supporting text-muted">
                             <template v-if="replyTo.parent">{{ replyTo.parent.senderName }}:</template>
                             <template v-if="replyTo.message">{{ replyTo.message }}</template>
                             <template v-else-if="replyTo.attachment?.kind === 'audio'">{{ $t('support.voiceMessage') }}</template>
@@ -469,7 +469,7 @@
                         <div v-if="stripTrail.length" class="flex items-center gap-1 overflow-x-auto">
                             <button
                                 type="button"
-                                class="flex shrink-0 items-center gap-1 rounded-ui bg-subtle px-2 py-0.5 text-muted-color text-supporting transition-colors hover:opacity-80"
+                                class="flex shrink-0 items-center gap-1 rounded-ui bg-subtle px-2 py-0.5 text-muted text-supporting transition-colors hover:opacity-80"
                                 @click="resetStripTrail()"
                             >
                                 <i :class="entityConversationIcon(activeConversation)" class="shrink-0" aria-hidden="true"></i>
@@ -478,13 +478,13 @@
                                 </span>
                             </button>
                             <template v-for="(crumb, index) in stripTrail" :key="crumb.key">
-                                <i class="pi pi-angle-right shrink-0 text-muted-color text-supporting" aria-hidden="true"></i>
+                                <i class="pi pi-angle-right shrink-0 text-muted text-supporting" aria-hidden="true"></i>
                                 <button
                                     type="button"
                                     class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-0.5 text-supporting transition-colors"
                                     :class="index === stripTrail.length - 1
                                         ? 'bg-primary text-primary-contrast'
-                                        : 'bg-subtle text-muted-color hover:opacity-80'"
+                                        : 'bg-subtle text-muted hover:opacity-80'"
                                     :aria-current="index === stripTrail.length - 1 ? 'true' : undefined"
                                     @click="truncateStripTrail(index)"
                                 >
@@ -502,7 +502,7 @@
                                 class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                                 :class="isChipSelected(chip)
                                     ? 'bg-primary text-primary-contrast'
-                                    : 'bg-subtle text-muted-color hover:opacity-80'"
+                                    : 'bg-subtle text-muted hover:opacity-80'"
                                 :aria-pressed="isChipSelected(chip)"
                                 @click="drillStripTo(chip)"
                             >
@@ -511,7 +511,7 @@
                             </button>
                         </div>
                     </div>
-                    <div v-if="messagePreviewVisible" class="rounded-ui bg-subtle p-2 text-muted-color text-body">
+                    <div v-if="messagePreviewVisible" class="rounded-ui bg-subtle p-2 text-muted text-body">
                         <SupportMessageContent :message="draftPreviewMessage" :viewer-user-id="currentUserId" />
                     </div>
                     <div v-if="entityRefs.length" class="mb-2 flex flex-wrap gap-2">
@@ -552,10 +552,10 @@
                          elapsed timer plus cancel and stop-and-send. -->
                     <div v-if="voiceRecording" class="flex items-center gap-2">
                         <span
-                            class="ml-1 h-2.5 w-2.5 shrink-0 animate-pulse rounded-ui bg-status-error"
+                            class="ml-1 h-2.5 w-2.5 shrink-0 animate-pulse rounded-ui bg-status-danger"
                             :aria-label="$t('support.recording')"
                         ></span>
-                        <span class="min-w-0 flex-1 text-muted-color text-body">
+                        <span class="min-w-0 flex-1 text-muted text-body">
                             {{ $t('support.recording') }} · {{ formatRecordingDuration(recordingElapsed) }}
                         </span>
                         <Button
@@ -696,7 +696,7 @@
             </template>
             <div class="flex flex-col gap-3">
                 <label v-for="field in createPromptFields" :key="field.id" class="flex flex-col gap-1">
-                    <span class="text-muted-color text-supporting">{{ field.label || field.id }}</span>
+                    <span class="text-muted text-supporting">{{ field.label || field.id }}</span>
                     <Select
                         v-if="field.type === 'entity'"
                         v-model="createPromptValues[field.id]"

@@ -15,7 +15,7 @@
       </div>
     </template>
 
-    <VueFlow v-model:nodes="nodes" v-model:edges="edges" class="bg-surface-ground" fit-view-on-init>
+    <VueFlow v-model:nodes="nodes" v-model:edges="edges" class="bg-process-canvas" fit-view-on-init>
       <template #node-default="node">
         <div class="rounded-ui border border-content-border px-3 py-2 text-body">
           {{ node.data.label }}

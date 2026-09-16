@@ -61,7 +61,7 @@
           <Button icon="pi pi-times" text size="small" :aria-label="$t('processDesigner.closeOperationPalette')" @click="closeContextPalette" />
         </div>
         <div v-for="group in contextPaletteGroups" :key="group.id" class="flex flex-col gap-1">
-          <span class="text-muted-color text-supporting">{{ paletteGroupLabel(group.id) }}</span>
+          <span class="text-muted text-supporting">{{ paletteGroupLabel(group.id) }}</span>
           <Button
             v-for="item in group.items"
             :key="item.id"
@@ -89,7 +89,7 @@
               <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
             </div>
             <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
-              <span class="px-1 uppercase text-muted-color text-supporting">{{ paletteGroupLabel(group.id) }}</span>
+              <span class="px-1 uppercase text-muted text-supporting">{{ paletteGroupLabel(group.id) }}</span>
               <div class="grid grid-cols-2 gap-1.5">
                 <Button
                   v-for="item in group.items"
@@ -306,13 +306,13 @@
                         @update:model-value="value => updateSelectedProcessNodeGrantLevel(index, value)"
                       />
                     </div>
-                    <div v-if="selectedProcessNodeAccessDetail" class="text-supporting text-muted-color">{{ selectedProcessNodeAccessDetail }}</div>
+                    <div v-if="selectedProcessNodeAccessDetail" class="text-supporting text-muted">{{ selectedProcessNodeAccessDetail }}</div>
                     <div v-if="selectedProcessNodeEffectiveAccess.length" class="flex flex-wrap gap-1">
                       <span
                         v-for="item in selectedProcessNodeEffectiveAccess"
                         :key="item.label"
                         class="max-w-full truncate rounded-ui border border-content-border px-1.5 py-0.5 text-supporting"
-                        :class="item.inherited ? 'text-muted-color' : ''"
+                        :class="item.inherited ? 'text-muted' : ''"
                       >{{ item.label }}</span>
                     </div>
                   </div>
@@ -325,12 +325,12 @@
                             </div>
                             <Tag :value="$t('processDesigner.producerOutputTag')" severity="secondary" size="small" />
                           </div>
-                          <code class="text-supporting text-muted-color break-all">{{ selectedEntity.producerOutputId }}</code>
+                          <code class="text-supporting text-muted break-all">{{ selectedEntity.producerOutputId }}</code>
                           <div class="flex flex-col gap-1">
                             <label>{{ $t('processDesigner.relations') }}</label>
                             <MultiSelect v-model="selectedEntity.relations" :options="relationOptionsForEntity(selectedEntity.entityType)" option-label="label" option-value="value" display="chip" class="w-full" @change="syncNodeData" />
                           </div>
-                          <small class="text-muted-color">{{ $t('processDesigner.producerWorkflowHint') }}</small>
+                          <small class="text-muted">{{ $t('processDesigner.producerWorkflowHint') }}</small>
                         </div>
                   </Panel>
                   <div v-if="selectedProcessNode.kind && !selectedProcessNode.kind.startsWith('effect.') && !selectedProcessNode.kind.startsWith('control.') && !selectedProcessNode.kind.startsWith('source.')" class="flex flex-col gap-2">
@@ -524,7 +524,7 @@
                             v-if="openBlockComposition(selectedProcessNode).mode === 'relations' && entry.entityType === 'artifact'"
                             class="flex flex-col gap-1"
                           >
-                            <span class="text-muted-color text-supporting">{{ $t('processDesigner.allowedArtifactCreation') }}</span>
+                            <span class="text-muted text-supporting">{{ $t('processDesigner.allowedArtifactCreation') }}</span>
                             <MultiSelect
                               :model-value="entry.attachmentKinds || []"
                               :options="artifactUploadKindOptions"

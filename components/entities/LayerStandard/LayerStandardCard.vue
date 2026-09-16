@@ -18,7 +18,7 @@
       <Divider />
       <div class="flex flex-col gap-2">
         <div class="flex items-center justify-between gap-2">
-          <small class="text-muted-color">{{ standardCode || $t('layerStandard.defaultPen') }}</small>
+          <small class="text-muted">{{ standardCode || $t('layerStandard.defaultPen') }}</small>
           <Badge v-if="standard.data?.orgPenId" :value="$t('layerStandard.overridden')" severity="warn" size="small" />
         </div>
         <PenTemplateCard v-if="activePen" :pen="activePen" variant="inline" />

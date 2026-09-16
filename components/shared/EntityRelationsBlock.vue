@@ -5,7 +5,7 @@
       :key="`${relation.path}:${relation.label}`"
       class="flex min-w-0 flex-col gap-1"
     >
-      <small class="text-muted-color">{{ relation.label }}</small>
+      <small class="text-muted">{{ relation.label }}</small>
       <div class="flex min-w-0 items-start gap-2">
         <div
           class="min-w-0 flex-1"

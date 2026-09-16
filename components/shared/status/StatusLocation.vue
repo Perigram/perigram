@@ -12,7 +12,7 @@ const location = computed(() => normalizeStatusLocation(props.entity));
 
 <template>
   <div v-if="location" class="flex items-center justify-between gap-4 min-w-0 text-body">
-    <small class="text-muted-color">{{ $t('common.location') }}</small>
+    <small class="text-muted">{{ $t('common.location') }}</small>
     <TraceLink
       v-if="location.type === 'warehouse'"
       type="warehouse"

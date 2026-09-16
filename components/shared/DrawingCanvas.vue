@@ -785,7 +785,7 @@ onBeforeUnmount(() => {
       <ProgressSpinner class="h-8 w-8" />
     </div>
 
-    <div v-else-if="error || !drawing" class="flex h-full w-full items-center justify-center text-muted-color">
+    <div v-else-if="error || !drawing" class="flex h-full w-full items-center justify-center text-muted">
       <i :class="error ? 'pi pi-exclamation-circle' : 'pi pi-image'" />
     </div>
 
@@ -795,7 +795,7 @@ onBeforeUnmount(() => {
           <ActionToolbar :title="$t('common.layers')" :level="3">
             <template #title>
               <div class="flex min-w-0 items-center gap-2">
-                <i class="pi pi-list text-muted-color" aria-hidden="true" />
+                <i class="pi pi-list text-muted" aria-hidden="true" />
                 <span class="truncate">{{ $t('common.layers') }}</span>
                 <Tag :value="visibleLayerSummary" severity="secondary" size="small" />
               </div>
