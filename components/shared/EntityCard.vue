@@ -100,8 +100,15 @@
                 <slot />
             </template>
             <template #footer>
-                <div v-if="$slots.footer" class="flex flex-wrap items-center justify-end gap-2" @click.stop>
-                  <EntityActionsPopover v-if="footerDisplay === 'menu'">
+                <div class="flex flex-wrap items-center justify-end gap-2" @click.stop>
+                  <Button
+                    icon="pi pi-comments"
+                    text
+                    size="small"
+                    :aria-label="$t('support.entityChat')"
+                    @click="openCardChat"
+                  />
+                  <EntityActionsPopover v-if="footerDisplay === 'menu' && $slots.footer">
                     <slot name="footer" />
                   </EntityActionsPopover>
                   <slot v-else name="footer" />
@@ -145,12 +152,17 @@
                     </slot>
                     <slot name="footer" />
                 </div>
-                <Divider v-if="inlinePopupHasActions || inlineDetailRoute" class="m-0" />
-                <div
-                    v-if="inlinePopupHasActions || inlineDetailRoute"
-                    class="flex flex-wrap items-center justify-end gap-2"
-                    @click.stop
-                >
+                <!-- The entity chat entry always renders: every card opens its
+                     composed conversation. -->
+                <Divider class="m-0" />
+                <div class="flex flex-wrap items-center justify-end gap-2" @click.stop>
+                    <Button
+                        icon="pi pi-comments"
+                        text
+                        size="small"
+                        :aria-label="$t('support.entityChat')"
+                        @click="openCardChat"
+                    />
                     <GeneratedCassetteDesignerAction
                         v-if="inlineShowCassetteDesigner"
                         :entity="inlineActionEntity"
@@ -230,6 +242,20 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['refresh']);
+
+const cardEntityId = computed(() => {
+    const id = props.entity?._id || props.entity?.id || props.entity?.identity?.uid || '';
+    return id ? String(id) : '';
+});
+
+function openCardChat() {
+    op.value?.hide?.();
+    openEntityChat({
+        type: props.entityType,
+        id: cardEntityId.value,
+        name: props.entity?.identity?.name || ''
+    });
+}
 const inlineDetailRouteRef = inject('entityInlineDetailRoute', null);
 const inlineForceTraceRef = inject('entityInlineForceTrace', false);
 const inlineTypeLabelRef = inject('entityInlineTypeLabel', '');
