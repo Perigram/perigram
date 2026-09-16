@@ -1438,11 +1438,11 @@ const selectAttachment = (option) => {
 // Every entity-creation action in the user scope rides the picker as a
 // generated action button; running one follows the same flow the generated
 // surfaces use and attaches the created entity to the draft.
-const createActions = computed(() => Array.from(
+const createActions = computed(() => Array.from(new Map(
     (authStore.actionManifest || [])
         .filter(action => action?.actionKind === 'createEntity' && isGeneratedSurfaceAction(action))
         .map(action => [action.actionId || action.id, action])
-).values()).map(([, action]) => action))
+).values()))
 
 const pendingCreateActionLabel = computed(() => pendingCreateAction.value
     ? generatedActionLabel(pendingCreateAction.value, '', { t, te })
