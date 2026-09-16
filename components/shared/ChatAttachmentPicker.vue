@@ -2,17 +2,17 @@
   <Popover ref="popover">
     <div class="flex min-w-64 max-w-72 flex-col gap-1" data-testid="chat-attachment-picker">
       <small class="px-2 pb-1 text-muted-color">{{ $t('support.attach') }}</small>
-      <Button
-        v-if="artifactCreatorAvailable"
-        :label="$t('generatedScreen.createArtifact')"
-        icon="pi pi-upload"
-        text
-        severity="secondary"
-        size="small"
-        class="w-full !justify-start"
-        @click="chooseCreateArtifact"
+      <!-- Entity-creation entries compose from the user scope: the same
+           generated action buttons the surfaces render, one per create
+           action, above the browse tree. -->
+      <GeneratedActionButton
+        v-for="action in createActions"
+        :key="action.actionId || action.id"
+        :action-id="action.actionId || action.id"
+        menu-item
+        @execute="chooseCreateAction"
       />
-      <Divider v-if="artifactCreatorAvailable && types.length" class="my-1" />
+      <Divider v-if="createActions.length && types.length" class="my-1" />
       <div v-if="types.length" class="max-h-80 overflow-y-auto">
         <Tree
           v-model:selection-keys="selectionKeys"
@@ -36,7 +36,7 @@
         </Tree>
       </div>
       <StateBlock
-        v-if="!types.length && !artifactCreatorAvailable"
+        v-if="!types.length && !createActions.length"
         :message="$t('support.noAttachmentOptions')"
         icon="pi pi-paperclip"
       />
@@ -52,6 +52,7 @@ import Popover from 'primevue/popover'
 import Tree from 'primevue/tree'
 import { useI18n } from 'vue-i18n'
 import StateBlock from '~/components/shared/StateBlock.vue'
+import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue'
 import { useAuthStore } from '~/stores/auth'
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js'
@@ -67,11 +68,11 @@ import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources
  */
 const props = defineProps({
   types: { type: Array, default: () => [] },
-  artifactCreatorAvailable: { type: Boolean, default: false },
+  createActions: { type: Array, default: () => [] },
   recipientUserId: { type: String, default: '' }
 })
 
-const emit = defineEmits(['select', 'create-artifact'])
+const emit = defineEmits(['select', 'create-action'])
 
 const { t } = useI18n()
 const popover = ref(null)
@@ -263,9 +264,9 @@ function selectNode(node) {
 
 const hide = () => popover.value?.hide?.()
 
-function chooseCreateArtifact() {
+function chooseCreateAction(action) {
   hide()
-  emit('create-artifact')
+  emit('create-action', action)
 }
 
 // Each open starts from the section roots: options are recipient-scoped for

@@ -100,8 +100,15 @@
         suppress-child-summaries
         relation-variant="compact"
       />
-      <template v-if="hasEditorAction || entityActionsFor(entity).length || detailRouteFor(entity)" #footer>
+      <template #footer>
         <div class="flex flex-wrap justify-end gap-2">
+          <Button
+            icon="pi pi-comments"
+            text
+            size="small"
+            :aria-label="$t('support.entityChat')"
+            @click.stop="chatEntity(entity)"
+          />
           <Button
             v-if="detailRouteFor(entity)"
             :label="$t('common.open')"
@@ -148,6 +155,7 @@ import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import { openEntityChat } from '~/utils/entity-chat.js';
 import { entityEditorActionFor, entityHasEditorAction } from '~/components/generated/entity-editor-action.js';
 import { useAuthStore } from '~/stores/auth';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
@@ -247,6 +255,15 @@ function entityActionsFor(entity) {
 
 function dedupeActions(actions = []) {
   return [...new Map(actions.map(action => [action.actionId || action.id, action])).values()];
+}
+
+function chatEntity(entity) {
+  const id = entity?._id || entity?.id || entity?.identity?.uid || '';
+  openEntityChat({
+    type: props.entityType,
+    id: String(id),
+    name: entity?.identity?.name || ''
+  });
 }
 
 function openEntity(entity) {

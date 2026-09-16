@@ -512,15 +512,15 @@
                 <ChatAttachmentPicker
                     ref="attachmentPicker"
                     :types="entityTypeOptions"
-                    :artifact-creator-available="Boolean(artifactCreator)"
+                    :create-actions="createActions"
                     :recipient-user-id="activeRecipientUserId"
                     @select="selectAttachment"
-                    @create-artifact="artifactCreatorVisible = true"
+                    @create-action="runCreateAction"
                 />
                 <GeneratedArtifactCreator
-                    v-if="artifactCreator"
-                    v-model="artifactCreatorVisible"
-                    :creator="artifactCreator"
+                    v-if="pendingCreator"
+                    v-model="creatorVisible"
+                    :creator="pendingCreator"
                     @created="selectCreatedArtifact"
                 />
             </section>
@@ -568,12 +568,73 @@
                 />
             </div>
         </StandardDialog>
+        <StandardDialog
+            v-model:visible="createPromptVisible"
+            size="sm"
+            :show-default-footer="true"
+            :save-label="pendingCreateActionLabel"
+            :cancel-label="$t('common.cancel')"
+            :loading="executingCreate"
+            @save="submitCreatePrompt"
+            @cancel="createPromptVisible = false; pendingCreateAction = null"
+        >
+            <template #header>
+                <span>{{ pendingCreateActionLabel }}</span>
+            </template>
+            <div class="flex flex-col gap-3">
+                <label v-for="field in createPromptFields" :key="field.id" class="flex flex-col gap-1">
+                    <span class="text-muted-color text-supporting">{{ field.label || field.id }}</span>
+                    <Select
+                        v-if="field.type === 'entity'"
+                        v-model="createPromptValues[field.id]"
+                        :options="createPromptOptions[field.id] || []"
+                        option-label="label"
+                        option-value="value"
+                        :entity-type="field.entityType || field.accepts?.[0] || ''"
+                        filter
+                        class="w-full"
+                    />
+                    <EntityMultiSelect
+                        v-else-if="field.type === 'entityList'"
+                        v-model="createPromptValues[field.id]"
+                        :options="createPromptOptions[field.id] || []"
+                        option-label="label"
+                        option-value="value"
+                        :entity-type="field.entityType || field.accepts?.[0] || ''"
+                        filter
+                        class="w-full"
+                    />
+                    <Select
+                        v-else-if="field.type === 'enum'"
+                        v-model="createPromptValues[field.id]"
+                        :options="field.options || []"
+                        class="w-full"
+                    />
+                    <ToggleSwitch
+                        v-else-if="field.type === 'boolean'"
+                        v-model="createPromptValues[field.id]"
+                    />
+                    <DatePicker
+                        v-else-if="field.type === 'date' || field.type === 'dateTime'"
+                        v-model="createPromptValues[field.id]"
+                        :show-time="field.type === 'dateTime'"
+                        hour-format="24"
+                        class="w-full"
+                    />
+                    <InputText
+                        v-else
+                        v-model="createPromptValues[field.id]"
+                        :type="field.type === 'number' ? 'number' : 'text'"
+                    />
+                </label>
+            </div>
+        </StandardDialog>
         <ConfirmDialog />
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 import Avatar from 'primevue/avatar'
 import Divider from 'primevue/divider'
 import Button from 'primevue/button'
@@ -582,6 +643,8 @@ import InputText from 'primevue/inputtext'
 import Select from '~/components/shared/EntitySelect.vue'
 import EntityMultiSelect from '~/components/shared/EntityMultiSelect.vue'
 import Textarea from 'primevue/textarea'
+import ToggleSwitch from 'primevue/toggleswitch'
+import DatePicker from 'primevue/datepicker'
 import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
@@ -592,7 +655,9 @@ import StandardDialog from '~/components/shared/StandardDialog.vue'
 import ChatAttachmentPicker from '~/components/shared/ChatAttachmentPicker.vue'
 import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCreator.vue'
 import CallPanel from '~/components/calls/CallPanel.vue'
-import { artifactCreatorForAction } from '~/components/generated/action-inputs.js'
+import { artifactCreatorForAction, collectActionInputFields, initialPromptValue, promptData, promptedFields } from '~/components/generated/action-inputs.js'
+import { isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js'
+import { generatedActionLabel } from '~/utils/generated-labels.js'
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState'
 import { useConnections } from '~/composables/useConnections.js'
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
@@ -614,7 +679,7 @@ const props = defineProps({
 
 const emit = defineEmits(['open-call'])
 
-const { t } = useI18n()
+const { t, te } = useI18n()
 const confirm = useConfirm()
 const toast = useToast()
 const supportDialog = useSupportDialog()
@@ -635,7 +700,13 @@ let conversationLoadToken = 0
 const entityRefs = ref([])
 const entityTypeOptions = ref([])
 const attachmentPicker = ref(null)
-const artifactCreatorVisible = ref(false)
+const creatorVisible = ref(false)
+const pendingCreator = ref(null)
+const pendingCreateAction = ref(null)
+const createPromptVisible = ref(false)
+const createPromptValues = reactive({})
+const createPromptOptions = reactive({})
+const executingCreate = ref(false)
 const activeConversation = ref(null)
 // Entity thread state: the children toggle switches between the composed
 // subtree view and messages linked to the entity itself; the composer link
@@ -1287,11 +1358,11 @@ onBeforeUnmount(() => {
 })
 
 watch(chatTarget, () => {
-    if (supportDialog.value && chatTarget.value?.userId) openDirectTarget()
+    if (supportDialog.value && (chatTarget.value?.userId || chatTarget.value?.entityKey)) openDirectTarget()
 }, { deep: true })
 
 watch(supportDialog, (isOpen) => {
-    if (isOpen && chatTarget.value?.userId) openDirectTarget()
+    if (isOpen && (chatTarget.value?.userId || chatTarget.value?.entityKey)) openDirectTarget()
 })
 
 const formatTime = (timestamp, withoutTime) => {
@@ -1341,11 +1412,11 @@ const scrollToBottom = async () => {
 }
 
 // The attachment picker is the tiered menu over the same generated entity
-// sources the home explorer exposes: type rows first, options on drill-down,
-// and one tap selects, adds the ref, and closes the picker. With no readable
-// types and no artifact creator the trigger stays disabled instead of
-// opening an empty menu.
-const attachmentPickerEmpty = computed(() => !entityTypeOptions.value.length && !artifactCreator.value)
+// sources the home explorer exposes: generated create buttons first, type
+// rows after, and one tap on an entity selects, adds the ref, and closes the
+// picker. With no readable types and no create actions the trigger stays
+// disabled instead of opening an empty menu.
+const attachmentPickerEmpty = computed(() => !entityTypeOptions.value.length && !createActions.value.length)
 
 const openAttachmentPicker = (event) => {
     attachmentPicker.value?.toggle(event)
@@ -1364,28 +1435,124 @@ const selectAttachment = (option) => {
     }
 }
 
-// The artifact creation action compiled into the org process, when present,
-// rides the picker as a "create artifact" entry; the created artifact
-// attaches to the draft like any picked entity.
-const artifactCreator = computed(() => {
-    for (const action of authStore.actionManifest || []) {
-        const creator = artifactCreatorForAction(action)
-        if (creator) return creator
-    }
-    return null
-})
+// Every entity-creation action in the user scope rides the picker as a
+// generated action button; running one follows the same flow the generated
+// surfaces use and attaches the created entity to the draft.
+const createActions = computed(() => Array.from(
+    (authStore.actionManifest || [])
+        .filter(action => action?.actionKind === 'createEntity' && isGeneratedSurfaceAction(action))
+        .map(action => [action.actionId || action.id, action])
+).values()).map(([, action]) => action))
 
-const selectCreatedArtifact = (artifact) => {
-    const id = artifact?._id?.toString?.() || artifact?._id || artifact?.id || ''
-    if (!id) return
-    if (!entityRefs.value.some(ref => ref.type === 'artifact' && ref.id === id)) {
+const pendingCreateActionLabel = computed(() => pendingCreateAction.value
+    ? generatedActionLabel(pendingCreateAction.value, '', { t, te })
+    : t('common.confirm'))
+
+const createPromptFields = computed(() => (pendingCreateAction.value
+    ? promptedFields(pendingCreateAction.value)
+    : []))
+
+const runCreateAction = async (action) => {
+    if (!action?.actionId) return
+    const creator = artifactCreatorForAction(action)
+    if (creator) {
+        pendingCreateAction.value = action
+        pendingCreator.value = creator
+        creatorVisible.value = true
+        return
+    }
+    if (promptedFields(action).length) {
+        await openCreatePromptDialog(action)
+        return
+    }
+    await executeCreateAction(action, {})
+}
+
+const openCreatePromptDialog = async (action) => {
+    pendingCreateAction.value = action
+    for (const key of Object.keys(createPromptValues)) delete createPromptValues[key]
+    for (const key of Object.keys(createPromptOptions)) delete createPromptOptions[key]
+    for (const field of collectActionInputFields(action)) {
+        createPromptValues[field.id] = initialPromptValue(field)
+    }
+    createPromptVisible.value = true
+    for (const field of createPromptFields.value) {
+        const type = field.entityType || field.accepts?.[0]
+        if (field.type === 'entity' || field.type === 'entityList') {
+            if (!type) continue
+            try {
+                createPromptOptions[field.id] = await $fetch('/api/support/entity-options', {
+                    query: { type }
+                })
+            } catch (error) {
+                console.error('Failed to load create prompt options:', error)
+                createPromptOptions[field.id] = []
+            }
+        }
+    }
+}
+
+const submitCreatePrompt = async () => {
+    if (!pendingCreateAction.value) return
+    executingCreate.value = true
+    try {
+        await executeCreateAction(
+            pendingCreateAction.value,
+            promptData(collectActionInputFields(pendingCreateAction.value), createPromptValues)
+        )
+        createPromptVisible.value = false
+        pendingCreateAction.value = null
+    } finally {
+        executingCreate.value = false
+    }
+}
+
+const executeCreateAction = async (action, data) => {
+    executingCreate.value = true
+    try {
+        const result = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(action.actionId)}/execute`, {
+            method: 'POST',
+            body: {
+                entityId: null,
+                entities: {},
+                data,
+                parameters: {}
+            }
+        })
+        attachCreatedEntity(action, result)
+        toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 })
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 })
+    } finally {
+        executingCreate.value = false
+    }
+}
+
+// The created entity attaches to the draft like any picked entity; created
+// shapes mirror the generated action contract (created/entity payloads).
+const attachCreatedEntity = (action, result) => {
+    if (!result || typeof result !== 'object') return
+    const entity = result.created || (!result.owner ? (result.entity || result) : null)
+    const id = entity?._id?.toString?.() || entity?._id || entity?.id || entity?.identity?.uid || ''
+    const type = action.relationMutation?.targetType || action.entityType
+    if (!id || !type) return
+    if (!entityRefs.value.some(ref => ref.type === type && ref.id === id)) {
         entityRefs.value.push({
-            type: 'artifact',
+            type,
             id,
-            label: artifact?.identity?.name || id,
-            entity: artifact || null
+            label: entity?.identity?.name || id,
+            entity
         })
     }
+}
+
+const selectCreatedArtifact = (artifact) => {
+    attachCreatedEntity(
+        { entityType: 'artifact', relationMutation: null },
+        { created: artifact }
+    )
+    pendingCreator.value = null
+    pendingCreateAction.value = null
 }
 
 const loadEntityTypes = async () => {
@@ -1615,6 +1782,10 @@ const openChatsPage = () => {
 }
 
 const openDirectTarget = async () => {
+    if (chatTarget.value?.entityKey) {
+        openConversationByKey(chatTarget.value.entityKey)
+        return
+    }
     if (!chatTarget.value?.userId) return
     activeConversation.value = {
         conversationKey: directConversationKey(currentUserId.value, chatTarget.value.userId),

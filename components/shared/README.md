@@ -445,8 +445,10 @@ relationship.
 ### `ChatAttachmentPicker.vue`
 The chat composer's attachment surface: a Popover-hosted explorer tree with
 the same structure as the home sidebar, entity-type sections preserved as the
-default roots. When the org process exposes an artifact creation action, a
-"create artifact" entry sits above the tree. Sections expand into the
+default roots. Creation entries sit above the tree as the same
+`GeneratedActionButton`s the generated surfaces render — one per
+`createEntity` action in the user scope (not only artifacts); the host runs
+the action flow and attaches the created entity. Sections expand into the
 `/api/support/entity-options` list for that type (loaded on demand, with the
 direct recipient id so chat-only visibility warnings stay accurate); entities
 expand further through pure lineage nesting — containment children from the
