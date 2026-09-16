@@ -1026,7 +1026,20 @@ that inbox contains only conversations with persisted messages and offers a
 header user picker to start a direct thread explicitly, including a direct
 self-chat. Drawer rows show participant context and render latest
 message entity tokens through `SupportMessageContent`, without per-row
-message-count badges. The composer loads attachment types from
+message-count badges. Message bubbles own a `min-w-0`/`max-w-full` chain with
+`overflow-wrap: anywhere` text wrapping, so long unbroken strings stay inside
+the chat bounds. Conversation history is lazy: the thread loads the newest
+message page and prepends older pages on scroll-to-top through the
+`limit`/`before` cursor contract, preserving the scroll anchor. Voice messages
+record through `MediaRecorder`, upload through the files endpoint, and render
+as a native audio player on the bubble plus a voice chip in previews.
+Attachments attach through the shared `ChatAttachmentPicker` (see
+[shared components](./shared/README.md)): a sequential tiered menu of the same
+type-then-entity structure as the home explorer, where one tap adds the ref
+and closes the picker — there is no separate add step. When the org process
+compiles an artifact creation action, the picker also exposes "create
+artifact", and the created artifact attaches to the draft as an `artifact`
+entity ref. The composer loads attachment types from
 `/api/support/entity-types`, which derives them from the user's generated
 screen source manifest at read access rather than a fixed chat list. Concrete
 attachment choices resolve through `/api/support/entity-options` when the
@@ -1038,12 +1051,12 @@ must not duplicate ordinary textarea text. Status-history actor chat actions
 preseed the current entity into that draft. The composer must not inject
 attachment tokens into the textarea body, and the final send payload must
 collapse draft refs back to minimal `{ type, id, label }` records instead of
-posting hydrated entity snapshots. The type selector should localize generated
+posting hydrated entity snapshots. The type picker should localize generated
 entity type ids for users instead of exposing raw backend strings. Attachment-
 only messages are valid and must stay sendable when the draft has at least one
-selected entity ref. The conversation snapshot is auth-
-gated by the store so direct user candidates are not lost behind a failed
-pre-auth request.
+selected entity ref or a recorded voice attachment. The conversation snapshot
+is auth-gated by the store so direct user candidates are not lost behind a
+failed pre-auth request.
 The expanded `/chats` route keeps the persisted-conversation inbox visible as
 a desktop side rail while the selected conversation occupies the remaining
 width. It uses a single-pane interaction on mobile, and the app-shell floating

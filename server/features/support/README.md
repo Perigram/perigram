@@ -21,7 +21,18 @@ Messages have a deterministic `conversationKey`:
 Legacy support messages without `conversationKey` remain readable through the
 support-channel match for the same `userId`. New writes always persist
 `conversationKey`, `conversationKind`, `participants`, `senderUserId`,
-`message`, `entityRefs`, and `timestamp`.
+`message`, `entityRefs`, `timestamp`, and optionally `attachment` (see
+[Voice Messages](#voice-messages)).
+
+### Lazy History
+
+`GET /api/support/messages` is paginated: `limit` (default 50, capped at 100)
+selects the newest page and `before` (an ISO timestamp cursor) selects the page
+older than that cursor, both still returned in ascending order with
+`hasMore: data.length >= limit`. The composer loads the newest page on open and
+prepends older pages keyed on the oldest loaded timestamp while preserving the
+reader's scroll position; realtime message events keep appending to the live
+end.
 
 Direct user conversations are allowed only when the authenticated user is an
 admin or shares an organization membership with the target user. Admin support
@@ -118,6 +129,37 @@ and other UI-local relation refs do not disappear on send. Messages may contain
 only attachments; an empty body is valid as long as at least one entity ref
 survives write-time validation.
 
+### Artifact Refs
+
+`artifact` is a registered option-loader type backed by the artifacts feature
+list service, so artifacts validate like any other ref. In an active org
+process, a readable artifact list source whitelists the type as usual; when no
+such source exists, the type is still whitelisted when the sender's compiled
+action manifest contains an artifact creation action (`createEntity` with an
+`upload`/`capture`/`editor` attachment-kind creator — the same detection the
+generated screens use). This is what lets the chat attachment picker offer
+"create artifact" and reference the freshly created artifact, without widening
+artifact reads past the process windows: option loading still goes through the
+scoped artifacts list service.
+
+## Voice Messages
+
+A message may carry `attachment` — currently exactly one descriptor of kind
+`audio`:
+
+```json
+{ "kind": "audio", "fileId": "<gridfs id>", "mimeType": "audio/webm", "durationSeconds": 12 }
+```
+
+The client records through `MediaRecorder`, uploads the blob through the
+[files feature](../files/) upload endpoint, and posts the descriptor as the
+message payload; the message body may stay empty. Playback streams the stored
+file through the shared `/api/files/download/:id` route, so the message
+document never embeds audio bytes. Unsupported kinds, missing file ids, and
+durations above ten minutes are rejected (longer recordings clamp on write).
+Conversation summaries carry the last message's `attachment` so inbox previews
+can render a voice-message chip.
+
 ## API
 
 | Endpoint | Responsibility |
@@ -132,6 +174,7 @@ survives write-time validation.
 | `GET /api/support/messages` | REST snapshot of the current user's support conversation; changes arrive over the connections stream. |
 | `GET /api/support/messages?recipientUserId=<id>` | REST snapshot of a direct user conversation. |
 | `GET /api/support/messages?conversationKey=group:<id>` | REST snapshot of a group conversation. |
+| `GET /api/support/messages?limit=<n>&before=<iso>` | Lazy history page: the `n` newest messages older than the cursor, ascending, plus `hasMore`. |
 | `POST /api/support/messages` | Send support, direct (`recipientUserId`), or group (`conversationKey`) message. Publishes `message`/`read`/inbox events through the connections layer. |
 | `GET /api/support/admin/:user_id` | REST snapshot of the admin support conversation. |
 | `POST /api/support/admin/:user_id` | Admin reply to a customer support conversation. |
