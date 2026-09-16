@@ -213,6 +213,7 @@
             </div>
         </StandardDialog>
         <OfflineOutboxBadge v-if="authStore.userIsSet" />
+        <CallFloatingWindow v-if="authStore.userIsSet" />
     </div>
 </template>
 
@@ -233,6 +234,7 @@
     import UserAccountMenu from '~/components/shared/UserAccountMenu.vue'
     import OfflineOutboxBadge from '~/components/shared/OfflineOutboxBadge.vue'
     import IncomingCalls from '~/components/calls/IncomingCalls.vue'
+    import CallFloatingWindow from '~/components/calls/CallFloatingWindow.vue'
     import { useCallsStore } from '~/stores/calls'
     import { useSupportDialog, useSupportChatTarget, useEntityChatPopup } from '~/composables/useModalState'
 import StandardDialog from '~/components/shared/StandardDialog.vue'

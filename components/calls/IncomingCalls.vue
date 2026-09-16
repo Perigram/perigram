@@ -36,6 +36,8 @@
         </div>
     </div>
 
+    <!-- Mobile fallback: no workspace tabs on mobile, so the accepted call
+         opens the full-screen dialog. -->
     <StandardDialog
         v-model:visible="callDialog"
         :header="$t('call.title')"
@@ -55,8 +57,10 @@ import Button from 'primevue/button';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import CallPanel from '~/components/calls/CallPanel.vue';
 import { useCallsStore } from '~/stores/calls';
+import { useCallRouting } from '~/composables/useCallRouting.js';
 
 const callsStore = useCallsStore();
+const { isMobileViewport, openCallInWorkspaceTab } = useCallRouting();
 
 const callDialog = ref(false);
 const callRoom = ref('');
@@ -64,7 +68,11 @@ const callRoom = ref('');
 const joinInvite = (invite) => {
     callsStore.dismissIncoming(invite.room);
     if (!invite.room) return;
-    callRoom.value = invite.room;
-    callDialog.value = true;
+    if (isMobileViewport()) {
+        callRoom.value = invite.room;
+        callDialog.value = true;
+        return;
+    }
+    openCallInWorkspaceTab(invite.room);
 };
 </script>

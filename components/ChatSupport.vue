@@ -252,13 +252,31 @@
                     </div>
                 </header>
                 <div
-                    v-if="incomingCall"
+                    v-if="conversationInvite"
                     class="mx-3 mt-3 flex items-center justify-between gap-3 rounded-ui bg-subtle p-3 md:mx-4 md:mt-4"
                 >
                     <span class="min-w-0 truncate text-body">
-                        {{ $t('call.incoming', { name: incomingCall.fromName || '' }) }}
+                        {{ $t('call.incoming', { name: conversationInvite.fromName || '' }) }}
                     </span>
-                    <Button :label="$t('call.join')" icon="pi pi-phone" size="small" @click="joinIncomingCall" />
+                    <div class="flex shrink-0 items-center gap-1">
+                        <Button
+                            icon="pi pi-phone"
+                            severity="danger"
+                            rounded
+                            size="small"
+                            :aria-label="$t('call.join')"
+                            @click="joinConversationCall"
+                        />
+                        <Button
+                            icon="pi pi-times"
+                            severity="secondary"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('call.decline')"
+                            @click="callsStore.dismissIncoming(conversationInvite.room)"
+                        />
+                    </div>
                 </div>
                 <!-- Ongoing call for this conversation: visible while the room
                      is running, including after the viewer left the call. -->
@@ -717,6 +735,7 @@ import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useAuthStore } from '~/stores/auth'
 import { useSupportChatStore } from '~/stores/supportChat'
 import { useCallsStore } from '~/stores/calls'
+import { useCallRouting } from '~/composables/useCallRouting.js'
 
 const props = defineProps({
     embedded: {
@@ -794,15 +813,25 @@ const typingActive = computed(() => Boolean(typingName.value))
 useEnterExit(typingIndicatorRef, typingActive, { y: 4, duration: 0.15 })
 const callRoom = ref('')
 const callDialog = ref(false)
-const incomingCall = ref(null)
-let incomingCallTimer = null
-// Ongoing room for the open conversation comes from the shared calls store,
-// so the banner survives joining and leaving the call.
+// The call line machine owns ringing: invites for the open conversation come
+// from the shared calls store, so accepting or declining anywhere clears the
+// ring in every surface (the old local banner kept ringing after an accept
+// elsewhere). The ongoing-room banner also survives joining and leaving.
 const callsStore = useCallsStore()
+const { isMobileViewport, openCallInWorkspaceTab } = useCallRouting()
 const ongoingCallRoom = computed(() => callsStore.activeRoomForConversation(activeConversationKey.value || ''))
+const conversationInvite = computed(() => callsStore.incoming.find(invite => (
+    invite.conversationKey && invite.conversationKey === activeConversationKey.value
+)) || null)
 const joinOngoingCall = () => {
     const room = ongoingCallRoom.value?.room
     if (room) openCallSurface(room)
+}
+const joinConversationCall = () => {
+    const invite = conversationInvite.value
+    if (!invite?.room) return
+    callsStore.dismissIncoming(invite.room)
+    openCallSurface(invite.room)
 }
 
 const startCall = async () => {
@@ -818,8 +847,9 @@ const startCall = async () => {
     }
 }
 
-// Pane-hosted chats open calls as workspace tabs instead of the floating
-// dialog; drawer and mobile surfaces keep the dialog.
+// Pane-hosted chats open calls as workspace tabs; mobile surfaces keep the
+// full-screen dialog; every other surface routes through the shared call
+// routing (home workspace tab, floating window fallback).
 const openCallSurface = (room = '') => {
     if (!room) return
     if (props.openCallInPane) {
@@ -830,25 +860,12 @@ const openCallSurface = (room = '') => {
         })
         return
     }
-    callRoom.value = room
-    callDialog.value = true
-}
-
-const joinIncomingCall = () => {
-    if (!incomingCall.value?.room) return
-    const room = incomingCall.value.room
-    incomingCall.value = null
-    if (incomingCallTimer) clearTimeout(incomingCallTimer)
-    openCallSurface(room)
-}
-
-const receiveCallInvite = (payload) => {
-    if (!payload?.room || payload.from === currentUserId.value) return
-    incomingCall.value = { room: payload.room, fromName: payload.fromName || '' }
-    if (incomingCallTimer) clearTimeout(incomingCallTimer)
-    incomingCallTimer = setTimeout(() => {
-        incomingCall.value = null
-    }, 30000)
+    if (isMobileViewport()) {
+        callRoom.value = room
+        callDialog.value = true
+        return
+    }
+    openCallInWorkspaceTab(room)
 }
 
 const messagePreviewVisible = computed(() => Boolean(message.value.includes('{{entity:')))
@@ -1412,10 +1429,8 @@ watch(
                 receiveTyping(payload)
                 return
             }
-            if (payload?.type === 'call') {
-                receiveCallInvite(payload)
-                return
-            }
+            // Ringing arrives only through the calls store's `call.invite`
+            // subscription — one owner, no second local ring state.
             if (payload?.type !== 'message') return
             messages.value.push(payload.message)
             supportChatStore.markRead(key)
@@ -1445,7 +1460,6 @@ onBeforeUnmount(() => {
     }
     if (typingResetTimer) clearTimeout(typingResetTimer)
     if (typingSendTimer) clearTimeout(typingSendTimer)
-    if (incomingCallTimer) clearTimeout(incomingCallTimer)
     if (mediaRecorder) {
         mediaRecorder.onstop = null
         mediaRecorder.stop()
