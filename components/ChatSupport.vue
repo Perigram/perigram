@@ -462,7 +462,7 @@
                          where the next message lands (the composed entity
                          when no child is picked). -->
                     <div
-                        v-if="activeConversation.conversationKind === 'entity' && stripChildren.length"
+                        v-if="activeConversation.conversationKind === 'entity' && (stripChildren.length || stripTrail.length)"
                         class="flex flex-col gap-1 pb-1"
                         data-testid="entity-target-strip"
                     >
@@ -491,7 +491,7 @@
                                 </button>
                             </template>
                         </div>
-                        <div class="flex gap-1 overflow-x-auto">
+                        <div v-if="stripChildren.length" class="flex gap-1 overflow-x-auto">
                             <button
                                 v-for="chip in stripChildren"
                                 :key="chip.key"
