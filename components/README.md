@@ -1070,6 +1070,19 @@ launcher is hidden while that route is open. The route opts into full-page mode
 with explicit boolean props; the full-page grid has one bounded workspace row,
 separate inbox/thread headers, cover-cropped participant avatars, and accepts
 attachment-only sends when the draft contains structured entity references.
+Entity-linked chats ride the same surfaces: the inbox carries an entity
+section (synthesized organization root row pinned above per-entity rows with
+type icons), entity threads show a children toggle that switches between the
+composed subtree view and messages linked to the entity itself, and the
+composer of a composed view carries chips of the immediate child entities seen
+in the thread — latest preselected, none selected linking the send to the
+composed entity. Replies quote their parent message above the bubble (sender
+name plus snippet or voice marker) and jump to the quoted message when
+loaded, loading earlier pages while staying scroll-anchored otherwise; they
+open through a hover menu on desktop and swipe-to-reply on mobile, and the
+composer shows a cancelable reply bar. Generated detail pages expose the same
+composed conversation through the shared `EntityChatPanel` disclosure
+(see [shared components](./shared/README.md)).
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data
