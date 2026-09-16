@@ -1,4 +1,4 @@
-import { removeSubscription } from '../../../features/notifications/service.js';
+import { removeSubscription } from '../../features/notifications/service.js';
 
 export default defineEventHandler(async (event) => {
     const auth = event.context?.auth;
