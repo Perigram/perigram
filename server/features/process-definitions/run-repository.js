@@ -1,4 +1,8 @@
 import { randomUUID } from 'node:crypto';
+// Static imports: the previous lazy `await import('../../../packages/…')`
+// specifiers resolved against the bundled nitro dev entry and broke every
+// manual action execution in dev with ERR_MODULE_NOT_FOUND.
+import { advanceProcessRun, createProcessRun } from '../../../packages/processes/src/index.js';
 
 const COLLECTION_NAMES = Object.freeze({
   runs: 'execution_runs',
@@ -449,7 +453,6 @@ function makeDurableEffectExecutor({ repository, runId, payload, actor, executeE
 }
 
 async function advanceUntilBoundary({ repository, runId, run, revision, definition, environment }) {
-  const { advanceProcessRun } = await import('../../../packages/processes/src/index.js');
   let state = run;
   let currentRevision = revision;
   for (let index = 0; state.status === 'running' && index < 999; index += 1) {
@@ -474,7 +477,6 @@ export async function executeManualRun(definition, payload = {}, {
   data,
   repository = getRunRepository()
 } = {}) {
-  const { createProcessRun } = await import('../../../packages/processes/src/index.js');
   let run = createProcessRun(definition, payload.trigger || {}, {
     processDefinitionId: definition._id || definition.id,
     context: { inputs: payload.inputs || {}, actor }
