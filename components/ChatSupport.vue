@@ -327,7 +327,7 @@
                                         rounded
                                         size="small"
                                         :aria-label="$t('support.reply')"
-                                        @click.stop="toggleReplyMenu($event, messageItem)"
+                                        @click.stop="openReply(messageItem)"
                                     />
                                 </span>
                             </div>
@@ -343,7 +343,7 @@
                                         rounded
                                         size="small"
                                         :aria-label="$t('support.reply')"
-                                        @click.stop="toggleReplyMenu($event, messageItem)"
+                                        @click.stop="openReply(messageItem)"
                                     />
                                 </span>
                             </div>
@@ -568,7 +568,6 @@
                 />
             </div>
         </StandardDialog>
-        <Menu :model="replyMenuItems" ref="replyMenu" :popup="true" />
         <ConfirmDialog />
     </div>
 </template>
@@ -580,7 +579,6 @@ import Divider from 'primevue/divider'
 import Button from 'primevue/button'
 import ConfirmDialog from 'primevue/confirmdialog'
 import InputText from 'primevue/inputtext'
-import Menu from 'primevue/menu'
 import Select from '~/components/shared/EntitySelect.vue'
 import EntityMultiSelect from '~/components/shared/EntityMultiSelect.vue'
 import Textarea from 'primevue/textarea'
@@ -652,15 +650,6 @@ const replyTo = ref(null)
 const swipeArmed = ref(new Set())
 const highlightKey = ref('')
 const loadingAnchor = ref(false)
-const replyMenu = ref(null)
-let replyMenuTarget = null
-const replyMenuItems = computed(() => [
-    {
-        label: t('support.reply'),
-        icon: 'pi pi-reply',
-        command: runReplyMenuAction
-    }
-])
 const domainUi = useCutkitDomainUi()
 const newChatVisible = ref(false)
 const newChatUserId = ref('')
@@ -1167,17 +1156,6 @@ const openReply = (messageItem) => {
 
 const cancelReply = () => {
     replyTo.value = null
-}
-
-const toggleReplyMenu = (event, messageItem) => {
-    replyMenuTarget = messageItem || null
-    replyMenu.value?.toggle(event)
-}
-
-const runReplyMenuAction = () => {
-    replyMenu.value?.hide?.()
-    if (replyMenuTarget) openReply(replyMenuTarget)
-    replyMenuTarget = null
 }
 
 // Mobile swipe-to-reply: arm on a horizontal drag, commit past the
