@@ -367,19 +367,32 @@ navigation must still route through the compiled generated screen manifest
 rather than hardcoded feature paths.
 On mobile, navigation launched from temporary inline entity popovers or lineage
 links closes transient overlays, including the chat drawer, before the route
-changes. The floating chat launcher is icon-only; unread state belongs to the
-app-shell badge, not to a wide floating button label. Opening chat dispatches
-the same transient close event first, so inline entity popovers and shell menus
-do not remain open behind or above the chat surface.
+changes. The desktop floating chat launcher is icon-only; unread state belongs
+to the app-shell badge, not to a wide floating button label. Opening chat
+dispatches the same transient close event first, so inline entity popovers and
+shell menus do not remain open behind or above the chat surface.
+The mobile app shell runs on PrimeVue `Tabs` as a bottom tab strip: home, the
+user's generated-screen shortcuts, and chats are real tabs of one strip, while
+the shortcut picker plus-action and the profile trigger (account menu with
+theme switching) are plain actions beside the strip. There is no floating chat
+bubble on mobile: every mobile chat entry point (tab selection, status-history
+actor chat) switches the strip to the chats tab, which renders the embedded
+chat surface as a sibling of routed content inside a bounded shell height, and
+the drawer surface stays desktop-only. Selecting a route tab navigates and
+returns the strip to routed content.
+The mobile shell is gesture-fixed: the viewport meta disables browser
+pinch/double-tap page zoom, `assets/css/main.css` pins `html` `touch-action`
+to panning because Firefox ignores the `user-scalable` meta, and shell heights
+use `100dvh` so Firefox's dynamic toolbar cannot turn a fitted screen into a
+scrollable one. Surfaces that own gestures (designer canvases) opt into
+`touch-action: none` locally instead.
 The app shell mobile bottom panel may expose up to two generated-screen
 shortcuts selected by the user from a generated-screen picker. Those shortcuts
 use compiled screen labels and authored icons when available, then fall back to
 generated entity/template icons; they must not be hardcoded domain routes. The
 plus action appears only until the two shortcut slots are full; full shortcut
-sets are changed by long-pressing a shortcut and selecting a replacement from
-the same picker. The mobile chats entry renders the chat component as an app tab
-rather than the desktop overlay, while the profile entry opens the account menu
-that also owns theme switching.
+sets are changed by long-pressing a shortcut tab and selecting a replacement
+from the same picker.
 Generated screen titles, home section headers, generated breadcrumbs, and
 generated action buttons resolve labels through `utils/generated-labels.js`.
 That resolver prefers screen/region `labelKey`, then domain entity label keys,
