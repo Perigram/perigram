@@ -438,13 +438,31 @@
                             @click="cancelReply"
                         />
                     </div>
-                    <!-- Entity link target: chips over the input pick the child the
-                         next message links to; none selected links to the composed
-                         entity itself. Latest child is preselected. -->
+                    <!-- Entity link target strip: the composed entity plus its
+                         child entities, exactly one selected at a time —
+                         selecting a child creates that entity chat on send.
+                         Selection is exclusive by click (no accidental
+                         deselect into the parent). -->
                     <div
                         v-if="activeConversation.conversationKind === 'entity' && childChips.length"
                         class="flex gap-1 overflow-x-auto pb-1"
+                        data-testid="entity-target-strip"
                     >
+                        <button
+                            type="button"
+                            :disabled="Boolean(replyTo)"
+                            class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                            :class="!composerEntity
+                                ? 'bg-primary text-primary-contrast'
+                                : 'bg-subtle text-muted-color'"
+                            :aria-pressed="!composerEntity"
+                            @click="selectComposerEntity(null)"
+                        >
+                            <i :class="entityConversationIcon(activeConversation)" class="shrink-0" aria-hidden="true"></i>
+                            <span class="max-w-32 truncate">
+                                {{ activeConversation.entityName || localizedEntityTypeLabel(activeConversation.entityType) }}
+                            </span>
+                        </button>
                         <button
                             v-for="chip in childChips"
                             :key="chip.key"
@@ -455,9 +473,7 @@
                                 ? 'bg-primary text-primary-contrast'
                                 : 'bg-subtle text-muted-color'"
                             :aria-pressed="composerEntity?.type === chip.type && composerEntity?.id === chip.id"
-                            @click="selectComposerEntity(
-                                composerEntity?.type === chip.type && composerEntity?.id === chip.id ? null : chip
-                            )"
+                            @click="selectComposerEntity(chip)"
                         >
                             <i :class="domainUi.getIcon(chip.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
                             <span class="max-w-32 truncate">{{ chip.name }}</span>
