@@ -400,9 +400,12 @@ The app shell mobile bottom panel may expose up to two generated-screen
 shortcuts selected by the user from a generated-screen picker. Those shortcuts
 use compiled screen labels and authored icons when available, then fall back to
 generated entity/template icons; they must not be hardcoded domain routes. The
-plus action appears only until the two shortcut slots are full; full shortcut
-sets are changed by long-pressing a shortcut tab and selecting a replacement
-from the same picker.
+picker is a PrimeVue `Popover` anchored to the plus action (the same anchored
+pattern as the profile trigger): it flips above the bottom bar and stays
+attached on scrolled pages, where a detached `Menu` popup would misplace
+itself. The plus action appears only until the two shortcut slots are full;
+full shortcut sets are changed by long-pressing a shortcut tab, which reopens
+the same popover with a delete entry appended.
 Generated screen titles, home section headers, generated breadcrumbs, and
 generated action buttons resolve labels through `utils/generated-labels.js`.
 That resolver prefers screen/region `labelKey`, then domain entity label keys,

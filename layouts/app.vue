@@ -70,7 +70,28 @@
         </main>
 
         <ChatSupport v-if="supportDialog && !isMobileViewport" />
-        <Menu ref="mobileScreenMenu" :model="mobileScreenMenuItems" :popup="true" />
+        <!-- The + screen picker is a Popover anchored to its trigger (the same
+             pattern as the profile trigger): it stays attached to the bottom
+             bar and flips above it, while a detached Menu popup would
+             misplace itself on scrolled pages. -->
+        <Popover ref="mobileScreenMenu">
+            <div class="flex min-w-56 flex-col gap-1">
+                <small class="px-2 pb-1 text-muted-color">{{ $t('nav.addScreen') }}</small>
+                <template v-for="(item, index) in mobileScreenMenuItems" :key="index">
+                    <Divider v-if="item.separator" class="my-1" />
+                    <Button
+                        v-else
+                        :label="item.label"
+                        :icon="item.icon"
+                        text
+                        severity="secondary"
+                        size="small"
+                        class="w-full !justify-start"
+                        @click="runMobileScreenMenuItem(item)"
+                    />
+                </template>
+            </div>
+        </Popover>
         <nav
             v-if="authStore.userIsSet"
             class="chrome-signal-rule fixed inset-x-0 bottom-0 z-[998] border-t [border-color:var(--ck-chrome-border)] bg-chrome px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-overlay md:hidden"
@@ -124,7 +145,7 @@
                     rounded
                     :disabled="!mobileScreenMenuItems.length"
                     :severity="mobileScreenMenuItems.length ? 'primary' : 'secondary'"
-                    :aria-label="$t('common.add')"
+                    :aria-label="$t('nav.addScreen')"
                     @click="openMobileScreenMenu"
                 />
                 <UserAccountMenu v-if="authStore.userIsSet">
@@ -168,7 +189,9 @@
     import { useI18n } from 'vue-i18n'
     import Button from 'primevue/button'
     import Badge from 'primevue/badge'
+    import Divider from 'primevue/divider'
     import Menu from 'primevue/menu'
+    import Popover from 'primevue/popover'
     import Tabs from 'primevue/tabs'
     import TabList from 'primevue/tablist'
     import Tab from 'primevue/tab'
@@ -460,6 +483,11 @@
     const openMobileScreenMenu = (event) => {
         mobileShortcutReplaceIndex.value = null
         mobileScreenMenu.value?.toggle(event)
+    }
+
+    const runMobileScreenMenuItem = (item) => {
+        mobileScreenMenu.value?.hide?.()
+        item?.command?.()
     }
 
     const openReplaceShortcutMenu = (event, index) => {
