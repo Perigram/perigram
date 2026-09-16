@@ -1,25 +1,13 @@
 <template>
   <Popover ref="popover">
     <PanelMenu
-      data-testid="chat-attachment-picker"
       v-model:expandedKeys="expandedKeys"
       :model="menuItems"
+      multiple
       class="w-72"
       :aria-label="$t('support.attach')"
-      :pt="panelPt"
       @update:expandedKeys="handleExpand"
-    >
-      <template #item="{ item }">
-        <span class="flex min-w-0 flex-1 items-center gap-2">
-          <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
-          <i
-            v-if="item.data?.recipientHasAccess === false"
-            class="pi pi-exclamation-triangle shrink-0 text-status-warning"
-            :aria-label="$t('support.recipientChatOnlyWarning', { label: item.label })"
-          />
-        </span>
-      </template>
-    </PanelMenu>
+    />
   </Popover>
 </template>
 
@@ -51,13 +39,6 @@ const props = defineProps({
 const emit = defineEmits(['select', 'create-action'])
 
 const { t, te } = useI18n()
-
-// Clean popover surface: PanelMenu panels drop their own borders so the
-// popover frame is the only chrome.
-const panelPt = {
-  root: { style: { width: '100%' } },
-  panel: { class: '!border-0' }
-}
 const popover = ref(null)
 const expandedKeys = ref({})
 const childrenByParentKey = ref(new Map())
