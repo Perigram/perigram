@@ -70,9 +70,12 @@
         </main>
 
         <ChatSupport v-if="supportDialog && !isMobileViewport" />
+        <!-- Add-screen tier: popup TieredMenu anchored at the Add screen row
+             inside the profile menu. It self-hides after a leaf pick; the
+             item commands close the remaining transient chrome. -->
+        <TieredMenu ref="mobileScreenTierMenu" :model="mobileScreenMenuItems" :popup="true" />
         <!-- Replace-shortcut picker for the long-press flow: anchored at the
-             pressed tab, flips above the bar. Adding shortcuts happens inline
-             in the profile menu instead. -->
+             pressed tab, flips above the bar. -->
         <Popover ref="mobileScreenMenu">
             <div class="flex min-w-56 flex-col gap-1">
                 <template v-for="(item, index) in mobileScreenMenuItems" :key="index">
@@ -139,26 +142,26 @@
                     </TabList>
                 </Tabs>
                 <UserAccountMenu v-if="authStore.userIsSet">
-                    <template #items="{ hide }">
-                        <!-- Add-screen shortcuts are an inline section of this
-                             menu, mirroring the org/account sections: one tap
-                             adds the shortcut. No second popup is chained. -->
+                    <template #items>
+                        <!-- Add screen is a menu tier: the row opens a popup
+                             TieredMenu flyout with the screen list instead of
+                             embedding the screens in this menu. -->
                         <section
-                            v-if="mobileShortcutLinks.length < MOBILE_SHORTCUT_LIMIT && availableMobileGeneratedScreens.length"
+                            v-if="mobileShortcutLinks.length < MOBILE_SHORTCUT_LIMIT && mobileScreenMenuItems.length"
                             class="flex flex-col gap-1"
                         >
-                            <small class="px-2 text-muted-color">{{ $t('nav.addScreen') }}</small>
                             <Button
-                                v-for="screen in availableMobileGeneratedScreens"
-                                :key="screen.screenKey"
-                                :label="screen.label"
-                                :icon="screen.icon"
                                 text
                                 severity="secondary"
                                 size="small"
                                 class="w-full !justify-start"
-                                @click="addMobileScreenShortcut(screen); hide()"
-                            />
+                                :aria-label="$t('nav.addScreen')"
+                                @click="toggleMobileScreenTier"
+                            >
+                                <i class="pi pi-plus" aria-hidden="true" />
+                                <span>{{ $t('nav.addScreen') }}</span>
+                                <i class="pi pi-chevron-right ml-auto" aria-hidden="true" />
+                            </Button>
                         </section>
                     </template>
                     <template #trigger="{ toggle }">
@@ -204,6 +207,7 @@
     import Divider from 'primevue/divider'
     import Menu from 'primevue/menu'
     import Popover from 'primevue/popover'
+    import TieredMenu from 'primevue/tieredmenu'
     import Tabs from 'primevue/tabs'
     import TabList from 'primevue/tablist'
     import Tab from 'primevue/tab'
@@ -391,7 +395,12 @@
     const mobileScreenMenuItems = computed(() => availableMobileGeneratedScreens.value.map(screen => ({
         label: screen.label,
         icon: screen.icon,
-        command: () => addMobileScreenShortcut(screen)
+        command: () => {
+            addMobileScreenShortcut(screen)
+            // Close the profile menu (and any other transient chrome) after a
+            // pick; the TieredMenu hides itself on leaf click.
+            requestCloseTransientSurfaces()
+        }
     })).concat(Number.isInteger(mobileShortcutReplaceIndex.value)
         ? [{
             separator: true
@@ -492,9 +501,17 @@
         window.localStorage.setItem(mobileShortcutStorageKey.value, JSON.stringify(mobileShortcuts.value.slice(-MOBILE_SHORTCUT_LIMIT)))
     }
 
-    // The picker Popover serves only the long-press replace flow on a
-    // shortcut tab: it anchors at the still-mounted tab element. Adding
-    // shortcuts from the profile menu is inline and needs no anchor.
+    // Tier-2 of the profile menu: the Add screen row toggles a popup
+    // TieredMenu anchored at that row (a real click on a still-mounted
+    // element, unlike a synthetic anchor). The replace picker Popover below
+    // serves only the long-press flow on a shortcut tab.
+    const mobileScreenTierMenu = ref()
+
+    const toggleMobileScreenTier = (event) => {
+        mobileShortcutReplaceIndex.value = null
+        mobileScreenTierMenu.value?.toggle(event)
+    }
+
     const runMobileScreenMenuItem = (item) => {
         mobileScreenMenu.value?.hide?.()
         item?.command?.()
