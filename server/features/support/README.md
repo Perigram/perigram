@@ -169,15 +169,18 @@ fanout publishes the message event to every `conversation:entity:*` topic
 along the entity path (aggregated views stay live through one subscription)
 plus one `org:<id>` inbox ping. The user inbox query includes
 `{ conversationKind: 'entity', organizationId }` so org-mates see each
-other's entity messages; summaries emit one row per linked entity plus one
-synthesized root row per organization (`isEntityRoot`) for the whole-subtree
-chat. Names denormalize into the path so quotes and inbox rows never join.
+other's entity messages. Inbox entity chats join by top-levelness: every
+message rolls up to the highest entity below the organization root in its
+entityPath (the organization itself for org-linked messages), so messages to
+lower entities surface as one top-entity chat instead of one row per leaf.
+Names denormalize into the path so quotes and inbox rows never join.
 
 ### Replies
 
 A send may carry `parentMessageId`. The parent must share the conversation
 key or, for entity messages, the same organization (an aggregated view can
-reply to a message linked to a child entity). The reply persists a
+reply to a message linked to a child entity); the composer links the reply
+to the same entity the quoted message belongs to. The reply persists a
 denormalized `parent { _id, senderUserId, senderName, snippet, attachment?,
 timestamp }` quote (text clipped to 140 characters; voice messages carry
 their attachment descriptor), so rendering and inbox previews never need the
