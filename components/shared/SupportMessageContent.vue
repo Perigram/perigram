@@ -7,7 +7,10 @@ const TOKEN_PATTERN = /\{\{entity:([^:}]+):([^}]+)\}\}/g;
 
 const props = defineProps({
   message: { type: Object, required: true },
-  viewerUserId: { type: String, default: '' }
+  viewerUserId: { type: String, default: '' },
+  // Preview mode for inbox rows: everything renders on one line and crops,
+  // with text spans carrying the ellipsis.
+  singleLine: { type: Boolean, default: false }
 });
 
 const { t } = useI18n();
@@ -97,7 +100,11 @@ const canFetchRef = (ref = {}) => {
   <!-- min-w-0/[overflow-wrap:anywhere] chain: the inline-flex root and its
        text items must shrink below their longest word, otherwise unbroken
        strings (urls, serials) push bubbles past the chat bounds. -->
-  <span class="inline-flex max-w-full min-w-0 flex-wrap items-center gap-1 align-middle">
+  <span
+    :class="singleLine
+      ? 'inline-flex max-w-full min-w-0 flex-nowrap items-center gap-1 overflow-hidden align-middle'
+      : 'inline-flex max-w-full min-w-0 flex-wrap items-center gap-1 align-middle'"
+  >
     <span v-if="voiceMessage" class="inline-flex min-w-0 shrink-0 items-center gap-1">
       <i class="pi pi-microphone shrink-0" aria-hidden="true" />
       <span class="whitespace-nowrap">{{ t('support.voiceMessage') }}</span>
@@ -108,9 +115,16 @@ const canFetchRef = (ref = {}) => {
         :href="part.value"
         target="_blank"
         rel="noopener noreferrer"
-        class="min-w-0 break-all text-inherit underline [overflow-wrap:anywhere] hover:opacity-80"
+        :class="singleLine
+          ? 'min-w-0 truncate text-inherit underline'
+          : 'min-w-0 break-all text-inherit underline [overflow-wrap:anywhere] hover:opacity-80'"
       >{{ part.value }}</a>
-      <span v-else-if="part.type === 'text'" class="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{{ part.value }}</span>
+      <span
+        v-else-if="part.type === 'text'"
+        :class="singleLine
+          ? 'min-w-0 truncate'
+          : 'min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]'"
+      >{{ part.value }}</span>
       <EntityInlineRef
         v-else
         :type="part.entityType"

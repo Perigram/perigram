@@ -118,6 +118,7 @@
                                         v-if="conversation.lastMessage"
                                         :message="conversationPreviewMessage(conversation)"
                                         :viewer-user-id="currentUserId"
+                                        single-line
                                     />
                                     <template v-else>{{ $t('support.noMessages') }}</template>
                                 </small>
