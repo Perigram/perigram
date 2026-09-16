@@ -354,16 +354,17 @@ async function entityConversationSummaries(messages, auth) {
     const entityMessages = messages.filter(message => message.conversationKind === 'entity' && message.entityLink);
     if (!entityMessages.length) return [];
 
-    // Rollup nodes are reader-relative: each message joins at the highest
-    // path ancestor (below the organization) the reader can actually
-    // resolve, so unreadable ancestors never absorb messages and degraded
-    // paths fall back to the highest available entry.
+    // Rollup nodes are the top-level nodes of the lineage hierarchy trees:
+    // each message joins at the ancestor whose type carries no non-organization
+    // parent binding. The walk uses live lineage (entity lineage keys plus
+    // the compiled bindings), never the stored entityPath, which can be
+    // degraded when ancestors failed to resolve at send time.
     const scopedAuth = await resolveEntityOptionAuth(auth);
-    const readability = new Map();
+    const entityCache = new Map();
     const entryByMessage = new WeakMap();
     const rollupEntryFor = async (message) => {
         if (!entryByMessage.has(message)) {
-            entryByMessage.set(message, await highestAvailableEntry(scopedAuth, message, readability));
+            entryByMessage.set(message, await topLevelEntityFor(scopedAuth, message, entityCache));
         }
         return entryByMessage.get(message);
     };
@@ -390,20 +391,45 @@ async function entityConversationSummaries(messages, auth) {
     return rows.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
 }
 
-async function highestAvailableEntry(scopedAuth, message, cache) {
-    const path = message.entityPath || [];
-    const start = path[0]?.type === 'organization' ? 1 : 0;
-    for (let index = start; index < path.length; index++) {
-        const candidate = path[index];
-        if (!candidate?.type || !candidate?.id) continue;
-        const cacheKey = `${candidate.type}:${candidate.id}`;
+async function topLevelEntityFor(scopedAuth, message, cache) {
+    const bindings = scopedAuth.process?.lineageBindings || [];
+    const parentBindingFor = (type) => bindings.find(binding => (
+        binding.childEntityType === type
+        && binding.ancestorEntityType !== 'organization'
+        && binding.lineageKey
+    ));
+    const cachedEntity = async (type, id) => {
+        const cacheKey = `${type}:${id}`;
         if (!cache.has(cacheKey)) {
-            const entity = await fetchLinkedEntity(scopedAuth, candidate.type, candidate.id);
-            cache.set(cacheKey, entity ? candidate : null);
+            cache.set(cacheKey, await fetchLinkedEntity(scopedAuth, type, id));
         }
-        if (cache.get(cacheKey)) return candidate;
+        return cache.get(cacheKey);
+    };
+
+    let type = message.entityLink.type;
+    let id = String(message.entityLink.id);
+    let name = message.entityLink.name || id;
+    const seen = new Set([`${type}:${id}`]);
+    while (true) {
+        const binding = parentBindingFor(type);
+        if (!binding) break;
+        const entity = entityDto(await cachedEntity(type, id));
+        const parentId = entity?.lineage?.[binding.lineageKey]
+            ? String(entity.lineage[binding.lineageKey])
+            : '';
+
+        if (!parentId) break;
+        const parentKey = `${binding.ancestorEntityType}:${parentId}`;
+        if (seen.has(parentKey)) break;
+        const parent = await cachedEntity(binding.ancestorEntityType, parentId);
+        if (!parent) break;
+        const parentDto = entityDto(parent);
+        seen.add(parentKey);
+        type = binding.ancestorEntityType;
+        id = parentId;
+        name = parentDto?.identity?.name || name;
     }
-    return message.entityLink;
+    return { type, id, name };
 }
 
 function entitySummaryRow(entry, message, flags = {}) {

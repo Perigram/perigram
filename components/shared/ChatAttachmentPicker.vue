@@ -1,5 +1,5 @@
 <template>
-  <Popover ref="popover">
+  <Popover ref="popover" :pt="popoverPt">
     <!-- The sidebar verbatim: home-screen sections with their collection
          action menus, lazily loaded entity rows, pure lineage nesting — no
          attachment chrome. -->
@@ -23,40 +23,21 @@
                 class="pi pi-exclamation-triangle shrink-0 text-status-warning"
                 :aria-label="$t('support.recipientChatOnlyWarning', { label: node.label })"
               />
-              <Button
-                v-if="sectionActionsFor(node.data?.section).length"
-                icon="pi pi-ellipsis-v"
-                text
-                rounded
-                size="small"
-                severity="secondary"
-                class="shrink-0"
-                :aria-label="$t('common.add')"
-                @click.stop="toggleSectionActions($event, node)"
-              />
             </span>
           </template>
         </Tree>
       </div>
     </div>
-    <Menu ref="actionsMenu" :model="sectionActionItems" :popup="true">
-      <template #item="{ item }">
-        <GeneratedActionButton :action-id="item.actionId" menu-item @execute="chooseSectionAction" />
-      </template>
-    </Menu>
   </Popover>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
-import Button from 'primevue/button'
-import Menu from 'primevue/menu'
 import Popover from 'primevue/popover'
 import Tree from 'primevue/tree'
 import { useI18n } from 'vue-i18n'
-import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue'
 import { isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js'
-import { generatedRegionLabel } from '~/utils/generated-labels.js'
+import { generatedActionLabel, generatedRegionLabel } from '~/utils/generated-labels.js'
 import { useAuthStore } from '~/stores/auth'
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js'
@@ -77,7 +58,6 @@ const emit = defineEmits(['select', 'create-action'])
 
 const { t, te } = useI18n()
 const popover = ref(null)
-const actionsMenu = ref(null)
 const selectionKeys = ref({})
 const expandedKeys = ref({})
 const sectionOptions = ref(new Map())
@@ -85,12 +65,16 @@ const sectionOptionsLoaded = ref(new Set())
 const childrenByParentKey = ref(new Map())
 const loadedChildrenKeys = ref(new Set())
 const loadingKeys = ref(new Set())
-const sectionActionEntries = ref([])
 const authStore = useAuthStore()
 const domainUi = useCutkitDomainUi()
 const effectiveContainment = useEffectiveContainment()
 
+const popoverPt = {
+  root: { style: { padding: '0.25rem' } }
+}
+
 const treePt = {
+  root: { style: { padding: '0', border: '0' } },
   nodeChildren: { style: { paddingInlineStart: '0' } },
   nodeContent: ({ props }) => ({
     style: { paddingInlineStart: `${(Math.max(props.level || 1, 1) - 1) * 0.6}rem` }
@@ -151,23 +135,6 @@ function sectionActionsFor(section = null) {
     .filter(action => action.actionKind === 'createEntity' && isGeneratedSurfaceAction(action))
 }
 
-const sectionActionItems = computed(() => sectionActionEntries.value.map(entry => ({
-  actionId: entry.actionId
-})))
-
-function toggleSectionActions(event, node) {
-  const section = node?.data?.section
-  if (!section) return
-  sectionActionEntries.value = sectionActionsFor(section)
-  actionsMenu.value?.toggle(event)
-}
-
-function chooseSectionAction(action) {
-  actionsMenu.value?.hide?.()
-  hide()
-  emit('create-action', action)
-}
-
 const isExpandable = (item) => {
   if (childrenByParentKey.value.get(item.key)?.length) return true
   if (loadedChildrenKeys.value.has(item.key)) return false
@@ -178,14 +145,27 @@ const sectionChildren = (section) => {
   const sectionKey = `type:${section.source.entityType}`
   if (loadingKeys.value.has(sectionKey) && !sectionOptions.value.has(sectionKey)) return [loadingNode(sectionKey)]
   const options = sectionOptions.value.get(sectionKey)
-  if (!options) return []
-  return options
-    .filter(option => option?.value)
-    .map(option => entityNode({
-      key: `${section.source.entityType}:${option.value}`,
-      type: section.source.entityType,
-      entity: option.entity || null
-    }, option))
+  // Create entries ride the list right beside the entity children — the
+  // same generated buttons, as rows, not a second popup.
+  const createEntries = sectionActionsFor(section).map(action => ({
+    key: `${sectionKey}:create:${action.actionId}`,
+    label: generatedActionLabel(action, action.actionId, { t, te }),
+    icon: 'pi pi-plus',
+    selectable: true,
+    leaf: true,
+    data: { createAction: action }
+  }))
+  if (!options) return createEntries
+  return [
+    ...createEntries,
+    ...options
+      .filter(option => option?.value)
+      .map(option => entityNode({
+        key: `${section.source.entityType}:${option.value}`,
+        type: section.source.entityType,
+        entity: option.entity || null
+      }, option))
+  ]
 }
 
 const entityNode = (item, option = null) => {
@@ -209,13 +189,15 @@ const nodes = computed(() => sections.value.map(section => {
   const sectionKey = `type:${section.source.entityType}`
   const loaded = sectionOptionsLoaded.value.has(sectionKey)
   const options = sectionOptions.value.get(sectionKey) || []
+  const createEntries = sectionActionsFor(section)
   return {
     key: sectionKey,
     label: section.label,
     icon: iconFor(section.source.entityType),
     selectable: false,
-    // Sections stay expandable until a load proves them empty.
-    leaf: Boolean(loaded) && !options.length,
+    // Sections stay expandable until a load proves them empty; create
+    // entries alone keep them expandable too.
+    leaf: Boolean(loaded) && !options.length && !createEntries.length,
     data: { section },
     children: sectionChildren(section)
   }
@@ -290,6 +272,12 @@ async function loadContainmentChildren(parent) {
 }
 
 function selectNode(node) {
+  const createAction = node?.data?.createAction
+  if (createAction) {
+    hide()
+    emit('create-action', createAction)
+    return
+  }
   const option = node?.data?.option
   const item = node?.data?.item
   if (option) {

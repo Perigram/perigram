@@ -456,46 +456,54 @@
                             @click="cancelReply"
                         />
                     </div>
-                    <!-- Entity link target strip: the composed entity plus its
-                         child entities, exactly one selected at a time —
-                         selecting a child creates that entity chat on send.
-                         Selection is exclusive by click (no accidental
-                         deselect into the parent). -->
+                    <!-- Entity target strip: lineage drill-down over ALL
+                         children of the current target. Breadcrumbs of
+                         lineage icons walk back up; the deepest target is
+                         where the next message lands (the composed entity
+                         when no child is picked). -->
                     <div
-                        v-if="activeConversation.conversationKind === 'entity' && childChips.length"
-                        class="flex gap-1 overflow-x-auto pb-1"
+                        v-if="activeConversation.conversationKind === 'entity' && stripChildren.length"
+                        class="flex flex-col gap-1 pb-1"
                         data-testid="entity-target-strip"
                     >
-                        <button
-                            type="button"
-                            :disabled="Boolean(replyTo)"
-                            class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                            :class="!composerEntity
-                                ? 'bg-primary text-primary-contrast'
-                                : 'bg-subtle text-muted-color'"
-                            :aria-pressed="!composerEntity"
-                            @click="selectComposerEntity(null)"
-                        >
-                            <i :class="entityConversationIcon(activeConversation)" class="shrink-0" aria-hidden="true"></i>
-                            <span class="max-w-32 truncate">
-                                {{ activeConversation.entityName || localizedEntityTypeLabel(activeConversation.entityType) }}
-                            </span>
-                        </button>
-                        <button
-                            v-for="chip in childChips"
-                            :key="chip.key"
-                            type="button"
-                            :disabled="Boolean(replyTo)"
-                            class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                            :class="composerEntity?.type === chip.type && composerEntity?.id === chip.id
-                                ? 'bg-primary text-primary-contrast'
-                                : 'bg-subtle text-muted-color'"
-                            :aria-pressed="composerEntity?.type === chip.type && composerEntity?.id === chip.id"
-                            @click="selectComposerEntity(chip)"
-                        >
-                            <i :class="domainUi.getIcon(chip.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
-                            <span class="max-w-32 truncate">{{ chip.name }}</span>
-                        </button>
+                        <div v-if="stripTrail.length" class="flex items-center gap-1 overflow-x-auto">
+                            <button
+                                type="button"
+                                class="flex shrink-0 items-center gap-1 rounded-ui bg-subtle px-2 py-0.5 text-muted-color text-supporting transition-colors hover:opacity-80"
+                                :aria-label="activeConversation.entityName || localizedEntityTypeLabel(activeConversation.entityType)"
+                                @click="resetStripTrail()"
+                            >
+                                <i :class="entityConversationIcon(activeConversation)" class="shrink-0" aria-hidden="true"></i>
+                            </button>
+                            <template v-for="(crumb, index) in stripTrail" :key="crumb.key">
+                                <i class="pi pi-angle-right shrink-0 text-muted-color text-supporting" aria-hidden="true"></i>
+                                <button
+                                    type="button"
+                                    class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-0.5 text-supporting transition-colors"
+                                    :class="index === stripTrail.length - 1
+                                        ? 'bg-primary text-primary-contrast'
+                                        : 'bg-subtle text-muted-color hover:opacity-80'"
+                                    :aria-current="index === stripTrail.length - 1 ? 'true' : undefined"
+                                    @click="truncateStripTrail(index)"
+                                >
+                                    <i :class="domainUi.getIcon(crumb.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
+                                    <span class="max-w-28 truncate">{{ crumb.name }}</span>
+                                </button>
+                            </template>
+                        </div>
+                        <div class="flex gap-1 overflow-x-auto">
+                            <button
+                                v-for="chip in stripChildren"
+                                :key="chip.key"
+                                type="button"
+                                :disabled="Boolean(replyTo)"
+                                class="flex shrink-0 items-center gap-1 rounded-ui bg-subtle px-2 py-1 text-muted-color text-supporting transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-60"
+                                @click="drillStripTo(chip)"
+                            >
+                                <i :class="domainUi.getIcon(chip.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
+                                <span class="max-w-32 truncate">{{ chip.name }}</span>
+                            </button>
+                        </div>
                     </div>
                     <div v-if="messagePreviewVisible" class="rounded-ui bg-subtle p-2 text-muted-color text-body">
                         <SupportMessageContent :message="draftPreviewMessage" :viewer-user-id="currentUserId" />
@@ -758,6 +766,7 @@ import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js'
 import { openEntityChat } from '~/utils/entity-chat.js'
 import { openEntityInWorkspace } from '~/utils/entity-workspace-open.js'
+import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useAuthStore } from '~/stores/auth'
 import { useSupportChatStore } from '~/stores/supportChat'
@@ -1312,41 +1321,110 @@ const handleMessagesScroll = () => {
     if (container.scrollTop <= 60) loadOlderMessages()
 }
 
-// Immediate children seen in this thread: chips over the composer pick the
-// link target for the next message, latest first, latest preselected.
-const childChips = computed(() => {
+// Entity target strip: lineage drill-down. The strip lists ALL children of
+// the current target (composed entity, or the deepest drilled entity);
+// picking a child drills into it (the next message lands there), breadcrumbs
+// of lineage icons walk back up. Children load through the same containment
+// sources the sidebar uses.
+const stripTrail = ref([])
+const stripChildrenByKey = ref(new Map())
+const stripLoadingKeys = ref(new Set())
+
+const stripTargetKey = computed(() => {
     const conversation = activeConversation.value
-    if (conversation?.conversationKind !== 'entity') return []
-    const byKey = new Map()
-    for (const messageItem of messages.value) {
-        const path = messageItem.entityPath || []
-        const index = path.findIndex(entry => entry.type === conversation.entityType && entry.id === conversation.entityId)
-        if (index < 0) continue
-        const child = path[index + 1]
-        if (!child?.type || !child?.id) continue
-        const key = `${child.type}:${child.id}`
-        const existing = byKey.get(key)
-        if (existing) {
-            if (new Date(messageItem.timestamp) > new Date(existing.timestamp)) existing.timestamp = messageItem.timestamp
-            continue
-        }
-        byKey.set(key, { ...child, key, timestamp: messageItem.timestamp })
-    }
-    return [...byKey.values()].sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp))
+    if (conversation?.conversationKind !== 'entity') return ''
+    const deepest = stripTrail.value[stripTrail.value.length - 1]
+    return deepest?.key || `${conversation.entityType}:${conversation.entityId}`
 })
 
-watch(childChips, (chips) => {
-    if (composerEntityTouched) return
-    // Latest-child preselection belongs to the top-level (organization) chat
-    // only; a thread composed for a specific entity defaults to that entity,
-    // so a panel inside entity X links sends to X unless a chip is picked.
-    const conversation = activeConversation.value
-    const latest = chips[0] || null
-    const preferLatestChild = conversation?.entityType === 'organization'
-    composerEntity.value = preferLatestChild && latest
-        ? { type: latest.type, id: latest.id, name: latest.name }
-        : null
+const stripChildren = computed(() => stripChildrenByKey.value.get(stripTargetKey.value) || [])
+
+async function loadStripChildren(targetKey, targetType, targetEntity = null) {
+    if (!targetKey || stripChildrenByKey.value.has(targetKey) || stripLoadingKeys.value.has(targetKey)) return
+    stripLoadingKeys.value = new Set([...stripLoadingKeys.value, targetKey])
+    try {
+        const sources = linkedExplorerChildSources({
+            linkedItems: [{ key: targetKey, type: targetType, entity: targetEntity }],
+            screens: authStore.screenManifest,
+            containment: effectiveContainmentForStrip()
+        })
+        const loaded = await Promise.all(sources.map(async source => {
+            try {
+                const entities = await $fetch(domainUi.getListEndpoint(source.entityType, source.filters))
+                return (Array.isArray(entities) ? entities : []).map(entity => ({
+                    key: `${source.entityType}:${stripEntityId(entity)}`,
+                    type: source.entityType,
+                    name: entity?.identity?.name || entity?.identity?.serial || stripEntityId(entity) || source.entityType,
+                    entity
+                }))
+            } catch {
+                return []
+            }
+        }))
+        const seen = new Set([targetKey])
+        const merged = loaded.flat().filter(item => {
+            if (!item.key || item.key === targetKey || seen.has(item.key)) return false
+            seen.add(item.key)
+            return true
+        })
+        stripChildrenByKey.value = new Map([...stripChildrenByKey.value, [targetKey, merged]])
+    } finally {
+        stripLoadingKeys.value = new Set([...stripLoadingKeys.value].filter(key => key !== targetKey))
+    }
+}
+
+function effectiveContainmentForStrip() {
+    const bindings = authStore.lineageBindings || []
+    if (authStore.processActive) {
+        return bindings.map(binding => ({
+            childType: binding.childEntityType,
+            parentType: binding.ancestorEntityType,
+            lineageKey: binding.lineageKey
+        }))
+    }
+    return domainUi.containment || []
+}
+
+const stripEntityId = (entity = null) => {
+    const value = entity?._id || entity?.identity?.uid || ''
+    return value ? String(value) : ''
+}
+
+watch([activeConversationKey, () => activeConversation.value?.entityType, () => activeConversation.value?.entityId], ([key]) => {
+    if (!key || activeConversation.value?.conversationKind !== 'entity') return
+    stripTrail.value = []
+    stripChildrenByKey.value = new Map()
+    composerEntity.value = null
+    composerEntityTouched = false
+    loadStripChildren(
+        `${activeConversation.value.entityType}:${activeConversation.value.entityId}`,
+        activeConversation.value.entityType,
+        { _id: activeConversation.value.entityId }
+    )
 }, { immediate: true })
+
+function drillStripTo(chip) {
+    if (replyTo.value) return
+    composerEntityTouched = true
+    stripTrail.value = [...stripTrail.value, chip]
+    composerEntity.value = { type: chip.type, id: chip.id, name: chip.name }
+    loadStripChildren(chip.key, chip.type, chip.entity)
+}
+
+function truncateStripTrail(index) {
+    stripTrail.value = stripTrail.value.slice(0, index + 1)
+    const deepest = stripTrail.value[stripTrail.value.length - 1] || null
+    composerEntityTouched = true
+    composerEntity.value = deepest
+        ? { type: deepest.type, id: deepest.id, name: deepest.name }
+        : null
+}
+
+function resetStripTrail() {
+    stripTrail.value = []
+    composerEntityTouched = true
+    composerEntity.value = null
+}
 
 watch(activeConversationKey, () => {
     replyTo.value = null
@@ -1362,12 +1440,9 @@ watch(includeChildren, () => {
 })
 
 // While a reply is pending, its entity link is locked to the quoted
-// message and cannot be switched until the reply is discarded. Selection is
-// exclusive: re-tapping the active chip keeps it instead of silently
-// dropping the send to the composed entity.
+// message and cannot be switched until the reply is discarded.
 const selectComposerEntity = (chip) => {
     if (replyTo.value) return
-    if (chip && composerEntity.value?.type === chip.type && composerEntity.value?.id === chip.id) return
     composerEntityTouched = true
     composerEntity.value = chip
         ? { type: chip.type, id: chip.id, name: chip.name }

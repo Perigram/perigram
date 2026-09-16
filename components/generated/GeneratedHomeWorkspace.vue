@@ -196,7 +196,7 @@
 </template>
 
 <script setup>
-import { computed, provide, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
 import Menu from 'primevue/menu';
@@ -208,6 +208,7 @@ import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
 import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
+import { consumePendingWorkspaceEntity, workspaceEntityOpenEvent } from '~/utils/entity-workspace-open.js';
 import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
@@ -457,6 +458,26 @@ watch(() => callsStore.pendingTabRoom, room => {
   openCallTab(room, { conversationKey: conversationKeyForRoom(room) });
   callsStore.consumePendingTabRoom();
 }, { immediate: true });
+
+// Desktop entity links open as workspace tabs: live events while the home
+// workspace is mounted, pending requests (stashed before navigating home)
+// consumed on mount.
+function openRequestedWorkspaceEntity(event) {
+  event?.preventDefault?.();
+  const { entityType, entityId } = event?.detail || {};
+  if (!entityType || !entityId) return;
+  openWorkspaceEntity(entityType, { _id: entityId });
+}
+
+onMounted(() => {
+  window.addEventListener(workspaceEntityOpenEvent, openRequestedWorkspaceEntity);
+  const pending = consumePendingWorkspaceEntity();
+  if (pending?.entityType) openRequestedWorkspaceEntity({ detail: pending });
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener(workspaceEntityOpenEvent, openRequestedWorkspaceEntity);
+});
 
 watch([activePaneId, paneTree], syncActiveSelection);
 
