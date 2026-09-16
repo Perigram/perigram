@@ -3,7 +3,7 @@
         class="chat-host"
         :class="embedded
             ? 'flex h-full min-h-0 w-full items-stretch justify-stretch p-0'
-            : 'fixed inset-0 z-50 flex items-stretch justify-stretch p-0 pointer-events-none md:top-auto md:left-auto md:bottom-0 md:right-0 md:items-end md:justify-end md:p-6'"
+            : 'fixed inset-0 z-50 flex items-stretch justify-stretch p-0 pointer-events-none md:items-end md:justify-end md:p-6'"
     >
         <div
             v-if="supportDialog || embedded"
