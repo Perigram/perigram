@@ -25,19 +25,21 @@
           <!-- Ongoing calls live directly in the sidebar as persistent rows;
                only brand-new invites float (IncomingCalls). -->
           <div v-if="callsStore.activeRooms.length" class="mt-2 flex flex-col gap-1" data-active-calls>
-            <small class="px-2 text-muted">{{ $t('call.activeRooms') }}</small>
-            <button
+            <small class="px-2 text-muted text-supporting">{{ $t('call.activeRooms') }}</small>
+            <Button
               v-for="room in callsStore.activeRooms"
               :key="room.room"
-              type="button"
-              class="flex min-w-0 items-center gap-2 rounded-ui p-2 text-left transition-colors hover:bg-subtle"
+              text
+              severity="secondary"
+              size="small"
+              class="w-full !justify-start !gap-2"
               :aria-label="$t('call.join')"
               @click="openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })"
             >
               <i :class="callRoomIcon(room.kind)" class="shrink-0 text-primary" aria-hidden="true" />
               <span class="min-w-0 flex-1 truncate text-label">{{ activeRoomLabel(room) }}</span>
               <span class="shrink-0 text-muted text-supporting">{{ room.participants }}</span>
-            </button>
+            </Button>
           </div>
         </nav>
 

@@ -72,27 +72,31 @@
                     :message="$t('support.noConversations')"
                     icon="pi pi-comments"
                 />
-                <div v-else class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-2 md:p-3">
-                    <button
-                        v-for="conversation in conversationSections"
-                        :key="conversation.conversationKey"
-                            type="button"
-                            class="flex min-w-0 items-center gap-2 rounded-ui p-2 text-left transition-colors hover:bg-subtle md:gap-3"
-                            :class="{ 'bg-subtle': isActiveConversation(conversation) }"
-                            @click="openConversation(conversation)"
-                        >
+                <Listbox
+                    v-else
+                    :model-value="activeConversation?.conversationKey || null"
+                    :options="conversationSections"
+                    option-label="conversationKey"
+                    option-value="conversationKey"
+                    :aria-label="$t('support.chatTitle')"
+                    class="min-h-0 flex-1"
+                    :pt="inboxListboxPt"
+                    @update:model-value="key => openConversationByKey(key)"
+                >
+                    <template #option="{ option }">
+                        <div class="flex min-w-0 flex-1 items-center gap-2 md:gap-3">
                             <div class="relative shrink-0">
                                 <!-- Neutral placeholders: unread ink belongs to badges,
                                      not to letter/icon fallbacks. -->
                                 <Avatar
-                                    v-if="conversation.conversationKind === 'entity'"
-                                    :icon="entityConversationIcon(conversation)"
+                                    v-if="option.conversationKind === 'entity'"
+                                    :icon="entityConversationIcon(option)"
                                     shape="circle"
                                     size="normal"
                                     class="bg-subtle text-muted"
                                 />
                                 <Avatar
-                                    v-else-if="conversation.conversationKind === 'group'"
+                                    v-else-if="option.conversationKind === 'group'"
                                     icon="pi pi-users"
                                     shape="circle"
                                     size="normal"
@@ -100,41 +104,42 @@
                                 />
                                 <Avatar
                                     v-else
-                                    :image="conversationAvatar(conversation)"
-                                    :label="conversationLabel(conversation).charAt(0).toUpperCase()"
+                                    :image="conversationAvatar(option)"
+                                    :label="conversationLabel(option).charAt(0).toUpperCase()"
                                     shape="circle"
                                     size="normal"
                                     class="bg-subtle text-muted [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                                 />
                                 <span
-                                    v-if="conversation.conversationKind === 'direct' && participantOnline(conversation)"
+                                    v-if="option.conversationKind === 'direct' && participantOnline(option)"
                                     class="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-ui bg-status-success"
                                     :aria-label="$t('support.online')"
                                 />
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex min-w-0 items-center gap-2">
-                                    <span class="truncate text-label">{{ conversationLabel(conversation) }}</span>
+                                    <span class="truncate text-label">{{ conversationLabel(option) }}</span>
                                     <small
-                                        v-if="conversation.conversationKind === 'group'"
+                                        v-if="option.conversationKind === 'group'"
                                         class="shrink-0 text-muted text-supporting"
                                     >
-                                        {{ $t('support.membersCount', { count: (conversation.participants || []).length }) }}
+                                        {{ $t('support.membersCount', { count: (option.participants || []).length }) }}
                                     </small>
                                 </div>
                                 <small class="block truncate text-muted">
                                     <SupportMessageContent
-                                        v-if="conversation.lastMessage"
-                                        :message="conversationPreviewMessage(conversation)"
+                                        v-if="option.lastMessage"
+                                        :message="conversationPreviewMessage(option)"
                                         :viewer-user-id="currentUserId"
                                         single-line
                                     />
                                     <template v-else>{{ $t('support.noMessages') }}</template>
                                 </small>
                             </div>
-                            <small v-if="conversation.timestamp" class="shrink-0 text-muted">{{ shortTime(conversation.timestamp) }}</small>
-                    </button>
-                </div>
+                            <small v-if="option.timestamp" class="shrink-0 text-muted">{{ shortTime(option.timestamp) }}</small>
+                        </div>
+                    </template>
+                </Listbox>
             </aside>
 
             <div v-if="fullPage && !activeConversation" class="chat-empty min-h-0 flex-1 items-center justify-center">
@@ -175,14 +180,15 @@
                     />
                     <div class="min-w-0 flex-1">
                         <h2 class="m-0 truncate text-section-heading">
-                            <button
+                            <Button
                                 v-if="activeConversation.conversationKind === 'entity' && activeEntityDetailRoute"
-                                type="button"
-                                class="text-left underline-offset-4 transition-opacity hover:underline hover:opacity-80"
+                                link
+                                class="!p-0 text-left"
+                                :aria-label="conversationLabel(activeConversation)"
                                 @click="openEntityFromThread"
                             >
                                 {{ conversationLabel(activeConversation) }}
-                            </button>
+                            </Button>
                             <template v-else>{{ conversationLabel(activeConversation) }}</template>
                         </h2>
                         <!-- Group threads carry their member profiles inline;
@@ -337,30 +343,33 @@
                             @touchmove="onTouchMove($event, messageItem)"
                             @touchend="onTouchEnd(messageItem)"
                         >
-                            <button
+                            <Button
                                 v-if="messageItem.parent"
-                                type="button"
-                                class="flex max-w-full min-w-0 flex-col gap-0.5 rounded-ui bg-subtle px-2 py-1 text-left"
+                                text
+                                severity="secondary"
+                                class="max-w-full min-w-0 !flex !justify-start !bg-subtle !px-2 !py-1 text-left"
                                 :aria-label="$t('support.goToMessage')"
                                 @click="goToMessage(messageItem.parent._id)"
                             >
-                                <small class="text-muted text-supporting">
-                                    {{ messageItem.parent.senderName || $t('common.user') }}
-                                </small>
-                                <span class="flex min-w-0 items-center gap-1 text-supporting">
-                                    <i
-                                        v-if="messageItem.parent.attachment?.kind === 'audio'"
-                                        class="pi pi-microphone shrink-0 text-muted"
-                                        aria-hidden="true"
-                                    />
-                                    <span v-if="messageItem.parent.snippet" class="min-w-0 truncate [overflow-wrap:anywhere]">
-                                        {{ messageItem.parent.snippet }}
-                                    </span>
-                                    <span v-else-if="messageItem.parent.attachment?.kind === 'audio'" class="text-muted">
-                                        {{ $t('support.voiceMessage') }}
+                                <span class="flex max-w-full min-w-0 flex-col gap-0.5">
+                                    <small class="text-muted text-supporting">
+                                        {{ messageItem.parent.senderName || $t('common.user') }}
+                                    </small>
+                                    <span class="flex min-w-0 items-center gap-1 text-supporting">
+                                        <i
+                                            v-if="messageItem.parent.attachment?.kind === 'audio'"
+                                            class="pi pi-microphone shrink-0 text-muted"
+                                            aria-hidden="true"
+                                        />
+                                        <span v-if="messageItem.parent.snippet" class="min-w-0 truncate [overflow-wrap:anywhere]">
+                                            {{ messageItem.parent.snippet }}
+                                        </span>
+                                        <span v-else-if="messageItem.parent.attachment?.kind === 'audio'" class="text-muted">
+                                            {{ $t('support.voiceMessage') }}
+                                        </span>
                                     </span>
                                 </span>
-                            </button>
+                            </Button>
                             <audio
                                 v-if="messageItem.attachment?.kind === 'audio'"
                                 :src="attachmentUrl(messageItem.attachment)"
@@ -417,15 +426,17 @@
                                 <!-- Messages linked to lower entities keep a
                                      subtle, clickable leaf chip inside the
                                      composed view. -->
-                                <button
+                                <Button
                                     v-if="lowerEntityChip(messageItem)"
-                                    type="button"
-                                    class="flex min-w-0 items-center gap-1 opacity-70 transition-opacity hover:opacity-100"
+                                    link
+                                    size="small"
+                                    class="!gap-1 min-w-0"
+                                    :aria-label="messageItem.entityLink.name"
                                     @click="openLowerEntityChat(messageItem)"
                                 >
                                     <i :class="domainUi.getIcon(messageItem.entityLink.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
                                     <span class="min-w-0 truncate">{{ messageItem.entityLink.name }}</span>
-                                </button>
+                                </Button>
                             </span>
                         </div>
                     </template>
@@ -467,48 +478,49 @@
                         data-testid="entity-target-strip"
                     >
                         <div v-if="stripTrail.length" class="flex items-center gap-1 overflow-x-auto">
-                            <button
-                                type="button"
-                                class="flex shrink-0 items-center gap-1 rounded-ui bg-subtle px-2 py-0.5 text-muted text-supporting transition-colors hover:opacity-80"
+                            <Button
+                                severity="secondary"
+                                outlined
+                                size="small"
+                                class="!shrink-0 !gap-1 !rounded-ui"
+                                :aria-label="activeConversation.entityName || localizedEntityTypeLabel(activeConversation.entityType)"
                                 @click="resetStripTrail()"
                             >
                                 <i :class="entityConversationIcon(activeConversation)" class="shrink-0" aria-hidden="true"></i>
                                 <span class="max-w-28 truncate">
                                     {{ activeConversation.entityName || localizedEntityTypeLabel(activeConversation.entityType) }}
                                 </span>
-                            </button>
+                            </Button>
                             <template v-for="(crumb, index) in stripTrail" :key="crumb.key">
                                 <i class="pi pi-angle-right shrink-0 text-muted text-supporting" aria-hidden="true"></i>
-                                <button
-                                    type="button"
-                                    class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-0.5 text-supporting transition-colors"
-                                    :class="index === stripTrail.length - 1
-                                        ? 'bg-primary text-primary-contrast'
-                                        : 'bg-subtle text-muted hover:opacity-80'"
+                                <Button
+                                    :severity="index === stripTrail.length - 1 ? undefined : 'secondary'"
+                                    :outlined="index !== stripTrail.length - 1"
+                                    size="small"
+                                    class="!shrink-0 !gap-1 !rounded-ui"
                                     :aria-current="index === stripTrail.length - 1 ? 'true' : undefined"
                                     @click="truncateStripTrail(index)"
                                 >
                                     <i :class="domainUi.getIcon(crumb.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
                                     <span class="max-w-28 truncate">{{ crumb.name || localizedEntityTypeLabel(crumb.type) }}</span>
-                                </button>
+                                </Button>
                             </template>
                         </div>
                         <div v-if="stripChildren.length" class="flex gap-1 overflow-x-auto">
-                            <button
+                            <Button
                                 v-for="chip in stripChildren"
                                 :key="chip.key"
-                                type="button"
+                                :severity="isChipSelected(chip) ? undefined : 'secondary'"
+                                :outlined="!isChipSelected(chip)"
+                                size="small"
                                 :disabled="Boolean(replyTo)"
-                                class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                                :class="isChipSelected(chip)
-                                    ? 'bg-primary text-primary-contrast'
-                                    : 'bg-subtle text-muted hover:opacity-80'"
+                                class="!shrink-0 !gap-1 !rounded-ui"
                                 :aria-pressed="isChipSelected(chip)"
                                 @click="drillStripTo(chip)"
                             >
                                 <i :class="domainUi.getIcon(chip.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
                                 <span class="max-w-32 truncate">{{ chip.name || localizedEntityTypeLabel(chip.type) }}</span>
-                            </button>
+                            </Button>
                         </div>
                     </div>
                     <div v-if="messagePreviewVisible" class="rounded-ui bg-subtle p-2 text-muted text-body">
@@ -751,6 +763,7 @@
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 import Avatar from 'primevue/avatar'
 import Divider from 'primevue/divider'
+import Listbox from 'primevue/listbox'
 import Button from 'primevue/button'
 import ConfirmDialog from 'primevue/confirmdialog'
 import InputText from 'primevue/inputtext'
@@ -968,6 +981,19 @@ const conversationSections = computed(() => [...displayConversations.value].sort
 }))
 
 const isActiveConversation = (conversation) => activeConversation.value?.conversationKey === conversation.conversationKey
+
+// The inbox is a PrimeVue Listbox: single selection with keyboard navigation
+// and Aura's selected-option state; layout passthroughs keep the option rows
+// full-width flex rows for the rich row template.
+const inboxListboxPt = {
+    list: { class: 'flex min-h-full flex-col gap-1 overflow-y-auto p-2 md:p-3' },
+    option: { class: 'flex w-full min-w-0 rounded-ui' }
+}
+
+const openConversationByKey = (key) => {
+    const conversation = conversationSections.value.find(item => item.conversationKey === key)
+    if (conversation) openConversation(conversation)
+}
 
 const entityConversationIcon = (conversation) => (
     domainUi.getIcon(conversation?.entityType) || 'pi pi-box'

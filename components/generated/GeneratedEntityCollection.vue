@@ -40,14 +40,15 @@
         :header="$t(field.i18n || field.path)"
       >
         <template #body="{ data }">
-          <button
+          <Button
             v-if="isIdentityNameField(field.path) && detailRouteFor(data)"
-            type="button"
-            class="min-w-0 max-w-full truncate text-left text-[var(--ck-primary-ink)] underline-offset-4 hover:underline text-label"
+            link
+            class="min-w-0 max-w-full !justify-start text-label"
+            :aria-label="formatCell(data, field.path)"
             @click="openEntity(data)"
           >
             {{ formatCell(data, field.path) }}
-          </button>
+          </Button>
           <template v-else>
             {{ formatCell(data, field.path) }}
           </template>
@@ -73,13 +74,14 @@
           <TraceChain :entity="entity" :entity-type="entityType" :exclude="traceExclusions" variant="compact" expandable />
           <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <div class="flex min-w-0 flex-1 items-center">
-              <button
-                type="button"
-                class="min-w-0 max-w-full text-left text-[var(--ck-primary-ink)] underline-offset-4 hover:underline"
+              <Button
+                link
+                class="min-w-0 max-w-full !justify-start"
+                :aria-label="entity.identity?.name || $t('common.open')"
                 @click.stop="openEntity(entity)"
               >
                 <IdentityBlock :entity="entity" :icon="entityIcon" />
-              </button>
+              </Button>
             </div>
             <div v-if="entity.status" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
               <EntityStatus
