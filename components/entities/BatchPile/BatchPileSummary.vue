@@ -4,7 +4,7 @@
             <div class="flex items-center gap-3">
                 <i class="pi pi-box"></i>
                 <div class="flex flex-col">
-                    <small class="text-muted-color">{{ $t('entities.batchPile') }}</small>
+                    <small class="text-muted">{{ $t('entities.batchPile') }}</small>
                     <span class="text-label">{{ serial }}</span>
                 </div>
             </div>
@@ -12,11 +12,11 @@
         </div>
         <div class="grid grid-cols-2 gap-3 text-body">
             <div class="flex flex-col">
-                <small class="text-muted-color">{{ $t('piles.stockTotal') }}</small>
+                <small class="text-muted">{{ $t('piles.stockTotal') }}</small>
                 <span class="text-label">{{ stock.total ?? $t('common.notAvailable') }}</span>
             </div>
             <div class="flex flex-col">
-                <small class="text-muted-color">{{ $t('piles.remaining') }}</small>
+                <small class="text-muted">{{ $t('piles.remaining') }}</small>
                 <span class="text-label">{{ remaining }}</span>
             </div>
         </div>

@@ -457,7 +457,7 @@ function tonePalette(role) {
       <div class="w-[min(34rem,calc(100vw-3rem))]">
         <div class="flex flex-col gap-4 p-4">
           <TraceChain v-if="resolved" :entity="resolved" :entity-type="type" />
-          <small class="uppercase text-muted-color text-supporting">
+          <small class="uppercase text-muted text-supporting">
             {{ compactTypeLabel }}
           </small>
           <div v-if="resolved" class="flex flex-wrap items-start justify-between gap-3">
@@ -531,7 +531,7 @@ function tonePalette(role) {
       :fields="fields"
       data-entity-card-interactive="true"
     />
-    <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted-color" data-entity-card-interactive="true">
+    <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted" data-entity-card-interactive="true">
       <i :class="icon" class="shrink-0"></i>
       <span class="truncate">{{ resolvedId || $t('common.notAvailable') }}</span>
     </span>

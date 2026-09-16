@@ -150,7 +150,7 @@
                                         <template #option="{ option }">
                                             <div class="flex min-w-0 flex-col">
                                                 <span class="truncate">{{ option.label }}</span>
-                                                <small class="text-muted-color">{{ inventoryOptionMeta(option) }}</small>
+                                                <small class="text-muted">{{ inventoryOptionMeta(option) }}</small>
                                             </div>
                                         </template>
                                     </Select>
@@ -177,7 +177,7 @@
                                             @remove="removeInventoryItem(item.uniqueId)"
                                         />
                                     </div>
-                                    <small v-else class="text-muted-color">
+                                    <small v-else class="text-muted">
                                         {{ $t('nesting.selectInventory') }}
                                     </small>
                                     <Message v-if="selectedStockSizeConflict" severity="error">
@@ -249,7 +249,7 @@
                                 <Column v-for="param in allParameters" :key="param" :header="param" :field="`dimensions.${param}`">
                                     <template #body="{ data }">
                                         <span v-if="hasEditableEntryParameters(data)">{{ data.dimensions?.[param] ?? '-' }}</span>
-                                        <span v-else class="text-muted-color">-</span>
+                                        <span v-else class="text-muted">-</span>
                                     </template>
                                 </Column>
                                 <Column field="quantity" :header="$t('common.quantity')" />

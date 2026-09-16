@@ -166,12 +166,12 @@ const eventKey = (event, index) => event._id || `${eventState(event)}-${event.ti
                 @click="openActorChat(event)"
               />
             </span>
-            <small v-else-if="actorName(event)" class="min-w-0 truncate text-muted-color" :title="actorTitle(event)">
+            <small v-else-if="actorName(event)" class="min-w-0 truncate text-muted" :title="actorTitle(event)">
               <i class="pi pi-user mr-1"></i>{{ actorName(event) }}
             </small>
             <time
               v-if="formatTime(event.timestamp)"
-              class="ml-auto text-right text-muted-color text-supporting"
+              class="ml-auto text-right text-muted text-supporting"
               :datetime="dateTimeAttribute(event.timestamp)"
             >
               {{ formatTime(event.timestamp) }}
@@ -200,7 +200,7 @@ const eventKey = (event, index) => event._id || `${eventState(event)}-${event.ti
             <small
               v-for="snapshot in eventSnapshots(event)"
               :key="`${eventKey(event, index)}-${snapshot.key}`"
-              class="inline-flex min-w-0 items-center gap-1 text-muted-color"
+              class="inline-flex min-w-0 items-center gap-1 text-muted"
             >
               <i class="pi pi-camera shrink-0"></i>
               <span class="truncate">{{ snapshot.label }}: {{ snapshot.count }}</span>

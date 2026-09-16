@@ -6,7 +6,7 @@
                 :key="tab.key"
                 :to="profileTabRoute(tab.key)"
                 class="border-b-2 px-3 py-3 no-underline text-body"
-                :class="activeProfileTab === tab.value ? 'border-primary text-primary' : 'border-transparent text-muted-color'"
+                :class="activeProfileTab === tab.value ? 'border-primary text-primary' : 'border-transparent text-muted'"
             >
                 {{ $t(tab.label) }}
             </NuxtLink>

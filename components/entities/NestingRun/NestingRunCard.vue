@@ -136,7 +136,7 @@ function selectRun(event) {
           <DataBlock entity-type="nestingRun" :entity="run" :fields="RUN_FIELDS" />
         </div>
         <div v-if="materialSources.length" class="flex flex-col gap-2">
-          <small class="text-muted-color">{{ $t('nesting.inventorySources') }}</small>
+          <small class="text-muted">{{ $t('nesting.inventorySources') }}</small>
           <div class="flex flex-col gap-2">
             <div
               v-for="source in materialSources"
@@ -158,7 +158,7 @@ function selectRun(event) {
         <div v-else-if="!hasFailure" class="flex justify-center p-2">
           <i class="pi pi-spin pi-spinner"></i>
         </div>
-        <div v-else class="italic text-muted-color">
+        <div v-else class="italic text-muted">
           {{ $t('results.failed') }}
         </div>
       </div>

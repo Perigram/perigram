@@ -12,7 +12,7 @@
           <Tag :value="citation.source" severity="secondary" size="small" />
           <strong>{{ citation.title }}</strong>
         </div>
-        <small class="text-muted-color text-technical">{{ citation.path }}</small>
+        <small class="text-muted text-technical">{{ citation.path }}</small>
         <p class="m-0 text-body">{{ citation.snippet }}</p>
       </div>
     </div>

@@ -41,7 +41,7 @@ const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surfa
 
       <div class="flex flex-col gap-3">
         <GeometryPreview v-if="hasGeometry" :entity="capture" />
-        <div v-else class="flex min-h-32 items-center justify-center rounded-ui border border-dashed border-content-border bg-subtle text-muted-color">
+        <div v-else class="flex min-h-32 items-center justify-center rounded-ui border border-dashed border-content-border bg-subtle text-muted">
           <i class="pi pi-spin pi-cog"></i>
         </div>
         <Divider />

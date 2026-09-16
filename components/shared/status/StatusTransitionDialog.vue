@@ -155,7 +155,7 @@ function reset() {
           :choose-button-props="{ severity: 'secondary', size: 'small', text: true }"
           @select="event => uploadFiles(slot, event.files)"
         />
-        <small v-if="attachmentSummary(slot)" class="min-w-0 truncate text-muted-color">
+        <small v-if="attachmentSummary(slot)" class="min-w-0 truncate text-muted">
           {{ attachmentSummary(slot) }}
         </small>
         <Message v-if="uploadErrors[slot]" severity="error" size="small" :closable="false">

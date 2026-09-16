@@ -52,10 +52,10 @@ provide('displayedEntityContexts', computed(() => [
 
       <div class="entity-page-header-content flex flex-col gap-3">
         <div class="flex min-w-0 flex-col gap-1">
-          <small v-if="showTypeLabel && typeLabel" class="uppercase text-muted-color text-supporting">
+          <small v-if="showTypeLabel && typeLabel" class="uppercase text-muted text-supporting">
             {{ typeLabel }}
           </small>
-          <div v-if="effectiveTitle" class="text-muted-color text-body">
+          <div v-if="effectiveTitle" class="text-muted text-body">
             {{ effectiveTitle }}
           </div>
           <div class="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -70,7 +70,7 @@ provide('displayedEntityContexts', computed(() => [
               @transitioned="$emit('refresh')"
             />
           </div>
-          <div v-if="$slots.info" class="flex flex-wrap items-center gap-x-5 gap-y-2 text-muted-color text-body">
+          <div v-if="$slots.info" class="flex flex-wrap items-center gap-x-5 gap-y-2 text-muted text-body">
             <slot name="info"></slot>
           </div>
         </div>

@@ -52,7 +52,7 @@
                     </Column>
                     <Column field="id" :header="$t('queue.entryId')">
                         <template #body="{ data }">
-                            <span class="italic text-muted-color">{{ data.id }}</span>
+                            <span class="italic text-muted">{{ data.id }}</span>
                         </template>
                     </Column>
                 </DataTable>

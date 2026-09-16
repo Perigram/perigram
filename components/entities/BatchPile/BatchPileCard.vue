@@ -19,7 +19,7 @@
         <SpecsBlock entity-type="batchPile" :entity="pile" />
         <DataBlock entity-type="batchPile" :entity="pile" :fields="BATCH_PILE_FIELDS" />
         <div v-if="requisitionId" class="flex flex-col gap-1 text-body">
-          <small class="text-muted-color">{{ $t('entities.requisition') }}</small>
+          <small class="text-muted">{{ $t('entities.requisition') }}</small>
           <EntityInlineRef type="requisition" :id="requisitionId" />
         </div>
       </div>

@@ -68,7 +68,7 @@ const onPreviewKeydown = (event) => {
       <div class="flex flex-col gap-3">
         <DataBlock entity-type="artifact" :entity="artifact" :fields="ARTIFACT_FIELDS" />
         <div v-if="runId" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('entities.nestingRun') }}</small>
+          <small class="text-muted">{{ $t('entities.nestingRun') }}</small>
           <EntityInlineRef type="nestingRun" :id="runId" />
         </div>
       </div>

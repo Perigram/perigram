@@ -167,15 +167,15 @@
         >
             <div class="flex flex-col gap-3">
                 <label class="flex flex-col gap-1">
-                    <span class="text-muted-color text-supporting">{{ $t('call.devices.microphone') }}</span>
+                    <span class="text-muted text-supporting">{{ $t('call.devices.microphone') }}</span>
                     <Select v-model="deviceId.audioinput" :options="audioInputs" option-label="label" option-value="deviceId" size="small" class="w-full" @update:model-value="value => switchDevice('audioinput', value)" />
                 </label>
                 <label class="flex flex-col gap-1">
-                    <span class="text-muted-color text-supporting">{{ $t('call.devices.camera') }}</span>
+                    <span class="text-muted text-supporting">{{ $t('call.devices.camera') }}</span>
                     <Select v-model="deviceId.videoinput" :options="videoInputs" option-label="label" option-value="deviceId" size="small" class="w-full" @update:model-value="value => switchDevice('videoinput', value)" />
                 </label>
                 <label class="flex flex-col gap-1">
-                    <span class="text-muted-color text-supporting">{{ $t('call.devices.speaker') }}</span>
+                    <span class="text-muted text-supporting">{{ $t('call.devices.speaker') }}</span>
                     <Select v-model="deviceId.audiooutput" :options="audioOutputs" option-label="label" option-value="deviceId" size="small" class="w-full" @update:model-value="value => switchDevice('audiooutput', value)" />
                 </label>
             </div>

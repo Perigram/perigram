@@ -1,5 +1,5 @@
 <template>
-  <main class="min-h-screen bg-page text-color">
+  <main class="min-h-screen bg-page">
     <section class="relative min-h-[88vh] overflow-hidden border-b border-content-border">
 
       <header class="relative z-10 mx-auto flex max-w-[var(--ck-page-max-width)] items-center justify-between gap-4 px-4 py-5 md:px-8">
@@ -16,7 +16,7 @@
           <h1 class="mb-4 mt-5 max-w-2xl text-page-title">
             {{ $t('marketing.heroTitle') }}
           </h1>
-          <p class="max-w-2xl text-muted-color text-body">
+          <p class="max-w-2xl text-muted text-body">
             {{ $t('marketing.heroSubtitle') }}
           </p>
           <div class="mt-8 flex flex-wrap gap-3">
@@ -32,7 +32,7 @@
         <div class="flex flex-col gap-2">
           <i :class="item.icon" class="text-[var(--ck-primary-ink)]" aria-hidden="true"></i>
           <h2 class="m-0 text-section-heading">{{ item.title }}</h2>
-          <p class="m-0 text-muted-color text-body">{{ item.description }}</p>
+          <p class="m-0 text-muted text-body">{{ item.description }}</p>
         </div>
       </Panel>
     </section>

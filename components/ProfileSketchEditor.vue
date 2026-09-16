@@ -109,7 +109,7 @@
         <div class="flex flex-col gap-2 rounded-ui border border-content-border p-2">
           <strong>{{ $t('cassette.v2.profileEditor.selection') }}</strong>
           <template v-if="selectedPoint">
-            <small class="text-muted-color">{{ selectedPoint.id }}</small>
+            <small class="text-muted">{{ selectedPoint.id }}</small>
             <div class="grid grid-cols-2 gap-2">
               <InputNumber
                 :model-value="selectedPoint.x"
@@ -137,7 +137,7 @@
             </div>
           </template>
           <template v-else-if="selectedHole">
-            <small class="text-muted-color">{{ selectedHole.id }}</small>
+            <small class="text-muted">{{ selectedHole.id }}</small>
             <div class="grid grid-cols-2 gap-2">
               <InputNumber
                 :model-value="selectedHole.center[0]"
@@ -163,7 +163,7 @@
               />
             </div>
           </template>
-          <small v-else class="text-muted-color">{{ $t('cassette.v2.profileEditor.noSelection') }}</small>
+          <small v-else class="text-muted">{{ $t('cassette.v2.profileEditor.noSelection') }}</small>
         </div>
 
         <div class="flex flex-col gap-2 rounded-ui border border-content-border p-2">
@@ -179,12 +179,12 @@
             />
             <div class="flex items-center gap-2">
               <Checkbox v-model="orthoMode" binary />
-              <label class="text-muted-color text-label">{{ $t('cassette.v2.profileEditor.ortho') }}</label>
+              <label class="text-muted text-label">{{ $t('cassette.v2.profileEditor.ortho') }}</label>
             </div>
           </div>
-          <small class="text-muted-color">{{ $t('cassette.v2.profileEditor.segmentLength') }}: {{ currentSegmentLength }}</small>
+          <small class="text-muted">{{ $t('cassette.v2.profileEditor.segmentLength') }}: {{ currentSegmentLength }}</small>
           <div class="flex items-center gap-2">
-            <label class="min-w-28 text-muted-color text-label">{{ $t('cassette.v2.profileEditor.cornerFillet') }}</label>
+            <label class="min-w-28 text-muted text-label">{{ $t('cassette.v2.profileEditor.cornerFillet') }}</label>
             <InputNumber
               :model-value="selectedPoint ? selectedFilletRadius : 0"
               input-class="w-full"

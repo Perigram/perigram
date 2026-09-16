@@ -13,11 +13,11 @@ const remaining = computed(() => Math.max((stock.value.total || 0) - (stock.valu
   <div class="flex flex-col gap-3">
     <div class="grid grid-cols-2 gap-3 text-body">
       <div class="flex flex-col">
-        <small class="text-muted-color">{{ $t('piles.stockTotal') }}</small>
+        <small class="text-muted">{{ $t('piles.stockTotal') }}</small>
         <span class="text-label">{{ stock.total ?? $t('common.notAvailable') }}</span>
       </div>
       <div class="flex flex-col">
-        <small class="text-muted-color">{{ $t('piles.remaining') }}</small>
+        <small class="text-muted">{{ $t('piles.remaining') }}</small>
         <span class="text-label">{{ remaining }}</span>
       </div>
     </div>

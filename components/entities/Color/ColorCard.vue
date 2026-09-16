@@ -17,15 +17,15 @@
       </template>
       <Divider />
       <div class="flex justify-between items-center gap-4">
-        <small class="text-muted-color">{{ $t('catalog.colorCode') }}</small>
+        <small class="text-muted">{{ $t('catalog.colorCode') }}</small>
         <span class="text-label">{{ color.data?.code || color.identity?.serial || hexCode || '—' }}</span>
       </div>
       <div class="flex justify-between items-center gap-4 mt-2">
-        <small class="text-muted-color">{{ $t('assets.color') }}</small>
+        <small class="text-muted">{{ $t('assets.color') }}</small>
         <span class="text-technical">{{ hexCode || '—' }}</span>
       </div>
       <div v-if="catalogId" class="flex justify-between items-center gap-4 mt-2">
-        <small class="text-muted-color">{{ $t('entities.catalog') }}</small>
+        <small class="text-muted">{{ $t('entities.catalog') }}</small>
         <EntityInlineRef type="catalog" :id="catalogId" />
       </div>
     </EntityCard>

@@ -11,7 +11,7 @@
         ? 'inline-flex min-w-0 items-baseline gap-1.5'
         : 'min-w-0 rounded-ui border border-content-border px-3 py-2'"
     >
-      <dt class="min-w-0 text-muted-color text-supporting">
+      <dt class="min-w-0 text-muted text-supporting">
         {{ row.label }}
       </dt>
       <dd

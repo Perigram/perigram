@@ -55,7 +55,7 @@ const manufacturerId = computed(() => props.requisition.lineage?.manufacturerId 
         <Divider />
         <DataBlock entity-type="requisition" :entity="requisition" :fields="REQUISITION_FIELDS" />
         <div v-if="manufacturerId" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('requisition.manufacturer') }}</small>
+          <small class="text-muted">{{ $t('requisition.manufacturer') }}</small>
           <EntityInlineRef type="organization" :id="manufacturerId" />
         </div>
       </div>

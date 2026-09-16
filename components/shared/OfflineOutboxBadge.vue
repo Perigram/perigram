@@ -19,16 +19,16 @@
                 <div
                     v-for="op in outbox.operations"
                     :key="op.id"
-                    class="flex flex-col gap-1 rounded border [border-color:var(--ck-chrome-border)] bg-subtle p-2 text-sm"
+                    class="flex flex-col gap-1 rounded border [border-color:var(--ck-chrome-border)] bg-subtle p-2 text-body"
                 >
                     <div class="flex items-center justify-between gap-2">
-                        <span class="truncate font-medium">{{ op.method }} {{ shortPath(op.url) }}</span>
+                        <span class="truncate text-label">{{ op.method }} {{ shortPath(op.url) }}</span>
                         <i
-                            :class="['pi', op.status === 'failed' ? 'pi-exclamation-circle text-red-500' : 'pi-cloud-upload']"
+                            :class="['pi', op.status === 'failed' ? 'pi-exclamation-circle text-status-danger' : 'pi-cloud-upload']"
                             :title="op.status === 'failed' ? (op.lastError || '') : t('outbox.pending')"
                         />
                     </div>
-                    <div v-if="op.status === 'failed'" class="text-xs text-red-500 truncate">{{ op.lastError }}</div>
+                    <div v-if="op.status === 'failed'" class="text-supporting text-status-danger truncate">{{ op.lastError }}</div>
                     <div class="flex justify-end gap-1">
                         <Button
                             v-if="op.status === 'failed'"

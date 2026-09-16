@@ -41,7 +41,7 @@ const identityMetaText = computed(() => identityMeta.value.map((item) => `${item
   <div v-if="props.entity" class="identity-block min-w-0">
     <!-- Header Variant (Main Page Titles) -->
     <div v-if="variant === 'header'" class="flex min-w-0 items-center gap-2">
-      <i v-if="icon" :class="icon" class="shrink-0 text-muted-color" aria-hidden="true"></i>
+      <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true"></i>
       <div class="flex flex-col gap-1 min-w-0">
         <span class="truncate" :title="primary">{{ primary }}</span>
         <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>
@@ -50,7 +50,7 @@ const identityMetaText = computed(() => identityMeta.value.map((item) => `${item
 
     <!-- Compact Variant (Card rows, lists) -->
     <div v-else-if="variant === 'compact'" class="flex min-w-0 items-center gap-2">
-      <i v-if="icon" :class="icon" class="shrink-0 text-muted-color" aria-hidden="true"></i>
+      <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true"></i>
       <div class="flex flex-col min-w-0">
         <span class="truncate" :title="primary">{{ primary }}</span>
         <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>
@@ -69,7 +69,7 @@ const identityMetaText = computed(() => identityMeta.value.map((item) => `${item
 
     <!-- Default (Card title area) -->
     <div v-else class="flex min-w-0 items-center gap-2">
-      <i v-if="icon" :class="icon" class="shrink-0 text-muted-color" aria-hidden="true"></i>
+      <i v-if="icon" :class="icon" class="shrink-0 text-muted" aria-hidden="true"></i>
       <div class="flex flex-col gap-0.5 min-w-0">
         <span class="truncate" :title="primary">{{ primary }}</span>
         <small v-if="identityMeta.length" class="truncate" :title="identityMetaText">{{ identityMetaText }}</small>

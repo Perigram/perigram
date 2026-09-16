@@ -8,15 +8,15 @@
             <Panel v-if="warehouseId || pileId || runId" :header="$t('common.source')">
                 <div class="flex flex-col gap-3">
                     <div v-if="warehouseId" class="flex items-center justify-between gap-4">
-                        <small class="text-muted-color">{{ $t('entities.warehouse') }}</small>
+                        <small class="text-muted">{{ $t('entities.warehouse') }}</small>
                         <EntityInlineRef type="warehouse" :id="warehouseId" />
                     </div>
                     <div v-if="pileId" class="flex items-center justify-between gap-4">
-                        <small class="text-muted-color">{{ $t('entities.materialPile') }}</small>
+                        <small class="text-muted">{{ $t('entities.materialPile') }}</small>
                         <EntityInlineRef type="materialPile" :id="pileId" />
                     </div>
                     <div v-if="runId" class="flex items-center justify-between gap-4">
-                        <small class="text-muted-color">{{ $t('entities.nestingRun') }}</small>
+                        <small class="text-muted">{{ $t('entities.nestingRun') }}</small>
                         <EntityInlineRef type="nestingRun" :id="runId" />
                     </div>
                 </div>

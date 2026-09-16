@@ -630,6 +630,48 @@ describe('Design system manifest', () => {
     }
   });
 
+  it('rejects color utility classes that resolve to no theme color', () => {
+    // A class like `text-muted-color` (PrimeVue docs naming) compiles to no
+    // CSS unless the Tailwind extension defines that exact key — dead
+    // classes silently fall back to inherited color and read as "all text
+    // is one color" in dark mode. Every used color utility must resolve.
+    const colorKeys = new Set(Object.keys(tailwindThemeExtension.colors));
+    for (const [name, value] of Object.entries(tailwindThemeExtension.colors)) {
+      if (value && typeof value === 'object') {
+        for (const subKey of Object.keys(value)) colorKeys.add(`${name}-${subKey}`);
+      }
+    }
+    const typographyUtilities = new Set(Object.keys(designTokens.typography.roles)
+      .map(role => `text-${role}`));
+    const builtin = new Set(['transparent', 'current', 'inherit', 'none']);
+    // Border width/side/style utilities, box-sizing, transition-property
+    // words that share names with utilities (for example `border-color`
+    // inside a transition string), and the stock Tailwind palette names are
+    // not dead-class candidates: stock names compile (palette drift is the
+    // audit matrix's concern); this test rejects classes that resolve to
+    // no CSS at all.
+    const nonColorKeys = /^(left|right|center|start|end|xs|sm|base|lg|xl|2xl|3xl|none|auto|truncate|underline|overline|line-through|ellipsis|clip|balance|pretty|nowrap|pre-wrap|pre-line|break-words|uppercase|lowercase|capitalize|thin|extralight|light|normal|medium|semibold|bold|extrabold|italic|not-italic|dashed|dotted|double|solid|hidden|inline|block|flex|box|color|white|black|red|yellow|green|blue|indigo|purple|pink|orange|amber|lime|emerald|teal|cyan|sky|violet|fuchsia|rose|slate|gray|zinc|neutral|stone|[blrtxy](-?[0-9]+)?|[tlbr]{2}(-?[0-9]+)?|[0-9]+)$/;
+    const resolves = (utility, key) => colorKeys.has(key)
+      || colorKeys.has(`${utility}-${key}`)
+      || builtin.has(key)
+      || nonColorKeys.test(key);
+
+    const offenders = [];
+    for (const file of usedVueFiles()) {
+      const source = fs.readFileSync(file, 'utf8');
+      for (const match of source.matchAll(/[\s"'`](text|bg|border|ring|outline|decoration|divide)-([a-z0-9][a-z0-9-]*)(?=[\s"'`/]|$)/g)) {
+        const utility = match[1];
+        const key = match[2];
+        if (typographyUtilities.has(`${utility}-${key}`)) continue;
+        // Arbitrary values like text-[var(--x)] carry their own value; the
+        // regex cannot match them because of the bracket, but values bound
+        // through :class strings are excluded by the boundary above.
+        if (!resolves(utility, key)) offenders.push(`${path.relative(REPO_ROOT, file)}: ${utility}-${key}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
 
 
 

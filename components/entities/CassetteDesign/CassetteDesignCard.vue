@@ -13,7 +13,7 @@
       <div class="grid grid-cols-1 gap-4">
         <CassetteThumbnail :cassette="design" prefer-geometry />
         <div v-if="revisionId" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('revision.sourceRevision') }}</small>
+          <small class="text-muted">{{ $t('revision.sourceRevision') }}</small>
           <EntityInlineRef type="entityRevision" :id="revisionId" />
         </div>
       </div>

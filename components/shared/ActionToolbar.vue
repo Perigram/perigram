@@ -4,7 +4,7 @@
       <component :is="headingTag" class="m-0" :class="headingClass">
         <slot name="title">{{ title }}</slot>
       </component>
-      <p v-if="subtitle || $slots.subtitle" class="m-0 text-body text-muted-color">
+      <p v-if="subtitle || $slots.subtitle" class="m-0 text-body text-muted">
         <slot name="subtitle">{{ subtitle }}</slot>
       </p>
     </div>

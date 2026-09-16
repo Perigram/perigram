@@ -52,7 +52,7 @@
                 </div>
             </div>
             <template v-if="$slots.subtitle">
-                <div class="mt-2 text-muted-color text-body">
+                <div class="mt-2 text-muted text-body">
                     <slot name="subtitle" />
                 </div>
             </template>
@@ -92,7 +92,7 @@
                 </template>
             </template>
             <template #subtitle v-if="$slots.subtitle">
-                <div class="text-muted-color text-body">
+                <div class="text-muted text-body">
                     <slot name="subtitle" />
                 </div>
             </template>
@@ -126,7 +126,7 @@
         <div class="w-[min(34rem,calc(100vw-3rem))]">
             <div class="flex flex-col gap-3 p-4">
                 <div class="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                    <small v-if="inlineTypeLabel" class="uppercase text-muted-color text-supporting">
+                    <small v-if="inlineTypeLabel" class="uppercase text-muted text-supporting">
                         {{ inlineTypeLabel }}
                     </small>
                     <EntityStatus

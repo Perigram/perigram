@@ -8,7 +8,7 @@
       <div class="grid grid-cols-1 gap-4">
         <DataBlock entity-type="entityRevision" :entity="revisionForDisplay" :fields="FIELDS" />
         <div v-if="sourceType && sourceId" class="flex items-center justify-between gap-4">
-          <small class="text-muted-color">{{ $t('revision.source') }}</small>
+          <small class="text-muted">{{ $t('revision.source') }}</small>
           <EntityInlineRef :type="sourceType" :id="sourceId" />
         </div>
       </div>

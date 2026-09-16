@@ -3,7 +3,7 @@
     <div v-for="field in fields" :key="field.name" class="flex min-w-0 flex-col gap-1">
       <label class="flex items-center gap-1">
         <span>{{ field.label || field.name }}</span>
-        <span v-if="field.required" class="text-muted-color">*</span>
+        <span v-if="field.required" class="text-muted">*</span>
       </label>
       <InputNumber
         v-if="field.type === 'number'"
@@ -49,7 +49,7 @@
         class="w-full"
         @update:model-value="value => updateField(field, value)"
       />
-      <small v-if="fieldHelpParts(field).length" class="text-muted-color">
+      <small v-if="fieldHelpParts(field).length" class="text-muted">
         {{ fieldHelpParts(field).join(' · ') }}
       </small>
     </div>

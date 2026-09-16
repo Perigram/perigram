@@ -10,7 +10,7 @@
       <template #compact-content>
         <div class="mt-3 flex flex-wrap items-center gap-2">
           <Tag v-if="material.data?.code" :value="material.data.code" severity="secondary" size="small" />
-          <span v-if="material.data?.thickness" class="text-muted-color text-body">{{ material.data.thickness }} mm</span>
+          <span v-if="material.data?.thickness" class="text-muted text-body">{{ material.data.thickness }} mm</span>
         </div>
       </template>
       <Divider />

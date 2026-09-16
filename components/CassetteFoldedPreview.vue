@@ -3,7 +3,7 @@
     class="relative h-full w-full select-none rounded-ui border border-content-border p-2 shadow-overlay"
   >
     <div class="flex h-6 items-center justify-between gap-2">
-      <small class="truncate text-muted-color">{{ $t(titleKey) }}</small>
+      <small class="truncate text-muted">{{ $t(titleKey) }}</small>
       <div class="flex items-center gap-1">
         <Button
           v-if="isolatedWorkpieceId"
@@ -37,7 +37,7 @@
       @pointerdown="recordPointerDown"
       @click.stop="selectMesh"
     />
-    <div v-if="!visibleFaces.length && !visibleBodies.length" class="flex h-[calc(100%-1.5rem)] w-full items-center justify-center text-muted-color">
+    <div v-if="!visibleFaces.length && !visibleBodies.length" class="flex h-[calc(100%-1.5rem)] w-full items-center justify-center text-muted">
       <i class="pi pi-image" aria-hidden="true" />
     </div>
   </div>
