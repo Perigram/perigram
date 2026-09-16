@@ -1,3 +1,5 @@
+import { isEmptyTabKey } from './workspace-empty-tabs.js';
+
 export function createWorkspaceLeaf(id, selectionKey = '') {
   return { kind: 'leaf', id, selectionKey, tabKeys: selectionKey ? [selectionKey] : [] };
 }
@@ -53,6 +55,21 @@ export function workspaceLeaves(root) {
   if (!root) return [];
   if (root.kind === 'leaf') return [root];
   return root.children.flatMap(workspaceLeaves);
+}
+
+// Tab creation is explicit: only callers that pass `newTab` (the tab strip's
+// add control opening an empty placeholder, live call stages that must not
+// unmount) append a tab. Every other open reuses the pane's selected tab in
+// place — replacing empty placeholders like any content — so exploring does
+// not pile up one tab per entity. Opening an item that already has a tab in
+// the pane keeps the tabs unchanged (selection happens at the caller).
+export function withPaneTab(pane, key, { newTab = false } = {}) {
+  const tabs = pane.tabKeys || [];
+  if (newTab || isEmptyTabKey(key) || tabs.includes(key) || !tabs.length) {
+    return [...new Set([...tabs, key])];
+  }
+  const replacing = tabs.includes(pane.selectionKey) ? pane.selectionKey : tabs[tabs.length - 1];
+  return tabs.map(tabKey => (tabKey === replacing ? key : tabKey));
 }
 
 function normalizeSplitSizes(sizes) {

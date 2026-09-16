@@ -62,8 +62,10 @@ attach the first organization.
   `PUT/GET/DELETE /api/users/:id/avatar` updates, streams, or removes JPEG,
   PNG, and WebP images. Persisted `data.avatar` storage metadata is stripped
   from DTOs; readable user DTOs expose only a versioned `data.avatarUrl`.
-  Users may edit their own avatar, and active-organization user administrators
-  may edit member avatars.
+  Avatar reads are authenticated-only (avatars render beside messages in
+  cross-organization support conversations, so the image itself is shared
+  profile chrome); users may edit their own avatar, and active-organization
+  user administrators may edit member avatars.
 
 ## Permission System
 - Organization context via `user.lineage.organizationId`

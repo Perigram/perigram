@@ -40,7 +40,7 @@
             <template #default="{ node }">
               <span
                 v-if="node.data?.section"
-                class="flex min-w-0 flex-1 items-center gap-2"
+                class="group flex min-w-0 flex-1 items-center gap-2"
                 :data-home-entity-type="node.data.section.source.entityType"
               >
                 <span class="min-w-0 flex-1 truncate text-label">{{ node.label }}</span>
@@ -51,14 +51,18 @@
                   rounded
                   size="small"
                   severity="secondary"
-                  class="shrink-0"
+                  class="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                   :aria-label="$t('common.add')"
                   @click.stop="toggleSectionActions($event, node)"
                 />
               </span>
+              <!-- Row hierarchy: entity rows read as muted until opened; the
+                   row open in the active pane carries the normal text color,
+                   and row action affordances reveal on hover. -->
               <span
                 v-else
-                class="flex min-w-0 flex-1 items-center gap-1"
+                class="group flex min-w-0 flex-1 items-center gap-1"
+                :class="node.data?.item?.key !== activePane?.selectionKey ? 'text-muted-color' : ''"
                 :data-entity-id="entityId(node.data?.item?.entity)"
               >
                 <span class="flex min-w-0 flex-1 items-center">
@@ -88,7 +92,7 @@
                   rounded
                   size="small"
                   severity="secondary"
-                  class="shrink-0"
+                  class="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                   :aria-label="$t('common.more')"
                   @click.stop="toggleChildActions($event, node)"
                 />
@@ -213,6 +217,7 @@ import {
   splitWorkspaceLeaf,
   updateWorkspaceLeaf,
   updateWorkspaceSplit,
+  withPaneTab,
   workspaceLeaves
 } from '~/utils/workspace-splits.js';
 import {
@@ -494,7 +499,9 @@ function openCallTab(room = '', meta = {}) {
       label
     }];
   }
-  selectPaneTab(activePane.value.id, room);
+  // Live call stages own their tab: navigating the workspace must not
+  // unmount an active call, so calls always open as a new tab.
+  selectPaneTab(activePane.value.id, room, { newTab: true });
 }
 
 function conversationKeyForRoom(room = '') {
@@ -786,25 +793,16 @@ function selectByKey(key) {
   selectPaneTab(activePane.value.id, key);
 }
 
-function selectPaneTab(paneId, key) {
+function selectPaneTab(paneId, key, options = {}) {
   const pane = panes.value.find(item => item.id === paneId);
   if (!pane) return;
   if (!isEmptyTabKey(key) && !workspaceItems.value.some(item => item.key === key)) return;
   paneTree.value = updateWorkspaceLeaf(paneTree.value, paneId, {
     selectionKey: key,
-    tabKeys: withPaneTab(pane, key)
+    tabKeys: withPaneTab(pane, key, options)
   });
   activePaneId.value = paneId;
   syncActiveSelection();
-}
-
-// Opening a real item replaces the pane's selected empty tab instead of
-// piling placeholders beside it; empty tabs never accumulate duplicates.
-function withPaneTab(pane, key) {
-  const replacing = !isEmptyTabKey(key) && isEmptyTabKey(pane.selectionKey)
-    ? [pane.selectionKey]
-    : [];
-  return [...new Set([...(pane.tabKeys || []).filter(tabKey => !replacing.includes(tabKey)), key])];
 }
 
 function openEmptyPaneTab(paneId) {

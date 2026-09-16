@@ -4,7 +4,8 @@ import {
   loadHomeWorkspaceState,
   saveHomeWorkspaceState
 } from '~/utils/home-workspace-state.js';
-import { splitWorkspaceLeaf, createWorkspaceLeaf } from '~/utils/workspace-splits.js';
+import { emptyTabKey } from '~/utils/workspace-empty-tabs.js';
+import { splitWorkspaceLeaf, createWorkspaceLeaf, withPaneTab } from '~/utils/workspace-splits.js';
 
 function memoryStorage(initial = {}) {
   const store = { ...initial };
@@ -75,5 +76,34 @@ describe('home workspace state', () => {
     });
     expect(JSON.parse(storage.getItem('k'))).not.toHaveProperty('explorerOpen');
     expect(JSON.parse(storage.getItem('k'))).not.toHaveProperty('explorerSize');
+  });
+});
+
+describe('workspace pane tabs', () => {
+  it('reuses the selected tab for new content instead of appending', () => {
+    const pane = { selectionKey: 'project:p1', tabKeys: ['project:p1', 'queue:q1'] };
+    // The opened item takes the selected tab's slot in place.
+    expect(withPaneTab(pane, 'queue:q2')).toEqual(['queue:q2', 'queue:q1']);
+    expect(withPaneTab({ ...pane, selectionKey: 'queue:q1' }, 'queue:q2')).toEqual(['project:p1', 'queue:q2']);
+  });
+
+  it('replaces an empty placeholder like any other content', () => {
+    const empty = emptyTabKey();
+    const pane = { selectionKey: empty, tabKeys: [empty] };
+    expect(withPaneTab(pane, 'project:p1')).toEqual(['project:p1']);
+  });
+
+  it('keeps tabs unchanged when the item already has one and appends explicit new tabs', () => {
+    const pane = { selectionKey: 'project:p1', tabKeys: ['project:p1', 'queue:q1'] };
+    expect(withPaneTab(pane, 'queue:q1')).toEqual(['project:p1', 'queue:q1']);
+    expect(withPaneTab(pane, 'queue:q2', { newTab: true })).toEqual(['project:p1', 'queue:q1', 'queue:q2']);
+    const withEmpty = withPaneTab(pane, emptyTabKey());
+    expect(withEmpty.slice(0, 2)).toEqual(['project:p1', 'queue:q1']);
+    expect(withEmpty[2]).toMatch(/^empty:/);
+  });
+
+  it('appends the first content of an empty pane', () => {
+    expect(withPaneTab(createWorkspaceLeaf('pane-1'), 'project:p1'))
+      .toEqual(['project:p1']);
   });
 });

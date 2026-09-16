@@ -168,10 +168,15 @@ Discord-style operational shell:
   sources (`linkedExplorerChildSources`) scoped to the parent's lineage and
   merges them into the workspace item pool. Entities opened through nested
   pane navigation nest the same way.
-- Selecting an explorer row opens or selects that entity as a tab in the
-  active pane; the active pane's selected key drives the tree selection. The
-  desktop sidebar does not link out to hub entity-list screens; the full
-  hierarchy is navigable in place.
+- Selecting an explorer row opens or selects that entity in the active pane;
+   the active pane's selected key drives the tree selection. The
+   desktop sidebar does not link out to hub entity-list screens; the full
+   hierarchy is navigable in place.
+- Sidebar row chrome: entity rows render muted until opened — only the row
+   open in the active pane carries the normal text color — and the row
+   ellipsis action buttons (section create actions, entity row actions)
+   reveal on hover (`opacity-0 group-hover:opacity-100`, keyboard focus
+   included) instead of sitting permanently beside every row.
 - The sidebar footer mounts the shared `UserAccountMenu`, so on this route the
   desktop top navbar is hidden and its user controls live in the sidebar
   (`layouts/app.vue` resolves this from the active screen template).
@@ -182,6 +187,14 @@ Discord-style operational shell:
   entity's own compiled detail screen. There is no Explorer header or project
   action strip; collection creation belongs to sidebar sections and entity
   operations belong to the opened file tabs.
+- Tab creation is explicit: new tabs come only from the tab strip's add
+  control and from live call stages (calls stay in their own tab so workspace
+  navigation never unmounts an active call). Every other navigation —
+  explorer rows, nested entity links, workspace pages — reuses the pane's
+  selected tab in place (replacing an empty placeholder like any content), and
+  opening an item that already has a tab in the pane just selects it. Each
+  tab keeps its own selected content while switching because pane tab keys
+  and the selected key are persisted pane state.
 - Tab and pane state persists as versioned browser UI state scoped to the
   current user and organization (`utils/home-workspace-state.js`). It stores
   the pane tree, tab selections, opened entity references, and opened page
