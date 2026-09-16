@@ -244,7 +244,15 @@ export async function getEntityConversationContext(auth, entityKey = '') {
     const parsed = parseEntityKey(entityKey);
     if (!parsed) throw createError({ statusCode: 400, message: 'Invalid entity conversation key' });
     const scopedAuth = await resolveEntityOptionAuth(auth);
-    const entity = await fetchLinkedEntity(scopedAuth, parsed.type, parsed.id);
+    let entity = await fetchLinkedEntity(scopedAuth, parsed.type, parsed.id);
+    if (!entity) {
+        // Child entities (cassettes, nesting runs, sheet designs) deny direct
+        // registry reads but stay readable through their scoped list sources
+        // — the same chat option window the attachment picker browses.
+        const options = await listEntityOptions(scopedAuth, parsed.type, parsed.id).catch(() => []);
+        const option = (options || []).find(item => String(item.value) === String(parsed.id));
+        if (option?.entity) entity = option.entity;
+    }
     if (!entity) throw createError({ statusCode: 403, message: 'Forbidden' });
     const dto = entityDto(entity);
     return {
