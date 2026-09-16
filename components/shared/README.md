@@ -443,16 +443,19 @@ so the shared entity popover shows the immutable revision summary and source
 relationship.
 
 ### `ChatAttachmentPicker.vue`
-The chat composer's attachment surface: a Popover-hosted sequential tiered
-menu over the same structure the home explorer exposes. Level one lists
-attachable entity types (localized labels plus domain icons) and, when the org
-process exposes an artifact creation action, a "create artifact" entry; level
-two lists the chosen type's options from `/api/support/entity-options`, loaded
-on drill-down with the direct recipient id so chat-only visibility warnings
-stay accurate. Tapping an option selects it and closes the picker in one step
-— there is no separate add button. The host owns the draft `entityRefs` and
-the `GeneratedArtifactCreator` dialog for the create-artifact path; the picker
-only emits `select`/`create-artifact` and renders option rows.
+The chat composer's attachment surface: a Popover-hosted explorer tree with
+the same structure as the home sidebar, entity-type sections preserved as the
+default roots. When the org process exposes an artifact creation action, a
+"create artifact" entry sits above the tree. Sections expand into the
+`/api/support/entity-options` list for that type (loaded on demand, with the
+direct recipient id so chat-only visibility warnings stay accurate); entities
+expand further into their containment/relation children through the same lazy
+mechanics the home explorer uses (`linkedExplorerChildSources` list fetches
+plus relation-ref hydration). Tapping an entity selects it and closes the
+picker in one step — there is no separate add button. Each open resets the
+tree, because option lists are recipient-scoped per conversation. The host
+owns the draft `entityRefs` and the `GeneratedArtifactCreator` dialog for the
+create-artifact path; the picker only emits `select`/`create-artifact`.
 
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies. Plain text remains text, while
