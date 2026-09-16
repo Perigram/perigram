@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   },
   cassetteDesignsService: { list: vi.fn() },
   cassettesService: { list: vi.fn() },
+  artifactsService: { list: vi.fn() },
   catalogsService: { list: vi.fn() },
   librariesService: { list: vi.fn() },
   projectsService: { list: vi.fn() },
@@ -33,6 +34,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('./repository.js', () => mocks.repository);
 vi.mock('~/server/features/cassette-designs/service.js', () => mocks.cassetteDesignsService);
 vi.mock('~/server/features/cassettes/service.js', () => mocks.cassettesService);
+vi.mock('~/server/features/artifacts/service.js', () => mocks.artifactsService);
 vi.mock('~/server/features/catalogs/service.js', () => mocks.catalogsService);
 vi.mock('~/server/features/libraries/service.js', () => mocks.librariesService);
 vi.mock('~/server/features/users/service.js', () => mocks.usersService);

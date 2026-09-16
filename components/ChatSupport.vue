@@ -208,7 +208,25 @@
                     </span>
                     <Button :label="$t('call.join')" icon="pi pi-phone" size="small" @click="joinIncomingCall" />
                 </div>
-                <div ref="messagesContainer" class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 md:p-4 md:gap-4">
+                <div
+                    ref="messagesContainer"
+                    class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 md:p-4 md:gap-4"
+                    @scroll="handleMessagesScroll"
+                >
+                    <!-- Lazy history: the newest page renders first; earlier
+                         messages load on scroll-to-top (and via the row
+                         itself), preserving the reader's scroll position. -->
+                    <Button
+                        v-if="hasMoreMessages"
+                        :label="$t('support.loadEarlier')"
+                        icon="pi pi-arrow-up"
+                        text
+                        size="small"
+                        severity="secondary"
+                        :loading="loadingOlder"
+                        :disabled="loadingOlder"
+                        @click="loadOlderMessages"
+                    />
                     <template
                         v-for="messageItem in messagesList"
                         :key="messageItem._id"
@@ -218,16 +236,24 @@
                         </Divider>
 
                         <div
-                            class="flex max-w-support-chat-message flex-col gap-1"
+                            class="flex min-w-0 max-w-support-chat-message flex-col gap-1"
                             :class="isOwnMessage(messageItem) ? 'ml-auto items-end' : 'mr-auto items-start'"
                         >
+                            <audio
+                                v-if="messageItem.attachment?.kind === 'audio'"
+                                :src="attachmentUrl(messageItem.attachment)"
+                                controls
+                                preload="metadata"
+                                class="max-w-full"
+                            />
                             <div
-                                class="rounded-ui px-4 py-2 text-body"
+                                v-if="messageItem.message || (messageItem.entityRefs || []).length"
+                                class="max-w-full min-w-0 rounded-ui px-4 py-2 text-body"
                                 :class="isOwnMessage(messageItem)
                                     ? 'bg-primary text-primary-contrast'
                                     : 'bg-subtle'"
                             >
-                                <p class="m-0 break-words text-body">
+                                <p class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
                                     <SupportMessageContent :message="messageItem" :viewer-user-id="currentUserId" />
                                 </p>
                             </div>
@@ -244,42 +270,7 @@
                     >
                         {{ $t('support.typing', { name: typingName }) }}
                     </div>
-                    <div v-if="entityComposerVisible" class="flex flex-col gap-2 md:flex-row md:items-center">
-                        <Select
-                            v-model="entityDraft.type"
-                            :options="entityTypeOptions"
-                            option-label="label"
-                            option-value="value"
-                            size="small"
-                            class="w-full min-w-0 md:w-48"
-                            :aria-label="$t('support.entityType')"
-                            @update:model-value="loadEntityOptions"
-                        />
-                        <Select
-                            v-model="entityDraft.id"
-                            :options="entityOptions"
-                            option-label="label"
-                            option-value="value"
-                            :entity-type="entityDraft.type"
-                            filter
-                            size="small"
-                            class="min-w-0"
-                            :loading="entityOptionsLoading"
-                            :placeholder="$t('support.entityId')"
-                            :aria-label="$t('support.entityId')"
-                        />
-                        <Button
-                            icon="pi pi-plus"
-                            size="small"
-                            :aria-label="$t('support.addEntity')"
-                            :disabled="!entityDraft.type || !entityDraft.id"
-                            @click="insertEntityRef"
-                        />
-                    </div>
-                    <div
-                        v-if="messagePreviewVisible"
-                        class="rounded-ui bg-subtle p-2 text-muted-color text-body"
-                    >
+                    <div v-if="messagePreviewVisible" class="rounded-ui bg-subtle p-2 text-muted-color text-body">
                         <SupportMessageContent :message="draftPreviewMessage" :viewer-user-id="currentUserId" />
                     </div>
                     <div v-if="entityRefs.length" class="mb-2 flex flex-wrap gap-2">
@@ -316,15 +307,45 @@
                             </span>
                         </small>
                     </div>
-                    <div class="flex items-end gap-2">
+                    <!-- Voice recording replaces the composer row while live:
+                         elapsed timer plus cancel and stop-and-send. -->
+                    <div v-if="voiceRecording" class="flex items-center gap-2">
+                        <span
+                            class="ml-1 h-2.5 w-2.5 shrink-0 animate-pulse rounded-ui bg-status-error"
+                            :aria-label="$t('support.recording')"
+                        ></span>
+                        <span class="min-w-0 flex-1 text-muted-color text-body">
+                            {{ $t('support.recording') }} · {{ formatRecordingDuration(recordingElapsed) }}
+                        </span>
                         <Button
-                            icon="pi pi-link"
+                            icon="pi pi-times"
                             severity="secondary"
                             text
                             rounded
                             size="small"
-                            :aria-label="$t('support.addEntity')"
-                            @click="toggleEntityComposer"
+                            :aria-label="$t('common.cancel')"
+                            @click="cancelVoiceRecording"
+                        />
+                        <Button
+                            icon="pi pi-send"
+                            rounded
+                            size="small"
+                            class="flex-shrink-0"
+                            :aria-label="$t('support.stopAndSend')"
+                            :loading="voiceSending"
+                            :disabled="voiceSending"
+                            @click="stopAndSendVoiceRecording"
+                        />
+                    </div>
+                    <div v-else class="flex items-end gap-2">
+                        <Button
+                            icon="pi pi-paperclip"
+                            severity="secondary"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('support.attach')"
+                            @click="openAttachmentPicker($event)"
                         />
                         <Textarea
                             :placeholder="$t('support.typeMessage')"
@@ -334,6 +355,16 @@
                             @keydown="handleKeyDown"
                             rows="1"
                             autoResize
+                        />
+                        <Button
+                            v-if="voiceRecordingSupported"
+                            icon="pi pi-microphone"
+                            severity="secondary"
+                            text
+                            rounded
+                            size="small"
+                            :aria-label="$t('support.recordVoice')"
+                            @click="startVoiceRecording"
                         />
                         <Button
                             icon="pi pi-send"
@@ -346,6 +377,20 @@
                         />
                     </div>
                 </div>
+                <ChatAttachmentPicker
+                    ref="attachmentPicker"
+                    :types="entityTypeOptions"
+                    :artifact-creator-available="Boolean(artifactCreator)"
+                    :recipient-user-id="activeRecipientUserId"
+                    @select="selectAttachment"
+                    @create-artifact="artifactCreatorVisible = true"
+                />
+                <GeneratedArtifactCreator
+                    v-if="artifactCreator"
+                    v-model="artifactCreatorVisible"
+                    :creator="artifactCreator"
+                    @created="selectCreatedArtifact"
+                />
             </section>
         </div>
         <StandardDialog
@@ -412,7 +457,10 @@ import EntityInlineRef from '~/components/shared/EntityInlineRef.vue'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
 import StateBlock from '~/components/shared/StateBlock.vue'
 import StandardDialog from '~/components/shared/StandardDialog.vue'
+import ChatAttachmentPicker from '~/components/shared/ChatAttachmentPicker.vue'
+import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCreator.vue'
 import CallPanel from '~/components/calls/CallPanel.vue'
+import { artifactCreatorForAction } from '~/components/generated/action-inputs.js'
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState'
 import { useConnections } from '~/composables/useConnections.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
@@ -443,15 +491,16 @@ const message = ref('')
 const messages = ref([])
 const isLoading = ref(false)
 const messagesContainer = ref(null)
+const MESSAGES_PAGE_SIZE = 50
+const hasMoreMessages = ref(false)
+const loadingOlder = ref(false)
 const currentUserId = ref(authStore.userData?.id || authStore.userData?.userId || null)
 let unsubscribeConversation = null
 let conversationLoadToken = 0
-const entityComposerVisible = ref(false)
-const entityDraft = ref({ type: 'project', id: '' })
 const entityRefs = ref([])
-const entityOptions = ref([])
-const entityOptionsLoading = ref(false)
 const entityTypeOptions = ref([])
+const attachmentPicker = ref(null)
+const artifactCreatorVisible = ref(false)
 const activeConversation = ref(null)
 const newChatVisible = ref(false)
 const newChatUserId = ref('')
@@ -640,6 +689,125 @@ const sendMessage = async () => {
 
 const { onlineUserIds } = useConnections()
 
+// Voice messages: MediaRecorder capture uploaded through the shared files
+// endpoint, then sent as a message whose only payload is the attachment
+// descriptor `{ kind: 'audio', fileId, mimeType, durationSeconds }`.
+const VOICE_RECORDING_MAX_SECONDS = 600
+const voiceRecording = ref(false)
+const voiceSending = ref(false)
+const recordingElapsed = ref(0)
+const voiceRecordingSupported = computed(() => process.client
+    && Boolean(navigator.mediaDevices?.getUserMedia)
+    && typeof MediaRecorder !== 'undefined')
+let mediaRecorder = null
+let recordedChunks = []
+let recordingStream = null
+let recordingStartedAt = 0
+let recordingTimer = null
+
+const formatRecordingDuration = (seconds) => {
+    const total = Math.max(0, Math.floor(seconds))
+    const minutes = Math.floor(total / 60)
+    const rest = total % 60
+    return `${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`
+}
+
+const stopRecordingTracks = () => {
+    if (recordingTimer) {
+        clearInterval(recordingTimer)
+        recordingTimer = null
+    }
+    if (recordingStream) {
+        for (const track of recordingStream.getTracks()) track.stop()
+        recordingStream = null
+    }
+}
+
+const teardownRecording = () => {
+    stopRecordingTracks()
+    mediaRecorder = null
+    recordedChunks = []
+    voiceRecording.value = false
+    recordingElapsed.value = 0
+}
+
+const startVoiceRecording = async () => {
+    if (voiceRecording.value || !voiceRecordingSupported.value) return
+    try {
+        recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    } catch (error) {
+        toast.add({ severity: 'error', summary: t('common.error'), detail: error?.message || '', life: 4000 })
+        return
+    }
+    recordedChunks = []
+    mediaRecorder = new MediaRecorder(recordingStream)
+    mediaRecorder.ondataavailable = (event) => {
+        if (event.data?.size) recordedChunks.push(event.data)
+    }
+    recordingStartedAt = Date.now()
+    recordingElapsed.value = 0
+    recordingTimer = setInterval(() => {
+        recordingElapsed.value = Math.floor((Date.now() - recordingStartedAt) / 1000)
+        if (recordingElapsed.value >= VOICE_RECORDING_MAX_SECONDS) stopAndSendVoiceRecording()
+    }, 500)
+    mediaRecorder.start()
+    voiceRecording.value = true
+}
+
+const cancelVoiceRecording = () => {
+    if (!mediaRecorder) {
+        teardownRecording()
+        return
+    }
+    mediaRecorder.onstop = () => teardownRecording()
+    mediaRecorder.stop()
+    stopRecordingTracks()
+}
+
+const stopAndSendVoiceRecording = () => {
+    if (!mediaRecorder || voiceSending.value) return
+    const recorder = mediaRecorder
+    const mimeType = recorder.mimeType || 'audio/webm'
+    const durationSeconds = Math.max(1, Math.round((Date.now() - recordingStartedAt) / 1000))
+    recorder.onstop = async () => {
+        const blob = new Blob(recordedChunks, { type: mimeType })
+        teardownRecording()
+        if (!blob.size || !activeConversation.value) return
+        voiceSending.value = true
+        try {
+            const form = new FormData()
+            form.append('file', blob, `voice-message.${mimeType.includes('mp4') ? 'mp4' : 'webm'}`)
+            const uploaded = await $fetch('/api/files/upload', { method: 'POST', body: form })
+            await $fetch('/api/support/messages', {
+                method: 'POST',
+                body: {
+                    message: message.value,
+                    recipientUserId: activeConversation.value?.conversationKind === 'direct' ? participantUserId(activeConversation.value) : null,
+                    conversationKey: activeConversation.value?.conversationKind === 'group' ? activeConversation.value.conversationKey : null,
+                    attachment: {
+                        kind: 'audio',
+                        fileId: uploaded.id,
+                        mimeType,
+                        durationSeconds
+                    }
+                }
+            })
+            message.value = ''
+        } catch (error) {
+            console.error('Failed to send voice message:', error)
+            toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || '', life: 4000 })
+        } finally {
+            voiceSending.value = false
+        }
+    }
+    recorder.stop()
+    stopRecordingTracks()
+}
+
+const attachmentUrl = (attachment) => attachment?.fileId
+    ? `/api/files/download/${encodeURIComponent(String(attachment.fileId))}`
+    : ''
+
 const participantOnline = (conversation) => {
     const participant = conversation?.conversationKind === 'direct'
         ? participantUserId(conversation)
@@ -649,20 +817,28 @@ const participantOnline = (conversation) => {
 
 const activeConversationKey = computed(() => activeConversation.value?.conversationKey || null)
 
+const conversationQuery = (extra = {}) => {
+    const isGroup = activeConversation.value.conversationKind === 'group'
+    const recipientUserId = isGroup ? null : participantUserId(activeConversation.value)
+    return {
+        ...extra,
+        ...(isGroup
+            ? { conversationKey: activeConversation.value.conversationKey }
+            : (recipientUserId ? { recipientUserId } : {}))
+    }
+}
+
 const loadConversation = async () => {
     if (!activeConversation.value) return
     const token = ++conversationLoadToken
     messages.value = []
-    const isGroup = activeConversation.value.conversationKind === 'group'
-    const recipientUserId = isGroup ? null : participantUserId(activeConversation.value)
     try {
         const snapshot = await $fetch('/api/support/messages', {
-            query: isGroup
-                ? { conversationKey: activeConversation.value.conversationKey }
-                : (recipientUserId ? { recipientUserId } : {})
+            query: conversationQuery({ limit: MESSAGES_PAGE_SIZE })
         })
         if (token !== conversationLoadToken) return
         messages.value = snapshot?.data || []
+        hasMoreMessages.value = Boolean(snapshot?.hasMore)
         currentUserId.value = snapshot?.currentUserId || currentUserId.value
         if (snapshot?.conversation?.kind && activeConversation.value) {
             activeConversation.value.conversationKey = snapshot.conversation.conversationKey || activeConversation.value.conversationKey
@@ -680,6 +856,42 @@ const loadConversation = async () => {
             scrollToBottom()
         }
     }
+}
+
+// History pagination: `before` rides the timestamp of the oldest loaded
+// message; the merged page keeps ascending order and the scroll offset is
+// anchored to the previously-oldest content so the reading position holds.
+const loadOlderMessages = async () => {
+    const oldest = messages.value[0]
+    if (!activeConversation.value || !oldest?.timestamp || loadingOlder.value || !hasMoreMessages.value) return
+    loadingOlder.value = true
+    const container = messagesContainer.value
+    const previousHeight = container?.scrollHeight || 0
+    const previousTop = container?.scrollTop || 0
+    try {
+        const snapshot = await $fetch('/api/support/messages', {
+            query: conversationQuery({
+                limit: MESSAGES_PAGE_SIZE,
+                before: new Date(oldest.timestamp).toISOString()
+            })
+        })
+        const known = new Set(messages.value.map(item => item._id))
+        const older = (snapshot?.data || []).filter(item => !known.has(item._id))
+        if (older.length) messages.value = [...older, ...messages.value]
+        hasMoreMessages.value = Boolean(snapshot?.hasMore)
+        await nextTick()
+        if (container) container.scrollTop = container.scrollHeight - previousHeight + previousTop
+    } catch (error) {
+        console.error('Failed to load earlier messages:', error)
+    } finally {
+        loadingOlder.value = false
+    }
+}
+
+const handleMessagesScroll = () => {
+    const container = messagesContainer.value
+    if (!container || !hasMoreMessages.value || loadingOlder.value) return
+    if (container.scrollTop <= 60) loadOlderMessages()
 }
 
 watch(
@@ -730,6 +942,11 @@ onBeforeUnmount(() => {
     if (typingResetTimer) clearTimeout(typingResetTimer)
     if (typingSendTimer) clearTimeout(typingSendTimer)
     if (incomingCallTimer) clearTimeout(incomingCallTimer)
+    if (mediaRecorder) {
+        mediaRecorder.onstop = null
+        mediaRecorder.stop()
+    }
+    stopRecordingTracks()
 })
 
 watch(chatTarget, () => {
@@ -776,18 +993,57 @@ const scrollToBottom = async () => {
 
     if (messagesContainer.value) {
         const element = messagesContainer.value
+        // Instant jump: a smooth animation passes through small scrollTop
+        // values on the way down, which the lazy-history scroll listener
+        // would misread as a scroll-to-top request.
         element.scrollTo({
             top: element.scrollHeight,
-            behavior: 'smooth'
+            behavior: 'auto'
         })
     }
 }
 
-const toggleEntityComposer = async () => {
-    entityComposerVisible.value = !entityComposerVisible.value
-    if (entityComposerVisible.value) {
-        if (!entityTypeOptions.value.length) await loadEntityTypes()
-        await loadEntityOptions()
+// The attachment picker is the tiered menu over the same generated entity
+// sources the home explorer exposes: type rows first, options on drill-down,
+// and one tap selects, adds the ref, and closes the picker.
+const openAttachmentPicker = (event) => {
+    attachmentPicker.value?.toggle(event)
+}
+
+const selectAttachment = (option) => {
+    if (!option?.type || !option.value) return
+    if (!entityRefs.value.some(ref => ref.type === option.type && ref.id === option.value)) {
+        entityRefs.value.push({
+            type: option.type,
+            id: option.value,
+            label: option.label,
+            entity: option.entity || null,
+            recipientHasAccess: option.recipientHasAccess
+        })
+    }
+}
+
+// The artifact creation action compiled into the org process, when present,
+// rides the picker as a "create artifact" entry; the created artifact
+// attaches to the draft like any picked entity.
+const artifactCreator = computed(() => {
+    for (const action of authStore.actionManifest || []) {
+        const creator = artifactCreatorForAction(action)
+        if (creator) return creator
+    }
+    return null
+})
+
+const selectCreatedArtifact = (artifact) => {
+    const id = artifact?._id?.toString?.() || artifact?._id || artifact?.id || ''
+    if (!id) return
+    if (!entityRefs.value.some(ref => ref.type === 'artifact' && ref.id === id)) {
+        entityRefs.value.push({
+            type: 'artifact',
+            id,
+            label: artifact?.identity?.name || id,
+            entity: artifact || null
+        })
     }
 }
 
@@ -798,30 +1054,9 @@ const loadEntityTypes = async () => {
             label: type.labelKey ? t(type.labelKey) : localizedEntityTypeLabel(type.value),
             value: type.value
         }))
-        const currentTypeAvailable = entityTypeOptions.value.some(option => option.value === entityDraft.value.type)
-        entityDraft.value.type = currentTypeAvailable ? entityDraft.value.type : (entityTypeOptions.value[0]?.value || '')
     } catch (error) {
         console.error('Failed to load support entity types:', error)
         entityTypeOptions.value = []
-    }
-}
-
-const loadEntityOptions = async () => {
-    if (!entityDraft.value.type) return
-    entityOptionsLoading.value = true
-    entityDraft.value.id = ''
-    try {
-        entityOptions.value = await $fetch('/api/support/entity-options', {
-            query: {
-                type: entityDraft.value.type,
-                recipientUserId: activeRecipientUserId.value || undefined
-            }
-        })
-    } catch (error) {
-        console.error('Failed to load entity options:', error)
-        entityOptions.value = []
-    } finally {
-        entityOptionsLoading.value = false
     }
 }
 
@@ -850,21 +1085,6 @@ const hydrateEntityRefs = async (refs = []) => {
         }
     }
     return hydrated
-}
-
-const insertEntityRef = () => {
-    const selected = entityOptions.value.find(option => option.value === entityDraft.value.id)
-    if (!selected) return
-    if (!entityRefs.value.some(ref => ref.type === selected.type && ref.id === selected.value)) {
-        entityRefs.value.push({
-            type: selected.type,
-            id: selected.value,
-            label: selected.label,
-            entity: selected.entity || null,
-            recipientHasAccess: selected.recipientHasAccess
-        })
-    }
-    entityDraft.value.id = ''
 }
 
 const removeEntityRef = (targetRef) => {
@@ -1079,6 +1299,7 @@ const conversationAvatar = (conversation) => conversation?.participant?.avatarUr
 const conversationPreviewMessage = (conversation) => ({
     message: conversation.lastMessage || '',
     entityRefs: conversation.entityRefs || [],
+    attachment: conversation.attachment || null,
     senderUserId: conversation.senderUserId || ''
 })
 

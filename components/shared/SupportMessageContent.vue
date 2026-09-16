@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 
 const TOKEN_PATTERN = /\{\{entity:([^:}]+):([^}]+)\}\}/g;
@@ -8,6 +9,8 @@ const props = defineProps({
   message: { type: Object, required: true },
   viewerUserId: { type: String, default: '' }
 });
+
+const { t } = useI18n();
 
 const refsByKey = computed(() => {
   const refs = new Map();
@@ -42,6 +45,8 @@ const parts = computed(() => {
 const trailingRefs = computed(() => (props.message.entityRefs || [])
   .filter(ref => ref?.type && ref?.id && !props.message.message?.includes(`{{entity:${ref.type}:${ref.id}}}`)));
 
+const voiceMessage = computed(() => props.message.attachment?.kind === 'audio');
+
 const refNeedsHydration = (ref = {}) => {
   if (!ref.entity || typeof ref.entity !== 'object') return true;
   if (ref.type === 'cassette') {
@@ -63,9 +68,16 @@ const canFetchRef = (ref = {}) => {
 </script>
 
 <template>
-  <span class="inline-flex min-w-0 flex-wrap items-center gap-1 align-middle">
+  <!-- min-w-0/[overflow-wrap:anywhere] chain: the inline-flex root and its
+       text items must shrink below their longest word, otherwise unbroken
+       strings (urls, serials) push bubbles past the chat bounds. -->
+  <span class="inline-flex max-w-full min-w-0 flex-wrap items-center gap-1 align-middle">
+    <span v-if="voiceMessage" class="inline-flex min-w-0 shrink-0 items-center gap-1">
+      <i class="pi pi-microphone shrink-0" aria-hidden="true" />
+      <span class="whitespace-nowrap">{{ t('support.voiceMessage') }}</span>
+    </span>
     <template v-for="(part, index) in parts" :key="`${part.type}-${index}-${part.id || part.value}`">
-      <span v-if="part.type === 'text'" class="whitespace-pre-wrap break-words">{{ part.value }}</span>
+      <span v-if="part.type === 'text'" class="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{{ part.value }}</span>
       <EntityInlineRef
         v-else
         :type="part.entityType"

@@ -442,12 +442,29 @@ Revision/provenance rows should use this component with `type="entityRevision"`
 so the shared entity popover shows the immutable revision summary and source
 relationship.
 
+### `ChatAttachmentPicker.vue`
+The chat composer's attachment surface: a Popover-hosted sequential tiered
+menu over the same structure the home explorer exposes. Level one lists
+attachable entity types (localized labels plus domain icons) and, when the org
+process exposes an artifact creation action, a "create artifact" entry; level
+two lists the chosen type's options from `/api/support/entity-options`, loaded
+on drill-down with the direct recipient id so chat-only visibility warnings
+stay accurate. Tapping an option selects it and closes the picker in one step
+— there is no separate add button. The host owns the draft `entityRefs` and
+the `GeneratedArtifactCreator` dialog for the create-artifact path; the picker
+only emits `select`/`create-artifact` and renders option rows.
+
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies. Plain text remains text, while
 `{{entity:type:id}}` tokens render as inline `EntityInlineRef` chips. The
 component also renders structured `message.entityRefs[]` entries that were not
 embedded as tokens, so structured attachments remain visible without polluting
-the text body. Chat composers must source supported ref types from the support
+the text body. Text parts wrap with `overflow-wrap: anywhere` and the whole
+inline-flex chain keeps `min-w-0`/`max-w-full`, so unbroken strings (urls,
+serials) wrap inside the bubble instead of overflowing the chat bounds.
+Messages carrying `attachment.kind === 'audio'` render a leading voice-message
+chip, which is the inbox preview for attachment-only voice messages. Chat
+composers must source supported ref types from the support
 entity-types endpoint, which derives choices from readable generated screen
 sources, and concrete refs from the support entity-options endpoint instead of
 manual ids. Chat message refs may also carry compact entity snapshots plus
