@@ -7,7 +7,11 @@ const mocks = vi.hoisted(() => ({
     markRead: vi.fn(),
     insert: vi.fn(),
     find: vi.fn(),
+    findById: vi.fn(),
     findSince: vi.fn()
+  },
+  appRegistry: {
+    getEntityService: vi.fn(() => ({ processGetById: vi.fn(async () => null) }))
   },
   usersService: {
     getById: vi.fn(),
@@ -32,6 +36,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('./repository.js', () => mocks.repository);
+vi.mock('~/server/runtime/app-registry.js', () => ({
+  getAppRegistry: () => mocks.appRegistry
+}));
 vi.mock('~/server/features/cassette-designs/service.js', () => mocks.cassetteDesignsService);
 vi.mock('~/server/features/cassettes/service.js', () => mocks.cassettesService);
 vi.mock('~/server/features/artifacts/service.js', () => mocks.artifactsService);

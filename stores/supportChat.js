@@ -10,6 +10,7 @@ export const useSupportChatStore = defineStore('supportChat', () => {
     const connected = ref(false);
     const error = ref(null);
     let unsubscribeInbox = null;
+    let unsubscribeOrg = null;
 
     const supportConversation = computed(() => conversations.value.find(item => item.conversationKind === 'support') || null);
 
@@ -31,9 +32,17 @@ export const useSupportChatStore = defineStore('supportChat', () => {
     function connect() {
         if (unsubscribeInbox || process.server || !authStore.userIsSet) return;
         refresh();
-        unsubscribeInbox = useConnections().subscribe(`user:${authStore.user.userId}`, (payload) => {
+        const handleInboxPing = (payload) => {
             if (payload?.type === 'support.inbox') refresh();
-        });
+        };
+        unsubscribeInbox = useConnections().subscribe(`user:${authStore.user.userId}`, handleInboxPing);
+        // Entity-linked chats fan their inbox pings out on the organization
+        // topic: org-mates see each other's entity messages without being
+        // conversation participants.
+        const organizationId = String(authStore.organizationData?._id || authStore.userData?.organizationId || '');
+        if (organizationId) {
+            unsubscribeOrg = useConnections().subscribe(`org:${organizationId}`, handleInboxPing);
+        }
         connected.value = true;
     }
 
@@ -41,6 +50,10 @@ export const useSupportChatStore = defineStore('supportChat', () => {
         if (unsubscribeInbox) {
             unsubscribeInbox();
             unsubscribeInbox = null;
+        }
+        if (unsubscribeOrg) {
+            unsubscribeOrg();
+            unsubscribeOrg = null;
         }
         connected.value = false;
     }

@@ -17,6 +17,7 @@ Messages have a deterministic `conversationKey`:
 | User to support | `support:<userId>` | The customer user id |
 | User to user | `direct:<sorted-user-id-a>:<sorted-user-id-b>` | Both user ids, sorted |
 | Group chat | `group:<chatGroupId>` | The persisted group's member ids |
+| Entity chat | `entity:<entityType>:<entityId>` | The sender (org-scoped read) |
 
 Legacy support messages without `conversationKey` remain readable through the
 support-channel match for the same `userId`. New writes always persist
@@ -145,6 +146,43 @@ offer "create artifact" and reference the freshly created artifact, without
 widening artifact reads past the process windows: option loading still goes
 through the scoped artifacts list service.
 
+## Entity-Linked Chats
+
+Messages may be linked to one entity (`entity: { type, id }` on send). The
+server resolves the entity through the auth-scoped registry read
+(`processGetById`), persists `entityLink {type,id,name}`, and walks the
+lineage bindings upward to persist `entityPath [{type,id,name}]` with the
+organization root first, every ancestor, then the linked entity. Entity
+messages also carry `organizationId`, which scopes the inbox query and the
+organization-topic fanout. Chats over entities are composed views, not
+separate threads:
+
+- Narrow view: `GET /api/support/messages?entity=<type>:<id>&includeChildren=0`
+  matches the entity's own conversation key.
+- Composed view (default): `includeChildren=1` matches any message whose
+  `entityPath` contains the entity, so a top-level chat lists the top entity
+  plus every descendant message.
+
+Authorization resolves the entity through the same process-scoped registry
+read the generated surfaces use; unreadable entities yield `403`. Realtime
+fanout publishes the message event to every `conversation:entity:*` topic
+along the entity path (aggregated views stay live through one subscription)
+plus one `org:<id>` inbox ping. The user inbox query includes
+`{ conversationKind: 'entity', organizationId }` so org-mates see each
+other's entity messages; summaries emit one row per linked entity plus one
+synthesized root row per organization (`isEntityRoot`) for the whole-subtree
+chat. Names denormalize into the path so quotes and inbox rows never join.
+
+### Replies
+
+A send may carry `parentMessageId`. The parent must share the conversation
+key or, for entity messages, the same organization (an aggregated view can
+reply to a message linked to a child entity). The reply persists a
+denormalized `parent { _id, senderUserId, senderName, snippet, attachment?,
+timestamp }` quote (text clipped to 140 characters; voice messages carry
+their attachment descriptor), so rendering and inbox previews never need the
+parent loaded.
+
 ## Voice Messages
 
 A message may carry `attachment` — currently exactly one descriptor of kind
@@ -178,7 +216,8 @@ can render a voice-message chip.
 | `GET /api/support/messages?recipientUserId=<id>` | REST snapshot of a direct user conversation. |
 | `GET /api/support/messages?conversationKey=group:<id>` | REST snapshot of a group conversation. |
 | `GET /api/support/messages?limit=<n>&before=<iso>` | Lazy history page: the `n` newest messages older than the cursor, ascending, plus `hasMore`. |
-| `POST /api/support/messages` | Send support, direct (`recipientUserId`), or group (`conversationKey`) message. Publishes `message`/`read`/inbox events through the connections layer. |
+| `GET /api/support/messages?entity=<type>:<id>&includeChildren=<0|1>` | Entity thread view: composed subtree (default) or the entity's own messages. |
+| `POST /api/support/messages` | Send support, direct (`recipientUserId`), group (`conversationKey`), or entity (`entity {type,id}`) message; optional `parentMessageId` reply quote. Publishes `message`/`read`/inbox events through the connections layer. |
 | `GET /api/support/admin/:user_id` | REST snapshot of the admin support conversation. |
 | `POST /api/support/admin/:user_id` | Admin reply to a customer support conversation. |
 | `GET /api/support/admin/chatlist` | Admin support-thread list snapshot; excludes direct user conversations. Refreshes via the `admin-support` connections topic. |

@@ -8,11 +8,15 @@ const mocks = vi.hoisted(() => ({
     markRead: vi.fn(),
     insert: vi.fn(),
     find: vi.fn(),
+    findById: vi.fn(),
     findSince: vi.fn(),
     insertGroup: vi.fn(),
     findGroupById: vi.fn(),
     findGroupsByParticipant: vi.fn(async () => []),
     deleteGroupById: vi.fn()
+  },
+  appRegistry: {
+    getEntityService: vi.fn(() => ({ processGetById: vi.fn(async () => null) }))
   },
   usersService: {
     getById: vi.fn(),
@@ -37,6 +41,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('./repository.js', () => mocks.repository);
+vi.mock('~/server/runtime/app-registry.js', () => ({
+  getAppRegistry: () => mocks.appRegistry
+}));
 vi.mock('~/server/features/connections/service.js', () => ({
   publish: mocks.connectionsPublish,
   registerTopicAuthorizer: vi.fn()
@@ -789,6 +796,166 @@ describe('support communication service', () => {
       message: 'unexpanded kinds must not break sends'
     })).resolves.toBeTruthy();
   });
+  it('resolves entity conversation contexts through the scoped registry read', async () => {
+    mocks.appRegistry.getEntityService.mockImplementation((type) => ({
+      processGetById: vi.fn(async (id) => (type === 'project' && id === 'project-1'
+        ? { toJSON: () => ({ _id: 'project-1', identity: { name: 'Facade Alpha' }, lineage: { organizationId: 'org-1' } }) }
+        : null))
+    }));
+
+    const context = await supportService.getEntityConversationContext(auth, 'entity:project:project-1');
+
+    expect(context).toMatchObject({
+      kind: 'entity',
+      conversationKey: 'entity:project:project-1',
+      entityType: 'project',
+      entityName: 'Facade Alpha',
+      organizationId: 'org-1'
+    });
+    await expect(supportService.getEntityConversationContext(auth, 'entity:project:missing'))
+      .rejects.toMatchObject({ statusCode: 403 });
+    await expect(supportService.getEntityConversationContext(auth, 'entity:project'))
+      .rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('composes aggregated entity views through the entity path', () => {
+    const context = {
+      entityType: 'organization',
+      entityId: 'org-1',
+      match: { conversationKey: 'entity:organization:org-1' }
+    };
+    expect(supportService.entityConversationMatch(context, true)).toEqual({
+      entityPath: { $elemMatch: { type: 'organization', id: 'org-1' } }
+    });
+    expect(supportService.entityConversationMatch(context, false)).toEqual({
+      conversationKey: 'entity:organization:org-1'
+    });
+  });
+
+  it('links messages to entities with an ancestry path rooted at the organization', async () => {
+    mocks.repository.insert.mockImplementation(async (record) => record);
+    const table = {
+      'queue:queue-1': { _id: 'queue-1', identity: { name: 'Queue 1' }, lineage: { organizationId: 'org-1', projectId: 'project-1' } },
+      'project:project-1': { _id: 'project-1', identity: { name: 'Facade Alpha' }, lineage: { organizationId: 'org-1' } },
+      'organization:org-1': { _id: 'org-1', identity: { name: 'Org1' }, lineage: {} }
+    };
+    mocks.appRegistry.getEntityService.mockImplementation((type) => ({
+      processGetById: vi.fn(async (id) => {
+        const dto = table[`${type}:${id}`];
+        return dto ? { toJSON: () => dto } : null;
+      })
+    }));
+    const entityAuth = {
+      ...auth,
+      process: { active: true, lineageBindings: [
+        { childEntityType: 'queue', ancestorEntityType: 'project', lineageKey: 'projectId' }
+      ] }
+    };
+
+    const message = await supportService.sendUserMessage(entityAuth, {
+      entity: { type: 'queue', id: 'queue-1' },
+      message: 'nested update'
+    });
+
+    expect(message.conversationKey).toBe('entity:queue:queue-1');
+    expect(message.conversationKind).toBe('entity');
+    expect(message.entityLink).toEqual({ type: 'queue', id: 'queue-1', name: 'Queue 1' });
+    expect(message.entityPath).toEqual([
+      { type: 'organization', id: 'org-1', name: 'Org1' },
+      { type: 'project', id: 'project-1', name: 'Facade Alpha' },
+      { type: 'queue', id: 'queue-1', name: 'Queue 1' }
+    ]);
+    expect(message.organizationId).toBe('org-1');
+    expect(mocks.connectionsPublish).toHaveBeenCalledWith(
+      'conversation:entity:organization:org-1',
+      expect.objectContaining({ type: 'message' })
+    );
+    expect(mocks.connectionsPublish).toHaveBeenCalledWith(
+      'conversation:entity:queue:queue-1',
+      expect.objectContaining({ type: 'message' })
+    );
+    expect(mocks.connectionsPublish).toHaveBeenCalledWith(
+      'org:org-1',
+      expect.objectContaining({ type: 'support.inbox' })
+    );
+  });
+
+  it('denormalizes quoted parents and accepts replies across the composed entity family', async () => {
+    mocks.repository.insert.mockImplementation(async (record) => record);
+    mocks.repository.findById.mockResolvedValue({
+      _id: 'parent-1',
+      conversationKey: 'entity:queue:queue-1',
+      conversationKind: 'entity',
+      organizationId: 'org-1',
+      senderUserId: 'user-b',
+      message: 'Original point that is long enough to quote',
+      attachment: null,
+      timestamp: new Date('2026-09-16T10:00:00.000Z')
+    });
+    mocks.usersService.getById.mockResolvedValue({
+      toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
+    });
+    mocks.appRegistry.getEntityService.mockImplementation((type) => ({
+      processGetById: vi.fn(async (id) => (type === 'organization' && id === 'org-1'
+        ? { toJSON: () => ({ _id: 'org-1', identity: { name: 'Org1' }, lineage: {} }) }
+        : null))
+    }));
+
+    const message = await supportService.sendUserMessage({ ...auth, process: { active: true, lineageBindings: [] } }, {
+      entity: { type: 'organization', id: 'org-1' },
+      message: 'replying at the top level',
+      parentMessageId: 'parent-1'
+    });
+
+    expect(message.parent).toMatchObject({
+      _id: 'parent-1',
+      senderName: 'User B',
+      snippet: 'Original point that is long enough to quote'
+    });
+
+    mocks.repository.findById.mockResolvedValue({
+      _id: 'parent-2',
+      conversationKey: 'entity:queue:queue-9',
+      conversationKind: 'entity',
+      organizationId: 'org-other',
+      senderUserId: 'user-b',
+      message: 'elsewhere',
+      timestamp: new Date('2026-09-16T10:00:00.000Z')
+    });
+    await expect(supportService.sendUserMessage({ ...auth, process: { active: true, lineageBindings: [] } }, {
+      entity: { type: 'organization', id: 'org-1' },
+      message: 'cross-family reply',
+      parentMessageId: 'parent-2'
+    })).rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('summarizes entity chats with a synthesized root row and unread counts', async () => {
+    mocks.repository.findConversationMessages.mockResolvedValue([
+      {
+        conversationKey: 'entity:queue:queue-1',
+        conversationKind: 'entity',
+        organizationId: 'org-1',
+        entityLink: { type: 'queue', id: 'queue-1', name: 'Queue 1' },
+        entityPath: [
+          { type: 'organization', id: 'org-1', name: 'Org1' },
+          { type: 'project', id: 'project-1', name: 'P1' },
+          { type: 'queue', id: 'queue-1', name: 'Queue 1' }
+        ],
+        message: 'nested',
+        senderUserId: 'user-b',
+        timestamp: new Date('2026-09-16T10:00:00.000Z')
+      }
+    ]);
+    mocks.repository.findReadStates.mockResolvedValue([]);
+
+    const conversations = await supportService.listUserConversations(auth);
+
+    expect(conversations.find(item => item.conversationKey === 'entity:organization:org-1'))
+      .toMatchObject({ isEntityRoot: true, entityName: 'Org1', unreadCount: 1 });
+    expect(conversations.find(item => item.conversationKey === 'entity:queue:queue-1'))
+      .toMatchObject({ entityType: 'queue', entityName: 'Queue 1', unreadCount: 1 });
+  });
+
   it('creates group chats with the creator plus reachable participants', async () => {
     mocks.usersService.list.mockResolvedValue([
       { toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} }) },

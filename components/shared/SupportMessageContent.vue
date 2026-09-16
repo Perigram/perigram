@@ -47,6 +47,32 @@ const trailingRefs = computed(() => (props.message.entityRefs || [])
 
 const voiceMessage = computed(() => props.message.attachment?.kind === 'audio');
 
+const URL_PATTERN = /\bhttps?:\/\/[^\s<>"'`]+/gi;
+
+const renderParts = computed(() => parts.value.flatMap(part => (
+  part.type === 'text' ? withLinks(part.value) : [part]
+)));
+
+/**
+ * Text parts split into plain spans and safe http(s) anchors; trailing
+ * punctuation peels off the link and stays text.
+ */
+const withLinks = (text) => {
+  const result = [];
+  let lastIndex = 0;
+  for (const match of text.matchAll(URL_PATTERN)) {
+    const raw = match[0];
+    const url = raw.replace(/[.,;:!?)\]]+$/, '');
+    if (match.index > lastIndex) result.push({ type: 'text', value: text.slice(lastIndex, match.index) });
+    if (url) result.push({ type: 'link', value: url });
+    const trailing = raw.length - url.length;
+    if (trailing > 0) result.push({ type: 'text', value: raw.slice(url.length) });
+    lastIndex = match.index + raw.length;
+  }
+  if (lastIndex < text.length) result.push({ type: 'text', value: text.slice(lastIndex) });
+  return result;
+};
+
 const refNeedsHydration = (ref = {}) => {
   if (!ref.entity || typeof ref.entity !== 'object') return true;
   if (ref.type === 'cassette') {
@@ -76,8 +102,15 @@ const canFetchRef = (ref = {}) => {
       <i class="pi pi-microphone shrink-0" aria-hidden="true" />
       <span class="whitespace-nowrap">{{ t('support.voiceMessage') }}</span>
     </span>
-    <template v-for="(part, index) in parts" :key="`${part.type}-${index}-${part.id || part.value}`">
-      <span v-if="part.type === 'text'" class="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{{ part.value }}</span>
+    <template v-for="(part, index) in renderParts" :key="`${part.type}-${index}-${part.id || part.value}`">
+      <a
+        v-if="part.type === 'link'"
+        :href="part.value"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="min-w-0 break-all text-inherit underline [overflow-wrap:anywhere] hover:opacity-80"
+      >{{ part.value }}</a>
+      <span v-else-if="part.type === 'text'" class="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{{ part.value }}</span>
       <EntityInlineRef
         v-else
         :type="part.entityType"

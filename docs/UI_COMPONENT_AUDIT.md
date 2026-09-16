@@ -137,7 +137,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-cassettefoldedpreview-vue` | `components/CassetteFoldedPreview.vue` | derived usage | centralize:layout (2); replace:chrome (4); remove:state (1) |
 | `ui-components-cassettemanager-vue` | `components/CassetteManager.vue` | derived usage | compliant |
 | `ui-components-cassettethumbnail-vue` | `components/CassetteThumbnail.vue` | derived usage | replace:chrome (4) |
-| `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | replace:chrome (22); remove:state (1); compliant:scoped-layout |
+| `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | replace:chrome (27); remove:state (3); compliant:scoped-layout |
 | `ui-components-config-bot-configbotcitationlist-vue` | `components/config-bot/ConfigBotCitationList.vue` | derived usage | replace:chrome (4) |
 | `ui-components-config-bot-configbotdraftpreview-vue` | `components/config-bot/ConfigBotDraftPreview.vue` | derived usage | centralize:layout (1); replace:chrome (12) |
 | `ui-components-config-bot-configbotgeneratedpreview-vue` | `components/config-bot/ConfigBotGeneratedPreview.vue` | derived usage | replace:chrome (8) |
@@ -204,7 +204,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedfacadedesignerworkspacepage-vue` | `components/generated/GeneratedFacadeDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedfacadepatterndesignerworkspacepage-vue` | `components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedhomescreen-vue` | `components/generated/GeneratedHomeScreen.vue` | derived usage | centralize:layout (2); remove:state (1) |
-| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (13); remove:important-override (11) |
+| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (13); remove:state (4); remove:important-override (6) |
 | `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | compliant |
 | `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | replace:chrome (11) |
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
@@ -240,6 +240,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-drawingcanvas-vue` | `components/shared/DrawingCanvas.vue` | shared/domain primitive | replace:chrome (10) |
 | `ui-components-shared-entityactionspopover-vue` | `components/shared/EntityActionsPopover.vue` | derived usage | compliant |
 | `ui-components-shared-entitycard-vue` | `components/shared/EntityCard.vue` | shared/domain primitive | centralize:layout (1) |
+| `ui-components-shared-entitychatpanel-vue` | `components/shared/EntityChatPanel.vue` | derived usage | replace:chrome (4) |
 | `ui-components-shared-entityinlineref-vue` | `components/shared/EntityInlineRef.vue` | derived usage | centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-shared-entitymultiselect-vue` | `components/shared/EntityMultiSelect.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-entitypage-vue` | `components/shared/EntityPage.vue` | shared/domain primitive | replace:chrome (3); compliant:scoped-layout |
@@ -266,7 +267,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-status-statushistory-vue` | `components/shared/status/StatusHistory.vue` | shared/domain primitive | centralize:layout (1); replace:chrome (3) |
 | `ui-components-shared-status-statuslocation-vue` | `components/shared/status/StatusLocation.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-status-statustransitiondialog-vue` | `components/shared/status/StatusTransitionDialog.vue` | derived usage | compliant |
-| `ui-components-shared-supportmessagecontent-vue` | `components/shared/SupportMessageContent.vue` | derived usage | compliant |
+| `ui-components-shared-supportmessagecontent-vue` | `components/shared/SupportMessageContent.vue` | derived usage | remove:state (1) |
 | `ui-components-shared-tableframe-vue` | `components/shared/TableFrame.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-threeviewport-vue` | `components/shared/ThreeViewport.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-typedsettingsform-vue` | `components/shared/TypedSettingsForm.vue` | derived usage | compliant |

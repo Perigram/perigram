@@ -457,6 +457,14 @@ tree, because option lists are recipient-scoped per conversation. The host
 owns the draft `entityRefs` and the `GeneratedArtifactCreator` dialog for the
 create-artifact path; the picker only emits `select`/`create-artifact`.
 
+### `EntityChatPanel.vue`
+Entity-thread surface for generated detail pages: a collapsed-by-default
+"Entity chat" disclosure that pins the shared chat component to
+`entity:<type>:<id>` in `thread-only` embedded mode — the detail page gets
+the composed entity conversation (quotes, voice, lazy history, links, and
+the children toggle included) without the inbox or back navigation. The
+bounded host keeps thread scrolling off the detail page height.
+
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies. Plain text remains text, while
 `{{entity:type:id}}` tokens render as inline `EntityInlineRef` chips. The
@@ -466,7 +474,10 @@ the text body. Text parts wrap with `overflow-wrap: anywhere` and the whole
 inline-flex chain keeps `min-w-0`/`max-w-full`, so unbroken strings (urls,
 serials) wrap inside the bubble instead of overflowing the chat bounds.
 Messages carrying `attachment.kind === 'audio'` render a leading voice-message
-chip, which is the inbox preview for attachment-only voice messages. Chat
+chip, which is the inbox preview for attachment-only voice messages. Text
+parts parse http(s) URLs into safe anchors (`noopener`, inherit-colored so
+both bubble sides stay readable); trailing punctuation peels off the link and
+stays text. Chat
 composers must source supported ref types from the support
 entity-types endpoint, which derives choices from readable generated screen
 sources, and concrete refs from the support entity-options endpoint instead of
