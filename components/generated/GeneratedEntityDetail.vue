@@ -19,7 +19,7 @@
     <!-- Composed entity chat rides the canonical detail chrome so every
          surface that renders an entity detail body — abstract pages and
          bounded implementation panes alike — carries the thread. -->
-    <EntityChatPanel :type="entityType" :id="entityIdValue" />
+    <EntityChatPanel :type="entityType" :id="entityIdValue" :name="entityNameValue" />
     <slot />
   </div>
   <EntityPage
@@ -42,7 +42,7 @@
       @refresh="$emit('refresh')"
     />
     <slot />
-    <EntityChatPanel :type="entityType" :id="entityIdValue" />
+    <EntityChatPanel :type="entityType" :id="entityIdValue" :name="entityNameValue" />
     <template v-if="editorActionComponent || headerActionIds.length" #actions>
       <component
         :is="editorActionComponent"
@@ -100,6 +100,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action', 'open-page']);
 
 const authStore = useAuthStore();
+const entityNameValue = computed(() => props.entity?.identity?.name || '');
 const entityIdValue = computed(() => {
   const id = props.entity?._id || props.entity?.id || props.entity?.identity?.uid || '';
   return id ? String(id) : '';

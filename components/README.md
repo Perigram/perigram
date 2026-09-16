@@ -1090,9 +1090,10 @@ loaded, loading earlier pages while staying scroll-anchored otherwise; they
 open through a hover menu on desktop and swipe-to-reply on mobile, and the
 composer shows a cancelable reply bar. Generated detail pages expose the same
 composed conversation through the shared `EntityChatPanel` disclosure, and
-every entity surface carries a chat entry — `EntityInlineRef` popovers and
-inline chips plus `GeneratedEntityCollection` card footers open the entity
-thread through `utils/entity-chat.js` (desktop drawer deep link, mobile
+every entity surface carries a chat entry — the shared `EntityCard` renders
+it for all card variants (footer row and expansion popover), and
+`EntityInlineRef` popups carry it too, all opening the entity thread through
+`utils/entity-chat.js` (desktop drawer deep link, mobile
 /chats route with the preset target, both consumed on chat mount). The
 detail panel rides `GeneratedEntityDetail` — the canonical detail chrome —
 so abstract detail pages and bounded implementation panes (workspace

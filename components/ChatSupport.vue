@@ -714,7 +714,10 @@ const props = defineProps({
     conversationKey: { type: String, default: '' },
     openCallInPane: { type: Boolean, default: false },
     // Detail-page panels pin one entity thread: no inbox, no back navigation.
-    threadOnly: { type: Boolean, default: false }
+    threadOnly: { type: Boolean, default: false },
+    // Entity display name hint for synthesized stubs before the snapshot
+    // fills the thread title.
+    entityName: { type: String, default: '' }
 })
 
 const emit = defineEmits(['open-call'])
@@ -1767,7 +1770,7 @@ function openConversationByKey(key) {
             conversationKind: 'entity',
             entityType,
             entityId,
-            entityName: '',
+            entityName: props.entityName || '',
             lastMessage: ''
         }
         return
@@ -1872,7 +1875,7 @@ const openDirectTarget = async () => {
 
 const conversationLabel = (conversation) => {
     if (conversation?.conversationKind === 'entity') {
-        return conversation?.entityName || conversation?.entityType || t('support.sectionEntities')
+        return conversation?.entityName || localizedEntityTypeLabel(conversation?.entityType)
     }
     if (conversation?.conversationKind === 'group') {
         return conversation?.groupName || t('support.sectionGroups')

@@ -129,15 +129,16 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-authprogress-vue` | `components/AuthProgress.vue` | derived usage | compliant |
 | `ui-components-calls-callpanel-vue` | `components/calls/CallPanel.vue` | derived usage | replace:chrome (1); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-calls-callprejoin-vue` | `components/calls/CallPrejoin.vue` | derived usage | replace:chrome (5) |
-| `ui-components-calls-calltile-vue` | `components/calls/CallTile.vue` | derived usage | replace:chrome (5) |
+| `ui-components-calls-calltile-vue` | `components/calls/CallTile.vue` | derived usage | replace:chrome (5); replace:inline-visual (1) |
 | `ui-components-calls-callworkspacepage-vue` | `components/calls/CallWorkspacePage.vue` | derived usage | replace:chrome (4); compliant:scoped-layout |
+| `ui-components-calls-incomingcalls-vue` | `components/calls/IncomingCalls.vue` | derived usage | replace:chrome (5) |
 | `ui-components-cassettedesignerv2-vue` | `components/CassetteDesignerV2.vue` | derived usage | centralize:layout (1); replace:chrome (35); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-cassetteeditordialog-vue` | `components/CassetteEditorDialog.vue` | derived usage | centralize:layout (6); replace:chrome (2) |
 | `ui-components-cassetteexpressioneditor-vue` | `components/CassetteExpressionEditor.vue` | derived usage | replace:chrome (17); remove:state (1) |
 | `ui-components-cassettefoldedpreview-vue` | `components/CassetteFoldedPreview.vue` | derived usage | centralize:layout (2); replace:chrome (4); remove:state (1) |
 | `ui-components-cassettemanager-vue` | `components/CassetteManager.vue` | derived usage | compliant |
 | `ui-components-cassettethumbnail-vue` | `components/CassetteThumbnail.vue` | derived usage | replace:chrome (4) |
-| `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | replace:chrome (22); remove:state (5); compliant:scoped-layout |
+| `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | replace:chrome (23); remove:state (5); compliant:scoped-layout |
 | `ui-components-config-bot-configbotcitationlist-vue` | `components/config-bot/ConfigBotCitationList.vue` | derived usage | replace:chrome (4) |
 | `ui-components-config-bot-configbotdraftpreview-vue` | `components/config-bot/ConfigBotDraftPreview.vue` | derived usage | centralize:layout (1); replace:chrome (12) |
 | `ui-components-config-bot-configbotgeneratedpreview-vue` | `components/config-bot/ConfigBotGeneratedPreview.vue` | derived usage | replace:chrome (8) |
@@ -204,7 +205,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedfacadedesignerworkspacepage-vue` | `components/generated/GeneratedFacadeDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedfacadepatterndesignerworkspacepage-vue` | `components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedhomescreen-vue` | `components/generated/GeneratedHomeScreen.vue` | derived usage | centralize:layout (2); remove:state (1) |
-| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (13); remove:state (4); remove:important-override (6) |
+| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (14); remove:state (5); remove:important-override (10) |
 | `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | compliant |
 | `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | replace:chrome (11) |
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |

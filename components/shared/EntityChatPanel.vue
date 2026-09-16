@@ -13,7 +13,7 @@
     <!-- Bounded host: embedded threads own their scrolling, never the detail
          page height. -->
     <div v-if="!collapsed" class="flex h-96 min-h-0 flex-col overflow-hidden rounded-ui border border-chrome-border">
-      <ChatSupport :key="entityKey" embedded thread-only :conversation-key="entityKey" />
+      <ChatSupport :key="entityKey" embedded thread-only :conversation-key="entityKey" :entity-name="name" />
     </div>
   </section>
 </template>
@@ -32,7 +32,8 @@ import ChatSupport from '~/components/ChatSupport.vue'
  */
 const props = defineProps({
   type: { type: String, required: true },
-  id: { type: String, required: true }
+  id: { type: String, required: true },
+  name: { type: String, default: '' }
 })
 
 const collapsed = ref(true)
