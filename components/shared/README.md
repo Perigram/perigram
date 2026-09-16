@@ -469,6 +469,13 @@ the composed entity conversation (quotes, voice, lazy history, links, and
 the children toggle included) without the inbox or back navigation. The
 bounded host keeps thread scrolling off the detail page height.
 
+### `EntityCard.vue` (chat entry)
+Every card variant carries the composed entity-chat entry: full cards render
+it in the footer row (before parent footer actions), and inline/compact
+variants render it in the expansion popover action row. The entry routes
+through `utils/entity-chat.js`, so the surface the card lives on decides how
+the thread opens (desktop drawer, mobile `/chats` target).
+
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies. Plain text remains text, while
 `{{entity:type:id}}` tokens render as inline `EntityInlineRef` chips. The
