@@ -443,31 +443,19 @@ so the shared entity popover shows the immutable revision summary and source
 relationship.
 
 ### `ChatAttachmentPicker.vue`
-The chat composer's attachment surface: a Popover-hosted explorer tree with
-the same structure as the home sidebar, entity-type sections preserved as the
-default roots. Creation entries sit above the tree as the same
-`GeneratedActionButton`s the generated surfaces render — one per
-`createEntity` action in the user scope (not only artifacts); the host runs
-the action flow and attaches the created entity. Sections expand into the
-`/api/support/entity-options` list for that type (loaded on demand, with the
-direct recipient id so chat-only visibility warnings stay accurate); entities
-expand further through pure lineage nesting — containment children from the
-compiled detail sources (`linkedExplorerChildSources` list fetches), exactly
-the sidebar hierarchy. Relation-linked entities are deliberately skipped so
-the tree stays a hierarchy instead of a graph of every linked entity. Tapping
-an entity selects it and closes the
-picker in one step — there is no separate add button. Each open resets the
-tree, because option lists are recipient-scoped per conversation. The host
-owns the draft `entityRefs` and the `GeneratedArtifactCreator` dialog for the
-create-artifact path; the picker only emits `select`/`create-artifact`.
-
-### `EntityChatPanel.vue`
-Entity-thread surface for generated detail pages: a collapsed-by-default
-"Entity chat" disclosure that pins the shared chat component to
-`entity:<type>:<id>` in `thread-only` embedded mode — the detail page gets
-the composed entity conversation (quotes, voice, lazy history, links, and
-the children toggle included) without the inbox or back navigation. The
-bounded host keeps thread scrolling off the detail page height.
+The chat composer's attachment surface: a PrimeVue `PanelMenu` in a Popover
+with its default layout. Home-screen sections are the accordion roots; their
+children list the section's generated create entries right beside the entity
+entries — and every entity entry repeats the pattern through its type's
+detail-screen child creates, so creation lives inside the hierarchy at every
+level (never behind a second popup). Entities expand through pure lineage
+nesting (`linkedExplorerChildSources` list fetches; relation links are
+deliberately skipped so the menu stays a hierarchy). Tapping an entity
+selects it and closes the picker; tapping a create entry runs the generated
+flow in the host and attaches the created entity. Each open resets the menu,
+because option lists are recipient-scoped per conversation. The host owns
+the draft `entityRefs` and the create-action flows; the picker only emits
+`select`/`create-action`.
 
 ### `EntityCard.vue` (chat entry)
 Every card variant carries the composed entity-chat entry: full cards render
