@@ -398,14 +398,15 @@ use `100dvh` so Firefox's dynamic toolbar cannot turn a fitted screen into a
 scrollable one. Surfaces that own gestures (designer canvases) opt into
 `touch-action: none` locally instead.
 The app shell mobile bottom panel may expose up to two generated-screen
-shortcuts. Adding one is inline in the profile menu popover: an "Add screen"
-section (shown only while a slot is free) lists the available generated
-screens, and one tap adds the shortcut and closes the menu — no second popup
-is chained from the first. The long-press on a shortcut tab opens a small
-replace picker — a PrimeVue `Popover` anchored at the pressed tab so it flips
-above the bottom bar and stays attached on scrolled pages (a detached `Menu`
-popup would misplace itself) — offering replacement screens plus a delete
-entry. Shortcuts
+shortcuts. The profile menu carries an "Add screen" row (shown only while a
+slot is free) that opens a second menu tier — a popup PrimeVue `TieredMenu`
+anchored at the row — listing the available generated screens; picking one
+adds the shortcut, and the leaf click closes the tier while the item command
+closes the profile menu through the transient-surfaces event. The long-press
+on a shortcut tab opens a small replace picker — a PrimeVue `Popover` anchored
+at the pressed tab so it flips above the bottom bar and stays attached on
+scrolled pages (a detached `Menu` popup would misplace itself) — offering
+replacement screens plus a delete entry. Shortcuts
 use compiled screen labels and authored icons when available, then fall back to
 generated entity/template icons; they must not be hardcoded domain routes.
 Generated screen titles, home section headers, generated breadcrumbs, and
