@@ -1036,18 +1036,14 @@ message page and prepends older pages on scroll-to-top through the
 record through `MediaRecorder`, upload through the files endpoint, and render
 as a native audio player on the bubble plus a voice chip in previews.
 Attachments attach through the shared `ChatAttachmentPicker` (see
-[shared components](./shared/README.md)): an explorer tree with the same
-sidebar structure as the home screen — entity-type sections as default roots,
-options expanding on demand, and entities lazily expanding through pure
-lineage nesting — where one tap on an entity adds the ref and closes the
-picker; there is no separate add step. Creation entries compose from the
-user scope: every generated `createEntity` action renders as the same
-`GeneratedActionButton` the surfaces use, above the browse tree; running one
-follows the generated flow (upload-creator dialog for artifact creations, a
-prompt dialog for typed inputs, direct execution otherwise) and the created
-entity attaches to the draft like any picked ref. The paperclip trigger
-stays disabled while no entity types are readable and no create actions are
-available, instead of opening an empty menu. The composer loads attachment types from
+[shared components](./shared/README.md)): the home sidebar verbatim —
+home-screen sections (their labels, their collection create actions behind
+the section ellipsis), lazily loaded entity rows, and pure lineage nesting.
+One tap on an entity adds the ref and closes the picker; a section action
+runs the generated create flow (upload-creator dialog, typed prompt dialog,
+or direct execution) and the created entity attaches to the draft like any
+picked ref. The paperclip trigger stays disabled while the home screen
+exposes no list sections. The composer loads attachment types from
 `/api/support/entity-types`, which derives them from the user's generated
 screen source manifest at read access rather than a fixed chat list. Concrete
 attachment choices resolve through `/api/support/entity-options` when the
