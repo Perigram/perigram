@@ -2110,6 +2110,9 @@
     "calls": "Calls",
     "newCall": "Start call",
     "activeRooms": "Active",
+    "activeRoom": "Ongoing call",
+    "decline": "Decline",
+    "ongoing": "Call in progress",
     "groupCall": "Group call",
     "directCall": "Direct call"
   },

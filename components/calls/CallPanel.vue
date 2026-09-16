@@ -91,8 +91,11 @@
                 <span class="rounded-ui bg-content px-3 py-1 text-supporting">{{ $t('call.reconnecting') }}</span>
             </div>
 
-            <div v-if="layout === 'speaker'" class="call-stage flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
-                <div class="flex min-h-0 flex-1 items-stretch">
+            <div v-if="layout === 'speaker'" class="call-stage flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+                <!-- Spotlight: screen shares keep their source proportions
+                     (CallTile hugs the live video aspect, capped by the stage
+                     box); cameras fill the stage. -->
+                <div class="flex min-h-0 flex-1 items-center justify-center">
                     <CallTile
                         v-if="spotlightTile"
                         :key="`spotlight-${spotlightTile.identity}-${spotlightTile.isScreen}`"
@@ -100,6 +103,7 @@
                         spotlight
                         @toggle-pin="togglePin"
                         @video="el => attachTile(spotlightTile, el)"
+                        @aspect="ratio => patchTileAspect(spotlightTile, ratio)"
                     />
                 </div>
                 <div class="call-strip flex shrink-0 gap-3 overflow-x-auto pb-1">
@@ -110,16 +114,18 @@
                         class="call-strip-tile w-40 shrink-0"
                         @toggle-pin="togglePin"
                         @video="el => attachTile(tile, el)"
+                        @aspect="ratio => patchTileAspect(tile, ratio)"
                     />
                 </div>
             </div>
-            <div v-else class="call-grid grid min-h-0 flex-1 auto-rows-fr gap-3 overflow-y-auto">
+            <div v-else class="call-grid grid min-h-0 flex-1 auto-rows-min content-start gap-3 overflow-y-auto">
                 <CallTile
                     v-for="tile in tiles"
                     :key="`grid-${tile.identity}-${tile.isScreen}`"
                     :tile="tile"
                     @toggle-pin="togglePin"
                     @video="el => attachTile(tile, el)"
+                    @aspect="ratio => patchTileAspect(tile, ratio)"
                 />
             </div>
 
@@ -146,6 +152,11 @@
                     @click="sendReaction(emoji)"
                 />
             </div>
+
+            <!-- Remote audio sink: subscribed mic and screen-share audio
+                 tracks play through LiveKit-attached elements kept off the
+                 visible layout. -->
+            <div ref="audioSink" class="hidden"></div>
         </template>
 
         <StandardDialog
@@ -206,15 +217,16 @@ const settingsVisible = ref(false);
 const pinnedIdentities = reactive(new Set());
 const tiles = reactive([]);
 const reactions = reactive([]);
-const deviceId = ref({ audioinput: '', videoinput: '', audiooutput: '' });
+const deviceId = ref({ audioinput: '', videoinput: '', videooutput: '' });
 const audioInputs = ref([]);
 const videoInputs = ref([]);
 const audioOutputs = ref([]);
+const audioSink = ref(null);
 
 let livekitRoom = null;
 let LiveKit = null;
 const tileVideos = new Map();
-const tileKeys = new Map();
+const attachedAudio = new Map();
 const reactionEls = new Map();
 
 const layoutOptions = computed(() => [
@@ -230,37 +242,47 @@ const statusText = computed(() => {
 
 const tileKey = (identity, isScreen) => `${identity}:${isScreen ? 'screen' : 'camera'}`;
 
+// Tiles are mutated in place: replacing tile objects on every audio-level
+// tick re-rendered every tile and made the video surfaces flicker.
 const syncTile = (identity, name = '', patch = {}) => {
     const key = tileKey(identity, patch.isScreen);
     const index = tiles.findIndex(entry => tileKey(entry.identity, entry.isScreen) === key);
-    const base = {
-        identity,
-        name,
-        isScreen: false,
-        hasVideo: false,
-        muted: false,
-        speaking: false,
-        audioLevel: 0,
-        handRaised: false,
-        quality: 'unknown',
-        pinned: false,
-        track: null,
-        ...patch
-    };
     if (index < 0) {
-        tiles.push(base);
+        tiles.push({
+            identity,
+            name,
+            isScreen: false,
+            hasVideo: false,
+            muted: false,
+            speaking: false,
+            audioLevel: 0,
+            handRaised: false,
+            quality: 'unknown',
+            pinned: false,
+            aspect: 0,
+            track: null,
+            ...patch
+        });
     } else {
-        tiles.splice(index, 1, { ...tiles[index], name: name || tiles[index].name, ...patch });
+        const tile = tiles[index];
+        if (name) tile.name = name;
+        for (const [field, value] of Object.entries(patch)) {
+            if (value !== undefined) tile[field] = value;
+        }
     }
-    tileKeys.set(key, true);
     syncPins();
+};
+
+const patchTileAspect = (tile, ratio) => {
+    if (!tile || !Number.isFinite(ratio) || ratio <= 0) return;
+    if (Math.abs((tile.aspect || 0) - ratio) > 0.01) tile.aspect = ratio;
 };
 
 const dropTile = (identity, isScreen) => {
     const key = tileKey(identity, isScreen);
     const index = tiles.findIndex(entry => tileKey(entry.identity, entry.isScreen) === key);
     if (index >= 0) tiles.splice(index, 1);
-    tileKeys.delete(key);
+    tileVideos.delete(key);
 };
 
 const syncPins = () => {
@@ -269,6 +291,8 @@ const syncPins = () => {
     }
 };
 
+// Attaching is idempotent: resetting srcObject on an element that already
+// plays the track restarts the stream and flashes the tile.
 const attachTile = (tile, el) => {
     const key = tileKey(tile.identity, tile.isScreen);
     if (!el) {
@@ -276,27 +300,102 @@ const attachTile = (tile, el) => {
         return;
     }
     tileVideos.set(key, el);
-    if (tile.track) {
-        el.srcObject = new MediaStream([tile.track.mediaStreamTrack]);
+    const track = tile.track?.mediaStreamTrack || null;
+    if (!track) return;
+    if (el.srcObject?.getTracks?.().includes(track)) {
         el.play().catch(() => {});
+        return;
     }
+    el.srcObject = new MediaStream([track]);
+    el.play().catch(() => {});
 };
 
 const playInto = (key) => {
     const el = tileVideos.get(key);
     const tile = tiles.find(entry => tileKey(entry.identity, entry.isScreen) === key);
     if (el && tile?.track) {
-        el.srcObject = new MediaStream([tile.track.mediaStreamTrack]);
+        const track = tile.track.mediaStreamTrack;
+        if (el.srcObject?.getTracks?.().includes(track)) {
+            el.play().catch(() => {});
+            return;
+        }
+        el.srcObject = new MediaStream([track]);
         el.play().catch(() => {});
     }
 };
 
+// Remote audio: LiveKit attaches the track to its own element, which the
+// panel keeps in a hidden sink container. Attached elements register with
+// the room, so speaker switching keeps working.
+const attachRemoteAudio = (track) => {
+    if (!track || attachedAudio.has(track)) return;
+    let element = null;
+    try {
+        element = track.attach();
+    } catch {
+        return;
+    }
+    attachedAudio.set(track, element);
+    audioSink.value?.appendChild(element);
+    element.play?.().catch(() => {});
+};
+
+const detachRemoteAudio = (track) => {
+    if (!track || !attachedAudio.has(track)) return;
+    attachedAudio.delete(track);
+    try {
+        for (const element of track.detach()) element.remove();
+    } catch {
+        /* element may already be gone with the track */
+    }
+};
+
 const screenTile = computed(() => tiles.find(tile => tile.isScreen) || null);
-const speakingTile = computed(() => [...tiles]
+const topSpeakerTile = computed(() => [...tiles]
     .filter(tile => !tile.isScreen)
     .sort((a, b) => (b.audioLevel || 0) - (a.audioLevel || 0))[0] || null);
 const pinnedTile = computed(() => [...tiles].filter(tile => tile.pinned).sort((a, b) => Number(b.isScreen) - Number(a.isScreen))[0] || null);
-const spotlightTile = computed(() => pinnedTile.value || screenTile.value || speakingTile.value || tiles[0] || null);
+
+// Speaker spotlight sticks: raw audio-level ticks would bounce the spotlight
+// between participants (and remount their video elements) many times per
+// sentence. A new top speaker must hold the lead for a moment before the
+// spotlight follows.
+const sustainedSpeakerKey = ref('');
+let speakerCandidateKey = '';
+let speakerCandidateSince = 0;
+const SPEAKER_HOLD_MS = 1200;
+
+const syncSustainedSpeaker = () => {
+    const top = topSpeakerTile.value;
+    const topKey = top && !top.isScreen ? tileKey(top.identity, false) : '';
+    if (!topKey || (top.audioLevel || 0) <= 0) return;
+    if (topKey === sustainedSpeakerKey.value) {
+        speakerCandidateKey = '';
+        return;
+    }
+    const now = Date.now();
+    if (topKey !== speakerCandidateKey) {
+        speakerCandidateKey = topKey;
+        speakerCandidateSince = now;
+        return;
+    }
+    if (now - speakerCandidateSince >= SPEAKER_HOLD_MS) {
+        sustainedSpeakerKey.value = topKey;
+        speakerCandidateKey = '';
+    }
+};
+
+const sustainedSpeakerTile = computed(() => {
+    if (!sustainedSpeakerKey.value) return null;
+    const tile = tiles.find(entry => !entry.isScreen && tileKey(entry.identity, false) === sustainedSpeakerKey.value);
+    return tile || null;
+});
+
+const spotlightTile = computed(() => pinnedTile.value
+    || screenTile.value
+    || sustainedSpeakerTile.value
+    || tiles[0]
+    || null);
 const stripTiles = computed(() => tiles.filter(tile => tile !== spotlightTile.value));
 
 const join = async (prejoin = {}) => {
@@ -320,12 +419,20 @@ const join = async (prejoin = {}) => {
                     const isScreen = track.source === LiveKit.Track.Source.ScreenShare;
                     syncTile(participant.identity, participant.name, { isScreen, hasVideo: true, track });
                     playInto(tileKey(participant.identity, isScreen));
+                    return;
+                }
+                if (track.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
+                    attachRemoteAudio(track);
                 }
             })
             .on(LiveKit.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
                 if (track.kind === LiveKit.Track.Kind.Video) {
                     const isScreen = track.source === LiveKit.Track.Source.ScreenShare;
                     syncTile(participant.identity, participant.name, { isScreen, hasVideo: false, track: null });
+                    return;
+                }
+                if (track.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
+                    detachRemoteAudio(track);
                 }
             })
             .on(LiveKit.RoomEvent.LocalTrackPublished, (publication, participant) => {
@@ -354,12 +461,11 @@ const join = async (prejoin = {}) => {
             })
             .on(LiveKit.RoomEvent.ActiveSpeakersChanged, speakers => {
                 const levels = new Map(speakers.map(speaker => [speaker.identity, speaker.audioLevel || 0.6]));
-                for (const tile of [...tiles]) {
-                    syncTile(tile.identity, tile.name, {
-                        speaking: levels.has(tile.identity),
-                        audioLevel: levels.get(tile.identity) || 0
-                    });
+                for (const tile of tiles) {
+                    tile.speaking = levels.has(tile.identity);
+                    tile.audioLevel = levels.get(tile.identity) || 0;
                 }
+                syncSustainedSpeaker();
             })
             .on(LiveKit.RoomEvent.ConnectionQualityChanged, (quality, participant) => {
                 syncTile(participant.identity, participant.name, { quality });
@@ -369,7 +475,7 @@ const join = async (prejoin = {}) => {
             .on(LiveKit.RoomEvent.Disconnected, () => {
                 connected.value = false;
                 reconnecting.value = false;
-                tiles.splice(0, tiles.length);
+                teardownMedia();
             })
             .on(LiveKit.RoomEvent.DataReceived, (payload, participant) => {
                 receiveCallEvent(participant.identity, participant.name, payload);
@@ -515,17 +621,27 @@ const registerReactionEl = (id, el) => {
     if (el) reactionEls.set(id, el);
 };
 
+const teardownMedia = () => {
+    for (const track of [...attachedAudio.keys()]) detachRemoteAudio(track);
+    attachedAudio.clear();
+    tileVideos.clear();
+    sustainedSpeakerKey.value = '';
+    speakerCandidateKey = '';
+    tiles.splice(0, tiles.length);
+};
+
 const leave = async () => {
     await livekitRoom?.disconnect();
     livekitRoom = null;
     connected.value = false;
-    tiles.splice(0, tiles.length);
+    teardownMedia();
     emit('closed');
 };
 
 onBeforeUnmount(() => {
     livekitRoom?.disconnect().catch(() => {});
     livekitRoom = null;
+    teardownMedia();
 });
 </script>
 
@@ -533,11 +649,17 @@ onBeforeUnmount(() => {
 /*
  * Container-driven layout: the speaker/grid stage responds to the panel's
  * own width, not the viewport, so calls lay out correctly inside arbitrary
- * workspace panes — narrow containers stack the strip and single-column
- * the grid, wide containers get the side strip and two-column grid.
+ * workspace panes — narrow containers stack the strip, wide containers get
+ * the side strip. The grid is a self-fitting masonry: tiles never shrink
+ * below 14rem and columns fill the available width, so participant count and
+ * pane size choose the column count together.
  */
 .call-panel {
   container-type: inline-size;
+}
+
+.call-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
 }
 
 @container (min-width: 40rem) {
@@ -553,10 +675,6 @@ onBeforeUnmount(() => {
 
   .call-panel .call-strip-tile {
     width: 100%;
-  }
-
-  .call-panel .call-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

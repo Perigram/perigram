@@ -19,11 +19,26 @@
           <!-- Layered above pane content: the TieredMenu flyout submenu is an
                absolutely positioned child that must overlay the pane area. -->
           <CommunicationMenu
-            :active-rooms="activeCallRooms"
             @open-chats="openChatsPage"
             @start-call="startCallFromConversation"
-            @join-room="room => openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })"
           />
+          <!-- Ongoing calls live directly in the sidebar as persistent rows;
+               only brand-new invites float (IncomingCalls). -->
+          <div v-if="callsStore.activeRooms.length" class="mt-2 flex flex-col gap-1" data-active-calls>
+            <small class="px-2 text-muted-color">{{ $t('call.activeRooms') }}</small>
+            <button
+              v-for="room in callsStore.activeRooms"
+              :key="room.room"
+              type="button"
+              class="flex min-w-0 items-center gap-2 rounded-ui p-2 text-left transition-colors hover:bg-subtle"
+              :aria-label="$t('call.join')"
+              @click="openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })"
+            >
+              <i :class="callRoomIcon(room.kind)" class="shrink-0 text-primary" aria-hidden="true" />
+              <span class="min-w-0 flex-1 truncate text-label">{{ activeRoomLabel(room) }}</span>
+              <span class="shrink-0 text-muted-color text-supporting">{{ room.participants }}</span>
+            </button>
+          </div>
         </nav>
 
         <div class="min-h-0 flex-1 overflow-y-auto">
@@ -181,7 +196,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, provide, ref, watch } from 'vue';
+import { computed, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
 import Menu from 'primevue/menu';
@@ -202,10 +217,11 @@ import { generatedDetailScreenForEntityType } from '~/components/generated/detai
 import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities.js';
 import { useSupportChatStore } from '~/stores/supportChat';
+import { useCallsStore } from '~/stores/calls';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
-import { useConnections } from '~/composables/useConnections.js';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedActionLabel, generatedRegionLabel } from '~/utils/generated-labels.js';
+import { callRoomIcon, callRoomLabel, conversationKeyForRoom } from '~/utils/call-rooms.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
 import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
@@ -238,6 +254,7 @@ const authStore = useAuthStore();
 const entityStore = useEntityStore();
 const domainUi = useCutkitDomainUi();
 const supportChatStore = useSupportChatStore();
+const callsStore = useCallsStore();
 const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
 const activePaneId = ref('pane-1');
@@ -249,7 +266,6 @@ const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
 const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
-const activeCallRooms = ref([]);
 const actionsMenu = ref(null);
 const rowActionEntries = ref([]);
 const rowActionMenuItems = computed(() => rowActionEntries.value.map(entry => ({
@@ -421,65 +437,29 @@ watch(openedEntityRefs, async refs => {
   openedEntityItems.value = loaded.filter(Boolean);
 }, { immediate: true, deep: true });
 
-// Declared before the immediate watcher below: it subscribes synchronously
-// on first evaluation, so the unsubscribe handles must already exist.
-let callActivityRefreshTimer = null;
-let unsubscribeUserCalls = null;
-let unsubscribeOrgCalls = null;
-
+// Active-call state comes from the shared calls store (snapshot +
+// `call.activity`/`call.invite` subscriptions owned by the app shell), so the
+// sidebar, chats, and the floating invite notifications all agree without
+// per-surface polling.
 watch(() => [
   authStore.userIsSet,
   authStore.organizationData?._id || authStore.userData?.organizationId,
   currentUserId.value
 ], () => {
-  syncCallActivitySubscriptions();
-  loadActiveRooms();
+  if (authStore.userIsSet) callsStore.connect();
 }, { immediate: true });
 
 watch([activePaneId, paneTree], syncActiveSelection);
 
-// Active calls come from the livekit snapshot endpoint and stay live through
-// `call.activity` events on the caller's own `user:` and `org:` topics
-// (room admission and fanout agree, so events only mention joinable rooms).
-// Events debounce into a snapshot refetch instead of local count patching,
-// so participant counters cannot drift from the LiveKit server.
-async function loadActiveRooms() {
-  if (!authStore.userIsSet || process.server) return;
-  try {
-    activeCallRooms.value = await $fetch('/api/livekit/active-rooms');
-  } catch {
-    activeCallRooms.value = [];
-  }
+function activeRoomLabel(room = {}) {
+  return callRoomLabel(room.room, supportChatStore.conversations, {
+    userId: currentUserId.value,
+    orgName: authStore.organizationData?.identity?.name
+      || authStore.organizationData?.data?.name
+      || undefined,
+    fallback: t('call.activeRoom')
+  });
 }
-
-function scheduleActiveRoomsRefresh() {
-  if (callActivityRefreshTimer) return;
-  callActivityRefreshTimer = setTimeout(() => {
-    callActivityRefreshTimer = null;
-    loadActiveRooms();
-  }, 1000);
-}
-
-function syncCallActivitySubscriptions() {
-  if (process.server || !authStore.userIsSet) return;
-  const handleCallActivity = (payload) => {
-    if (payload?.type === 'call.activity') scheduleActiveRoomsRefresh();
-  };
-  if (currentUserId.value && !unsubscribeUserCalls) {
-    unsubscribeUserCalls = useConnections().subscribe(`user:${currentUserId.value}`, handleCallActivity);
-  }
-  const organizationId = String(authStore.organizationData?._id || authStore.userData?.organizationId || '');
-  if (organizationId && !unsubscribeOrgCalls) {
-    unsubscribeOrgCalls = useConnections().subscribe(`org:${organizationId}`, handleCallActivity);
-  }
-}
-
-
-onBeforeUnmount(() => {
-  if (callActivityRefreshTimer) clearTimeout(callActivityRefreshTimer);
-  if (unsubscribeUserCalls) unsubscribeUserCalls();
-  if (unsubscribeOrgCalls) unsubscribeOrgCalls();
-});
 
 // Calls open as ephemeral workspace tabs (never persisted with the pane
 // layout): the tab hosts the LiveKit stage plus the conversation chat rail.
@@ -503,13 +483,6 @@ function openCallTab(room = '', meta = {}) {
   // unmount an active call, so calls always open as a new tab.
   selectPaneTab(activePane.value.id, room, { newTab: true });
 }
-
-function conversationKeyForRoom(room = '') {
-  if (room.startsWith('call:group:')) return `group:${room.slice('call:group:'.length)}`;
-  if (room.startsWith('call:direct:')) return room.slice('call:'.length);
-  return '';
-}
-
 
 async function startCallFromConversation(conversation = {}) {
   if (!conversation.conversationKey) return;

@@ -1,16 +1,19 @@
 <template>
     <div
-        class="relative flex min-h-36 items-center justify-center overflow-hidden rounded-ui bg-subtle"
-        :class="{ 'md:min-h-0 md:h-full': spotlight }"
+        class="relative flex items-center justify-center overflow-hidden rounded-ui bg-subtle"
+        :class="tileClass"
+        :style="hugAspect ? { aspectRatio: String(tile.aspect) } : null"
         :data-call-tile="tile.identity"
     >
         <video
-            :ref="el => emitVideo(el)"
+            :ref="videoRef"
             class="h-full w-full"
             :class="[tile.isScreen ? 'object-contain' : 'object-cover', { 'opacity-0': !tile.hasVideo }]"
             autoplay
             playsinline
             muted
+            @loadedmetadata="reportAspect"
+            @resize="reportAspect"
         />
         <div v-if="!tile.hasVideo" class="absolute inset-0 flex flex-col items-center justify-center gap-2">
             <Avatar :label="tile.name?.charAt(0).toUpperCase() || '?'" shape="circle" class="bg-primary text-primary-contrast" />
@@ -46,15 +49,12 @@
 import { computed } from 'vue';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
-import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
     tile: { type: Object, required: true },
     spotlight: { type: Boolean, default: false }
 });
-const emit = defineEmits(['toggle-pin', 'video']);
-
-const { t } = useI18n();
+const emit = defineEmits(['toggle-pin', 'video', 'aspect']);
 
 const qualityClass = computed(() => {
     if (props.tile.quality === 'excellent' || props.tile.quality === 'good') return 'text-status-success';
@@ -63,7 +63,32 @@ const qualityClass = computed(() => {
     return 'text-muted-color';
 });
 
-const emitVideo = (el) => {
-    if (el) emit('video', el);
+// Spotlighted screen shares hug their live source proportions instead of
+// stretching the stage box; cameras fill the stage; grid/strip tiles keep a
+// stable 16:9 cell.
+const hugAspect = computed(() => props.spotlight && props.tile.isScreen && Number(props.tile.aspect) > 0);
+
+const tileClass = computed(() => {
+    if (hugAspect.value) return 'h-auto max-h-full w-auto max-w-full';
+    if (props.spotlight) return 'h-full min-h-36 w-full';
+    return 'aspect-video';
+});
+
+// A stable ref callback: re-creating the callback every render re-fires it
+// with the same element, and re-attaching the same stream made tiles flash.
+let lastVideoEl = null;
+const videoRef = (el) => {
+    if (el && el !== lastVideoEl) {
+        lastVideoEl = el;
+        emit('video', el);
+        reportAspect();
+    }
+};
+
+const reportAspect = () => {
+    const el = lastVideoEl;
+    if (!el?.videoWidth || !el?.videoHeight) return;
+    const ratio = el.videoWidth / el.videoHeight;
+    if (Number.isFinite(ratio) && ratio > 0) emit('aspect', ratio);
 };
 </script>
