@@ -2110,6 +2110,9 @@
     "calls": "Звонки",
     "newCall": "Позвонить",
     "activeRooms": "Активные",
+    "activeRoom": "Идёт звонок",
+    "decline": "Отклонить",
+    "ongoing": "Идёт звонок",
     "groupCall": "Групповой звонок",
     "directCall": "Личный звонок"
   },

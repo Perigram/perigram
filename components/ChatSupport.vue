@@ -233,6 +233,17 @@
                     </span>
                     <Button :label="$t('call.join')" icon="pi pi-phone" size="small" @click="joinIncomingCall" />
                 </div>
+                <!-- Ongoing call for this conversation: visible while the room
+                     is running, including after the viewer left the call. -->
+                <div
+                    v-else-if="ongoingCallRoom"
+                    class="mx-3 mt-3 flex items-center justify-between gap-3 rounded-ui bg-subtle p-3 md:mx-4 md:mt-4"
+                >
+                    <span class="min-w-0 truncate text-body">
+                        {{ $t('call.ongoing') }}
+                    </span>
+                    <Button :label="$t('call.join')" icon="pi pi-phone" size="small" @click="joinOngoingCall" />
+                </div>
                 <div
                     ref="messagesContainer"
                     class="flex-1 overflow-y-auto p-3 flex flex-col gap-3 md:p-4 md:gap-4"
@@ -664,6 +675,7 @@ import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useAuthStore } from '~/stores/auth'
 import { useSupportChatStore } from '~/stores/supportChat'
+import { useCallsStore } from '~/stores/calls'
 
 const props = defineProps({
     embedded: {
@@ -741,6 +753,14 @@ const callRoom = ref('')
 const callDialog = ref(false)
 const incomingCall = ref(null)
 let incomingCallTimer = null
+// Ongoing room for the open conversation comes from the shared calls store,
+// so the banner survives joining and leaving the call.
+const callsStore = useCallsStore()
+const ongoingCallRoom = computed(() => callsStore.activeRoomForConversation(activeConversationKey.value || ''))
+const joinOngoingCall = () => {
+    const room = ongoingCallRoom.value?.room
+    if (room) openCallSurface(room)
+}
 
 const startCall = async () => {
     if (!activeConversationKey.value) return

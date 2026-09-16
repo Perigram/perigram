@@ -194,6 +194,7 @@
                 class="fixed bottom-8 right-8 z-[999] h-14 w-14 shadow-overlay"
             />
         </div>
+        <IncomingCalls v-if="authStore.userIsSet" />
         <OfflineOutboxBadge v-if="authStore.userIsSet" />
     </div>
 </template>
@@ -214,6 +215,8 @@
     import ChatSupport from '~/components/ChatSupport.vue'
     import UserAccountMenu from '~/components/shared/UserAccountMenu.vue'
     import OfflineOutboxBadge from '~/components/shared/OfflineOutboxBadge.vue'
+    import IncomingCalls from '~/components/calls/IncomingCalls.vue'
+    import { useCallsStore } from '~/stores/calls'
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'
     import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
@@ -232,6 +235,7 @@
     const domainUi = useCutkitDomainUi()
     provide('statusWorkflows', computed(() => authStore.statusWorkflows))
     const supportChatStore = useSupportChatStore()
+    const callsStore = useCallsStore()
     const navStore = useNavigationStore()
     const globalStore = useGlobalStore()
     const ssrFetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {}
@@ -307,8 +311,10 @@
     watch(() => authStore.userIsSet, (isSet) => {
         if (isSet) {
             supportChatStore.connect()
+            callsStore.connect()
         } else {
             supportChatStore.disconnect()
+            callsStore.disconnect()
         }
     }, { immediate: true })
 
