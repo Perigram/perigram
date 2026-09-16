@@ -743,6 +743,7 @@
                 </label>
             </div>
         </StandardDialog>
+        <Menu ref="messageMenu" :model="messageMenuItems" :popup="true" />
         <ConfirmDialog />
     </div>
 </template>
