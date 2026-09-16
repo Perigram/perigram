@@ -138,7 +138,6 @@
     },
     "sectionDirect": "Direct",
     "sectionGroups": "Groups",
-    "chatGroupingTop": "Top level",
     "chatGroupingAll": "Detailed",
     "sectionEntities": "Entity chats",
     "includeChildren": "Include child entities",

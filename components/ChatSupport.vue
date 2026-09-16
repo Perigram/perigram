@@ -18,8 +18,8 @@
         >
             <aside
                 v-if="(!activeConversation || fullPage) && !threadOnly"
-                class="chat-inbox flex min-h-0 flex-col overflow-hidden"
-                :class="fullPage ? 'chat-inbox--rail border-r border-chrome-border' : 'flex-1'"
+                class="chat-inbox flex min-h-0 flex-1 flex-col overflow-hidden"
+                :class="fullPage ? 'chat-inbox--rail border-r border-chrome-border' : ''"
             >
                 <div class="flex shrink-0 items-center justify-end gap-1 px-2 pt-2">
                     <label
@@ -27,7 +27,6 @@
                         class="mr-auto flex items-center gap-1 pl-1 text-muted text-supporting"
                         :title="$t('support.chatGroupingAll')"
                     >
-                        <span>{{ $t('support.chatGroupingTop') }}</span>
                         <ToggleSwitch v-model="groupingAll" :aria-label="$t('support.chatGroupingAll')" />
                         <span>{{ $t('support.chatGroupingAll') }}</span>
                     </label>
@@ -81,6 +80,7 @@
                     data-key="conversationKey"
                     class="min-h-0 flex-1 border-0"
                     :aria-label="$t('support.chatTitle')"
+                    :pt="inboxListboxPt"
                     @update:model-value="key => openConversationByKey(key)"
                 >
                     <template #option="{ option }">
@@ -176,19 +176,25 @@
                         shape="circle"
                         class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                     />
-                    <div class="min-w-0 flex-1">
-                        <h2 class="m-0 truncate text-section-heading">
+                    <div class="flex min-w-0 flex-1 flex-col">
+                        <div class="flex min-w-0 items-center gap-1">
+                            <!-- Open-detail action sits directly left of the
+                                 entity thread title. -->
                             <Button
                                 v-if="activeConversation.conversationKind === 'entity' && activeEntityDetailRoute"
-                                link
-                                class="!p-0 text-left"
-                                :aria-label="conversationLabel(activeConversation)"
+                                icon="pi pi-external-link"
+                                severity="secondary"
+                                text
+                                rounded
+                                size="small"
+                                class="shrink-0"
+                                :aria-label="$t('common.open')"
                                 @click="openEntityFromThread"
-                            >
+                            />
+                            <h2 class="m-0 min-w-0 truncate text-section-heading">
                                 {{ conversationLabel(activeConversation) }}
-                            </Button>
-                            <template v-else>{{ conversationLabel(activeConversation) }}</template>
-                        </h2>
+                            </h2>
+                        </div>
                         <!-- Group threads carry their member profiles inline;
                              entity threads keep the scope subtitle. -->
                         <div
@@ -223,7 +229,7 @@
                             @click="includeChildren = !includeChildren"
                         />
                         <Button
-                            v-if="activeConversation.conversationKind !== 'support' && activeConversation.conversationKind !== 'entity'"
+                            v-if="activeConversation.conversationKind !== 'support'"
                             icon="pi pi-phone"
                             severity="secondary"
                             text
@@ -331,112 +337,137 @@
 
                         <div
                             :data-message-id="messageItem._id"
-                            class="flex min-w-0 max-w-support-chat-message touch-pan-y flex-col gap-1 transition-transform"
-                            :class="[
-                                isOwnMessage(messageItem) ? 'ml-auto items-end' : 'mr-auto items-start',
-                                swipeArmed.has(messageItem._id) ? 'translate-x-3' : '',
-                                highlightKey === String(messageItem._id) ? 'animate-pulse' : ''
-                            ]"
+                            class="relative flex min-w-0 max-w-support-chat-message touch-pan-y flex-col"
                             @touchstart="onTouchStart($event, messageItem)"
                             @touchmove="onTouchMove($event, messageItem)"
                             @touchend="onTouchEnd(messageItem)"
+                            @touchcancel="onTouchCancel(messageItem)"
                         >
-                            <!-- Reply quote: a quote block, not a control —
-                                 plain element with quote styling; no PrimeVue
-                                 primitive fits without fighting its chrome. -->
-                            <button
-                                v-if="messageItem.parent"
-                                type="button"
-                                class="flex max-w-full min-w-0 flex-col gap-0.5 rounded-ui border-l-2 border-content-border bg-subtle px-2 py-1 text-left transition-colors hover:border-content-border"
-                                :aria-label="$t('support.goToMessage')"
-                                @click="goToMessage(messageItem.parent._id)"
+                            <!-- Swipe reveal icon: it sits in the gap the
+                                 dragged row vacates (right edge for own
+                                 messages, left edge for others) and fades in
+                                 with the drag distance. -->
+                            <span
+                                v-if="swipeDrag.id === messageItem._id"
+                                class="absolute top-1/2 -translate-y-1/2"
+                                :class="isOwnMessage(messageItem) ? 'right-1' : 'left-1'"
+                                :style="{ opacity: swipeIconOpacity(messageItem) }"
+                                aria-hidden="true"
                             >
-                                <small class="text-muted text-supporting">
-                                    {{ messageItem.parent.senderName || $t('common.user') }}
-                                </small>
-                                <span class="flex min-w-0 items-center gap-1 text-supporting">
-                                    <i
-                                        v-if="messageItem.parent.attachment?.kind === 'audio'"
-                                        class="pi pi-microphone shrink-0 text-muted"
-                                        aria-hidden="true"
-                                    />
-                                    <span v-if="messageItem.parent.snippet" class="min-w-0 truncate [overflow-wrap:anywhere]">
-                                        {{ messageItem.parent.snippet }}
-                                    </span>
-                                    <span v-else-if="messageItem.parent.attachment?.kind === 'audio'" class="text-muted">
-                                        {{ $t('support.voiceMessage') }}
-                                    </span>
-                                </span>
-                            </button>
-                            <audio
-                                v-if="messageItem.attachment?.kind === 'audio'"
-                                :src="attachmentUrl(messageItem.attachment)"
-                                controls
-                                preload="metadata"
-                                class="max-w-full"
-                            />
-                            <div
-                                v-if="messageItem.message || (messageItem.entityRefs || []).length"
-                                class="group relative max-w-full min-w-0 rounded-ui px-4 py-2 text-body"
-                                :class="isOwnMessage(messageItem)
-                                    ? 'bg-primary text-primary-contrast'
-                                    : 'bg-subtle'"
-                            >
-                                <p class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
-                                    <SupportMessageContent :message="messageItem" :viewer-user-id="currentUserId" />
-                                </p>
-                                <!-- Plain wrapper owns hover visibility: PrimeVue's runtime
-                                     .p-button display rule would defeat utility classes on the
-                                     button itself. -->
-                                <span
-                                    class="absolute -top-2 hidden opacity-0 transition-opacity group-hover:opacity-100 md:block"
-                                    :class="isOwnMessage(messageItem) ? '-left-8' : '-right-8'"
-                                >
-                                    <Button
-                                        icon="pi pi-ellipsis-v"
-                                        severity="secondary"
-                                        text
-                                        rounded
-                                        size="small"
-                                        :aria-label="$t('common.more')"
-                                        @click.stop="openMessageMenu($event, messageItem)"
-                                    />
-                                </span>
-                            </div>
-                            <div v-else class="group relative w-full">
-                                <span
-                                    class="absolute -top-3 hidden opacity-0 transition-opacity group-hover:opacity-100 md:block"
-                                    :class="isOwnMessage(messageItem) ? 'right-0' : 'left-0'"
-                                >
-                                    <Button
-                                        icon="pi pi-ellipsis-v"
-                                        severity="secondary"
-                                        text
-                                        rounded
-                                        size="small"
-                                        :aria-label="$t('common.more')"
-                                        @click.stop="openMessageMenu($event, messageItem)"
-                                    />
-                                </span>
-                            </div>
-                            <span class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting">
-                                {{ formatTime(messageItem.timestamp) }}
-                                <!-- Messages linked to lower entities keep a
-                                     subtle, clickable leaf link inside the
-                                     caption; it is inline caption text, not a
-                                     control, so a plain minimal element beats
-                                     PrimeVue button chrome here. -->
-                                <button
-                                    v-if="lowerEntityChip(messageItem)"
-                                    type="button"
-                                    class="flex min-w-0 items-center gap-1 underline-offset-4 transition-opacity hover:underline"
-                                    :aria-label="messageItem.entityLink.name"
-                                    @click="openLowerEntityChat(messageItem)"
-                                >
-                                    <i :class="domainUi.getIcon(messageItem.entityLink.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
-                                    <span class="min-w-0 truncate">{{ messageItem.entityLink.name }}</span>
-                                </button>
+                                <i
+                                    class="pi pi-reply"
+                                    :class="swipeArmed.has(messageItem._id) ? 'text-primary' : 'text-muted'"
+                                ></i>
                             </span>
+                            <div
+                                class="flex min-w-0 max-w-full flex-col gap-1"
+                                :class="[
+                                    isOwnMessage(messageItem) ? 'ml-auto items-end' : 'mr-auto items-start',
+                                    swipeDrag.id === messageItem._id ? '' : 'transition-transform',
+                                    highlightKey === String(messageItem._id) ? 'animate-pulse' : ''
+                                ]"
+                                :style="swipeStyle(messageItem)"
+                            >
+                                <!-- Reply quote: a quote block, not a control —
+                                     plain element with quote styling; no PrimeVue
+                                     primitive fits without fighting its chrome. -->
+                                <button
+                                    v-if="messageItem.parent"
+                                    type="button"
+                                    class="flex max-w-full min-w-0 flex-col gap-0.5 rounded-ui bg-subtle px-2 py-1 text-left transition-colors"
+                                    :aria-label="$t('support.goToMessage')"
+                                    @click="goToMessage(messageItem.parent._id)"
+                                >
+                                    <small class="text-muted text-supporting">
+                                        {{ messageItem.parent.senderName || $t('common.user') }}
+                                    </small>
+                                    <span class="flex min-w-0 items-center gap-1 text-supporting">
+                                        <i
+                                            v-if="messageItem.parent.attachment?.kind === 'audio'"
+                                            class="pi pi-microphone shrink-0 text-muted"
+                                            aria-hidden="true"
+                                        />
+                                        <span v-if="messageItem.parent.snippet" class="min-w-0 truncate [overflow-wrap:anywhere]">
+                                            {{ messageItem.parent.snippet }}
+                                        </span>
+                                        <span v-else-if="messageItem.parent.attachment?.kind === 'audio'" class="text-muted">
+                                            {{ $t('support.voiceMessage') }}
+                                        </span>
+                                    </span>
+                                </button>
+                                <audio
+                                    v-if="messageItem.attachment?.kind === 'audio'"
+                                    :src="attachmentUrl(messageItem.attachment)"
+                                    controls
+                                    preload="metadata"
+                                    class="max-w-full"
+                                />
+                                <div
+                                    v-if="messageItem.message || (messageItem.entityRefs || []).length"
+                                    class="group relative max-w-full min-w-0 rounded-ui px-4 py-2 text-body"
+                                    :class="isOwnMessage(messageItem)
+                                        ? 'bg-primary text-primary-contrast'
+                                        : 'bg-subtle'"
+                                >
+                                    <p class="m-0 min-w-0 break-words text-body [overflow-wrap:anywhere]">
+                                        <SupportMessageContent :message="messageItem" :viewer-user-id="currentUserId" />
+                                    </p>
+                                    <!-- Plain wrapper owns hover visibility: PrimeVue's runtime
+                                         .p-button display rule would defeat utility classes on the
+                                         button itself. The menu aligns with the bubble's vertical
+                                         center, beside its outer edge. -->
+                                    <span
+                                        class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 md:block"
+                                        :class="isOwnMessage(messageItem) ? '-left-8' : '-right-8'"
+                                    >
+                                        <Button
+                                            icon="pi pi-ellipsis-v"
+                                            severity="secondary"
+                                            text
+                                            rounded
+                                            size="small"
+                                            :aria-label="$t('common.more')"
+                                            @click.stop="openMessageMenu($event, messageItem)"
+                                        />
+                                    </span>
+                                </div>
+                                <div v-else class="group relative w-full">
+                                    <span
+                                        class="absolute top-1/2 -translate-y-1/2 hidden opacity-0 transition-opacity group-hover:opacity-100 md:block"
+                                        :class="isOwnMessage(messageItem) ? 'right-0' : 'left-0'"
+                                    >
+                                        <Button
+                                            icon="pi pi-ellipsis-v"
+                                            severity="secondary"
+                                            text
+                                            rounded
+                                            size="small"
+                                            :aria-label="$t('common.more')"
+                                            @click.stop="openMessageMenu($event, messageItem)"
+                                        />
+                                    </span>
+                                </div>
+                                <span class="flex min-w-0 items-center gap-1 px-1 text-muted text-supporting">
+                                    {{ formatTime(messageItem.timestamp) }}
+                                    <!-- Messages linked to lower entities keep a
+                                         subtle, clickable leaf link inside the
+                                         caption; it is inline caption text, not a
+                                         control, so a plain minimal element beats
+                                         PrimeVue button chrome here. Only the
+                                         label underlines on hover; the icon
+                                         never does. -->
+                                    <button
+                                        v-if="lowerEntityChip(messageItem)"
+                                        type="button"
+                                        class="group flex min-w-0 items-center gap-1 transition-opacity"
+                                        :aria-label="messageItem.entityLink.name"
+                                        @click="openLowerEntityChat(messageItem)"
+                                    >
+                                        <i :class="domainUi.getIcon(messageItem.entityLink.type) || 'pi pi-box'" class="shrink-0 scale-90" aria-hidden="true"></i>
+                                        <span class="min-w-0 truncate underline-offset-4 group-hover:underline">{{ messageItem.entityLink.name }}</span>
+                                    </button>
+                                </span>
+                            </div>
                         </div>
                     </template>
                 </div>
@@ -449,18 +480,37 @@
                     >
                         {{ $t('support.typing', { name: typingName }) }}
                     </div>
-                    <!-- Reply quote bar: the next send carries the parent id. -->
-                    <Message
+                    <!-- Reply quote bar: the next send carries the parent id.
+                         Rendered like the in-bubble quote (sender + snippet) —
+                         a PrimeVue Message would bring alert chrome that this
+                         chat content is not. -->
+                    <div
                         v-if="replyTo"
-                        severity="info"
-                        icon="pi pi-reply"
-                        :closable="true"
-                        @close="cancelReply"
+                        class="flex items-center gap-2 rounded-ui bg-subtle px-3 py-2"
                     >
-                        <template v-if="replyTo.parent">{{ replyTo.parent.senderName }}:</template>
-                        <template v-if="replyTo.message">{{ replyTo.message }}</template>
-                        <template v-else-if="replyTo.attachment?.kind === 'audio'">{{ $t('support.voiceMessage') }}</template>
-                    </Message>
+                        <i class="pi pi-reply shrink-0 text-muted" aria-hidden="true"></i>
+                        <div class="min-w-0 flex-1">
+                            <small class="block truncate text-muted text-supporting">
+                                {{ replyTo.parent?.senderName || $t('common.user') }}
+                            </small>
+                            <span class="block truncate text-supporting">
+                                <template v-if="replyTo.parent?.snippet || replyTo.message">
+                                    {{ replyTo.parent?.snippet || replyTo.message }}
+                                </template>
+                                <template v-else-if="replyTo.attachment?.kind === 'audio'">{{ $t('support.voiceMessage') }}</template>
+                            </span>
+                        </div>
+                        <Button
+                            icon="pi pi-times"
+                            severity="secondary"
+                            text
+                            rounded
+                            size="small"
+                            class="shrink-0"
+                            :aria-label="$t('common.cancel')"
+                            @click="cancelReply"
+                        />
+                    </div>
 
                     <!-- Entity target strip: lineage drill-down over ALL
                          children of the current target. Breadcrumb-like pills
@@ -476,11 +526,17 @@
                              These are chips, not controls — segmented PrimeVue
                              chrome (SelectButton/Breadcrumb) fights the
                              composer density, so the strip renders minimal
-                             pill elements from the semantic tokens. -->
-                        <div v-if="stripTrail.length" class="flex items-center gap-1 overflow-x-auto">
+                             pill elements from the semantic tokens. The root
+                             pill is the composed entity itself and carries
+                             the selected state whenever no child is drilled. -->
+                        <div class="flex items-center gap-1 overflow-x-auto">
                             <button
                                 type="button"
-                                class="flex shrink-0 items-center gap-1 rounded-ui bg-subtle px-2 py-0.5 text-muted text-supporting transition-colors hover:opacity-80"
+                                class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-0.5 text-supporting transition-colors"
+                                :class="stripRootSelected
+                                    ? 'bg-primary text-primary-contrast'
+                                    : 'bg-subtle text-muted hover:opacity-80'"
+                                :aria-current="stripRootSelected ? 'true' : undefined"
                                 @click="resetStripTrail()"
                             >
                                 <i :class="entityConversationIcon(activeConversation)" class="shrink-0" aria-hidden="true"></i>
@@ -583,9 +639,11 @@
                         />
                     </div>
                     <div v-else>
-                        <!-- PrimeVue InputGroup: Buttons sit as direct
-                             children so the group owns their radius; addon
-                             wrappers would draw extra boxes. -->
+                        <!-- PrimeVue InputGroup: icon addons sit as direct
+                             children so the group owns their radius; the send
+                             action is the trailing primary button, not an
+                             addon, so it reads as the composer's main
+                             action. -->
                         <InputGroup>
                             <InputGroupAddon>
                                 <Button
@@ -615,16 +673,13 @@
                                     @click="startVoiceRecording"
                                 />
                             </InputGroupAddon>
-                            <InputGroupAddon>
-                                <Button
-                                    icon="pi pi-send"
-                                    severity="secondary"
-                                    variant="text"
-                                    :disabled="(!message.trim() && !entityRefs.length) || isLoading"
-                                    :aria-label="$t('support.send')"
-                                    @click="sendMessage"
-                                />
-                            </InputGroupAddon>
+                            <Button
+                                icon="pi pi-send"
+                                severity="primary"
+                                :disabled="(!message.trim() && !entityRefs.length) || isLoading"
+                                :aria-label="$t('support.send')"
+                                @click="sendMessage"
+                            />
                         </InputGroup>
                     </div>
                 </div>
@@ -972,6 +1027,14 @@ const conversationSections = computed(() => [...displayConversations.value].sort
     const rightTime = right.timestamp ? new Date(right.timestamp).getTime() : 0
     return rightTime - leftTime
 }))
+
+// The inbox Listbox is a bounded flex pane: the root becomes a flex column
+// and the list container owns the scrolling. Without this the option list
+// grows past the rail and the aside's overflow-hidden crops it.
+const inboxListboxPt = {
+    root: { style: { display: 'flex', flexDirection: 'column', minHeight: '0' } },
+    listContainer: { style: { flex: '1 1 0', minHeight: '0', overflowY: 'auto' } }
+}
 
 const isActiveConversation = (conversation) => activeConversation.value?.conversationKey === conversation.conversationKey
 
@@ -1362,6 +1425,11 @@ const stripTargetKey = computed(() => {
     return deepest?.key || `${conversation.entityType}:${conversation.entityId}`
 })
 
+// The composed entity is the target whenever no child is drilled; the root
+// pill carries the selected state in that case so exactly one target is
+// always visibly selected.
+const stripRootSelected = computed(() => !stripTrail.value.length && !composerEntity.value)
+
 // Children of the current target: containment-sourced entries plus the
 // children already seen in this thread's message paths — the path-derived
 // set keeps the strip alive for targets without detail-screen sources (the
@@ -1408,6 +1476,10 @@ async function loadStripChildren(targetKey, targetType, targetEntity = null) {
                 return (Array.isArray(entities) ? entities : []).map(entity => ({
                     key: `${source.entityType}:${stripEntityId(entity)}`,
                     type: source.entityType,
+                    // Chips must carry the id explicitly: path-derived chips
+                    // already do, and selection (plus the sent entity link)
+                    // compares on it.
+                    id: stripEntityId(entity),
                     name: entity?.identity?.name || entity?.identity?.serial || stripEntityId(entity) || source.entityType,
                     entity
                 }))
@@ -1595,14 +1667,43 @@ const cancelReply = () => {
     replyTo.value = null
 }
 
-// Mobile swipe-to-reply: arm on a horizontal drag, commit past the
-// threshold on release. touch-pan-y keeps vertical scrolling native.
+// Mobile swipe-to-reply: direction-aware (own messages swipe left into the
+// open side, opponent messages right), the row follows the finger, and the
+// reply icon fades in inside the vacated gap. Release past the threshold
+// commits the reply; touch-pan-y keeps vertical scrolling native.
+const SWIPE_REPLY_THRESHOLD = 64
+const SWIPE_MAX_DRAG = 96
 let swipeState = null
+const swipeDrag = ref({ id: '', dx: 0 })
+
+const swipeStyle = (messageItem) => (swipeDrag.value.id === messageItem._id && swipeDrag.value.dx
+    ? { transform: `translateX(${swipeDrag.value.dx}px)` }
+    : undefined)
+
+const swipeIconOpacity = (messageItem) => {
+    if (swipeDrag.value.id !== messageItem._id) return 0
+    return Math.min(1, Math.abs(swipeDrag.value.dx) / SWIPE_REPLY_THRESHOLD)
+}
+
+const clearSwipe = (messageItem) => {
+    swipeState = null
+    swipeDrag.value = { id: '', dx: 0 }
+    swipeArmed.value = new Set([...swipeArmed.value].filter(key => key !== messageItem._id))
+}
 
 const onTouchStart = (event, messageItem) => {
     const touch = event.touches?.[0]
     if (!touch) return
-    swipeState = { key: messageItem._id, x: touch.clientX, y: touch.clientY, armed: false }
+    swipeState = {
+        key: messageItem._id,
+        x: touch.clientX,
+        y: touch.clientY,
+        // Own messages sit right-aligned and swipe left; others sit
+        // left-aligned and swipe right.
+        direction: isOwnMessage(messageItem) ? -1 : 1,
+        horizontal: false,
+        armed: false
+    }
 }
 
 const onTouchMove = (event, messageItem) => {
@@ -1611,20 +1712,42 @@ const onTouchMove = (event, messageItem) => {
     if (!touch) return
     const dx = touch.clientX - swipeState.x
     const dy = touch.clientY - swipeState.y
-    if (dx > 36 && dx > Math.abs(dy) * 1.5) {
-        swipeState.armed = true
-        swipeArmed.value = new Set([...swipeArmed.value, messageItem._id])
-    } else if (swipeState.armed && (dx < 18 || Math.abs(dy) > dx)) {
-        swipeState.armed = false
-        swipeArmed.value = new Set([...swipeArmed.value].filter(key => key !== messageItem._id))
+    // Horizontal intent must be established before the drag takes over, so
+    // vertical list scrolling stays native.
+    if (!swipeState.horizontal) {
+        if (Math.abs(dx) < 10 || Math.abs(dx) < Math.abs(dy) * 1.2) return
+        swipeState.horizontal = true
+    }
+    const along = dx * swipeState.direction
+    if (along <= 0) {
+        if (swipeDrag.value.id === messageItem._id) swipeDrag.value = { id: '', dx: 0 }
+        if (swipeState.armed) {
+            swipeState.armed = false
+            swipeArmed.value = new Set([...swipeArmed.value].filter(key => key !== messageItem._id))
+        }
+        return
+    }
+    swipeDrag.value = {
+        id: messageItem._id,
+        dx: Math.min(along, SWIPE_MAX_DRAG) * swipeState.direction
+    }
+    const armed = along >= SWIPE_REPLY_THRESHOLD
+    if (armed !== swipeState.armed) {
+        swipeState.armed = armed
+        swipeArmed.value = armed
+            ? new Set([...swipeArmed.value, messageItem._id])
+            : new Set([...swipeArmed.value].filter(key => key !== messageItem._id))
     }
 }
 
 const onTouchEnd = (messageItem) => {
     const armed = swipeState?.armed && swipeState.key === messageItem._id
-    swipeState = null
-    swipeArmed.value = new Set([...swipeArmed.value].filter(key => key !== messageItem._id))
+    clearSwipe(messageItem)
     if (armed) openReply(messageItem)
+}
+
+const onTouchCancel = (messageItem) => {
+    clearSwipe(messageItem)
 }
 
 // Jump to a quoted message: scroll+flash when loaded, otherwise walk older

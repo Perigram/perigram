@@ -1,23 +1,58 @@
 <template>
   <Popover ref="popover">
-    <PanelMenu
-      v-model:expandedKeys="expandedKeys"
-      :model="menuItems"
-      multiple
-      class="w-72"
-      :aria-label="$t('support.attach')"
-      :pt="panelPt"
-      @update:expandedKeys="handleExpand"
-    />
+    <div class="flex w-80 max-h-96 flex-col overflow-y-auto">
+      <Tree
+        v-model:expanded-keys="expandedKeys"
+        :value="nodes"
+        selection-mode="single"
+        :aria-label="$t('support.attach')"
+        :pt="pickerTreePt"
+        @node-select="onNodeSelect"
+        @node-expand="onNodeExpand"
+      >
+        <template #default="{ node }">
+          <span
+            v-if="node.data?.kind === 'section'"
+            class="flex min-w-0 flex-1 items-center gap-2"
+          >
+            <i :class="iconFor(node.data.section.source.entityType)" class="shrink-0 text-muted" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate text-label">{{ node.label }}</span>
+          </span>
+          <span
+            v-else-if="node.data?.kind === 'create'"
+            class="flex min-w-0 flex-1 items-center gap-1"
+          >
+            <i class="pi pi-plus shrink-0 text-muted" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate text-muted">{{ node.label }}</span>
+          </span>
+          <span
+            v-else-if="node.data?.kind === 'loading'"
+            class="flex min-w-0 flex-1 items-center gap-1 text-muted"
+          >
+            <i class="pi pi-spinner pi-spin shrink-0" aria-hidden="true" />
+            <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
+          </span>
+          <EntityInlineRef
+            v-else-if="node.data?.item"
+            :type="node.data.item.type"
+            :entity="node.data.item.entity"
+            :fetch="false"
+            :fields="[]"
+            :interactive="false"
+            variant="inline"
+          />
+        </template>
+      </Tree>
+    </div>
   </Popover>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
-import PanelMenu from 'primevue/panelmenu'
 import Popover from 'primevue/popover'
+import Tree from 'primevue/tree'
 import { useI18n } from 'vue-i18n'
-import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue'
+import EntityInlineRef from '~/components/shared/EntityInlineRef.vue'
 import { isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js'
 import { generatedDetailScreenForEntityType } from '~/components/generated/detail-screen-actions.js'
 import { generatedActionLabel, generatedRegionLabel } from '~/utils/generated-labels.js'
@@ -27,11 +62,13 @@ import { useEffectiveContainment } from '~/composables/useEffectiveContainment.j
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
 
 /**
- * PanelMenu attachment picker: home-screen sections as accordion roots whose
- * children list generated create entries right beside entity entries — at
- * every level (section collections and each entity's detail-screen child
- * creates). Entities expand through pure lineage nesting; tapping an entity
- * selects it and closes; tapping a create entry runs the generated flow.
+ * Attachment picker: the home sidebar's explorer tree, densely padded, in a
+ * Popover. Home-screen sections are the roots whose children list the
+ * section's generated create entries right beside the entity entries — and
+ * every entity repeats the pattern through its type's detail-screen child
+ * creates. Entities expand through pure lineage nesting (expansion is
+ * node-driven, so lazy loads never key-parse); one tap on an entity selects
+ * it and closes, a create entry runs the generated flow in the host.
  */
 const props = defineProps({
   recipientUserId: { type: String, default: '' }
@@ -41,11 +78,14 @@ const emit = defineEmits(['select', 'create-action'])
 
 const { t, te } = useI18n()
 
-// Popover context: PrimeVue runtime styles load after Tailwind, so border
-// removal rides pt inline styles instead of utility classes.
-const panelPt = {
-  panel: { style: { borderWidth: '0', background: 'transparent' } },
-  root: { style: { borderWidth: '0' } }
+// Dense rows, matching the home sidebar explorer: full-width rows with the
+// indent carried inside the row content.
+const pickerTreePt = {
+  nodeChildren: { style: { paddingInlineStart: '0' } },
+  nodeContent: ({ props }) => ({
+    style: { paddingInlineStart: `${(Math.max(props.level || 1, 1) - 1) * 0.75}rem` }
+  }),
+  nodeLabel: { class: 'flex min-w-0 flex-1 items-center' }
 }
 const popover = ref(null)
 const expandedKeys = ref({})
@@ -114,77 +154,62 @@ function childCreateActions(entityType = '') {
   ))
 }
 
-const createEntry = (parentKey, action) => ({
+const sectionKey = (section) => `section:${section.region.id}`
+
+const createNode = (parentKey, action) => ({
   key: `${parentKey}:create:${action.actionId}`,
   label: generatedActionLabel(action, action.actionId, { t, te }),
-  icon: 'pi pi-plus',
-  command: () => {
-    hide()
-    emit('create-action', action)
-  }
+  selectable: true,
+  data: { kind: 'create', action }
 })
 
-const sectionChildren = (section) => {
-  const sectionKey = `type:${section.source.entityType}`
-  const entries = createActionsFor(section.region.actions).map(action => createEntry(sectionKey, action))
-  if (loadingKeys.value.has(sectionKey) && !loadedKeys.value.has(sectionKey)) {
-    return [...entries, { key: `${sectionKey}:loading`, label: t('common.loading'), icon: 'pi pi-spinner pi-spin' }]
-  }
-  if (!loadedKeys.value.has(sectionKey)) return entries.length ? entries : undefined
-  return [...entries, ...loadedChildren(sectionKey).map(item => entityEntry(item))]
-}
+const loadingNode = (parentKey) => ({
+  key: `${parentKey}:loading`,
+  label: t('common.loading'),
+  selectable: false,
+  data: { kind: 'loading' }
+})
 
-const loadedChildren = (parentKey) => (childrenByParentKey.value.get(parentKey) || [])
-  .map(child => ({
-    key: child.key,
-    type: child.type,
-    name: child.name,
-    entity: child.entity
-  }))
-
-const entityEntry = (item) => {
-  const key = item.key
-  const option = item.option || null
-  const entries = childCreateActions(item.type).map(action => createEntry(key, action))
+const entityNode = (item) => {
+  const creates = childCreateActions(item.type).map(action => createNode(item.key, action))
   const expandable = isExpandable(item)
-  const items = loadingKeys.value.has(key) && !childrenByParentKey.value.has(key)
-    ? [...entries, { key: `${key}:loading`, label: t('common.loading'), icon: 'pi pi-spinner pi-spin' }]
-    : expandable
-      ? [...entries, ...loadedChildren(key).map(child => entityEntry(child))]
-      : undefined
-  // Submenu rows toggle only; leaves select. A row that both expands and
-  // commands closes the popup on expand (Pressing chevron = select + close).
-  if (items) {
-    return {
-      key,
-      label: item.name || entityLabel(item.entity, item.type),
-      icon: iconFor(item.type),
-      items
-    }
+  let children
+  if (expandable) {
+    const loaded = (childrenByParentKey.value.get(item.key) || [])
+      .map(child => entityNode(child))
+    children = loadingKeys.value.has(item.key) && !childrenByParentKey.value.has(item.key)
+      ? [...creates, loadingNode(item.key)]
+      : [...creates, ...loaded]
   }
   return {
-    key,
+    key: item.key,
     label: item.name || entityLabel(item.entity, item.type),
-    icon: iconFor(item.type),
-    command: () => {
-      hide()
-      emit('select', option
-        ? { ...option, type: item.type }
-        : {
-            type: item.type,
-            value: entityId(item.entity) || key.split(':').slice(1).join(':'),
-            label: item.name || entityLabel(item.entity, item.type),
-            entity: item.entity || null
-          })
-    }
+    selectable: true,
+    leaf: !expandable,
+    children,
+    data: { kind: 'entity', item }
   }
 }
 
-const menuItems = computed(() => sections.value.map(section => ({
-  key: `type:${section.source.entityType}`,
+const sectionChildren = (section) => {
+  const key = sectionKey(section)
+  const creates = createActionsFor(section.region.actions).map(action => createNode(key, action))
+  if (loadingKeys.value.has(key) && !loadedKeys.value.has(key)) {
+    return [...creates, loadingNode(key)]
+  }
+  if (!loadedKeys.value.has(key)) {
+    return creates.length ? [...creates, loadingNode(key)] : [loadingNode(key)]
+  }
+  return [...creates, ...(childrenByParentKey.value.get(key) || []).map(item => entityNode(item))]
+}
+
+const nodes = computed(() => sections.value.map(section => ({
+  key: sectionKey(section),
   label: section.label,
-  icon: iconFor(section.source.entityType),
-  items: sectionChildren(section)
+  selectable: false,
+  leaf: false,
+  data: { kind: 'section', section },
+  children: sectionChildren(section)
 })))
 
 const isExpandable = (item) => {
@@ -194,28 +219,40 @@ const isExpandable = (item) => {
     || childCreateActions(item.type).length > 0
 }
 
-function handleExpand(keys) {
-  // v-model updates expandedKeys before this handler runs, so diffing
-  // against it never sees new keys; the loaders are idempotent and fire for
-  // every open key.
-  expandedKeys.value = keys
-  for (const [key, open] of Object.entries(keys)) {
-    if (open) loadChildrenForKey(key)
+function onNodeSelect(node) {
+  if (node.data?.kind === 'create') {
+    hide()
+    emit('create-action', node.data.action)
+    return
+  }
+  const item = node.data?.item
+  if (item?.type) {
+    hide()
+    const option = item.option || null
+    emit('select', option
+      ? { ...option, type: item.type }
+      : {
+          type: item.type,
+          value: entityId(item.entity) || item.key,
+          label: item.name || entityLabel(item.entity, item.type),
+          entity: item.entity || null
+        })
   }
 }
 
-async function loadChildrenForKey(key) {
-  if (!key || key.includes(':create:') || key.endsWith(':loading')) return
-  if (loadedKeys.value.has(key) || loadingKeys.value.has(key)) return
-  if (key.startsWith('type:')) {
-    await loadSectionOptions(key.slice('type:'.length), key)
+// Expansion is node-driven: section nodes load their option list, entity
+// nodes load lineage children. No key parsing, so nested loads cannot be
+// misrouted the way the old prefix-based keys were.
+function onNodeExpand(node) {
+  if (node.data?.kind === 'section') {
+    loadSectionOptions(node.data.section.source.entityType, node.key)
     return
   }
-  const [type, ...rest] = key.split(':')
-  await loadChildren({ key, type, entity: { _id: rest.join(':') } })
+  if (node.data?.item) loadChildren(node.data.item)
 }
 
 async function loadSectionOptions(entityType, sectionKey) {
+  if (loadedKeys.value.has(sectionKey) || loadingKeys.value.has(sectionKey)) return
   loadingKeys.value = new Set([...loadingKeys.value, sectionKey])
   try {
     const loaded = await $fetch('/api/support/entity-options', {
@@ -227,10 +264,10 @@ async function loadSectionOptions(entityType, sectionKey) {
     const items = (loaded || [])
       .filter(option => option?.value)
       .map(option => ({
-        key: `type:${entityType}:${option.value}`,
+        key: `${entityType}:${option.value}`,
         type: entityType,
-        name: option.label,
         entity: option.entity || null,
+        name: option.label,
         option
       }))
     childrenByParentKey.value = new Map([...childrenByParentKey.value, [sectionKey, items]])
@@ -249,7 +286,7 @@ async function loadChildren(parent) {
   try {
     // Lineage only, mirroring the sidebar nesting: containment children from
     // the compiled detail sources. Relation-linked entities are skipped so
-    // the menu stays a hierarchy.
+    // the tree stays a hierarchy.
     const sources = linkedExplorerChildSources({
       linkedItems: [parent],
       screens: authStore.screenManifest,
@@ -282,12 +319,17 @@ async function loadChildren(parent) {
 }
 
 // Each open resets: option lists are recipient-scoped per conversation, so
-// cached branches from another conversation must not leak.
+// cached branches from another conversation must not leak. Sections start
+// expanded with their lists loading, like the sidebar.
 function toggle(event) {
   expandedKeys.value = {}
   childrenByParentKey.value = new Map()
   loadedKeys.value = new Set()
   loadingKeys.value = new Set()
+  for (const section of sections.value) {
+    expandedKeys.value = { ...expandedKeys.value, [sectionKey(section)]: true }
+    loadSectionOptions(section.source.entityType, sectionKey(section))
+  }
   popover.value?.toggle(event)
 }
 

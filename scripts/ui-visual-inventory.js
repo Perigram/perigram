@@ -58,6 +58,10 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
     ':style="workpieceAccentStyle(row.id)"'
   ]],
   'components/QueueEditor.vue': ['layout', ['style="width: var(--ck-table-action-column-width)"']],
+  'components/ChatSupport.vue': ['data-driven', [
+    ':style="{ opacity: swipeIconOpacity(messageItem) }"',
+    ':style="swipeStyle(messageItem)"'
+  ]],
   'components/entities/Color/ColorCard.vue': ['data-driven', [':style="swatchStyle"', ':style="swatchStyle"']],
   'components/shared/blocks/DataBlock.vue': ['data-driven', [':style="{ backgroundColor: row.swatch }"']],
   'components/entities/PenTemplate/PenTemplateCard.vue': ['data-driven', [':style="lineStyle"']],
