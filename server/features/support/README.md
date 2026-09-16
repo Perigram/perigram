@@ -169,10 +169,11 @@ fanout publishes the message event to every `conversation:entity:*` topic
 along the entity path (aggregated views stay live through one subscription)
 plus one `org:<id>` inbox ping. The user inbox query includes
 `{ conversationKind: 'entity', organizationId }` so org-mates see each
-other's entity messages. Inbox entity chats join by top-levelness: every
-message rolls up to the highest entity below the organization root in its
-entityPath (the organization itself for org-linked messages), so messages to
-lower entities surface as one top-entity chat instead of one row per leaf.
+other's entity messages. Inbox entity chats ship in both groupings: top-level rows (every message
+rolls up to the highest entity below the organization root in its
+entityPath, the organization itself for org-linked messages) and per-entity
+`isLeafRow` rows for the flat view — the client switches between them, and
+shell unread totals count top-level rows only.
 Names denormalize into the path so quotes and inbox rows never join.
 
 ### Replies
