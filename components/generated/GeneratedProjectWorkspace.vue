@@ -4,16 +4,20 @@
       class="flex h-10 shrink-0 items-center gap-1 border-b [border-color:var(--ck-chrome-border)] bg-chrome px-1 text-[var(--ck-chrome-foreground)]"
       data-project-actions-strip
     >
-      <Button
-        class="hidden lg:inline-flex"
-        :icon="explorerOpen ? 'pi pi-angle-double-left' : 'pi pi-angle-double-right'"
-        text
-        rounded
-        size="small"
-        severity="secondary"
-        :aria-label="$t(explorerOpen ? 'project.collapseExplorer' : 'project.expandExplorer')"
-        @click="explorerOpen = !explorerOpen"
-      />
+      <!-- Plain wrappers own responsive visibility: PrimeVue component styles
+           load after Tailwind and would override `hidden` on .p-button /
+           .p-splitter directly (see the app shell chat launcher note). -->
+      <span class="hidden lg:inline-flex">
+        <Button
+          :icon="explorerOpen ? 'pi pi-angle-double-left' : 'pi pi-angle-double-right'"
+          text
+          rounded
+          size="small"
+          severity="secondary"
+          :aria-label="$t(explorerOpen ? 'project.collapseExplorer' : 'project.expandExplorer')"
+          @click="explorerOpen = !explorerOpen"
+        />
+      </span>
       <GeneratedProjectActionPalette
         :action-entries="projectActions"
         @execute-action="executeWorkspaceAction"
@@ -21,73 +25,75 @@
     </header>
 
     <div class="min-h-0 flex-1 overflow-hidden">
-      <Splitter
-        :gutter-size="1"
-        :pt="workspaceSplitterPt"
-        class="hidden h-full min-h-0 !border-0 !bg-transparent lg:flex"
-        @resizeend="resizeWorkspaceShell"
-      >
-        <SplitterPanel
-          key="workspace-explorer"
-          :size="explorerSize"
-          :min-size="10"
-          :class="['min-h-0 min-w-0 overflow-hidden !border-0', { '!hidden': !explorerOpen }]"
+      <div class="hidden h-full min-h-0 lg:block">
+        <Splitter
+          :gutter-size="1"
+          :pt="workspaceSplitterPt"
+          class="h-full min-h-0 !border-0 !bg-transparent"
+          @resizeend="resizeWorkspaceShell"
         >
-          <section class="project-explorer flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
-            <Tree
-              v-model:selection-keys="selectionKeys"
-              v-model:expanded-keys="expandedKeys"
-              :value="explorerNodes"
-              selection-mode="single"
-              :aria-label="$t('project.explorer')"
-              class="project-explorer-tree min-h-0 min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto !border-0 !p-0"
-              :pt="explorerTreePt"
-              @node-select="selectNode"
-            >
-              <template #default="{ node }">
-                <div v-if="node.data?.item?.kind === 'entity'" class="flex min-w-0 max-w-full flex-1 items-center gap-1 overflow-hidden" data-explorer-entity>
-                  <IdentityBlock :entity="node.data.item.entity" variant="compact" class="min-w-0 flex-1" />
-                </div>
-                <div v-else class="flex min-w-0 flex-1 items-center gap-2">
-                  <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
-                </div>
-              </template>
-            </Tree>
-          </section>
-        </SplitterPanel>
-
-        <SplitterPanel
-          key="workspace-content"
-          :size="100 - explorerSize"
-          :min-size="30"
-          class="min-h-0 min-w-0 overflow-hidden !border-0"
-        >
-          <WorkspaceSplitNode
-            :node="paneTree"
-            :active-pane-id="activePaneId"
-            @activate="activatePane"
-            @resize="resizePaneSplit"
+          <SplitterPanel
+            key="workspace-explorer"
+            :size="explorerSize"
+            :min-size="10"
+            :class="['min-h-0 min-w-0 overflow-hidden !border-0', { '!hidden': !explorerOpen }]"
           >
-            <template #default="{ pane }">
-              <GeneratedWorkspacePane
-                :item="itemForPane(pane)"
-                :tabs="tabItemsForPane(pane)"
-                :action-entries="actionEntriesForPane(pane)"
-                :closeable="paneCount > 1"
-                @execute-action="executeWorkspaceAction"
-                @open-entity="openWorkspaceEntity"
-                @open-page="openWorkspacePage"
-                @refresh="$emit('refresh')"
-                @select-tab="key => selectPaneTab(pane.id, key)"
-                @close-tab="key => closePaneTab(pane.id, key)"
-                @add-tab="openEmptyPaneTab(pane.id)"
-                @split="orientation => splitPane(pane.id, orientation)"
-                @close="closePane(pane.id)"
-              />
-            </template>
-          </WorkspaceSplitNode>
-        </SplitterPanel>
-      </Splitter>
+            <section class="project-explorer flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+              <Tree
+                v-model:selection-keys="selectionKeys"
+                v-model:expanded-keys="expandedKeys"
+                :value="explorerNodes"
+                selection-mode="single"
+                :aria-label="$t('project.explorer')"
+                class="project-explorer-tree min-h-0 min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto !border-0 !p-0"
+                :pt="explorerTreePt"
+                @node-select="selectNode"
+              >
+                <template #default="{ node }">
+                  <div v-if="node.data?.item?.kind === 'entity'" class="flex min-w-0 max-w-full flex-1 items-center gap-1 overflow-hidden" data-explorer-entity>
+                    <IdentityBlock :entity="node.data.item.entity" variant="compact" class="min-w-0 flex-1" />
+                  </div>
+                  <div v-else class="flex min-w-0 flex-1 items-center gap-2">
+                    <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
+                  </div>
+                </template>
+              </Tree>
+            </section>
+          </SplitterPanel>
+
+          <SplitterPanel
+            key="workspace-content"
+            :size="100 - explorerSize"
+            :min-size="30"
+            class="min-h-0 min-w-0 overflow-hidden !border-0"
+          >
+            <WorkspaceSplitNode
+              :node="paneTree"
+              :active-pane-id="activePaneId"
+              @activate="activatePane"
+              @resize="resizePaneSplit"
+            >
+              <template #default="{ pane }">
+                <GeneratedWorkspacePane
+                  :item="itemForPane(pane)"
+                  :tabs="tabItemsForPane(pane)"
+                  :action-entries="actionEntriesForPane(pane)"
+                  :closeable="paneCount > 1"
+                  @execute-action="executeWorkspaceAction"
+                  @open-entity="openWorkspaceEntity"
+                  @open-page="openWorkspacePage"
+                  @refresh="$emit('refresh')"
+                  @select-tab="key => selectPaneTab(pane.id, key)"
+                  @close-tab="key => closePaneTab(pane.id, key)"
+                  @add-tab="openEmptyPaneTab(pane.id)"
+                  @split="orientation => splitPane(pane.id, orientation)"
+                  @close="closePane(pane.id)"
+                />
+              </template>
+            </WorkspaceSplitNode>
+          </SplitterPanel>
+        </Splitter>
+      </div>
 
       <div class="flex h-full min-h-0 flex-col lg:hidden">
         <div class="shrink-0 border-b border-content-border p-1">

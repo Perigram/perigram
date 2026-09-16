@@ -1,13 +1,8 @@
 <template>
-    <!-- The mobile chats tab bounds the shell like any workspace tab so the
-         thread scrolls internally instead of growing the page; the md override
-         releases that bound if the tab survives a viewport resize. -->
     <div
         :class="[
             'flex flex-col bg-page',
-            mobileActiveTab === 'chats'
-                ? 'h-[100dvh] overflow-hidden md:h-auto md:min-h-[100dvh] md:overflow-visible'
-                : isBoundedWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
+            isBoundedWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
         ]"
     >
     <header v-if="!isGeneratedHomeRoute" class="chrome-signal-rule sticky top-0 z-50 hidden shrink-0 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur-md md:block">
@@ -71,8 +66,7 @@
                         : 'max-w-[var(--ck-page-max-width)] px-4 pt-4 pb-24 md:p-6 lg:p-8'
             ]"
         >
-            <ChatSupport v-if="mobileActiveTab === 'chats'" embedded />
-            <slot v-else />
+            <slot />
         </main>
 
         <ChatSupport v-if="supportDialog && !isMobileViewport" />
@@ -83,19 +77,24 @@
             :aria-label="$t('nav.home')"
         >
             <!-- Mobile app tabs run on PrimeVue Tabs: home, user shortcuts, and
-                 chats are real tabs of one tab strip, so the chats surface is a
-                 sibling tab of routed content instead of an overlay screen. The
-                 shortcut picker and profile trigger are actions, not tabs. -->
-            <div class="mx-auto flex max-w-md items-center justify-around gap-1">
+                 chats are real tabs of one strip, and every tab navigates — the
+                 chats tab opens the bounded /chats route exactly like the home
+                 and shortcut tabs open their routes. The shortcut picker and
+                 profile trigger are actions, not tabs. Tab internals are
+                 adapted for the bottom bar through pt (see bottomBar pt objects
+                 in the script): PrimeVue runtime styles load after Tailwind, so
+                 utility classes cannot restyle tab strip internals. -->
+            <div class="mx-auto flex max-w-md items-center gap-1">
                 <Tabs :value="mobileTabValue" class="min-w-0 flex-1" @update:value="selectMobileTab">
-                    <TabList class="[&_.p-tablist-list]:w-full [&_.p-tablist-list]:justify-around">
-                        <Tab value="home" :aria-label="$t('nav.home')">
+                    <TabList class="w-full" :pt="bottomBarTabListPt">
+                        <Tab value="home" :pt="bottomBarTabPt" :aria-label="$t('nav.home')">
                             <i class="pi pi-home" aria-hidden="true" />
                         </Tab>
                         <Tab
                             v-for="shortcut in mobileShortcutLinks"
                             :key="shortcut.key"
                             :value="`shortcut:${shortcut.key}`"
+                            :pt="bottomBarTabPt"
                             :aria-label="shortcut.label"
                             @pointerdown="startShortcutHold($event, shortcut.index)"
                             @pointerup="clearShortcutHold"
@@ -105,7 +104,7 @@
                         >
                             <i :class="shortcut.icon" aria-hidden="true" />
                         </Tab>
-                        <Tab value="chats" :aria-label="$t('support.openChat')">
+                        <Tab value="chats" :pt="bottomBarTabPt" :aria-label="$t('support.openChat')">
                             <span class="relative inline-flex">
                                 <i class="pi pi-comments" aria-hidden="true" />
                                 <Badge
@@ -142,17 +141,23 @@
                 </UserAccountMenu>
             </div>
         </nav>
-        <Button
-            data-testid="desktop-chat-launcher"
-            icon="pi pi-comment"
-            severity="secondary"
-            rounded
-            size="large"
-            :aria-label="$t('support.openChat')"
-            @click="openDesktopChatDrawer"
-            v-if="!supportDialog && !isChatsRoute && !isGeneratedHomeRoute"
-            class="fixed bottom-8 right-8 z-[999] hidden h-14 w-14 shadow-overlay md:inline-flex"
-        />
+        <!-- Tailwind display utilities must not sit on PrimeVue components:
+             PrimeVue injects .p-button { display: inline-flex } after Tailwind
+             and wins the cascade, which made this desktop launcher render as a
+             floating chats bubble on mobile. The plain wrapper owns the
+             responsive visibility instead. -->
+        <div v-if="!supportDialog && !isChatsRoute && !isGeneratedHomeRoute" class="hidden md:block">
+            <Button
+                data-testid="desktop-chat-launcher"
+                icon="pi pi-comment"
+                severity="secondary"
+                rounded
+                size="large"
+                :aria-label="$t('support.openChat')"
+                @click="openDesktopChatDrawer"
+                class="fixed bottom-8 right-8 z-[999] h-14 w-14 shadow-overlay"
+            />
+        </div>
         <OfflineOutboxBadge v-if="authStore.userIsSet" />
     </div>
 </template>
@@ -192,18 +197,40 @@
     const globalStore = useGlobalStore()
     const ssrFetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {}
     const mobileShortcuts = ref([])
-    const mobileActiveTab = ref('content')
     const mobileShortcutReplaceIndex = ref(null)
     const mobileShortcutHoldTriggered = ref(false)
     const mobileShortcutHoldTimer = ref(null)
     const MOBILE_SHORTCUT_LIMIT = 2
 
-    // Reactive mobile-viewport state: the chats drawer stays a desktop surface,
-    // while every mobile entry point switches the bottom tab strip to chats.
+    // Reactive mobile-viewport state: the chats drawer stays a desktop
+    // surface, while mobile entry points navigate to the /chats route.
     const isMobileViewport = ref(false)
     let mobileViewportQuery = null
     const syncMobileViewport = () => {
         isMobileViewport.value = Boolean(mobileViewportQuery?.matches)
+    }
+
+    // Bottom-bar adaptation of the Aura tab strip, applied through pt because
+    // PrimeVue runtime styles load after Tailwind and override utility
+    // classes on tab internals. The strip paints no surface (chrome owns the
+    // bar), drops its own bottom border line and sliding accent bar, and the
+    // selected indicator moves to the tab's top edge — the edge nearest the
+    // content — while tabs stretch to equal widths across the full bar.
+    const bottomBarTabListPt = {
+        root: { style: { background: 'transparent' } },
+        tabList: { style: { borderWidth: 0 } },
+        activeBar: { style: { display: 'none' } }
+    }
+    const bottomBarTabPt = {
+        root: ({ context }) => ({
+            style: {
+                display: 'flex',
+                flex: '1 1 0',
+                justifyContent: 'center',
+                borderWidth: '2px 0 0 0',
+                borderColor: context?.active ? 'var(--p-primary-color)' : 'transparent'
+            }
+        })
     }
 
     // Sync protected project context with SSR cookies when route changes.
@@ -247,8 +274,12 @@
     }, { immediate: true })
 
     watch(supportDialog, (isOpen) => {
+        // Deep links (status-history actor chat) set the dialog directly. On
+        // mobile the drawer never opens: release the dialog and route to the
+        // bounded /chats tab surface, which consumes the preset chat target.
         if (isOpen && isMobileViewport.value) {
-            mobileActiveTab.value = 'chats'
+            supportDialog.value = false
+            navigateTo('/chats')
         }
     })
 
@@ -293,7 +324,7 @@
         || /^\/project\/[^/]+\/queues\/?$/.test(route.path)
     ))
     const isAccountRoute = computed(() => route.path === '/profile' || route.path.startsWith('/organization'))
-    const isFlushMobileSurface = computed(() => mobileActiveTab.value === 'chats' || isAccountRoute.value || isChatsRoute.value)
+    const isFlushMobileSurface = computed(() => isAccountRoute.value || isChatsRoute.value)
     const screenName = (screen) => generatedScreenLabel(screen, { t, te })
     const mobileShortcutStorageKey = computed(() => [
         'cutkit.mobileScreenShortcuts.v1',
@@ -354,7 +385,6 @@
 
     const closeMobileTransientSurfaces = () => {
         supportDialog.value = false
-        mobileActiveTab.value = 'content'
         breadcrumbMenu.value?.hide?.()
         mobileScreenMenu.value?.hide?.()
     }
@@ -365,7 +395,7 @@
 
     // The floating launcher is desktop-only: it opens the drawer surface.
     // Mobile viewports never see a floating chat bubble; their entry is the
-    // chats tab of the bottom tab strip.
+    // chats tab of the bottom strip, which navigates to /chats.
     const openDesktopChatDrawer = () => {
         requestCloseTransientSurfaces()
         supportDialog.value = true
@@ -373,7 +403,7 @@
 
     // --- Mobile app tabs (PrimeVue Tabs bottom strip) ---
     const mobileTabValue = computed(() => {
-        if (mobileActiveTab.value === 'chats' || isChatsRoute.value) return 'chats'
+        if (isChatsRoute.value) return 'chats'
         const shortcut = mobileShortcutLinks.value.find(item => isRouteActive(item.to))
         if (shortcut) return `shortcut:${shortcut.key}`
         if (isRouteActive(homeRoute.value)) return 'home'
@@ -386,11 +416,7 @@
             return
         }
         if (value === 'chats') {
-            if (isChatsRoute.value) return
-            // Close menus and inline popovers behind the chats surface first,
-            // then bring the chats tab forward like any other tab switch.
-            requestCloseTransientSurfaces()
-            mobileActiveTab.value = 'chats'
+            navigateMobile('/chats')
             return
         }
         if (value === 'home') {
@@ -404,7 +430,6 @@
     }
 
     const navigateMobile = (to) => {
-        mobileActiveTab.value = 'content'
         requestCloseTransientSurfaces()
         router.push(to)
     }
