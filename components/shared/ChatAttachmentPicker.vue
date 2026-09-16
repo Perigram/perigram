@@ -53,11 +53,9 @@ import Tree from 'primevue/tree'
 import { useI18n } from 'vue-i18n'
 import StateBlock from '~/components/shared/StateBlock.vue'
 import { useAuthStore } from '~/stores/auth'
-import { useEntityStore } from '~/stores/entities.js'
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
-import { resolveEntityRelationRefs } from '~/utils/entity-relations.js'
 
 /**
  * Sidebar-explorer attachment picker for the chat composer: the same tree
@@ -85,7 +83,6 @@ const childrenByParentKey = ref(new Map())
 const loadedChildrenKeys = ref(new Set())
 const loadingKeys = ref(new Set())
 const authStore = useAuthStore()
-const entityStore = useEntityStore()
 const domainUi = useCutkitDomainUi()
 const effectiveContainment = useEffectiveContainment()
 
@@ -128,11 +125,6 @@ const isExpandable = (item) => {
   if (childrenByParentKey.value.get(item.key)?.length) return true
   if (loadedChildrenKeys.value.has(item.key)) return false
   return effectiveContainment().some(relation => relation.parentType === item.type)
-    || hasRelationRefs(item.entity)
-}
-
-function hasRelationRefs(entity = {}) {
-  return Object.values(entity?.relations || {}).some(value => resolveEntityRelationRefs(value).length)
 }
 
 const sectionChildren = (type) => {
@@ -215,12 +207,12 @@ async function loadChildrenFor(parent) {
   if (loadedChildrenKeys.value.has(parent.key) || loadingKeys.value.has(parent.key)) return
   loadingKeys.value = new Set([...loadingKeys.value, parent.key])
   try {
-    const [sourceChildren, relationChildren] = await Promise.all([
-      loadContainmentChildren(parent),
-      loadRelationChildren(parent)
-    ])
+    // Lineage only, mirroring the sidebar nesting: containment children from
+    // the compiled detail sources. Relation-linked entities are skipped so
+    // the tree stays a hierarchy, not a graph of every linked entity.
+    const children = await loadContainmentChildren(parent)
     const seen = new Set([parent.key])
-    const merged = [...sourceChildren, ...relationChildren].filter(item => {
+    const merged = children.filter(item => {
       if (!item?.entity || !entityId(item.entity) || seen.has(item.key)) return false
       seen.add(item.key)
       return true
@@ -249,23 +241,6 @@ async function loadContainmentChildren(parent) {
   return loaded.flat()
 }
 
-async function loadRelationChildren(parent) {
-  let entity = parent.entity
-  if (!entity?.relations) {
-    try {
-      entity = await entityStore.fetchEntity(parent.type, entityId(entity), false, { silent: true }) || entity
-    } catch {
-      // keep the list DTO; relation children simply stay unresolved
-    }
-  }
-  const refs = Object.values(entity?.relations || {}).flatMap(value => resolveEntityRelationRefs(value))
-  const loaded = await Promise.all(refs.map(async ref => {
-    const resolved = ref.entity
-      || await entityStore.fetchEntity(ref.entityType, ref.id, false, { silent: true }).catch(() => null)
-    return resolved ? poolItem(ref.entityType, resolved) : null
-  }))
-  return loaded.filter(Boolean)
-}
 
 function selectNode(node) {
   const option = node?.data?.option
