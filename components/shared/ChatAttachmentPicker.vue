@@ -2,12 +2,12 @@
   <Popover ref="popover">
     <PanelMenu
       data-testid="chat-attachment-picker"
-      v-model:expanded-keys="expandedKeys"
+      v-model:expandedKeys="expandedKeys"
       :model="menuItems"
       class="w-72"
       :aria-label="$t('support.attach')"
       :pt="panelPt"
-      @update:expanded-keys="handleExpand"
+      @update:expandedKeys="handleExpand"
     >
       <template #item="{ item }">
         <span class="flex min-w-0 flex-1 items-center gap-2">
