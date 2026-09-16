@@ -246,7 +246,12 @@ export const tailwindThemeExtension = {
         'chrome-subtle': designTokens.color.chromeSubtle,
         'chrome-border': designTokens.color.chromeBorder,
         subtle: designTokens.color.subtle,
-        'text-muted': designTokens.color.textMuted,
+        // `muted` (not a `text-muted` key): Tailwind parses the `text-muted`
+        // class as the text- color utility with the `muted` color path, so
+        // the entry must live at colors.muted. A top-level 'text-muted' key
+        // can never generate the class — every muted surface silently fell
+        // back to the body color, which read as one uniform text color.
+        muted: designTokens.color.textMuted,
         status: designTokens.status,
         entity: designTokens.entityTone,
         signal: designTokens.signal,

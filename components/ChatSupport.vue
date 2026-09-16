@@ -83,18 +83,18 @@
                     :aria-label="$t('support.chatTitle')"
                     @update:model-value="key => openConversationByKey(key)"
                 >
-                    <template #option="slotProps">
+                    <template #option="{ option }">
                         <div class="flex min-w-0 items-center gap-2 md:gap-3">
                             <div class="relative shrink-0">
                                 <Avatar
-                                    v-if="slotProps.option.conversationKind === 'entity'"
-                                    :icon="entityConversationIcon(slotProps.option)"
+                                    v-if="option.conversationKind === 'entity'"
+                                    :icon="entityConversationIcon(option)"
                                     shape="circle"
                                     size="normal"
                                     class="bg-subtle text-muted"
                                 />
                                 <Avatar
-                                    v-else-if="slotProps.option.conversationKind === 'group'"
+                                    v-else-if="option.conversationKind === 'group'"
                                     icon="pi pi-users"
                                     shape="circle"
                                     size="normal"
@@ -102,28 +102,39 @@
                                 />
                                 <Avatar
                                     v-else
-                                    :image="conversationAvatar(slotProps.option)"
-                                    :label="conversationLabel(slotProps.option).charAt(0).toUpperCase()"
+                                    :image="conversationAvatar(option)"
+                                    :label="conversationLabel(option).charAt(0).toUpperCase()"
                                     shape="circle"
                                     size="normal"
-                                    class="bg-subtle text-muted"
+                                    class="bg-subtle text-muted [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
+                                />
+                                <span
+                                    v-if="option.conversationKind === 'direct' && participantOnline(option)"
+                                    class="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-ui bg-status-success"
+                                    :aria-label="$t('support.online')"
                                 />
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex min-w-0 items-center gap-2">
-                                    <span class="truncate text-label">{{ conversationLabel(slotProps.option) }}</span>
+                                    <span class="truncate text-label">{{ conversationLabel(option) }}</span>
+                                    <small
+                                        v-if="option.conversationKind === 'group'"
+                                        class="shrink-0 text-muted text-supporting"
+                                    >
+                                        {{ $t('support.membersCount', { count: (option.participants || []).length }) }}
+                                    </small>
                                 </div>
                                 <small class="block truncate text-muted">
                                     <SupportMessageContent
-                                        v-if="slotProps.option.lastMessage"
-                                        :message="conversationPreviewMessage(slotProps.option)"
+                                        v-if="option.lastMessage"
+                                        :message="conversationPreviewMessage(option)"
                                         :viewer-user-id="currentUserId"
                                         single-line
                                     />
                                     <template v-else>{{ $t('support.noMessages') }}</template>
                                 </small>
                             </div>
-                            <small v-if="slotProps.option.timestamp" class="shrink-0 text-muted">{{ shortTime(slotProps.option.timestamp) }}</small>
+                            <small v-if="option.timestamp" class="shrink-0 text-muted">{{ shortTime(option.timestamp) }}</small>
                         </div>
                     </template>
                 </Listbox>
@@ -167,14 +178,15 @@
                     />
                     <div class="min-w-0 flex-1">
                         <h2 class="m-0 truncate text-section-heading">
-                            <button
+                            <Button
                                 v-if="activeConversation.conversationKind === 'entity' && activeEntityDetailRoute"
-                                type="button"
-                                class="text-left underline-offset-4 transition-opacity hover:underline hover:opacity-80"
+                                link
+                                class="!p-0 text-left"
+                                :aria-label="conversationLabel(activeConversation)"
                                 @click="openEntityFromThread"
                             >
                                 {{ conversationLabel(activeConversation) }}
-                            </button>
+                            </Button>
                             <template v-else>{{ conversationLabel(activeConversation) }}</template>
                         </h2>
                         <!-- Group threads carry their member profiles inline;
@@ -714,6 +726,7 @@
 import { ref, reactive, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 import Avatar from 'primevue/avatar'
 import Divider from 'primevue/divider'
+import Listbox from 'primevue/listbox'
 import Button from 'primevue/button'
 import ConfirmDialog from 'primevue/confirmdialog'
 import InputText from 'primevue/inputtext'
@@ -936,6 +949,19 @@ const conversationSections = computed(() => [...displayConversations.value].sort
 }))
 
 const isActiveConversation = (conversation) => activeConversation.value?.conversationKey === conversation.conversationKey
+
+// The inbox is a PrimeVue Listbox: single selection with keyboard navigation
+// and Aura's selected-option state; layout passthroughs keep the option rows
+// full-width flex rows for the rich row template.
+const inboxListboxPt = {
+    list: { class: 'flex min-h-full flex-col gap-1 overflow-y-auto p-2 md:p-3' },
+    option: { class: 'flex w-full min-w-0 rounded-ui' }
+}
+
+const openConversationByKey = (key) => {
+    const conversation = conversationSections.value.find(item => item.conversationKey === key)
+    if (conversation) openConversation(conversation)
+}
 
 const entityConversationIcon = (conversation) => (
     domainUi.getIcon(conversation?.entityType) || 'pi pi-box'

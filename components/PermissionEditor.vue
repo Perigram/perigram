@@ -7,22 +7,25 @@
 
         <div class="grid min-h-0 grid-cols-1 gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
                 <Panel :header="$t('auth.permissionFeatures')">
-                    <div class="flex max-h-[18rem] flex-col gap-2 overflow-auto pr-1 xl:max-h-none">
-                    <button
-                        v-for="feature in entities"
-                        :key="feature.key"
-                        type="button"
-                        class="flex min-w-0 items-center justify-between gap-3 rounded-ui border border-content-border px-3 py-2 text-left"
-                        :class="selectedFeatureKey === feature.key ? 'border-primary' : ''"
-                        @click="selectedFeatureKey = feature.key"
+                    <Listbox
+                        :model-value="selectedFeatureKey"
+                        :options="entities"
+                        option-label="label"
+                        option-value="key"
+                        class="max-h-[18rem] xl:max-h-none"
+                        :pt="featureListPt"
+                        :aria-label="$t('auth.permissionFeatures')"
                     >
-                        <span class="flex min-w-0 items-center gap-2">
-                            <i :class="getIcon(feature.key)" aria-hidden="true"></i>
-                            <span class="truncate">{{ feature.label }}</span>
-                        </span>
-                        <Tag :value="featureSummary(feature.key)" :severity="featureSummarySeverity(feature.key)" size="small" />
-                    </button>
-                </div>
+                        <template #option="{ option }">
+                            <div class="flex min-w-0 flex-1 items-center justify-between gap-3">
+                                <span class="flex min-w-0 items-center gap-2">
+                                    <i :class="getIcon(option.key)" aria-hidden="true"></i>
+                                    <span class="truncate">{{ option.label }}</span>
+                                </span>
+                                <Tag :value="featureSummary(option.key)" :severity="featureSummarySeverity(option.key)" size="small" />
+                            </div>
+                        </template>
+                    </Listbox>
             </Panel>
 
             <div class="flex min-w-0 flex-col gap-4">
@@ -155,6 +158,7 @@ import AccordionContent from 'primevue/accordioncontent';
 import Checkbox from 'primevue/checkbox';
 import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
+import Listbox from 'primevue/listbox';
 import Message from 'primevue/message';
 import { useEntity } from '~/composables/useEntity';
 import { useAuthStore } from '~/stores/auth';
@@ -176,6 +180,12 @@ const { t } = useI18n();
 const authStore = useAuthStore();
 
 const selectedFeatureKey = ref('projects');
+// Feature list is a PrimeVue Listbox; layout passthroughs keep the
+// option rows airy and full-width for the tag summary.
+const featureListPt = {
+    list: { class: 'flex flex-col gap-2 overflow-auto pr-1' },
+    option: { class: 'flex w-full min-w-0 rounded-ui' }
+}
 const selectedGrantIndex = ref(0);
 const entityOptionsLoading = ref(false);
 const entityOptionLists = ref({});
