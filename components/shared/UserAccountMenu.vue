@@ -1,6 +1,10 @@
 <template>
   <Popover ref="menu">
     <div class="flex min-w-56 flex-col gap-3">
+      <!-- Caller-injected actions (for example the mobile bar's Add screen
+           entry) render as the leading section and receive the popover's own
+           hide so they can close it before opening another surface. -->
+      <slot name="items" :hide="hide" />
       <section v-for="group in menuItems" :key="group.label" class="flex flex-col gap-1">
         <small class="px-2 text-muted-color">{{ group.label }}</small>
         <Button
