@@ -471,7 +471,7 @@ function tonePalette(role) {
           </div>
           <div v-if="popupHasActions || detailRoute || resolvedId" class="flex flex-wrap justify-end gap-2" @click.stop>
             <Button
-              v-if="resolvedId"
+              v-if="resolvedId && !cardComponent"
               icon="pi pi-comments"
               text
               rounded

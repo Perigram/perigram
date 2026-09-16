@@ -124,7 +124,9 @@ const loadingNode = (parentKey) => ({
 })
 
 // Home-screen sections, filtered like the sidebar: list sources whose type is
-// not a lineage-bound child (those appear nested under their parents).
+// not a lineage-bound child (those appear nested under their parents). The
+// source lineageBindings array is org-wide, so only bindings declaring this
+// source's type as the child count.
 const sections = computed(() => {
   const home = authStore.screenManifest.find(screen => screen.template === 'home')
   if (!home) return []
@@ -133,7 +135,8 @@ const sections = computed(() => {
       const source = (home.sources || []).find(candidate => candidate.id === region.sourceId) || {}
       if (!source.entityType || source.mode === 'single') return null
       const parentBound = (source.lineageBindings || [])
-        .some(binding => binding.ancestorEntityType && binding.ancestorEntityType !== 'organization')
+        .some(binding => binding.childEntityType === source.entityType
+          && binding.ancestorEntityType !== 'organization')
       if (parentBound) return null
       return { region, source, label: generatedRegionLabel(region, source, { t, te }) }
     })

@@ -342,10 +342,12 @@ export async function listUserConversations(auth) {
 }
 
 /**
- * Entity chat inbox rows: one row per linked entity with messages, plus one
- * synthesized root row per organization so the top-level chat (composing the
- * whole subtree) is always reachable. Unread counts key on each view's own
- * conversation key.
+ * Entity chat inbox rows: chats join by top-levelness. Every message rolls
+ * up to the highest entity below the organization root in its entityPath
+ * (the path head for org-less lineages, the organization itself for
+ * org-linked messages), so messages to lower entities surface as one
+ * top-entity chat instead of one row per leaf. Unread counts key on each
+ * row's own conversation key.
  */
 function entityConversationSummaries(messages, auth) {
     const entityMessages = messages.filter(message => message.conversationKind === 'entity' && message.entityLink);
@@ -353,70 +355,47 @@ function entityConversationSummaries(messages, auth) {
 
     const byKey = new Map();
     for (const message of entityMessages) {
-        const link = message.entityLink;
-        const key = entityConversationKey(link.type, link.id);
-        const existing = byKey.get(key);
-        if (!existing) {
-            byKey.set(key, {
-                conversationKey: key,
-                conversationKind: 'entity',
-                entityType: link.type,
-                entityId: link.id,
-                entityName: link.name || link.id,
-                lastMessage: message.message,
-                entityRefs: message.entityRefs || [],
-                attachment: message.attachment || null,
-                senderUserId: message.senderUserId,
-                timestamp: message.timestamp,
-                unreadCount: 0
-            });
-        }
+        const entry = topLevelChatEntry(message);
+        const key = entityConversationKey(entry.type, entry.id);
+        if (byKey.has(key)) continue;
+        byKey.set(key, {
+            conversationKey: key,
+            conversationKind: 'entity',
+            entityType: entry.type,
+            entityId: entry.id,
+            entityName: entry.name || entry.id,
+            isEntityRoot: entry.type === 'organization',
+            lastMessage: message.message,
+            entityRefs: message.entityRefs || [],
+            attachment: message.attachment || null,
+            senderUserId: message.senderUserId,
+            timestamp: message.timestamp,
+            unreadCount: 0
+        });
     }
 
-    // Roots come from the first entityPath entry (organization); the root
-    // row composes every descendant message in the summary set.
-    const roots = new Map();
-    for (const message of entityMessages) {
-        const root = (message.entityPath || [])[0];
-        if (!root) continue;
-        const key = entityConversationKey(root.type, root.id);
-        if (!byKey.has(key) && !roots.has(key)) {
-            roots.set(key, {
-                conversationKey: key,
-                conversationKind: 'entity',
-                entityType: root.type,
-                entityId: root.id,
-                entityName: root.name || root.id,
-                isEntityRoot: true,
-                lastMessage: message.message,
-                entityRefs: message.entityRefs || [],
-                attachment: message.attachment || null,
-                senderUserId: message.senderUserId,
-                timestamp: message.timestamp,
-                unreadCount: 0
-            });
-        }
-    }
-
-    const rows = [...roots.values(), ...byKey.values()];
+    const rows = [...byKey.values()];
     applyEntityUnreadCounts(rows, entityMessages, auth);
     return rows.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
+}
+
+function topLevelChatEntry(message = {}) {
+    const path = message.entityPath || [];
+    if (path[0]?.type === 'organization' && path[1]?.type) return path[1];
+    return path[0]?.type ? path[0] : message.entityLink;
 }
 
 async function applyEntityUnreadCounts(rows, entityMessages, auth) {
     const reads = await repository.findReadStates(auth.userId, rows.map(row => row.conversationKey));
     const readsByKey = new Map(reads.map(read => [read.conversationKey, read.lastReadAt]));
+    const rowByKey = new Map(rows.map(row => [row.conversationKey, row]));
     for (const message of entityMessages) {
         if (message.senderUserId === auth.userId) continue;
-        const leafKey = entityConversationKey(message.entityLink.type, message.entityLink.id);
-        const root = (message.entityPath || [])[0];
-        const rootKey = root ? entityConversationKey(root.type, root.id) : null;
-        for (const key of [leafKey, rootKey]) {
-            const row = rows.find(item => item.conversationKey === key);
-            if (!row) continue;
-            const lastReadAt = readsByKey.get(key) || new Date(0);
-            if (new Date(message.timestamp) > new Date(lastReadAt)) row.unreadCount += 1;
-        }
+        const entry = topLevelChatEntry(message);
+        const row = rowByKey.get(entityConversationKey(entry.type, entry.id));
+        if (!row) continue;
+        const lastReadAt = readsByKey.get(row.conversationKey) || new Date(0);
+        if (new Date(message.timestamp) > new Date(lastReadAt)) row.unreadCount += 1;
     }
 }
 

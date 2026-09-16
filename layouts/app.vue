@@ -195,6 +195,23 @@
             />
         </div>
         <IncomingCalls v-if="authStore.userIsSet" />
+        <StandardDialog
+            v-model:visible="entityChatPopup"
+            :header="entityChatPopupName"
+            size="full"
+            :show-default-footer="false"
+        >
+            <div class="flex h-[min(70dvh,38rem)] min-h-0 flex-col">
+                <ChatSupport
+                    v-if="entityChatPopup && chatTargetValue?.entityKey"
+                    :key="chatTargetValue.entityKey"
+                    embedded
+                    thread-only
+                    :conversation-key="chatTargetValue.entityKey"
+                    :entity-name="chatTargetValue.name || ''"
+                />
+            </div>
+        </StandardDialog>
         <OfflineOutboxBadge v-if="authStore.userIsSet" />
     </div>
 </template>
@@ -217,7 +234,8 @@
     import OfflineOutboxBadge from '~/components/shared/OfflineOutboxBadge.vue'
     import IncomingCalls from '~/components/calls/IncomingCalls.vue'
     import { useCallsStore } from '~/stores/calls'
-    import { useSupportDialog } from '~/composables/useModalState'
+    import { useSupportDialog, useSupportChatTarget, useEntityChatPopup } from '~/composables/useModalState'
+import StandardDialog from '~/components/shared/StandardDialog.vue'
     import { useAuthStore } from '~/stores/auth'
     import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
     import { useSupportChatStore } from '~/stores/supportChat'
@@ -231,6 +249,13 @@
     const route = useRoute()
     const { t, te } = useI18n()
     const supportDialog = useSupportDialog()
+    const chatTargetState = useSupportChatTarget()
+    const entityChatPopup = useEntityChatPopup()
+    const chatTargetValue = computed(() => chatTargetState.value)
+    const entityChatPopupName = computed(() => chatTargetState.value?.name || t('support.entityChat'))
+    watch(entityChatPopup, (open) => {
+        if (!open) chatTargetState.value = null
+    })
     const authStore = useAuthStore()
     const domainUi = useCutkitDomainUi()
     provide('statusWorkflows', computed(() => authStore.statusWorkflows))

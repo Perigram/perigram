@@ -385,7 +385,21 @@
                                     />
                                 </span>
                             </div>
-                            <span class="px-1 text-muted-color text-supporting">{{ formatTime(messageItem.timestamp) }}</span>
+                            <span class="flex min-w-0 items-center gap-1 px-1 text-muted-color text-supporting">
+                                {{ formatTime(messageItem.timestamp) }}
+                                <!-- Messages linked to lower entities keep a
+                                     subtle, clickable leaf chip inside the
+                                     composed view. -->
+                                <button
+                                    v-if="lowerEntityChip(messageItem)"
+                                    type="button"
+                                    class="flex min-w-0 items-center gap-1 opacity-70 transition-opacity hover:opacity-100"
+                                    @click="openLowerEntityChat(messageItem)"
+                                >
+                                    <i :class="domainUi.getIcon(messageItem.entityLink.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
+                                    <span class="min-w-0 truncate">{{ messageItem.entityLink.name }}</span>
+                                </button>
+                            </span>
                         </div>
                     </template>
                 </div>
@@ -698,6 +712,7 @@ import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalSt
 import { useConnections } from '~/composables/useConnections.js'
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js'
+import { openEntityChat } from '~/utils/entity-chat.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useAuthStore } from '~/stores/auth'
 import { useSupportChatStore } from '~/stores/supportChat'
@@ -1282,9 +1297,29 @@ const selectComposerEntity = (chip) => {
 }
 
 // Replies quote the target inline in the composer; sending carries the
-// parent id and the message payload clears the quote on success.
+// parent id and the message payload clears the quote on success. In entity
+// views a reply links to the same entity the quoted message belongs to.
 const openReply = (messageItem) => {
     replyTo.value = messageItem || null
+    if (activeConversation.value?.conversationKind === 'entity') {
+        composerEntityTouched = true
+        const link = messageItem?.entityLink
+        composerEntity.value = link?.type && link?.id
+            ? { type: link.type, id: link.id, name: link.name || '' }
+            : null
+    }
+}
+
+const lowerEntityChip = (messageItem) => {
+    const conversation = activeConversation.value
+    if (conversation?.conversationKind !== 'entity' || !messageItem.entityLink?.id) return false
+    return !(messageItem.entityLink.type === conversation.entityType
+        && String(messageItem.entityLink.id) === String(conversation.entityId))
+}
+
+const openLowerEntityChat = (messageItem) => {
+    const link = messageItem.entityLink
+    openEntityChat({ type: link.type, id: String(link.id), name: link.name || '' })
 }
 
 const cancelReply = () => {
