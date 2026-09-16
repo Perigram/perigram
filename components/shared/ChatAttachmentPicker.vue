@@ -4,7 +4,9 @@
       v-model:expandedKeys="expandedKeys"
       :model="menuItems"
       multiple
+      class="w-72"
       :aria-label="$t('support.attach')"
+      :pt="panelPt"
       @update:expandedKeys="handleExpand"
     />
   </Popover>
@@ -42,7 +44,8 @@ const { t, te } = useI18n()
 // Popover context: PrimeVue runtime styles load after Tailwind, so border
 // removal rides pt inline styles instead of utility classes.
 const panelPt = {
-  panel: { style: { borderWidth: '0', background: 'transparent' } }
+  panel: { style: { borderWidth: '0', background: 'transparent' } },
+  root: { style: { borderWidth: '0' } }
 }
 const popover = ref(null)
 const expandedKeys = ref({})
