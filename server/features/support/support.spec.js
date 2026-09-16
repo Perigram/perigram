@@ -929,7 +929,7 @@ describe('support communication service', () => {
     })).rejects.toMatchObject({ statusCode: 400 });
   });
 
-  it('summarizes entity chats with a synthesized root row and unread counts', async () => {
+  it('joins entity chats by top-levelness with unread counts', async () => {
     mocks.repository.findConversationMessages.mockResolvedValue([
       {
         conversationKey: 'entity:queue:queue-1',
@@ -944,16 +944,38 @@ describe('support communication service', () => {
         message: 'nested',
         senderUserId: 'user-b',
         timestamp: new Date('2026-09-16T10:00:00.000Z')
+      },
+      {
+        conversationKey: 'entity:organization:org-1',
+        conversationKind: 'entity',
+        organizationId: 'org-1',
+        entityLink: { type: 'organization', id: 'org-1', name: 'Org1' },
+        entityPath: [{ type: 'organization', id: 'org-1', name: 'Org1' }],
+        message: 'org-level',
+        senderUserId: 'user-b',
+        timestamp: new Date('2026-09-16T11:00:00.000Z')
       }
     ]);
     mocks.repository.findReadStates.mockResolvedValue([]);
 
     const conversations = await supportService.listUserConversations(auth);
 
-    expect(conversations.find(item => item.conversationKey === 'entity:organization:org-1'))
-      .toMatchObject({ isEntityRoot: true, entityName: 'Org1', unreadCount: 1 });
-    expect(conversations.find(item => item.conversationKey === 'entity:queue:queue-1'))
-      .toMatchObject({ entityType: 'queue', entityName: 'Queue 1', unreadCount: 1 });
+    // The queue message rolls up to its top-level project ancestor; the
+    // org-linked message keeps the organization row. No leaf rows.
+    expect(conversations.filter(item => item.conversationKind === 'entity')).toEqual([
+      expect.objectContaining({
+        conversationKey: 'entity:organization:org-1',
+        isEntityRoot: true,
+        entityName: 'Org1',
+        unreadCount: 1
+      }),
+      expect.objectContaining({
+        conversationKey: 'entity:project:project-1',
+        entityType: 'project',
+        entityName: 'P1',
+        unreadCount: 1
+      })
+    ]);
   });
 
   it('creates group chats with the creator plus reachable participants', async () => {

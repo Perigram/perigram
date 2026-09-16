@@ -16,6 +16,9 @@ export const useSupportDialog = () => {
 export const useSupportChatTarget = () => {
     return useState("supportChatTarget", () => null);
 };
+export const useEntityChatPopup = () => {
+    return useState("entityChatPopup", () => false);
+};
 export const useInfoAboutNest = () => {
     return useState("infoAboutNest", () => false);
 };
