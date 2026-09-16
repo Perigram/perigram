@@ -16,6 +16,7 @@ import { isGeneratedSurfaceAction, resolveGeneratedEntityActions } from '~/compo
 import { generatedDetailActionIds } from '~/components/generated/detail-screen-actions.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { openEntityChat } from '~/utils/entity-chat.js';
+import { openEntityInWorkspace } from '~/utils/entity-workspace-open.js';
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
 import { normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
 import { useEntity } from '~/composables/useEntity';
@@ -274,7 +275,17 @@ function onCompactKeydown(event) {
 function openDetail(event) {
   event?.stopPropagation?.();
   requestCloseMobileTransientSurfaces();
-  if (detailRoute.value) navigateTo(detailRoute.value);
+  if (!detailRoute.value) return;
+  if (typeof window !== 'undefined'
+    && window.matchMedia?.('(max-width: 767px)')?.matches) {
+    navigateTo(detailRoute.value);
+    return;
+  }
+  if (openEntityInWorkspace({
+    entityType: generatedEntityType.value || props.type,
+    entityId: resolvedId.value
+  })) return;
+  navigateTo(detailRoute.value);
 }
 
 function openEntityChatFromRef(event) {

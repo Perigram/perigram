@@ -342,41 +342,54 @@ export async function listUserConversations(auth) {
 }
 
 /**
- * Entity chat inbox rows: chats join by top-levelness. Every message rolls
- * up to the highest entity below the organization root in its entityPath
- * (the path head for org-less lineages, the organization itself for
- * org-linked messages), so messages to lower entities surface as one
- * top-entity chat instead of one row per leaf. Unread counts key on each
- * row's own conversation key.
+ * Entity chat inbox rows, emitted in both groupings: top-level rows (every
+ * message rolls up to the highest entity below the organization root, so
+ * lower entities surface as one top-entity chat) and per-entity leaf rows
+ * (`isLeafRow`) for the flat view. The client switches between them; unread
+ * counts key on each row's own conversation key, and shell totals count the
+ * top-level rows only.
  */
 function entityConversationSummaries(messages, auth) {
     const entityMessages = messages.filter(message => message.conversationKind === 'entity' && message.entityLink);
     if (!entityMessages.length) return [];
 
     const byKey = new Map();
+    const leafByKey = new Map();
     for (const message of entityMessages) {
         const entry = topLevelChatEntry(message);
         const key = entityConversationKey(entry.type, entry.id);
-        if (byKey.has(key)) continue;
-        byKey.set(key, {
-            conversationKey: key,
-            conversationKind: 'entity',
-            entityType: entry.type,
-            entityId: entry.id,
-            entityName: entry.name || entry.id,
-            isEntityRoot: entry.type === 'organization',
-            lastMessage: message.message,
-            entityRefs: message.entityRefs || [],
-            attachment: message.attachment || null,
-            senderUserId: message.senderUserId,
-            timestamp: message.timestamp,
-            unreadCount: 0
-        });
+        if (!byKey.has(key)) {
+            byKey.set(key, entitySummaryRow(entry, message, { isEntityRoot: entry.type === 'organization' }));
+        }
+        const link = message.entityLink;
+        const leafKey = entityConversationKey(link.type, link.id);
+        // Entities that are their own top level (org-linked messages) already
+        // carry a top row; no duplicate leaf row.
+        if (leafKey !== key && !byKey.has(leafKey) && !leafByKey.has(leafKey)) {
+            leafByKey.set(leafKey, entitySummaryRow(link, message, { isLeafRow: true }));
+        }
     }
 
-    const rows = [...byKey.values()];
+    const rows = [...byKey.values(), ...leafByKey.values()];
     applyEntityUnreadCounts(rows, entityMessages, auth);
     return rows.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
+}
+
+function entitySummaryRow(entry, message, flags = {}) {
+    return {
+        conversationKey: entityConversationKey(entry.type, entry.id),
+        conversationKind: 'entity',
+        entityType: entry.type,
+        entityId: entry.id,
+        entityName: entry.name || entry.id,
+        lastMessage: message.message,
+        entityRefs: message.entityRefs || [],
+        attachment: message.attachment || null,
+        senderUserId: message.senderUserId,
+        timestamp: message.timestamp,
+        unreadCount: 0,
+        ...flags
+    };
 }
 
 function topLevelChatEntry(message = {}) {
@@ -392,10 +405,17 @@ async function applyEntityUnreadCounts(rows, entityMessages, auth) {
     for (const message of entityMessages) {
         if (message.senderUserId === auth.userId) continue;
         const entry = topLevelChatEntry(message);
-        const row = rowByKey.get(entityConversationKey(entry.type, entry.id));
-        if (!row) continue;
-        const lastReadAt = readsByKey.get(row.conversationKey) || new Date(0);
-        if (new Date(message.timestamp) > new Date(lastReadAt)) row.unreadCount += 1;
+        const link = message.entityLink;
+        const targets = new Set([
+            entityConversationKey(entry.type, entry.id),
+            entityConversationKey(link.type, link.id)
+        ]);
+        for (const key of targets) {
+            const row = rowByKey.get(key);
+            if (!row) continue;
+            const lastReadAt = readsByKey.get(row.conversationKey) || new Date(0);
+            if (new Date(message.timestamp) > new Date(lastReadAt)) row.unreadCount += 1;
+        }
     }
 }
 

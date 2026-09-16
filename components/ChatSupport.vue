@@ -22,6 +22,15 @@
                 :class="fullPage ? 'chat-inbox--rail border-r border-chrome-border' : 'flex-1'"
             >
                 <div class="flex shrink-0 items-center justify-end gap-1 px-2 pt-2">
+                    <label
+                        v-if="hasEntityRows"
+                        class="mr-auto flex items-center gap-1 pl-1 text-muted-color text-supporting"
+                        :title="$t('support.chatGroupingAll')"
+                    >
+                        <span>{{ $t('support.chatGroupingTop') }}</span>
+                        <ToggleSwitch v-model="groupingAll" :aria-label="$t('support.chatGroupingAll')" />
+                        <span>{{ $t('support.chatGroupingAll') }}</span>
+                    </label>
                     <Button
                         icon="pi pi-user-plus"
                         severity="secondary"
@@ -170,7 +179,7 @@
                                 v-if="activeConversation.conversationKind === 'entity' && activeEntityDetailRoute"
                                 type="button"
                                 class="text-left underline-offset-4 transition-opacity hover:underline hover:opacity-80"
-                                @click="navigateTo(activeEntityDetailRoute)"
+                                @click="openEntityFromThread"
                             >
                                 {{ conversationLabel(activeConversation) }}
                             </button>
@@ -440,7 +449,8 @@
                             v-for="chip in childChips"
                             :key="chip.key"
                             type="button"
-                            class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors"
+                            :disabled="Boolean(replyTo)"
+                            class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors disabled:cursor-not-allowed disabled:opacity-60"
                             :class="composerEntity?.type === chip.type && composerEntity?.id === chip.id
                                 ? 'bg-primary text-primary-contrast'
                                 : 'bg-subtle text-muted-color'"
@@ -713,6 +723,7 @@ import { useConnections } from '~/composables/useConnections.js'
 import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js'
 import { openEntityChat } from '~/utils/entity-chat.js'
+import { openEntityInWorkspace } from '~/utils/entity-workspace-open.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useAuthStore } from '~/stores/auth'
 import { useSupportChatStore } from '~/stores/supportChat'
@@ -873,8 +884,22 @@ const localizedEntityTypeLabel = (type) => {
 
 const newChatUserOptions = computed(() => newChatUsers.value)
 
+// Entity rows ship in both groupings from the inbox snapshot: the joined
+// top-level view (default) and the flat per-entity leaf view.
+const chatGrouping = ref('top')
+const groupingAll = computed({
+    get: () => chatGrouping.value === 'all',
+    set: (value) => { chatGrouping.value = value ? 'all' : 'top' }
+})
+const hasEntityRows = computed(() => supportChatStore.conversations
+    .some(conversation => conversation.conversationKind === 'entity'))
+
 const displayConversations = computed(() => supportChatStore.conversations
-    .filter(conversation => ['direct', 'group', 'entity'].includes(conversation.conversationKind)))
+    .filter(conversation => {
+        if (['direct', 'group'].includes(conversation.conversationKind)) return true
+        if (conversation.conversationKind !== 'entity') return false
+        return chatGrouping.value === 'all' ? Boolean(conversation.isLeafRow) : !conversation.isLeafRow
+    }))
 
 // One unified inbox: person, group, and entity chats share a single
 // timestamp-ordered list; the avatar glyph carries the kind.
@@ -902,6 +927,20 @@ const activeEntityDetailRoute = computed(() => {
         manifest: authStore.screenManifest
     }) || null
 })
+
+// Desktop opens the entity as a home-workspace tab; mobile keeps the detail
+// route.
+const openEntityFromThread = () => {
+    const conversation = activeConversation.value
+    if (!conversation?.entityType || !conversation.entityId) return
+    if (typeof window !== 'undefined'
+        && window.matchMedia?.('(max-width: 767px)')?.matches) {
+        if (activeEntityDetailRoute.value) navigateTo(activeEntityDetailRoute.value)
+        return
+    }
+    if (openEntityInWorkspace({ entityType: conversation.entityType, entityId: String(conversation.entityId) })) return
+    if (activeEntityDetailRoute.value) navigateTo(activeEntityDetailRoute.value)
+}
 
 const groupParticipantIds = computed(() => (
     (activeConversation.value?.participants || []).map(String).filter(Boolean)
@@ -1289,7 +1328,10 @@ watch(includeChildren, () => {
     if (activeConversation.value?.conversationKind === 'entity') loadConversation()
 })
 
+// While a reply is pending, its entity link is locked to the quoted
+// message and cannot be switched until the reply is discarded.
 const selectComposerEntity = (chip) => {
+    if (replyTo.value) return
     composerEntityTouched = true
     composerEntity.value = chip
         ? { type: chip.type, id: chip.id, name: chip.name }

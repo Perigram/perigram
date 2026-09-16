@@ -960,9 +960,10 @@ describe('support communication service', () => {
 
     const conversations = await supportService.listUserConversations(auth);
 
-    // The queue message rolls up to its top-level project ancestor; the
-    // org-linked message keeps the organization row. No leaf rows.
-    expect(conversations.filter(item => item.conversationKind === 'entity')).toEqual([
+    // Both groupings ship: top-level rows for the joined view and leaf rows
+    // for the flat view; the shell total counts top-level rows only.
+    const entityRows = conversations.filter(item => item.conversationKind === 'entity');
+    expect(entityRows).toEqual([
       expect.objectContaining({
         conversationKey: 'entity:organization:org-1',
         isEntityRoot: true,
@@ -973,6 +974,12 @@ describe('support communication service', () => {
         conversationKey: 'entity:project:project-1',
         entityType: 'project',
         entityName: 'P1',
+        unreadCount: 1
+      }),
+      expect.objectContaining({
+        conversationKey: 'entity:queue:queue-1',
+        isLeafRow: true,
+        entityName: 'Queue 1',
         unreadCount: 1
       })
     ]);
