@@ -33,6 +33,15 @@ through this module when a write should reach connected clients.
     admission errors count as denial.
 - `publish(topic, payload)` fans an envelope `{ topic, payload, ts }` out to
   subscribed connections. Publishing with no subscribers is a no-op.
+- `userPresence(userId)` counts a user's live connections; `onPublish(fn)`
+  registers a single publish observer used by the
+  [notifications feature](../notifications/README.md) to deliver Web Push
+  when a user-topic event finds the user with zero live tabs. The observer
+  runs outside the delivery path and can never break fanout.
+- Entity change events are bridged onto `org:<organizationId>` topics as
+  `entityChanged` payloads by the entity-events feature, so connected tabs
+  learn about status transitions in realtime; cursor-based polling remains
+  the authoritative catch-up path.
 
 ## Client Contract
 

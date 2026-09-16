@@ -159,6 +159,12 @@ const INDEXES = {
   idempotency_keys: [
     { keys: { key: 1 }, options: { unique: true, name: 'key_unique' } },
     { keys: { createdAt: 1 }, options: { expireAfterSeconds: 604800, name: 'created_ttl' } }
+  ],
+
+  // Push Subscriptions Collection (web push)
+  push_subscriptions: [
+    { keys: { userId: 1 }, options: { name: 'user_idx' } },
+    { keys: { endpoint: 1 }, options: { unique: true, name: 'endpoint_unique' } }
   ]
 };
 

@@ -32,6 +32,7 @@ const CAPABILITY_FEATURES = [
   'material-options',
   'nesting',
   'notification',
+  'notifications',
   'parametric-cassettes',
   'results',
   'sessions',

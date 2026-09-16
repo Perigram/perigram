@@ -264,6 +264,26 @@ section).
 
 ---
 
+## useBrowserNotifications
+
+```js
+const { permission, enabled, busy, canEnable, enable, disable, show } = useBrowserNotifications();
+```
+
+Owns desktop-notification consent and delivery: the persisted
+`cutkit.browserNotifications` setting, the `Notification.requestPermission`
+flow (invoked only from the profile preferences toggle, never on load), the
+Web Push subscribe/unsubscribe round-trip through the registered service
+worker, and the guarded `show()` used by `plugins/notifications.client.js`.
+The plugin derives the three notification kinds from the connections stream
+(`support.inbox` messages, `call.invite` calls with a WebAudio ring loop,
+`entityChanged` status transitions on the org topic) and respects visibility:
+status and message notifications fire only while the tab is hidden, calls
+fire everywhere except `/chats`. Closed-tab delivery is Web Push (see
+[the notifications feature](../server/features/notifications/README.md)).
+
+---
+
 ## useStatusHistory
 
 Fetches and reactively manages the audit log (`status_events`) for an entity.

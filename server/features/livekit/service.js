@@ -129,6 +129,16 @@ export async function inviteToCall(auth, conversationKey = null) {
         from: auth.userId,
         fromName: auth.name || ''
     });
+    for (const participant of context.participants || []) {
+        if (String(participant) === String(auth.userId)) continue;
+        connectionsService.publish(`user:${participant}`, {
+            type: 'call.invite',
+            conversationKey: context.conversationKey,
+            room,
+            from: auth.userId,
+            fromName: auth.name || ''
+        });
+    }
     return { room, conversationKey: context.conversationKey };
 }
 

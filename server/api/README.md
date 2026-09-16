@@ -91,6 +91,11 @@ Routes are grouped into sub-directories corresponding to features:
   `POST /connections/subscriptions` replaces the connection's requested
   topic set after every (re)connect; topic admission is enforced server-side.
   See [the connections feature](../features/connections/README.md).
+- `notifications/`: Web Push subscription management. `GET
+  /notifications/config` reports push availability and the VAPID public key;
+  authenticated `POST/DELETE /notifications/subscriptions` save and remove
+  browser subscriptions. See
+  [the notifications feature](../features/notifications/README.md).
 - `livekit/`: Authenticated call endpoints — config for the browser,
   token minting with server-side room admission, conversation call invites,
   verified LiveKit webhook receiver that fans call activity onto the

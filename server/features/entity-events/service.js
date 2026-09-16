@@ -1,3 +1,5 @@
+import * as connectionsService from '../connections/service.js';
+
 const subscribers = new Map();
 const recentEvents = [];
 const MAX_RECENT_EVENTS = 500;
@@ -27,6 +29,13 @@ export async function publishEntityChanged(auth = {}, detail = {}) {
 
   recentEvents.push(event);
   if (recentEvents.length > MAX_RECENT_EVENTS) recentEvents.shift();
+
+  if (event.organizationId) {
+    connectionsService.publish(`org:${event.organizationId}`, {
+      type: 'entityChanged',
+      data: event
+    });
+  }
 
   await Promise.all([...subscribers.values()]
     .filter(subscriber => canReceive(subscriber.auth, event))
