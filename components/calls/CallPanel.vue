@@ -184,7 +184,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import SelectButton from 'primevue/selectbutton';
 import { useI18n } from 'vue-i18n';
@@ -194,12 +194,14 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import CallPrejoin from '~/components/calls/CallPrejoin.vue';
 import CallTile from '~/components/calls/CallTile.vue';
 import { riseAndFade } from '~/composables/useMotion.js';
+import { useCallsStore } from '~/stores/calls';
 
 const props = defineProps({
     room: { type: String, required: true }
 });
 const emit = defineEmits(['closed']);
 const { t } = useI18n();
+const callsStore = useCallsStore();
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '🎉', '👏'];
 const CALL_DATA_TOPIC = 'call.events';
@@ -398,6 +400,120 @@ const spotlightTile = computed(() => pinnedTile.value
     || null);
 const stripTiles = computed(() => tiles.filter(tile => tile !== spotlightTile.value));
 
+// A surface transfer (tab → floating window) parks the connected room in
+// the calls store; the adopting panel takes the live connection over
+// instead of reconnecting. Until adoption completes, the floating panel
+// shows the connecting stage. The adoption watcher is registered after
+// bindRoomEvents is defined (see below) so the immediate run cannot hit a
+// temporal dead zone.
+const adoptLiveRoom = () => {
+    const entry = callsStore.takeLiveRoom(props.room);
+    if (!entry) return false;
+    ({ room: livekitRoom, LiveKit } = entry);
+    bindRoomEvents(livekitRoom);
+    const local = livekitRoom.localParticipant;
+    micEnabled.value = local.isMicrophoneEnabled();
+    cameraEnabled.value = local.isCameraEnabled();
+    sharing.value = local.isScreenShareEnabled();
+    syncTile(local.identity, local.name, { muted: !micEnabled.value });
+    for (const participant of livekitRoom.remoteParticipants.values()) {
+        syncTile(participant.identity, participant.name);
+        for (const publication of participant.trackPublications) {
+            const track = publication.track;
+            if (!track || !publication.isSubscribed) continue;
+            if (publication.kind === LiveKit.Track.Kind.Video) {
+                const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
+                syncTile(participant.identity, participant.name, { isScreen, hasVideo: true, track });
+            } else if (!participant.isLocal) {
+                attachRemoteAudio(track);
+            }
+        }
+    }
+    connected.value = true;
+    stage.value = 'connected';
+    callsStore.joinRoom(props.room);
+    return true;
+};
+
+// Room event wiring is a standalone binder so both the fresh join and the
+// parked-room adoption get identical behavior.
+const bindRoomEvents = (room) => {
+    room
+        .on(LiveKit.RoomEvent.ParticipantConnected, participant => {
+            syncTile(participant.identity, participant.name);
+        })
+        .on(LiveKit.RoomEvent.ParticipantDisconnected, participant => {
+            dropTile(participant.identity, false);
+            dropTile(participant.identity, true);
+        })
+        .on(LiveKit.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+            if (track.kind === LiveKit.Track.Kind.Video) {
+                const isScreen = track.source === LiveKit.Track.Source.ScreenShare;
+                syncTile(participant.identity, participant.name, { isScreen, hasVideo: true, track });
+                playInto(tileKey(participant.identity, isScreen));
+                return;
+            }
+            if (track.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
+                attachRemoteAudio(track);
+            }
+        })
+        .on(LiveKit.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
+            if (track.kind === LiveKit.Track.Kind.Video) {
+                const isScreen = track.source === LiveKit.Track.Source.ScreenShare;
+                syncTile(participant.identity, participant.name, { isScreen, hasVideo: false, track: null });
+                return;
+            }
+            if (track.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
+                detachRemoteAudio(track);
+            }
+        })
+        .on(LiveKit.RoomEvent.LocalTrackPublished, (publication, participant) => {
+            if (publication.kind === LiveKit.Track.Kind.Video) {
+                const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
+                syncTile(participant.identity, participant.name, { isScreen, hasVideo: true, track: publication.track });
+                playInto(tileKey(participant.identity, isScreen));
+            }
+        })
+        .on(LiveKit.RoomEvent.LocalTrackUnpublished, (publication, participant) => {
+            if (publication.kind === LiveKit.Track.Kind.Video) {
+                const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
+                dropTile(participant.identity, isScreen);
+                if (isScreen) sharing.value = false;
+            }
+        })
+        .on(LiveKit.RoomEvent.TrackMuted, (publication, participant) => {
+            if (publication.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
+                syncTile(participant.identity, participant.name, { muted: true });
+            }
+        })
+        .on(LiveKit.RoomEvent.TrackUnmuted, (publication, participant) => {
+            if (publication.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
+                syncTile(participant.identity, participant.name, { muted: false });
+            }
+        })
+        .on(LiveKit.RoomEvent.ActiveSpeakersChanged, speakers => {
+            const levels = new Map(speakers.map(speaker => [speaker.identity, speaker.audioLevel || 0.6]));
+            for (const tile of tiles) {
+                tile.speaking = levels.has(tile.identity);
+                tile.audioLevel = levels.get(tile.identity) || 0;
+            }
+            syncSustainedSpeaker();
+        })
+        .on(LiveKit.RoomEvent.ConnectionQualityChanged, (quality, participant) => {
+            syncTile(participant.identity, participant.name, { quality });
+        })
+        .on(LiveKit.RoomEvent.Reconnecting, () => { reconnecting.value = true; })
+        .on(LiveKit.RoomEvent.Reconnected, () => { reconnecting.value = false; })
+        .on(LiveKit.RoomEvent.Disconnected, () => {
+            connected.value = false;
+            reconnecting.value = false;
+            teardownMedia();
+        })
+        .on(LiveKit.RoomEvent.DataReceived, (payload, participant) => {
+            receiveCallEvent(participant.identity, participant.name, payload);
+        });
+};
+
 const join = async (prejoin = {}) => {
     stage.value = 'connecting';
     error.value = '';
@@ -405,81 +521,7 @@ const join = async (prejoin = {}) => {
         if (!LiveKit) LiveKit = await import('livekit-client');
         const grant = await $fetch('/api/livekit/token', { method: 'POST', body: { room: props.room } });
         livekitRoom = new LiveKit.Room({ adaptiveStream: true, dynacast: true });
-
-        livekitRoom
-            .on(LiveKit.RoomEvent.ParticipantConnected, participant => {
-                syncTile(participant.identity, participant.name);
-            })
-            .on(LiveKit.RoomEvent.ParticipantDisconnected, participant => {
-                dropTile(participant.identity, false);
-                dropTile(participant.identity, true);
-            })
-            .on(LiveKit.RoomEvent.TrackSubscribed, (track, publication, participant) => {
-                if (track.kind === LiveKit.Track.Kind.Video) {
-                    const isScreen = track.source === LiveKit.Track.Source.ScreenShare;
-                    syncTile(participant.identity, participant.name, { isScreen, hasVideo: true, track });
-                    playInto(tileKey(participant.identity, isScreen));
-                    return;
-                }
-                if (track.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
-                    attachRemoteAudio(track);
-                }
-            })
-            .on(LiveKit.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
-                if (track.kind === LiveKit.Track.Kind.Video) {
-                    const isScreen = track.source === LiveKit.Track.Source.ScreenShare;
-                    syncTile(participant.identity, participant.name, { isScreen, hasVideo: false, track: null });
-                    return;
-                }
-                if (track.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
-                    detachRemoteAudio(track);
-                }
-            })
-            .on(LiveKit.RoomEvent.LocalTrackPublished, (publication, participant) => {
-                if (publication.kind === LiveKit.Track.Kind.Video) {
-                    const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
-                    syncTile(participant.identity, participant.name, { isScreen, hasVideo: true, track: publication.track });
-                    playInto(tileKey(participant.identity, isScreen));
-                }
-            })
-            .on(LiveKit.RoomEvent.LocalTrackUnpublished, (publication, participant) => {
-                if (publication.kind === LiveKit.Track.Kind.Video) {
-                    const isScreen = publication.source === LiveKit.Track.Source.ScreenShare;
-                    dropTile(participant.identity, isScreen);
-                    if (isScreen) sharing.value = false;
-                }
-            })
-            .on(LiveKit.RoomEvent.TrackMuted, (publication, participant) => {
-                if (publication.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
-                    syncTile(participant.identity, participant.name, { muted: true });
-                }
-            })
-            .on(LiveKit.RoomEvent.TrackUnmuted, (publication, participant) => {
-                if (publication.kind === LiveKit.Track.Kind.Audio && !participant.isLocal) {
-                    syncTile(participant.identity, participant.name, { muted: false });
-                }
-            })
-            .on(LiveKit.RoomEvent.ActiveSpeakersChanged, speakers => {
-                const levels = new Map(speakers.map(speaker => [speaker.identity, speaker.audioLevel || 0.6]));
-                for (const tile of tiles) {
-                    tile.speaking = levels.has(tile.identity);
-                    tile.audioLevel = levels.get(tile.identity) || 0;
-                }
-                syncSustainedSpeaker();
-            })
-            .on(LiveKit.RoomEvent.ConnectionQualityChanged, (quality, participant) => {
-                syncTile(participant.identity, participant.name, { quality });
-            })
-            .on(LiveKit.RoomEvent.Reconnecting, () => { reconnecting.value = true; })
-            .on(LiveKit.RoomEvent.Reconnected, () => { reconnecting.value = false; })
-            .on(LiveKit.RoomEvent.Disconnected, () => {
-                connected.value = false;
-                reconnecting.value = false;
-                teardownMedia();
-            })
-            .on(LiveKit.RoomEvent.DataReceived, (payload, participant) => {
-                receiveCallEvent(participant.identity, participant.name, payload);
-            });
+        bindRoomEvents(livekitRoom);
 
         await livekitRoom.connect(grant.url, grant.token);
         const local = livekitRoom.localParticipant;
@@ -495,6 +537,9 @@ const join = async (prejoin = {}) => {
         }
         connected.value = true;
         stage.value = 'connected';
+        // Report the live connection to the call line machine: joining stops
+        // every remaining ring for this room in every surface.
+        callsStore.joinRoom(props.room);
     } catch (joinError) {
         console.error('Failed to join call:', joinError);
         const insecureContext = typeof navigator !== 'undefined' && !navigator.mediaDevices;
@@ -504,6 +549,21 @@ const join = async (prejoin = {}) => {
         stage.value = 'failed';
     }
 };
+
+// Registered after bindRoomEvents: the immediate run adopts an
+// already-parked room (a pop-out transfer) without hitting setup TDZ.
+watch(() => callsStore.parkedRoom, name => {
+    if (name === props.room && stage.value !== 'connected') adoptLiveRoom();
+}, { immediate: true });
+
+onMounted(() => {
+    // Transferred calls wait briefly for the parked room; show the
+    // connecting state instead of the pre-join screen while the handoff
+    // completes.
+    if (callsStore.transferRoom === props.room && !callsStore.parkedRoom) {
+        stage.value = 'connecting';
+    }
+});
 
 const enumerateDevices = async () => {
     try {
@@ -628,6 +688,7 @@ const teardownMedia = () => {
     sustainedSpeakerKey.value = '';
     speakerCandidateKey = '';
     tiles.splice(0, tiles.length);
+    callsStore.leaveRoom(props.room);
 };
 
 const leave = async () => {
@@ -639,6 +700,20 @@ const leave = async () => {
 };
 
 onBeforeUnmount(() => {
+    // Surface transfer (pop-out or dock): another surface is taking this
+    // call, so park the live connection instead of dropping it. Every other
+    // unmount leaves the call.
+    if (connected.value && callsStore.transferRoom === props.room && livekitRoom) {
+        try {
+            livekitRoom.removeAllListeners();
+        } catch {
+            /* listener cleanup is best-effort */
+        }
+        callsStore.parkLiveRoom(props.room, livekitRoom, LiveKit);
+        livekitRoom = null;
+        teardownMedia();
+        return;
+    }
     livekitRoom?.disconnect().catch(() => {});
     livekitRoom = null;
     teardownMedia();

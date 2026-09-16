@@ -19,7 +19,9 @@ enters the main bundle).
 - `CallWorkspacePage.vue` is the pane-hosted call surface used by the home
   workspace: the `CallPanel` stage plus the call's own conversation thread
   (`ChatSupport` embedded and pinned through its `conversation-key` prop,
-  meet-style stage + chat). It is responsive to the pane width through a
+  meet-style stage + chat), with a pop-out control that hands the live call
+  to the shell's floating window and closes the tab. It is responsive to
+  the pane width through a
   container query: wide panes render the chat as a fixed side rail; narrow
   or split panes stack it below the stage at two-fifths of the call
   height, internally scrollable so the stage keeps the remaining share. Direct and group calls show
@@ -28,7 +30,44 @@ enters the main bundle).
 - `IncomingCalls.vue` is the global ring surface: floating invite cards
   (Join/Decline) mounted by the app shell for every authenticated user.
   Only *new* calls float; ongoing rooms are listed in the home sidebar and
-  in chats. Joining opens the full-screen call dialog.
+  in chats. Joining opens the call as a home workspace tab (mobile keeps
+  the full-screen dialog).
+- `CallFloatingWindow.vue` is the absolute floating call window: a draggable
+  fixed panel above the app that hosts a popped-out `CallPanel`. Docking
+  returns the call to a home workspace tab.
+
+## Call line state machine
+
+The user's call is one explicit machine in `stores/calls.js`, so every
+surface agrees on ringing:
+
+```
+idle ──invite──▶ ringing ──accept──▶ joining ──CallPanel connected──▶ in-call
+  ▲                 │                                   │               │
+  └─ decline/TTL ───┘◄───────────────────────────────────┴─── leave ─────┘
+```
+
+`acceptInvite` is a single global transition — accepting or declining in
+any surface clears the ring for that room everywhere (the old per-surface
+ring banners kept ringing after an accept elsewhere). `CallPanel` reports
+`joinRoom`/`leaveRoom`, and joining also stops any remaining ring for the
+room.
+
+Surface transfers keep the WebRTC connection alive: popping a call out of
+its workspace tab (or docking a floating call back) marks the room as
+transferring; the unmounting `CallPanel` strips its listeners and parks
+the live room in the store, and the adopting panel rebinds the same
+events, rebuilds tiles from the current participants/publications, and
+continues the call without reconnecting.
+
+## Surface routing
+
+`composables/useCallRouting.js` owns where a call opens: the home
+workspace tab is the default (navigating home when the caller lives on
+another route); organizations without a generated home workspace fall back
+to the floating window, and mobile keeps the full-screen dialog. Accepted
+invites and docked calls are parked as `pendingTabRoom` and consumed by
+the home workspace's watcher.
 
 ## Media plumbing
 

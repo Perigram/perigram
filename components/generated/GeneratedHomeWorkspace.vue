@@ -449,6 +449,15 @@ watch(() => [
   if (authStore.userIsSet) callsStore.connect();
 }, { immediate: true });
 
+// Accepted invites and docked floating calls open here as workspace tabs:
+// the call machine parks a pending tab room and any surface routing to the
+// home workspace navigates here to consume it.
+watch(() => callsStore.pendingTabRoom, room => {
+  if (!room) return;
+  openCallTab(room, { conversationKey: conversationKeyForRoom(room) });
+  callsStore.consumePendingTabRoom();
+}, { immediate: true });
+
 watch([activePaneId, paneTree], syncActiveSelection);
 
 function activeRoomLabel(room = {}) {
