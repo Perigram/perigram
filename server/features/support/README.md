@@ -163,8 +163,11 @@ separate threads:
   `entityPath` contains the entity, so a top-level chat lists the top entity
   plus every descendant message.
 
-Authorization resolves the entity through the same process-scoped registry
-read the generated surfaces use; unreadable entities yield `403`. Realtime
+Authorization resolves the entity through the process-scoped registry read,
+falling back to every generated source of the type and, finally, to the
+exists-but-denied registry answer (403 vs 404): entities the org process
+owns but whose grants deny reads still admit chats with a bare link and an
+organization-only path. Truly unknown entities yield `403`. Realtime
 fanout publishes the message event to every `conversation:entity:*` topic
 along the entity path (aggregated views stay live through one subscription)
 plus one `org:<id>` inbox ping. The user inbox query includes
