@@ -62,5 +62,4 @@ in the repository.
 
 - [Remote access runbook](../docs/REMOTE_ACCESS.md) - VPN/SSH targets and the
   legacy bare-repo deploy path.
-- [Deployment guide](../docs/DEPLOYMENT.md) - Railway and Swarm deployment.
 - [System README](../README.md) - containers and project-wide commands.

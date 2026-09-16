@@ -16,7 +16,9 @@ Internal npm workspace packages used to extract the reusable industrial workflow
 | `@cutkit/processes` | Organization process definition normalization, validation, and compilation |
 | `@cutkit/domain-cnc` | CutKit CNC entity, workflow, command, task, attachment-kind, UI, and summary definitions |
 
-Current extraction status, module boundaries, runtime relationships, and Mermaid diagrams are maintained in [docs/FRAMEWORK_EXTRACTION_STATUS.md](../docs/FRAMEWORK_EXTRACTION_STATUS.md).
+Module boundaries, runtime relationships, and per-package contracts are
+documented in each package's own `README.md`; the system-level graph lives in
+[docs/SYSTEM_ARCHITECTURE.md](../docs/SYSTEM_ARCHITECTURE.md).
 
 The committed [framework.manifest.json](../framework.manifest.json) is the read-only contract for LLM/RAG/MCP inspection. It combines package metadata, entity definitions, workflows, routes, commands, tasks, attachment kinds, summaries, inferred relationships, entity component contracts, shared design-system primitives, and token projections.
 
