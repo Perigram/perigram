@@ -478,7 +478,9 @@ the text body. Text parts wrap with `overflow-wrap: anywhere` and the whole
 inline-flex chain keeps `min-w-0`/`max-w-full`, so unbroken strings (urls,
 serials) wrap inside the bubble instead of overflowing the chat bounds.
 Messages carrying `attachment.kind === 'audio'` render a leading voice-message
-chip, which is the inbox preview for attachment-only voice messages. Text
+chip, which is the inbox preview for attachment-only voice messages. The
+`singleLine` prop is the inbox preview mode: the chip row never wraps and
+crops to one line, with text spans carrying the ellipsis. Text
 parts parse http(s) URLs into safe anchors (`noopener`, inherit-colored so
 both bubble sides stay readable); trailing punctuation peels off the link and
 stays text. Chat

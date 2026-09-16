@@ -267,7 +267,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-status-statushistory-vue` | `components/shared/status/StatusHistory.vue` | shared/domain primitive | centralize:layout (1); replace:chrome (3) |
 | `ui-components-shared-status-statuslocation-vue` | `components/shared/status/StatusLocation.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-status-statustransitiondialog-vue` | `components/shared/status/StatusTransitionDialog.vue` | derived usage | compliant |
-| `ui-components-shared-supportmessagecontent-vue` | `components/shared/SupportMessageContent.vue` | derived usage | remove:state (1) |
+| `ui-components-shared-supportmessagecontent-vue` | `components/shared/SupportMessageContent.vue` | derived usage | compliant |
 | `ui-components-shared-tableframe-vue` | `components/shared/TableFrame.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-threeviewport-vue` | `components/shared/ThreeViewport.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-typedsettingsform-vue` | `components/shared/TypedSettingsForm.vue` | derived usage | compliant |
