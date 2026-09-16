@@ -338,7 +338,8 @@ export async function listUserConversations(auth) {
     ]);
     const personMessages = messages.filter(message => message.conversationKind !== 'entity');
     const summaries = await buildConversationSummaries(personMessages, auth, { groups: groups.map(groupDTO) });
-    return [...entityConversationSummaries(messages, auth), ...summaries];
+    const entityRows = await entityConversationSummaries(messages, auth);
+    return [...entityRows, ...summaries];
 }
 
 /**
@@ -349,30 +350,60 @@ export async function listUserConversations(auth) {
  * counts key on each row's own conversation key, and shell totals count the
  * top-level rows only.
  */
-function entityConversationSummaries(messages, auth) {
+async function entityConversationSummaries(messages, auth) {
     const entityMessages = messages.filter(message => message.conversationKind === 'entity' && message.entityLink);
     if (!entityMessages.length) return [];
+
+    // Rollup nodes are reader-relative: each message joins at the highest
+    // path ancestor (below the organization) the reader can actually
+    // resolve, so unreadable ancestors never absorb messages and degraded
+    // paths fall back to the highest available entry.
+    const scopedAuth = await resolveEntityOptionAuth(auth);
+    const readability = new Map();
+    const entryByMessage = new WeakMap();
+    const rollupEntryFor = async (message) => {
+        if (!entryByMessage.has(message)) {
+            entryByMessage.set(message, await highestAvailableEntry(scopedAuth, message, readability));
+        }
+        return entryByMessage.get(message);
+    };
 
     const byKey = new Map();
     const leafByKey = new Map();
     for (const message of entityMessages) {
-        const entry = topLevelChatEntry(message);
+        const entry = await rollupEntryFor(message);
         const key = entityConversationKey(entry.type, entry.id);
         if (!byKey.has(key)) {
             byKey.set(key, entitySummaryRow(entry, message, { isEntityRoot: entry.type === 'organization' }));
         }
         const link = message.entityLink;
         const leafKey = entityConversationKey(link.type, link.id);
-        // Entities that are their own top level (org-linked messages) already
-        // carry a top row; no duplicate leaf row.
+        // Entities that are their own top level already carry a top row; no
+        // duplicate leaf row.
         if (leafKey !== key && !byKey.has(leafKey) && !leafByKey.has(leafKey)) {
             leafByKey.set(leafKey, entitySummaryRow(link, message, { isLeafRow: true }));
         }
     }
 
     const rows = [...byKey.values(), ...leafByKey.values()];
-    applyEntityUnreadCounts(rows, entityMessages, auth);
+    await applyEntityUnreadCounts(rows, entityMessages, auth, rollupEntryFor);
     return rows.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
+}
+
+async function highestAvailableEntry(scopedAuth, message, cache) {
+    const path = message.entityPath || [];
+    const start = path[0]?.type === 'organization' ? 1 : 0;
+    for (let index = start; index < path.length; index++) {
+        const candidate = path[index];
+        if (!candidate?.type || !candidate?.id) continue;
+        const cacheKey = `${candidate.type}:${candidate.id}`;
+        if (!cache.has(cacheKey)) {
+            const entity = await fetchLinkedEntity(scopedAuth, candidate.type, candidate.id);
+            cache.set(cacheKey, entity ? candidate : null);
+        }
+        if (cache.get(cacheKey)) return candidate;
+    }
+    return message.entityLink;
 }
 
 function entitySummaryRow(entry, message, flags = {}) {
@@ -392,19 +423,13 @@ function entitySummaryRow(entry, message, flags = {}) {
     };
 }
 
-function topLevelChatEntry(message = {}) {
-    const path = message.entityPath || [];
-    if (path[0]?.type === 'organization' && path[1]?.type) return path[1];
-    return path[0]?.type ? path[0] : message.entityLink;
-}
-
-async function applyEntityUnreadCounts(rows, entityMessages, auth) {
+async function applyEntityUnreadCounts(rows, entityMessages, auth, rollupEntryFor) {
     const reads = await repository.findReadStates(auth.userId, rows.map(row => row.conversationKey));
     const readsByKey = new Map(reads.map(read => [read.conversationKey, read.lastReadAt]));
     const rowByKey = new Map(rows.map(row => [row.conversationKey, row]));
     for (const message of entityMessages) {
         if (message.senderUserId === auth.userId) continue;
-        const entry = topLevelChatEntry(message);
+        const entry = await rollupEntryFor(message);
         const link = message.entityLink;
         const targets = new Set([
             entityConversationKey(entry.type, entry.id),

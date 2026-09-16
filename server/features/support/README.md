@@ -169,11 +169,13 @@ fanout publishes the message event to every `conversation:entity:*` topic
 along the entity path (aggregated views stay live through one subscription)
 plus one `org:<id>` inbox ping. The user inbox query includes
 `{ conversationKind: 'entity', organizationId }` so org-mates see each
-other's entity messages. Inbox entity chats ship in both groupings: top-level rows (every message
-rolls up to the highest entity below the organization root in its
-entityPath, the organization itself for org-linked messages) and per-entity
-`isLeafRow` rows for the flat view — the client switches between them, and
-shell unread totals count top-level rows only.
+other's entity messages. Inbox entity chats ship in both groupings: top-level rows and per-entity
+`isLeafRow` rows for the detailed view — the client switches between them,
+and shell unread totals count top-level rows only. Rollup nodes are
+reader-relative: each message joins at the highest entityPath ancestor
+(below the organization) the reader can resolve through the registry read,
+so unreadable ancestors never absorb messages and degraded paths fall back
+to the highest available entry.
 Names denormalize into the path so quotes and inbox rows never join.
 
 ### Replies
