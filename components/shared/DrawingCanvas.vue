@@ -451,6 +451,67 @@ const handleMouseDown = (event) => {
   event.preventDefault();
 };
 
+// --- Touch gestures: viewer canvases pan with one finger; two fingers
+// pinch-zoom and pan both viewer and designer canvases (the designer keeps
+// single-finger taps for face/edge interaction). ---
+const touchPan = ref(null);
+const pinchGesture = ref(null);
+
+const touchPoints = (first, second) => ({
+  distance: Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY) || 1,
+  center: { x: (first.clientX + second.clientX) / 2, y: (first.clientY + second.clientY) / 2 }
+});
+
+const handleTouchStart = (event) => {
+  if (!isViewer.value) return;
+  if (event.touches.length === 2) {
+    pinchGesture.value = { ...touchPoints(event.touches[0], event.touches[1]), viewBox: { ...viewBox.value } };
+    touchPan.value = null;
+    event.preventDefault();
+    return;
+  }
+  if (event.touches.length === 1 && !isDesigner.value) {
+    touchPan.value = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+    event.preventDefault();
+  }
+};
+
+const handleTouchMove = (event) => {
+  if (!isViewer.value) return;
+  if (pinchGesture.value && event.touches.length >= 2) {
+    event.preventDefault();
+    const rect = svgElement.value?.getBoundingClientRect();
+    if (!rect) return;
+    const start = pinchGesture.value;
+    const points = touchPoints(event.touches[0], event.touches[1]);
+    const scale = start.distance / points.distance;
+    const width = start.viewBox.width * scale;
+    const height = start.viewBox.height * scale;
+    const focusX = start.viewBox.x + ((start.center.x - rect.left) / rect.width) * start.viewBox.width;
+    const focusY = start.viewBox.y + ((start.center.y - rect.top) / rect.height) * start.viewBox.height;
+    viewBox.value = {
+      x: focusX - ((points.center.x - rect.left) / rect.width) * width,
+      y: focusY - ((points.center.y - rect.top) / rect.height) * height,
+      width,
+      height
+    };
+    return;
+  }
+  if (touchPan.value && event.touches.length === 1 && svgElement.value) {
+    event.preventDefault();
+    const touch = event.touches[0];
+    const dx = (touch.clientX - touchPan.value.x) * (viewBox.value.width / svgElement.value.clientWidth);
+    const dy = (touch.clientY - touchPan.value.y) * (viewBox.value.height / svgElement.value.clientHeight);
+    viewBox.value = { ...viewBox.value, x: viewBox.value.x - dx, y: viewBox.value.y - dy };
+    touchPan.value = { x: touch.clientX, y: touch.clientY };
+  }
+};
+
+const handleTouchEnd = (event) => {
+  if (event.touches.length === 0) touchPan.value = null;
+  if (event.touches.length < 2) pinchGesture.value = null;
+};
+
 const handleMouseMove = (event) => {
   if (activeSectionDrag.value) {
     const point = getPointFromEvent(event);
@@ -794,12 +855,19 @@ onBeforeUnmount(() => {
           xmlns="http://www.w3.org/2000/svg"
           :viewBox="viewBoxValue"
           class="h-full w-full"
-          :class="isPanning ? 'cursor-grabbing' : isDesigner ? 'cursor-crosshair' : isViewer ? 'cursor-move' : ''"
+          :class="[
+            isViewer ? 'touch-none' : '',
+            isPanning ? 'cursor-grabbing' : isDesigner ? 'cursor-crosshair' : isViewer ? 'cursor-move' : ''
+          ]"
           @mousedown="handleMouseDown"
           @mousemove="handleMouseMove"
           @mouseup="handleMouseUp"
           @mouseleave="handleCanvasMouseLeave"
           @wheel="handleWheel"
+          @touchstart="handleTouchStart"
+          @touchmove="handleTouchMove"
+          @touchend="handleTouchEnd"
+          @touchcancel="handleTouchEnd"
         >
           <defs v-if="showGrid">
             <pattern id="drawing-canvas-grid" width="100" height="100" patternUnits="userSpaceOnUse">

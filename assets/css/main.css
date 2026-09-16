@@ -4,6 +4,13 @@
 
 html {
     background: var(--ck-page-background);
+    /* The app shell owns its touch gestures: panning stays native, but page
+       pinch-zoom and double-tap zoom stay disabled. Firefox ignores the
+       user-scalable viewport meta, so touch-action pins the same contract in
+       CSS. Gesture-owned surfaces (designer canvases) opt into touch-action:
+       none locally. */
+    touch-action: pan-x pan-y;
+    overscroll-behavior: none;
 }
 
 body {

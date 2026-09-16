@@ -326,7 +326,10 @@ Nodes are added to the nearest unoccupied grid position around the visible
 viewport center. A newly inserted node must not cover an existing node or its
 socket hit targets. Left drag box-selects, Shift extends selection, two-finger
 touchpad scroll pans, pinch zooms around the pointer, and Space plus left drag
-provides keyboard-assisted panning without a middle mouse button. A selected
+provides keyboard-assisted panning without a middle mouse button. Touch hosts
+have no activation key, so on coarse pointers one-finger pane drag pans
+directly (nodes stay draggable) and pinch still zooms; long-press keeps
+opening the pane context palette through the native contextmenu event. A selected
 node uses one primary border only; it does not add an outer ring or second
 outline. Socket handles render at a compact 12px with an invisible grab pad,
 and wires draw at 2px, so starting a connection stays easy at any zoom.

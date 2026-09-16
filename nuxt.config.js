@@ -196,7 +196,12 @@ export default defineNuxtConfig({
                 { charset: 'utf-8' },
                 {
                     name: 'viewport',
-                    content: 'width=device-width, initial-scale=1'
+                    // The app is a PWA-style shell with its own canvas gesture
+                    // handling: pinch/double-tap page zoom stays disabled so
+                    // touch gestures never scale the shell. Firefox ignores
+                    // user-scalable, so assets/css/main.css also pins html
+                    // touch-action to panning only.
+                    content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
                 },
                 {
                     hid: 'theme-color',
