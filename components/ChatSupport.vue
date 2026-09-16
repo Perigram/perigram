@@ -72,27 +72,29 @@
                     :message="$t('support.noConversations')"
                     icon="pi pi-comments"
                 />
-                <div v-else class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-2 md:p-3">
-                    <button
-                        v-for="conversation in conversationSections"
-                        :key="conversation.conversationKey"
-                            type="button"
-                            class="flex min-w-0 items-center gap-2 rounded-ui p-2 text-left transition-colors hover:bg-subtle md:gap-3"
-                            :class="{ 'bg-subtle': isActiveConversation(conversation) }"
-                            @click="openConversation(conversation)"
-                        >
+                <Listbox
+                    v-else
+                    :model-value="activeConversation?.conversationKey || null"
+                    :options="conversationSections"
+                    option-label="label"
+                    option-value="conversationKey"
+                    data-key="conversationKey"
+                    class="min-h-0 flex-1 border-0"
+                    :aria-label="$t('support.chatTitle')"
+                    @update:model-value="key => openConversationByKey(key)"
+                >
+                    <template #option="slotProps">
+                        <div class="flex min-w-0 items-center gap-2 md:gap-3">
                             <div class="relative shrink-0">
-                                <!-- Neutral placeholders: unread ink belongs to badges,
-                                     not to letter/icon fallbacks. -->
                                 <Avatar
-                                    v-if="conversation.conversationKind === 'entity'"
-                                    :icon="entityConversationIcon(conversation)"
+                                    v-if="slotProps.option.conversationKind === 'entity'"
+                                    :icon="entityConversationIcon(slotProps.option)"
                                     shape="circle"
                                     size="normal"
                                     class="bg-subtle text-muted"
                                 />
                                 <Avatar
-                                    v-else-if="conversation.conversationKind === 'group'"
+                                    v-else-if="slotProps.option.conversationKind === 'group'"
                                     icon="pi pi-users"
                                     shape="circle"
                                     size="normal"
@@ -100,41 +102,31 @@
                                 />
                                 <Avatar
                                     v-else
-                                    :image="conversationAvatar(conversation)"
-                                    :label="conversationLabel(conversation).charAt(0).toUpperCase()"
+                                    :image="conversationAvatar(slotProps.option)"
+                                    :label="conversationLabel(slotProps.option).charAt(0).toUpperCase()"
                                     shape="circle"
                                     size="normal"
-                                    class="bg-subtle text-muted [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
-                                />
-                                <span
-                                    v-if="conversation.conversationKind === 'direct' && participantOnline(conversation)"
-                                    class="absolute right-0 bottom-0 h-2.5 w-2.5 rounded-ui bg-status-success"
-                                    :aria-label="$t('support.online')"
+                                    class="bg-subtle text-muted"
                                 />
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex min-w-0 items-center gap-2">
-                                    <span class="truncate text-label">{{ conversationLabel(conversation) }}</span>
-                                    <small
-                                        v-if="conversation.conversationKind === 'group'"
-                                        class="shrink-0 text-muted text-supporting"
-                                    >
-                                        {{ $t('support.membersCount', { count: (conversation.participants || []).length }) }}
-                                    </small>
+                                    <span class="truncate text-label">{{ conversationLabel(slotProps.option) }}</span>
                                 </div>
                                 <small class="block truncate text-muted">
                                     <SupportMessageContent
-                                        v-if="conversation.lastMessage"
-                                        :message="conversationPreviewMessage(conversation)"
+                                        v-if="slotProps.option.lastMessage"
+                                        :message="conversationPreviewMessage(slotProps.option)"
                                         :viewer-user-id="currentUserId"
                                         single-line
                                     />
                                     <template v-else>{{ $t('support.noMessages') }}</template>
                                 </small>
                             </div>
-                            <small v-if="conversation.timestamp" class="shrink-0 text-muted">{{ shortTime(conversation.timestamp) }}</small>
-                    </button>
-                </div>
+                            <small v-if="slotProps.option.timestamp" class="shrink-0 text-muted">{{ shortTime(slotProps.option.timestamp) }}</small>
+                        </div>
+                    </template>
+                </Listbox>
             </aside>
 
             <div v-if="fullPage && !activeConversation" class="chat-empty min-h-0 flex-1 items-center justify-center">
@@ -337,30 +329,28 @@
                             @touchmove="onTouchMove($event, messageItem)"
                             @touchend="onTouchEnd(messageItem)"
                         >
-                            <button
+                            <Message
                                 v-if="messageItem.parent"
-                                type="button"
-                                class="flex max-w-full min-w-0 flex-col gap-0.5 rounded-ui bg-subtle px-2 py-1 text-left"
+                                severity="secondary"
+                                variant="text"
+                                :closable="false"
+                                class="w-fit cursor-pointer"
                                 :aria-label="$t('support.goToMessage')"
                                 @click="goToMessage(messageItem.parent._id)"
                             >
-                                <small class="text-muted text-supporting">
-                                    {{ messageItem.parent.senderName || $t('common.user') }}
-                                </small>
-                                <span class="flex min-w-0 items-center gap-1 text-supporting">
-                                    <i
+                                <span class="flex min-w-0 items-center gap-2">
+                                    <span class="text-supporting">{{ messageItem.parent.senderName || $t('common.user') }}</span>
+                                    <Chip
                                         v-if="messageItem.parent.attachment?.kind === 'audio'"
-                                        class="pi pi-microphone shrink-0 text-muted"
-                                        aria-hidden="true"
+                                        :label="$t('support.voiceMessage')"
+                                        icon="pi pi-microphone"
+                                        class="text-supporting"
                                     />
-                                    <span v-if="messageItem.parent.snippet" class="min-w-0 truncate [overflow-wrap:anywhere]">
+                                    <span v-else-if="messageItem.parent.snippet" class="min-w-0 max-w-60 truncate text-supporting">
                                         {{ messageItem.parent.snippet }}
                                     </span>
-                                    <span v-else-if="messageItem.parent.attachment?.kind === 'audio'" class="text-muted">
-                                        {{ $t('support.voiceMessage') }}
-                                    </span>
                                 </span>
-                            </button>
+                            </Message>
                             <audio
                                 v-if="messageItem.attachment?.kind === 'audio'"
                                 :src="attachmentUrl(messageItem.attachment)"
@@ -417,15 +407,19 @@
                                 <!-- Messages linked to lower entities keep a
                                      subtle, clickable leaf chip inside the
                                      composed view. -->
-                                <button
+                                <Button
                                     v-if="lowerEntityChip(messageItem)"
-                                    type="button"
-                                    class="flex min-w-0 items-center gap-1 opacity-70 transition-opacity hover:opacity-100"
+                                    severity="secondary"
+                                    variant="text"
+                                    size="small"
+                                    :aria-label="messageItem.entityLink.name"
                                     @click="openLowerEntityChat(messageItem)"
                                 >
-                                    <i :class="domainUi.getIcon(messageItem.entityLink.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
-                                    <span class="min-w-0 truncate">{{ messageItem.entityLink.name }}</span>
-                                </button>
+                                    <Chip
+                                        :label="messageItem.entityLink.name"
+                                        :icon="domainUi.getIcon(messageItem.entityLink.type) || 'pi pi-box'"
+                                    />
+                                </Button>
                             </span>
                         </div>
                     </template>
@@ -440,77 +434,54 @@
                         {{ $t('support.typing', { name: typingName }) }}
                     </div>
                     <!-- Reply quote bar: the next send carries the parent id. -->
-                    <div v-if="replyTo" class="flex items-center gap-2 rounded-ui bg-subtle p-2">
-                        <i class="pi pi-reply shrink-0 text-muted" aria-hidden="true"></i>
-                        <span class="min-w-0 flex-1 truncate text-supporting text-muted">
-                            <template v-if="replyTo.parent">{{ replyTo.parent.senderName }}:</template>
-                            <template v-if="replyTo.message">{{ replyTo.message }}</template>
-                            <template v-else-if="replyTo.attachment?.kind === 'audio'">{{ $t('support.voiceMessage') }}</template>
-                        </span>
-                        <Button
-                            icon="pi pi-times"
-                            text
-                            rounded
-                            size="small"
-                            :aria-label="$t('common.cancel')"
-                            @click="cancelReply"
-                        />
-                    </div>
+                    <Message
+                        v-if="replyTo"
+                        severity="info"
+                        icon="pi pi-reply"
+                        :closable="true"
+                        @close="cancelReply"
+                    >
+                        <template v-if="replyTo.parent">{{ replyTo.parent.senderName }}:</template>
+                        <template v-if="replyTo.message">{{ replyTo.message }}</template>
+                        <template v-else-if="replyTo.attachment?.kind === 'audio'">{{ $t('support.voiceMessage') }}</template>
+                    </Message>
+
                     <!-- Entity target strip: lineage drill-down over ALL
-                         children of the current target. Breadcrumbs of
-                         lineage icons walk back up; the deepest target is
-                         where the next message lands (the composed entity
-                         when no child is picked). -->
+                         children of the current target. The Breadcrumb trail
+                         walks back up; the SelectButton row is the current
+                         level, exactly one target selected (the composed
+                         entity when no child is drilled). -->
                     <div
                         v-if="activeConversation.conversationKind === 'entity' && (stripChildren.length || stripTrail.length)"
                         class="flex flex-col gap-1 pb-1"
                         data-testid="entity-target-strip"
                     >
-                        <div v-if="stripTrail.length" class="flex items-center gap-1 overflow-x-auto">
-                            <button
-                                type="button"
-                                class="flex shrink-0 items-center gap-1 rounded-ui bg-subtle px-2 py-0.5 text-muted text-supporting transition-colors hover:opacity-80"
-                                @click="resetStripTrail()"
-                            >
-                                <i :class="entityConversationIcon(activeConversation)" class="shrink-0" aria-hidden="true"></i>
-                                <span class="max-w-28 truncate">
-                                    {{ activeConversation.entityName || localizedEntityTypeLabel(activeConversation.entityType) }}
+                        <Breadcrumb
+                            v-if="stripTrail.length"
+                            :model="stripBreadcrumbModel"
+                        />
+                        <SelectButton
+                            v-if="stripOptions.length"
+                            :model-value="stripValue"
+                            :options="stripOptions"
+                            option-label="label"
+                            option-value="value"
+                            data-key="value"
+                            :allow-empty="true"
+                            :disabled="Boolean(replyTo)"
+                            :unselectable="!replyTo"
+                            :aria-label="$t('support.attach')"
+                            @update:model-value="value => selectStripValue(value)"
+                        >
+                            <template #option="slotProps">
+                                <span class="flex min-w-0 items-center gap-1">
+                                    <i :class="slotProps.option.icon" class="shrink-0" aria-hidden="true"></i>
+                                    <span class="max-w-32 truncate">{{ slotProps.option.label }}</span>
                                 </span>
-                            </button>
-                            <template v-for="(crumb, index) in stripTrail" :key="crumb.key">
-                                <i class="pi pi-angle-right shrink-0 text-muted text-supporting" aria-hidden="true"></i>
-                                <button
-                                    type="button"
-                                    class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-0.5 text-supporting transition-colors"
-                                    :class="index === stripTrail.length - 1
-                                        ? 'bg-primary text-primary-contrast'
-                                        : 'bg-subtle text-muted hover:opacity-80'"
-                                    :aria-current="index === stripTrail.length - 1 ? 'true' : undefined"
-                                    @click="truncateStripTrail(index)"
-                                >
-                                    <i :class="domainUi.getIcon(crumb.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
-                                    <span class="max-w-28 truncate">{{ crumb.name || localizedEntityTypeLabel(crumb.type) }}</span>
-                                </button>
                             </template>
-                        </div>
-                        <div v-if="stripChildren.length" class="flex gap-1 overflow-x-auto">
-                            <button
-                                v-for="chip in stripChildren"
-                                :key="chip.key"
-                                type="button"
-                                :disabled="Boolean(replyTo)"
-                                class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                                :class="isChipSelected(chip)
-                                    ? 'bg-primary text-primary-contrast'
-                                    : 'bg-subtle text-muted hover:opacity-80'"
-                                :aria-pressed="isChipSelected(chip)"
-                                @click="drillStripTo(chip)"
-                            >
-                                <i :class="domainUi.getIcon(chip.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
-                                <span class="max-w-32 truncate">{{ chip.name || localizedEntityTypeLabel(chip.type) }}</span>
-                            </button>
-                        </div>
+                        </SelectButton>
                     </div>
+
                     <div v-if="messagePreviewVisible" class="rounded-ui bg-subtle p-2 text-muted text-body">
                         <SupportMessageContent :message="draftPreviewMessage" :viewer-user-id="currentUserId" />
                     </div>
@@ -550,28 +521,20 @@
                     </div>
                     <!-- Voice recording replaces the composer row while live:
                          elapsed timer plus cancel and stop-and-send. -->
+                    <Message v-if="voiceRecording" severity="warn" icon="pi pi-microphone" :closable="false" class="flex-1">
+                        {{ $t('support.recording') }} &middot; {{ formatRecordingDuration(recordingElapsed) }}
+                    </Message>
                     <div v-if="voiceRecording" class="flex items-center gap-2">
-                        <span
-                            class="ml-1 h-2.5 w-2.5 shrink-0 animate-pulse rounded-ui bg-status-danger"
-                            :aria-label="$t('support.recording')"
-                        ></span>
-                        <span class="min-w-0 flex-1 text-muted text-body">
-                            {{ $t('support.recording') }} · {{ formatRecordingDuration(recordingElapsed) }}
-                        </span>
                         <Button
                             icon="pi pi-times"
                             severity="secondary"
-                            text
-                            rounded
-                            size="small"
+                            variant="text"
                             :aria-label="$t('common.cancel')"
                             @click="cancelVoiceRecording"
                         />
                         <Button
                             icon="pi pi-send"
-                            rounded
-                            size="small"
-                            class="flex-shrink-0"
+                            severity="primary"
                             :aria-label="$t('support.stopAndSend')"
                             :loading="voiceSending"
                             :disabled="voiceSending"
@@ -760,6 +723,11 @@ import Textarea from 'primevue/textarea'
 import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
 import Menu from 'primevue/menu'
+import Listbox from 'primevue/listbox'
+import SelectButton from 'primevue/selectbutton'
+import Breadcrumb from 'primevue/breadcrumb'
+import Chip from 'primevue/chip'
+import Message from 'primevue/message'
 import ToggleSwitch from 'primevue/toggleswitch'
 import DatePicker from 'primevue/datepicker'
 import { useI18n } from 'vue-i18n'
@@ -1423,14 +1391,33 @@ async function loadStripChildren(targetKey, targetType, targetEntity = null) {
 
 function effectiveContainmentForStrip() {
     const bindings = authStore.lineageBindings || []
-    if (authStore.processActive) {
-        return bindings.map(binding => ({
+    const edges = authStore.processActive
+        ? bindings.map(binding => ({
             childType: binding.childEntityType,
             parentType: binding.ancestorEntityType,
             lineageKey: binding.lineageKey
         }))
+        : [...(domainUi.containment || [])]
+    // Detail screens declare deeper hierarchy than the compiled bindings
+    // (nesting runs under queues, sheet designs under runs): every list
+    // source on a type's detail screen is a child edge, with the lineage
+    // key read from the filter placeholder target.
+    for (const screen of authStore.screenManifest || []) {
+        if (screen.template !== 'entityDetail' || !screen.entityType) continue
+        for (const source of screen.sources || []) {
+            if (source.mode !== 'list' || source.entityType === screen.entityType) continue
+            if (edges.some(edge => edge.parentType === screen.entityType && edge.childType === source.entityType)) continue
+            const filterEntry = Object.entries(source.filters || {})
+                .find(([, value]) => typeof value === 'string' && value.startsWith('$screen'))
+            if (!filterEntry) continue
+            edges.push({
+                childType: source.entityType,
+                parentType: screen.entityType,
+                lineageKey: filterEntry[0]
+            })
+        }
     }
-    return domainUi.containment || []
+    return edges
 }
 
 const stripEntityId = (entity = null) => {
@@ -1450,6 +1437,56 @@ watch([activeConversationKey, () => activeConversation.value?.entityType, () => 
         { _id: activeConversation.value.entityId }
     )
 }, { immediate: true })
+
+// SelectButton level: the composed entity plus the current target's
+// children; exactly one value selected ('' = composed entity itself).
+const stripOptions = computed(() => {
+    const conversation = activeConversation.value
+    if (conversation?.conversationKind !== 'entity') return []
+    const self = {
+        label: conversation.entityName || localizedEntityTypeLabel(conversation.entityType),
+        value: '',
+        icon: entityConversationIcon(conversation)
+    }
+    return [self, ...stripChildren.value.map(chip => ({
+        label: chip.name || localizedEntityTypeLabel(chip.type),
+        value: chip.key,
+        icon: domainUi.getIcon(chip.type) || 'pi pi-box'
+    }))]
+})
+
+const stripValue = computed(() => {
+    const target = composerEntity.value
+    if (!target) return ''
+    return `${target.type}:${String(target.id)}`
+})
+
+function selectStripValue(value) {
+    if (replyTo.value) return
+    if (value === null || value === undefined || value === '') {
+        composerEntityTouched = true
+        composerEntity.value = null
+        return
+    }
+    const chip = stripChildren.value.find(item => item.key === value)
+    if (chip) drillStripTo(chip)
+}
+
+// Breadcrumb trail for the drilled lineage.
+const stripBreadcrumbModel = computed(() => {
+    const conversation = activeConversation.value
+    if (!stripTrail.value.length || conversation?.conversationKind !== 'entity') return []
+    const home = {
+        label: conversation.entityName || localizedEntityTypeLabel(conversation.entityType),
+        icon: entityConversationIcon(conversation),
+        command: () => resetStripTrail()
+    }
+    return [home, ...stripTrail.value.map((crumb, index) => ({
+        label: crumb.name || localizedEntityTypeLabel(crumb.type),
+        icon: domainUi.getIcon(crumb.type) || 'pi pi-box',
+        command: () => truncateStripTrail(index)
+    }))]
+})
 
 // Selection is exactly one target: key-based comparison so chips from any
 // source (loaded or path-derived) match reliably.
