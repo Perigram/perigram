@@ -929,7 +929,13 @@ describe('support communication service', () => {
     })).rejects.toMatchObject({ statusCode: 400 });
   });
 
-  it('joins entity chats by top-levelness with unread counts', async () => {
+  it('joins entity chats by the highest ancestor available to the reader', async () => {
+    const readable = new Set(['organization:org-1', 'project:project-1', 'library:library-1', 'queue:queue-1']);
+    mocks.appRegistry.getEntityService.mockImplementation((type) => ({
+      processGetById: vi.fn(async (id) => (readable.has(`${type}:${id}`)
+        ? { toJSON: () => ({ _id: id, identity: { name: id } }) }
+        : null))
+    }));
     mocks.repository.findConversationMessages.mockResolvedValue([
       {
         conversationKey: 'entity:queue:queue-1',
@@ -960,8 +966,9 @@ describe('support communication service', () => {
 
     const conversations = await supportService.listUserConversations(auth);
 
-    // Both groupings ship: top-level rows for the joined view and leaf rows
-    // for the flat view; the shell total counts top-level rows only.
+    // The queue message rolls to its readable project ancestor; an entity
+    // whose ancestors are unreadable stays its own top row. Both groupings
+    // ship; the shell total counts top-level rows only.
     const entityRows = conversations.filter(item => item.conversationKind === 'entity');
     expect(entityRows).toEqual([
       expect.objectContaining({
