@@ -228,6 +228,22 @@ function organizationIdOf(dto = null, scopedAuth = {}) {
     return String(fromLineage || scopedAuth.organizationId || '');
 }
 
+/**
+ * Distinguishes "exists but grants deny" from "not found": the registry read
+ * throwing 403 (or returning null after a permission error) proves the
+ * entity exists while a 404/null proves it does not.
+ */
+async function registryReadDenied(scopedAuth, type, id) {
+    try {
+        const service = getAppRegistry().getEntityService(type);
+        if (!service?.processGetById) return false;
+        await service.processGetById(id, scopedAuth);
+        return false;
+    } catch (error) {
+        return error?.statusCode === 403;
+    }
+}
+
 async function fetchLinkedEntity(scopedAuth, type, id) {
     if (!type || !id) return null;
     try {
@@ -273,6 +289,18 @@ export async function getEntityConversationContext(auth, entityKey = '') {
             .map(candidate => entityDto(candidate))
             .find(dto => String(dto?._id || dto?.id || '') === String(parsed.id));
         if (dto) entity = dto;
+    }
+    if (!entity && await registryReadDenied(scopedAuth, parsed.type, parsed.id)) {
+        // Grants can deny reads on entities the org process still owns
+        // (standalone children, gray-lineage test entities) — the registry
+        // read answers "exists, denied" rather than "not found". Chat
+        // admits those with a bare link and an organization-only path;
+        // unreadable lineage simply never climbs.
+        entity = {
+            _id: parsed.id,
+            identity: { name: parsed.id },
+            lineage: { organizationId: scopedAuth.organizationId }
+        };
     }
     if (!entity) throw createError({ statusCode: 403, message: 'Forbidden' });
     const dto = entityDto(entity);
