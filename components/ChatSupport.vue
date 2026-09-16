@@ -1340,7 +1340,7 @@ watch(() => messages.value.length, (newLength, oldLength) => {
 onMounted(() => {
     if (authStore.userIsSet) supportChatStore.connect()
     loadEntityTypes()
-    if (chatTarget.value?.userId) openDirectTarget()
+    if (chatTarget.value?.userId || chatTarget.value?.entityKey) openDirectTarget()
 })
 onBeforeUnmount(() => {
     if (unsubscribeConversation) {
