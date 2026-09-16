@@ -70,13 +70,12 @@
         </main>
 
         <ChatSupport v-if="supportDialog && !isMobileViewport" />
-        <!-- The + screen picker is a Popover anchored to its trigger (the same
-             pattern as the profile trigger): it stays attached to the bottom
-             bar and flips above it, while a detached Menu popup would
-             misplace itself on scrolled pages. -->
+        <!-- Screen-shortcut picker: a Popover anchored at the profile trigger
+             (the entry lives inside the profile menu) or at the long-pressed
+             shortcut tab, so it always opens attached to the bottom bar and
+             flips above it. -->
         <Popover ref="mobileScreenMenu">
             <div class="flex min-w-56 flex-col gap-1">
-                <small class="px-2 pb-1 text-muted-color">{{ $t('nav.addScreen') }}</small>
                 <template v-for="(item, index) in mobileScreenMenuItems" :key="index">
                     <Divider v-if="item.separator" class="my-1" />
                     <Button
@@ -100,11 +99,12 @@
             <!-- Mobile app tabs run on PrimeVue Tabs: home, user shortcuts, and
                  chats are real tabs of one strip, and every tab navigates — the
                  chats tab opens the bounded /chats route exactly like the home
-                 and shortcut tabs open their routes. The shortcut picker and
-                 profile trigger are actions, not tabs. Tab internals are
-                 adapted for the bottom bar through pt (see bottomBar pt objects
-                 in the script): PrimeVue runtime styles load after Tailwind, so
-                 utility classes cannot restyle tab strip internals. -->
+                 and shortcut tabs open their routes. The profile trigger is the
+                 bar's only action and owns the Add screen entry through its
+                 menu's items slot. Tab internals are adapted for the bottom bar
+                 through pt (see bottomBar pt objects in the script): PrimeVue
+                 runtime styles load after Tailwind, so utility classes cannot
+                 restyle tab strip internals. -->
             <div class="mx-auto flex max-w-md items-center gap-1">
                 <Tabs :value="mobileTabValue" class="min-w-0 flex-1" @update:value="selectMobileTab">
                     <TabList class="w-full" :pt="bottomBarTabListPt">
@@ -139,18 +139,26 @@
                         </Tab>
                     </TabList>
                 </Tabs>
-                <Button
-                    v-if="mobileShortcutLinks.length < MOBILE_SHORTCUT_LIMIT"
-                    icon="pi pi-plus"
-                    rounded
-                    :disabled="!mobileScreenMenuItems.length"
-                    :severity="mobileScreenMenuItems.length ? 'primary' : 'secondary'"
-                    :aria-label="$t('nav.addScreen')"
-                    @click="openMobileScreenMenu"
-                />
                 <UserAccountMenu v-if="authStore.userIsSet">
+                    <template #items="{ hide }">
+                        <section
+                            v-if="mobileShortcutLinks.length < MOBILE_SHORTCUT_LIMIT && mobileScreenMenuItems.length"
+                            class="flex flex-col gap-1"
+                        >
+                            <Button
+                                :label="$t('nav.addScreen')"
+                                icon="pi pi-plus"
+                                text
+                                severity="secondary"
+                                size="small"
+                                class="w-full !justify-start"
+                                @click="hide(); openMobileScreenMenu()"
+                            />
+                        </section>
+                    </template>
                     <template #trigger="{ toggle }">
                         <Button
+                            ref="mobileProfileTrigger"
                             icon="pi pi-user"
                             text
                             rounded
@@ -480,9 +488,17 @@
         window.localStorage.setItem(mobileShortcutStorageKey.value, JSON.stringify(mobileShortcuts.value.slice(-MOBILE_SHORTCUT_LIMIT)))
     }
 
-    const openMobileScreenMenu = (event) => {
+    // The Add screen entry lives inside the profile menu: after that popover
+    // hides, the picker anchors at the profile trigger button so it stays
+    // attached to the bottom bar (anchoring at the unmounting menu item would
+    // position against a detached element).
+    const mobileProfileTrigger = ref(null)
+
+    const openMobileScreenMenu = () => {
         mobileShortcutReplaceIndex.value = null
-        mobileScreenMenu.value?.toggle(event)
+        const anchor = mobileProfileTrigger.value?.$el || mobileProfileTrigger.value?.$?.el
+        if (!anchor) return
+        mobileScreenMenu.value?.show?.({ currentTarget: anchor, target: anchor }, anchor)
     }
 
     const runMobileScreenMenuItem = (item) => {

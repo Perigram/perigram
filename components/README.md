@@ -373,8 +373,9 @@ dispatches the same transient close event first, so inline entity popovers and
 shell menus do not remain open behind or above the chat surface.
 The mobile app shell runs on PrimeVue `Tabs` as a bottom tab strip: home, the
 user's generated-screen shortcuts, and chats are real tabs of one strip, while
-the shortcut picker plus-action and the profile trigger (account menu with
-theme switching) are plain actions beside the strip. Every tab navigates —
+the profile trigger (account menu with theme switching, which also owns the
+Add screen shortcut entry) is the single action beside the strip. Every tab
+navigates —
 the chats tab opens the bounded `/chats` route exactly like the home and
 shortcut tabs open their routes — so chat is a routed screen, never a state
 panel swapped over the current route. Other mobile chat entry points
@@ -397,15 +398,15 @@ use `100dvh` so Firefox's dynamic toolbar cannot turn a fitted screen into a
 scrollable one. Surfaces that own gestures (designer canvases) opt into
 `touch-action: none` locally instead.
 The app shell mobile bottom panel may expose up to two generated-screen
-shortcuts selected by the user from a generated-screen picker. Those shortcuts
+shortcuts. Adding a shortcut is an entry inside the profile menu popover
+("Add screen", shown only while a slot is free), which hides the profile
+popover and opens the screen picker anchored at the profile trigger; the
+long-press on a shortcut tab reopens the same picker with a delete entry for
+replacement. Both pickers are PrimeVue `Popover`s anchored to their trigger so
+they flip above the bottom bar and stay attached on scrolled pages, where a
+detached `Menu` popup would misplace itself. Shortcuts
 use compiled screen labels and authored icons when available, then fall back to
-generated entity/template icons; they must not be hardcoded domain routes. The
-picker is a PrimeVue `Popover` anchored to the plus action (the same anchored
-pattern as the profile trigger): it flips above the bottom bar and stays
-attached on scrolled pages, where a detached `Menu` popup would misplace
-itself. The plus action appears only until the two shortcut slots are full;
-full shortcut sets are changed by long-pressing a shortcut tab, which reopens
-the same popover with a delete entry appended.
+generated entity/template icons; they must not be hardcoded domain routes.
 Generated screen titles, home section headers, generated breadcrumbs, and
 generated action buttons resolve labels through `utils/generated-labels.js`.
 That resolver prefers screen/region `labelKey`, then domain entity label keys,
