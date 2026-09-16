@@ -443,16 +443,20 @@ so the shared entity popover shows the immutable revision summary and source
 relationship.
 
 ### `ChatAttachmentPicker.vue`
-The chat composer's attachment surface: a PrimeVue `PanelMenu` in a Popover
-with its default layout. Home-screen sections are the accordion roots; their
-children list the section's generated create entries right beside the entity
-entries — and every entity entry repeats the pattern through its type's
-detail-screen child creates, so creation lives inside the hierarchy at every
-level (never behind a second popup). Entities expand through pure lineage
-nesting (`linkedExplorerChildSources` list fetches; relation links are
-deliberately skipped so the menu stays a hierarchy). Tapping an entity
-selects it and closes the picker; tapping a create entry runs the generated
-flow in the host and attaches the created entity. Each open resets the menu,
+The chat composer's attachment surface: the home sidebar's explorer tree,
+densely padded, inside a Popover (PrimeVue `Tree` with the sidebar's
+dense-row `pt`). Home-screen sections are the roots; their children list the
+section's generated create entries right beside the entity entries — and
+every entity entry repeats the pattern through its type's detail-screen
+child creates, so creation lives inside the hierarchy at every level (never
+behind a second popup). Entities expand through pure lineage nesting
+(`linkedExplorerChildSources` list fetches; relation links are deliberately
+skipped so the tree stays a hierarchy); lazy loading is node-driven
+(`@node-expand` carries the section/entity payload directly, so loads are
+never routed by key-prefix parsing). Rows select; chevrons only expand.
+Tapping an entity selects it and closes the picker; tapping a create entry
+runs the generated flow in the host and attaches the created entity. Each
+open resets the tree (sections re-expand and their option lists reload),
 because option lists are recipient-scoped per conversation. The host owns
 the draft `entityRefs` and the create-action flows; the picker only emits
 `select`/`create-action`.

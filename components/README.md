@@ -1080,10 +1080,12 @@ primary. The grouping switch narrows entity chats to their top-level nodes
 (entities with no resolvable lineage ancestors) and back to every entity
 chat. Child-entity threads (cassettes, nesting runs, sheet designs) resolve
 through the same scoped option window the attachment picker browses when
-direct registry reads deny them. Entity thread titles open the entity as a home-workspace tab on desktop
-(detail route on mobile), the inbox carries a top-level/all grouping switch
-for entity chats, and group thread headers carry their member profiles
-inline through `EntityInlineRef`. On desktop, entity opens from chat
+direct registry reads deny them. Entity thread headers carry a dedicated
+open-detail button left of the title that opens the entity as a home-workspace tab on desktop
+(detail route on mobile), the inbox carries a "Detailed" grouping toggle
+for entity chats (top-level nodes off, every entity chat on), and group thread headers carry their member profiles
+inline through `EntityInlineRef`. Calls start from every non-support thread
+header, entity threads included. On desktop, entity opens from chat
 surfaces and standalone lists route through
 `utils/entity-workspace-open.js` — a live pane-tab open when the home
 workspace is mounted, a pending request consumed on mount otherwise — so
@@ -1093,13 +1095,21 @@ composer of a composed view carries a lineage drill-down strip: ALL children
 of the current target load through the containment sources the sidebar uses;
 picking a child drills the strip into its own children (and the next message
 lands there), with breadcrumbs of lineage icons walking back up. The
-composed entity itself is the target whenever no child is drilled. Replies quote their parent message above the bubble (sender
-name plus snippet or voice marker) and jump to the quoted message when
+composed entity itself is the target whenever no child is drilled, and the
+strip's root pill carries the selected state in that case so exactly one
+target is always visibly selected. Replies quote their parent message above the bubble (sender
+name plus snippet or voice marker, without a leading border) and jump to the quoted message when
 loaded, loading earlier pages while staying scroll-anchored otherwise; they
 open through the desktop hover message menu (PrimeVue Menu with reply and
-copy actions) and swipe-to-reply on mobile, and the composer shows a
-cancelable reply bar. The composer input is a PrimeVue InputGroup — attach,
-voice, and send sit in addons around the textarea. Generated detail pages expose the same
+copy actions, vertically aligned with the bubble's center beside its outer
+edge) and direction-aware swipe-to-reply on mobile: own (right-aligned)
+messages swipe left and opponent messages right, the row follows the
+finger, and a reply icon fades in inside the vacated gap until the release
+past the threshold commits the reply. The composer shows a cancelable
+reply bar that renders like the in-bubble quote (sender plus snippet), not
+an alert-style PrimeVue Message. The composer input is a PrimeVue InputGroup — attach
+and voice sit in addons around the textarea while send is the trailing
+primary button (a direct InputGroup child, not an addon). Generated detail pages expose the same
 composed conversation through the shared `EntityChatPanel` disclosure, and
 every entity surface carries a chat entry — the shared `EntityCard` renders
 it for all card variants (footer row and expansion popover), and
