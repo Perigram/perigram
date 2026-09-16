@@ -286,6 +286,8 @@ function selectNode(node) {
   }
 }
 
+const hide = () => popover.value?.hide?.()
+
 function chooseCreateArtifact() {
   hide()
   emit('create-artifact')
@@ -304,5 +306,5 @@ function toggle(event) {
   popover.value?.toggle(event)
 }
 
-defineExpose({ toggle, hide: () => popover.value?.hide?.() })
+defineExpose({ toggle, hide })
 </script>
