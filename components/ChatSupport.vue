@@ -579,19 +579,20 @@
                         />
                     </div>
                     <div v-else>
+                        <!-- PrimeVue InputGroup: Buttons sit as direct
+                             children so the group owns their radius; addon
+                             wrappers would draw extra boxes. -->
                         <InputGroup>
-                            <InputGroupAddon>
-                                <Button
-                                    icon="pi pi-paperclip"
-                                    severity="secondary"
-                                    text
-                                    rounded
-                                    size="small"
-                                    :disabled="attachmentPickerEmpty"
-                                    :aria-label="$t('support.attach')"
-                                    @click="openAttachmentPicker($event)"
-                                />
-                            </InputGroupAddon>
+                            <Button
+                                icon="pi pi-paperclip"
+                                severity="secondary"
+                                text
+                                rounded
+                                size="small"
+                                :disabled="attachmentPickerEmpty"
+                                :aria-label="$t('support.attach')"
+                                @click="openAttachmentPicker($event)"
+                            />
                             <Textarea
                                 :placeholder="$t('support.typeMessage')"
                                 class="min-w-0 flex-1"
@@ -601,27 +602,24 @@
                                 rows="1"
                                 autoResize
                             />
-                            <InputGroupAddon v-if="voiceRecordingSupported">
-                                <Button
-                                    icon="pi pi-microphone"
-                                    severity="secondary"
-                                    text
-                                    rounded
-                                    size="small"
-                                    :aria-label="$t('support.recordVoice')"
-                                    @click="startVoiceRecording"
-                                />
-                            </InputGroupAddon>
-                            <InputGroupAddon>
-                                <Button
-                                    icon="pi pi-send"
-                                    @click="sendMessage"
-                                    :disabled="(!message.trim() && !entityRefs.length) || isLoading"
-                                    rounded
-                                    size="small"
-                                    :aria-label="$t('support.send')"
-                                />
-                            </InputGroupAddon>
+                            <Button
+                                v-if="voiceRecordingSupported"
+                                icon="pi pi-microphone"
+                                severity="secondary"
+                                text
+                                rounded
+                                size="small"
+                                :aria-label="$t('support.recordVoice')"
+                                @click="startVoiceRecording"
+                            />
+                            <Button
+                                icon="pi pi-send"
+                                @click="sendMessage"
+                                :disabled="(!message.trim() && !entityRefs.length) || isLoading"
+                                rounded
+                                size="small"
+                                :aria-label="$t('support.send')"
+                            />
                         </InputGroup>
                     </div>
                 </div>
@@ -759,7 +757,6 @@ import Select from '~/components/shared/EntitySelect.vue'
 import EntityMultiSelect from '~/components/shared/EntityMultiSelect.vue'
 import Textarea from 'primevue/textarea'
 import InputGroup from 'primevue/inputgroup'
-import InputGroupAddon from 'primevue/inputgroupaddon'
 import Menu from 'primevue/menu'
 import ToggleSwitch from 'primevue/toggleswitch'
 import DatePicker from 'primevue/datepicker'

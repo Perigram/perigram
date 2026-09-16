@@ -5,6 +5,7 @@
       :model="menuItems"
       class="w-72"
       :aria-label="$t('support.attach')"
+      :pt="panelPt"
       @update:expanded-keys="handleExpand"
     >
       <template #item="{ item }">
@@ -49,6 +50,13 @@ const props = defineProps({
 const emit = defineEmits(['select', 'create-action'])
 
 const { t, te } = useI18n()
+
+// Clean popover surface: PanelMenu panels drop their own borders so the
+// popover frame is the only chrome.
+const panelPt = {
+  root: { style: { width: '100%' } },
+  panel: { class: '!border-0' }
+}
 const popover = ref(null)
 const expandedKeys = ref({})
 const childrenByParentKey = ref(new Map())
@@ -149,7 +157,7 @@ const entityEntry = (item) => {
   const option = item.option || null
   const entries = childCreateActions(item.type).map(action => createEntry(key, action))
   const expandable = isExpandable(item)
-  const children = loadingKeys.value.has(key) && !childrenByParentKey.value.has(key)
+  const items = loadingKeys.value.has(key) && !childrenByParentKey.value.has(key)
     ? [...entries, { key: `${key}:loading`, label: t('common.loading'), icon: 'pi pi-spinner pi-spin' }]
     : expandable
       ? [...entries, ...loadedChildren(key).map(child => entityEntry(child))]
@@ -158,7 +166,7 @@ const entityEntry = (item) => {
     key,
     label: item.name || entityLabel(item.entity, item.type),
     icon: iconFor(item.type),
-    children,
+    items,
     command: () => {
       hide()
       emit('select', option
@@ -178,7 +186,7 @@ const menuItems = computed(() => sections.value.map(section => ({
   key: `type:${section.source.entityType}`,
   label: section.label,
   icon: iconFor(section.source.entityType),
-  children: sectionChildren(section)
+  items: sectionChildren(section)
 })))
 
 const isExpandable = (item) => {
