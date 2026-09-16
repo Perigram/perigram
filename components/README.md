@@ -1087,7 +1087,10 @@ composed conversation through the shared `EntityChatPanel` disclosure, and
 every entity surface carries a chat entry — `EntityInlineRef` popovers and
 inline chips plus `GeneratedEntityCollection` card footers open the entity
 thread through `utils/entity-chat.js` (desktop drawer deep link, mobile
-/chats route with the preset target). The detail panel renders inside the
+/chats route with the preset target, both consumed on chat mount). The
+detail panel rides `GeneratedEntityDetail` — the canonical detail chrome —
+so abstract detail pages and bounded implementation panes (workspace
+overloads, designer file modes) all carry the thread; the panel renders inside the
 detail branch of the generated screen's `v-if` chain — never as a standalone
 `v-if` sibling, which would detach the regions fallback from the shared chain
 and render a raw region dump under overload screens like the home workspace.
