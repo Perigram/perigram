@@ -549,8 +549,6 @@
                 </div>
                 <ChatAttachmentPicker
                     ref="attachmentPicker"
-                    :types="entityTypeOptions"
-                    :create-actions="createActions"
                     :recipient-user-id="activeRecipientUserId"
                     @select="selectAttachment"
                     @create-action="runCreateAction"
@@ -741,7 +739,6 @@ const currentUserId = ref(authStore.userData?.id || authStore.userData?.userId |
 let unsubscribeConversation = null
 let conversationLoadToken = 0
 const entityRefs = ref([])
-const entityTypeOptions = ref([])
 const attachmentPicker = ref(null)
 const creatorVisible = ref(false)
 const pendingCreator = ref(null)
@@ -1404,7 +1401,6 @@ watch(() => messages.value.length, (newLength, oldLength) => {
 
 onMounted(() => {
     if (authStore.userIsSet) supportChatStore.connect()
-    loadEntityTypes()
     if (chatTarget.value?.userId || chatTarget.value?.entityKey) openDirectTarget()
 })
 onBeforeUnmount(() => {
@@ -1481,7 +1477,10 @@ const scrollToBottom = async () => {
 // rows after, and one tap on an entity selects, adds the ref, and closes the
 // picker. With no readable types and no create actions the trigger stays
 // disabled instead of opening an empty menu.
-const attachmentPickerEmpty = computed(() => !entityTypeOptions.value.length && !createActions.value.length)
+const attachmentPickerEmpty = computed(() => {
+    const home = authStore.screenManifest.find(screen => screen.template === 'home')
+    return !(home?.sources || []).some(source => source.entityType && source.mode !== 'single')
+})
 
 const openAttachmentPicker = (event) => {
     attachmentPicker.value?.toggle(event)
@@ -1500,14 +1499,6 @@ const selectAttachment = (option) => {
     }
 }
 
-// Every entity-creation action in the user scope rides the picker as a
-// generated action button; running one follows the same flow the generated
-// surfaces use and attaches the created entity to the draft.
-const createActions = computed(() => Array.from(new Map(
-    (authStore.actionManifest || [])
-        .filter(action => action?.actionKind === 'createEntity' && isGeneratedSurfaceAction(action))
-        .map(action => [action.actionId || action.id, action])
-).values()))
 
 const pendingCreateActionLabel = computed(() => pendingCreateAction.value
     ? generatedActionLabel(pendingCreateAction.value, '', { t, te })
@@ -1618,19 +1609,6 @@ const selectCreatedArtifact = (artifact) => {
     )
     pendingCreator.value = null
     pendingCreateAction.value = null
-}
-
-const loadEntityTypes = async () => {
-    try {
-        const types = await $fetch('/api/support/entity-types')
-        entityTypeOptions.value = (types || []).map(type => ({
-            label: type.labelKey ? t(type.labelKey) : localizedEntityTypeLabel(type.value),
-            value: type.value
-        }))
-    } catch (error) {
-        console.error('Failed to load support entity types:', error)
-        entityTypeOptions.value = []
-    }
 }
 
 const hydrateEntityRefs = async (refs = []) => {
