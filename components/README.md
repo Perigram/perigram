@@ -1038,14 +1038,16 @@ as a native audio player on the bubble plus a voice chip in previews.
 Attachments attach through the shared `ChatAttachmentPicker` (see
 [shared components](./shared/README.md)): an explorer tree with the same
 sidebar structure as the home screen — entity-type sections as default roots,
-options expanding on demand, and entities lazily expanding into their
-containment/relation children — where one tap on an entity adds the ref and
-closes the picker; there is no separate add step. The paperclip trigger
-stays disabled while no entity types are readable and no artifact creator is
-available, instead of opening an empty menu. When the org process
-compiles an artifact creation action, the picker also exposes "create
-artifact", and the created artifact attaches to the draft as an `artifact`
-entity ref. The composer loads attachment types from
+options expanding on demand, and entities lazily expanding through pure
+lineage nesting — where one tap on an entity adds the ref and closes the
+picker; there is no separate add step. Creation entries compose from the
+user scope: every generated `createEntity` action renders as the same
+`GeneratedActionButton` the surfaces use, above the browse tree; running one
+follows the generated flow (upload-creator dialog for artifact creations, a
+prompt dialog for typed inputs, direct execution otherwise) and the created
+entity attaches to the draft like any picked ref. The paperclip trigger
+stays disabled while no entity types are readable and no create actions are
+available, instead of opening an empty menu. The composer loads attachment types from
 `/api/support/entity-types`, which derives them from the user's generated
 screen source manifest at read access rather than a fixed chat list. Concrete
 attachment choices resolve through `/api/support/entity-options` when the
@@ -1081,8 +1083,11 @@ name plus snippet or voice marker) and jump to the quoted message when
 loaded, loading earlier pages while staying scroll-anchored otherwise; they
 open through a hover menu on desktop and swipe-to-reply on mobile, and the
 composer shows a cancelable reply bar. Generated detail pages expose the same
-composed conversation through the shared `EntityChatPanel` disclosure
-(see [shared components](./shared/README.md)); the panel renders inside the
+composed conversation through the shared `EntityChatPanel` disclosure, and
+every entity surface carries a chat entry — `EntityInlineRef` popovers and
+inline chips plus `GeneratedEntityCollection` card footers open the entity
+thread through `utils/entity-chat.js` (desktop drawer deep link, mobile
+/chats route with the preset target). The detail panel renders inside the
 detail branch of the generated screen's `v-if` chain — never as a standalone
 `v-if` sibling, which would detach the regions fallback from the shared chain
 and render a raw region dump under overload screens like the home workspace.
