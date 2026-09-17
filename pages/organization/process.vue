@@ -1008,13 +1008,30 @@ const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInfer
   portForHandle,
   syncProcessNode
 });
-const designer = reactive(createProcessDesignerContract(cncDomain));
-
-// CTS declaration layer: org types fetched from the type store; the registry
-// is the strangler-converted system types plus that overlay. The declaration
-// check runs before graph compilation so R1-R7 surface in the same panel.
+// CTS declaration layer: the palette, entity/field/status option lists, and
+// compilation all derive from one source — the organization's type registry
+// view (seeded starter types plus authored ones). Authoring a type changes
+// what the graph can compose with.
 const ctsOrgTypes = ref([]);
 let ctsRegistryCache = null;
+let designerCapabilities = null;
+
+function resetCtsRegistry() {
+  ctsRegistryCache = null;
+}
+
+function ctsProjectedDomain() {
+  return projectDomainFromView(ctsRegistry(), draft.value?.lineage?.organizationId || null, cncDomain);
+}
+
+// One joint: rebuild the designer option lists from the registry view.
+function refreshDesignerFromTypes() {
+  const refreshed = createProcessDesignerContract(ctsProjectedDomain(), designerCapabilities);
+  Object.assign(designer, refreshed);
+}
+
+const designer = reactive(createProcessDesignerContract(ctsProjectedDomain()));
+
 const ctsTypeById = computed(() => new Map(ctsOrgTypes.value.map(type => [type.id, type])));
 
 function addCtsTypeNode(type) {
@@ -1153,9 +1170,10 @@ const paletteGroupsWithTypes = computed(() => {
     label: type.id,
     action: () => addCtsTypeNode(type)
   }));
-  const items = typeItems.length
-    ? typeItems
-    : [{ id: 'ctsType:new', kind: 'ctsType', icon: 'pi pi-plus', label: 'New type…', action: () => navigateTo('/organization/types') }];
+  const items = [...typeItems, {
+    id: 'ctsType:new', kind: 'ctsType', icon: 'pi pi-plus', label: 'New type…',
+    action: () => navigateTo('/organization/types')
+  }];
   return [...designer.paletteGroups, { id: 'types', label: 'Types', items }];
 });
 const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = useProcessDesignerPalette({
@@ -1581,7 +1599,11 @@ onMounted(() => {
   loadActiveOrCreateLocal();
   loadProcessCapabilities();
   $fetch('/api/admin/cts/types')
-    .then(response => { ctsOrgTypes.value = (response.types || []).filter(type => type.scope === 'org'); })
+    .then(response => {
+      ctsOrgTypes.value = response.types || [];
+      resetCtsRegistry();
+      refreshDesignerFromTypes();
+    })
     .catch(() => { /* the designer keeps compiling without the type store */ });
   window.addEventListener('keydown', handleCanvasKeydown);
   touchPointerQuery = window.matchMedia?.('(pointer: coarse)') || null;
@@ -1634,11 +1656,8 @@ async function loadProcessCapabilities() {
     const response = await $fetch('/api/admin/domain');
     const capabilities = response?.processCapabilities || null;
     if (!capabilities) return;
-    const refreshed = createProcessDesignerContract(cncDomain, capabilities);
-    designer.createEntityOptions = refreshed.createEntityOptions;
-    designer.createModes = refreshed.createModes;
-    designer.listableEntityOptions = refreshed.listableEntityOptions;
-    designer.readableEntityOptions = refreshed.readableEntityOptions;
+    designerCapabilities = capabilities;
+    refreshDesignerFromTypes();
   } catch {
     // keep the domain-derived options when the projection cannot be loaded
   }
