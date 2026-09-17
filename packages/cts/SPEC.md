@@ -249,9 +249,14 @@ its effective inputs (`provenance.effective`: params + versions of every
 input). The current `machineSnapshot`/`toolSnapshot`/algorithm-revision field
 habit on sheets becomes provenance semantics instead of per-entity cargo.
 
-Composition: process graphs are compositions of `p/s/k/c/m` with dataflow
-typing. The compiler's existing socket/packet checking and missing-field
-diagnostics are this calculus; CTS finishes them.
+Composition (audit correction): process graphs are the composition
+calculus, owned by `@cutkit/processes` — its node catalog (90+ kinds),
+socket roles, and packet shapes stay authoritative. The six species are a
+CLASSIFICATION of the graph's effect layer (`effect.createEntity/
+updateEntity/changeStatus/runCommand` are c/m/d plus command wrapping), not
+a parallel calculus. CTS supplies the declaration-layer types those nodes
+reference and constrains them (R1 rows, R2 targets, R5 service purity); it
+does not re-implement dataflow typing.
 
 An editor is `p(T) -> ui` plus `construct(T)` or `mutate(Ref(T))`, bound to a
 surface. "An editor that produces other files" is a `k` from the editor's
