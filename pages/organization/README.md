@@ -56,8 +56,6 @@ button saves or forks the visible graph, activates the resulting process
 definition, and records activation warnings/errors in the centered canvas
 validation feedback so operators can inspect the result without a persistent
 canvas panel.
-The designer dock exposes **Types** (`TypeAuthoringPanel.vue`): type authoring inside the designer — select or create a type, its states render as editable cards (drag between states to add transitions, intents on wires), Save writes through the type store and immediately refreshes the palette and option lists. There is no separate type page.
-
 The designer dock exposes the CTS language tester
 (`processDesigner.languageTester`): a dialog running `@perigram/cts` directly
 in the browser — expression AST evaluation with unit arithmetic and match
