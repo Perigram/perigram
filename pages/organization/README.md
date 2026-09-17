@@ -65,12 +65,12 @@ types (see [components/process-designer/README.md](../../components/process-desi
 `types.vue` is the CTS type registry pane — the read-only seed of the
 designer's types editor (see
 [packages/cts/SPEC.md](../../packages/cts/SPEC.md)). It fetches
-`/api/admin/cts/types`, the strangler conversion of the live
-`@cutkit/domain-cnc` declarations into `@perigram/cts` type records, and
-renders the compiled view grouped by class with derived render policy
-(labels, icons, state severities), per-type transitions, children edges,
-operators, and the compile diagnostics. It never writes; authoring types in
-the designer replaces this conversion once the types editor lands.
+`/api/admin/cts/types`, the compiled organization view: strangler-converted
+`@cutkit/domain-cnc` declarations plus any org-authored types stored through
+`server/features/cts-types` (POST the same endpoint to author — the pane
+picks them up on reload). It renders the view grouped by class with derived
+render policy (labels, icons, state severities), per-type transitions,
+children edges, operators, and the compile diagnostics.
 
 The route uses the authenticated app layout with a full canvas workspace and
 the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell. The
