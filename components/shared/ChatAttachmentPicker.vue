@@ -6,7 +6,6 @@
       selection-mode="single"
       :aria-label="$t('support.attach')"
       class="w-80 max-h-96 overflow-y-auto"
-      :pt="pickerTreePt"
       @node-select="onNodeSelect"
       @node-expand="onNodeExpand"
     >
@@ -77,17 +76,6 @@ const emit = defineEmits(['select', 'create-action'])
 
 const { t, te } = useI18n()
 
-// Raw PrimeVue chrome: the Popover and Tree keep their unmodified Aura
-// padding. The only pt passthrough is the documented dense-row layout the
-// home sidebar explorer uses — the tree-children rail collapses to zero and
-// the level indent moves onto the row content.
-const pickerTreePt = {
-  nodeChildren: { style: { paddingInlineStart: '0' } },
-  nodeContent: ({ props }) => ({
-    style: { paddingInlineStart: `${(Math.max(props.level || 1, 1) - 1) * 0.75}rem` }
-  }),
-  nodeLabel: { class: 'flex min-w-0 flex-1 items-center' }
-}
 const popover = ref(null)
 const expandedKeys = ref({})
 const childrenByParentKey = ref(new Map())

@@ -443,10 +443,8 @@ so the shared entity popover shows the immutable revision summary and source
 relationship.
 
 ### `ChatAttachmentPicker.vue`
-The chat composer's attachment surface: a Popover hosting PrimeVue `Tree`
-with unmodified Aura chrome — the only `pt` passthrough is the home
-sidebar's documented dense-row layout (children rail collapsed, level indent
-on the row content); no padding, border, or background is restyled.
+The chat composer's attachment surface: a Popover hosting PrimeVue `Tree`,
+both unmodified Aura. No `pt`, padding, border, or background overrides.
 Home-screen sections are the roots; their children list the
 section's generated create entries right beside the entity entries — and
 every entity entry repeats the pattern through its type's detail-screen
