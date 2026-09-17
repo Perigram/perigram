@@ -70,17 +70,17 @@
         </main>
 
         <!-- One chat popup for every viewport, hosted by PrimeVue Dialog:
-             the mask, stacking (modal z-token, above the app chrome), and
-             responsive width are PrimeVue's; the chat renders its own
-             inbox/thread headers with back and close, so the Dialog header
-             stays hidden. Phones get a full-bleed sheet, desktop the
-             token-sized card. -->
+             PrimeVue owns stacking (overlay z above the app chrome) and the
+             responsive width — a full-bleed sheet below md, the token-sized
+             card above. Non-modal on purpose: desktop keeps working under
+             the chat. The chat renders its own inbox/thread headers with
+             back and close, so the Dialog header stays hidden, and the
+             surface is pinned to the app content token. -->
         <Dialog
             v-model:visible="supportDialog"
-            modal
             :close-on-escape="false"
             :aria-label="t('support.chatTitle')"
-            :breakpoints="{ '640px': '100vw' }"
+            :breakpoints="{ '768px': '100vw' }"
             :style="{ width: 'min(94vw, 25rem)' }"
             :pt="chatDialogPt"
         >
@@ -250,11 +250,13 @@
     const route = useRoute()
     const { t, te } = useI18n()
     const supportDialog = useSupportDialog()
-    // Popup chrome pass-through: Dialog supplies the surface, radius, and
-    // modal stacking; the chat component supplies its own headers and
-    // controls, so the Dialog header is hidden entirely.
+    // Popup chrome pass-through: Dialog supplies structure and stacking,
+    // the app tokens supply the surface (Dialog's own background token is a
+    // lighter gray — the chat must match the content surface everywhere
+    // else). The chat component supplies its own headers and controls, so
+    // the Dialog header is hidden entirely.
     const chatDialogPt = {
-        root: { class: '!rounded-ui max-md:!rounded-none max-md:!border-0' },
+        root: { class: 'bg-content !rounded-ui max-md:!rounded-none max-md:!border-0' },
         header: { class: 'hidden' },
         content: { class: 'p-0 overflow-hidden' }
     }

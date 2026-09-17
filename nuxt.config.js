@@ -202,8 +202,11 @@ export default defineNuxtConfig({
                     // handling: pinch/double-tap page zoom stays disabled so
                     // touch gestures never scale the shell. Firefox ignores
                     // user-scalable, so assets/css/main.css also pins html
-                    // touch-action to panning only.
-                    content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
+                    // touch-action to panning only. interactive-widget
+                    // resizes the layout viewport with the soft keyboard, so
+                    // full-height chat surfaces keep the composer visible
+                    // while typing.
+                    content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content'
                 },
                 {
                     hid: 'theme-color',
