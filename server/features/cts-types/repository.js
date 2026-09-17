@@ -39,10 +39,13 @@ export async function listByOrganization(organizationId) {
 
 export async function upsertByTypeId(organizationId, typeId, data) {
   const db = await connectDB();
-  const { _id, ...clean } = data;
+  // identity fields are immutable: they live in the filter and $setOnInsert
+  // only — repeating them in $set makes Mongo reject the update ("would
+  // create a conflict at 'scope'").
+  const { _id, scope, organizationId: dataOrg, id, ...clean } = data;
   await db.collection(COLLECTION).updateOne(
     { ...orgFilter(organizationId), id: String(typeId) },
-    { $set: clean, $setOnInsert: { _id: new ObjectId(), ...orgFilter(organizationId), id: String(typeId) } },
+    { $set: clean, $setOnInsert: { _id: new ObjectId(), scope: 'org', organizationId: String(organizationId), id: String(typeId) } },
     { upsert: true }
   );
   return await findByTypeId(organizationId, typeId);
