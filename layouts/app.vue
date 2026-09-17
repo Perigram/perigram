@@ -204,14 +204,16 @@
             <!-- Full chat surface (not a thread-only stub): the preset
                  entity thread opens with the same controls as the desktop
                  drawer — back navigation to the inbox, calls, children
-                 toggle — inside a properly bounded dialog frame. -->
+                 toggle — inside a properly bounded dialog frame. Mounting
+                 must not depend on the chat target: back navigation clears
+                 it, and a target-gated v-if would leave a blank dialog. -->
             <div class="flex h-[min(85dvh,38rem)] min-h-0 flex-col">
                 <ChatSupport
-                    v-if="entityChatPopup && chatTargetValue?.entityKey"
-                    :key="chatTargetValue.entityKey"
+                    v-if="entityChatPopup"
+                    :key="chatTargetValue?.entityKey || 'inbox'"
                     embedded
-                    :conversation-key="chatTargetValue.entityKey"
-                    :entity-name="chatTargetValue.name || ''"
+                    :conversation-key="chatTargetValue?.entityKey || ''"
+                    :entity-name="chatTargetValue?.name || ''"
                 />
             </div>
         </StandardDialog>

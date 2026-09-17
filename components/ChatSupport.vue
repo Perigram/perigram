@@ -109,8 +109,9 @@
                              member count, and the smart timestamp (time when
                              today, date otherwise) up top; the latest-message
                              preview with the own-last read mark below. The
-                             row menu (pin/archive) reveals on hover. -->
-                        <div class="group/row flex min-w-0 items-start gap-2 md:gap-3">
+                             row menu (pin/archive) is an absolute hover
+                             overlay so it never shifts the layout. -->
+                        <div class="group/row relative flex min-w-0 items-start gap-2 md:gap-3">
                             <div class="relative shrink-0">
                                 <Avatar
                                     v-if="option.conversationKind === 'entity'"
@@ -168,18 +169,18 @@
                                         />
                                         <template v-else>{{ $t('support.noMessages') }}</template>
                                     </small>
-                                    <Button
-                                        icon="pi pi-ellipsis-v"
-                                        severity="secondary"
-                                        text
-                                        rounded
-                                        size="small"
-                                        class="shrink-0 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100"
-                                        :aria-label="$t('common.more')"
-                                        @click.stop="openConversationMenu($event, option)"
-                                    />
                                 </div>
                             </div>
+                            <Button
+                                icon="pi pi-ellipsis-v"
+                                severity="secondary"
+                                text
+                                rounded
+                                size="small"
+                                class="absolute top-1/2 right-0 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100"
+                                :aria-label="$t('common.more')"
+                                @click.stop="openConversationMenu($event, option)"
+                            />
                         </div>
                     </template>
                 </Listbox>
@@ -601,7 +602,7 @@
                                 <i :class="entityConversationIcon(activeConversation)" aria-hidden="true"></i>
                             </button>
                             <template v-for="(crumb, index) in stripTrail" :key="crumb.key">
-                                <i class="pi pi-angle-right shrink-0 text-muted text-supporting" aria-hidden="true"></i>
+                                <i class="pi pi-angle-right shrink-0 text-muted" aria-hidden="true"></i>
                                 <button
                                     type="button"
                                     class="flex h-6 w-6 shrink-0 items-center justify-center rounded-ui transition-colors"
@@ -617,7 +618,7 @@
                                 </button>
                             </template>
                             <template v-if="stripChildren.length">
-                                <i class="pi pi-angle-right shrink-0 text-muted text-supporting" aria-hidden="true"></i>
+                                <i class="pi pi-angle-right shrink-0 text-muted" aria-hidden="true"></i>
                                 <button
                                     v-for="chip in stripChildren"
                                     :key="chip.key"
@@ -1561,8 +1562,33 @@ async function loadStripChildren(targetKey, targetType, targetEntity = null) {
                 return []
             }
         }))
+        let merged = loaded.flat()
+        // Fallback child source: when the lineage list endpoints expose
+        // nothing (scoped services missing or denied), the readable
+        // entity-options window still fills the strip so chips drill.
+        if (!merged.length) {
+            const childTypes = [...new Set(effectiveContainmentForStrip()
+                .filter(edge => edge.parentType === targetType)
+                .map(edge => edge.childType))]
+            const optionRows = await Promise.all(childTypes.map(async childType => {
+                try {
+                    const options = await $fetch('/api/support/entity-options', { query: { type: childType } })
+                    return (options || []).filter(option => option?.value)
+                        .map(option => ({
+                            key: `${childType}:${option.value}`,
+                            type: childType,
+                            id: String(option.value),
+                            name: option.label || childType,
+                            entity: option.entity || null
+                        }))
+                } catch {
+                    return []
+                }
+            }))
+            merged = optionRows.flat()
+        }
         const seen = new Set([targetKey])
-        const merged = loaded.flat().filter(item => {
+        merged = merged.filter(item => {
             if (!item.key || item.key === targetKey || seen.has(item.key)) return false
             seen.add(item.key)
             return true
