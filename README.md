@@ -122,6 +122,10 @@ builds only).
   cache-first worker from an earlier prod build would serve stale code
   through hard refreshes — hashed prod names make network fetches safe);
   `plugins/pwa.client.js` registers the worker without a build plugin.
+- Dev loads self-heal the origin: every dev page load unregisters all
+  service-worker registrations and deletes their caches, so a worker left
+  by an earlier production build cannot keep serving stale code; only
+  production builds register `/sw.js`.
 - Offline mutations are queued in a client-side IndexedDB outbox
   (`utils/outbox.js`, `stores/outbox.js`) and replayed through the same API
   endpoints when connectivity returns. Entity CRUD (`useEntity`), status
