@@ -43,3 +43,4 @@ export {
   enumRegistryForType, enumRegistryForView, SPECIES_BY_EFFECT_KIND
 } from './compat/process-grammar.js';
 export { checkDeclarationsAgainstCts } from './compat/process-checks.js';
+export { projectDomainFromView } from './compat/domain-projection.js';

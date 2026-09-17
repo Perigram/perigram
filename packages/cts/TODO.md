@@ -50,6 +50,13 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
   `server/api/admin/cts/types.get.js` and the read-only designer types pane
   `pages/organization/types.vue`. Per-type field extraction from `legacy`
   Json rows remains open per entity.
+- [x] **Domain projection (collapse direction)**:
+  `compat/domain-projection.js` projects a CTS view back onto the
+  compiler-consumable domain (workflows with legacy access/state-flag merge,
+  org entities, field access on the `cts-types` feature, org relations).
+  Proven on live data: the real active process definition compiles
+  byte-identical through `projectDomainFromView` vs the hand-authored
+  `cncDomain`. The designer preview compiles through the projection.
 - [~] Translate org-authored process definitions to the new field paths —
   **re-scoped, gated**: under the strangler, storage keeps
   collection-per-type and old field paths; process-definition translation
