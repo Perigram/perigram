@@ -227,7 +227,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-process-designer-processscreenpreview-vue` | `components/process-designer/ProcessScreenPreview.vue` | derived usage | replace:chrome (12) |
 | `ui-components-process-designer-processstatusdefinitionnode-vue` | `components/process-designer/ProcessStatusDefinitionNode.vue` | derived usage | replace:chrome (14); remove:important-override (6); narrowly-allowlist:inline-data-driven (3) |
 | `ui-components-process-designer-ctsstatenode-vue` | `components/process-designer/CtsStateNode.vue` | derived usage | replace:chrome (12); remove:important-override (6); replace:inline-visual (2) |
-| `ui-components-process-designer-ctstypenode-vue` | `components/process-designer/CtsTypeNode.vue` | derived usage | replace:chrome (10); replace:inline-visual (2) |
 | `ui-components-process-designer-languagetesterpanel-vue` | `components/process-designer/LanguageTesterPanel.vue` | derived usage | centralize:typography (4); replace:chrome (1) |
 | `ui-components-profilesketcheditor-vue` | `components/ProfileSketchEditor.vue` | derived usage | centralize:layout (2); replace:chrome (13) |
 | `ui-components-projectstatistics-vue` | `components/ProjectStatistics.vue` | derived usage | compliant |

@@ -24,13 +24,6 @@ roles, screens, and dock/panel state. Their contracts are exercised directly in
 behavior tests so a disconnected Save, selection, or graph mutation fails even
 when labels remain in the page source.
 
-`CtsTypeNode.vue` is the reference card for CTS types on the canvas: the
-palette's **Types** group lists the organization's authored types
-(`cts_types` store); clicking one drops a read-only card showing its class
-and lifecycle summary with a link to the type registry. Reference cards ride
-the graph through save/load but own no definition records — deleting a card
-never deletes the type.
-
 `LanguageTesterPanel.vue` is the CTS language workbench opened from the
 designer dock (`processDesigner.languageTester`). It imports
 `@perigram/cts` directly in the browser — no endpoint — and evaluates real
