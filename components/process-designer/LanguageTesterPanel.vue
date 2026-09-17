@@ -3,7 +3,7 @@
 // instance validations in the browser against the strangler-converted CNC
 // types. No endpoint — the package is pure and browser-safe by contract
 // (SPEC §13), the designer imports the same code the compiler runs.
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Message from 'primevue/message';
@@ -90,13 +90,31 @@ function runExpression() {
 }
 
 const selectedTypeId = ref(typeOptions[0]?.value || '');
-const instanceText = ref(JSON.stringify({
-  type: 'sheet',
-  typeVersion: 1,
-  fields: { legacy: {}, specs: { width: 2500, length: 1250 } },
-  states: { main: 'AVAILABLE' }
-}, null, 2));
+
+// Scaffold a minimal well-typed instance from the selected type, so the
+// checker never starts from a type/id mismatch.
+function scaffoldInstance(typeId) {
+  const type = registry.getType(typeId);
+  if (!type) return { type: typeId, typeVersion: 1, fields: {}, states: {} };
+  const fields = {};
+  for (const [name, descriptor] of Object.entries(type.fields)) {
+    if (descriptor.base === 'json') fields[name] = {};
+  }
+  return {
+    type: type.id,
+    typeVersion: type.version,
+    fields,
+    ...(type.states?.main ? { states: { main: type.states.main.initial } } : {})
+  };
+}
+
+const instanceText = ref(JSON.stringify(scaffoldInstance(selectedTypeId.value), null, 2));
 const instanceResult = ref(null);
+
+watch(selectedTypeId, typeId => {
+  instanceText.value = JSON.stringify(scaffoldInstance(typeId), null, 2);
+  instanceResult.value = null;
+});
 
 function runInstance() {
   try {
