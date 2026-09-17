@@ -4,6 +4,7 @@ import { toFlexibleId } from '~/server/utils/objectid.js';
 const COLLECTION = 'supportMessages';
 const READS_COLLECTION = 'supportConversationReads';
 const GROUPS_COLLECTION = 'chat_groups';
+const PREFS_COLLECTION = 'supportConversationPrefs';
 
 /**
  * Conversation page read. With `options.limit` the newest `limit` messages
@@ -77,6 +78,61 @@ export async function markRead(conversationKey, userId, readAt = new Date()) {
         { upsert: true }
     );
     return await db.collection(READS_COLLECTION).findOne({ conversationKey, userId });
+}
+
+// Per-user conversation preferences (pin/archive). One document per user and
+// conversation; timestamps double as existence flags.
+export async function findConversationPrefs(userId, conversationKeys = []) {
+    if (!userId || !conversationKeys.length) return [];
+    const db = await connectDB();
+    return await db
+        .collection(PREFS_COLLECTION)
+        .find({ userId, conversationKey: { $in: conversationKeys } })
+        .toArray();
+}
+
+export async function upsertConversationPref(userId, conversationKey, patch = {}) {
+    const db = await connectDB();
+    const now = new Date();
+    const update = {};
+    if (patch.pinned === true) update.pinnedAt = now;
+    if (patch.pinned === false) update.pinnedAt = null;
+    if (patch.archived === true) update.archivedAt = now;
+    if (patch.archived === false) update.archivedAt = null;
+    if (Object.keys(update).length) {
+        await db.collection(PREFS_COLLECTION).updateOne(
+            { userId, conversationKey },
+            {
+                $set: { ...update, userId, conversationKey, updatedAt: now },
+                $setOnInsert: { createdAt: now }
+            },
+            { upsert: true }
+        );
+    }
+    return await db.collection(PREFS_COLLECTION).findOne({ userId, conversationKey });
+}
+
+// Latest read timestamp per conversation among every OTHER user: the input
+// for the own-last-message read mark.
+export async function findOthersReadStates(conversationKeys = [], excludeUserId = '') {
+    if (!conversationKeys.length) return [];
+    const db = await connectDB();
+    const match = excludeUserId
+        ? { conversationKey: { $in: conversationKeys }, userId: { $ne: excludeUserId } }
+        : { conversationKey: { $in: conversationKeys } };
+    const rows = await db
+        .collection(READS_COLLECTION)
+        .find(match)
+        .toArray();
+    const latestByKey = new Map();
+    for (const row of rows) {
+        const current = latestByKey.get(row.conversationKey);
+        if (!current || new Date(row.lastReadAt) > new Date(current)) {
+            latestByKey.set(row.conversationKey, row.lastReadAt);
+        }
+    }
+    return Array.from(latestByKey.entries())
+        .map(([conversationKey, lastReadAt]) => ({ conversationKey, lastReadAt }));
 }
 
 export async function insertGroup(data) {

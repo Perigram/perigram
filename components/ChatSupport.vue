@@ -23,13 +23,34 @@
             >
                 <div class="flex shrink-0 items-center justify-end gap-1 px-2 pt-2">
                     <label
-                        v-if="hasEntityRows"
+                        v-if="hasEntityRows && !showArchived"
                         class="mr-auto flex items-center gap-1 pl-1 text-muted text-supporting"
                         :title="$t('support.chatGroupingAll')"
                     >
                         <ToggleSwitch v-model="groupingAll" :aria-label="$t('support.chatGroupingAll')" />
                         <span>{{ $t('support.chatGroupingAll') }}</span>
                     </label>
+                    <Button
+                        v-if="hasEntityRows && showArchived"
+                        icon="pi pi-arrow-left"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        class="mr-auto"
+                        :aria-label="$t('support.backToChats')"
+                        @click="showArchived = false"
+                    />
+                    <Button
+                        icon="pi pi-inbox"
+                        :severity="showArchived ? 'primary' : 'secondary'"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('support.archivedConversations')"
+                        :aria-pressed="showArchived"
+                        @click="showArchived = !showArchived"
+                    />
                     <Button
                         icon="pi pi-user-plus"
                         severity="secondary"
@@ -68,8 +89,8 @@
                 <StateBlock
                     v-if="!displayConversations.length && !newChatVisible"
                     class="m-3"
-                    :message="$t('support.noConversations')"
-                    icon="pi pi-comments"
+                    :message="showArchived ? $t('support.noArchivedConversations') : $t('support.noConversations')"
+                    :icon="showArchived ? 'pi pi-inbox' : 'pi pi-comments'"
                 />
                 <Listbox
                     v-else
@@ -84,7 +105,12 @@
                     @update:model-value="key => openConversationByKey(key)"
                 >
                     <template #option="{ option }">
-                        <div class="flex min-w-0 items-center gap-2 md:gap-3">
+                        <!-- Chat-list row: two top-aligned lines — name,
+                             member count, and the smart timestamp (time when
+                             today, date otherwise) up top; the latest-message
+                             preview with the own-last read mark below. The
+                             row menu (pin/archive) reveals on hover. -->
+                        <div class="group/row flex min-w-0 items-start gap-2 md:gap-3">
                             <div class="relative shrink-0">
                                 <Avatar
                                     v-if="option.conversationKind === 'entity'"
@@ -116,25 +142,44 @@
                             </div>
                             <div class="min-w-0 flex-1">
                                 <div class="flex min-w-0 items-center gap-2">
-                                    <span class="truncate text-label">{{ conversationLabel(option) }}</span>
+                                    <span class="min-w-0 truncate text-label">{{ conversationLabel(option) }}</span>
                                     <small
                                         v-if="option.conversationKind === 'group'"
                                         class="shrink-0 text-muted text-supporting"
                                     >
                                         {{ $t('support.membersCount', { count: (option.participants || []).length }) }}
                                     </small>
+                                    <small v-if="option.timestamp" class="ml-auto shrink-0 pl-1 text-muted text-supporting">
+                                        {{ inboxTimestamp(option.timestamp) }}
+                                    </small>
                                 </div>
-                                <small class="block truncate text-muted">
-                                    <SupportMessageContent
-                                        v-if="option.lastMessage"
-                                        :message="conversationPreviewMessage(option)"
-                                        :viewer-user-id="currentUserId"
-                                        single-line
+                                <div class="flex min-w-0 items-center gap-1">
+                                    <i
+                                        v-if="isOwnInboxRow(option) && option.lastMessageRead"
+                                        class="pi pi-check shrink-0 text-primary"
+                                        :aria-label="$t('support.messageRead')"
                                     />
-                                    <template v-else>{{ $t('support.noMessages') }}</template>
-                                </small>
+                                    <small class="min-w-0 flex-1 truncate text-muted">
+                                        <SupportMessageContent
+                                            v-if="option.lastMessage"
+                                            :message="conversationPreviewMessage(option)"
+                                            :viewer-user-id="currentUserId"
+                                            single-line
+                                        />
+                                        <template v-else>{{ $t('support.noMessages') }}</template>
+                                    </small>
+                                    <Button
+                                        icon="pi pi-ellipsis-v"
+                                        severity="secondary"
+                                        text
+                                        rounded
+                                        size="small"
+                                        class="shrink-0 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100"
+                                        :aria-label="$t('common.more')"
+                                        @click.stop="openConversationMenu($event, option)"
+                                    />
+                                </div>
                             </div>
-                            <small v-if="option.timestamp" class="shrink-0 text-muted">{{ shortTime(option.timestamp) }}</small>
                         </div>
                     </template>
                 </Listbox>
@@ -178,22 +223,35 @@
                     />
                     <div class="flex min-w-0 flex-1 flex-col">
                         <div class="flex min-w-0 items-center gap-1">
-                            <!-- Open-detail action sits directly left of the
-                                 entity thread title. -->
+                            <h2 class="m-0 min-w-0 truncate text-section-heading">
+                                <!-- The entity thread title itself is the
+                                     open-entity link; the children-messages
+                                     toggle sits right beside it (inverted:
+                                     default shows the entity's own messages,
+                                     toggling includes the children). -->
+                                <Button
+                                    v-if="activeConversation.conversationKind === 'entity' && activeEntityDetailRoute"
+                                    link
+                                    class="!p-0 text-left"
+                                    :aria-label="conversationLabel(activeConversation)"
+                                    @click="openEntityFromThread"
+                                >
+                                    {{ conversationLabel(activeConversation) }}
+                                </Button>
+                                <template v-else>{{ conversationLabel(activeConversation) }}</template>
+                            </h2>
                             <Button
-                                v-if="activeConversation.conversationKind === 'entity' && activeEntityDetailRoute"
-                                icon="pi pi-external-link"
-                                severity="secondary"
+                                v-if="activeConversation.conversationKind === 'entity'"
+                                icon="pi pi-sitemap"
+                                :severity="includeChildren ? 'primary' : 'secondary'"
                                 text
                                 rounded
                                 size="small"
                                 class="shrink-0"
-                                :aria-label="$t('common.open')"
-                                @click="openEntityFromThread"
+                                :aria-label="$t('support.includeChildren')"
+                                :aria-pressed="includeChildren"
+                                @click="includeChildren = !includeChildren"
                             />
-                            <h2 class="m-0 min-w-0 truncate text-section-heading">
-                                {{ conversationLabel(activeConversation) }}
-                            </h2>
                         </div>
                         <!-- Group threads carry their member profiles inline;
                              entity threads keep the scope subtitle. -->
@@ -217,17 +275,6 @@
                         </small>
                     </div>
                     <div class="flex shrink-0 items-center gap-1">
-                        <Button
-                            v-if="activeConversation.conversationKind === 'entity'"
-                            icon="pi pi-sitemap"
-                            :severity="includeChildren ? 'secondary' : 'primary'"
-                            text
-                            rounded
-                            size="small"
-                            :aria-label="$t('support.includeChildren')"
-                            :aria-pressed="includeChildren"
-                            @click="includeChildren = !includeChildren"
-                        />
                         <Button
                             v-if="activeConversation.conversationKind !== 'support'"
                             icon="pi pi-phone"
@@ -813,6 +860,7 @@
             </div>
         </StandardDialog>
         <Menu ref="messageMenu" :model="messageMenuItems" :popup="true" />
+        <Menu ref="conversationMenu" :model="conversationMenuItems" :popup="true" />
         <ConfirmDialog />
     </div>
 </template>
@@ -853,6 +901,7 @@ import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js'
 import { openEntityChat } from '~/utils/entity-chat.js'
 import { openEntityInWorkspace } from '~/utils/entity-workspace-open.js'
+import { openChatInWorkspaceTab } from '~/utils/chat-workspace-open.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
 import { useAuthStore } from '~/stores/auth'
@@ -905,11 +954,12 @@ const createPromptValues = reactive({})
 const createPromptOptions = reactive({})
 const executingCreate = ref(false)
 const activeConversation = ref(null)
-// Entity thread state: the children toggle switches between the composed
-// subtree view and messages linked to the entity itself; the composer link
-// target is the latest child chip by default and falls back to the composed
-// entity when nothing is selected.
-const includeChildren = ref(true)
+// Entity thread state: the children toggle switches between messages linked
+// to the entity itself (default) and the composed subtree view; the toggle
+// beside the title reads "include children", so the pressed/primary state is
+// the subtree view. The composer link target is the latest child chip by
+// default and falls back to the composed entity when nothing is selected.
+const includeChildren = ref(false)
 const composerEntity = ref(null)
 let composerEntityTouched = false
 // Reply state: quoted target for the next send, transient swipe arming, and
@@ -1023,17 +1073,23 @@ const groupingAll = computed({
 const hasEntityRows = computed(() => supportChatStore.conversations
     .some(conversation => conversation.conversationKind === 'entity'))
 
+// Archived conversations live behind the inbox header toggle; the default
+// list hides them.
+const showArchived = ref(false)
+
 const displayConversations = computed(() => supportChatStore.conversations
     .filter(conversation => {
+        if (Boolean(conversation.archived) !== showArchived.value) return false
         if (['direct', 'group'].includes(conversation.conversationKind)) return true
         if (conversation.conversationKind !== 'entity') return false
         // Top-level grouping hides leaf rows; Detailed shows every entity chat.
         return chatGrouping.value === 'all' || !conversation.isLeafRow
     }))
 
-// One unified inbox: person, group, and entity chats share a single
-// timestamp-ordered list; the avatar glyph carries the kind.
+// One unified inbox: person, group, and entity chats share a single list;
+// pinned rows lead, everything else follows the latest activity.
 const conversationSections = computed(() => [...displayConversations.value].sort((left, right) => {
+    if (Boolean(right.pinned) !== Boolean(left.pinned)) return right.pinned ? 1 : -1
     const leftTime = left.timestamp ? new Date(left.timestamp).getTime() : 0
     const rightTime = right.timestamp ? new Date(right.timestamp).getTime() : 0
     return rightTime - leftTime
@@ -1602,7 +1658,7 @@ watch(activeConversationKey, () => {
     replyTo.value = null
     composerEntity.value = null
     composerEntityTouched = false
-    includeChildren.value = true
+    includeChildren.value = false
 })
 
 // The children toggle re-queries the thread: the composed subtree view and
@@ -1874,10 +1930,53 @@ const formatTime = (timestamp, withoutTime) => {
     return withoutTime ? date.toLocaleDateString() : `${time}`
 }
 
-const shortTime = (timestamp) => {
+// Inbox timestamps read as clock time on the day of the message and as a
+// calendar date afterwards.
+const inboxTimestamp = (timestamp) => {
     const date = new Date(timestamp)
     if (Number.isNaN(date.getTime())) return ''
+    if (date.toDateString() === new Date().toDateString()) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
     return date.toLocaleDateString()
+}
+
+// The read mark belongs to rows whose newest message is the viewer's own.
+const isOwnInboxRow = (conversation) => Boolean(conversation.senderUserId)
+    && String(conversation.senderUserId) === String(currentUserId.value)
+
+// Row menu: pin/unpin and archive/unarchive, driven by the row's current
+// per-user preferences.
+const conversationMenu = ref(null)
+let conversationMenuTarget = null
+const conversationMenuItems = computed(() => {
+    const option = conversationMenuTarget
+    if (!option) return []
+    return [
+        {
+            label: option.pinned ? t('support.unpin') : t('support.pin'),
+            icon: 'pi pi-thumbtack',
+            command: () => {
+                conversationMenu.value?.hide?.()
+                supportChatStore.setConversationPref(option.conversationKey, { pinned: !option.pinned })
+                conversationMenuTarget = null
+            }
+        },
+        {
+            label: option.archived ? t('support.unarchive') : t('support.archive'),
+            icon: 'pi pi-inbox',
+            command: () => {
+                conversationMenu.value?.hide?.()
+                supportChatStore.setConversationPref(option.conversationKey, { archived: !option.archived })
+                conversationMenuTarget = null
+            }
+        }
+    ]
+})
+
+const openConversationMenu = (event, option) => {
+    conversationMenuTarget = option || null
+    conversationMenu.value?.toggle(event)
 }
 
 const messagesList = computed(() => {
@@ -2262,8 +2361,17 @@ const closeChat = () => {
 }
 
 const openChatsPage = () => {
-    closeChat()
-    navigateTo('/chats')
+    // Expand opens the chat inside the home framework: a workspace tab
+    // pinned to the active conversation (or the general chats tab from the
+    // inbox), never a separate route.
+    const target = activeConversation.value
+        ? {
+            conversationKey: activeConversationKey.value || '',
+            label: conversationLabel(activeConversation.value)
+        }
+        : {};
+    closeChat();
+    if (!openChatInWorkspaceTab(target)) navigateTo('/chats');
 }
 
 const openDirectTarget = async () => {

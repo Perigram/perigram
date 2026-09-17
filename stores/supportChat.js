@@ -79,6 +79,26 @@ export const useSupportChatStore = defineStore('supportChat', () => {
         else conversations.value.unshift(conversation);
     }
 
+    // Per-user pin/archive flags; the row updates locally from the saved
+    // pref so the inbox reacts without a full snapshot refresh.
+    async function setConversationPref(conversationKey, patch = {}) {
+        if (!conversationKey) return;
+        const saved = await $fetch('/api/support/prefs', {
+            method: 'POST',
+            body: { conversationKey, ...patch }
+        }).catch((err) => {
+            console.error('Failed to save conversation preference:', err);
+            return null;
+        });
+        if (saved) {
+            conversations.value = conversations.value.map(item => (
+                item.conversationKey === conversationKey
+                    ? { ...item, pinned: saved.pinned, archived: saved.archived }
+                    : item
+            ));
+        }
+    }
+
     return {
         conversations,
         totalUnread,
@@ -89,6 +109,7 @@ export const useSupportChatStore = defineStore('supportChat', () => {
         disconnect,
         refresh,
         markRead,
-        upsertConversation
+        upsertConversation,
+        setConversationPref
     };
 });

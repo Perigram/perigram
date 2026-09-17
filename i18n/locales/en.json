@@ -157,7 +157,15 @@
     "groupCreate": "Create group",
     "selectMembers": "Select members",
     "membersCount": "{count} member(s)",
-    "groupDeleteConfirm": "Delete this group?"
+    "groupDeleteConfirm": "Delete this group?",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "archivedConversations": "Archived conversations",
+    "noArchivedConversations": "No archived conversations",
+    "backToChats": "Back to chats",
+    "messageRead": "Read"
   },
   "footer": {
     "termsAndConditions": "Terms and Conditions",

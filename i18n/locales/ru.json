@@ -157,7 +157,15 @@
     "groupCreate": "Создать группу",
     "selectMembers": "Выберите участников",
     "membersCount": "{count} участник(ов)",
-    "groupDeleteConfirm": "Удалить эту группу?"
+    "groupDeleteConfirm": "Удалить эту группу?",
+    "pin": "Закрепить",
+    "unpin": "Открепить",
+    "archive": "В архив",
+    "unarchive": "Из архива",
+    "archivedConversations": "Архив чатов",
+    "noArchivedConversations": "В архиве пусто",
+    "backToChats": "К чатам",
+    "messageRead": "Прочитано"
   },
   "footer": {
     "termsAndConditions": "Условия и положения",

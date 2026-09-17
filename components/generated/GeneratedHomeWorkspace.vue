@@ -211,6 +211,7 @@ import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { consumePendingWorkspaceEntity, workspaceEntityOpenEvent } from '~/utils/entity-workspace-open.js';
+import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
@@ -338,10 +339,18 @@ const callPageItems = computed(() => callPageRefs.value.map(call => ({
   conversationKey: call.conversationKey,
   label: call.label
 })));
+const chatPageItems = computed(() => chatPageRefs.value.map(chat => ({
+  key: chat.key,
+  kind: 'page',
+  pageId: 'chats',
+  conversationKey: chat.conversationKey,
+  label: chat.label
+})));
 const workspaceItems = computed(() => [
   ...workspaceEntityItems.value,
   ...openedPageItems.value,
   ...callPageItems.value,
+  ...chatPageItems.value,
   ...staticPageItems.value
 ].filter(Boolean).filter((item, index, items) => (
   items.findIndex(candidate => candidate.key === item.key) === index
@@ -475,10 +484,14 @@ onMounted(() => {
   window.addEventListener(workspaceEntityOpenEvent, openRequestedWorkspaceEntity);
   const pending = consumePendingWorkspaceEntity();
   if (pending?.entityType) openRequestedWorkspaceEntity({ detail: pending });
+  window.addEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
+  const pendingChat = consumePendingWorkspaceChat();
+  if (pendingChat) openRequestedWorkspaceChat({ detail: pendingChat });
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener(workspaceEntityOpenEvent, openRequestedWorkspaceEntity);
+  window.removeEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
 });
 
 watch([activePaneId, paneTree], syncActiveSelection);
@@ -496,6 +509,32 @@ function activeRoomLabel(room = {}) {
 // Calls open as ephemeral workspace tabs (never persisted with the pane
 // layout): the tab hosts the LiveKit stage plus the conversation chat rail.
 const callPageRefs = ref([]);
+
+// Pinned chat tabs are ephemeral like calls: the desktop "expand" action
+// opens one conversation as its own chats tab.
+const chatPageRefs = ref([]);
+
+function openChatTab(conversationKey = '', label = '') {
+  if (!activePane.value) return;
+  const key = conversationKey ? `page:chat:${conversationKey}` : 'page:chats';
+  const existing = chatPageRefs.value.find(chat => chat.key === key);
+  if (existing) {
+    if (label && existing.label !== label) existing.label = label;
+  } else {
+    chatPageRefs.value = [...chatPageRefs.value, {
+      key,
+      conversationKey,
+      label
+    }];
+  }
+  selectPaneTab(activePane.value.id, key, { newTab: true });
+}
+
+function openRequestedWorkspaceChat(event) {
+  event?.preventDefault?.();
+  const { conversationKey, label } = event?.detail || {};
+  openChatTab(conversationKey || '', typeof label === 'string' ? label : '');
+}
 
 function openCallTab(room = '', meta = {}) {
   if (!room || !activePane.value) return;

@@ -6,6 +6,9 @@ const mocks = vi.hoisted(() => ({
     findConversationMessages: vi.fn(),
     findReadStates: vi.fn(),
     markRead: vi.fn(),
+    findConversationPrefs: vi.fn(async () => []),
+    upsertConversationPref: vi.fn(),
+    findOthersReadStates: vi.fn(async () => []),
     insert: vi.fn(),
     find: vi.fn(),
     findById: vi.fn(),
@@ -162,6 +165,68 @@ describe('support communication service', () => {
       unreadCount: 0
     });
     expect(conversations.find(item => item.conversationKey === 'direct:user-a:user-c')).toBeUndefined();
+  });
+
+  it('decorates inbox rows with pin/archive prefs and the own-last read mark', async () => {
+    mocks.repository.findConversationMessages.mockResolvedValue([
+      {
+        conversationKey: 'direct:user-a:user-b',
+        conversationKind: 'direct',
+        participants: ['user-a', 'user-b'],
+        message: 'read me',
+        senderUserId: 'user-a',
+        timestamp: new Date('2026-06-27T10:00:00.000Z')
+      },
+      {
+        conversationKey: 'support:user-a',
+        conversationKind: 'support',
+        participants: ['user-a'],
+        message: 'unread support',
+        senderUserId: 'user-b',
+        timestamp: new Date('2026-06-27T10:00:00.000Z')
+      }
+    ]);
+    mocks.repository.findConversationPrefs.mockResolvedValue([
+      { conversationKey: 'direct:user-a:user-b', pinnedAt: new Date('2026-06-26T00:00:00.000Z') }
+    ]);
+    mocks.repository.findOthersReadStates.mockResolvedValue([
+      { conversationKey: 'direct:user-a:user-b', lastReadAt: new Date('2026-06-27T10:30:00.000Z') }
+    ]);
+    mocks.usersService.getById.mockResolvedValue({
+      toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
+    });
+    const conversations = await supportService.listUserConversations(auth);
+
+    expect(conversations.find(item => item.conversationKey === 'direct:user-a:user-b')).toMatchObject({
+      pinned: true,
+      archived: false,
+      lastMessageRead: true
+    });
+    expect(conversations.find(item => item.conversationKey === 'support:user-a')).toMatchObject({
+      pinned: false,
+      archived: false,
+      lastMessageRead: false
+    });
+  });
+
+  it('updates per-user conversation prefs through validated keys', async () => {
+    mocks.repository.upsertConversationPref.mockResolvedValue({
+      conversationKey: 'direct:user-a:user-b',
+      pinnedAt: new Date('2026-06-27T00:00:00.000Z'),
+      archivedAt: null
+    });
+
+    await expect(supportService.updateConversationPrefs(auth, {
+      conversationKey: 'direct:user-a:user-b',
+      pinned: true
+    })).resolves.toMatchObject({ conversationKey: 'direct:user-a:user-b', pinned: true, archived: false });
+    expect(mocks.repository.upsertConversationPref).toHaveBeenCalledWith(
+      'user-a',
+      'direct:user-a:user-b',
+      { pinned: true }
+    );
+    await expect(supportService.updateConversationPrefs(auth, { conversationKey: 'bogus-key' }))
+      .rejects.toMatchObject({ statusCode: 400 });
   });
 
   it('marks only authorized conversation keys as read', async () => {

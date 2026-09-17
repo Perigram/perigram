@@ -1,15 +1,15 @@
 <template>
-  <Popover ref="popover">
-    <div class="flex w-80 max-h-96 flex-col overflow-y-auto">
-      <Tree
-        v-model:expanded-keys="expandedKeys"
-        :value="nodes"
-        selection-mode="single"
-        :aria-label="$t('support.attach')"
-        :pt="pickerTreePt"
-        @node-select="onNodeSelect"
-        @node-expand="onNodeExpand"
-      >
+  <Popover ref="popover" :pt="popoverPt">
+    <Tree
+      v-model:expanded-keys="expandedKeys"
+      :value="nodes"
+      selection-mode="single"
+      :aria-label="$t('support.attach')"
+      class="w-80 max-h-96 overflow-y-auto"
+      :pt="pickerTreePt"
+      @node-select="onNodeSelect"
+      @node-expand="onNodeExpand"
+    >
         <template #default="{ node }">
           <span
             v-if="node.data?.kind === 'section'"
@@ -43,7 +43,6 @@
           />
         </template>
       </Tree>
-    </div>
   </Popover>
 </template>
 
@@ -78,9 +77,15 @@ const emit = defineEmits(['select', 'create-action'])
 
 const { t, te } = useI18n()
 
-// Dense rows, matching the home sidebar explorer: full-width rows with the
-// indent carried inside the row content.
+// Popover context: PrimeVue runtime styles load after Tailwind, and the
+// popover content + tree roots both paint their own padding — stacked they
+// read as huge gutters. pt inline styles flatten them so the rows own all
+// spacing, menu-like.
+const popoverPt = {
+  content: { style: { padding: '0' } }
+}
 const pickerTreePt = {
+  root: { style: { padding: '0', borderWidth: '0', background: 'transparent' } },
   nodeChildren: { style: { paddingInlineStart: '0' } },
   nodeContent: ({ props }) => ({
     style: { paddingInlineStart: `${(Math.max(props.level || 1, 1) - 1) * 0.75}rem` }

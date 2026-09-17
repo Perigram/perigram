@@ -445,6 +445,7 @@ async function entityConversationSummaries(messages, auth) {
 
     const rows = [...byKey.values(), ...leafByKey.values()];
     await applyEntityUnreadCounts(rows, entityMessages, auth, rollupEntryFor);
+    await applyConversationPrefsAndReads(rows, auth);
     return rows.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
 }
 
@@ -903,6 +904,7 @@ async function buildConversationSummaries(messages, auth, options = {}) {
                 : await resolveConversationParticipant(summary, auth)
         });
     }
+    await applyConversationPrefsAndReads(enriched, auth);
     return enriched.sort((left, right) => {
         if (!left.timestamp && !right.timestamp) {
             return conversationLabel(left).localeCompare(conversationLabel(right));
@@ -911,6 +913,49 @@ async function buildConversationSummaries(messages, auth, options = {}) {
         if (!right.timestamp) return -1;
         return new Date(right.timestamp) - new Date(left.timestamp);
     });
+}
+
+// Per-user pin/archive flags plus the own-last-message read mark. The read
+// mark appears only when the viewer sent the newest message and at least one
+// other participant has a read state at or after it.
+async function applyConversationPrefsAndReads(rows, auth) {
+    if (!rows.length) return rows;
+    const keys = rows.map(row => row.conversationKey);
+    const [prefs, othersReads] = await Promise.all([
+        repository.findConversationPrefs(auth.userId, keys),
+        repository.findOthersReadStates(keys, auth.userId)
+    ]);
+    const prefByKey = new Map(prefs.map(pref => [pref.conversationKey, pref]));
+    const readByKey = new Map(othersReads.map(read => [read.conversationKey, read.lastReadAt]));
+    for (const row of rows) {
+        const pref = prefByKey.get(row.conversationKey);
+        row.pinned = Boolean(pref?.pinnedAt);
+        row.archived = Boolean(pref?.archivedAt);
+        row.lastMessageRead = false;
+        if (row.timestamp && row.senderUserId && String(row.senderUserId) === String(auth.userId)) {
+            const othersReadAt = readByKey.get(row.conversationKey);
+            row.lastMessageRead = Boolean(othersReadAt
+                && new Date(othersReadAt) >= new Date(row.timestamp));
+        }
+    }
+    return rows;
+}
+
+export async function updateConversationPrefs(auth, body = {}) {
+    const conversationKey = String(body.conversationKey || '');
+    if (!/^(support|direct|group|entity):/.test(conversationKey)) {
+        throw createError({ statusCode: 400, message: 'Invalid conversationKey' });
+    }
+    if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
+    const patch = {};
+    if (typeof body.pinned === 'boolean') patch.pinned = body.pinned;
+    if (typeof body.archived === 'boolean') patch.archived = body.archived;
+    const pref = await repository.upsertConversationPref(auth.userId, conversationKey, patch);
+    return {
+        conversationKey,
+        pinned: Boolean(pref?.pinnedAt),
+        archived: Boolean(pref?.archivedAt)
+    };
 }
 
 async function addReachableUserConversations(conversations, auth) {

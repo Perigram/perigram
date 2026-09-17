@@ -22,7 +22,14 @@ export const generatedWorkspacePages = [
     labelKey: 'support.chatTitle',
     icon: 'pi pi-comments',
     component: ChatSupport,
-    props: () => ({ embedded: true, fullPage: true, openCallInPane: true })
+    // A conversationKey pins the tab to one thread (the desktop "expand"
+    // action); without it the tab opens the general inbox.
+    props: page => ({
+      embedded: true,
+      fullPage: true,
+      openCallInPane: true,
+      conversationKey: page.conversationKey || ''
+    })
   },
   {
     id: 'call',

@@ -201,12 +201,15 @@
             size="full"
             :show-default-footer="false"
         >
-            <div class="flex h-[min(70dvh,38rem)] min-h-0 flex-col">
+            <!-- Full chat surface (not a thread-only stub): the preset
+                 entity thread opens with the same controls as the desktop
+                 drawer — back navigation to the inbox, calls, children
+                 toggle — inside a properly bounded dialog frame. -->
+            <div class="flex h-[min(85dvh,38rem)] min-h-0 flex-col">
                 <ChatSupport
                     v-if="entityChatPopup && chatTargetValue?.entityKey"
                     :key="chatTargetValue.entityKey"
                     embedded
-                    thread-only
                     :conversation-key="chatTargetValue.entityKey"
                     :entity-name="chatTargetValue.name || ''"
                 />

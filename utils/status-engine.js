@@ -37,7 +37,7 @@ export const ENTITY_UI = {
     profile_template: { icon: 'pi pi-objects-column' },
     pen_template: { icon: 'pi pi-pencil' },
     layer_standard: { icon: 'pi pi-sitemap' },
-    entity_revision: { icon: 'pi pi-code-branch' },
+    entity_revision: { icon: 'pi pi-history' },
     geometry_capture: { icon: 'pi pi-camera' },
     user: { icon: 'pi pi-user' },
     organization: { icon: 'pi pi-building' },
