@@ -3061,7 +3061,8 @@
     "applyDiffFieldPolicies": "Field policies",
     "applyDiffCapabilities": "CRUD capabilities",
     "applyDiffRemovedStatuses": "{entityType}: removed states {statuses} — a migration decision is required before activation",
-    "producerWorkflowHint": "Statuses and transitions come from the domain lifecycle, wired status definitions, and action nodes — never from this panel."
+    "producerWorkflowHint": "Statuses and transitions come from the domain lifecycle, wired status definitions, and action nodes — never from this panel.",
+    "languageTester": "Language tester"
   },
   "generatedScreen": {
     "home": "Home",

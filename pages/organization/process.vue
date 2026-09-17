@@ -853,6 +853,10 @@
       <PermissionEditor :permissions="grantEditorPermissions" :features="permissionFeatureOptions" @save="saveGrantEditor" />
     </StandardDialog>
 
+    <StandardDialog v-model:visible="showLanguageTester" :header="$t('processDesigner.languageTester')" size="xl">
+      <LanguageTesterPanel />
+    </StandardDialog>
+
   </StandardPage>
 </template>
 
@@ -902,6 +906,7 @@ import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncUiSurfaces } from '@cutkit/domain-cnc';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
+import LanguageTesterPanel from '~/components/process-designer/LanguageTesterPanel.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import MotionDock from '~/components/shared/MotionDock.vue';
@@ -952,6 +957,7 @@ const canvasFrame = ref(null);
 const compiledPreview = ref(null);
 const compiledPreviewError = ref('');
 const showGrantEditor = ref(false);
+const showLanguageTester = ref(false);
 const grantEditorTarget = ref(null);
 const paletteQuery = ref('');
 const contextPaletteSearch = ref(null);
@@ -1198,6 +1204,11 @@ const documentDockItems = computed(() => [
     label: t('common.open'),
     onClick: event => processMenu.value?.toggle(event),
     hasPopup: true
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-bolt', 'aria-hidden': 'true' }),
+    label: t('processDesigner.languageTester'),
+    onClick: () => { showLanguageTester.value = true; }
   },
   {
     icon: () => h('i', { class: renamingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-pencil', 'aria-hidden': 'true' }),
