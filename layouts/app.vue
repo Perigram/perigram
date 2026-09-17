@@ -69,7 +69,9 @@
             <slot />
         </main>
 
-        <ChatSupport v-if="supportDialog && !isMobileViewport" />
+        <!-- One chat popup for every viewport: full-bleed overlay on mobile,
+             token-sized card on desktop. -->
+        <ChatSupport v-if="supportDialog" />
         <!-- Add-screen tier: popup TieredMenu anchored at the Add screen row
              inside the profile menu. It self-hides after a leaf pick; the
              item commands close the remaining transient chrome. -->
@@ -195,27 +197,6 @@
             />
         </div>
         <IncomingCalls v-if="authStore.userIsSet" />
-        <StandardDialog
-            v-model:visible="entityChatPopup"
-            :header="entityChatPopupName"
-            size="full"
-            :show-default-footer="false"
-        >
-            <!-- Full chat surface (not a thread-only stub): the preset
-                 entity thread opens with the same controls as the desktop
-                 drawer — back navigation to the inbox, calls, children
-                 toggle — inside a properly bounded dialog frame. Mounting
-                 must not depend on the chat target: back navigation clears
-                 it, and a target-gated v-if would leave a blank dialog. -->
-            <div class="flex h-support-chat min-h-0 flex-col">
-                <ChatSupport
-                    v-if="entityChatPopup"
-                    embedded
-                    :conversation-key="chatTargetValue?.entityKey || ''"
-                    :entity-name="chatTargetValue?.name || ''"
-                />
-            </div>
-        </StandardDialog>
         <OfflineOutboxBadge v-if="authStore.userIsSet" />
         <CallFloatingWindow v-if="authStore.userIsSet" />
     </div>
@@ -240,8 +221,7 @@
     import IncomingCalls from '~/components/calls/IncomingCalls.vue'
     import CallFloatingWindow from '~/components/calls/CallFloatingWindow.vue'
     import { useCallsStore } from '~/stores/calls'
-    import { useSupportDialog, useSupportChatTarget, useEntityChatPopup } from '~/composables/useModalState'
-import StandardDialog from '~/components/shared/StandardDialog.vue'
+    import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'
     import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
     import { useSupportChatStore } from '~/stores/supportChat'
@@ -255,13 +235,6 @@ import StandardDialog from '~/components/shared/StandardDialog.vue'
     const route = useRoute()
     const { t, te } = useI18n()
     const supportDialog = useSupportDialog()
-    const chatTargetState = useSupportChatTarget()
-    const entityChatPopup = useEntityChatPopup()
-    const chatTargetValue = computed(() => chatTargetState.value)
-    const entityChatPopupName = computed(() => chatTargetState.value?.name || t('support.entityChat'))
-    watch(entityChatPopup, (open) => {
-        if (!open) chatTargetState.value = null
-    })
     const authStore = useAuthStore()
     const domainUi = useCutkitDomainUi()
     provide('statusWorkflows', computed(() => authStore.statusWorkflows))
@@ -275,14 +248,6 @@ import StandardDialog from '~/components/shared/StandardDialog.vue'
     const mobileShortcutHoldTriggered = ref(false)
     const mobileShortcutHoldTimer = ref(null)
     const MOBILE_SHORTCUT_LIMIT = 2
-
-    // Reactive mobile-viewport state: the chats drawer stays a desktop
-    // surface, while mobile entry points navigate to the /chats route.
-    const isMobileViewport = ref(false)
-    let mobileViewportQuery = null
-    const syncMobileViewport = () => {
-        isMobileViewport.value = Boolean(mobileViewportQuery?.matches)
-    }
 
     // Bottom-bar adaptation of the Aura tab strip, applied through pt because
     // PrimeVue runtime styles load after Tailwind and override utility
@@ -322,9 +287,6 @@ import StandardDialog from '~/components/shared/StandardDialog.vue'
 
     // Fetch projects list once for breadcrumb siblings
     onMounted(async () => {
-        mobileViewportQuery = window.matchMedia?.('(max-width: 767px)') || null
-        syncMobileViewport()
-        mobileViewportQuery?.addEventListener?.('change', syncMobileViewport)
         if (authStore.userIsSet && globalStore.projectsList.length === 0) {
             await globalStore.getProjects()
         }
@@ -333,8 +295,6 @@ import StandardDialog from '~/components/shared/StandardDialog.vue'
     })
 
     onUnmounted(() => {
-        mobileViewportQuery?.removeEventListener?.('change', syncMobileViewport)
-        mobileViewportQuery = null
         window.removeEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeMobileTransientSurfaces)
         clearShortcutHold()
     })
@@ -348,16 +308,6 @@ import StandardDialog from '~/components/shared/StandardDialog.vue'
             callsStore.disconnect()
         }
     }, { immediate: true })
-
-    watch(supportDialog, (isOpen) => {
-        // Deep links (status-history actor chat) set the dialog directly. On
-        // mobile the drawer never opens: release the dialog and route to the
-        // bounded /chats tab surface, which consumes the preset chat target.
-        if (isOpen && isMobileViewport.value) {
-            supportDialog.value = false
-            navigateTo('/chats')
-        }
-    })
 
     // --- Breadcrumb Navigation ---
     const breadcrumbs = computed(() => {
