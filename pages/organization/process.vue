@@ -102,7 +102,7 @@
                   size="small"
                   text
                   class="min-w-0 justify-start border border-transparent bg-subtle px-2 hover:border-content-border"
-                  @click="addNode(item)"
+                  @click="item.action ? item.action() : addNode(item)"
                 />
               </div>
             </div>
