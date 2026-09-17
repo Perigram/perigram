@@ -101,7 +101,7 @@
                     data-key="conversationKey"
                     class="min-h-0 flex-1 border-0"
                     :aria-label="$t('support.chatTitle')"
-                    :pt="inboxListboxPt"
+                    scroll-height="100%"
                     @update:model-value="key => openConversationByKey(key)"
                 >
                     <template #option="{ option }">
@@ -1096,14 +1096,7 @@ const conversationSections = computed(() => [...displayConversations.value].sort
     return rightTime - leftTime
 }))
 
-// The inbox Listbox is a bounded flex pane: the root becomes a flex column
-// and the list container owns the scrolling. PrimeVue caps the container at
-// its 14rem scrollHeight default, so maxHeight is lifted explicitly —
-// without that the list renders as a short box above dead space.
-const inboxListboxPt = {
-    root: { style: { display: 'flex', flexDirection: 'column', minHeight: '0' } },
-    listContainer: { style: { maxHeight: 'none', flex: '1 1 0', minHeight: '0', overflowY: 'auto' } }
-}
+
 
 const isActiveConversation = (conversation) => activeConversation.value?.conversationKey === conversation.conversationKey
 
