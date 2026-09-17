@@ -1087,10 +1087,10 @@ The chats surface also lives as a home-workspace tab: the drawer's expand
 action opens a workspace chats tab pinned to the active conversation
 (`utils/chat-workspace-open.js` event + pending pattern, mirroring entity
 and call tab opens) instead of a separate route; an unpinned expand opens
-the general chats tab. The mobile entity-chat popup hosts the same full
-chat (inbox, back navigation, calls) inside a `StandardDialog` frame sized
-by the `support-chat` height token — the same card height the desktop
-drawer uses — not a thread-only stub.
+the general chats tab. The chat popup is one surface for every viewport:
+the same `ChatSupport` overlay renders full-bleed on mobile and as the
+token-sized drawer card on desktop — no separate mobile dialog, no
+viewport branches in the open path (`utils/entity-chat.js`).
 Entity-linked chats ride the same surfaces: the inbox is one unified
 timestamp-ordered list across person, group, and entity chats — the avatar
 glyph (person image/letter, group icon, entity type icon) carries the kind,
@@ -1136,9 +1136,9 @@ primary button (a direct InputGroup child, not an addon). Generated detail pages
 composed conversation through the shared `EntityChatPanel` disclosure, and
 every entity surface carries a chat entry — the shared `EntityCard` renders
 it for all card variants (footer row and expansion popover), and
-`EntityInlineRef` popups carry it too, all opening the entity thread through
-`utils/entity-chat.js` (desktop drawer deep link, mobile
-entity-chat popup with the full chat surface — both consumed on chat mount). The
+`EntityInlineRef` popovers carry it too, all opening the entity thread through
+`utils/entity-chat.js` (the single chat popup — full-bleed overlay on mobile,
+drawer card on desktop — consumed on chat mount). The
 detail panel rides `GeneratedEntityDetail` — the canonical detail chrome —
 so abstract detail pages and bounded implementation panes (workspace
 overloads, designer file modes) all carry the thread; the panel renders inside the
