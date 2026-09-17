@@ -51,8 +51,9 @@ module layout and how the code maps to the spec's build-order tiers.
 The package is browser-safe by contract (SPEC §13): the process designer
 imports it directly — `LanguageTesterPanel.vue` evaluates expressions and
 validates instances client-side with no endpoint, and
-`pages/organization/types.vue` renders the read-only types pane fed by
-`server/api/admin/cts/types.get.js`. See
+`pages/organization/types.vue` renders the types pane fed by
+`GET /api/admin/cts/types` (org view: system types + org-authored
+declarations stored by `server/features/cts-types`). See
 [pages/organization/README.md](../../pages/organization/README.md).
 
 ## Validation

@@ -24,7 +24,23 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
 - [x] CNC starter type pack as collapse-table acceptance fixture
   (`pack/cnc.js`)
 
-## Next: strangler integration (app-side)
+## Designer rebuild layers
+
+- [x] **L0 — type storage**: `cts_types` collection + org-scoped
+  `server/features/cts-types` (validate/diff-refuse/rollback via the real
+  registry) + `GET|POST /api/admin/cts/types`, `DELETE /api/admin/cts/types/:id`;
+  the merged org view feeds the types pane and language tester.
+- [ ] **L1 — types editor**: facet forms on the types pane (rows with V
+  types + units, edges + onRemove, states/transitions/intents, operators +
+  triggers, payload traits, render policy), save = compile with inline
+  R1–R7 diagnostics, diff-refusal UX on breaking edits
+- [ ] **L2 — graph rebase**: palette = operator registry, sockets carry V
+  types, property editors = expression language, R5 dataflow typing
+- [ ] **L3 — runtime swap**: compiled org app reads the CTS bundle;
+  command runtime binds operator signatures (gated on app-registry
+  signature unification below)
+
+## Strangler integration (app-side)
 
 - [x] Compiler pass that auto-converts `packages/domain-cnc` declarations
   (entities, workflows, attachment kinds) into CTS type records —
