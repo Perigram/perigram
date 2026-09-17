@@ -124,6 +124,11 @@ FieldType ::= any V production without Ref
             | Quantity(Unit)
 ```
 
+Payload traits: the payload declaration carries the accepted MIME list and
+byte limits (enforced at construct time) plus the preview mode (render
+policy, projected to UI like enum labels). This is the whole of today's
+`attachment-kinds.js`, as data on the type.
+
 "Not in the row" means "does not exist": selectable field lists, predicate
 paths, patch paths, and card fields are all derived from the row. No list is
 hand-mirrored anywhere (this deletes `field-access.js` duplication,
@@ -217,6 +222,13 @@ declaration.
 
 `k` is `c` plus a provenance source — kept as its own species only because
 replay-safety (§18.4) is checked on conversions, not on plain constructs.
+
+Triggers: an operator may declare what invokes it besides a direct call —
+a logged event name (any operator or the runtime emits events into the log;
+a matching trigger invokes the handler with inputs bound from the event
+payload and entity reference) or a schedule. Reaction, not observation:
+there is no standing query anywhere in the system — the only things that
+wake an operator are a call, a trigger, or a task retry.
 
 Purity means exactly: no entity writes, no hidden reads. Determinism is NOT
 required — services version and drift. Therefore every `k`/`s` result records
@@ -466,3 +478,22 @@ sits in predicate position. Four completions follow from this principle:
    with the same effective inputs converges instead of duplicating output.
    Retry policy is the declared per-operator knob and the whole failure
    story.
+
+## 19. Build order
+
+The spec is exhaustive; the implementation is not built all at once. Two
+tiers:
+
+**Core (the rewrite):** §2 grammar on the JSON Schema substrate, §3 stored
+shape, §4 declarations + tenancy, §6 edges, §7 single-axis states with
+intents on operators, §8 operator species + triggers, §12 rules R1–R6,
+§11 reduced to version stamping + a diff that refuses breaking changes,
+§13 collection mapping. Everything in §15's collapse table must land here —
+completeness of the tier is measured by that table.
+
+**Deferred until a real need appears (specified, not built):** declarative
+migration steps beyond refuse-on-diff (§11); aggregates and materialized
+summary caches — compute on read first (§9); policy beyond closed-row
+hiding (§10); state axes beyond `main` (§7); `match` implementation (§18).
+Adding any of these earlier is speculative build, the exact failure mode
+this spec exists to delete.
