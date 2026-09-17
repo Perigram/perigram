@@ -231,12 +231,13 @@ const sheetPolygon = computed(() => normalizeSheetPolygon(
   null
 ));
 const sheetPolygonPoints = computed(() => sheetPolygon.value?.outer?.map(point => point.join(',')).join(' ') || '');
-const selectedToolProfileId = computed(() => props.design.data?.toolSnapshot?.source?.id || '');
+const solveEffective = computed(() => props.design.provenance?.solve?.effective || {});
+const selectedToolProfileId = computed(() => solveEffective.value.tool?.source?.id || '');
 const selectedTool = computed(() => tools.value.find(tool => String(tool._id) === String(selectedToolProfileId.value)) || null);
 const toolKerf = computed(() => Math.max(Number(
-  props.design.data?.toolSnapshot?.kerf ?? selectedTool.value?.data?.kerf ?? 0
+  solveEffective.value.tool?.kerf ?? selectedTool.value?.data?.kerf ?? 0
 ) || 0, 0));
-const boundaryOffset = computed(() => Math.max(Number(props.design.data?.machineSnapshot?.boundaryOffset || 0), 0));
+const boundaryOffset = computed(() => Math.max(Number(solveEffective.value.machine?.boundaryOffset || 0), 0));
 const editorPadding = computed(() => Math.max(sheetWidth.value, sheetHeight.value) * 0.025);
 const editorViewBox = computed(() => [
   -editorPadding.value,
