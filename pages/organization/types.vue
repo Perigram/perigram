@@ -9,7 +9,7 @@ import { VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
-import Dialog from 'primevue/dialog';
+import StandardDialog from '~/components/shared/StandardDialog.vue';
 import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
 import Tag from 'primevue/tag';
@@ -379,23 +379,23 @@ function deleteSelection() {
         </ClientOnly>
 
         <div v-if="!selectedType" class="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-          <div class="border-round surface-0 shadow-2 px-4 py-3 text-center pointer-events-auto">
-            <div class="text-lg font-medium">Nothing selected</div>
-            <div class="text-sm text-500 mt-1">Pick a category from the list on the left, or create your own.</div>
+          <div class="rounded-ui surface-0 shadow-2 px-4 py-3 text-center pointer-events-auto">
+            <div class="text-label">Nothing selected</div>
+            <div class="text-supporting text-muted mt-1">Pick a category from the list on the left, or create your own.</div>
             <Button label="New category" icon="pi pi-plus" class="mt-3" @click="showNewType = true" />
           </div>
         </div>
 
         <div v-if="selectedType" class="absolute top-2 left-2 z-10 flex gap-2 align-items-center">
-          <span class="text-sm font-medium">{{ selectedType.id }}</span>
+          <span class="text-label">{{ selectedType.id }}</span>
           <Tag v-if="!editable" value="built-in — view only" severity="secondary" />
           <Tag v-else-if="dirty" value="unsaved" severity="warn" />
         </div>
 
-        <div class="absolute bottom-2 right-2 z-10 text-xs text-500 border-round surface-0 px-2 py-1 shadow-1">
+        <div class="absolute bottom-2 right-2 z-10 text-supporting text-muted rounded-ui surface-0 px-2 py-1 shadow-1">
           {{ stateNodes.length }} states · {{ stateEdges.length }} transitions
         </div>
-        <div v-if="mountError" class="absolute top-2 left-1/2 z-30 -translate-x-1/2 border-round bg-red-50 border-2 border-red-400 px-3 py-2 text-sm text-red-700 shadow-2 max-w-30rem">
+        <div v-if="mountError" class="cts-error-banner">
           canvas error: {{ mountError }}
         </div>
 
@@ -439,13 +439,13 @@ function deleteSelection() {
         <template #inspector>
           <div class="p-3 flex flex-column gap-2">
             <template v-if="selectedTransition">
-              <div class="text-sm font-medium">Transition</div>
-              <div class="text-xs text-500">
+              <div class="text-label">Transition</div>
+              <div class="text-supporting text-muted">
                 {{ stateNodes.find(node => node.id === selectedTransition.source)?.data.name }}
                 →
                 {{ stateNodes.find(node => node.id === selectedTransition.target)?.data.name }}
               </div>
-              <label class="text-xs">intent</label>
+              <label class="text-supporting">intent</label>
               <InputText
                 :model-value="selectedTransition.data?.intent"
                 :disabled="!editable"
@@ -455,33 +455,33 @@ function deleteSelection() {
               />
             </template>
             <template v-else-if="selectedType">
-              <div class="text-sm font-medium">{{ selectedType.id }}</div>
-              <div class="text-xs text-500">{{ selectedType.class }} · {{ stateNodes.length }} states · {{ stateEdges.length }} transitions</div>
-              <div v-if="editable" class="text-xs text-500 mt-2">
+              <div class="text-label">{{ selectedType.id }}</div>
+              <div class="text-supporting text-muted">{{ selectedType.class }} · {{ stateNodes.length }} states · {{ stateEdges.length }} transitions</div>
+              <div v-if="editable" class="text-supporting text-muted mt-2">
                 Rename states and toggle initial/terminal inside the cards.
                 Drag from a state's right handle to another state to add a transition,
                 then click the wire to set its intent here.
               </div>
-              <div v-else class="text-xs text-500 mt-2">
+              <div v-else class="text-supporting text-muted mt-2">
                 This is a built-in category — view only. Create your own to edit.
               </div>
             </template>
             <template v-else>
-              <div class="text-xs text-500">Pick a category to see its states.</div>
+              <div class="text-supporting text-muted">Pick a category to see its states.</div>
             </template>
           </div>
         </template>
       </DesignerWorkspace>
     </DesignerSurface>
 
-    <Dialog v-model:visible="showNewType" modal header="New category" :style="{ width: '24rem' }">
+    <StandardDialog v-model:visible="showNewType" header="New category" size="sm">
       <div class="flex flex-column gap-3 p-2">
         <div>
-          <label class="text-sm">id (kebab-case)</label>
+          <label class="text-supporting">id (kebab-case)</label>
           <InputText v-model="newTypeId" class="w-full" placeholder="e.g. widget" />
         </div>
         <div>
-          <label class="text-sm">class</label>
+          <label class="text-supporting">class</label>
           <Select v-model="newTypeClass" :options="classOptions" option-label="label" option-value="value" class="w-full" />
         </div>
         <div class="flex justify-content-end gap-2">
@@ -489,10 +489,24 @@ function deleteSelection() {
           <Button label="Create" :disabled="!newTypeId" @click="createDraftType" />
         </div>
       </div>
-    </Dialog>
+    </StandardDialog>
   </StandardPage>
 </template>
 
 <style scoped>
+.cts-error-banner {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  border-radius: var(--ck-radius-ui);
+  border: 2px solid var(--ck-status-danger);
+  background: var(--ck-surface);
+  color: var(--ck-status-danger);
+  padding: 0.5rem 0.75rem;
+  box-shadow: var(--ck-shadow-2);
+  max-width: 30rem;
+}
 .cts-edge-nointent { stroke-dasharray: 4 4; opacity: 0.7; }
 </style>
