@@ -39,6 +39,18 @@ Every README.md must:
   canonical README. Every other README links to it. Verbatim restatement
   across READMEs is a defect.
 
+## Mandatory First Reads
+
+Before changing files, read:
+
+1. The root README.md.
+2. The nearest README covering the area being changed, reached by following
+   links from the root.
+3. Every README whose contract the change consumes or extends, following
+   links outbound until the changed concern is fully understood.
+
+Keep reads bounded to the touched concern; do not explore unrelated areas.
+
 ## Documentation Enforcement
 
 These rules are blocking, not advisory:
@@ -61,16 +73,6 @@ These rules are blocking, not advisory:
    canonical passages are blocking errors. Discover the guards this
    repository ships by following links from the root README. Report any
    guard that could not be run.
-
-## Mandatory First Reads
-
-Before changing files, read:
-
-1. The root README.md.
-2. The nearest README covering the area being changed, reached by following
-   links from the root.
-3. Every README whose contract the change consumes or extends, following
-   links outbound until the changed concern is fully understood.
 
 ## Execution Rules
 
@@ -109,10 +111,6 @@ Before changing files, read:
 
 ## Documentation Rules
 
-- Every implementation change must update relevant README.md documentation in
-  the same task session.
-- Documentation should explain real architecture, flows, contracts, and
-  unusual decisions. Avoid placeholders, guesses, and obvious file listings.
 - Keep AGENTS.md as protocol only, free of project facts. Domain-specific
   rules live in the README that owns the concern.
 - If task is assigned via TODO.md, add an Agent Notes subsection under that task
@@ -121,20 +119,6 @@ Before changing files, read:
 - Do not create or fill `TODO.md` Agent Notes only to satisfy process. Do not
   change a task not written by you. Update `TODO.md` only when the task itself
   changes tracked work, status, or plans that belong there.
-
-## Context Assembly
-
-Before writing or editing code, assemble atomic context from the mandatory
-first reads and the canonical contracts they reference.
-
-- Read the README for the touched area before changing its code.
-- Follow its links to every canonical contract the changed code consumes or
-  extends; do not skip one.
-- Do not restate or duplicate a canonical contract in another README; link
-  to the canonical doc instead.
-- Keep reads bounded to the touched concern.
-- If a required README is missing or stale, fix it in the same task before
-  relying on implementation details.
 
 ## Validation Rules
 
