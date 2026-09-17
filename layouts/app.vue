@@ -207,7 +207,7 @@
                  toggle — inside a properly bounded dialog frame. Mounting
                  must not depend on the chat target: back navigation clears
                  it, and a target-gated v-if would leave a blank dialog. -->
-            <div class="flex h-[min(85dvh,38rem)] min-h-0 flex-col">
+            <div class="flex h-support-chat min-h-0 flex-col">
                 <ChatSupport
                     v-if="entityChatPopup"
                     :key="chatTargetValue?.entityKey || 'inbox'"

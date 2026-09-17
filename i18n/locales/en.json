@@ -165,7 +165,8 @@
     "archivedConversations": "Archived conversations",
     "noArchivedConversations": "No archived conversations",
     "backToChats": "Back to chats",
-    "messageRead": "Read"
+    "messageRead": "Read",
+    "newChat": "New chat"
   },
   "footer": {
     "termsAndConditions": "Terms and Conditions",

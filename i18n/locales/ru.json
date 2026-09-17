@@ -165,7 +165,8 @@
     "archivedConversations": "Архив чатов",
     "noArchivedConversations": "В архиве пусто",
     "backToChats": "К чатам",
-    "messageRead": "Прочитано"
+    "messageRead": "Прочитано",
+    "newChat": "Новый чат"
   },
   "footer": {
     "termsAndConditions": "Условия и положения",

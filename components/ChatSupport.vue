@@ -58,7 +58,7 @@
                         rounded
                         size="small"
                         :aria-label="$t('support.openChat')"
-                        @click="toggleNewChat"
+                        @click="openNewChatDialog"
                     />
                     <Button
                         icon="pi pi-users"
@@ -70,24 +70,8 @@
                         @click="openGroupDialog"
                     />
                 </div>
-                <div v-if="newChatVisible" class="border-b border-chrome-border p-3">
-                    <Select
-                        v-model="newChatUserId"
-                        :options="newChatUserOptions"
-                        option-label="label"
-                        option-value="value"
-                        entity-type="user"
-                        filter
-                        size="small"
-                        class="w-full"
-                        :loading="newChatUsersLoading"
-                        :placeholder="$t('common.user')"
-                        :aria-label="$t('common.user')"
-                        @update:model-value="openNewChatUser"
-                    />
-                </div>
                 <StateBlock
-                    v-if="!displayConversations.length && !newChatVisible"
+                    v-if="!displayConversations.length"
                     class="m-3"
                     :message="showArchived ? $t('support.noArchivedConversations') : $t('support.noConversations')"
                     :icon="showArchived ? 'pi pi-inbox' : 'pi pi-comments'"
@@ -102,6 +86,8 @@
                     class="min-h-0 flex-1 border-0"
                     :aria-label="$t('support.chatTitle')"
                     scroll-height="100%"
+                    checkmark
+                    :highlight-on-select="false"
                     @update:model-value="key => openConversationByKey(key)"
                 >
                     <template #option="{ option }">
@@ -111,7 +97,7 @@
                              preview with the own-last read mark below. The
                              row menu (pin/archive) is an absolute hover
                              overlay so it never shifts the layout. -->
-                        <div class="group/row relative flex min-w-0 items-start gap-2 md:gap-3">
+                        <div class="group/row flex min-w-0 items-start gap-2 md:gap-3">
                             <div class="relative shrink-0">
                                 <Avatar
                                     v-if="option.conversationKind === 'entity'"
@@ -177,7 +163,7 @@
                                 text
                                 rounded
                                 size="small"
-                                class="absolute top-1/2 right-0 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100"
+                                class="shrink-0 self-center opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100"
                                 :aria-label="$t('common.more')"
                                 @click.stop="openConversationMenu($event, option)"
                             />
@@ -767,6 +753,37 @@
             </div>
         </StandardDialog>
         <StandardDialog
+            v-model:visible="newChatDialog"
+            size="sm"
+            :show-default-footer="false"
+        >
+            <template #header>
+                <span>{{ $t('support.newChat') }}</span>
+            </template>
+            <Listbox
+                :model-value="null"
+                :options="newChatUsers"
+                option-label="label"
+                option-value="value"
+                filter
+                :filter-placeholder="$t('common.search')"
+                :aria-label="$t('support.newChat')"
+                class="border-0"
+                @update:model-value="openNewChatUser"
+            >
+                <template #option="{ option }">
+                    <div class="flex min-w-0 items-center gap-2">
+                        <Avatar
+                            :label="String(option.label || '?').charAt(0).toUpperCase()"
+                            shape="circle"
+                            class="shrink-0 bg-subtle text-muted"
+                        />
+                        <span class="min-w-0 flex-1 truncate text-label">{{ option.label }}</span>
+                    </div>
+                </template>
+            </Listbox>
+        </StandardDialog>
+                <StandardDialog
             v-model:visible="groupDialog"
             size="sm"
             :show-default-footer="true"
@@ -970,8 +987,7 @@ const swipeArmed = ref(new Set())
 const highlightKey = ref('')
 const loadingAnchor = ref(false)
 const domainUi = useCutkitDomainUi()
-const newChatVisible = ref(false)
-const newChatUserId = ref('')
+const newChatDialog = ref(false)
 const newChatUsers = ref([])
 const newChatUsersLoading = ref(false)
 const groupDialog = ref(false)
@@ -1062,7 +1078,6 @@ const localizedEntityTypeLabel = (type) => {
     return type
 }
 
-const newChatUserOptions = computed(() => newChatUsers.value)
 
 // Entity rows ship in both groupings from the inbox snapshot: the joined
 // top-level view (default) and the flat per-entity leaf view.
@@ -2204,9 +2219,9 @@ const removeEntityRef = (targetRef) => {
     entityRefs.value = entityRefs.value.filter(ref => !(ref.type === targetRef.type && ref.id === targetRef.id))
 }
 
-const toggleNewChat = async () => {
-    newChatVisible.value = !newChatVisible.value
-    if (newChatVisible.value) await loadNewChatUsers()
+const openNewChatDialog = async () => {
+    newChatDialog.value = true
+    await loadNewChatUsers()
 }
 
 const loadNewChatUsers = async () => {
@@ -2238,8 +2253,7 @@ const openNewChatUser = (userId) => {
             data: {}
         }
     }
-    newChatUserId.value = ''
-    newChatVisible.value = false
+    newChatDialog.value = false
 }
 
 const openGroupDialog = async () => {
