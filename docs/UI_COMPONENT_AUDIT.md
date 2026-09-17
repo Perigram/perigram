@@ -139,7 +139,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-cassettefoldedpreview-vue` | `components/CassetteFoldedPreview.vue` | derived usage | centralize:layout (2); replace:chrome (4); remove:state (1) |
 | `ui-components-cassettemanager-vue` | `components/CassetteManager.vue` | derived usage | compliant |
 | `ui-components-cassettethumbnail-vue` | `components/CassetteThumbnail.vue` | derived usage | replace:chrome (4) |
-| `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | replace:chrome (23); remove:state (6); remove:important-override (11); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (2) |
+| `ui-components-chatsupport-vue` | `components/ChatSupport.vue` | derived usage | replace:chrome (21); remove:state (6); remove:important-override (10); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-config-bot-configbotcitationlist-vue` | `components/config-bot/ConfigBotCitationList.vue` | derived usage | replace:chrome (4) |
 | `ui-components-config-bot-configbotdraftpreview-vue` | `components/config-bot/ConfigBotDraftPreview.vue` | derived usage | centralize:layout (1); replace:chrome (12) |
 | `ui-components-config-bot-configbotgeneratedpreview-vue` | `components/config-bot/ConfigBotGeneratedPreview.vue` | derived usage | replace:chrome (8) |
@@ -281,7 +281,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-themeswitcher-vue` | `components/ThemeSwitcher.vue` | derived usage | compliant |
 | `ui-components-userform-vue` | `components/UserForm.vue` | derived usage | compliant |
 | `ui-error-vue` | `error.vue` | derived usage | compliant |
-| `ui-layouts-app-vue` | `layouts/app.vue` | derived usage | centralize:layout (5); replace:chrome (6); remove:state (1); remove:important-override (4) |
+| `ui-layouts-app-vue` | `layouts/app.vue` | derived usage | centralize:layout (4); replace:chrome (6); remove:state (1); remove:important-override (4) |
 | `ui-layouts-ui-lab-layout-vue` | `layouts/ui-lab-layout.vue` | derived usage | centralize:layout (2); replace:chrome (10); remove:state (2) |
 | `ui-pages-auth-login-vue` | `pages/auth/login.vue` | derived usage | replace:chrome (1) |
 | `ui-pages-auth-register-vue` | `pages/auth/register.vue` | derived usage | replace:chrome (1) |

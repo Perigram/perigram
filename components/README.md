@@ -1025,15 +1025,18 @@ specific user selected from status history actor rows, and inline entity
 references must render through `EntityInlineRef` rather than local chips. The
 floating Chats drawer opens to an inbox backed by `/api/support/conversations`;
 that inbox contains only conversations with persisted messages and offers a
-header user picker to start a direct thread explicitly, including a direct
-self-chat. The inbox is a PrimeVue `Listbox` (single selection with keyboard
+header user-plus action that opens a simple new-chat dialog — a filtered
+raw Listbox of plain avatar+name user rows; picking one opens the direct
+thread, including a direct self-chat. The inbox is a PrimeVue `Listbox` (single selection with keyboard
 navigation and Aura's selected-option state) whose `#option` template renders
 the rich row, top-aligned on two lines: avatar or neutral fallback plus
 online dot; label, member count, and the smart timestamp (clock time for
 today's messages, calendar date otherwise) on the first line; the
 single-line latest-message preview through `SupportMessageContent` below,
 led by the read mark (a check) when the newest message is the viewer's own
-and another participant has read it. A hover ellipsis opens the row menu
+and another participant has read it. Selection renders as the Listbox
+checkmark (`highlightOnSelect` off) — no tinted highlight. A hover
+ellipsis in a fixed trailing right slot opens the row menu
 with per-user pin/archive preferences: pinned rows lead the list, archived
 rows disappear behind the inbox header's archived toggle (which swaps the
 list to archived conversations with a back affordance). Drawer rows show
@@ -1084,8 +1087,9 @@ action opens a workspace chats tab pinned to the active conversation
 (`utils/chat-workspace-open.js` event + pending pattern, mirroring entity
 and call tab opens) instead of a separate route; an unpinned expand opens
 the general chats tab. The mobile entity-chat popup hosts the same full
-chat (inbox, back navigation, calls) inside a bounded `StandardDialog`
-frame, not a thread-only stub.
+chat (inbox, back navigation, calls) inside a `StandardDialog` frame sized
+by the `support-chat` height token — the same card height the desktop
+drawer uses — not a thread-only stub.
 Entity-linked chats ride the same surfaces: the inbox is one unified
 timestamp-ordered list across person, group, and entity chats — the avatar
 glyph (person image/letter, group icon, entity type icon) carries the kind,
