@@ -31,7 +31,7 @@
                         <span>{{ $t('support.chatGroupingAll') }}</span>
                     </label>
                     <Button
-                        v-if="hasEntityRows && showArchived"
+                        v-if="showArchived"
                         icon="pi pi-arrow-left"
                         severity="secondary"
                         text
