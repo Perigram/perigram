@@ -104,6 +104,18 @@ export default defineNuxtConfig({
                 ...portableAliases
             }
         },
+        // Agent session worktrees live under .agent-worktrees/ inside the
+        // project root. Their nested tsconfigs once tripped Nuxt's config
+        // watcher ("changed tsconfig file detected — clearing cache and
+        // forcing full-reload", repeatedly), nuking the dev cache and
+        // freezing hydration for every manual tester while the recompile
+        // ran. They are not part of this build; the dev watchers ignore
+        // them.
+        server: {
+            watch: {
+                ignored: ['**/.agent-worktrees/**']
+            }
+        },
         css: {
             preprocessorOptions: {
                 scss: {
@@ -285,6 +297,9 @@ export default defineNuxtConfig({
 
     nitro: {
         compressPublicAssets: true,
+        watchOptions: {
+            ignored: ['**/.agent-worktrees/**']
+        },
         alias: {
             ...cutkitAliases,
             ...portableAliases

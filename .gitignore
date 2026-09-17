@@ -50,3 +50,6 @@ workers/nesting/jagua-rs/jagua-rs/target/
 .test-data
 
 .mongo-data
+
+# agent session worktrees (nested, poison dev watchers if watched)
+.agent-worktrees/
