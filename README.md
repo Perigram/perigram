@@ -110,6 +110,12 @@ internal container-only endpoint. `NUXT_DEV_HMR_CLIENT_PORT` defaults to
 `3000`, and `NUXT_DEV_HMR_PROTOCOL` defaults to `ws`.
 The E2E command assumes the app stack is already running and uses Playwright
 against the configured `E2E_BASE_URL`.
+Agent session worktrees are nested under `.agent-worktrees/` in the project
+root; the Nuxt/Vite and Nitro dev watchers ignore that tree (`nuxt.config.js`
+watch ignores), because nested worktree tsconfigs otherwise trip Nuxt's
+"changed tsconfig file detected" cache-clear/full-reload loop and freeze
+hydration for anyone testing against the dev server while an agent session
+runs.
 
 ## Progressive Web App
 
