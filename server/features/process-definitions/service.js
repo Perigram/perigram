@@ -38,6 +38,8 @@ import { ProcessDefinition } from './model.js';
 import * as repository from './repository.js';
 import { normalizeLegacyProcessActions } from './action-migration.js';
 import { compileActiveProcessRuntime } from './runtime.js';
+import { compileRegistryForOrganization } from '../cts-types/service.js';
+import { projectDomainFromView } from '~/packages/cts/src/index.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
 import {
   assertCurrentProcessDefinition,
@@ -105,7 +107,7 @@ export async function getActiveRelationOptions({ actionId, entityId, source = fa
   if (!raw) throw createError({ statusCode: 404, message: 'Active process definition not found' });
   const process = new ProcessDefinition(raw);
   const organization = await loadOrganizationProcessConfiguration(organizationId);
-  const compiled = compileActiveProcessRuntime(process.data, organization.roles);
+  const compiled = await compileActiveProcessRuntime(process.data, organization.roles, organizationId);
   const action = compiled?.actions?.[actionId];
   if (!action?.relationMutation || action.relationMutation.operation !== 'link') {
     throw createError({ statusCode: 400, message: 'Action does not provide relation options' });
@@ -140,7 +142,7 @@ export async function create(payload = {}, auth) {
       slug: standardSlugify(name, { keepCase: false })
     },
     lineage: { organizationId: toFlexibleId(organizationId) },
-    data: currentProcessDefinition(payload.data || payload, getDomain())
+    data: currentProcessDefinition(payload.data || payload, await getProjectedDomain(organizationId))
   });
   applyProcessStatus(process, 'DRAFT', auth.userId, 'Process draft created');
   const created = await repository.create(process);
@@ -155,7 +157,7 @@ export async function update(id, payload = {}, auth) {
   if (payload.identity?.name || payload.name) {
     process.identity.name = payload.identity?.name || payload.name;
   }
-  process.data = currentProcessDefinition(payload.data || payload, getDomain());
+  process.data = currentProcessDefinition(payload.data || payload, await getProjectedDomain(process.lineage.organizationId));
   process.data.compiled = null;
   const updated = await repository.updateById(id, process);
   return new ProcessDefinition(updated).toJSON();
@@ -169,9 +171,10 @@ async function activeContractBaseline(process, auth) {
   const active = await repository.findActiveByOrganization(process.lineage.organizationId);
   if (!active || String(active._id) === String(process._id)) return null;
   try {
-    const data = currentProcessDefinition(active.data, getDomain());
     const roles = await loadOrganizationRoles(process.lineage.organizationId);
-    return compileProcessDefinition(data, getDomain(), { roles });
+    const domain = await getProjectedDomain(process.lineage.organizationId);
+    const data = currentProcessDefinition(active.data, domain);
+    return compileProcessDefinition(data, domain, { roles });
   } catch {
     return null;
   }
@@ -182,7 +185,7 @@ async function contractDiffFor(process, auth) {
   if (!baseline) return null;
   const roles = await loadOrganizationRoles(process.lineage.organizationId);
   try {
-    return diffProcessContracts(baseline, compileProcessDefinition(process.data, getDomain(), { roles }));
+    return diffProcessContracts(baseline, compileProcessDefinition(process.data, await getProjectedDomain(process.lineage.organizationId), { roles }));
   } catch {
     return null;
   }
@@ -240,7 +243,7 @@ export async function activate(id, auth) {
   }
   process.data = {
     ...process.data,
-    compiled: compileProcessDefinition(process.data, getDomain(), { roles })
+    compiled: compileProcessDefinition(process.data, await getProjectedDomain(process.lineage.organizationId), { roles })
   };
   await assertNoStrandedEntityStatuses(process, auth, process.data.compiled);
   await repository.archiveActiveByOrganization(process.lineage.organizationId, auth.userId);
@@ -287,7 +290,7 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
 
   process.data = {
     ...process.data,
-    compiled: compileProcessDefinition(process.data, getDomain(), { roles })
+    compiled: compileProcessDefinition(process.data, await getProjectedDomain(process.lineage.organizationId), { roles })
   };
   applyProcessStatus(process, 'ACTIVE', actorId || 'SYSTEM', 'Process activated (empty)');
 
@@ -559,7 +562,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
 
   const process = new ProcessDefinition(raw);
   const organization = await loadOrganizationProcessConfiguration(organizationId);
-  const compiled = compileActiveProcessRuntime(process.data, organization.roles);
+  const compiled = await compileActiveProcessRuntime(process.data, organization.roles, organizationId);
   const action = compiled?.actions?.[actionId];
   if (!action) throw createError({ statusCode: 404, message: 'Action not found in active process' });
   assertCompiledActionAvailable(actionId, auth);
@@ -1611,6 +1614,14 @@ function resolveOrganizationId(auth = {}) {
 
 function getDomain() {
   return getCutkitRegistry().getDomain('cnc');
+}
+
+// The compiler consumes the CTS-projected domain: strangler-converted system
+// declarations plus the organization's authored types (cts_types). A broken
+// stored type fails loudly here rather than silently compiling without it.
+async function getProjectedDomain(organizationId = null) {
+  const registry = await compileRegistryForOrganization(organizationId);
+  return projectDomainFromView(registry, organizationId, getDomain());
 }
 
 function assertCanonicalProcessSource(data = {}) {

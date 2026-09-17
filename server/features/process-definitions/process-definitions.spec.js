@@ -17,6 +17,15 @@ import * as entityRevisionsService from '~/server/features/entity-revisions/serv
 import { PROCESS_DATAFLOW_VERSION } from '~/packages/processes/src/index.js';
 import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
 
+vi.mock('../cts-types/service.js', async () => {
+  const cts = await import('~/packages/cts/src/index.js');
+  const domain = await import('~/packages/domain-cnc/src/index.js');
+  const registry = cts.createTypeRegistry({ id: 'spec-cts' });
+  for (const declaration of cts.convertCncDomain({ entities: domain.cncEntities, workflows: domain.cncWorkflows, containment: domain.cncContainment })) {
+    registry.defineType(declaration);
+  }
+  return { compileRegistryForOrganization: async () => registry };
+});
 vi.mock('./repository.js', () => ({
   find: vi.fn(),
   findById: vi.fn(),
