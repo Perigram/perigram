@@ -1028,9 +1028,16 @@ that inbox contains only conversations with persisted messages and offers a
 header user picker to start a direct thread explicitly, including a direct
 self-chat. The inbox is a PrimeVue `Listbox` (single selection with keyboard
 navigation and Aura's selected-option state) whose `#option` template renders
-the rich row: avatar or neutral fallback, online dot, label, member count,
-single-line latest-message preview through `SupportMessageContent`, and
-timestamp. Drawer rows show participant context and render latest
+the rich row, top-aligned on two lines: avatar or neutral fallback plus
+online dot; label, member count, and the smart timestamp (clock time for
+today's messages, calendar date otherwise) on the first line; the
+single-line latest-message preview through `SupportMessageContent` below,
+led by the read mark (a check) when the newest message is the viewer's own
+and another participant has read it. A hover ellipsis opens the row menu
+with per-user pin/archive preferences: pinned rows lead the list, archived
+rows disappear behind the inbox header's archived toggle (which swaps the
+list to archived conversations with a back affordance). Drawer rows show
+participant context and render latest
 message entity tokens through `SupportMessageContent`, without per-row
 message-count badges. Message bubbles own a `min-w-0`/`max-w-full` chain with
 `overflow-wrap: anywhere` text wrapping, so long unbroken strings stay inside
@@ -1072,6 +1079,13 @@ launcher is hidden while that route is open. The route opts into full-page mode
 with explicit boolean props; the full-page grid has one bounded workspace row,
 separate inbox/thread headers, cover-cropped participant avatars, and accepts
 attachment-only sends when the draft contains structured entity references.
+The chats surface also lives as a home-workspace tab: the drawer's expand
+action opens a workspace chats tab pinned to the active conversation
+(`utils/chat-workspace-open.js` event + pending pattern, mirroring entity
+and call tab opens) instead of a separate route; an unpinned expand opens
+the general chats tab. The mobile entity-chat popup hosts the same full
+chat (inbox, back navigation, calls) inside a bounded `StandardDialog`
+frame, not a thread-only stub.
 Entity-linked chats ride the same surfaces: the inbox is one unified
 timestamp-ordered list across person, group, and entity chats — the avatar
 glyph (person image/letter, group icon, entity type icon) carries the kind,
@@ -1080,9 +1094,11 @@ primary. The grouping switch narrows entity chats to their top-level nodes
 (entities with no resolvable lineage ancestors) and back to every entity
 chat. Child-entity threads (cassettes, nesting runs, sheet designs) resolve
 through the same scoped option window the attachment picker browses when
-direct registry reads deny them. Entity thread headers carry a dedicated
-open-detail button left of the title that opens the entity as a home-workspace tab on desktop
-(detail route on mobile), the inbox carries a "Detailed" grouping toggle
+direct registry reads deny them. Entity thread titles are the open-entity
+link (a home-workspace tab on desktop, detail route on mobile); beside the
+title sits the children-messages toggle — default off (the entity's own
+messages), pressed/primary = the composed subtree view. The inbox carries a
+"Detailed" grouping toggle
 for entity chats (top-level nodes off, every entity chat on), and group thread headers carry their member profiles
 inline through `EntityInlineRef`. Calls start from every non-support thread
 header, entity threads included. On desktop, entity opens from chat
@@ -1117,7 +1133,7 @@ every entity surface carries a chat entry — the shared `EntityCard` renders
 it for all card variants (footer row and expansion popover), and
 `EntityInlineRef` popups carry it too, all opening the entity thread through
 `utils/entity-chat.js` (desktop drawer deep link, mobile
-/chats route with the preset target, both consumed on chat mount). The
+entity-chat popup with the full chat surface — both consumed on chat mount). The
 detail panel rides `GeneratedEntityDetail` — the canonical detail chrome —
 so abstract detail pages and bounded implementation panes (workspace
 overloads, designer file modes) all carry the thread; the panel renders inside the

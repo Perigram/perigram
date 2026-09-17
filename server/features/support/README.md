@@ -25,6 +25,18 @@ support-channel match for the same `userId`. New writes always persist
 `message`, `entityRefs`, `timestamp`, and optionally `attachment` (see
 [Voice Messages](#voice-messages)).
 
+### Inbox Preferences and Read Marks
+
+Per-user pin/archive preferences live in the `supportConversationPrefs`
+collection (one document per user and conversation; `pinnedAt`/`archivedAt`
+timestamps double as existence flags). Every conversation snapshot row is
+decorated with `pinned` and `archived` booleans plus `lastMessageRead` —
+true only when the row's newest message is the viewer's own and at least one
+other participant's read cursor (`supportConversationReads`) is at or after
+it. `POST /api/support/prefs` upserts a preference for a validated
+conversation key; the flags are private to the user, so updates publish no
+connection events and clients patch their local rows from the response.
+
 ### Lazy History
 
 `GET /api/support/messages` is paginated: `limit` (default 50, capped at 100)
@@ -219,6 +231,7 @@ can render a voice-message chip.
 | `POST /api/support/groups` | Creates a group chat (`{ name, participantIds }`). |
 | `DELETE /api/support/groups/:id` | Deletes a group chat (creator or admin). |
 | `POST /api/support/read` | Marks an authorized conversation read for the current user. |
+| `POST /api/support/prefs` | Saves per-user conversation preferences (`{ conversationKey, pinned?, archived? }`); returns the saved `{ pinned, archived }`. |
 | `GET /api/support/entity-types` | Returns generated-screen entity source types readable by the current user. |
 | `GET /api/support/entity-options?type=<type>&q=<query>&recipientUserId=<id>` | Returns readable entity options for chat attachment refs and flags recipient chat-only visibility for direct chats. |
 | `POST /api/support/typing` | Ephemeral typing signal; authorized like a read, published to the conversation topic, never persisted. |
