@@ -1087,10 +1087,13 @@ The chats surface also lives as a home-workspace tab: the drawer's expand
 action opens a workspace chats tab pinned to the active conversation
 (`utils/chat-workspace-open.js` event + pending pattern, mirroring entity
 and call tab opens) instead of a separate route; an unpinned expand opens
-the general chats tab. The chat popup is one surface for every viewport:
-the same `ChatSupport` overlay renders full-bleed on mobile and as the
-token-sized drawer card on desktop — no separate mobile dialog, no
-viewport branches in the open path (`utils/entity-chat.js`).
+the general chats tab. The chat popup is one PrimeVue `Dialog` for every
+viewport (`layouts/app.vue`): PrimeVue owns the mask, stacking, and
+responsive width (full-bleed sheet below 640px, `support-chat` token-sized
+card above), the Dialog header is hidden, and the embedded `ChatSupport`
+column renders the inbox/thread headers with back and close. ChatSupport
+itself carries no overlay chrome — position and stacking belong to its
+hosts (popup Dialog, `/chats` route, entity detail panel, call workspace).
 Entity-linked chats ride the same surfaces: the inbox is one unified
 timestamp-ordered list across person, group, and entity chats — the avatar
 glyph (person image/letter, group icon, entity type icon) carries the kind,
@@ -1137,8 +1140,8 @@ composed conversation through the shared `EntityChatPanel` disclosure, and
 every entity surface carries a chat entry — the shared `EntityCard` renders
 it for all card variants (footer row and expansion popover), and
 `EntityInlineRef` popovers carry it too, all opening the entity thread through
-`utils/entity-chat.js` (the single chat popup — full-bleed overlay on mobile,
-drawer card on desktop — consumed on chat mount). The
+`utils/entity-chat.js` (the single PrimeVue Dialog popup — consumed on chat
+mount). The
 detail panel rides `GeneratedEntityDetail` — the canonical detail chrome —
 so abstract detail pages and bounded implementation panes (workspace
 overloads, designer file modes) all carry the thread; the panel renders inside the
