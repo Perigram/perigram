@@ -1677,29 +1677,31 @@ const selectComposerEntity = (chip) => {
         : null
 }
 
-// Desktop message menu: reply plus text utilities, PrimeVue-owned.
+// Desktop message menu: reply plus text utilities, PrimeVue-owned. The
+// target is a ref: menu models are computeds, and a plain variable would
+// never invalidate them, leaving the popup empty.
 const messageMenu = ref(null)
-let messageMenuTarget = null
+const messageMenuTarget = ref(null)
 const messageMenuItems = computed(() => {
     const items = [{
         label: t('support.reply'),
         icon: 'pi pi-reply',
         command: () => {
             messageMenu.value?.hide?.()
-            if (messageMenuTarget) openReply(messageMenuTarget)
-            messageMenuTarget = null
+            if (messageMenuTarget.value) openReply(messageMenuTarget.value)
+            messageMenuTarget.value = null
         }
     }]
-    if (messageMenuTarget?.message) {
+    if (messageMenuTarget.value?.message) {
         items.push({
             label: t('common.copy'),
             icon: 'pi pi-copy',
             command: () => {
                 messageMenu.value?.hide?.()
                 if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                    navigator.clipboard.writeText(String(messageMenuTarget.message || '')).catch(() => {})
+                    navigator.clipboard.writeText(String(messageMenuTarget.value.message || '')).catch(() => {})
                 }
-                messageMenuTarget = null
+                messageMenuTarget.value = null
             }
         })
     }
@@ -1707,7 +1709,7 @@ const messageMenuItems = computed(() => {
 })
 
 const openMessageMenu = (event, messageItem) => {
-    messageMenuTarget = messageItem || null
+    messageMenuTarget.value = messageItem || null
     messageMenu.value?.toggle(event)
 }
 
@@ -1948,9 +1950,9 @@ const isOwnInboxRow = (conversation) => Boolean(conversation.senderUserId)
 // Row menu: pin/unpin and archive/unarchive, driven by the row's current
 // per-user preferences.
 const conversationMenu = ref(null)
-let conversationMenuTarget = null
+const conversationMenuTarget = ref(null)
 const conversationMenuItems = computed(() => {
-    const option = conversationMenuTarget
+    const option = conversationMenuTarget.value
     if (!option) return []
     return [
         {
@@ -1959,7 +1961,7 @@ const conversationMenuItems = computed(() => {
             command: () => {
                 conversationMenu.value?.hide?.()
                 supportChatStore.setConversationPref(option.conversationKey, { pinned: !option.pinned })
-                conversationMenuTarget = null
+                conversationMenuTarget.value = null
             }
         },
         {
@@ -1968,14 +1970,14 @@ const conversationMenuItems = computed(() => {
             command: () => {
                 conversationMenu.value?.hide?.()
                 supportChatStore.setConversationPref(option.conversationKey, { archived: !option.archived })
-                conversationMenuTarget = null
+                conversationMenuTarget.value = null
             }
         }
     ]
 })
 
 const openConversationMenu = (event, option) => {
-    conversationMenuTarget = option || null
+    conversationMenuTarget.value = option || null
     conversationMenu.value?.toggle(event)
 }
 
