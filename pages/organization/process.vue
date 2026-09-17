@@ -906,7 +906,7 @@ import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncUiSurfaces } from '@cutkit/domain-cnc';
 import { cncEntities, cncWorkflows, cncContainment } from '@cutkit/domain-cnc';
-import { createTypeRegistry, convertCncDomain, checkDeclarationsAgainstCts } from '~/packages/cts/src/index.js';
+import { createTypeRegistry, convertCncDomain, checkDeclarationsAgainstCts, projectDomainFromView } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import LanguageTesterPanel from '~/components/process-designer/LanguageTesterPanel.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
@@ -2232,7 +2232,11 @@ function recomputeProcessPreview(shouldApply = () => true) {
     return;
   }
   try {
-    compiledPreview.value = compileProcessDefinition(processDefinitionSnapshot(), cncDomain, { roles: organizationRoles.value });
+    compiledPreview.value = compileProcessDefinition(
+      processDefinitionSnapshot(),
+      projectDomainFromView(ctsRegistry(), draft.value?.lineage?.organizationId || null, cncDomain),
+      { roles: organizationRoles.value }
+    );
     compiledPreviewError.value = '';
   } catch (error) {
     compiledPreview.value = null;
