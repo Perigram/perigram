@@ -1,15 +1,22 @@
 // Classes (SPEC §5): declaration presets — obligations over facets, no machinery.
 export const CLASSES = Object.freeze(['party', 'file', 'item', 'group', 'process']);
 
-// R6: class obligations checked at type-compile.
-export function checkClassObligations(type = {}) {
+// R6: class obligations checked at type-compile. `context.childTypes` is the
+// set of type ids that appear as children in some lineage edge — derived
+// items (instance, remnant) identify through their parent edge, which is a
+// legitimate identity law the extraction surfaced.
+export function checkClassObligations(type = {}, context = {}) {
   const errors = [];
   const { class: className, payload, fields = {}, edges = {}, states = {} } = type;
   if (!CLASSES.includes(className)) {
     return [`type ${type.id}: unknown class ${className}`];
   }
 
-  const hasSpecsOrSerial = fields.serial || fields.specs;
+  const hasSpecsOrSerial = Boolean(
+    fields.serial
+    || Object.values(fields).some(descriptor => descriptor.slot === 'specs' || descriptor.base === 'quantity')
+    || context.childTypes?.has(type.id)
+  );
 
   switch (className) {
     case 'party':

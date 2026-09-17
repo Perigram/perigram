@@ -1,12 +1,14 @@
-// Strangler converter (SPEC §15/§19): maps live @cutkit/domain-cnc
-// declarations onto CTS type records. Pure mapping — this module never
-// imports the domain; the app passes the declarations in.
+// Strangler converter (SPEC §15/§19 source flip): maps live
+// @cutkit/domain-cnc declarations onto CTS type records. Pure mapping —
+// this module never imports the domain; the app passes the declarations in.
 //
-// Quarantine policy: legacy `data.*` payloads land as a single Json field
-// (`legacy`, plus `specs` placeholder for item classes) until per-type field
-// extraction happens. Json is the sanctioned escape hatch for exactly this
-// (SPEC §2); parking domain payload there during migration is the declared
-// path, not a defect — but new types must declare real rows.
+// Field rows are extracted for real: legacy data/specs field schemas
+// promote to row descriptors (nested paths group into records, unit numbers
+// become quantities, entity refs become refs). Managed blocks stay in their
+// facets — the projection re-sources them from the declared remainder until
+// each facet collapses.
+
+import { extractRow } from './field-schema-rows.js';
 
 const CLASS_BY_TYPE = Object.freeze({
   artifact: 'file', artifact_template: 'file',
@@ -36,20 +38,16 @@ export function toTypeId(entityType = '') {
   return String(entityType).replace(/_/g, '-');
 }
 
-export function convertCncEntities(entities = []) {
+export function convertCncEntities(entities = [], fieldSchemas = {}) {
   return entities.map(entity => {
     const className = CLASS_BY_TYPE[entity.type];
     if (!className) throw new Error(`no CTS class mapping for entity type ${entity.type}`);
-    const fields = { legacy: { base: 'json' } };
-    if (className === 'item' || (entity.blocks || []).includes('specs')) {
-      fields.specs = { base: 'json' };
-    }
     const declaration = {
       id: toTypeId(entity.type),
       class: className,
       scope: 'system',
       version: 1,
-      fields,
+      fields: extractRow(fieldSchemas[entity.type] || []),
       render: { label: entity.type.replace(/_/g, ' ') }
     };
     return declaration;
@@ -93,7 +91,13 @@ export function convertCncContainment(containment = []) {
       continue;
     }
     const parent = childrenByParent.get(toTypeId(relation.parentType)) || { children: {} };
-    parent.children[toTypeId(relation.childType)] = { types: [toTypeId(relation.childType)], onRemove: 'restrict' };
+    // The legacy lineage key rides on the children edge so the domain
+    // projection can rebuild the containment contract exactly.
+    parent.children[toTypeId(relation.childType)] = {
+      types: [toTypeId(relation.childType)],
+      onRemove: 'restrict',
+      lineageKey: relation.lineageKey
+    };
     childrenByParent.set(toTypeId(relation.parentType), parent);
   }
   return { childrenByParent, relationsByOwner };
@@ -113,12 +117,13 @@ export function convertAttachmentKinds(kinds = {}) {
   return traits;
 }
 
-// Whole-domain conversion: entities + workflows + containment fused into
-// one type-declaration list ready for createTypeRegistry().
-export function convertCncDomain({ entities = [], workflows = {}, containment = [] } = {}) {
+// Whole-domain conversion: entities + field schemas + workflows +
+// containment fused into one type-declaration list ready for
+// createTypeRegistry().
+export function convertCncDomain({ entities = [], workflows = {}, containment = [], fieldSchemas = {} } = {}) {
   const workflowByType = convertCncWorkflows(workflows);
   const { childrenByParent, relationsByOwner } = convertCncContainment(containment);
-  return convertCncEntities(entities).map(declaration => ({
+  return convertCncEntities(entities, fieldSchemas).map(declaration => ({
     ...declaration,
     ...(workflowByType[declaration.id] || {}),
     edges: {

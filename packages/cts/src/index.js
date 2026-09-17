@@ -36,6 +36,9 @@ export {
   convertCncContainment, convertAttachmentKinds, classForEntityType, toTypeId
 } from './compat/domain-cnc.js';
 export {
+  extractRow, rowToFieldSchemas, slotFor
+} from './compat/field-schema-rows.js';
+export {
   cncTypePack, partyTypes, nestingOperators, packFixtures
 } from './pack/cnc.js';
 export {

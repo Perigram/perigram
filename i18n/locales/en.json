@@ -2451,6 +2451,33 @@
   "nestingRun": {
     "sheetDesigns": "Sheet designs"
   },
+  "typesPane": {
+    "title": "Types",
+    "typeId": "Type",
+    "class": "Class",
+    "version": "Version",
+    "fields": "Fields",
+    "states": "States",
+    "transitions": "Transitions",
+    "lifecycle": "Lifecycle",
+    "edges": "Edges",
+    "children": "Children",
+    "relations": "Relations",
+    "newType": "New type",
+    "fieldName": "field name",
+    "nullable": "nullable",
+    "initial": "initial",
+    "terminal": "terminal",
+    "intent": "intent",
+    "edgeKey": "key",
+    "schema": "JSON Schema",
+    "systemReadonly": "Read only",
+    "systemReadonlyHint": "System types compile from the domain content and cannot be edited here.",
+    "tenancyHint": "The id is kebab-case and must not shadow a system type.",
+    "deleteConfirm": "Delete type {id}? Existing instances remain; new references stop validating.",
+    "loadFailed": "Failed to load types",
+    "createFailed": "Type creation failed"
+  },
   "processDesigner": {
     "title": "Process designer",
     "newDraft": "New draft",
@@ -2484,7 +2511,7 @@
     "frameSelection": "Frame selected nodes",
     "resetZoom": "Reset zoom",
     "paletteGroups": {
-      "entities": "Entities",
+      "entities": "Types",
       "values": "Values",
       "listTree": "Lists and trees"
     },

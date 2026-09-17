@@ -21,7 +21,7 @@ vi.mock('../cts-types/service.js', async () => {
   const cts = await import('~/packages/cts/src/index.js');
   const domain = await import('~/packages/domain-cnc/src/index.js');
   const registry = cts.createTypeRegistry({ id: 'spec-cts' });
-  for (const declaration of cts.convertCncDomain({ entities: domain.cncEntities, workflows: domain.cncWorkflows, containment: domain.cncContainment })) {
+  for (const declaration of cts.convertCncDomain({ entities: domain.cncEntities, workflows: domain.cncWorkflows, containment: domain.cncContainment, fieldSchemas: domain.cncEntityFieldSchemas })) {
     registry.defineType(declaration);
   }
   return { compileRegistryForOrganization: async () => registry };

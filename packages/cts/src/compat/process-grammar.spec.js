@@ -5,11 +5,14 @@ import {
 } from './process-grammar.js';
 import { checkDeclarationsAgainstCts } from './process-checks.js';
 import { createTypeRegistry, convertCncDomain } from '../index.js';
-import { cncEntities, cncWorkflows, cncContainment } from '../../../domain-cnc/src/index.js';
+import { cncEntities, cncWorkflows, cncContainment, cncEntityFieldSchemas } from '../../../domain-cnc/src/index.js';
 
 function registryWithOrgType() {
   const registry = createTypeRegistry({ id: 'seam' });
-  for (const declaration of convertCncDomain({ entities: cncEntities, workflows: cncWorkflows, containment: cncContainment })) {
+  for (const declaration of convertCncDomain({
+    entities: cncEntities, workflows: cncWorkflows, containment: cncContainment,
+    fieldSchemas: cncEntityFieldSchemas
+  })) {
     registry.defineType(declaration);
   }
   registry.defineType({
@@ -97,16 +100,21 @@ describe('declaration-check phase', () => {
           good: { actionKind: 'changeStatus', entityType: 'widget', targetStatus: 'done' }
         },
         processNodes: {
-          n1: { kind: 'record.getField', entityType: 'widget', field: 'name' },
-          n2: { kind: 'record.getField', entityType: 'widget', field: 'rogue' },
-          n3: { kind: 'record.getField', entityType: 'queue', field: 'data.job.items' }
+          n1: { kind: 'record.getField', entityType: 'widget', field: 'data.name' },
+          n2: { kind: 'record.getField', entityType: 'widget', field: 'data.rogue' },
+          n3: { kind: 'record.getField', entityType: 'queue', field: 'data.job.items' },
+          n4: { kind: 'record.getField', entityType: 'queue', field: 'data.rogue' },
+          n5: { kind: 'record.getField', entityType: 'queue', field: 'identity.name' }
         }
       }
     }, registry, 'org-1');
     expect(errors).toContainEqual(expect.stringMatching(/moves widget to undeclared state FLYING/));
-    expect(errors).toContainEqual(expect.stringMatching(/uses field rogue outside the widget row/));
-    // queue rows are quarantined strangler rows: field checks skip by design
-    expect(errors).not.toContainEqual(expect.stringMatching(/queue row/));
+    expect(errors).toContainEqual(expect.stringMatching(/uses field data.rogue outside the widget row/));
+    // queue rows are extracted for real: nested record roots resolve, unknown
+    // roots fail, managed blocks (identity) are policy facets, not rows
+    expect(errors).not.toContainEqual(expect.stringMatching(/data.job.items/));
+    expect(errors).toContainEqual(expect.stringMatching(/uses field data.rogue outside the queue row/));
+    expect(errors).not.toContainEqual(expect.stringMatching(/identity.name/));
   });
 
   it('org overlay is the view: other orgs see system types only', () => {

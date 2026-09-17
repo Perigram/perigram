@@ -3,12 +3,13 @@ import {
   convertCncDomain, convertCncWorkflows, convertAttachmentKinds, classForEntityType, toTypeId
 } from './domain-cnc.js';
 import { createTypeRegistry, compileClientBundle, renderPolicyFor } from '../index.js';
-import { cncEntities, cncWorkflows, cncContainment, cncAttachmentKinds } from '../../../domain-cnc/src/index.js';
+import { cncEntities, cncWorkflows, cncContainment, cncAttachmentKinds, cncEntityFieldSchemas } from '../../../domain-cnc/src/index.js';
 
 function convertedRegistry() {
   const registry = createTypeRegistry({ id: 'cnc-strangler' });
   for (const declaration of convertCncDomain({
-    entities: cncEntities, workflows: cncWorkflows, containment: cncContainment
+    entities: cncEntities, workflows: cncWorkflows, containment: cncContainment,
+    fieldSchemas: cncEntityFieldSchemas
   })) {
     registry.defineType(declaration);
   }
@@ -60,11 +61,19 @@ describe('strangler conversion of the live CNC domain', () => {
     expect(traits.DXF_SOURCE.mime).toBe('application/dxf');
   });
 
-  it('legacy payloads are quarantined Json, not typed rows', () => {
+  it('extracts real rows from legacy field schemas (no quarantine)', () => {
     const material = convertedRegistry().getType('material');
-    expect(material.fields.legacy).toMatchObject({ base: 'json' });
+    expect(material.fields.code).toMatchObject({ base: 'string', slot: 'data' });
     const sheet = convertedRegistry().getType('sheet');
-    expect(sheet.fields.specs).toMatchObject({ base: 'json' });
+    expect(sheet.fields.width).toMatchObject({ base: 'quantity', unit: 'mm', slot: 'specs' });
+    expect(sheet.fields.area).toMatchObject({ base: 'quantity', unit: 'm2', slot: 'specs' });
+    // nested legacy paths group into record rows
+    const queue = convertedRegistry().getType('queue');
+    expect(queue.fields.job.base).toBe('record');
+    expect(queue.fields.job.fields.items).toMatchObject({ base: 'json' });
+    // children edges carry the legacy lineage key for the projection
+    const project = convertedRegistry().getType('project');
+    expect(project.edges.children.queue).toMatchObject({ types: ['queue'], lineageKey: 'projectId' });
   });
 });
 

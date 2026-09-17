@@ -6,7 +6,7 @@
 import { createError } from 'h3';
 import * as repository from './repository.js';
 import { createTypeRegistry, convertCncDomain, convertAttachmentKinds, compileClientBundle } from '~/packages/cts/src/index.js';
-import { cncEntities, cncWorkflows, cncContainment, cncAttachmentKinds } from '~/packages/domain-cnc/src/index.js';
+import { cncEntities, cncWorkflows, cncContainment, cncEntityFieldSchemas, cncAttachmentKinds } from '~/packages/domain-cnc/src/index.js';
 
 function to400(error) {
   if (error?.statusCode) throw error;
@@ -17,7 +17,7 @@ function to400(error) {
 // declarations overlaying. Shadowing a system id throws here (R6/§4).
 export async function compileRegistryForOrganization(organizationId) {
   const registry = createTypeRegistry({ id: `cts-types:${organizationId || 'system'}` });
-  for (const declaration of convertCncDomain({ entities: cncEntities, workflows: cncWorkflows, containment: cncContainment })) {
+  for (const declaration of convertCncDomain({ entities: cncEntities, workflows: cncWorkflows, containment: cncContainment, fieldSchemas: cncEntityFieldSchemas })) {
     registry.defineType(declaration);
   }
   if (organizationId) {

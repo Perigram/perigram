@@ -19,10 +19,7 @@ const CANVAS_OWNED_RECORD_KEYS = {
 
 const RECORD_NODE_TYPES = Object.keys(CANVAS_OWNED_RECORD_KEYS);
 
-// `ctsType` canvas nodes reference types stored in the CTS type registry:
-// they persist in the graph but own no draft-data record, so deleting the
-// node never deletes the type.
-const CANVAS_PERSISTENT_NODE_TYPES = [...RECORD_NODE_TYPES, 'ctsType'];
+const CANVAS_PERSISTENT_NODE_TYPES = [...RECORD_NODE_TYPES];
 
 
 export function hasCanonicalProcessSource(definition = {}) {
@@ -39,11 +36,9 @@ export function definitionToCanvas(definition = {}) {
   const projectedBySemanticId = new Map(projectedNodes.map(node => [semanticNodeId(node), node]));
   const savedNodes = (process.graph.nodes || [])
     .filter(node => CANVAS_PERSISTENT_NODE_TYPES.includes(node.type))
-    .map(node => node.type === 'ctsType'
-      ? normalizeCanvasNode(node)
-      : (projectedBySemanticId.has(semanticNodeId(node))
-        ? mergeProjectedNode(projectedBySemanticId.get(semanticNodeId(node)), node)
-        : null))
+    .map(node => (projectedBySemanticId.has(semanticNodeId(node))
+      ? mergeProjectedNode(projectedBySemanticId.get(semanticNodeId(node)), node)
+      : null))
     .filter(Boolean);
 
   const savedSemanticIds = new Set(savedNodes.map(semanticNodeId));

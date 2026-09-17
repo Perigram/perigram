@@ -95,8 +95,14 @@ export function createTypeRegistry({ id = 'cts' } = {}) {
   function compile(organizationId = null) {
     const view = resolveView(organizationId);
     const errors = [];
+    const childTypes = new Set();
     for (const type of view.values()) {
-      errors.push(...checkClassObligations(type));
+      for (const declaration of Object.values(type.edges?.children || {})) {
+        for (const childType of declaration.types || []) childTypes.add(childType);
+      }
+    }
+    for (const type of view.values()) {
+      errors.push(...checkClassObligations(type, { childTypes }));
       errors.push(...checkStateTotality(type));
       errors.push(...checkRefTargets(type, view));
       errors.push(...checkChildrenDeclared(type, view));
@@ -115,7 +121,11 @@ export function createTypeRegistry({ id = 'cts' } = {}) {
     for (const [name, descriptor] of Object.entries(type.fields)) {
       if (descriptor.base === 'ref') {
         for (const target of descriptor.accepts) {
-          if (!view.has(target)) errors.push(`type ${type.id}: fields.${name} references unknown type ${target}`);
+          // '*' is the strangler wildcard for untyped legacy entity refs;
+          // it names no target and is therefore not checkable here.
+          if (target !== '*' && !view.has(target)) {
+            errors.push(`type ${type.id}: fields.${name} references unknown type ${target}`);
+          }
         }
       }
     }

@@ -4,19 +4,25 @@
 // touches against a CTS registry view:
 //   - every referenced entityType exists in the org view
 //   - status transitions target declared states of that type
-//   - field paths land inside real rows — but only for types whose rows are
-//     extracted; strangler rows quarantined as `legacy`/`specs` Json skip
-//     field checks (checking against a quarantine would be pure noise).
+//   - data/specs field paths land inside real rows (slot-aware: node paths
+//     are block paths, row names are slot-stripped). Managed blocks
+//     (identity/origin/status/lineage/relations/provenance/summary/
+//     attachments) belong to their own facets and are not row-checked;
+//     `data.value` is the reserved generic payload slot.
 // Best-effort by design (v1): unknown record shapes pass silently; tighten
 // by teaching the walker new record kinds, never by loosening checks.
+import { slotFor } from './field-schema-rows.js';
+
+const RESERVED_GENERIC_SLOT = 'data.value';
+
 export function checkDeclarationsAgainstCts(processDefinition = {}, registry, organizationId = null) {
   const errors = [];
   const view = registry?.resolveView ? registry.resolveView(organizationId) : new Map();
   const statesByType = new Map();
-  const rowPathsByType = new Map();
+  const rowRootsByType = new Map();
   for (const type of view.values()) {
     if (type.states?.main?.values) statesByType.set(type.id, new Set(type.states.main.values));
-    rowPathsByType.set(type.id, extractableRowPaths(type));
+    rowRootsByType.set(type.id, allowedFieldRoots(type));
   }
 
   const data = processDefinition?.data || processDefinition || {};
@@ -47,11 +53,12 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
         errors.push(`${path} moves ${entityType} to undeclared state ${value}`);
       }
     }
-    const rowPaths = rowPathsByType.get(entityType);
-    if (rowPaths) {
+    const rowRoots = rowRootsByType.get(entityType);
+    if (rowRoots) {
       for (const key of ['field', 'fieldPath']) {
         const fieldPath = node[key];
-        if (typeof fieldPath === 'string' && fieldPath && !rowPaths.has(rootPath(fieldPath))) {
+        const root = fieldRoot(String(fieldPath || ''));
+        if (root && !rowRoots.has(root)) {
           errors.push(`${path} uses field ${fieldPath} outside the ${entityType} row`);
         }
       }
@@ -61,14 +68,23 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
   return errors;
 }
 
-function extractableRowPaths(type = {}) {
-  const fields = Object.entries(type.fields || {}).filter(([, descriptor]) => descriptor.base !== 'json');
-  if (!fields.length) return null; // quarantined strangler row: skip field checks
-  return new Set(fields.map(([name]) => name));
+function allowedFieldRoots(type = {}) {
+  const fields = Object.entries(type.fields || {});
+  if (!fields.length) return null; // no declared rows: generic payload, not row-checked
+  const roots = new Set([RESERVED_GENERIC_SLOT]);
+  for (const [name, descriptor] of fields) {
+    roots.add(`${slotFor(descriptor, type.class)}.${name}`);
+  }
+  return roots;
 }
 
-function rootPath(path = '') {
-  return String(path).replace(/^fields\./, '').split(/[.[/]/)[0];
+// 'data.job.items' -> 'data.job'; 'identity.name' -> null (managed block,
+// not row-checked); 'fields.width' -> treated as its root segment.
+function fieldRoot(path = '') {
+  const clean = path.replace(/^fields\./, '');
+  const [block, name] = clean.split('.');
+  if ((block === 'data' || block === 'specs') && name) return `${block}.${name}`;
+  return null;
 }
 
 function walk(value, visit, path = 'definition') {

@@ -2451,6 +2451,33 @@
   "nestingRun": {
     "sheetDesigns": "Дизайны листов"
   },
+  "typesPane": {
+    "title": "Типы",
+    "typeId": "Тип",
+    "class": "Класс",
+    "version": "Версия",
+    "fields": "Поля",
+    "states": "Состояния",
+    "transitions": "Переходы",
+    "lifecycle": "Жизненный цикл",
+    "edges": "Связи",
+    "children": "Дочерние",
+    "relations": "Отношения",
+    "newType": "Новый тип",
+    "fieldName": "имя поля",
+    "nullable": "nullable",
+    "initial": "начальное",
+    "terminal": "конечное",
+    "intent": "намерение",
+    "edgeKey": "ключ",
+    "schema": "JSON Schema",
+    "systemReadonly": "Только чтение",
+    "systemReadonlyHint": "Системные типы компилируются из домена и не редактируются здесь.",
+    "tenancyHint": "Идентификатор в kebab-case, не должен затенять системный тип.",
+    "deleteConfirm": "Удалить тип {id}? Существующие экземпляры останутся; новые ссылки перестанут проходить проверку.",
+    "loadFailed": "Не удалось загрузить типы",
+    "createFailed": "Не удалось создать тип"
+  },
   "processDesigner": {
     "title": "Дизайнер процессов",
     "newDraft": "Новый черновик",
@@ -2484,7 +2511,7 @@
     "frameSelection": "Показать выбранные узлы",
     "resetZoom": "Сбросить масштаб",
     "paletteGroups": {
-      "entities": "Сущности",
+      "entities": "Типы",
       "values": "Значения",
       "listTree": "Списки и деревья"
     },

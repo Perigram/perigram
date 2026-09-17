@@ -25,7 +25,7 @@ describe.skipIf(!hasDb)('active runtime compiles identically through the CTS pro
       expect(activeDocs.length).toBeGreaterThan(0);
 
       const registry = createTypeRegistry({ id: 'equality' });
-      for (const declaration of convertCncDomain({ entities: cncDomain.entities, workflows: cncDomain.workflows, containment: cncDomain.containment })) {
+      for (const declaration of convertCncDomain({ entities: cncDomain.entities, workflows: cncDomain.workflows, containment: cncDomain.containment, fieldSchemas: cncDomain.fieldSchemas })) {
         registry.defineType(declaration);
       }
 

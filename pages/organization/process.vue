@@ -38,7 +38,6 @@
         >
           <template #node-statusDefinition="props"><ProcessStatusDefinitionNode v-bind="props" /></template>
           <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
-          <template #node-ctsType="props"><CtsTypeNode v-bind="props" /></template>
         </VueFlow>
         <template #fallback><div class="absolute inset-0" /></template>
       </ClientOnly>
@@ -88,6 +87,7 @@
         <div class="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
             <div class="flex items-center gap-1">
               <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" :placeholder="$t('processDesigner.searchOperations')" />
+              <Button icon="pi pi-database" size="small" text :aria-label="$t('typesPane.title')" v-tooltip.left="$t('typesPane.title')" @click="navigateTo('/organization/types')" />
             </div>
             <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
               <span class="px-1 uppercase text-muted text-supporting">{{ paletteGroupLabel(group.id) }}</span>
@@ -181,50 +181,6 @@
                   <InputText v-model="selectedRecord.label" />
                 </div>
 
-                <template v-else-if="selectedNode.type === 'ctsType' && ctsEdit">
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-2">
-                      <strong class="text-label">{{ ctsEdit.typeId }}</strong>
-                      <Tag :value="ctsTypeById(ctsEdit.typeId)?.class || ''" severity="secondary" />
-                    </div>
-                    <div class="flex items-center justify-between">
-                      <span class="text-supporting">States</span>
-                      <Button label="Add" size="small" text icon="pi pi-plus" @click="ctsEditAddState" />
-                    </div>
-                    <div v-for="(state, index) in ctsEdit.states" :key="index" class="flex items-center gap-1">
-                      <InputText v-model="state.name" size="small" class="flex-1 min-w-0" placeholder="state name" />
-                      <Button
-                        :icon="state.initial ? 'pi pi-flag-fill' : 'pi pi-flag'"
-                        size="small"
-                        text
-                        :severity="state.initial ? 'info' : 'secondary'"
-                        v-tooltip.top="'initial'"
-                        @click="ctsEdit.states.forEach(s => s.initial = false); state.initial = true"
-                      />
-                      <Button
-                        :icon="state.terminal ? 'pi pi-circle-fill' : 'pi pi-circle'"
-                        size="small"
-                        text
-                        :severity="state.terminal ? 'danger' : 'secondary'"
-                        v-tooltip.top="'terminal'"
-                        @click="state.terminal = !state.terminal"
-                      />
-                      <Button icon="pi pi-times" size="small" text severity="danger" @click="ctsEdit.states.splice(index, 1)" />
-                    </div>
-                    <div class="flex items-center justify-between mt-2">
-                      <span class="text-supporting">Transitions</span>
-                      <Button label="Add" size="small" text icon="pi pi-plus" :disabled="!ctsEdit.states.length" @click="ctsEditAddTransition" />
-                    </div>
-                    <div v-for="(transition, index) in ctsEdit.transitions" :key="'tr' + index" class="flex items-center gap-1">
-                      <Select v-model="transition.from" :options="ctsEdit.states.map(s => s.name)" size="small" class="flex-1 min-w-0" />
-                      <i class="pi pi-arrow-right text-muted" />
-                      <Select v-model="transition.to" :options="ctsEdit.states.map(s => s.name)" size="small" class="flex-1 min-w-0" />
-                      <InputText v-model="transition.intent" size="small" class="flex-1 min-w-0" placeholder="intent" />
-                      <Button icon="pi pi-times" size="small" text severity="danger" @click="ctsEdit.transitions.splice(index, 1)" />
-                    </div>
-                    <Button label="Save type" icon="pi pi-check" size="small" class="mt-2" @click="ctsEditSave" />
-                  </div>
-                </template>
                 <template v-else-if="selectedNode.type === 'statusDefinition'">
                   <div class="grid grid-cols-2 gap-2">
                     <div class="flex min-w-0 flex-col gap-1">
@@ -948,10 +904,9 @@ import {
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncUiSurfaces } from '@cutkit/domain-cnc';
-import { cncEntities, cncWorkflows, cncContainment } from '@cutkit/domain-cnc';
+import { cncEntities, cncWorkflows, cncContainment, cncEntityFieldSchemas } from '@cutkit/domain-cnc';
 import { createTypeRegistry, convertCncDomain, checkDeclarationsAgainstCts, projectDomainFromView } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
-import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import MotionDock from '~/components/shared/MotionDock.vue';
@@ -1050,117 +1005,12 @@ const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInfer
 });
 // CTS declaration layer: the palette, entity/field/status option lists, and
 // compilation all derive from one source — the organization's type registry
-// view (seeded starter types plus authored ones). Authoring a type changes
-// what the graph can compose with.
+// view (system pack extracted from the domain content plus authored types,
+// stored by the cts-types feature). Authoring a type happens in the types
+// pane (pages/organization/types.vue); the canvas composes instances.
 const ctsOrgTypes = ref([]);
 let ctsRegistryCache = null;
 let designerCapabilities = null;
-
-async function addCtsTypeNode(className) {
-  const existing = ctsOrgTypes.value.filter(type => type.class === className).length;
-  const id = `${className}-${existing + 1}`;
-  const seedFields = className === 'item' ? { serial: { base: 'string' } } : { name: { base: 'string' } };
-  try {
-    const stored = await $fetch('/api/admin/cts/types', {
-      method: 'POST',
-      body: { id, class: className, fields: seedFields }
-    });
-    ctsOrgTypes.value = [...ctsOrgTypes.value, stored.type];
-    resetCtsRegistry();
-    refreshDesignerFromTypes();
-    const node = {
-      id: `ctsType_${stored.type.id}`,
-      type: 'ctsType',
-      position: nextNodePosition(),
-      selected: true,
-      data: { refId: `ctsType_${stored.type.id}`, typeId: stored.type.id }
-    };
-    nodes.value = [...nodes.value.map(item => ({ ...item, selected: false })), enrichNodeData(node)];
-    selectedNodeId.value = node.id;
-    selectedEdgeId.value = null;
-    toast.add({ severity: 'success', summary: `Type ${stored.type.id} created`, life: 2000 });
-  } catch (error) {
-    toast.add({ severity: 'error', summary: 'Type creation failed', detail: error?.data?.message || error?.message, life: 8000 });
-  }
-}
-
-const ctsEdit = ref(null);
-
-function editSelectedCtsType() {
-  const node = nodes.value.find(candidate => candidate.selected && candidate.type === 'ctsType')
-    || (selectedNode.value?.type === 'ctsType' ? selectedNode.value : null);
-  const type = node ? ctsTypeById(node.data?.typeId) : null;
-  if (!type) {
-    ctsEdit.value = null;
-    return;
-  }
-  ctsEdit.value = {
-    typeId: type.id,
-    states: (type.states?.main?.values || []).map(name => ({
-      name,
-      initial: name === type.states?.main?.initial,
-      terminal: (type.states?.main?.terminal || []).includes(name)
-    })),
-    transitions: (type.transitions || []).map(transition => ({ ...transition }))
-  };
-}
-watch([nodes, selectedNodeId], editSelectedCtsType, { deep: false });
-
-function ctsEditAddState() {
-  if (!ctsEdit.value) return;
-  ctsEdit.value.states.push({ name: `state${ctsEdit.value.states.length + 1}`, initial: !ctsEdit.value.states.some(s => s.initial), terminal: false });
-}
-
-async function ctsEditSave() {
-  if (!ctsEdit.value) return;
-  const base = ctsTypeById(ctsEdit.value.typeId);
-  if (!base) return;
-  const values = ctsEdit.value.states.map(state => String(state.name || '').trim()).filter(Boolean);
-  const declaration = {
-    id: base.id,
-    class: base.class,
-    fields: base.fields || {},
-    ...(base.payload ? { payload: base.payload } : {}),
-    ...(base.edges ? { edges: base.edges } : {}),
-    ...(base.operators ? { operators: base.operators } : {})
-  };
-  if (values.length) {
-    declaration.states = {
-      main: {
-        initial: ctsEdit.value.states.find(state => state.initial)?.name || values[0],
-        values,
-        terminal: ctsEdit.value.states.filter(state => state.terminal).map(state => state.name)
-      }
-    };
-    declaration.transitions = ctsEdit.value.transitions
-      .filter(transition => values.includes(transition.from) && values.includes(transition.to))
-      .map(transition => transition.intent ? { ...transition } : { from: transition.from, to: transition.to });
-  }
-  try {
-    const response = await $fetch('/api/admin/cts/types', { method: 'POST', body: declaration });
-    const index = ctsOrgTypes.value.findIndex(type => type.id === base.id);
-    if (index >= 0) ctsOrgTypes.value.splice(index, 1, response.type);
-    resetCtsRegistry();
-    refreshDesignerFromTypes();
-    syncNodeData();
-    toast.add({ severity: 'success', summary: `Type ${base.id} saved`, life: 2000 });
-  } catch (error) {
-    toast.add({ severity: 'error', summary: 'Compile error', detail: error?.data?.message || error?.message, life: 9000 });
-  }
-}
-
-function ctsEditAddTransition() {
-  if (!ctsEdit.value || !ctsEdit.value.states.length) return;
-  ctsEdit.value.transitions.push({
-    from: ctsEdit.value.states[0].name,
-    to: ctsEdit.value.states[ctsEdit.value.states.length - 1].name,
-    intent: ''
-  });
-}
-
-function ctsTypeById(typeId) {
-  return ctsOrgTypes.value.find(type => type.id === typeId) || null;
-}
 
 function resetCtsRegistry() {
   ctsRegistryCache = null;
@@ -1181,7 +1031,10 @@ const designer = reactive(createProcessDesignerContract(ctsProjectedDomain()));
 function ctsRegistry() {
   if (ctsRegistryCache) return ctsRegistryCache;
   const registry = createTypeRegistry({ id: 'designer-cts' });
-  for (const declaration of convertCncDomain({ entities: cncEntities, workflows: cncWorkflows, containment: cncContainment })) {
+  for (const declaration of convertCncDomain({
+    entities: cncEntities, workflows: cncWorkflows, containment: cncContainment,
+    fieldSchemas: cncEntityFieldSchemas
+  })) {
     registry.defineType(declaration);
   }
   for (const declaration of ctsOrgTypes.value) {
@@ -1190,9 +1043,6 @@ function ctsRegistry() {
   ctsRegistryCache = registry;
   return registry;
 }
-
-
-
 
 
 const {
@@ -1294,19 +1144,9 @@ const {
   })
 });
 const managedProcessBlocks = new Set(['origin', 'status', 'provenance', 'summary']);
-const CTS_CLASS_ITEMS = ['file', 'group', 'process', 'item'].map(className => ({
-  id: `ctsType.new:${className}`,
-  kind: 'ctsType',
-  icon: 'pi pi-database',
-  label: className,
-  description: `New ${className} type`,
-  action: () => addCtsTypeNode(className)
-}));
-
-const paletteGroupsWithTypes = computed(() => [...designer.paletteGroups, { id: 'types', label: 'Types', items: CTS_CLASS_ITEMS }]);
 
 const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = useProcessDesignerPalette({
-  groups: paletteGroupsWithTypes,
+  groups: designer.paletteGroups,
   query: paletteQuery,
   context: contextPalette,
   searchText: paletteSearchText,
@@ -1725,7 +1565,11 @@ onMounted(() => {
   loadProcessCapabilities();
   $fetch('/api/admin/cts/types')
     .then(response => {
-      ctsOrgTypes.value = response.types || [];
+      // The registry seeds system types from the converted domain pack; only
+      // the org's stored declarations may overlay (defining a bundle-shaped
+      // system record over the pack would drift the client view from the
+      // server registry).
+      ctsOrgTypes.value = (response.types || []).filter(type => type.scope === 'org');
       resetCtsRegistry();
       refreshDesignerFromTypes();
     })
@@ -2421,10 +2265,6 @@ function syncNodeData() {
   dataflowPreview.value = null;
   syncOpenBlockEntryContracts();
   for (const node of nodes.value) {
-    if (node.type === 'ctsType') {
-      node.data.type = ctsTypeById(node.data?.typeId);
-      continue;
-    }
     if (!node.data?.refId) continue;
     const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
     if (node.type === 'action') syncActionIo(record, node);
