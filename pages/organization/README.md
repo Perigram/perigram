@@ -56,6 +56,17 @@ button saves or forks the visible graph, activates the resulting process
 definition, and records activation warnings/errors in the centered canvas
 validation feedback so operators can inspect the result without a persistent
 canvas panel.
+
+`types.vue` is the CTS type registry pane — the read-only seed of the
+designer's types editor (see
+[packages/cts/SPEC.md](../../packages/cts/SPEC.md)). It fetches
+`/api/admin/cts/types`, the strangler conversion of the live
+`@cutkit/domain-cnc` declarations into `@perigram/cts` type records, and
+renders the compiled view grouped by class with derived render policy
+(labels, icons, state severities), per-type transitions, children edges,
+operators, and the compile diagnostics. It never writes; authoring types in
+the designer replaces this conversion once the types editor lands.
+
 The route uses the authenticated app layout with a full canvas workspace and
 the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell. The
 dock is supplied through the shell's dock slot, matching the shared designer

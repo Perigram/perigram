@@ -1,5 +1,5 @@
 // States (SPEC §7): single axis `main` (multi-axis deferred, SPEC §19),
-// guarded transitions, intents unique per type.
+// guarded transitions; one intent has one target state.
 export function normalizeStates(states = {}) {
   const axisNames = Object.keys(states);
   if (axisNames.length > 1) throw new Error('axes beyond main are deferred (SPEC §19)');
@@ -30,10 +30,11 @@ export function normalizeTransitions(transitions = [], states) {
     }
     const entry = { axis: 'main', from: transition.from, to: transition.to };
     if (transition.intent) {
-      if (intents.has(transition.intent)) {
-        throw new Error(`duplicate intent ${transition.intent} (transitions ${intents.get(transition.intent)} and ${index})`);
+      const existingTarget = intents.get(transition.intent);
+      if (existingTarget !== undefined && existingTarget !== transition.to) {
+        throw new Error(`intent ${transition.intent} targets both ${existingTarget} and ${transition.to} — one intent has one target (recovery transitions may share an intent)`);
       }
-      intents.set(transition.intent, index);
+      intents.set(transition.intent, transition.to);
       entry.intent = transition.intent;
     }
     if (transition.guard) entry.guard = transition.guard;
@@ -44,7 +45,7 @@ export function normalizeTransitions(transitions = [], states) {
 }
 
 // R4: one initial (enforced in normalizeStates), every declared terminal
-// reachable from initial, intents unique (enforced above).
+// reachable from initial (intent targeting enforced above).
 export function checkStateTotality(type = {}) {
   const axis = type.states?.main;
   if (!axis) return [];

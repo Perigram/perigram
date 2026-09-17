@@ -1,6 +1,6 @@
-# COMPONENT: @cutkit/cts
+# COMPONENT: @perigram/cts
 
-The CutKit Type System: the value universe, type declarations, classes,
+The Perigram Type System: the value universe, type declarations, classes,
 edges, states, operators, expressions, versioned diffing, and tenancy that
 the process designer authors and the compiler enforces. Pure declarations
 and checks — no Vue, Nuxt, Mongo, or worker imports.
@@ -31,10 +31,27 @@ module layout and how the code maps to the spec's build-order tiers.
 - `registry.js` — type records as data, tenancy resolution (system first,
   one org overlay, no shadowing), `compile()` running R1–R6, instance
   validation with `typeVersion` ill-typing.
+- `render.js` — render-policy projection (labels/icons/state severities
+  derived from declarations; where hand-mirrored status tables die) and
+  `compileClientBundle()`, the single frontend/designer consumption contract.
+- `compat/domain-cnc.js` — the strangler converter: maps live
+  `@cutkit/domain-cnc` entities, workflows, containment, and attachment
+  kinds onto CTS type records (pure mapping, no domain import). Legacy
+  `data.*` payloads land as quarantined `legacy`/`specs` Json fields until
+  per-type field extraction; derivation containment edges (cassette →
+  cassette-design, run → sheet-design, design → sheet) become child-side
+  relations instead of lineage children.
 - `pack/cnc.js` — the CNC starter type pack: the collapse-table acceptance
   fixture (file/item/group/process families, the typed nesting seam, and
   sample instances).
 - `index.js` — public exports.
+
+## Consumption
+
+`server/api/admin/cts/types.get.js` compiles the strangler bundle for the
+designer; `pages/organization/types.vue` renders it (the read-only seed of
+the designer types pane). See
+[pages/organization/README.md](../../pages/organization/README.md).
 
 ## Validation
 

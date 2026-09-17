@@ -15,5 +15,5 @@ runtime modules.
 | [nodi-occs-graph-checklist.md](./nodi-occs-graph-checklist.md) | Short build sheet for the first Nodi3d operation graphs needed to evaluate OCCS cassette templates. |
 | [cassette-schema.md](./cassette-schema.md) | Legacy recursive cassette JSON format with expression fields, node attachment rules, cuts, children, and validation constraints. |
 | [data-schema.md](./data-schema.md) | Documents current CNC nesting data structures, persistence collections, legacy compatibility notes, and related template/layer concepts. |
-| [CutKit Type System](../../packages/cts/SPEC.md) | Proposed CTS, canonical copy lives with the `@cutkit/cts` package: value universe over a JSON Schema substrate, entity shape, classes/edges/states/operators, versioned migrations, static rules, totality with CEL-semantics expressions, runtime contract, triggers, payload traits, build order. |
+| [Perigram Type System](../../packages/cts/SPEC.md) | Proposed CTS, canonical copy lives with the `@perigram/cts` package: value universe over a JSON Schema substrate, entity shape, classes/edges/states/operators, versioned migrations, static rules, totality with CEL-semantics expressions, runtime contract, triggers, payload traits, build order. |
 

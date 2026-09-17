@@ -1,4 +1,4 @@
-# TODO: @cutkit/cts
+# TODO: @perigram/cts
 
 Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
 §19 core tier first; deferred tiers land only on a failing need.
@@ -26,9 +26,12 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
 
 ## Next: strangler integration (app-side)
 
-- [ ] Compiler pass that auto-converts `packages/domain-cnc` declarations
-  (entities, workflows, attachment kinds, field access, summaries) into CTS
-  type records — collection-per-type storage stays (SPEC §13 strangler note)
+- [x] Compiler pass that auto-converts `packages/domain-cnc` declarations
+  (entities, workflows, attachment kinds) into CTS type records —
+  `compat/domain-cnc.js`; live consumption via
+  `server/api/admin/cts/types.get.js` and the read-only designer types pane
+  `pages/organization/types.vue`. Per-type field extraction from `legacy`
+  Json rows remains open per entity.
 - [ ] Translate org-authored process definitions to the new field paths;
   reuse `data.schemaVersion` migration pattern in `packages/processes`
 - [ ] Split `server/features/nesting/operations.js` into the declared
@@ -39,8 +42,9 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
 - [ ] Wire Ajv on the generated JSON Schemas (server DTO redaction) and
   JSONForms/FormKit generation in the designer — the substrate is emitted,
   the consumers are not yet
-- [ ] Process designer: types pane (facet editors), save = compile with
-  inline R1–R7 diagnostics, migration-refusal UX
+- [ ] Process designer: turn the read-only types pane into the authoring
+  types editor (facet editors, save = compile with inline R1–R7 diagnostics,
+  migration-refusal UX)
 - [ ] Frontend: derive navigation/hierarchy from containment edges;
   delete hardcoded type strings (`utils/entity-hierarchy.js`,
   `stores/navigation.js`, `utils/queue-items.js`)

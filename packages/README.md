@@ -14,7 +14,7 @@ Internal npm workspace packages used to extract the reusable industrial workflow
 | `@cutkit/devtools` | Architecture/data-model inspection helpers |
 | `@cutkit/mcp` | Read-only MCP tool handlers for schema/workflow/docs inspection |
 | `@cutkit/processes` | Organization process definition normalization, validation, and compilation |
-| `@cutkit/cts` | CutKit Type System: value universe, type declarations, classes, edges, states, operators, expressions, diffing, tenancy (see its `SPEC.md`) |
+| `@perigram/cts` | Perigram Type System: value universe, type declarations, classes, edges, states, operators, expressions, diffing, tenancy (see its `SPEC.md`) |
 | `@cutkit/domain-cnc` | CutKit CNC entity, workflow, command, task, attachment-kind, UI, and summary definitions |
 
 Module boundaries, runtime relationships, and per-package contracts are

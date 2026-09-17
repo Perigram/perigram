@@ -29,5 +29,12 @@ export {
   normalizeType, createTypeRegistry, validateInstance, schemaFor
 } from './registry.js';
 export {
+  renderPolicyFor, compileClientBundle
+} from './render.js';
+export {
+  convertCncDomain, convertCncWorkflows, convertCncEntities,
+  convertCncContainment, convertAttachmentKinds, classForEntityType, toTypeId
+} from './compat/domain-cnc.js';
+export {
   cncTypePack, partyTypes, nestingOperators, packFixtures
 } from './pack/cnc.js';

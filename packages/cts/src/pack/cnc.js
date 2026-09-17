@@ -23,7 +23,7 @@ export const cncTypePack = [
     id: 'occs',
     class: 'file',
     version: 1,
-    payload: { mime: 'application/cutkit+occs', accept: ['.occs'], byteLimit: 5 * 1024 * 1024 },
+    payload: { mime: 'application/perigram+occs', accept: ['.occs'], byteLimit: 5 * 1024 * 1024 },
     fields: {
       parameters: { base: 'list', itemType: { base: 'record', fields: {
         name: { base: 'string' }, value: { base: 'quantity', unit: 'mm' } } } },

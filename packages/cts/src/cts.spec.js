@@ -92,12 +92,12 @@ describe('state totality (R4)', () => {
     })).toThrow(/from ghost/);
     expect(() => registry.defineType({
       id: 'bad-intents', class: 'item', fields: { serial: { base: 'string' } },
-      states: { main: { initial: 'draft', values: ['draft', 'done'], terminal: ['done'] } },
+      states: { main: { initial: 'draft', values: ['draft', 'done', 'dead'], terminal: ['done'] } },
       transitions: [
         { from: 'draft', to: 'done', intent: 'go' },
-        { from: 'done', to: 'done', intent: 'go' }
+        { from: 'draft', to: 'dead', intent: 'go' }
       ]
-    })).toThrow(/duplicate intent go/);
+    })).toThrow(/one intent has one target/);
     registry.defineType({
       id: 'unreachable', class: 'item', fields: { serial: { base: 'string' } },
       states: { main: { initial: 'draft', values: ['draft', 'dead', 'alive'], terminal: ['dead'] } },
