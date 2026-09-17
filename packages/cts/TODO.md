@@ -32,16 +32,27 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
   `server/api/admin/cts/types.get.js` and the read-only designer types pane
   `pages/organization/types.vue`. Per-type field extraction from `legacy`
   Json rows remains open per entity.
-- [ ] Translate org-authored process definitions to the new field paths;
-  reuse `data.schemaVersion` migration pattern in `packages/processes`
-- [ ] Split `server/features/nesting/operations.js` into the declared
-  π (extract) / σ (solve) / κ (run) operators with `provenance.effective`
-  snapshots replacing `machineSnapshot`/`toolSnapshot`
+- [~] Translate org-authored process definitions to the new field paths —
+  **re-scoped, gated**: under the strangler, storage keeps
+  collection-per-type and old field paths; process-definition translation
+  has nothing to target until per-type field extraction and the storage
+  migration land. Blocked-by: field extraction (above), not by compiler
+  machinery. Do not build a dead mapping ahead of that.
+- [x] Split `server/features/nesting/operations.js` into the declared
+  π (`projections.js`, pure) / κ (`operations.js`, command + materializer)
+  operators with `provenance.solve.effective` replacing
+  `machineSnapshot`/`toolSnapshot`/`materialSnapshot` on runs, designs, and
+  sheets; `server/scripts/migrate-nesting-provenance.js` migrates persisted
+  records (run it before deploying); `SheetDesignEditor.vue` reads
+  provenance. σ stays the external solver behind the typed value request.
 - [ ] Uniform service signatures in `server/runtime/app-registry.js`
-  collapsing the four adapter maps + delete switch
-- [ ] Wire Ajv on the generated JSON Schemas (server DTO redaction) and
-  JSONForms/FormKit generation in the designer — the substrate is emitted,
-  the consumers are not yet
+  collapsing the four adapter maps + delete switch — touches ~30 feature
+  services and their callers; needs its own session with e2e coverage
+- [~] Wire Ajv on the generated JSON Schemas — **deferred with reason**:
+  the only available ajv is a transitive 6.x (draft-07; cannot validate the
+  emitted 2020-12 schemas), and the real consumer (server DTO redaction)
+  does not exist yet. Adding `ajv@8` as a dependency is correct the day
+  that consumer is built; the in-package total walker already validates.
 - [ ] Process designer: turn the read-only types pane into the authoring
   types editor (facet editors, save = compile with inline R1–R7 diagnostics,
   migration-refusal UX)

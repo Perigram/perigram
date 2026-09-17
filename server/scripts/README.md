@@ -15,6 +15,8 @@ node server/scripts/seed-layer-standards.js  # OCCS layer standards from docs/sp
 node server/scripts/seed-system-pens.js      # OCCS/default system pens
 node server/scripts/seed-system-tools.js     # 6 common tools
 node server/scripts/migrate-entity-revisions.js # Backfill cassette geometry revisions and design provenance
+node server/scripts/migrate-nesting-provenance.js # Dry-run move of nesting data.*Snapshot fields into provenance.solve.effective
+node server/scripts/migrate-nesting-provenance.js --apply # Persist provenance.solve.effective and drop legacy snapshot fields
 node server/scripts/migrate-artifact-file-revisions.js # Dry-run artifact current-file revision backfill
 node server/scripts/migrate-artifact-file-revisions.js --apply # Persist retained file revisions and scoped pointers
 node server/scripts/migrate-public-system-data.js # Mark system materials/layers/pens/tools public-read
