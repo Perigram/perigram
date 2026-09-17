@@ -36,8 +36,24 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
   saved through the L0 API with compile errors inline). Remaining facets
   are node/editors too, not forms: rows with V types + units, edges +
   onRemove, operators + triggers, payload traits, render policy.
+- [x] **Server compiles through CTS**: activation, contract diff, draft
+  save, and the active runtime all use `getProjectedDomain` (org type store
+  + strangler system view). Proven by the env-gated live spec
+  `cts-server-equality.spec.js` (run inside the app container against the
+  dev DB): every active definition byte-matches the legacy pipeline,
+  failures included.
 - [ ] **L2 — graph rebase**: palette = operator registry, sockets carry V
   types, property editors = expression language, R5 dataflow typing
+- [ ] **Designer type nodes**: the exact seam is `RECORD_NODE_TYPES` +
+  `CANVAS_OWNED_RECORD_KEYS` in `packages/processes/src/transpiler.js` —
+  only statusDefinition/processNode canvas nodes survive the round trip
+  today; a `ctsType` reference node needs a `ctsTypes` record home there,
+  then the standard pattern (factories map, `recordKeyForType`,
+  `syncNodeData`, palette group, inline node card) in process.vue. The
+  compiled contract already consumes org types via the projection — the
+  nodes are authoring/referencing surface, not a compilation need.
+- [x] `contract-diff.js` stays (audit correction: it diffs process graph
+  contracts; CTS diffs type versions — no overlap, nothing to collapse)
 - [ ] **L3 — runtime swap**: compiled org app reads the CTS bundle;
   command runtime binds operator signatures (gated on app-registry
   signature unification below)
