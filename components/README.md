@@ -1089,14 +1089,17 @@ action opens a workspace chats tab pinned to the active conversation
 and call tab opens) instead of a separate route; an unpinned expand opens
 the general chats tab. The chat popup is one PrimeVue `Dialog` for every
 viewport (`layouts/app.vue`): non-modal (desktop keeps working under the
-chat), full-bleed sheet below `md` / `support-chat` token-sized card
-above, surface pinned to the `content` background token, Dialog header
-hidden, and the embedded `ChatSupport` column renders the inbox/thread
-headers with back and close. ChatSupport itself carries no overlay chrome
-— position and stacking belong to its hosts (popup Dialog, `/chats`
-route, entity detail panel, call workspace). The viewport meta carries
-`interactive-widget=resizes-content` so the full-height mobile sheet
-keeps the composer above the soft keyboard.
+chat), a bounded card everywhere — `support-chat` token size on a
+dedicated height wrapper (never merged onto ChatSupport's own `h-full`
+root; competing height utilities resolve by CSS order and once produced
+a content-growing dialog), capped to `calc(100dvh - 6rem)` so the soft
+keyboard can never cover the composer. Surface pinned to the `content`
+background token, Dialog header hidden, and the embedded `ChatSupport`
+column renders the inbox/thread headers with back and close. ChatSupport
+itself carries no overlay chrome — position and stacking belong to its
+hosts (popup Dialog, `/chats` route, entity detail panel, call
+workspace). The viewport meta carries
+`interactive-widget=resizes-content` so the keyboard cap reacts live.
 Entity-linked chats ride the same surfaces: the inbox is one unified
 timestamp-ordered list across person, group, and entity chats — the avatar
 glyph (person image/letter, group icon, entity type icon) carries the kind,
