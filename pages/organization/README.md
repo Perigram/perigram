@@ -62,15 +62,17 @@ in the browser — expression AST evaluation with unit arithmetic and match
 exhaustiveness, plus instance validation against the strangler-converted
 types (see [components/process-designer/README.md](../../components/process-designer/README.md)).
 
-`types.vue` is the CTS type registry pane — the read-only seed of the
-designer's types editor (see
-[packages/cts/SPEC.md](../../packages/cts/SPEC.md)). It fetches
-`/api/admin/cts/types`, the compiled organization view: strangler-converted
-`@cutkit/domain-cnc` declarations plus any org-authored types stored through
-`server/features/cts-types` (POST the same endpoint to author — the pane
-picks them up on reload). It renders the view grouped by class with derived
-render policy (labels, icons, state severities), per-type transitions,
-children edges, operators, and the compile diagnostics.
+`types.vue` is the CTS types canvas — the designer's type graph (see
+[packages/cts/SPEC.md](../../packages/cts/SPEC.md)). Type nodes are laid out
+by class (file/item/group/process/party) and wired by their declared
+children and relation edges; double-clicking a type opens its state machine
+as state nodes with transition wires (intents as edge labels). Org-authored
+types are editable in place: drag between states to add a transition, set
+initial/terminal and intents in the inspector, Backspace deletes, Save
+builds the declaration and posts it through the L0 storage API — registry
+compile errors surface as toasts and the diff refuses breaking edits.
+System types open read-only. New org types start from the New type dialog
+(id + class) and are saved the same way.
 
 The route uses the authenticated app layout with a full canvas workspace and
 the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell. The

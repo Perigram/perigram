@@ -30,10 +30,12 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
   `server/features/cts-types` (validate/diff-refuse/rollback via the real
   registry) + `GET|POST /api/admin/cts/types`, `DELETE /api/admin/cts/types/:id`;
   the merged org view feeds the types pane and language tester.
-- [ ] **L1 — types editor**: facet forms on the types pane (rows with V
-  types + units, edges + onRemove, states/transitions/intents, operators +
-  triggers, payload traits, render policy), save = compile with inline
-  R1–R7 diagnostics, diff-refusal UX on breaking edits
+- [~] **L1 — types editor**: node-based editor lives at
+  `/organization/types` (types canvas + per-type state machines; states,
+  transitions, intents, initial/terminal authored by graph gestures and
+  saved through the L0 API with compile errors inline). Remaining facets
+  are node/editors too, not forms: rows with V types + units, edges +
+  onRemove, operators + triggers, payload traits, render policy.
 - [ ] **L2 — graph rebase**: palette = operator registry, sockets carry V
   types, property editors = expression language, R5 dataflow typing
 - [ ] **L3 — runtime swap**: compiled org app reads the CTS bundle;
