@@ -452,15 +452,15 @@ export async function createFromRun(run, data, userId) {
       sheetCount: Math.max(Number(data.sheetCount || 1), 1),
       materialPool: data.materialPool || run.data?.materialPool || [],
       solveParams: data.solveParams || run.data?.params || {},
-      machineSnapshot: data.machineSnapshot || run.data?.machineSnapshot || null,
-      toolSnapshot: data.toolSnapshot || run.data?.toolSnapshot || null,
-      materialSnapshot: data.materialSnapshot || run.data?.materialSnapshot || null,
       attachments: {
         svg: data.svgId ? createAttachment('SVG', data.svgId, 'Design SVG') : null,
         dxf: data.dxfId ? createAttachment('DXF', data.dxfId, 'Design DXF') : null
       },
       specs: data.specs || {}
     }),
+    provenance: run.provenance?.solve
+      ? { solve: run.provenance.solve }
+      : null,
     summary: {
       ...(data.summary || {}),
       cassetteDesignCount: cassetteDesigns.length,

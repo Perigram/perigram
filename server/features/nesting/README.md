@@ -4,6 +4,15 @@ Command handler and compatibility job metadata for queue nesting.
 
 ## Responsibilities
 
+- `projections.js` is the pure π layer (`@perigram/cts` SPEC §8): job-file
+  geometry resolution (with an injected parametric evaluator), solver request
+  building, material-pool normalization, polygon inset/normalization, result
+  enrichment, and summary math. No service imports, no persistence, no auth.
+- `operations.js` is the κ layer: `solveNesting` (command), the
+  `nesting.solve` executor, machine/tool/material snapshot resolution, and
+  the sheet-design/sheet materializer. It re-exports the projections it
+  composed from before the split.
+
 - `operations.js` implements the `solveNesting` command.
 - The handler validates queue state, creates a `nesting_run`, enqueues
   `nesting.solve`, writes a linked compatibility `nesting_jobs` record, and
@@ -39,8 +48,16 @@ Command handler and compatibility job metadata for queue nesting.
   state until the app-side `nesting.solveCompleted` event transitions the run.
 - Run summaries use explicit worker `efficiency`/`remnantArea` metrics when
   present. Current `lbf` responses usually expose only `solution.density` and
-  layout placements, so `operations.js` falls back to density and then placed
+  layout placements, so the projections fall back to density and then placed
   source polygon area to derive card-visible utilization and remnant area.
+- Run and output provenance: `solveNesting` records the solve's effective
+  inputs on the run as `provenance.solve.effective.{machine,tool,material}`
+  (CTS provenance semantics; determinism is not required of the solver, the
+  recorded effective inputs are the replay record). `sheet_design` and each
+  `sheet` carry that same `provenance.solve` forward instead of
+  `data.*Snapshot` fields; `server/scripts/migrate-nesting-provenance.js`
+  moves persisted records. The compatibility `nesting_jobs` collection keeps
+  its flat snapshot fields.
 - Compatibility `nesting_jobs.projectSlug` is resolved from the parent project,
   not the queue, so notification/statistics plugins can find the project.
 - Before rejecting a queue as already nesting, the handler checks the active

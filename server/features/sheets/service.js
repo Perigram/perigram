@@ -94,22 +94,22 @@ export async function createFromSheetDesign(design, count, { organizationId, use
       status: initialStatus,
       lineage,
       specs: design.specs || {},
-      provenance: design.data?.revisions?.geometry?.currentId ? {
-        parent: {
-          source: {
-            type: 'sheet_design',
-            id: design._id,
-            revisionId: design.data.revisions.geometry.currentId
+      provenance: {
+        ...(design.data?.revisions?.geometry?.currentId ? {
+          parent: {
+            source: {
+              type: 'sheet_design',
+              id: design._id,
+              revisionId: design.data.revisions.geometry.currentId
+            }
           }
-        }
-      } : {},
+        } : {}),
+        ...(design.provenance?.solve ? { solve: design.provenance.solve } : {})
+      },
       data: {
         serial,
         sheetIndex: index,
-        compositionHash: design.data?.compositionHash || '',
-        machineSnapshot: design.data?.machineSnapshot || null,
-        toolSnapshot: design.data?.toolSnapshot || null,
-        materialSnapshot: design.data?.materialSnapshot || null
+        compositionHash: design.data?.compositionHash || ''
       }
     }));
     created.push(new Sheet(raw).toJSON());
