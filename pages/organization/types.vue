@@ -1,11 +1,11 @@
 <script setup>
-// CTS types canvas, structured after the process designer: no page title,
-// actions in the workspace top dock, VueFlow as the direct canvas child,
-// node/edge events bound as template props. Type nodes wired by declared
-// edges; double-click opens the type's state machine; org types are
-// editable and saved through the L0 storage API.
-import { computed, h, nextTick, onMounted, onErrorCaptured, ref, watch } from 'vue';
-import { SelectionMode, VueFlow, useVueFlow } from '@vue-flow/core';
+// CTS types editor on the process-designer authoring model: palette (left)
+// offers authoring actions and openable types; the canvas shows the opened
+// type's state machine as inline-editable state cards wired by drag between
+// handles; transitions carry intents edited in the inspector; Save posts the
+// declaration through the type storage API.
+import { computed, h, nextTick, onMounted, onErrorCaptured, ref } from 'vue';
+import { VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
@@ -17,47 +17,30 @@ import { useToast } from 'primevue/usetoast';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
+import MotionDock from '~/components/shared/MotionDock.vue';
+import CtsStateNode from '~/components/process-designer/CtsStateNode.vue';
 
 definePageMeta({ layout: 'app', middleware: 'auth' });
+const toast = useToast();
+const { fitView } = useVueFlow();
+
 const mountError = ref('');
 onErrorCaptured(error => {
   mountError.value = error?.message || String(error);
   return false;
 });
-const toast = useToast();
-const { fitView } = useVueFlow();
-
-const CLASS_ORDER = ['party', 'file', 'group', 'process', 'item'];
-const CLASS_NODE_CLASS = {
-  party: 'cts-node cts-node-party',
-  file: 'cts-node cts-node-file',
-  group: 'cts-node cts-node-group',
-  process: 'cts-node cts-node-process',
-  item: 'cts-node cts-node-item'
-};
 
 const types = ref([]);
 const loading = ref(true);
-const mode = ref('types'); // 'types' | 'states'
 const selectedTypeId = ref(null);
 const saving = ref(false);
 const isNewDraft = ref(false);
-const selectedNodeId = ref(null);
-const selectedEdgeId = ref(null);
+const dirty = ref(false);
+const paletteQuery = ref('');
 
-const flowNodes = computed({
-  get: () => (mode.value === 'types' ? typeNodes.value : stateNodes.value),
-  set: value => { if (mode.value === 'types') typeNodes.value = value; else stateNodes.value = value; }
-});
-const flowEdges = computed({
-  get: () => (mode.value === 'types' ? typeEdges.value : stateEdges.value),
-  set: value => { if (mode.value === 'types') typeEdges.value = value; else stateEdges.value = value; }
-});
-const flowDeleteKey = computed(() => (mode.value === 'states' && editable.value ? 'Backspace' : null));
 const selectedType = computed(() => types.value.find(type => type.id === selectedTypeId.value) || null);
 const editable = computed(() => Boolean(selectedType.value && (isNewDraft.value || selectedType.value.scope === 'org')));
 
-// ---- load ----
 async function load() {
   loading.value = true;
   try {
@@ -77,62 +60,53 @@ onMounted(load);
 
 async function refit() {
   await nextTick();
-  const hasNodes = (mode.value === 'types' ? typeNodes.value : stateNodes.value).length > 0;
-  if (hasNodes) fitView({ padding: 0.16, duration: 0, maxZoom: 1 });
+  if (stateNodes.value.length) fitView({ padding: 0.2, duration: 0, maxZoom: 1 });
 }
 
-// ---- type graph ----
-const typeNodes = ref([]);
-const typeEdges = ref([]);
+// ---- palette: searchable grouped add/open actions (process-designer pattern) ----
+const orgTypes = computed(() => types.value.filter(type => type.scope === 'org'));
 
-function buildTypeGraph() {
-  const byClass = new Map(CLASS_ORDER.map(className => [className, []]));
-  for (const type of types.value) {
-    if (!byClass.has(type.class)) byClass.set(type.class, []);
-    byClass.get(type.class).push(type);
-  }
-  const nodes = [];
-  const present = new Set(types.value.map(type => type.id));
-  const edges = [];
-  for (const [className, group] of byClass) {
-    const columnIndex = CLASS_ORDER.indexOf(className);
-    group.forEach((type, index) => {
-      nodes.push({
-        id: `type:${type.id}`,
-        position: { x: 60 + columnIndex * 330, y: 90 + index * 92 },
-        label: type.id,
-        class: CLASS_NODE_CLASS[className] || 'cts-node',
-        data: { type },
-        draggable: true
-      });
+const paletteGroups = computed(() => {
+  const query = paletteQuery.value.trim().toLowerCase();
+  const groups = [];
+  if (selectedType.value && editable.value) {
+    groups.push({
+      id: 'authoring',
+      items: [{ id: 'add-state', icon: 'pi pi-plus-circle', label: 'Add state', action: addState }]
     });
   }
-  for (const type of types.value) {
-    for (const [key, declaration] of Object.entries(type.edges?.children || {})) {
-      for (const target of declaration.types) {
-        if (present.has(target) && target !== type.id) {
-          edges.push({ id: `child:${type.id}:${target}`, source: `type:${type.id}`, target: `type:${target}`, label: key });
-        }
-      }
-    }
-    for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
-      for (const target of declaration.types) {
-        if (present.has(target) && target !== type.id) {
-          edges.push({ id: `rel:${type.id}:${target}`, source: `type:${type.id}`, target: `type:${target}`, label: key, class: 'cts-edge-rel' });
-        }
-      }
-    }
+  const orgMatches = orgTypes.value.filter(type => !query || type.id.includes(query));
+  if (orgMatches.length) {
+    groups.push({
+      id: 'your types',
+      items: orgMatches.map(type => ({
+        id: `open:${type.id}`,
+        icon: type.id === selectedTypeId.value ? 'pi pi-pencil' : 'pi pi-file',
+        label: type.id,
+        action: () => openType(type.id)
+      }))
+    });
   }
-  typeNodes.value = nodes;
-  typeEdges.value = edges;
-}
-watch(types, buildTypeGraph, { immediate: true });
-watch(mode, () => refit());
+  const systemMatches = types.value
+    .filter(type => type.scope === 'system' && (!query || type.id.includes(query)))
+    .slice(0, query ? 30 : 12);
+  if (systemMatches.length) {
+    groups.push({
+      id: 'system types (read-only)',
+      items: systemMatches.map(type => ({
+        id: `view:${type.id}`,
+        icon: 'pi pi-eye',
+        label: type.id,
+        action: () => openType(type.id)
+      }))
+    });
+  }
+  return groups;
+});
 
-// ---- state machine graph ----
+// ---- canvas: the opened type's state machine ----
 const stateNodes = ref([]);
 const stateEdges = ref([]);
-const dirty = ref(false);
 
 function openType(typeId) {
   const type = types.value.find(candidate => candidate.id === typeId);
@@ -140,18 +114,17 @@ function openType(typeId) {
   selectedTypeId.value = typeId;
   isNewDraft.value = false;
   buildStateGraph(type);
-  mode.value = 'states';
 }
 
 function buildStateGraph(type) {
   const values = type.states?.main?.values || [];
   const terminal = new Set(type.states?.main?.terminal || []);
+  const canEdit = isNewDraft.value || type.scope === 'org';
   stateNodes.value = values.map((name, index) => ({
     id: `state:${index}:${name}`,
-    position: { x: 80 + (index % 4) * 250, y: 80 + Math.floor(index / 4) * 170 },
-    label: name,
-    class: terminal.has(name) ? 'cts-node cts-node-terminal' : 'cts-node cts-node-state',
-    data: { name, initial: name === type.states?.main?.initial, terminal: terminal.has(name) }
+    type: 'ctsState',
+    position: { x: 120 + (index % 3) * 260, y: 100 + Math.floor(index / 3) * 190 },
+    data: { name, initial: name === type.states?.main?.initial, terminal: terminal.has(name), editable: canEdit }
   }));
   stateEdges.value = (type.transitions || []).map((transition, index) => {
     const source = stateNodes.value.find(node => node.data.name === transition.from)?.id;
@@ -161,32 +134,39 @@ function buildStateGraph(type) {
       source,
       target,
       label: transition.intent || '',
-      animated: true,
+      animated: Boolean(transition.intent),
       class: transition.intent ? '' : 'cts-edge-nointent',
       data: { intent: transition.intent || '' }
     };
   }).filter(edge => edge.source && edge.target);
   dirty.value = false;
+  refit();
 }
 
-// ---- canvas events (template props, like the process designer) ----
-function handleNodeDoubleClick({ node }) {
-  if (mode.value === 'types' && node.id?.startsWith('type:')) openType(node.id.slice(5));
+function addState() {
+  if (!editable.value) return;
+  const index = stateNodes.value.length;
+  const name = `state${index + 1}`;
+  stateNodes.value.push({
+    id: `state:${Date.now()}:${name}`,
+    type: 'ctsState',
+    position: { x: 120 + (index % 3) * 260, y: 100 + Math.floor(index / 3) * 190 },
+    data: { name, initial: index === 0, terminal: false, editable: true }
+  });
+  dirty.value = true;
+  refit();
 }
-function handleNodeClick({ node }) {
-  selectedNodeId.value = node.id;
-  selectedEdgeId.value = null;
+
+function onStateChange(node) {
+  dirty.value = true;
 }
-function handleEdgeClick({ edge }) {
-  selectedEdgeId.value = edge.id;
-  selectedNodeId.value = null;
+function setInitial(node) {
+  for (const candidate of stateNodes.value) candidate.data.initial = candidate.id === node.id;
+  dirty.value = true;
 }
-function handlePaneClick() {
-  selectedNodeId.value = null;
-  selectedEdgeId.value = null;
-}
+
 function handleConnect(connection) {
-  if (mode.value !== 'states' || !editable.value) return;
+  if (!editable.value) return;
   const source = stateNodes.value.find(node => node.id === connection.source);
   const target = stateNodes.value.find(node => node.id === connection.target);
   if (!source || !target) return;
@@ -195,65 +175,49 @@ function handleConnect(connection) {
     source: connection.source,
     target: connection.target,
     label: '',
-    animated: true,
+    animated: false,
     class: 'cts-edge-nointent',
     data: { intent: '' }
   });
   dirty.value = true;
 }
 
-// ---- inspector edits ----
-const selectedStateNode = computed(() => stateNodes.value.find(node => node.id === selectedNodeId.value) || null);
+const selectedEdgeId = ref(null);
 const selectedTransition = computed(() => stateEdges.value.find(edge => edge.id === selectedEdgeId.value) || null);
-const selectedTypeNode = computed(() => typeNodes.value.find(node => node.id === selectedNodeId.value) || null);
 
-function renameState(node, name) {
-  const clean = String(name || '').trim();
-  if (!clean || clean === node.data.name) return;
-  node.data.name = clean;
-  node.label = clean;
-  dirty.value = true;
+function handleEdgeClick({ edge }) {
+  selectedEdgeId.value = edge.id;
 }
-function setInitial(node) {
-  for (const candidate of stateNodes.value) candidate.data.initial = candidate.id === node.id;
-  dirty.value = true;
-}
-function toggleTerminal(node) {
-  node.data.terminal = !node.data.terminal;
-  node.class = node.data.terminal ? 'cts-node cts-node-terminal' : 'cts-node cts-node-state';
-  dirty.value = true;
-}
+
 function setIntent(edge, intent) {
   edge.data.intent = String(intent || '').trim();
   edge.label = edge.data.intent;
+  edge.animated = Boolean(edge.data.intent);
   edge.class = edge.data.intent ? '' : 'cts-edge-nointent';
   dirty.value = true;
 }
-function addState() {
-  if (!editable.value) return;
-  const index = stateNodes.value.length;
-  const name = `state${index + 1}`;
-  stateNodes.value.push({
-    id: `state:${Date.now()}:${name}`,
-    position: { x: 80 + (index % 4) * 250, y: 80 + Math.floor(index / 4) * 170 },
-    label: name,
-    class: index === 0 ? 'cts-node cts-node-initial' : 'cts-node cts-node-state',
-    data: { name, initial: index === 0, terminal: false }
-  });
-  dirty.value = true;
-}
-function removeSelected() {
-  if (!editable.value) return;
-  if (selectedStateNode.value) {
-    stateNodes.value = stateNodes.value.filter(node => node.id !== selectedStateNode.value.id);
-    stateEdges.value = stateEdges.value.filter(edge => edge.source !== selectedStateNode.value.id && edge.target !== selectedStateNode.value.id);
-    selectedNodeId.value = null;
-    dirty.value = true;
-  } else if (selectedTransition.value) {
-    stateEdges.value = stateEdges.value.filter(edge => edge.id !== selectedTransition.value.id);
-    selectedEdgeId.value = null;
-    dirty.value = true;
+
+// ---- new type ----
+const showNewType = ref(false);
+const newTypeId = ref('');
+const newTypeClass = ref('file');
+const classOptions = ['file', 'group', 'process', 'item'].map(className => ({ label: className, value: className }));
+
+function createDraftType() {
+  const id = String(newTypeId.value || '').trim().replace(/_/g, '-');
+  if (!/^[a-z][a-z0-9-]*$/.test(id)) {
+    toast.add({ severity: 'error', summary: 'Type id must be kebab-case (e.g. widget)', life: 4000 });
+    return;
   }
+  selectedTypeId.value = id;
+  isNewDraft.value = true;
+  stateNodes.value = [];
+  stateEdges.value = [];
+  selectedEdgeId.value = null;
+  showNewType.value = false;
+  dirty.value = true;
+  addState();
+  toast.add({ severity: 'info', summary: `Authoring ${id}`, detail: 'add states, wire transitions, set intents, then Save', life: 4000 });
 }
 
 // ---- save / delete ----
@@ -269,7 +233,7 @@ function buildDeclaration() {
     ...(base.edges ? { edges: base.edges } : {}),
     ...(base.operators ? { operators: base.operators } : {})
   };
-  const values = stateNodes.value.map(node => node.data.name);
+  const values = stateNodes.value.map(node => String(node.data.name || '').trim()).filter(Boolean);
   if (values.length) {
     declaration.states = {
       main: {
@@ -312,8 +276,9 @@ async function removeCurrentType() {
   try {
     await $fetch(`/api/admin/cts/types/${encodeURIComponent(selectedType.value.id)}`, { method: 'DELETE' });
     toast.add({ severity: 'success', summary: 'Type removed', life: 2500 });
-    mode.value = 'types';
     selectedTypeId.value = null;
+    stateNodes.value = [];
+    stateEdges.value = [];
     await load();
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Delete failed', detail: error?.data?.message || error?.message, life: 6000 });
@@ -322,63 +287,41 @@ async function removeCurrentType() {
   }
 }
 
-// ---- new type ----
-const showNewType = ref(false);
-const newTypeId = ref('');
-const newTypeClass = ref('file');
-const classOptions = CLASS_ORDER.filter(className => className !== 'party').map(className => ({ label: className, value: className }));
+// ---- bottom dock (canvas actions, process-designer pattern) ----
+const selectedNode = computed(() => stateNodes.value.find(node => node.selected) || null);
 
-function createDraftType() {
-  const id = String(newTypeId.value || '').trim().replace(/_/g, '-');
-  if (!/^[a-z][a-z0-9-]*$/.test(id)) {
-    toast.add({ severity: 'error', summary: 'Type id must be kebab-case (e.g. widget)', life: 4000 });
-    return;
-  }
-  selectedTypeId.value = id;
-  isNewDraft.value = true;
-  stateNodes.value = [];
-  stateEdges.value = [];
-  dirty.value = true;
-  selectedNodeId.value = null;
-  selectedEdgeId.value = null;
-  showNewType.value = false;
-  mode.value = 'states';
-}
-
-// ---- top dock (same pattern as the process designer) ----
-const dockItems = computed(() => {
+const canvasDockItems = computed(() => {
   const items = [];
-  if (mode.value === 'states') {
+  if (selectedType.value) {
     items.push({
       icon: () => h('i', { class: 'pi pi-arrow-left', 'aria-hidden': 'true' }),
-      label: 'Types',
-      onClick: () => { mode.value = 'types'; }
+      label: 'Close type',
+      onClick: () => { selectedTypeId.value = null; stateNodes.value = []; stateEdges.value = []; }
     });
-    items.push({
-      icon: () => h('i', { class: 'pi pi-plus-circle', 'aria-hidden': 'true' }),
-      label: 'Add state',
-      disabled: !editable.value,
-      onClick: addState
-    });
-    items.push({
-      icon: () => h('i', { class: 'pi pi-trash', 'aria-hidden': 'true' }),
-      label: 'Delete selection',
-      disabled: !editable.value,
-      onClick: removeSelected
-    });
-    items.push({
-      icon: () => h('i', { class: saving.value ? 'pi pi-spinner pi-spin' : 'pi pi-check', 'aria-hidden': 'true' }),
-      label: 'Save',
-      disabled: !editable.value,
-      attention: dirty.value,
-      onClick: saveType
-    });
-    if (editable.value && !isNewDraft.value && selectedType.value) {
+    if (editable.value) {
       items.push({
-        icon: () => h('i', { class: 'pi pi-times', 'aria-hidden': 'true' }),
-        label: 'Remove type',
-        onClick: removeCurrentType
+        icon: () => h('i', { class: 'pi pi-plus-circle', 'aria-hidden': 'true' }),
+        label: 'Add state',
+        onClick: addState
       });
+      items.push({
+        icon: () => h('i', { class: 'pi pi-trash', 'aria-hidden': 'true' }),
+        label: 'Delete selection',
+        onClick: deleteSelection
+      });
+      items.push({
+        icon: () => h('i', { class: saving.value ? 'pi pi-spinner pi-spin' : 'pi pi-check', 'aria-hidden': 'true' }),
+        label: 'Save',
+        attention: dirty.value,
+        onClick: saveType
+      });
+      if (!isNewDraft.value) {
+        items.push({
+          icon: () => h('i', { class: 'pi pi-times', 'aria-hidden': 'true' }),
+          label: 'Remove type',
+          onClick: removeCurrentType
+        });
+      }
     }
   } else {
     items.push({
@@ -389,87 +332,146 @@ const dockItems = computed(() => {
   }
   return items;
 });
+
+function deleteSelection() {
+  if (!editable.value) return;
+  if (selectedNode.value) {
+    stateNodes.value = stateNodes.value.filter(node => node.id !== selectedNode.value.id);
+    stateEdges.value = stateEdges.value.filter(edge => edge.source !== selectedNode.value.id && edge.target !== selectedNode.value.id);
+    dirty.value = true;
+  } else if (selectedTransition.value) {
+    stateEdges.value = stateEdges.value.filter(edge => edge.id !== selectedTransition.value.id);
+    selectedEdgeId.value = null;
+    dirty.value = true;
+  }
+}
 </script>
 
 <template>
   <StandardPage workspace>
     <DesignerSurface>
-      <DesignerWorkspace
-        layout="canvas"
-        :top-dock-items="dockItems"
-        class="relative h-full min-h-0 overflow-hidden bg-process-canvas"
-      >
+      <DesignerWorkspace layout="canvas" class="relative h-full min-h-0 overflow-hidden bg-process-canvas">
         <ClientOnly>
           <VueFlow
-            v-model:nodes="flowNodes"
-            v-model:edges="flowEdges"
+            v-model:nodes="stateNodes"
+            v-model:edges="stateEdges"
             class="absolute inset-0 h-full w-full"
-            :min-zoom="0.15"
+            :min-zoom="0.2"
             :max-zoom="2"
-            :delete-key-code="flowDeleteKey"
+            :delete-key-code="editable ? 'Backspace' : null"
             pan-activation-key-code="Space"
             :pan-on-scroll="true"
             :zoom-on-scroll="false"
             :zoom-on-pinch="true"
-            @node-click="handleNodeClick"
-            @node-double-click="handleNodeDoubleClick"
             @edge-click="handleEdgeClick"
-            @pane-click="handlePaneClick"
             @connect="handleConnect"
-          />
+          >
+            <template #node-ctsState="nodeProps">
+              <CtsStateNode
+                :data="nodeProps.data"
+                :selected="nodeProps.selected"
+                @change="onStateChange(nodeProps)"
+                @set-initial="setInitial(nodeProps)"
+              />
+            </template>
+          </VueFlow>
           <template #fallback><div class="absolute inset-0" /></template>
         </ClientOnly>
 
-        <div v-if="mode === 'types'" class="absolute top-2 left-2 z-10 flex gap-3 text-xs surface-0 border-round p-2 shadow-1">
-          <span><span class="cts-legend cts-legend-file" /> file</span>
-          <span><span class="cts-legend cts-legend-group" /> group</span>
-          <span><span class="cts-legend cts-legend-process" /> process</span>
-          <span><span class="cts-legend cts-legend-item" /> item</span>
-          <span><span class="cts-legend cts-legend-party" /> party</span>
+        <div v-if="!selectedType" class="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+          <div class="border-round surface-0 shadow-2 px-4 py-3 text-center pointer-events-auto">
+            <div class="text-lg font-medium">No type open</div>
+            <div class="text-sm text-500 mt-1">Create a type or open one from the palette on the left.</div>
+            <Button label="New type" icon="pi pi-plus" class="mt-3" @click="showNewType = true" />
+          </div>
         </div>
-        <div v-if="mode === 'types'" class="absolute bottom-2 left-2 z-10 text-xs text-500">
-          double-click a type to open its state machine
+
+        <div v-if="selectedType" class="absolute top-2 left-2 z-10 flex gap-2 align-items-center">
+          <span class="text-sm font-medium">{{ selectedType.id }}</span>
+          <Tag :value="selectedType.class" severity="info" />
+          <Tag v-if="!isNewDraft" :value="`v${selectedType.version}`" severity="secondary" />
+          <Tag v-if="!editable" value="system — read-only" severity="secondary" />
+          <Tag v-else-if="dirty" value="unsaved" severity="warn" />
         </div>
+
         <div class="absolute bottom-2 right-2 z-10 text-xs text-500 border-round surface-0 px-2 py-1 shadow-1">
-          {{ mode }}: {{ flowNodes.length }} nodes · {{ flowEdges.length }} edges
+          {{ stateNodes.length }} states · {{ stateEdges.length }} transitions
         </div>
         <div v-if="mountError" class="absolute top-2 left-1/2 z-30 -translate-x-1/2 border-round bg-red-50 border-2 border-red-400 px-3 py-2 text-sm text-red-700 shadow-2 max-w-30rem">
           canvas error: {{ mountError }}
         </div>
-        <div v-if="mode === 'states'" class="absolute top-2 left-2 z-10 text-sm font-medium">
-          {{ selectedTypeId }}<span v-if="isNewDraft"> (new)</span>
-          <Tag v-if="!editable" value="system — read-only" severity="secondary" class="ml-2" />
-          <Tag v-else-if="dirty" value="unsaved" severity="warn" class="ml-2" />
-        </div>
+
+        <template #palette>
+          <div class="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
+            <div class="flex items-center gap-1">
+              <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" placeholder="Search types" />
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <Button
+                icon="pi pi-plus"
+                label="New type"
+                size="small"
+                text
+                class="min-w-0 justify-start border border-transparent bg-subtle px-2 hover:border-content-border"
+                @click="showNewType = true"
+              />
+            </div>
+            <div v-for="group in paletteGroups" :key="group.id" class="flex flex-col gap-1.5">
+              <span class="px-1 uppercase text-muted text-supporting">{{ group.id }}</span>
+              <div class="grid grid-cols-2 gap-1.5">
+                <Button
+                  v-for="item in group.items"
+                  :key="item.id"
+                  :icon="item.icon"
+                  :label="item.label"
+                  size="small"
+                  text
+                  class="min-w-0 justify-start border border-transparent bg-subtle px-2 hover:border-content-border"
+                  @click="item.action"
+                />
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <template #dock>
+          <MotionDock :items="canvasDockItems" aria-label="type editor actions" />
+        </template>
 
         <template #inspector>
-          <div v-if="mode === 'states' && selectedStateNode" class="p-3 flex flex-column gap-2">
-            <div class="text-sm font-medium">State</div>
-            <label class="text-xs">name</label>
-            <InputText :model-value="selectedStateNode.data.name" :disabled="!editable" size="small" @update:model-value="value => renameState(selectedStateNode, value)" />
-            <div class="flex gap-2">
-              <Button label="Set initial" size="small" severity="secondary" outlined :disabled="!editable" @click="setInitial(selectedStateNode)" />
-              <Button :label="selectedStateNode.data.terminal ? 'Unmark terminal' : 'Mark terminal'" size="small" severity="secondary" outlined :disabled="!editable" @click="toggleTerminal(selectedStateNode)" />
-            </div>
+          <div class="p-3 flex flex-column gap-2">
+            <template v-if="selectedTransition">
+              <div class="text-sm font-medium">Transition</div>
+              <div class="text-xs text-500">
+                {{ stateNodes.find(node => node.id === selectedTransition.source)?.data.name }}
+                →
+                {{ stateNodes.find(node => node.id === selectedTransition.target)?.data.name }}
+              </div>
+              <label class="text-xs">intent</label>
+              <InputText
+                :model-value="selectedTransition.data?.intent"
+                :disabled="!editable"
+                size="small"
+                placeholder="e.g. requestNesting"
+                @update:model-value="value => setIntent(selectedTransition, value)"
+              />
+            </template>
+            <template v-else-if="selectedType">
+              <div class="text-sm font-medium">{{ selectedType.id }}</div>
+              <div class="text-xs text-500">{{ selectedType.class }} · {{ stateNodes.length }} states · {{ stateEdges.length }} transitions</div>
+              <div v-if="editable" class="text-xs text-500 mt-2">
+                Rename states and toggle initial/terminal inside the cards.
+                Drag from a state's right handle to another state to add a transition,
+                then click the wire to set its intent here.
+              </div>
+              <div v-else class="text-xs text-500 mt-2">
+                System type — read-only. Use New type to author your own.
+              </div>
+            </template>
+            <template v-else>
+              <div class="text-xs text-500">Create or open a type to start editing.</div>
+            </template>
           </div>
-          <div v-else-if="mode === 'states' && selectedTransition" class="p-3 flex flex-column gap-2">
-            <div class="text-sm font-medium">Transition</div>
-            <div class="text-xs text-500">drag between states to add; click a wire to set its intent</div>
-            <label class="text-xs">intent</label>
-            <InputText :model-value="selectedTransition.data?.intent" :disabled="!editable" size="small" placeholder="e.g. requestNesting" @update:model-value="value => setIntent(selectedTransition, value)" />
-          </div>
-          <div v-else-if="mode === 'states'" class="p-3 text-xs text-500">
-            {{ editable ? 'click a state or wire to edit — drag between states to add a transition' : 'system type: open a copy via New type to author' }}
-          </div>
-          <div v-else-if="selectedTypeNode" class="p-3 flex flex-column gap-1">
-            <div class="text-sm font-medium">{{ selectedTypeNode.data.type.render?.label || selectedTypeNode.data.type.id }}</div>
-            <div class="text-xs text-500">{{ selectedTypeNode.data.type.class }} · v{{ selectedTypeNode.data.type.version }}</div>
-            <div class="text-xs text-500">
-              {{ selectedTypeNode.data.type.states?.main ? `${selectedTypeNode.data.type.states.main.values.length} states · ${selectedTypeNode.data.type.transitions.length} transitions` : 'no lifecycle' }}
-            </div>
-            <Button label="Open state machine" size="small" severity="secondary" outlined class="mt-2" @click="openType(selectedTypeNode.data.type.id)" />
-          </div>
-          <div v-else class="p-3 text-xs text-500">click a type for details · double-click to edit states</div>
         </template>
       </DesignerWorkspace>
     </DesignerSurface>
@@ -494,27 +496,5 @@ const dockItems = computed(() => {
 </template>
 
 <style scoped>
-.cts-node {
-  font-size: 11px;
-  border-width: 2px;
-  border-radius: 8px;
-  padding: 6px 10px;
-  min-width: 120px;
-}
-.cts-node-party { background: #f4f4f5; border-color: #a1a1aa; }
-.cts-node-file { background: #eff6ff; border-color: #93c5fd; }
-.cts-node-group { background: #fffbeb; border-color: #fcd34d; }
-.cts-node-process { background: #faf5ff; border-color: #d8b4fe; }
-.cts-node-item { background: #f0fdf4; border-color: #86efac; }
-.cts-node-state { background: #f8fafc; border-color: #cbd5e1; }
-.cts-node-initial { background: #eff6ff; border-color: #60a5fa; }
-.cts-node-terminal { background: #fef2f2; border-color: #fca5a5; }
-.cts-edge-rel { stroke-dasharray: 6 4; }
 .cts-edge-nointent { stroke-dasharray: 4 4; opacity: 0.7; }
-.cts-legend { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; border: 1px solid rgba(0,0,0,0.2); }
-.cts-legend-file { background: #eff6ff; }
-.cts-legend-group { background: #fffbeb; }
-.cts-legend-process { background: #faf5ff; }
-.cts-legend-item { background: #f0fdf4; }
-.cts-legend-party { background: #f4f4f5; }
 </style>
