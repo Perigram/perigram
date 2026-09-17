@@ -3,6 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   organizationService: { getProcessConfiguration: vi.fn() }
 }));
+vi.mock('../cts-types/service.js', async () => {
+  const cts = await import('~/packages/cts/src/index.js');
+  const domain = await import('~/packages/domain-cnc/src/index.js');
+  const registry = cts.createTypeRegistry({ id: 'spec-cts' });
+  for (const declaration of cts.convertCncDomain({ entities: domain.cncEntities, workflows: domain.cncWorkflows, containment: domain.cncContainment })) {
+    registry.defineType(declaration);
+  }
+  return { compileRegistryForOrganization: async () => registry };
+});
 vi.mock('./repository.js', () => ({ findActiveByOrganization: vi.fn() }));
 vi.mock('~/server/runtime/app-registry.js', () => ({
   getAppRegistry: () => ({ getEntityService: () => mocks.organizationService })

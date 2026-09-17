@@ -7,6 +7,8 @@ import {
   resolveScreens
 } from '~/packages/processes/src/index.js';
 import { cncDomain } from '~/packages/domain-cnc/src/index.js';
+import { compileRegistryForOrganization } from '../cts-types/service.js';
+import { projectDomainFromView } from '~/packages/cts/src/index.js';
 import * as repository from './repository.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { resolveOrganizationSystemScreens } from '../organizations/system-screens.js';
@@ -23,14 +25,18 @@ export async function getActiveCompiledProcess(organizationId) {
   const organization = organizationId
     ? await getAppRegistry().getEntityService('organization').getProcessConfiguration(organizationId)
     : null;
-  return compileActiveProcessRuntime(active?.data || null, organization?.roles || {});
+  return compileActiveProcessRuntime(active?.data || null, organization?.roles || {}, organizationId);
 }
 
-export function compileActiveProcessRuntime(data = null, roles = {}) {
+// The active runtime compiles through the CTS-projected domain so authored
+// organization types are live in every compiled contract.
+export async function compileActiveProcessRuntime(data = null, roles = {}, organizationId = null) {
   if (!data) return null;
-  const migration = migrateProducerOutputIdentities(data, cncDomain);
+  const registry = await compileRegistryForOrganization(organizationId);
+  const domain = projectDomainFromView(registry, organizationId, cncDomain);
+  const migration = migrateProducerOutputIdentities(data, domain);
   if (migration.errors.length) throw new Error(migration.errors.join('; '));
-  return compileProcessDefinition({ ...migration.data, compiled: null }, cncDomain, { roles });
+  return compileProcessDefinition({ ...migration.data, compiled: null }, domain, { roles });
 }
 
 export async function resolveProcessAuth(auth = {}) {

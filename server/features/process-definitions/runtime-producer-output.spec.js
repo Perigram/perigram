@@ -9,9 +9,9 @@ const compiled = {
 };
 
 describe('process workflow resolution', () => {
-  it('repairs a persisted operational producer before compiling active runtime', () => {
+  it('repairs a persisted operational producer before compiling active runtime', async () => {
     const id = 'processNode_1785860422855';
-    const result = compileActiveProcessRuntime({
+    const result = await compileActiveProcessRuntime({
       dataflowVersion: 4,
       processNodes: {
         [id]: {
