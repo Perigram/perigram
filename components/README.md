@@ -1047,8 +1047,8 @@ message page and prepends older pages on scroll-to-top through the
 record through `MediaRecorder`, upload through the files endpoint, and render
 as a native audio player on the bubble plus a voice chip in previews.
 Attachments attach through the shared `ChatAttachmentPicker` (see
-[shared components](./shared/README.md)): the home sidebar verbatim, densely
-padded — home-screen sections whose create actions render as inline entries
+[shared components](./shared/README.md)): a raw Popover + Tree hierarchy —
+home-screen sections whose create actions render as inline entries
 right beside the entity children (no second popup), lazily loaded rows, and
 pure lineage nesting. One tap on an entity adds the ref and closes the
 picker; an inline create entry runs the generated create flow
