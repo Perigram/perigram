@@ -24,6 +24,8 @@ roles, screens, and dock/panel state. Their contracts are exercised directly in
 behavior tests so a disconnected Save, selection, or graph mutation fails even
 when labels remain in the page source.
 
+`TypeAuthoringPanel.vue` hosts type authoring inside the designer (dock: Types) — state cards wired as transitions, intents on wires, Save/Delete through the cts-types store; saving emits `types-changed` so the designer rebuilds its registry-derived option lists live. The standalone `/organization/types` page is gone: one surface.
+
 `LanguageTesterPanel.vue` is the CTS language workbench opened from the
 designer dock (`processDesigner.languageTester`). It imports
 `@perigram/cts` directly in the browser — no endpoint — and evaluates real

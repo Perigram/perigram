@@ -857,6 +857,14 @@
       <LanguageTesterPanel />
     </StandardDialog>
 
+    <StandardDialog v-model:visible="showTypeAuthoring" header="Types" size="xl">
+      <TypeAuthoringPanel
+        :visible="showTypeAuthoring"
+        @types-changed="onTypesChanged"
+        @update:visible="value => showTypeAuthoring = value"
+      />
+    </StandardDialog>
+
   </StandardPage>
 </template>
 
@@ -909,6 +917,7 @@ import { cncEntities, cncWorkflows, cncContainment } from '@cutkit/domain-cnc';
 import { createTypeRegistry, convertCncDomain, checkDeclarationsAgainstCts, projectDomainFromView } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import LanguageTesterPanel from '~/components/process-designer/LanguageTesterPanel.vue';
+import TypeAuthoringPanel from '~/components/process-designer/TypeAuthoringPanel.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import MotionDock from '~/components/shared/MotionDock.vue';
@@ -960,6 +969,7 @@ const compiledPreview = ref(null);
 const compiledPreviewError = ref('');
 const showGrantEditor = ref(false);
 const showLanguageTester = ref(false);
+const showTypeAuthoring = ref(false);
 const grantEditorTarget = ref(null);
 const paletteQuery = ref('');
 const contextPaletteSearch = ref(null);
@@ -1023,6 +1033,12 @@ function ctsProjectedDomain() {
 }
 
 // One joint: rebuild the designer option lists from the registry view.
+function onTypesChanged() {
+  resetCtsRegistry();
+  refreshDesignerFromTypes();
+  schedulePreviewRecompute();
+}
+
 function refreshDesignerFromTypes() {
   const refreshed = createProcessDesignerContract(ctsProjectedDomain(), designerCapabilities);
   Object.assign(designer, refreshed);
@@ -1246,6 +1262,11 @@ const documentDockItems = computed(() => [
     icon: () => h('i', { class: 'pi pi-bolt', 'aria-hidden': 'true' }),
     label: t('processDesigner.languageTester'),
     onClick: () => { showLanguageTester.value = true; }
+  },
+  {
+    icon: () => h('i', { class: 'pi pi-database', 'aria-hidden': 'true' }),
+    label: 'Types',
+    onClick: () => { showTypeAuthoring.value = true; }
   },
   {
     icon: () => h('i', { class: renamingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-pencil', 'aria-hidden': 'true' }),
