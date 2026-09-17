@@ -56,6 +56,14 @@ owns active-process compilation/auth hydration. Organization configuration is
 read and changed through the registered organization service. Neither runtime
 nor the feature service imports another feature's repository.
 
+Process compilation runs through the CTS-projected domain: the active
+runtime, activation, contract diffs, and draft normalization build their
+compiler domain from the organization type store (`server/features/cts-types`)
+overlaid on the strangler-converted system declarations
+(`@perigram/cts` `projectDomainFromView`). A stored org type that no longer
+compiles fails activation loudly. `cts-server-equality.spec.js` is the
+env-gated live proof that the projection compiles byte-identical contracts.
+
 ## Process execution
 
 `POST /api/process-definitions/:id/runs` starts a manual v4 trigger backed by
