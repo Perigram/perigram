@@ -55,7 +55,10 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
   that consumer is built; the in-package total walker already validates.
 - [ ] Process designer: turn the read-only types pane into the authoring
   types editor (facet editors, save = compile with inline R1–R7 diagnostics,
-  migration-refusal UX)
+  migration-refusal UX). The in-designer language tester
+  (`LanguageTesterPanel.vue`, dock entry) already evaluates real expression
+  ASTs and instance validation client-side — extend it, do not add parallel
+  surfaces.
 - [ ] Frontend: derive navigation/hierarchy from containment edges;
   delete hardcoded type strings (`utils/entity-hierarchy.js`,
   `stores/navigation.js`, `utils/queue-items.js`)

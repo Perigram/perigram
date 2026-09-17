@@ -24,6 +24,14 @@ roles, screens, and dock/panel state. Their contracts are exercised directly in
 behavior tests so a disconnected Save, selection, or graph mutation fails even
 when labels remain in the page source.
 
+`LanguageTesterPanel.vue` is the CTS language workbench opened from the
+designer dock (`processDesigner.languageTester`). It imports
+`@perigram/cts` directly in the browser — no endpoint — and evaluates real
+expression ASTs (map/filter, quantity arithmetic, match exhaustiveness)
+against a pasted scope, plus instance validation against the
+strangler-converted CNC types. It is the seed of the designer's inline
+expression typechecking: the same module the compiler runs, executed live.
+
 The Entities palette ends with **Join producer paths** (`producer.join`), the
 one legal convergence point for same-type producer paths: activation rejects
 implicitly converging wires elsewhere on the graph. Its inspector authors the
