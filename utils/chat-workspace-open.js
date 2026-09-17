@@ -6,7 +6,13 @@ const usePendingWorkspaceChat = () => useState('pendingWorkspaceChat', () => nul
 
 function homeWorkspaceRoute() {
     const authStore = useAuthStore();
-    const home = (authStore.screenManifest || []).find(screen => screen.template === 'home' && screen.route);
+    // Same contract as the call routing: only a keyed /screens/ route hosts
+    // the home workspace; malformed manifests fall back to the /chats route.
+    const home = (authStore.screenManifest || []).find(screen => (
+        screen.template === 'home'
+        && typeof screen.route === 'string'
+        && screen.route.startsWith('/screens/')
+    ));
     return home?.route || null;
 }
 
