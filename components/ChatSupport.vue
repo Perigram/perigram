@@ -338,6 +338,7 @@
                         <div
                             :data-message-id="messageItem._id"
                             class="relative flex min-w-0 max-w-support-chat-message touch-pan-y flex-col"
+                            :class="isOwnMessage(messageItem) ? 'ml-auto' : 'mr-auto'"
                             @touchstart="onTouchStart($event, messageItem)"
                             @touchmove="onTouchMove($event, messageItem)"
                             @touchend="onTouchEnd(messageItem)"
@@ -346,7 +347,11 @@
                             <!-- Swipe reveal icon: it sits in the gap the
                                  dragged row vacates (right edge for own
                                  messages, left edge for others) and fades in
-                                 with the drag distance. -->
+                                 with the drag distance. The row itself hugs
+                                 its side through the auto margin (cross-axis
+                                 auto margins disable stretch), exactly like
+                                 the pre-swipe layout, so own bubbles stay
+                                 flush with the right edge. -->
                             <span
                                 v-if="swipeDrag.id === messageItem._id"
                                 class="absolute top-1/2 -translate-y-1/2"
@@ -362,7 +367,7 @@
                             <div
                                 class="flex min-w-0 max-w-full flex-col gap-1"
                                 :class="[
-                                    isOwnMessage(messageItem) ? 'ml-auto items-end' : 'mr-auto items-start',
+                                    isOwnMessage(messageItem) ? 'items-end' : 'items-start',
                                     swipeDrag.id === messageItem._id ? '' : 'transition-transform',
                                     highlightKey === String(messageItem._id) ? 'animate-pulse' : ''
                                 ]"
@@ -522,60 +527,66 @@
                         class="flex flex-col gap-1 pb-1"
                         data-testid="entity-target-strip"
                     >
-                        <!-- Entity target strip: compact token-backed pills.
-                             These are chips, not controls — segmented PrimeVue
-                             chrome (SelectButton/Breadcrumb) fights the
-                             composer density, so the strip renders minimal
-                             pill elements from the semantic tokens. The root
-                             pill is the composed entity itself and carries
-                             the selected state whenever no child is drilled. -->
+                        <!-- Entity target strip: dynamic breadcrumbs — the
+                             drilled lineage leads the same strip as icon-only
+                             pills (no text; tapping jumps back to that
+                             level), an angle marks the descent, and the
+                             siblings of the current level follow as chips.
+                             These are chips, not controls — segmented
+                             PrimeVue chrome (SelectButton/Breadcrumb) fights
+                             the composer density, so the strip renders
+                             minimal pill elements from the semantic tokens.
+                             Exactly one target is selected: the composed
+                             entity root, the deepest drilled lineage pill, or
+                             a drilled leaf chip. -->
                         <div class="flex items-center gap-1 overflow-x-auto">
                             <button
                                 type="button"
-                                class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-0.5 text-supporting transition-colors"
+                                class="flex h-6 w-6 shrink-0 items-center justify-center rounded-ui transition-colors"
                                 :class="stripRootSelected
                                     ? 'bg-primary text-primary-contrast'
                                     : 'bg-subtle text-muted hover:opacity-80'"
+                                :title="activeConversation.entityName || localizedEntityTypeLabel(activeConversation.entityType)"
+                                :aria-label="activeConversation.entityName || localizedEntityTypeLabel(activeConversation.entityType)"
                                 :aria-current="stripRootSelected ? 'true' : undefined"
                                 @click="resetStripTrail()"
                             >
-                                <i :class="entityConversationIcon(activeConversation)" class="shrink-0" aria-hidden="true"></i>
-                                <span class="max-w-28 truncate">
-                                    {{ activeConversation.entityName || localizedEntityTypeLabel(activeConversation.entityType) }}
-                                </span>
+                                <i :class="entityConversationIcon(activeConversation)" aria-hidden="true"></i>
                             </button>
                             <template v-for="(crumb, index) in stripTrail" :key="crumb.key">
                                 <i class="pi pi-angle-right shrink-0 text-muted text-supporting" aria-hidden="true"></i>
                                 <button
                                     type="button"
-                                    class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-0.5 text-supporting transition-colors"
-                                    :class="index === stripTrail.length - 1
+                                    class="flex h-6 w-6 shrink-0 items-center justify-center rounded-ui transition-colors"
+                                    :class="isTrailEntrySelected(crumb)
                                         ? 'bg-primary text-primary-contrast'
                                         : 'bg-subtle text-muted hover:opacity-80'"
-                                    :aria-current="index === stripTrail.length - 1 ? 'true' : undefined"
+                                    :title="crumb.name || localizedEntityTypeLabel(crumb.type)"
+                                    :aria-label="crumb.name || localizedEntityTypeLabel(crumb.type)"
+                                    :aria-current="isTrailEntrySelected(crumb) ? 'true' : undefined"
                                     @click="truncateStripTrail(index)"
                                 >
-                                    <i :class="domainUi.getIcon(crumb.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
-                                    <span class="max-w-28 truncate">{{ crumb.name || localizedEntityTypeLabel(crumb.type) }}</span>
+                                    <i :class="domainUi.getIcon(crumb.type) || 'pi pi-box'" aria-hidden="true"></i>
                                 </button>
                             </template>
-                        </div>
-                        <div v-if="stripChildren.length" class="flex gap-1 overflow-x-auto">
-                            <button
-                                v-for="chip in stripChildren"
-                                :key="chip.key"
-                                type="button"
-                                :disabled="Boolean(replyTo)"
-                                class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                                :class="isChipSelected(chip)
-                                    ? 'bg-primary text-primary-contrast'
-                                    : 'bg-subtle text-muted hover:opacity-80'"
-                                :aria-pressed="isChipSelected(chip)"
-                                @click="drillStripTo(chip)"
-                            >
-                                <i :class="domainUi.getIcon(chip.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
-                                <span class="max-w-32 truncate">{{ chip.name || localizedEntityTypeLabel(chip.type) }}</span>
-                            </button>
+                            <template v-if="stripChildren.length">
+                                <i class="pi pi-angle-right shrink-0 text-muted text-supporting" aria-hidden="true"></i>
+                                <button
+                                    v-for="chip in stripChildren"
+                                    :key="chip.key"
+                                    type="button"
+                                    :disabled="Boolean(replyTo)"
+                                    class="flex shrink-0 items-center gap-1 rounded-ui px-2 py-1 text-supporting transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                                    :class="isChipSelected(chip)
+                                        ? 'bg-primary text-primary-contrast'
+                                        : 'bg-subtle text-muted hover:opacity-80'"
+                                    :aria-pressed="isChipSelected(chip)"
+                                    @click="drillStripTo(chip)"
+                                >
+                                    <i :class="domainUi.getIcon(chip.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
+                                    <span class="max-w-32 truncate">{{ chip.name || localizedEntityTypeLabel(chip.type) }}</span>
+                                </button>
+                            </template>
                         </div>
                     </div>
 
@@ -1029,11 +1040,12 @@ const conversationSections = computed(() => [...displayConversations.value].sort
 }))
 
 // The inbox Listbox is a bounded flex pane: the root becomes a flex column
-// and the list container owns the scrolling. Without this the option list
-// grows past the rail and the aside's overflow-hidden crops it.
+// and the list container owns the scrolling. PrimeVue caps the container at
+// its 14rem scrollHeight default, so maxHeight is lifted explicitly —
+// without that the list renders as a short box above dead space.
 const inboxListboxPt = {
     root: { style: { display: 'flex', flexDirection: 'column', minHeight: '0' } },
-    listContainer: { style: { flex: '1 1 0', minHeight: '0', overflowY: 'auto' } }
+    listContainer: { style: { maxHeight: 'none', flex: '1 1 0', minHeight: '0', overflowY: 'auto' } }
 }
 
 const isActiveConversation = (conversation) => activeConversation.value?.conversationKey === conversation.conversationKey
@@ -1429,6 +1441,12 @@ const stripTargetKey = computed(() => {
 // pill carries the selected state in that case so exactly one target is
 // always visibly selected.
 const stripRootSelected = computed(() => !stripTrail.value.length && !composerEntity.value)
+
+// A lineage pill is selected when it is the current composer target (the
+// deepest drilled level); drilled leaf chips compare the same way.
+const isTrailEntrySelected = (entry) => Boolean(composerEntity.value)
+    && composerEntity.value.type === entry.type
+    && String(composerEntity.value.id) === String(entry.id)
 
 // Children of the current target: containment-sourced entries plus the
 // children already seen in this thread's message paths — the path-derived
