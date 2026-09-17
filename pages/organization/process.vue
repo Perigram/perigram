@@ -38,7 +38,6 @@
         >
           <template #node-statusDefinition="props"><ProcessStatusDefinitionNode v-bind="props" /></template>
           <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
-          <template #node-ctsType="props"><CtsTypeNode v-bind="props" /></template>
         </VueFlow>
         <template #fallback><div class="absolute inset-0" /></template>
       </ClientOnly>
@@ -910,7 +909,6 @@ import { cncEntities, cncWorkflows, cncContainment } from '@cutkit/domain-cnc';
 import { createTypeRegistry, convertCncDomain, checkDeclarationsAgainstCts, projectDomainFromView } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import LanguageTesterPanel from '~/components/process-designer/LanguageTesterPanel.vue';
-import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import MotionDock from '~/components/shared/MotionDock.vue';
@@ -1032,20 +1030,6 @@ function refreshDesignerFromTypes() {
 
 const designer = reactive(createProcessDesignerContract(ctsProjectedDomain()));
 
-const ctsTypeById = computed(() => new Map(ctsOrgTypes.value.map(type => [type.id, type])));
-
-function addCtsTypeNode(type) {
-  const id = `ctsType_${type.id}_${Date.now()}`;
-  nodes.value.push({
-    id,
-    type: 'ctsType',
-    position: nextNodePosition(),
-    selected: true,
-    data: { refId: id, typeId: type.id, typeSummary: type }
-  });
-  schedulePreviewRecompute();
-}
-
 function ctsRegistry() {
   if (ctsRegistryCache) return ctsRegistryCache;
   const registry = createTypeRegistry({ id: 'designer-cts' });
@@ -1162,22 +1146,8 @@ const {
   })
 });
 const managedProcessBlocks = new Set(['origin', 'status', 'provenance', 'summary']);
-const paletteGroupsWithTypes = computed(() => {
-  const typeItems = ctsOrgTypes.value.map(type => ({
-    id: `ctsType:${type.id}`,
-    kind: 'ctsType',
-    icon: 'pi pi-database',
-    label: type.id,
-    action: () => addCtsTypeNode(type)
-  }));
-  const items = [...typeItems, {
-    id: 'ctsType:new', kind: 'ctsType', icon: 'pi pi-plus', label: 'New type…',
-    action: () => navigateTo('/organization/types')
-  }];
-  return [...designer.paletteGroups, { id: 'types', label: 'Types', items }];
-});
 const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = useProcessDesignerPalette({
-  groups: paletteGroupsWithTypes,
+  groups: designer.paletteGroups,
   query: paletteQuery,
   context: contextPalette,
   searchText: paletteSearchText,
@@ -2296,10 +2266,6 @@ function syncNodeData() {
   dataflowPreview.value = null;
   syncOpenBlockEntryContracts();
   for (const node of nodes.value) {
-    if (node.type === 'ctsType') {
-      node.data.typeSummary = ctsTypeById.value.get(node.data?.typeId) || node.data.typeSummary || null;
-      continue;
-    }
     if (!node.data?.refId) continue;
     const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
     if (node.type === 'action') syncActionIo(record, node);
