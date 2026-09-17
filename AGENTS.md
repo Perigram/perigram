@@ -1,32 +1,76 @@
 # AGENTS.md
 
 This repository operates in strict documentation-first mode. This file is the
- operating protocol; project architecture details live in README.md files.
+operating protocol only. It deliberately contains no project facts: no file
+paths, no commands, no technologies, no architecture. All project knowledge
+lives in the interlinked README.md tree. Agents acquire knowledge by reading
+that tree, never by assuming, guessing, or hardcoding it. If a rule ever
+names a concrete file, path, command, or stack detail, it belongs in the
+README that owns the concern, not here.
+
+## Documentation Model
+
+README.md files form one interlinked documentation tree, scoped by C4
+levels:
+
+- **SYSTEM (always)** — repository root. Project overview, stack, container
+  and component inventory, project-wide workflows and data flows.
+- **CONTAINER (optional)** — separately deployable unit directories; used
+  only when the project has multiple independently deployable units.
+- **COMPONENT (always)** — every functional component directory. Detail
+  sufficient to understand, maintain, and extend the component without
+  grepping its code.
+- **CODE (optional)** — sub-component directories with 3+ files and logic
+  complex enough to warrant prose. Skip for self-explanatory utilities.
+
+### README Contract
+
+Every README.md must:
+
+- Describe real architecture only: purpose, entry points, contracts (data
+  structures, APIs, state machines, flows), conventions, and non-obvious
+  decisions. No placeholders, no guesses, no trivial file listings, nothing
+  the code already makes obvious.
+- Link its parent README, and be registered in the parent's component
+  inventory or documentation map.
+- Link every related README whose contract it consumes or extends.
+- Keep canonical content single-homed: a contract (registry, schema or DTO
+  definition, state machine, workflow, API contract) lives in exactly one
+  canonical README. Every other README links to it. Verbatim restatement
+  across READMEs is a defect.
+
+## Documentation Enforcement
+
+These rules are blocking, not advisory:
+
+1. **Docs before code.** Before changing code in an area, the nearest
+   covering README must exist and match reality. If it is missing,
+   incomplete, or contradicts the code, write or correct it first, before
+   implementing.
+2. **Docs follow change.** Every implementation change updates the affected
+   READMEs in the same task session. A task is not complete until its
+   documentation matches the new reality; shipping code with stale docs is
+   shipping a defect. When code and README disagree, the README is wrong —
+   update it rather than silently coding around it.
+3. **Links follow structure.** Adding, moving, or removing a component
+   updates the parent README's inventory and the links of related READMEs in
+   the same task. Orphaned READMEs, dangling links, and missing cross-links
+   are defects.
+4. **Guards are mandatory.** Documentation changes are incomplete until the
+   repository's documentation guard passes; broken links and duplicated
+   canonical passages are blocking errors. Discover the guards this
+   repository ships by following links from the root README. Report any
+   guard that could not be run.
 
 ## Mandatory First Reads
 
 Before changing files, read:
 
-1. `README.md`
-2. The nearest relevant component README for the area being changed
-3. Related READMEs linked from those docs
-
-Use these source-of-truth docs for technical rules:
-
-| Area | Source of truth |
-|---|---|
-| System overview | `README.md` |
-| Backend architecture | `server/README.md` |
-| Backend feature Golden Path | `server/features/_template/README.md` |
-| API routes | `server/api/README.md` |
-| Workflow/status engine | `server/core/machines/README.md` |
-| Frontend components and design system | `components/README.md`, `components/shared/README.md` |
-| Frontend entity data flow | `composables/README.md` |
-| Scripts and validation | `scripts/README.md` |
-| External agent write scope | `.agents/README.md`, `.agents/app-layer.allowlist` |
-
-If a required README is missing, stale, or contradicts code, update the README
-first or in the same task before relying on implementation details.
+1. The root README.md.
+2. The nearest README covering the area being changed, reached by following
+   links from the root.
+3. Every README whose contract the change consumes or extends, following
+   links outbound until the changed concern is fully understood.
 
 ## Execution Rules
 
@@ -67,10 +111,10 @@ first or in the same task before relying on implementation details.
 
 - Every implementation change must update relevant README.md documentation in
   the same task session.
-- Documentation should explain real architecture, flows, contracts, and unusual
-  decisions. Avoid placeholders, guesses, and obvious file listings.
-- Keep AGENTS.md as protocol only. Move backend/frontend/domain-specific rules
-  to the relevant README source of truth.
+- Documentation should explain real architecture, flows, contracts, and
+  unusual decisions. Avoid placeholders, guesses, and obvious file listings.
+- Keep AGENTS.md as protocol only, free of project facts. Domain-specific
+  rules live in the README that owns the concern.
 - If task is assigned via TODO.md, add an Agent Notes subsection under that task
   as one level deeper heading, with timestamp and report what is done or
   discovered. If task is done, replace its status to WAITING.
@@ -81,35 +125,27 @@ first or in the same task before relying on implementation details.
 ## Context Assembly
 
 Before writing or editing code, assemble atomic context from the mandatory
-first reads and the canonical contracts they reference. Check each section or
-component README being touched, then follow links outbound to entity, feature,
-API, machine, and shared-component contract docs until the changed concern is
-fully understood.
+first reads and the canonical contracts they reference.
 
 - Read the README for the touched area before changing its code.
-- Follow the source-of-truth links to related contracts from that README.
-- Do not restate or duplicate a canonical contract (entity registries, DTO
-  blocks, status/process machines, lineage, auth context, workflow actions)
-  in another README; link to the canonical doc instead.
-- Keep reads bounded to the touched concern, but do not skip a contract that
-  the changed code consumes or extends.
-- If a required README is missing or stale, fix the README in the same task
-  before relying on implementation details.
-- Before committing, run `node scripts/check-docs.js` and resolve any broken
-  internal links or duplicated canonical-contract passages it reports.
+- Follow its links to every canonical contract the changed code consumes or
+  extends; do not skip one.
+- Do not restate or duplicate a canonical contract in another README; link
+  to the canonical doc instead.
+- Keep reads bounded to the touched concern.
+- If a required README is missing or stale, fix it in the same task before
+  relying on implementation details.
 
 ## Validation Rules
 
 - Run focused validation for the touched area whenever practical.
-- Backend architecture changes are incomplete until `node scripts/check-arch.js`
-  passes.
-- Framework/package contract changes should run `npm run framework:validate`
-  when practical.
-- External top-layer/app-composition agents must run
-  `npm run agent:scope-check -- --base origin/local` before committing or
-  pushing.
-- Documentation changes are incomplete until `node scripts/check-docs.js`
-  passes.
+- Run the repository's validation guards, discovered through the links in
+  the root README: architecture changes are incomplete until the
+  architecture guard passes; documentation changes are incomplete until the
+  documentation guard passes; framework and package contract changes run
+  framework validation when practical.
+- Agents with a restricted write scope run the repository's scope guard
+  before committing or pushing.
 - Report any validation that could not be run.
 
 ## Commit Rules
@@ -134,7 +170,7 @@ Committing is mandatory for completed work.
    `local` from the primary checkout and report both the session commit hash and
    the merge result.
 10. Do not rewrite history, amend old commits, revert commits, or use destructive
-   git commands unless explicitly instructed.
+    git commands unless explicitly instructed.
 
 At handoff, report commit hashes, validation run, and any remaining untracked or
 unstaged files.
