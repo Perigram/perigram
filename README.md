@@ -117,7 +117,10 @@ The app is an installable, offline-capable PWA with a hand-rolled service
 worker (`public/sw.js`, registered by `plugins/pwa.client.js` in production
 builds only).
 
-- Build assets and fonts are cached cache-first (immutable hashed names);
+- Fonts, icons, and the manifest are cached cache-first; `/_nuxt/` app
+  chunks are never worker-cached (dev serves live modules there, and a
+  cache-first worker from an earlier prod build would serve stale code
+  through hard refreshes — hashed prod names make network fetches safe);
   `plugins/pwa.client.js` registers the worker without a build plugin.
 - Offline mutations are queued in a client-side IndexedDB outbox
   (`utils/outbox.js`, `stores/outbox.js`) and replayed through the same API
