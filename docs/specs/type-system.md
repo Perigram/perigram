@@ -67,6 +67,13 @@ Rules:
   choice.
 - Expression forms over V — `match` (exhaustive variant elimination) and
   `map`/`filter` (bounded list iteration) — are specified in §18.
+- Rows serialize as **JSON Schema** (draft 2020-12) with custom keywords for
+  `Quantity` and `Ref`, validated by a standard validator (Ajv). CTS rides on
+  top, not beside: JSON Schema validates one document; CTS adds what it
+  cannot express — classes, edges with integrity, operator signatures,
+  versioning/migration, and graph checks R1–R7. The payoff is the designer:
+  field editors and forms generate from the same row schemas instead of a
+  second form definition.
 
 ## 3. Stored shape
 
@@ -121,6 +128,13 @@ FieldType ::= any V production without Ref
 paths, patch paths, and card fields are all derived from the row. No list is
 hand-mirrored anywhere (this deletes `field-access.js` duplication,
 `cncStatusUi`, alias tables, ghost keys in one stroke).
+
+Type tenancy: system types (framework and starter packs) and organization
+types share one registry with `scope: system | org` (+ `organizationId`).
+An org type may not shadow a system type id. Validation and compilation
+always resolve against one organization's view of the registry — system
+types first, that organization's types overlaying — never the union of all
+orgs.
 
 ## 5. Classes
 
@@ -201,6 +215,9 @@ policy, recording, and effects; tasks wrap `s` with queueing and retry;
 executor topology (worker/http/server) is deployment detail, never
 declaration.
 
+`k` is `c` plus a provenance source — kept as its own species only because
+replay-safety (§18.4) is checked on conversions, not on plain constructs.
+
 Purity means exactly: no entity writes, no hidden reads. Determinism is NOT
 required — services version and drift. Therefore every `k`/`s` result records
 its effective inputs (`provenance.effective`: params + versions of every
@@ -278,7 +295,8 @@ The compiler enforces exactly these; each replaces a hand-maintained guard:
 | edges | slots on the entity docs | validators; no join tables |
 | aggregates | `summary` cache on parent doc | aggregate runtime |
 | logs | `command_runs`, `task_runs`, `status_events` | operator runtime, schema-free |
-| grammar + validator | — | `packages/core` (promoted `field-schemas` base/shape/itemType) |
+| grammar + validator | — | `packages/core`: CTS grammar; rows compile to JSON Schema validated by Ajv (custom keywords: `Quantity`, `Ref`) |
+| expressions (guards, predicates, transforms) | — | CEL semantics; a standard CEL engine if it holds up in browser and server, else a small evaluator with exactly §18's rules |
 | compiler (R1-R7, diff, migrations) | — | `packages/processes` |
 | operator runtime | — | today's command/task machinery, signatures added |
 | CNC vocabulary | seeded type pack + projections/services | `packages/domain-cnc` reduced to content |
@@ -414,7 +432,12 @@ CTS is deliberately total, not Turing-complete. Everything static — rows,
 graphs, expressions, checks R1–R7 — terminates by construction; decidability
 is what makes live designer checking and diff-driven migrations possible.
 Turing-completeness is quarantined inside `s` (and editors/workers) behind
-typed `V -> V` signatures. Four completions follow from this principle:
+typed `V -> V` signatures. The expression semantics are CEL's — total, no
+recursion, iteration only as comprehensions — the same convergence Kubernetes
+reached for admission rules; use a standard CEL engine where it performs in
+browser and server, otherwise a small evaluator implementing exactly these
+rules. `match` is specified now but implemented only when a variant first
+sits in predicate position. Four completions follow from this principle:
 
 1. **`match`** — the elimination form for variants:
 
