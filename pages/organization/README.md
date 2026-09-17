@@ -56,6 +56,11 @@ button saves or forks the visible graph, activates the resulting process
 definition, and records activation warnings/errors in the centered canvas
 validation feedback so operators can inspect the result without a persistent
 canvas panel.
+The designer dock exposes the CTS language tester
+(`processDesigner.languageTester`): a dialog running `@perigram/cts` directly
+in the browser — expression AST evaluation with unit arithmetic and match
+exhaustiveness, plus instance validation against the strangler-converted
+types (see [components/process-designer/README.md](../../components/process-designer/README.md)).
 
 `types.vue` is the CTS type registry pane — the read-only seed of the
 designer's types editor (see
