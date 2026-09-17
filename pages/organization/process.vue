@@ -905,6 +905,8 @@ import {
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncUiSurfaces } from '@cutkit/domain-cnc';
+import { cncEntities, cncWorkflows, cncContainment } from '@cutkit/domain-cnc';
+import { createTypeRegistry, convertCncDomain, checkDeclarationsAgainstCts } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import LanguageTesterPanel from '~/components/process-designer/LanguageTesterPanel.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
@@ -1005,6 +1007,24 @@ const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInfer
   syncProcessNode
 });
 const designer = reactive(createProcessDesignerContract(cncDomain));
+
+// CTS declaration layer: org types fetched from the type store; the registry
+// is the strangler-converted system types plus that overlay. The declaration
+// check runs before graph compilation so R1-R7 surface in the same panel.
+const ctsOrgTypes = ref([]);
+let ctsRegistryCache = null;
+function ctsRegistry() {
+  if (ctsRegistryCache) return ctsRegistryCache;
+  const registry = createTypeRegistry({ id: 'designer-cts' });
+  for (const declaration of convertCncDomain({ entities: cncEntities, workflows: cncWorkflows, containment: cncContainment })) {
+    registry.defineType(declaration);
+  }
+  for (const declaration of ctsOrgTypes.value) {
+    registry.defineType(declaration);
+  }
+  ctsRegistryCache = registry;
+  return registry;
+}
 
 
 
@@ -1531,6 +1551,9 @@ let touchPointerQuery = null;
 onMounted(() => {
   loadActiveOrCreateLocal();
   loadProcessCapabilities();
+  $fetch('/api/admin/cts/types')
+    .then(response => { ctsOrgTypes.value = (response.types || []).filter(type => type.scope === 'org'); })
+    .catch(() => { /* the designer keeps compiling without the type store */ });
   window.addEventListener('keydown', handleCanvasKeydown);
   touchPointerQuery = window.matchMedia?.('(pointer: coarse)') || null;
   touchPanDrag.value = Boolean(touchPointerQuery?.matches);
@@ -2198,6 +2221,16 @@ function recomputeProcessPreview(shouldApply = () => true) {
     return;
   }
   if (!shouldApply()) return;
+  const declarationErrors = checkDeclarationsAgainstCts(
+    processDefinitionSnapshot(),
+    ctsRegistry(),
+    draft.value?.lineage?.organizationId || null
+  );
+  if (declarationErrors.length) {
+    compiledPreview.value = null;
+    compiledPreviewError.value = `CTS declarations: ${declarationErrors.slice(0, 5).join('; ')}`;
+    return;
+  }
   try {
     compiledPreview.value = compileProcessDefinition(processDefinitionSnapshot(), cncDomain, { roles: organizationRoles.value });
     compiledPreviewError.value = '';

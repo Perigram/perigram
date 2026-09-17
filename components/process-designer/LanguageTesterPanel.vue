@@ -146,17 +146,17 @@ const resultSummary = computed(() => {
     </div>
 
     <div class="grid gap-2">
-      <label class="text-sm font-medium">Expression AST</label>
-      <Textarea v-model="astText" rows="10" class="font-mono text-sm" auto-resize />
-      <label class="text-sm font-medium">Scope</label>
-      <Textarea v-model="scopeText" rows="4" class="font-mono text-sm" auto-resize />
-      <label class="text-sm font-medium">Match subject (optional, for exhaustiveness check)</label>
-      <Textarea v-model="matchSubjectText" rows="3" class="font-mono text-sm" auto-resize />
+      <label class="text-supporting font-medium">Expression AST</label>
+      <Textarea v-model="astText" rows="10" class="text-supporting" auto-resize />
+      <label class="text-supporting font-medium">Scope</label>
+      <Textarea v-model="scopeText" rows="4" class="text-supporting" auto-resize />
+      <label class="text-supporting font-medium">Match subject (optional, for exhaustiveness check)</label>
+      <Textarea v-model="matchSubjectText" rows="3" class="text-supporting" auto-resize />
       <Button label="Evaluate" icon="pi pi-play" size="small" @click="runExpression" />
     </div>
 
     <Message v-if="expressionResult?.ok === false" severity="error" :closable="false">{{ resultSummary }}</Message>
-    <div v-else-if="expressionResult" class="p-3 border-round surface-100 font-mono text-sm white-space-pre-wrap">{{ resultSummary }}</div>
+    <div v-else-if="expressionResult" class="p-3 rounded-ui surface-100 text-supporting white-space-pre-wrap">{{ resultSummary }}</div>
     <Message v-if="expressionResult?.match?.length" severity="warn" :closable="false">
       Match diagnostics: {{ expressionResult.match.join('; ') }}
     </Message>
@@ -164,9 +164,9 @@ const resultSummary = computed(() => {
     <Divider />
 
     <div class="grid gap-2">
-      <label class="text-sm font-medium">Instance check</label>
+      <label class="text-supporting font-medium">Instance check</label>
       <Select v-model="selectedTypeId" :options="typeOptions" option-label="label" option-value="value" placeholder="Type" />
-      <Textarea v-model="instanceText" rows="8" class="font-mono text-sm" auto-resize />
+      <Textarea v-model="instanceText" rows="8" class="text-supporting" auto-resize />
       <Button label="Validate" icon="pi pi-check" size="small" @click="runInstance" />
     </div>
     <Message v-if="instanceResult?.ok" severity="success" :closable="false">instance is well-typed</Message>
