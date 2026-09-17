@@ -23,6 +23,7 @@ function featureToEntityType(feature) {
 const CAPABILITY_FEATURES = [
   'config-bot',
   'connections',
+  'cts-types',
   'entity-events',
   'files',
   'livekit',
