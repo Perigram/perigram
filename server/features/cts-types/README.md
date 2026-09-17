@@ -21,9 +21,10 @@ strangler layer 0 of the designer rebuild (see
 
 ## API
 
-`GET /api/admin/cts/types` — merged org view (designer types pane and
-language tester read this). `POST /api/admin/cts/types` — author/evolve a
-declaration. `DELETE /api/admin/cts/types/:id` — remove an org type.
+`GET /api/admin/cts/types` — merged org view (the designer types pane and
+the process designer's registry read this). `POST /api/admin/cts/types` —
+author/evolve a declaration. `DELETE /api/admin/cts/types/:id` — remove an
+org type.
 
 ## Related
 

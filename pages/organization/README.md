@@ -47,6 +47,20 @@ The route expects `/api/users` to return canonical user DTO blocks with
 `users:read`; it derives the active organization id from the loaded organization
 store first and falls back to the auth membership list.
 
+`types.vue` is the CTS declaration-authoring pane: the surface where
+organization types are declared (see
+[packages/cts/SPEC.md](../../packages/cts/SPEC.md)). It lists the compiled
+organization view from `GET /api/admin/cts/types` (system pack plus org
+declarations, versions and compile diagnostics), edits org-authored types —
+field rows (base, unit, ref targets, nullability), lifecycle states with
+initial/terminal flags and intent transitions, children/relations edges with
+`onRemove` integrity — and deletes them. System types open read-only with
+their JSON Schema. Saves go through the real registry: compile errors are
+shown inline and the refuse-on-breaking diff protects existing instances.
+Until the generic instance services land (SPEC §13 open frontier),
+org-authored types feed the designer and compiler but are not yet
+executable at runtime.
+
 `process.vue` is the visual process-designer surface. It edits organization
 process definitions with Vue Flow, persists drafts through
 `/api/process-definitions`, validates them through the process compiler, and
@@ -56,33 +70,33 @@ button saves or forks the visible graph, activates the resulting process
 definition, and records activation warnings/errors in the centered canvas
 validation feedback so operators can inspect the result without a persistent
 canvas panel.
-The designer dock exposes the CTS language tester
-(`processDesigner.languageTester`): a dialog running `@perigram/cts` directly
-in the browser — expression AST evaluation with unit arithmetic and match
-exhaustiveness, plus instance validation against the strangler-converted
-types (see [components/process-designer/README.md](../../components/process-designer/README.md)).
 
-[packages/cts/SPEC.md](../../packages/cts/SPEC.md)). Type nodes are laid out
-by class (file/item/group/process/party) and wired by their declared
-children and relation edges; double-clicking a type opens its state machine
-as state nodes with transition wires (intents as edge labels). Org-authored
-types are editable in place: drag between states to add a transition, set
-initial/terminal and intents in the inspector, Backspace deletes, Save
-builds the declaration and posts it through the L0 storage API — registry
-compile errors surface as toasts and the diff refuses breaking edits.
-System types open read-only. New org types start from the New type dialog
-(id + class) and are saved the same way.
+The designer consumes exactly one domain source: the organization's CTS
+registry view projected through `projectDomainFromView` (see
+[packages/cts/SPEC.md](../../packages/cts/SPEC.md) §19 "Source flip"). The
+system pack compiles from `@cutkit/domain-cnc` content with real extracted
+rows; org-authored declarations (stored by `server/features/cts-types`)
+overlay it. Palette options, field lists, statuses, construction, and
+containment all derive from that projection — the canvas composes instances
+of types, it never declares them. Type authoring (fields, lifecycle states
+and transitions, children/relations edges) lives in the types pane
+(`types.vue`), reachable from the palette header; the palette's first group
+is labeled Types accordingly. Before save/apply, declarations referenced by
+the graph are checked against the same registry view
+(`checkDeclarationsAgainstCts`), so a wire naming an unknown type or an
+undeclared state fails before the compiler runs.
 
 The route uses the authenticated app layout with a full canvas workspace and
 the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell. The
 dock is supplied through the shell's dock slot, matching the shared designer
 contract used by Cassette, Facade, and Facade Pattern; the palette and
 inspector render as PrimeVue `Drawer` side panels inside the canvas workspace.
-The graph palette is a compact, descriptive control with four
-concerns only: Entities, Values, Lists and trees, and Events. Its framework
-metadata comes from `createProcessDesignerContract(cncDomain)`; the route
-supplies CNC as the active domain implementation rather than importing
-separate CNC field/construction registries. The palette is deliberately not
+The graph palette is a compact, descriptive control with three
+concerns only: Types, Values, and Lists and trees. Its framework
+metadata comes from `createProcessDesignerContract(projectDomainFromView(...))`;
+the route supplies the CTS-projected domain as the active domain
+implementation rather than importing separate CNC field/construction
+registries. The palette is deliberately not
 the exhaustive runtime catalog: casts, patches, predicates, ambient current
 entity reads, and trigger-payload plumbing cannot be added as unexplained empty
 nodes. Value input selects its type in one node. Logic/comparison, text, math,

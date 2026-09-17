@@ -32,20 +32,38 @@ module layout and how the code maps to the spec's build-order tiers.
   one org overlay, no shadowing), `compile()` running R1–R6, instance
   validation with `typeVersion` ill-typing.
 - `compat/domain-projection.js` — the collapse direction: projects a CTS
-  registry view back onto the compiler-consumable domain shape (workflows
-  merged with legacy transition access and state flags, org entities, field
-  access, relations), closing domain-cnc -> CTS -> compiled-runtime loop.
-  Verified byte-identical compilation on live process definitions.
+  registry view back onto the compiler-consumable domain shape. It owns
+  `workflows` (states/transitions from declarations, legacy transition
+  access and state flags merged for system types), `fieldSchemas` (row
+  fields synthesized back to block paths, plus the declared legacy
+  remainder for system types), `containment` (children edges with lineage
+  keys), `relations`, `entities` (org types appended), `fieldAccess` (org
+  types bound to the cts-types feature), `construction` and
+  `attachmentKinds` (synthesized for org types, legacy content passed
+  through for system types until their facets collapse). System-type
+  projection equivalence with the legacy tables is asserted by tests.
 - `render.js` — render-policy projection (labels/icons/state severities
   derived from declarations; where hand-mirrored status tables die) and
   `compileClientBundle()`, the single frontend/designer consumption contract.
 - `compat/domain-cnc.js` — the strangler converter: maps live
   `@cutkit/domain-cnc` entities, workflows, containment, and attachment
-  kinds onto CTS type records (pure mapping, no domain import). Legacy
-  `data.*` payloads land as quarantined `legacy`/`specs` Json fields until
-  per-type field extraction; derivation containment edges (cassette →
-  cassette-design, run → sheet-design, design → sheet) become child-side
-  relations instead of lineage children.
+  kinds onto CTS type records (pure mapping, no domain import). Field rows
+  are extracted for real (SPEC §15: field schemas promote to the grammar),
+  not quarantined: `data`/`specs` paths become row fields (nested paths
+  group into `record` rows, unit-qualified numbers become `quantity`,
+  entity refs become `ref`, each field keeps its legacy `slot`), workflows
+  become states/transitions, containment becomes `children` edges carrying
+  the legacy `lineageKey`, relations become `relations` edges, and
+  derivation containment (cassette → cassette-design, run → sheet-design,
+  design → sheet) becomes child-side relations instead of lineage children.
+- `compat/field-schema-rows.js` — the row ⇄ legacy field-schema translation
+  used by the converter (extraction) and the domain projection
+  (synthesis): block-slot conventions, descriptor typing, nested-path
+  grouping.
+- `compat/domain-projection.js` — the single CTS → compiler-domain
+  translator. See SPEC §15/§19 for what it owns per key.
+- `compat/process-checks.js` — declaration checks against a registry view,
+  run before the process compiler's graph validation.
 - `pack/cnc.js` — the CNC starter type pack: the collapse-table acceptance
   fixture (file/item/group/process families, the typed nesting seam, and
   sample instances).
@@ -53,10 +71,11 @@ module layout and how the code maps to the spec's build-order tiers.
 
 ## Consumption
 
-The package is browser-safe by contract (SPEC §13): the process designer
-imports it directly — `LanguageTesterPanel.vue` evaluates expressions and
-validates instances client-side with no endpoint, and
-`pages/organization/types.vue` renders the types pane fed by
+The package is browser-safe by contract (SPEC §13). The process designer
+imports the registry directly and consumes the compiler-domain projection
+(`projectDomainFromView`) as its only domain source — palette options,
+fields, and statuses derive from the organization's type view.
+`pages/organization/types.vue` is the declaration-authoring pane fed by
 `GET /api/admin/cts/types` (org view: system types + org-authored
 declarations stored by `server/features/cts-types`). See
 [pages/organization/README.md](../../pages/organization/README.md).
@@ -65,7 +84,10 @@ declarations stored by `server/features/cts-types`). See
 
 `npx vitest run packages/cts` — the acceptance suite covers every static
 rule with both passing and failing fixtures, the tenancy resolution, the
-diff refusal path, and the pack compile.
+diff refusal path, the pack compile, and the source-flip equivalence gate
+(`compat/source-flip.spec.js`): for every system type the projected
+fieldSchemas, workflows, and containment must equal the legacy tables they
+replace.
 
 ## Related
 

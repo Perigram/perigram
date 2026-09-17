@@ -226,9 +226,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-process-designer-processnode-vue` | `components/process-designer/ProcessNode.vue` | derived usage | replace:chrome (23); remove:important-override (9); narrowly-allowlist:inline-data-driven (4) |
 | `ui-components-process-designer-processscreenpreview-vue` | `components/process-designer/ProcessScreenPreview.vue` | derived usage | replace:chrome (12) |
 | `ui-components-process-designer-processstatusdefinitionnode-vue` | `components/process-designer/ProcessStatusDefinitionNode.vue` | derived usage | replace:chrome (14); remove:important-override (6); narrowly-allowlist:inline-data-driven (3) |
-| `ui-components-process-designer-ctsstatenode-vue` | `components/process-designer/CtsStateNode.vue` | derived usage | replace:chrome (12); remove:important-override (6); replace:inline-visual (2) |
-| `ui-components-process-designer-ctstypenode-vue` | `components/process-designer/CtsTypeNode.vue` | derived usage | replace:chrome (5); replace:inline-visual (2) |
-| `ui-components-process-designer-languagetesterpanel-vue` | `components/process-designer/LanguageTesterPanel.vue` | derived usage | centralize:typography (4); replace:chrome (1) |
 | `ui-components-profilesketcheditor-vue` | `components/ProfileSketchEditor.vue` | derived usage | centralize:layout (2); replace:chrome (13) |
 | `ui-components-projectstatistics-vue` | `components/ProjectStatistics.vue` | derived usage | compliant |
 | `ui-components-queueeditor-vue` | `components/QueueEditor.vue` | derived usage | replace:chrome (8); compliant:scoped-layout; compliant:inline-layout (1) |
@@ -293,7 +290,8 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-invitation-token-vue` | `pages/invitation/[token].vue` | derived usage | replace:chrome (3) |
 | `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
 | `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | compliant |
-| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (6); replace:chrome (21); remove:state (1); replace:inline-visual (1) |
+| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (6); replace:chrome (21); remove:state (1); remove:important-override (12); replace:inline-visual (1) |
+| `ui-pages-organization-types-vue` | `pages/organization/types.vue` | derived usage | compliant |
 | `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | compliant |
 | `ui-pages-profile-index-vue` | `pages/profile/index.vue` | derived usage | replace:chrome (4) |
 | `ui-pages-screens-screenkey-vue` | `pages/screens/[screenKey].vue` | derived usage | compliant |

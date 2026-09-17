@@ -4,7 +4,9 @@
 
 `createProcessDesignerContract(domain)` is the framework-owned projection used
 by visual process designers. A designer supplies one `defineDomain`-shaped
-implementation, such as `cncDomain`, and receives normalized entity, workflow,
+implementation — the shipped source is the CTS registry view projected through
+`@perigram/cts` `projectDomainFromView` (see
+[packages/cts/SPEC.md](../cts/SPEC.md) §19) — and receives normalized entity, workflow,
 command, task, event, hook, effect, attachment-kind, construction, field-policy,
 field-group, canonical-block, and grouped-palette contracts. The generic
 designer package does not import a concrete domain.

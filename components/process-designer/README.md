@@ -24,23 +24,16 @@ roles, screens, and dock/panel state. Their contracts are exercised directly in
 behavior tests so a disconnected Save, selection, or graph mutation fails even
 when labels remain in the page source.
 
-The palette's **Types** group holds the four registry classes — file,
-group, process, item. Clicking one creates a type in the registry store and
-drops a `CtsTypeNode` reference card; selecting the card opens the type
-editor in the inspector (states with initial/terminal, transitions with
-intents, Save through the store). Saving refreshes the registry-derived
-option lists live. Type cards persist in the graph but own no draft
-records: deleting a card never deletes the type.
+Types are not canvas nodes. The palette's first group is labeled **Types**
+and offers the instance-composition operations (`createEntity`,
+`updateEntity`, reads, records family) whose entity/field/status options all
+resolve from the CTS-projected domain; declaring types happens in the types
+pane (`pages/organization/types.vue`), linked from the palette header. The
+former canvas type cards (`ctsType` nodes) are gone: old drafts load with
+those reference cards stripped, and no definition records were ever owned by
+them.
 
-`LanguageTesterPanel.vue` is the CTS language workbench opened from the
-designer dock (`processDesigner.languageTester`). It imports
-`@perigram/cts` directly in the browser — no endpoint — and evaluates real
-expression ASTs (map/filter, quantity arithmetic, match exhaustiveness)
-against a pasted scope, plus instance validation against the
-strangler-converted CNC types. It is the seed of the designer's inline
-expression typechecking: the same module the compiler runs, executed live.
-
-The Entities palette ends with **Join producer paths** (`producer.join`), the
+The Types palette ends with **Join producer paths** (`producer.join`), the
 one legal convergence point for same-type producer paths: activation rejects
 implicitly converging wires elsewhere on the graph. Its inspector authors the
 entity type and the resulting producer output (offered from the join's
