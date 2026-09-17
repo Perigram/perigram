@@ -95,7 +95,7 @@
                              preview with the own-last read mark below. The
                              row menu (pin/archive) is an absolute hover
                              overlay so it never shifts the layout. -->
-                        <div class="group relative flex min-w-0 items-start gap-2 md:gap-3">
+                        <div class="group relative flex w-full min-w-0 items-start gap-2 md:gap-3">
                             <div class="relative shrink-0">
                                 <Avatar
                                     v-if="option.conversationKind === 'entity'"
