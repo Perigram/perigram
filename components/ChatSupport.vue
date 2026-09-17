@@ -1,18 +1,14 @@
 <template>
-    <div
-        class="chat-host"
-        :class="embedded
-            ? 'flex h-full min-h-0 w-full items-stretch justify-stretch p-0'
-            : 'fixed inset-0 z-50 flex items-stretch justify-stretch p-0 pointer-events-none md:items-end md:justify-end md:p-6'"
-    >
+    <!-- One surface for every host: the popup Dialog, the /chats route, the
+         entity detail panel, and the call workspace all embed this same
+         plain column — the host owns position, chrome, and stacking. -->
+    <div class="chat-host flex h-full min-h-0 w-full items-stretch justify-stretch p-0">
         <div
             v-if="supportDialog || embedded"
             :class="[
-                embedded
-                    ? fullPage
-                        ? 'chat-page flex h-full min-h-0 w-full flex-col overflow-hidden pointer-events-auto'
-                        : 'flex h-full min-h-0 w-full flex-col overflow-hidden pointer-events-auto'
-                    : 'flex h-dvh w-full flex-col overflow-hidden bg-content shadow-overlay pointer-events-auto md:h-support-chat md:w-support-chat md:rounded-ui',
+                fullPage
+                    ? 'chat-page flex h-full min-h-0 w-full flex-col overflow-hidden'
+                    : 'flex h-full min-h-0 w-full flex-col overflow-hidden',
                 fullPage && activeConversation ? 'chat-page--thread' : ''
             ]"
         >
@@ -527,7 +523,10 @@
                     </template>
                 </div>
 
-                <div class="flex flex-col gap-2 border-t border-chrome-border p-3 md:p-4">
+                <div
+                    class="flex flex-col gap-2 border-t border-chrome-border p-3 md:p-4"
+                    :class="fullPage ? '' : 'max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))]'"
+                >
                     <div
                         v-show="typingName"
                         ref="typingIndicatorRef"

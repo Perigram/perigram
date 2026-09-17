@@ -69,9 +69,23 @@
             <slot />
         </main>
 
-        <!-- One chat popup for every viewport: full-bleed overlay on mobile,
-             token-sized card on desktop. -->
-        <ChatSupport v-if="supportDialog" />
+        <!-- One chat popup for every viewport, hosted by PrimeVue Dialog:
+             the mask, stacking (modal z-token, above the app chrome), and
+             responsive width are PrimeVue's; the chat renders its own
+             inbox/thread headers with back and close, so the Dialog header
+             stays hidden. Phones get a full-bleed sheet, desktop the
+             token-sized card. -->
+        <Dialog
+            v-model:visible="supportDialog"
+            modal
+            :close-on-escape="false"
+            :aria-label="t('support.chatTitle')"
+            :breakpoints="{ '640px': '100vw' }"
+            :style="{ width: 'min(94vw, 25rem)' }"
+            :pt="chatDialogPt"
+        >
+            <ChatSupport v-if="supportDialog" class="h-[100dvh] md:h-support-chat" />
+        </Dialog>
         <!-- Add-screen tier: popup TieredMenu anchored at the Add screen row
              inside the profile menu. It self-hides after a leaf pick; the
              item commands close the remaining transient chrome. -->
@@ -212,6 +226,7 @@
     import Menu from 'primevue/menu'
     import Popover from 'primevue/popover'
     import TieredMenu from 'primevue/tieredmenu'
+    import Dialog from 'primevue/dialog'
     import Tabs from 'primevue/tabs'
     import TabList from 'primevue/tablist'
     import Tab from 'primevue/tab'
@@ -235,6 +250,14 @@
     const route = useRoute()
     const { t, te } = useI18n()
     const supportDialog = useSupportDialog()
+    // Popup chrome pass-through: Dialog supplies the surface, radius, and
+    // modal stacking; the chat component supplies its own headers and
+    // controls, so the Dialog header is hidden entirely.
+    const chatDialogPt = {
+        root: { class: '!rounded-ui max-md:!rounded-none max-md:!border-0' },
+        header: { class: 'hidden' },
+        content: { class: 'p-0 overflow-hidden' }
+    }
     const authStore = useAuthStore()
     const domainUi = useCutkitDomainUi()
     provide('statusWorkflows', computed(() => authStore.statusWorkflows))
