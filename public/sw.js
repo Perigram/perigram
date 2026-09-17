@@ -1,5 +1,9 @@
-const CACHE = 'cutkit-static-v1'
-const CACHED_PREFIXES = ['/_nuxt/', '/icons/', '/fonts/', '/favicon/', '/icon.svg', '/manifest.webmanifest']
+const CACHE = 'cutkit-static-v2'
+// No '/_nuxt/' here on purpose: in dev that path serves live source modules,
+// and a cache-first worker (registered earlier by a prod build on the same
+// origin) would keep answering with stale code through any hard refresh.
+// Prod chunks are content-hashed, so network fetches are always correct.
+const CACHED_PREFIXES = ['/icons/', '/fonts/', '/favicon/', '/icon.svg', '/manifest.webmanifest']
 
 self.addEventListener('install', () => {
     self.skipWaiting()
