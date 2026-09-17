@@ -29,17 +29,33 @@ describe.skipIf(!hasDb)('active runtime compiles identically through the CTS pro
         registry.defineType(declaration);
       }
 
+      const { migrateProducerOutputIdentities } = await import('../../../packages/processes/src/index.js');
+      const strip = compiled => {
+        const copy = structuredClone(compiled);
+        delete copy.activatedAt;
+        return copy;
+      };
+      // legacy pipeline: same migration step the runtime always ran, then
+      // compile against the hand-authored domain
+      const legacyRuntime = data => {
+        const migration = migrateProducerOutputIdentities(structuredClone(data), cncDomain);
+        if (migration.errors.length) throw new Error(migration.errors.join('; '));
+        return compileProcessDefinition({ ...migration.data, compiled: null }, cncDomain, { roles: {} });
+      };
+
       for (const doc of activeDocs) {
         const organizationId = doc.lineage?.organizationId?.toString() || null;
-        const roles = {};
-        const legacy = compileProcessDefinition(structuredClone(doc.data), cncDomain, { roles });
-        const projectedRuntime = await compileActiveProcessRuntime(structuredClone(doc.data), roles, organizationId);
-        const strip = compiled => {
-          const copy = structuredClone(compiled);
-          delete copy.activatedAt;
-          return copy;
-        };
-        expect(strip(projectedRuntime), `active def ${doc._id}`).toEqual(strip(legacy));
+        let legacy;
+        let legacyError = null;
+        try { legacy = strip(legacyRuntime(doc.data)); } catch (error) { legacyError = error.message; }
+        let projected;
+        let projectedError = null;
+        try { projected = strip(await compileActiveProcessRuntime(structuredClone(doc.data), {}, organizationId)); } catch (error) { projectedError = error.message; }
+        if (legacyError !== null || projectedError !== null) {
+          expect(projectedError, `active def ${doc._id}`).toBe(legacyError);
+          continue;
+        }
+        expect(projected, `active def ${doc._id}`).toEqual(legacy);
       }
     } finally {
       // the shared client is owned by the mongo module; no teardown here
