@@ -31,6 +31,11 @@ module layout and how the code maps to the spec's build-order tiers.
 - `registry.js` — type records as data, tenancy resolution (system first,
   one org overlay, no shadowing), `compile()` running R1–R6, instance
   validation with `typeVersion` ill-typing.
+- `compat/domain-projection.js` — the collapse direction: projects a CTS
+  registry view back onto the compiler-consumable domain shape (workflows
+  merged with legacy transition access and state flags, org entities, field
+  access, relations), closing domain-cnc -> CTS -> compiled-runtime loop.
+  Verified byte-identical compilation on live process definitions.
 - `render.js` — render-policy projection (labels/icons/state severities
   derived from declarations; where hand-mirrored status tables die) and
   `compileClientBundle()`, the single frontend/designer consumption contract.
