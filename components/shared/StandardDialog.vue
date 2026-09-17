@@ -25,7 +25,7 @@ import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 
 const props = defineProps({
-    size: { type: String, default: 'md' }, // sm, md, lg, xl, full
+    size: { type: String, default: 'md' }, // sm, md, lg, xl, full, fullscreen
     showDefaultFooter: { type: Boolean, default: false },
     cancelLabel: { type: String, default: 'Cancel' },
     saveLabel: { type: String, default: 'Save' },
@@ -40,6 +40,7 @@ const sizeClass = computed(() => {
         case 'lg': return 'max-w-dialog-lg';
         case 'xl': return 'max-w-dialog-xl';
         case 'full': return 'max-w-full m-4';
+        case 'fullscreen': return '';
         case 'md':
         default: return 'max-w-dialog-md';
     }

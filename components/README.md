@@ -1086,10 +1086,11 @@ The chats surface also lives as a home-workspace tab: the drawer's expand
 action opens a workspace chats tab pinned to the active conversation
 (`utils/chat-workspace-open.js` event + pending pattern, mirroring entity
 and call tab opens) instead of a separate route; an unpinned expand opens
-the general chats tab. The mobile entity-chat popup hosts the same full
-chat (inbox, back navigation, calls) inside a `StandardDialog` frame sized
-by the `support-chat` height token — the same card height the desktop
-drawer uses — not a thread-only stub.
+the general chats tab. The mobile entity-chat popup is a native fullscreen
+dialog sheet (`Dialog` `fullscreen` via StandardDialog's `fullscreen`
+size): the standard header with the close action stays put while the full
+chat below keeps every control — back navigation lands on the inbox inside
+the same sheet, never a blank frame.
 Entity-linked chats ride the same surfaces: the inbox is one unified
 timestamp-ordered list across person, group, and entity chats — the avatar
 glyph (person image/letter, group icon, entity type icon) carries the kind,

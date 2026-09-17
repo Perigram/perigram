@@ -95,7 +95,7 @@
                              preview with the own-last read mark below. The
                              row menu (pin/archive) is an absolute hover
                              overlay so it never shifts the layout. -->
-                        <div class="group/row flex min-w-0 items-start gap-2 md:gap-3">
+                        <div class="group relative flex min-w-0 items-start gap-2 md:gap-3">
                             <div class="relative shrink-0">
                                 <Avatar
                                     v-if="option.conversationKind === 'entity'"
@@ -166,7 +166,7 @@
                                 text
                                 rounded
                                 size="small"
-                                class="shrink-0 self-center"
+                                class="absolute top-1/2 right-0 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                                 :aria-label="$t('common.more')"
                                 @click.stop="openConversationMenu($event, option)"
                             />

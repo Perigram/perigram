@@ -198,23 +198,22 @@
         <StandardDialog
             v-model:visible="entityChatPopup"
             :header="entityChatPopupName"
-            size="full"
+            size="fullscreen"
+            fullscreen
             :show-default-footer="false"
         >
-            <!-- Full chat surface (not a thread-only stub): the preset
-                 entity thread opens with the same controls as the desktop
-                 drawer — back navigation to the inbox, calls, children
-                 toggle — inside a properly bounded dialog frame. Mounting
-                 must not depend on the chat target: back navigation clears
-                 it, and a target-gated v-if would leave a blank dialog. -->
-            <div class="flex h-support-chat min-h-0 flex-col">
-                <ChatSupport
-                    v-if="entityChatPopup"
-                    embedded
-                    :conversation-key="chatTargetValue?.entityKey || ''"
-                    :entity-name="chatTargetValue?.name || ''"
-                />
-            </div>
+            <!-- Native fullscreen dialog sheet: the standard header with the
+                 close action stays put, and the full chat below keeps every
+                 control — back navigation lands on the inbox inside the same
+                 sheet. Mounting must not depend on the chat target: back
+                 navigation clears it, and a target-gated v-if would leave a
+                 blank dialog. -->
+            <ChatSupport
+                v-if="entityChatPopup"
+                embedded
+                :conversation-key="chatTargetValue?.entityKey || ''"
+                :entity-name="chatTargetValue?.name || ''"
+            />
         </StandardDialog>
         <OfflineOutboxBadge v-if="authStore.userIsSet" />
         <CallFloatingWindow v-if="authStore.userIsSet" />
