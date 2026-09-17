@@ -210,7 +210,6 @@
             <div class="flex h-support-chat min-h-0 flex-col">
                 <ChatSupport
                     v-if="entityChatPopup"
-                    :key="chatTargetValue?.entityKey || 'inbox'"
                     embedded
                     :conversation-key="chatTargetValue?.entityKey || ''"
                     :entity-name="chatTargetValue?.name || ''"

@@ -86,8 +86,6 @@
                     class="min-h-0 flex-1 border-0"
                     :aria-label="$t('support.chatTitle')"
                     scroll-height="100%"
-                    checkmark
-                    :highlight-on-select="false"
                     @update:model-value="key => openConversationByKey(key)"
                 >
                     <template #option="{ option }">
@@ -139,6 +137,11 @@
                                     <small v-if="option.timestamp" class="ml-auto shrink-0 pl-1 text-muted text-supporting">
                                         {{ inboxTimestamp(option.timestamp) }}
                                     </small>
+                                    <i
+                                        v-if="option.pinned"
+                                        class="pi pi-thumbtack shrink-0 text-muted"
+                                        :aria-label="$t('support.pin')"
+                                    />
                                 </div>
                                 <div class="flex min-w-0 items-center gap-1">
                                     <i
@@ -163,7 +166,7 @@
                                 text
                                 rounded
                                 size="small"
-                                class="shrink-0 self-center opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100"
+                                class="shrink-0 self-center"
                                 :aria-label="$t('common.more')"
                                 @click.stop="openConversationMenu($event, option)"
                             />
