@@ -75,6 +75,19 @@ Rules:
   field editors and forms generate from the same row schemas instead of a
   second form definition.
 
+### Relation to the process type grammar (audit correction)
+
+The runtime dataflow grammar is NOT this document's V. It is
+`PROCESS_BASE_TYPES` in `packages/processes/src/types.js` — 27 base types
+including `entity`/`entityRef`/`revisionRef` as distinct bases, `enum` with
+a registry id, `block`, `status`, `attachmentRef`, `predicate`, `patch`,
+`event`, `taskRef`, plus socket roles (data/control/success/failure), packet
+access shapes (item/list/tree), a coercion lattice with explicit refusals,
+capability-typed `accepts`, and unit conversion that must remain an explicit
+graph node — the same unit philosophy as §2. CTS V is the DECLARATION-layer
+grammar (what rows/states/edges may say); the graph layer owns the runtime
+grammar and is richer than V. CTS does not replace it.
+
 ## 3. Stored shape
 
 One physical document shape. Every runtime concern owns exactly one slot;
@@ -342,15 +355,15 @@ Authoring loop:
 | Existing | Becomes |
 |---|---|
 | 30 `cncEntities` + blocks | type declarations (data) |
-| `workflows.js`, intents, `workflow_overrides` | states/transitions in type defs; intents on operator outputs |
+| `workflows.js`, intents, `workflow_overrides` | states/transitions in type defs; intents on operator outputs — resolving the third home: entity-profile lifecycles and `statusDefinition` records compile INTO these declarations (compiler-core `compileLifecycle`), never alongside them |
 | `cncStatusUi`, icons, labels | render policy on enum values |
 | `attachment-kinds.js` | payload traits + construct affiliations |
 | `producers.js`, `artifact-conversions.js` | construct/conversion operator registry |
-| `field-schemas.js` base/shape/itemType/unit | V (promoted to the real grammar) |
+| `field-schemas.js` base/shape/itemType/unit | field-selector projection over rows (subsumed by §2; the runtime grammar is `packages/processes/types.js`, which CTS does not replace) |
 | `field-access.js`, `roleGrants` | policy facet |
 | `summaries.js` | per-edge aggregates |
 | `revisions.js` | revision facet |
-| commands/tasks/effects runtime | operator runtime (machinery unchanged, signatures added) |
+| commands/tasks/effects runtime | operator runtime (machinery unchanged; the six species classify the existing effect node family rather than replacing the graph calculus) |
 | status v2 regions | parallel axes |
 | `Specs` class, `specs` block | `Quantity` fields |
 | surface keys, aliases, `meta` flag | deleted; nominal type + policy |
@@ -460,11 +473,15 @@ sits in predicate position. Four completions follow from this principle:
    Total and exhaustiveness-checked: a missing tag is a static error, not a
    runtime fallthrough. Arms are expressions over V; guards may not recurse.
 
-2. **`map` / `filter`** — bounded structural iteration over typed lists
-   (`(A -> B) -> [A] -> [B]`, `(A -> Boolean) -> [A] -> [A]`). Terminating
-   because the input is finite; this is the sanctioned "for each job item"
-   form. General loops, `while`, and recursion do not exist; iteration over
-   unbounded data belongs to `s`.
+2. **Bounded structured iteration** — `map`/`filter` in CTS expressions;
+   the graph layer additionally provides `control.forEach`/`collection.
+   dispatch`/`tree.cross` over finite packets — bounded, typed, and
+   structurally terminating (audit correction: "map/filter only" was
+   falsified by the node catalog). Unbounded iteration and recursion still
+   belong to `s`. The runtime's missing-field marker contract
+   (`missing-field.js`: missing stays distinguishable from null through the
+   whole pipeline, serialized only at result boundaries) is adopted as part
+   of this discipline.
 
 3. **Concurrency** — optimistic. Guards are re-evaluated atomically at commit
    against the current state snapshot (a conditional update on the stored
@@ -490,6 +507,11 @@ intents on operators, §8 operator species + triggers, §12 rules R1–R6,
 §11 reduced to version stamping + a diff that refuses breaking changes,
 §13 collection mapping. Everything in §15's collapse table must land here —
 completeness of the tier is measured by that table.
+
+**Grammar alignment (from the audit, before L2):** reconcile V with
+`PROCESS_BASE_TYPES` — adopt `entity`/`entityRef` separation, the coercion
+lattice, and socket roles at the CTS boundary, or explicitly scope V to
+declarations-only and translate at the seam.
 
 **Deferred until a real need appears (specified, not built):** declarative
 migration steps beyond refuse-on-diff (§11); aggregates and materialized
