@@ -1153,9 +1153,10 @@ const paletteGroupsWithTypes = computed(() => {
     label: type.id,
     action: () => addCtsTypeNode(type)
   }));
-  return typeItems.length
-    ? [...designer.paletteGroups, { id: 'types', label: 'Types', items: typeItems }]
-    : designer.paletteGroups;
+  const items = typeItems.length
+    ? typeItems
+    : [{ id: 'ctsType:new', kind: 'ctsType', icon: 'pi pi-plus', label: 'New type…', action: () => navigateTo('/organization/types') }];
+  return [...designer.paletteGroups, { id: 'types', label: 'Types', items }];
 });
 const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = useProcessDesignerPalette({
   groups: paletteGroupsWithTypes,
