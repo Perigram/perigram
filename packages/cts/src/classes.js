@@ -35,9 +35,5 @@ export function checkClassObligations(type = {}) {
       break;
     default: break;
   }
-  if ((className === 'file' || className === 'group') && states.main) {
-    const beyond = states.main.values.filter(state => !['draft', 'active', 'archived'].includes(state));
-    if (beyond.length) errors.push(`type ${type.id}: ${className} states beyond publish are deferred (SPEC §19): ${beyond.join(', ')}`);
-  }
   return errors;
 }

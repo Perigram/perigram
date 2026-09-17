@@ -22,7 +22,7 @@ export function rowToSchema(typeId, row = {}) {
   const required = Object.entries(row).filter(([, d]) => d.nullable !== true).map(([name]) => name);
   return Object.freeze({
     $schema: 'https://json-schema.org/draft/2020-12/schema',
-    $id: `cutkit:${typeId}`,
+    $id: `perigram:${typeId}`,
     type: 'object',
     additionalProperties: false,
     properties,
