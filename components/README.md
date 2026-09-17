@@ -1091,13 +1091,15 @@ surfaces and standalone lists route through
 workspace is mounted, a pending request consumed on mount otherwise — so
 everything stays inside the home framework. Entity threads show a children toggle that switches between the
 composed subtree view and messages linked to the entity itself, and the
-composer of a composed view carries a lineage drill-down strip: ALL children
-of the current target load through the containment sources the sidebar uses;
-picking a child drills the strip into its own children (and the next message
-lands there), with breadcrumbs of lineage icons walking back up. The
-composed entity itself is the target whenever no child is drilled, and the
-strip's root pill carries the selected state in that case so exactly one
-target is always visibly selected. Replies quote their parent message above the bubble (sender
+composer of a composed view carries a lineage drill-down strip following the
+dynamic-breadcrumbs pattern: ONE strip whose drilled lineage leads as
+icon-only pills (no text; tapping one jumps back to that level), an angle
+marks the descent, and the siblings of the current level follow as chips.
+ALL children of the current target load through the containment sources the
+sidebar uses; picking a child drills the strip into its own children (and
+the next message lands there). The composed entity itself is the target
+whenever no child is drilled, and exactly one target is always visibly
+selected — the root pill, the deepest lineage pill, or a drilled leaf chip. Replies quote their parent message above the bubble (sender
 name plus snippet or voice marker, without a leading border) and jump to the quoted message when
 loaded, loading earlier pages while staying scroll-anchored otherwise; they
 open through the desktop hover message menu (PrimeVue Menu with reply and
