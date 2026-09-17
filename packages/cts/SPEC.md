@@ -1,4 +1,4 @@
-# SPEC: CutKit Type System (CTS)
+# SPEC: Perigram Type System (CTS)
 
 Status: proposed target model. Nothing in here is a runtime module yet. It is
 the collapse point of the current constructs spread across
@@ -289,7 +289,7 @@ The compiler enforces exactly these; each replaces a hand-maintained guard:
 | R1 | closed rows: every field path used by any predicate/patch/record node is in the target type's row | field-access duplication |
 | R2 | typed edges: every Ref assignment checks the edge's target set and `onRemove` | bare `data.*Id` drift |
 | R3 | unit discipline on `Quantity` | suffix strings, unit qualifiers |
-| R4 | state totality: transitions within axis enum; one initial; reachable terminal; intents unique per type | workflow validators |
+| R4 | state totality: transitions within axis enum; one initial; reachable terminal; one intent has one target state | workflow validators |
 | R5 | dataflow: process graph sockets typecheck; `s` consumes only V (entities reach services solely via `p`) | missing-field/reachability diagnostics |
 | R6 | class obligations of §5 checked at type-compile | `meta` flag vs master/system drift |
 | R7 | version/migration completeness per §11 | ad-hoc migrate scripts |
@@ -366,7 +366,7 @@ struct Ring   = [Point]; Point = (x: Quantity(mm), y: Quantity(mm))
 struct Polygon = (outer: Ring, holes: [Ring])
 
 type OCCS : file {
-  payload application/cutkit+occs
+  payload application/perigram+occs
   fields { parameters: [Param], graph: Json }   -- graph: foreign-format
                                                 -- entropy, quarantined
   revisions geometry
