@@ -44,7 +44,11 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
   failures included.
 - [ ] **L2 — graph rebase**: palette = operator registry, sockets carry V
   types, property editors = expression language, R5 dataflow typing
-- [ ] **Designer type nodes**: the exact seam is `RECORD_NODE_TYPES` +
+- [x] **Designer type nodes**: `ctsType` reference cards live on the process
+  canvas — the transpiler persists them through save/load without record
+  ownership (`CANVAS_PERSISTENT_NODE_TYPES`), the palette's Types group
+  lists org types, cards show class/lifecycle and link to the registry.
+  Round-trip proven in `transpiler-cts-nodes.spec.js`. `RECORD_NODE_TYPES` +
   `CANVAS_OWNED_RECORD_KEYS` in `packages/processes/src/transpiler.js` —
   only statusDefinition/processNode canvas nodes survive the round trip
   today; a `ctsType` reference node needs a `ctsTypes` record home there,
