@@ -1,5 +1,5 @@
 <template>
-  <Popover ref="popover" :pt="popoverPt">
+  <Popover ref="popover">
     <Tree
       v-model:expanded-keys="expandedKeys"
       :value="nodes"
@@ -77,15 +77,11 @@ const emit = defineEmits(['select', 'create-action'])
 
 const { t, te } = useI18n()
 
-// Popover context: PrimeVue runtime styles load after Tailwind, and the
-// popover content + tree roots both paint their own padding — stacked they
-// read as huge gutters. pt inline styles flatten them so the rows own all
-// spacing, menu-like.
-const popoverPt = {
-  content: { style: { padding: '0' } }
-}
+// Raw PrimeVue chrome: the Popover and Tree keep their unmodified Aura
+// padding. The only pt passthrough is the documented dense-row layout the
+// home sidebar explorer uses — the tree-children rail collapses to zero and
+// the level indent moves onto the row content.
 const pickerTreePt = {
-  root: { style: { padding: '0', borderWidth: '0', background: 'transparent' } },
   nodeChildren: { style: { paddingInlineStart: '0' } },
   nodeContent: ({ props }) => ({
     style: { paddingInlineStart: `${(Math.max(props.level || 1, 1) - 1) * 0.75}rem` }
