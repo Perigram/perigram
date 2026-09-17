@@ -56,13 +56,14 @@ button saves or forks the visible graph, activates the resulting process
 definition, and records activation warnings/errors in the centered canvas
 validation feedback so operators can inspect the result without a persistent
 canvas panel.
+The designer dock exposes **Types** (`TypeAuthoringPanel.vue`): type authoring inside the designer — select or create a type, its states render as editable cards (drag between states to add transitions, intents on wires), Save writes through the type store and immediately refreshes the palette and option lists. There is no separate type page.
+
 The designer dock exposes the CTS language tester
 (`processDesigner.languageTester`): a dialog running `@perigram/cts` directly
 in the browser — expression AST evaluation with unit arithmetic and match
 exhaustiveness, plus instance validation against the strangler-converted
 types (see [components/process-designer/README.md](../../components/process-designer/README.md)).
 
-`types.vue` is the CTS types canvas — the designer's type graph (see
 [packages/cts/SPEC.md](../../packages/cts/SPEC.md)). Type nodes are laid out
 by class (file/item/group/process/party) and wired by their declared
 children and relation edges; double-clicking a type opens its state machine
