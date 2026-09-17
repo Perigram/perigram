@@ -1669,6 +1669,9 @@ async function drillStripTo(chip) {
     if (replyTo.value) return
     composerEntityTouched = true
     composerEntity.value = { type: chip.type, id: chip.id, name: chip.name }
+    // A child target only lands visibly in the composed subtree view; the
+    // own-messages filter would hide the sent message entirely.
+    if (!includeChildren.value) includeChildren.value = true
     await loadStripChildren(chip.key, chip.type, chip.entity)
     // Collapse into breadcrumbs only when the drilled target opens another
     // level; single-level targets keep the flat list with the selection.
@@ -1681,6 +1684,7 @@ function truncateStripTrail(index) {
     const deepest = stripTrail.value[stripTrail.value.length - 1] || null
     composerEntityTouched = true
     composerEntity.value = deepest
+    if (!includeChildren.value) includeChildren.value = true
         ? { type: deepest.type, id: deepest.id, name: deepest.name }
         : null
 }
@@ -1955,12 +1959,20 @@ onBeforeUnmount(() => {
     stopRecordingTracks()
 })
 
+// The chat target is consumed at MOUNT by whichever surface appears (drawer,
+// popup, /chats route). Reactive re-consumption belongs to the drawer
+// instance alone: embedded surfaces (workspace chats tab, /chats route,
+// detail panels, popup) already have their own mounted consumption, and a
+// reactive watch here would make every mounted instance open the same
+// conversation in the main window alongside the popup/drawer.
 watch(chatTarget, () => {
+    if (props.embedded) return
     if (supportDialog.value && (chatTarget.value?.userId || chatTarget.value?.entityKey)) openDirectTarget()
 }, { deep: true })
 
 watch(supportDialog, (isOpen) => {
-    if (isOpen && (chatTarget.value?.userId || chatTarget.value?.entityKey)) openDirectTarget()
+    if (props.embedded || !isOpen) return
+    if (chatTarget.value?.userId || chatTarget.value?.entityKey) openDirectTarget()
 })
 
 const formatTime = (timestamp, withoutTime) => {
