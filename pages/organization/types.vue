@@ -4,7 +4,7 @@
 // nodes + transition wires. Authoring gestures (connect = transition,
 // delete, toggles) build a declaration saved through the L0 API; compile
 // errors from the registry surface inline. System types open read-only.
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { SelectionMode, VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -39,7 +39,13 @@ const selectedTypeId = ref(null);
 const saving = ref(false);
 const isNewDraft = ref(false);
 
-const { onConnect, onNodeDoubleClick, onEdgeClick, onNodeClick, onPaneClick } = useVueFlow();
+const { fitView, onConnect, onNodeDoubleClick, onEdgeClick, onNodeClick, onPaneClick } = useVueFlow();
+
+async function refit() {
+  await nextTick();
+  const hasNodes = (mode.value === 'types' ? typeNodes.value : stateNodes.value).length > 0;
+  if (hasNodes) fitView({ padding: 0.16, duration: 0, maxZoom: 1 });
+}
 
 const selectedType = computed(() => types.value.find(type => type.id === selectedTypeId.value) || null);
 const editable = computed(() => Boolean(selectedType.value && (isNewDraft.value || selectedType.value.scope === 'org')));
@@ -101,6 +107,7 @@ function openType(typeId) {
   isNewDraft.value = false;
   buildStateGraph(type);
   mode.value = 'states';
+  refit();
 }
 
 function buildStateGraph(type) {
@@ -309,6 +316,7 @@ function createDraftType() {
   stateDraftDirty.value = true;
   showNewType.value = false;
   mode.value = 'states';
+  refit();
 }
 
 async function removeCurrentType() {
@@ -337,10 +345,13 @@ async function load() {
     loadError.value = error?.message || 'failed to load types';
   } finally {
     loading.value = false;
+    await refit();
   }
 }
 
 onMounted(load);
+
+watch(mode, () => refit());
 
 const breadcrumb = computed(() => mode.value === 'states'
   ? `types / ${selectedTypeId.value}${isNewDraft.value ? ' (new)' : ''}`
@@ -375,6 +386,7 @@ const breadcrumb = computed(() => mode.value === 'states'
               v-if="mode === 'types'"
               :nodes="typeNodes"
               :edges="typeEdges"
+              class="absolute inset-0 h-full w-full"
               :min-zoom="0.15"
               :max-zoom="2"
               :pan-on-scroll="true"
@@ -388,6 +400,7 @@ const breadcrumb = computed(() => mode.value === 'states'
               v-else
               v-model:nodes="stateNodes"
               v-model:edges="stateEdges"
+              class="absolute inset-0 h-full w-full"
               :min-zoom="0.2"
               :max-zoom="2"
               :pan-on-scroll="true"
