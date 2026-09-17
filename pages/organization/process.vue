@@ -1068,13 +1068,16 @@ async function addCtsTypeNode(className) {
     ctsOrgTypes.value = [...ctsOrgTypes.value, stored.type];
     resetCtsRegistry();
     refreshDesignerFromTypes();
-    nodes.value.push({
+    const node = {
       id: `ctsType_${stored.type.id}`,
       type: 'ctsType',
       position: nextNodePosition(),
       selected: true,
       data: { refId: `ctsType_${stored.type.id}`, typeId: stored.type.id }
-    });
+    };
+    nodes.value = [...nodes.value.map(item => ({ ...item, selected: false })), enrichNodeData(node)];
+    selectedNodeId.value = node.id;
+    selectedEdgeId.value = null;
     toast.add({ severity: 'success', summary: `Type ${stored.type.id} created`, life: 2000 });
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Type creation failed', detail: error?.data?.message || error?.message, life: 8000 });
