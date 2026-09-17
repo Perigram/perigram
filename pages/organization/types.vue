@@ -78,7 +78,7 @@ const paletteGroups = computed(() => {
   const orgMatches = orgTypes.value.filter(type => !query || type.id.includes(query));
   if (orgMatches.length) {
     groups.push({
-      id: 'your types',
+      id: 'your categories',
       items: orgMatches.map(type => ({
         id: `open:${type.id}`,
         icon: type.id === selectedTypeId.value ? 'pi pi-pencil' : 'pi pi-file',
@@ -92,7 +92,7 @@ const paletteGroups = computed(() => {
     .slice(0, query ? 30 : 12);
   if (systemMatches.length) {
     groups.push({
-      id: 'system types (read-only)',
+      id: 'built-in categories (view only)',
       items: systemMatches.map(type => ({
         id: `view:${type.id}`,
         icon: 'pi pi-eye',
@@ -295,7 +295,7 @@ const canvasDockItems = computed(() => {
   if (selectedType.value) {
     items.push({
       icon: () => h('i', { class: 'pi pi-arrow-left', 'aria-hidden': 'true' }),
-      label: 'Close type',
+      label: 'Back',
       onClick: () => { selectedTypeId.value = null; stateNodes.value = []; stateEdges.value = []; }
     });
     if (editable.value) {
@@ -326,7 +326,7 @@ const canvasDockItems = computed(() => {
   } else {
     items.push({
       icon: () => h('i', { class: 'pi pi-plus', 'aria-hidden': 'true' }),
-      label: 'New type',
+      label: 'New category',
       onClick: () => { showNewType.value = true; }
     });
   }
@@ -380,17 +380,15 @@ function deleteSelection() {
 
         <div v-if="!selectedType" class="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
           <div class="border-round surface-0 shadow-2 px-4 py-3 text-center pointer-events-auto">
-            <div class="text-lg font-medium">No type open</div>
-            <div class="text-sm text-500 mt-1">Create a type or open one from the palette on the left.</div>
-            <Button label="New type" icon="pi pi-plus" class="mt-3" @click="showNewType = true" />
+            <div class="text-lg font-medium">Nothing selected</div>
+            <div class="text-sm text-500 mt-1">Pick a category from the list on the left, or create your own.</div>
+            <Button label="New category" icon="pi pi-plus" class="mt-3" @click="showNewType = true" />
           </div>
         </div>
 
         <div v-if="selectedType" class="absolute top-2 left-2 z-10 flex gap-2 align-items-center">
           <span class="text-sm font-medium">{{ selectedType.id }}</span>
-          <Tag :value="selectedType.class" severity="info" />
-          <Tag v-if="!isNewDraft" :value="`v${selectedType.version}`" severity="secondary" />
-          <Tag v-if="!editable" value="system — read-only" severity="secondary" />
+          <Tag v-if="!editable" value="built-in — view only" severity="secondary" />
           <Tag v-else-if="dirty" value="unsaved" severity="warn" />
         </div>
 
@@ -404,12 +402,12 @@ function deleteSelection() {
         <template #palette>
           <div class="flex h-full min-h-0 flex-col gap-3 overflow-y-auto p-3">
             <div class="flex items-center gap-1">
-              <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" placeholder="Search types" />
+              <InputText v-model="paletteQuery" size="small" class="min-w-0 flex-1" placeholder="Search categories" />
             </div>
             <div class="flex flex-col gap-1.5">
               <Button
                 icon="pi pi-plus"
-                label="New type"
+                label="New category"
                 size="small"
                 text
                 class="min-w-0 justify-start border border-transparent bg-subtle px-2 hover:border-content-border"
@@ -465,18 +463,18 @@ function deleteSelection() {
                 then click the wire to set its intent here.
               </div>
               <div v-else class="text-xs text-500 mt-2">
-                System type — read-only. Use New type to author your own.
+                This is a built-in category — view only. Create your own to edit.
               </div>
             </template>
             <template v-else>
-              <div class="text-xs text-500">Create or open a type to start editing.</div>
+              <div class="text-xs text-500">Pick a category to see its states.</div>
             </template>
           </div>
         </template>
       </DesignerWorkspace>
     </DesignerSurface>
 
-    <Dialog v-model:visible="showNewType" modal header="New type" :style="{ width: '24rem' }">
+    <Dialog v-model:visible="showNewType" modal header="New category" :style="{ width: '24rem' }">
       <div class="flex flex-column gap-3 p-2">
         <div>
           <label class="text-sm">id (kebab-case)</label>
