@@ -1,0 +1,112 @@
+// Grammar adapter (SPEC §2 "Relation to the process type grammar"): maps
+// CTS declaration-layer descriptors onto PROCESS_BASE_TYPES
+// (`packages/processes/src/types.js`) and back, for the declaration subset.
+// The runtime-only bases (entity, revisionRef, block, status, predicate,
+// patch, event, taskRef, error, void, opaque, duration, integer) have no CTS
+// counterpart by design — the adapter reports them as unmappable instead of
+// guessing. Enum values live inline in CTS but behind registry ids in the
+// process grammar; `enumRegistryForType` derives the ids both sides share.
+const PROCESS_ONLY_BASES = Object.freeze([
+  'entity', 'revisionRef', 'block', 'status', 'predicate', 'patch', 'event',
+  'taskRef', 'error', 'void', 'opaque', 'duration', 'integer'
+]);
+
+export function ctsFieldToProcessType(descriptor = {}) {
+  switch (descriptor.base) {
+    case 'string': return { base: 'string' };
+    case 'number': return { base: 'number' };
+    case 'boolean': return { base: 'boolean' };
+    case 'instant': return { base: 'dateTime' };
+    case 'id': return { base: 'id' };
+    case 'json': return { base: 'json' };
+    case 'blob': return { base: 'attachmentRef' };
+    case 'quantity': return { base: 'number', unit: descriptor.unit };
+    case 'ref': {
+      const type = { base: 'entityRef' };
+      if (descriptor.accepts?.length === 1) type.entityType = descriptor.accepts[0];
+      else if (descriptor.accepts?.length) type.accepts = [...descriptor.accepts];
+      return type;
+    }
+    case 'list': {
+      const item = ctsFieldToProcessType(descriptor.itemType || {});
+      if (!item) return { base: 'json', lossy: 'list item type has no process counterpart' };
+      return { base: 'array', itemType: item };
+    }
+    case 'map': {
+      const value = ctsFieldToProcessType(descriptor.itemType || {});
+      if (!value) return { base: 'json', lossy: 'map value type has no process counterpart' };
+      return { base: 'map', keyType: { base: 'string' }, valueType: value };
+    }
+    case 'enum': return { base: 'enum' };
+    case 'record': return { base: 'record' };
+    case 'variant': return { base: 'json', lossy: 'variants flatten to json at the process boundary' };
+    default: return { base: 'json', lossy: `unknown CTS base ${descriptor.base}` };
+  }
+}
+
+export function processTypeToCtsField(type = {}) {
+  switch (type.base) {
+    case 'string': return { base: 'string' };
+    case 'number': return type.unit ? { base: 'quantity', unit: type.unit } : { base: 'number' };
+    case 'integer': return { base: 'number', lossy: 'integer widens to number' };
+    case 'boolean': return { base: 'boolean' };
+    case 'dateTime': case 'date': return { base: 'instant' };
+    case 'duration': return null;
+    case 'id': return { base: 'id' };
+    case 'json': return { base: 'json' };
+    case 'attachmentRef': return { base: 'blob' };
+    case 'enum': return { base: 'enum' };
+    case 'entityRef': case 'entity': {
+      if (type.entityType) return { base: 'ref', accepts: [type.entityType] };
+      if (type.accepts?.length) return { base: 'ref', accepts: [...type.accepts] };
+      return { base: 'ref', accepts: [] };
+    }
+    case 'revisionRef': return null;
+    case 'array': {
+      const item = processTypeToCtsField(type.itemType || {});
+      return item ? { base: 'list', itemType: item } : null;
+    }
+    case 'map': {
+      const value = processTypeToCtsField(type.valueType || {});
+      return value ? { base: 'map', itemType: value } : null;
+    }
+    case 'record': return { base: 'record' };
+    default: return null;
+  }
+}
+
+export function isProcessOnlyBase(base = '') {
+  return PROCESS_ONLY_BASES.includes(base);
+}
+
+// Enum registry derivation: CTS state enums and inline enum fields get
+// process-grammar ids (`typeId#main` for the state axis, `typeId#field` per
+// enum field). Both sides of the seam resolve through the same ids.
+export function enumRegistryForType(type = {}) {
+  const registry = {};
+  if (type.states?.main?.values?.length) {
+    registry[`${type.id}#main`] = [...type.states.main.values];
+  }
+  for (const [fieldName, descriptor] of Object.entries(type.fields || {})) {
+    if (descriptor.base === 'enum') registry[`${type.id}#${fieldName}`] = [...(descriptor.values || [])];
+  }
+  return registry;
+}
+
+export function enumRegistryForView(types = []) {
+  return Object.assign({}, ...types.map(enumRegistryForType));
+}
+
+// Species classification of the effect node family (SPEC §8): metadata over
+// `packages/processes` node kinds, not new machinery.
+export const SPECIES_BY_EFFECT_KIND = Object.freeze({
+  'effect.createEntity': 'construct',
+  'effect.runProducer': 'construct',
+  'effect.updateEntity': 'mutate',
+  'effect.changeStatus': 'transition',
+  'effect.archiveEntity': 'transition',
+  'effect.deleteEntity': 'remove',
+  'effect.runCommand': 'command',
+  'effect.sendEntity': 'command',
+  'effect.generateAttachment': 'conversion'
+});

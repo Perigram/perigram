@@ -38,3 +38,8 @@ export {
 export {
   cncTypePack, partyTypes, nestingOperators, packFixtures
 } from './pack/cnc.js';
+export {
+  ctsFieldToProcessType, processTypeToCtsField, isProcessOnlyBase,
+  enumRegistryForType, enumRegistryForView, SPECIES_BY_EFFECT_KIND
+} from './compat/process-grammar.js';
+export { checkDeclarationsAgainstCts } from './compat/process-checks.js';
