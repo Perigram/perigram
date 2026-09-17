@@ -65,6 +65,8 @@ Rules:
   rule of §12. It exists for true externals (raw imported DXF entropy, foreign
   settings). Parking domain payload there is a review defect, not a style
   choice.
+- Expression forms over V — `match` (exhaustive variant elimination) and
+  `map`/`filter` (bounded list iteration) — are specified in §18.
 
 ## 3. Stored shape
 
@@ -405,3 +407,39 @@ three declarations and one pure function.
    checked throughout.
 4. Screens that showed the old field fall back by derivation (absent from
    row -> absent from UI), not by editing components.
+
+## 18. Expression forms and runtime contract
+
+CTS is deliberately total, not Turing-complete. Everything static — rows,
+graphs, expressions, checks R1–R7 — terminates by construction; decidability
+is what makes live designer checking and diff-driven migrations possible.
+Turing-completeness is quarantined inside `s` (and editors/workers) behind
+typed `V -> V` signatures. Four completions follow from this principle:
+
+1. **`match`** — the elimination form for variants:
+
+   ```
+   match e { tag1(x) -> expr1, tag2(y) -> expr2, ... }
+   ```
+
+   Total and exhaustiveness-checked: a missing tag is a static error, not a
+   runtime fallthrough. Arms are expressions over V; guards may not recurse.
+
+2. **`map` / `filter`** — bounded structural iteration over typed lists
+   (`(A -> B) -> [A] -> [B]`, `(A -> Boolean) -> [A] -> [A]`). Terminating
+   because the input is finite; this is the sanctioned "for each job item"
+   form. General loops, `while`, and recursion do not exist; iteration over
+   unbounded data belongs to `s`.
+
+3. **Concurrency** — optimistic. Guards are re-evaluated atomically at commit
+   against the current state snapshot (a conditional update on the stored
+   document); a guard that no longer holds fails the transition. A racing
+   transition that loses is rejected, never merged.
+
+4. **Failure** — no sagas, no compensation operators. Operators are
+   idempotent: request replay is deduplicated by idempotency key (the
+   outbox/idempotency runtime already provides this), and
+   `provenance.effective` makes `k` replay-safe — re-running a conversion
+   with the same effective inputs converges instead of duplicating output.
+   Retry policy is the declared per-operator knob and the whole failure
+   story.
