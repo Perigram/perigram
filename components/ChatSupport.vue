@@ -69,6 +69,19 @@
                         :aria-label="$t('support.newGroup')"
                         @click="openGroupDialog"
                     />
+                    <!-- The drawer's inbox view needs its own close: the
+                         thread header's close vanishes with the thread, and
+                         nothing else dismisses the drawer from here. -->
+                    <Button
+                        v-if="!embedded"
+                        icon="pi pi-times"
+                        severity="secondary"
+                        text
+                        rounded
+                        size="small"
+                        :aria-label="$t('common.close')"
+                        @click="closeChat"
+                    />
                 </div>
                 <StateBlock
                     v-if="!displayConversations.length"

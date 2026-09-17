@@ -1025,7 +1025,8 @@ specific user selected from status history actor rows, and inline entity
 references must render through `EntityInlineRef` rather than local chips. The
 floating Chats drawer opens to an inbox backed by `/api/support/conversations`;
 that inbox contains only conversations with persisted messages and offers a
-header user-plus action that opens a simple new-chat dialog — a filtered
+header user-plus action that opens a simple new-chat dialog, and a close
+action in the inbox header so the drawer is dismissible from the list too — a filtered
 raw Listbox of plain avatar+name user rows; picking one opens the direct
 thread, including a direct self-chat. The inbox is a PrimeVue `Listbox` (single selection with keyboard
 navigation and Aura's selected-option state) whose `#option` template renders
