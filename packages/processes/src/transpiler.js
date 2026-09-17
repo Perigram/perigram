@@ -19,6 +19,12 @@ const CANVAS_OWNED_RECORD_KEYS = {
 
 const RECORD_NODE_TYPES = Object.keys(CANVAS_OWNED_RECORD_KEYS);
 
+// Canvas node types that persist in the graph through save/load. Beyond the
+// record-owning kinds, `ctsType` cards are references to types stored in the
+// CTS type registry (server feature cts-types): they ride the graph but own
+// no draft-data record, so deleting the card never deletes the type.
+const CANVAS_PERSISTENT_NODE_TYPES = [...RECORD_NODE_TYPES, 'ctsType'];
+
 export function hasCanonicalProcessSource(definition = {}) {
   const data = definition.data || definition;
   return ['roleGrants', 'servicePrincipals', 'producerOutputs', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens']
@@ -32,9 +38,14 @@ export function definitionToCanvas(definition = {}) {
   const projectedNodes = projectRecordNodes(process);
   const projectedBySemanticId = new Map(projectedNodes.map(node => [semanticNodeId(node), node]));
   const savedNodes = (process.graph.nodes || [])
-    .filter(node => RECORD_NODE_TYPES.includes(node.type))
-    .filter(node => projectedBySemanticId.has(semanticNodeId(node)))
-    .map(node => mergeProjectedNode(projectedBySemanticId.get(semanticNodeId(node)), node));
+    .filter(node => CANVAS_PERSISTENT_NODE_TYPES.includes(node.type))
+    .map(node => {
+      if (node.type === 'ctsType') return normalizeCanvasNode(node);
+      return projectedBySemanticId.has(semanticNodeId(node))
+        ? mergeProjectedNode(projectedBySemanticId.get(semanticNodeId(node)), node)
+        : null;
+    })
+    .filter(Boolean);
 
   const savedSemanticIds = new Set(savedNodes.map(semanticNodeId));
   const occupiedNodeIds = new Set(savedNodes.map(node => node.id));
@@ -71,7 +82,7 @@ function withUniqueCanvasNodeId(node, occupiedNodeIds) {
 export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
   const process = normalizeProcessLike(previousDefinition);
   const nodes = (canvas.nodes || [])
-    .filter(node => RECORD_NODE_TYPES.includes(node.type))
+    .filter(node => CANVAS_PERSISTENT_NODE_TYPES.includes(node.type))
     .map(node => normalizeCanvasNode(node));
   const nodeIds = new Set(nodes.map(node => node.id));
   const refsByKey = collectCanvasRefs(nodes);
