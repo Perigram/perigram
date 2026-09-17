@@ -4,7 +4,7 @@
 // node/edge events bound as template props. Type nodes wired by declared
 // edges; double-click opens the type's state machine; org types are
 // editable and saved through the L0 storage API.
-import { computed, h, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, h, nextTick, onMounted, onErrorCaptured, ref, watch } from 'vue';
 import { SelectionMode, VueFlow, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -19,6 +19,11 @@ import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 
 definePageMeta({ layout: 'app', middleware: 'auth' });
+const mountError = ref('');
+onErrorCaptured(error => {
+  mountError.value = error?.message || String(error);
+  return false;
+});
 const toast = useToast();
 const { fitView } = useVueFlow();
 
@@ -40,6 +45,15 @@ const isNewDraft = ref(false);
 const selectedNodeId = ref(null);
 const selectedEdgeId = ref(null);
 
+const flowNodes = computed({
+  get: () => (mode.value === 'types' ? typeNodes.value : stateNodes.value),
+  set: value => { if (mode.value === 'types') typeNodes.value = value; else stateNodes.value = value; }
+});
+const flowEdges = computed({
+  get: () => (mode.value === 'types' ? typeEdges.value : stateEdges.value),
+  set: value => { if (mode.value === 'types') typeEdges.value = value; else stateEdges.value = value; }
+});
+const flowDeleteKey = computed(() => (mode.value === 'states' && editable.value ? 'Backspace' : null));
 const selectedType = computed(() => types.value.find(type => type.id === selectedTypeId.value) || null);
 const editable = computed(() => Boolean(selectedType.value && (isNewDraft.value || selectedType.value.scope === 'org')));
 
@@ -387,37 +401,18 @@ const dockItems = computed(() => {
       >
         <ClientOnly>
           <VueFlow
-            v-if="mode === 'types'"
-            v-model:nodes="typeNodes"
-            v-model:edges="typeEdges"
+            v-model:nodes="flowNodes"
+            v-model:edges="flowEdges"
             class="absolute inset-0 h-full w-full"
             :min-zoom="0.15"
             :max-zoom="2"
-            :delete-key-code="null"
-            :selection-key-code="true"
-            :selection-mode="SelectionMode.Partial"
+            :delete-key-code="flowDeleteKey"
             pan-activation-key-code="Space"
             :pan-on-scroll="true"
             :zoom-on-scroll="false"
             :zoom-on-pinch="true"
             @node-click="handleNodeClick"
             @node-double-click="handleNodeDoubleClick"
-            @edge-click="handleEdgeClick"
-            @pane-click="handlePaneClick"
-          />
-          <VueFlow
-            v-else
-            v-model:nodes="stateNodes"
-            v-model:edges="stateEdges"
-            class="absolute inset-0 h-full w-full"
-            :min-zoom="0.2"
-            :max-zoom="2"
-            :delete-key-code="editable ? 'Backspace' : null"
-            pan-activation-key-code="Space"
-            :pan-on-scroll="true"
-            :zoom-on-scroll="false"
-            :zoom-on-pinch="true"
-            @node-click="handleNodeClick"
             @edge-click="handleEdgeClick"
             @pane-click="handlePaneClick"
             @connect="handleConnect"
@@ -434,6 +429,12 @@ const dockItems = computed(() => {
         </div>
         <div v-if="mode === 'types'" class="absolute bottom-2 left-2 z-10 text-xs text-500">
           double-click a type to open its state machine
+        </div>
+        <div class="absolute bottom-2 right-2 z-10 text-xs text-500 border-round surface-0 px-2 py-1 shadow-1">
+          {{ mode }}: {{ flowNodes.length }} nodes · {{ flowEdges.length }} edges
+        </div>
+        <div v-if="mountError" class="absolute top-2 left-1/2 z-30 -translate-x-1/2 border-round bg-red-50 border-2 border-red-400 px-3 py-2 text-sm text-red-700 shadow-2 max-w-30rem">
+          canvas error: {{ mountError }}
         </div>
         <div v-if="mode === 'states'" class="absolute top-2 left-2 z-10 text-sm font-medium">
           {{ selectedTypeId }}<span v-if="isNewDraft"> (new)</span>
