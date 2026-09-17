@@ -70,21 +70,28 @@
         </main>
 
         <!-- One chat popup for every viewport, hosted by PrimeVue Dialog:
-             PrimeVue owns stacking (overlay z above the app chrome) and the
-             responsive width — a full-bleed sheet below md, the token-sized
-             card above. Non-modal on purpose: desktop keeps working under
-             the chat. The chat renders its own inbox/thread headers with
-             back and close, so the Dialog header stays hidden, and the
-             surface is pinned to the app content token. -->
+             PrimeVue owns stacking (overlay z above the app chrome). The
+             dialog is a real bounded card everywhere — support-chat token
+             size, capped to the viewport minus breathing room so the soft
+             keyboard can never cover the composer (interactive-widget
+             resizes the viewport). Non-modal on purpose: desktop keeps
+             working under the chat. The chat renders its own inbox/thread
+             headers with back and close, so the Dialog header stays
+             hidden, and the surface is pinned to the app content token. -->
         <Dialog
             v-model:visible="supportDialog"
             :close-on-escape="false"
             :aria-label="t('support.chatTitle')"
-            :breakpoints="{ '768px': '100vw' }"
             :style="{ width: 'min(94vw, 25rem)' }"
             :pt="chatDialogPt"
         >
-            <ChatSupport v-if="supportDialog" class="h-[100dvh] md:h-support-chat" />
+            <!-- Height lives on this dedicated wrapper: the ChatSupport
+                 root already carries h-full, and merging a second height
+                 utility there resolves by CSS order — that produced the
+                 content-driven (growing) dialog. -->
+            <div v-if="supportDialog" class="h-support-chat max-h-[calc(100dvh-6rem)]">
+                <ChatSupport />
+            </div>
         </Dialog>
         <!-- Add-screen tier: popup TieredMenu anchored at the Add screen row
              inside the profile menu. It self-hides after a leaf pick; the
@@ -256,7 +263,7 @@
     // else). The chat component supplies its own headers and controls, so
     // the Dialog header is hidden entirely.
     const chatDialogPt = {
-        root: { class: 'bg-content !rounded-ui max-md:!rounded-none max-md:!border-0' },
+        root: { class: 'bg-content !rounded-ui' },
         header: { class: 'hidden' },
         content: { class: 'p-0 overflow-hidden' }
     }
