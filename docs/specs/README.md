@@ -15,4 +15,5 @@ runtime modules.
 | [nodi-occs-graph-checklist.md](./nodi-occs-graph-checklist.md) | Short build sheet for the first Nodi3d operation graphs needed to evaluate OCCS cassette templates. |
 | [cassette-schema.md](./cassette-schema.md) | Legacy recursive cassette JSON format with expression fields, node attachment rules, cuts, children, and validation constraints. |
 | [data-schema.md](./data-schema.md) | Documents current CNC nesting data structures, persistence collections, legacy compatibility notes, and related template/layer concepts. |
+| [type-system.md](./type-system.md) | Proposed CutKit Type System: value universe, entity shape, type declarations with classes/edges/states/operators/aggregates/policy, versioned migrations, static rules, code/DB and process-designer mapping, and the collapse table for current domain-cnc/process constructs. |
 
