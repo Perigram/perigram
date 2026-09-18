@@ -4639,10 +4639,15 @@ function onConnect(connection) {
     toast.add({
       severity: 'warn',
       summary: t('processDesigner.incompatiblePorts'),
-      detail: t('processDesigner.incompatiblePortsDetail', {
-        source: compatibility.source?.label || compatibility.source?.id || t('processDesigner.source'),
-        target: compatibility.target?.label || compatibility.target?.id || t('processDesigner.target')
-      }),
+      detail: compatibility.reason
+        ? `${t('processDesigner.incompatiblePortsDetail', {
+          source: compatibility.source?.label || compatibility.source?.id || t('processDesigner.source'),
+          target: compatibility.target?.label || compatibility.target?.id || t('processDesigner.target')
+        })} — ${compatibility.reason}`
+        : t('processDesigner.incompatiblePortsDetail', {
+          source: compatibility.source?.label || compatibility.source?.id || t('processDesigner.source'),
+          target: compatibility.target?.label || compatibility.target?.id || t('processDesigner.target')
+        }),
       life: 3000
     });
     return;
@@ -4773,6 +4778,12 @@ function connectionCompatibility(connection = {}) {
         if (source.type === 'ctsClass' && !source.data?.typeId) return { ok: false };
         const sourcePort = (source.data?.outputSpecs || [])[0];
         if (!sourcePort) return { ok: false };
+        // An unbound species record (e.g. a bare cts.construct) has no
+        // typed ports yet — the binding wire IS the authoring gesture that
+        // writes the type; it typechecks against the source alone.
+        if (!targetRecord?.entityType && !targetRecord?.type) {
+          return { ok: true, source: sourcePort };
+        }
         const inputs = resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs;
         const targetPort = portForHandle(inputs, connection.targetHandle, 'input')
           || inputs.find(port => port.type?.base === 'entity' || port.type?.base === 'entityRef');
