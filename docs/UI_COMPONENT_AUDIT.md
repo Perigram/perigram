@@ -264,6 +264,9 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-responsivegrid-vue` | `components/shared/ResponsiveGrid.vue` | shared/domain primitive | centralize:layout (4); compliant:scoped-layout |
 | `ui-components-shared-scrollablepanel-vue` | `components/shared/ScrollablePanel.vue` | derived usage | remove:important-override (3) |
 | `ui-components-shared-standarddialog-vue` | `components/shared/StandardDialog.vue` | shared/domain primitive | compliant |
+| `ui-components-type-designer-fieldnode-vue` | `components/type-designer/FieldNode.vue` | derived usage | replace:chrome (5) |
+| `ui-components-type-designer-statenode-vue` | `components/type-designer/StateNode.vue` | derived usage | replace:chrome (5) |
+| `ui-components-type-designer-typenode-vue` | `components/type-designer/TypeNode.vue` | derived usage | replace:chrome (9) |
 | `ui-components-shared-standardpage-vue` | `components/shared/StandardPage.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-stateblock-vue` | `components/shared/StateBlock.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-status-entitystatus-vue` | `components/shared/status/EntityStatus.vue` | shared/domain primitive | compliant |
@@ -292,7 +295,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
 | `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | compliant |
 | `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (6); replace:chrome (21); remove:state (1); remove:important-override (27); replace:inline-visual (1) |
-| `ui-pages-organization-types-vue` | `pages/organization/types.vue` | derived usage | compliant |
+| `ui-pages-organization-types-vue` | `pages/organization/types.vue` | derived usage | replace:chrome (8) |
 | `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | compliant |
 | `ui-pages-profile-index-vue` | `pages/profile/index.vue` | derived usage | replace:chrome (4) |
 | `ui-pages-screens-screenkey-vue` | `pages/screens/[screenKey].vue` | derived usage | compliant |

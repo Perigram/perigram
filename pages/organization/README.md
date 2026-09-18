@@ -47,19 +47,19 @@ The route expects `/api/users` to return canonical user DTO blocks with
 `users:read`; it derives the active organization id from the loaded organization
 store first and falls back to the auth membership list.
 
-`types.vue` is the CTS declaration-authoring pane: the surface where
-organization types are declared (see
-[packages/cts/SPEC.md](../../packages/cts/SPEC.md)). It lists the compiled
-organization view from `GET /api/admin/cts/types` (system pack plus org
-declarations, versions and compile diagnostics), edits org-authored types —
-field rows (base, unit, ref targets, nullability), lifecycle states with
-initial/terminal flags and intent transitions, children/relations edges with
-`onRemove` integrity — and deletes them. System types open read-only with
-their JSON Schema. Saves go through the real registry: compile errors are
-shown inline and the refuse-on-breaking diff protects existing instances.
-Until the generic instance services land (SPEC §13 open frontier),
-org-authored types feed the designer and compiler but are not yet
-executable at runtime.
+`types.vue` is the types canvas: declarations ARE nodes (SPEC §20/§21).
+Type nodes carry their class (file/item/group/process), payload, and
+version; field nodes and state nodes wire into their type (declares
+wires); state-to-state wires are transitions with intents; type-to-type
+wires declare children. The palette declares new types by class and drops
+unattached field/state nodes; the inspector edits the selected node
+(field base/unit/ref targets, state initial/terminal, transition intent,
+payload MIME). Save compiles the canvas into registry declarations
+through the real registry — compile errors surface inline and the
+refuse-on-breaking diff protects existing instances. System types render
+read-only (they compile from packs). The pure projection/compilation
+round trip (`composables/useTypeCanvas.js`) is proven by
+`shared/type-canvas.spec.js`.
 
 `process.vue` is the visual process-designer surface. It edits organization
 process definitions with Vue Flow, persists drafts through

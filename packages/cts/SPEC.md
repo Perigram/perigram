@@ -668,6 +668,14 @@ declaration data is browser-safe (the designer imports it for the client
 type view) while its mount module binds server services. Removing a pack
 removes its types, editors, services, and routes from the running app.
 
+**Declaration authoring in nodes (§20/§7, landed):** the types surface is a
+node canvas — type/field/state nodes, declares wires, state-to-state
+transition wires carrying intents, type-to-type children wires. Saving
+compiles the canvas into declarations (fields from field nodes, states and
+transitions from state nodes and wires, edges from type wires); system
+types render read-only. The state machine is declared flat, in the same
+plane as everything else.
+
 **Generic instance services (§13, landed):** every type without an explicit
 feature service resolves through the registry's service resolver to a
 generic per-class instance service. No legacy entity services are mounted
