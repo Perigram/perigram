@@ -36,6 +36,12 @@ imported through server modules that Nitro externalizes.
   context stays unresolved, including for screens whose separately authored
   capability is conditional. Active owner membership adds only the separately
   attributed recovery overlay.
+- `ui-mapping/`: Design-system mapping contract for CTS declarations and
+  compiled process contracts — one matcher table plus one resolver mapping
+  field descriptors, class presets, preview modes, and compiled actions to
+  component keys, spans, variants, chrome tokens, budgets, and button
+  presentations. Pure data and functions; the canonical contract lives in
+  [ui-mapping/README.md](./ui-mapping/README.md).
 - `*.spec.js`: Contract tests for shared framework and permission behavior.
 
 Import-alias rules are defined in [scripts/README.md](../scripts/README.md).

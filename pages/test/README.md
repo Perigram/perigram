@@ -21,29 +21,37 @@ The page demonstrates:
 - manifest health: missing component/factory/docs/DTO block issues
 
 Demo data comes from `test-data/factories.js` and should match API DTO shape.
-UI Lab seeds the entity store with demo lineage labels before rendering so `TraceChain` examples do not call authenticated production APIs for mock IDs.
+UI Lab seeds the entity store with demo lineage labels before rendering so
+`TraceChain` examples do not call authenticated production APIs for mock IDs.
 
-## Variant Showcase
+## UI Mapping Showcase
 
-`components/VariantShowcase.vue` is a compact matrix route for checking every manifest entity across all card variants in a table layout. It uses the same manifest and factories as UI lab.
+`ui-mapping.vue` renders the design-system mapping level over synthetic
+compiler output. It consumes only the resolvers from
+[shared/ui-mapping](../../shared/ui-mapping/README.md) plus the fixtures in
+`test-data/ui-mapping-fixtures.js` — the page itself owns no per-type logic
+and its component registry maps resolver component keys to registered
+components, never to data-driven component names.
 
-## UI Constructor Demo
-
-`ui-constructor.vue` demonstrates the contract-driven entity UI constructor as
-an app-style project workspace. It reuses the same shared entity components used
-by project screens: `EntityPage`, `WorkspaceLanes`, `QueueCard`,
-`NestingRunCard`, `SheetDesignCard`, material source cards, and
-`EntitySurfaceContent`.
-
-The page shows how an app can extend core contracts with local field groups and
-surfaces such as `projectDashboard` and `projectWorkspace` while keeping field
-access strict. The main content presents queues, selected production work,
-nesting outputs, and material sources; the guardrail panel renders only fields
-allowed by field-access policy and marks rejected app requests without exposing
-them in the data block.
+The page demonstrates:
+- field controls: every fixture field descriptor resolved in the editor
+  family (InputNumber with unit suffix, filtered Select for large enums,
+  EntityPicker, recursive Object/List/Variant editors) and the display family
+  (Tag, chips, quantity/instant text)
+- class archetypes across container variants: file/item/group/process types
+  at `inline`, `row`, `detail`, and `full`
+- the nested case: a group collection whose item rows each carry a different
+  number of related files (0, 1, 3, 8), collapsed by the per-slot budgets
+  (`+n` count overflow, expandable "show more", bounded scroll)
+- compiled actions resolved to button presentations, including the hidden
+  event-triggered action and the destructive confirm-required action
+- the chrome ladder: role-based surface/padding/border tokens and the
+  same-role flattening rule (card in card degrades to a divider)
 
 ## Related
 
 - [components](../../components/README.md) - frontend component contract
 - [utils](../../utils/README.md) - design-system manifest and status registry
-- [test-data](../../test-data/README.md) - DTO factories
+- [test-data](../../test-data/README.md) - DTO factories and mapping fixtures
+- [shared/ui-mapping](../../shared/ui-mapping/README.md) - the mapping
+  contract this page visualizes

@@ -21,6 +21,15 @@ filtering, project detail scoping, role-owned actions, selectors/status, and
 Artifact viewer dispatch. It must never be replaced with copied production
 records or credentials.
 
+`ui-mapping-fixtures.js` is the synthetic compiler output for the UI mapping
+contract: a CTS client bundle (one type per declarable class plus three
+payload preview modes), a compiled process contract in the
+`@cutkit/processes` screen/action shape, and an instance graph in the CTS
+stored shape whose four parts carry 0, 1, 3, and 8 related files — the
+variable-cardinality case slot budgets collapse. The
+[UI mapping showcase](../pages/test/README.md) renders it; the mapping
+contract itself is canonical in [shared/ui-mapping/README.md](../shared/ui-mapping/README.md).
+
 ## Usage
 
 ### Basic Usage
