@@ -49,7 +49,13 @@ compilation remains an in-memory projection and does not replace authored graph
 records.
 
 The feature boundary is split into explicit collaborators. `compiler-adapter.js`
-owns current-protocol validation and activation projections,
+owns current-protocol validation and activation projections — including
+graph-protocol v5 dual acceptance: definitions authored in the CTS
+vocabulary (`cts.*` species kinds, type ids, row paths; see
+[packages/cts/SPEC.md](../../../packages/cts/SPEC.md) §20) lower to the
+executable working shapes through `resolveCtsDefinition`/`checkCtsGraphBindings`
+at this one seam, so validate, activate, preview, and run paths accept both
+vocabularies while stored v4 graphs pass through untouched.
 `relation-option-resolver.js` owns scoped relation choices, `run-repository.js`
 owns the durable run/invocation/wait/receipt execution store, and `runtime.js`
 owns active-process compilation/auth hydration. Organization configuration is
@@ -62,7 +68,9 @@ compiler domain from the organization type store (`server/features/cts-types`)
 overlaid on the strangler-converted system declarations
 (`@perigram/cts` `projectDomainFromView`). A stored org type that no longer
 compiles fails activation loudly. `cts-server-equality.spec.js` is the
-env-gated live proof that the projection compiles byte-identical contracts.
+env-gated live proof that the projection compiles byte-identical contracts,
+and `cts-v5-equivalence.spec.js` is the graph-protocol gate:
+`compile(v4)` and `compile(resolve(migrate(v4)))` must behave identically.
 
 ## Process execution
 

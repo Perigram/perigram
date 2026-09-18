@@ -64,6 +64,14 @@ module layout and how the code maps to the spec's build-order tiers.
   translator. See SPEC §15/§19 for what it owns per key.
 - `compat/process-checks.js` — declaration checks against a registry view,
   run before the process compiler's graph validation.
+- `compat/graph-protocol.js` — the v5 graph protocol (SPEC §20):
+  `migrateV4Definition` (one-way persisted rewrite to species kinds, CTS
+  type ids, and verified row paths), `resolveCtsDefinition` (compile-time
+  lowering back to the executable working shapes through the projected
+  domain — internal, never persisted), `checkCtsGraphBindings`
+  (declaration-level binding validation). The v4 kind mapping derives from
+  `SPECIES_BY_EFFECT_KIND`; the equivalence gate lives in the server
+  process-definitions suite.
 - `pack/cnc.js` — the CNC starter type pack: the collapse-table acceptance
   fixture (file/item/group/process families, the typed nesting seam, and
   sample instances).
@@ -87,7 +95,9 @@ rule with both passing and failing fixtures, the tenancy resolution, the
 diff refusal path, the pack compile, and the source-flip equivalence gate
 (`compat/source-flip.spec.js`): for every system type the projected
 fieldSchemas, workflows, and containment must equal the legacy tables they
-replace.
+replace. The v5 graph protocol equivalence gate
+(`server/features/process-definitions/cts-v5-equivalence.spec.js`) proves
+`compile(v4)` and `compile(resolve(migrate(v4)))` behave identically.
 
 ## Related
 

@@ -553,3 +553,76 @@ summary caches — compute on read first (§9); policy beyond closed-row
 hiding (§10); state axes beyond `main` (§7); `match` implementation (§18).
 Adding any of these earlier is speculative build, the exact failure mode
 this spec exists to delete.
+
+## 20. Graph protocol (v5): declaration-bound process definitions
+
+Process definitions stop speaking the entity/block/status vocabulary. The
+stored records of every entity-bound node reference declarations; the pure
+value algebra (`source.*`, `value.*`, `collection.*`/`tree.*`, `control.*`,
+literals) is already V-honest and is untouched.
+
+### Node kinds
+
+Effect nodes take the species names of §8 (the canonical table is
+`SPECIES_BY_EFFECT_KIND`); reads collapse to one projection kind with a
+`select` discriminator; the records family becomes field/edge structure:
+
+| v4 kind | v5 kind | binding |
+|---|---|---|
+| `effect.createEntity` / `effect.runProducer` | `cts.construct` | `type`, `via` (constructor) |
+| `effect.updateEntity` | `cts.mutate` | `type`, field refs |
+| `effect.changeStatus` / `effect.archiveEntity` | `cts.transition` | `type`, `target` state (+ optional `intent`) |
+| `effect.deleteEntity` | `cts.remove` | `type` |
+| `effect.runCommand` / `effect.sendEntity` | `cts.command` | `command` |
+| `effect.generateAttachment` | `cts.conversion` | `kind` + attachment contract |
+| `read.*` (7 selects + filter) | `cts.read` | `select`, `type` |
+| `record.getField` | `cts.field` | field ref |
+| `record.composeBlock` / `modifyBlock` | `cts.compose` | field/edge refs |
+| `record.deconstruct` / `getBlock` | `cts.decompose` | `type` |
+| `record.construct` / `entityDraft` | `cts.compose` | `record: type` |
+| `producer.join` | `cts.join` | `type` |
+
+### References
+
+- **Types**: `entityType: 'cassette_design'` becomes `type: 'cassette-design'`
+  (the CTS id) in every record collection — `processNodes`, `producerOutputs`
+  (`fields` path lists included), `actions`, `sockets` (descriptors via the
+  grammar adapter), `screens` sources.
+- **Fields**: row fields are row-relative (`specs.width` → `width`,
+  `data.job.items` → `job.items`); managed slots keep qualified names
+  (`identity.*`, `status.state.primary`, `lineage.<key>`, `relations.*`,
+  `provenance.*`, `data.value` the reserved generic slot) until the
+  stored-shape migration (§3) re-homes them.
+- **States**: status strings become declaration-owned state values;
+  `cts.transition` carries `target` plus optional `intent` (intent-first
+  authoring arrives with the designer slice; the runtime resolves from-state
+  dynamically, so target-only is lossless).
+- **Constructors**: `construction.mode` becomes `via`; typed constructor
+  inputs and service signatures become declared operators (§8) — command and
+  producer code registers as operators, unchanged.
+
+### Resolution and migration
+
+- `resolveCtsDefinition(definition, view)` lowers v5 records to the
+  executable working shapes (types back to storage ids, row paths back to
+  slot paths, species kinds back to operation kinds) and runs before the
+  process compiler. The lowered form is internal: never authored, never
+  persisted.
+- `migrateV4Definition(definition)` is the one-way persisted rewrite
+  (same pattern as the process package's v4 identity migration). It runs at
+  the server boundary on load, so stored graphs become v5 within one deploy;
+  `dataflowVersion` stays `4` (the wire protocol of the value algebra is
+  unchanged — v5 changes record vocabulary, not dataflow semantics).
+- `checkCtsGraphBindings(definition, view)` validates bindings (type exists,
+  state declared, field in row) beside R1–R6.
+- Equivalence is the acceptance gate: for any definition,
+  `compile(v4)` and `compile(resolve(migrate(v4)))` produce the same
+  contract.
+
+### Residue (explicit)
+
+Socket ids and wire handles stay in the working vocabulary for this slice
+(block-named sockets on construct/mutate); the designer slice replaces them
+with row-field sockets. `statusDefinitions` remain definition-plane records
+authoring state metadata; per §7 they compile into declarations, never
+alongside.
