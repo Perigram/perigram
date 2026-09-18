@@ -1078,11 +1078,11 @@ function ctsTypeView() {
 
 // One joint: rebuild the designer option lists from the registry view.
 function refreshDesignerFromTypes() {
-  const refreshed = createProcessDesignerContract(ctsProjectedDomain(), designerCapabilities, { typeView: ctsTypeView() });
+  const refreshed = createProcessDesignerContract(ctsProjectedDomain(), designerCapabilities);
   Object.assign(designer, refreshed);
 }
 
-const designer = reactive(createProcessDesignerContract(ctsProjectedDomain(), null, { typeView: ctsTypeView() }));
+const designer = reactive(createProcessDesignerContract(ctsProjectedDomain()));
 
 // Graph protocol v5: canvas records speak the type system (cts.* species
 // kinds, `type` ids, row paths). Kind matching and port resolution route

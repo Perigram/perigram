@@ -161,11 +161,11 @@ export function useProcessDesignerNodeRecords({
   function createEntityProfile(id) {
     const profile = {
       id,
-      entityType: defaultEntityType(),
+      entityType: '',
       label: id,
       lifecycle: { mode: 'defaultCreated', workflow: createCreatedWorkflow() },
       fields: { read: ['identity.*', 'status.*', 'lineage.*'], write: [], private: [] },
-      relations: relationOptionsForEntity(defaultEntityType()).map(option => option.value),
+      relations: [],
       stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
       allowedRoles: { read: [], write: [], admin: [] }
     };
@@ -191,7 +191,7 @@ export function useProcessDesignerNodeRecords({
       id,
       label: id,
       direction,
-      entityType: defaultEntityType(),
+      entityType: '',
       projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
       receiverLifecycle: { mode: 'defaultCreated', workflow: null },
       access: { sendRoles: [], receiveRoles: [] }
@@ -214,10 +214,6 @@ export function useProcessDesignerNodeRecords({
   }
 
   const nodeEntityType = node => node?.type || node?.entityType || '';
-  function setDefaultType(node, entityType) {
-    if (node.kind?.startsWith('cts.')) node.type = entityType;
-    else node.entityType = entityType;
-  }
   function setDefaultBlocks(node, blocks) {
     if (node.kind?.startsWith('cts.')) node.slots = blocks;
     else node.blocks = blocks;
@@ -233,9 +229,7 @@ export function useProcessDesignerNodeRecords({
       id,
       kind,
       label: '',
-      ...(v5
-        ? { type: op.startsWith('effect.') || op.startsWith('read.') || fieldKind ? defaultEntityType() : '' }
-        : { entityType: op.startsWith('effect.') || op.startsWith('read.') || fieldKind ? defaultEntityType() : '' }),
+      ...(v5 ? { type: '' } : { entityType: '' }),
       construction: { mode: 'genericCreate', inputs: [] },
       status: null,
       matching: 'item',
@@ -248,14 +242,10 @@ export function useProcessDesignerNodeRecords({
       outputs: []
     };
     if (v5 && op === 'effect.createEntity') node.via = 'genericCreate';
-    if (op === 'effect.createEntity') {
-      setDefaultType(node, designer.createEntityOptions[0]?.value || '');
-    }
-    if (op === 'effect.changeStatus') setDefaultType(node, designer.changeStatusOptions[0]?.value || '');
-    if (op === 'effect.archiveEntity') setDefaultType(node, designer.archivableEntityOptions[0]?.value || '');
-    if (op === 'effect.deleteEntity') setDefaultType(node, designer.deleteEntityOptions[0]?.value || '');
+    // No default bindings: nodes are unbound until the author binds them
+    // (wire a type node, or pick explicitly). A seeded domain type here is
+    // an invisible authoring decision the user never made.
     if (op === 'producer.join') {
-      setDefaultType(node, designer.entityOptions[0]?.value || '');
       node.selectedProducerOutputId = '';
     }
     if (fieldKind) {
@@ -284,9 +274,9 @@ export function useProcessDesignerNodeRecords({
     if (kind === 'read.related') {
       node.relationKey = relationOptionsForEntity(node.entityType)[0]?.value || '';
     }
-    if (kind === 'effect.runCommand') node.commandId = designer.commandOptions[0]?.value || '';
-    if (kind === 'effect.generateAttachment') node.attachmentKind = designer.attachmentKindOptions[0]?.value || '';
-    if (kind === 'control.domainEventTrigger') node.eventId = designer.eventOptions[0]?.value || '';
+    if (kind === 'effect.runCommand') node.commandId = '';
+    if (kind === 'effect.generateAttachment') node.attachmentKind = '';
+    if (kind === 'control.domainEventTrigger') node.eventId = '';
     syncProcessNode(node);
     return node;
   }

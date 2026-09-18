@@ -2514,13 +2514,6 @@
       "entities": "Типы",
       "values": "Значения",
       "listTree": "Списки и деревья",
-      "instances": "Экземпляры",
-      "reads": "Чтение",
-      "structure": "Структура",
-      "file": "Файловые типы",
-      "item": "Элементы",
-      "group": "Группы",
-      "process": "Процессы",
       "operations": "Операции",
       "typeNodeUnbound": "Сначала выберите тип для этого узла",
       "typeBindingHint": "Соедините этот узел с construct/mutate/read, чтобы привязать тип."

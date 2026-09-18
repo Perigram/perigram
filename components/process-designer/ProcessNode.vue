@@ -350,7 +350,7 @@ function updateValueType(base) {
         : base === 'json' ? {}
           : '';
     if (base === 'entityRef') {
-      updates.entityType = record.value.entityType || props.data.processEntityTypeOptions?.[0]?.value || '';
+      updates.entityType = record.value.entityType || record.value.type || '';
       updates.type.entityType = updates.entityType;
     }
   }

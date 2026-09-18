@@ -2514,13 +2514,6 @@
       "entities": "Types",
       "values": "Values",
       "listTree": "Lists and trees",
-      "instances": "Instances",
-      "reads": "Reads",
-      "structure": "Structure",
-      "file": "File types",
-      "item": "Items",
-      "group": "Groups",
-      "process": "Processes",
       "operations": "Operations",
       "typeNodeUnbound": "Pick a type for this node first",
       "typeBindingHint": "Wire this node into a construct/mutate/read node to bind its type."

@@ -151,30 +151,7 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
   return [...outputIds];
 }
 
-// Class groups from the registry view (the palette IS the type catalog):
-// one group per CTS class, one item per type — dragging a type drops a
-// construct bound to it via the preset. Party types are framework-owned and
-// stay off the authoring palette.
-export function typeCatalogPaletteGroups(typeView = []) {
-  return ['file', 'item', 'group', 'process']
-    .map(classOf => ({
-      id: classOf,
-      items: (typeView || [])
-        .filter(entry => entry.class === classOf)
-        // only constructible types are drag-constructible; derived products
-        // enter graphs as operator outputs and meta types are configuration
-        .filter(entry => entry.constructible !== false)
-        .map(entry => paletteItem(`type:${entry.id}`, 'cts.construct', {
-          label: entry.label || entry.id,
-          description: entry.description || entry.label || entry.id,
-          icon: entry.icon || iconForNode('cts.construct'),
-          preset: { type: entry.id, via: entry.via || 'genericCreate' }
-        }))
-    }))
-    .filter(group => group.items.length);
-}
-
-export function createProcessDesignerContract(domain = {}, capabilities = null, options = {}) {
+export function createProcessDesignerContract(domain = {}, capabilities = null) {
   const entities = Array.isArray(domain.entities) ? domain.entities : [];
   const entityByType = new Map(entities.map(entity => [entity.type, entity]));
 
@@ -231,13 +208,10 @@ export function createProcessDesignerContract(domain = {}, capabilities = null, 
     }));
   }
 
-  const paletteGroups = [
-    ...typeCatalogPaletteGroups(options.typeView || []),
-    ...PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
-      ...group,
-      items: group.items.filter(item => !options.typeView || item.id !== 'construct')
-    }))
-  ];
+  const paletteGroups = PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
+    ...group,
+    items: group.items
+  }));
 
   const entityOption = entity => ({ label: entity.label || entity.type, value: entity.type });
 
