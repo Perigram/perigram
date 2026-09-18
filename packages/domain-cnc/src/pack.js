@@ -73,6 +73,7 @@ export const cncServices = [
   {
     id: 'nesting.solve',
     species: 'service',
+    command: 'solveNesting',
     task: 'nesting.solve',
     signature: {
       input: { base: 'record', fields: {

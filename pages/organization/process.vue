@@ -1035,7 +1035,9 @@ function resetCtsRegistry() {
 }
 
 function ctsProjectedDomain() {
-  return projectDomainFromView(ctsRegistry(), draft.value?.lineage?.organizationId || null, cncDomain);
+  return projectDomainFromView(ctsRegistry(), draft.value?.lineage?.organizationId || null, cncDomain, {
+    packServices: cncPackContent.services
+  });
 }
 
 // The registry view as the authoring catalog: class groups first (the
@@ -1076,12 +1078,20 @@ function ctsTypeView() {
 }
 
 // One joint: rebuild the designer option lists from the registry view.
+// The services group and editor registry come from the mounted pack's
+// operator registrations (SPEC §8/§21).
 function refreshDesignerFromTypes() {
-  const refreshed = createProcessDesignerContract(ctsProjectedDomain(), designerCapabilities);
+  const refreshed = createProcessDesignerContract(ctsProjectedDomain(), designerCapabilities, {
+    services: cncPackContent.services,
+    editors: cncPackContent.editors
+  });
   Object.assign(designer, refreshed);
 }
 
-const designer = reactive(createProcessDesignerContract(ctsProjectedDomain()));
+const designer = reactive(createProcessDesignerContract(ctsProjectedDomain(), null, {
+  services: cncPackContent.services,
+  editors: cncPackContent.editors
+}));
 
 // Graph protocol v5: canvas records speak the type system (cts.* species
 // kinds, `type` ids, row paths). Kind matching and port resolution route

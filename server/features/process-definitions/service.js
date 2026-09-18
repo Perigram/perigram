@@ -40,6 +40,7 @@ import { normalizeLegacyProcessActions } from './action-migration.js';
 import { compileActiveProcessRuntime } from './runtime.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { projectDomainFromView } from '~/packages/cts/src/index.js';
+import { cncPackContent } from '~/packages/domain-cnc/src/index.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
 import {
   assertCurrentProcessDefinition,
@@ -1646,7 +1647,9 @@ function getDomain() {
 // stored type fails loudly here rather than silently compiling without it.
 async function getProjectedDomain(organizationId = null) {
   const registry = await compileRegistryForOrganization(organizationId);
-  return projectDomainFromView(registry, organizationId, getDomain());
+  return projectDomainFromView(registry, organizationId, getDomain(), {
+    packServices: cncPackContent.services
+  });
 }
 
 // The rewrites that PERSIST: producer-identity migration applies to the

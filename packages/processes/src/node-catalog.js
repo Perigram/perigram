@@ -120,6 +120,7 @@ const definitions = [
   cts('cts.transition', 'transition', 'effects', 'effect'),
   cts('cts.remove', 'remove', 'effects', 'effect'),
   cts('cts.command', 'command', 'effects', 'effect'),
+  cts('cts.service', 'service', 'effects', 'effect'),
   cts('cts.conversion', 'conversion', 'effects', 'effect'),
   cts('cts.read', 'read', 'reads', 'read'),
   cts('cts.field', 'field', 'records', 'data'),

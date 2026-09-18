@@ -668,6 +668,13 @@ declaration data is browser-safe (the designer imports it for the client
 type view) while its mount module binds server services. Removing a pack
 removes its types, editors, services, and routes from the running app.
 
+**Registered services as palette operators (§8, landed):** pack-registered
+services appear as `cts.service` palette nodes bound to their operator;
+resolution maps the operator to its declared command (the executable twin),
+and ports resolve from the command contract. Unknown operators are
+compile-time diagnostics. Editor registrations surface as chips on file
+type nodes (the types canvas) and on the designer contract.
+
 **Declaration authoring in nodes (§20/§7, landed):** the types surface is a
 node canvas — type/field/state nodes, declares wires, state-to-state
 transition wires carrying intents, type-to-type children wires. Saving

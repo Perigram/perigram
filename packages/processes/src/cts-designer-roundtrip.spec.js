@@ -8,6 +8,8 @@ import { describe, it, expect } from 'vitest';
 import { PROCESS_DESIGNER_PALETTE_GROUPS, createProcessDesignerContract, syncProcessNodeProducerOutputs } from './designer.js';
 import { resolveCatalogNodePorts, getProcessNodeDefinition } from './node-catalog.js';
 import { definitionToCanvas, canvasToDefinition, validateRoundTrip } from './transpiler.js';
+import { servicesPaletteGroups } from './designer.js';
+import { resolveCtsDefinition } from '../../cts/src/index.js';
 import { normalizeProcessDefinition } from './index.js';
 import {
   createTypeRegistry, convertCncDomain, projectDomainFromView,
@@ -166,6 +168,28 @@ describe('graph protocol v5 designer round trip', () => {
     // normalization drops the binding wire: it is a canvas gesture, not dataflow
     const normalized = normalizeProcessDefinition(saved, domain);
     expect((normalized.graph.edges || []).some(edge => edge.role === 'type')).toBe(false);
+  });
+
+  it('registered services appear as palette operators and resolve to their commands', () => {
+    const groups = servicesPaletteGroups([
+      { id: 'nesting.solve', command: 'solveNesting', render: { label: 'Nesting solver', icon: 'pi pi-compass' } },
+      { id: 'no-command', render: { label: 'Incomplete' } }
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].id).toBe('services');
+    const [item] = groups[0].items;
+    expect(item.kind).toBe('cts.service');
+    expect(item.preset).toEqual({ operator: 'nesting.solve' });
+
+    const domain = projectedDomain();
+    const { definition: resolved, diagnostics } = resolveCtsDefinition({
+      processNodes: {
+        solve: { id: 'solve', kind: 'cts.service', operator: 'nesting.solve', trigger: { mode: 'manual' } },
+        ghost: { id: 'ghost', kind: 'cts.service', operator: 'algebra.solve', trigger: { mode: 'manual' } }
+      }
+    }, { ...domain, serviceContracts: { 'nesting.solve': { command: 'solveNesting' } } });
+    expect(resolved.processNodes.solve).toMatchObject({ kind: 'effect.runCommand', commandId: 'solveNesting' });
+    expect(diagnostics).toContainEqual(expect.stringMatching(/unknown service operator algebra.solve/));
   });
 
 });

@@ -6,7 +6,7 @@ import {
   resolveNavigation,
   resolveScreens
 } from '~/packages/processes/src/index.js';
-import { cncDomain } from '~/packages/domain-cnc/src/index.js';
+import { cncDomain, cncPackContent } from '~/packages/domain-cnc/src/index.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { projectDomainFromView } from '~/packages/cts/src/index.js';
 import * as repository from './repository.js';
@@ -42,7 +42,9 @@ export async function getActiveCompiledProcess(organizationId) {
 export async function compileActiveProcessRuntime(data = null, roles = {}, organizationId = null) {
   if (!data) return null;
   const registry = await compileRegistryForOrganization(organizationId);
-  const domain = projectDomainFromView(registry, organizationId, cncDomain);
+  const domain = projectDomainFromView(registry, organizationId, cncDomain, {
+    packServices: cncPackContent.services
+  });
   const migration = migrateProducerOutputIdentities(data, domain);
   if (migration.errors.length) throw new Error(migration.errors.join('; '));
   return compileProcessDefinition({ ...migration.data, compiled: null }, domain, { roles });

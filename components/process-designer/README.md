@@ -24,7 +24,10 @@ roles, screens, and dock/panel state. Their contracts are exercised directly in
 behavior tests so a disconnected Save, selection, or graph mutation fails even
 when labels remain in the page source.
 
-The palette is operations, never a catalog: species operations
+Registered services lead the palette: pack operators (`cts.service`, e.g.
+the nesting solver) drop pre-bound to their declared operator — the node
+resolves to the operator's command, so its signature is the command
+contract. Below them, the palette is operations, never a catalog: species operations
 (`cts.construct`, `cts.mutate`, `cts.transition`, `cts.remove`,
 `cts.command`, `cts.read` by select, field/compose/decompose), values, and
 lists. **No node ever drops pre-bound** — a seeded domain type would be an
