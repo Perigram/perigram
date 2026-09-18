@@ -1,9 +1,10 @@
-// Type-canvas projection round trip (SPEC §20/§21 slice B): declarations
-// project to nodes/wires and compile back without losing structure; system
-// types stay read-only; intents ride transition wires; children ride type
-// wires.
+// Type-canvas projection (SPEC §20/§21): declarations project to
+// nodes/wires for the read-only registry browser. Authoring compiles from
+// the process designer tree (compileTreeDeclarations in
+// packages/processes), not from this canvas — there is no compile-back here
+// by design.
 import { describe, it, expect } from 'vitest';
-import { canvasFromDeclarations, declarationsFromCanvas, suggestTypeId } from '../composables/useTypeCanvas.js';
+import { canvasFromDeclarations } from '../composables/useTypeCanvas.js';
 
 const widget = {
   id: 'widget',
@@ -53,50 +54,5 @@ describe('type canvas projection', () => {
     expect(canvas.edges.filter(edge => edge.role === 'children')).toContainEqual(
       expect.objectContaining({ source: 'type:widget', target: 'type:gadget', data: { key: 'parts' } })
     );
-  });
-
-  it('compiles the canvas back into declarations, preserving facets', () => {
-    const canvas = canvasFromDeclarations([widget, system]);
-    const { declarations, diagnostics } = declarationsFromCanvas(canvas, [widget, system]);
-    expect(diagnostics).toEqual([]);
-    expect(declarations).toHaveLength(1); // system types compile from packs, never from the canvas
-    const [compiled] = declarations;
-    expect(compiled.id).toBe('widget');
-    expect(compiled.class).toBe('process');
-    expect(compiled.scope).toBe('org');
-    expect(compiled.fields).toEqual({
-      name: { base: 'string' },
-      width: { base: 'quantity', unit: 'mm' }
-    });
-    expect(compiled.states.main).toEqual({ initial: 'raw', values: ['raw', 'done'], terminal: ['done'] });
-    expect(compiled.transitions).toEqual([
-      { from: 'raw', to: 'done', intent: 'finish' },
-      { from: 'raw', to: 'raw' }
-    ]);
-    expect(compiled.edges).toEqual({ children: { parts: { types: ['gadget'], onRemove: 'restrict' } } });
-    expect(compiled.payload).toEqual({ mime: 'application/x-widget' });
-    expect(compiled.render).toEqual({ label: 'Widget' });
-  });
-
-  it('new field/state nodes attach through wires; renaming is structural', () => {
-    const canvas = canvasFromDeclarations([widget]);
-    canvas.nodes.push({
-      id: 'field:widget:note',
-      type: 'fieldNode',
-      position: { x: 0, y: 0 },
-      data: { typeId: 'widget', name: 'note', descriptor: { base: 'string', nullable: true } }
-    });
-    canvas.edges.push({
-      id: 'declares-field:field:widget:note',
-      source: 'field:widget:note',
-      target: 'type:widget',
-      role: 'declares'
-    });
-    const { declarations } = declarationsFromCanvas(canvas, [widget]);
-    expect(declarations[0].fields.note).toEqual({ base: 'string', nullable: true });
-  });
-
-  it('suggests unused kebab ids per class', () => {
-    expect(suggestTypeId(['file-1', 'file-2'], 'file')).toBe('file-3');
   });
 });

@@ -215,18 +215,11 @@
                       <label>{{ $t('typeCanvas.fieldName') }}</label>
                       <InputText v-model="selectedNode.data.name" />
                     </div>
-                    <div class="flex flex-col gap-1">
-                      <label>{{ $t('typesPane.class') }}</label>
-                      <Select v-model="selectedNode.data.descriptor.base" :options="fieldBaseOptions" option-label="label" option-value="value" />
-                    </div>
-                    <div v-if="selectedNode.data.descriptor.base === 'quantity'" class="flex flex-col gap-1">
-                      <label>{{ $t('typeCanvas.unit') }}</label>
-                      <Select v-model="selectedNode.data.descriptor.unit" :options="ctsUnits" />
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <Checkbox v-model="selectedNode.data.descriptor.nullable" :binary="true" />
-                      <label>{{ $t('typesPane.nullable') }}</label>
-                    </div>
+                    <DescriptorEditor
+                      :model-value="selectedNode.data.descriptor || { base: 'string' }"
+                      :type-options="declarationTypeOptions"
+                      @update:model-value="value => { selectedNode.data.descriptor = value; syncNodeData(); }"
+                    />
                   </div>
                 </template>
 
@@ -989,12 +982,13 @@ import {
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncUiSurfaces, cncPackContent } from '@cutkit/domain-cnc';
-import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor, frameworkTypes, DECLARABLE_CLASSES, FIELD_BASES, UNITS } from '~/packages/cts/src/index.js';
+import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor, frameworkTypes, DECLARABLE_CLASSES } from '~/packages/cts/src/index.js';
 import { ctsFieldToProcessType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
 import ClassNode from '~/components/type-designer/TypeNode.vue';
 import FieldNode from '~/components/type-designer/FieldNode.vue';
+import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
 import StateNode from '~/components/type-designer/StateNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
@@ -1578,8 +1572,12 @@ function updateJoinSelectedProducer(node, selectedProducerOutputId) {
   node.selectedProducerOutputId = selectedProducerOutputId;
   syncNodeData();
 }
-const fieldBaseOptions = FIELD_BASES.map(base => ({ label: base, value: base }));
-const ctsUnits = [...UNITS];
+const declarationTypeOptions = computed(() => [
+  ...new Set([
+    ...ctsTypeView().map(entry => entry.id),
+    ...nodes.value.filter(node => node.type === 'ctsClass' && node.data?.typeId).map(node => node.data.typeId)
+  ])
+]);
 const declarableClassOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
 const classPayloadMime = computed({
   get: () => selectedNode.value?.data?.payload?.mime || '',
