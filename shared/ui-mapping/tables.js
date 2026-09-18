@@ -11,18 +11,24 @@ export const SPANS = Object.freeze(['full', 'half']);
 
 // --- Fields -----------------------------------------------------------------
 
-// Editor-family entries. `long` and `enumSize` are resolver-derived
-// qualifiers (multiline string, option-count bucket), not authored keys.
+// Editor-family entries. `long`, `enumSize`, and `itemBase` are
+// resolver-derived qualifiers (multiline string, option-count bucket,
+// list element base), not authored keys. Component keys name the
+// materialization family: QuantityInput -> InputGroup + InputNumber +
+// unit addon, SelectButton for few-option enums, InputChips for string
+// lists, MultiSelect for reference lists, FileUpload for payload blobs.
 export const FIELD_EDIT_ENTRIES = Object.freeze([
   { match: { base: 'string', long: true }, component: 'Textarea', span: 'full' },
   { match: { base: 'string' }, component: 'InputText', span: 'half' },
   { match: { base: 'number' }, component: 'InputNumber', span: 'half' },
-  { match: { base: 'quantity' }, component: 'InputNumber', span: 'half', unitSuffix: true },
+  { match: { base: 'quantity' }, component: 'QuantityInput', span: 'half', unitSuffix: true },
   { match: { base: 'boolean' }, component: 'ToggleSwitch', span: 'half' },
   { match: { base: 'instant' }, component: 'DatePicker', span: 'half' },
   { match: { base: 'enum', enumSize: 'many' }, component: 'Select', span: 'half', filterable: true },
-  { match: { base: 'enum' }, component: 'Select', span: 'half' },
+  { match: { base: 'enum' }, component: 'SelectButton', span: 'full' },
   { match: { base: 'ref' }, component: 'EntityPicker', span: 'half' },
+  { match: { base: 'list', itemBase: 'string' }, component: 'ChipsInput', span: 'full' },
+  { match: { base: 'list', itemBase: 'ref' }, component: 'EntityMultiPicker', span: 'full' },
   { match: { base: 'blob' }, component: 'FileUpload', span: 'full' },
   { match: { base: 'record' }, component: 'ObjectEditor', span: 'full', recursive: true },
   { match: { base: 'map' }, component: 'ObjectEditor', span: 'full' },
@@ -48,6 +54,10 @@ export const FIELD_DISPLAY_ENTRIES = Object.freeze([
   { match: { base: 'variant' }, component: 'VariantTag', span: 'half' },
   { match: {}, component: 'ValueText', span: 'half' }
 ]);
+
+// Row-variant field budgets: dense rows show a bounded number of fields and
+// count the rest, reusing the same budget mechanism as slot cardinality.
+export const ROW_FIELD_BUDGET = Object.freeze({ max: 3, overflow: 'count' });
 
 // --- Surfaces ---------------------------------------------------------------
 
@@ -81,7 +91,7 @@ export const SURFACE_ENTRIES = Object.freeze([
     match: { class: 'item', variant: 'row' },
     archetype: 'record-row', component: 'ItemRow',
     slots: ['identity', 'status', 'fields', 'relations'],
-    budgets: { relations: { max: 2, overflow: 'count' } }
+    budgets: { fields: ROW_FIELD_BUDGET, relations: { max: 2, overflow: 'count' } }
   },
   { match: { class: 'item', variant: 'inline' }, archetype: 'chip', component: 'EntityChip', slots: [] },
   {
@@ -113,7 +123,12 @@ export const SURFACE_ENTRIES = Object.freeze([
     archetype: 'process-card', component: 'ProcessCard',
     slots: ['identity', 'status', 'fields']
   },
-  { match: { class: 'process', variant: 'row' }, archetype: 'process-row', component: 'ProcessRow', slots: ['identity', 'status', 'fields'] },
+  {
+    match: { class: 'process', variant: 'row' },
+    archetype: 'process-row', component: 'ProcessRow',
+    slots: ['identity', 'status', 'fields'],
+    budgets: { fields: ROW_FIELD_BUDGET }
+  },
   { match: { class: 'process', variant: 'inline' }, archetype: 'chip', component: 'EntityChip', slots: [] },
   { match: { variant: 'full' }, archetype: 'record', component: 'RecordSurface', slots: ['identity', 'fields'] },
   { match: {}, archetype: 'record', component: 'RecordSurface', slots: ['identity', 'fields'] }
@@ -174,7 +189,7 @@ export const CHROME_TABLE = Object.freeze({
 // a card in a card becomes padding plus a divider; sections already separate
 // by spacing and stay as they are; controls degrade to inline chrome.
 const DEGRADE = Object.freeze({
-  card: Object.freeze({ surface: 'none', padding: 'md', border: 'top' }),
+  card: Object.freeze({ surface: 'none', padding: 'md', border: 'divider' }),
   control: Object.freeze({ surface: 'none', padding: 'none', border: 'none' })
 });
 

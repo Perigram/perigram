@@ -26,32 +26,32 @@ UI Lab seeds the entity store with demo lineage labels before rendering so
 
 ## UI Mapping Showcase
 
-`ui-mapping.vue` renders the design-system mapping level over synthetic
-compiler output. It consumes only the resolvers from
-[shared/ui-mapping](../../shared/ui-mapping/README.md) plus the fixtures in
-`test-data/ui-mapping-fixtures.js` — the page itself owns no per-type logic
-and its component registry maps resolver component keys to registered
-components, never to data-driven component names.
+`ui-mapping.vue` renders screens **generated** from synthetic compiler
+output. The page only mounts `components/ui-mapping/GeneratedMappingScreen`
+over the fixture contract with a screen picker; the region tree comes from
+the pure `composeScreen` projection (see
+[shared/ui-mapping/README.md](../../shared/ui-mapping/README.md)) and every
+surface, field control, budget collapse, and action button is resolver
+output. There is no handwritten section, grid, or per-type branch in the
+page or the components.
 
-The page demonstrates:
-- field controls: every fixture field descriptor resolved in the editor
-  family (InputNumber with unit suffix, filtered Select for large enums,
-  EntityPicker, recursive Object/List/Variant editors) and the display family
-  (Tag, chips, quantity/instant text)
-- class archetypes across container variants: file/item/group/process types
-  at `inline`, `row`, `detail`, and `full`
-- the nested case: a group collection whose item rows each carry a different
-  number of related files (0, 1, 3, 8), collapsed by the per-slot budgets
-  (`+n` count overflow, expandable "show more", bounded scroll)
-- compiled actions resolved to button presentations, including the hidden
-  event-triggered action and the destructive confirm-required action
-- the chrome ladder: role-based surface/padding/border tokens and the
-  same-role flattening rule (card in card degrades to a divider)
+The fixture screens demonstrate:
+
+- an entity detail screen with a scoped single source, placed actions
+  (including the destructive confirm-required and hidden event-triggered
+  ones), and a relation-scoped child collection with per-row file budgets
+  (items carry 0, 1, 3, and 8 related files)
+- a group detail screen with lineage-scoped children and a create action on
+  the child region, opening the generated create dialog whose fields come
+  from the action's declared construction inputs
+- list and home screens with unscoped collections and toolbar actions
 
 ## Related
 
 - [components](../../components/README.md) - frontend component contract
+- [components/ui-mapping](../../components/ui-mapping/README.md) - the
+  generated screen engine and resolver-driven materializations
 - [utils](../../utils/README.md) - design-system manifest and status registry
 - [test-data](../../test-data/README.md) - DTO factories and mapping fixtures
-- [shared/ui-mapping](../../shared/ui-mapping/README.md) - the mapping
-  contract this page visualizes
+- [shared/ui-mapping](../../shared/ui-mapping/README.md) - the mapping and
+  composition contract this page visualizes

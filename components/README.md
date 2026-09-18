@@ -1183,5 +1183,6 @@ PrimeVue Button, Tag, Badge do not inherit font-size from containers. Always add
 ## Related
 - [components/entities/README.md](./entities/README.md) — manifest-backed entity card contracts
 - [components/shared/README.md](./shared/README.md) — shared block components, layout containers
+- [components/ui-mapping/README.md](./ui-mapping/README.md) — resolver-driven field/surface/screen materializations for the CTS UI mapping contract
 - [composables/README.md](../composables/README.md) — useEntity, useBlocks
 - [server/DATA_MODEL.md](../server/DATA_MODEL.md) — entity data shapes

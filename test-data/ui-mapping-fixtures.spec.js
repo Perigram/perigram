@@ -4,6 +4,8 @@ import {
   resolveSurface,
   resolvePreview,
   resolveActionButton,
+  composeScreen,
+  buildInstancePool,
   applyBudget,
   VARIANTS
 } from '#shared/ui-mapping/index.js';
@@ -12,6 +14,44 @@ import {
   createUiMappingCompiledContract,
   createUiMappingInstances
 } from './ui-mapping-fixtures.js';
+
+const bundle = createUiMappingClientBundle();
+const contract = createUiMappingCompiledContract();
+const pool = buildInstancePool(createUiMappingInstances());
+
+describe('screen composition over fixtures', () => {
+  it('composes the part detail screen with a scoped single source and relation-scoped drawings', () => {
+    const composed = composeScreen(contract.screens.auto_operator_part_detail, contract, bundle, pool);
+    expect(composed.template).toBe('entityDetail');
+    const main = composed.regions[0];
+    expect(main.surfaceKind).toBe('detail');
+    expect(main.variant).toBe('full');
+    expect(main.instances[0].id).toBe('part-4');
+    expect(main.actions.map(action => action.id)).toEqual([
+      'part_update', 'part_approve', 'part_scrap', 'part_delete', 'drawing_link'
+    ]);
+    const drawings = main.childRegions[0];
+    expect(drawings.instances).toHaveLength(8);
+    expect(drawings.instances.every(instance => instance.type === 'drawing')).toBe(true);
+    expect(drawings.surface.component).toBe('FileRow');
+  });
+
+  it('scopes material children by lineage and places the create action on the child region', () => {
+    const composed = composeScreen(contract.screens.auto_operator_material_detail, contract, bundle, pool);
+    const children = composed.regions[0].childRegions[0];
+    expect(children.instances).toHaveLength(4);
+    expect(children.instances.every(part => part.lineage.parts?.id === 'material-1')).toBe(true);
+    expect(children.actions.map(action => action.id)).toEqual(['part_create']);
+  });
+
+  it('composes list and home screens with unscoped collections', () => {
+    const list = composeScreen(contract.screens.auto_operator_part, contract, bundle, pool);
+    expect(list.regions[0].instances).toHaveLength(4);
+    expect(list.regions[0].actions.map(action => action.id)).toEqual(['part_create', 'drawing_link']);
+    const home = composeScreen(contract.screens.home_operator, contract, bundle, pool);
+    expect(home.regions[0].instances).toHaveLength(4);
+  });
+});
 
 describe('ui-mapping fixtures', () => {
   it('cover every declarable class across the bundle', () => {
