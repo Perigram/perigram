@@ -42,6 +42,10 @@ describe('domain projection (CTS view -> compiler domain)', () => {
     const widget = projected.workflows.widget;
     expect(widget.regions.main.initial).toBe('raw');
     expect(widget.regions.main.transitions[0]).toEqual({ from: 'raw', to: 'done', intent: 'finish' });
+    // declared states carry the type's render policy: derived label and
+    // severity, terminal flag on declared terminals
+    expect(widget.regions.main.states.raw).toMatchObject({ label: 'Raw', severity: 'info', canUpdateMeta: true });
+    expect(widget.regions.main.states.done).toMatchObject({ label: 'Done', severity: 'secondary', isTerminal: true });
     expect(projected.fieldAccess.widget).toMatchObject({ feature: 'cts-types' });
     expect(projected.fieldAccess.widget.read).toContain('data.name');
     expect(projected.fieldAccess.widget.write).toEqual(['data.name', 'data.note']);

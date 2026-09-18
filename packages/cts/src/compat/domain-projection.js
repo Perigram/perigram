@@ -23,6 +23,7 @@
 //   (genericCreate + name prompt).
 import { toTypeId } from './domain-cnc.js';
 import { rowToFieldSchemas, slotFor } from './field-schema-rows.js';
+import { renderPolicyFor } from '../render.js';
 
 function camel(kebab = '') {
   return kebab.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
@@ -155,6 +156,11 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     }
     const legacyStates = legacyWorkflow?.regions?.main?.states || {};
     const terminal = new Set(type.states.main.terminal || []);
+    // Declaration-owned render policy (SPEC §7): labels/icons/severity are
+    // attached to state values on the type and project to UI — they are the
+    // single render home for declared states, exactly where statusDefinition
+    // metadata lands for process-authored states.
+    const render = renderPolicyFor(type);
     workflows[legacyId] = {
       schemaVersion: 2,
       primaryRegion: 'main',
@@ -169,7 +175,10 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
               ? legacyStates[value]
               : {
                 ...(terminal.has(value) ? { isTerminal: true } : {}),
-                canUpdateMeta: !terminal.has(value)
+                canUpdateMeta: !terminal.has(value),
+                ...(render.states[value]?.label ? { label: render.states[value].label } : {}),
+                ...(render.states[value]?.icon ? { icon: render.states[value].icon } : {}),
+                ...(render.states[value]?.severity ? { severity: render.states[value].severity } : {})
               }
           ])),
           transitions: (type.transitions || []).map(transition => {
