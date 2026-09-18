@@ -50,12 +50,16 @@ in one render tree without any composite registry entries.
 ### Fields
 
 `resolveFieldControl(descriptor, { variant })` → `{ component, span, props }`.
-Edit variants resolve editor controls (`quantity` → InputNumber with unit
-suffix, `enum` > 7 values → filtered Select, `ref` → EntityPicker, long
-strings → Textarea, `record`/`list`/`variant` → recursive structural
-editors). Display variants resolve read-only presentations (`enum` → Tag,
-`ref` → EntityChip, `quantity` → QuantityText, `blob` → FileChip). Spans are
-`'full' | 'half'`; the layout is a dumb responsive grid that consumes spans.
+Edit variants resolve editor controls, refined by derived qualifiers:
+`quantity` → QuantityInput (InputGroup: InputNumber plus unit addon), few-option
+`enum` → SelectButton, large `enum` → filtered Select, `ref` → EntityPicker,
+`list` of strings → InputChips, `list` of refs → EntityMultiPicker, long
+strings → Textarea, payload blobs → FileUpload, and `record`/`variant`/
+heterogeneous `list` → recursive structural editors. Display variants resolve
+read-only presentations (`enum` → Tag, `ref` → EntityChip, `quantity` →
+QuantityText, `blob` → FileChip). Spans are `'full' | 'half'`; the layout is
+a dumb responsive grid that consumes spans. Dense rows bound their field
+count through the same budget mechanism (`ROW_FIELD_BUDGET`).
 
 ### Surfaces and previews
 
@@ -91,8 +95,10 @@ Components declare a role; `resolveChrome(role, parentRole)` →
 | `inline` | `none` | `none` | `none |
 
 Same-role nesting flattens: a card inside a card does not paint a second
-surface — it degrades to padding plus a divider (`border: 'top'`). Surfaces
-step only when the role steps. The app materializes token names with the
+surface — it degrades to padding plus a divider (`border: 'divider'`,
+materialized as PrimeVue `Divider`). Surfaces step only when the role steps;
+the `card` role itself materializes as PrimeVue `Card` so preset chrome owns
+borders and surfaces. The app materializes remaining token names with the
 existing Tailwind/PrimeVue aliases (`bg-content`, `bg-subtle`,
 `border-content-border`, …, see
 [assets/tokens/README.md](../../assets/tokens/README.md)); this module never
@@ -108,15 +114,33 @@ declare per-slot budgets (`{ max, overflow }`, `overflow` is
 collapses the list (`+n`, "show more", or bounded scroll). Row variants use
 tight budgets (`max: 2, overflow: 'count'`); full surfaces scroll instead.
 
+## Composition
+
+`composeScreen(screen, contract, bundle, pool)` (in `screen.js`) projects one
+compiled screen contract into a pure region tree — no Vue. It resolves
+sources (`mode: 'single'` by `scope.entityId` with first-instance fallback;
+`mode: 'list'` unscoped, or scoped by `relation: { sourceId, key }` /
+`lineage: { sourceId, key }` against the origin source's instance), maps
+regions to surface kinds (detail main regions at `full`, nested detail at
+`detail`, list rows at `row`), attaches resolved surface policy, resolved
+action records, and nested child regions. `buildInstancePool(instances)`
+normalizes instance groups into the `{ type -> { id -> instance } }` pool the
+data layer stands in with. The region tree is frozen, pure, and what
+[components/ui-mapping](../../components/ui-mapping/README.md) materializes
+— screens are generated from the contract, never handwritten.
+
 ## Consumption
 
 - Showcase: [pages/test/ui-mapping.vue](../../pages/test/ui-mapping.vue)
-  renders this mapping over synthetic compiler output.
+  mounts the generated screen engine over synthetic compiler output.
+- Materialization: [components/ui-mapping/README.md](../../components/ui-mapping/README.md)
+  — the SFC registry and the generated screen engine.
 - Fixtures: [test-data/ui-mapping-fixtures.js](../../test-data/ui-mapping-fixtures.js)
   — a synthetic CTS client bundle, compiled screens/actions, and instance
   graph (privacy-safe, factory-shaped).
-- Spec: `ui-mapping.spec.js` (table-driven resolver/chrome/budget tests);
-  `test-data/ui-mapping-fixtures.spec.js` (fixture/resolver integration).
+- Spec: `ui-mapping.spec.js` (table-driven resolver/chrome/budget tests),
+  `screen.spec.js` (composition mechanics), and
+  `test-data/ui-mapping-fixtures.spec.js` (fixture/composition integration).
 
 ## Related
 
