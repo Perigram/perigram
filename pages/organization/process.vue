@@ -2092,23 +2092,30 @@ async function createDraftFromDock() {
 // Declarations authored in the tree compile into registry types before the
 // process saves (SPEC §20/§21: one tree, declarations are nodes). The pure
 // compile lives in @cutkit/processes (compileTreeDeclarations): fields,
-// states, transitions with intents, children edges with onRemove. R4 holds
-// here — a type with states but without exactly one marked initial is a
-// save-blocking diagnostic, never a silent default.
+// states, transitions with intents, children edges with onRemove. Valid
+// declarations post to the registry; named diagnostics surface as errors
+// without blocking the draft save — activation still fails closed through
+// checkDeclarationsAgainstCts and the registry compile. After the registry
+// refresh, canvas nodes re-sync so constructs bound to just-authored types
+// immediately gain their typed row-field sockets.
 async function persistTreeDeclarations() {
   const hasClasses = nodes.value.some(node => node.type === 'ctsClass');
   if (!hasClasses) return;
   const { declarations, diagnostics } = compileTreeDeclarations(nodes.value, edges.value);
   if (diagnostics.length) {
     toast.add({ severity: 'error', summary: t('processDesigner.declarationErrors'), detail: diagnostics.join('; '), life: 8000 });
-    throw new Error(diagnostics[0]);
   }
   for (const declaration of declarations) {
-    await $fetch('/api/admin/cts/types', { method: 'POST', body: declaration });
+    try {
+      await $fetch('/api/admin/cts/types', { method: 'POST', body: declaration });
+    } catch (error) {
+      toast.add({ severity: 'error', summary: declaration.id, detail: error?.data?.message || error?.message, life: 8000 });
+    }
   }
   ctsOrgTypes.value = (await $fetch('/api/admin/cts/types')).types.filter(type => type.scope === 'org');
   resetCtsRegistry();
   refreshDesignerFromTypes();
+  syncNodeData();
 }
 
 async function saveDraft() {

@@ -429,6 +429,14 @@ describe('tree declaration compilation', () => {
     expect(twoInitials.diagnostics.some(message => message.includes('exactly one initial'))).toBe(true);
   });
 
+  it('a sole wired state is the initial state — there is no choice to make', () => {
+    const widget = classNode('widget');
+    const nodes = [widget, stateNode('widget', 'raw')];
+    const { declarations, diagnostics } = compileTreeDeclarations(nodes, [declares(nodes[1], widget, 'state')]);
+    expect(diagnostics).toEqual([]);
+    expect(declarations[0].states.main).toEqual({ initial: 'raw', values: ['raw'], terminal: [] });
+  });
+
   it('invalid field descriptors surface as diagnostics naming the type and field', () => {
     const widget = classNode('widget');
     const bad = fieldNode('widget', 'broken', { base: 'quantity' });

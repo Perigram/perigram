@@ -208,12 +208,16 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
     };
     if (states.size) {
       const initial = [...states.entries()].filter(([, flags]) => flags.initial).map(([value]) => value);
-      if (initial.length !== 1) {
+      // A sole wired state is necessarily the initial one — there is no
+      // choice to make, so it is not a guess. Among several states the
+      // author marks exactly one (R4); a missing or ambiguous mark is a
+      // named diagnostic, never a default.
+      if (initial.length > 1 || (states.size > 1 && initial.length === 0)) {
         diagnostics.push(`type ${typeId}: mark exactly one initial state (R4) — got ${initial.length}`);
       } else {
         declaration.states = {
           main: {
-            initial: initial[0],
+            initial: initial[0] || [...states.keys()][0],
             values: [...states.keys()],
             terminal: [...states.entries()].filter(([, flags]) => flags.terminal).map(([value]) => value)
           }
