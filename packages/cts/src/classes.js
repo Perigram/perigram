@@ -1,6 +1,11 @@
 // Classes (SPEC §5): declaration presets — obligations over facets, no machinery.
 export const CLASSES = Object.freeze(['party', 'file', 'item', 'group', 'process']);
 
+// Authorable classes: party types are framework-only (R6), so org
+// declarations and every class picker offer exactly these four. Single
+// source — no page keeps its own class list.
+export const DECLARABLE_CLASSES = Object.freeze(CLASSES.filter(className => className !== 'party'));
+
 // R6: class obligations checked at type-compile. `context.childTypes` is the
 // set of type ids that appear as children in some lineage edge — derived
 // items (instance, remnant) identify through their parent edge, which is a

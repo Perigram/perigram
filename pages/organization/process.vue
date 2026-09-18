@@ -191,7 +191,9 @@
                       <label>{{ $t('typesPane.class') }}</label>
                       <Select
                         :model-value="selectedNode.data.class"
-                        :options="['file', 'item', 'group', 'process']"
+                        :options="declarableClassOptions"
+                        option-label="label"
+                        option-value="value"
                         @update:model-value="value => { selectedNode.data.class = value; }"
                       />
                     </div>
@@ -987,7 +989,7 @@ import {
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncUiSurfaces, cncPackContent } from '@cutkit/domain-cnc';
-import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor, frameworkTypes } from '~/packages/cts/src/index.js';
+import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor, frameworkTypes, DECLARABLE_CLASSES, FIELD_BASES, UNITS } from '~/packages/cts/src/index.js';
 import { ctsFieldToProcessType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
@@ -1576,8 +1578,9 @@ function updateJoinSelectedProducer(node, selectedProducerOutputId) {
   node.selectedProducerOutputId = selectedProducerOutputId;
   syncNodeData();
 }
-const fieldBaseOptions = ['string', 'number', 'boolean', 'instant', 'json', 'quantity', 'ref', 'list'].map(base => ({ label: base, value: base }));
-const ctsUnits = ['mm', 'm', 'm2', 'min', 'deg', 'percent', 'currency', 'count'];
+const fieldBaseOptions = FIELD_BASES.map(base => ({ label: base, value: base }));
+const ctsUnits = [...UNITS];
+const declarableClassOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
 const classPayloadMime = computed({
   get: () => selectedNode.value?.data?.payload?.mime || '',
   set: value => {
@@ -3827,7 +3830,7 @@ function declarationPorts(node) {
 function enrichNodeData(node) {
   if (node.type === 'ctsClass') {
     recountDeclaration(node);
-    return { ...node, data: { ...node.data, label: node.data.label || node.data.typeId, version: 1, scope: 'system', ...declarationPorts(node) } };
+    return { ...node, data: { ...node.data, label: node.data.label || node.data.typeId, version: 1, scope: 'org', ...declarationPorts(node) } };
   }
   if (node.type === 'ctsField' || node.type === 'ctsState') {
     return { ...node, data: { ...node.data, ...declarationPorts(node) } };

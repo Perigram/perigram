@@ -2,13 +2,13 @@ export {
   UNITS, quantity, convert, unify
 } from './units.js';
 export {
-  describeType, checkValue, describeLabel, containsRef
+  describeType, checkValue, describeLabel, containsRef, FIELD_BASES
 } from './values.js';
 export {
   normalizeRow, rowToSchema, checkFields
 } from './rows.js';
 export {
-  CLASSES, checkClassObligations
+  CLASSES, DECLARABLE_CLASSES, checkClassObligations
 } from './classes.js';
 export {
   EDGE_KINDS, ON_REMOVE, normalizeEdges, checkLineageAcyclic

@@ -6,6 +6,12 @@ const BASES = Object.freeze([
   'ref', 'quantity', 'record', 'list', 'map', 'variant', 'enum'
 ]);
 
+// Authorable row-field bases (SPEC §4 FieldType): every V base except `id` —
+// an Id without a carrier Ref is a static error (R2), so it is never offered
+// as a field declaration. This is the single source every field editor and
+// canvas consumes; no page keeps its own base list.
+export const FIELD_BASES = Object.freeze(BASES.filter(base => base !== 'id'));
+
 export function describeType(descriptor = {}) {
   const base = descriptor.base;
   if (!BASES.includes(base)) throw new Error(`Unknown base type ${JSON.stringify(base)}`);

@@ -7,22 +7,26 @@
 // Pure functions only: the page owns VueFlow state, this module owns the
 // vocabulary and the round trip.
 
-const CLASSES = Object.freeze(['file', 'item', 'group', 'process']);
+// Pure functions only: the page owns VueFlow state, this module owns the
+// vocabulary and the round trip. Grammar lists (bases, classes, units) come
+// from @perigram/cts — single home, never restated here.
+import { FIELD_BASES as CTS_FIELD_BASES, DECLARABLE_CLASSES } from '~/packages/cts/src/index.js';
 
-export const FIELD_BASES = Object.freeze(['string', 'number', 'boolean', 'instant', 'json', 'quantity', 'ref', 'list', 'map', 'enum']);
+export const FIELD_BASES = CTS_FIELD_BASES;
+export const TYPE_CANVAS_CLASSES = DECLARABLE_CLASSES;
 
 // -- declarations -> canvas --
 
 export function canvasFromDeclarations(declarations = []) {
   const nodes = [];
   const edges = [];
-  const typesByClass = new Map(CLASSES.map(classOf => [classOf, []]));
+  const typesByClass = new Map(TYPE_CANVAS_CLASSES.map(classOf => [classOf, []]));
   for (const declaration of declarations) {
     if (!typesByClass.has(declaration.class)) typesByClass.set(declaration.class, []);
     typesByClass.get(declaration.class).push(declaration);
   }
 
-  const columnFor = classOf => CLASSES.indexOf(classOf);
+  const columnFor = classOf => TYPE_CANVAS_CLASSES.indexOf(classOf);
   let maxColumnRows = 0;
   const rowsByColumn = new Map();
 
@@ -234,4 +238,3 @@ export function suggestTypeId(existing = [], classOf = 'file') {
   return `${classOf}-${index}`;
 }
 
-export const TYPE_CANVAS_CLASSES = CLASSES;
