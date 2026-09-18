@@ -132,6 +132,58 @@ describe('process v4 node catalog', () => {
     expect(automaticModify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity', 'status.state.primary']);
   });
 
+  it('exposes declared row fields as construction sockets on the composer-less construct', () => {
+    const context = { domain: {} };
+    const rowCreate = resolveCatalogNodePorts({
+      kind: 'effect.createEntity',
+      entityType: 'widget',
+      blocks: ['identity', 'data', 'specs'],
+      construction: {
+        mode: 'genericCreate',
+        inputs: [
+          { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true },
+          { id: 'specs.width', label: 'specs.width', path: 'specs.width', type: 'number', required: false, prompt: true },
+          { id: 'data.owner', label: 'data.owner', path: 'data.owner', type: 'entity', entityType: 'project', required: true, prompt: true }
+        ]
+      }
+    }, context);
+    expect(rowCreate.inputs.map(input => input.id)).toEqual([
+      'name',
+      'specs.width',
+      'data.owner',
+      'identity',
+      'data',
+      'specs',
+      'status.state.primary'
+    ]);
+    const owner = rowCreate.inputs.find(input => input.id === 'data.owner');
+    expect(owner.type).toMatchObject({ base: 'entityRef', entityType: 'project' });
+    expect(owner.required).toBe(true);
+    const width = rowCreate.inputs.find(input => input.id === 'specs.width');
+    expect(width.type).toMatchObject({ base: 'number' });
+    expect(width.required).toBe(false);
+    // v4 twin and cts species record expose the identical contract
+    const speciesCreate = resolveCatalogNodePorts({
+      kind: 'cts.construct',
+      type: 'widget',
+      via: 'genericCreate',
+      slots: ['identity', 'data', 'specs'],
+      construction: {
+        mode: 'genericCreate',
+        inputs: [
+          { id: 'specs.width', label: 'specs.width', path: 'specs.width', type: 'number', required: false, prompt: true }
+        ]
+      }
+    }, context);
+    expect(speciesCreate.inputs.map(input => input.id)).toEqual([
+      'specs.width',
+      'identity',
+      'data',
+      'specs',
+      'status.state.primary'
+    ]);
+  });
+
   it('declares List consumption on every mapped mutation effect input socket', () => {
     const context = {
       fieldSchemas: [

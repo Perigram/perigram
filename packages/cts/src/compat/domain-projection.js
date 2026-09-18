@@ -298,8 +298,22 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     construction[type.id] = {
       modes: ['genericCreate', ...constructOperators.map(operator => operator.id)],
       defaultMode: 'genericCreate',
+      // Row fields are construct inputs (SPEC §20 residue: the composer-less
+      // construct): every declared row field can be wired or prompted
+      // directly — a compose node is optional. Required follows the row
+      // descriptor (nullable means optional).
       inputs: [
-        { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true }
+        { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true },
+        ...(rowEntriesByOrgType.get(type.id) || [])
+          .filter(schema => schema.constructible !== false)
+          .map(schema => ({
+            id: schema.path,
+            label: schema.label || schema.path,
+            path: schema.path,
+            ...constructionInputKind(schema.type),
+            required: schema.type?.nullable !== true,
+            prompt: true
+          }))
       ],
       ...(constructOperators.length ? {
         modeInputs: Object.fromEntries(constructOperators.map(operator => [operator.id, operatorModeInputs(operator)]))
@@ -343,6 +357,18 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
 // quantity stays a unit-bearing number, structural bases ride as object
 // payloads. Required follows the row: a descriptor is required unless it
 // declares itself nullable.
+// Field-schema type -> construction input kind (the same seam
+// operatorModeInputs uses for operator signatures): entity refs carry their
+// typed constraint, everything structural rides as an object payload.
+function constructionInputKind(type = {}) {
+  if (type.base === 'entityRef' || type.base === 'entity') {
+    return { type: 'entity', ...(type.entityType ? { entityType: type.entityType } : {}) };
+  }
+  if (['string', 'number', 'boolean'].includes(type.base)) return { type: type.base };
+  if (type.base === 'dateTime' || type.base === 'date') return { type: 'date' };
+  return { type: 'object' };
+}
+
 function operatorModeInputs(operator = {}) {
   const fields = operator.input?.base === 'record' ? operator.input.fields || {} : {};
   return Object.entries(fields).map(([name, descriptor]) => {

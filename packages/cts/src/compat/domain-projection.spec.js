@@ -51,11 +51,16 @@ describe('domain projection (CTS view -> compiler domain)', () => {
     expect(widgetSchemas.find(field => field.path === 'identity.name')).toMatchObject({ writable: false, constructible: true });
     expect(widgetSchemas.find(field => field.path === 'data.name')).toMatchObject({ writable: true, readable: true });
     expect(widgetSchemas.find(field => field.path === 'origin.state.primary').type.base).toBe('status');
-    // org construction: generic creation with the name prompt
+    // org construction: generic creation with the name prompt plus the
+    // declared row fields as construct inputs (the composer-less construct)
     expect(projected.construction.widget).toEqual({
       modes: ['genericCreate'],
       defaultMode: 'genericCreate',
-      inputs: [{ id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true }]
+      inputs: [
+        { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true },
+        { id: 'data.name', label: 'data.name', path: 'data.name', type: 'string', required: true, prompt: true },
+        { id: 'data.note', label: 'data.note', path: 'data.note', type: 'string', required: true, prompt: true }
+      ]
     });
   });
 

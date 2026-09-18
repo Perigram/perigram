@@ -706,6 +706,13 @@ function effectInputs(kind, types) {
     ];
   }
   if (kind === 'effect.createEntity') return [
+    // The composer-less construct (SPEC §20): declared row fields surface
+    // as typed construction sockets — every construct input is wireable or
+    // promptable directly, and a compose node is optional.
+    ...types.constructionInputs.map(input => ({
+      ...socket(input.id, input.type, DATA, input.required && input.default === undefined, 'list'),
+      label: input.label || input.id
+    })),
     ...types.blocks.map(block => socket(block, processType('block', {
       block
     }), DATA, block === 'identity', 'list')),
