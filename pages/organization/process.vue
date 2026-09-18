@@ -180,7 +180,7 @@
             <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
-                <div v-if="!['action', 'statusDefinition', 'processNode'].includes(selectedNode.type)" class="flex flex-col gap-1">
+                <div v-if="!['action', 'statusDefinition', 'processNode', ...declarationNodeTypes].includes(selectedNode.type)" class="flex flex-col gap-1">
                   <label>{{ $t('processDesigner.label') }}</label>
                   <InputText v-model="selectedRecord.label" />
                 </div>
@@ -683,6 +683,31 @@
                 </template>
 
               </div>
+              <div v-else-if="selectedDeclarationEdge" class="flex min-w-0 flex-col gap-4">
+                <template v-if="selectedDeclarationEdge.label === 'transition'">
+                  <div class="flex flex-col gap-1">
+                    <label>{{ $t('typesPane.intent') }}</label>
+                    <InputText v-model="selectedDeclarationEdge.data.intent" :placeholder="'finish'" @update:model-value="selectedDeclarationEdge.label = selectedDeclarationEdge.data.intent || 'transition'" />
+                  </div>
+                  <Message severity="info" :closable="false">{{ $t('processDesigner.transitionEdgeHint') }}</Message>
+                </template>
+                <template v-else-if="selectedDeclarationEdge.label === 'children'">
+                  <div class="flex flex-col gap-1">
+                    <label>{{ $t('typesPane.edgeKey') }}</label>
+                    <InputText v-model="selectedDeclarationEdge.data.key" />
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label>{{ $t('typesPane.onRemove') }}</label>
+                    <Select
+                      v-model="selectedDeclarationEdge.data.onRemove"
+                      :options="onRemoveOptions"
+                      option-label="label"
+                      option-value="value"
+                    />
+                  </div>
+                </template>
+                <Message v-else severity="secondary" :closable="false">{{ $t('processDesigner.declarationEdgeHint') }}</Message>
+              </div>
               <StateBlock v-else :message="$t('processDesigner.selectNode')" />
             </TabPanel>
 
@@ -968,6 +993,7 @@ import PermissionEditor from '~/components/PermissionEditor.vue';
 import {
   canvasToDefinition,
   compileProcessDefinition,
+  compileTreeDeclarations,
   createProcessDesignerContract,
   DECLARATION_NODE_TYPES,
   declarationWireLegality,
@@ -982,7 +1008,7 @@ import {
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncUiSurfaces, cncPackContent } from '@cutkit/domain-cnc';
-import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor, frameworkTypes, DECLARABLE_CLASSES } from '~/packages/cts/src/index.js';
+import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor, frameworkTypes, DECLARABLE_CLASSES, ON_REMOVE } from '~/packages/cts/src/index.js';
 import { ctsFieldToProcessType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
@@ -1579,6 +1605,9 @@ const declarationTypeOptions = computed(() => [
   ])
 ]);
 const declarableClassOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
+const declarationNodeTypes = DECLARATION_NODE_TYPES;
+const onRemoveOptions = ON_REMOVE.map(value => ({ label: value, value }));
+const selectedDeclarationEdge = computed(() => edges.value.find(edge => edge.id === selectedEdgeId.value && edge.role === 'type') || null);
 const classPayloadMime = computed({
   get: () => selectedNode.value?.data?.payload?.mime || '',
   set: value => {
@@ -1914,39 +1943,20 @@ async function createDraftFromDock() {
 }
 
 // Declarations authored in the tree compile into registry types before the
-// process saves (SPEC §20/§21: one tree, declarations are nodes). Each
-// class node with wired fields/states becomes an org declaration.
+// process saves (SPEC §20/§21: one tree, declarations are nodes). The pure
+// compile lives in @cutkit/processes (compileTreeDeclarations): fields,
+// states, transitions with intents, children edges with onRemove. R4 holds
+// here — a type with states but without exactly one marked initial is a
+// save-blocking diagnostic, never a silent default.
 async function persistTreeDeclarations() {
-  const classes = nodes.value.filter(node => node.type === 'ctsClass' && node.data.typeId);
-  if (!classes.length) return;
-  const wiredFields = childNodes => edges.value
-    .filter(edge => edge.role === 'type' && edge.label === 'field' && edge.target === childNodes.id)
-    .map(edge => nodes.value.find(node => node.id === edge.source))
-    .filter(Boolean);
-  const wiredStates = classNode => edges.value
-    .filter(edge => edge.role === 'type' && edge.label === 'state' && edge.target === classNode.id)
-    .map(edge => nodes.value.find(node => node.id === edge.source))
-    .filter(Boolean);
-  for (const classNode of classes) {
-    const fields = Object.fromEntries(wiredFields(classNode)
-      .filter(field => field.data.name)
-      .map(field => [field.data.name, { ...field.data.descriptor }]));
-    const states = wiredStates(classNode).filter(state => state.data.value);
-    const declaration = {
-      id: classNode.data.typeId,
-      class: classNode.data.class,
-      fields,
-      ...(classNode.data.payload ? { payload: classNode.data.payload } : {})
-    };
-    if (states.length) {
-      declaration.states = {
-        main: {
-          initial: states.find(state => state.data.initial)?.data.value || states[0].data.value,
-          values: states.map(state => state.data.value),
-          terminal: states.filter(state => state.data.terminal).map(state => state.data.value)
-        }
-      };
-    }
+  const hasClasses = nodes.value.some(node => node.type === 'ctsClass');
+  if (!hasClasses) return;
+  const { declarations, diagnostics } = compileTreeDeclarations(nodes.value, edges.value);
+  if (diagnostics.length) {
+    toast.add({ severity: 'error', summary: t('processDesigner.declarationErrors'), detail: diagnostics.join('; '), life: 8000 });
+    throw new Error(diagnostics[0]);
+  }
+  for (const declaration of declarations) {
     await $fetch('/api/admin/cts/types', { method: 'POST', body: declaration });
   }
   ctsOrgTypes.value = (await $fetch('/api/admin/cts/types')).types.filter(type => type.scope === 'org');
@@ -4431,6 +4441,32 @@ function onConnect(connection) {
     syncEdgeSelection();
     return;
   }
+  if (legality === 'children') {
+    selectedEdgeId.value = null;
+    edges.value.push(decorateEdge({
+      ...connection,
+      id: `children:${sourceNode.id}-${targetNode.id}`,
+      type: 'default',
+      role: 'type',
+      label: 'children',
+      data: { key: `${targetNode.data.typeId}s`, onRemove: 'restrict' }
+    }));
+    syncEdgeSelection();
+    return;
+  }
+  if (legality === 'transition') {
+    selectedEdgeId.value = null;
+    edges.value.push(decorateEdge({
+      ...connection,
+      id: `transition:${sourceNode.id}-${targetNode.id}-${Date.now()}`,
+      type: 'default',
+      role: 'type',
+      label: 'transition',
+      data: { intent: '' }
+    }));
+    syncEdgeSelection();
+    return;
+  }
   selectedEdgeId.value = null;
   edges.value.push(decorateEdge({
     ...connection,
@@ -4500,6 +4536,16 @@ function connectionCompatibility(connection = {}) {
           source: sourcePort,
           target: targetPort
         };
+      }
+      if (legality === 'children') {
+        return source.data?.typeId && target.data?.typeId
+          ? { ok: true }
+          : { ok: false, reason: 'Both classes need a type id before declaring children' };
+      }
+      if (legality === 'transition') {
+        return source.data?.typeId && source.data.typeId === target.data?.typeId
+          ? { ok: true }
+          : { ok: false, reason: 'Transitions connect states of one declared type' };
       }
       return { ok: false, reason: 'Only current operation nodes can be connected' };
     }

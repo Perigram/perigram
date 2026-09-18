@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { createProcessDesignerContract, declarationWireLegality, syncProcessNodeProducerOutputs } from './designer.js';
+import { compileTreeDeclarations, createProcessDesignerContract, declarationWireLegality, syncProcessNodeProducerOutputs } from './designer.js';
 import { getProcessNodeDefinition } from './node-catalog.js';
 
 describe('process designer domain contract', () => {
@@ -358,9 +358,92 @@ describe('declaration wire legality', () => {
     expect(legality({ sourceType: 'ctsState', targetType: 'processNode', targetRecordKind: 'cts.transition' })).toBeNull();
     // nothing feeds a class from the data plane
     expect(legality({ sourceType: 'processNode', targetType: 'ctsClass', targetRecordKind: 'source.literalItem' })).toBeNull();
-    // no declaration-to-declaration wiring beside declares
-    expect(legality({ sourceType: 'ctsClass', targetType: 'ctsClass' })).toBeNull();
-    expect(legality({ sourceType: 'ctsState', targetType: 'ctsState' })).toBeNull();
+    // no declaration-to-declaration wiring beside declares/children/transition
     expect(legality({ sourceType: 'ctsClass', targetType: 'ctsField' })).toBeNull();
+    expect(legality({ sourceType: 'ctsField', targetType: 'ctsState' })).toBeNull();
+  });
+
+  it('class-to-class wires declare children; state-to-state wires are transitions', () => {
+    expect(legality({ sourceType: 'ctsClass', targetType: 'ctsClass' })).toBe('children');
+    expect(legality({ sourceType: 'ctsState', targetType: 'ctsState' })).toBe('transition');
+  });
+});
+
+describe('tree declaration compilation', () => {
+  const classNode = (id, extra = {}) => ({ id: `class:${id}`, type: 'ctsClass', data: { typeId: id, class: 'process', ...extra } });
+  const fieldNode = (typeId, name, descriptor) => ({
+    id: `field:${typeId}:${name}`, type: 'ctsField', data: { typeId, name, descriptor }
+  });
+  const stateNode = (typeId, value, flags = {}) => ({
+    id: `state:${typeId}:${value}`, type: 'ctsState', data: { typeId, value, ...flags }
+  });
+  const declares = (source, target, label) => ({
+    id: `d:${source.id}-${target.id}`, source: source.id, target: target.id, role: 'type', label
+  });
+
+  it('compiles wired fields, states, transitions, and children edges', () => {
+    const widget = classNode('widget');
+    const gadget = classNode('gadget');
+    const nodes = [
+      widget,
+      gadget,
+      fieldNode('widget', 'name', { base: 'string' }),
+      fieldNode('widget', 'width', { base: 'quantity', unit: 'mm' }),
+      stateNode('widget', 'raw', { initial: true }),
+      stateNode('widget', 'done', { terminal: true }),
+      stateNode('gadget', 'new', { initial: true })
+    ];
+    const edges = [
+      declares(nodes[2], widget, 'field'),
+      declares(nodes[3], widget, 'field'),
+      declares(nodes[4], widget, 'state'),
+      declares(nodes[5], widget, 'state'),
+      declares(nodes[6], gadget, 'state'),
+      { id: 't1', source: nodes[4].id, target: nodes[5].id, role: 'type', label: 'transition', data: { intent: 'finish' } },
+      { id: 'c1', source: widget.id, target: gadget.id, role: 'type', label: 'children', data: { key: 'parts', onRemove: 'cascade' } }
+    ];
+    const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges);
+    expect(diagnostics).toEqual([]);
+    const compiled = Object.fromEntries(declarations.map(declaration => [declaration.id, declaration]));
+    expect(compiled.widget.fields).toEqual({
+      name: { base: 'string' },
+      width: { base: 'quantity', unit: 'mm' }
+    });
+    expect(compiled.widget.states.main).toEqual({ initial: 'raw', values: ['raw', 'done'], terminal: ['done'] });
+    expect(compiled.widget.transitions).toEqual([{ from: 'raw', to: 'done', intent: 'finish' }]);
+    expect(compiled.widget.edges).toEqual({ children: { parts: { types: ['gadget'], onRemove: 'cascade' } } });
+    expect(compiled.gadget.states.main.initial).toBe('new');
+  });
+
+  it('states without exactly one initial are a diagnostic, never a default (R4)', () => {
+    const widget = classNode('widget');
+    const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'done')];
+    const edges = [declares(nodes[1], widget, 'state'), declares(nodes[2], widget, 'state')];
+    const noInitial = compileTreeDeclarations(nodes, edges);
+    expect(noInitial.diagnostics.some(message => message.includes('exactly one initial'))).toBe(true);
+    expect(noInitial.declarations[0].states).toBeUndefined();
+
+    nodes[1].data.initial = true;
+    nodes[2].data.initial = true;
+    const twoInitials = compileTreeDeclarations(nodes, edges);
+    expect(twoInitials.diagnostics.some(message => message.includes('exactly one initial'))).toBe(true);
+  });
+
+  it('invalid field descriptors surface as diagnostics naming the type and field', () => {
+    const widget = classNode('widget');
+    const bad = fieldNode('widget', 'broken', { base: 'quantity' });
+    const { diagnostics } = compileTreeDeclarations([widget, bad], [declares(bad, widget, 'field')]);
+    expect(diagnostics[0]).toContain('widget');
+    expect(diagnostics[0]).toContain('broken');
+  });
+
+  it('transitions across types are diagnostics', () => {
+    const a = stateNode('widget', 'raw');
+    const b = stateNode('gadget', 'new');
+    const { diagnostics } = compileTreeDeclarations(
+      [classNode('widget'), classNode('gadget'), a, b],
+      [{ id: 't', source: a.id, target: b.id, role: 'type', label: 'transition', data: { intent: '' } }]
+    );
+    expect(diagnostics[0]).toContain('one declared type');
   });
 });

@@ -1,6 +1,6 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import { CONSUMER_EFFECT_KINDS } from './node-catalog.js';
-import { operationKindOf } from '../../cts/src/index.js';
+import { operationKindOf, describeType } from '../../cts/src/index.js';
 
 const BLOCK_PRESENTATION = {
   identity: { defaultPath: 'identity.name', icon: 'pi pi-id-card', fields: ['identity.uid', 'identity.name', 'identity.slug', 'identity.serial', 'identity.reference'] },
@@ -120,10 +120,116 @@ export const DECLARATION_NODE_TYPES = Object.freeze(['ctsClass', 'ctsType', 'cts
 
 export function declarationWireLegality({ sourceType = '', targetType = '', targetRecordKind = '' } = {}) {
   if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
+  if (sourceType === 'ctsClass' && targetType === 'ctsClass') return 'children';
+  if (sourceType === 'ctsState' && targetType === 'ctsState') return 'transition';
   if ((sourceType === 'ctsClass' || sourceType === 'ctsType')
     && targetType === 'processNode'
     && String(targetRecordKind || '').startsWith('cts.')) return 'binds';
   return null;
+}
+
+// Tree declarations compile from the canvas vocabulary (SPEC §20/§21 one
+// tree): class nodes with wired field/state nodes become registry
+// declarations; state-to-state wires are transitions with intents;
+// class-to-class wires are children edges with onRemove. Pure over the
+// canvas arrays — the page supplies nodes/edges, the server re-validates
+// through the real registry. States follow R4: exactly one initial when any
+// state is declared; the compiler never picks a default.
+export function compileTreeDeclarations(nodes = [], edges = []) {
+  const nodeById = new Map(nodes.map(node => [node.id, node]));
+  const classes = nodes.filter(node => node.type === 'ctsClass' && node.data?.typeId);
+  const fieldsByType = new Map();
+  const statesByType = new Map();
+  const transitionsByType = new Map();
+  const childrenByType = new Map();
+  const diagnostics = [];
+
+  for (const edge of edges) {
+    if (edge.role !== 'type') continue;
+    const source = nodeById.get(edge.source);
+    const target = nodeById.get(edge.target);
+    if (!source || !target) continue;
+    if (edge.label === 'field' && source.type === 'ctsField' && target.type === 'ctsClass') {
+      const map = fieldsByType.get(target.data.typeId) || new Map();
+      const name = String(source.data.name || '').trim();
+      if (name) {
+        try {
+          describeType(source.data.descriptor || {});
+          map.set(name, { ...(source.data.descriptor || {}) });
+        } catch (error) {
+          diagnostics.push(`type ${target.data.typeId}: field ${name}: ${error.message}`);
+        }
+      }
+      fieldsByType.set(target.data.typeId, map);
+    }
+    if (edge.label === 'state' && source.type === 'ctsState' && target.type === 'ctsClass') {
+      const map = statesByType.get(target.data.typeId) || new Map();
+      const value = String(source.data.value || '').trim();
+      if (value) {
+        map.set(value, { initial: source.data.initial === true, terminal: source.data.terminal === true });
+      }
+      statesByType.set(target.data.typeId, map);
+    }
+    if (edge.label === 'transition' && source.type === 'ctsState' && target.type === 'ctsState') {
+      const typeId = source.data?.typeId;
+      if (!typeId || typeId !== target.data?.typeId) {
+        diagnostics.push(`transition ${source.data?.value || '(state)'} -> ${target.data?.value || '(state)'}: states of one declared type only`);
+        continue;
+      }
+      const list = transitionsByType.get(typeId) || [];
+      const intent = String(edge.data?.intent || '').trim();
+      list.push({ from: String(source.data.value || ''), to: String(target.data.value || ''), ...(intent ? { intent } : {}) });
+      transitionsByType.set(typeId, list);
+    }
+    if (edge.label === 'children' && source.type === 'ctsClass' && target.type === 'ctsClass') {
+      const parentTypeId = source.data?.typeId;
+      const childTypeId = target.data?.typeId;
+      if (!parentTypeId || !childTypeId) {
+        diagnostics.push('children wire requires both classes to carry a type id');
+        continue;
+      }
+      const map = childrenByType.get(parentTypeId) || new Map();
+      const key = String(edge.data?.key || `${childTypeId}s`).trim();
+      const entry = map.get(key) || { types: [], onRemove: edge.data?.onRemove || 'restrict' };
+      if (!entry.types.includes(childTypeId)) entry.types.push(childTypeId);
+      map.set(key, entry);
+      childrenByType.set(parentTypeId, map);
+    }
+  }
+
+  const declarations = classes.map(classNode => {
+    const typeId = classNode.data.typeId;
+    const states = statesByType.get(typeId) || new Map();
+    const declaration = {
+      id: typeId,
+      class: classNode.data.class,
+      fields: Object.fromEntries([...(fieldsByType.get(typeId) || new Map()).entries()]),
+      ...(classNode.data.payload ? { payload: classNode.data.payload } : {})
+    };
+    if (states.size) {
+      const initial = [...states.entries()].filter(([, flags]) => flags.initial).map(([value]) => value);
+      if (initial.length !== 1) {
+        diagnostics.push(`type ${typeId}: mark exactly one initial state (R4) — got ${initial.length}`);
+      } else {
+        declaration.states = {
+          main: {
+            initial: initial[0],
+            values: [...states.keys()],
+            terminal: [...states.entries()].filter(([, flags]) => flags.terminal).map(([value]) => value)
+          }
+        };
+        const declared = new Set(states.keys());
+        declaration.transitions = (transitionsByType.get(typeId) || [])
+          .filter(transition => declared.has(transition.from) && declared.has(transition.to))
+          .map(({ from, to, intent }) => (intent ? { from, to, intent } : { from, to }));
+      }
+    }
+    const children = childrenByType.get(typeId);
+    if (children?.size) declaration.edges = { children: Object.fromEntries(children.entries()) };
+    return declaration;
+  });
+
+  return { declarations, diagnostics };
 }
 
 export function syncProcessNodeProducerOutputs(data = {}, node = {}) {

@@ -31,6 +31,7 @@ export {
 export {
   PROCESS_DESIGNER_PALETTE_GROUPS,
   DECLARATION_NODE_TYPES,
+  compileTreeDeclarations,
   createProcessDesignerContract,
   declarationWireLegality,
   syncProcessNodeProducerOutputs
