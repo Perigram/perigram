@@ -670,7 +670,11 @@ removes its types, editors, services, and routes from the running app.
 
 **Generic instance services (§13, landed):** every type without an explicit
 feature service resolves through the registry's service resolver to a
-generic per-class instance service (files/items/groups/processes
+generic per-class instance service. No legacy entity services are mounted
+at all: the CNC pack registers only its commands and the nesting task
+executor, and the legacy entity API surface (queues, projects, sheets,
+catalogs, machines, …) is deleted — the CNC feature modules that remain
+are pack-internal implementation for the editors and the nesting solver (files/items/groups/processes
 collections, type discriminator, generic construction from the
 declaration, per-call declaration resolution — framework/pack static, org
 from the type store). Pack types and org-authored types are executable
