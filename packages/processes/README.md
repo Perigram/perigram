@@ -34,7 +34,13 @@ field/compose/decompose structure family. The catalog carries `cts.*`
 definitions whose ports resolve through the record's operation-kind twin
 (`operationKindOf`/`resolveCtsRecord` from `@perigram/cts` — one canonical
 kind mapping, never duplicated); port contracts of a cts record and its v4
-twin are identical by test. Create Entity resolves either canonical block sockets or the
+twin are identical by test. Declaration authoring composes in the same
+tree: Class/Field/State canvas nodes wire through the legality matrix
+(`declarationWireLegality`) and compile into registry declarations via
+`compileTreeDeclarations` (R4-enforcing, pure over the canvas arrays).
+Generic creation exposes the type's declared row fields as typed
+construction sockets — the composer-less construct — and declared construct
+operators project as `via` modes with signature-derived mode inputs. Create Entity resolves either canonical block sockets or the
 selected domain construction mode's typed inputs. Run Service resolves the
 selected command definition into typed entity/parameter inputs and typed
 command-result outputs. Producer effects, conversions, predicates, patches,

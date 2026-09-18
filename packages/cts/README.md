@@ -12,11 +12,15 @@ module layout and how the code maps to the spec's build-order tiers.
 
 - `units.js` — closed unit set, declared conversions, unification (R3).
 - `values.js` — the value universe V: descriptor normalization, instance
-  checking, ref-free detection for services (R5).
+  checking, ref-free detection for services (R5). Owns the authorable
+  field-base list (`FIELD_BASES` — V minus `id`; single home for every
+  field editor).
 - `rows.js` — closed field rows; compiles to JSON Schema 2020-12 with
   `x-quantity`/`x-ref` custom keywords (the substrate for standard
   validators and designer form generation); total instance walker (R1).
-- `classes.js` — the five class presets and their obligations (R6).
+- `classes.js` — the five class presets and their obligations (R6), plus
+  `DECLARABLE_CLASSES` (party is framework-only — what org authoring and
+  every class picker offer).
 - `edges.js` — children/relations/provenance declarations with
   `onRemove` integrity; lineage acyclicity (R2).
 - `states.js` — single-axis states, guarded transitions, unique intents,
@@ -30,18 +34,26 @@ module layout and how the code maps to the spec's build-order tiers.
   declarative migration steps are deferred per SPEC §19.
 - `registry.js` — type records as data, tenancy resolution (system first,
   one org overlay, no shadowing), `compile()` running R1–R6, instance
-  validation with `typeVersion` ill-typing.
+  validation with `typeVersion` ill-typing. Payload declarations normalize
+  to the canonical trait shape (`mime` list, `accept`, `maxSize`,
+  `preview`); a bare MIME string (legacy persisted docs) normalizes at the
+  boundary.
 - `compat/domain-projection.js` — the collapse direction: projects a CTS
   registry view back onto the compiler-consumable domain shape. It owns
   `workflows` (states/transitions from declarations, legacy transition
   access and state flags merged for system types), `fieldSchemas` (row
   fields synthesized back to block paths, plus the declared legacy
   remainder for system types), `containment` (children edges with lineage
-  keys), `relations`, `entities` (org types appended), `fieldAccess` (org
+  keys),   `relations`, `entities` (org types appended), `fieldAccess` (org
   types bound to the cts-types feature), `construction` and
   `attachmentKinds` (synthesized for org types, legacy content passed
-  through for system types until their facets collapse). System-type
-  projection equivalence with the legacy tables is asserted by tests.
+  through for system types until their facets collapse). Synthesized
+  construction carries the declared row fields as generic-creation inputs
+  (the composer-less construct), declared construct operators as `via`
+  modes with signature-derived `modeInputs`, and declared-state render
+  policy (label/icon/severity) into the projected workflow state
+  metadata. System-type projection equivalence with the legacy tables is
+  asserted by tests.
 - `render.js` — render-policy projection (labels/icons/state severities
   derived from declarations; where hand-mirrored status tables die) and
   `compileClientBundle()`, the single frontend/designer consumption contract.
@@ -85,10 +97,12 @@ module layout and how the code maps to the spec's build-order tiers.
 The package is browser-safe by contract (SPEC §13). The process designer
 imports the registry directly and consumes the compiler-domain projection
 (`projectDomainFromView`) as its only domain source — palette options,
-fields, and statuses derive from the organization's type view.
-`pages/organization/types.vue` is the declaration-authoring pane fed by
-`GET /api/admin/cts/types` (org view: system types + org-authored
-declarations stored by `server/features/cts-types`). See
+fields, and statuses derive from the organization's type view. The
+designer tree is also the declaration-authoring surface (Class/Field/State
+nodes; compiled by `compileTreeDeclarations` from
+`@cutkit/processes`); `pages/organization/types.vue` is the read-only
+registry browser fed by `GET /api/admin/cts/types` (org view: system types
++ org-authored declarations stored by `server/features/cts-types`). See
 [pages/organization/README.md](../../pages/organization/README.md).
 
 ## Validation

@@ -47,18 +47,14 @@ The route expects `/api/users` to return canonical user DTO blocks with
 `users:read`; it derives the active organization id from the loaded organization
 store first and falls back to the auth membership list.
 
-`types.vue` is the types canvas: declarations ARE nodes (SPEC §20/§21).
-Type nodes carry their class (file/item/group/process), payload, and
-version; field nodes and state nodes wire into their type (declares
-wires); state-to-state wires are transitions with intents; type-to-type
-wires declare children. The palette declares new types by class and drops
-unattached field/state nodes; the inspector edits the selected node
-(field base/unit/ref targets, state initial/terminal, transition intent,
-payload MIME). Save compiles the canvas into registry declarations
-through the real registry — compile errors surface inline and the
-refuse-on-breaking diff protects existing instances. System types render
-read-only (they compile from packs). The pure projection/compilation
-round trip (`composables/useTypeCanvas.js`) is proven by
+`types.vue` is the registry browser: a read-only projection canvas of the
+organization's merged type view (system pack types + org declarations)
+rendered as type/field/state nodes with declares wires, transition wires
+carrying intents, and type-to-type children wires. It compiles nothing —
+declaration authoring lives in the process designer tree
+(`process.vue`). The browser owns registry management only: org-type
+deletion and surfacing registry compile errors. The pure projection
+(`composables/useTypeCanvas.js`, `canvasFromDeclarations`) is proven by
 `shared/type-canvas.spec.js`.
 
 `process.vue` is the visual process-designer surface. It edits organization
@@ -87,11 +83,19 @@ system pack compiles from `@cutkit/domain-cnc` content with real extracted
 rows; org-authored declarations (stored by `server/features/cts-types`)
 overlay it. Palette options, field lists, statuses, construction, and
 containment all derive from that projection — the canvas composes instances
-of types, it never declares them. Type authoring (fields, lifecycle states
-and transitions, children/relations edges) lives in the types pane
-(`types.vue`), reachable from the palette header; the palette's first group
-is labeled Types accordingly. Before save/apply, declarations referenced by
-the graph are checked against the same registry view
+of types, and since the one-tree flip it also declares them: Class, Field,
+and State nodes author declarations in the same tree (`types.vue` is the
+read-only registry browser). Field inspectors edit the full V grammar
+through `DescriptorEditor` (units, ref targets, enum values, variant tags,
+list/map item types, nested record fields), class inspectors own payload
+traits and operator facets (species signatures with triggers), class→class
+wires declare children edges with `onRemove`, and state→state wires are
+transitions with intents. Declaration wires are legality-gated
+(`declarationWireLegality`) and persist as `role: 'type'` edges; saving the
+tree compiles them through `compileTreeDeclarations` (exactly one initial
+state per declared lifecycle — R4 — never a silent default) and posts them
+to the registry before the process saves. Before save/apply, declarations
+referenced by the graph are checked against the same registry view
 (`checkDeclarationsAgainstCts`), so a wire naming an unknown type or an
 undeclared state fails before the compiler runs.
 

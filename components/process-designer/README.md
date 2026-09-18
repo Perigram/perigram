@@ -44,13 +44,24 @@ labeled legacy layer.
 Declaration-plane wires (`declarationWireLegality` in
 `packages/processes/src/designer.js`, SPEC §20/§21 one tree) are legal only
 between declaration partners: field/state nodes declare on a class node;
-class/reference nodes bind a `cts.*` species record's `type`. Their typed
-port specs exist for those wires only — a declaration node is never a value
-source, and nothing from the data plane feeds a class declare input — so
-declaration endpoints never pass through the generic socket-compatibility
-path. Declaration wires persist as `role: 'type'` edges (field/state/type
-labels); `persistTreeDeclarations` compiles exactly those edges into
-registry declarations on save.
+class/reference nodes bind a `cts.*` species record's `type`; class→class
+wires declare children edges (key + `onRemove`); state→state wires are
+transitions with intents. Their typed port specs exist for those wires only
+— a declaration node is never a value source, and nothing from the data
+plane feeds a class declare input — so declaration endpoints never pass
+through the generic socket-compatibility path. Declaration wires persist as
+`role: 'type'` edges (field/state/type/children/transition labels);
+`compileTreeDeclarations` compiles exactly those edges into registry
+declarations on save (R4: exactly one initial state, invalid descriptors
+and cross-type transitions are named diagnostics that block the save).
+
+The composer-less construct: projected construction contracts carry the
+type's declared row fields as generic-creation inputs, and
+`effect.createEntity`/`cts.construct` at `genericCreate` expose them as
+typed List sockets beside the block sockets — a field can be wired or
+prompted directly and a compose node is optional. Declared construct
+operators project as additional `via` modes with signature-derived
+`modeInputs`.
 
 The Types palette ends with **Join producer paths** (`producer.join`), the
 one legal convergence point for same-type producer paths: activation rejects

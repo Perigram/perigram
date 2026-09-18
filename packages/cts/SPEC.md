@@ -637,12 +637,16 @@ creation writes `type`/`via`/`slots`, stored v4 graphs migrate on load, and
 `operationKindOf` is the single seam every kind-matching consumer routes
 through (client and catalog; no duplicated vocabulary). Producer outputs
 synced by the designer keep storage entity ids — load-time migration
-normalizes them on the next cycle. Remaining residue: socket ids and wire
-handles stay in the working vocabulary (block-named sockets on
-construct/mutate) until row-field sockets land with the composer-less
-construct; field pickers list slot paths, which resolution passes through
-unchanged. `statusDefinitions` remain definition-plane records authoring
-state metadata; per §7 they compile into declarations, never alongside.
+normalizes them on the next cycle. The composer-less construct landed
+(2026-09-18): declared row fields project as generic-construction inputs
+and surface as typed construct sockets beside the block sockets, and
+declared construct operators project as `via` modes with
+signature-derived mode inputs. Remaining residue: mutate keeps block
+sockets (field changes compose through blocks by contract — effects never
+own leaf mutation fields), and field pickers list slot paths, which
+resolution passes through unchanged. `statusDefinitions` remain
+definition-plane records authoring state metadata; per §7 they compile
+into declarations, never alongside.
 
 ## 21. Packs
 

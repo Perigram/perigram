@@ -30,48 +30,48 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
   `server/features/cts-types` (validate/diff-refuse/rollback via the real
   registry) + `GET|POST /api/admin/cts/types`, `DELETE /api/admin/cts/types/:id`;
   the merged org view feeds the types pane and language tester.
-- [~] **L1 — types editor**: node-based editor lives at
-  `/organization/types` (types canvas + per-type state machines; states,
-  transitions, intents, initial/terminal authored by graph gestures and
-  saved through the L0 API with compile errors inline). Remaining facets
-  are node/editors too, not forms: rows with V types + units, edges +
-  onRemove, operators + triggers, payload traits, render policy.
-- [ ] **Designer gap closure (2026-09-18 exploration; phases P0–P5)** —
+- [x] **L1 — types editor**: the authoring surface IS the process designer
+  tree (one tree, SPEC §20/§21): Class/Field/State nodes with the full V
+  row grammar (`DescriptorEditor`, validated through `describeType`),
+  class→class children wires with `onRemove`, state→state transition wires
+  with intents, operator facets (species signatures + triggers), payload
+  traits — compiled by `compileTreeDeclarations`
+  (`packages/processes/src/designer.js`) with R4 enforced at save.
+  `/organization/types` is the read-only registry browser (projection
+  canvas, org-type delete, compile errors).
+- [x] **Designer gap closure (2026-09-18 exploration; phases P0–P5)** —
   the one-tree declaration nodes are shallower than the type system they
   represent, while the old entity-based graph nodes carry rich typed
   sockets. Close it in phases, each independently shippable:
-  - **P0 — seal declaration wires**: declaration canvas nodes
-    (`ctsClass`/`ctsField`/`ctsState`/`ctsType`) may only wire to
-    declaration-legal partners (their class, a reference node, or a
-    `cts.*` species record) — never through the generic data-socket
-    compatibility path, which currently lets a field declaration pose as
-    a value source and any json-ish node feed a class `declare` input.
-  - **P1 — one declaration vocabulary, full row grammar**: fold the types
-    canvas's richer field editing (ref `accepts`, enum values, list/map
-    `itemType`, variant tags) into the tree inspector, validated through
-    `describeType`; demote `pages/organization/types.vue` to the registry
-    browser and delete its parallel authoring vocabulary.
-  - **P2 — edges and lifecycle in the tree**: class→class wires author
-    children edges with `onRemove`; state→state wires author transitions
-    with intents; `persistTreeDeclarations` emits `edges`+`transitions`
-    and requires an explicit initial state (R4) instead of defaulting to
-    the first wired state.
-  - **P3 — operators and payload traits**: author the six species
-    signatures (V-typed input/output, event/schedule triggers) on class
-    facets compiled through `normalizeOperator`; org-authored constructs
-    become `via` options; payload traits (MIME list, byte limits, preview
-    mode) replace the bare MIME string.
-  - **P4 — L2 slice**: row-field sockets on `cts.construct`/`cts.mutate`
-    (composer-less construct), field pickers list row paths, live R5
-    typecheck at the wire — shrinks the SPEC §20 residue. Optional
-    designer macro: scaffold-from-type (construct + typed read + declared
-    transitions) over existing factories.
-  - **P5 — UI contract flip**: type-owned render (render policy, payload
-    preview, rows→schemas→generated forms/columns; `statusDefinition`
-    render metadata compiles into declarations, never alongside) vs
-    process-owned assembly (screens/actions/navigation/access from graph
-    records, already fed by the projected view); delete the hardcoded
-    frontend hierarchy/navigation sources.
+  - [x] **P0 — seal declaration wires**: `declarationWireLegality`
+    (`packages/processes/src/designer.js`) restricts declaration canvas
+    nodes to declaration partners; declaration wires persist as
+    `role: 'type'` edges and save-compile from exactly those.
+  - [x] **P1 — one declaration vocabulary, full row grammar**:
+    `DescriptorEditor` edits the whole V grammar in the tree inspector;
+    grammar lists (bases/classes/units) are single-homed in `@perigram/cts`
+    exports; `pages/organization/types.vue` is the registry browser, its
+    parallel authoring vocabulary deleted.
+  - [x] **P2 — edges and lifecycle in the tree**: class→class children
+    wires (key + `onRemove`), state→state transition wires (intents);
+    `compileTreeDeclarations` emits `edges`+`transitions` and requires
+    exactly one initial state (R4) — never a `states[0]` default.
+  - [x] **P3 — operators and payload traits**: operator facets on class
+    nodes (six species, V-typed signatures via `normalizeOperator`,
+    event/schedule triggers); payload traits are the canonical registry
+    shape (mime list, accept, maxSize, preview); declared construct
+    operators project as `via` modes with signature-derived `modeInputs`.
+  - [x] **P4 — L2 slice (composer-less construct)**: declared row fields
+    project as generic-construction inputs and surface as typed construct
+    sockets (`effect.createEntity`/`cts.construct` resolve the identical
+    contract) — a compose node is optional. Field pickers keep slot paths;
+    resolution passes them through unchanged (SPEC §20 residue note).
+    Scaffold-from-type designer macro: not built, marked optional.
+  - [x] **P5 — UI contract flip (declaration side)**: declared states
+    carry the type's render policy (label/icon/severity) into projected
+    workflows — the same metadata channel statusDefinitions use; payload
+    preview derives from payload traits. Assembly (screens/navigation/
+    access) stays process-owned and already consumes the projected view.
 - [x] **Server compiles through CTS**: activation, contract diff, draft
   save, and the active runtime all use `getProjectedDomain` (org type store
   + strangler system view). Proven by the env-gated live spec
@@ -140,9 +140,23 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
   (`LanguageTesterPanel.vue`, dock entry) already evaluates real expression
   ASTs and instance validation client-side — extend it, do not add parallel
   surfaces.
-- [ ] Frontend: derive navigation/hierarchy from containment edges;
+  > Superseded by the one-tree L1 above: authoring IS the designer tree;
+  > the types pane stays the registry browser. Remaining from this item:
+  > surface registry refuse-on-breaking-diff (migration-refusal UX) inline
+  > in the tree save path, and extend the language tester toward expression
+  > property editors (L2).
+- [~] Frontend: derive navigation/hierarchy from containment edges;
   delete hardcoded type strings (`utils/entity-hierarchy.js`,
   `stores/navigation.js`, `utils/queue-items.js`)
+  > Correction (2026-09-18): derivation already landed for process-active
+  > organizations — containment comes from compiled `lineageBindings`
+  > (containment edges via the projection), routes from the screen
+  > manifest (`detailRouteForEntity`), hubs from generated screens. The
+  > remaining hardcoded strings are the legacy no-process fallback
+  > (`projectHierarchyRoute` project-shell routes, `utils/queue-items.js`
+  > queue surface), which SPEC §21 holds pack-internal until those flows
+  > are re-authored on the graph — deleting them early would remove the
+  > only fallback path. Re-gated on legacy-layer removal.
 
 ## Deferred tiers (SPEC §19 — build only on a failing need)
 
