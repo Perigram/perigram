@@ -668,6 +668,17 @@ declaration data is browser-safe (the designer imports it for the client
 type view) while its mount module binds server services. Removing a pack
 removes its types, editors, services, and routes from the running app.
 
+**Generic instance services (§13, landed):** every type without an explicit
+feature service resolves through the registry's service resolver to a
+generic per-class instance service (files/items/groups/processes
+collections, type discriminator, generic construction from the
+declaration, per-call declaration resolution — framework/pack static, org
+from the type store). Pack types and org-authored types are executable
+without hand-written services. The projected entity list is view-only:
+legacy entity rows outside the registry view are not projected, and
+constructibility falls back to the declaration when no explicit capability
+exists.
+
 The CNC pack is the reference implementation: cassette (OCCS file, edited
 by the cassette designer), sheet design, facade design as file types, and
 the nesting solver as a registered service. The legacy entity tables
