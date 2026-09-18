@@ -668,6 +668,14 @@ declaration data is browser-safe (the designer imports it for the client
 type view) while its mount module binds server services. Removing a pack
 removes its types, editors, services, and routes from the running app.
 
+**The nesting service's V→V boundary (§8, landed):** the registered
+operator resolves to `solveNestingValue` — pure value in (job geometry
+items + sheet params per the declared signature), value out (layouts +
+summary). The worker call and the projections are the nesting feature's own
+machinery, reused verbatim; no queue entities, no runs, no legacy services.
+The queue-orchestrated flow remains pack-internal for the existing UI
+surfaces until those flows are re-authored on the graph.
+
 **Registered services as palette operators (§8, landed):** pack-registered
 services appear as `cts.service` palette nodes bound to their operator;
 resolution maps the operator to its declared command (the executable twin),
