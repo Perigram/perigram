@@ -315,6 +315,39 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
 // Services group from the operator registry (SPEC §8 s species): one item
 // per registered service — dropping one binds the operator; the executable
 // twin is the operator's declared command.
+
+// Type catalog palette (SPEC §20/§21, L2): registry types are draggable
+// composables — one bound construct per constructible type, plus one
+// variant per declared construct operator (the org-authored `via`).
+// Groups follow the type's class; the pure projection takes the
+// designer's type view entries.
+export function typeCatalogPaletteGroups(types = []) {
+  const groups = [];
+  const byClass = new Map();
+  for (const entry of types) {
+    if (!entry?.constructible) continue;
+    const items = byClass.get(entry.class) || [];
+    items.push(paletteItem(entry.id, 'cts.construct', {
+      label: entry.label || entry.id,
+      icon: entry.icon,
+      description: entry.description || entry.id,
+      preset: { type: entry.id, via: entry.via || 'genericCreate' }
+    }));
+    for (const operatorId of entry.constructOperators || []) {
+      items.push(paletteItem(`${entry.id}:${operatorId}`, 'cts.construct', {
+        label: `${entry.label || entry.id} · ${operatorId}`,
+        icon: entry.icon,
+        description: entry.description || entry.id,
+        preset: { type: entry.id, via: operatorId }
+      }));
+    }
+    byClass.set(entry.class, items);
+  }
+  for (const [classOf, items] of byClass) {
+    groups.push({ id: `types-${classOf}`, items: Object.freeze(items) });
+  }
+  return groups;
+}
 export function servicesPaletteGroups(services = []) {
   const items = (services || [])
     .filter(service => service?.id && service.command)

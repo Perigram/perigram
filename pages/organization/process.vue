@@ -1098,7 +1098,8 @@ import {
   processSocketsCompatible,
   processType,
   resolveCatalogNodePorts,
-  syncProcessNodeProducerOutputs
+  syncProcessNodeProducerOutputs,
+  typeCatalogPaletteGroups
 } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
@@ -1251,6 +1252,9 @@ function ctsTypeView() {
       const constructible = type.scope === 'org'
         || (Boolean(entity) && !entity.meta && Boolean(construction));
       const payload = type.payload?.mime ? ` · ${[].concat(type.payload.mime).join(', ')}` : '';
+      const constructOperators = Object.values(type.operators || {})
+        .filter(operator => operator.species === 'construct')
+        .map(operator => operator.id);
       return {
         id: type.id,
         class: type.class,
@@ -1258,7 +1262,8 @@ function ctsTypeView() {
         icon: policy.icon,
         description: `${type.class} type${payload}`,
         constructible,
-        via: construction?.defaultMode || (construction?.modes || [])[0] || 'genericCreate'
+        via: construction?.defaultMode || (construction?.modes || [])[0] || 'genericCreate',
+        constructOperators
       };
     });
 }
@@ -1272,12 +1277,26 @@ function refreshDesignerFromTypes() {
     editors: cncPackContent.editors
   });
   Object.assign(designer, refreshed);
+  // The type catalog leads the palette (SPEC §20/§21 L2): one bound
+  // construct per constructible registry type, plus one variant per
+  // declared construct operator.
+  designer.paletteGroups = [
+    ...typeCatalogPaletteGroups(ctsTypeView()),
+    ...refreshed.paletteGroups
+  ];
 }
 
-const designer = reactive(createProcessDesignerContract(ctsProjectedDomain(), null, {
+const designerContract = createProcessDesignerContract(ctsProjectedDomain(), null, {
   services: cncPackContent.services,
   editors: cncPackContent.editors
-}));
+});
+const designer = reactive({
+  ...designerContract,
+  paletteGroups: [
+    ...typeCatalogPaletteGroups(ctsTypeView()),
+    ...designerContract.paletteGroups
+  ]
+});
 
 // Graph protocol v5: canvas records speak the type system (cts.* species
 // kinds, `type` ids, row paths). Kind matching and port resolution route
@@ -3488,6 +3507,10 @@ function syncProcessNodeConstruction(node = {}) {
   const contract = constructionContractForEntity(nodeEntityType(node));
   const modes = contract.modes?.length ? contract.modes : ['genericCreate'];
   node.construction ||= {};
+  // a v5 record via field (palette preset or binding) names the authored mode
+  if (!node.construction.mode && node.via && modes.includes(node.via)) {
+    node.construction.mode = node.via;
+  }
   if (!modes.includes(node.construction.mode)) {
     node.construction.mode = contract.defaultMode && modes.includes(contract.defaultMode)
       ? contract.defaultMode

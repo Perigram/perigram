@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { compileTreeDeclarations, createProcessDesignerContract, declarationWireLegality, syncProcessNodeProducerOutputs } from './designer.js';
+import { compileTreeDeclarations, createProcessDesignerContract, declarationWireLegality, syncProcessNodeProducerOutputs, typeCatalogPaletteGroups } from './designer.js';
 import { getProcessNodeDefinition } from './node-catalog.js';
 
 describe('process designer domain contract', () => {
@@ -468,5 +468,20 @@ describe('tree declaration compilation', () => {
       triggers: [{ event: 'widget.requested' }]
     });
     expect(diagnostics.some(message => message.includes('operator (unnamed)'))).toBe(true);
+  });
+});
+
+describe('type catalog palette', () => {
+  it('groups constructible types by class with operator via variants', () => {
+    const groups = typeCatalogPaletteGroups([
+      { id: 'panel', class: 'item', label: 'Panel', icon: 'pi pi-box', description: 'item type', constructible: true, via: 'genericCreate', constructOperators: ['bake-panel'] },
+      { id: 'project', class: 'group', label: 'Project', icon: 'pi pi-folder', description: 'group type', constructible: true, via: 'genericCreate' },
+      { id: 'revision', class: 'process', label: 'Revision', icon: 'pi pi-cog', description: 'meta', constructible: false, via: 'genericCreate' }
+    ]);
+    expect(groups.map(group => group.id)).toEqual(['types-item', 'types-group']);
+    const items = groups[0].items;
+    expect(items[0]).toMatchObject({ id: 'panel', kind: 'cts.construct', preset: { type: 'panel', via: 'genericCreate' } });
+    expect(items[1]).toMatchObject({ id: 'panel:bake-panel', preset: { type: 'panel', via: 'bake-panel' } });
+    expect(groups[1].items).toHaveLength(1);
   });
 });

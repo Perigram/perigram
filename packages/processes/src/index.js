@@ -34,7 +34,9 @@ export {
   compileTreeDeclarations,
   createProcessDesignerContract,
   declarationWireLegality,
-  syncProcessNodeProducerOutputs
+  servicesPaletteGroups,
+  syncProcessNodeProducerOutputs,
+  typeCatalogPaletteGroups
 } from './designer.js';
 export { resolveProcessActionInputContext } from './algebra.js';
 export {
