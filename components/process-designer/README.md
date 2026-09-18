@@ -52,13 +52,14 @@ plane feeds a class declare input — so declaration endpoints never pass
 through the generic socket-compatibility path. Declaration wires persist as
 `role: 'type'` edges (field/state/type/children/transition labels);
 `compileTreeDeclarations` compiles exactly those edges into registry
-declarations on save (invalid descriptors and cross-type transitions are
-named diagnostics). The authoring loop is one session: save posts valid
-declarations, toasts named diagnostics without blocking the draft save —
-activation still fails closed through `checkDeclarationsAgainstCts` — and
-re-syncs the canvas, so constructs bound to just-authored types immediately
-gain their typed row-field sockets. A sole wired state is necessarily the
-initial one; among several, the author marks exactly one (R4).
+declarations (invalid descriptors and cross-type transitions are named
+diagnostics). Persistence follows the draft contract: declaration nodes
+own `ctsTypes` records in the process definition, so SAVE keeps the whole
+tree exactly as authored (no registry side effects), and APPLY compiles
+the app — declarations land in the registry first, then validation and
+activation run with the graph's types present. A sole wired state is
+necessarily the initial one; among several, the author marks exactly one
+(R4).
 
 The composer-less construct: projected construction contracts carry the
 type's declared row fields as generic-creation inputs, and

@@ -79,7 +79,12 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
   dev DB): every active definition byte-matches the legacy pipeline,
   failures included.
 - [ ] **L2 — graph rebase**: palette = operator registry, sockets carry V
-  types, property editors = expression language, R5 dataflow typing
+  types, property editors = expression language, R5 dataflow typing.
+  > 2026-09-18: declaration persistence landed first (the tree saves with
+  > the draft via `ctsTypes` records; APPLY compiles declarations into the
+  > registry before validation). The remaining L2 slices: org-authored
+  > operators as palette services, expression property editors on the
+  > language tester, graph-wide V-type sockets.
 - [x] **Designer palette derives from the registry**: entity/field/status/
   relation option lists in the designer contract come from the projected
   registry view — authored types are immediately composable in the existing
