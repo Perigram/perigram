@@ -3109,7 +3109,8 @@
     "producerWorkflowHint": "Статусы и переходы задаются доменным жизненным циклом, подключаемыми определениями статусов и узлами действий — но не этой панелью.",
     "languageTester": "Тестер языка",
     "typeNodeUnbound": "Сначала выберите тип для этого узла",
-    "typeBindingHint": "Соедините этот узел с construct/mutate/read, чтобы привязать тип."
+    "typeBindingHint": "Соедините этот узел с construct/mutate/read, чтобы привязать тип.",
+    "nodeSpec": "Описание узла"
   },
   "generatedScreen": {
     "home": "Главная",

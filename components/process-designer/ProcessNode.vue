@@ -6,6 +6,11 @@
         <i :class="record.icon || data.icon || 'pi pi-sitemap'" aria-hidden="true"></i>
       </span>
       <strong class="min-w-0 flex-1 truncate text-label">{{ data.kindLabel || record.kind }}</strong>
+      <i
+        v-tooltip.right="nodeSpecTooltip"
+        class="pi pi-question-circle nowheel cursor-help text-muted"
+        :aria-label="$t('processDesigner.nodeSpec')"
+      />
     </div>
 
     <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-2 flex flex-col gap-1.5" @mousedown.stop @click.stop>
@@ -228,6 +233,7 @@ import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useI18n } from 'vue-i18n';
 import { formatProcessType } from '~/packages/processes/src/index.js';
+import { nodeSpecSummary, socketSpecLine } from '~/composables/useNodeSpec.js';
 import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
 
 const props = defineProps({
@@ -245,6 +251,19 @@ const dataOutputs = computed(() => outputSpecs.value.filter(output => output.rol
 const eventInputs = computed(() => inputSpecs.value.filter(input => input.role !== 'data'));
 const eventOutputs = computed(() => outputSpecs.value.filter(output => output.role !== 'data'));
 const socketRows = computed(() => alignSockets(dataInputs.value, dataOutputs.value, 'data'));
+
+// The "?" tooltip: what the node does + what its sockets expect and output
+// (SPEC §8/§20 vocabulary, presentation only).
+const nodeSpecTooltip = computed(() => {
+  const sections = [nodeSpecSummary(record.value, formatProcessType)];
+  if (dataInputs.value.length) {
+    sections.push(`Expects: ${dataInputs.value.map(input => socketSpecLine(input, formatProcessType)).join(' • ')}`);
+  }
+  if (dataOutputs.value.length) {
+    sections.push(`Outputs: ${dataOutputs.value.map(output => socketSpecLine(output, formatProcessType)).join(' • ')}`);
+  }
+  return { value: sections.filter(Boolean).join(' — ') };
+});
 const eventSocketRows = computed(() => alignSockets(eventInputs.value, eventOutputs.value, 'event'));
 const connectedInputs = computed(() => new Set(props.data.processConnectedInputIds || []));
 const operationOptions = computed(() => props.data.processOperationOptions || []);
