@@ -62,12 +62,16 @@ necessarily the initial one; among several, the author marks exactly one
 (R4).
 
 The composer-less construct: projected construction contracts carry the
-type's declared row fields as generic-creation inputs, and
-`effect.createEntity`/`cts.construct` at `genericCreate` expose them as
-typed List sockets beside the block sockets — a field can be wired or
-prompted directly and a compose node is optional. Declared construct
-operators project as additional `via` modes with signature-derived
-`modeInputs`.
+type's declared row fields as generic-creation inputs, and a
+`cts.construct` at `genericCreate` exposes them as typed List sockets —
+Name, the declared fields, and the status input; a field can be wired or
+prompted directly and a compose node is optional. The cts species record
+carries no block sockets: blocks are the legacy v4 composition substrate
+and stay on the v4 twin only. Declared construct operators project as
+additional `via` modes with signature-derived `modeInputs`. An unbound
+species record (empty type id) offers exactly one input — the `Type`
+binding pin — and nothing else; every other socket derives from the bound
+type and appears when a class/reference wire carries the binding in.
 
 The type catalog leads the palette (L2): `typeCatalogPaletteGroups`
 projects the registry view into class groups (File types, Items, Groups,
