@@ -221,7 +221,29 @@ function cts(kind, label, family, level) {
     family,
     level,
     pure: false,
-    ports: (record = {}, context = {}) => catalogPorts(resolveCtsRecord(record, context.domain || {}), context)
+    ports: (record = {}, context = {}) => {
+      // An unbound v5 species record (empty type-id string) offers exactly
+      // one input: the type binding pin. Everything else — value sockets,
+      // status, blocks — derives from the bound type and appears the
+      // moment a type reference or class wire carries the binding in.
+      if (String(record.kind || '').startsWith('cts.') && typeof record.type === 'string' && !record.type) {
+        return {
+          inputs: [socket('type', processType('entityRef'), DATA, false)],
+          outputs: []
+        };
+      }
+      const ports = catalogPorts(resolveCtsRecord(record, context.domain || {}), context);
+      // Bound constructs speak the declaration, not the block substrate:
+      // row fields are the construction inputs (SPEC §20 composer-less
+      // construct); block sockets are the legacy composition path.
+      if (record.kind === 'cts.construct') {
+        return {
+          ...ports,
+          inputs: ports.inputs.filter(port => port.type?.base !== 'block')
+        };
+      }
+      return ports;
+    }
   };
 }
 

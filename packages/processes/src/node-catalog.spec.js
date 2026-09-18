@@ -162,7 +162,9 @@ describe('process v4 node catalog', () => {
     const width = rowCreate.inputs.find(input => input.id === 'specs.width');
     expect(width.type).toMatchObject({ base: 'number' });
     expect(width.required).toBe(false);
-    // v4 twin and cts species record expose the identical contract
+    // v4 twin keeps the block substrate; the cts species record speaks
+    // the declaration only — row fields + status, no block sockets (the
+    // composer-less construct is the construction path, SPEC §20).
     const speciesCreate = resolveCatalogNodePorts({
       kind: 'cts.construct',
       type: 'widget',
@@ -177,11 +179,16 @@ describe('process v4 node catalog', () => {
     }, context);
     expect(speciesCreate.inputs.map(input => input.id)).toEqual([
       'specs.width',
-      'identity',
-      'data',
-      'specs',
       'status.state.primary'
     ]);
+  });
+
+  it('offers an unbound species record exactly one input: the type binding pin', () => {
+    const context = { domain: {} };
+    const unbound = resolveCatalogNodePorts({ kind: 'cts.construct', type: '', via: 'genericCreate' }, context);
+    expect(unbound.inputs.map(input => input.id)).toEqual(['type']);
+    expect(unbound.inputs[0].type).toMatchObject({ base: 'entityRef' });
+    expect(unbound.outputs).toEqual([]);
   });
 
   it('declares List consumption on every mapped mutation effect input socket', () => {

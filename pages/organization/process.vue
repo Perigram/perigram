@@ -1319,8 +1319,11 @@ function setNodeEntityType(node, entityType) {
   else node.entityType = entityType;
 }
 function catalogPorts(record) {
-  const working = resolveCtsRecord(record, ctsProjectedDomain());
-  return resolveCatalogNodePorts(working, catalogContext(working));
+  // v5 cts records go to the catalog RAW: the cts() ports wrapper resolves
+  // the operation twin itself and owns the unbound type pin + the
+  // declaration-only construct contract (no block substrate). Pre-resving
+  // here would bypass it.
+  return resolveCatalogNodePorts(record, catalogContext(record));
 }
 
 // A fresh declaration in the tree gets a suggested kebab id unique among
