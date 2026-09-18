@@ -5,9 +5,9 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('../cts-types/service.js', async () => {
   const cts = await import('~/packages/cts/src/index.js');
-  const domain = await import('~/packages/domain-cnc/src/index.js');
+  const pack = await import('~/packages/cts/src/pack/cnc.js');
   const registry = cts.createTypeRegistry({ id: 'spec-cts' });
-  for (const declaration of cts.convertCncDomain({ entities: domain.cncEntities, workflows: domain.cncWorkflows, containment: domain.cncContainment, fieldSchemas: domain.cncEntityFieldSchemas })) {
+  for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack]) {
     registry.defineType(declaration);
   }
   return { compileRegistryForOrganization: async () => registry };
@@ -40,7 +40,9 @@ describe('process runtime auth hydration', () => {
       memberships: [{ organizationId: PERSISTED_ACCEPTANCE_IDS.organization, status: 'active', permissions: {} }]
     });
 
-    expect(auth.effectivePermissions.projects).toEqual(expect.arrayContaining([
+    // Effective permissions key on the per-class collection feature
+    // (facade and project are group-class types: 'groups').
+    expect(auth.effectivePermissions.groups).toEqual(expect.arrayContaining([
       expect.objectContaining({ level: 'write' })
     ]));
     expect(auth.screens).toEqual(expect.arrayContaining([

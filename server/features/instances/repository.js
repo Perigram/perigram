@@ -1,15 +1,10 @@
 import { ObjectId } from 'mongodb';
 import { connectDB } from '~/server/db/mongo';
 import { toFlexibleId } from '../../utils/objectid.js';
+import { CLASS_COLLECTIONS } from '~/packages/cts/src/index.js';
 
-// Per-class instance collections (SPEC §13): files/items/groups/processes
-// with the type id as discriminator.
-export const CLASS_COLLECTIONS = Object.freeze({
-  file: 'files',
-  item: 'items',
-  group: 'groups',
-  process: 'processes'
-});
+// Per-class instance collections (SPEC §13) — the map's single home is
+// @perigram/cts (`domain-projection.js`); this repository consumes it.
 
 export function collectionForClass(classOf = '') {
   return CLASS_COLLECTIONS[classOf] || 'files';

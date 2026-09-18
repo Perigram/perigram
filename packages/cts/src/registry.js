@@ -42,7 +42,8 @@ export function normalizeType(declaration = {}) {
     edges: normalizeEdges(declaration.edges || {}),
     states: normalizeStates(declaration.states || {}),
     revisions: declaration.revisions || null,
-    render: declaration.render || {}
+    render: declaration.render || {},
+    ...(declaration.framework ? { framework: true } : {})
   };
   type.transitions = normalizeTransitions(declaration.transitions || [], type.states);
   type.operators = Object.fromEntries(Object.entries(declaration.operators || {}).map(([id, operator]) => [

@@ -4,15 +4,13 @@ import {
   SPECIES_BY_EFFECT_KIND, isProcessOnlyBase
 } from './process-grammar.js';
 import { checkDeclarationsAgainstCts } from './process-checks.js';
-import { createTypeRegistry, convertCncDomain } from '../index.js';
-import { cncEntities, cncWorkflows, cncContainment, cncEntityFieldSchemas } from '../../../domain-cnc/src/index.js';
+import { createTypeRegistry } from '../index.js';
+import { cncTypePack } from '../pack/cnc.js';
+import { frameworkTypes } from '../pack/framework.js';
 
 function registryWithOrgType() {
   const registry = createTypeRegistry({ id: 'seam' });
-  for (const declaration of convertCncDomain({
-    entities: cncEntities, workflows: cncWorkflows, containment: cncContainment,
-    fieldSchemas: cncEntityFieldSchemas
-  })) {
+  for (const declaration of [...frameworkTypes, ...cncTypePack]) {
     registry.defineType(declaration);
   }
   registry.defineType({
@@ -56,7 +54,7 @@ describe('grammar adapter (CTS <-> PROCESS_BASE_TYPES)', () => {
     const enums = enumRegistryForView(registry.listTypes('org-1'));
     expect(enums['widget#main']).toEqual(['raw', 'done']);
     expect(enums['widget#stage']).toEqual(['raw', 'done']);
-    expect(enums['queue#main']).toEqual(expect.arrayContaining(['DRAFT', 'NESTING']));
+    expect(enums['queue#main']).toEqual(expect.arrayContaining(['draft', 'nesting']));
   });
 
   it('classifies the effect node family into CTS species', () => {
@@ -102,7 +100,7 @@ describe('declaration-check phase', () => {
         processNodes: {
           n1: { kind: 'record.getField', entityType: 'widget', field: 'data.name' },
           n2: { kind: 'record.getField', entityType: 'widget', field: 'data.rogue' },
-          n3: { kind: 'record.getField', entityType: 'queue', field: 'data.job.items' },
+          n3: { kind: 'record.getField', entityType: 'queue', field: 'data.job' },
           n4: { kind: 'record.getField', entityType: 'queue', field: 'data.rogue' },
           n5: { kind: 'record.getField', entityType: 'queue', field: 'identity.name' }
         }
@@ -110,11 +108,11 @@ describe('declaration-check phase', () => {
     }, registry, 'org-1');
     expect(errors).toContainEqual(expect.stringMatching(/moves widget to undeclared state FLYING/));
     expect(errors).toContainEqual(expect.stringMatching(/uses field data.rogue outside the widget row/));
-    // queue rows are extracted for real: nested record roots resolve, unknown
-    // roots fail, managed blocks (identity) are policy facets, not rows
-    expect(errors).not.toContainEqual(expect.stringMatching(/data.job.items/));
+    // queue rows are declared: the job root resolves, unknown roots fail,
+    // managed blocks (identity) are policy facets, not rows
+    expect(errors).not.toContainEqual(expect.stringMatching(/data\.job/));
     expect(errors).toContainEqual(expect.stringMatching(/uses field data.rogue outside the queue row/));
-    expect(errors).not.toContainEqual(expect.stringMatching(/identity.name/));
+    expect(errors).not.toContainEqual(expect.stringMatching(/identity\.name/));
   });
 
   it('org overlay is the view: other orgs see system types only', () => {

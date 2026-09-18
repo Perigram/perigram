@@ -6,7 +6,7 @@ export const PERSISTED_ACCEPTANCE_IDS = Object.freeze({
   role: 'fixture-role-operator',
   process: 'fixture-process-lineage',
   project: 'fixture-project-root',
-  artifact: 'fixture-artifact-child'
+  facade: 'fixture-facade-child'
 });
 
 const statusBlock = (state = 'CREATED') => ({
@@ -26,7 +26,7 @@ export function createPersistedAcceptanceFixture() {
     schemaVersion: 1,
     dataflowVersion: PROCESS_DATAFLOW_VERSION,
     graph: {
-      nodes: ['project_source', 'artifact_lineage', 'create_artifact'].map((id, index) => ({
+      nodes: ['project_source', 'facade_lineage', 'create_facade'].map((id, index) => ({
         id,
         type: 'processNode',
         position: { x: index * 240, y: 120 },
@@ -34,17 +34,17 @@ export function createPersistedAcceptanceFixture() {
       })),
       edges: [
         {
-          id: 'project-to-artifact-lineage',
+          id: 'project-to-facade-lineage',
           source: 'project_source',
           sourceHandle: 'data:result',
-          target: 'artifact_lineage',
+          target: 'facade_lineage',
           targetHandle: 'entry:project'
         },
         {
-          id: 'artifact-lineage-to-create',
-          source: 'artifact_lineage',
+          id: 'facade-lineage-to-create',
+          source: 'facade_lineage',
           sourceHandle: 'data:block',
-          target: 'create_artifact',
+          target: 'create_facade',
           targetHandle: 'data:lineage',
           role: 'data'
         }
@@ -63,12 +63,12 @@ export function createPersistedAcceptanceFixture() {
         fields: { read: ['identity.*', 'status.*', 'lineage.*'], write: [], private: [] },
         allowedRoles: { read: [ids.role], write: [ids.role], admin: [] }
       },
-      'create_artifact:result': {
-        id: 'create_artifact:result',
-        producerOutputId: 'create_artifact:result',
-        nodeId: 'create_artifact',
+      'create_facade:result': {
+        id: 'create_facade:result',
+        producerOutputId: 'create_facade:result',
+        nodeId: 'create_facade',
         outputSocketId: 'result',
-        entityType: 'artifact',
+        entityType: 'facade',
         lifecycle: { mode: 'domainDefault' },
         fields: { read: ['identity.*', 'status.*', 'lineage.*'], write: [], private: [] },
         allowedRoles: { read: [ids.role], write: [ids.role], admin: [] }
@@ -90,27 +90,27 @@ export function createPersistedAcceptanceFixture() {
         construction: { mode: 'genericCreate' },
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: ids.role, level: 'write' }] },
-        status: { to: 'CREATED' },
+        status: { to: 'draft' },
         blocks: []
       },
-      artifact_lineage: {
-        id: 'artifact_lineage',
+      facade_lineage: {
+        id: 'facade_lineage',
         kind: 'record.composeBlock',
         block: 'lineage',
         compositionMode: 'ancestors',
-        targetEntityType: 'artifact',
+        targetEntityType: 'facade',
         entries: [{ id: 'project' }]
       },
-      create_artifact: {
-        id: 'create_artifact',
+      create_facade: {
+        id: 'create_facade',
         kind: 'effect.createEntity',
-        entityType: 'artifact',
-        producerOutputId: 'create_artifact:result',
-        label: 'Upload artifact',
-        construction: { mode: 'uploadArtifact' },
+        entityType: 'facade',
+        producerOutputId: 'create_facade:result',
+        label: 'Create facade',
+        construction: { mode: 'genericCreate' },
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: ids.role, level: 'write' }] },
-        status: { to: 'CREATED' },
+        status: { to: 'draft' },
         blocks: ['lineage']
       }
     }
@@ -147,15 +147,15 @@ export function createPersistedAcceptanceFixture() {
         relations: {},
         data: {}
       },
-      artifact: {
-        _id: ids.artifact,
-        identity: { uid: ids.artifact, name: 'Fixture Drawing', slug: 'fixture-drawing' },
+      facade: {
+        _id: ids.facade,
+        identity: { uid: ids.facade, name: 'Fixture Facade', slug: 'fixture-facade' },
         origin: statusBlock(),
         status: statusBlock(),
         lineage: { organizationId: ids.organization, projectId: ids.project },
-        attachments: { primary: { kind: 'DXF_SOURCE', fileId: 'fixture-file-dxf' } },
+        attachments: {},
         relations: {},
-        data: { type: 'DXF_SOURCE' }
+        data: {}
       }
     },
     assignment: {

@@ -1238,19 +1238,13 @@ function ctsProjectedDomain() {
 // constructor, not a blanket generic.
 function ctsTypeView() {
   const domain = ctsProjectedDomain();
-  const entityByType = new Map((domain.entities || []).map(entity => [entity.type, entity]));
-  const constructionFor = entityType => {
-    const camel = String(entityType || '').replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
-    return domain.construction?.[entityType] || domain.construction?.[camel] || null;
-  };
   return ctsRegistry().listTypes(draft.value?.lineage?.organizationId || null)
     .filter(type => type.class !== 'party')
     .map(type => {
       const policy = renderPolicyFor(type);
-      const entity = entityByType.get(type.id.replace(/-/g, '_')) || entityByType.get(type.id);
-      const construction = entity ? constructionFor(entity.type) : null;
-      const constructible = type.scope === 'org'
-        || (Boolean(entity) && !entity.meta && Boolean(construction));
+      // Synthesized entities and construction are keyed by the type id —
+      // the projection has no legacy casing variants.
+      const construction = domain.construction?.[type.id] || null;
       const payload = type.payload?.mime ? ` · ${[].concat(type.payload.mime).join(', ')}` : '';
       const constructOperators = Object.values(type.operators || {})
         .filter(operator => operator.species === 'construct')
@@ -1261,7 +1255,7 @@ function ctsTypeView() {
         label: policy.label,
         icon: policy.icon,
         description: `${type.class} type${payload}`,
-        constructible,
+        constructible: Boolean(construction),
         via: construction?.defaultMode || (construction?.modes || [])[0] || 'genericCreate',
         constructOperators
       };

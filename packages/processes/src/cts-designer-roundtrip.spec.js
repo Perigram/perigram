@@ -9,25 +9,20 @@ import { PROCESS_DESIGNER_PALETTE_GROUPS, createProcessDesignerContract, syncPro
 import { resolveCatalogNodePorts, getProcessNodeDefinition } from './node-catalog.js';
 import { definitionToCanvas, canvasToDefinition, validateRoundTrip } from './transpiler.js';
 import { servicesPaletteGroups } from './designer.js';
-import { resolveCtsDefinition } from '../../cts/src/index.js';
-import { normalizeProcessDefinition } from './index.js';
 import {
-  createTypeRegistry, convertCncDomain, projectDomainFromView,
+  createTypeRegistry, projectDomainFromView,
   migrateV4Definition, resolveCtsDefinition
 } from '../../cts/src/index.js';
-import {
-  cncEntities, cncWorkflows, cncContainment, cncEntityFieldSchemas, cncDomain
-} from '../../domain-cnc/src/index.js';
+import { cncTypePack } from '../../cts/src/pack/cnc.js';
+import { frameworkTypes } from '../../cts/src/pack/framework.js';
+import { normalizeProcessDefinition } from './index.js';
 
 function projectedDomain() {
   const registry = createTypeRegistry({ id: 'designer-roundtrip' });
-  for (const declaration of convertCncDomain({
-    entities: cncEntities, workflows: cncWorkflows, containment: cncContainment,
-    fieldSchemas: cncEntityFieldSchemas
-  })) {
+  for (const declaration of [...frameworkTypes, ...cncTypePack]) {
     registry.defineType(declaration);
   }
-  return projectDomainFromView(registry, 'org-1', cncDomain);
+  return projectDomainFromView(registry, 'org-1');
 }
 
 describe('graph protocol v5 designer round trip', () => {
@@ -45,7 +40,7 @@ describe('graph protocol v5 designer round trip', () => {
   it('catalog ports resolve cts records through the operation-kind twin', () => {
     const domain = projectedDomain();
     const context = record => ({
-      fieldSchemas: domain.fieldSchemas[(record.type || record.entityType || '').replace(/-/g, '_')] || [],
+      fieldSchemas: domain.fieldSchemas[record.type || record.entityType] || [],
       domain
     });
     const construct = resolveCatalogNodePorts({ kind: 'cts.construct', type: 'project', via: 'genericCreate' }, context({ type: 'project' }));
@@ -110,7 +105,7 @@ describe('graph protocol v5 designer round trip', () => {
       screens: {},
       processNodes: {
         update: {
-          id: 'update', kind: 'effect.updateEntity', entityType: 'cassette_design',
+          id: 'update', kind: 'effect.updateEntity', entityType: 'cut_plan',
           blocks: ['identity'], trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
         }
       }
@@ -121,14 +116,14 @@ describe('graph protocol v5 designer round trip', () => {
     const saved = canvasToDefinition(canvas, migrated);
     expect(saved.graphProtocol).toBe(5);
     expect(saved.processNodes.update.kind).toBe('cts.mutate');
-    expect(saved.processNodes.update.type).toBe('cassette-design');
+    expect(saved.processNodes.update.type).toBe('cut-plan');
     expect(validateRoundTrip(saved).ok).toBe(true);
 
     // resolution brings the working shapes back for the compiler
     const { definition: resolved, diagnostics } = resolveCtsDefinition(saved, domain);
     expect(diagnostics).toEqual([]);
     expect(resolved.processNodes.update.kind).toBe('effect.updateEntity');
-    expect(resolved.processNodes.update.entityType).toBe('cassette_design');
+    expect(resolved.processNodes.update.entityType).toBe('cut-plan');
   });
   it('type reference nodes persist through the canvas and their wires never reach validation', () => {
     const domain = projectedDomain();
