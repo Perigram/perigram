@@ -1041,17 +1041,37 @@ function ctsProjectedDomain() {
 
 // The registry view as the authoring catalog: class groups first (the
 // palette IS the type system), labels/icons from render policy.
+// The registry view as the authoring catalog, with constructibility: a
+// type is drag-constructible only when it has a construction contract (org
+// types synthesize one) — derived products (sheet designs, nesting runs)
+// enter graphs as operator outputs, not constructs; framework/meta types
+// (revisions, process definitions, machines) are configuration, never
+// authorable instances. `via` carries the type's actual default
+// constructor, not a blanket generic.
 function ctsTypeView() {
+  const domain = ctsProjectedDomain();
+  const entityByType = new Map((domain.entities || []).map(entity => [entity.type, entity]));
+  const constructionFor = entityType => {
+    const camel = String(entityType || '').replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+    return domain.construction?.[entityType] || domain.construction?.[camel] || null;
+  };
   return ctsRegistry().listTypes(draft.value?.lineage?.organizationId || null)
     .filter(type => type.class !== 'party')
     .map(type => {
       const policy = renderPolicyFor(type);
+      const entity = entityByType.get(type.id.replace(/-/g, '_')) || entityByType.get(type.id);
+      const construction = entity ? constructionFor(entity.type) : null;
+      const constructible = type.scope === 'org'
+        || (Boolean(entity) && !entity.meta && Boolean(construction));
+      const payload = type.payload?.mime ? ` · ${type.payload.mime}` : '';
       return {
         id: type.id,
         class: type.class,
         label: policy.label,
         icon: policy.icon,
-        description: `${type.class} type`
+        description: `${type.class} type${payload}`,
+        constructible,
+        via: construction?.defaultMode || (construction?.modes || [])[0] || 'genericCreate'
       };
     });
 }

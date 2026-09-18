@@ -161,11 +161,14 @@ export function typeCatalogPaletteGroups(typeView = []) {
       id: classOf,
       items: (typeView || [])
         .filter(entry => entry.class === classOf)
+        // only constructible types are drag-constructible; derived products
+        // enter graphs as operator outputs and meta types are configuration
+        .filter(entry => entry.constructible !== false)
         .map(entry => paletteItem(`type:${entry.id}`, 'cts.construct', {
           label: entry.label || entry.id,
           description: entry.description || entry.label || entry.id,
           icon: entry.icon || iconForNode('cts.construct'),
-          preset: { type: entry.id, via: 'genericCreate' }
+          preset: { type: entry.id, via: entry.via || 'genericCreate' }
         }))
     }))
     .filter(group => group.items.length);

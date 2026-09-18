@@ -25,8 +25,12 @@ behavior tests so a disconnected Save, selection, or graph mutation fails even
 when labels remain in the page source.
 
 The palette IS the type catalog: class groups (**File types**, **Items**,
-**Groups**, **Processes** — one item per registry type) precede the
-operations. Dragging a type drops a `cts.construct` bound to it; the bare
+**Groups**, **Processes**) precede the operations — one item per
+*constructible* type (a real construction contract, the type's default
+constructor as `via`; org types synthesize one). Derived products (sheet,
+sheet design, nesting runs) are not drag-constructible — they enter graphs
+as operator outputs — and framework/meta types (revisions, process
+definitions, machines) never appear. Dragging a type drops a `cts.construct` bound to it; the bare
 species operations (`cts.mutate`, `cts.transition`, `cts.remove`,
 `cts.command`, `cts.read` by select, field/compose/decompose) follow, and
 the **Type reference** item drops a `ctsType` canvas node whose wires carry

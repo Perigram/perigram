@@ -305,8 +305,10 @@ describe('process designer domain contract', () => {
     const contract = createProcessDesignerContract(domain, null, {
       typeView: [
         { id: 'cassette', class: 'file', label: 'Cassette', icon: 'pi pi-file' },
-        { id: 'sheet-design', class: 'file', label: 'Sheet design' },
-        { id: 'sheet', class: 'item', label: 'Sheet' },
+        { id: 'cassette-design', class: 'file', label: 'Cassette design', via: 'bakeCassetteDesignFromTemplate' },
+        { id: 'entity-revision', class: 'file', label: 'Entity revision', constructible: false },
+        { id: 'sheet', class: 'item', label: 'Sheet', constructible: false },
+        { id: 'material-pile', class: 'item', label: 'Material pile' },
         { id: 'project', class: 'group', label: 'Project' },
         { id: 'queue', class: 'process', label: 'Queue' },
         { id: 'organization', class: 'party', label: 'Organization' }
@@ -315,13 +317,17 @@ describe('process designer domain contract', () => {
     const ids = contract.paletteGroups.map(group => group.id);
     expect(ids).toEqual(['file', 'item', 'group', 'process', 'operations', 'values', 'listTree']);
     const fileGroup = contract.paletteGroups[0];
-    expect(fileGroup.items.map(item => item.id)).toEqual(['type:cassette', 'type:sheet-design']);
-    // dragging a type drops a construct bound to it
+    // constructibility gates the catalog: derived and meta types never drag
+    expect(fileGroup.items.map(item => item.id)).toEqual(['type:cassette', 'type:cassette-design']);
+    // dragging a type drops a construct bound to it, with its real constructor
     expect(fileGroup.items[0].kind).toBe('cts.construct');
     expect(fileGroup.items[0].preset).toEqual({ type: 'cassette', via: 'genericCreate' });
+    expect(fileGroup.items[1].preset.via).toBe('bakeCassetteDesignFromTemplate');
     // party types never appear; the bare construct item yields to the catalog
     const flat = contract.paletteGroups.flatMap(group => group.items);
     expect(flat.some(item => item.preset?.type === 'organization')).toBe(false);
+    expect(flat.some(item => item.preset?.type === 'entity-revision')).toBe(false);
+    expect(flat.some(item => item.preset?.type === 'sheet')).toBe(false);
     expect(flat.some(item => item.id === 'construct')).toBe(false);
     expect(flat.some(item => item.id === 'typeReference')).toBe(true);
   });
