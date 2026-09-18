@@ -2830,6 +2830,22 @@ function syncNodeData() {
     node.data.outputLabels = (record.outputs || []).map(ioLabel);
     node.data.inputSpecs = (record.inputs || []).map(ioSpec);
     node.data.outputSpecs = (record.outputs || []).map(ioSpec);
+    // Declaration nodes derive their typed specs from the declaration
+    // itself (declarationPorts / the registry entry), never from record
+    // inputs/outputs — the generic write above would otherwise wipe the
+    // palette-drop enrichment and every declaration wire would die at the
+    // first sync (onConnect's first statement).
+    if (node.type === 'ctsClass' || node.type === 'ctsField' || node.type === 'ctsState') {
+      const ports = declarationPorts(node) || {};
+      node.data.inputSpecs = ports.inputSpecs || [];
+      node.data.outputSpecs = ports.outputSpecs || [];
+    } else if (node.type === 'ctsType') {
+      const entry = ctsTypeView().find(candidate => candidate.id === node.data?.typeId);
+      node.data.inputSpecs = [];
+      node.data.outputSpecs = entry
+        ? [{ id: 'type', label: entry.id, role: 'data', type: processType('entityRef', { entityType: entry.id }), access: 'item' }]
+        : [];
+    }
     node.data.fieldPolicy = record.fields || null;
     node.data.projection = record.projection || null;
     node.data.statusId = record.statusId;
