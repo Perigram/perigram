@@ -30,6 +30,8 @@ const CTS_KIND = Object.freeze({
   join: 'cts.join'
 });
 
+const CTS_SERVICE_KIND = 'cts.service';
+
 const READ_SELECT_BY_KIND = Object.freeze({
   'read.currentEntity': 'current',
   'read.entityById': 'byId',
@@ -101,6 +103,7 @@ export function isCtsGraphDefinition(data = {}) {
 // vocabulary.
 export function operationKindOf(node = {}) {
   const kind = String(node?.kind || '');
+  if (kind === CTS_SERVICE_KIND) return 'effect.runCommand';
   if (!kind.startsWith('cts.')) return kind;
   return v4KindFor(node) || kind;
 }
@@ -370,6 +373,22 @@ function slotOrDefault(path, entityType, domain) {
 
 function resolveNode(node, domain, entityTypeFor, diagnostics, at) {
   if (!node || typeof node !== 'object') return node;
+  if (node.kind === CTS_SERVICE_KIND) {
+    // A service node binds a registered operator (SPEC §8 s species); the
+    // executable twin is the command with the operator's declared binding.
+    // Unbound nodes (bare catalog records) resolve to an unset command and
+    // surface empty ports — the author binds the operator explicitly.
+    const service = node.operator ? domain.serviceContracts?.[node.operator] : null;
+    if (node.operator && !service) {
+      diagnostics.push(`${at}: unknown service operator ${node.operator}`);
+      return { ...node };
+    }
+    return {
+      ...node,
+      kind: 'effect.runCommand',
+      commandId: service ? service.command : ''
+    };
+  }
   if (!String(node.kind || '').startsWith('cts.')) return { ...node };
   const v4Kind = v4KindFor(node);
   if (!v4Kind) {

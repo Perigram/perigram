@@ -98,7 +98,7 @@ function accessPolicyFor(fieldAccess = {}, entityType = '') {
   return fieldAccess[key] || fieldAccess[camelKey] || fieldAccess[snakeKey] || {};
 }
 
-export function projectDomainFromView(registry, organizationId = null, baseDomain = {}) {
+export function projectDomainFromView(registry, organizationId = null, baseDomain = {}, { packServices = null } = {}) {
   const view = registry.resolveView ? registry.resolveView(organizationId) : new Map();
   if (!view.size) return baseDomain;
 
@@ -312,7 +312,17 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     }
   }
 
-  return { ...baseDomain, entities, workflows, fieldAccess, fieldSchemas, containment, construction, relations };
+  // services: the operator registry — pack-registered services (SPEC §8 s
+  // species) with their command bindings and declared signatures; legacy
+  // service contracts pass through during the transition.
+  const services = { ...(baseDomain.serviceContracts || {}) };
+  for (const service of (packServices || [])) {
+    if (service?.id && service.command) {
+      services[service.id] = service;
+    }
+  }
+
+  return { ...baseDomain, entities, workflows, fieldAccess, fieldSchemas, containment, construction, relations, ...(Object.keys(services).length ? { serviceContracts: services } : {}) };
 }
 
 // Lineage fields of one org type: every children edge pointing at it

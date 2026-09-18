@@ -138,6 +138,7 @@ import TypeNode from '~/components/type-designer/TypeNode.vue';
 import FieldNode from '~/components/type-designer/FieldNode.vue';
 import StateNode from '~/components/type-designer/StateNode.vue';
 import { canvasFromDeclarations, declarationsFromCanvas, suggestTypeId, FIELD_BASES, TYPE_CANVAS_CLASSES } from '~/composables/useTypeCanvas.js';
+import { cncPackContent } from '@cutkit/domain-cnc';
 import { UNITS } from '~/packages/cts/src/index.js';
 
 definePageMeta({
@@ -228,8 +229,9 @@ function projectCanvas() {
   const canvas = canvasFromDeclarations(declarations.value);
   const fieldCounts = new Map(declarations.value.map(declaration => [declaration.id, Object.keys(declaration.fields || {}).length]));
   const stateCounts = new Map(declarations.value.map(declaration => [declaration.id, (declaration.states?.main?.values || []).length]));
+  const editorByType = new Map((cncPackContent.editors || []).map(editor => [editor.type, editor.surface]));
   nodes.value = canvas.nodes.map(node => node.type === 'typeNode'
-    ? { ...node, data: { ...node.data, fieldCount: fieldCounts.get(node.data.typeId) || 0, stateCount: stateCounts.get(node.data.typeId) || 0, loaded: true } }
+    ? { ...node, data: { ...node.data, fieldCount: fieldCounts.get(node.data.typeId) || 0, stateCount: stateCounts.get(node.data.typeId) || 0, editor: editorByType.get(node.data.typeId) || null, loaded: true } }
     : node);
   edges.value = canvas.edges.map(edge => ({ ...edge, type: 'default' }));
 }

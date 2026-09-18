@@ -151,7 +151,22 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
   return [...outputIds];
 }
 
-export function createProcessDesignerContract(domain = {}, capabilities = null) {
+// Services group from the operator registry (SPEC §8 s species): one item
+// per registered service — dropping one binds the operator; the executable
+// twin is the operator's declared command.
+export function servicesPaletteGroups(services = []) {
+  const items = (services || [])
+    .filter(service => service?.id && service.command)
+    .map(service => paletteItem(`service:${service.id}`, 'cts.service', {
+      label: service.render?.label || service.id,
+      description: service.render?.label || service.id,
+      icon: service.render?.icon || 'pi pi-bolt',
+      preset: { operator: service.id }
+    }));
+  return items.length ? [{ id: 'services', items }] : [];
+}
+
+export function createProcessDesignerContract(domain = {}, capabilities = null, options = {}) {
   const entities = Array.isArray(domain.entities) ? domain.entities : [];
   const entityByType = new Map(entities.map(entity => [entity.type, entity]));
 
@@ -208,10 +223,13 @@ export function createProcessDesignerContract(domain = {}, capabilities = null) 
     }));
   }
 
-  const paletteGroups = PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
-    ...group,
-    items: group.items
-  }));
+  const paletteGroups = [
+    ...servicesPaletteGroups(options.services || []),
+    ...PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
+      ...group,
+      items: group.items
+    }))
+  ];
 
   const entityOption = entity => ({ label: entity.label || entity.type, value: entity.type });
 
@@ -267,6 +285,7 @@ export function createProcessDesignerContract(domain = {}, capabilities = null) 
   return {
     domain,
     paletteGroups: enabledPaletteGroups,
+    editors: (options.editors || []).map(editor => ({ ...editor })),
     blocks: CANONICAL_ENTITY_BLOCKS.map(id => ({ id, label: id, ...BLOCK_PRESENTATION[id] })),
     entityOptions: entities.map(entityOption),
     listableEntityOptions,
