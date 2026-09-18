@@ -24,18 +24,16 @@ roles, screens, and dock/panel state. Their contracts are exercised directly in
 behavior tests so a disconnected Save, selection, or graph mutation fails even
 when labels remain in the page source.
 
-The palette IS the type catalog: class groups (**File types**, **Items**,
-**Groups**, **Processes**) precede the operations — one item per
-*constructible* type (a real construction contract, the type's default
-constructor as `via`; org types synthesize one). Derived products (sheet,
-sheet design, nesting runs) are not drag-constructible — they enter graphs
-as operator outputs — and framework/meta types (revisions, process
-definitions, machines) never appear. Dragging a type drops a `cts.construct` bound to it; the bare
-species operations (`cts.mutate`, `cts.transition`, `cts.remove`,
-`cts.command`, `cts.read` by select, field/compose/decompose) follow, and
-the **Type reference** item drops a `ctsType` canvas node whose wires carry
-type bindings into species records (`role: 'type'` edges — gestures; the
-binding persists in the record). Stored v4 graphs migrate to the species
+The palette is operations, never a catalog: species operations
+(`cts.construct`, `cts.mutate`, `cts.transition`, `cts.remove`,
+`cts.command`, `cts.read` by select, field/compose/decompose), values, and
+lists. **No node ever drops pre-bound** — a seeded domain type would be an
+invisible authoring decision the user never made; records are unbound until
+the author binds them. Binding is composition: the **Type reference** item
+drops a `ctsType` canvas node whose wire into a species record writes the
+record's `type` (`role: 'type'` edges are gestures; the binding persists in
+the record), or the type is picked explicitly in the inspector from gated,
+relevant lists with an empty state. Stored v4 graphs migrate to the species
 vocabulary on load, and every kind-matching consumer routes through
 `operationKindOf` — the authored vocabulary is the type system's, not a
 labeled legacy layer.
