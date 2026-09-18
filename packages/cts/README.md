@@ -69,9 +69,12 @@ module layout and how the code maps to the spec's build-order tiers.
   type ids, and verified row paths), `resolveCtsDefinition` (compile-time
   lowering back to the executable working shapes through the projected
   domain — internal, never persisted), `checkCtsGraphBindings`
-  (declaration-level binding validation). The v4 kind mapping derives from
-  `SPECIES_BY_EFFECT_KIND`; the equivalence gate lives in the server
-  process-definitions suite.
+  (declaration-level binding validation), `operationKindOf` /
+  `resolveCtsRecord` (the single-record seam the designer and node catalog
+  route kind matching and port resolution through). The v4 kind mapping
+  derives from `SPECIES_BY_EFFECT_KIND`; equivalence gates live in the
+  server process-definitions suite and the processes designer round-trip
+  spec.
 - `pack/cnc.js` — the CNC starter type pack: the collapse-table acceptance
   fixture (file/item/group/process families, the typed nesting seam, and
   sample instances).

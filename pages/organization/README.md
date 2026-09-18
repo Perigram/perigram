@@ -71,6 +71,15 @@ definition, and records activation warnings/errors in the centered canvas
 validation feedback so operators can inspect the result without a persistent
 canvas panel.
 
+The designer authors the graph protocol v5 (SPEC §20): palette items are
+species kinds (`cts.construct`/`mutate`/`transition`/`remove`/`command`,
+`cts.read` by select, the structure family), node records carry CTS type
+ids and constructors, and stored v4 graphs are migrated one-way on load —
+`operationKindOf` is the single seam kind matching routes through, so the
+canvas vocabulary is the type system's. The server accepts both
+vocabularies at one boundary (`compiler-adapter.js` lowers v5 for
+compile/validate/preview/runs; saves persist the authored vocabulary).
+
 The designer consumes exactly one domain source: the organization's CTS
 registry view projected through `projectDomainFromView` (see
 [packages/cts/SPEC.md](../../packages/cts/SPEC.md) §19 "Source flip"). The

@@ -25,8 +25,16 @@ never select or encode an entity type. Create and Update validate connected
 block fields against their target entity policy at the consumer boundary.
 
 The grouped authoring palette is a curated framework projection, separate from
-the exhaustive runtime catalog. It exposes Entities, Values, and Lists and
-trees, with stable localization and description ids. Create Entity resolves either canonical block sockets or the
+the exhaustive runtime catalog. It exposes Instances, Reads, Structure,
+Values, and Lists and trees, with stable localization and description ids.
+Entity-bound palette items are graph-protocol v5 species kinds (`cts.*`,
+SPEC §20 of the CTS spec): Construct/Mutate/Transition/Remove/Command over
+type declarations, one `cts.read` kind discriminated by `select`, and the
+field/compose/decompose structure family. The catalog carries `cts.*`
+definitions whose ports resolve through the record's operation-kind twin
+(`operationKindOf`/`resolveCtsRecord` from `@perigram/cts` — one canonical
+kind mapping, never duplicated); port contracts of a cts record and its v4
+twin are identical by test. Create Entity resolves either canonical block sockets or the
 selected domain construction mode's typed inputs. Run Service resolves the
 selected command definition into typed entity/parameter inputs and typed
 command-result outputs. Producer effects, conversions, predicates, patches,

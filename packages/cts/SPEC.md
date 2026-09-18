@@ -621,8 +621,14 @@ Effect nodes take the species names of §8 (the canonical table is
 
 ### Residue (explicit)
 
-Socket ids and wire handles stay in the working vocabulary for this slice
-(block-named sockets on construct/mutate); the designer slice replaces them
-with row-field sockets. `statusDefinitions` remain definition-plane records
-authoring state metadata; per §7 they compile into declarations, never
-alongside.
+The designer authors v5: the palette speaks species kinds (`cts.*`), node
+creation writes `type`/`via`/`slots`, stored v4 graphs migrate on load, and
+`operationKindOf` is the single seam every kind-matching consumer routes
+through (client and catalog; no duplicated vocabulary). Producer outputs
+synced by the designer keep storage entity ids — load-time migration
+normalizes them on the next cycle. Remaining residue: socket ids and wire
+handles stay in the working vocabulary (block-named sockets on
+construct/mutate) until row-field sockets land with the composer-less
+construct; field pickers list slot paths, which resolution passes through
+unchanged. `statusDefinitions` remain definition-plane records authoring
+state metadata; per §7 they compile into declarations, never alongside.
