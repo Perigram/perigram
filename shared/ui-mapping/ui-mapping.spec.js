@@ -7,6 +7,8 @@ import {
   resolveActionButton,
   resolveChrome,
   applyBudget,
+  SEVERITY_MAP,
+  ROW_FIELD_BUDGET,
   VARIANTS
 } from './index.js';
 
@@ -30,7 +32,7 @@ describe('field control resolution', () => {
 
   it('maps editor variants to input controls with derived props', () => {
     expect(resolveFieldControl({ base: 'quantity', unit: 'mm' }, { variant: 'detail' })).toMatchObject({
-      component: 'InputNumber', span: 'half', props: { suffix: ' mm' }
+      component: 'QuantityInput', span: 'half', props: { suffix: ' mm' }
     });
     expect(resolveFieldControl({ base: 'ref', accepts: ['part'] }).props.accepts).toEqual(['part']);
     expect(resolveFieldControl({ base: 'enum', values: ['ONE'] }).props.options).toEqual(['ONE']);
@@ -44,9 +46,18 @@ describe('field control resolution', () => {
 
     const few = resolveFieldControl({ base: 'enum', values: ['A', 'B'] }, { variant: 'full' });
     const many = resolveFieldControl({ base: 'enum', values: Array.from({ length: 9 }, (_, i) => `V${i}`) }, { variant: 'full' });
-    expect(few.props.filter).toBeUndefined();
+    expect(few.component).toBe('SelectButton');
     expect(many.component).toBe('Select');
     expect(many.props.filter).toBe(true);
+  });
+
+  it('refines list editors by the item base', () => {
+    const strings = resolveFieldControl({ base: 'list', itemType: { base: 'string' } }, { variant: 'full' });
+    const refs = resolveFieldControl({ base: 'list', itemType: { base: 'ref', accepts: ['part'] } }, { variant: 'full' });
+    const records = resolveFieldControl({ base: 'list', itemType: { base: 'record', fields: {} } }, { variant: 'full' });
+    expect(strings.component).toBe('ChipsInput');
+    expect(refs.component).toBe('EntityMultiPicker');
+    expect(records.component).toBe('ListEditor');
   });
 
   it('maps display variants to read-only presentations with density', () => {
@@ -63,7 +74,7 @@ describe('field control resolution', () => {
       fields: [{ match: { base: 'quantity', unit: 'deg' }, component: 'AngleInput', span: 'half' }]
     });
     expect(mapping.resolveFieldControl({ base: 'quantity', unit: 'deg' }, { variant: 'detail' }).component).toBe('AngleInput');
-    expect(mapping.resolveFieldControl({ base: 'quantity', unit: 'mm' }, { variant: 'detail' }).component).toBe('InputNumber');
+    expect(mapping.resolveFieldControl({ base: 'quantity', unit: 'mm' }, { variant: 'detail' }).component).toBe('QuantityInput');
   });
 
   it('resolves deterministically', () => {
@@ -144,9 +155,14 @@ describe('chrome', () => {
   });
 
   it('flattens same-role nesting instead of repeating the surface', () => {
-    expect(resolveChrome('card', 'card')).toEqual({ role: 'card', flattened: true, surface: 'none', padding: 'md', border: 'top' });
+    expect(resolveChrome('card', 'card')).toEqual({ role: 'card', flattened: true, surface: 'none', padding: 'md', border: 'divider' });
     expect(resolveChrome('card', 'section').flattened).toBe(false);
     expect(resolveChrome('section', 'section').flattened).toBe(false);
+  });
+
+  it('exposes the shared severity vocabulary and row field budget', () => {
+    expect(SEVERITY_MAP.danger).toBe('danger');
+    expect(ROW_FIELD_BUDGET).toEqual({ max: 3, overflow: 'count' });
   });
 
   it('degrades unknown roles to section chrome', () => {

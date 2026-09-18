@@ -298,11 +298,11 @@ export function createUiMappingCompiledContract() {
         entityType: 'part',
         required: { feature: 'parts', level: 'read' },
         roleIds: ['operator'],
-        scope: { entityId: null },
+        scope: { entityId: 'part-4' },
         bindings: {},
         sources: [
           { id: 'part', entityType: 'part', mode: 'single', required: { feature: 'parts', level: 'read' }, identifier: '$screen.scope.entityId' },
-          { id: 'drawings', entityType: 'drawing', mode: 'list', required: null }
+          { id: 'drawings', entityType: 'drawing', mode: 'list', required: null, relation: { sourceId: 'part', key: 'drawings' } }
         ],
         regions: [
           { id: 'main', slot: 'main', sourceId: 'part', surface: 'detail', actions: ['part_update', 'part_approve', 'part_scrap', 'part_delete', 'drawing_link'] },
@@ -322,11 +322,11 @@ export function createUiMappingCompiledContract() {
         entityType: 'material',
         required: null,
         roleIds: ['operator'],
-        scope: { entityId: null },
+        scope: { entityId: 'material-1' },
         bindings: {},
         sources: [
           { id: 'material', entityType: 'material', mode: 'single', required: null, identifier: '$screen.scope.entityId' },
-          { id: 'parts', entityType: 'part', mode: 'list', required: null }
+          { id: 'parts', entityType: 'part', mode: 'list', required: null, lineage: { sourceId: 'material', key: 'parts' } }
         ],
         regions: [
           { id: 'main', slot: 'main', sourceId: 'material', surface: 'detail', actions: [] },

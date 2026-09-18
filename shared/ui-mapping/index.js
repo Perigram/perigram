@@ -15,7 +15,7 @@ import {
   VARIANTS
 } from './tables.js';
 
-export { VARIANTS, CHROME_ROLES } from './tables.js';
+export { VARIANTS, CHROME_ROLES, SEVERITY_MAP, ROW_FIELD_BUDGET } from './tables.js';
 
 const ENUM_MANY_AT = 7;
 const LONG_STRING_AT = 120;
@@ -57,6 +57,7 @@ export function createUiMapping(overrides = {}) {
     if (base === 'enum') candidate.enumSize = (descriptor.values?.length || 0) > ENUM_MANY_AT ? 'many' : 'few';
     if (base === 'quantity') candidate.unit = descriptor.unit || null;
     if (base === 'ref') candidate.accepts = descriptor.accepts || null;
+    if (base === 'list' || base === 'map') candidate.itemBase = descriptor.itemType?.base || null;
     return candidate;
   }
 
@@ -171,3 +172,4 @@ export const resolveFieldControl = defaultMapping.resolveFieldControl;
 export const resolveSurface = defaultMapping.resolveSurface;
 export const resolvePreview = defaultMapping.resolvePreview;
 export const resolveActionButton = defaultMapping.resolveActionButton;
+export { composeScreen, buildInstancePool } from './screen.js';

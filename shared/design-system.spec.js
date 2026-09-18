@@ -538,7 +538,9 @@ describe('Design system manifest', () => {
       'components/shared/EntityCard.vue',
       'components/shared/StandardDialog.vue',
       'components/shared/DesignerDialog.vue',
-      'components/shared/ChatSupportDialog.vue'
+      'components/shared/ChatSupportDialog.vue',
+      'components/ui-mapping/SurfaceBody.vue',
+      'components/ui-mapping/GeneratedMappingScreen.vue'
     ]);
 
     const offenders = usedVueFiles().filter((file) => {
