@@ -69,6 +69,14 @@ prompted directly and a compose node is optional. Declared construct
 operators project as additional `via` modes with signature-derived
 `modeInputs`.
 
+The type catalog leads the palette (L2): `typeCatalogPaletteGroups`
+projects the registry view into class groups (File types, Items, Groups,
+Processes) — one bound construct per constructible type, plus one variant
+per declared construct operator — so types and their operators are
+draggable composables, refreshed from the registry with the designer
+contract. A dropped variant seeds the record's construction mode from its
+`via`.
+
 The Types palette ends with **Join producer paths** (`producer.join`), the
 one legal convergence point for same-type producer paths: activation rejects
 implicitly converging wires elsewhere on the graph. Its inspector authors the
