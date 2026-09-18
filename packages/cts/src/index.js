@@ -39,6 +39,10 @@ export {
   extractRow, rowToFieldSchemas, slotFor
 } from './compat/field-schema-rows.js';
 export {
+  migrateV4Definition, resolveCtsDefinition, checkCtsGraphBindings,
+  isCtsGraphDefinition
+} from './compat/graph-protocol.js';
+export {
   cncTypePack, partyTypes, nestingOperators, packFixtures
 } from './pack/cnc.js';
 export {

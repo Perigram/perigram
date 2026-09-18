@@ -8,6 +8,26 @@ import {
   validateLineageBindingResolution
 } from '~/packages/processes/src/index.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
+import { resolveCtsDefinition, checkCtsGraphBindings } from '~/packages/cts/src/index.js';
+
+// Graph protocol v5 dual acceptance: definitions authored in the CTS
+// vocabulary (species kinds, type ids, row paths) lower to the executable
+// working shapes here — the single seam every validate/compile/activate
+// path flows through. The lowered form is internal; v4 definitions pass
+// through untouched. Protocol binding errors (unknown type, undeclared
+// state, field outside the row) fail like any other definition error.
+function acceptGraphProtocol(data = {}, domain = {}) {
+  const { definition, diagnostics } = resolveCtsDefinition(data, domain);
+  const errors = [...checkCtsGraphBindings(data, domain), ...diagnostics];
+  if (errors.length) {
+    throw createError({
+      statusCode: 400,
+      message: errors.join('; '),
+      data: { errors }
+    });
+  }
+  return definition;
+}
 
 function capabilityBindings(domain = {}) {
   const registry = getAppRegistry();
@@ -20,8 +40,9 @@ function capabilityBindings(domain = {}) {
 }
 
 export function validateActivatableProcess(data = {}, domain = {}, roles = {}) {
+  const accepted = acceptGraphProtocol(data, domain);
   const capabilities = capabilityBindings(domain);
-  const validation = validateProcessDefinition(data, domain, {
+  const validation = validateProcessDefinition(accepted, domain, {
     roles,
     ...(Object.keys(capabilities).length ? { capabilities } : {})
   });
@@ -57,7 +78,8 @@ export function assertCurrentProcessDefinition(data = {}) {
 
 export function currentProcessDefinition(data = {}, domain = {}) {
   assertCurrentProcessDefinition(data);
-  const migration = migrateProducerOutputIdentities(data, domain);
+  const accepted = acceptGraphProtocol(data, domain);
+  const migration = migrateProducerOutputIdentities(accepted, domain);
   if (migration.errors.length) {
     throw createError({
       statusCode: 400,

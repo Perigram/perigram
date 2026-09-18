@@ -185,7 +185,7 @@ async function contractDiffFor(process, auth) {
   if (!baseline) return null;
   const roles = await loadOrganizationRoles(process.lineage.organizationId);
   try {
-    return diffProcessContracts(baseline, compileProcessDefinition(process.data, await getProjectedDomain(process.lineage.organizationId), { roles }));
+    return diffProcessContracts(baseline, await compileOrganizationProcess(process.data, process.lineage.organizationId, roles));
   } catch {
     return null;
   }
@@ -243,7 +243,7 @@ export async function activate(id, auth) {
   }
   process.data = {
     ...process.data,
-    compiled: compileProcessDefinition(process.data, await getProjectedDomain(process.lineage.organizationId), { roles })
+    compiled: await compileOrganizationProcess(process.data, process.lineage.organizationId, roles)
   };
   await assertNoStrandedEntityStatuses(process, auth, process.data.compiled);
   await repository.archiveActiveByOrganization(process.lineage.organizationId, auth.userId);
@@ -290,7 +290,7 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
 
   process.data = {
     ...process.data,
-    compiled: compileProcessDefinition(process.data, await getProjectedDomain(process.lineage.organizationId), { roles })
+    compiled: await compileOrganizationProcess(process.data, process.lineage.organizationId, roles)
   };
   applyProcessStatus(process, 'ACTIVE', actorId || 'SYSTEM', 'Process activated (empty)');
 
@@ -324,13 +324,20 @@ export async function startRun(id, payload = {}, auth = {}, options = {}) {
   if (Number(definition.data?.dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
     throw createError({ statusCode: 409, message: `Process must use dataflow version ${PROCESS_DATAFLOW_VERSION} before it can run` });
   }
+  // Protocol acceptance at the execution boundary: a v5 definition lowers
+  // here once, so the run's stored snapshot and every downstream evaluation
+  // see the executable working shapes.
+  const runnableDefinition = {
+    ...definition,
+    data: currentProcessDefinition(definition.data, await getProjectedDomain(resolveOrganizationId(auth)))
+  };
   const organizationId = resolveOrganizationId(auth);
   const actor = buildRunActor(auth, organizationId);
   const runRepository = options.runRepository || getRunRepository(await repository.getConnection());
-  return serializeProcessResult(await executeManualRun(definition, payload, {
+  return serializeProcessResult(await executeManualRun(runnableDefinition, payload, {
     actor,
     repository: runRepository,
-    ...manualRunEnvironment(definition, auth)
+    ...manualRunEnvironment(runnableDefinition, auth)
   }));
 }
 
@@ -491,12 +498,19 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
   if (!definition || Number((definition.data || definition).dataflowVersion) !== PROCESS_DATAFLOW_VERSION) {
     throw createError({ statusCode: 400, message: `Preview requires dataflow version ${PROCESS_DATAFLOW_VERSION}` });
   }
+  // Preview receives client-authored definitions: protocol acceptance runs
+  // here too, so a v5 draft previews against the same lowered shapes the
+  // compiler and runtime would use.
+  const previewDefinition = {
+    ...definition,
+    data: currentProcessDefinition(definition.data || definition, await getProjectedDomain(organizationId))
+  };
   const run = { context: { inputs }, trigger };
   // Preview results cross the HTTP boundary, so the missing-field markers
   // produced by the evaluator are converted to their serializable tag here —
   // the single emission conversion point shared with any runtime result
   // emission (see packages/processes/src/missing-field.js).
-  return serializeProcessResult(await previewProcessDataflow(definition, { trigger, inputs }, {
+  return serializeProcessResult(await previewProcessDataflow(previewDefinition, { trigger, inputs }, {
     targetNodeId: nodeId,
     previewLimit: 100,
     domain: getDomain(),
@@ -704,7 +718,7 @@ async function resolveManualRelationMutation(entityType, targetId, mutation = {}
 
 async function executeDataflowActionRun({ process, actionId, entityId, data, parameters, entities, targetOrganizationId }, auth) {
   const effect = Object.values(process.data.processNodes || {})
-    .find(node => node.id === actionId && node.kind?.startsWith('effect.'));
+    .find(node => node.id === actionId && (node.kind?.startsWith('effect.') || node.kind?.startsWith('cts.')));
   if (!effect || (effect.trigger?.mode || 'manual') !== 'manual') {
     throw createError({ statusCode: 409, message: `Action ${actionId} has no entry trigger` });
   }
@@ -1622,6 +1636,14 @@ function getDomain() {
 async function getProjectedDomain(organizationId = null) {
   const registry = await compileRegistryForOrganization(organizationId);
   return projectDomainFromView(registry, organizationId, getDomain());
+}
+
+// One compile path: protocol acceptance (v5 lowering) through
+// currentProcessDefinition, then the process compiler on the projected
+// domain.
+async function compileOrganizationProcess(data, organizationId, roles) {
+  const domain = await getProjectedDomain(organizationId);
+  return compileProcessDefinition(currentProcessDefinition(data, domain), domain, { roles });
 }
 
 function assertCanonicalProcessSource(data = {}) {
