@@ -86,7 +86,9 @@ describe('domain projection (CTS view -> compiler domain)', () => {
     const projected = projectDomainFromView(registry, 'org-2', cncDomain);
     expect(projected.commands).toBe(cncDomain.commands);
     expect(projected.attachmentKinds).toBe(cncDomain.attachmentKinds);
-    expect(projected.construction).toBe(cncDomain.construction);
+    // construction passthrough for legacy types; view types without legacy
+    // construction (pack/org) synthesize generic creation
+    expect(Object.keys(cncDomain.construction).every(key => projected.construction[key] === cncDomain.construction[key])).toBe(true);
     expect(projected.fieldAccess).toBe(cncDomain.fieldAccess);
     // org-2 view has no widget: nothing projected for it
     expect(projected.workflows.widget).toBeUndefined();
@@ -113,8 +115,9 @@ describe('domain projection (CTS view -> compiler domain)', () => {
     const schemas = projected.fieldSchemas.cassette;
     expect(schemas.find(field => field.path === 'data.name')).toMatchObject({ writable: true });
     expect(schemas.find(field => field.path === 'identity.name')).toMatchObject({ constructible: true });
-    // legacy entities untouched: the pack adds, it does not replace
-    expect(projected.entities.find(entity => entity.type === 'queue')).toBeTruthy();
+    // the view is authoritative: legacy types outside the view are not
+    // projected — pickers list types, not the legacy catalog
+    expect(projected.entities.find(entity => entity.type === 'queue')).toBeUndefined();
   });
 
 });

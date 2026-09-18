@@ -223,8 +223,18 @@ export function createProcessDesignerContract(domain = {}, capabilities = null) 
     .filter(entity => capabilities ? Boolean(capabilityFor(entity.type)?.getById) : true)
     .map(entityOption);
 
+  // Capability-gated with a declaration fallback: view types (pack, org)
+  // synthesize construction and are served by the generic instance
+  // services, so a missing capability entry means constructible, not dead —
+  // legacy services keep their explicit capability truth.
+  const constructible = entityType => {
+    if (!capabilities) return createModes(entityType).length > 0;
+    const capability = capabilityFor(entityType);
+    if (capability) return (capability.createModes?.length || 0) > 0;
+    return createModes(entityType).length > 0;
+  };
   const createEntityOptions = entities
-    .filter(entity => createModes(entity.type).length > 0)
+    .filter(entity => constructible(entity.type))
     .map(entityOption);
 
   const updateEntityOptions = entities

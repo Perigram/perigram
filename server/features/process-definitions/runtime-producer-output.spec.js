@@ -3,8 +3,8 @@ import { compileActiveProcessRuntime, resolveCompiledProducerOutputWorkflow } fr
 
 const compiled = {
   producerOutputs: {
-    'create:entity': { entityType: 'project', workflow: { primaryRegion: 'main' } },
-    'import:entity': { entityType: 'project', workflow: { primaryRegion: 'imported' } }
+    'create:entity': { entityType: 'cassette', workflow: { primaryRegion: 'main' } },
+    'import:entity': { entityType: 'cassette', workflow: { primaryRegion: 'imported' } }
   },
 };
 
@@ -17,7 +17,7 @@ describe('process workflow resolution', () => {
         [id]: {
           id,
           kind: 'effect.createEntity',
-          entityType: 'project',
+          entityType: 'cassette',
           construction: { mode: 'genericCreate', inputs: [] },
           trigger: { mode: 'manual' },
           status: { to: 'CREATED' }
@@ -30,12 +30,12 @@ describe('process workflow resolution', () => {
     expect(result.producerOutputs[`${id}:result`]).toMatchObject({
       nodeId: id,
       outputSocketId: 'result',
-      entityType: 'project'
+      entityType: 'cassette'
     });
   });
 
   it('requires the authoritative producer output identity', () => {
-    expect(() => resolveCompiledProducerOutputWorkflow({ compiled, entityType: 'project' }))
+    expect(() => resolveCompiledProducerOutputWorkflow({ compiled, entityType: 'cassette' }))
       .toThrow('producerOutputId is required');
   });
 
@@ -43,26 +43,26 @@ describe('process workflow resolution', () => {
     expect(resolveCompiledProducerOutputWorkflow({
       compiled,
       producerOutputId: 'create:entity',
-      entityType: 'project'
+      entityType: 'cassette'
     })).toEqual({ primaryRegion: 'main' });
 
     expect(() => resolveCompiledProducerOutputWorkflow({
       compiled,
       producerOutputId: 'create:entity',
       entityType: 'queue'
-    })).toThrow('emits project, not queue');
+    })).toThrow('emits cassette, not queue');
   });
 
   it('resolves the exact same-type producer among candidates and never falls back to the first', () => {
     expect(resolveCompiledProducerOutputWorkflow({
       compiled,
       producerOutputId: 'import:entity',
-      entityType: 'project'
+      entityType: 'cassette'
     })).toEqual({ primaryRegion: 'imported' });
 
     expect(() => resolveCompiledProducerOutputWorkflow({
       compiled,
-      entityType: 'project'
+      entityType: 'cassette'
     })).toThrow('producerOutputId is required');
   });
 });

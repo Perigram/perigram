@@ -69,11 +69,16 @@ describe('source flip: system types project byte-identically', () => {
 
   it('entities, relations, commands, attachment kinds pass through untouched', () => {
     const projected = projectDomainFromView(systemRegistry(), null, cncDomain);
+    // entities: the view is authoritative — every converted type maps to
+    // its legacy entity row (order preserved through the conversion order)
     expect(projected.entities).toEqual(cncDomain.entities);
     expect(projected.relations).toEqual(cncDomain.relations);
     expect(projected.commands).toBe(cncDomain.commands);
     expect(projected.attachmentKinds).toBe(cncDomain.attachmentKinds);
-    expect(projected.construction).toBe(cncDomain.construction);
+    // construction: legacy entries pass through; view types without legacy
+    // construction synthesize generic creation
+    expect(Object.keys(cncDomain.construction).every(key => projected.construction[key] === cncDomain.construction[key])).toBe(true);
+    expect(Object.values(projected.construction).filter(entry => entry?.modes?.[0] === 'genericCreate').length).toBeGreaterThan(0);
     expect(projected.fieldAccess).toBe(cncDomain.fieldAccess);
   });
 });

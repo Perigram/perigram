@@ -107,17 +107,23 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
 
   const entityTypeFor = type => (type.scope === 'system' && legacySnakeByKebab.get(type.id)) || type.id;
 
-  // entities: legacy list is authoritative for system types (blocks,
-  // collections, routes stay real); org types append as first-class entries.
-  const entities = [...legacyEntities];
-  const seen = new Set(legacyEntities.map(entity => entity.type));
+  // entities: the view is authoritative. A system type with legacy entity
+  // content keeps it (blocks, collections, routes stay real); org types and
+  // pack-mounted types synthesize first-class entries. Legacy entity rows
+  // outside the view are not projected — the pickers list types, not the
+  // legacy catalog.
+  const entities = [];
+  const legacyByType = new Map(legacyEntities.map(entity => [entity.type, entity]));
   const rowEntriesByOrgType = new Map();
   for (const type of view.values()) {
-    if (type.scope !== 'org') continue;
+    const legacyEntity = type.scope === 'system' ? legacyByType.get(entityTypeFor(type)) : null;
+    if (legacyEntity) {
+      entities.push(legacyEntity);
+      continue;
+    }
     const rowEntries = rowToFieldSchemas(type.fields, type.class);
     rowEntriesByOrgType.set(type.id, rowEntries);
     const entityType = type.id;
-    if (seen.has(entityType)) continue;
     const usesSpecs = Object.values(type.fields || {}).some(descriptor => slotFor(descriptor, type.class) === 'specs');
     entities.push({
       type: entityType,
@@ -126,14 +132,6 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
         ...(usesSpecs ? ['specs'] : [])],
       meta: false
     });
-  }
-  // Pack-mounted system types without legacy content synthesize rows
-  // exactly like org types (their declarations are the only source).
-  for (const type of view.values()) {
-    if (type.scope !== 'system' || legacySnakeByKebab.has(type.id)) continue;
-    if (!rowEntriesByOrgType.has(type.id)) {
-      rowEntriesByOrgType.set(type.id, rowToFieldSchemas(type.fields, type.class));
-    }
   }
 
   // workflows: CTS states/transitions project to the v2 shape; transition
@@ -209,10 +207,15 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   // synthesis (the collapse) and re-derive access flags from the declared
   // policy remainder; org types synthesize core slots + lineage-from-edges
   // + rows.
-  const fieldSchemas = { ...(baseDomain.fieldSchemas || {}) };
+  // fieldSchemas: types in the synthesis map (org + pack declarations are
+  // the only source) synthesize from rows; system types with legacy content
+  // keep their legacy schemas during the transition.
+  const fieldSchemas = {};
   for (const type of view.values()) {
     const entityType = entityTypeFor(type);
-    if (type.scope === 'system' && (baseDomain.fieldSchemas?.[entityType] || []).length) {
+    if (type.scope === 'system' && !rowEntriesByOrgType.has(type.id) && (baseDomain.fieldSchemas?.[entityType] || []).length) {
+      // legacy system type in the view: its schemas pass through with the
+      // row synthesis overlaying the data/specs entries (the source flip)
       const legacy = baseDomain.fieldSchemas?.[entityType] || [];
       const policy = accessPolicyFor(baseDomain.fieldAccess || {}, entityType);
       const rowEntries = rowToFieldSchemas(type.fields, type.class).map(schema => withAccessFlags(schema, policy));
@@ -233,7 +236,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
       fieldSchemas[entityType] = projectedList;
       continue;
     }
-    // org synthesis
+    // synthesis (org + pack types): core slots + lineage-from-edges + rows
     const policy = fieldAccess[camel(type.id)] || {};
     const orgBlocks = new Set(entities.find(entity => entity.type === entityType)?.blocks || []);
     const lineageFields = orgLineageFields(type, view, entityTypeFor);
@@ -277,8 +280,14 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   // construction: system types keep the declared typed constructors
   // (service-bound, SPEC §8); org types get generic creation.
   let construction = baseDomain.construction || {};
+  const legacyConstructionTypes = new Set(Object.keys(baseDomain.construction || {}));
   for (const type of view.values()) {
-    if (type.scope !== 'org') continue;
+    const entityType = entityTypeFor(type);
+    // org types and pack types without legacy construction synthesize
+    // generic creation from their declarations
+    const synthesizes = type.scope === 'org'
+      || (type.class !== 'party' && !legacyConstructionTypes.has(entityType));
+    if (!synthesizes) continue;
     if (construction === baseDomain.construction) construction = { ...construction };
     construction[type.id] = {
       modes: ['genericCreate'],

@@ -9,6 +9,7 @@ export function createRegistry({ id = 'app' } = {}) {
   const effectDefinitions = new Map();
   const attachmentKindDefinitions = new Map();
   const entityServices = new Map();
+  const entityServiceResolvers = [];
   const commandHandlers = new Map();
   const taskExecutors = new Map();
   const hookHandlers = new Map();
@@ -188,8 +189,24 @@ export function createRegistry({ id = 'app' } = {}) {
       return service;
     },
 
+    // A resolver is the generic-instance fallback (SPEC §13): consulted on
+    // explicit-miss, it binds types that have no hand-registered service —
+    // pack types and org-authored types served by the generic per-class
+    // instance services.
+    registerEntityServiceResolver(resolver) {
+      if (typeof resolver !== 'function') throw new Error('Entity service resolver must be a function');
+      entityServiceResolvers.push(resolver);
+      return registry;
+    },
+
     getEntityService(type) {
-      return entityServices.get(type) || null;
+      const explicit = entityServices.get(type);
+      if (explicit) return explicit;
+      for (const resolver of entityServiceResolvers) {
+        const resolved = resolver(type);
+        if (resolved) return resolved;
+      }
+      return null;
     },
 
     listEntityServices() {

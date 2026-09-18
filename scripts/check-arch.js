@@ -21,6 +21,7 @@ function featureToEntityType(feature) {
   return featureToEntityTypeMap.get(feature) || null;
 }
 const CAPABILITY_FEATURES = [
+  'instances',
   'config-bot',
   'connections',
   'cts-types',

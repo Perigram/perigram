@@ -13,6 +13,7 @@ import * as usersService from '~/server/features/users/service.js';
 
 import { generateAttachment } from '~/server/features/artifacts/operations.js';
 import { generateConfigBotDraft, reindexConfigBotKnowledge } from '~/server/features/config-bot/operations.js';
+import { instanceServiceResolver } from '~/server/features/instances/service.js';
 
 import { cncPack } from '~/server/packs/cnc/index.js';
 
@@ -85,6 +86,11 @@ const frameworkCommandHandlers = {
 };
 
 function registerAppBindings(registry) {
+  // Generic instance services (SPEC §13): every type without an explicit
+  // feature service resolves to its per-class instance service — pack types
+  // and org-authored types are executable without hand-written services.
+  registry.registerEntityServiceResolver(instanceServiceResolver);
+
   registerServiceSet(registry, {
     domain: packDomainOf(FRAMEWORK_PACKS),
     entityServices: frameworkEntityServices,

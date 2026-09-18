@@ -7,6 +7,7 @@ import { createError } from 'h3';
 import * as repository from './repository.js';
 import { createTypeRegistry, compileClientBundle, frameworkTypes } from '~/packages/cts/src/index.js';
 import { cncPackContent, cncPackAttachmentKinds } from '~/packages/domain-cnc/src/index.js';
+import { invalidateInstanceDeclarations } from '../instances/service.js';
 
 function to400(error) {
   if (error?.statusCode) throw error;
@@ -61,6 +62,7 @@ export async function defineType(declaration = {}, { organizationId } = {}) {
     // Redefinition path: the registry applies the refuse-on-breaking diff
     // (SPEC §11) and bumps the version on compatible changes.
     const versioned = registry.defineType(orgDeclaration);
+    invalidateInstanceDeclarations(String(organizationId));
     stored = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
       ...versioned,
       scope: 'org',
@@ -93,5 +95,7 @@ export async function removeType(typeId, { organizationId } = {}) {
   if (type.scope === 'system') {
     throw createError({ statusCode: 403, message: 'System types are compiled from domain packs and cannot be deleted' });
   }
-  return await repository.deleteByTypeId(organizationId, typeId);
+  const removed = await repository.deleteByTypeId(organizationId, typeId);
+  invalidateInstanceDeclarations(String(organizationId));
+  return removed;
 }
