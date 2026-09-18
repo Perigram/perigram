@@ -25,7 +25,16 @@ export async function getActiveCompiledProcess(organizationId) {
   const organization = organizationId
     ? await getAppRegistry().getEntityService('organization').getProcessConfiguration(organizationId)
     : null;
-  return compileActiveProcessRuntime(active?.data || null, organization?.roles || {}, organizationId);
+  // A stored active process that no longer compiles (types removed from the
+  // registry view after the pack cutover) must not brick auth hydration:
+  // degrade to "no active process" with a loud log — the organization
+  // re-activates a process authored against the current view.
+  try {
+    return compileActiveProcessRuntime(active?.data || null, organization?.roles || {}, organizationId);
+  } catch (error) {
+    console.warn(`[process-definitions] active process for ${organizationId} no longer compiles and was bypassed: ${error?.message || error}`);
+    return null;
+  }
 }
 
 // The active runtime compiles through the CTS-projected domain so authored
