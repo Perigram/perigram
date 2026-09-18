@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   quantity, convert, unify,
   rowToSchema, checkFields,
-  createTypeRegistry, validateInstance, schemaFor,
+  createTypeRegistry, validateInstance, schemaFor, normalizeType,
   diffTypes, requireCompatible,
   evaluate, checkMatch,
   normalizeOperator,
@@ -220,5 +220,16 @@ describe('collapse table acceptance (SPEC §15, §19 core tier)', () => {
       ...packFixtures.queueInstance,
       fields: { ...packFixtures.queueInstance.fields, job: [{ item: { type: 'sheet', id: 'x' }, qty: 1 }] }
     })).toContainEqual(expect.stringMatching(/ref target sheet not in accepts/));
+  });
+});
+
+describe('payload traits (SPEC §4)', () => {
+  it('normalizes MIME strings and objects to the canonical trait shape', () => {
+    expect(normalizeType({ id: 'legacy-doc', class: 'file', payload: 'application/x-legacy' }).payload)
+      .toEqual({ mime: ['application/x-legacy'] });
+    expect(normalizeType({ id: 'traits-doc', class: 'file', payload: { mime: ['image/png', 'image/jpeg'], maxSize: 1024, preview: 'attachment' } }).payload)
+      .toEqual({ mime: ['image/png', 'image/jpeg'], maxSize: 1024, preview: 'attachment' });
+    expect(() => normalizeType({ id: 'empty-doc', class: 'file', payload: { mime: [] } })).toThrow(/at least one accepted MIME/);
+    expect(normalizeType({ id: 'bare-doc', class: 'item', states: { main: { initial: 'new', values: ['new'] } }, fields: { serial: { base: 'string' } } }).payload).toBeNull();
   });
 });

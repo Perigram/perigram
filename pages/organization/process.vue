@@ -203,8 +203,102 @@
                     </div>
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('typesPane.payloadMime') }}</label>
-                      <InputText v-model="classPayloadMime" placeholder="application/perigram+occs" />
+                      <InputChips v-model="classPayloadMimeValues" :placeholder="'application/perigram+occs'" />
                     </div>
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('typesPane.maxSize') }}</label>
+                        <InputNumber
+                          :model-value="selectedNode.data.payload?.maxSize"
+                          :placeholder="'5242880'"
+                          :use-grouping="false"
+                          @update:model-value="value => updateClassPayload({ maxSize: value ?? undefined })"
+                        />
+                      </div>
+                      <div class="flex flex-col gap-1">
+                        <label>{{ $t('typesPane.preview') }}</label>
+                        <Select
+                          :model-value="selectedNode.data.payload?.preview || 'attachment'"
+                          :options="payloadPreviewOptions"
+                          option-label="label"
+                          option-value="value"
+                          @update:model-value="value => updateClassPayload({ preview: value === 'attachment' ? undefined : value })"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2">
+                      <div class="flex items-center justify-between">
+                        <label>{{ $t('typesPane.operators') }}</label>
+                        <Button :label="$t('common.add')" icon="pi pi-plus" text size="small" @click="addClassOperator" />
+                      </div>
+                      <div v-for="(operator, index) of classOperators" :key="index" class="flex flex-col gap-2 rounded-ui border border-content-border p-2">
+                        <div class="flex items-center gap-2">
+                          <InputText
+                            :model-value="operator.id"
+                            size="small"
+                            class="flex-1"
+                            @update:model-value="value => updateClassOperator(index, { id: value })"
+                          />
+                          <Select
+                            :model-value="operator.species"
+                            :options="operatorSpeciesOptions"
+                            option-label="label"
+                            option-value="value"
+                            size="small"
+                            @update:model-value="value => updateClassOperator(index, { species: value })"
+                          />
+                          <Button icon="pi pi-times" text size="small" severity="danger" @click="removeClassOperator(index)" />
+                        </div>
+                        <details class="text-sm">
+                          <summary class="cursor-pointer text-muted">{{ $t('typesPane.signature') }}</summary>
+                          <div class="mt-2 flex flex-col gap-2">
+                            <div class="flex items-center gap-2">
+                              <Checkbox :model-value="Boolean(operator.input)" :binary="true" @update:model-value="value => updateClassOperator(index, { input: value ? { base: 'record', fields: {} } : null })" />
+                              <span>input</span>
+                            </div>
+                            <DescriptorEditor
+                              v-if="operator.input"
+                              :model-value="operator.input"
+                              :type-options="declarationTypeOptions"
+                              @update:model-value="value => updateClassOperator(index, { input: value })"
+                            />
+                            <div class="flex items-center gap-2">
+                              <Checkbox :model-value="Boolean(operator.output)" :binary="true" @update:model-value="value => updateClassOperator(index, { output: value ? { base: 'string' } : null })" />
+                              <span>output</span>
+                            </div>
+                            <DescriptorEditor
+                              v-if="operator.output"
+                              :model-value="operator.output"
+                              :type-options="declarationTypeOptions"
+                              @update:model-value="value => updateClassOperator(index, { output: value })"
+                            />
+                          </div>
+                        </details>
+                        <details class="text-sm">
+                          <summary class="cursor-pointer text-muted">{{ $t('typesPane.triggers') }} ({{ (operator.triggers || []).length }})</summary>
+                          <div class="mt-2 flex flex-col gap-2">
+                            <div v-for="(trigger, triggerIndex) of operator.triggers || []" :key="triggerIndex" class="flex items-center gap-2">
+                              <Select
+                                :model-value="trigger.event ? 'event' : 'schedule'"
+                                :options="[{ label: 'event', value: 'event' }, { label: 'schedule', value: 'schedule' }]"
+                                size="small"
+                                @update:model-value="value => updateClassOperatorTrigger(index, triggerIndex, value === 'event' ? { event: '' } : { schedule: '' })"
+                              />
+                              <InputText
+                                :model-value="trigger.event || trigger.schedule || ''"
+                                size="small"
+                                class="flex-1"
+                                @update:model-value="value => updateClassOperatorTriggerValue(index, triggerIndex, value)"
+                              />
+                              <Button icon="pi pi-times" text size="small" severity="danger" @click="removeClassOperatorTrigger(index, triggerIndex)" />
+                            </div>
+                            <Button :label="$t('typesPane.addTrigger')" icon="pi pi-plus" text size="small" @click="updateClassOperator(index, { triggers: [...(operator.triggers || []), { event: '' }] })" />
+                          </div>
+                        </details>
+                      </div>
+                    </div>
+
                     <Message severity="info" :closable="false">{{ $t('processDesigner.classDeclaresHint') }}</Message>
                   </div>
                 </template>
@@ -967,6 +1061,7 @@ import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
+import InputChips from 'primevue/inputchips';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Menu from 'primevue/menu';
@@ -1008,7 +1103,7 @@ import {
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncUiSurfaces, cncPackContent } from '@cutkit/domain-cnc';
-import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor, frameworkTypes, DECLARABLE_CLASSES, ON_REMOVE } from '~/packages/cts/src/index.js';
+import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor, frameworkTypes, DECLARABLE_CLASSES, ON_REMOVE, OPERATOR_SPECIES } from '~/packages/cts/src/index.js';
 import { ctsFieldToProcessType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
@@ -1155,7 +1250,7 @@ function ctsTypeView() {
       const construction = entity ? constructionFor(entity.type) : null;
       const constructible = type.scope === 'org'
         || (Boolean(entity) && !entity.meta && Boolean(construction));
-      const payload = type.payload?.mime ? ` · ${type.payload.mime}` : '';
+      const payload = type.payload?.mime ? ` · ${[].concat(type.payload.mime).join(', ')}` : '';
       return {
         id: type.id,
         class: type.class,
@@ -1608,14 +1703,66 @@ const declarableClassOptions = DECLARABLE_CLASSES.map(classOf => ({ label: class
 const declarationNodeTypes = DECLARATION_NODE_TYPES;
 const onRemoveOptions = ON_REMOVE.map(value => ({ label: value, value }));
 const selectedDeclarationEdge = computed(() => edges.value.find(edge => edge.id === selectedEdgeId.value && edge.role === 'type') || null);
-const classPayloadMime = computed({
-  get: () => selectedNode.value?.data?.payload?.mime || '',
-  set: value => {
+const classPayloadMimeValues = computed({
+  get: () => {
     const node = selectedNode.value;
-    if (!node) return;
-    node.data.payload = value ? { ...(node.data.payload || {}), mime: value } : null;
-  }
+    return node?.data?.payload ? [].concat(node.data.payload.mime || []) : [];
+  },
+  set: values => updateClassPayload({ mime: values })
 });
+function updateClassPayload(changes) {
+  const node = selectedNode.value;
+  if (!node || node.type !== 'ctsClass') return;
+  const next = { ...(node.data.payload || {}), ...changes };
+  node.data.payload = next.mime?.length ? next : null;
+  syncNodeData();
+}
+const classOperators = computed(() => (selectedNode.value?.type === 'ctsClass' ? selectedNode.value.data.operators || [] : []));
+const operatorSpeciesOptions = OPERATOR_SPECIES.map(species => ({ label: species, value: species }));
+function addClassOperator() {
+  const node = selectedNode.value;
+  if (!node || node.type !== 'ctsClass') return;
+  node.data.operators ||= [];
+  let index = node.data.operators.length + 1;
+  const taken = new Set(node.data.operators.map(operator => operator.id));
+  while (taken.has(`${node.data.typeId || 'op'}-${index}`)) index += 1;
+  node.data.operators.push({ id: `${node.data.typeId || 'op'}-${index}`, species: 'construct', input: null, output: null, triggers: [] });
+  syncNodeData();
+}
+function updateClassOperator(index, changes) {
+  const node = selectedNode.value;
+  if (!node) return;
+  node.data.operators[index] = { ...node.data.operators[index], ...changes };
+  syncNodeData();
+}
+function removeClassOperator(index) {
+  const node = selectedNode.value;
+  if (!node) return;
+  node.data.operators.splice(index, 1);
+  syncNodeData();
+}
+function updateClassOperatorTrigger(operatorIndex, triggerIndex, trigger) {
+  const node = selectedNode.value;
+  if (!node) return;
+  const triggers = [...(node.data.operators[operatorIndex].triggers || [])];
+  triggers[triggerIndex] = trigger;
+  updateClassOperator(operatorIndex, { triggers });
+}
+function updateClassOperatorTriggerValue(operatorIndex, triggerIndex, value) {
+  const trigger = (selectedNode.value?.data?.operators?.[operatorIndex]?.triggers || [])[triggerIndex] || {};
+  updateClassOperatorTrigger(operatorIndex, triggerIndex, trigger.event !== undefined ? { event: value } : { schedule: value });
+}
+function removeClassOperatorTrigger(operatorIndex, triggerIndex) {
+  const node = selectedNode.value;
+  if (!node) return;
+  const triggers = [...(node.data.operators[operatorIndex].triggers || [])];
+  triggers.splice(triggerIndex, 1);
+  updateClassOperator(operatorIndex, { triggers });
+}
+const payloadPreviewOptions = [
+  { label: 'attachment', value: 'attachment' },
+  { label: 'none', value: 'none' }
+];
 const typeAnchorOptions = computed(() => ctsTypeView().map(entry => ({
   label: `${entry.label} · ${entry.class}`,
   value: entry.id

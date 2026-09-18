@@ -20,7 +20,7 @@ export function renderPolicyFor(type = {}) {
   return Object.freeze({
     label: render.label || startCase(type.id),
     icon: render.icon || ICON_BY_CLASS[type.class] || 'pi pi-circle',
-    preview: render.preview || (type.payload ? 'attachment' : 'none'),
+    preview: render.preview || type.payload?.preview || (type.payload ? 'attachment' : 'none'),
     states: Object.fromEntries((axis?.values || []).map(value => [
       value,
       Object.freeze({

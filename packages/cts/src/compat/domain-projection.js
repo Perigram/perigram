@@ -278,7 +278,12 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   }
 
   // construction: system types keep the declared typed constructors
-  // (service-bound, SPEC §8); org types get generic creation.
+  // (service-bound, SPEC §8); org types and pack types without legacy
+  // construction synthesize generic creation from their declarations.
+  // Declared construct operators (§8 c) join as additional modes with their
+  // signature fields as mode inputs — an org-authored `via`. They are
+  // authorable and compiled here; runnability still intersects with
+  // registered runtime handlers (capability projection decides).
   let construction = baseDomain.construction || {};
   const legacyConstructionTypes = new Set(Object.keys(baseDomain.construction || {}));
   for (const type of view.values()) {
@@ -289,12 +294,16 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
       || (type.class !== 'party' && !legacyConstructionTypes.has(entityType));
     if (!synthesizes) continue;
     if (construction === baseDomain.construction) construction = { ...construction };
+    const constructOperators = Object.values(type.operators || {}).filter(operator => operator.species === 'construct');
     construction[type.id] = {
-      modes: ['genericCreate'],
+      modes: ['genericCreate', ...constructOperators.map(operator => operator.id)],
       defaultMode: 'genericCreate',
       inputs: [
         { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true }
-      ]
+      ],
+      ...(constructOperators.length ? {
+        modeInputs: Object.fromEntries(constructOperators.map(operator => [operator.id, operatorModeInputs(operator)]))
+      } : {})
     };
   }
 
@@ -327,6 +336,39 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
 
 // Lineage fields of one org type: every children edge pointing at it
 // contributes its key, recursively through ancestors in the same view.
+
+// A construct operator's signature record fields become construction mode
+// inputs (the org-authored `via`): V descriptors translate to the domain
+// input kinds at this seam — ref accepts become typed entity constraints,
+// quantity stays a unit-bearing number, structural bases ride as object
+// payloads. Required follows the row: a descriptor is required unless it
+// declares itself nullable.
+function operatorModeInputs(operator = {}) {
+  const fields = operator.input?.base === 'record' ? operator.input.fields || {} : {};
+  return Object.entries(fields).map(([name, descriptor]) => {
+    const input = {
+      id: name,
+      label: name,
+      path: name,
+      required: descriptor.nullable !== true
+    };
+    if (descriptor.base === 'ref') {
+      input.type = 'entity';
+      if (descriptor.accepts?.length === 1) input.entityType = descriptor.accepts[0];
+      else if (descriptor.accepts?.length) input.accepts = [...descriptor.accepts];
+    } else if (descriptor.base === 'quantity') {
+      input.type = 'number';
+    } else if (descriptor.base === 'instant') {
+      input.type = 'date';
+    } else if (['string', 'number', 'boolean'].includes(descriptor.base)) {
+      input.type = descriptor.base;
+    } else {
+      input.type = 'object';
+    }
+    return input;
+  });
+}
+
 function orgLineageFields(type, view, entityTypeFor, visited = new Set()) {
   if (visited.has(type.id)) return [];
   const nextVisited = new Set(visited).add(type.id);

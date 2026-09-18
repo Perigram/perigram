@@ -446,4 +446,19 @@ describe('tree declaration compilation', () => {
     );
     expect(diagnostics[0]).toContain('one declared type');
   });
+
+  it('compiles declared operators through the registry rules (R5) with named diagnostics', () => {
+    const widget = classNode('widget', {
+      operators: [
+        { id: 'bake-widget', species: 'construct', input: { base: 'record', fields: { name: { base: 'string' } } }, output: { base: 'ref', accepts: ['widget'] }, triggers: [{ event: 'widget.requested' }] },
+        { id: '', species: 'service', input: null, output: null, triggers: [] }
+      ]
+    });
+    const { declarations, diagnostics } = compileTreeDeclarations([widget], []);
+    expect(declarations[0].operators['bake-widget']).toMatchObject({
+      species: 'construct',
+      triggers: [{ event: 'widget.requested' }]
+    });
+    expect(diagnostics.some(message => message.includes('operator (unnamed)'))).toBe(true);
+  });
 });

@@ -7,6 +7,24 @@ import { checkClassObligations } from './classes.js';
 import { normalizeOperator, OPERATOR_SPECIES_BY_LETTER } from './operators.js';
 import { requireCompatible } from './diff.js';
 
+// Payload traits (SPEC §4): the payload declaration carries the accepted
+// MIME list, byte limit, and preview mode. Canonical shape is
+// { mime: string[], accept?, maxSize?, preview? }; a bare MIME string
+// (legacy persisted org docs) normalizes to the one-element list. This is
+// the whole of today's attachment-kind authoring, as data on the type.
+function normalizePayload(payload) {
+  if (!payload) return null;
+  if (typeof payload === 'string') return Object.freeze({ mime: Object.freeze([payload]) });
+  const mime = typeof payload.mime === 'string' ? [payload.mime] : [...(payload.mime || [])];
+  if (!mime.length) throw new Error('payload requires at least one accepted MIME type');
+  return Object.freeze({
+    mime: Object.freeze(mime),
+    ...(payload.accept?.length ? { accept: Object.freeze([...payload.accept]) } : {}),
+    ...(Number.isFinite(payload.maxSize) ? { maxSize: payload.maxSize } : {}),
+    ...(payload.preview ? { preview: String(payload.preview) } : {})
+  });
+}
+
 export function normalizeType(declaration = {}) {
   if (!declaration.id || !/^[a-z][a-z0-9-]*$/.test(declaration.id)) {
     throw new Error('type id must be kebab-case');
@@ -20,7 +38,7 @@ export function normalizeType(declaration = {}) {
     organizationId: declaration.scope === 'org' ? declaration.organizationId || null : null,
     version: declaration.version || 1,
     fields: normalizeRow(declaration.fields || {}),
-    payload: declaration.payload || null,
+    payload: normalizePayload(declaration.payload),
     edges: normalizeEdges(declaration.edges || {}),
     states: normalizeStates(declaration.states || {}),
     revisions: declaration.revisions || null,

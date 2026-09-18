@@ -1,6 +1,6 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import { CONSUMER_EFFECT_KINDS } from './node-catalog.js';
-import { operationKindOf, describeType } from '../../cts/src/index.js';
+import { operationKindOf, describeType, normalizeOperator } from '../../cts/src/index.js';
 
 const BLOCK_PRESENTATION = {
   identity: { defaultPath: 'identity.name', icon: 'pi pi-id-card', fields: ['identity.uid', 'identity.name', 'identity.slug', 'identity.serial', 'identity.reference'] },
@@ -226,6 +226,32 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
     }
     const children = childrenByType.get(typeId);
     if (children?.size) declaration.edges = { children: Object.fromEntries(children.entries()) };
+    const operators = Array.isArray(classNode.data.operators) ? classNode.data.operators : [];
+    if (operators.length) {
+      declaration.operators = {};
+      for (const operator of operators) {
+        const id = String(operator.id || '').trim();
+        const triggers = (operator.triggers || []).filter(trigger => String(trigger.event || trigger.schedule || '').trim());
+        try {
+          normalizeOperator({
+            id,
+            species: operator.species,
+            input: operator.input || null,
+            output: operator.output || null,
+            triggers,
+            declaringType: typeId
+          });
+          declaration.operators[id] = {
+            species: operator.species,
+            ...(operator.input ? { input: operator.input } : {}),
+            ...(operator.output ? { output: operator.output } : {}),
+            triggers
+          };
+        } catch (error) {
+          diagnostics.push(`type ${typeId}: operator ${id || '(unnamed)'}: ${error.message}`);
+        }
+      }
+    }
     return declaration;
   });
 

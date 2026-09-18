@@ -120,4 +120,30 @@ describe('domain projection (CTS view -> compiler domain)', () => {
     expect(projected.entities.find(entity => entity.type === 'queue')).toBeUndefined();
   });
 
+
+  it('declared construct operators join generic creation as org-authored via modes', () => {
+    const registry = createTypeRegistry({ id: 'op-modes' });
+    registry.defineType({
+      id: 'widget',
+      class: 'process',
+      scope: 'org',
+      organizationId: 'org-1',
+      fields: {},
+      operators: {
+        'bake-widget': {
+          species: 'construct',
+          input: { base: 'record', fields: { template: { base: 'ref', accepts: ['cassette'] }, width: { base: 'quantity', unit: 'mm', nullable: true } } },
+          output: { base: 'ref', accepts: ['widget'] }
+        }
+      }
+    });
+    const projected = projectDomainFromView(registry, 'org-1');
+    const contract = projected.construction.widget;
+    expect(contract.modes).toEqual(['genericCreate', 'bake-widget']);
+    expect(contract.defaultMode).toBe('genericCreate');
+    expect(contract.modeInputs['bake-widget']).toEqual([
+      { id: 'template', label: 'template', path: 'template', required: true, type: 'entity', entityType: 'cassette' },
+      { id: 'width', label: 'width', path: 'width', required: false, type: 'number' }
+    ]);
+  });
 });

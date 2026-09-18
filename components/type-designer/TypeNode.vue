@@ -8,7 +8,7 @@
     </div>
     <div class="mt-1.5 flex flex-wrap items-center gap-1">
       <Tag v-if="scope === 'system'" :value="`v${version}`" severity="contrast" />
-      <Tag v-if="payload" :value="payload.mime" severity="info" />
+      <Tag v-if="payload" :value="payloadMimeLabel" severity="info" />
       <Tag v-if="editor" :value="editor" severity="warn" />
       <span v-if="fieldCount" class="text-supporting text-muted">{{ fieldCount }} fields</span>
       <span v-if="stateCount" class="text-supporting text-muted">· {{ stateCount }} states</span>
@@ -35,6 +35,7 @@ const classOf = computed(() => props.data.class || 'file');
 const scope = computed(() => props.data.scope || 'org');
 const version = computed(() => props.data.version || 1);
 const payload = computed(() => props.data.payload || null);
+const payloadMimeLabel = computed(() => [].concat(props.data.payload?.mime || []).join(', '));
 const editor = computed(() => props.data.editor || null);
 const fieldCount = computed(() => Number(props.data.fieldCount) || 0);
 const stateCount = computed(() => Number(props.data.stateCount) || 0);
