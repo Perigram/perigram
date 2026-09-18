@@ -78,14 +78,16 @@ compile/validate/preview/runs; saves persist the authored vocabulary).
 
 The designer consumes exactly one domain source: the organization's CTS
 registry view projected through `projectDomainFromView` (see
-[packages/cts/SPEC.md](../../packages/cts/SPEC.md) §19 "Source flip"). The
-system pack compiles from `@cutkit/domain-cnc` content with real extracted
-rows; org-authored declarations (stored by `server/features/cts-types`)
-overlay it. Palette options, field lists, statuses, construction, and
-containment all derive from that projection — the canvas composes instances
-of types, and since the one-tree flip it also declares them: Class, Field,
-and State nodes author declarations in the same tree (`types.vue` is the
-read-only registry browser). Field inspectors edit the full V grammar
+[packages/cts/SPEC.md](../../packages/cts/SPEC.md) §19 "Source flip").
+The view is framework party declarations plus the mounted pack types plus
+the organization's authored declarations (stored by
+`server/features/cts-types`); the projection synthesizes every contract
+from those declarations — there is no legacy entity passthrough. Palette
+options, field lists, statuses, construction, and containment all derive
+from that projection — the canvas composes instances of types, and since
+the one-tree flip it also declares them: Class, Field, and State nodes
+author declarations in the same tree (`types.vue` is the read-only
+registry browser). Field inspectors edit the full V grammar
 through `DescriptorEditor` (units, ref targets, enum values, variant tags,
 list/map item types, nested record fields), class inspectors own payload
 traits and operator facets (species signatures with triggers), class→class

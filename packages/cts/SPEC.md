@@ -516,30 +516,36 @@ intents on operators, §8 operator species + triggers, §12 rules R1–R6,
 §13 collection mapping. Everything in §15's collapse table must land here —
 completeness of the tier is measured by that table.
 
-**Source flip (landed):** the process designer and the process compiler's
-domain input consume exactly one source — the organization's registry view
-through `projectDomainFromView`. System-type field rows are extracted for
-real from the legacy `data`/`specs` field schemas (nested paths become
-`record` rows, unit numbers become `quantity`, entity refs become `ref`,
-each field keeps its legacy `slot`); containment carries `lineageKey` on
-children edges; org types synthesize field schemas (core-slot convention +
-rows; `item` quantities land in `specs`, everything else in `data`),
-generic construction (`genericCreate` + name prompt), and attachment kinds
-from payload traits. The projection asserts system-type equivalence with
-the legacy tables by test. The collapse remainder — policy-derived field
-paths, summary/relation descriptor extras, typed service-bound
-constructors, commands/tasks — stays declared on the legacy content source
-until its owning facet (§9 aggregates, §10 policy, §8 operator registry)
-lands; it shrinks facet by facet, it never grows. Type declarations are
-authored in the types pane (`pages/organization/types.vue`); the process
-canvas composes instances, it does not declare types.
+**Source flip (landed, then the cut):** the process designer and the
+process compiler's domain input consume exactly one source — the
+organization's registry view through `projectDomainFromView`. The
+strangler phase converted legacy tables and asserted projection
+equivalence by test; that phase is over and the converter is deleted.
+The projection is now **synthesis-only**: every type in the view —
+framework, pack, or org — synthesizes its entities entry (per-class
+collection per §13), workflows (declared states/transitions), field
+schemas (core-slot convention + rows; `item` quantities land in `specs`,
+everything else in `data`), field access (bound to the cts-types
+feature), containment (children edges), construction (`genericCreate` +
+declared construct operators as `via` modes), relations (declared
+edges), and attachment kinds (payload traits). Nothing passes through
+from a legacy base domain: entity tables, workflows, construction,
+field schemas, field access, relations, containment, and attachment
+kinds supplied on `baseDomain` are ignored by the projection — the base
+contributes only operator contracts (commands/tasks/hooks), the
+framework canonical block vocabulary, and pack service registrations.
+Legacy persisted data in per-entity collections is abandoned, not
+migrated. Type declarations are authored in the process designer tree
+(one tree, §20); `pages/organization/types.vue` is the registry browser.
 
-**Open frontier (§13 second half):** org-authored types have no runtime
-instance services — the designer and compiler accept them, but execution
-awaits the generic per-class file/item/group/process services. Until those
-land, capability projection keeps org types out of runnable option lists;
-they are authorable and compiled, not executable. This is the declared
-gap, not an oversight.
+**Open frontier (§13 second half — closed by the cut):** org-authored
+and pack types execute through the generic per-class instance services;
+there are no hand-written entity services beyond the framework's five.
+The registry view is the whole catalog: legacy entity types outside the
+view are not projected, not offered by the palette, and not executable —
+constructing one fails loudly (`Unknown type`). Persisted legacy
+collections and process definitions authored against them are abandoned
+data; organizations re-author on declarations.
 
 **Grammar alignment (from the audit, before L2):** reconcile V with
 `PROCESS_BASE_TYPES` — adopt `entity`/`entityRef` separation, the coercion
@@ -713,6 +719,9 @@ exists.
 The CNC pack is the reference implementation: cassette (OCCS file, edited
 by the cassette designer), sheet design, facade design as file types, and
 the nesting solver as a registered service. The legacy entity tables
-(`domain-cnc` entities/workflows/construction) remain mounted
-transitionally until the generic instance services land; they are not part
-of the pack's type view.
+(`domain-cnc` entities/workflows/construction) are no longer part of the
+process path: the projection does not read them, the palette does not
+offer them, and the runtime serves none of them. They remain in the
+package only as pack-internal content for non-process surfaces (editors'
+own feature modules, the legacy UI fallbacks SPEC §21 holds pack-internal)
+until those surfaces are deleted.
