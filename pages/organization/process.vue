@@ -1397,7 +1397,11 @@ const {
     socket: createSocket,
     statusDefinition: createStatusDefinition,
     valueInput: createValueInput,
-    processNode: createProcessNode
+    processNode: createProcessNode,
+    ctsClass: id => ({ id, kind: 'class', typeId: '', class: 'file', payload: null, operators: [] }),
+    ctsField: id => ({ id, kind: 'field', typeId: null, name: '', descriptor: { base: 'string' } }),
+    ctsState: id => ({ id, kind: 'state', typeId: null, value: '', initial: false, terminal: false }),
+    ctsType: id => ({ id, kind: 'type', typeId: '' })
   }
 });
 
@@ -2094,10 +2098,11 @@ async function createDraftFromDock() {
 // compile lives in @cutkit/processes (compileTreeDeclarations): fields,
 // states, transitions with intents, children edges with onRemove. Valid
 // declarations post to the registry; named diagnostics surface as errors
-// without blocking the draft save — activation still fails closed through
+// without blocking — activation still fails closed through
 // checkDeclarationsAgainstCts and the registry compile. After the registry
 // refresh, canvas nodes re-sync so constructs bound to just-authored types
-// immediately gain their typed row-field sockets.
+// immediately gain their typed row-field sockets. This runs on APPLY, not
+// on save: saving persists the tree with the draft; applying compiles it.
 async function persistTreeDeclarations() {
   const hasClasses = nodes.value.some(node => node.type === 'ctsClass');
   if (!hasClasses) return;
@@ -2122,7 +2127,6 @@ async function saveDraft() {
   savingDraft.value = true;
   try {
     syncNodeData();
-    await persistTreeDeclarations();
     if (!draft.value?._id || isActiveProcess.value) return await createDraft({ copyActive: isActiveProcess.value });
     const updated = await persistence.saveDraft(draft.value._id, serializeProcess());
     upsertProcessDefinition(updated);
@@ -2161,6 +2165,9 @@ async function saveDraftFromDock() {
 
 async function activateDraft() {
   await saveDraft();
+  // Apply compiles the app: tree declarations land in the registry first,
+  // so validation and activation see the types the graph references.
+  await persistTreeDeclarations();
   const result = await persistence.validateDraft(draft.value._id);
   validation.value = result;
   if (!result.ok) {
@@ -2303,25 +2310,30 @@ function addNode(item, position = nextNodePosition()) {
     data: { refId, label: refId }
   };
   if (type === 'ctsType' || type === 'ctsClass' || type === 'ctsField' || type === 'ctsState') {
-    // Declaration-plane canvas nodes: they own no process records — they
-    // ARE the type vocabulary, composed in the same tree (SPEC §20/§21).
+    // Declaration-plane canvas nodes own `ctsTypes` records — they ARE the
+    // type vocabulary, composed in the same tree (SPEC §20/§21), persisted
+    // with the draft and compiled to the registry at activation.
     const classOf = typeof item === 'object' ? item.preset?.classOf : null;
     const typeNode = {
       id,
       type,
       position,
       selected: true,
-      data: type === 'ctsClass'
-        ? { typeId: suggestTreeTypeId(), class: classOf || 'file', scope: 'tree', label: '', payload: null, fields: 0, states: 0 }
-        : type === 'ctsType'
-          ? { typeId: '', label: '' }
-          : type === 'ctsField'
-            ? { typeId: null, name: '', descriptor: { base: 'string' } }
-            : { typeId: null, value: '', initial: false, terminal: false }
+      data: {
+        refId: id,
+        ...(type === 'ctsClass'
+          ? { typeId: suggestTreeTypeId(), class: classOf || 'file', scope: 'tree', label: '', payload: null, fields: 0, states: 0 }
+          : type === 'ctsType'
+            ? { typeId: '', label: '' }
+            : type === 'ctsField'
+              ? { typeId: null, name: '', descriptor: { base: 'string' } }
+              : { typeId: null, value: '', initial: false, terminal: false })
+      }
     };
     nodes.value = [...nodes.value.map(item => ({ ...item, selected: false })), typeNode];
     selectedNodeId.value = id;
     selectedEdgeId.value = null;
+    syncDeclarationRecord(ensureRecord(recordKeyForType(type), typeNode, factoryForType(type)), typeNode);
     return typeNode;
   }
   const record = ensureRecord(recordKeyForType(type), { data: { refId }, type }, factoryForType(type));
@@ -3989,15 +4001,43 @@ function declarationPorts(node) {
   return null;
 }
 
+// Declaration authoring state persists in `ctsTypes` records with the
+// draft (SPEC §20/§21 one tree): saving keeps the nodes, activation
+// compiles them into registry declarations.
+function syncDeclarationRecord(record = {}, node = {}) {
+  record.kind = { ctsClass: 'class', ctsField: 'field', ctsState: 'state', ctsType: 'type' }[node.type] || record.kind;
+  if (node.type === 'ctsClass') {
+    record.typeId = node.data.typeId || '';
+    record.class = node.data.class || 'file';
+    record.payload = node.data.payload || null;
+    record.operators = Array.isArray(node.data.operators) ? node.data.operators : [];
+  }
+  if (node.type === 'ctsField') {
+    record.typeId = node.data.typeId || null;
+    record.name = node.data.name || '';
+    record.descriptor = { ...(node.data.descriptor || { base: 'string' }) };
+  }
+  if (node.type === 'ctsState') {
+    record.typeId = node.data.typeId || null;
+    record.value = node.data.value || '';
+    record.initial = node.data.initial === true;
+    record.terminal = node.data.terminal === true;
+  }
+  if (node.type === 'ctsType') record.typeId = node.data?.typeId || '';
+}
+
 function enrichNodeData(node) {
   if (node.type === 'ctsClass') {
     recountDeclaration(node);
+    syncDeclarationRecord(ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type)), node);
     return { ...node, data: { ...node.data, label: node.data.label || node.data.typeId, version: 1, scope: 'org', ...declarationPorts(node) } };
   }
   if (node.type === 'ctsField' || node.type === 'ctsState') {
+    syncDeclarationRecord(ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type)), node);
     return { ...node, data: { ...node.data, ...declarationPorts(node) } };
   }
   if (node.type === 'ctsType') {
+    syncDeclarationRecord(ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type)), node);
     const entry = ctsTypeView().find(candidate => candidate.id === node.data?.typeId);
     // a selected reference carries the same typed entityRef output as a
     // bound class node, so binding wires typecheck identically

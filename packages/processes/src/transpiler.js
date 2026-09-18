@@ -5,7 +5,11 @@ const CANVAS_RECORD_KEYS = {
   socket: 'sockets',
   statusDefinition: 'statusDefinitions',
   valueInput: 'valueInputs',
-  processNode: 'processNodes'
+  processNode: 'processNodes',
+  ctsClass: 'ctsTypes',
+  ctsField: 'ctsTypes',
+  ctsState: 'ctsTypes',
+  ctsType: 'ctsTypes'
 };
 
 // Only these record kinds are owned by canvas nodes: deleting the canvas node
@@ -14,20 +18,25 @@ const CANVAS_RECORD_KEYS = {
 // a canvas node and survives the canvas round trip untouched.
 const CANVAS_OWNED_RECORD_KEYS = {
   statusDefinition: 'statusDefinitions',
-  processNode: 'processNodes'
+  processNode: 'processNodes',
+  // Declaration-plane nodes own their authoring records in `ctsTypes`
+  // (SPEC §20/§21 one tree): classes, fields, states, and type references
+  // persist with the draft exactly like status definitions do — saving
+  // never drops them, and they compile to the registry at activation.
+  ctsClass: 'ctsTypes',
+  ctsField: 'ctsTypes',
+  ctsState: 'ctsTypes',
+  ctsType: 'ctsTypes'
 };
 
 const RECORD_NODE_TYPES = Object.keys(CANVAS_OWNED_RECORD_KEYS);
 
-// `ctsType` canvas nodes are type-system reference anchors: they persist in
-// the graph, own no records, and their wires carry type bindings into
-// species records (role: 'type' edges — canvas gestures, not dataflow).
-const CANVAS_PERSISTENT_NODE_TYPES = [...RECORD_NODE_TYPES, 'ctsType'];
+const CANVAS_PERSISTENT_NODE_TYPES = [...RECORD_NODE_TYPES];
 
 
 export function hasCanonicalProcessSource(definition = {}) {
   const data = definition.data || definition;
-  return ['roleGrants', 'servicePrincipals', 'producerOutputs', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens']
+  return ['roleGrants', 'servicePrincipals', 'producerOutputs', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens', 'ctsTypes']
     .some(key => data[key] && typeof data[key] === 'object' && Object.keys(data[key]).length > 0);
 }
 
@@ -39,11 +48,9 @@ export function definitionToCanvas(definition = {}) {
   const projectedBySemanticId = new Map(projectedNodes.map(node => [semanticNodeId(node), node]));
   const savedNodes = (process.graph.nodes || [])
     .filter(node => CANVAS_PERSISTENT_NODE_TYPES.includes(node.type))
-    .map(node => node.type === 'ctsType'
-      ? normalizeCanvasNode(node)
-      : (projectedBySemanticId.has(semanticNodeId(node))
-        ? mergeProjectedNode(projectedBySemanticId.get(semanticNodeId(node)), node)
-        : null))
+    .map(node => (projectedBySemanticId.has(semanticNodeId(node))
+      ? mergeProjectedNode(projectedBySemanticId.get(semanticNodeId(node)), node)
+      : normalizeCanvasNode(node)))
     .filter(Boolean);
 
   const savedSemanticIds = new Set(savedNodes.map(semanticNodeId));
@@ -91,6 +98,30 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
     process[key] = Object.fromEntries(
       Object.entries(process[key] || {}).filter(([id, record]) => refs.has(String(record?.id || id)))
     );
+  }
+
+  // Declaration authoring state is written from the canvas itself — the
+  // record is the persisted form of the node, not a panel-edited twin.
+  process.ctsTypes = { ...(process.ctsTypes || {}) };
+  const kindByType = { ctsClass: 'class', ctsField: 'field', ctsState: 'state', ctsType: 'type' };
+  for (const node of nodes) {
+    const kind = kindByType[node.type];
+    if (!kind) continue;
+    const refId = String(node.data?.refId || node.id);
+    const data = node.data || {};
+    process.ctsTypes[refId] = {
+      ...(process.ctsTypes[refId] || {}),
+      id: refId,
+      kind,
+      typeId: data.typeId ?? null,
+      ...(kind === 'class' ? {
+        class: data.class || 'file',
+        payload: data.payload || null,
+        operators: Array.isArray(data.operators) ? data.operators : []
+      } : {}),
+      ...(kind === 'field' ? { name: data.name || '', descriptor: { ...(data.descriptor || { base: 'string' }) } } : {}),
+      ...(kind === 'state' ? { value: data.value || '', initial: data.initial === true, terminal: data.terminal === true } : {})
+    };
   }
 
   const edges = (canvas.edges || [])
@@ -160,6 +191,7 @@ function normalizeProcessLike(definition = {}) {
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
     statusDefinitions: normalizeRecord(data.statusDefinitions),
+    ctsTypes: normalizeRecord(data.ctsTypes),
     valueInputs: normalizeRecord(data.valueInputs),
     processNodes: normalizeRecord(data.processNodes),
     screens: normalizeRecord(data.screens),
@@ -172,8 +204,37 @@ function normalizeProcessLike(definition = {}) {
 function projectRecordNodes(process) {
   return [
     ...projectRecords(process.statusDefinitions, 'statusDefinition', 560),
-    ...projectRecords(process.processNodes, 'processNode', 420)
+    ...projectRecords(process.processNodes, 'processNode', 420),
+    ...projectDeclarationRecords(process.ctsTypes, 80)
   ];
+}
+
+// Declaration records project by their kind discriminator (SPEC §20/§21
+// one tree): the record data is the authoring state the canvas node edits.
+function projectDeclarationRecords(records = {}, x) {
+  const nodeTypeByKind = { class: 'ctsClass', field: 'ctsField', state: 'ctsState', type: 'ctsType' };
+  return Object.entries(records).map(([id, record], index) => {
+    const refId = String(record.id || id);
+    const type = nodeTypeByKind[record.kind] || 'ctsClass';
+    return {
+      id: refId,
+      type,
+      position: { x, y: 60 + index * 130 },
+      data: {
+        refId,
+        semanticId: `${type}:${refId}`,
+        ...(record.kind === 'class' ? {
+          typeId: record.typeId || '',
+          class: record.class || 'file',
+          payload: record.payload || null,
+          operators: record.operators || []
+        } : {}),
+        ...(record.kind === 'field' ? { typeId: record.typeId || null, name: record.name || '', descriptor: { ...(record.descriptor || { base: 'string' }) } } : {}),
+        ...(record.kind === 'state' ? { typeId: record.typeId || null, value: record.value || '', initial: record.initial === true, terminal: record.terminal === true } : {}),
+        ...(record.kind === 'type' ? { typeId: record.typeId || '' } : {})
+      }
+    };
+  });
 }
 
 function projectRecords(records = {}, type, x) {
@@ -218,7 +279,7 @@ function collectCanvasRefs(nodes = []) {
 
 function compareSemanticRecords(source, next) {
   const errors = [];
-  for (const key of ['roleGrants', 'servicePrincipals', 'producerOutputs', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens']) {
+  for (const key of ['roleGrants', 'servicePrincipals', 'producerOutputs', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens', 'ctsTypes']) {
     const sourceJson = JSON.stringify(sortObject(source[key] || {}));
     const nextJson = JSON.stringify(sortObject(next[key] || {}));
     if (sourceJson !== nextJson) errors.push(`Round-trip changed ${key}`);

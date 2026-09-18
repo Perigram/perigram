@@ -1,6 +1,5 @@
 import { computed } from 'vue';
 import { CONSUMER_EFFECT_KINDS } from '~/packages/processes/src/node-catalog.js';
-import { DECLARATION_NODE_TYPES } from '~/packages/processes/src/designer.js';
 
 const RECORD_KEYS = Object.freeze({
   entity: 'producerOutputs',
@@ -9,19 +8,18 @@ const RECORD_KEYS = Object.freeze({
   socket: 'sockets',
   statusDefinition: 'statusDefinitions',
   valueInput: 'valueInputs',
-  processNode: 'processNodes'
+  processNode: 'processNodes',
+  // Declaration-plane nodes own their authoring records in `ctsTypes`
+  // (persisted with the draft; compiled to the registry at activation).
+  ctsClass: 'ctsTypes',
+  ctsField: 'ctsTypes',
+  ctsState: 'ctsTypes',
+  ctsType: 'ctsTypes'
 });
 
 export function useProcessDesignerInspector({ draft, selectedNode, factories }) {
   function recordKeyForType(type) {
     return RECORD_KEYS[type] || RECORD_KEYS.entity;
-  }
-
-  // Declaration-plane canvas nodes own no records — resolving a record for
-  // them would mint a phantom entity profile in the draft. They are edited
-  // through their declaration inspectors only.
-  function ownsNoRecord(type) {
-    return DECLARATION_NODE_TYPES.includes(type);
   }
 
   function factoryForType(type) {
@@ -42,7 +40,7 @@ export function useProcessDesignerInspector({ draft, selectedNode, factories }) 
 
   function selectedRecordFor(type) {
     const node = selectedNode.value;
-    if (node?.type !== type || ownsNoRecord(type)) return {};
+    if (node?.type !== type) return {};
     return ensureRecord(recordKeyForType(type), node, factoryForType(type));
   }
 
@@ -81,7 +79,7 @@ export function useProcessDesignerInspector({ draft, selectedNode, factories }) 
     recordKeyForType,
     selectedRecord: computed(() => {
       const node = selectedNode.value;
-      if (!node || ownsNoRecord(node.type)) return {};
+      if (!node) return {};
       return ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
     }),
     selectedEntity: computed(() => (

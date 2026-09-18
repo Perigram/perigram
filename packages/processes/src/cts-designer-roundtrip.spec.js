@@ -192,4 +192,31 @@ describe('graph protocol v5 designer round trip', () => {
     expect(diagnostics).toContainEqual(expect.stringMatching(/unknown service operator algebra.solve/));
   });
 
+
+  it('declaration nodes and wires persist with the draft through the canvas round trip', () => {
+    const canvas = {
+      nodes: [
+        { id: 'c1', type: 'ctsClass', position: { x: 0, y: 0 }, data: { refId: 'c1', typeId: 'panel', class: 'item', payload: null, operators: [] } },
+        { id: 'f1', type: 'ctsField', position: { x: 260, y: 0 }, data: { refId: 'f1', typeId: 'panel', name: 'width', descriptor: { base: 'quantity', unit: 'mm' } } },
+        { id: 's1', type: 'ctsState', position: { x: 260, y: 120 }, data: { refId: 's1', typeId: 'panel', value: 'raw', initial: true, terminal: false } }
+      ],
+      edges: [
+        { id: 'declares:f1-c1', source: 'f1', target: 'c1', role: 'type', label: 'field' },
+        { id: 'declares:s1-c1', source: 's1', target: 'c1', role: 'type', label: 'state' }
+      ]
+    };
+    const definition = canvasToDefinition(canvas, normalizeProcessDefinition({ dataflowVersion: 4 }));
+    expect(Object.keys(definition.ctsTypes).sort()).toEqual(['c1', 'f1', 's1']);
+    expect(definition.ctsTypes.f1).toMatchObject({ kind: 'field', typeId: 'panel', name: 'width' });
+    expect(definition.graph.nodes.map(node => node.type).sort()).toEqual(['ctsClass', 'ctsField', 'ctsState']);
+    // declaration wires persist as graph gestures; the compiler drops
+    // role:'type' edges at normalization (SPEC §20)
+    expect(definition.graph.edges.filter(edge => edge.role === 'type')).toHaveLength(2);
+
+    const reloaded = definitionToCanvas(definition);
+    expect(reloaded.nodes.map(node => node.type).sort()).toEqual(['ctsClass', 'ctsField', 'ctsState']);
+    expect(reloaded.edges.filter(edge => edge.role === 'type')).toHaveLength(2);
+    const roundTrip = canvasToDefinition(reloaded, definition);
+    expect(Object.keys(roundTrip.ctsTypes).sort()).toEqual(['c1', 'f1', 's1']);
+  });
 });
