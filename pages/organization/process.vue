@@ -1215,6 +1215,17 @@ const { inferGenericNodeTypeFromConnection } = useProcessDesignerConnectionInfer
 // pane (pages/organization/types.vue); the canvas composes instances.
 const ctsOrgTypes = ref([]);
 let ctsRegistryCache = null;
+
+// The active organization for the registry view: the draft's lineage when a
+// process is loaded, otherwise the authenticated organization — tree
+// authoring must resolve the org view even before any draft exists.
+function activeOrganizationId() {
+  return draft.value?.lineage?.organizationId
+    || authStore.organizationData?._id
+    || authStore.userData?.organizationId
+    || authStore.memberships?.[0]?.organizationId
+    || null;
+}
 let designerCapabilities = null;
 
 function resetCtsRegistry() {
@@ -1222,7 +1233,7 @@ function resetCtsRegistry() {
 }
 
 function ctsProjectedDomain() {
-  return projectDomainFromView(ctsRegistry(), draft.value?.lineage?.organizationId || null, cncDomain, {
+  return projectDomainFromView(ctsRegistry(), activeOrganizationId(), cncDomain, {
     packServices: cncPackContent.services
   });
 }
@@ -1238,7 +1249,7 @@ function ctsProjectedDomain() {
 // constructor, not a blanket generic.
 function ctsTypeView() {
   const domain = ctsProjectedDomain();
-  return ctsRegistry().listTypes(draft.value?.lineage?.organizationId || null)
+  return ctsRegistry().listTypes(activeOrganizationId())
     .filter(type => type.class !== 'party')
     .map(type => {
       const policy = renderPolicyFor(type);
@@ -1389,7 +1400,7 @@ function ctsRegistry() {
   // in place; invalid ones are skipped — save/apply surfaces them).
   for (const declaration of treeOverlayDeclarations()) {
     try {
-      registry.defineType({ ...declaration, scope: 'org', organizationId: draft.value?.lineage?.organizationId || null });
+      registry.defineType({ ...declaration, scope: 'org', organizationId: activeOrganizationId() });
     } catch {
       // invalid tree state: the declaration diagnostics own the report
     }
@@ -2738,7 +2749,7 @@ function recomputeProcessPreview(shouldApply = () => true) {
   const declarationErrors = checkDeclarationsAgainstCts(
     processDefinitionSnapshot(),
     ctsRegistry(),
-    draft.value?.lineage?.organizationId || null
+    activeOrganizationId()
   );
   if (declarationErrors.length) {
     compiledPreview.value = null;
@@ -2748,7 +2759,7 @@ function recomputeProcessPreview(shouldApply = () => true) {
   try {
     compiledPreview.value = compileProcessDefinition(
       processDefinitionSnapshot(),
-      projectDomainFromView(ctsRegistry(), draft.value?.lineage?.organizationId || null, cncDomain),
+      projectDomainFromView(ctsRegistry(), activeOrganizationId(), cncDomain),
       { roles: organizationRoles.value }
     );
     compiledPreviewError.value = '';
@@ -3417,7 +3428,13 @@ function syncProcessNode(node = {}) {
   } else {
     node.operation ||= defaultProcessNodeOperation(node.kind);
   }
-  node.type = node.type?.base ? processType(node.type.base, node.type) : processType('json');
+  // v5 species records carry the CTS type id as a STRING on `type`; v4
+  // records carry the value-type descriptor object on the same key. Never
+  // overwrite a string binding — the value descriptor belongs to v4
+  // records only (a construct's "value type" is its bound type).
+  if (typeof node.type !== 'string') {
+    node.type = node.type?.base ? processType(node.type.base, node.type) : processType('json');
+  }
   node.access = node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : (node.access || 'item');
   node.matching = ['longest', 'shortest', 'cross'].includes(node.matching) ? node.matching : 'longest';
   node.inputTransforms ||= {};
@@ -3758,8 +3775,13 @@ function processNodeDisplayLabel(node = {}) {
   if (['value.cast', 'value.parse', 'value.convertUnit', 'value.toEntityRef', 'value.toJson'].includes(node.kind)) {
     return t('processDesigner.automaticConversion', { type: node.type ? formatProcessType(node.type) : '' });
   }
-  const items = designer.paletteGroups.flatMap(group => group.items).filter(candidate => candidate.kind === node.kind);
-  // discriminated kinds (cts.read) match their preset first
+  // The bound type decides the catalog item: a bare species record must
+  // not borrow the first catalog entry's label (the type catalog leads
+  // the palette, so items[0] is always a pre-bound variant).
+  const boundType = typeof node.type === 'string' ? node.type : (node.entityType || '');
+  const items = designer.paletteGroups.flatMap(group => group.items)
+    .filter(candidate => candidate.kind === node.kind)
+    .filter(candidate => !candidate.preset?.type || candidate.preset.type === boundType);
   const item = items.find(candidate => candidate.preset?.select && candidate.preset.select === node.select)
     || items[0];
   return item ? paletteLabel(item) : humanizeNodeLabel(node.kind || '');
@@ -4800,8 +4822,12 @@ function connectionCompatibility(connection = {}) {
         if (!sourcePort) return { ok: false, reason: 'The type node has no selected type' };
         // An unbound species record (e.g. a bare cts.construct) has no
         // typed ports yet — the binding wire IS the authoring gesture that
-        // writes the type; it typechecks against the source alone.
-        if (!targetRecord?.entityType && !targetRecord?.type) {
+        // writes the type; it typechecks against the source alone. Unbound
+        // means: no storage entity id AND no v5 type-id string (the value
+        // descriptor object is not a binding; an empty string is not one
+        // either).
+        const boundTypeId = typeof targetRecord?.type === 'string' ? targetRecord.type : '';
+        if (!targetRecord?.entityType && !boundTypeId) {
           return { ok: true, source: sourcePort };
         }
         const inputs = resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs;
