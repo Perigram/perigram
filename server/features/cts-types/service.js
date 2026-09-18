@@ -5,8 +5,8 @@
 // refuse-on-breaking diff (SPEC §11).
 import { createError } from 'h3';
 import * as repository from './repository.js';
-import { createTypeRegistry, convertCncDomain, convertAttachmentKinds, compileClientBundle } from '~/packages/cts/src/index.js';
-import { cncEntities, cncWorkflows, cncContainment, cncEntityFieldSchemas, cncAttachmentKinds } from '~/packages/domain-cnc/src/index.js';
+import { createTypeRegistry, compileClientBundle, frameworkTypes } from '~/packages/cts/src/index.js';
+import { cncPackContent, cncPackAttachmentKinds } from '~/packages/domain-cnc/src/index.js';
 
 function to400(error) {
   if (error?.statusCode) throw error;
@@ -17,7 +17,9 @@ function to400(error) {
 // declarations overlaying. Shadowing a system id throws here (R6/§4).
 export async function compileRegistryForOrganization(organizationId) {
   const registry = createTypeRegistry({ id: `cts-types:${organizationId || 'system'}` });
-  for (const declaration of convertCncDomain({ entities: cncEntities, workflows: cncWorkflows, containment: cncContainment, fieldSchemas: cncEntityFieldSchemas })) {
+  // System types are the framework's party declarations plus mounted pack
+  // types (SPEC §21) — no converted legacy entity tables.
+  for (const declaration of [...frameworkTypes, ...cncPackContent.types]) {
     registry.defineType(declaration);
   }
   if (organizationId) {
@@ -39,7 +41,7 @@ export async function describeOrganizationTypes(organizationId) {
   const registry = await compileRegistryForOrganization(organizationId);
   return {
     bundle: compileClientBundle(registry, organizationId),
-    attachmentKinds: convertAttachmentKinds(cncAttachmentKinds)
+    attachmentKinds: cncPackAttachmentKinds
   };
 }
 

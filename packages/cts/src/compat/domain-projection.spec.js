@@ -93,4 +93,28 @@ describe('domain projection (CTS view -> compiler domain)', () => {
     expect(projected.entities.find(entity => entity.type === 'widget')).toBeUndefined();
     expect(projected.construction.widget).toBeUndefined();
   });
+  it('pack-mounted system types without legacy content synthesize from their rows', () => {
+    const registry = createTypeRegistry({ id: 'pack-projection' });
+    registry.defineType({
+      id: 'cassette', class: 'file', scope: 'system', version: 1,
+      payload: { mime: 'application/perigram+occs' },
+      fields: { name: { base: 'string' } },
+      render: { label: 'Cassette' }
+    });
+    registry.defineType({
+      id: 'widget', class: 'process', scope: 'org', organizationId: 'org-1',
+      fields: { note: { base: 'string' } },
+      states: { main: { initial: 'raw', values: ['raw', 'done'], terminal: ['done'] } }
+    });
+    const projected = projectDomainFromView(registry, 'org-1', cncDomain);
+    const cassette = projected.entities.find(entity => entity.type === 'cassette');
+    expect(cassette).toBeTruthy();
+    expect(cassette.collection).toBe('cassettes');
+    const schemas = projected.fieldSchemas.cassette;
+    expect(schemas.find(field => field.path === 'data.name')).toMatchObject({ writable: true });
+    expect(schemas.find(field => field.path === 'identity.name')).toMatchObject({ constructible: true });
+    // legacy entities untouched: the pack adds, it does not replace
+    expect(projected.entities.find(entity => entity.type === 'queue')).toBeTruthy();
+  });
+
 });

@@ -1,4 +1,5 @@
 export { canonicalEntityType, cncEntities, entitySurfaceKey } from './entities.js';
+export { cncPackContent, cncFileTypes, cncEditors, cncServices, cncAttachmentKinds as cncPackAttachmentKinds } from './pack.js';
 export { cncWorkflows } from './workflows.js';
 export { cncEvents } from './events.js';
 export { cncEffects } from './effects.js';

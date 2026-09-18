@@ -921,9 +921,8 @@ import {
 } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
-import { cncDomain, cncUiSurfaces } from '@cutkit/domain-cnc';
-import { cncEntities, cncWorkflows, cncContainment, cncEntityFieldSchemas } from '@cutkit/domain-cnc';
-import { createTypeRegistry, convertCncDomain, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor } from '~/packages/cts/src/index.js';
+import { cncDomain, cncUiSurfaces, cncPackContent } from '@cutkit/domain-cnc';
+import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor, frameworkTypes } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
@@ -1156,10 +1155,9 @@ function v5Record(node = {}) {
 function ctsRegistry() {
   if (ctsRegistryCache) return ctsRegistryCache;
   const registry = createTypeRegistry({ id: 'designer-cts' });
-  for (const declaration of convertCncDomain({
-    entities: cncEntities, workflows: cncWorkflows, containment: cncContainment,
-    fieldSchemas: cncEntityFieldSchemas
-  })) {
+  // System types: framework party declarations plus mounted pack types
+  // (SPEC §21). No converted legacy entity tables.
+  for (const declaration of [...frameworkTypes, ...cncPackContent.types]) {
     registry.defineType(declaration);
   }
   for (const declaration of ctsOrgTypes.value) {

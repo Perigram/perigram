@@ -27,8 +27,10 @@ describe('cts type storage', () => {
     const bundle = await describeOrganizationTypes(ORG);
     expect(bundle.bundle.ok).toBe(true);
     expect(bundle.bundle.types.some(type => type.id === 'widget' && type.scope === 'org')).toBe(true);
-    expect(bundle.bundle.types.filter(type => type.id === 'queue')).toHaveLength(1);
-    expect(bundle.attachmentKinds.LAYOUT_DXF).toMatchObject({ preview: 'dxf' });
+    expect(bundle.bundle.types.filter(type => type.id === 'cassette')).toHaveLength(1);
+    expect(bundle.bundle.types.filter(type => type.id === 'queue')).toHaveLength(0);
+    expect(bundle.bundle.types.filter(type => type.id === 'organization').length).toBeGreaterThan(0);
+    expect(bundle.attachmentKinds.OCCS_SOURCE).toMatchObject({ mimeType: 'application/perigram+occs' });
   });
 
   it('stores valid org declarations after full-view compile', async () => {
@@ -59,13 +61,13 @@ describe('cts type storage', () => {
 
   it('refuses shadowing a system type', async () => {
     await expect(defineType(
-      { id: 'queue', class: 'file', fields: { rogue: { base: 'string' } } },
+      { id: 'cassette', class: 'file', fields: { rogue: { base: 'string' } } },
       { organizationId: ORG }
     )).rejects.toThrow(/shadows a system type/);
   });
 
   it('deletes org types, refuses system types', async () => {
-    await expect(removeType('queue', { organizationId: ORG })).rejects.toThrow(/System types/);
+    await expect(removeType('cassette', { organizationId: ORG })).rejects.toThrow(/System types/);
     repository.listByOrganization.mockResolvedValue([
       { id: 'widget', class: 'file', scope: 'org', organizationId: ORG, version: 1, fields: {} }
     ]);
@@ -75,7 +77,7 @@ describe('cts type storage', () => {
 
   it('exposes a registry for downstream runtimes', async () => {
     const registry = await compileRegistryForOrganization(ORG);
-    expect(registry.getType('queue')).toBeTruthy();
-    expect(registry.getType('queue', 'other-org')?.scope).toBe('system');
+    expect(registry.getType('cassette')).toBeTruthy();
+    expect(registry.getType('cassette', 'other-org')?.scope).toBe('system');
   });
 });

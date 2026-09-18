@@ -1,45 +1,28 @@
+// The framework runtime registry: party/file/process-definition services,
+// framework commands, and pack mounting. This module imports nothing
+// CNC-shaped — the CNC plug-in (server/packs/cnc) is mounted like any pack,
+// and removing it removes the pack.
 import { createRegistry } from '~/server/core/blocks/index.js';
-import { cncDomain } from '~/packages/domain-cnc/src/index.js';
 import { hooks } from '~/server/core/machines/hooks.js';
 
 import * as artifactsService from '~/server/features/artifacts/service.js';
-import * as artifactTemplatesService from '~/server/features/artifact-templates/service.js';
-import * as cassetteDesignsService from '~/server/features/cassette-designs/service.js';
-import * as cassetteInstancesService from '~/server/features/cassette-instances/service.js';
-import * as cassettesService from '~/server/features/cassettes/service.js';
-import * as catalogsService from '~/server/features/catalogs/service.js';
-import * as colorsService from '~/server/features/colors/service.js';
 import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
-import * as facadesService from '~/server/features/facades/service.js';
-import * as facadePatternsService from '~/server/features/facade-patterns/service.js';
-import * as geometryCapturesService from '~/server/features/geometry-captures/service.js';
-import * as layerStandardsService from '~/server/features/layer-standards/service.js';
-import * as librariesService from '~/server/features/libraries/service.js';
-import * as machinesService from '~/server/features/machines/service.js';
-import * as materialsService from '~/server/features/materials/service.js';
-import * as materialPilesService from '~/server/features/material-piles/service.js';
-import * as nestingRunsService from '~/server/features/nesting-runs/service.js';
 import * as organizationsService from '~/server/features/organizations/service.js';
-import * as penTemplatesService from '~/server/features/pen-templates/service.js';
 import * as processDefinitionsService from '~/server/features/process-definitions/service.js';
-import * as profileTemplatesService from '~/server/features/profile-templates/service.js';
-import * as projectsService from '~/server/features/projects/service.js';
-import * as queuesService from '~/server/features/queues/service.js';
-import * as remnantsService from '~/server/features/remnants/service.js';
-import * as requisitionsService from '~/server/features/requisitions/service.js';
-import * as sheetDesignsService from '~/server/features/sheet-designs/service.js';
-import * as sheetsService from '~/server/features/sheets/service.js';
-import * as toolProfilesService from '~/server/features/tool-profiles/service.js';
 import * as usersService from '~/server/features/users/service.js';
-import * as warehousesService from '~/server/features/warehouses/service.js';
 
-import { saveCassetteTemplate } from '~/server/features/cassettes/operations.js';
-import { executeNestingSolveTask, solveNesting } from '~/server/features/nesting/operations.js';
 import { generateAttachment } from '~/server/features/artifacts/operations.js';
-import { convertArtifact } from '~/server/features/artifact-conversions/operations.js';
 import { generateConfigBotDraft, reindexConfigBotKnowledge } from '~/server/features/config-bot/operations.js';
 
+import { cncPack } from '~/server/packs/cnc/index.js';
+
 let appRegistry = null;
+
+// Framework services (party, file storage, process definitions, revisions)
+// and the packs to mount. A pack provides: domain content, entity services
+// with process bindings, construction handlers, delete adapters, commands,
+// and task executors.
+const FRAMEWORK_PACKS = [cncPack];
 
 export function getAppRegistry() {
   if (appRegistry) {
@@ -48,144 +31,138 @@ export function getAppRegistry() {
   }
 
   const registry = createRegistry({ id: 'cutkit-app' });
-  registry.defineDomain(cncDomain);
 
   registerAppBindings(registry);
 
   appRegistry = registry;
-  return appRegistry;
+  return registry;
 }
 
+const frameworkEntityServices = {
+  artifact: artifactsService,
+  entity_revision: entityRevisionsService,
+  organization: organizationsService,
+  process_definition: processDefinitionsService,
+  user: usersService
+};
+
+const frameworkProcessLists = {
+  artifact: (filters, auth) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+  entity_revision: (filters, auth) => entityRevisionsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+  organization: (filters, auth) => organizationsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+  process_definition: (_filters, auth) => processDefinitionsService.list(auth),
+  user: (_filters, auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth)
+};
+
+const frameworkProcessReads = {
+  artifact: (id, auth) => artifactsService.getById(id, auth.userId, auth.organizationId, auth.role, auth),
+  entity_revision: (id, auth) => entityRevisionsService.getById(id, auth.userId, auth.role, auth),
+  organization: id => organizationsService.getById(id),
+  process_definition: (id, auth) => processDefinitionsService.getById(id, auth),
+  user: id => usersService.getById(id)
+};
+
+const frameworkProcessCapabilities = {
+  artifact: { processUpdate: true, delete: true, archive: false },
+  entity_revision: { processUpdate: false, delete: false, archive: false },
+  organization: { processUpdate: true, delete: true, archive: false },
+  process_definition: { processUpdate: false, delete: false, archive: true },
+  user: { processUpdate: true, delete: true, archive: false }
+};
+
+const frameworkConstructionHandlers = {
+  artifact: { uploadArtifact: artifactsService.createUploaded }
+};
+
+const frameworkDeleteAdapters = {
+  user: service => async (id, auth = {}) => service.remove(id, auth)
+};
+
+const frameworkCommandHandlers = {
+  generateAttachment,
+  generateConfigBotDraft,
+  reindexConfigBotKnowledge
+};
+
 function registerAppBindings(registry) {
-  for (const [type, service] of Object.entries(entityServices)) {
-    const processList = entityProcessLists[type];
-    const processGetById = entityProcessReads[type];
-    if (!processList) throw new Error(`Entity service ${type} requires an explicit processList binding`);
-    if (!processGetById) throw new Error(`Entity service ${type} requires an explicit processGetById binding`);
-    const constructionHandlers = resolveConstructionHandlers(type, service);
-    const processCapabilities = buildProcessCapabilities(type, constructionHandlers);
-    const processDelete = processCapabilities.delete ? createProcessDelete(type, service, processGetById) : null;
-    verifyProcessCapabilities(type, service, constructionHandlers, processCapabilities, processDelete);
-    registry.registerEntityService(type, { ...service, processList, processGetById, processDelete, processCapabilities, constructionHandlers });
+  registerServiceSet(registry, {
+    domain: packDomainOf(FRAMEWORK_PACKS),
+    entityServices: frameworkEntityServices,
+    processLists: frameworkProcessLists,
+    processReads: frameworkProcessReads,
+    processCapabilities: frameworkProcessCapabilities,
+    constructionHandlers: frameworkConstructionHandlers,
+    modeHandlers: frameworkModeHandlers,
+    deleteAdapters: frameworkDeleteAdapters
+  });
+
+  for (const pack of FRAMEWORK_PACKS) {
+    registry.defineDomain(pack.domain);
+    registerServiceSet(registry, {
+      domain: pack.domain,
+      entityServices: pack.entityServices,
+      processLists: pack.processLists,
+      processReads: pack.processReads,
+      processCapabilities: pack.processCapabilities,
+      constructionHandlers: pack.constructionHandlers,
+      modeHandlers: pack.modeHandlers || {},
+      deleteAdapters: pack.deleteAdapters || {}
+    });
+    for (const [id, handler] of Object.entries(pack.commandHandlers || {})) {
+      registry.registerCommandHandler(id, handler);
+    }
+    for (const [id, executor] of Object.entries(pack.taskExecutors || {})) {
+      registry.registerTaskExecutor(id, executor);
+    }
   }
-  for (const [id, handler] of Object.entries(commandHandlers)) {
+
+  for (const [id, handler] of Object.entries(frameworkCommandHandlers)) {
     registry.registerCommandHandler(id, handler);
   }
-  for (const [id, executor] of Object.entries(taskExecutors)) {
-    registry.registerTaskExecutor(id, executor);
-  }
-  for (const [id, handler] of Object.entries({ ...hooks, ...featureHookHandlers })) {
+  for (const [id, handler] of Object.entries(hooks)) {
     registry.registerHookHandler(id, handler);
   }
 }
 
-export const getCutkitRegistry = getAppRegistry;
-
-export function resetAppRegistryForTests() {
-  appRegistry = null;
+function packDomainOf(packs) {
+  // Construction contracts are consulted during capability binding; the
+  // framework's own services have no pack construction.
+  return { construction: {} };
 }
 
-export const resetCutkitRegistryForTests = resetAppRegistryForTests;
+function registerServiceSet(registry, {
+  domain,
+  entityServices,
+  processLists,
+  processReads,
+  processCapabilities,
+  constructionHandlers,
+  modeHandlers,
+  deleteAdapters
+}) {
+  for (const [type, service] of Object.entries(entityServices)) {
+    const list = processLists[type];
+    const read = processReads[type];
+    if (!list) throw new Error(`Entity service ${type} requires an explicit processList binding`);
+    if (!read) throw new Error(`Entity service ${type} requires an explicit processGetById binding`);
+    const constructionHandlersResolved = resolveConstructionHandlers(type, service, constructionHandlers, modeHandlers);
+    const capabilities = buildProcessCapabilities(type, constructionHandlersResolved, domain, processCapabilities[type]);
+    const processDelete = capabilities.delete
+      ? createProcessDelete(type, service, read, deleteAdapters)
+      : null;
+    verifyProcessCapabilities(type, service, constructionHandlersResolved, capabilities, processDelete, domain);
+    registry.registerEntityService(type, { ...service, processList: list, processGetById: read, processDelete, processCapabilities: capabilities, constructionHandlers: constructionHandlersResolved });
+  }
+}
 
-const entityServices = {
-  artifact: artifactsService,
-  artifact_template: artifactTemplatesService,
-  cassette_design: cassetteDesignsService,
-  cassette_instance: cassetteInstancesService,
-  cassette: cassettesService,
-  catalog: catalogsService,
-  color: colorsService,
-  entity_revision: entityRevisionsService,
-  facade: facadesService,
-  facade_pattern: facadePatternsService,
-  geometry_capture: geometryCapturesService,
-  layer_standard: layerStandardsService,
-  library: librariesService,
-  machine: machinesService,
-  material: materialsService,
-  material_pile: materialPilesService,
-  nesting_run: nestingRunsService,
-  organization: organizationsService,
-  pen_template: penTemplatesService,
-  process_definition: processDefinitionsService,
-  profile_template: profileTemplatesService,
-  project: projectsService,
-  queue: queuesService,
-  remnant: remnantsService,
-  requisition: requisitionsService,
-  sheet_design: sheetDesignsService,
-  sheet: sheetsService,
-  tool_profile: toolProfilesService,
-  user: usersService,
-  warehouse: warehousesService
-};
-
-const authFirstList = service => (filters, auth) => service.list(
-  auth.userId,
-  auth.organizationId,
-  auth.role,
-  auth,
-  filters
-);
-
-const authLastRead = service => (id, auth) => service.getById(
-  id,
-  auth.userId,
-  auth.organizationId,
-  auth.role,
-  auth
-);
-
-const authWithoutOrganizationRead = service => (id, auth) => service.getById(
-  id,
-  auth.userId,
-  auth.role,
-  auth
-);
-
-const entityProcessLists = {
-  artifact: (filters, auth) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
-  artifact_template: (filters, auth) => artifactTemplatesService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
-  cassette: authFirstList(cassettesService),
-  cassette_design: authFirstList(cassetteDesignsService),
-  cassette_instance: authFirstList(cassetteInstancesService),
-  catalog: authFirstList(catalogsService),
-  color: authFirstList(colorsService),
-  entity_revision: authFirstList(entityRevisionsService),
-  facade: authFirstList(facadesService),
-  facade_pattern: authFirstList(facadePatternsService),
-  geometry_capture: authFirstList(geometryCapturesService),
-  layer_standard: filters => layerStandardsService.list(filters),
-  library: authFirstList(librariesService),
-  machine: (_filters, auth) => machinesService.list(auth.userId, auth.organizationId, auth.role, auth),
-  material: filters => materialsService.list(filters),
-  material_pile: authFirstList(materialPilesService),
-  nesting_run: authFirstList(nestingRunsService),
-  organization: authFirstList(organizationsService),
-  pen_template: (_filters, auth) => penTemplatesService.listAll(auth.userId),
-  process_definition: (_filters, auth) => processDefinitionsService.list(auth),
-  profile_template: (filters, auth) => profileTemplatesService.listAll(auth, filters),
-  project: authFirstList(projectsService),
-  queue: (filters, auth) => queuesService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
-  remnant: authFirstList(remnantsService),
-  requisition: (_filters, auth) => requisitionsService.list(auth.userId, auth.organizationId, auth.role, auth),
-  sheet_design: authFirstList(sheetDesignsService),
-  sheet: authFirstList(sheetsService),
-  tool_profile: (_filters, auth) => toolProfilesService.listAll(auth.userId),
-  user: (_filters, auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth),
-  warehouse: authFirstList(warehousesService)
-};
-
-const GENERIC_CREATE = Symbol('genericCreate');
-
-function resolveConstructionHandlers(type, service) {
-  return Object.fromEntries(Object.entries(entityConstructionHandlers[type] || {}).map(([mode, handler]) => [
+function resolveConstructionHandlers(type, service, handlersByType, modeHandlers) {
+  return Object.fromEntries(Object.entries(handlersByType[type] || {}).map(([mode, handler]) => [
     mode,
-    bindConstructionHandler(mode, handler === GENERIC_CREATE ? service.create : handler, service)
+    bindConstructionHandler(mode, handler, service, modeHandlers)
   ]));
 }
 
-function bindConstructionHandler(mode, handler, service) {
+function bindConstructionHandler(mode, handler, service, modeHandlers) {
   if (mode === 'genericCreate') {
     return (draft, context = {}) => {
       const payload = normalizeCreationPayload({ ...(draft || {}) });
@@ -202,34 +179,11 @@ function bindConstructionHandler(mode, handler, service) {
       return artifactsService.createUploaded({ ...(draft || {}), ...file }, context.executionAuth);
     };
   }
-  if (mode === 'bakeCassetteDesignFromTemplate') {
-    return async (draft, context = {}) => {
-      const created = await cassettesService.createDesignFromTemplate(
-        draft.templateId,
-        draft.parameters,
-        context.userId,
-        context.organizationId,
-        context.role,
-        context.executionAuth
-      );
-      return context.applyTypedBlocks ? await context.applyTypedBlocks(created) : created;
-    };
+  if (typeof handler === 'string' && modeHandlers[handler]) {
+    return modeHandlers[handler](service);
   }
-  if (mode === 'importCassetteDesignFromArtifact') {
-    return async (draft, context = {}) => {
-      const imported = await cassettesService.importFromArtifact(
-        draft.artifactId,
-        draft.name || draft.identity?.name,
-        context.userId,
-        context.organizationId,
-        context.role,
-        context.executionAuth,
-        draft.layerMapping || null,
-        draft.parameters || null
-      );
-      const design = imported?.design || imported;
-      return context.applyTypedBlocks ? await context.applyTypedBlocks(design) : design;
-    };
+  if (modeHandlers[mode] && handler) {
+    return modeHandlers[mode](service);
   }
   return handler;
 }
@@ -252,10 +206,9 @@ function normalizeCreationPayload(payload = {}) {
   return normalized;
 }
 
-function buildProcessCapabilities(type, constructionHandlers) {
-  const base = entityProcessCapabilities[type];
+function buildProcessCapabilities(type, constructionHandlers, domain, base) {
   if (!base) throw new Error(`Entity service ${type} requires an explicit processCapabilities binding`);
-  const construction = cncDomain.construction?.[type] || null;
+  const construction = domain.construction?.[type] || null;
   const createModes = (construction?.modes || []).filter(mode => Object.hasOwn(constructionHandlers, mode));
   return {
     create: createModes.length > 0,
@@ -266,14 +219,14 @@ function buildProcessCapabilities(type, constructionHandlers) {
   };
 }
 
-function verifyProcessCapabilities(type, service, constructionHandlers, capabilities, processDelete) {
+function verifyProcessCapabilities(type, service, constructionHandlers, capabilities, processDelete, domain) {
   if (capabilities.processUpdate && typeof service.processUpdate !== 'function') {
     throw new Error(`Entity service ${type} declares processUpdate capability but lacks a processUpdate method`);
   }
   if (capabilities.delete && typeof processDelete !== 'function') {
     throw new Error(`Entity service ${type} declares delete capability but lacks a processDelete adapter`);
   }
-  const construction = cncDomain.construction?.[type] || null;
+  const construction = domain.construction?.[type] || null;
   for (const mode of construction?.modes || []) {
     if (!Object.hasOwn(constructionHandlers, mode)) {
       throw new Error(`Entity ${type} declares construction mode ${mode} but has no registered runtime handler`);
@@ -286,120 +239,20 @@ function verifyProcessCapabilities(type, service, constructionHandlers, capabili
   }
 }
 
-function createProcessDelete(type, service, processGetById) {
+function createProcessDelete(type, service, processGetById, deleteAdapters) {
   if (typeof service.remove !== 'function') return null;
-  return async (id, auth = {}) => {
-    if (type === 'nesting_run') {
-      const entity = await processGetById(id, auth);
-      const queueId = entity?.lineage?.queueId;
-      if (!queueId) throw new Error('Nesting run is missing queue lineage');
-      return await service.remove(queueId, id, auth.userId, auth.organizationId, auth.role, auth);
-    }
-    if (type === 'cassette_design') return await service.remove(id, auth.userId, auth.role, auth);
-    if (type === 'profile_template' || type === 'user') return await service.remove(id, auth);
-    if (type === 'material') return await service.remove(id);
-    if (type === 'pen_template' || type === 'tool_profile') return await service.remove(id, auth.userId);
-    return await service.remove(id, auth.userId, auth.organizationId, auth.role, auth);
-  };
+  const adapter = deleteAdapters[type];
+  if (adapter) return adapter(service, processGetById);
+  return async (id, auth = {}) => service.remove(id, auth.userId, auth.organizationId, auth.role, auth);
 }
 
-const entityProcessCapabilities = {
-  artifact: { processUpdate: true, delete: true, archive: false },
-  artifact_template: { processUpdate: true, delete: true, archive: true },
-  cassette: { processUpdate: true, delete: true, archive: true },
-  cassette_design: { processUpdate: true, delete: true, archive: true },
-  cassette_instance: { processUpdate: true, delete: true, archive: false },
-  catalog: { processUpdate: true, delete: true, archive: false },
-  color: { processUpdate: true, delete: true, archive: false },
-  entity_revision: { processUpdate: false, delete: false, archive: false },
-  facade: { processUpdate: true, delete: true, archive: true },
-  facade_pattern: { processUpdate: true, delete: true, archive: true },
-  geometry_capture: { processUpdate: true, delete: true, archive: false },
-  layer_standard: { processUpdate: false, delete: false, archive: false },
-  library: { processUpdate: true, delete: true, archive: true },
-  machine: { processUpdate: true, delete: true, archive: false },
-  material: { processUpdate: true, delete: true, archive: false },
-  material_pile: { processUpdate: true, delete: true, archive: false },
-  nesting_run: { processUpdate: true, delete: true, archive: false },
-  organization: { processUpdate: true, delete: true, archive: false },
-  pen_template: { processUpdate: true, delete: true, archive: false },
-  process_definition: { processUpdate: false, delete: false, archive: true },
-  profile_template: { processUpdate: true, delete: true, archive: false },
-  project: { processUpdate: true, delete: true, archive: false },
-  queue: { processUpdate: true, delete: true, archive: true },
-  remnant: { processUpdate: true, delete: true, archive: false },
-  requisition: { processUpdate: true, delete: true, archive: false },
-  sheet_design: { processUpdate: true, delete: false, archive: false },
-  sheet: { processUpdate: true, delete: true, archive: false },
-  tool_profile: { processUpdate: true, delete: true, archive: false },
-  user: { processUpdate: true, delete: true, archive: false },
-  warehouse: { processUpdate: true, delete: true, archive: false }
-};
+// Framework construction modes (beyond genericCreate/uploadArtifact).
+const frameworkModeHandlers = {};
 
-const entityConstructionHandlers = {
-  artifact: { uploadArtifact: artifactsService.createUploaded },
-  cassette_design: {
-    bakeCassetteDesignFromTemplate: cassettesService.createDesignFromTemplate,
-    importCassetteDesignFromArtifact: cassettesService.importFromArtifact
-  },
-  project: { genericCreate: GENERIC_CREATE },
-  queue: { genericCreate: GENERIC_CREATE },
-  cassette: { genericCreate: GENERIC_CREATE },
-  facade: { genericCreate: GENERIC_CREATE },
-  library: { genericCreate: GENERIC_CREATE },
-  catalog: { genericCreate: GENERIC_CREATE },
-  color: { genericCreate: GENERIC_CREATE },
-  material: { genericCreate: GENERIC_CREATE },
-  material_pile: { genericCreate: GENERIC_CREATE },
-  remnant: { genericCreate: GENERIC_CREATE },
-  requisition: { genericCreate: GENERIC_CREATE },
-  warehouse: { genericCreate: GENERIC_CREATE }
-};
+export const getCutkitRegistry = getAppRegistry;
 
-const entityProcessReads = {
-  artifact: authLastRead(artifactsService),
-  artifact_template: authLastRead(artifactTemplatesService),
-  cassette: authLastRead(cassettesService),
-  cassette_design: authWithoutOrganizationRead(cassetteDesignsService),
-  cassette_instance: authLastRead(cassetteInstancesService),
-  catalog: id => catalogsService.getById(id),
-  color: id => colorsService.getById(id),
-  entity_revision: authWithoutOrganizationRead(entityRevisionsService),
-  facade: authLastRead(facadesService),
-  facade_pattern: authLastRead(facadePatternsService),
-  geometry_capture: authLastRead(geometryCapturesService),
-  layer_standard: id => layerStandardsService.getById(id),
-  library: authLastRead(librariesService),
-  machine: authLastRead(machinesService),
-  material: id => materialsService.getById(id),
-  material_pile: id => materialPilesService.getById(id),
-  nesting_run: authLastRead(nestingRunsService),
-  organization: id => organizationsService.getById(id),
-  pen_template: (id, auth) => penTemplatesService.getById(id, auth.userId),
-  process_definition: (id, auth) => processDefinitionsService.getById(id, auth),
-  profile_template: (id, auth) => profileTemplatesService.getById(id, auth),
-  project: id => projectsService.getById(id),
-  queue: authLastRead(queuesService),
-  remnant: authLastRead(remnantsService),
-  requisition: authLastRead(requisitionsService),
-  sheet_design: authLastRead(sheetDesignsService),
-  sheet: id => sheetsService.getById(id),
-  tool_profile: (id, auth) => toolProfilesService.getById(id, auth.userId),
-  user: id => usersService.getById(id),
-  warehouse: id => warehousesService.getById(id)
-};
+export function resetAppRegistryForTests() {
+  appRegistry = null;
+}
 
-const commandHandlers = {
-  saveCassetteTemplate,
-  solveNesting,
-  generateAttachment,
-  convertArtifact,
-  generateConfigBotDraft,
-  reindexConfigBotKnowledge
-};
-
-const taskExecutors = {
-  'nesting.solve': executeNestingSolveTask
-};
-
-const featureHookHandlers = {};
+export const resetCutkitRegistryForTests = resetAppRegistryForTests;

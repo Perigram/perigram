@@ -127,6 +127,14 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
       meta: false
     });
   }
+  // Pack-mounted system types without legacy content synthesize rows
+  // exactly like org types (their declarations are the only source).
+  for (const type of view.values()) {
+    if (type.scope !== 'system' || legacySnakeByKebab.has(type.id)) continue;
+    if (!rowEntriesByOrgType.has(type.id)) {
+      rowEntriesByOrgType.set(type.id, rowToFieldSchemas(type.fields, type.class));
+    }
+  }
 
   // workflows: CTS states/transitions project to the v2 shape; transition
   // access merges from the legacy workflow by (from, to) when present.
@@ -204,7 +212,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   const fieldSchemas = { ...(baseDomain.fieldSchemas || {}) };
   for (const type of view.values()) {
     const entityType = entityTypeFor(type);
-    if (type.scope === 'system') {
+    if (type.scope === 'system' && (baseDomain.fieldSchemas?.[entityType] || []).length) {
       const legacy = baseDomain.fieldSchemas?.[entityType] || [];
       const policy = accessPolicyFor(baseDomain.fieldAccess || {}, entityType);
       const rowEntries = rowToFieldSchemas(type.fields, type.class).map(schema => withAccessFlags(schema, policy));

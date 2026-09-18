@@ -66,6 +66,13 @@ const directories = fs.readdirSync(FEATURES_DIR).filter(f => !IGNORE.includes(f)
 const declared = new Set([...ENTITY_FEATURES, ...CAPABILITY_FEATURES]);
 const features = ENTITY_FEATURES;
 const appRegistry = fs.readFileSync('server/runtime/app-registry.js', 'utf8');
+// Mounted packs are boot-time registration sites alongside the framework
+// registry (SPEC §21).
+const packSources = fs.existsSync('server/packs')
+  ? fs.readdirSync('server/packs', { recursive: true })
+      .filter(file => String(file).endsWith('.js'))
+      .map(file => fs.readFileSync(`server/packs/${file}`, 'utf8'))
+  : [];
 
 let errors = 0;
 const inventory = [];
@@ -185,8 +192,10 @@ features.forEach(feature => {
 });
 
 cncEntities.forEach(entity => {
-  if (!new RegExp(`\\b${entity.type}\\s*:`).test(appRegistry)) {
-    console.error(`❌ Entity [${entity.type}] is not registered in server/runtime/app-registry.js`);
+  // Entity services register either in the framework registry or in a
+  // mounted pack (server/packs/*) — both are boot-time registration sites.
+  if (!new RegExp(`\\b${entity.type}\\s*:`).test(appRegistry) && !packSources.some(source => new RegExp(`\\b${entity.type}\\s*:`).test(source))) {
+    console.error(`❌ Entity [${entity.type}] is not registered in server/runtime/app-registry.js or a mounted pack`);
     errors++;
   }
 });
