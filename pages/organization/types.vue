@@ -17,11 +17,13 @@
           :max-zoom="3"
           :delete-key-code="null"
           @connect="onConnect"
-          @node-double-click="selectNode"
+          @node-click="selectNode"
+          @edge-click="selectEdge"
+          @pane-click="clearSelection"
         >
           <template #node-typeNode="props"><TypeNode v-bind="props" /></template>
-          <template #node-fieldNode="props"><FieldNode v-bind="props" /></template>
-          <template #node-stateNode="props"><StateNode v-bind="props" /></template>
+          <template #node-fieldNode="props"><FieldNode v-bind="props" @rename="value => renameNode(props, value)" /></template>
+          <template #node-stateNode="props"><StateNode v-bind="props" @rename="value => renameNode(props, value)" /></template>
         </VueFlow>
         <template #fallback><div class="absolute inset-0" /></template>
       </ClientOnly>
@@ -32,7 +34,8 @@
         <span class="mt-1 px-1 uppercase text-muted text-supporting">{{ $t('typeCanvas.compose') }}</span>
         <Button :label="$t('typeCanvas.field')" icon="pi pi-angle-right" size="small" text class="justify-start" @click="addFieldNode" />
         <Button :label="$t('typeCanvas.state')" icon="pi pi-circle" size="small" text class="justify-start" @click="addStateNode" />
-        <span class="mt-2 px-1 text-supporting text-muted">{{ $t('typeCanvas.wiringHint') }}</span>
+        <span class="mt-2 px-1 text-supporting text-muted">{{ $t('typeCanvas.attachHint') }}</span>
+        <span class="mt-1 px-1 text-supporting text-muted">{{ $t('typeCanvas.wiringHint') }}</span>
       </div>
     </div>
 
@@ -112,7 +115,7 @@
       <div v-else-if="selectedTransition" class="flex flex-col gap-3">
         <div class="flex flex-col gap-1">
           <label>{{ $t('typesPane.intent') }}</label>
-          <InputText v-model="selectedTransition.data.intent" placeholder="finish" />
+          <InputText v-model="transitionIntent" placeholder="finish" />
         </div>
       </div>
     </Drawer>
@@ -183,6 +186,17 @@ const inspectorTitle = computed(() => {
   return '';
 });
 
+// Two-way: the intent lives on the edge data; the visible label follows it.
+const transitionIntent = computed({
+  get: () => selectedTransition.value?.data?.intent || '',
+  set: value => {
+    const edge = selectedTransition.value;
+    if (!edge) return;
+    edge.data = { ...(edge.data || {}), intent: value };
+    edge.label = value || undefined;
+  }
+});
+
 const payloadMime = computed({
   get: () => selectedType.value?.data?.payload?.mime || '',
   set: value => {
@@ -233,12 +247,33 @@ function projectCanvas() {
   nodes.value = canvas.nodes.map(node => node.type === 'typeNode'
     ? { ...node, data: { ...node.data, fieldCount: fieldCounts.get(node.data.typeId) || 0, stateCount: stateCounts.get(node.data.typeId) || 0, editor: editorByType.get(node.data.typeId) || null, loaded: true } }
     : node);
-  edges.value = canvas.edges.map(edge => ({ ...edge, type: 'default' }));
+  edges.value = canvas.edges.map(edge => ({
+    ...edge,
+    type: 'default',
+    ...(edge.role === 'transition' && edge.data?.intent ? { label: edge.data.intent } : {})
+  }));
+}
+
+function renameNode({ id }, value) {
+  const node = nodes.value.find(candidate => candidate.id === id);
+  if (!node || node.data?.scope === 'system') return;
+  if (node.type === 'fieldNode') node.data.name = String(value || '').trim();
+  if (node.type === 'stateNode') node.data.value = String(value || '').trim();
 }
 
 function selectNode({ node }) {
   selectedEdgeId.value = null;
   selectedNodeId.value = node.id;
+}
+
+function selectEdge({ edge }) {
+  selectedNodeId.value = null;
+  selectedEdgeId.value = edge.id;
+}
+
+function clearSelection() {
+  selectedNodeId.value = null;
+  selectedEdgeId.value = null;
 }
 
 function onConnect(connection) {
@@ -269,7 +304,7 @@ function onConnect(connection) {
     target: connection.target,
     role,
     type: 'default',
-    ...(role === 'transition' ? { data: { intent: '' } } : {}),
+    ...(role === 'transition' ? { data: { intent: '' }, label: '' } : {}),
     ...(role === 'children' ? { data: { key: `${target.data.typeId}s` } } : {})
   });
 }
@@ -297,28 +332,69 @@ function declareType(classOf) {
   selectedNodeId.value = `type:${id}`;
 }
 
+// One gesture: with a type node selected, dropping a Field/State creates
+// it ALREADY DECLARED on that type (node + wire together). Without a
+// selection it drops unattached for explicit wiring.
 function addFieldNode() {
+  const target = attachTarget();
+  if (target === false) return;
   const id = `field:__new_${Date.now()}`;
   nodes.value.push({
     id,
     type: 'fieldNode',
-    position: nextPosition(),
+    position: target ? attachPosition(target, 'fieldNode') : nextPosition(),
     selected: true,
-    data: { typeId: null, name: '', descriptor: { base: 'string' } }
+    data: { typeId: target ? target.data.typeId : null, name: '', descriptor: { base: 'string' } }
   });
+  if (target) pushDeclaresEdge(id, target);
+  selectedEdgeId.value = null;
   selectedNodeId.value = id;
 }
 
 function addStateNode() {
+  const target = attachTarget();
+  if (target === false) return;
   const id = `state:__new_${Date.now()}`;
   nodes.value.push({
     id,
     type: 'stateNode',
-    position: nextPosition(),
+    position: target ? attachPosition(target, 'stateNode') : nextPosition(),
     selected: true,
-    data: { typeId: null, value: '', initial: false, terminal: false }
+    data: { typeId: target ? target.data.typeId : null, value: '', initial: false, terminal: false }
   });
+  if (target) pushDeclaresEdge(id, target);
+  selectedEdgeId.value = null;
   selectedNodeId.value = id;
+}
+
+function attachTarget() {
+  const node = selectedNode.value;
+  if (!node || node.type !== 'typeNode') return null;
+  if (node.data.scope === 'system') {
+    toast.add({ severity: 'warn', summary: t('typesPane.systemReadonly'), life: 3000 });
+    return false;
+  }
+  return node;
+}
+
+function attachPosition(typeNode, childType) {
+  const siblings = nodes.value.filter(candidate => candidate.type === childType && candidate.data?.typeId === typeNode.data.typeId);
+  const base = typeNode.position;
+  return { x: base.x + 250, y: base.y + 30 + siblings.length * (childType === 'fieldNode' ? 64 : 76) };
+}
+
+function pushDeclaresEdge(childId, typeNode) {
+  edges.value.push({
+    id: `declares-${childType(childId)}:${childId}`,
+    source: childId,
+    target: typeNode.id,
+    role: 'declares',
+    type: 'default'
+  });
+}
+
+function childType(childId) {
+  return String(childId).startsWith('field:') ? 'field' : 'state';
 }
 
 function removeNode(node) {

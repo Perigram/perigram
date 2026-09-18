@@ -2,7 +2,15 @@
   <div :class="frameClass">
     <div class="flex items-center gap-1.5">
       <i :class="[initial ? 'pi pi-flag-fill' : terminal ? 'pi pi-circle-fill' : 'pi pi-circle', flagTone]" aria-hidden="true" />
-      <strong class="min-w-0 flex-1 truncate text-label">{{ value || 'state' }}</strong>
+      <InputText
+        :model-value="value"
+        size="small"
+        class="min-w-0 flex-1"
+        :placeholder="'state'"
+        @update:model-value="val => $emit('rename', val)"
+        @click.stop
+        @dblclick.stop
+      />
     </div>
     <Handle type="target" :position="Position.Left" />
     <Handle type="source" :position="Position.Right" />
@@ -13,12 +21,15 @@
 // State declaration node: wires into its type (declares); state-to-state
 // wires are transitions, intents ride the edge (SPEC §7).
 import { computed } from 'vue';
+import InputText from 'primevue/inputtext';
 import { Handle, Position } from '@vue-flow/core';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
   selected: { type: Boolean, default: false }
 });
+
+defineEmits(['rename']);
 
 const value = computed(() => props.data.value || '');
 const initial = computed(() => props.data.initial === true);

@@ -1,6 +1,6 @@
 <template>
   <div :class="frameClass">
-    <div class="absolute inset-x-0 top-0 h-0.5 rounded-t-ui" :class="scope === 'system' ? 'bg-surface-border' : 'bg-primary'" />
+    <div class="absolute inset-x-0 top-0 h-0.5 rounded-t-ui" :class="scope === 'system' ? 'border-content-border' : 'border-primary'" />
     <div class="flex items-center gap-1.5 border-b border-content-border pb-1.5">
       <i :class="classIcon" aria-hidden="true" />
       <strong class="min-w-0 flex-1 truncate text-label">{{ label }}</strong>

@@ -3148,6 +3148,7 @@
     "itemType": "Item type",
     "wiringHint": "Wire fields/states into a type; state wires are transitions; type wires are children.",
     "invalidWire": "Not a type-canvas wire",
-    "sameTypeStates": "Transitions connect states of one type"
+    "sameTypeStates": "Transitions connect states of one type",
+    "attachHint": "Select a type first: Field/State drops declare on it directly."
   }
 }

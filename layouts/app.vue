@@ -69,30 +69,11 @@
             <slot />
         </main>
 
-        <!-- One chat popup for every viewport, hosted by PrimeVue Dialog:
-             PrimeVue owns stacking (overlay z above the app chrome). The
-             dialog is a real bounded card everywhere — support-chat token
-             size, capped to the viewport minus breathing room so the soft
-             keyboard can never cover the composer (interactive-widget
-             resizes the viewport). Non-modal on purpose: desktop keeps
-             working under the chat. The chat renders its own inbox/thread
-             headers with back and close, so the Dialog header stays
-             hidden, and the surface is pinned to the app content token. -->
-        <Dialog
-            v-model:visible="supportDialog"
-            :close-on-escape="false"
-            :aria-label="t('support.chatTitle')"
-            :style="{ width: 'min(94vw, 25rem)' }"
-            :pt="chatDialogPt"
-        >
-            <!-- Height lives on this dedicated wrapper: the ChatSupport
-                 root already carries h-full, and merging a second height
-                 utility there resolves by CSS order — that produced the
-                 content-driven (growing) dialog. -->
-            <div v-if="supportDialog" class="h-support-chat max-h-[calc(100dvh-6rem)]">
-                <ChatSupport />
-            </div>
-        </Dialog>
+        <!-- One chat popup for every viewport; the shared wrapper owns the
+             Dialog surface (stacking, tokens, hidden header). -->
+        <ChatSupportDialog v-model:visible="supportDialog" :label="t('support.chatTitle')">
+            <ChatSupport />
+        </ChatSupportDialog>
         <!-- Add-screen tier: popup TieredMenu anchored at the Add screen row
              inside the profile menu. It self-hides after a leaf pick; the
              item commands close the remaining transient chrome. -->
@@ -233,10 +214,10 @@
     import Menu from 'primevue/menu'
     import Popover from 'primevue/popover'
     import TieredMenu from 'primevue/tieredmenu'
-    import Dialog from 'primevue/dialog'
     import Tabs from 'primevue/tabs'
     import TabList from 'primevue/tablist'
     import Tab from 'primevue/tab'
+    import ChatSupportDialog from '~/components/shared/ChatSupportDialog.vue';
     import ChatSupport from '~/components/ChatSupport.vue'
     import UserAccountMenu from '~/components/shared/UserAccountMenu.vue'
     import OfflineOutboxBadge from '~/components/shared/OfflineOutboxBadge.vue'
@@ -257,16 +238,6 @@
     const route = useRoute()
     const { t, te } = useI18n()
     const supportDialog = useSupportDialog()
-    // Popup chrome pass-through: Dialog supplies structure and stacking,
-    // the app tokens supply the surface (Dialog's own background token is a
-    // lighter gray — the chat must match the content surface everywhere
-    // else). The chat component supplies its own headers and controls, so
-    // the Dialog header is hidden entirely.
-    const chatDialogPt = {
-        root: { class: 'bg-content !rounded-ui' },
-        header: { class: 'hidden' },
-        content: { class: 'p-0 overflow-hidden' }
-    }
     const authStore = useAuthStore()
     const domainUi = useCutkitDomainUi()
     provide('statusWorkflows', computed(() => authStore.statusWorkflows))

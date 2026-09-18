@@ -537,7 +537,8 @@ describe('Design system manifest', () => {
     const allowed = new Set([
       'components/shared/EntityCard.vue',
       'components/shared/StandardDialog.vue',
-      'components/shared/DesignerDialog.vue'
+      'components/shared/DesignerDialog.vue',
+      'components/shared/ChatSupportDialog.vue'
     ]);
 
     const offenders = usedVueFiles().filter((file) => {
