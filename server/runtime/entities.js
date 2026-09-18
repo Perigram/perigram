@@ -3,7 +3,10 @@ import { getCutkitRegistry } from './cutkit-registry.js';
 export function normalizeEntityType(type) {
   const key = String(type || '');
   if (!key) return '';
-  return getCutkitRegistry().getEntityDefinition(key)?.type || '';
+  // Registry definitions canonicalize legacy aliases; unknown ids pass
+  // through unchanged — the registry view is the whole catalog and org/
+  // pack type ids are valid storage ids themselves (SPEC §19 cut).
+  return getCutkitRegistry().getEntityDefinition(key)?.type || key;
 }
 
 export function getEntityDefinition(type) {

@@ -242,6 +242,24 @@ function cts(kind, label, family, level) {
           inputs: ports.inputs.filter(port => port.type?.base !== 'block')
         };
       }
+      // Bound mutates patch leaves: writable row fields arrive as field
+      // sockets keyed by schema path, consumed by the effect boundary as
+      // direct field writes — blocks stay on the v4 twin.
+      if (record.kind === 'cts.mutate') {
+        const leaves = (context.fieldSchemas || [])
+          .filter(field => field.writable !== false && ['data', 'specs'].includes(field.block))
+          .map(field => socket(field.path, field.type, DATA, false, 'list'));
+        const kept = ports.inputs.filter(port => port.id === 'entity' || port.id === 'status.state.primary');
+        const status = kept.find(port => port.id === 'status.state.primary');
+        return {
+          ...ports,
+          inputs: [
+            ...kept.filter(port => port.id !== 'status.state.primary'),
+            ...leaves,
+            ...(status ? [status] : [])
+          ]
+        };
+      }
       return ports;
     }
   };

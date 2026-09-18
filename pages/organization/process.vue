@@ -3593,6 +3593,9 @@ function applyInferredProcessNodeInputs(record = {}) {
 
 function processNodeOperationOptions(kind = '') {
   const record = typeof kind === 'object' ? kind : { kind };
+  // v5 species records have no operation switch: the species IS the
+  // operation (SPEC §20 vocabulary).
+  if (String(record.kind || '').startsWith('cts.')) return [];
   const operations = processNodeOperations[record.kind] || [];
   return operations.map(value => ({ label: processNodeOperationLabels[value] || value, value }));
 }

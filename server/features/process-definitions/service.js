@@ -1395,7 +1395,13 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   const target = normalizeEntityRef(inputs.entity);
   if (!target?.id) throw new Error(`${kind} requires an entity reference`);
   if (kind === 'effect.updateEntity') {
-    const persistedChanges = processBlockInputChanges(record, inputs);
+    // Field schemas resolve against the projected view first — org/pack
+    // types live there; legacy types not in the view keep the legacy
+    // tables until their surfaces are deleted.
+    const projectedFieldSchemas = (await getProjectedDomain(resolveOrganizationId(auth)))
+      .fieldSchemas?.[entityType];
+    const schemas = projectedFieldSchemas || getEntityFieldSchemas(record.entityType);
+    const persistedChanges = processBlockInputChanges(record, inputs, schemas);
     const statusValue = inputs['status.state.primary'];
     const statusChange = statusValue == null ? null : {
       path: 'status.state.primary',
@@ -1568,13 +1574,27 @@ function processConstructionInputRecord(record = {}, inputs = {}) {
   return result;
 }
 
-function processBlockInputChanges(record = {}, inputs = {}) {
-  const schemas = getEntityFieldSchemas(record.entityType);
+function processBlockInputChanges(record = {}, inputs = {}, schemas = null) {
+  const fieldSchemas = schemas || getEntityFieldSchemas(record.entityType);
   const changes = [];
+  // v5 leaf field inputs arrive keyed by their full schema path (the
+  // cts.mutate field sockets): a wired or prompted leaf writes exactly
+  // that field, no block composition required.
+  const leafPaths = new Set();
+  for (const field of fieldSchemas) {
+    if (field.writable === false || !Object.hasOwn(inputs, field.path)) continue;
+    leafPaths.add(field.path);
+    changes.push({
+      path: field.path,
+      operation: 'set',
+      value: normalizeBlockFieldValue(field, inputs[field.path])
+    });
+  }
   for (const block of record.blocks || []) {
     if (!Object.hasOwn(inputs, block)) continue;
     const value = inputs[block];
-    for (const field of schemas.filter(item => item.block === block && item.writable !== false)) {
+    for (const field of fieldSchemas.filter(item => item.block === block && item.writable !== false)) {
+      if (leafPaths.has(field.path)) continue;
       const localPath = field.path.slice(block.length + 1);
       const fieldValue = getByPath(value, localPath);
       if (fieldValue !== undefined) {

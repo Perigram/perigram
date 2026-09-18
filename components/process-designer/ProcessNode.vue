@@ -274,13 +274,16 @@ const showsFieldSelect = computed(() => (
   && !showsFieldSet.value
   && !(fieldOptions.value.length === 1 && fieldOptions.value[0].value === record.value.block)
 ));
-const showEntitySelect = computed(() => (!record.value.entityTypeInferred && (
+const isV5Record = computed(() => (
+  String(record.value.kind || '').startsWith('cts.') || typeof record.value.type === 'string'
+));
+const showEntitySelect = computed(() => !isV5Record.value && !record.value.entityTypeInferred && (
   (['record.', 'predicate.', 'read.', 'effect.'].some(prefix => opKind.value.startsWith(prefix))
     && !['record.getField', 'record.composeBlock', 'record.modifyBlock', 'record.construct', 'effect.runCommand', 'effect.runProducer'].includes(opKind.value))
   || opKind.value === 'control.entityChangedTrigger'
   || (opKind.value === 'control.manualTrigger' && (record.value.entityType || record.value.type))
   || (opKind.value === 'source.literalItem' && record.value.type?.base === 'entityRef')
-)));
+));
 const showBlockSelect = computed(() => (
   ['record.getBlock', 'record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(opKind.value)
   && (props.data.processBlockOptions || []).length
