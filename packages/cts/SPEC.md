@@ -619,6 +619,17 @@ Effect nodes take the species names of §8 (the canonical table is
   `compile(v4)` and `compile(resolve(migrate(v4)))` produce the same
   contract.
 
+### Type nodes and binding wires
+
+The palette is the type catalog: class groups (file/item/group/process, one
+item per registry type) precede the operation groups, and dragging a type
+drops a `cts.construct` bound to it via the preset. Type reference nodes
+persist on the canvas as `ctsType` nodes (they own no records); a wire
+between a type node and a species record carries the binding into the
+record's `type` field. Binding wires are `role: 'type'` canvas edges —
+visualization and re-binding gestures; normalization drops them before
+validation because the binding itself is persisted in the record.
+
 ### Residue (explicit)
 
 The designer authors v5: the palette speaks species kinds (`cts.*`), node

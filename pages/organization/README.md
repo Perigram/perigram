@@ -100,8 +100,9 @@ the shared `DesignerSurface` plus `DesignerWorkspace layout="canvas"` shell. The
 dock is supplied through the shell's dock slot, matching the shared designer
 contract used by Cassette, Facade, and Facade Pattern; the palette and
 inspector render as PrimeVue `Drawer` side panels inside the canvas workspace.
-The graph palette is a compact, descriptive control with three
-concerns only: Types, Values, and Lists and trees. Its framework
+The graph palette is the type catalog by class (File types, Items,
+Groups, Processes — dragging a type drops a bound construct) followed by
+the operation, value, and list groups. Its framework
 metadata comes from `createProcessDesignerContract(projectDomainFromView(...))`;
 the route supplies the CTS-projected domain as the active domain
 implementation rather than importing separate CNC field/construction

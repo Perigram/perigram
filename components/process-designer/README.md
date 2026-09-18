@@ -24,15 +24,17 @@ roles, screens, and dock/panel state. Their contracts are exercised directly in
 behavior tests so a disconnected Save, selection, or graph mutation fails even
 when labels remain in the page source.
 
-Types are not canvas nodes. The palette's species groups — **Instances**,
-**Reads**, **Structure** — offer graph-protocol v5 kinds (`cts.construct`,
-`cts.mutate`, `cts.transition`, `cts.remove`, `cts.command`, `cts.read` by
-select, field/compose/decompose) whose type/field/status bindings resolve
-from the CTS registry projection; declaring types happens in the types pane
-(`pages/organization/types.vue`), linked from the palette header. Stored v4
-graphs migrate to the species vocabulary on load, and every kind-matching
-consumer routes through `operationKindOf` — the authored vocabulary is the
-type system's, not a labeled legacy layer.
+The palette IS the type catalog: class groups (**File types**, **Items**,
+**Groups**, **Processes** — one item per registry type) precede the
+operations. Dragging a type drops a `cts.construct` bound to it; the bare
+species operations (`cts.mutate`, `cts.transition`, `cts.remove`,
+`cts.command`, `cts.read` by select, field/compose/decompose) follow, and
+the **Type reference** item drops a `ctsType` canvas node whose wires carry
+type bindings into species records (`role: 'type'` edges — gestures; the
+binding persists in the record). Stored v4 graphs migrate to the species
+vocabulary on load, and every kind-matching consumer routes through
+`operationKindOf` — the authored vocabulary is the type system's, not a
+labeled legacy layer.
 
 The Types palette ends with **Join producer paths** (`producer.join`), the
 one legal convergence point for same-type producer paths: activation rejects
