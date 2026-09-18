@@ -187,8 +187,8 @@ describe('graph protocol v5 designer round trip', () => {
         solve: { id: 'solve', kind: 'cts.service', operator: 'nesting.solve', trigger: { mode: 'manual' } },
         ghost: { id: 'ghost', kind: 'cts.service', operator: 'algebra.solve', trigger: { mode: 'manual' } }
       }
-    }, { ...domain, serviceContracts: { 'nesting.solve': { command: 'solveNesting' } } });
-    expect(resolved.processNodes.solve).toMatchObject({ kind: 'effect.runCommand', commandId: 'solveNesting' });
+    }, { ...domain, serviceContracts: { 'nesting.solve': { command: 'solveNestingValue' } } });
+    expect(resolved.processNodes.solve).toMatchObject({ kind: 'effect.runCommand', commandId: 'solveNestingValue' });
     expect(diagnostics).toContainEqual(expect.stringMatching(/unknown service operator algebra.solve/));
   });
 

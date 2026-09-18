@@ -125,3 +125,13 @@ algorithm service lives in [workers/nesting](../../../workers/nesting/README.md)
 - [Command runtime](../../core/commands/README.md)
 - [Task runtime](../../core/tasks/README.md)
 - [Nesting runs](../nesting-runs/README.md)
+
+## V -> V service boundary (SPEC §8/§21)
+
+`solve-value.js` is the registered service command (`solveNestingValue`):
+pure value in (job geometry items + sheet params), value out (layouts +
+summary) — the worker HTTP call and `projections.js` run for real, with no
+queue entities or legacy feature services in the path. The declared
+signature in `packages/domain-cnc/src/pack.js` is the contract;
+`solve-value.spec.js` proves the mapping with the worker mocked. The
+queue-orchestrated flow (`operations.js`) stays for the legacy UI surfaces.

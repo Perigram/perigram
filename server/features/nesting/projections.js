@@ -11,6 +11,24 @@ export function buildNestingWorkerRequest(jobFiles, settings = {}) {
   return { items, params };
 }
 
+// Value-shaped variant for the V -> V service boundary (SPEC §8): the sheet
+// parameters arrive as values (the declared signature), not resolved from
+// machine/tool/material snapshots.
+export function buildValueWorkerRequest(jobFiles, params = {}) {
+  const items = buildNestingItems(jobFiles);
+  if (!items.length) throw createError({ statusCode: 400, message: 'No nestable cassette geometry found' });
+  return {
+    items,
+    params: {
+      width: Number(params.width),
+      height: Number(params.height),
+      space: Number(params.space),
+      sheetCount: Number(params.sheetCount),
+      ...(params.sheet_polygon ? { sheet_polygon: normalizeSheetPolygonShape(params.sheet_polygon) } : {})
+    }
+  };
+}
+
 export function resolveNestingParams(settings = {}) {
   const context = resolveNestingContext(settings);
   return {

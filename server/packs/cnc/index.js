@@ -8,7 +8,8 @@
 // this module binds them to server services.
 import { cncDomain } from '~/packages/domain-cnc/src/index.js';
 import { saveCassetteTemplate } from '~/server/features/cassettes/operations.js';
-import { executeNestingSolveTask, solveNesting } from '~/server/features/nesting/operations.js';
+import { solveNestingValue } from '~/server/features/nesting/solve-value.js';
+import { executeNestingSolveTask } from '~/server/features/nesting/operations.js';
 import { convertArtifact } from '~/server/features/artifact-conversions/operations.js';
 
 
@@ -23,7 +24,10 @@ export const cncPack = {
   // editors call them directly); they are not registry services.
   commandHandlers: {
     saveCassetteTemplate,
-    solveNesting,
+    // The V -> V service boundary (SPEC §8): graph processes drive this.
+    // The queue-orchestrated `solveNesting` stays pack-internal for the
+    // legacy UI surfaces.
+    solveNestingValue,
     convertArtifact
   },
 
