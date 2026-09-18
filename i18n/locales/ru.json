@@ -2516,7 +2516,14 @@
       "listTree": "Списки и деревья",
       "instances": "Экземпляры",
       "reads": "Чтение",
-      "structure": "Структура"
+      "structure": "Структура",
+      "file": "Файловые типы",
+      "item": "Элементы",
+      "group": "Группы",
+      "process": "Процессы",
+      "operations": "Операции",
+      "typeNodeUnbound": "Сначала выберите тип для этого узла",
+      "typeBindingHint": "Соедините этот узел с construct/mutate/read, чтобы привязать тип."
     },
     "paletteItems": {
       "modifyEntity": "Изменить сущность",
@@ -2639,7 +2646,8 @@
       "relatedInstances": "Связанные",
       "queryInstances": "Выборка",
       "composeFields": "Собрать поля",
-      "decomposeInstance": "Разобрать экземпляр"
+      "decomposeInstance": "Разобрать экземпляр",
+      "typeReference": "Ссылка на тип"
     },
     "paletteDescriptions": {
       "modifyEntity": "Изменяет выбранные поля или статус существующей сущности.",
@@ -3105,7 +3113,9 @@
     "applyDiffCapabilities": "CRUD-возможности",
     "applyDiffRemovedStatuses": "{entityType}: удалены состояния {statuses} — перед активацией требуется решение о миграции",
     "producerWorkflowHint": "Статусы и переходы задаются доменным жизненным циклом, подключаемыми определениями статусов и узлами действий — но не этой панелью.",
-    "languageTester": "Тестер языка"
+    "languageTester": "Тестер языка",
+    "typeNodeUnbound": "Сначала выберите тип для этого узла",
+    "typeBindingHint": "Соедините этот узел с construct/mutate/read, чтобы привязать тип."
   },
   "generatedScreen": {
     "home": "Главная",

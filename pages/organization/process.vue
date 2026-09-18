@@ -37,6 +37,7 @@
           @connect="onConnect"
         >
           <template #node-statusDefinition="props"><ProcessStatusDefinitionNode v-bind="props" /></template>
+          <template #node-ctsType="props"><CtsTypeNode v-bind="props" /></template>
           <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
         </VueFlow>
         <template #fallback><div class="absolute inset-0" /></template>
@@ -180,6 +181,23 @@
                   <label>{{ $t('processDesigner.label') }}</label>
                   <InputText v-model="selectedRecord.label" />
                 </div>
+
+                <template v-else-if="selectedNode.type === 'ctsType'">
+                  <div class="flex flex-col gap-3">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('processDesigner.entityType') }}</label>
+                      <Select
+                        :model-value="selectedNode.data?.typeId || ''"
+                        :options="typeAnchorOptions"
+                        option-label="label"
+                        option-value="value"
+                        filter
+                        @update:model-value="value => { selectedNode.data.typeId = value; syncNodeData(); }"
+                      />
+                    </div>
+                    <Message severity="info" :closable="false">{{ $t('processDesigner.typeBindingHint') }}</Message>
+                  </div>
+                </template>
 
                 <template v-else-if="selectedNode.type === 'statusDefinition'">
                   <div class="grid grid-cols-2 gap-2">
@@ -905,8 +923,9 @@ import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncUiSurfaces } from '@cutkit/domain-cnc';
 import { cncEntities, cncWorkflows, cncContainment, cncEntityFieldSchemas } from '@cutkit/domain-cnc';
-import { createTypeRegistry, convertCncDomain, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition } from '~/packages/cts/src/index.js';
+import { createTypeRegistry, convertCncDomain, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
+import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import MotionDock from '~/components/shared/MotionDock.vue';
@@ -1020,13 +1039,30 @@ function ctsProjectedDomain() {
   return projectDomainFromView(ctsRegistry(), draft.value?.lineage?.organizationId || null, cncDomain);
 }
 
+// The registry view as the authoring catalog: class groups first (the
+// palette IS the type system), labels/icons from render policy.
+function ctsTypeView() {
+  return ctsRegistry().listTypes(draft.value?.lineage?.organizationId || null)
+    .filter(type => type.class !== 'party')
+    .map(type => {
+      const policy = renderPolicyFor(type);
+      return {
+        id: type.id,
+        class: type.class,
+        label: policy.label,
+        icon: policy.icon,
+        description: `${type.class} type`
+      };
+    });
+}
+
 // One joint: rebuild the designer option lists from the registry view.
 function refreshDesignerFromTypes() {
-  const refreshed = createProcessDesignerContract(ctsProjectedDomain(), designerCapabilities);
+  const refreshed = createProcessDesignerContract(ctsProjectedDomain(), designerCapabilities, { typeView: ctsTypeView() });
   Object.assign(designer, refreshed);
 }
 
-const designer = reactive(createProcessDesignerContract(ctsProjectedDomain()));
+const designer = reactive(createProcessDesignerContract(ctsProjectedDomain(), null, { typeView: ctsTypeView() }));
 
 // Graph protocol v5: canvas records speak the type system (cts.* species
 // kinds, `type` ids, row paths). Kind matching and port resolution route
@@ -1046,6 +1082,38 @@ function setNodeEntityType(node, entityType) {
 function catalogPorts(record) {
   const working = resolveCtsRecord(record, ctsProjectedDomain());
   return resolveCatalogNodePorts(working, catalogContext(working));
+}
+
+// A connection whose either end is a ctsType canvas node and whose other end
+// is an entity-bound species record binds that record's type.
+function typeBindingForConnection(connection = {}) {
+  const source = nodes.value.find(node => node.id === connection.source);
+  const target = nodes.value.find(node => node.id === connection.target);
+  if (!source || !target) return null;
+  const typeNode = source.type === 'ctsType' ? source : target.type === 'ctsType' ? target : null;
+  const other = typeNode === source ? target : source;
+  if (!typeNode || other.type !== 'processNode') return null;
+  const record = draft.value?.data?.processNodes?.[other.data?.refId];
+  if (!record || !String(record.kind || '').startsWith('cts.')) return null;
+  const typeId = typeNode.data?.typeId;
+  if (!typeId) {
+    toast.add({ severity: 'warn', summary: t('processDesigner.typeNodeUnbound'), life: 3000 });
+    return null;
+  }
+  return { typeNodeId: typeNode.id, typeNodeTypeId: typeId, recordNodeId: other.id, record };
+}
+
+function applyTypeBinding(binding, connection = {}) {
+  setNodeEntityType(binding.record, binding.typeNodeTypeId);
+  syncNodeData();
+  edges.value.push(decorateEdge({
+    ...connection,
+    id: `${binding.typeNodeId}-type-${binding.recordNodeId}-${Date.now()}`,
+    type: 'default',
+    role: 'type',
+    label: 'type'
+  }));
+  selectedEdgeId.value = null;
 }
 const sameTypeId = (a, b) => String(a || '').replace(/_/g, '-') === String(b || '').replace(/_/g, '-');
 const nodeBlocks = node => node?.slots || node?.blocks || [];
@@ -1418,6 +1486,10 @@ function updateJoinSelectedProducer(node, selectedProducerOutputId) {
   node.selectedProducerOutputId = selectedProducerOutputId;
   syncNodeData();
 }
+const typeAnchorOptions = computed(() => ctsTypeView().map(entry => ({
+  label: `${entry.label} · ${entry.class}`,
+  value: entry.id
+})));
 const optionalEntityTypeOptions = computed(() => [{ label: 'None', value: '' }, ...entityTypeOptions.value]);
 const commandOptions = computed(() => designer.commandOptions);
 const screenActionOptions = computed(() => Object.values(draft.value?.data?.actions || {}).map(action => ({
@@ -1923,6 +1995,19 @@ function addNode(item, position = nextNodePosition()) {
     selected: true,
     data: { refId, label: refId }
   };
+  if (type === 'ctsType') {
+    const typeNode = {
+      id,
+      type: 'ctsType',
+      position,
+      selected: true,
+      data: { typeId: '', label: '' }
+    };
+    nodes.value = [...nodes.value.map(item => ({ ...item, selected: false })), typeNode];
+    selectedNodeId.value = id;
+    selectedEdgeId.value = null;
+    return typeNode;
+  }
   const record = ensureRecord(recordKeyForType(type), { data: { refId }, type }, factoryForType(type));
   if (type === 'action' && actionKind) {
     Object.assign(record, createAction(refId, actionKind));
@@ -2169,6 +2254,7 @@ function decorateEdge(edge = {}) {
 function sourcePortForEdge(edge = {}) {
   const source = nodes.value.find(node => node.id === edge.source);
   if (!source) return {};
+  if (edge.role === 'type') return { type: { base: 'json' } };
   if (source.type === 'statusDefinition') return { type: processType('status') };
   if (source.type === 'processNode') {
     const record = draft.value?.data?.processNodes?.[source.data?.refId];
@@ -3558,6 +3644,10 @@ function parseJson(source, fallback) {
 }
 
 function enrichNodeData(node) {
+  if (node.type === 'ctsType') {
+    const entry = ctsTypeView().find(candidate => candidate.id === node.data?.typeId);
+    return { ...node, data: { ...(node.data || {}), type: entry || null, label: entry?.label || node.data?.typeId || 'type' } };
+  }
   const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
   if (node.type === 'action') syncActionIo(record, node);
   if (node.type === 'entity') syncEntityProfileIo(record);
@@ -4090,6 +4180,14 @@ function withoutKeys(value = {}, keys = []) {
 function onConnect(connection) {
   contextPalette.value.socket = null;
   syncNodeData();
+  // Type binding gesture: wire a type node into a species node and the wire
+  // carries the binding into the record (SPEC §20); the edge persists as a
+  // canvas `type`-role wire for visualization and re-binding.
+  const binding = typeBindingForConnection(connection);
+  if (binding) {
+    applyTypeBinding(binding, connection);
+    return;
+  }
   const processNodeSnapshot = clonePlainData(draft.value?.data?.processNodes || {});
   inferGenericNodeTypeFromConnection(connection);
   const compatibility = connectionCompatibility(connection);

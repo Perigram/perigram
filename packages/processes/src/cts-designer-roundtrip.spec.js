@@ -8,6 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { PROCESS_DESIGNER_PALETTE_GROUPS, createProcessDesignerContract, syncProcessNodeProducerOutputs } from './designer.js';
 import { resolveCatalogNodePorts, getProcessNodeDefinition } from './node-catalog.js';
 import { definitionToCanvas, canvasToDefinition, validateRoundTrip } from './transpiler.js';
+import { normalizeProcessDefinition } from './index.js';
 import {
   createTypeRegistry, convertCncDomain, projectDomainFromView,
   migrateV4Definition, resolveCtsDefinition
@@ -30,12 +31,12 @@ function projectedDomain() {
 describe('graph protocol v5 designer round trip', () => {
   it('the palette speaks species kinds only for entity-bound operations', () => {
     const groups = Object.fromEntries(PROCESS_DESIGNER_PALETTE_GROUPS.map(group => [group.id, group.items]));
-    for (const item of [...groups.instances, ...groups.reads, ...groups.structure]) {
-      if (item.type === 'statusDefinition') continue;
+    for (const item of groups.operations) {
+      if (['statusDefinition', 'ctsType'].includes(item.type)) continue;
       expect(item.kind, item.id).toMatch(/^cts\./);
       expect(getProcessNodeDefinition(item.kind), item.kind).not.toBeNull();
     }
-    const readPresets = groups.reads.map(item => item.preset.select);
+    const readPresets = groups.operations.filter(item => item.kind === 'cts.read').map(item => item.preset.select);
     expect(readPresets).toEqual(['current', 'byId', 'byRef', 'parent', 'children', 'related', 'query']);
   });
 
@@ -127,4 +128,44 @@ describe('graph protocol v5 designer round trip', () => {
     expect(resolved.processNodes.update.kind).toBe('effect.updateEntity');
     expect(resolved.processNodes.update.entityType).toBe('cassette_design');
   });
+  it('type reference nodes persist through the canvas and their wires never reach validation', () => {
+    const domain = projectedDomain();
+    const v5 = {
+      schemaVersion: 1,
+      dataflowVersion: 4,
+      graphProtocol: 5,
+      graph: {
+        nodes: [
+          { id: 'typeNode', type: 'ctsType', position: { x: 0, y: 0 }, data: { typeId: 'sheet' } },
+          { id: 'construct', type: 'processNode', data: { refId: 'construct' } }
+        ],
+        edges: [
+          { id: 'bind', source: 'typeNode', target: 'construct', role: 'type' }
+        ]
+      },
+      roleGrants: {},
+      producerOutputs: {},
+      actions: {},
+      services: {},
+      sockets: {},
+      statusDefinitions: {},
+      valueInputs: {},
+      screens: {},
+      processNodes: {
+        construct: { id: 'construct', kind: 'cts.construct', type: 'sheet', via: 'genericCreate', trigger: { mode: 'manual' }, access: { level: 'write', grants: [] } }
+      }
+    };
+    const canvas = definitionToCanvas(structuredClone(v5));
+    expect(canvas.nodes.some(node => node.type === 'ctsType' && node.data.typeId === 'sheet')).toBe(true);
+    const saved = canvasToDefinition(canvas, structuredClone(v5));
+    expect(saved.graph.nodes.some(node => node.type === 'ctsType')).toBe(true);
+    expect(saved.graph.edges.some(edge => edge.role === 'type')).toBe(true);
+    expect(saved.processNodes.construct.type).toBe('sheet');
+    expect(validateRoundTrip(saved).ok).toBe(true);
+
+    // normalization drops the binding wire: it is a canvas gesture, not dataflow
+    const normalized = normalizeProcessDefinition(saved, domain);
+    expect((normalized.graph.edges || []).some(edge => edge.role === 'type')).toBe(false);
+  });
+
 });

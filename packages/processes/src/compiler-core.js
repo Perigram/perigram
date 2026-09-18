@@ -1217,7 +1217,12 @@ export function resolveScreens({ access } = {}) {
 function normalizeGraph(graph = {}) {
   return {
     nodes: Array.isArray(graph.nodes) ? graph.nodes.map(normalizeNode) : [],
-    edges: Array.isArray(graph.edges) ? graph.edges.map(normalizeEdge) : [],
+    // `type`-role edges are canvas binding gestures (type node -> species
+    // node); the binding itself lives in the record's type field. They are
+    // not dataflow and never reach validation.
+    edges: Array.isArray(graph.edges)
+      ? graph.edges.map(normalizeEdge).filter(edge => edge.role !== 'type')
+      : [],
     viewport: {
       x: Number(graph.viewport?.x || 0),
       y: Number(graph.viewport?.y || 0),

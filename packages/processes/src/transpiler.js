@@ -19,7 +19,10 @@ const CANVAS_OWNED_RECORD_KEYS = {
 
 const RECORD_NODE_TYPES = Object.keys(CANVAS_OWNED_RECORD_KEYS);
 
-const CANVAS_PERSISTENT_NODE_TYPES = [...RECORD_NODE_TYPES];
+// `ctsType` canvas nodes are type-system reference anchors: they persist in
+// the graph, own no records, and their wires carry type bindings into
+// species records (role: 'type' edges — canvas gestures, not dataflow).
+const CANVAS_PERSISTENT_NODE_TYPES = [...RECORD_NODE_TYPES, 'ctsType'];
 
 
 export function hasCanonicalProcessSource(definition = {}) {
@@ -36,9 +39,11 @@ export function definitionToCanvas(definition = {}) {
   const projectedBySemanticId = new Map(projectedNodes.map(node => [semanticNodeId(node), node]));
   const savedNodes = (process.graph.nodes || [])
     .filter(node => CANVAS_PERSISTENT_NODE_TYPES.includes(node.type))
-    .map(node => (projectedBySemanticId.has(semanticNodeId(node))
-      ? mergeProjectedNode(projectedBySemanticId.get(semanticNodeId(node)), node)
-      : null))
+    .map(node => node.type === 'ctsType'
+      ? normalizeCanvasNode(node)
+      : (projectedBySemanticId.has(semanticNodeId(node))
+        ? mergeProjectedNode(projectedBySemanticId.get(semanticNodeId(node)), node)
+        : null))
     .filter(Boolean);
 
   const savedSemanticIds = new Set(savedNodes.map(semanticNodeId));
@@ -258,6 +263,9 @@ function normalizeCanvasEdge(edge = {}) {
     sourceHandle,
     targetHandle,
     type: edge.type || 'default',
+    // 'type'-role wires are binding gestures (type node -> species node);
+    // they persist with the canvas and are filtered from validation.
+    ...(edge.role ? { role: edge.role } : {}),
     data: edge.data && typeof edge.data === 'object' ? edge.data : {}
   };
 }

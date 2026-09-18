@@ -229,38 +229,34 @@ describe('process designer domain contract', () => {
     const items = contract.paletteGroups.flatMap(group => group.items);
 
     expect(Object.keys(groups)).toEqual([
-      'instances',
-      'reads',
-      'structure',
+      'operations',
       'values',
       'listTree'
     ]);
-    // Graph protocol v5: the palette speaks the species vocabulary.
-    expect(groups.instances.map(item => item.kind || item.type)).toEqual([
+    // Without a registry view the palette carries the species operations;
+    // with one, the class groups come first (see the type-catalog test).
+    expect(groups.operations.map(item => item.kind || item.type)).toEqual([
       'cts.construct',
       'cts.mutate',
       'cts.transition',
       'cts.remove',
       'cts.command',
       'statusDefinition',
-      'cts.join'
-    ]);
-    expect(groups.reads.map(item => item.kind)).toEqual([
+      'cts.join',
       'cts.read',
       'cts.read',
       'cts.read',
       'cts.read',
       'cts.read',
       'cts.read',
-      'cts.read'
-    ]);
-    expect(contract.paletteGroups[1].items.map(item => item.preset.select)).toEqual([
-      'current', 'byId', 'byRef', 'parent', 'children', 'related', 'query'
-    ]);
-    expect(groups.structure.map(item => item.kind)).toEqual([
+      'cts.read',
       'cts.field',
       'cts.compose',
-      'cts.decompose'
+      'cts.decompose',
+      'ctsType'
+    ]);
+    expect(contract.paletteGroups[0].items.slice(7, 14).map(item => item.preset.select)).toEqual([
+      'current', 'byId', 'byRef', 'parent', 'children', 'related', 'query'
     ]);
     expect(groups.values.map(item => item.kind)).toEqual([
       'source.literalItem',
@@ -294,7 +290,8 @@ describe('process designer domain contract', () => {
     expect(items.map(item => item.kind)).not.toContain('value.cast');
     expect(items.map(item => item.kind)).not.toContain('value.parse');
     expect(items.map(item => item.kind)).not.toContain('source.triggerPayload');
-    expect(items.every(item => item.type === 'statusDefinition' || getProcessNodeDefinition(item.kind))).toBe(true);
+    // statusDefinition and the ctsType reference node are canvas surfaces, not catalog operations
+    expect(items.every(item => ['statusDefinition', 'ctsType'].includes(item.type) || getProcessNodeDefinition(item.kind))).toBe(true);
     expect(new Set(items.map(item => item.id)).size).toBe(items.length);
     expect(items.every(item => item.description && item.preset)).toBe(true);
     expect(items.find(item => item.id === 'date')?.preset).toMatchObject({
@@ -302,6 +299,31 @@ describe('process designer domain contract', () => {
       inputDefaults: { amount: 30 }
     });
     expect(contract.fieldType('work_item', 'identity.name')).toMatchObject({ base: 'string', shape: 'item' });
+  });
+
+  it('composes the palette from the registry view — class groups are the type catalog', () => {
+    const contract = createProcessDesignerContract(domain, null, {
+      typeView: [
+        { id: 'cassette', class: 'file', label: 'Cassette', icon: 'pi pi-file' },
+        { id: 'sheet-design', class: 'file', label: 'Sheet design' },
+        { id: 'sheet', class: 'item', label: 'Sheet' },
+        { id: 'project', class: 'group', label: 'Project' },
+        { id: 'queue', class: 'process', label: 'Queue' },
+        { id: 'organization', class: 'party', label: 'Organization' }
+      ]
+    });
+    const ids = contract.paletteGroups.map(group => group.id);
+    expect(ids).toEqual(['file', 'item', 'group', 'process', 'operations', 'values', 'listTree']);
+    const fileGroup = contract.paletteGroups[0];
+    expect(fileGroup.items.map(item => item.id)).toEqual(['type:cassette', 'type:sheet-design']);
+    // dragging a type drops a construct bound to it
+    expect(fileGroup.items[0].kind).toBe('cts.construct');
+    expect(fileGroup.items[0].preset).toEqual({ type: 'cassette', via: 'genericCreate' });
+    // party types never appear; the bare construct item yields to the catalog
+    const flat = contract.paletteGroups.flatMap(group => group.items);
+    expect(flat.some(item => item.preset?.type === 'organization')).toBe(false);
+    expect(flat.some(item => item.id === 'construct')).toBe(false);
+    expect(flat.some(item => item.id === 'typeReference')).toBe(true);
   });
 
   it('keeps domain construction producers out of the authoring palette', () => {

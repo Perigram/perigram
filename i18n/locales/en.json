@@ -2516,7 +2516,14 @@
       "listTree": "Lists and trees",
       "instances": "Instances",
       "reads": "Reads",
-      "structure": "Structure"
+      "structure": "Structure",
+      "file": "File types",
+      "item": "Items",
+      "group": "Groups",
+      "process": "Processes",
+      "operations": "Operations",
+      "typeNodeUnbound": "Pick a type for this node first",
+      "typeBindingHint": "Wire this node into a construct/mutate/read node to bind its type."
     },
     "paletteItems": {
       "modifyEntity": "Modify entity",
@@ -2639,7 +2646,8 @@
       "relatedInstances": "Related",
       "queryInstances": "Query instances",
       "composeFields": "Compose fields",
-      "decomposeInstance": "Decompose instance"
+      "decomposeInstance": "Decompose instance",
+      "typeReference": "Type reference"
     },
     "paletteDescriptions": {
       "modifyEntity": "Changes selected fields or status on an existing entity.",
@@ -3105,7 +3113,9 @@
     "applyDiffCapabilities": "CRUD capabilities",
     "applyDiffRemovedStatuses": "{entityType}: removed states {statuses} — a migration decision is required before activation",
     "producerWorkflowHint": "Statuses and transitions come from the domain lifecycle, wired status definitions, and action nodes — never from this panel.",
-    "languageTester": "Language tester"
+    "languageTester": "Language tester",
+    "typeNodeUnbound": "Pick a type for this node first",
+    "typeBindingHint": "Wire this node into a construct/mutate/read node to bind its type."
   },
   "generatedScreen": {
     "home": "Home",

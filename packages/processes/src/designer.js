@@ -41,7 +41,7 @@ const definitionPaletteItem = (id, type, options = {}) => Object.freeze({
 // those operations and may insert them when two compatible sockets are joined.
 export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   {
-    id: 'instances',
+    id: 'operations',
     items: [
       paletteItem('construct', 'cts.construct', { preset: { via: 'genericCreate' } }),
       paletteItem('mutate', 'cts.mutate'),
@@ -49,27 +49,18 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('remove', 'cts.remove'),
       paletteItem('runService', 'cts.command'),
       definitionPaletteItem('defineStatus', 'statusDefinition'),
-      paletteItem('joinProducers', 'cts.join')
-    ]
-  },
-  {
-    id: 'reads',
-    items: [
+      paletteItem('joinProducers', 'cts.join'),
       paletteItem('currentInstance', 'cts.read', { preset: { select: 'current' } }),
       paletteItem('findById', 'cts.read', { preset: { select: 'byId' } }),
       paletteItem('findByReference', 'cts.read', { preset: { select: 'byRef' } }),
       paletteItem('parentInstance', 'cts.read', { preset: { select: 'parent' } }),
       paletteItem('childInstances', 'cts.read', { preset: { select: 'children' } }),
       paletteItem('relatedInstances', 'cts.read', { preset: { select: 'related' } }),
-      paletteItem('queryInstances', 'cts.read', { preset: { select: 'query' } })
-    ]
-  },
-  {
-    id: 'structure',
-    items: [
+      paletteItem('queryInstances', 'cts.read', { preset: { select: 'query' } }),
       paletteItem('readField', 'cts.field'),
       paletteItem('composeFields', 'cts.compose', { preset: { mode: 'compose' } }),
-      paletteItem('decomposeInstance', 'cts.decompose')
+      paletteItem('decomposeInstance', 'cts.decompose'),
+      definitionPaletteItem('typeReference', 'ctsType')
     ]
   },
   {
@@ -160,7 +151,27 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
   return [...outputIds];
 }
 
-export function createProcessDesignerContract(domain = {}, capabilities = null) {
+// Class groups from the registry view (the palette IS the type catalog):
+// one group per CTS class, one item per type — dragging a type drops a
+// construct bound to it via the preset. Party types are framework-owned and
+// stay off the authoring palette.
+export function typeCatalogPaletteGroups(typeView = []) {
+  return ['file', 'item', 'group', 'process']
+    .map(classOf => ({
+      id: classOf,
+      items: (typeView || [])
+        .filter(entry => entry.class === classOf)
+        .map(entry => paletteItem(`type:${entry.id}`, 'cts.construct', {
+          label: entry.label || entry.id,
+          description: entry.description || entry.label || entry.id,
+          icon: entry.icon || iconForNode('cts.construct'),
+          preset: { type: entry.id, via: 'genericCreate' }
+        }))
+    }))
+    .filter(group => group.items.length);
+}
+
+export function createProcessDesignerContract(domain = {}, capabilities = null, options = {}) {
   const entities = Array.isArray(domain.entities) ? domain.entities : [];
   const entityByType = new Map(entities.map(entity => [entity.type, entity]));
 
@@ -217,10 +228,13 @@ export function createProcessDesignerContract(domain = {}, capabilities = null) 
     }));
   }
 
-  const paletteGroups = PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
-    ...group,
-    items: group.items
-  }));
+  const paletteGroups = [
+    ...typeCatalogPaletteGroups(options.typeView || []),
+    ...PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
+      ...group,
+      items: group.items.filter(item => !options.typeView || item.id !== 'construct')
+    }))
+  ];
 
   const entityOption = entity => ({ label: entity.label || entity.type, value: entity.type });
 
