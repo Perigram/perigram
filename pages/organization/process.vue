@@ -2378,11 +2378,14 @@ function addNode(item, position = nextNodePosition()) {
               : { typeId: null, value: '', initial: false, terminal: false })
       }
     };
-    nodes.value = [...nodes.value.map(item => ({ ...item, selected: false })), typeNode];
+    // enrich BEFORE pushing: the typed port specs must exist the instant
+    // the node lands, or the wire compatibility gate rejects the first
+    // gesture onto it (enrich also mints and syncs the ctsTypes record)
+    const enrichedNode = enrichNodeData(typeNode);
+    nodes.value = [...nodes.value.map(item => ({ ...item, selected: false })), enrichedNode];
     selectedNodeId.value = id;
     selectedEdgeId.value = null;
-    syncDeclarationRecord(ensureRecord(recordKeyForType(type), typeNode, factoryForType(type)), typeNode);
-    return typeNode;
+    return enrichedNode;
   }
   const record = ensureRecord(recordKeyForType(type), { data: { refId }, type }, factoryForType(type));
   if (type === 'action' && actionKind) {
