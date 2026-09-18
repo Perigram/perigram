@@ -38,7 +38,7 @@
         @update:model-value="updateOperation"
       />
       <Select
-        v-if="record.kind === 'control.domainEventTrigger'"
+        v-if="opKind === 'control.domainEventTrigger'"
         :model-value="record.eventId"
         :options="data.processEventOptions || []"
         option-label="label"
@@ -66,31 +66,31 @@
         @update:model-value="value => update({ path: value })"
       />
       <InputText
-        v-if="record.kind === 'source.literalItem' && record.type?.base === 'entityRef'"
+        v-if="opKind === 'source.literalItem' && record.type?.base === 'entityRef'"
         :model-value="record.value?.id || ''"
         size="small"
         :placeholder="$t('common.id')"
         @update:model-value="value => update({ value: value ? { type: record.type?.entityType || record.entityType || '', id: value } : null })"
       />
       <InputText
-        v-if="record.kind === 'source.literalItem' && !['entityRef', 'number', 'integer', 'boolean', 'date', 'dateTime', 'status'].includes(record.type?.base)"
+        v-if="opKind === 'source.literalItem' && !['entityRef', 'number', 'integer', 'boolean', 'date', 'dateTime', 'status'].includes(record.type?.base)"
         :model-value="literalDisplay"
         size="small"
         @update:model-value="updateLiteral"
       />
       <InputNumber
-        v-if="record.kind === 'source.literalItem' && ['number', 'integer'].includes(record.type?.base)"
+        v-if="opKind === 'source.literalItem' && ['number', 'integer'].includes(record.type?.base)"
         :model-value="Number(record.value) || 0"
         size="small"
         @update:model-value="value => update({ value })"
       />
       <ToggleSwitch
-        v-if="record.kind === 'source.literalItem' && record.type?.base === 'boolean'"
+        v-if="opKind === 'source.literalItem' && record.type?.base === 'boolean'"
         :model-value="Boolean(record.value)"
         @update:model-value="value => update({ value })"
       />
       <DatePicker
-        v-if="record.kind === 'source.literalItem' && ['date', 'dateTime'].includes(record.type?.base)"
+        v-if="opKind === 'source.literalItem' && ['date', 'dateTime'].includes(record.type?.base)"
         :model-value="literalDate"
         :show-time="record.type?.base === 'dateTime'"
         hour-format="24"
@@ -98,7 +98,7 @@
         @update:model-value="value => update({ value: serializeLiteralDate(value) })"
       />
       <Select
-        v-if="record.kind === 'source.literalItem' && record.type?.base === 'status'"
+        v-if="opKind === 'source.literalItem' && record.type?.base === 'status'"
         :model-value="record.value"
         :options="data.processStatusOptions || []"
         option-label="label"
@@ -107,7 +107,7 @@
         @update:model-value="value => update({ value })"
       />
       <Textarea
-        v-if="['source.literalList', 'source.literalTree'].includes(record.kind)"
+        v-if="['source.literalList', 'source.literalTree'].includes(opKind)"
         :model-value="literalDisplay"
         rows="3"
         auto-resize
@@ -188,7 +188,7 @@
 
     <div v-if="eventSocketRows.length" class="mt-2 border-t border-content-border pt-2">
       <label
-        v-if="record.kind?.startsWith('effect.')"
+        v-if="opKind.startsWith('effect.')"
         class="nodrag nowheel mb-1.5 flex min-h-7 cursor-pointer items-center justify-between gap-2"
         @mousedown.stop
         @click.stop
@@ -216,6 +216,8 @@
 </template>
 
 <script setup>
+import { operationKindOf } from '~/packages/cts/src/index.js';
+
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 import DatePicker from 'primevue/datepicker';
@@ -235,6 +237,7 @@ const props = defineProps({
 const { t } = useI18n();
 
 const record = computed(() => props.data.processNodeRecord || props.data);
+const opKind = computed(() => operationKindOf(record.value || {}));
 const inputSpecs = computed(() => normalizeSpecs(record.value.inputs || props.data.inputSpecs || []));
 const outputSpecs = computed(() => normalizeSpecs(record.value.outputs || props.data.outputSpecs || []));
 const dataInputs = computed(() => inputSpecs.value.filter(input => input.role === 'data'));
@@ -246,29 +249,26 @@ const eventSocketRows = computed(() => alignSockets(eventInputs.value, eventOutp
 const connectedInputs = computed(() => new Set(props.data.processConnectedInputIds || []));
 const operationOptions = computed(() => props.data.processOperationOptions || []);
 const fieldOptions = computed(() => props.data.processFieldOptions || []);
-const showsFieldSet = computed(() => [
-  'record.composeBlock',
-  'record.modifyBlock'
-].includes(record.value.kind));
+const showsFieldSet = computed(() => ['record.composeBlock', 'record.modifyBlock'].includes(opKind.value));
 const showsFieldSelect = computed(() => (
   fieldOptions.value.length > 0
   && !showsFieldSet.value
   && !(fieldOptions.value.length === 1 && fieldOptions.value[0].value === record.value.block)
 ));
 const showEntitySelect = computed(() => (!record.value.entityTypeInferred && (
-  (['record.', 'predicate.', 'read.', 'effect.'].some(prefix => record.value.kind?.startsWith(prefix))
-    && !['record.getField', 'record.composeBlock', 'record.modifyBlock', 'record.construct', 'effect.runCommand', 'effect.runProducer'].includes(record.value.kind))
-  || record.value.kind === 'control.entityChangedTrigger'
-  || (record.value.kind === 'control.manualTrigger' && record.value.entityType)
-  || (record.value.kind === 'source.literalItem' && record.value.type?.base === 'entityRef')
+  (['record.', 'predicate.', 'read.', 'effect.'].some(prefix => opKind.value.startsWith(prefix))
+    && !['record.getField', 'record.composeBlock', 'record.modifyBlock', 'record.construct', 'effect.runCommand', 'effect.runProducer'].includes(opKind.value))
+  || opKind.value === 'control.entityChangedTrigger'
+  || (opKind.value === 'control.manualTrigger' && (record.value.entityType || record.value.type))
+  || (opKind.value === 'source.literalItem' && record.value.type?.base === 'entityRef')
 )));
 const showBlockSelect = computed(() => (
-  ['record.getBlock', 'record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.value.kind)
+  ['record.getBlock', 'record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(opKind.value)
   && (props.data.processBlockOptions || []).length
 ));
 const showTypeEditor = computed(() => (
-  record.value.kind?.startsWith('source.literal')
-  || (record.value.kind === 'value.logic'
+  opKind.value.startsWith('source.literal')
+  || (opKind.value === 'value.logic'
     && ['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'startsWith', 'endsWith', 'isNull', 'isNotNull'].includes(record.value.operation))
 ));
 const baseTypeOptions = computed(() => [
@@ -299,23 +299,23 @@ const hasInlineConfiguration = computed(() => (
   showEntitySelect.value
   || showTypeEditor.value
   || operationOptions.value.length
-  || record.value.kind === 'control.domainEventTrigger'
+  || opKind.value === 'control.domainEventTrigger'
   || showBlockSelect.value
   || (fieldOptions.value.length && !showsFieldSet.value)
-  || record.value.kind?.startsWith('source.literal')
+  || opKind.value.startsWith('source.literal')
 ));
 const nodeFrameClass = computed(() => [
   'relative w-72 rounded-ui border bg-content p-2.5 pt-3 shadow-card transition-colors',
   props.selected ? 'border-primary' : 'border-content-border'
 ]);
 const accent = computed(() => {
-  if (record.value.kind?.startsWith('read.')) return { stripe: 'bg-signal-structure', icon: 'text-signal-structure' };
-  if (record.value.kind?.startsWith('record.')) return { stripe: 'bg-signal-entity', icon: 'text-signal-entity' };
-  if (record.value.kind?.startsWith('predicate.') || record.value.kind?.includes('compare') || record.value.kind?.includes('logic')) {
+  if (opKind.value.startsWith('read.')) return { stripe: 'bg-signal-structure', icon: 'text-signal-structure' };
+  if (opKind.value.startsWith('record.')) return { stripe: 'bg-signal-entity', icon: 'text-signal-entity' };
+  if (opKind.value.startsWith('predicate.') || opKind.value.includes('compare') || opKind.value.includes('logic')) {
     return { stripe: 'bg-signal-decision', icon: 'text-signal-decision' };
   }
-  if (record.value.kind?.startsWith('effect.')) return { stripe: 'bg-signal-effect', icon: 'text-signal-effect' };
-  if (record.value.kind?.startsWith('control.')) return { stripe: 'bg-signal-external', icon: 'text-signal-external' };
+  if (opKind.value.startsWith('effect.')) return { stripe: 'bg-signal-effect', icon: 'text-signal-effect' };
+  if (opKind.value.startsWith('control.')) return { stripe: 'bg-signal-external', icon: 'text-signal-external' };
   return { stripe: 'bg-signal-value', icon: 'text-signal-value' };
 });
 
@@ -324,13 +324,13 @@ function update(updates) {
 }
 
 const operationValue = computed(() => (
-  record.value.kind === 'collection.sort'
+  opKind.value === 'collection.sort'
     ? record.value.direction || 'asc'
     : record.value.operation
 ));
 
 function updateOperation(value) {
-  update(record.value.kind === 'collection.sort' ? { direction: value } : { operation: value });
+  update(opKind.value === 'collection.sort' ? { direction: value } : { operation: value });
 }
 
 function updateEffectTriggerMode(mode) {
@@ -344,7 +344,7 @@ const autoTriggerLabel = computed(() => (
 
 function updateValueType(base) {
   const updates = { type: { ...(record.value.type || {}), base } };
-  if (record.value.kind?.startsWith('source.literal')) {
+  if (opKind.value.startsWith('source.literal')) {
     updates.value = base === 'boolean' ? false
       : ['number', 'integer'].includes(base) ? 0
         : base === 'json' ? {}
@@ -418,7 +418,7 @@ function supportsInlineValue(input) {
     && (input.access === 'item'
       // Mapped mutation sockets declare List consumption; an inline scalar
       // fallback is stored as one broadcast item.
-      || (input.access === 'list' && ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus'].includes(record.value.kind)));
+      || (input.access === 'list' && ['effect.createEntity', 'effect.updateEntity', 'effect.changeStatus'].includes(opKind.value)));
 }
 
 function inputDefault(id) {

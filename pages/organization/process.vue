@@ -3052,7 +3052,7 @@ function syncProcessNode(node = {}) {
   if (['effect.createEntity', 'effect.updateEntity'].includes(opKind(node))) {
     setNodeBlocks(node, isOpKind(node, 'effect.createEntity')
       ? constructibleEntityBlocks(nodeEntityType(node))
-      : writableEntityBlocks(nodeEntityType(node));
+      : writableEntityBlocks(nodeEntityType(node)));
     node.fields = [];
   }
   if (['predicate.field', 'value.compare'].includes(node.kind)) {
@@ -3276,7 +3276,10 @@ function processNodeDisplayLabel(node = {}) {
   if (['value.cast', 'value.parse', 'value.convertUnit', 'value.toEntityRef', 'value.toJson'].includes(node.kind)) {
     return t('processDesigner.automaticConversion', { type: node.type ? formatProcessType(node.type) : '' });
   }
-  const item = designer.paletteGroups.flatMap(group => group.items).find(candidate => candidate.kind === node.kind);
+  const items = designer.paletteGroups.flatMap(group => group.items).filter(candidate => candidate.kind === node.kind);
+  // discriminated kinds (cts.read) match their preset first
+  const item = items.find(candidate => candidate.preset?.select && candidate.preset.select === node.select)
+    || items[0];
   return item ? paletteLabel(item) : humanizeNodeLabel(node.kind || '');
 }
 
