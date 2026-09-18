@@ -1,3 +1,4 @@
+import { operationKindOf } from '~/packages/cts/src/index.js';
 import { MAKE_LIST_INPUTS } from '~/packages/processes/src/index.js';
 
 export function useProcessDesignerConnectionInference({ nodes, draft, resolveOutputs, portForHandle, syncProcessNode }) {
@@ -32,10 +33,10 @@ export function useProcessDesignerConnectionInference({ nodes, draft, resolveOut
     if (!sourceRecord || !targetRecord) return;
     const sourcePort = portForHandle(resolveOutputs(sourceRecord), connection.sourceHandle, 'output');
     if (!sourcePort || sourcePort.role !== 'data') return;
-    if (sourceRecord.kind === 'control.manualTrigger'
+    if (operationKindOf(sourceRecord) === 'control.manualTrigger'
       && !sourceRecord.entityType
       && targetRecord.entityType
-      && ['effect.updateEntity', 'record.getField', 'record.getBlock', 'record.deconstruct'].includes(targetRecord.kind)) {
+      && ['effect.updateEntity', 'record.getField', 'record.getBlock', 'record.deconstruct'].includes(operationKindOf(targetRecord))) {
       sourceRecord.entityType = targetRecord.entityType;
       syncProcessNode(sourceRecord);
     }
@@ -43,8 +44,8 @@ export function useProcessDesignerConnectionInference({ nodes, draft, resolveOut
     const drivesGenericType = !targetInput
       || ['value', 'items', 'tree', 'left'].includes(targetInput)
       || (targetRecord.kind === 'collection.makeList' && makeListInputs.has(targetInput));
-    if (genericKinds.has(targetRecord.kind) && drivesGenericType) targetRecord.type = { ...sourcePort.type };
-    if (targetRecord.kind === 'value.logic' && ['left', 'value', ''].includes(targetInput)) targetRecord.type = { ...sourcePort.type };
+    if (genericKinds.has(operationKindOf(targetRecord)) && drivesGenericType) targetRecord.type = { ...sourcePort.type };
+    if (operationKindOf(targetRecord) === 'value.logic' && ['left', 'value', ''].includes(targetInput)) targetRecord.type = { ...sourcePort.type };
     if (['value.string', 'value.math', 'value.dateTime'].includes(targetRecord.kind)
       && ['left', 'text', 'date', 'value', ''].includes(targetInput)) {
       targetRecord.type = { ...sourcePort.type };

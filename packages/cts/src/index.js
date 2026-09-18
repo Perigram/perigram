@@ -40,7 +40,7 @@ export {
 } from './compat/field-schema-rows.js';
 export {
   migrateV4Definition, resolveCtsDefinition, checkCtsGraphBindings,
-  isCtsGraphDefinition
+  isCtsGraphDefinition, operationKindOf, resolveCtsRecord
 } from './compat/graph-protocol.js';
 export {
   cncTypePack, partyTypes, nestingOperators, packFixtures

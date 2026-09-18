@@ -2513,7 +2513,10 @@
     "paletteGroups": {
       "entities": "Types",
       "values": "Values",
-      "listTree": "Lists and trees"
+      "listTree": "Lists and trees",
+      "instances": "Instances",
+      "reads": "Reads",
+      "structure": "Structure"
     },
     "paletteItems": {
       "modifyEntity": "Modify entity",
@@ -2623,7 +2626,20 @@
       "entityCondition": "Entity condition",
       "predicateLogic": "Combine conditions",
       "receive": "Receive",
-      "send": "Send"
+      "send": "Send",
+      "construct": "Construct",
+      "mutate": "Mutate",
+      "transition": "Transition",
+      "remove": "Remove",
+      "currentInstance": "Current instance",
+      "findById": "Find by id",
+      "findByReference": "Find by reference",
+      "parentInstance": "Parent",
+      "childInstances": "Children",
+      "relatedInstances": "Related",
+      "queryInstances": "Query instances",
+      "composeFields": "Compose fields",
+      "decomposeInstance": "Decompose instance"
     },
     "paletteDescriptions": {
       "modifyEntity": "Changes selected fields or status on an existing entity.",

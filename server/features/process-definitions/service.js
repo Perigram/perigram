@@ -46,6 +46,7 @@ import {
   currentProcessDefinition,
   validateActivatableProcess
 } from './compiler-adapter.js';
+import { migrateProducerOutputIdentities } from '~/packages/processes/src/index.js';
 import {
   continueStoredRun,
   executeManualRun,
@@ -135,6 +136,11 @@ export async function create(payload = {}, auth) {
   const organizationId = payload.organizationId || resolveOrganizationId(auth);
   await assertOrgAccess(auth, organizationId, 'write');
   const name = payload.name || payload.identity?.name || 'Organization process';
+  // Authored data persists in its own vocabulary (graph protocol v5 stays
+  // v5): the persisted producer-identity rewrite runs on it, and protocol
+  // acceptance (v5 lowering + binding checks) validates a copy.
+  const domain = await getProjectedDomain(organizationId);
+  const authored = persistedRewrites(structuredClone(payload.data || payload), domain);
   const process = new ProcessDefinition({
     identity: {
       uid: `process-${new ObjectId().toString().slice(0, 8)}`,
@@ -142,7 +148,7 @@ export async function create(payload = {}, auth) {
       slug: standardSlugify(name, { keepCase: false })
     },
     lineage: { organizationId: toFlexibleId(organizationId) },
-    data: currentProcessDefinition(payload.data || payload, await getProjectedDomain(organizationId))
+    data: authored
   });
   applyProcessStatus(process, 'DRAFT', auth.userId, 'Process draft created');
   const created = await repository.create(process);
@@ -157,7 +163,12 @@ export async function update(id, payload = {}, auth) {
   if (payload.identity?.name || payload.name) {
     process.identity.name = payload.identity?.name || payload.name;
   }
-  process.data = currentProcessDefinition(payload.data || payload, await getProjectedDomain(process.lineage.organizationId));
+  // Authored data persists in its own vocabulary: the persisted
+  // producer-identity rewrite runs on it, and protocol acceptance validates
+  // a lowered copy so an invalid draft still fails loudly.
+  const domain = await getProjectedDomain(process.lineage.organizationId);
+  const authored = persistedRewrites(structuredClone(payload.data || payload), domain);
+  process.data = authored;
   process.data.compiled = null;
   const updated = await repository.updateById(id, process);
   return new ProcessDefinition(updated).toJSON();
@@ -222,22 +233,22 @@ async function assertNoStrandedEntityStatuses(process, auth, nextCompiled) {
 
 export async function validate(id, auth) {
   const process = await loadAuthorized(id, auth, 'write');
-  process.data = currentProcessDefinition(process.data, getDomain());
-  assertCanonicalProcessSource(process.data);
-  const validation = validateActivatableProcess(process.data, getDomain(), await loadOrganizationRoles(process.lineage.organizationId));
+  const accepted = currentProcessDefinition(process.data, getDomain());
+  assertCanonicalProcessSource(accepted);
+  const validation = validateActivatableProcess(accepted, getDomain(), await loadOrganizationRoles(process.lineage.organizationId));
   return { ...validation, diff: await contractDiffFor(process, auth) };
 }
 
 export async function activate(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
-  process.data = currentProcessDefinition(process.data, getDomain());
-  assertCanonicalProcessSource(process.data);
+  const accepted = currentProcessDefinition(process.data, getDomain());
+  assertCanonicalProcessSource(accepted);
   const roles = await loadOrganizationRoles(process.lineage.organizationId);
-  const validation = validateActivatableProcess(process.data, getDomain(), roles);
+  const validation = validateActivatableProcess(accepted, getDomain(), roles);
   if (!validation.ok) {
     throw createError({ statusCode: 400, message: validation.errors.join('; '), data: validation });
   }
-  const roundTrip = validateRoundTrip(process.data);
+  const roundTrip = validateRoundTrip(accepted);
   if (!roundTrip.ok) {
     throw createError({ statusCode: 400, message: roundTrip.errors.join('; '), data: roundTrip });
   }
@@ -1636,6 +1647,19 @@ function getDomain() {
 async function getProjectedDomain(organizationId = null) {
   const registry = await compileRegistryForOrganization(organizationId);
   return projectDomainFromView(registry, organizationId, getDomain());
+}
+
+// The rewrites that PERSIST: producer-identity migration applies to the
+// authored data itself (pre-protocol records only; cts records carry their
+// identities from the designer). Protocol acceptance runs on a lowered copy
+// and never mutates what is stored.
+function persistedRewrites(data, domain) {
+  const migration = migrateProducerOutputIdentities(data, domain);
+  if (migration.errors.length) {
+    throw createError({ statusCode: 400, message: migration.errors.join('; '), data: { errors: migration.errors } });
+  }
+  currentProcessDefinition(migration.data, domain);
+  return migration.data;
 }
 
 // One compile path: protocol acceptance (v5 lowering) through

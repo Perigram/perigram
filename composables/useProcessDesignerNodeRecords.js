@@ -1,3 +1,4 @@
+import { operationKindOf } from '~/packages/cts/src/index.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 
 // Node-record factories for the process designer. The page remains the
@@ -25,6 +26,17 @@ export function humanizeNodeLabel(value = '') {
 }
 
 export function iconForProcessNode(kind = '') {
+  if (kind.startsWith('cts.construct')) return 'pi pi-plus-circle';
+  if (kind.startsWith('cts.mutate')) return 'pi pi-pencil';
+  if (kind.startsWith('cts.transition')) return 'pi pi-forward';
+  if (kind.startsWith('cts.remove')) return 'pi pi-trash';
+  if (kind.startsWith('cts.command')) return 'pi pi-bolt';
+  if (kind.startsWith('cts.conversion')) return 'pi pi-replay';
+  if (kind.startsWith('cts.read')) return 'pi pi-database';
+  if (kind.startsWith('cts.field')) return 'pi pi-angle-right';
+  if (kind.startsWith('cts.compose')) return 'pi pi-box';
+  if (kind.startsWith('cts.decompose')) return 'pi pi-objects-column';
+  if (kind.startsWith('cts.join')) return 'pi pi-arrows-merge';
   if (kind.startsWith('source.')) return 'pi pi-circle-fill';
   if (kind.startsWith('value.')) return 'pi pi-sliders-h';
   if (kind.startsWith('collection.') || kind.startsWith('tree.')) return 'pi pi-list';
@@ -201,42 +213,59 @@ export function useProcessDesignerNodeRecords({
     };
   }
 
+  const nodeEntityType = node => node?.type || node?.entityType || '';
+  function setDefaultType(node, entityType) {
+    if (node.kind?.startsWith('cts.')) node.type = entityType;
+    else node.entityType = entityType;
+  }
+  function setDefaultBlocks(node, blocks) {
+    if (node.kind?.startsWith('cts.')) node.slots = blocks;
+    else node.blocks = blocks;
+  }
+  // Graph protocol v5: palette items create cts.* records. Defaults derive
+  // from the operation-kind twin (one seam); the record stores the authored
+  // vocabulary — `type`/`via`/`slots` for species kinds.
   function createProcessNode(id, kind = 'source.literalItem') {
-    const fieldKind = ['record.getField', 'record.fieldChange'].includes(kind);
+    const v5 = kind.startsWith('cts.');
+    const op = operationKindOf({ kind });
+    const fieldKind = ['record.getField', 'record.fieldChange'].includes(op);
     const node = {
       id,
       kind,
       label: '',
-      entityType: kind.startsWith('effect.') || kind.startsWith('read.') || fieldKind ? defaultEntityType() : '',
+      ...(v5
+        ? { type: op.startsWith('effect.') || op.startsWith('read.') || fieldKind ? defaultEntityType() : '' }
+        : { entityType: op.startsWith('effect.') || op.startsWith('read.') || fieldKind ? defaultEntityType() : '' }),
       construction: { mode: 'genericCreate', inputs: [] },
       status: null,
       matching: 'item',
-      operation: defaultProcessNodeOperation(kind),
-      value: kind === 'source.literalList' ? [] : kind === 'source.literalTree' ? { branches: [] } : null,
+      operation: defaultProcessNodeOperation(op),
+      value: op === 'source.literalList' ? [] : op === 'source.literalTree' ? { branches: [] } : null,
       fields: [],
       cases: [],
       icon: iconForProcessNode(kind),
       inputs: [],
       outputs: []
     };
-    if (kind === 'effect.createEntity') {
-      node.entityType = designer.createEntityOptions[0]?.value || '';
+    if (v5 && op === 'effect.createEntity') node.via = 'genericCreate';
+    if (op === 'effect.createEntity') {
+      setDefaultType(node, designer.createEntityOptions[0]?.value || '');
     }
-    if (kind === 'effect.changeStatus') node.entityType = designer.changeStatusOptions[0]?.value || '';
-    if (kind === 'effect.archiveEntity') node.entityType = designer.archivableEntityOptions[0]?.value || '';
-    if (kind === 'effect.deleteEntity') node.entityType = designer.deleteEntityOptions[0]?.value || '';
-    if (kind === 'producer.join') {
-      node.entityType = designer.entityOptions[0]?.value || '';
+    if (op === 'effect.changeStatus') setDefaultType(node, designer.changeStatusOptions[0]?.value || '');
+    if (op === 'effect.archiveEntity') setDefaultType(node, designer.archivableEntityOptions[0]?.value || '');
+    if (op === 'effect.deleteEntity') setDefaultType(node, designer.deleteEntityOptions[0]?.value || '');
+    if (op === 'producer.join') {
+      setDefaultType(node, designer.entityOptions[0]?.value || '');
       node.selectedProducerOutputId = '';
     }
     if (fieldKind) {
-      const fields = kind === 'record.getField' ? designer.fieldsForBlock() : designer.fieldsForEntity(node.entityType);
+      const fields = op === 'record.getField' ? designer.fieldsForBlock() : designer.fieldsForEntity(nodeEntityType(node));
       node.path = fields
-        .find(field => field[kind === 'record.fieldChange' ? 'writable' : 'readable'] !== false)?.value || '';
+        .find(field => field[op === 'record.fieldChange' ? 'writable' : 'readable'] !== false)?.value || '';
     }
-    if (['effect.createEntity', 'effect.runProducer'].includes(kind)) node.status = { to: initialStatusForEntity(node.entityType) };
-    if (kind === 'record.deconstruct') {
-      node.blocks = designer.blocksForEntity(node.entityType).map(block => block.id);
+    if (['effect.createEntity', 'effect.runProducer'].includes(op)) node.status = { to: initialStatusForEntity(nodeEntityType(node)) };
+    if (op === 'record.deconstruct') {
+      setDefaultBlocks(node, designer.blocksForEntity(nodeEntityType(node)).map(block => block.id));
     }
     if (['record.getBlock', 'record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(kind)) {
       const access = kind === 'record.composeBlock' ? 'constructible'

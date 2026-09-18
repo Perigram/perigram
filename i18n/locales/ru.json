@@ -2513,7 +2513,10 @@
     "paletteGroups": {
       "entities": "Типы",
       "values": "Значения",
-      "listTree": "Списки и деревья"
+      "listTree": "Списки и деревья",
+      "instances": "Экземпляры",
+      "reads": "Чтение",
+      "structure": "Структура"
     },
     "paletteItems": {
       "modifyEntity": "Изменить сущность",
@@ -2623,7 +2626,20 @@
       "entityCondition": "Условие сущности",
       "predicateLogic": "Объединить условия",
       "receive": "Получить",
-      "send": "Отправить"
+      "send": "Отправить",
+      "construct": "Создать",
+      "mutate": "Изменить",
+      "transition": "Переход",
+      "remove": "Удалить",
+      "currentInstance": "Текущий экземпляр",
+      "findById": "По идентификатору",
+      "findByReference": "По ссылке",
+      "parentInstance": "Родитель",
+      "childInstances": "Дочерние",
+      "relatedInstances": "Связанные",
+      "queryInstances": "Выборка",
+      "composeFields": "Собрать поля",
+      "decomposeInstance": "Разобрать экземпляр"
     },
     "paletteDescriptions": {
       "modifyEntity": "Изменяет выбранные поля или статус существующей сущности.",

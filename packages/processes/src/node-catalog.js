@@ -1,4 +1,5 @@
 import { mapDomainInputType, normalizeProcessSocket, processType } from './types.js';
+import { resolveCtsRecord } from '../../cts/src/index.js';
 
 const DATA = 'data';
 const CONTROL = 'control';
@@ -111,6 +112,21 @@ const definitions = [
   effect('effect.sendEntity', 'sendEntity'),
   effect('effect.generateAttachment', 'generateAttachment'),
 
+  // Graph protocol v5 (SPEC §20): species kinds. Ports resolve through the
+  // record's operation-kind twin — callers either pre-resolve records or
+  // supply the projected domain in the context.
+  cts('cts.construct', 'construct', 'effects', 'effect'),
+  cts('cts.mutate', 'mutate', 'effects', 'effect'),
+  cts('cts.transition', 'transition', 'effects', 'effect'),
+  cts('cts.remove', 'remove', 'effects', 'effect'),
+  cts('cts.command', 'command', 'effects', 'effect'),
+  cts('cts.conversion', 'conversion', 'effects', 'effect'),
+  cts('cts.read', 'read', 'reads', 'read'),
+  cts('cts.field', 'field', 'records', 'data'),
+  cts('cts.compose', 'compose', 'records', 'data'),
+  cts('cts.decompose', 'decompose', 'records', 'data'),
+  cts('cts.join', 'join', 'records', 'data'),
+
   trigger('control.manualTrigger', 'manualTrigger'),
   trigger('control.webhookTrigger', 'webhookTrigger'),
   control('control.if', 'ifElse'),
@@ -195,6 +211,17 @@ function control(kind, label) {
 
 function definition(kind, label, family, level, pure, ports = { inputs: [], outputs: [] }) {
   return { kind, label, family, level, pure, ports };
+}
+
+function cts(kind, label, family, level) {
+  return {
+    kind,
+    label,
+    family,
+    level,
+    pure: false,
+    ports: (record = {}, context = {}) => catalogPorts(resolveCtsRecord(record, context.domain || {}), context)
+  };
 }
 
 function socket(id, type, role = DATA, _required = false, access = 'item') {

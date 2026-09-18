@@ -229,31 +229,38 @@ describe('process designer domain contract', () => {
     const items = contract.paletteGroups.flatMap(group => group.items);
 
     expect(Object.keys(groups)).toEqual([
-      'entities',
+      'instances',
+      'reads',
+      'structure',
       'values',
       'listTree'
     ]);
-    expect(groups.entities.map(item => item.kind || item.type)).toEqual([
-      'effect.createEntity',
-      'effect.updateEntity',
-      'effect.changeStatus',
-      'effect.archiveEntity',
-      'effect.deleteEntity',
-      'effect.runCommand',
+    // Graph protocol v5: the palette speaks the species vocabulary.
+    expect(groups.instances.map(item => item.kind || item.type)).toEqual([
+      'cts.construct',
+      'cts.mutate',
+      'cts.transition',
+      'cts.remove',
+      'cts.command',
       'statusDefinition',
-      'read.currentEntity',
-      'read.entityById',
-      'read.resolveEntityRef',
-      'read.queryEntities',
-      'read.parent',
-      'read.children',
-      'read.related',
-      'record.deconstruct',
-      'record.composeBlock',
-      'record.modifyBlock',
-      'record.getBlock',
-      'record.getField',
-      'producer.join'
+      'cts.join'
+    ]);
+    expect(groups.reads.map(item => item.kind)).toEqual([
+      'cts.read',
+      'cts.read',
+      'cts.read',
+      'cts.read',
+      'cts.read',
+      'cts.read',
+      'cts.read'
+    ]);
+    expect(contract.paletteGroups[1].items.map(item => item.preset.select)).toEqual([
+      'current', 'byId', 'byRef', 'parent', 'children', 'related', 'query'
+    ]);
+    expect(groups.structure.map(item => item.kind)).toEqual([
+      'cts.field',
+      'cts.compose',
+      'cts.decompose'
     ]);
     expect(groups.values.map(item => item.kind)).toEqual([
       'source.literalItem',

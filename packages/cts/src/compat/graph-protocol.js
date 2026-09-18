@@ -95,6 +95,24 @@ export function isCtsGraphDefinition(data = {}) {
   return Object.values(source?.processNodes || {}).some(node => String(node?.kind || '').startsWith('cts.'));
 }
 
+// The operation kind of any record: v4 kinds are themselves; cts records map
+// through the canonical table (flags + read selects included). The single
+// seam every kind-matching consumer routes through — no duplicated
+// vocabulary.
+export function operationKindOf(node = {}) {
+  const kind = String(node?.kind || '');
+  if (!kind.startsWith('cts.')) return kind;
+  return v4KindFor(node) || kind;
+}
+
+// Single-record resolution: one cts record -> its working twin (operation
+// kind, storage entity id, slot paths). What resolveCtsDefinition does per
+// collection, exposed for callers that hold one record (the designer's
+// port/context resolution).
+export function resolveCtsRecord(node = {}, domain = {}) {
+  return resolveNode(node, domain, entityTypeResolver(domain), [], '');
+}
+
 function kebab(value = '') {
   return String(value).replace(/_/g, '-');
 }
@@ -397,7 +415,13 @@ function resolveNode(node, domain, entityTypeFor, diagnostics, at) {
 }
 
 function v4KindFor(node) {
-  if (node.kind === CTS_KIND.read) return V4_KIND_BY_V5.get(`cts.read|select=${node.select}`) || null;
+  // Bare catalog records (no discriminators) default: reads to `current`,
+  // compose to block composition. Authored records always carry their
+  // discriminators.
+  if (node.kind === CTS_KIND.read) return V4_KIND_BY_V5.get(`cts.read|select=${node.select || 'current'}`) || null;
+  if (node.kind === CTS_KIND.compose && !node.mode && !node.record) {
+    return V4_KIND_BY_V5.get('cts.compose|mode=compose') || null;
+  }
   const flags = ['producer', 'archive', 'send', 'record', 'draft', 'one', 'mode'];
   return V4_KIND_BY_V5.get(v5Key(node.kind, node, flags)) || null;
 }

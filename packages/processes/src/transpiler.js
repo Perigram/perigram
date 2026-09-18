@@ -158,6 +158,8 @@ function normalizeProcessLike(definition = {}) {
     valueInputs: normalizeRecord(data.valueInputs),
     processNodes: normalizeRecord(data.processNodes),
     screens: normalizeRecord(data.screens),
+    // Graph protocol marker survives the canvas round trip (SPEC §20).
+    ...(data.graphProtocol ? { graphProtocol: data.graphProtocol } : {}),
     compiled: data.compiled || null
   };
 }

@@ -41,7 +41,10 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
 
   walk(data, (node, path) => {
     if (!node || typeof node !== 'object') return;
-    const entityType = typeof node.entityType === 'string' ? node.entityType : null;
+    // v5 records carry `type` (CTS id); v4 records carry storage entity ids.
+    // Both normalize to the view's kebab ids.
+    const entityType = typeof node.entityType === 'string' ? node.entityType.replace(/_/g, '-')
+      : typeof node.type === 'string' ? node.type.replace(/_/g, '-') : null;
     if (entityType && !view.has(entityType) && !path.startsWith('producerOutputs') && !path.startsWith('sockets')) {
       errors.push(`${path} references unknown type ${entityType}`);
     }

@@ -1,5 +1,6 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import { CONSUMER_EFFECT_KINDS } from './node-catalog.js';
+import { operationKindOf } from '../../cts/src/index.js';
 
 const BLOCK_PRESENTATION = {
   identity: { defaultPath: 'identity.name', icon: 'pi pi-id-card', fields: ['identity.uid', 'identity.name', 'identity.slug', 'identity.serial', 'identity.reference'] },
@@ -40,28 +41,35 @@ const definitionPaletteItem = (id, type, options = {}) => Object.freeze({
 // those operations and may insert them when two compatible sockets are joined.
 export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   {
-    id: 'entities',
+    id: 'instances',
     items: [
-      paletteItem('createEntity', 'effect.createEntity'),
-      paletteItem('modifyEntity', 'effect.updateEntity'),
-      paletteItem('changeStatus', 'effect.changeStatus'),
-      paletteItem('archiveEntity', 'effect.archiveEntity'),
-      paletteItem('deleteEntity', 'effect.deleteEntity'),
-      paletteItem('runService', 'effect.runCommand'),
+      paletteItem('construct', 'cts.construct', { preset: { via: 'genericCreate' } }),
+      paletteItem('mutate', 'cts.mutate'),
+      paletteItem('transition', 'cts.transition'),
+      paletteItem('remove', 'cts.remove'),
+      paletteItem('runService', 'cts.command'),
       definitionPaletteItem('defineStatus', 'statusDefinition'),
-      paletteItem('currentEntity', 'read.currentEntity'),
-      paletteItem('findEntityById', 'read.entityById'),
-      paletteItem('findEntityByReference', 'read.resolveEntityRef'),
-      paletteItem('selectEntities', 'read.queryEntities'),
-      paletteItem('parentEntity', 'read.parent'),
-      paletteItem('childEntities', 'read.children'),
-      paletteItem('relatedEntities', 'read.related'),
-      paletteItem('deconstructEntity', 'record.deconstruct'),
-      paletteItem('composeBlock', 'record.composeBlock'),
-      paletteItem('modifyBlock', 'record.modifyBlock'),
-      paletteItem('readBlock', 'record.getBlock'),
-      paletteItem('readField', 'record.getField'),
-      paletteItem('joinProducers', 'producer.join')
+      paletteItem('joinProducers', 'cts.join')
+    ]
+  },
+  {
+    id: 'reads',
+    items: [
+      paletteItem('currentInstance', 'cts.read', { preset: { select: 'current' } }),
+      paletteItem('findById', 'cts.read', { preset: { select: 'byId' } }),
+      paletteItem('findByReference', 'cts.read', { preset: { select: 'byRef' } }),
+      paletteItem('parentInstance', 'cts.read', { preset: { select: 'parent' } }),
+      paletteItem('childInstances', 'cts.read', { preset: { select: 'children' } }),
+      paletteItem('relatedInstances', 'cts.read', { preset: { select: 'related' } }),
+      paletteItem('queryInstances', 'cts.read', { preset: { select: 'query' } })
+    ]
+  },
+  {
+    id: 'structure',
+    items: [
+      paletteItem('readField', 'cts.field'),
+      paletteItem('composeFields', 'cts.compose', { preset: { mode: 'compose' } }),
+      paletteItem('decomposeInstance', 'cts.decompose')
     ]
   },
   {
@@ -112,13 +120,13 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
   };
   // The explicit producer join routes its output under the producer output
   // its configuration selects; it must never become a producer anchor itself.
-  if (node.kind === 'producer.join') {
+  if (operationKindOf(node) === 'producer.join') {
     pruneOwnOutputs();
     return [];
   }
   // Consumer effects transform entities that arrived over an input wire:
   // they own no producer output and carry no producer identity of their own.
-  if (CONSUMER_EFFECT_KINDS.includes(node.kind)) {
+  if (CONSUMER_EFFECT_KINDS.includes(operationKindOf(node))) {
     pruneOwnOutputs();
     delete node.producerOutputId;
     return [];
@@ -146,7 +154,7 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
     };
   }
 
-  if (node.kind?.startsWith('effect.') && outputIds.size === 1) {
+  if (operationKindOf(node)?.startsWith('effect.') && outputIds.size === 1) {
     [node.producerOutputId] = outputIds;
   }
   return [...outputIds];
@@ -251,9 +259,7 @@ export function createProcessDesignerContract(domain = {}, capabilities = null) 
   const enabledPaletteGroups = paletteGroups.map(group => ({
     ...group,
     items: group.items.filter(item => (
-      item.kind !== 'effect.deleteEntity' || deleteEntityOptions.length > 0
-    ) && (
-      item.kind !== 'effect.archiveEntity' || archivableEntityOptions.length > 0
+      item.kind !== 'cts.remove' || deleteEntityOptions.length > 0
     ))
   }));
 
@@ -323,6 +329,17 @@ function definitionOptions(definitions = {}, idKey = 'id') {
 }
 
 function iconForNode(kind = '') {
+  if (kind.startsWith('cts.construct')) return 'pi pi-plus-circle';
+  if (kind.startsWith('cts.mutate')) return 'pi pi-pencil';
+  if (kind.startsWith('cts.transition')) return 'pi pi-forward';
+  if (kind.startsWith('cts.remove')) return 'pi pi-trash';
+  if (kind.startsWith('cts.command')) return 'pi pi-bolt';
+  if (kind.startsWith('cts.conversion')) return 'pi pi-replay';
+  if (kind.startsWith('cts.read')) return 'pi pi-database';
+  if (kind.startsWith('cts.field')) return 'pi pi-angle-right';
+  if (kind.startsWith('cts.compose')) return 'pi pi-box';
+  if (kind.startsWith('cts.decompose')) return 'pi pi-objects-column';
+  if (kind.startsWith('cts.join')) return 'pi pi-arrows-merge';
   if (kind.startsWith('source.')) return 'pi pi-circle-fill';
   if (kind.startsWith('value.')) return kind.includes('logic') || kind.includes('compare') ? 'pi pi-sitemap' : 'pi pi-sliders-h';
   if (kind.startsWith('collection.') || kind.startsWith('tree.')) return 'pi pi-list';
