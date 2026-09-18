@@ -104,16 +104,18 @@ function registerAppBindings(registry) {
 
   for (const pack of FRAMEWORK_PACKS) {
     registry.defineDomain(pack.domain);
-    registerServiceSet(registry, {
-      domain: pack.domain,
-      entityServices: pack.entityServices,
-      processLists: pack.processLists,
-      processReads: pack.processReads,
-      processCapabilities: pack.processCapabilities,
-      constructionHandlers: pack.constructionHandlers,
-      modeHandlers: pack.modeHandlers || {},
-      deleteAdapters: pack.deleteAdapters || {}
-    });
+    if (pack.entityServices) {
+      registerServiceSet(registry, {
+        domain: pack.domain,
+        entityServices: pack.entityServices,
+        processLists: pack.processLists,
+        processReads: pack.processReads,
+        processCapabilities: pack.processCapabilities,
+        constructionHandlers: pack.constructionHandlers,
+        modeHandlers: pack.modeHandlers || {},
+        deleteAdapters: pack.deleteAdapters || {}
+      });
+    }
     for (const [id, handler] of Object.entries(pack.commandHandlers || {})) {
       registry.registerCommandHandler(id, handler);
     }

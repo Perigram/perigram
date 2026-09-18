@@ -149,4 +149,4 @@ export function instanceServiceResolver(type) {
 
 // Types served by explicit framework feature services; the resolver never
 // shadows them.
-const frameworkServiceTypes = new Set(['organization', 'user', 'artifact', 'artifact_template', 'process_definition', 'entity_revision']);
+const frameworkServiceTypes = new Set(['organization', 'user', 'artifact', 'process_definition', 'entity_revision']);

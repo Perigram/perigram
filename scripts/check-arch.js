@@ -192,14 +192,22 @@ features.forEach(feature => {
   }
 });
 
-cncEntities.forEach(entity => {
-  // Entity services register either in the framework registry or in a
-  // mounted pack (server/packs/*) — both are boot-time registration sites.
-  if (!new RegExp(`\\b${entity.type}\\s*:`).test(appRegistry) && !packSources.some(source => new RegExp(`\\b${entity.type}\\s*:`).test(source))) {
-    console.error(`❌ Entity [${entity.type}] is not registered in server/runtime/app-registry.js or a mounted pack`);
+// Entity serving (SPEC §13): framework services register explicitly; every
+// other type resolves through the generic instance services. The guard
+// verifies the resolver is registered and the framework five are explicit.
+{
+  const FRAMEWORK_SERVICE_TYPES = ['organization', 'user', 'artifact', 'process_definition', 'entity_revision'];
+  for (const type of FRAMEWORK_SERVICE_TYPES) {
+    if (!new RegExp(`\\b${type}\\s*:`).test(appRegistry)) {
+      console.error(`❌ Framework entity [${type}] is not registered in server/runtime/app-registry.js`);
+      errors++;
+    }
+  }
+  if (!/instanceServiceResolver/.test(appRegistry)) {
+    console.error('❌ Generic instance service resolver is not registered in server/runtime/app-registry.js');
     errors++;
   }
-});
+}
 
 // 8. API routes must not import repository or model directly from features
 console.log('\nChecking API routes for layer violations...');
