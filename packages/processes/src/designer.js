@@ -43,10 +43,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   {
     id: 'declarations',
     items: [
-      definitionPaletteItem('declareFile', 'ctsClass', { preset: { classOf: 'file' } }),
-      definitionPaletteItem('declareItem', 'ctsClass', { preset: { classOf: 'item' } }),
-      definitionPaletteItem('declareGroup', 'ctsClass', { preset: { classOf: 'group' } }),
-      definitionPaletteItem('declareProcess', 'ctsClass', { preset: { classOf: 'process' } }),
+      definitionPaletteItem('class', 'ctsClass'),
       definitionPaletteItem('field', 'ctsField'),
       definitionPaletteItem('state', 'ctsState')
     ]

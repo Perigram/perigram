@@ -237,7 +237,7 @@ describe('process designer domain contract', () => {
     // declarations ARE program nodes: classes and their fields/states
     // compose in the same tree (SPEC §20/§21)
     expect(groups.declarations.map(item => item.type)).toEqual([
-      'ctsClass', 'ctsClass', 'ctsClass', 'ctsClass', 'ctsField', 'ctsState'
+      'ctsClass', 'ctsField', 'ctsState'
     ]);
     // The palette is operations over types — never a domain catalog dump.
     // Types reach the canvas by composition (type reference nodes wired

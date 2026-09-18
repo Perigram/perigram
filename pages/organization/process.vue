@@ -185,6 +185,66 @@
                   <InputText v-model="selectedRecord.label" />
                 </div>
 
+                <template v-else-if="selectedNode.type === 'ctsClass'">
+                  <div class="flex flex-col gap-3">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('typesPane.class') }}</label>
+                      <Select
+                        :model-value="selectedNode.data.class"
+                        :options="['file', 'item', 'group', 'process']"
+                        @update:model-value="value => { selectedNode.data.class = value; }"
+                      />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('typesPane.typeId') }}</label>
+                      <InputText v-model="selectedNode.data.typeId" @update:model-value="() => recountDeclaration(selectedNode)" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('typesPane.payloadMime') }}</label>
+                      <InputText v-model="classPayloadMime" placeholder="application/perigram+occs" />
+                    </div>
+                    <Message severity="info" :closable="false">{{ $t('processDesigner.classDeclaresHint') }}</Message>
+                  </div>
+                </template>
+
+                <template v-else-if="selectedNode.type === 'ctsField'">
+                  <div class="flex flex-col gap-3">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('typeCanvas.fieldName') }}</label>
+                      <InputText v-model="selectedNode.data.name" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('typesPane.class') }}</label>
+                      <Select v-model="selectedNode.data.descriptor.base" :options="fieldBaseOptions" option-label="label" option-value="value" />
+                    </div>
+                    <div v-if="selectedNode.data.descriptor.base === 'quantity'" class="flex flex-col gap-1">
+                      <label>{{ $t('typeCanvas.unit') }}</label>
+                      <Select v-model="selectedNode.data.descriptor.unit" :options="ctsUnits" />
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <Checkbox v-model="selectedNode.data.descriptor.nullable" :binary="true" />
+                      <label>{{ $t('typesPane.nullable') }}</label>
+                    </div>
+                  </div>
+                </template>
+
+                <template v-else-if="selectedNode.type === 'ctsState'">
+                  <div class="flex flex-col gap-3">
+                    <div class="flex flex-col gap-1">
+                      <label>{{ $t('typeCanvas.stateName') }}</label>
+                      <InputText v-model="selectedNode.data.value" />
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <Checkbox v-model="selectedNode.data.initial" :binary="true" />
+                      <label>{{ $t('typesPane.initial') }}</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <Checkbox v-model="selectedNode.data.terminal" :binary="true" />
+                      <label>{{ $t('typesPane.terminal') }}</label>
+                    </div>
+                  </div>
+                </template>
+
                 <template v-else-if="selectedNode.type === 'ctsType'">
                   <div class="flex flex-col gap-3">
                     <div class="flex flex-col gap-1">
@@ -926,6 +986,7 @@ import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncUiSurfaces, cncPackContent } from '@cutkit/domain-cnc';
 import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor, frameworkTypes } from '~/packages/cts/src/index.js';
+import { ctsFieldToProcessType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
 import ClassNode from '~/components/type-designer/TypeNode.vue';
@@ -3779,13 +3840,43 @@ function parseJson(source, fallback) {
   }
 }
 
+// Declaration nodes carry typed port specs like every other node: fields
+// output their declared type, states output a status contract, classes
+// accept declarations in and offer a typed entityRef of the declared id
+// out. Wires into species records then go through the standard
+// compatibility checker instead of the gesture bypass.
+function declarationPorts(node) {
+  if (node.type === 'ctsClass') {
+    return {
+      inputSpecs: [{ id: 'declare', label: 'fields · states', role: 'data', type: processType('json'), access: 'item' }],
+      outputSpecs: node.data.typeId
+        ? [{ id: 'type', label: node.data.typeId, role: 'data', type: processType('entityRef', { entityType: node.data.typeId }), access: 'item' }]
+        : []
+    };
+  }
+  if (node.type === 'ctsField') {
+    const descriptor = node.data.descriptor || {};
+    return {
+      inputSpecs: [],
+      outputSpecs: [{ id: 'field', label: node.data.name || 'field', role: 'data', type: ctsFieldToProcessType(descriptor) || processType('json'), access: 'item' }]
+    };
+  }
+  if (node.type === 'ctsState') {
+    return {
+      inputSpecs: [],
+      outputSpecs: [{ id: 'state', label: node.data.value || 'state', role: 'data', type: processType('status'), access: 'item' }]
+    };
+  }
+  return null;
+}
+
 function enrichNodeData(node) {
   if (node.type === 'ctsClass') {
     recountDeclaration(node);
-    return { ...node, data: { ...node.data, label: node.data.label || node.data.typeId, version: 1, scope: 'system' } };
+    return { ...node, data: { ...node.data, label: node.data.label || node.data.typeId, version: 1, scope: 'system', ...declarationPorts(node) } };
   }
   if (node.type === 'ctsField' || node.type === 'ctsState') {
-    return { ...node, data: { ...node.data } };
+    return { ...node, data: { ...node.data, ...declarationPorts(node) } };
   }
   if (node.type === 'ctsType') {
     const entry = ctsTypeView().find(candidate => candidate.id === node.data?.typeId);
@@ -4323,14 +4414,6 @@ function withoutKeys(value = {}, keys = []) {
 function onConnect(connection) {
   contextPalette.value.socket = null;
   syncNodeData();
-  // Type binding gesture: wire a type node into a species node and the wire
-  // carries the binding into the record (SPEC §20); the edge persists as a
-  // canvas `type`-role wire for visualization and re-binding.
-  const binding = typeBindingForConnection(connection);
-  if (binding) {
-    applyTypeBinding(binding, connection);
-    return;
-  }
   const processNodeSnapshot = clonePlainData(draft.value?.data?.processNodes || {});
   inferGenericNodeTypeFromConnection(connection);
   const compatibility = connectionCompatibility(connection);
@@ -4347,6 +4430,22 @@ function onConnect(connection) {
       life: 3000
     });
     return;
+  }
+  // declaration wires carry side effects after passing the SAME typed
+  // compatibility check as every other wire
+  const sourceNode = nodes.value.find(node => node.id === connection.source);
+  const targetNode = nodes.value.find(node => node.id === connection.target);
+  if (sourceNode?.type === 'ctsField' || sourceNode?.type === 'ctsState') {
+    if (targetNode?.type === 'ctsClass') {
+      sourceNode.data.typeId = targetNode.data.typeId;
+      recountDeclaration(targetNode);
+    }
+  } else if (sourceNode?.type === 'ctsClass' || sourceNode?.type === 'ctsType') {
+    const record = draft.value?.data?.processNodes?.[targetNode?.data?.refId];
+    if (record) {
+      setNodeEntityType(record, sourceNode.data.typeId);
+      syncNodeData();
+    }
   }
   selectedEdgeId.value = null;
   edges.value.push(decorateEdge({
@@ -4382,7 +4481,35 @@ function connectionCompatibility(connection = {}) {
       target: targetPort
     };
   }
-  if (!sourceRecord || !targetRecord) return { ok: false, reason: 'Only current operation nodes can be connected' };
+  if (!sourceRecord || !targetRecord) {
+    // declaration nodes participate through their typed specs (same
+    // contract as statusDefinition): field/state -> class declares;
+    // class/reference -> species record binds
+    const sourceSpecs = source.data?.outputSpecs || [];
+    const targetSpecs = target.data?.inputSpecs || [];
+    if (sourceSpecs.length && targetSpecs.length) {
+      const sourcePort = portForHandle(sourceSpecs, connection.sourceHandle, 'output') || sourceSpecs[0];
+      const targetPort = portForHandle(targetSpecs, connection.targetHandle, 'input') || targetSpecs[0];
+      return {
+        ...processSocketsCompatible(sourcePort, targetPort),
+        source: sourcePort,
+        target: targetPort
+      };
+    }
+    // class/reference into a species record: check the entity socket type
+    if ((source.type === 'ctsClass' || source.type === 'ctsType') && targetRecord) {
+      const sourcePort = (source.data?.outputSpecs || [])[0];
+      const targetPort = portForHandle(resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs, connection.targetHandle, 'input')
+        || resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs.find(port => port.type?.base === 'entity' || port.type?.base === 'entityRef');
+      if (!sourcePort || !targetPort) return { ok: false };
+      return {
+        ...processSocketsCompatible(sourcePort, targetPort),
+        source: sourcePort,
+        target: targetPort
+      };
+    }
+    return { ok: false, reason: 'Only current operation nodes can be connected' };
+  }
   const sourcePort = portForHandle(resolveCatalogNodePorts(sourceRecord, catalogContext(sourceRecord)).outputs, connection.sourceHandle, 'output');
   const targetPort = portForHandle(resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs, connection.targetHandle, 'input');
   if (!sourcePort || !targetPort) return { ok: true };
