@@ -645,6 +645,27 @@ describe('current process-definition service contract', () => {
     expect(processUpdate).toHaveBeenCalledTimes(1);
   });
 
+  it('persists v5 leaf field inputs as direct field writes without block composition', async () => {
+    const processUpdate = vi.fn(async (id, patch) => ({ _id: id, ...patch }));
+    getAppRegistry.mockReturnValue({
+      getEntityService: type => type === 'sheet'
+        ? { processGetById: vi.fn(), processUpdate, processCapabilities: { processUpdate: true } }
+        : organizationService
+    });
+
+    await performDurableEffect({
+      kind: 'effect.updateEntity',
+      record: { id: 'n1', kind: 'effect.updateEntity', entityType: 'sheet', blocks: [] },
+      inputs: {
+        entity: { type: 'sheet', id: 'sheet-1' },
+        'data.serial': 'SH-42'
+      }
+    }, relationAuth(), {});
+
+    expect(processUpdate).toHaveBeenCalledTimes(1);
+    expect(processUpdate).toHaveBeenCalledWith('sheet-1', { 'data.serial': 'SH-42' }, expect.objectContaining({ organizationId: 'org-acceptance' }));
+  });
+
   it('runs Link, Unlink, and replacement with target access and duplicate guarantees', async () => {
     const data = relationActionProcessData();
     const owner = {

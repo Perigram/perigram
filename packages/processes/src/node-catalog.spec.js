@@ -183,6 +183,26 @@ describe('process v4 node catalog', () => {
     ]);
   });
 
+  it('exposes writable row fields as leaf sockets on a bound cts.mutate', () => {
+    const context = {
+      fieldSchemas: [
+        { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' }, writable: true },
+        { path: 'data.width', block: 'data', type: { base: 'number', shape: 'item' }, writable: true },
+        { path: 'specs.thickness', block: 'specs', type: { base: 'number', shape: 'item', unit: 'mm' }, writable: true },
+        { path: 'data.locked', block: 'data', type: { base: 'boolean', shape: 'item' }, writable: false },
+        { path: 'status.state.primary', block: 'status', type: { base: 'status', shape: 'item' }, writable: false }
+      ]
+    };
+    const ports = resolveCatalogNodePorts({ kind: 'cts.mutate', type: 'panel' }, context);
+    const ids = ports.inputs.map(input => input.id);
+    expect(ids[0]).toBe('entity');
+    expect(ids).toEqual(expect.arrayContaining(['data.width', 'specs.thickness']));
+    expect(ids).not.toContain('data.locked');
+    expect(ids).not.toContain('identity');
+    expect(ids).not.toContain('data');
+    expect(ids.at(-1)).toBe('status.state.primary');
+  });
+
   it('offers an unbound species record exactly one input: the type binding pin', () => {
     const context = { domain: {} };
     const unbound = resolveCatalogNodePorts({ kind: 'cts.construct', type: '', via: 'genericCreate' }, context);

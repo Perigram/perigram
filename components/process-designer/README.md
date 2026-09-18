@@ -72,6 +72,14 @@ additional `via` modes with signature-derived `modeInputs`. An unbound
 species record (empty type id) offers exactly one input — the `Type`
 binding pin — and nothing else; every other socket derives from the bound
 type and appears when a class/reference wire carries the binding in.
+Species cards carry no entity-type dropdown and no operation switch: the
+binding wire owns the type, the species owns the operation.
+
+A bound `cts.mutate` patches leaves: writable `data`/`specs` row fields
+arrive as field sockets keyed by schema path (beside the entity input and
+the status input), and the effect boundary persists each wired or
+prompted leaf as a direct field write — no block composition. The v4
+`effect.updateEntity` twin keeps block sockets for legacy graphs.
 
 The type catalog leads the palette (L2): `typeCatalogPaletteGroups`
 projects the registry view into class groups (File types, Items, Groups,
