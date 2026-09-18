@@ -41,7 +41,7 @@
         <div class="flex flex-col gap-1 text-supporting">
           <span class="text-muted">{{ $t('typesPane.fields') }}: {{ selectedType.data.fieldCount || 0 }}</span>
           <span class="text-muted">{{ $t('typesPane.states') }}: {{ selectedType.data.stateCount || 0 }}</span>
-          <span v-if="selectedType.data.payload" class="text-muted">payload: {{ payloadLabel(selectedType.data.payload) }}</span>
+          <span v-if="selectedType.data.payload" class="text-muted">{{ $t('typesPane.payloadMime') }}: {{ payloadLabel(selectedType.data.payload) }}</span>
         </div>
         <div v-if="selectedType.data.scope !== 'system'" class="flex justify-end">
           <Button :label="$t('common.delete')" icon="pi pi-trash" severity="danger" outlined size="small" @click="deleteType(selectedType)" />

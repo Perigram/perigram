@@ -7,12 +7,11 @@
       <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle">
         <i :class="type?.icon || 'pi pi-database'" aria-hidden="true"></i>
       </span>
-      <strong class="min-w-0 flex-1 truncate text-label">{{ type?.label || typeId || 'type' }}</strong>
+      <strong class="min-w-0 flex-1 truncate text-label">{{ type?.label || typeId }}</strong>
       <Tag :value="type?.class || ''" severity="secondary" />
     </div>
     <div class="mt-2 flex flex-col gap-1">
-      <span v-if="type?.states" class="text-supporting text-muted">{{ type.states }}</span>
-      <span v-else class="text-supporting text-muted">select a type in the inspector; wire into nodes to bind</span>
+      <span class="text-supporting text-muted">{{ $t('processDesigner.typeBindingHint') }}</span>
     </div>
   </div>
 </template>
