@@ -41,6 +41,17 @@ vocabulary on load, and every kind-matching consumer routes through
 `operationKindOf` — the authored vocabulary is the type system's, not a
 labeled legacy layer.
 
+Declaration-plane wires (`declarationWireLegality` in
+`packages/processes/src/designer.js`, SPEC §20/§21 one tree) are legal only
+between declaration partners: field/state nodes declare on a class node;
+class/reference nodes bind a `cts.*` species record's `type`. Their typed
+port specs exist for those wires only — a declaration node is never a value
+source, and nothing from the data plane feeds a class declare input — so
+declaration endpoints never pass through the generic socket-compatibility
+path. Declaration wires persist as `role: 'type'` edges (field/state/type
+labels); `persistTreeDeclarations` compiles exactly those edges into
+registry declarations on save.
+
 The Types palette ends with **Join producer paths** (`producer.join`), the
 one legal convergence point for same-type producer paths: activation rejects
 implicitly converging wires elsewhere on the graph. Its inspector authors the

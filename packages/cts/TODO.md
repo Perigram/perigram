@@ -36,6 +36,42 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
   saved through the L0 API with compile errors inline). Remaining facets
   are node/editors too, not forms: rows with V types + units, edges +
   onRemove, operators + triggers, payload traits, render policy.
+- [ ] **Designer gap closure (2026-09-18 exploration; phases P0–P5)** —
+  the one-tree declaration nodes are shallower than the type system they
+  represent, while the old entity-based graph nodes carry rich typed
+  sockets. Close it in phases, each independently shippable:
+  - **P0 — seal declaration wires**: declaration canvas nodes
+    (`ctsClass`/`ctsField`/`ctsState`/`ctsType`) may only wire to
+    declaration-legal partners (their class, a reference node, or a
+    `cts.*` species record) — never through the generic data-socket
+    compatibility path, which currently lets a field declaration pose as
+    a value source and any json-ish node feed a class `declare` input.
+  - **P1 — one declaration vocabulary, full row grammar**: fold the types
+    canvas's richer field editing (ref `accepts`, enum values, list/map
+    `itemType`, variant tags) into the tree inspector, validated through
+    `describeType`; demote `pages/organization/types.vue` to the registry
+    browser and delete its parallel authoring vocabulary.
+  - **P2 — edges and lifecycle in the tree**: class→class wires author
+    children edges with `onRemove`; state→state wires author transitions
+    with intents; `persistTreeDeclarations` emits `edges`+`transitions`
+    and requires an explicit initial state (R4) instead of defaulting to
+    the first wired state.
+  - **P3 — operators and payload traits**: author the six species
+    signatures (V-typed input/output, event/schedule triggers) on class
+    facets compiled through `normalizeOperator`; org-authored constructs
+    become `via` options; payload traits (MIME list, byte limits, preview
+    mode) replace the bare MIME string.
+  - **P4 — L2 slice**: row-field sockets on `cts.construct`/`cts.mutate`
+    (composer-less construct), field pickers list row paths, live R5
+    typecheck at the wire — shrinks the SPEC §20 residue. Optional
+    designer macro: scaffold-from-type (construct + typed read + declared
+    transitions) over existing factories.
+  - **P5 — UI contract flip**: type-owned render (render policy, payload
+    preview, rows→schemas→generated forms/columns; `statusDefinition`
+    render metadata compiles into declarations, never alongside) vs
+    process-owned assembly (screens/actions/navigation/access from graph
+    records, already fed by the projected view); delete the hardcoded
+    frontend hierarchy/navigation sources.
 - [x] **Server compiles through CTS**: activation, contract diff, draft
   save, and the active runtime all use `getProjectedDomain` (org type store
   + strangler system view). Proven by the env-gated live spec
