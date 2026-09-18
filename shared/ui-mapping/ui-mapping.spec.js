@@ -1,0 +1,177 @@
+import { describe, it, expect } from 'vitest';
+import {
+  createUiMapping,
+  resolveFieldControl,
+  resolveSurface,
+  resolvePreview,
+  resolveActionButton,
+  resolveChrome,
+  applyBudget,
+  VARIANTS
+} from './index.js';
+
+describe('field control resolution', () => {
+  it('is total across every field base and variant', () => {
+    const bases = ['string', 'number', 'boolean', 'instant', 'json', 'blob', 'ref', 'quantity', 'record', 'list', 'map', 'variant', 'enum'];
+    for (const base of bases) {
+      const descriptor = { base };
+      if (base === 'ref') descriptor.accepts = ['part'];
+      if (base === 'quantity') descriptor.unit = 'mm';
+      if (base === 'list' || base === 'map') descriptor.itemType = { base: 'string' };
+      if (base === 'variant') descriptor.tags = ['a'];
+      if (base === 'enum') descriptor.values = ['ONE', 'TWO'];
+      for (const variant of VARIANTS) {
+        const outcome = resolveFieldControl(descriptor, { variant });
+        expect(outcome.component, `${base}/${variant}`).toBeTruthy();
+        expect(['full', 'half']).toContain(outcome.span);
+      }
+    }
+  });
+
+  it('maps editor variants to input controls with derived props', () => {
+    expect(resolveFieldControl({ base: 'quantity', unit: 'mm' }, { variant: 'detail' })).toMatchObject({
+      component: 'InputNumber', span: 'half', props: { suffix: ' mm' }
+    });
+    expect(resolveFieldControl({ base: 'ref', accepts: ['part'] }).props.accepts).toEqual(['part']);
+    expect(resolveFieldControl({ base: 'enum', values: ['ONE'] }).props.options).toEqual(['ONE']);
+  });
+
+  it('refines by derived qualifiers', () => {
+    const short = resolveFieldControl({ base: 'string', max: 40 }, { variant: 'full' });
+    const long = resolveFieldControl({ base: 'string', max: 200 }, { variant: 'full' });
+    expect(short.component).toBe('InputText');
+    expect(long.component).toBe('Textarea');
+
+    const few = resolveFieldControl({ base: 'enum', values: ['A', 'B'] }, { variant: 'full' });
+    const many = resolveFieldControl({ base: 'enum', values: Array.from({ length: 9 }, (_, i) => `V${i}`) }, { variant: 'full' });
+    expect(few.props.filter).toBeUndefined();
+    expect(many.component).toBe('Select');
+    expect(many.props.filter).toBe(true);
+  });
+
+  it('maps display variants to read-only presentations with density', () => {
+    expect(resolveFieldControl({ base: 'enum', values: ['A'] }, { variant: 'row' })).toMatchObject({
+      component: 'Tag', props: { density: 'row' }
+    });
+    expect(resolveFieldControl({ base: 'ref', accepts: ['part'] }, { variant: 'inline' })).toMatchObject({
+      component: 'EntityChip', props: { density: 'inline' }
+    });
+  });
+
+  it('lets app overrides with narrow matchers win by specificity', () => {
+    const mapping = createUiMapping({
+      fields: [{ match: { base: 'quantity', unit: 'deg' }, component: 'AngleInput', span: 'half' }]
+    });
+    expect(mapping.resolveFieldControl({ base: 'quantity', unit: 'deg' }, { variant: 'detail' }).component).toBe('AngleInput');
+    expect(mapping.resolveFieldControl({ base: 'quantity', unit: 'mm' }, { variant: 'detail' }).component).toBe('InputNumber');
+  });
+
+  it('resolves deterministically', () => {
+    const descriptor = { base: 'record', fields: { a: { base: 'string' } } };
+    const first = resolveFieldControl(descriptor, { variant: 'full' });
+    for (let i = 0; i < 5; i += 1) {
+      expect(resolveFieldControl(descriptor, { variant: 'full' })).toEqual(first);
+    }
+  });
+});
+
+describe('surface resolution', () => {
+  it('picks the archetype family from the class and the component from the container variant', () => {
+    const drawing = { id: 'drawing', class: 'file', payload: { preview: 'image' } };
+    expect(resolveSurface(drawing, { variant: 'full' })).toMatchObject({ archetype: 'viewer', component: 'FileViewerSurface' });
+    expect(resolveSurface(drawing, { variant: 'detail' })).toMatchObject({ archetype: 'payload-card', component: 'FileCard' });
+    expect(resolveSurface(drawing, { variant: 'row' })).toMatchObject({ archetype: 'file-row', component: 'FileRow' });
+    expect(resolveSurface(drawing, { variant: 'inline' })).toMatchObject({ archetype: 'chip', component: 'FileChip' });
+  });
+
+  it('gives collection surfaces child-slot budgets per variant', () => {
+    const bin = { id: 'bin', class: 'group' };
+    expect(resolveSurface(bin, { variant: 'row' }).budgets.children).toEqual({ max: 2, overflow: 'count' });
+    expect(resolveSurface(bin, { variant: 'detail' }).budgets.children).toEqual({ max: 6, overflow: 'more' });
+    expect(resolveSurface(bin, { variant: 'full' }).budgets.children).toEqual({ overflow: 'scroll' });
+  });
+
+  it('falls back to the generic record surface for unknown classes', () => {
+    expect(resolveSurface({ id: 'x', class: 'mystery' }, { variant: 'detail' })).toMatchObject({
+      archetype: 'record', component: 'RecordSurface'
+    });
+  });
+
+  it('lets a type-specific override replace the archetype', () => {
+    const mapping = createUiMapping({
+      surfaces: [{ match: { type: 'dxf_model', variant: 'full' }, archetype: 'cad-viewer', component: 'CadViewer', slots: ['preview'] }]
+    });
+    expect(mapping.resolveSurface({ id: 'dxf_model', class: 'file' }, { variant: 'full' }).component).toBe('CadViewer');
+  });
+});
+
+describe('preview resolution', () => {
+  it('keys on the declared preview mode, not on MIME', () => {
+    expect(resolvePreview({ payload: { preview: 'geometry', mime: ['application/dxf'] } })).toMatchObject({
+      component: 'GeometryPreview', mode: 'geometry'
+    });
+    expect(resolvePreview({ render: { preview: 'image' } })).toMatchObject({ component: 'ImagePreview' });
+    expect(resolvePreview({ payload: { mime: ['application/pdf'] } }).component).toBe('AttachmentPreview');
+    expect(resolvePreview({}).component).toBeNull();
+  });
+});
+
+describe('action button resolution', () => {
+  it('maps action kinds to presentations', () => {
+    expect(resolveActionButton({ actionKind: 'createEntity' })).toMatchObject({ component: 'Button', tone: 'primary' });
+    expect(resolveActionButton({ actionKind: 'deleteEntity' })).toMatchObject({ tone: 'danger', confirm: true });
+    expect(resolveActionButton({ actionKind: 'runCommand' })).toMatchObject({ tone: 'secondary', icon: 'pi pi-bolt' });
+  });
+
+  it('hides event-triggered actions regardless of kind', () => {
+    expect(resolveActionButton({ actionKind: 'createEntity', trigger: { mode: 'event' } }).hidden).toBe(true);
+  });
+
+  it('tones status transitions from the target state render policy', () => {
+    const render = { states: { FAILED: { label: 'Failed', severity: 'danger' }, DONE: { severity: 'success' } } };
+    expect(resolveActionButton({ actionKind: 'updateEntity', status: { to: 'FAILED' } }, { render }))
+      .toMatchObject({ tone: 'state', severity: 'danger' });
+    expect(resolveActionButton({ actionKind: 'updateEntity', status: { to: 'DONE' } }, { render }))
+      .toMatchObject({ severity: 'success' });
+    expect(resolveActionButton({ actionKind: 'updateEntity' }, { render }).tone).toBe('secondary');
+  });
+});
+
+describe('chrome', () => {
+  it('maps roles to token names', () => {
+    expect(resolveChrome('canvas')).toEqual({ role: 'canvas', flattened: false, surface: 'page', padding: 'none', border: 'none' });
+    expect(resolveChrome('card')).toEqual({ role: 'card', flattened: false, surface: 'content', padding: 'md', border: 'hairline' });
+  });
+
+  it('flattens same-role nesting instead of repeating the surface', () => {
+    expect(resolveChrome('card', 'card')).toEqual({ role: 'card', flattened: true, surface: 'none', padding: 'md', border: 'top' });
+    expect(resolveChrome('card', 'section').flattened).toBe(false);
+    expect(resolveChrome('section', 'section').flattened).toBe(false);
+  });
+
+  it('degrades unknown roles to section chrome', () => {
+    expect(resolveChrome('mystery').surface).toBe('none');
+  });
+});
+
+describe('budgets', () => {
+  const items = ['a', 'b', 'c', 'd', 'e'];
+
+  it('shows everything under the max', () => {
+    expect(applyBudget(items, { max: 6, overflow: 'count' })).toEqual({ mode: 'all', visible: items, hidden: 0 });
+  });
+
+  it('collapses over the max and reports the hidden count', () => {
+    const outcome = applyBudget(items, { max: 2, overflow: 'count' });
+    expect(outcome).toMatchObject({ mode: 'collapsed', hidden: 3 });
+    expect(outcome.visible).toEqual(['a', 'b']);
+  });
+
+  it('scrolls when no max is declared', () => {
+    expect(applyBudget(items, { overflow: 'scroll' })).toMatchObject({ mode: 'scroll', hidden: 0 });
+  });
+
+  it('shows everything when there is no budget', () => {
+    expect(applyBudget(items, null)).toEqual({ mode: 'all', visible: items, hidden: 0 });
+  });
+});
