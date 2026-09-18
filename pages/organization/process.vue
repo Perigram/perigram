@@ -38,6 +38,9 @@
         >
           <template #node-statusDefinition="props"><ProcessStatusDefinitionNode v-bind="props" /></template>
           <template #node-ctsType="props"><CtsTypeNode v-bind="props" /></template>
+          <template #node-ctsClass="props"><ClassNode v-bind="props" /></template>
+          <template #node-ctsField="props"><FieldNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
+          <template #node-ctsState="props"><StateNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
           <template #node-processNode="props"><ProcessNode v-bind="props" /></template>
         </VueFlow>
         <template #fallback><div class="absolute inset-0" /></template>
@@ -925,6 +928,9 @@ import { cncDomain, cncUiSurfaces, cncPackContent } from '@cutkit/domain-cnc';
 import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor, frameworkTypes } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
+import ClassNode from '~/components/type-designer/TypeNode.vue';
+import FieldNode from '~/components/type-designer/FieldNode.vue';
+import StateNode from '~/components/type-designer/StateNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
 import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import MotionDock from '~/components/shared/MotionDock.vue';
@@ -1115,24 +1121,65 @@ function catalogPorts(record) {
 
 // A connection whose either end is a ctsType canvas node and whose other end
 // is an entity-bound species record binds that record's type.
+// A fresh declaration in the tree gets a suggested kebab id unique among
+// registry types and in-tree declarations.
+function suggestTreeTypeId() {
+  const taken = new Set([...ctsTypeView().map(entry => entry.id), ...nodes.value.filter(node => node.type === 'ctsClass').map(node => node.data.typeId)]);
+  let index = 1;
+  while (taken.has(`type-${index}`)) index += 1;
+  return `type-${index}`;
+}
+
+function renameDeclarationNode(props, value) {
+  const node = nodes.value.find(candidate => candidate.id === props.id);
+  if (!node) return;
+  if (node.type === 'ctsField') node.data.name = String(value || '').trim();
+  if (node.type === 'ctsState') node.data.value = String(value || '').trim();
+}
+
 function typeBindingForConnection(connection = {}) {
   const source = nodes.value.find(node => node.id === connection.source);
   const target = nodes.value.find(node => node.id === connection.target);
   if (!source || !target) return null;
-  const typeNode = source.type === 'ctsType' ? source : target.type === 'ctsType' ? target : null;
+  // declaration wiring inside the tree: field/state -> class declares it
+  if ((source.type === 'ctsField' || source.type === 'ctsState') && target.type === 'ctsClass') {
+    return { declares: true, source, target };
+  }
+  const typeNode = [source, target].find(node => node.type === 'ctsType' || node.type === 'ctsClass');
   const other = typeNode === source ? target : source;
   if (!typeNode || other.type !== 'processNode') return null;
   const record = draft.value?.data?.processNodes?.[other.data?.refId];
   if (!record || !String(record.kind || '').startsWith('cts.')) return null;
   const typeId = typeNode.data?.typeId;
-  if (!typeId) {
+  if (typeNode.type === 'ctsClass' && !typeId) {
     toast.add({ severity: 'warn', summary: t('processDesigner.typeNodeUnbound'), life: 3000 });
     return null;
   }
-  return { typeNodeId: typeNode.id, typeNodeTypeId: typeId, recordNodeId: other.id, record };
+  return { typeNodeId: typeNode.id, typeNodeTypeId: typeId, recordNodeId: other.id, record, fromClass: typeNode.type === 'ctsClass' };
+}
+
+// keep the class card's field/state counts honest as nodes wire in/out
+function recountDeclaration(classNode) {
+  if (!classNode || classNode.type !== 'ctsClass') return;
+  const typeId = classNode.data.typeId;
+  classNode.data.fields = nodes.value.filter(node => node.type === 'ctsField' && node.data.typeId === typeId).length;
+  classNode.data.states = nodes.value.filter(node => node.type === 'ctsState' && node.data.typeId === typeId).length;
 }
 
 function applyTypeBinding(binding, connection = {}) {
+  if (binding.declares) {
+    binding.source.data.typeId = binding.target.data.typeId;
+    recountDeclaration(binding.target);
+    edges.value.push(decorateEdge({
+      ...connection,
+      id: `declares:${binding.source.id}-${binding.target.id}`,
+      type: 'default',
+      role: 'type',
+      label: binding.source.type === 'ctsField' ? 'field' : 'state'
+    }));
+    selectedEdgeId.value = null;
+    return;
+  }
   setNodeEntityType(binding.record, binding.typeNodeTypeId);
   syncNodeData();
   edges.value.push(decorateEdge({
@@ -1514,6 +1561,16 @@ function updateJoinSelectedProducer(node, selectedProducerOutputId) {
   node.selectedProducerOutputId = selectedProducerOutputId;
   syncNodeData();
 }
+const fieldBaseOptions = ['string', 'number', 'boolean', 'instant', 'json', 'quantity', 'ref', 'list'].map(base => ({ label: base, value: base }));
+const ctsUnits = ['mm', 'm', 'm2', 'min', 'deg', 'percent', 'currency', 'count'];
+const classPayloadMime = computed({
+  get: () => selectedNode.value?.data?.payload?.mime || '',
+  set: value => {
+    const node = selectedNode.value;
+    if (!node) return;
+    node.data.payload = value ? { ...(node.data.payload || {}), mime: value } : null;
+  }
+});
 const typeAnchorOptions = computed(() => ctsTypeView().map(entry => ({
   label: `${entry.label} · ${entry.class}`,
   value: entry.id
@@ -1840,10 +1897,52 @@ async function createDraftFromDock() {
   }
 }
 
+// Declarations authored in the tree compile into registry types before the
+// process saves (SPEC §20/§21: one tree, declarations are nodes). Each
+// class node with wired fields/states becomes an org declaration.
+async function persistTreeDeclarations() {
+  const classes = nodes.value.filter(node => node.type === 'ctsClass' && node.data.typeId);
+  if (!classes.length) return;
+  const wiredFields = childNodes => edges.value
+    .filter(edge => edge.role === 'type' && edge.label === 'field' && edge.target === childNodes.id)
+    .map(edge => nodes.value.find(node => node.id === edge.source))
+    .filter(Boolean);
+  const wiredStates = classNode => edges.value
+    .filter(edge => edge.role === 'type' && edge.label === 'state' && edge.target === classNode.id)
+    .map(edge => nodes.value.find(node => node.id === edge.source))
+    .filter(Boolean);
+  for (const classNode of classes) {
+    const fields = Object.fromEntries(wiredFields(classNode)
+      .filter(field => field.data.name)
+      .map(field => [field.data.name, { ...field.data.descriptor }]));
+    const states = wiredStates(classNode).filter(state => state.data.value);
+    const declaration = {
+      id: classNode.data.typeId,
+      class: classNode.data.class,
+      fields,
+      ...(classNode.data.payload ? { payload: classNode.data.payload } : {})
+    };
+    if (states.length) {
+      declaration.states = {
+        main: {
+          initial: states.find(state => state.data.initial)?.data.value || states[0].data.value,
+          values: states.map(state => state.data.value),
+          terminal: states.filter(state => state.data.terminal).map(state => state.data.value)
+        }
+      };
+    }
+    await $fetch('/api/admin/cts/types', { method: 'POST', body: declaration });
+  }
+  ctsOrgTypes.value = (await $fetch('/api/admin/cts/types')).types.filter(type => type.scope === 'org');
+  resetCtsRegistry();
+  refreshDesignerFromTypes();
+}
+
 async function saveDraft() {
   savingDraft.value = true;
   try {
     syncNodeData();
+    await persistTreeDeclarations();
     if (!draft.value?._id || isActiveProcess.value) return await createDraft({ copyActive: isActiveProcess.value });
     const updated = await persistence.saveDraft(draft.value._id, serializeProcess());
     upsertProcessDefinition(updated);
@@ -2023,13 +2122,22 @@ function addNode(item, position = nextNodePosition()) {
     selected: true,
     data: { refId, label: refId }
   };
-  if (type === 'ctsType') {
+  if (type === 'ctsType' || type === 'ctsClass' || type === 'ctsField' || type === 'ctsState') {
+    // Declaration-plane canvas nodes: they own no process records — they
+    // ARE the type vocabulary, composed in the same tree (SPEC §20/§21).
+    const classOf = typeof item === 'object' ? item.preset?.classOf : null;
     const typeNode = {
       id,
-      type: 'ctsType',
+      type,
       position,
       selected: true,
-      data: { typeId: '', label: '' }
+      data: type === 'ctsClass'
+        ? { typeId: suggestTreeTypeId(), class: classOf || 'file', scope: 'tree', label: '', payload: null, fields: 0, states: 0 }
+        : type === 'ctsType'
+          ? { typeId: '', label: '' }
+          : type === 'ctsField'
+            ? { typeId: null, name: '', descriptor: { base: 'string' } }
+            : { typeId: null, value: '', initial: false, terminal: false }
     };
     nodes.value = [...nodes.value.map(item => ({ ...item, selected: false })), typeNode];
     selectedNodeId.value = id;
@@ -3672,6 +3780,13 @@ function parseJson(source, fallback) {
 }
 
 function enrichNodeData(node) {
+  if (node.type === 'ctsClass') {
+    recountDeclaration(node);
+    return { ...node, data: { ...node.data, label: node.data.label || node.data.typeId, version: 1, scope: 'system' } };
+  }
+  if (node.type === 'ctsField' || node.type === 'ctsState') {
+    return { ...node, data: { ...node.data } };
+  }
   if (node.type === 'ctsType') {
     const entry = ctsTypeView().find(candidate => candidate.id === node.data?.typeId);
     return { ...node, data: { ...(node.data || {}), type: entry || null, label: entry?.label || node.data?.typeId || 'type' } };

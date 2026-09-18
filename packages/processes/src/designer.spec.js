@@ -229,9 +229,15 @@ describe('process designer domain contract', () => {
     const items = contract.paletteGroups.flatMap(group => group.items);
 
     expect(Object.keys(groups)).toEqual([
+      'declarations',
       'operations',
       'values',
       'listTree'
+    ]);
+    // declarations ARE program nodes: classes and their fields/states
+    // compose in the same tree (SPEC §20/§21)
+    expect(groups.declarations.map(item => item.type)).toEqual([
+      'ctsClass', 'ctsClass', 'ctsClass', 'ctsClass', 'ctsField', 'ctsState'
     ]);
     // The palette is operations over types — never a domain catalog dump.
     // Types reach the canvas by composition (type reference nodes wired
@@ -256,7 +262,7 @@ describe('process designer domain contract', () => {
       'cts.decompose',
       'ctsType'
     ]);
-    expect(contract.paletteGroups[0].items.slice(7, 14).map(item => item.preset.select)).toEqual([
+    expect(contract.paletteGroups[1].items.slice(7, 14).map(item => item.preset.select)).toEqual([
       'current', 'byId', 'byRef', 'parent', 'children', 'related', 'query'
     ]);
     expect(groups.values.map(item => item.kind)).toEqual([
@@ -292,7 +298,8 @@ describe('process designer domain contract', () => {
     expect(items.map(item => item.kind)).not.toContain('value.parse');
     expect(items.map(item => item.kind)).not.toContain('source.triggerPayload');
     // statusDefinition and the ctsType reference node are canvas surfaces, not catalog operations
-    expect(items.every(item => ['statusDefinition', 'ctsType'].includes(item.type) || getProcessNodeDefinition(item.kind))).toBe(true);
+    // declaration canvas nodes (class/field/state/reference) are tree vocabulary, not catalog operations
+    expect(items.every(item => ['statusDefinition', 'ctsType', 'ctsClass', 'ctsField', 'ctsState'].includes(item.type) || getProcessNodeDefinition(item.kind))).toBe(true);
     expect(new Set(items.map(item => item.id)).size).toBe(items.length);
     expect(items.every(item => item.description && item.preset)).toBe(true);
     expect(items.find(item => item.id === 'date')?.preset).toMatchObject({
