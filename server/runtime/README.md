@@ -17,41 +17,34 @@ should call `getAppRegistry()`.
 
 ## Registered Bindings
 
-- Entity services for every persisted domain entity declared in
-  `@cutkit/domain-cnc`. Registration adds an explicit
-  `processList(filters, auth)` and `processGetById(id, auth)` bindings for each
-  feature's concrete list/detail signatures; process entity nodes use those
-  uniform boundaries instead of guessing positional service arguments.
-- A per-entity `processCapabilities` record spread onto each registered service
-  as `{ create, createModes, processUpdate, delete, archive }`. `create` is
-  derived from `createModes`, the intersection of the domain-declared
-  construction modes and the registered `constructionHandlers` for that entity;
-  it is never inferred from the presence of a service `create` method.
-  `processUpdate` mirrors `service.processUpdate`; hard-delete-capable services
-  expose one `processDelete(id, auth)` adapter that translates the canonical
-  process context into the feature service's existing remove signature. The
-  `delete` capability requires that adapter, while `archive` requires a domain
-  workflow `ARCHIVED` state and runtime archive binding.
-  Each declared construction mode is bound to a named handler on the entity's
-  `constructionHandlers` map (`genericCreate` maps to `service.create`, typed
-  modes to their named constructor). Every entity service must declare the
-  capability record, and the registry build throws on a missing binding, on a
-  `true` flag that does not resolve to a real service method, or on a declared
-  construction mode that lacks a registered handler (fail-fast drift check).
-  Activation, authoring, and effect execution all consume this same per-mode
-  record instead of re-detecting service methods.
-- Command handlers: `saveCassetteTemplate`, `solveNesting`,
-  `generateAttachment`, `convertArtifact`, `generateConfigBotDraft`,
+- Five framework entity services (`organization`, `user`, `artifact`,
+  `process_definition`, `entity_revision`), each with explicit
+  `processList`/`processGetById` bindings, `processCapabilities`, and
+  construction handlers (`artifact` keeps the `uploadArtifact` typed
+  constructor).
+- The generic instance-service resolver (SPEC §13 of the CTS spec): every
+  type without a framework service resolves to its per-class instance
+  service — pack types and org-authored types are executable without
+  hand-written services, resolving their declarations per call (framework
+  and pack types from static declarations, org types from the `cts_types`
+  store, cached and invalidated on type writes). Types with no declaration
+  in the registry view fail loudly (`Unknown type`) — that is the intended
+  contract: the registry view is the whole catalog.
+- Command handlers from the mounted packs (the CNC pack registers
+  `saveCassetteTemplate`, `solveNestingValue`, `convertArtifact`) plus the
+  framework's `generateAttachment`, `generateConfigBotDraft`,
   `reindexConfigBotKnowledge`.
 - Task executors: `nesting.solve`, which bridges queued task runs to the
-  FastAPI nesting worker. Polling workers claim other task definitions such as
-  `vision.extractGeometry` through the worker protocol.
+  FastAPI nesting worker. Polling workers claim other task definitions such
+  as `vision.extractGeometry` through the worker protocol.
 - Effect policies and hook-returned effects are executed through the core
   effect runtime after the registry resolves the relevant services.
 - Workflow hook handlers from `server/core/machines/hooks.js` and explicitly
-  registered feature hook handlers such as queue physical-cut processing.
-- Domain definitions: entities, workflows, commands, tasks, hooks,
-  attachment kinds, summaries, and UI metadata.
+  registered feature hook handlers.
+- Domain definitions (commands, tasks, hooks, the canonical block
+  vocabulary, UI metadata) are mounted from the packs; the legacy entity/
+  workflow/construction tables in `@cutkit/domain-cnc` are pack-internal
+  content for non-process surfaces and are not registry services.
 - Process definition services are registered as persisted entities. Active
   process compiled workflows are resolved by the workflow runtime before
   organization workflow overrides and domain defaults.

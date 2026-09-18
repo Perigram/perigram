@@ -107,6 +107,19 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
 
 ## Strangler integration (app-side)
 
+- [x] **The legacy cut (2026-09-18 session):** the converter
+  (`compat/domain-cnc.js`) and the source-flip/server-equality gates are
+  deleted; `projectDomainFromView` is synthesis-only (no legacy
+  entities/workflows/construction/fieldSchemas/fieldAccess/relations/
+  containment/attachmentKinds passthrough — the base domain contributes
+  operator contracts, block vocabulary, and pack services only);
+  `/api/admin/domain` serves the caller's projected view; the registry
+  contract spec pins the resolver world (legacy types fail `Unknown
+  type`). Legacy collections and definitions authored against legacy
+  types are abandoned data. Remaining legacy surface (machines,
+  workflow-overrides, config-bot, workbench fixtures, legacy UI routes)
+  stays pack-internal until deleted.
+
 - [x] Compiler pass that auto-converts `packages/domain-cnc` declarations
   (entities, workflows, attachment kinds) into CTS type records —
   `compat/domain-cnc.js`; live consumption via

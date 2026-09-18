@@ -1,158 +1,170 @@
-import { describe, it, expect } from 'vitest';
-import { projectDomainFromView } from './domain-projection.js';
-import { createTypeRegistry, convertCncDomain } from '../index.js';
-import { cncEntities, cncWorkflows, cncContainment, cncEntityFieldSchemas, cncDomain } from '../../../domain-cnc/src/index.js';
+import { describe, expect, it } from 'vitest';
+import { createTypeRegistry, projectDomainFromView, CLASS_COLLECTIONS } from '../index.js';
+import { cncTypePack } from '../pack/cnc.js';
+import { frameworkTypes } from '../pack/framework.js';
 
-function registryWithOrgType() {
-  const registry = createTypeRegistry({ id: 'projection' });
-  for (const declaration of convertCncDomain({
-    entities: cncEntities, workflows: cncWorkflows, containment: cncContainment,
-    fieldSchemas: cncEntityFieldSchemas
-  })) {
-    registry.defineType(declaration);
+// The view fixture: framework party types, the CNC starter pack, and one
+// org-authored type exercising children edges, states, and a payload.
+function registry() {
+  const reg = createTypeRegistry({ id: 'spec' });
+  for (const declaration of [...frameworkTypes, ...cncTypePack]) {
+    reg.defineType(declaration);
   }
-  registry.defineType({
-    id: 'widget', class: 'process', scope: 'org', organizationId: 'org-1',
-    fields: { name: { base: 'string' }, note: { base: 'string' } },
-    states: { main: { initial: 'raw', values: ['raw', 'done'], terminal: ['done'] } },
-    transitions: [{ from: 'raw', to: 'done', intent: 'finish' }],
-    edges: { relations: { parts: { types: ['queue'], onRemove: 'restrict' } } }
-  });
-  return registry;
+  return reg;
 }
 
-describe('domain projection (CTS view -> compiler domain)', () => {
-  it('system types project the workflow shape with legacy access merged', () => {
-    const registry = registryWithOrgType();
-    const projected = projectDomainFromView(registry, 'org-1', cncDomain);
-    const queue = projected.workflows.queue;
-    expect(queue.regions.main.initial).toBe('DRAFT');
-    expect(queue.regions.main.states.CLOSED.isTerminal).toBe(true);
-    const requestNesting = queue.regions.main.transitions.find(t => t.intent === 'requestNesting');
-    expect(requestNesting.access).toEqual(cncDomain.workflows.queue.regions.main.transitions
-      .find(t => t.intent === 'requestNesting').access);
-    // entity list unchanged for system types; org types only append
-    expect(projected.entities.slice(0, cncDomain.entities.length)).toEqual(cncDomain.entities);
+const orgPanel = {
+  id: 'panel',
+  class: 'item',
+  scope: 'org',
+  organizationId: 'org-1',
+  version: 1,
+  fields: {
+    serial: { base: 'string' },
+    width: { base: 'quantity', unit: 'mm' }
+  },
+  edges: { relations: { 'placed-on': { types: ['sheet'], onRemove: 'detach' } } },
+  states: { main: { initial: 'available', values: ['available', 'installed'], terminal: ['installed'] } },
+  transitions: [{ from: 'available', to: 'installed', intent: 'installPanel' }]
+};
+
+const orgBin = {
+  id: 'bin',
+  class: 'group',
+  scope: 'org',
+  organizationId: 'org-1',
+  version: 1,
+  fields: { name: { base: 'string' } },
+  edges: { children: { panels: { types: ['panel'], onRemove: 'restrict' } } }
+};
+
+const orgDoc = {
+  id: 'spec-sheet',
+  class: 'file',
+  scope: 'org',
+  organizationId: 'org-1',
+  version: 1,
+  payload: { mime: ['text/plain'], accept: ['.txt'], maxSize: 1024, preview: 'text' },
+  fields: { note: { base: 'string', nullable: true } }
+};
+
+function orgRegistry() {
+  const reg = registry();
+  for (const declaration of [orgPanel, orgBin, orgDoc]) reg.defineType(declaration);
+  return reg;
+}
+
+const legacyBase = {
+  entities: [{ type: 'oldqueue', collection: 'oldqueues', meta: false }],
+  workflows: { oldqueue: { schemaVersion: 2, regions: { main: { states: { DRAFT: {} }, transitions: [] } } } },
+  fieldSchemas: { oldqueue: [{ path: 'data.old', block: 'data' }] },
+  fieldAccess: { oldqueue: { feature: 'queues', read: ['data.*'], write: ['data.*'] } },
+  containment: [{ parentType: 'oldproject', childType: 'oldqueue', lineageKey: 'oldprojectId' }],
+  construction: { oldqueue: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [] } },
+  relations: [{ ownerType: 'oldqueue', key: 'old', targetType: 'oldproject', cardinality: 'many' }],
+  attachmentKinds: { OLD_KIND: { kind: 'OLD_KIND' } },
+  commands: { doThing: { id: 'doThing' } }
+};
+
+describe('domain projection (synthesis only, after the legacy cut)', () => {
+  it('synthesizes entities with per-class collections for every non-party type', () => {
+    const projected = projectDomainFromView(orgRegistry(), 'org-1', legacyBase);
+    const byType = new Map(projected.entities.map(entity => [entity.type, entity]));
+    expect(byType.get('panel')).toMatchObject({ type: 'panel', collection: CLASS_COLLECTIONS.item, meta: false });
+    expect(byType.get('bin')).toMatchObject({ collection: CLASS_COLLECTIONS.group });
+    expect(byType.get('spec-sheet')).toMatchObject({ collection: CLASS_COLLECTIONS.file });
+    expect(byType.get('occs')).toMatchObject({ collection: CLASS_COLLECTIONS.file });
+    expect(byType.get('sheet')).toMatchObject({ collection: CLASS_COLLECTIONS.item });
+    expect(byType.get('oldqueue')).toBeUndefined();
+    expect(projected.entities.some(entity => entity.type === 'organization')).toBe(false);
   });
 
-  it('org types project entities, workflows without fabricated access, field schemas, field access on the real feature, construction, and relations', () => {
-    const registry = registryWithOrgType();
-    const projected = projectDomainFromView(registry, 'org-1', cncDomain);
-    expect(projected.entities.find(entity => entity.type === 'widget')).toMatchObject({ collection: 'widgets' });
-    const widget = projected.workflows.widget;
-    expect(widget.regions.main.initial).toBe('raw');
-    expect(widget.regions.main.transitions[0]).toEqual({ from: 'raw', to: 'done', intent: 'finish' });
-    // declared states carry the type's render policy: derived label and
-    // severity, terminal flag on declared terminals
-    expect(widget.regions.main.states.raw).toMatchObject({ label: 'Raw', severity: 'info', canUpdateMeta: true });
-    expect(widget.regions.main.states.done).toMatchObject({ label: 'Done', severity: 'secondary', isTerminal: true });
-    expect(projected.fieldAccess.widget).toMatchObject({ feature: 'cts-types' });
-    expect(projected.fieldAccess.widget.read).toContain('data.name');
-    expect(projected.fieldAccess.widget.write).toEqual(['data.name', 'data.note']);
-    expect(projected.relations).toContainEqual({ ownerType: 'widget', key: 'parts', targetType: 'queue', cardinality: 'many' });
-    // org field schemas: core slots + row fields with access flags
-    const widgetSchemas = projected.fieldSchemas.widget;
-    expect(widgetSchemas.find(field => field.path === 'identity.name')).toMatchObject({ writable: false, constructible: true });
-    expect(widgetSchemas.find(field => field.path === 'data.name')).toMatchObject({ writable: true, readable: true });
-    expect(widgetSchemas.find(field => field.path === 'origin.state.primary').type.base).toBe('status');
-    // org construction: generic creation with the name prompt plus the
-    // declared row fields as construct inputs (the composer-less construct)
-    expect(projected.construction.widget).toEqual({
-      modes: ['genericCreate'],
-      defaultMode: 'genericCreate',
-      inputs: [
-        { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true },
-        { id: 'data.name', label: 'data.name', path: 'data.name', type: 'string', required: true, prompt: true },
-        { id: 'data.note', label: 'data.note', path: 'data.note', type: 'string', required: true, prompt: true }
-      ]
-    });
+  it('ignores legacy domain content on the base while keeping operator contracts', () => {
+    const projected = projectDomainFromView(registry(), null, legacyBase);
+    expect(projected.entities.map(entity => entity.type)).not.toContain('oldqueue');
+    expect(projected.workflows.oldqueue).toBeUndefined();
+    expect(projected.fieldSchemas.oldqueue).toBeUndefined();
+    expect(projected.fieldAccess.oldqueue).toBeUndefined();
+    expect(projected.containment).not.toContainEqual(
+      { parentType: 'oldproject', childType: 'oldqueue', lineageKey: 'oldprojectId' });
+    expect(projected.construction.oldqueue).toBeUndefined();
+    expect(projected.relations).not.toContainEqual(
+      { ownerType: 'oldqueue', key: 'old', targetType: 'oldproject', cardinality: 'many' });
+    expect(projected.attachmentKinds.OLD_KIND).toBeUndefined();
+    expect(projected.commands).toEqual({ doThing: { id: 'doThing' } });
   });
 
-  it('org item quantities land in the specs slot with lineage fields from children edges', () => {
-    const registry = registryWithOrgType();
-    registry.defineType({
-      id: 'batch', class: 'group', scope: 'org', organizationId: 'org-1',
-      edges: { children: { entries: { types: ['gadget'], onRemove: 'restrict', lineageKey: 'batchId' } } }
-    });
-    registry.defineType({
-      id: 'gadget', class: 'item', scope: 'org', organizationId: 'org-1',
-      fields: { width: { base: 'quantity', unit: 'mm' }, label: { base: 'string' } },
-      states: { main: { initial: 'new', values: ['new', 'gone'], terminal: ['gone'] } }
-    });
-    const projected = projectDomainFromView(registry, 'org-1', cncDomain);
-    const gadgetSchemas = projected.fieldSchemas.gadget;
-    expect(gadgetSchemas.find(field => field.path === 'specs.width')).toMatchObject({ type: { base: 'number', unit: 'mm' } });
-    expect(gadgetSchemas.find(field => field.path === 'data.label')).toMatchObject({ type: { base: 'string' } });
-    expect(gadgetSchemas.find(field => field.path === 'lineage.batchId')).toMatchObject({
-      type: { base: 'entityRef', entityType: 'batch' }, constructible: true
-    });
-    expect(projected.entities.find(entity => entity.type === 'gadget').blocks).toContain('specs');
-    expect(projected.containment).toContainEqual({ parentType: 'batch', childType: 'gadget', lineageKey: 'batchId' });
-  });
-
-  it('passes unconsumed domain keys through untouched', () => {
-    const registry = registryWithOrgType();
-    const projected = projectDomainFromView(registry, 'org-2', cncDomain);
-    expect(projected.commands).toBe(cncDomain.commands);
-    expect(projected.attachmentKinds).toBe(cncDomain.attachmentKinds);
-    // construction passthrough for legacy types; view types without legacy
-    // construction (pack/org) synthesize generic creation
-    expect(Object.keys(cncDomain.construction).every(key => projected.construction[key] === cncDomain.construction[key])).toBe(true);
-    expect(projected.fieldAccess).toBe(cncDomain.fieldAccess);
-    // org-2 view has no widget: nothing projected for it
-    expect(projected.workflows.widget).toBeUndefined();
-    expect(projected.entities.find(entity => entity.type === 'widget')).toBeUndefined();
-    expect(projected.construction.widget).toBeUndefined();
-  });
-  it('pack-mounted system types without legacy content synthesize from their rows', () => {
-    const registry = createTypeRegistry({ id: 'pack-projection' });
-    registry.defineType({
-      id: 'cassette', class: 'file', scope: 'system', version: 1,
-      payload: { mime: 'application/perigram+occs' },
-      fields: { name: { base: 'string' } },
-      render: { label: 'Cassette' }
-    });
-    registry.defineType({
-      id: 'widget', class: 'process', scope: 'org', organizationId: 'org-1',
-      fields: { note: { base: 'string' } },
-      states: { main: { initial: 'raw', values: ['raw', 'done'], terminal: ['done'] } }
-    });
-    const projected = projectDomainFromView(registry, 'org-1', cncDomain);
-    const cassette = projected.entities.find(entity => entity.type === 'cassette');
-    expect(cassette).toBeTruthy();
-    expect(cassette.collection).toBe('cassettes');
-    const schemas = projected.fieldSchemas.cassette;
-    expect(schemas.find(field => field.path === 'data.name')).toMatchObject({ writable: true });
-    expect(schemas.find(field => field.path === 'identity.name')).toMatchObject({ constructible: true });
-    // the view is authoritative: legacy types outside the view are not
-    // projected — pickers list types, not the legacy catalog
-    expect(projected.entities.find(entity => entity.type === 'queue')).toBeUndefined();
-  });
-
-
-  it('declared construct operators join generic creation as org-authored via modes', () => {
-    const registry = createTypeRegistry({ id: 'op-modes' });
-    registry.defineType({
-      id: 'widget',
-      class: 'process',
-      scope: 'org',
-      organizationId: 'org-1',
-      fields: {},
-      operators: {
-        'bake-widget': {
-          species: 'construct',
-          input: { base: 'record', fields: { template: { base: 'ref', accepts: ['cassette'] }, width: { base: 'quantity', unit: 'mm', nullable: true } } },
-          output: { base: 'ref', accepts: ['widget'] }
-        }
-      }
-    });
-    const projected = projectDomainFromView(registry, 'org-1');
-    const contract = projected.construction.widget;
-    expect(contract.modes).toEqual(['genericCreate', 'bake-widget']);
-    expect(contract.defaultMode).toBe('genericCreate');
-    expect(contract.modeInputs['bake-widget']).toEqual([
-      { id: 'template', label: 'template', path: 'template', required: true, type: 'entity', entityType: 'cassette' },
-      { id: 'width', label: 'width', path: 'width', required: false, type: 'number' }
+  it('derives workflows from declared states with render policy', () => {
+    const projected = projectDomainFromView(orgRegistry(), 'org-1');
+    const workflow = projected.workflows.panel;
+    expect(workflow.schemaVersion).toBe(2);
+    expect(workflow.regions.main.initial).toBe('available');
+    expect(Object.keys(workflow.regions.main.states)).toEqual(['available', 'installed']);
+    expect(workflow.regions.main.states.installed.isTerminal).toBe(true);
+    expect(workflow.regions.main.transitions).toEqual([
+      { from: 'available', to: 'installed', intent: 'installPanel' }
     ]);
+    expect(projected.workflows.cassette).toBeUndefined();
+  });
+
+  it('synthesizes field schemas with row fields and lineage from children edges', () => {
+    const projected = projectDomainFromView(orgRegistry(), 'org-1');
+    const paths = projected.fieldSchemas.panel.map(schema => schema.path);
+    expect(paths).toContain('identity.name');
+    expect(paths).toContain('data.serial');
+    expect(paths).toContain('specs.width');
+    expect(paths).toContain('lineage.binId');
+    expect(projected.fieldSchemas.panel.find(schema => schema.path === 'specs.width'))
+      .toMatchObject({ type: { base: 'number', unit: 'mm' }, constructible: true });
+    expect(projected.fieldAccess.panel).toMatchObject({ feature: 'cts-types' });
+  });
+
+  it('synthesizes containment from children edges with camel-case lineage keys', () => {
+    const projected = projectDomainFromView(orgRegistry(), 'org-1');
+    expect(projected.containment).toEqual(expect.arrayContaining([
+      { parentType: 'bin', childType: 'panel', lineageKey: 'binId' }
+    ]));
+    expect(projected.containment).toEqual(expect.arrayContaining([
+      { parentType: 'project', childType: 'queue', lineageKey: 'projectId' }
+    ]));
+  });
+
+  it('synthesizes generic construction plus declared construct operators', () => {
+    const projected = projectDomainFromView(orgRegistry(), 'org-1');
+    const construction = projected.construction.panel;
+    expect(construction.modes).toEqual(['genericCreate']);
+    expect(construction.defaultMode).toBe('genericCreate');
+    expect(construction.inputs.map(input => input.id)).toEqual(['name', 'data.serial', 'specs.width']);
+    const occs = projected.construction.occs;
+    expect(occs.modes).toEqual(['genericCreate']);
+  });
+
+  it('projects declared relation edges from view types', () => {
+    const projected = projectDomainFromView(orgRegistry(), 'org-1');
+    expect(projected.relations).toEqual(expect.arrayContaining([
+      { ownerType: 'panel', key: 'placed-on', targetType: 'sheet', cardinality: 'many' }
+    ]));
+  });
+
+  it('synthesizes attachment kinds from payload traits', () => {
+    const projected = projectDomainFromView(orgRegistry(), 'org-1');
+    expect(projected.attachmentKinds['spec-sheet']).toMatchObject({
+      kind: 'spec-sheet',
+      mimeType: 'text/plain',
+      creation: { mode: 'upload', accept: '.txt' },
+      preview: { mode: 'text' },
+      file: { maxBytes: 1024 }
+    });
+    expect(projected.attachmentKinds.occs).toMatchObject({ kind: 'occs', mimeType: 'application/perigram+occs' });
+  });
+
+  it('resolves the organization view: system types plus this org only', () => {
+    const other = { ...orgPanel, id: 'secret', organizationId: 'org-2' };
+    const reg = orgRegistry();
+    reg.defineType(other);
+    const forOrg1 = projectDomainFromView(reg, 'org-1');
+    expect(forOrg1.entities.map(entity => entity.type)).not.toContain('secret');
+    const forOrg2 = projectDomainFromView(reg, 'org-2');
+    expect(forOrg2.entities.map(entity => entity.type)).toContain('secret');
   });
 });

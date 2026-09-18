@@ -5,27 +5,22 @@
 // domain. Fixtures are the shapes the acceptance suite already compiles.
 import { describe, it, expect } from 'vitest';
 import {
-  createTypeRegistry, convertCncDomain, projectDomainFromView,
+  createTypeRegistry, projectDomainFromView,
   migrateV4Definition, resolveCtsDefinition, checkCtsGraphBindings
 } from '../../../packages/cts/src/index.js';
+import { cncTypePack } from '../../../packages/cts/src/pack/cnc.js';
+import { frameworkTypes } from '../../../packages/cts/src/pack/framework.js';
 import { compileProcessDefinition, PROCESS_DATAFLOW_VERSION } from '../../../packages/processes/src/index.js';
 import { normalizeWorkflow } from '../../../packages/workflows/src/index.js';
-import {
-  cncEntities, cncWorkflows, cncContainment, cncEntityFieldSchemas, cncDomain
-} from '../../../packages/domain-cnc/src/index.js';
-
 function registry() {
   const view = createTypeRegistry({ id: 'v5-equivalence' });
-  for (const declaration of convertCncDomain({
-    entities: cncEntities, workflows: cncWorkflows, containment: cncContainment,
-    fieldSchemas: cncEntityFieldSchemas
-  })) {
+  for (const declaration of [...frameworkTypes, ...cncTypePack]) {
     view.defineType(declaration);
   }
   return view;
 }
 
-const projectedDomain = () => projectDomainFromView(registry(), 'org-1', cncDomain);
+const projectedDomain = () => projectDomainFromView(registry(), 'org-1');
 
 const roles = {
   role_admin: { id: 'role_admin', label: 'Admin' },
@@ -53,7 +48,7 @@ function readModifyWriteDefinition() {
     producerOutputs: {
       'machine_context:entity': {
         id: 'machine_context:entity', producerOutputId: 'machine_context:entity', nodeId: 'machine_context', outputSocketId: 'entity',
-        entityType: 'machine', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*'], write: ['identity.*'], private: [] }
+        entityType: 'sheet', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*'], write: ['identity.*'], private: [] }
       }
     },
     actions: {},
@@ -61,13 +56,13 @@ function readModifyWriteDefinition() {
     sockets: {},
     screens: {},
     processNodes: {
-      deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', entityType: 'machine', blocks: ['identity'] },
-      names: { id: 'names', kind: 'source.literalList', access: 'list', value: ['Renamed machine'] },
+      deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', entityType: 'sheet', blocks: ['identity'] },
+      names: { id: 'names', kind: 'source.literalList', access: 'list', value: ['Renamed sheet'] },
       refs: { id: 'refs', kind: 'source.literalTree', access: 'tree', value: { branches: [{ path: [], items: [{ code: 'M-01', location: 'Hall A' }] }] } },
       modify: { id: 'modify', kind: 'record.modifyBlock', block: 'identity', fields: ['identity.name', 'identity.reference'] },
       update: {
-        id: 'update', kind: 'effect.updateEntity', entityType: 'machine',
-        producerOutputId: 'machine_context:entity', label: 'Update machine',
+        id: 'update', kind: 'effect.updateEntity', entityType: 'sheet',
+        producerOutputId: 'machine_context:entity', label: 'Update sheet',
         trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }, blocks: ['identity']
       }
     }
@@ -98,7 +93,7 @@ function relationCreateDefinition() {
     processNodes: {
       relations: {
         id: 'relations', kind: 'record.composeBlock', block: 'relations', compositionMode: 'relations',
-        entries: [{ id: 'sourceLibrary', key: 'sourceLibrary', entityType: 'library', type: { base: 'entityRef', entityType: 'library' } }]
+        entries: [{ id: 'sourceMaterial', key: 'sourceMaterial', entityType: 'material', type: { base: 'entityRef', entityType: 'material' } }]
       },
       effect: {
         id: 'effect', kind: 'effect.createEntity', entityType: 'facade',
@@ -181,7 +176,7 @@ describe('graph protocol v5 (SPEC §20)', () => {
     const migrated = migrateV4Definition(readModifyWriteDefinition(), projectedDomain()).definition;
     const update = migrated.processNodes.update;
     expect(update.kind).toBe('cts.mutate');
-    expect(update.type).toBe('machine');
+    expect(update.type).toBe('sheet');
     expect(update.slots).toEqual(['identity']);
     const deconstruct = migrated.processNodes.deconstruct;
     expect(deconstruct.kind).toBe('cts.decompose');
@@ -189,13 +184,13 @@ describe('graph protocol v5 (SPEC §20)', () => {
     expect(modify.kind).toBe('cts.compose');
     expect(modify.mode).toBe('modify');
     const output = migrated.producerOutputs['machine_context:entity'];
-    expect(output.type).toBe('machine');
+    expect(output.type).toBe('sheet');
 
     const created = migrateV4Definition(relationCreateDefinition(), projectedDomain()).definition;
     expect(created.processNodes.effect.kind).toBe('cts.construct');
     expect(created.processNodes.effect.via).toBe('genericCreate');
-    expect(created.processNodes.relations.entries[0].target).toBe('library');
-    expect(created.processNodes.relations.entries[0].type).toEqual({ base: 'entityRef', entityType: 'library' });
+    expect(created.processNodes.relations.entries[0].target).toBe('material');
+    expect(created.processNodes.relations.entries[0].type).toEqual({ base: 'entityRef', entityType: 'material' });
 
     const fields = migrateV4Definition(fieldReadDefinition(), projectedDomain()).definition.processNodes.present;
     expect(fields.kind).toBe('cts.field');
@@ -206,39 +201,40 @@ describe('graph protocol v5 (SPEC §20)', () => {
     const domain = projectedDomain();
     const definition = readModifyWriteDefinition();
     definition.producerOutputs['machine_context:entity'].fields = {
-      read: ['identity.*', 'specs.width', 'data.job.items', 'data.value'],
-      write: ['identity.*', 'specs.width'],
+      read: ['identity.*', 'data.code', 'data.graph', 'data.value'],
+      write: ['identity.*', 'data.code'],
       private: []
     };
     const { definition: migrated } = migrateV4Definition(definition, domain);
     const output = migrated.producerOutputs['machine_context:entity'];
-    // machine has no specs/job rows — unknown slot paths stay managed
-    expect(output.fields.read).toEqual(['identity.*', 'specs.width', 'data.job.items', 'data.value']);
+    // sheet has no code/graph rows — unknown slot paths stay managed
+    expect(output.fields.read).toEqual(['identity.*', 'data.code', 'data.graph', 'data.value']);
     // a type with real rows strips and restores byte-identically
     const queueOutput = {
       id: 'q:entity', producerOutputId: 'q:entity', nodeId: 'q', outputSocketId: 'entity',
       type: 'queue', lifecycle: { mode: 'domainDefault' },
-      fields: { read: ['identity.*', 'job.items', 'queueNumber', 'data.value'], write: ['job.items'], private: [] }
+      fields: { read: ['identity.*', 'job', 'data.value'], write: ['job'], private: [] }
     };
     const resolved = resolveCtsDefinition(
       { graphProtocol: 5, processNodes: {}, producerOutputs: { 'q:entity': queueOutput } },
       domain
     ).definition;
     expect(resolved.producerOutputs['q:entity'].entityType).toBe('queue');
-    expect(resolved.producerOutputs['q:entity'].fields.read).toEqual(['identity.*', 'data.job.items', 'data.queueNumber', 'data.value']);
+    expect(resolved.producerOutputs['q:entity'].fields.read).toEqual(['identity.*', 'data.job', 'data.value']);
   });
 
   it('kebab/snake round trips through kebab-only type ids', () => {
     const domain = projectedDomain();
     const original = relationCreateDefinition();
-    original.processNodes.effect.entityType = 'cassette_design';
-    original.producerOutputs['facade_context:entity'].entityType = 'cassette_design';
+    original.processNodes.effect.entityType = 'solve_run';
+    original.producerOutputs['facade_context:entity'].entityType = 'solve_run';
     const { definition: migrated } = migrateV4Definition(original, domain);
-    expect(migrated.processNodes.effect.type).toBe('cassette-design');
-    expect(migrated.producerOutputs['facade_context:entity'].type).toBe('cassette-design');
+    expect(migrated.processNodes.effect.type).toBe('solve-run');
+    expect(migrated.producerOutputs['facade_context:entity'].type).toBe('solve-run');
     const { definition: resolved } = resolveCtsDefinition(migrated, domain);
-    expect(resolved.processNodes.effect.entityType).toBe('cassette_design');
-    expect(resolved.producerOutputs['facade_context:entity'].entityType).toBe('cassette_design');
+    // After the cut, storage entity ids are the kebab type ids themselves
+    expect(resolved.processNodes.effect.entityType).toBe('solve-run');
+    expect(resolved.producerOutputs['facade_context:entity'].entityType).toBe('solve-run');
   });
 
   it('binding checks reject unknown types, undeclared states, and fields outside the row', () => {
@@ -257,9 +253,9 @@ describe('graph protocol v5 (SPEC §20)', () => {
       .toContainEqual(expect.stringMatching(/target state FLYING is not declared/));
 
     const badField = structuredClone(base);
-    badField.processNodes.present = { id: 'present', kind: 'cts.field', type: 'machine', path: 'rogue' };
+    badField.processNodes.present = { id: 'present', kind: 'cts.field', type: 'material', path: 'rogue' };
     expect(checkCtsGraphBindings(badField, domain))
-      .toContainEqual(expect.stringMatching(/field rogue is not in the machine row/));
+      .toContainEqual(expect.stringMatching(/field rogue is not in the material row/));
   });
 
   it('v4 definitions pass through resolution untouched', () => {

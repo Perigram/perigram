@@ -38,44 +38,35 @@ module layout and how the code maps to the spec's build-order tiers.
   to the canonical trait shape (`mime` list, `accept`, `maxSize`,
   `preview`); a bare MIME string (legacy persisted docs) normalizes at the
   boundary.
-- `compat/domain-projection.js` — the collapse direction: projects a CTS
-  registry view back onto the compiler-consumable domain shape. It owns
-  `workflows` (states/transitions from declarations, legacy transition
-  access and state flags merged for system types), `fieldSchemas` (row
-  fields synthesized back to block paths, plus the declared legacy
-  remainder for system types), `containment` (children edges with lineage
-  keys),   `relations`, `entities` (org types appended), `fieldAccess` (org
-  types bound to the cts-types feature), `construction` and
-  `attachmentKinds` (synthesized for org types, legacy content passed
-  through for system types until their facets collapse). Synthesized
-  construction carries the declared row fields as generic-creation inputs
-  (the composer-less construct), declared construct operators as `via`
-  modes with signature-derived `modeInputs`, and declared-state render
-  policy (label/icon/severity) into the projected workflow state
-  metadata. System-type projection equivalence with the legacy tables is
-  asserted by tests.
+- `compat/domain-projection.js` — the single CTS → compiler-domain
+  translator, synthesis-only: every type in the view (framework, pack,
+  org) synthesizes its entities entry (per-class collection, §13),
+  `workflows` (declared states/transitions with render policy), 
+  `fieldSchemas` (core-slot convention + rows), `fieldAccess` (bound to
+  the cts-types feature), `containment` (children edges with lineage
+  keys), `construction` (`genericCreate` + declared construct operators
+  as `via` modes with signature-derived `modeInputs`), `relations`
+  (declared edges), and `attachmentKinds` (payload traits). Nothing
+  passes through from the base domain: legacy entity/workflow/
+  construction/field-schema/access/relation/containment/attachment-kind
+  content supplied on `baseDomain` is ignored; the base contributes
+  operator contracts (commands/tasks/hooks), the framework block
+  vocabulary, and pack service registrations only. Owns the per-class
+  collection map (`CLASS_COLLECTIONS`) shared with the instance
+  repository.
 - `render.js` — render-policy projection (labels/icons/state severities
   derived from declarations; where hand-mirrored status tables die) and
   `compileClientBundle()`, the single frontend/designer consumption contract.
-- `compat/domain-cnc.js` — the strangler converter: maps live
-  `@cutkit/domain-cnc` entities, workflows, containment, and attachment
-  kinds onto CTS type records (pure mapping, no domain import). Field rows
-  are extracted for real (SPEC §15: field schemas promote to the grammar),
-  not quarantined: `data`/`specs` paths become row fields (nested paths
-  group into `record` rows, unit-qualified numbers become `quantity`,
-  entity refs become `ref`, each field keeps its legacy `slot`), workflows
-  become states/transitions, containment becomes `children` edges carrying
-  the legacy `lineageKey`, relations become `relations` edges, and
-  derivation containment (cassette → cassette-design, run → sheet-design,
-  design → sheet) becomes child-side relations instead of lineage children.
-- `compat/field-schema-rows.js` — the row ⇄ legacy field-schema translation
-  used by the converter (extraction) and the domain projection
-  (synthesis): block-slot conventions, descriptor typing, nested-path
-  grouping.
-- `compat/domain-projection.js` — the single CTS → compiler-domain
-  translator. See SPEC §15/§19 for what it owns per key.
+- `compat/domain-cnc.js` — DELETED (the strangler converter). The
+  equivalence phase is over: the projection synthesizes from declarations
+  only and legacy tables are not converted, projected, or served.
+- `compat/field-schema-rows.js` — the row ⇄ field-schema translation the
+  domain projection synthesizes through: block-slot conventions,
+  descriptor typing, nested-path grouping.
 - `compat/process-checks.js` — declaration checks against a registry view,
   run before the process compiler's graph validation.
+- `compat/domain-projection.js` — the single CTS → compiler-domain
+  translator. See SPEC §15/§19 for what it owns per key.
 - `compat/graph-protocol.js` — the v5 graph protocol (SPEC §20):
   `migrateV4Definition` (one-way persisted rewrite to species kinds, CTS
   type ids, and verified row paths), `resolveCtsDefinition` (compile-time
@@ -109,12 +100,14 @@ registry browser fed by `GET /api/admin/cts/types` (org view: system types
 
 `npx vitest run packages/cts` — the acceptance suite covers every static
 rule with both passing and failing fixtures, the tenancy resolution, the
-diff refusal path, the pack compile, and the source-flip equivalence gate
-(`compat/source-flip.spec.js`): for every system type the projected
-fieldSchemas, workflows, and containment must equal the legacy tables they
-replace. The v5 graph protocol equivalence gate
+diff refusal path, the pack compile, and the synthesis projection
+(`compat/domain-projection.spec.js`: per-class collections, declared
+workflows/construction/containment, tenancy). The v5 graph protocol
+equivalence gate
 (`server/features/process-definitions/cts-v5-equivalence.spec.js`) proves
-`compile(v4)` and `compile(resolve(migrate(v4)))` behave identically.
+`compile(v4)` and `compile(resolve(migrate(v4)))` behave identically. The
+legacy source-flip equivalence gate was deleted with the converter:
+there is no legacy source left to be equivalent to.
 
 ## Related
 

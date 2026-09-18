@@ -1,26 +1,50 @@
 import { describe, expect, it, vi } from 'vitest';
-import { cncDomain, getEntityConstruction } from '~/packages/domain-cnc/src/index.js';
-import { createProcessDesignerContract, projectEntityProcessCapabilities, resolveCatalogNodePorts } from '~/packages/processes/src/index.js';
-import { normalizeProcessDefinition, validateProcessDefinition } from '~/packages/processes/src/compiler-core.js';
-import { entityBlocks } from '~/packages/processes/src/node-catalog.js';
+import { createProcessDesignerContract, projectEntityProcessCapabilities, validateProcessDefinition } from '~/packages/processes/src/index.js';
+import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '~/packages/cts/src/index.js';
+import { cncPackContent } from '~/packages/domain-cnc/src/index.js';
 import { getAppRegistry, resetAppRegistryForTests } from './app-registry.js';
 import { performDurableEffect } from '~/server/features/process-definitions/service.js';
-import * as warehousesService from '~/server/features/warehouses/service.js';
-import * as cassettesService from '~/server/features/cassettes/service.js';
-import * as librariesService from '~/server/features/libraries/service.js';
+
+vi.mock('~/server/features/instances/repository.js', () => ({
+  CLASS_COLLECTIONS: Object.freeze({ file: 'files', item: 'items', group: 'groups', process: 'processes' }),
+  collectionForClass: classOf => ({ file: 'files', item: 'items', group: 'groups', process: 'processes' }[classOf] || 'files'),
+  insertInstance: vi.fn(async (_collection, doc) => ({ ...doc, _id: 'cassette-1' })),
+  listInstances: vi.fn(async () => []),
+  findInstance: vi.fn(async () => ({ _id: 'found-1', type: 'cassette' })),
+  findInstanceAnywhere: vi.fn(async () => null),
+  updateInstanceBlocks: vi.fn(async (_collection, _id, blocks) => ({ _id: 'found-1', ...blocks })),
+  deleteInstance: vi.fn(async () => true)
+}));
+import * as instanceRepository from '~/server/features/instances/repository.js';
+
+// Framework machinery types (artifact, entity-revision, process-definition)
+// carry `framework: true` on their declarations: in the view for tenancy
+// and ref targets, never projected as authorable instances. Their explicit
+// services own them (artifact keeps the uploadArtifact constructor).
 import * as entityEventService from '~/server/features/entity-events/service.js';
 
-function hasArchivedState(workflow = null) {
-  return Boolean(workflow && Object.values(workflow.regions || {}).some(region => (
-    region.states && Object.prototype.hasOwnProperty.call(region.states, 'ARCHIVED')
-  )));
+// The projected view is the single domain source (SPEC §19 after the cut):
+// framework party types plus pack declarations.
+const orgPanel = {
+  id: 'panel', class: 'item', scope: 'org', organizationId: 'org-1', version: 1,
+  fields: { serial: { base: 'string' } },
+  states: { main: { initial: 'available', values: ['available', 'installed'], terminal: ['installed'] } }
+};
+
+function projectedDomain() {
+  const registry = createTypeRegistry({ id: 'app-registry-spec' });
+  for (const declaration of [...frameworkTypes, ...cncPackContent.types, orgPanel]) {
+    registry.defineType(declaration);
+  }
+  return projectDomainFromView(registry, 'org-1', {});
 }
 
-function registryBindings(registry) {
+function registryCapabilities(registry, domain) {
   const bindings = {};
-  for (const binding of registry.listEntityServices()) {
-    const service = binding.service;
-    bindings[binding.type] = {
+  for (const entity of domain.entities) {
+    const service = registry.getEntityService(entity.type);
+    if (!service) continue;
+    bindings[entity.type] = {
       list: service.processList,
       getById: service.processGetById,
       processUpdate: service.processUpdate,
@@ -29,14 +53,10 @@ function registryBindings(registry) {
       constructionHandlers: service.constructionHandlers
     };
   }
-  return bindings;
+  return projectEntityProcessCapabilities(domain, bindings);
 }
 
-function registryCapabilities(registry) {
-  return Object.fromEntries(
-    registry.listEntityServices().map(binding => [binding.type, binding.service.processCapabilities])
-  );
-}
+const FRAMEWORK_SERVICE_TYPES = ['organization', 'user', 'artifact', 'process_definition', 'entity_revision'];
 
 function createEffectDefinition(entityType, mode) {
   return {
@@ -62,7 +82,6 @@ function createEffectDefinition(entityType, mode) {
         construction: { mode },
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: 'admin', level: 'write' }] },
-        status: { to: 'CREATED' },
         blocks: [],
         inputs: [],
         outputs: []
@@ -75,134 +94,62 @@ function createEffectDefinition(entityType, mode) {
   };
 }
 
-describe('application entity service bindings', () => {
-  it('gives every domain entity explicit process read boundaries', () => {
+describe('application entity service bindings (resolver world, SPEC §13/§21)', () => {
+  it('serves the framework five explicitly and everything else through the resolver', () => {
     resetAppRegistryForTests();
     const registry = getAppRegistry();
-    const bindings = new Map(registry.listEntityServices().map(binding => [binding.type, binding.service]));
+    const explicit = new Map(registry.listEntityServices().map(binding => [binding.type, binding.service]));
+    expect([...explicit.keys()].sort()).toEqual([...FRAMEWORK_SERVICE_TYPES].sort());
 
-    for (const entity of cncDomain.entities) {
-      expect(bindings.get(entity.type)?.processList, entity.type).toBeTypeOf('function');
-      expect(bindings.get(entity.type)?.processGetById, entity.type).toBeTypeOf('function');
+    // Pack types resolve through the generic instance services with full
+    // process boundaries.
+    for (const entity of projectedDomain().entities) {
+      const service = registry.getEntityService(entity.type);
+      expect(service, entity.type).not.toBeNull();
+      expect(service.processList, entity.type).toBeTypeOf('function');
+      expect(service.processGetById, entity.type).toBeTypeOf('function');
     }
   });
 
   it('exposes one canonical processDelete adapter exactly for hard-delete-capable services', () => {
     resetAppRegistryForTests();
     const registry = getAppRegistry();
-    for (const { type, service } of registry.listEntityServices()) {
+    for (const type of [...FRAMEWORK_SERVICE_TYPES, ...projectedDomain().entities.map(entity => entity.type)]) {
+      const service = registry.getEntityService(type);
       expect(typeof service.processDelete === 'function', type).toBe(service.processCapabilities.delete);
     }
   });
 
-  it('agrees per mode: designer creatability, compiler acceptance, and runtime handlers', () => {
+  it('agrees per mode: view construction, capability projection, designer palette, and compiler', () => {
     resetAppRegistryForTests();
     const registry = getAppRegistry();
-    const services = new Map(registry.listEntityServices().map(binding => [binding.type, binding.service]));
-    const projection = projectEntityProcessCapabilities(cncDomain, registryBindings(registry));
-    const designer = createProcessDesignerContract(cncDomain, projection);
+    const domain = projectedDomain();
+    const projection = registryCapabilities(registry, domain);
+    const designer = createProcessDesignerContract(domain, projection);
 
-    for (const entity of cncDomain.entities) {
-      const type = entity.type;
-      const service = services.get(type);
-      const declaredModes = (getEntityConstruction(type)?.modes || []).slice().sort();
+    // Machinery types never project: the view is authorable instances only
+    expect(domain.entities.map(entity => entity.type)).not.toContain('artifact');
+    expect(domain.entities.map(entity => entity.type)).not.toContain('entity-revision');
+    expect(domain.entities.map(entity => entity.type)).not.toContain('process-definition');
 
-      // runtime: every declared construction mode maps to a registered handler
-      expect(Object.keys(service.constructionHandlers || {}).sort(), type).toEqual(declaredModes);
+    for (const entity of domain.entities) {
+      const service = registry.getEntityService(entity.type);
+      const declaredModes = (domain.construction[entity.type]?.modes || []).slice().sort();
 
-      // capability record derives create and createModes from the handler intersection
-      expect(service.processCapabilities.createModes, type).toEqual(declaredModes);
-      expect(service.processCapabilities.create, type).toBe(declaredModes.length > 0);
-
-      // the serialized projection matches the runtime record
-      expect(projection[type].createModes, type).toEqual(declaredModes);
-      expect(projection[type].create, type).toBe(declaredModes.length > 0);
-
-      // designer palette exposes an entity exactly when it has effective create modes
-      const inPalette = designer.createEntityOptions.some(option => option.value === type);
-      expect(inPalette, type).toBe(declaredModes.length > 0);
+      expect(Object.keys(service.constructionHandlers || {}).sort(), entity.type).toEqual(declaredModes);
+      expect(service.processCapabilities.createModes, entity.type).toEqual(declaredModes);
+      expect(service.processCapabilities.create, entity.type).toBe(declaredModes.length > 0);
+      expect(projection[entity.type].createModes, entity.type).toEqual(declaredModes);
+      expect(projection[entity.type].create, entity.type).toBe(declaredModes.length > 0);
+      const inPalette = designer.createEntityOptions.some(option => option.value === entity.type);
+      expect(inPalette, entity.type).toBe(declaredModes.length > 0);
     }
   });
 
-  it('projects every creatable construction contract into exact Create Entity inputs and blocks', () => {
-    const contracts = Object.entries(cncDomain.construction);
-    expect(contracts).toHaveLength(14);
-
-    for (const [entityType, contract] of contracts) {
-      expect(contract, entityType).not.toHaveProperty('parentEnforcement');
-      const schemas = cncDomain.fieldSchemas[entityType] || [];
-      const blocks = [...new Set([
-        ...schemas.filter(field => field.constructible !== false).map(field => field.block),
-        ...entityBlocks(cncDomain, entityType).filter(block => (
-          cncDomain.blockComposition[block]
-          && !['origin', 'status', 'provenance', 'summary'].includes(block)
-        ))
-      ].filter(Boolean))];
-
-      for (const mode of contract.modes) {
-        const normalized = normalizeProcessDefinition({
-          dataflowVersion: 4,
-          processNodes: {
-            create: {
-              id: 'create',
-              kind: 'effect.createEntity',
-              entityType,
-              construction: { mode },
-              blocks,
-              trigger: { mode: 'manual' }
-            }
-          },
-          graph: { nodes: [{ id: 'create', type: 'processNode', data: { refId: 'create' } }], edges: [] }
-        }, cncDomain);
-        const record = normalized.processNodes.create;
-        const declaredInputs = contract.modeInputs?.[mode] || contract.inputs || [];
-        const ports = resolveCatalogNodePorts(record, { fieldSchemas: schemas }).inputs;
-        const projectedInputs = record.construction.inputs;
-
-        expect(projectedInputs.map(input => input.id), `${entityType}:${mode}`).toEqual(declaredInputs.map(input => input.id));
-        for (const declared of declaredInputs) {
-          const projected = projectedInputs.find(input => input.id === declared.id);
-          expect(projected, `${entityType}:${mode}:${declared.id}`).toMatchObject({
-            id: declared.id,
-            required: Boolean(declared.required),
-            ...(declared.prompt !== undefined ? { prompt: declared.prompt } : {}),
-            ...(declared.accepts ? { accepts: declared.accepts } : {}),
-            ...(declared.attachmentKinds ? { attachmentKinds: declared.attachmentKinds } : {}),
-            ...(declared.creator?.entityType ? { creator: { entityType: declared.creator.entityType } } : {})
-          });
-        }
-
-        const expectedIds = mode === 'genericCreate'
-          ? [...blocks, 'status.state.primary']
-          : [...declaredInputs.map(input => input.id), ...blocks, 'status.state.primary'];
-        expect(ports.map(port => port.id), `${entityType}:${mode}`).toEqual(expectedIds);
-        expect(ports.every(port => port.access === 'list'), `${entityType}:${mode}`).toBe(true);
-        expect(ports.at(-1), `${entityType}:${mode}:status`).toMatchObject({
-          id: 'status.state.primary',
-          required: false,
-          type: { base: 'status', entityType }
-        });
-        for (const declared of mode === 'genericCreate'
-          ? []
-          : declaredInputs.filter(input => ['entity', 'entityList'].includes(input.type))) {
-          const port = ports.find(input => input.id === declared.id);
-          if (declared.type === 'entity') {
-            expect(port.type, `${entityType}:${mode}:${declared.id}`).toMatchObject({ base: 'entityRef', entityType: declared.entityType });
-          } else {
-            expect(port.type, `${entityType}:${mode}:${declared.id}`).toMatchObject({
-              base: 'array',
-              itemType: { base: 'entityRef', accepts: declared.accepts }
-            });
-          }
-          expect(port.required, `${entityType}:${mode}:${declared.id}`).toBe(Boolean(declared.required && declared.default === undefined));
-        }
-      }
-    }
-  });
-
-  it('dispatches a generic create effect through the registered genericCreate handler', async () => {
+  it('dispatches a generic create effect through the generic instance service', async () => {
     resetAppRegistryForTests();
-    const create = vi.spyOn(warehousesService, 'create').mockResolvedValue({ _id: 'warehouse-1' });
+    vi.clearAllMocks();
+    const insert = vi.mocked(instanceRepository.insertInstance).mockResolvedValue({ _id: 'cassette-1', type: 'cassette' });
     const publish = vi.spyOn(entityEventService, 'publishEntityChanged');
     const auth = {
       userId: 'user-1',
@@ -215,7 +162,7 @@ describe('application entity service bindings', () => {
       kind: 'effect.createEntity',
       record: {
         id: 'n1',
-        entityType: 'warehouse',
+        entityType: 'cassette',
         construction: { mode: 'genericCreate' },
         blocks: [],
         inputs: [],
@@ -224,23 +171,68 @@ describe('application entity service bindings', () => {
       inputs: {}
     }, auth, {});
 
-    expect(result._id).toBe('warehouse-1');
-    expect(create).toHaveBeenCalledTimes(1);
-    expect(create.mock.calls[0][0]).toMatchObject({ lineage: { organizationId: 'org-1' } });
-    expect(create.mock.calls[0][1]).toBe('user-1');
+    expect(result._id).toBeTypeOf('string');
+    expect(result.type).toBe('cassette');
+    expect(insert).toHaveBeenCalledTimes(1);
+    // per-class collection (SPEC §13) with the type id as discriminator
+    expect(insert.mock.calls[0][0]).toBe('files');
+    expect(insert.mock.calls[0][0]).toBe('files');
+    expect(insert.mock.calls[0][1]).toMatchObject({ type: 'cassette', lineage: { organizationId: 'org-1' } });
     expect(publish).toHaveBeenCalledWith(auth, {
-      type: 'warehouse',
-      id: 'warehouse-1',
+      type: 'cassette',
+      id: result._id,
       change: 'created',
       reason: 'process-create'
     });
-    create.mockRestore();
     publish.mockRestore();
   });
 
-  it('dispatches a typed create effect through the registered typed handler', async () => {
+  it('legacy types without declarations fail loudly — the view is the whole catalog', async () => {
     resetAppRegistryForTests();
-    const bake = vi.spyOn(cassettesService, 'createDesignFromTemplate').mockResolvedValue({ _id: 'design-1' });
+    const registry = getAppRegistry();
+    // The resolver still returns a service; the per-call declaration check
+    // is the boundary (unknown types must not silently serve).
+    await expect(registry.getEntityService('warehouse').list({}, 'user-1', 'org-1'))
+      .rejects.toThrow('Unknown type warehouse');
+    await expect(registry.getEntityService('cassette_design').create({}, 'user-1', 'org-1'))
+      .rejects.toThrow('Unknown type cassette_design');
+  });
+
+  it('accepts a generic create for a view type and rejects unsupported modes', () => {
+    resetAppRegistryForTests();
+    const registry = getAppRegistry();
+    const domain = projectedDomain();
+    const roles = { admin: { id: 'admin', label: 'Admin' } };
+    const capabilities = Object.fromEntries(
+      domain.entities.map(entity => [entity.type, registry.getEntityService(entity.type).processCapabilities])
+    );
+
+    // panel declares states (available initial): a create needs its target
+    const definition = createEffectDefinition('panel', 'genericCreate');
+    definition.processNodes.create.status = { to: 'available' };
+    const ok = validateProcessDefinition(
+      definition,
+      domain,
+      { roles, capabilities }
+    );
+    expect(ok.errors, JSON.stringify(ok.errors)).toEqual([]);
+    expect(ok.ok).toBe(true);
+
+    const unsupportedDefinition = createEffectDefinition('panel', 'unsupportedCreate');
+    unsupportedDefinition.processNodes.create.status = { to: 'available' };
+    const unsupported = validateProcessDefinition(
+      unsupportedDefinition,
+      domain,
+      { roles, capabilities }
+    );
+    expect(unsupported.ok).toBe(false);
+    expect(unsupported.errors.join(' ')).toContain('unsupportedCreate');
+  });
+
+  it('resolves process reads for pack types through the per-class collections', async () => {
+    resetAppRegistryForTests();
+    vi.clearAllMocks();
+    const find = vi.mocked(instanceRepository.findInstance).mockResolvedValue({ _id: 'cassette-9', type: 'cassette' });
     const auth = {
       userId: 'user-1',
       organizationId: 'org-1',
@@ -248,101 +240,9 @@ describe('application entity service bindings', () => {
       effectivePermissions: {}
     };
 
-    const result = await performDurableEffect({
-      kind: 'effect.createEntity',
-      record: {
-        id: 'n2',
-        entityType: 'cassette_design',
-        construction: {
-          mode: 'bakeCassetteDesignFromTemplate',
-          inputs: [{ id: 'templateId', path: 'templateId', type: 'entity' }]
-        },
-        blocks: [],
-        inputs: [],
-        outputs: []
-      },
-      inputs: { templateId: 'cassette-1' }
-    }, auth, {});
+    const entity = await getAppRegistry().getEntityService('cassette').processGetById('cassette-9', auth);
 
-    expect(result._id).toBe('design-1');
-    expect(bake).toHaveBeenCalledTimes(1);
-    expect(bake.mock.calls[0][0]).toBe('cassette-1');
-    expect(bake.mock.calls[0][1]).toBe(undefined);
-    bake.mockRestore();
-  });
-
-  it('does not author an internal service.create without a construction contract', () => {
-    resetAppRegistryForTests();
-    const registry = getAppRegistry();
-    const service = registry.getEntityService('machine');
-
-    expect(typeof service.create).toBe('function');
-    expect(getEntityConstruction('machine')).toBeNull();
-    expect(service.processCapabilities.create).toBe(false);
-    expect(service.processCapabilities.createModes).toEqual([]);
-  });
-
-  it('registers cassette-design typed creation handlers for bake and import', () => {
-    resetAppRegistryForTests();
-    const registry = getAppRegistry();
-    const service = registry.getEntityService('cassette_design');
-
-    expect(service.processCapabilities.create).toBe(true);
-    expect(service.processCapabilities.createModes).toEqual([
-      'bakeCassetteDesignFromTemplate',
-      'importCassetteDesignFromArtifact'
-    ]);
-    expect(typeof service.constructionHandlers.bakeCassetteDesignFromTemplate).toBe('function');
-    expect(typeof service.constructionHandlers.importCassetteDesignFromArtifact).toBe('function');
-  });
-
-  it('accepts a generic create for a contract-bearing entity', () => {
-    resetAppRegistryForTests();
-    const registry = getAppRegistry();
-    const validation = validateProcessDefinition(
-      createEffectDefinition('warehouse', 'genericCreate'),
-      cncDomain,
-      { roles: { admin: { id: 'admin', label: 'Admin' } }, capabilities: registryCapabilities(registry) }
-    );
-
-    expect(validation.errors, JSON.stringify(validation.errors)).toEqual([]);
-    expect(validation.ok).toBe(true);
-  });
-
-  it('rejects a create effect for an unsupported construction mode', () => {
-    resetAppRegistryForTests();
-    const registry = getAppRegistry();
-    const validation = validateProcessDefinition(
-      createEffectDefinition('warehouse', 'unsupportedCreate'),
-      cncDomain,
-      { roles: { admin: { id: 'admin', label: 'Admin' } }, capabilities: registryCapabilities(registry) }
-    );
-
-    expect(validation.ok).toBe(false);
-    expect(validation.errors.join(' ')).toContain('unsupportedCreate');
-  });
-
-  it('resolves cassette_instance to no creation contract', () => {
-    expect(getEntityConstruction('cassette_instance')).toBeNull();
-    resetAppRegistryForTests();
-    const service = getAppRegistry().getEntityService('cassette_instance');
-
-    expect(service.processCapabilities.create).toBe(false);
-    expect(service.processCapabilities.createModes).toEqual([]);
-  });
-
-  it('adapts process library reads to the feature service auth signature', async () => {
-    const getById = vi.spyOn(librariesService, 'getById').mockResolvedValueOnce({ _id: 'library-1' });
-    resetAppRegistryForTests();
-    const auth = {
-      userId: 'user-1',
-      organizationId: 'org-1',
-      role: 'member',
-      effectivePermissions: { libraries: [{ level: 'read' }] }
-    };
-
-    await getAppRegistry().getEntityService('library').processGetById('library-1', auth);
-
-    expect(getById).toHaveBeenCalledWith('library-1', 'user-1', 'org-1', 'member', auth);
+    expect(entity).toMatchObject({ _id: 'cassette-9', type: 'cassette' });
+    expect(find).toHaveBeenCalledWith('files', 'cassette-9', 'cassette');
   });
 });

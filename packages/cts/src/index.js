@@ -32,10 +32,6 @@ export {
   renderPolicyFor, compileClientBundle
 } from './render.js';
 export {
-  convertCncDomain, convertCncWorkflows, convertCncEntities,
-  convertCncContainment, convertAttachmentKinds, classForEntityType, toTypeId
-} from './compat/domain-cnc.js';
-export {
   extractRow, rowToFieldSchemas, slotFor
 } from './compat/field-schema-rows.js';
 export {
@@ -51,4 +47,4 @@ export {
   enumRegistryForType, enumRegistryForView, SPECIES_BY_EFFECT_KIND
 } from './compat/process-grammar.js';
 export { checkDeclarationsAgainstCts } from './compat/process-checks.js';
-export { projectDomainFromView } from './compat/domain-projection.js';
+export { projectDomainFromView, CLASS_COLLECTIONS } from './compat/domain-projection.js';

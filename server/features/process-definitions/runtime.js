@@ -37,14 +37,21 @@ export async function getActiveCompiledProcess(organizationId) {
   }
 }
 
+// The projected domain for one organization — the single source the
+// compiler, the designer, and assignment resolution consume. Legacy
+// entity tables on the pack domain are not projected (SPEC §19).
+async function getProjectedDomainFor(organizationId) {
+  const registry = await compileRegistryForOrganization(organizationId);
+  return projectDomainFromView(registry, organizationId, cncDomain, {
+    packServices: cncPackContent.services
+  });
+}
+
 // The active runtime compiles through the CTS-projected domain so authored
 // organization types are live in every compiled contract.
 export async function compileActiveProcessRuntime(data = null, roles = {}, organizationId = null) {
   if (!data) return null;
-  const registry = await compileRegistryForOrganization(organizationId);
-  const domain = projectDomainFromView(registry, organizationId, cncDomain, {
-    packServices: cncPackContent.services
-  });
+  const domain = await getProjectedDomainFor(organizationId);
   const migration = migrateProducerOutputIdentities(data, domain);
   if (migration.errors.length) throw new Error(migration.errors.join('; '));
   return compileProcessDefinition({ ...migration.data, compiled: null }, domain, { roles });
@@ -65,7 +72,10 @@ export async function resolveProcessAuth(auth = {}) {
   const userId = String(auth.userId || '');
   const organization = await getAppRegistry().getEntityService('organization').getProcessConfiguration(organizationId);
   const assignment = organization?.roleAssignments?.[userId] || null;
-  const assignmentAccess = resolveRoleAssignmentAccess({ compiled, assignment, domain: cncDomain });
+  // Assignment resolution reads the projected view — the same single
+  // source the compiler consumed (legacy tables are not projected).
+  const domain = await getProjectedDomainFor(organizationId);
+  const assignmentAccess = resolveRoleAssignmentAccess({ compiled, assignment, domain });
   const effectivePermissions = resolveEffectiveAccess({ access: assignmentAccess });
   const ownerAuth = applyOwnerPermissionsToAuth({ ...auth, effectivePermissions });
   const system = resolveOrganizationSystemScreens(ownerAuth);

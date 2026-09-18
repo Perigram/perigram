@@ -19,9 +19,9 @@ import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptan
 
 vi.mock('../cts-types/service.js', async () => {
   const cts = await import('~/packages/cts/src/index.js');
-  const domain = await import('~/packages/domain-cnc/src/index.js');
+  const pack = await import('~/packages/cts/src/pack/cnc.js');
   const registry = cts.createTypeRegistry({ id: 'spec-cts' });
-  for (const declaration of cts.convertCncDomain({ entities: domain.cncEntities, workflows: domain.cncWorkflows, containment: domain.cncContainment, fieldSchemas: domain.cncEntityFieldSchemas })) {
+  for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack]) {
     registry.defineType(declaration);
   }
   return { compileRegistryForOrganization: async () => registry };
@@ -82,15 +82,15 @@ describe('current process-definition service contract', () => {
       lineage: { organizationId: 'org-1' }
     });
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'library' ? { processGetById } : organizationService
+      getEntityService: type => type === 'material' ? { processGetById } : organizationService
     });
     const auth = {
       userId: 'user-1',
       organizationId: 'org-1',
-      effectivePermissions: { libraries: [{ level: 'read' }] }
+      effectivePermissions: { files: [{ level: 'read' }] }
     };
 
-    await expect(resolveProcessGraphEntity('library', 'library-1', { auth }))
+    await expect(resolveProcessGraphEntity('material', 'library-1', { auth }))
       .resolves.toMatchObject({ _id: 'library-1' });
     expect(processGetById).toHaveBeenCalledWith('library-1', auth);
   });
@@ -196,8 +196,8 @@ describe('current process-definition service contract', () => {
         regions: {
           main: {
             label: 'Project lifecycle',
-            initial: 'CREATED',
-            states: { CREATED: { canUpdateMeta: true }, LEGACY_RETIRED: {} },
+            initial: 'draft',
+            states: { draft: { canUpdateMeta: true }, LEGACY_RETIRED: {} },
             transitions: []
           }
         }
@@ -239,8 +239,8 @@ describe('current process-definition service contract', () => {
         regions: {
           main: {
             label: 'Project lifecycle',
-            initial: 'CREATED',
-            states: { CREATED: { canUpdateMeta: true }, LEGACY_RETIRED: {} },
+            initial: 'draft',
+            states: { draft: { canUpdateMeta: true }, LEGACY_RETIRED: {} },
             transitions: []
           }
         }
@@ -255,7 +255,7 @@ describe('current process-definition service contract', () => {
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
     getAppRegistry.mockReturnValue({
       getEntityService: type => type === entityType
-        ? { processList: vi.fn().mockResolvedValue([{ status: { state: { primary: 'CREATED' } } }]) }
+        ? { processList: vi.fn().mockResolvedValue([{ status: { state: { primary: 'draft' } } }]) }
         : organizationService
     });
 
@@ -294,7 +294,7 @@ describe('current process-definition service contract', () => {
 
     expect(result.status.state.primary).toBe('ACTIVE');
     expect(result.data.compiled.lineageBindings).toEqual(expect.arrayContaining([
-      expect.objectContaining({ childEntityType: 'artifact', ancestorEntityType: 'project', lineageKey: 'projectId' })
+      expect.objectContaining({ childEntityType: 'facade', ancestorEntityType: 'project', lineageKey: 'projectId' })
     ]));
     expect(organizationService.setActiveProcessDefinition).toHaveBeenCalledWith('org-acceptance', 'process-draft');
   });
@@ -563,17 +563,17 @@ describe('current process-definition service contract', () => {
     getAppRegistry.mockReturnValue({
       getEntityService: type => type === 'facade'
         ? { constructionHandlers: { genericCreate: create } }
-        : type === 'library' ? { processGetById: targetGet } : organizationService
+        : type === 'material' ? { processGetById: targetGet } : organizationService
     });
 
     await performDurableEffect({
       kind: 'effect.createEntity',
       record: data.processNodes.effect,
-      inputs: { relations: { sourceLibrary: { type: 'library', id: 'library-1' } } }
+      inputs: { relations: { sourceLibrary: { type: 'material', id: 'library-1' } } }
     }, relationAuth(), data);
 
     expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ relations: { sourceLibrary: { type: 'library', id: 'library-1' } } }),
+      expect.objectContaining({ relations: { sourceLibrary: { type: 'material', id: 'library-1' } } }),
       expect.any(Object)
     );
 
@@ -581,7 +581,7 @@ describe('current process-definition service contract', () => {
       kind: 'effect.createEntity',
       record: data.processNodes.effect,
       inputs: { relations: { sourceLibrary: { type: 'project', id: 'project-1' } } }
-    }, relationAuth(), data)).rejects.toThrow('Relation target must be library');
+    }, relationAuth(), data)).rejects.toThrow('Relation target must be material');
     await expect(performDurableEffect({
       kind: 'effect.createEntity',
       record: data.processNodes.effect,
@@ -599,7 +599,7 @@ describe('current process-definition service contract', () => {
     getAppRegistry.mockReturnValue({
       getEntityService: type => type === 'facade'
         ? { processUpdate }
-        : type === 'library' ? { processGetById: targetGet } : organizationService
+        : type === 'material' ? { processGetById: targetGet } : organizationService
     });
     entityRevisionsService.getById.mockResolvedValue({
       data: { source: libraryRef('library-1') }
@@ -666,7 +666,7 @@ describe('current process-definition service contract', () => {
     getAppRegistry.mockReturnValue({
       getEntityService: type => type === 'facade'
         ? { processGetById: vi.fn().mockImplementation(async () => structuredClone(owner)), processUpdate }
-        : type === 'library' ? { processGetById: targetGet } : organizationService
+        : type === 'material' ? { processGetById: targetGet } : organizationService
     });
     const auth = relationAuth([
       'update:link:libraries',
@@ -731,9 +731,9 @@ function relationEffectProcessData(kind, key, cardinality) {
     processNodes: {
       relations: {
         id: 'relations', kind: 'record.composeBlock', block: 'relations', compositionMode: 'relations',
-        entries: [{ id: key, key, entityType: 'library', type: cardinality === 'many'
-          ? { base: 'array', itemType: { base: 'entityRef', entityType: 'library' } }
-          : { base: 'entityRef', entityType: 'library' } }]
+        entries: [{ id: key, key, entityType: 'material', type: cardinality === 'many'
+          ? { base: 'array', itemType: { base: 'entityRef', entityType: 'material' } }
+          : { base: 'entityRef', entityType: 'material' } }]
       },
       effect
     }
@@ -753,18 +753,18 @@ function relationActionProcessData() {
 }
 
 function libraryRef(id) {
-  return { type: 'library', id };
+  return { type: 'material', id };
 }
 
 function library(id) {
-  return { _id: id, type: 'library', lineage: { organizationId: 'org-acceptance' } };
+  return { _id: id, type: 'material', lineage: { organizationId: 'org-acceptance' } };
 }
 
 function relationAuth(actionIds = []) {
   return {
     userId: 'admin',
     organizationId: 'org-acceptance',
-    effectivePermissions: { facades: { level: 'write' }, libraries: { level: 'read' } },
+    effectivePermissions: { groups: { level: 'write' }, materials: { level: 'read' } },
     roleAssignments: { actions: actionIds.map(actionId => ({ actionId })) }
   };
 }
@@ -916,7 +916,8 @@ function adminAuth() {
   return {
     userId: 'admin',
     organizationId: 'org-acceptance',
-    effectivePermissions: { organizations: { level: 'admin' } }
+    // files covers pack file types (e.g. material) as relation targets
+    effectivePermissions: { organizations: { level: 'admin' }, materials: { level: 'admin' } }
   };
 }
 
