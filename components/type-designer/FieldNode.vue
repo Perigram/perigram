@@ -13,7 +13,7 @@
       />
       <Tag :value="typeLabel" severity="secondary" />
     </div>
-    <Handle type="source" :position="Position.Right" />
+    <Handle id="field" type="source" :position="Position.Right" />
   </div>
 </template>
 

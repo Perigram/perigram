@@ -1,7 +1,7 @@
 <template>
   <div :class="frameClass">
-    <Handle type="target" :position="Position.Left" />
-    <Handle type="source" :position="Position.Right" />
+    <Handle id="declare" type="target" :position="Position.Left" />
+    <Handle id="type" type="source" :position="Position.Right" />
     <div class="absolute inset-x-0 top-0 h-0.5 rounded-t-ui" :style="{ backgroundColor: 'var(--ck-status-neutral)' }"></div>
     <div class="flex items-center gap-1.5 border-b border-content-border pb-1.5">
       <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle">

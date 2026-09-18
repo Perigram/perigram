@@ -12,8 +12,8 @@
         @dblclick.stop
       />
     </div>
-    <Handle type="target" :position="Position.Left" />
-    <Handle type="source" :position="Position.Right" />
+    <Handle id="in" type="target" :position="Position.Left" />
+    <Handle id="state" type="source" :position="Position.Right" />
   </div>
 </template>
 

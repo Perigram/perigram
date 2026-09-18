@@ -13,8 +13,8 @@
       <span v-if="fieldCount" class="text-supporting text-muted">{{ fieldCount }} fields</span>
       <span v-if="stateCount" class="text-supporting text-muted">· {{ stateCount }} states</span>
     </div>
-    <Handle type="target" :position="Position.Left" />
-    <Handle type="source" :position="Position.Right" />
+    <Handle id="declare" type="target" :position="Position.Left" />
+    <Handle id="type" type="source" :position="Position.Right" />
   </div>
 </template>
 
