@@ -2476,7 +2476,8 @@
     "tenancyHint": "The id is kebab-case and must not shadow a system type.",
     "deleteConfirm": "Delete type {id}? Existing instances remain; new references stop validating.",
     "loadFailed": "Failed to load types",
-    "createFailed": "Type creation failed"
+    "createFailed": "Type creation failed",
+    "payloadMime": "Payload MIME"
   },
   "processDesigner": {
     "title": "Process designer",
@@ -3133,5 +3134,19 @@
     "noOptions": "No available options for {field}",
     "objectKey": "Key",
     "objectValue": "Value"
+  },
+  "typeCanvas": {
+    "declare": "Declare",
+    "compose": "Compose",
+    "field": "Field",
+    "state": "State",
+    "fieldName": "field name",
+    "stateName": "state name",
+    "unit": "Unit",
+    "accepts": "Accepts",
+    "itemType": "Item type",
+    "wiringHint": "Wire fields/states into a type; state wires are transitions; type wires are children.",
+    "invalidWire": "Not a type-canvas wire",
+    "sameTypeStates": "Transitions connect states of one type"
   }
 }
