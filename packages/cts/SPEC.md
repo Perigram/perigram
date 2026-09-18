@@ -643,3 +643,34 @@ construct/mutate) until row-field sockets land with the composer-less
 construct; field pickers list slot paths, which resolution passes through
 unchanged. `statusDefinitions` remain definition-plane records authoring
 state metadata; per §7 they compile into declarations, never alongside.
+
+## 21. Packs
+
+Domain content is optional plug-ins. The framework (registry, runtime,
+designer) imports nothing domain-shaped; a pack mounts through one module
+and provides:
+
+- **Types**: declarations (file/item/group/process). Pack types are
+  `scope: 'system'` in every org view. Party types are framework-owned,
+  never pack-owned.
+- **Editors**: bindings of an authoring surface to a file type's payload
+  (create/edit/view modes).
+- **Services**: operator registrations — a service species (`s: V -> V`)
+  with its task executor, or a conversion with its command; the operator
+  runtime executes them unchanged.
+- **Entity services** (transitional): legacy feature services with process
+  bindings, mounted like everything else and deleted with the legacy layer.
+- **Attachment kinds**: payload upload contracts for the pack's file types.
+
+The boundary rule: `server/runtime/app-registry.js` (the framework
+registry) imports packs, never domain modules directly; a pack's
+declaration data is browser-safe (the designer imports it for the client
+type view) while its mount module binds server services. Removing a pack
+removes its types, editors, services, and routes from the running app.
+
+The CNC pack is the reference implementation: cassette (OCCS file, edited
+by the cassette designer), sheet design, facade design as file types, and
+the nesting solver as a registered service. The legacy entity tables
+(`domain-cnc` entities/workflows/construction) remain mounted
+transitionally until the generic instance services land; they are not part
+of the pack's type view.

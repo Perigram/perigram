@@ -340,3 +340,13 @@ templates remain responsible for placing those management surfaces.
 
 - [@cutkit/core](../core/README.md)
 - [Runtime registry](../../server/runtime/README.md)
+
+## Pack direction (SPEC §21)
+
+This package is becoming the CNC plug-in. Its type-system content is
+`src/pack.js`: the cassette (OCCS payload, cassette-designer editor), sheet
+design, and facade design file types, the nesting solver service
+registration, and the OCCS attachment kind — browser-safe data mounted by
+`server/packs/cnc`. The legacy entity/workflow/construction tables remain
+for the still-mounted legacy services and compile passthrough; they are
+transitional and shrink as the generic instance services land.
