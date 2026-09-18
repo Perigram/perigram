@@ -232,7 +232,7 @@
                         <label>{{ $t('typesPane.operators') }}</label>
                         <Button :label="$t('common.add')" icon="pi pi-plus" text size="small" @click="addClassOperator" />
                       </div>
-                      <div v-for="(operator, index) of classOperators" :key="index" class="flex flex-col gap-2 rounded-ui border border-content-border p-2">
+                      <div v-for="(operator, index) of classOperators" :key="index" class="flex flex-col gap-2">
                         <div class="flex items-center gap-2">
                           <InputText
                             :model-value="operator.id"
@@ -250,8 +250,8 @@
                           />
                           <Button icon="pi pi-times" text size="small" severity="danger" @click="removeClassOperator(index)" />
                         </div>
-                        <details class="text-sm">
-                          <summary class="cursor-pointer text-muted">{{ $t('typesPane.signature') }}</summary>
+                        <details>
+                          <summary class="cursor-pointer text-supporting text-muted">{{ $t('typesPane.signature') }}</summary>
                           <div class="mt-2 flex flex-col gap-2">
                             <div class="flex items-center gap-2">
                               <Checkbox :model-value="Boolean(operator.input)" :binary="true" @update:model-value="value => updateClassOperator(index, { input: value ? { base: 'record', fields: {} } : null })" />
@@ -275,8 +275,8 @@
                             />
                           </div>
                         </details>
-                        <details class="text-sm">
-                          <summary class="cursor-pointer text-muted">{{ $t('typesPane.triggers') }} ({{ (operator.triggers || []).length }})</summary>
+                        <details>
+                          <summary class="cursor-pointer text-supporting text-muted">{{ $t('typesPane.triggers') }} ({{ (operator.triggers || []).length }})</summary>
                           <div class="mt-2 flex flex-col gap-2">
                             <div v-for="(trigger, triggerIndex) of operator.triggers || []" :key="triggerIndex" class="flex items-center gap-2">
                               <Select

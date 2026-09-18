@@ -77,7 +77,7 @@
       <Button :label="$t('typesPane.addField')" icon="pi pi-plus" text size="small" @click="addRecordField" />
     </div>
 
-    <Message v-if="error" severity="error" :closable="false" class="text-sm">{{ error }}</Message>
+    <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
   </div>
 </template>
 

@@ -38,7 +38,7 @@
           <Tag :value="`v${selectedType.data.version || 1}`" severity="secondary" />
           <Tag v-if="selectedType.data.editor" :value="selectedType.data.editor" severity="info" />
         </div>
-        <div class="flex flex-col gap-1 text-sm">
+        <div class="flex flex-col gap-1 text-supporting">
           <span class="text-muted">{{ $t('typesPane.fields') }}: {{ selectedType.data.fieldCount || 0 }}</span>
           <span class="text-muted">{{ $t('typesPane.states') }}: {{ selectedType.data.stateCount || 0 }}</span>
           <span v-if="selectedType.data.payload" class="text-muted">payload: {{ payloadLabel(selectedType.data.payload) }}</span>
