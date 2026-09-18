@@ -974,6 +974,8 @@ import {
   canvasToDefinition,
   compileProcessDefinition,
   createProcessDesignerContract,
+  DECLARATION_NODE_TYPES,
+  declarationWireLegality,
   definitionToCanvas,
   formatProcessType,
   PROCESS_DATAFLOW_VERSION,
@@ -1180,8 +1182,6 @@ function catalogPorts(record) {
   return resolveCatalogNodePorts(working, catalogContext(working));
 }
 
-// A connection whose either end is a ctsType canvas node and whose other end
-// is an entity-bound species record binds that record's type.
 // A fresh declaration in the tree gets a suggested kebab id unique among
 // registry types and in-tree declarations.
 function suggestTreeTypeId() {
@@ -1198,27 +1198,6 @@ function renameDeclarationNode(props, value) {
   if (node.type === 'ctsState') node.data.value = String(value || '').trim();
 }
 
-function typeBindingForConnection(connection = {}) {
-  const source = nodes.value.find(node => node.id === connection.source);
-  const target = nodes.value.find(node => node.id === connection.target);
-  if (!source || !target) return null;
-  // declaration wiring inside the tree: field/state -> class declares it
-  if ((source.type === 'ctsField' || source.type === 'ctsState') && target.type === 'ctsClass') {
-    return { declares: true, source, target };
-  }
-  const typeNode = [source, target].find(node => node.type === 'ctsType' || node.type === 'ctsClass');
-  const other = typeNode === source ? target : source;
-  if (!typeNode || other.type !== 'processNode') return null;
-  const record = draft.value?.data?.processNodes?.[other.data?.refId];
-  if (!record || !String(record.kind || '').startsWith('cts.')) return null;
-  const typeId = typeNode.data?.typeId;
-  if (typeNode.type === 'ctsClass' && !typeId) {
-    toast.add({ severity: 'warn', summary: t('processDesigner.typeNodeUnbound'), life: 3000 });
-    return null;
-  }
-  return { typeNodeId: typeNode.id, typeNodeTypeId: typeId, recordNodeId: other.id, record, fromClass: typeNode.type === 'ctsClass' };
-}
-
 // keep the class card's field/state counts honest as nodes wire in/out
 function recountDeclaration(classNode) {
   if (!classNode || classNode.type !== 'ctsClass') return;
@@ -1227,31 +1206,6 @@ function recountDeclaration(classNode) {
   classNode.data.states = nodes.value.filter(node => node.type === 'ctsState' && node.data.typeId === typeId).length;
 }
 
-function applyTypeBinding(binding, connection = {}) {
-  if (binding.declares) {
-    binding.source.data.typeId = binding.target.data.typeId;
-    recountDeclaration(binding.target);
-    edges.value.push(decorateEdge({
-      ...connection,
-      id: `declares:${binding.source.id}-${binding.target.id}`,
-      type: 'default',
-      role: 'type',
-      label: binding.source.type === 'ctsField' ? 'field' : 'state'
-    }));
-    selectedEdgeId.value = null;
-    return;
-  }
-  setNodeEntityType(binding.record, binding.typeNodeTypeId);
-  syncNodeData();
-  edges.value.push(decorateEdge({
-    ...connection,
-    id: `${binding.typeNodeId}-type-${binding.recordNodeId}-${Date.now()}`,
-    type: 'default',
-    role: 'type',
-    label: 'type'
-  }));
-  selectedEdgeId.value = null;
-}
 const sameTypeId = (a, b) => String(a || '').replace(/_/g, '-') === String(b || '').replace(/_/g, '-');
 const nodeBlocks = node => node?.slots || node?.blocks || [];
 function setNodeBlocks(node, blocks) {
@@ -3880,7 +3834,12 @@ function enrichNodeData(node) {
   }
   if (node.type === 'ctsType') {
     const entry = ctsTypeView().find(candidate => candidate.id === node.data?.typeId);
-    return { ...node, data: { ...(node.data || {}), type: entry || null, label: entry?.label || node.data?.typeId || 'type' } };
+    // a selected reference carries the same typed entityRef output as a
+    // bound class node, so binding wires typecheck identically
+    const outputSpecs = entry
+      ? [{ id: 'type', label: entry.id, role: 'data', type: processType('entityRef', { entityType: entry.id }), access: 'item' }]
+      : [];
+    return { ...node, data: { ...(node.data || {}), type: entry || null, label: entry?.label || node.data?.typeId || 'type', inputSpecs: [], outputSpecs } };
   }
   const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
   if (node.type === 'action') syncActionIo(record, node);
@@ -4432,20 +4391,44 @@ function onConnect(connection) {
     return;
   }
   // declaration wires carry side effects after passing the SAME typed
-  // compatibility check as every other wire
+  // compatibility check as every other wire; they persist as role:'type'
+  // edges (the vocabulary persistTreeDeclarations compiles from) — never
+  // as generic data edges
   const sourceNode = nodes.value.find(node => node.id === connection.source);
   const targetNode = nodes.value.find(node => node.id === connection.target);
-  if (sourceNode?.type === 'ctsField' || sourceNode?.type === 'ctsState') {
-    if (targetNode?.type === 'ctsClass') {
-      sourceNode.data.typeId = targetNode.data.typeId;
-      recountDeclaration(targetNode);
-    }
-  } else if (sourceNode?.type === 'ctsClass' || sourceNode?.type === 'ctsType') {
-    const record = draft.value?.data?.processNodes?.[targetNode?.data?.refId];
-    if (record) {
-      setNodeEntityType(record, sourceNode.data.typeId);
-      syncNodeData();
-    }
+  const targetNodeRecord = draft.value?.data?.processNodes?.[targetNode?.data?.refId];
+  const legality = declarationWireLegality({
+    sourceType: sourceNode?.type,
+    targetType: targetNode?.type,
+    targetRecordKind: targetNodeRecord?.kind
+  });
+  if (legality === 'declares') {
+    sourceNode.data.typeId = targetNode.data.typeId;
+    recountDeclaration(targetNode);
+    selectedEdgeId.value = null;
+    edges.value.push(decorateEdge({
+      ...connection,
+      id: `declares:${sourceNode.id}-${targetNode.id}`,
+      type: 'default',
+      role: 'type',
+      label: sourceNode.type === 'ctsField' ? 'field' : 'state'
+    }));
+    syncEdgeSelection();
+    return;
+  }
+  if (legality === 'binds') {
+    setNodeEntityType(targetNodeRecord, sourceNode.data.typeId);
+    syncNodeData();
+    selectedEdgeId.value = null;
+    edges.value.push(decorateEdge({
+      ...connection,
+      id: `${sourceNode.id}-type-${targetNode.id}-${Date.now()}`,
+      type: 'default',
+      role: 'type',
+      label: 'type'
+    }));
+    syncEdgeSelection();
+    return;
   }
   selectedEdgeId.value = null;
   edges.value.push(decorateEdge({
@@ -4482,26 +4465,51 @@ function connectionCompatibility(connection = {}) {
     };
   }
   if (!sourceRecord || !targetRecord) {
-    // declaration nodes participate through their typed specs (same
-    // contract as statusDefinition): field/state -> class declares;
-    // class/reference -> species record binds
+    // Declaration wires are legal only between declaration partners
+    // (declarationWireLegality): field/state -> class declares;
+    // class/reference -> cts.* species record binds. A declaration node is
+    // never a value source and no data node can feed a class declare
+    // input, so the generic spec path never applies to them.
+    if (DECLARATION_NODE_TYPES.includes(source.type) || DECLARATION_NODE_TYPES.includes(target.type)) {
+      const legality = declarationWireLegality({
+        sourceType: source.type,
+        targetType: target.type,
+        targetRecordKind: targetRecord?.kind
+      });
+      if (legality === 'declares') {
+        const sourcePort = (source.data?.outputSpecs || [])[0];
+        const targetPort = (target.data?.inputSpecs || [])[0];
+        if (!sourcePort || !targetPort) return { ok: false };
+        return {
+          ...processSocketsCompatible(sourcePort, targetPort),
+          source: sourcePort,
+          target: targetPort
+        };
+      }
+      if (legality === 'binds') {
+        if (source.type === 'ctsClass' && !source.data?.typeId) return { ok: false };
+        const sourcePort = (source.data?.outputSpecs || [])[0];
+        if (!sourcePort) return { ok: false };
+        const inputs = resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs;
+        const targetPort = portForHandle(inputs, connection.targetHandle, 'input')
+          || inputs.find(port => port.type?.base === 'entity' || port.type?.base === 'entityRef');
+        if (!targetPort) return { ok: false };
+        return {
+          ...processSocketsCompatible(sourcePort, targetPort),
+          source: sourcePort,
+          target: targetPort
+        };
+      }
+      return { ok: false, reason: 'Only current operation nodes can be connected' };
+    }
+    // other record-owning canvas nodes (value inputs, entity profiles,
+    // sockets, status definitions into records) participate through their
+    // typed specs
     const sourceSpecs = source.data?.outputSpecs || [];
     const targetSpecs = target.data?.inputSpecs || [];
     if (sourceSpecs.length && targetSpecs.length) {
       const sourcePort = portForHandle(sourceSpecs, connection.sourceHandle, 'output') || sourceSpecs[0];
       const targetPort = portForHandle(targetSpecs, connection.targetHandle, 'input') || targetSpecs[0];
-      return {
-        ...processSocketsCompatible(sourcePort, targetPort),
-        source: sourcePort,
-        target: targetPort
-      };
-    }
-    // class/reference into a species record: check the entity socket type
-    if ((source.type === 'ctsClass' || source.type === 'ctsType') && targetRecord) {
-      const sourcePort = (source.data?.outputSpecs || [])[0];
-      const targetPort = portForHandle(resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs, connection.targetHandle, 'input')
-        || resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs.find(port => port.type?.base === 'entity' || port.type?.base === 'entityRef');
-      if (!sourcePort || !targetPort) return { ok: false };
       return {
         ...processSocketsCompatible(sourcePort, targetPort),
         source: sourcePort,

@@ -109,6 +109,23 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   items: Object.freeze(group.items)
 })));
 
+// Declaration-plane wire legality (SPEC §20/§21 one tree): declaration
+// canvas nodes wire only to declaration partners. Field/state nodes declare
+// on a class node; class/type-reference nodes bind the `type` of a cts.*
+// species record. Their typed port specs are authoring contracts for those
+// wires only — a declaration node is never a value source, and no data node
+// can feed a class declare input — so the generic data-socket compatibility
+// path must never apply to them.
+export const DECLARATION_NODE_TYPES = Object.freeze(['ctsClass', 'ctsType', 'ctsField', 'ctsState']);
+
+export function declarationWireLegality({ sourceType = '', targetType = '', targetRecordKind = '' } = {}) {
+  if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
+  if ((sourceType === 'ctsClass' || sourceType === 'ctsType')
+    && targetType === 'processNode'
+    && String(targetRecordKind || '').startsWith('cts.')) return 'binds';
+  return null;
+}
+
 export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
   if (!node.id) return [];
   const pruneOwnOutputs = () => {

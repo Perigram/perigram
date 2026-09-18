@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { createProcessDesignerContract, syncProcessNodeProducerOutputs } from './designer.js';
+import { createProcessDesignerContract, declarationWireLegality, syncProcessNodeProducerOutputs } from './designer.js';
 import { getProcessNodeDefinition } from './node-catalog.js';
 
 describe('process designer domain contract', () => {
@@ -333,5 +333,34 @@ describe('process designer domain contract', () => {
       .find(item => item.id === 'buildResult');
 
     expect(producer).toBeUndefined();
+  });
+});
+
+describe('declaration wire legality', () => {
+  const legality = args => declarationWireLegality(args);
+
+  it('field and state nodes declare on a class node', () => {
+    expect(legality({ sourceType: 'ctsField', targetType: 'ctsClass' })).toBe('declares');
+    expect(legality({ sourceType: 'ctsState', targetType: 'ctsClass' })).toBe('declares');
+  });
+
+  it('class and reference nodes bind cts species records only', () => {
+    expect(legality({ sourceType: 'ctsClass', targetType: 'processNode', targetRecordKind: 'cts.construct' })).toBe('binds');
+    expect(legality({ sourceType: 'ctsType', targetType: 'processNode', targetRecordKind: 'cts.read' })).toBe('binds');
+    // v4 working-vocabulary records are not declaration-bindable
+    expect(legality({ sourceType: 'ctsClass', targetType: 'processNode', targetRecordKind: 'effect.createEntity' })).toBeNull();
+    expect(legality({ sourceType: 'ctsClass', targetType: 'processNode' })).toBeNull();
+  });
+
+  it('refuses every other declaration pairing', () => {
+    // a declaration node is never a value source
+    expect(legality({ sourceType: 'ctsField', targetType: 'processNode', targetRecordKind: 'value.math' })).toBeNull();
+    expect(legality({ sourceType: 'ctsState', targetType: 'processNode', targetRecordKind: 'cts.transition' })).toBeNull();
+    // nothing feeds a class from the data plane
+    expect(legality({ sourceType: 'processNode', targetType: 'ctsClass', targetRecordKind: 'source.literalItem' })).toBeNull();
+    // no declaration-to-declaration wiring beside declares
+    expect(legality({ sourceType: 'ctsClass', targetType: 'ctsClass' })).toBeNull();
+    expect(legality({ sourceType: 'ctsState', targetType: 'ctsState' })).toBeNull();
+    expect(legality({ sourceType: 'ctsClass', targetType: 'ctsField' })).toBeNull();
   });
 });
