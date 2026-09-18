@@ -1360,6 +1360,26 @@ function v5Record(node = {}) {
   return (draft.value?.data?.graphProtocol || draft.value?.graphProtocol) === 5;
 }
 
+let treeOverlaySignature = '';
+
+// The tree is LIVE authoring state, not a draft-to-apply detour: in-tree
+// declarations overlay the registry view immediately, so a construct bound
+// to a class node gains its field sockets the moment a Field node wires
+// in — no apply round trip. APPLY persists the same declarations.
+function treeOverlayDeclarations() {
+  if (!nodes.value?.some(node => node.type === 'ctsClass')) return [];
+  const { declarations } = compileTreeDeclarations(nodes.value, edges.value);
+  return declarations;
+}
+
+function refreshTreeOverlay() {
+  const signature = JSON.stringify(treeOverlayDeclarations());
+  if (signature === treeOverlaySignature) return;
+  treeOverlaySignature = signature;
+  resetCtsRegistry();
+  refreshDesignerFromTypes();
+}
+
 function ctsRegistry() {
   if (ctsRegistryCache) return ctsRegistryCache;
   const registry = createTypeRegistry({ id: 'designer-cts' });
@@ -1370,6 +1390,15 @@ function ctsRegistry() {
   }
   for (const declaration of ctsOrgTypes.value) {
     registry.defineType(declaration);
+  }
+  // Live tree declarations overlay the posted org types (same ids update
+  // in place; invalid ones are skipped — save/apply surfaces them).
+  for (const declaration of treeOverlayDeclarations()) {
+    try {
+      registry.defineType({ ...declaration, scope: 'org', organizationId: draft.value?.lineage?.organizationId || null });
+    } catch {
+      // invalid tree state: the declaration diagnostics own the report
+    }
   }
   ctsRegistryCache = registry;
   return registry;
@@ -2734,6 +2763,9 @@ function recomputeProcessPreview(shouldApply = () => true) {
 
 function syncNodeData() {
   dataflowPreview.value = null;
+  // live tree first: ports, palette, and options below resolve against the
+  // overlay registry, so field/state wiring is visible immediately
+  refreshTreeOverlay();
   syncOpenBlockEntryContracts();
   for (const node of nodes.value) {
     if (!node.data?.refId) continue;
