@@ -4767,7 +4767,9 @@ function connectionCompatibility(connection = {}) {
       if (legality === 'declares') {
         const sourcePort = (source.data?.outputSpecs || [])[0];
         const targetPort = (target.data?.inputSpecs || [])[0];
-        if (!sourcePort || !targetPort) return { ok: false };
+        if (!sourcePort || !targetPort) {
+          return { ok: false, reason: 'Declarations wire Field/State nodes into a Class declare input' };
+        }
         return {
           ...processSocketsCompatible(sourcePort, targetPort),
           source: sourcePort,
@@ -4775,9 +4777,11 @@ function connectionCompatibility(connection = {}) {
         };
       }
       if (legality === 'binds') {
-        if (source.type === 'ctsClass' && !source.data?.typeId) return { ok: false };
+        if (source.type === 'ctsClass' && !source.data?.typeId) {
+          return { ok: false, reason: 'Name the class before binding its type' };
+        }
         const sourcePort = (source.data?.outputSpecs || [])[0];
-        if (!sourcePort) return { ok: false };
+        if (!sourcePort) return { ok: false, reason: 'The type node has no selected type' };
         // An unbound species record (e.g. a bare cts.construct) has no
         // typed ports yet — the binding wire IS the authoring gesture that
         // writes the type; it typechecks against the source alone.
