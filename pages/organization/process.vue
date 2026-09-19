@@ -199,7 +199,7 @@
                     </div>
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('typesPane.typeId') }}</label>
-                      <InputText v-model="selectedNode.data.typeId" @update:model-value="() => recountDeclaration(selectedNode)" />
+                      <InputText v-model="selectedNode.data.typeId" @update:model-value="() => { recountDeclaration(selectedNode); syncNodeData(); }" />
                     </div>
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('typesPane.payloadMime') }}</label>
@@ -307,7 +307,7 @@
                   <div class="flex flex-col gap-3">
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('typeCanvas.fieldName') }}</label>
-                      <InputText v-model="selectedNode.data.name" />
+                      <InputText v-model="selectedNode.data.name" @update:model-value="syncNodeData" />
                     </div>
                     <DescriptorEditor
                       :model-value="selectedNode.data.descriptor || { base: 'string' }"
@@ -321,7 +321,7 @@
                   <div class="flex flex-col gap-3">
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('typeCanvas.stateName') }}</label>
-                      <InputText v-model="selectedNode.data.value" />
+                      <InputText v-model="selectedNode.data.value" @update:model-value="syncNodeData" />
                     </div>
                     <div class="flex items-center gap-2">
                       <Checkbox v-model="selectedNode.data.initial" :binary="true" />
@@ -2168,17 +2168,28 @@ async function persistTreeDeclarations() {
   if (diagnostics.length) {
     toast.add({ severity: 'error', summary: t('processDesigner.declarationErrors'), detail: diagnostics.join('; '), life: 8000 });
   }
+  const failures = [];
   for (const declaration of declarations) {
     try {
       await $fetch('/api/admin/cts/types', { method: 'POST', body: declaration });
     } catch (error) {
-      toast.add({ severity: 'error', summary: declaration.id, detail: error?.data?.message || error?.message, life: 8000 });
+      failures.push(`${declaration.id}: ${error?.data?.message || error?.message}`);
     }
+  }
+  if (failures.length) {
+    // A declaration that cannot land in the registry is a broken apply:
+    // stop here with the real cause instead of letting validation report
+    // downstream phantoms ("unknown type ...").
+    for (const failure of failures) {
+      toast.add({ severity: 'error', summary: t('processDesigner.declarationErrors'), detail: failure, life: 10000 });
+    }
+    return { failures };
   }
   ctsOrgTypes.value = (await $fetch('/api/admin/cts/types')).types.filter(type => type.scope === 'org');
   resetCtsRegistry();
   refreshDesignerFromTypes();
   syncNodeData();
+  return { failures: [] };
 }
 
 async function saveDraft() {
@@ -2224,8 +2235,10 @@ async function saveDraftFromDock() {
 async function activateDraft() {
   await saveDraft();
   // Apply compiles the app: tree declarations land in the registry first,
-  // so validation and activation see the types the graph references.
-  await persistTreeDeclarations();
+  // so validation and activation see the types the graph references. A
+  // failed declaration post aborts the apply with its real cause.
+  const posted = await persistTreeDeclarations();
+  if (posted.failures.length) return;
   const result = await persistence.validateDraft(draft.value._id);
   validation.value = result;
   if (!result.ok) {
@@ -4707,6 +4720,10 @@ function onConnect(connection) {
   if (legality === 'declares') {
     sourceNode.data.typeId = targetNode.data.typeId;
     recountDeclaration(targetNode);
+    // Live interpretation: the declaration changed, so every bound node
+    // re-derives its ports against the refreshed overlay (a construct
+    // bound to this class gains/removes field sockets immediately).
+    syncNodeData();
     selectedEdgeId.value = null;
     edges.value.push(decorateEdge({
       ...connection,
@@ -4733,6 +4750,7 @@ function onConnect(connection) {
     return;
   }
   if (legality === 'children') {
+    syncNodeData();
     selectedEdgeId.value = null;
     edges.value.push(decorateEdge({
       ...connection,
@@ -4746,6 +4764,7 @@ function onConnect(connection) {
     return;
   }
   if (legality === 'transition') {
+    syncNodeData();
     selectedEdgeId.value = null;
     edges.value.push(decorateEdge({
       ...connection,
