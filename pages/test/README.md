@@ -32,9 +32,9 @@ sectors → stations → units); the fixtures can be swapped for any other
 hydration with the same structure without touching the generation layer. The page mounts
 `components/ui-mapping/GeneratedMappingScreen` for every screen of the
 seeded random world on one page (no picker — random screen keys cannot
-survive a reroll), with a density control beside the seed (Auto keeps
-each screen's weight-derived density; Compact/Regular force it — compact
-also shrinks editor controls through PrimeVue sizes); the region tree
+survive a reroll), with a pressure control beside the seed (Relaxed/Auto/Tight biases
+the density-classification threshold up or down — density stays
+procedural, every screen still derives its own from its weight); the region tree
 comes from the pure
 `composeScreen` projection (see
 [shared/ui-mapping/README.md](../../shared/ui-mapping/README.md)) and every

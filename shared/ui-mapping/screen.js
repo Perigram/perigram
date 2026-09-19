@@ -82,14 +82,14 @@ function composeRegion(region, screen, contract, pool, typesById, depth) {
 // bundle supplies surface/preview policy per entity type; the pool is the
 // data layer stand-in ({ type -> { id -> instance } }). List sources may
 // scope by `relation: { sourceId, key }` or `lineage: { sourceId, key }`.
-export function composeScreen(screen = {}, contract = { actions: {} }, bundle = { types: [] }, pool = {}) {
+export function composeScreen(screen = {}, contract = { actions: {} }, bundle = { types: [] }, pool = {}, options = {}) {
   const typesById = Object.fromEntries((bundle.types || []).map(type => [type.id, type]));
   const regions = (screen.regions || [])
     .filter(region => region.slot !== 'children')
     .map((region, index) => composeRegion(region, screen, contract, pool, typesById, index === 0 ? 0 : 1));
   const totalWeight = regions.reduce((sum, region) => sum + region.weight
     + region.childRegions.reduce((childSum, child) => childSum + child.weight, 0), 0);
-  const density = screenDensityFor(totalWeight);
+  const density = screenDensityFor(totalWeight, options.densityBias || 0);
   return Object.freeze({
     key: screen.screenKey || screen.id,
     template: screen.template,

@@ -11,7 +11,7 @@
       <Button :label="$t('uiMapping.randomize')" icon="pi pi-refresh" size="small" @click="reroll" />
       <span class="text-label">{{ $t('uiMapping.densityLabel') }}</span>
       <SelectButton
-        :model-value="densityMode"
+        :model-value="pressure"
         :options="densityOptions"
         option-label="label"
         option-value="value"
@@ -56,18 +56,18 @@ const seed = computed(() => {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_RANDOM_SEED;
 });
 const world = computed(() => generateUiMappingWorld(seed.value));
-const densityMode = computed(() => {
-  const raw = route.query.density;
-  return raw === 'compact' || raw === 'regular' ? raw : 'auto';
+const pressure = computed(() => {
+  const raw = route.query.pressure;
+  return raw === 'relaxed' || raw === 'tight' ? raw : 'auto';
 });
-const effectiveDensity = computed(() => (densityMode.value === 'auto' ? null : densityMode.value));
+const densityBias = computed(() => (pressure.value === 'relaxed' ? 16 : pressure.value === 'tight' ? -12 : 0));
 const densityOptions = [
+  { label: 'Relaxed', value: 'relaxed' },
   { label: 'Auto', value: 'auto' },
-  { label: 'Compact', value: 'compact' },
-  { label: 'Regular', value: 'regular' }
+  { label: 'Tight', value: 'tight' }
 ];
 const setDensity = mode => {
-  router.push({ query: { ...route.query, density: mode === 'auto' ? undefined : mode } });
+  router.push({ query: { ...route.query, pressure: mode === 'auto' ? undefined : mode } });
 };
 const screens = computed(() => Object.values(world.value.contract.screens));
 

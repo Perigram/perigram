@@ -310,9 +310,12 @@ describe('weight-driven arrangement', () => {
     expect(estimateRegionWeight(cardList)).toBe(42);
   });
 
-  it('picks screen density from total information', () => {
+  it('picks screen density from total information; the driver biases the threshold', () => {
     expect(screenDensityFor(58)).toBe('compact');
     expect(screenDensityFor(12)).toBe('regular');
+    expect(screenDensityFor(30, 16)).toBe('regular');
+    expect(screenDensityFor(30, -12)).toBe('compact');
+    expect(screenDensityFor(30, 100)).toBe('regular');
   });
 
   it('tabs only when siblings are many and heavy at the top level', () => {

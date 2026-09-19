@@ -31,7 +31,7 @@
                 </div>
               </template>
               <template #content="{ closeCallback }">
-                <div class="flex min-w-0 flex-1 flex-col gap-2">
+                <div class="flex min-w-0 flex-1 items-center gap-2">
                   <FieldControl
                     v-model="inlineDraft[field.name]"
                     :descriptor="field.descriptor"
@@ -39,22 +39,22 @@
                     :pool="pool"
                     :bundle="bundle"
                   />
-                  <div class="flex items-center gap-2">
-                    <Button
-                      icon="pi pi-check"
-                      :label="$t('uiMapping.save')"
-                      size="small"
-                      @click="confirmInline(field); closeCallback()"
-                    />
-                    <Button
-                      icon="pi pi-times"
-                      :label="$t('uiMapping.discard')"
-                      size="small"
-                      severity="danger"
-                      text
-                      @click="discardInline(field); closeCallback()"
-                    />
-                  </div>
+                  <Button
+                    icon="pi pi-check"
+                    size="small"
+                    :aria-label="$t('uiMapping.save')"
+                    :title="$t('uiMapping.save')"
+                    @click="confirmInline(field); closeCallback()"
+                  />
+                  <Button
+                    icon="pi pi-times"
+                    size="small"
+                    severity="danger"
+                    text
+                    :aria-label="$t('uiMapping.discard')"
+                    :title="$t('uiMapping.discard')"
+                    @click="discardInline(field); closeCallback()"
+                  />
                 </div>
               </template>
             </Inplace>

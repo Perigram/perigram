@@ -166,7 +166,9 @@ entry ≈ 2) times actual instance counts for lists, with no sampling cap —
 and `childrenModeFor` stacks siblings until their combined weight exceeds
 `SURFACE_ROW_BUDGET`, then arranges them into tabs at the top level. Never
 measured from the DOM. The screen's total weight also picks its density
-(`screenDensityFor` → `DENSITY.compact | regular`), which owns the
+(`screenDensityFor(totalWeight, bias)` → `DENSITY.compact | regular`;
+the bias shifts the classification threshold — relaxed/tight — and
+never overrides the derived outcome), which owns the
 spacing scales — stack rhythm, section gaps, fact-row padding, chip-row
 leading, and the facts-grid gutters — plus control size (knob 40/64,
 editors small/normal) and value typography, so density is a real rhythm

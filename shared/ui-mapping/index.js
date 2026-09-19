@@ -362,8 +362,12 @@ export function estimateRegionWeight(node = {}) {
   return 2 + (node.instances?.length || 0) * perRow;
 }
 
-export function screenDensityFor(totalWeight = 0) {
-  return totalWeight > SCREEN_DENSITY_AT ? 'compact' : 'regular';
+// screenDensityFor(totalWeight, bias): density stays procedural — the
+// global driver shifts the classification threshold (positive bias =
+// relaxed, tolerates more weight before compacting), never overrides
+// the outcome.
+export function screenDensityFor(totalWeight = 0, bias = 0) {
+  return totalWeight > SCREEN_DENSITY_AT + bias ? 'compact' : 'regular';
 }
 
 export function childrenModeFor(childRegions = [], level = 0) {
