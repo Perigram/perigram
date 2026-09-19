@@ -497,6 +497,15 @@
       <PermissionEditor :permissions="grantEditorPermissions" :features="permissionFeatureOptions" @save="saveGrantEditor" />
     </StandardDialog>
 
+    <ApplyMigrationDialog
+      :visible="Boolean(pendingMigration)"
+      :plan="pendingMigration"
+      :loading="applyingProcess"
+      @update:visible="value => { if (!value) cancelApplyMigration(); }"
+      @confirm="confirmApplyMigration"
+      @cancel="cancelApplyMigration"
+    />
+
 
   </StandardPage>
 </template>
@@ -526,6 +535,7 @@ import { useI18n } from 'vue-i18n';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
+import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import PermissionEditor from '~/components/PermissionEditor.vue';
@@ -783,9 +793,12 @@ const {
 const {
   savingDraft,
   applyingProcess,
+  pendingMigration,
   saveDraft,
   saveDraftFromDock,
-  applyProcess
+  applyProcess,
+  confirmApplyMigration,
+  cancelApplyMigration
 } = useProcessDesignerApply({
   persistence,
   t,

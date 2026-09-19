@@ -4,7 +4,11 @@ import { ref } from 'vue';
 // the explicit copy-to-draft on an active process); Apply = save, compile
 // tree declarations into the registry, validate, activate — one operation,
 // with the first structured diagnostic focused on the canvas. Validation
-// state lands in the shared `validation` ref the page renders.
+// state lands in the shared `validation` ref the page renders. When the
+// next contract removes workflow states still held by live instances,
+// validation returns a migration plan: Apply pauses with `pendingMigration`
+// and only the confirmed target mappings (collected by the designer's
+// migration dialog) resume activation.
 export function useProcessDesignerApply({
   persistence,
   t,
@@ -22,6 +26,7 @@ export function useProcessDesignerApply({
 }) {
   const savingDraft = ref(false);
   const applyingProcess = ref(false);
+  const pendingMigration = ref(null);
 
   async function saveDraft() {
     savingDraft.value = true;
@@ -57,13 +62,38 @@ export function useProcessDesignerApply({
     }
   }
 
+  function completeActivation(activated) {
+    upsertProcessDefinition(activated);
+    setDraft(activated);
+    validation.value = {
+      ok: true,
+      errors: [],
+      warnings: activated?.data?.compiled?.warnings || [],
+      message: t('processDesigner.applySuccess')
+    };
+    toast.add({ severity: 'success', summary: t('processDesigner.applySuccess'), life: 3000 });
+    return activated;
+  }
+
+  function reportApplyError(error) {
+    const message = error?.data?.message || error?.message || t('processDesigner.validationFailed');
+    validation.value = {
+      ok: false,
+      errors: [message],
+      warnings: [],
+      ...(error?.data?.diagnostics ? { diagnostics: error.data.diagnostics } : {})
+    };
+    focusFirstValidationDiagnostic(validation.value);
+    toast.add({ severity: 'error', summary: t('processDesigner.apply'), detail: message, life: 5000 });
+  }
+
   async function activateDraft() {
     await saveDraft();
     // Apply compiles the app: tree declarations land in the registry first,
     // so validation and activation see the types the graph references. A
     // failed declaration post aborts the apply with its real cause.
     const posted = await persistTreeDeclarations();
-    if (posted.failures.length) return;
+    if (posted.failures.length) return null;
     const result = await persistence.validateDraft(draft.value._id);
     validation.value = result;
     if (!result.ok) {
@@ -72,10 +102,54 @@ export function useProcessDesignerApply({
       failure.data = result;
       throw failure;
     }
-    const activated = await persistence.activateDraft(draft.value._id);
-    upsertProcessDefinition(activated);
-    setDraft(activated);
-    return activated;
+    if (result.migrationPlan?.statuses?.length) {
+      // Pause: the migration dialog collects one target per removed state;
+      // confirming resumes through confirmApplyMigration.
+      pendingMigration.value = result.migrationPlan;
+      return null;
+    }
+    return completeActivation(await persistence.activateDraft(draft.value._id));
+  }
+
+  async function confirmApplyMigration(mappings) {
+    if (!draft.value?._id || applyingProcess.value) return;
+    applyingProcess.value = true;
+    try {
+      const activated = await persistence.activateDraft(draft.value._id, { statuses: mappings });
+      pendingMigration.value = null;
+      return completeActivation(activated);
+    } catch (error) {
+      if (error?.data?.migrationIncomplete) {
+        // Activation succeeded; some re-targets failed. The plan stays open
+        // with the same mappings — re-confirming resumes idempotently.
+        toast.add({
+          severity: 'warn',
+          summary: t('processDesigner.applyMigrationTitle'),
+          detail: error.data.message,
+          life: 6000
+        });
+        return;
+      }
+      if (error?.data?.migrationPlan?.statuses?.length || error?.data?.migrationRequired) {
+        // Live instances drifted since validation: refresh the plan and
+        // keep the dialog open with the fresh counts.
+        pendingMigration.value = error.data.migrationPlan || pendingMigration.value;
+        toast.add({
+          severity: 'warn',
+          summary: t('processDesigner.applyMigrationTitle'),
+          detail: error?.data?.message,
+          life: 6000
+        });
+        return;
+      }
+      reportApplyError(error);
+    } finally {
+      applyingProcess.value = false;
+    }
+  }
+
+  function cancelApplyMigration() {
+    pendingMigration.value = null;
   }
 
   async function applyProcess() {
@@ -83,23 +157,9 @@ export function useProcessDesignerApply({
     applyingProcess.value = true;
     try {
       const activated = await activateDraft();
-      validation.value = {
-        ok: true,
-        errors: [],
-        warnings: activated?.data?.compiled?.warnings || [],
-        message: t('processDesigner.applySuccess')
-      };
-      toast.add({ severity: 'success', summary: t('processDesigner.applySuccess'), life: 3000 });
+      if (!activated) return;
     } catch (error) {
-      const message = error?.data?.message || error?.message || t('processDesigner.validationFailed');
-      validation.value = {
-        ok: false,
-        errors: [message],
-        warnings: [],
-        ...(error?.data?.diagnostics ? { diagnostics: error.data.diagnostics } : {})
-      };
-      focusFirstValidationDiagnostic(validation.value);
-      toast.add({ severity: 'error', summary: t('processDesigner.apply'), detail: message, life: 5000 });
+      reportApplyError(error);
     } finally {
       applyingProcess.value = false;
     }
@@ -108,9 +168,12 @@ export function useProcessDesignerApply({
   return {
     savingDraft,
     applyingProcess,
+    pendingMigration,
     saveDraft,
     saveDraftFromDock,
     activateDraft,
-    applyProcess
+    applyProcess,
+    confirmApplyMigration,
+    cancelApplyMigration
   };
 }
