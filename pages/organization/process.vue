@@ -4765,7 +4765,8 @@ function onConnect(connection) {
       role: 'type',
       label: legality === 'declares' ? (sourceNode.type === 'ctsField' ? 'field' : 'state')
         : legality === 'binds' ? 'type'
-          : legality
+          : legality === 'targets' ? 'ref-target'
+            : legality
     };
     if (legality === 'declares') declarationEdge.id = `declares:${sourceNode.id}-${targetNode.id}`;
     if (legality === 'children') {
@@ -4777,6 +4778,7 @@ function onConnect(connection) {
       declarationEdge.data = { intent: '' };
     }
     if (legality === 'binds') declarationEdge.id = `${sourceNode.id}-type-${targetNode.id}-${Date.now()}`;
+    if (legality === 'targets') declarationEdge.id = `ref-target:${sourceNode.id}-${targetNode.id}-${Date.now()}`;
     selectedEdgeId.value = null;
     edges.value.push(decorateEdge(declarationEdge));
     syncEdgeSelection();
@@ -4869,6 +4871,15 @@ function connectionCompatibility(connection = {}) {
         return source.data?.typeId && source.data.typeId === target.data?.typeId
           ? { ok: true }
           : { ok: false, reason: 'Transitions connect states of one declared type' };
+      }
+      if (legality === 'targets') {
+        // ref fields receive their accepted target types as wired inputs
+        if (target.data?.descriptor?.base !== 'ref') {
+          return { ok: false, reason: 'Set the field type to ref before wiring targets' };
+        }
+        return source.data?.typeId
+          ? { ok: true }
+          : { ok: false, reason: 'Name the class before wiring it as a ref target' };
       }
       return {
         ok: false,

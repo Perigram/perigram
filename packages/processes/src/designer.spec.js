@@ -376,11 +376,14 @@ describe('declaration wire legality', () => {
     // a declaration node is never a value source
     expect(legality({ sourceType: 'ctsField', targetType: 'processNode', targetRecordKind: 'value.math' })).toBeNull();
     expect(legality({ sourceType: 'ctsState', targetType: 'processNode', targetRecordKind: 'cts.transition' })).toBeNull();
+    // ref fields receive their target types as wired inputs
+    expect(legality({ sourceType: 'ctsClass', targetType: 'ctsField' })).toBe('targets');
+    expect(legality({ sourceType: 'ctsType', targetType: 'ctsField' })).toBe('targets');
     // nothing feeds a class from the data plane
     expect(legality({ sourceType: 'processNode', targetType: 'ctsClass', targetRecordKind: 'source.literalItem' })).toBeNull();
-    // no declaration-to-declaration wiring beside declares/children/transition
-    expect(legality({ sourceType: 'ctsClass', targetType: 'ctsField' })).toBeNull();
+    // no declaration-to-declaration wiring beside declares/children/transition/targets
     expect(legality({ sourceType: 'ctsField', targetType: 'ctsState' })).toBeNull();
+    expect(legality({ sourceType: 'ctsState', targetType: 'ctsField' })).toBeNull();
   });
 
   it('class-to-class wires declare children; state-to-state wires are transitions', () => {
@@ -599,6 +602,32 @@ describe('live declaration wire interpretation', () => {
     apply(state, pass.mutations);
     expect(state.records.ctor.typeId).toBe('');
     expect(state.nodes.find(node => node.id === 'f1').data.typeId).toBeNull();
+  });
+
+  it('derives a ref field\'s accepted targets from its target wires', () => {
+    const nodes = [
+      { id: 'clsA', type: 'ctsClass', data: { typeId: 'panel', fields: 0, states: 0 } },
+      { id: 'clsB', type: 'ctsClass', data: { typeId: 'plate', fields: 0, states: 0 } },
+      { id: 'f1', type: 'ctsField', data: { typeId: 'machine', name: 'design', descriptor: { base: 'ref', accepts: [] } } }
+    ];
+    const edges = [
+      { id: 't1', source: 'clsA', target: 'f1', role: 'type', label: 'ref-target' },
+      { id: 't2', source: 'clsB', target: 'f1', role: 'type', label: 'ref-target' }
+    ];
+    const pass = interpretDeclarationEdges(nodes, edges, {}, {});
+    apply({ nodes, records: {} }, pass.mutations);
+    expect(nodes.find(node => node.id === 'f1').data.descriptor.accepts).toEqual(['panel', 'plate']);
+
+    // renaming a target class re-derives the accepts live
+    nodes.find(node => node.id === 'clsB').data.typeId = 'sheet';
+    const next = interpretDeclarationEdges(nodes, edges, {}, {});
+    apply({ nodes, records: {} }, next.mutations);
+    expect(nodes.find(node => node.id === 'f1').data.descriptor.accepts).toEqual(['panel', 'sheet']);
+
+    // unwired ref fields keep their authored accepts
+    const unwired = interpretDeclarationEdges(nodes, [], {}, {});
+    apply({ nodes, records: {} }, unwired.mutations);
+    expect(nodes.find(node => node.id === 'f1').data.descriptor.accepts).toEqual(['panel', 'sheet']);
   });
 
   it('adapts consumer species to their entity input when no binds wire exists', () => {

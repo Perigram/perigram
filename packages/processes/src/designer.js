@@ -164,6 +164,10 @@ export function declarationWireLegality({ sourceType = '', targetType = '', targ
   if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
   if (sourceType === 'ctsClass' && targetType === 'ctsClass') return 'children';
   if (sourceType === 'ctsState' && targetType === 'ctsState') return 'transition';
+  // A ref field receives its accepted target types as inputs: wiring a
+  // class (or type reference) into the field's targets socket derives the
+  // descriptor's `accepts` live from the tree.
+  if ((sourceType === 'ctsClass' || sourceType === 'ctsType') && targetType === 'ctsField') return 'targets';
   // Binding wires land on the Type pin — an origin-species socket.
   // Consumers (entity-derived reads, mutate/transition/remove, the field
   // projection) carry no pin: their entity input accepts instance streams
@@ -332,8 +336,11 @@ export function declarationNodePorts(node = {}, types = []) {
     };
   }
   if (node.type === 'ctsField') {
+    const isRef = node.data?.descriptor?.base === 'ref';
     return {
-      inputSpecs: [],
+      inputSpecs: isRef
+        ? [{ id: 'targets', label: 'targets', role: 'data', type: processType('entityRef'), access: 'item', multiple: true }]
+        : [],
       outputSpecs: [{
         id: 'field',
         label: node.data?.name || 'field',
@@ -383,6 +390,7 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
   const declaredBy = new Map();
   const nodeById = new Map(nodes.map(node => [node.id, node]));
   const bindEdges = [];
+  const refTargetsByField = new Map();
 
   for (const edge of edges) {
     if (edge.role !== 'type') continue;
@@ -395,6 +403,11 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
       else stateCounts.set(target.id, (stateCounts.get(target.id) || 0) + 1);
     } else if ((source.type === 'ctsClass' || source.type === 'ctsType') && target.type === 'processNode') {
       bindEdges.push([source, target]);
+    } else if ((source.type === 'ctsClass' || source.type === 'ctsType') && target.type === 'ctsField') {
+      const targets = refTargetsByField.get(target.id) || [];
+      const typeId = source.data?.typeId;
+      if (typeId && !targets.includes(typeId)) targets.push(typeId);
+      refTargetsByField.set(target.id, targets);
     }
   }
 
@@ -404,6 +417,24 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
       const value = classNode?.data?.typeId || null;
       if ((node.data?.typeId ?? null) !== value) {
         mutations.push({ scope: 'node', nodeId: node.id, key: 'typeId', value });
+      }
+    }
+    if (node.type === 'ctsField') {
+      // A ref field's accepted targets derive from its target wires while
+      // any exist (the tree is the source); the multiselect fallback only
+      // covers types with no canvas node.
+      const wired = refTargetsByField.get(node.id);
+      if (wired && (node.data?.descriptor?.base === 'ref')) {
+        const accepts = wired.filter(typeId => Boolean(typeId));
+        const current = node.data.descriptor.accepts || [];
+        if (JSON.stringify(current) !== JSON.stringify(accepts)) {
+          mutations.push({
+            scope: 'node',
+            nodeId: node.id,
+            key: 'descriptor',
+            value: { ...node.data.descriptor, accepts }
+          });
+        }
       }
     }
     if (node.type === 'ctsClass') {
