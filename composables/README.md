@@ -106,8 +106,8 @@ server API routes.
 | Type key | Single endpoint | List / create endpoint |
 |---|---|---|
 | `material` | `/api/materials/:id` | `/api/materials` |
-| `project` | `/api/project/:id` | `/api/project` |
-| `queue` | `/api/queue/:id` | `/api/queue` |
+| `project` | `/api/instances/project/:id` | `/api/instances/project` |
+| `queue` | `/api/instances/queue/:id` | `/api/instances/queue` |
 | `requisition` | `/api/requisitions/:id` | `/api/requisitions` |
 | `materialPile` / `pile` / `batch` | `/api/material-piles/:id` | `/api/material-piles` |
 | `sheet` | `/api/sheets/:id` | `/api/sheets` |
@@ -133,8 +133,11 @@ intended card contract.
 > **Note:** Queue listing for a project should use the project-scoped
 > sub-resource `/api/project/:slug/queues` when the screen is already inside a
 > project workspace. Generated process screens that need an organization-level
-> queue source use the canonical collection endpoint `/api/queue`; the app does
-> not expose `/api/queues`.
+> queue source use the canonical generic instance collection endpoint
+> `/api/instances/queue`; the legacy per-entity REST surface (including
+> `/api/queue` and `/api/queues`) was deleted — every type without a
+> feature-owned REST route resolves through the SPEC §13 instance
+> transport (`/api/instances/:type`).
 
 ---
 
