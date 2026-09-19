@@ -24,6 +24,26 @@
     />
 
     <Dialog
+      v-model:visible="linkDialogVisible"
+      modal
+      :header="linkAction?.label || ''"
+      :class="LAYOUT.dialog"
+    >
+      <div class="flex min-w-72 flex-col gap-2">
+        <span class="text-label">{{ linkAction?.relation?.key }}</span>
+        <InstancePicker
+          v-model="linkTargetId"
+          :accepts="[linkAction?.relation?.targetType].filter(Boolean)"
+          :pool="pool"
+          :bundle="bundle"
+        />
+      </div>
+      <template #footer>
+        <Button :label="$t('uiMapping.dialogCancel')" severity="secondary" text :disabled="submitting" @click="linkDialogVisible = false" />
+        <Button :label="$t('uiMapping.dialogSubmit')" :loading="submitting" :disabled="!linkTargetId" @click="submitLink" />
+      </template>
+    </Dialog>
+    <Dialog
       v-model:visible="dialogVisible"
       modal
       :header="dialogAction?.label || ''"
@@ -71,6 +91,7 @@ import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
 import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveFieldControl } from '#shared/ui-mapping/index.js';
 import RegionBlock from './RegionBlock.vue';
+import InstancePicker from './InstancePicker.vue';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
@@ -128,7 +149,26 @@ const submitDialog = () => {
   if (action) runAction(action, payload);
 };
 
+const linkDialogVisible = ref(false);
+const linkAction = ref(null);
+const linkTargetId = ref(null);
+const submitLink = () => {
+  const action = linkAction.value;
+  const targetId = linkTargetId.value;
+  linkDialogVisible.value = false;
+  if (!action || !targetId) return;
+  runAction(action, {
+    relations: { [action.relation.key]: { type: action.relation.targetType, id: targetId } }
+  });
+};
+
 const openAction = action => {
+  if (action.actionKind === 'link') {
+    linkAction.value = action;
+    linkTargetId.value = null;
+    linkDialogVisible.value = true;
+    return;
+  }
   if (action.access?.level === 'admin' || action.actionKind === 'deleteInstance') {
     confirm.require({
       group: 'uiMappingConfirm',

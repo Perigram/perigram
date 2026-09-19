@@ -21,7 +21,9 @@ tree and materializes it with `RegionBlock` → `SurfaceBody` →
 `FieldControl` / `InstanceChip` / `PreviewBox` / `ActionButton`. Region
 actions run through `ActionButton`; actions with construction inputs open
 the generated create dialog, whose fields are the declared construction
-inputs resolved against the target type's field descriptors.
+inputs resolved against the target type's field descriptors. `link`
+actions prompt for the relation target through `InstancePicker` over the
+pool before dispatch (`onRun` receives `{ relations: { key: ref } }`).
 
 ## Components
 
