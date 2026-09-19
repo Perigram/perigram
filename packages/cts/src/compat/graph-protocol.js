@@ -97,6 +97,19 @@ export function isCtsGraphDefinition(data = {}) {
   return Object.values(source?.processNodes || {}).some(node => String(node?.kind || '').startsWith('cts.'));
 }
 
+// The record vocabulary seam (SPEC §20): v5 species records bind a type
+// through `typeId`; v4 records through `entityType`. One accessor pair so
+// the designer surfaces and the catalog never re-derive the branch.
+export function typeIdOf(record = {}) {
+  return record?.typeId || record?.entityType || '';
+}
+
+export function setTypeBinding(record = {}, typeId = '') {
+  if (!record) return;
+  if (String(record.kind || '').startsWith('cts.')) record.typeId = typeId;
+  else record.entityType = typeId;
+}
+
 // The operation kind of any record: v4 kinds are themselves; cts records map
 // through the canonical table (flags + read selects included). The single
 // seam every kind-matching consumer routes through — no duplicated

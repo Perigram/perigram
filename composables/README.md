@@ -316,6 +316,12 @@ records, roles, screens, and dock/panel state to focused
 `useProcessDesigner*` composables. The page remains the view composition root;
 these composables own mutations for their concern and are behavior-tested
 without reading Vue source text.
+`useProcessDesignerLiveGraph` is the designer's realtime evaluation loop: one
+semantic signature over authoring state (nodes minus presentation, edges,
+draft records) re-runs `interpretDeclarationEdges`
+([`@cutkit/processes`](../packages/processes/README.md)) and the page's sync
+pass on every change, so declaration wires re-bind descendants live while
+position drags and selection churn never re-evaluate.
 `useProcessDesignerScreens` mutates complete semantic screen sources, regions,
 lineage rows, and typed binding/filter maps, then normalizes through the
 [`@cutkit/processes` screen contract](../packages/processes/README.md). Source

@@ -52,7 +52,10 @@ describe('graph protocol v5 designer round trip', () => {
     const read = resolveCatalogNodePorts({ kind: 'cts.read', select: 'parent', typeId: 'sheet' }, context({ type: 'sheet' }));
     expect(read.outputs).toHaveLength(1);
 
-    // cts and v4 twins expose identical port contracts
+    // cts and v4 twins expose identical port contracts — except the
+    // authoring-only Type pin the species record carries persistently
+    // (SPEC §20): the pin is stripped before comparison because lowering
+    // removes it and the compiler never sees it.
     for (const [ctsRecord, v4Record] of [
       [{ kind: 'cts.transition', typeId: 'queue' }, { kind: 'effect.changeStatus', entityType: 'queue' }],
       [{ kind: 'cts.read', select: 'parent', typeId: 'sheet' }, { kind: 'read.parent', entityType: 'sheet' }],
@@ -60,7 +63,7 @@ describe('graph protocol v5 designer round trip', () => {
     ]) {
       const ctsPorts = resolveCatalogNodePorts(ctsRecord, { domain, fieldSchemas: domain.fieldSchemas.sheet || [] });
       const v4Ports = resolveCatalogNodePorts(v4Record, { domain, fieldSchemas: domain.fieldSchemas.sheet || [] });
-      expect(ctsPorts, ctsRecord.kind).toEqual(v4Ports);
+      expect({ ...ctsPorts, inputs: ctsPorts.inputs.filter(port => port.id !== 'type') }, ctsRecord.kind).toEqual(v4Ports);
     }
   });
 

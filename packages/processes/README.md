@@ -34,10 +34,21 @@ field/compose/decompose structure family. The catalog carries `cts.*`
 definitions whose ports resolve through the record's operation-kind twin
 (`operationKindOf`/`resolveCtsRecord` from `@perigram/cts` — one canonical
 kind mapping, never duplicated); port contracts of a cts record and its v4
-twin are identical by test. Declaration authoring composes in the same
+twin are identical by test after stripping the authoring-only `Type` pin
+— the persistent binding input every type-bound species record
+(`TYPE_BOUND_SPECIES`) carries, bound or not, so binding wires never
+dangle and re-binding stays possible (lowering removes the pin; the
+compiler never sees it). Declaration authoring composes in the same
 tree: Class/Field/State canvas nodes wire through the legality matrix
 (`declarationWireLegality`) and compile into registry declarations via
 `compileTreeDeclarations` (R4-enforcing, pure over the canvas arrays).
+Declaration wires are the live binding channel:
+`interpretDeclarationEdges` derives declaration-node type ids, class
+field/state counts, and species-record bindings from the current edge
+set (pure over the canvas arrays, idempotent — a settled graph evaluates
+to no writes), and `declarationNodePorts` is the single home of every
+declaration handle's typed spec, including the state node's
+transition-from input.
 Generic creation exposes the type's declared row fields as typed
 construction sockets — the composer-less construct — and declared construct
 operators project as `via` modes with signature-derived mode inputs. Create Entity resolves either canonical block sockets or the

@@ -33,45 +33,64 @@ contract. Below them, the palette is operations, never a catalog: species operat
 lists. **No node ever drops pre-bound** — a seeded domain type would be an
 invisible authoring decision the user never made; records are unbound until
 the author binds them. Binding is composition: the **Type reference** item
-drops a `ctsType` canvas node whose wire into a species record writes the
-record's `type` (`role: 'type'` edges are gestures; the binding persists in
-the record), or the type is picked explicitly in the inspector from gated,
-relevant lists with an empty state. Stored v4 graphs migrate to the species
-vocabulary on load, and every kind-matching consumer routes through
-`operationKindOf` — the authored vocabulary is the type system's, not a
-labeled legacy layer.
+drops a `ctsType` canvas node whose wire into a species record's `Type` pin
+carries the binding (`role: 'type'` edges), or the type is picked
+explicitly in the inspector from gated, relevant lists with an empty
+state. Stored v4 graphs migrate to the species vocabulary on load, and
+every kind-matching consumer routes through `operationKindOf` — the
+authored vocabulary is the type system's, not a labeled legacy layer.
+
+**Live evaluation** (`useProcessDesignerLiveGraph` over
+`interpretDeclarationEdges` in `@cutkit/processes`): the designer behaves
+like a node editor, not a form. Authoring state (canvas nodes minus
+presentation, edges, draft records) folds into one semantic signature; any
+change — a wire, a rename, an inspector edit — re-runs wire
+interpretation and the sync pass in the same tick. Declaration wires are
+the live binding channel, not write-once gestures: a field/state node's
+type id follows the class it declares on, a species record's binding
+follows its wire for as long as the wire exists, and renaming a class
+re-binds every wired descendant (constructs gain or lose their row-field
+sockets immediately). Removing a binds wire unbinds the record it
+carried; a palette-preset binding with no wire is authored data and
+stays. Position drags and selection churn never re-evaluate, and
+idempotent passes converge instead of oscillating.
 
 Declaration-plane wires (`declarationWireLegality` in
 `packages/processes/src/designer.js`, SPEC §20/§21 one tree) are legal only
 between declaration partners: field/state nodes declare on a class node;
-class/reference nodes bind a `cts.*` species record's `type`; class→class
-wires declare children edges (key + `onRemove`); state→state wires are
-transitions with intents. Their typed port specs exist for those wires only
-— a declaration node is never a value source, and nothing from the data
-plane feeds a class declare input — so declaration endpoints never pass
-through the generic socket-compatibility path. Declaration wires persist as
-`role: 'type'` edges (field/state/type/children/transition labels);
-`compileTreeDeclarations` compiles exactly those edges into registry
-declarations (invalid descriptors and cross-type transitions are named
-diagnostics). Persistence follows the draft contract: declaration nodes
-own `ctsTypes` records in the process definition, so SAVE keeps the whole
-tree exactly as authored (no registry side effects), and APPLY compiles
-the app — declarations land in the registry first, then validation and
-activation run with the graph's types present. A sole wired state is
-necessarily the initial one; among several, the author marks exactly one
-(R4).
+class/reference nodes bind a type-bound species record's `Type` pin
+(operator-bound and structure species carry no type to bind);
+class→class wires declare children edges (key + `onRemove`);
+state→state wires are transitions with intents. Their typed port specs
+(`declarationNodePorts`, the single home for every declaration handle —
+including the state node's transition-from input) exist for those wires
+only — a declaration node is never a value source, and nothing from the
+data plane feeds a class declare input — so declaration endpoints never
+pass through the generic socket-compatibility path. Declaration wires
+persist as `role: 'type'` edges (field/state/type/children/transition
+labels); `compileTreeDeclarations` compiles exactly those edges into
+registry declarations (invalid descriptors and cross-type transitions are
+named diagnostics). Persistence follows the draft contract: declaration
+nodes own `ctsTypes` records in the process definition, so SAVE keeps the
+whole tree exactly as authored (no registry side effects), and APPLY
+compiles the app — declarations land in the registry first, then
+validation and activation run with the graph's types present. A sole
+wired state is necessarily the initial one; among several, the author
+marks exactly one (R4).
 
 The composer-less construct: projected construction contracts carry the
 type's declared row fields as generic-creation inputs, and a
 `cts.construct` at `genericCreate` exposes them as typed List sockets —
-Name, the declared fields, and the status input; a field can be wired or
-prompted directly and a compose node is optional. The cts species record
-carries no block sockets: blocks are the legacy v4 composition substrate
-and stay on the v4 twin only. Declared construct operators project as
-additional `via` modes with signature-derived `modeInputs`. An unbound
-species record (empty type id) offers exactly one input — the `Type`
-binding pin — and nothing else; every other socket derives from the bound
-type and appears when a class/reference wire carries the binding in.
+the `Type` pin, Name, the declared fields, and the status input; a field
+can be wired or prompted directly and a compose node is optional. The cts
+species record carries no block sockets: blocks are the legacy v4
+composition substrate and stay on the v4 twin only. Declared construct
+operators project as additional `via` modes with signature-derived
+`modeInputs`. The `Type` binding pin is a persistent input on every
+type-bound species record — bound or not — so a binding wire never
+dangles and re-binding by dropping a new wire is always possible; an
+unbound record offers the pin and nothing else, and every other socket
+derives from the bound type.
 Species cards carry no entity-type dropdown and no operation switch: the
 binding wire owns the type, the species owns the operation.
 

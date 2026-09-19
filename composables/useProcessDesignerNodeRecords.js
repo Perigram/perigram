@@ -1,4 +1,4 @@
-import { operationKindOf } from '~/packages/cts/src/index.js';
+import { operationKindOf, typeIdOf } from '~/packages/cts/src/index.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 
 // Node-record factories for the process designer. The page remains the
@@ -213,7 +213,7 @@ export function useProcessDesignerNodeRecords({
     };
   }
 
-  const nodeEntityType = node => node?.type || node?.entityType || '';
+  const nodeEntityType = node => typeIdOf(node || {});
   function setDefaultBlocks(node, blocks) {
     if (node.kind?.startsWith('cts.')) node.slots = blocks;
     else node.blocks = blocks;

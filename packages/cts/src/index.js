@@ -36,7 +36,8 @@ export {
 } from './compat/field-schema-rows.js';
 export {
   migrateV4Definition, resolveCtsDefinition, checkCtsGraphBindings,
-  isCtsGraphDefinition, operationKindOf, resolveCtsRecord
+  isCtsGraphDefinition, operationKindOf, resolveCtsRecord,
+  typeIdOf, setTypeBinding
 } from './compat/graph-protocol.js';
 export {
   cncTypePack, partyTypes, nestingOperators, packFixtures
