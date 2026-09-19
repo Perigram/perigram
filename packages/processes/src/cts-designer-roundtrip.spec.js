@@ -51,19 +51,33 @@ describe('graph protocol v5 designer round trip', () => {
     const read = resolveCatalogNodePorts({ kind: 'cts.read', select: 'parent', typeId: 'sheet' }, context({ type: 'sheet' }));
     expect(read.outputs).toHaveLength(1);
 
-    // cts and v4 twins expose identical port contracts — except the
-    // authoring-only Type pin the species record carries persistently
-    // (SPEC §20): the pin is stripped before comparison because lowering
-    // removes it and the compiler never sees it.
+    // cts and v4 twins expose identical port contracts — except where the
+    // species deliberately upgrades the authoring contract: the origin
+    // species' persistent Type pin, and cts.field's entity projection
+    // (SPEC §8 p: entity in, value out — no intermediate block node).
     for (const [ctsRecord, v4Record] of [
       [{ kind: 'cts.transition', typeId: 'queue' }, { kind: 'effect.changeStatus', entityType: 'queue' }],
-      [{ kind: 'cts.read', select: 'parent', typeId: 'sheet' }, { kind: 'read.parent', entityType: 'sheet' }],
-      [{ kind: 'cts.field', slot: 'identity', path: 'identity.name' }, { kind: 'record.getField', block: 'identity', path: 'identity.name' }]
+      [{ kind: 'cts.read', select: 'parent', typeId: 'sheet' }, { kind: 'read.parent', entityType: 'sheet' }]
     ]) {
       const ctsPorts = resolveCatalogNodePorts(ctsRecord, { domain, fieldSchemas: domain.fieldSchemas.sheet || [] });
       const v4Ports = resolveCatalogNodePorts(v4Record, { domain, fieldSchemas: domain.fieldSchemas.sheet || [] });
-      expect({ ...ctsPorts, inputs: ctsPorts.inputs.filter(port => port.id !== 'type') }, ctsRecord.kind).toEqual(v4Ports);
+      const stripSpeciesSurface = (ports, renameEntitySocket) => ({
+        ...ports,
+        inputs: ports.inputs
+          .filter(port => port.id !== 'type')
+          // entity-derived reads present `entity` (the consumer convention);
+          // the v4 twin's generic `value` is the same socket
+          .map(port => (renameEntitySocket && port.id === 'entity' ? { ...port, id: 'value', label: 'value' } : port))
+      });
+      expect(stripSpeciesSurface(ctsPorts, ctsRecord.kind === 'cts.read'), ctsRecord.kind).toEqual(v4Ports);
     }
+    const fieldProjection = resolveCatalogNodePorts(
+      { kind: 'cts.field', typeId: 'sheet', path: 'data.source' },
+      { domain, fieldSchemas: domain.fieldSchemas.sheet || [] }
+    );
+    expect(fieldProjection.inputs).toHaveLength(1);
+    expect(fieldProjection.inputs[0]).toMatchObject({ id: 'entity', type: { base: 'entity', entityType: 'sheet' } });
+    expect(fieldProjection.outputs[0]).toMatchObject({ id: 'value', type: { base: 'json' } });
   });
 
   it('producer outputs sync from species records', () => {
