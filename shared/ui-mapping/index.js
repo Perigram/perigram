@@ -315,7 +315,7 @@ export function instanceIdentity(type, instance) {
     && !(descriptor.multiline === true || (descriptor.max || 0) >= 120)
     && typeof fields[name] === 'string'
     && fields[name]);
-  return firstShortString ? firstShortString[1] : instance.id;
+  return firstShortString ? fields[firstShortString[0]] : instance.id;
 }
 
 const VALUE_FALLBACK = '—';

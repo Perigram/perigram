@@ -3,7 +3,7 @@
     <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key" class="min-w-max" :paginator="nodes.length > 10" :rows="10">
     <Column>
       <template #body="{ node }">
-        <div class="flex items-center gap-2">
+        <div class="flex gap-2">
           <i :class="node.data.icon" class="text-muted" />
           <span class="text-body block max-w-72 truncate">{{ node.data.label }}</span>
         </div>

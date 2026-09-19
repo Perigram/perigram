@@ -19,7 +19,7 @@
             />
             <Inplace v-else closable>
               <template #display>
-                <div class="flex min-w-0 items-center gap-1.5 rounded-ui px-1 py-0.5 transition-colors hover:bg-subtle">
+                <div class="flex min-w-0 gap-1.5 rounded-ui px-1 py-0.5 transition-colors hover:bg-subtle">
                   <FieldControl
                     :model-value="inlineValue(field)"
                     :descriptor="field.descriptor"
@@ -31,7 +31,7 @@
                 </div>
               </template>
               <template #content="{ closeCallback }">
-                <div class="flex min-w-0 flex-1 items-center gap-2">
+                <div class="flex min-w-0 flex-1 gap-2">
                   <FieldControl
                     v-model="inlineDraft[field.name]"
                     :descriptor="field.descriptor"

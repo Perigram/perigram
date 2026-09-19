@@ -279,6 +279,8 @@ describe('identity and field groups', () => {
     expect(instanceIdentity(type, { fields: { codename: 'Redshift', serial: 'S-1' } })).toBe('Redshift');
     expect(instanceIdentity({ fields: {} }, { id: 'x-9', fields: {} })).toBe('x-9');
     expect(instanceIdentity({ fields: { name: { base: 'string' } } }, { id: 'id-missing', fields: { name: 'Kepler' } })).toBe('Kepler');
+    const valueOnly = { fields: { zeta: { base: 'string' } } };
+    expect(instanceIdentity(valueOnly, { id: 'x-1', fields: { zeta: 'Nomad' } })).toBe('Nomad');
   });
 
   it('resolves authored field groups with a trailing default group', () => {
