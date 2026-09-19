@@ -1,5 +1,5 @@
 <template>
-  <Carousel :value="instances" :num-visible="3" :num-scroll="1" circular class="w-full [&_.p-carousel-item]:grow-0 [&_.p-carousel-item]:shrink-0 [&_.p-carousel-item]:basis-1/3">
+  <Carousel :value="instances" :num-visible="3" :num-scroll="1" circular class="w-full [&_.p-carousel-item]:grow [&_.p-carousel-item]:shrink-0 [&_.p-carousel-item]:basis-1/3">
     <template #item="slotProps">
       <Card v-if="slotProps.data" :class="[LAYOUT.clip, 'mx-2 w-full']">
         <template #header>
