@@ -26,7 +26,8 @@ inputs resolved against the target type's field descriptors.
 ## Components
 
 - `GeneratedMappingScreen.vue` — engine: composes and renders a compiled
-  screen; owns the generated create dialog.
+  screen; owns the generated create dialog, ConfirmDialog for destructive
+  actions, and Toast feedback on runs.
 - `RegionBlock.vue` — one composed region with data-driven layout: the list
   layout comes from `resolveListLayout` (`table` | `tree-table` |
   `card-grid` | `timeline`, matched by class, hierarchy, or type override).
@@ -91,7 +92,9 @@ inputs resolved against the target type's field descriptors.
   wrapper), `ChipsInput`, `FileUploadControl`, `Slider` for bounded scalars
   (declared min/max), and the recursive `ObjectEditor` / `ListEditor` /
   `VariantEditor`. Percent quantities display as Knob dials, percent-valued
-  maps as MeterGroup, long strings as prose paragraphs.
+  maps as MeterGroup, non-percent quantity maps as bar Charts, ordinal
+  enums as Rating, enum lists edit through OrderList, and spec-row values
+  are click-to-edit through Inplace.
 - `InstanceChip.vue`, `PreviewBox.vue`, `ActionButton.vue` — reference chips,
   payload previews keyed on the declared preview mode, and action-button
   presentation from the compiled action record.

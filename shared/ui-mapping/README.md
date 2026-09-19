@@ -63,8 +63,12 @@ group), so record views carry field-group semantics instead of one
 undifferentiated stream. Display presentations refine by
 data shape: percent quantities render as Knob dials, percent-valued maps
 as MeterGroup, long strings as prose, string lists as budgeted chips;
-bounded scalars (declared min/max) edit through Slider, and large media
-collections lay out as a carousel.
+bounded scalars (declared min/max) edit through Slider, ordinal enums
+(p0..p3, tier0..2 — value shapes all matching a rank pattern) render as
+Rating, non-percent quantity maps as bar Charts, enum lists edit through
+OrderList, destructive actions confirm through ConfirmDialog with Toast
+feedback, and large media collections lay out as a carousel. Spec-row
+values are click-to-edit via Inplace.
 
 `resolveListLayout(type, { hierarchical, size })` → `'table' |
 'tree-table' | 'card-grid' | 'timeline' | 'stats' | 'list'` from one
