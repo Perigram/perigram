@@ -17,13 +17,33 @@
             :bundle="bundle"
           />
           <FieldControl
-            v-else
+            v-else-if="inlineValue(field) === null"
             :model-value="instance.fields?.[field.name]"
             :descriptor="field.descriptor"
             variant="row"
             :pool="pool"
             :bundle="bundle"
           />
+          <Inplace v-else closable>
+            <template #display>
+              <FieldControl
+                :model-value="inlineValue(field)"
+                :descriptor="field.descriptor"
+                variant="row"
+                :pool="pool"
+                :bundle="bundle"
+              />
+            </template>
+            <template #content>
+              <FieldControl
+                v-model="inlineDraft[field.name]"
+                :descriptor="field.descriptor"
+                variant="detail"
+                :pool="pool"
+                :bundle="bundle"
+              />
+            </template>
+          </Inplace>
         </div>
         <div v-if="hiddenFactCount(group) > 0" :class="LAYOUT.specRow">
           <span class="text-body text-muted">…</span>
@@ -112,6 +132,8 @@ import Button from 'primevue/button';
 import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
 import Fieldset from 'primevue/fieldset';
+import Inplace from 'primevue/inplace';
+import { reactive } from 'vue';
 import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import InstanceChip from './InstanceChip.vue';
@@ -133,6 +155,11 @@ const props = defineProps({
 
 defineEmits(['toggle']);
 
+const inlineDraft = reactive({});
+const inlineValue = field => {
+  if (!(field.name in inlineDraft)) inlineDraft[field.name] = props.instance.fields?.[field.name];
+  return inlineDraft[field.name];
+};
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
 const hasPreview = computed(() => surface.value.slots.includes('preview'));
 

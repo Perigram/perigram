@@ -58,6 +58,10 @@
 <script setup>
 import { computed, provide, reactive, ref } from 'vue';
 import Dialog from 'primevue/dialog';
+import ConfirmDialog from 'primevue/confirmdialog';
+import Toast from 'primevue/toast';
+import { useConfirm } from 'primevue/useconfirm';
+import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
@@ -80,6 +84,8 @@ const pool = computed(() => buildInstancePool(props.instances));
 const composed = computed(() => composeScreen(props.screen, props.contract, props.bundle, pool.value));
 provide('uiMappingDensity', composed.value.density);
 
+const confirm = useConfirm();
+const toast = useToast();
 const dialogVisible = ref(false);
 const dialogAction = ref(null);
 const draft = reactive({});
@@ -93,10 +99,30 @@ const dialogFields = computed(() => {
     .map(field => ({ ...field, span: resolveFieldControl(field.descriptor, { variant: 'detail' }).span }));
 });
 
+const runAction = action => {
+  toast.add({
+    severity: 'info',
+    summary: action.label,
+    detail: [action.actionKind, action.typeId].filter(Boolean).join(' / '),
+    life: 2400
+  });
+};
 const openAction = action => {
-  if (!action.construction?.inputs?.length) return;
-  dialogAction.value = action;
-  for (const key of Object.keys(draft)) delete draft[key];
-  dialogVisible.value = true;
+  if (action.access?.level === 'admin' || action.actionKind === 'deleteInstance') {
+    confirm.require({
+      group: 'uiMappingConfirm',
+      header: action.label,
+      message: [action.actionKind, action.typeId].filter(Boolean).join(' '),
+      accept: () => runAction(action)
+    });
+    return;
+  }
+  if (action.construction?.inputs?.length) {
+    dialogAction.value = action;
+    for (const key of Object.keys(draft)) delete draft[key];
+    dialogVisible.value = true;
+    return;
+  }
+  runAction(action);
 };
 </script>

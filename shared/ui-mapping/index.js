@@ -92,7 +92,12 @@ export function createUiMapping(overrides = {}) {
     if ((base === 'list' || base === 'map') && descriptor.itemType?.base === 'quantity') {
       candidate.itemUnit = descriptor.itemType.unit || null;
     }
-    if (base === 'enum') candidate.enumSize = (descriptor.values?.length || 0) > ENUM_MANY_AT ? 'many' : 'few';
+    if (base === 'enum') {
+      candidate.enumSize = (descriptor.values?.length || 0) > ENUM_MANY_AT ? 'many' : 'few';
+      const values = descriptor.values || [];
+      candidate.ordinal = values.length >= 3
+        && values.every(value => /^(?:p|v|t|tier|level|grade|rank|s)?\d+$/i.test(String(value))) ? true : null;
+    }
     if (base === 'quantity') candidate.unit = descriptor.unit || null;
     if (base === 'ref') candidate.accepts = descriptor.accepts || null;
     if (base === 'list' || base === 'map') candidate.itemBase = descriptor.itemType?.base || null;

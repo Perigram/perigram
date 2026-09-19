@@ -6,6 +6,19 @@
     :value="meterSegments"
     class="w-full"
   />
+  <Chart
+    v-else-if="outcome.component === 'Chart'"
+    type="bar"
+    :data="chartData"
+    :options="chartOptions"
+    class="w-full"
+  />
+  <Rating
+    v-else-if="outcome.component === 'Rating'"
+    :model-value="ratingValue"
+    :stars="(descriptor.values || []).length"
+    readonly
+  />
   <span v-else-if="outcome.component === 'QuantityText'" :class="densityScale.factValue">{{ quantityValue }}</span>
   <span v-else-if="outcome.component === 'InstantText'" :class="densityScale.factValue">{{ instantValue }}</span>
   <Tag
@@ -103,6 +116,16 @@
     :bundle="bundle"
   />
   <ChipsInput v-else-if="outcome.component === 'ChipsInput'" v-model="model" />
+  <OrderList
+    v-else-if="outcome.component === 'OrderList'"
+    :model-value="model || []"
+    :options="descriptor.itemType?.values || []"
+    option-label="label"
+    option-value="value"
+    data-key="value"
+    class="w-full"
+    @update:model-value="value => (model = value)"
+  />
   <FileUploadControl v-else-if="outcome.component === 'FileUpload'" :payload="payload" />
   <ObjectEditor
     v-else-if="outcome.component === 'ObjectEditor'"
@@ -231,6 +254,25 @@ const sliderLabel = computed(() => {
   const raw = props.modelValue;
   if (raw && typeof raw === 'object') return formatQuantity(raw);
   return String(sliderValue.value ?? '—');
+});
+const chartData = computed(() => {
+  const value = props.modelValue;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return { labels: [], datasets: [] };
+  const entries = Object.entries(value)
+    .filter(([, entry]) => entry && typeof entry === 'object' && Number.isFinite(entry.value))
+    .slice(0, 10);
+  return {
+    labels: entries.map(([key]) => startCase(key)),
+    datasets: [{
+      label: props.descriptor.label || '',
+      data: entries.map(([, entry]) => entry.value)
+    }]
+  };
+});
+const chartOptions = Object.freeze({ plugins: { legend: { display: false } } });
+const ratingValue = computed(() => {
+  const index = (props.descriptor.values || []).indexOf(props.modelValue);
+  return index >= 0 ? index + 1 : 0;
 });
 const variantValue = computed(() => {
   const value = compactValue(props.modelValue?.value);

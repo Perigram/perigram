@@ -135,6 +135,21 @@ describe('field control resolution', () => {
     expect(resolveListLayout(media, {})).toBe('card-grid');
   });
 
+  it('resolves ratings, charts, and order lists from shape', () => {
+    expect(resolveFieldControl({ base: 'enum', values: ['p0', 'p1', 'p2', 'p3'] }, { variant: 'row' })).toMatchObject({
+      component: 'Rating', span: 'full'
+    });
+    expect(resolveFieldControl({ base: 'enum', values: ['red', 'green'] }, { variant: 'row' })).toMatchObject({
+      component: 'Tag'
+    });
+    expect(resolveFieldControl({ base: 'map', itemType: { base: 'quantity', unit: 'count' } }, { variant: 'row' })).toMatchObject({
+      component: 'Chart'
+    });
+    expect(resolveFieldControl({ base: 'list', itemType: { base: 'enum', values: ['a', 'b'] } }, { variant: 'detail' })).toMatchObject({
+      component: 'OrderList'
+    });
+  });
+
   it('scales presentation budgets with type richness', () => {
     const wide = { fields: Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`f${i}`, { base: 'number' }])) };
     const narrow = { fields: { a: { base: 'string' }, b: { base: 'number' } } };

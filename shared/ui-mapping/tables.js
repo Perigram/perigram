@@ -30,6 +30,7 @@ export const FIELD_EDIT_ENTRIES = Object.freeze([
   { match: { base: 'enum' }, component: 'SelectButton', span: 'full' },
   { match: { base: 'ref' }, component: 'InstancePicker', span: 'half' },
   { match: { base: 'list', itemBase: 'string' }, component: 'ChipsInput', span: 'full' },
+  { match: { base: 'list', itemBase: 'enum' }, component: 'OrderList', span: 'full' },
   { match: { base: 'list', itemBase: 'ref' }, component: 'InstanceMultiPicker', span: 'full' },
   { match: { base: 'blob' }, component: 'FileUpload', span: 'full' },
   { match: { base: 'record' }, component: 'ObjectEditor', span: 'full', recursive: true },
@@ -47,6 +48,8 @@ export const FIELD_EDIT_ENTRIES = Object.freeze([
 export const FIELD_DISPLAY_ENTRIES = Object.freeze([
   { match: { base: 'string', long: true }, component: 'ProseText', span: 'full' },
   { match: { base: 'map', itemBase: 'quantity', itemUnit: 'percent' }, component: 'MeterGroup', span: 'full' },
+  { match: { base: 'map', itemBase: 'quantity' }, component: 'Chart', span: 'full' },
+  { match: { base: 'enum', ordinal: true }, component: 'Rating', span: 'full' },
   { match: { base: 'quantity', unit: 'percent' }, component: 'Knob', span: 'half' },
   { match: { base: 'enum' }, component: 'Tag', span: 'half' },
   { match: { base: 'ref' }, component: 'InstanceChip', span: 'half' },
