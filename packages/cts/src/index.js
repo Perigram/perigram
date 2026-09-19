@@ -37,7 +37,7 @@ export {
 export {
   migrateV4Definition, resolveCtsDefinition, checkCtsGraphBindings,
   isCtsGraphDefinition, operationKindOf, resolveCtsRecord,
-  typeIdOf, setTypeBinding
+  typeIdOf, setTypeBinding, declarationsFromCtsRecords
 } from './compat/graph-protocol.js';
 export {
   cncTypePack, partyTypes, nestingOperators, packFixtures
