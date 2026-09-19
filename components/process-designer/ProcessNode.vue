@@ -15,13 +15,13 @@
 
     <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-2 flex flex-col gap-1.5" @mousedown.stop @click.stop>
       <Select
-        v-if="showEntitySelect"
-        :model-value="record.entityType"
+        v-if="opKind === 'source.literalItem' && record.type?.base === 'entityRef'"
+        :model-value="record.entityType || record.type.entityType"
         :options="data.processEntityTypeOptions || []"
         option-label="label"
         option-value="value"
         size="small"
-        @update:model-value="value => update({ entityType: value })"
+        @update:model-value="value => update({ entityType: value, type: { ...record.type, entityType: value } })"
       />
       <div v-if="showTypeEditor">
         <Select
@@ -41,24 +41,6 @@
         option-value="value"
         size="small"
         @update:model-value="updateOperation"
-      />
-      <Select
-        v-if="opKind === 'control.domainEventTrigger'"
-        :model-value="record.eventId"
-        :options="data.processEventOptions || []"
-        option-label="label"
-        option-value="value"
-        size="small"
-        @update:model-value="value => update({ eventId: value })"
-      />
-      <Select
-        v-if="showBlockSelect"
-        :model-value="record.block"
-        :options="data.processBlockOptions || []"
-        option-label="label"
-        option-value="value"
-        size="small"
-        @update:model-value="value => update({ block: value })"
       />
       <Select
         v-if="showsFieldSelect"
@@ -268,26 +250,8 @@ const eventSocketRows = computed(() => alignSockets(eventInputs.value, eventOutp
 const connectedInputs = computed(() => new Set(props.data.processConnectedInputIds || []));
 const operationOptions = computed(() => props.data.processOperationOptions || []);
 const fieldOptions = computed(() => props.data.processFieldOptions || []);
-const showsFieldSet = computed(() => ['record.composeBlock', 'record.modifyBlock'].includes(opKind.value));
-const showsFieldSelect = computed(() => (
-  fieldOptions.value.length > 0
-  && !showsFieldSet.value
-  && !(fieldOptions.value.length === 1 && fieldOptions.value[0].value === record.value.block)
-));
-const isV5Record = computed(() => (
-  String(record.value.kind || '').startsWith('cts.') || typeof record.value.type === 'string'
-));
-const showEntitySelect = computed(() => !isV5Record.value && !record.value.entityTypeInferred && (
-  (['record.', 'predicate.', 'read.', 'effect.'].some(prefix => opKind.value.startsWith(prefix))
-    && !['record.getField', 'record.composeBlock', 'record.modifyBlock', 'record.construct', 'effect.runCommand', 'effect.runProducer'].includes(opKind.value))
-  || opKind.value === 'control.entityChangedTrigger'
-  || (opKind.value === 'control.manualTrigger' && (record.value.entityType || record.value.type))
-  || (opKind.value === 'source.literalItem' && record.value.type?.base === 'entityRef')
-));
-const showBlockSelect = computed(() => (
-  ['record.getBlock', 'record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(opKind.value)
-  && (props.data.processBlockOptions || []).length
-));
+const showsFieldSelect = computed(() => fieldOptions.value.length > 0);
+
 const showTypeEditor = computed(() => (
   opKind.value.startsWith('source.literal')
   || (opKind.value === 'value.logic'
@@ -318,12 +282,9 @@ const literalDate = computed(() => {
   return Number.isNaN(value.getTime()) ? null : value;
 });
 const hasInlineConfiguration = computed(() => (
-  showEntitySelect.value
-  || showTypeEditor.value
+  showTypeEditor.value
   || operationOptions.value.length
-  || opKind.value === 'control.domainEventTrigger'
-  || showBlockSelect.value
-  || (fieldOptions.value.length && !showsFieldSet.value)
+  || fieldOptions.value.length > 0
   || opKind.value.startsWith('source.literal')
 ));
 const nodeFrameClass = computed(() => [
