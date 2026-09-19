@@ -41,7 +41,8 @@ inputs resolved against the target type's field descriptors.
   identities walked from the instance's lineage through the pool.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identity, status, budgeted scalar descriptor columns, and the first
-  declared relation as budgeted chips.
+  declared relation as budgeted chips; collections beyond ten rows
+  paginate.
 - `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
   the collection plus its lineage descendants nested as expandable rows
   with the same generated columns.
@@ -74,7 +75,8 @@ inputs resolved against the target type's field descriptors.
   descriptor label or start-case name), structural fields as an Accordion,
   budgeted relation chips with show-more toggles for relations not already
   covered by a child region, and the hierarchy tree for groups.
-- `PreviewBox.vue` — preview materialization keyed on the declared payload
+- `PreviewBox.vue` — preview materialization keyed on the declared payload,
+  height-bounded
   preview mode: deterministic per-instance inline SVG (seeded hue) built
   entirely from theme tokens — `--ck-subtle-background` bases with
   translucent hsl accents — so generated art adapts to light/dark and owns
@@ -94,7 +96,8 @@ inputs resolved against the target type's field descriptors.
   `VariantEditor`. Percent quantities display as Knob dials, percent-valued
   maps as MeterGroup, non-percent quantity maps as bar Charts, ordinal
   enums as Rating, enum lists edit through OrderList, and spec-row values
-  are click-to-edit through Inplace.
+  are click-to-edit through Inplace with visible affordance — hover
+  highlights the value row and reveals a pencil icon.
 - `InstanceChip.vue`, `PreviewBox.vue`, `ActionButton.vue` — reference chips,
   payload previews keyed on the declared preview mode, and action-button
   presentation from the compiled action record.
