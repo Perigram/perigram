@@ -1357,40 +1357,6 @@ function renameDeclarationNode(props, value) {
   // re-syncs dependent ports in the same tick.
 }
 
-// The live evaluation loop (Blender-style): any authoring change — a
-// rename, a wire, an inspector edit, a descriptor change — re-interprets
-// declaration wires and re-syncs every dependent surface. Connect
-// handlers call evaluateNow() for instant feedback; everything else is
-// the watcher's job.
-const liveGraph = useProcessDesignerLiveGraph({
-  nodes,
-  edges,
-  draft,
-  apply: applyGraphInterpretation
-});
-const { evaluateNow } = liveGraph;
-
-function applyGraphInterpretation(mutations) {
-  for (const mutation of mutations) {
-    if (mutation.scope === 'node') {
-      const node = nodes.value.find(candidate => candidate.id === mutation.nodeId);
-      if (node) node.data[mutation.key] = mutation.value;
-      continue;
-    }
-    const record = draft.value?.data?.processNodes?.[mutation.recordId];
-    if (record) setNodeEntityType(record, mutation.value);
-  }
-  syncNodeData();
-  // Live sockets change with the declarations (a renamed field renames
-  // its construct socket): wires into inputs that no longer exist come
-  // off after every pass. The Type pin itself always survives.
-  for (const node of nodes.value) {
-    if (node.type !== 'processNode' || !node.data?.refId) continue;
-    const record = draft.value?.data?.processNodes?.[node.data.refId];
-    if (record) pruneMissingProcessNodeInputEdges(node.data.refId, record);
-  }
-}
-
 const sameTypeId = (a, b) => String(a || '').replace(/_/g, '-') === String(b || '').replace(/_/g, '-');
 function setNodeBlocks(node, blocks) {
   if (v5Record(node)) node.slots = blocks;
@@ -2038,6 +2004,42 @@ function schedulePreviewRecompute() {
 // nodes stay draggable; mouse hosts keep the Space-activated precision pan.
 const touchPanDrag = ref(false);
 let touchPointerQuery = null;
+
+// The live evaluation loop (Blender-style): any authoring change — a
+// rename, a wire, an inspector edit, a descriptor change — re-interprets
+// declaration wires and re-syncs every dependent surface. Connect
+// handlers call evaluateNow() for instant feedback; everything else is
+// the watcher's job. Instantiated after every composable and option list
+// the sync pass reads: the watcher runs its first pass immediately, and
+// those bindings must not be in their temporal dead zone.
+const liveGraph = useProcessDesignerLiveGraph({
+  nodes,
+  edges,
+  draft,
+  apply: applyGraphInterpretation
+});
+const { evaluateNow } = liveGraph;
+
+function applyGraphInterpretation(mutations) {
+  for (const mutation of mutations) {
+    if (mutation.scope === 'node') {
+      const node = nodes.value.find(candidate => candidate.id === mutation.nodeId);
+      if (node) node.data[mutation.key] = mutation.value;
+      continue;
+    }
+    const record = draft.value?.data?.processNodes?.[mutation.recordId];
+    if (record) setNodeEntityType(record, mutation.value);
+  }
+  syncNodeData();
+  // Live sockets change with the declarations (a renamed field renames
+  // its construct socket): wires into inputs that no longer exist come
+  // off after every pass. The Type pin itself always survives.
+  for (const node of nodes.value) {
+    if (node.type !== 'processNode' || !node.data?.refId) continue;
+    const record = draft.value?.data?.processNodes?.[node.data.refId];
+    if (record) pruneMissingProcessNodeInputEdges(node.data.refId, record);
+  }
+}
 
 onMounted(() => {
   loadActiveOrCreateLocal();
