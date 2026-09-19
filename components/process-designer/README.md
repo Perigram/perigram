@@ -124,7 +124,12 @@ source type (consumers), else the stored preset. Renaming a class
 re-binds every wired descendant (constructs gain or lose their row-field
 sockets immediately); removing the channel that supplied a binding
 clears it, while a preset no channel ever supplied is authored data and
-stays. Sockets may vanish and return during transient authoring (an
+stays — and a binding naming a type that exists nowhere (registry view
+or tree) is dangling, not authored: the live pass clears it, so a
+deleted class cannot leave behind sockets, producer outputs on unknown
+types, or wires that save-time filtering would drop. Deleting a node
+also removes the producer outputs it anchored and resets join selections
+that pointed at them. Sockets may vanish and return during transient authoring (an
 unset ref mid-gesture, a rename in progress) — edges are never pruned
 live, because serialization owns stale-edge filtering and a transient
 must not destroy wiring. Unfinished authoring is silent: an unnamed

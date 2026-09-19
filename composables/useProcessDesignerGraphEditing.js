@@ -29,9 +29,30 @@ export function useProcessDesignerGraphEditing({
         removedEdgeIds.add(edge.id);
       }
     }
+    // Owned definition-plane records die with their canvas node: process
+    // records, the producer outputs they anchored, and join selections that
+    // pointed at the removed outputs. (Save-time canvas pruning covers
+    // unreferenced records, but validation and panels read the draft live.)
+    const removedRecordIds = new Set();
     for (const node of selectedGraphNodes()) {
       const refId = node.data?.refId;
-      if (refId && draft.value?.data) delete draft.value.data[recordKeyForType(node.type)]?.[refId];
+      if (refId && draft.value?.data) {
+        const record = draft.value.data[recordKeyForType(node.type)]?.[refId];
+        // The record id and its canvas refId are the same by construction,
+        // but match both so producer-output ownership survives them drifting.
+        if (record?.id) removedRecordIds.add(String(record.id));
+        removedRecordIds.add(String(refId));
+        delete draft.value.data[recordKeyForType(node.type)]?.[refId];
+      }
+    }
+    const producerOutputs = draft.value?.data?.producerOutputs || {};
+    for (const [producerOutputId, output] of Object.entries(producerOutputs)) {
+      if (output && removedRecordIds.has(String(output.nodeId))) delete producerOutputs[producerOutputId];
+    }
+    for (const record of Object.values(draft.value?.data?.processNodes || {})) {
+      if (record?.selectedProducerOutputId && !producerOutputs[record.selectedProducerOutputId]) {
+        record.selectedProducerOutputId = '';
+      }
     }
     nodes.value = nodes.value.filter(node => !removedNodeIds.has(node.id));
     edges.value = edges.value.filter(edge => !removedEdgeIds.has(edge.id));
