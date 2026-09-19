@@ -17,10 +17,6 @@ function kebab(value = '') {
   return String(value).replace(/_/g, '-');
 }
 
-function snake(value = '') {
-  return String(value).replace(/-/g, '_');
-}
-
 // Legacy field type -> CTS row descriptor (leaf level). '*' is the
 // strangler wildcard for untyped entity references: legacy `entityRef`
 // without `entityType` (any entity). It appears only on extracted rows and
@@ -56,7 +52,10 @@ function legacyType(descriptor = {}) {
     case 'ref': {
       const target = descriptor.accepts?.[0];
       if (!target || target === '*') return { base: 'entityRef', shape, nullable };
-      return { base: 'entityRef', shape, nullable, entityType: snake(target) };
+      // The socket must carry the target's registry id verbatim (kebab):
+      // the projected entity world is kebab-first, and a snake-cased id
+      // matches no real entity output — ref fields would never wire.
+      return { base: 'entityRef', shape, nullable, entityType: target };
     }
     case 'instant':
       return { base: 'dateTime', shape, nullable };
