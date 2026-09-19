@@ -141,12 +141,10 @@ source/transform work: entity references, field reads, string operations,
 comparisons, logic, and collection transforms. These nodes are semantic
 `processNodes` records and must not perform mutations; persistent state changes
 remain effect-node responsibilities.
-The designer's screens tab renders a structural preview of the compiled screen
-manifest grouped by process role. That preview shows templates, regions,
-sources, filters, and action buttons from normalized screen contracts without
-fetching live entity data; it is the transitional wireframe over the legacy
-screen contract, to be replaced by the real UI-generator preview (see
-[`TODO-process-designer.md`](../TODO-process-designer.md)).
+The designer's screens tab renders the compiled screen manifest through the
+real UI generator (`components/ui-mapping`) over the CTS-vocabulary UI
+contract, without fetching live entity data; the runtime data layer lives in
+the screens route (see [`TODO-process-designer.md`](../TODO-process-designer.md)).
 Generated operational screens live under `components/generated/`. They render
 compiled process screen manifests through a fixed template registry and shared
 entity primitives (`EntityCard`, `EntityPage`, `EntitySurfaceContent`,

@@ -241,11 +241,11 @@ updates, mode normalization, lineage rows, and typed scalar-map mutations. The
 Screens tab renders those mutations against the canonical
 [`screen-contract.js`](../../packages/processes/src/screen-contract.js)
 normalizer and validator; it does not maintain a page-local screen schema.
-Its compiled preview is the transitional wireframe
-(`ProcessScreenPreview.vue`) over the legacy screen contract; the
-compile-to-apps plan replaces it with a real generator preview over the
-CTS-vocabulary UI contract (see
-[`TODO-process-designer.md`](../../TODO-process-designer.md)).
+Its compiled preview renders every emitted screen through the real
+generator (`composeScreen` + the ui-mapping registry) over the
+CTS-vocabulary UI contract and the client bundle — a structural preview
+with an empty instance pool; the runtime data layer is the screens-route
+renderer's concern (see [`TODO-process-designer.md`](../../TODO-process-designer.md)).
 
 ## Node cards and sockets
 

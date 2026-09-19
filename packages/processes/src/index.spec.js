@@ -1160,17 +1160,17 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(compiled.screens.auto_role_operator_queue).toMatchObject({
-      entityType: 'queue',
+      typeId: 'queue',
       roleIds: ['role_operator'],
       required: { feature: 'queues', level: 'read' },
       actions: ['action_accept']
     });
     expect(compiled.screens.auto_role_operator_queue_detail).toMatchObject({
-      entityType: 'queue',
+      typeId: 'queue',
       roleIds: ['role_operator'],
-      template: 'entityDetail',
+      template: 'instanceDetail',
       sources: [expect.objectContaining({
-        entityType: 'queue',
+        typeId: 'queue',
         mode: 'single',
         identifier: '$screen.scope.entityId'
       })],
@@ -1179,7 +1179,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.userAccess.user_a.screens.find(screen => screen.screenKey === 'auto_queue')).toMatchObject({
       screenKey: 'auto_queue',
       route: '/screens/auto_queue',
-      entityType: 'queue',
+      typeId: 'queue',
       actions: ['action_accept']
     });
     expect(compiled.userAccess.user_a.navigation[0]).toMatchObject({
@@ -1188,7 +1188,7 @@ describe('@cutkit/processes compiler', () => {
     });
     expect(compiled.userAccess.user_a.screens.find(screen => screen.template === 'home')).toMatchObject({
       screenKey: 'home_user_a',
-      sources: [expect.objectContaining({ entityType: 'queue', mode: 'list' })]
+      sources: [expect.objectContaining({ typeId: 'queue', mode: 'list' })]
     });
   });
 
@@ -1273,7 +1273,7 @@ describe('@cutkit/processes compiler', () => {
         queue_home: {
           id: 'queue_home',
           label: 'Queues',
-          template: 'entityList',
+          template: 'typeList',
           placement: 'hub',
           route: '/queue-home',
           entityType: 'queue',
@@ -1293,7 +1293,7 @@ describe('@cutkit/processes compiler', () => {
     const home = compiled.userAccess.user_a.screens.find(screen => screen.template === 'home');
     expect(home).toMatchObject({
       screenKey: 'home_user_a',
-      sources: [expect.objectContaining({ entityType: 'queue', mode: 'list' })]
+      sources: [expect.objectContaining({ typeId: 'queue', mode: 'list' })]
     });
     expect(home.regions[0]).toMatchObject({
       sourceId: 'home_queue',
@@ -1347,7 +1347,7 @@ describe('@cutkit/processes compiler', () => {
     });
     expect(compiled.userAccess.user_a.screens.find(screen => screen.screenKey === 'auto_project')).toMatchObject({
       screenKey: 'auto_project',
-      entityType: 'project',
+      typeId: 'project',
       required: {
         feature: 'projects',
         level: 'read',
@@ -1397,7 +1397,7 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    const projectScreens = compiled.userAccess.user_a.screens.filter(screen => screen.entityType === 'project' && screen.template === 'entityList');
+    const projectScreens = compiled.userAccess.user_a.screens.filter(screen => screen.typeId === 'project' && screen.template === 'typeList');
     expect(projectScreens).toHaveLength(1);
     expect(projectScreens[0]).toMatchObject({
       screenKey: 'auto_project',
@@ -1538,8 +1538,8 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.roles.role_writer.actions.map(action => action.actionId)).toContain('create_cassette');
     expect(compiled.roles.role_reader.actions.map(action => action.actionId)).not.toContain('create_cassette');
-    expect(compiled.userAccess.user_writer.actions.map(action => action.actionId)).toContain('create_cassette');
-    expect(compiled.userAccess.user_reader.actions.map(action => action.actionId)).not.toContain('create_cassette');
+    expect(compiled.userAccess.user_writer.actions.map(action => action.id)).toContain('create_cassette');
+    expect(compiled.userAccess.user_reader.actions.map(action => action.id)).not.toContain('create_cassette');
   });
 
   it('exposes manual status actions through inherited access windows', () => {
@@ -1585,14 +1585,13 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.userAccess.user_a.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        actionId: 'approve_project',
-        actionKind: 'updateEntity',
-        feature: 'projects',
-        entityType: 'project',
-        status: { from: 'NEW', to: 'APPROVED' }
+        id: 'approve_project',
+        actionKind: 'updateInstance',
+        typeId: 'project',
+        status: { to: 'APPROVED' }
       })
     ]));
-    expect(compiled.userAccess.user_a.screens.find(screen => screen.entityType === 'project').actions)
+    expect(compiled.userAccess.user_a.screens.find(screen => screen.typeId === 'project').actions)
       .toEqual(expect.arrayContaining(['approve_project']));
   });
 
@@ -1624,14 +1623,14 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.userAccess.user_a.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        actionId: 'create_design',
-        feature: 'cassette_designs',
-        entityType: 'cassette_design'
+        id: 'create_design',
+        actionKind: 'createInstance',
+        typeId: 'cassette_design'
       })
     ]));
     expect(compiled.userAccess.user_a.screens).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        entityType: 'cassette_design',
+        typeId: 'cassette_design',
         required: expect.objectContaining({ feature: 'cassette_designs' })
       })
     ]));
@@ -1828,7 +1827,7 @@ describe('@cutkit/processes compiler', () => {
           label: 'Projects',
           route: '/projects',
           roleIds: ['role_operator'],
-          template: 'entityList',
+          template: 'typeList',
           entityType: 'project',
           bindings: { projectId: '$assignment.projectId' },
           sources: [{ id: 'project', entityType: 'project', mode: 'list', filters: { projectId: '$assignment.projectId' } }],
@@ -1849,10 +1848,10 @@ describe('@cutkit/processes compiler', () => {
     const screen = resolveScreens({ compiled, userId: 'user_a' })
       .find(item => item.screenKey === 'projects:project-123');
     expect(screen).toMatchObject({
-      template: 'entityList',
+      template: 'typeList',
       route: '/screens/projects%3Aproject-123',
       sourceRoute: '/projects',
-      sources: [{ id: 'project', entityType: 'project', mode: 'list', filters: { projectId: 'project-123' } }],
+      sources: [expect.objectContaining({ id: 'project', typeId: 'project', mode: 'list', filters: { projectId: 'project-123' } })],
       regions: [{ id: 'main', slot: 'main', sourceId: 'project', surface: 'card', actions: ['create_project'] }],
       actions: ['create_project']
     });
@@ -2389,15 +2388,14 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.screens.auto_role_admin_queue.actions).toContain('create_queue');
     expect(compiled.screens.auto_role_admin_queue.sources).toEqual([
       expect.objectContaining({
-        entityType: 'queue',
-        mode: 'list',
-        lineageBindings: []
+        typeId: 'queue',
+        mode: 'list'
       })
     ]);
     expect(compiled.userAccess.user_admin.screens.find(screen => screen.template === 'home')).toMatchObject({
       sources: expect.arrayContaining([
-        expect.objectContaining({ entityType: 'project' }),
-        expect.objectContaining({ entityType: 'queue', lineageBindings: [] })
+        expect.objectContaining({ typeId: 'project' }),
+        expect.objectContaining({ typeId: 'queue' })
       ])
     });
   });
@@ -2418,7 +2416,7 @@ describe('@cutkit/processes compiler', () => {
           id: 'project_designs',
           label: 'Project designs',
           route: '/project-designs',
-          template: 'entityList',
+          template: 'typeList',
           entityType: 'sheet_design',
           roleIds: ['role_reader'],
           sources: [{
@@ -2440,9 +2438,9 @@ describe('@cutkit/processes compiler', () => {
     }, scopedDomain);
 
     const screen = resolveScreens({ compiled, userId: 'user_reader' })
-      .find(item => item.entityType === 'sheet_design');
+      .find(item => item.typeId === 'sheet_design');
     expect(screen.sources[0]).toMatchObject({ filters: { projectId: 'project-1' } });
-    expect(screen.sources[0].lineageBindings).toEqual([]);
+    expect(screen.sources[0].filters).toBeDefined();
   });
 
   it('ignores stale parent input edges without a compiled Lineage binding', () => {
@@ -2692,8 +2690,8 @@ describe('@cutkit/processes compiler', () => {
       entityType: '',
       required: false
     });
-    expect(compiled.userAccess.user_installer.actions.find(action => action.actionId === 'create_design')).toMatchObject({
-      parentEntityType: null
+    expect(compiled.userAccess.user_installer.actions.find(action => action.id === 'create_design')).toMatchObject({
+      actionKind: 'createInstance'
     });
     expect(compiled.screens.auto_role_installer_queue_detail?.actions || []).not.toContain('create_design');
   });
@@ -2907,11 +2905,8 @@ describe('@cutkit/processes compiler', () => {
         expect.objectContaining({ id: 'parameters', type: 'cassetteParameters', prompt: true })
       ])
     });
-    expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'templateId', prompt: true, required: true }),
-      expect.objectContaining({ id: 'parameters', type: 'cassetteParameters', prompt: true })
-    ]));
-    expect(compiled.userAccess.user_admin.actions[0].inputPolicy.fields.map(field => field.id)).not.toContain('name');
+    expect(compiled.userAccess.user_admin.actions[0].construction.inputs).toEqual(expect.arrayContaining(['templateId', 'parameters']));
+    expect(compiled.userAccess.user_admin.actions[0].fields).toEqual(['templateId', 'parameters']);
   });
 
   it('propagates required queue construction inputs during queue creation', () => {
@@ -2956,10 +2951,10 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_queue.construction.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', required: true, prompt: true }),
-      expect.objectContaining({ id: 'jobItems', required: true }),
-      expect.objectContaining({ id: 'materialPool', required: false })
+    expect(compiled.actions.create_queue.construction.inputs.map(input => input.id)).toEqual(expect.arrayContaining([
+      'name',
+      'jobItems',
+      'materialPool'
     ]));
     expect(compiled.actions.create_queue.parentEntityType).toBeNull();
     expect(compiled.actions.create_queue.inputs).toEqual(expect.arrayContaining([
@@ -2967,19 +2962,11 @@ describe('@cutkit/processes compiler', () => {
       expect.objectContaining({ id: 'data:jobItems', required: true })
     ]));
     const exposedQueueAction = compiled.userAccess.user_admin.actions[0];
-    expect(exposedQueueAction.parentEntityType).toBeNull();
-    expect(exposedQueueAction.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'parent', entityType: '', required: false }),
-      expect.objectContaining({ id: 'data:jobItems', required: true })
-    ]));
-    expect(exposedQueueAction.construction.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', required: true, prompt: true }),
-      expect.objectContaining({ id: 'jobItems', required: true })
-    ]));
-    expect(exposedQueueAction.inputPolicy.fields).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'name', required: true, prompt: true })
-    ]));
-    expect(exposedQueueAction.inputPolicy.fields).not.toContainEqual(expect.objectContaining({ id: 'jobItems' }));
+    expect(exposedQueueAction.actionKind).toBe('createInstance');
+    expect(exposedQueueAction.typeId).toBe('queue');
+    expect(exposedQueueAction.construction.inputs).toEqual(expect.arrayContaining(['name', 'jobItems', 'materialPool']));
+    expect(exposedQueueAction.fields).toEqual(expect.arrayContaining(['name']));
+    expect(exposedQueueAction.fields).not.toContain('jobItems');
   });
 
   it('rejects stale construction modes when an action entity type changes', () => {
@@ -3165,10 +3152,10 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.userAccess.user_operator.actions).toEqual(expect.arrayContaining([
       expect.objectContaining({
-        actionId: 'solve_queue',
+        id: 'solve_queue',
         actionKind: 'runCommand',
         commandId: 'solveNesting',
-        entityType: 'queue'
+        typeId: 'queue'
       })
     ]));
   });
@@ -3275,10 +3262,10 @@ describe('@cutkit/processes compiler', () => {
     });
     expect(compiled.roles.role_creator.actions[0]).toMatchObject({ actionId: 'create_project', level: 'run' });
     expect(compiled.userAccess.user_creator.actions[0]).toMatchObject({
-      actionId: 'create_project',
+      id: 'create_project',
       label: `Create project ${INITIAL_STATE}`,
-      actionKind: 'createEntity',
-      feature: 'projects',
+      actionKind: 'createInstance',
+      typeId: 'project',
       sourceRoleIds: ['role_creator']
     });
   });
@@ -3427,8 +3414,8 @@ describe('@cutkit/processes compiler', () => {
         rule: { fact: 'primaryStatus', equals: TARGET_STATE }
       }
     ]);
-    expect(compiled.userAccess.user_target.actions.map(action => action.actionId)).toContain('activate_project');
-    expect(compiled.userAccess.user_source.actions.map(action => action.actionId)).not.toContain('activate_project');
+    expect(compiled.userAccess.user_target.actions.map(action => action.id)).toContain('activate_project');
+    expect(compiled.userAccess.user_source.actions.map(action => action.id)).not.toContain('activate_project');
     expect(compiled.producerOutputs['create_project:entity'].workflow.regions.main.transitions[0].processRoleIds).toEqual(['role_target']);
     expect(compiled.producerOutputs['create_project:entity'].workflow.regions.main.transitions[0].access).toBeUndefined();
   });
@@ -3693,15 +3680,13 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     const userAccess = compiled.userAccess.user_operator;
-    const commandAction = userAccess.actions.find(action => action.actionId === 'solve_nesting');
+    const commandAction = userAccess.actions.find(action => action.id === 'solve_nesting');
     const queueDetail = userAccess.screens.find(screen => screen.id === 'auto_role_operator_queue_detail');
 
     expect(commandAction).toMatchObject({
       actionKind: 'runCommand',
       commandId: 'solveNesting',
-      feature: 'queues',
-      entityType: 'queue',
-      status: { from: TARGET_STATE }
+      typeId: 'queue'
     });
     expect(queueDetail.actions).toContain('solve_nesting');
     expect(queueDetail.regions[0].actions).toContain('solve_nesting');

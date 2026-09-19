@@ -50,10 +50,11 @@ export function previewAssignmentAccess({ compiled = {}, assignment = {}, domain
       };
     }))
   );
-  const selectedActions = new Map((access.actions || []).map(action => [action.actionId, action]));
+  const selectedActions = new Map((access.actions || []).map(action => [action.actionId || action.id, action]));
   const allActions = new Map(Object.values(compiled.roles || {}).flatMap(role => role.actions || []).map(action => [action.actionId, action]));
   const actions = [...allActions.values()].map(candidate => {
-    const action = selectedActions.get(candidate.actionId) || candidate;
+    const selectedEntry = selectedActions.get(candidate.actionId);
+    const action = selectedEntry ? { ...candidate, ...selectedEntry, feature: candidate.feature, entityType: candidate.entityType, status: candidate.status } : candidate;
     const feature = action.feature || featureForEntityType(domain, action.entityType);
     const context = entityContexts.find(item => item.entityType === action.entityType || item.feature === feature) || null;
     const actionName = accessActionName(action.actionKind);
@@ -141,9 +142,9 @@ function decisionExplanation(allowed, conditional, context) {
 }
 
 function accessActionName(actionKind = '') {
-  if (actionKind === 'createEntity') return 'create';
-  if (actionKind === 'deleteEntity') return 'delete';
-  if (actionKind === 'updateEntity' || actionKind === 'archiveEntity') return 'update';
+  if (actionKind === 'createEntity' || actionKind === 'createInstance') return 'create';
+  if (actionKind === 'deleteEntity' || actionKind === 'deleteInstance') return 'delete';
+  if (actionKind === 'updateEntity' || actionKind === 'archiveEntity' || actionKind === 'updateInstance') return 'update';
   return 'run';
 }
 

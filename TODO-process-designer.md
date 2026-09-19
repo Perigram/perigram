@@ -191,6 +191,50 @@ type id, validity, diagnostics; fields/states wire as before).
   switch (resolveProcessAuth, screen manifests, navigation) so no stored
   contract is read through the removed vocabulary.
 
+
+##### Agent Notes — 2026-09-19 P3 in progress (branch, unmerged)
+
+`agent/process-designer-uicontract-20260919` (commit 3a3cc652) lands the
+compiler-side cutover: `ui-contract-projection.js` as the single emit
+boundary (screens: typeId/typeList/instanceDetail + lineage refs; manifest
+actions: projected createInstance/updateInstance/deleteInstance/link/
+unlink/runCommand), assignment access/home/navigation on the projected
+vocabulary, server-side `compileClientBundle` emission, and the
+`ui-contract.spec.js` regression bridge that composes real compiler output
+through the real generator. Architectural decision recorded: the screen
+channel is cut over hard; `compiled.actions` stays the server execution
+contract (the run API and producer outputs consume it) and is never
+serialized to UI consumers — the manifest action records are its
+projection, so there is no dual UI vocabulary. All package/server/shared
+specs green (4 known pre-existing failures unchanged). Remaining on the
+branch before merge: [screenKey] renderer swap to the generator with a
+real instance-pool loader, action dispatch wiring, and the e2e surface.
+The branch stays unmerged until the browser side lands — the manifest
+vocabulary change would degrade the legacy generated renderer.
+
+Update (same day, rebased on the placement-fix local): contract-diff now
+covers the projected UI contract (typeId/template/roleIds on screens;
+inputPolicy.prompt/construction.mode on actions), and the designer
+Screens tab renders the compiled draft through the real generator
+(GeneratedMappingScreen + client bundle + projected actions, empty pool) —
+ProcessScreenPreview.vue is deleted. Auth hydration now carries the
+generator payload (`process.bundle` + `process.actions` projected records,
+pinned by the runtime spec), so the renderer swap is purely browser-side.
+Compiler-side P3 is complete; only the runtime renderer slice remains
+before merge.
+
+Update (renderer landed): `[screenKey].vue` renders process screens
+(typeList/instanceDetail/home) through the generator with
+`composables/useScreenInstancePool.js` (row-slot DTO->instance mapping,
+lineage `{ id }` normalization, typed relations, main-axis states),
+`GeneratedMappingScreen` gains a real `onRun` executor prop (create dialog
+drafts, delete confirm, run API dispatch, pool reload, outbox-aware), and
+auth hydration's generator payload is exposed as `authStore.processPayload`.
+System screens keep the legacy renderer until they migrate. Remaining after
+merge: retire the legacy generated surface used by shared consumers
+(EntityCard, chats, artifacts, billing/org pages), migrate link/unlink
+dialogs to the generator, system-screen migration, and the e2e pass.
+
 ## P4 — Runtime and designer cutover to the UI generator
 
 - [ ] `pages/screens/[screenKey].vue` renders through `composeScreen` +
