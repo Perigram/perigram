@@ -147,11 +147,16 @@ Presentation context is tree-owned: every composed region node carries
 sections, nested regions are cards) plus its `level`, so materializations
 style themselves from their position in the hierarchy instead of guessing.
 Sibling arrangement is weight-driven and compose-time: `estimateRegionWeight`
-bounds each region's rendered rows from its own data (facts + relations for
-detail regions, capped instance counts for lists), and `childrenModeFor`
-stacks siblings until their combined weight exceeds `SURFACE_ROW_BUDGET`,
-then arranges them into tabs at the top level — never measured from the
-DOM. The rule binds everywhere siblings exist: composed screens carry
+estimates each region's full rendered height from its own data — facts,
+structural fields, and relation refs for detail regions; per-layout row
+factors (`ROW_WEIGHT_BY_LAYOUT`: a preview card ≈ 4 table rows, a timeline
+entry ≈ 2) times actual instance counts for lists, with no sampling cap —
+and `childrenModeFor` stacks siblings until their combined weight exceeds
+`SURFACE_ROW_BUDGET`, then arranges them into tabs at the top level. Never
+measured from the DOM. The screen's total weight also picks its density
+(`screenDensityFor` → `DENSITY.compact | regular`), which scales control
+size, fact-row gaps, and value typography with how much information the
+screen carries. The rule binds everywhere siblings exist: composed screens carry
 `regionsMode` for their top-level regions (a heavy home tabs its
 sections), and detail nodes carry `childrenMode` for their child
 regions. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` and
