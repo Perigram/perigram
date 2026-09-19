@@ -55,7 +55,7 @@ import { isGeneratedSurfaceAction } from '~/components/generated/action-visibili
 import { generatedDetailScreenForEntityType } from '~/components/generated/detail-screen-actions.js'
 import { generatedActionLabel, generatedRegionLabel } from '~/utils/generated-labels.js'
 import { useAuthStore } from '~/stores/auth'
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
+import { useInstancesStore } from '~/stores/instances'
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
 
@@ -82,10 +82,10 @@ const childrenByParentKey = ref(new Map())
 const loadedKeys = ref(new Set())
 const loadingKeys = ref(new Set())
 const authStore = useAuthStore()
-const domainUi = useCutkitDomainUi()
+const instances = useInstancesStore()
 const effectiveContainment = useEffectiveContainment()
 
-const iconFor = (type) => domainUi.getIcon(type) || 'pi pi-box'
+const iconFor = (type) => instances.iconFor(type)
 
 const entityId = (entity = null) => {
   const value = entity?._id || entity?.identity?.uid || ''
@@ -283,7 +283,7 @@ async function loadChildren(parent) {
     })
     const loaded = await Promise.all(sources.map(async source => {
       try {
-        const entities = await $fetch(domainUi.getListEndpoint(source.entityType, source.filters))
+        const entities = await instances.listInstances(instances.canonicalTypeKey(source.entityType), source.filters)
         return (Array.isArray(entities) ? entities : []).map(entity => ({
           key: `${source.entityType}:${entityId(entity)}`,
           type: source.entityType,

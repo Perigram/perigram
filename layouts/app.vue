@@ -226,7 +226,7 @@
     import { useCallsStore } from '~/stores/calls'
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'
-    import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
+    import { useRegistryStore } from '~/stores/registry'
     import { useSupportChatStore } from '~/stores/supportChat'
     import { useNavigationStore } from '~/stores/navigation'
     import { useGlobalStore } from '~/stores/global'
@@ -239,7 +239,7 @@
     const { t, te } = useI18n()
     const supportDialog = useSupportDialog()
     const authStore = useAuthStore()
-    const domainUi = useCutkitDomainUi()
+    const registry = useRegistryStore()
     provide('statusWorkflows', computed(() => authStore.statusWorkflows))
     const supportChatStore = useSupportChatStore()
     const callsStore = useCallsStore()
@@ -565,7 +565,7 @@
     const screenIcon = (screen = {}) => {
         if (screen.icon) return screen.icon
         if (screen.template === 'home') return 'pi pi-home'
-        return domainUi.getIcon(screen.entityType)
+        return registry.iconFor(screen.entityType)
     }
 
     watch(mobileShortcutStorageKey, loadMobileShortcuts)

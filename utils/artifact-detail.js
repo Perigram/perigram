@@ -1,7 +1,9 @@
-export function resolveArtifactEditingContract({ artifact = {}, domainUi, canEdit = false } = {}) {
+import { attachmentCreation, attachmentEditor } from './artifact-ui.js';
+
+export function resolveArtifactEditingContract({ artifact = {}, canEdit = false } = {}) {
   const kind = artifact.data?.type || '';
-  const creation = domainUi.getAttachmentCreation(kind);
-  const editor = domainUi.getAttachmentEditor(kind);
+  const creation = attachmentCreation(kind);
+  const editor = attachmentEditor(kind);
   return {
     creation,
     editor,

@@ -89,7 +89,7 @@ import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
 import ArtifactLayoutEditor from '~/components/ArtifactLayoutEditor.vue';
 import { useToast } from 'primevue/usetoast';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
+import { artifactDownloadUrl, attachmentEditor as attachmentEditorFor, attachmentKind, attachmentPreview } from '~/utils/artifact-ui.js';
 import { getPrimaryState } from '~/packages/core/src/index.js';
 import GeneratedDeleteButton from '~/components/generated/GeneratedDeleteButton.vue';
 import { useAuthStore } from '~/stores/auth';
@@ -108,7 +108,6 @@ const authStore = useAuthStore();
 const toast = useToast();
 const { artifacts: storeArtifacts, loading } = storeToRefs(artifactsStore);
 const artifacts = computed(() => props.artifacts || storeArtifacts.value);
-const domainUi = useCutkitDomainUi();
 
 const showPreview = ref(false);
 const previewArtifactData = ref(null);
@@ -118,7 +117,7 @@ const drawingSource = ref(null);
 const drawingSourceType = ref('dxf-url');
 const isPdf = computed(() => artifactPreviewMode(previewArtifactData.value) === 'pdf');
 const editableLayout = computed(() => Boolean(
-    domainUi.getAttachmentEditor(artifactType(previewArtifactData.value)).mode === 'layout'
+    attachmentEditorFor(artifactType(previewArtifactData.value)).mode === 'layout'
     && previewArtifactData.value?.data?.layout
     && previewArtifactData.value?.provenance?.template?.source?.id
     && hasPermissionGrant({
@@ -140,8 +139,8 @@ onMounted(async () => {
 });
 
 const artifactType = (artifact) => artifact?.data?.type || '';
-const artifactDefinition = (artifact) => domainUi.getAttachmentKind(artifactType(artifact));
-const artifactPreviewMode = (artifact) => domainUi.getAttachmentPreview(artifactType(artifact)).mode;
+const artifactDefinition = (artifact) => attachmentKind(artifactType(artifact));
+const artifactPreviewMode = (artifact) => attachmentPreview(artifactType(artifact)).mode;
 const artifactMimeType = (artifact) => artifact?.attachments?.primary?.metadata?.mimeType || artifactDefinition(artifact)?.mimeType || '';
 
 const getArtifactIcon = (mimeType) => {
@@ -159,7 +158,7 @@ const getStatusSeverity = (status) => {
 
 const downloadArtifact = (artifact) => {
     if (!artifact?._id) return;
-    window.location.href = domainUi.getDownloadEndpoint('artifact', artifact._id);
+    window.location.href = artifactDownloadUrl(artifact._id);
 };
 
 const previewArtifact = async (artifact) => {
@@ -173,7 +172,7 @@ const previewArtifact = async (artifact) => {
 
     const previewMode = artifactPreviewMode(artifact);
     if (previewMode === 'dxf' || previewMode === 'svg') {
-        drawingSource.value = domainUi.getDownloadEndpoint('artifact', artifact._id);
+        drawingSource.value = artifactDownloadUrl(artifact._id);
         drawingSourceType.value = `${previewMode}-url`;
     }
 };
@@ -196,7 +195,7 @@ const saveArtifactLayout = async () => {
         previewArtifactData.value = updated;
         editingLayout.value = false;
         layoutDraft.value = null;
-        drawingSource.value = domainUi.getDownloadEndpoint('artifact', updated._id);
+        drawingSource.value = artifactDownloadUrl(updated._id);
         toast.add({ severity: 'success', summary: t('common.success'), detail: t('artifactTemplates.saved') });
     } catch (error) {
         toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message });

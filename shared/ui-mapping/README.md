@@ -268,7 +268,7 @@ handwritten.
 - Runtime: [pages/screens/[screenKey].vue](../../pages/README.md) renders
   the compiled UI contract for active processes through the generator —
   auth hydration carries the client bundle and projected actions, and
-  `composables/useScreenInstancePool.js` maps entity collections onto the
+  `utils/instance-shape.js` (through the instances store) maps entity collections onto the
   instance pool.
 - Showcase: [pages/test/ui-mapping.vue](../../pages/test/ui-mapping.vue)
   mounts the generated screen engine over synthetic compiler output.

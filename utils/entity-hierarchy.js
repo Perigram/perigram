@@ -1,11 +1,12 @@
-import { canonicalEntityType, entitySurfaceKey } from '@cutkit/domain-cnc';
-
+// Mechanical key normalization (registry-known ids resolve through the
+// instances store; these helpers cover the legacy surface-key vocabulary):
+// canonical keys are snake_case, kebab graph ids normalize to snake.
 export function normalizeHierarchyType(type = '') {
-  return canonicalEntityType(type);
+  return String(type || '').replace(/-/g, '_').replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
 }
 
 export function hierarchyTypeAlias(type = '') {
-  return entitySurfaceKey(type);
+  return normalizeHierarchyType(type);
 }
 
 export function entityHierarchyId(entity = {}) {

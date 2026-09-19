@@ -35,12 +35,12 @@ manifest from the auth store. Process screens arrive in the compiled UI
 contract vocabulary (`typeList`/`instanceDetail`/`home` plus `typeId`) and
 render through the UI generator (`composeScreen` +
 [components/ui-mapping](../components/ui-mapping/README.md)) with the client
-bundle and projected action contract carried by auth hydration; the instance
-pool loads the referenced entity collections through
-`composables/useScreenInstancePool.js` (row-slot mapping, lineage/reference
-normalization) and also reports per-source data states
-(loading/ready/empty/denied/error) that `composeScreen` folds into the region
-tree, and action runs dispatch to the process run API. System
+bundle and projected action contract carried by auth hydration; the
+instances store (`stores/instances.js`) loads the referenced collections
+(row-slot mapping, lineage/reference normalization, per-source data states
+loading/ready/empty/denied/error that `composeScreen` folds into the region
+tree), and action runs dispatch to the process run API through the same
+store. System
 screens (organization overview/account era templates) keep the legacy fixed
 renderer until they migrate, including the compiler-synthesized `home`
 screen's Discord-style workspace overload (see

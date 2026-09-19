@@ -1,5 +1,5 @@
 import { useAuthStore } from '~/stores/auth';
-import { useCutkitDomainUi } from './useCutkitDomainUi.js';
+import { useRegistryStore } from '~/stores/registry';
 
 /**
  * Returns the effective hierarchy containment contract.
@@ -10,7 +10,7 @@ import { useCutkitDomainUi } from './useCutkitDomainUi.js';
  */
 export function useEffectiveContainment() {
   const authStore = useAuthStore();
-  const domainUi = useCutkitDomainUi();
+  const registry = useRegistryStore();
   return () => {
     const bindings = authStore.lineageBindings || [];
     if (authStore.processActive) {
@@ -20,6 +20,6 @@ export function useEffectiveContainment() {
         lineageKey: binding.lineageKey
       }));
     }
-    return domainUi.containment || [];
+    return registry.containment;
   };
 }

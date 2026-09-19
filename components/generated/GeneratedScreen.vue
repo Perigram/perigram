@@ -286,7 +286,7 @@ import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCr
 import GeneratedObjectInput from '~/components/generated/GeneratedObjectInput.vue';
 import { entityIdentifier, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
@@ -312,7 +312,7 @@ const confirm = useConfirm();
 const { t, te } = useI18n();
 const authStore = useAuthStore();
 const route = useRoute();
-const domainUi = useCutkitDomainUi();
+const instances = useInstancesStore();
 const screenRef = toRef(props, 'screen');
 const { screen, loading, error, load, applyEntitySnapshot, sourceState } = useGeneratedScreen(screenRef);
 const inputDialogVisible = ref(false);
@@ -687,8 +687,9 @@ async function entityOptions(entityType, field = {}) {
     return (items || []).map(entity => entityOption(entity, entityType));
   }
   if (!entityType) return [];
-  const items = await $fetch(domainUi.getListEndpoint(uiEntityType(entityType)));
-  const constructable = domainUi.construction[entityType]?.isConstructable;
+  const typeKey = instances.canonicalTypeKey(entityType);
+  const items = await instances.listInstances(typeKey);
+  const constructable = instances.constructible(typeKey);
   return (Array.isArray(items) ? items : items.items || items.data || [])
     .filter(constructable || (entity => true))
     .filter(entity => !field.attachmentKinds?.length || field.attachmentKinds.includes(entity.data?.type))
@@ -726,12 +727,6 @@ function syncRelationCreatorParameters() {
       .find(item => String(item.value) === String(templateId))?.entity;
     relationCreatorValues[field.id] = { ...occsQueueParameters(cassetteParameterDefinition(template)) };
   }
-}
-
-function uiEntityType(entityType = '') {
-  if (domainUi.endpointMap?.[entityType]) return entityType;
-  const camel = String(entityType).replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
-  return domainUi.endpointMap?.[camel] ? camel : entityType;
 }
 
 function showActionError(err) {

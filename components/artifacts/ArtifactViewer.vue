@@ -36,18 +36,17 @@ import Column from 'primevue/column';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+
 import { resolveArtifactViewer } from '~/utils/artifact-viewer.js';
 
 const props = defineProps({ artifact: { type: Object, required: true }, revision: { type: Object, default: null } });
-const domainUi = useCutkitDomainUi();
 const docxHost = ref(null);
 const text = ref('');
 const rows = ref([]);
 const columns = ref([]);
 const error = ref('');
 const blobUrl = ref('');
-const viewer = computed(() => resolveArtifactViewer({ artifact: props.artifact, revision: props.revision, domainUi }));
+const viewer = computed(() => resolveArtifactViewer({ artifact: props.artifact, revision: props.revision }));
 const mode = computed(() => viewer.value.mode);
 const hasFile = computed(() => viewer.value.hasFile);
 const fileUrl = computed(() => viewer.value.fileUrl);

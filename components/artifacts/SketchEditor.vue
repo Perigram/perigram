@@ -143,13 +143,12 @@ import { useI18n } from 'vue-i18n';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { artifactSurfaces } from '~/utils/artifact-ui.js';
 import { SKETCH_TOOLS, SKETCH_VIEWBOX, parseScene, strokeToSvgPath, strokesAtPoint } from '~/utils/sketch.js';
 
 const props = defineProps({ artifact: { type: Object, required: true } });
 const emit = defineEmits(['saved']);
 const { t } = useI18n();
-const domainUi = useCutkitDomainUi();
 
 const loading = ref(true);
 const saving = ref(false);
@@ -172,7 +171,7 @@ const sizeOptions = computed(() => [
     { label: t('sketch.sizes.medium'), value: 4 },
     { label: t('sketch.sizes.thick'), value: 8 }
 ]);
-const entityTypeOptions = computed(() => (domainUi.surfaces || [])
+const entityTypeOptions = computed(() => artifactSurfaces
     .map(surface => ({ label: t(`entities.${surface.key}`), value: surface.key }))
     .filter(option => option.label !== `entities.${option.value}`));
 

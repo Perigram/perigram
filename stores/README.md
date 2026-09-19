@@ -2,18 +2,63 @@
 
 Pinia stores for client state and API orchestration.
 
+## Client state model
+
+Three cells; every surface derives from them, nothing else caches:
+
+- `instances.js` — the single instance cache and transport boundary. Records
+  are keyed by type key, then id: `{ [typeKey]: { [id]: { dto, instance } } }`
+  where `dto` is the raw wire document and `instance` is the derived CTS §3
+  shape (derived iff the registry knows the type's declaration). List results
+  are cached observations (`{ ids, stale }` per query key), concurrent
+  lookups coalesce, and one `onEntityChanged` subscriber reconciles every
+  open surface. All reads flow through it: `fetchInstance` (single endpoint
+  with list-and-find fallback, so no expected 403/404 probes),
+  `listInstances`, `upsertRecord`/`removeRecord` for event application.
+  Mutations go through it too: `runAction` posts process actions to the
+  active-process action endpoint via the offline outbox (idempotent replay),
+  and `mutateDirect` serves the framework/party/editor feature endpoints the
+  same way. Endpoint resolution is owned here: framework party/service types
+  keep their feature routes (mirrors the server's framework service set),
+  remaining pack feature modules keep theirs (pinned by spec to the mounted
+  `server/api` routes), and every declared type without an explicit service
+  resolves to the generic instance transport `/api/instances/:typeId`.
+  Icons and constructibility resolve from the registry bundle (render
+  policy, declared construct operators); event type keys canonicalize to
+  cache keys through the registry when the bundle knows them, else through
+  the mechanical case normalization in `utils/generated-screen-source.js`.
+- `registry.js` — the compiled CTS client bundle as first-class state,
+  projected from auth hydration (`processPayload.bundle`) with `refresh()`
+  re-hydrating through the auth store. Owns `typesById`, `typeRecord`,
+  `statesOf`, `operatorsOf`, `renderOf`, `iconFor`, `constructible`, and the
+  row-slot field projection the instance conversion consumes. The process
+  designer reads the same bundle from its own overlay; this store is the
+  runtime/client consumption contract.
+- `auth.js` — identity, memberships, and the compiled per-user access
+  contract (`effectivePermissions`, screens, navigation, action manifest,
+  field policies, workflows, lineage bindings, process bundle). The sole
+  hydration boundary; see its entry below.
+
+`entities.js` is the delegated legacy contract: `fetchEntity` resolves
+optional references through the instances store and projects the cached DTO
+(the wire shape its callers — trace, inline refs, workspaces, navigation —
+still consume). It owns no fetching, no registry seeding, and no endpoint
+table. `useEntity` (composables) delegates to the same path. Both are the
+next deletion wave once the handwritten card/detail/editor surfaces render
+from instances directly; they must gain no new callers.
+
 ## Core Stores
-- `entities.js`: Universal entity registry and cache for all system entity
-  types. `fetchEntity(type, id, force?, options?)` is the optional-reference
-  resolver used by trace, relation, and persisted-workspace hydration. It asks
-  the entity's access-filtered collection endpoint for that exact `_id`, caches
-  only an exact readable match, and coalesces concurrent lookups. An unreadable,
-  stale, or deleted reference therefore resolves to `null` without probing a
-  protected detail endpoint and producing expected 403/404 browser failures.
-  `options.silent` still suppresses genuine collection-boundary errors. The
-  store also subscribes to the shared browser-local entity sync contract from
-  `utils/entity-events.js`, so successful `useEntity()` CRUD calls and status
-  transitions upsert or remove matching cached entities automatically.
+
+- `entities.js`: Delegated legacy contract for the handwritten surfaces.
+  `fetchEntity(type, id, force?, options?)` is the optional-reference
+  resolver used by trace, relation, and persisted-workspace hydration. It
+  resolves through the instances store (single-endpoint read with
+  list-and-find fallback) and projects the cached wire DTO; only an exact
+  readable match is cached, concurrent lookups coalesce in the store, and an
+  unreadable, stale, or deleted reference resolves to `null`.
+  `options.silent` still suppresses genuine collection-boundary errors.
+  Event reconciliation happens once in the instances store, so every legacy
+  caller sees mutations without its own subscription. Gains no new callers.
 - `layerStandards.js`: Loads the canonical layer-standard catalogue. Lookups use
   `standard.data.code` / `standard.data.category` with root-field fallbacks only
   for migration compatibility, and pen overrides update `data.orgPenId`.

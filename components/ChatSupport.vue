@@ -514,7 +514,7 @@
                                         :aria-label="messageItem.entityLink.name"
                                         @click="openLowerEntityChat(messageItem)"
                                     >
-                                        <i :class="domainUi.getIcon(messageItem.entityLink.type) || 'pi pi-box'" class="shrink-0 scale-90" aria-hidden="true"></i>
+                                        <i :class="instances.iconFor(messageItem.entityLink.type)" class="shrink-0 scale-90" aria-hidden="true"></i>
                                         <span class="min-w-0 truncate underline-offset-4 group-hover:underline">{{ messageItem.entityLink.name }}</span>
                                     </button>
                                 </span>
@@ -615,7 +615,7 @@
                                     :aria-current="isTrailEntrySelected(crumb) ? 'true' : undefined"
                                     @click="truncateStripTrail(index)"
                                 >
-                                    <i :class="domainUi.getIcon(crumb.type) || 'pi pi-box'" aria-hidden="true"></i>
+                                    <i :class="instances.iconFor(crumb.type)" aria-hidden="true"></i>
                                 </button>
                             </template>
                             <template v-if="stripChildren.length">
@@ -632,7 +632,7 @@
                                     :aria-pressed="isChipSelected(chip)"
                                     @click="drillStripTo(chip)"
                                 >
-                                    <i :class="domainUi.getIcon(chip.type) || 'pi pi-box'" class="shrink-0" aria-hidden="true"></i>
+                                    <i :class="instances.iconFor(chip.type)" class="shrink-0" aria-hidden="true"></i>
                                     <span class="max-w-32 truncate">{{ chip.name || localizedEntityTypeLabel(chip.type) }}</span>
                                 </button>
                             </template>
@@ -930,7 +930,8 @@ import { isGeneratedSurfaceAction } from '~/components/generated/action-visibili
 import { generatedActionLabel } from '~/utils/generated-labels.js'
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState'
 import { useConnections } from '~/composables/useConnections.js'
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js'
+import { useInstancesStore } from '~/stores/instances'
+import { useRegistryStore } from '~/stores/registry'
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js'
 import { openEntityChat } from '~/utils/entity-chat.js'
 import { openEntityInWorkspace } from '~/utils/entity-workspace-open.js'
@@ -1001,7 +1002,8 @@ const replyTo = ref(null)
 const swipeArmed = ref(new Set())
 const highlightKey = ref('')
 const loadingAnchor = ref(false)
-const domainUi = useCutkitDomainUi()
+const instances = useInstancesStore()
+const registry = useRegistryStore()
 const newChatDialog = ref(false)
 const newChatUsers = ref([])
 const newChatUsersLoading = ref(false)
@@ -1131,7 +1133,7 @@ const conversationSections = computed(() => [...displayConversations.value].sort
 const isActiveConversation = (conversation) => activeConversation.value?.conversationKey === conversation.conversationKey
 
 const entityConversationIcon = (conversation) => (
-    domainUi.getIcon(conversation?.entityType) || 'pi pi-box'
+    instances.iconFor(conversation?.entityType)
 )
 
 // The entity thread title links into the entity surface: the generated
@@ -1570,7 +1572,7 @@ async function loadStripChildren(targetKey, targetType, targetEntity = null) {
         })
         const loaded = await Promise.all(sources.map(async source => {
             try {
-                const entities = await $fetch(domainUi.getListEndpoint(source.entityType, source.filters))
+                const entities = await instances.listInstances(instances.canonicalTypeKey(source.entityType), source.filters)
                 return (Array.isArray(entities) ? entities : []).map(entity => ({
                     key: `${source.entityType}:${stripEntityId(entity)}`,
                     type: source.entityType,
@@ -1630,7 +1632,7 @@ function effectiveContainmentForStrip() {
             parentType: binding.ancestorEntityType,
             lineageKey: binding.lineageKey
         }))
-        : [...(domainUi.containment || [])]
+        : [...registry.containment]
     // Detail screens declare deeper hierarchy than the compiled bindings
     // (nesting runs under queues, sheet designs under runs): every list
     // source on a type's detail screen is a child edge, with the lineage

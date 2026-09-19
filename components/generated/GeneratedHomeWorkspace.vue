@@ -222,7 +222,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities.js';
 import { useSupportChatStore } from '~/stores/supportChat';
 import { useCallsStore } from '~/stores/calls';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { useInstancesStore } from '~/stores/instances';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedActionLabel, generatedRegionLabel } from '~/utils/generated-labels.js';
 import { callRoomIcon, callRoomLabel, conversationKeyForRoom } from '~/utils/call-rooms.js';
@@ -256,7 +256,7 @@ const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
 const entityStore = useEntityStore();
-const domainUi = useCutkitDomainUi();
+const instances = useInstancesStore();
 const supportChatStore = useSupportChatStore();
 const callsStore = useCallsStore();
 const effectiveContainment = useEffectiveContainment();
@@ -707,7 +707,7 @@ function sectionLabel(section = {}) {
 }
 
 function sectionIcon(section = {}) {
-  return domainUi.getIcon(section.source.entityType);
+  return instances.iconFor(section.source.entityType);
 }
 
 function sectionMenuKey(section = {}) {
@@ -785,7 +785,7 @@ async function loadContainmentChildren(parent) {
   });
   const loaded = await Promise.all(sources.map(async source => {
     try {
-      const entities = await $fetch(domainUi.getListEndpoint(source.entityType, source.filters));
+      const entities = await instances.listInstances(instances.canonicalTypeKey(source.entityType), source.filters);
       return (Array.isArray(entities) ? entities : []).map(entity => workspaceEntityItem(source.entityType, entity));
     } catch {
       return [];

@@ -2,21 +2,24 @@ import { useRequestHeaders } from '#app';
 import { ref, computed } from 'vue';
 import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 import { useStatusController } from './useStatusController';
-import { useCutkitDomainUi } from './useCutkitDomainUi';
+import { useInstancesStore } from '~/stores/instances';
 import { emitEntityCreated, emitEntityDeleted, emitEntityUpdated } from '~/utils/entity-events.js';
-import { useOutboxStore } from '~/stores/outbox';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 
 /**
- * Unified Entity Composable - v24 Standardized
- * Provides a reactive bridge for interacting with v24 Block-based entities.
- * Covers both single-entity operations and collection listing.
+ * Delegated legacy entity composable (contract unchanged — see
+ * composables/README.md). Transport resolves through the instances store:
+ * reads from its cache, mutations through the outbox-backed feature
+ * endpoints it resolves for the type. The block computed refs and the
+ * shared entity-event emissions are the contract the handwritten surfaces
+ * still consume.
  *
  * @param {string} type - Entity type key (e.g., 'project', 'queue')
  * @param {string} [identifier] - UID, ID, or slug for single-entity operations
  */
 export const useEntity = (type, identifier = null) => {
-  const domainUi = useCutkitDomainUi();
+  const instances = useInstancesStore();
+  const typeKey = computed(() => instances.canonicalTypeKey(type));
   const entity = ref(null);
   const items = ref([]);
   const loading = ref(false);
@@ -30,14 +33,6 @@ export const useEntity = (type, identifier = null) => {
   const { lineage, getAncestorId } = useLineage(entity);
   const { specs, formattedDimensions, formattedArea } = useSpecs(entity);
 
-  const getSingleEndpoint = (id = identifier || entity.value?._id) => {
-    return domainUi.getSingleEndpoint(type, id);
-  };
-
-  const getListEndpoint = (filters = {}) => {
-    return domainUi.getListEndpoint(type, filters);
-  };
-
   /**
    * Fetch a single entity by ID or slug
    */
@@ -46,7 +41,10 @@ export const useEntity = (type, identifier = null) => {
     loading.value = true;
     error.value = null;
     try {
-      const data = await $fetch(getSingleEndpoint(id), entityFetchOptions());
+      const data = await instances.fetchInstance(typeKey.value, id, {
+        ...(options.force ? { force: true } : {}),
+        fetchOptions: entityFetchOptions()
+      });
       entity.value = data;
       return data;
     } catch (err) {
@@ -69,7 +67,11 @@ export const useEntity = (type, identifier = null) => {
     loading.value = true;
     error.value = null;
     try {
-      const data = await $fetch(getListEndpoint(filters), entityFetchOptions());
+      const data = await instances.listInstances(typeKey.value, filters || {}, {
+        silent: Boolean(options.silent),
+        force: Boolean(options.force),
+        fetchOptions: entityFetchOptions()
+      });
       items.value = Array.isArray(data) ? data : data.items ?? data.projects ?? data.data ?? [];
       return items.value;
     } catch (err) {
@@ -89,9 +91,8 @@ export const useEntity = (type, identifier = null) => {
   const update = async (updates, id = identifier || entity.value?._id) => {
     loading.value = true;
     try {
-      const data = await mutateOffline({
-        url: getSingleEndpoint(id),
-        method: 'PATCH',
+      const data = await instances.mutateDirect(typeKey.value, 'PATCH', {
+        id,
         body: updates,
         meta: { kind: 'entity', entityType: type, entityId: id, change: 'updated', reason: 'update' }
       });
@@ -114,10 +115,7 @@ export const useEntity = (type, identifier = null) => {
     loading.value = true;
       error.value = null;
     try {
-      const url = domainUi.getListEndpoint(type);
-      const result = await mutateOffline({
-        url,
-        method: 'POST',
+      const result = await instances.mutateDirect(typeKey.value, 'POST', {
         body: data,
         meta: { kind: 'entity', entityType: type, change: 'created', reason: 'create' }
       });
@@ -142,9 +140,8 @@ export const useEntity = (type, identifier = null) => {
     try {
       const removedId = id || entity.value?._id;
       const removedEntity = entity.value;
-      await mutateOffline({
-        url: getSingleEndpoint(id),
-        method: 'DELETE',
+      await instances.mutateDirect(typeKey.value, 'DELETE', {
+        id: removedId,
         meta: { kind: 'entity', entityType: type, entityId: removedId, change: 'deleted', reason: 'delete' }
       });
       entity.value = null;
@@ -219,14 +216,6 @@ function entityFetchOptions(options = {}) {
       ...(options.headers || {})
     }
   };
-}
-
-async function mutateOffline({ url, method, body, meta }) {
-  if (typeof window === 'undefined') {
-    return $fetch(url, entityFetchOptions({ method, body }));
-  }
-  const outbox = useOutboxStore();
-  return outbox.mutate({ url, method, body, meta });
 }
 
 function queuedOrErrorMessage(err, fallback) {

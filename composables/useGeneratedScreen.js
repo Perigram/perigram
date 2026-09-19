@@ -1,7 +1,8 @@
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useRequestHeaders } from '#app';
 import { useAuthStore } from '~/stores/auth';
-import { useEntity } from '~/composables/useEntity';
+import { useInstancesStore } from '~/stores/instances';
 import { normalizeScreenContract } from '~/packages/processes/src/screen-contract.js';
 import { hasProcessRequirement } from '~/utils/process-navigation.js';
 import { onEntityChanged } from '~/utils/entity-events.js';
@@ -9,6 +10,7 @@ import { filterRootSourceItems } from '~/utils/generated-screen-source.js';
 
 export function useGeneratedScreen(screenRef) {
   const authStore = useAuthStore();
+  const instances = useInstancesStore();
   const { activePermissions } = storeToRefs(authStore);
   const sourceStates = ref({});
   const loading = ref(false);
@@ -19,6 +21,10 @@ export function useGeneratedScreen(screenRef) {
   const screen = computed(() => normalizeScreenContract(unrefScreen(screenRef) || {}));
 
   const visibleSources = computed(() => screen.value.sources.filter(source => canReadSource(source, activePermissions.value)));
+
+  function sourceTypeKey(source = {}) {
+    return instances.canonicalTypeKey(source.typeId || source.entityType || '');
+  }
 
   async function load({ initial = false } = {}) {
     if (refreshTimer) {
@@ -37,17 +43,18 @@ export function useGeneratedScreen(screenRef) {
     if (firstLoad) loading.value = true;
     if (firstLoad) error.value = null;
     try {
+      const fetchOptions = entityFetchOptions();
       const loaded = await Promise.all(sources.map(async source => {
-        const entityApi = useEntity(source.entityType);
+        const typeKey = sourceTypeKey(source);
         if (source.mode === 'single') {
           const identifier = resolveSourceIdentifier(source, screen.value);
           if (!identifier) {
             return [source.id, { ...emptyState(source), error: 'missing-identifier' }];
           }
-          const entity = await entityApi.fetch(identifier, { silent: true });
+          const entity = await instances.fetchInstance(typeKey, identifier, { fetchOptions });
           return [source.id, { ...emptyState(source), entity }];
         }
-        const items = await entityApi.list(resolveSourceFilters(source, screen.value));
+        const items = await instances.listInstances(typeKey, resolveSourceFilters(source, screen.value), { fetchOptions });
         return [source.id, { ...emptyState(source), items }];
       }));
       if (sequence !== loadSequence) return;
@@ -216,6 +223,17 @@ function resolveValue(value, screen = {}) {
 
 function getByPath(source, path) {
   return String(path || '').split('.').filter(Boolean).reduce((value, key) => value?.[key], source);
+}
+
+function entityFetchOptions(options = {}) {
+  if (!import.meta.server) return options;
+  return {
+    ...options,
+    headers: {
+      ...useRequestHeaders(['cookie']),
+      ...(options.headers || {})
+    }
+  };
 }
 
 function unrefScreen(screenRef) {

@@ -462,9 +462,8 @@ const genericUiFiles = [
 genericUiFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
   const relFile = path.relative('.', file);
-  if (relFile === 'composables/useCutkitDomainUi.js') return;
   if (/from\s+['"]@cutkit\/domain-cnc['"]/.test(content)) {
-    console.error(`❌ ${relFile} imports @cutkit/domain-cnc directly — consume the injected domain UI adapter`);
+    console.error(`❌ ${relFile} imports @cutkit/domain-cnc directly — consume the client state stores (stores/instances, stores/registry) or the scoped artifact-ui seam`);
     errors++;
   }
 });

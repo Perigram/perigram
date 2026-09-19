@@ -3,7 +3,7 @@ import Button from 'primevue/button';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
+import { useInstancesStore } from '~/stores/instances';
 
 const props = defineProps({
   source: { type: Object, required: true }
@@ -11,7 +11,7 @@ const props = defineProps({
 
 const emit = defineEmits(['remove']);
 const { t } = useI18n();
-const domainUi = useCutkitDomainUi();
+const instances = useInstancesStore();
 
 const ENTITY_TYPE_BY_SOURCE = {
   PILE: 'materialPile',
@@ -25,7 +25,7 @@ const entity = computed(() => props.source.entity || {
   identity: { name: props.source.label },
   data: {}
 });
-const icon = computed(() => domainUi.getIcon?.(entityType.value) || 'pi pi-box');
+const icon = computed(() => instances.iconFor(entityType.value));
 const dimensions = computed(() => props.source.dimensions || {});
 const width = computed(() => Number(dimensions.value.width || dimensions.value.w || 0));
 const length = computed(() => Number(dimensions.value.length || dimensions.value.height || dimensions.value.h || 0));

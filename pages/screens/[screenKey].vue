@@ -36,11 +36,11 @@ import Button from 'primevue/button';
 import Message from 'primevue/message';
 import Tag from 'primevue/tag';
 import { useAuthStore } from '~/stores/auth';
+import { useInstancesStore } from '~/stores/instances';
 import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
-import { useScreenInstancePool } from '~/composables/useScreenInstancePool.js';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { resolveGeneratedEntityDetailOverload } from '~/components/generated/overloads.js';
 
@@ -106,22 +106,52 @@ const screen = computed(() => {
 const processBundle = computed(() => authStore.processPayload?.bundle || { types: [] });
 const processActions = computed(() => authStore.processPayload?.actions || {});
 
-const { pool, loading: poolLoading, error: poolError, states: poolStates, load: loadPool } = useScreenInstancePool();
+const instances = useInstancesStore();
+// The generator's data layer stands in the instance pool projection of the
+// shared instance cache; per-source data states (loading/ready/empty/
+// denied/error) fold into composeScreen's region tree exactly as the pool
+// composable produced them.
+const pool = computed(() => instances.instancePool);
+const poolLoading = ref(false);
+const poolError = ref('');
+const poolStates = ref({});
 async function reload() {
-  if (screen.value) await loadPool(screen.value, processBundle.value);
+  const screenValue = screen.value;
+  if (!screenValue) return;
+  const sources = (screenValue.sources || []).filter(source => source.id && (source.typeId || source.entityType));
+  if (!sources.length) {
+    poolStates.value = {};
+    return;
+  }
+  poolLoading.value = true;
+  poolError.value = '';
+  poolStates.value = Object.fromEntries(sources.map(source => [source.id, 'loading']));
+  try {
+    for (const source of sources) {
+      await instances.listInstances(instances.canonicalTypeKey(source.typeId || source.entityType));
+      poolStates.value[source.id] = Object.keys(instances.records[instances.canonicalTypeKey(source.typeId || source.entityType)] || {}).length
+        ? 'ready'
+        : 'empty';
+    }
+  } catch (err) {
+    poolError.value = err?.data?.message || err?.message || String(err);
+    const denied = err?.status === 403 || err?.statusCode === 403 || err?.data?.statusCode === 403;
+    poolStates.value = Object.fromEntries(Object.entries(poolStates.value)
+      .map(([id, value]) => [id, value === 'loading' ? (denied ? 'denied' : 'error') : value]));
+  } finally {
+    poolLoading.value = false;
+  }
 }
 watch([screen, processBundle], () => reload(), { immediate: true });
 
 // Action dispatch: the projected manifest action id is the execution
-// contract's id — the run API resolves the rest server-side.
+// contract's id — the run API resolves the rest server-side. Runs flow
+// through the instances store (the offline outbox boundary).
 async function runGeneratedAction(action, data = {}) {
   const scope = screen.value?.scope || {};
   const entityId = scope.instanceId || scope.entityId || null;
   try {
-    await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(action.id)}/execute`, {
-      method: 'POST',
-      body: { entityId, entities: {}, data, parameters: {} }
-    });
+    await instances.runAction({ actionId: action.id, entityId, entities: {}, data, parameters: {} });
     toast.add({ severity: 'success', summary: action.label || action.id, detail: t('generatedScreen.actionCompleted'), life: 2000 });
     await reload();
   } catch (error) {
