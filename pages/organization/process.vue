@@ -1105,6 +1105,7 @@ import {
   declarationWireLegality,
   definitionToCanvas,
   formatProcessType,
+  getProcessNodeDefinition,
   migrateProcessDefinition,
   operationKindOf,
   PROCESS_DATAFLOW_VERSION,
@@ -3903,7 +3904,11 @@ function processNodeDisplayLabel(node = {}) {
     .filter(candidate => !candidate.preset?.typeId || candidate.preset.typeId === boundType);
   const item = items.find(candidate => candidate.preset?.select && candidate.preset.select === node.select)
     || items[0];
-  return item ? paletteLabel(item) : humanizeNodeLabel(node.kind || '');
+  if (item) return paletteLabel(item);
+  // Catalog-only kinds (migrated block composition) label from the catalog
+  // definition, not the raw kind string.
+  const definition = getProcessNodeDefinition(node.kind);
+  return definition ? humanizeNodeLabel(definition.label || node.kind) : humanizeNodeLabel(node.kind || '');
 }
 
 function processNodeDescription(node = {}) {

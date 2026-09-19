@@ -232,7 +232,6 @@ describe('process designer domain contract', () => {
       'types',
       'operations',
       'instances',
-      'structure',
       'values',
       'listTree'
     ]);
@@ -254,11 +253,13 @@ describe('process designer domain contract', () => {
       'cts.join'
     ]);
     expect(groups.instances.map(item => item.preset.select)).toEqual([
-      'current', 'byId', 'byRef', 'parent', 'children', 'related', 'query'
+      'current', 'byId', 'byRef', 'parent', 'children', 'related', 'query', undefined
     ]);
-    expect(groups.structure.map(item => item.kind)).toEqual([
-      'cts.field', 'cts.compose', 'cts.decompose'
-    ]);
+    // the field projection lives with the entity sources; block composition
+    // (cts.compose/cts.decompose) is catalog-only for migrated graphs
+    expect(groups.instances.at(-1).kind).toBe('cts.field');
+    expect(items.map(item => item.kind)).not.toContain('cts.compose');
+    expect(items.map(item => item.kind)).not.toContain('cts.decompose');
     expect(groups.values.map(item => item.kind)).toEqual([
       'source.literalItem',
       'value.logic',
