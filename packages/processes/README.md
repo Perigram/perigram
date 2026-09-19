@@ -25,24 +25,32 @@ never select or encode an entity type. Create and Update validate connected
 block fields against their target entity policy at the consumer boundary.
 
 The grouped authoring palette is a curated framework projection, separate from
-the exhaustive runtime catalog. It exposes Instances, Reads, Structure,
-Values, and Lists and trees, with stable localization and description ids.
+the exhaustive runtime catalog. It groups by authoring concern: Types
+(declaration items plus the registry type catalog at the designer
+surface), Operations (the effect species), Instances (reads), Structure
+(field/record shaping), Values, and Lists and trees, with stable
+localization and description ids. Services are offered from the
+projected domain's `serviceContracts` — the registered operator surface
+— never from a legacy command table: there is no "run service"
+operation, because dropping a registered service item IS running it.
 Entity-bound palette items are graph-protocol v5 species kinds (`cts.*`,
-SPEC §20 of the CTS spec): Construct/Mutate/Transition/Remove/Command over
+SPEC §20 of the CTS spec): Construct/Mutate/Transition/Remove over
 type declarations, one `cts.read` kind discriminated by `select`, and the
 field/compose/decompose structure family. The catalog carries `cts.*`
 definitions whose ports resolve through the record's operation-kind twin
 (`operationKindOf`/`resolveCtsRecord` from `@perigram/cts` — one canonical
 kind mapping, never duplicated); port contracts of a cts record and its v4
-twin are identical by test after stripping the authoring-only `Type` pin
-— the persistent binding input every type-bound species record
-(`TYPE_BOUND_SPECIES`) carries, bound or not, so binding wires never
-dangle and re-binding stays possible (lowering removes the pin; the
-compiler never sees it). Declaration authoring composes in the same
+twin are identical by test after stripping the origin species'
+authoring-only `Type` pin — the persistent binding input on
+`cts.construct`/`cts.read` (`TYPE_PIN_SPECIES`), typed by the binding
+once bound. Consumer species (`cts.mutate`, `cts.transition`,
+`cts.remove` — `TYPE_BOUND_SPECIES` minus the origins) carry no pin:
+their binding follows the Type wire, else the entity input's source
+type, else the stored preset. Declaration authoring composes in the same
 tree: Class/Field/State canvas nodes wire through the legality matrix
 (`declarationWireLegality`) and compile into registry declarations via
 `compileTreeDeclarations` (R4-enforcing, pure over the canvas arrays).
-Declaration wires are the live binding channel:
+Declaration wires are live binding channels:
 `interpretDeclarationEdges` derives declaration-node type ids, class
 field/state counts, and species-record bindings from the current edge
 set (pure over the canvas arrays, idempotent — a settled graph evaluates

@@ -633,16 +633,19 @@ Effect nodes take the species names of §8 (the canonical table is
 
 The palette is operations, never a domain catalog. No node drops pre-bound:
 a seeded domain type is an invisible authoring decision the user never
-made — records are unbound until the author binds them. Type reference
-nodes persist on the canvas as `ctsType` nodes (they own no records); a
-wire between a type node and a type-bound species record carries the
-binding into the record's `typeId`/`type` field. Binding wires are
-`role: 'type'` canvas edges — the live binding channel, interpreted on
-every graph change (renaming the source re-binds every wired descendant;
-removing the wire unbinds what it carried) — and the Type pin they land
-on is a persistent socket of the species record, so a wire never dangles
-and re-binding stays possible. Normalization drops them before validation
-because the interpreted binding itself is persisted in the record.
+made — records are unbound until the author binds them (the palette's
+type-catalog constructs are the one exception, where the chosen item IS
+the binding). Type reference nodes persist on the canvas as `ctsType`
+nodes (they own no records). Binding semantics split by species: origin
+species (`cts.construct`, `cts.read`) carry a persistent Type pin wired
+from a type node or class; consumer species (`cts.mutate`,
+`cts.transition`, `cts.remove`) carry no pin — their binding follows the
+Type wire while one exists, else the entity input's source type, else
+the stored preset. Binding wires are `role: 'type'` canvas edges — live
+binding channels, interpreted on every graph change (renaming the
+source re-binds every wired descendant; removing the channel unbinds
+what it carried). Normalization drops them before validation because
+the interpreted binding itself is persisted in the record.
 
 ### Residue (explicit)
 
