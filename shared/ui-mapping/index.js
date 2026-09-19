@@ -167,6 +167,11 @@ export function applyBudget(items = [], budget = null) {
   });
 }
 
+export function fieldLabel(name, descriptor = {}) {
+  if (descriptor.label) return descriptor.label;
+  return String(name).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
+}
+
 export const defaultMapping = createUiMapping();
 export const resolveFieldControl = defaultMapping.resolveFieldControl;
 export const resolveSurface = defaultMapping.resolveSurface;

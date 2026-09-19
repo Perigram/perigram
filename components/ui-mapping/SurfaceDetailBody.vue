@@ -1,14 +1,10 @@
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-6">
     <PreviewBox v-if="hasPreview" :type="type" :payload="instance.payload" />
-    <div class="grid grid-cols-1 items-start gap-x-4 gap-y-3 md:grid-cols-2">
-      <div
-        v-for="field in fields"
-        :key="field.name"
-        class="flex min-w-0 flex-col gap-1"
-        :class="spanFor(field.descriptor)"
-      >
-        <span class="text-label">{{ field.name }}</span>
+
+    <div v-if="scalarFields.length" class="grid grid-cols-2 items-start gap-x-6 gap-y-4 md:grid-cols-4">
+      <div v-for="field in scalarFields" :key="field.name" class="flex min-w-0 flex-col gap-1">
+        <span class="text-supporting text-muted">{{ field.label }}</span>
         <FieldControl
           :model-value="instance.fields?.[field.name]"
           :descriptor="field.descriptor"
@@ -18,6 +14,20 @@
         />
       </div>
     </div>
+
+    <div v-if="structuralFields.length" class="flex flex-col gap-4">
+      <div v-for="field in structuralFields" :key="field.name" class="flex min-w-0 flex-col gap-1">
+        <span class="text-label">{{ field.label }}</span>
+        <FieldControl
+          :model-value="instance.fields?.[field.name]"
+          :descriptor="field.descriptor"
+          variant="row"
+          :pool="pool"
+          :bundle="bundle"
+        />
+      </div>
+    </div>
+
     <div v-for="relation in relationViews" :key="relation.key" :class="relationClass(relation)">
       <EntityChip v-for="ref in relation.shown" :key="ref.id" :value="ref" :pool="pool" :bundle="bundle" />
       <Tag v-if="relation.overflow === 'count' && relation.hidden > 0" :value="`+${relation.hidden}`" severity="contrast" />
@@ -36,10 +46,12 @@
 import { computed } from 'vue';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import { resolveSurface, applyBudget } from '#shared/ui-mapping/index.js';
+import { fieldLabel, resolveSurface, applyBudget } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import EntityChip from './EntityChip.vue';
 import PreviewBox from './PreviewBox.vue';
+
+const SCALAR_BASES = new Set(['string', 'number', 'quantity', 'instant', 'boolean', 'enum']);
 
 const props = defineProps({
   instance: { type: Object, required: true },
@@ -54,8 +66,13 @@ defineEmits(['toggle']);
 
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
 const hasPreview = computed(() => surface.value.slots.includes('preview'));
-const fields = computed(() => Object.entries(props.type.fields || {}).map(([name, descriptor]) => ({ name, descriptor })));
-const spanFor = descriptor => (descriptor.base === 'record' || descriptor.base === 'list' || descriptor.base === 'map' || descriptor.base === 'json' ? 'md:col-span-2' : '');
+
+const isLongString = descriptor => descriptor.base === 'string'
+  && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
+const fieldList = computed(() => Object.entries(props.type.fields || {})
+  .map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
+const scalarFields = computed(() => fieldList.value.filter(field => SCALAR_BASES.has(field.descriptor.base) && !isLongString(field.descriptor)));
+const structuralFields = computed(() => fieldList.value.filter(field => !SCALAR_BASES.has(field.descriptor.base) || isLongString(field.descriptor)));
 
 const relationViews = computed(() => {
   if (!surface.value.slots.includes('relations')) return [];

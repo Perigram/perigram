@@ -46,10 +46,10 @@ describe('screen composition over fixtures', () => {
 
   it('composes list and home screens with unscoped collections', () => {
     const list = composeScreen(contract.screens.auto_operator_part, contract, bundle, pool);
-    expect(list.regions[0].instances).toHaveLength(4);
+    expect(list.regions[0].instances).toHaveLength(8);
     expect(list.regions[0].actions.map(action => action.id)).toEqual(['part_create', 'drawing_link']);
     const home = composeScreen(contract.screens.home_operator, contract, bundle, pool);
-    expect(home.regions[0].instances).toHaveLength(4);
+    expect(home.regions[0].instances).toHaveLength(8);
   });
 });
 
@@ -99,10 +99,10 @@ describe('ui-mapping fixtures', () => {
     expect(outcomes.drawing_link).toMatchObject({ tone: 'text', icon: 'pi pi-link' });
   });
 
-  it('exercise budgets with 0, 1, 3, and 8 related files', () => {
+  it('exercise budgets with varied file counts across the collection', () => {
     const instances = createUiMappingInstances();
     const counts = instances.parts.map(part => part.relations.drawings.length);
-    expect(counts).toEqual([0, 1, 3, 8]);
+    expect(counts).toEqual([0, 1, 3, 8, 2, 5, 1, 4]);
 
     const rowSurface = resolveSurface({ id: 'part', class: 'item' }, { variant: 'row' });
     const detailSurface = resolveSurface({ id: 'part', class: 'item' }, { variant: 'detail' });
@@ -111,7 +111,7 @@ describe('ui-mapping fixtures', () => {
 
     const budget = rowSurface.budgets.relations;
     const outcomes = instances.parts.map(part => applyBudget(part.relations.drawings, budget).hidden);
-    expect(outcomes).toEqual([0, 0, 1, 6]);
+    expect(outcomes).toEqual([0, 0, 1, 6, 0, 3, 0, 2]);
   });
 
   it('keep instances in the CTS stored shape', () => {

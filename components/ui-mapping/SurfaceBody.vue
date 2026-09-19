@@ -7,6 +7,11 @@
         <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
       </div>
     </template>
+    <template v-if="actions.length" #icons>
+      <div class="flex flex-wrap items-center gap-2">
+        <ActionButton v-for="action in actions" :key="action.id" :action="action" :render="type.render" @run="$emit('run', action)" />
+      </div>
+    </template>
     <SurfaceDetailBody
       :instance="instance"
       :type="type"
@@ -96,9 +101,12 @@ const props = defineProps({
   type: { type: Object, required: true },
   variant: { type: String, default: 'detail' },
   parentRole: { type: String, default: null },
+  actions: { type: Array, default: () => [] },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });
+
+defineEmits(['run']);
 
 const expanded = ref({});
 const flattened = computed(() => props.parentRole === 'card' && props.variant === 'detail');

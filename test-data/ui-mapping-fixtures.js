@@ -40,8 +40,8 @@ export function createUiMappingClientBundle() {
         id: 'material',
         class: 'group',
         fields: {
-          grade: { base: 'string' },
-          pricePerSheet: { base: 'quantity', unit: 'currency' }
+          grade: { base: 'string', label: 'Grade' },
+          pricePerSheet: { base: 'quantity', unit: 'currency', label: 'Price per sheet' }
         },
         edges: { children: { parts: { types: ['part'], onRemove: 'restrict' } } },
         render: { label: 'Material', icon: 'pi pi-box' }
@@ -50,17 +50,18 @@ export function createUiMappingClientBundle() {
         id: 'part',
         class: 'item',
         fields: {
-          serial: { base: 'string' },
-          thickness: { base: 'quantity', unit: 'mm' },
+          serial: { base: 'string', label: 'Part No.' },
+          thickness: { base: 'quantity', unit: 'mm', label: 'Thickness' },
           finish: {
             base: 'enum',
+            label: 'Surface finish',
             values: ['raw', 'ground', 'anodized', 'powder', 'paint', 'brushed', 'polished', 'bead-blast', 'passivated']
           },
           tolerance: {
             base: 'record',
             fields: { nominal: { base: 'quantity', unit: 'mm' }, note: { base: 'string', max: 200 } }
           },
-          dueDate: { base: 'instant', nullable: true },
+          dueDate: { base: 'instant', nullable: true, label: 'Due date' },
           tags: { base: 'list', itemType: { base: 'string' } },
           mounting: {
             base: 'variant',
@@ -95,7 +96,7 @@ export function createUiMappingClientBundle() {
           maxSize: 10 * 1024 * 1024,
           preview: 'image'
         },
-        fields: { title: { base: 'string' }, page: { base: 'number', nullable: true } },
+        fields: { title: { base: 'string', label: 'Title' }, page: { base: 'number', nullable: true, label: 'Page' } },
         render: { label: 'Drawing', icon: 'pi pi-file' }
       }),
       typeRecord({
@@ -434,8 +435,9 @@ export function createNestingJobInstance(overrides = {}) {
   };
 }
 
-// The nested-showcase graph: one group whose four items carry 0, 1, 3, and 8
-// related files — the variable-cardinality case budgets exist for.
+// The nested-showcase graph: three groups whose items carry varied file
+// counts (0, 1, 3, 8 on the primary group — the variable-cardinality case
+// budgets exist for), dense enough to read as real collections.
 export function createUiMappingInstances() {
   const drawings = Array.from({ length: 8 }, (_, index) => createDrawingInstance({
     id: `drawing-${index + 1}`,
@@ -443,26 +445,41 @@ export function createUiMappingInstances() {
     payload: { fileId: `gridfs-drawing-${index + 1}`, mime: index % 3 === 2 ? 'application/pdf' : 'image/png', size: 90_000 + index * 10_000 }
   }));
 
-  const partStates = ['draft', 'approved', 'scrapped', 'draft'];
-  const parts = [0, 1, 3, 8].map((drawingCount, index) => createPartInstance({
+  const drawingCounts = [0, 1, 3, 8, 2, 5, 1, 4];
+  const partStates = ['draft', 'approved', 'scrapped', 'draft', 'approved', 'draft', 'approved', 'draft'];
+  const finishes = ['raw', 'anodized', 'polished', 'powder', 'ground', 'brushed', 'bead-blast', 'passivated'];
+  const mountings = [
+    { tag: 'bolt', value: { size: { value: 8, unit: 'mm' } } },
+    { tag: 'weld', value: { seam: 'continuous outer seam' } },
+    { tag: 'press', value: { fit: 'tight' } },
+    { tag: 'bolt', value: { size: { value: 12, unit: 'mm' } } },
+    { tag: 'weld', value: { seam: 'spot seam' } },
+    { tag: 'bolt', value: { size: { value: 10, unit: 'mm' } } },
+    { tag: 'press', value: { fit: 'light' } },
+    { tag: 'weld', value: { seam: 'full-penetration seam' } }
+  ];
+  const materialByIndex = ['material-1', 'material-1', 'material-1', 'material-1', 'material-2', 'material-2', 'material-3', 'material-3'];
+  const parts = drawingCounts.map((drawingCount, index) => createPartInstance({
     id: `part-${index + 1}`,
     fields: {
       ...createPartInstance().fields,
-      serial: `BRK-000${index + 1}`,
-      finish: ['raw', 'anodized', 'polished', 'powder'][index],
-      mounting: [
-        { tag: 'bolt', value: { size: { value: 8, unit: 'mm' } } },
-        { tag: 'weld', value: { seam: 'continuous outer seam' } },
-        { tag: 'press', value: { fit: 'tight' } },
-        { tag: 'bolt', value: { size: { value: 12, unit: 'mm' } } }
-      ][index]
+      serial: `BRK-${String(index + 1).padStart(4, '0')}`,
+      thickness: { value: 4 + index, unit: 'mm' },
+      finish: finishes[index],
+      dueDate: index % 2 === 0 ? `2026-10-${String(5 + index).padStart(2, '0')}T12:00:00.000Z` : null,
+      mounting: mountings[index]
     },
+    lineage: { parts: { type: 'material', id: materialByIndex[index] } },
     relations: { drawings: drawings.slice(0, drawingCount).map(drawing => ({ type: 'drawing', id: drawing.id })) },
     states: { main: partStates[index] }
   }));
 
   return {
-    materials: [createMaterialInstance()],
+    materials: [
+      createMaterialInstance(),
+      createMaterialInstance({ id: 'material-2', fields: { grade: 'EN AW-6082', pricePerSheet: { value: 102.75, unit: 'currency' } } }),
+      createMaterialInstance({ id: 'material-3', fields: { grade: 'S235JR', pricePerSheet: { value: 54.2, unit: 'currency' } } })
+    ],
     parts,
     drawings: [
       ...drawings,
