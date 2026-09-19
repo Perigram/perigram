@@ -158,6 +158,20 @@ smoke before merge. The smoke is part of the documented validation
 commands (root README). Lesson recorded: template-coupled refactors need a
 rendering guard, not just identifier resolution.
 
+##### Agent Notes — 2026-09-19 placement regression fixed
+
+P2 shipped a second latent break: node-sync destructured
+`defaultProcessNodeOperation`/`iconForProcessNode`/`humanizeNodeLabel` from
+the records composable's return (standalone module exports), so every
+palette click threw and no node could be placed. Fixed in
+`agent/process-designer-placefix-20260919` (ed02c5ef) with the missing
+placement-flow spec (every species kind + class drop through the real
+composables). Same session, per user review: the class card's payload-MIME
+tag is gone and the class inspector shrinks to structural authoring —
+payload traits and operator signatures/triggers are pack/registry
+authoring, not canvas authoring (canvas type authoring = class preset,
+type id, validity, diagnostics; fields/states wire as before).
+
 ## P3 — Compiler emits the UI contract (hard cutover)
 
 - [ ] `compileProcessDefinition` emits the CTS-vocabulary UI contract:
