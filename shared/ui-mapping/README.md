@@ -64,10 +64,16 @@ undifferentiated stream. Display presentations refine by
 data shape: percent quantities render as Knob dials and string lists as
 budgeted chips.
 
-`resolveListLayout(type, { hierarchical })` → `'table' | 'tree-table' |
-'card-grid' | 'timeline'` from one matcher table: media classes get card
-grids, lineage-holding collections get tree tables, chronological types
-match by type id, everything else gets the generated columnar table. The
+`resolveListLayout(type, { hierarchical, size })` → `'table' |
+'tree-table' | 'card-grid' | 'timeline' | 'stats' | 'list'` from one
+matcher table over `analyzeTypeShape(type)`: prose-dominant types are
+chronological (timeline), percent/quantity-dominant types are statlike
+(StatGrid cards with the `text-metric` role), media types get card grids,
+lineage-holding collections get tree tables, handful-sized sets render as
+a bare stacked list, and the default is the generated columnar table — no
+hand-picked type ids anywhere. Presentation budgets scale with type
+richness (`TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE`: wide types earn more
+columns and facts) instead of fixed constants. The
 shared presentation budgets (`TABLE_COLUMN_BUDGET`, `CARD_FACT_BUDGET`,
 `CHIP_BUDGET`, `ROW_RELATION_BUDGET`, `CHILDREN_TABS_AT`, `SCALAR_BASES`)
 live beside the other defaults so materializations carry no magic numbers,
