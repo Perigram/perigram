@@ -448,6 +448,24 @@ export function resolveListControls(typeRecord = {}, instances = []) {
   });
 }
 
+// The per-instance action kinds a collection surface may offer without a
+// form context: status transitions (updateInstance with a declared
+// target), deletion, and instance-scoped commands. Plain updateInstance
+// (the edit form), creates, relation link/unlink (owner-scoped), and
+// event-triggered actions belong to their own surfaces.
+const INSTANCE_ACTION_KINDS = Object.freeze(['updateInstance', 'deleteInstance', 'runCommand']);
+
+// resolveInstanceActions(actions, typeId): the per-instance quick-action
+// set for one collection type, from the compiled action map. Pure over
+// the contract; the contract's own order wins (no re-sorting).
+export function resolveInstanceActions(actions = {}, typeId = null) {
+  if (!typeId) return [];
+  return Object.values(actions).filter(action => action?.typeId === typeId
+    && INSTANCE_ACTION_KINDS.includes(action?.actionKind)
+    && action?.trigger?.mode === 'manual'
+    && (action?.actionKind !== 'updateInstance' || action?.status?.to));
+}
+
 const VALUE_FALLBACK = '—';
 
 export function formatValue(descriptor = {}, value) {

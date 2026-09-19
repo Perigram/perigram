@@ -3,7 +3,15 @@
     <template #content="{ item }">
       <div :class="LAYOUT.stackTight">
         <div :class="LAYOUT.rowBetween">
-          <span class="text-supporting text-muted">{{ identityOf(item) }}</span>
+          <Button
+            v-if="openable"
+            link
+            size="small"
+            :label="identityOf(item)"
+            class="text-left [&_.p-button-label]:truncate"
+            @click="$emit('open', item)"
+          />
+          <span v-else class="text-supporting text-muted">{{ identityOf(item) }}</span>
           <div v-if="scalarFields.length" :class="LAYOUT.row">
             <div v-for="field in scalarFields" :key="field.name" class="flex items-baseline gap-1">
               <span class="text-supporting text-muted">{{ field.label }}</span>
@@ -34,6 +42,7 @@ import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Timeline from 'primevue/timeline';
 import Paginator from 'primevue/paginator';
+import Button from 'primevue/button';
 import {
   LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, formatValue,
   SCALAR_BASES, instanceIdentity, resolveListControls, pageSlice
@@ -46,9 +55,13 @@ const props = defineProps({
   // Composed list-controls contract from the region tree; recomputed from
   // the type and loaded instances when absent (direct timeline usage).
   controls: { type: Object, default: null },
+  // Entry identities render as links when an open handler exists upstream.
+  openable: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });
+
+defineEmits(['open']);
 
 const { te, t } = useI18n();
 
