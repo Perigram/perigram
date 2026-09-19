@@ -21,9 +21,26 @@
   </div>
   <EntityChip v-else-if="outcome.component === 'EntityChip'" :value="model" :pool="pool" :bundle="bundle" />
   <Chip v-else-if="outcome.component === 'FileChip'" :label="model?.mime || fallback" icon="pi pi-file" />
-  <span v-else-if="outcome.component === 'ObjectSummary'" class="text-supporting">{{ objectSummary }}</span>
-  <span v-else-if="outcome.component === 'ListSummary'" class="text-supporting">{{ listSummary }}</span>
-  <Tag v-else-if="outcome.component === 'VariantTag'" :value="model?.tag || fallback" severity="info" />
+  <div v-else-if="outcome.component === 'ObjectSummary'" :class="LAYOUT.stackTight">
+    <div v-for="entry in summaryEntries" :key="entry.key" :class="LAYOUT.rowBetween">
+      <span class="text-supporting text-muted">{{ entry.key }}</span>
+      <span class="text-body">{{ entry.value }}</span>
+    </div>
+  </div>
+  <div v-else-if="outcome.component === 'ListSummary'" :class="LAYOUT.stackTight">
+    <div v-for="(entry, index) in listEntries" :key="index" :class="LAYOUT.row">
+      <i
+        v-if="entry.done !== null"
+        :class="entry.done ? 'pi pi-check-circle text-status-success' : 'pi pi-minus-circle text-muted'"
+      />
+      <span class="text-body">{{ entry.label }}</span>
+    </div>
+    <Tag v-if="listHidden > 0" :value="`+${listHidden}`" severity="contrast" />
+  </div>
+  <div v-else-if="outcome.component === 'VariantTag'" :class="LAYOUT.row">
+    <Tag :value="model?.tag || fallback" severity="info" />
+    <span v-if="variantValue" class="text-body">{{ variantValue }}</span>
+  </div>
 
   <InputText v-else-if="outcome.component === 'InputText'" v-model="model" class="w-full" />
   <Textarea v-else-if="outcome.component === 'Textarea'" v-model="model" class="w-full" :rows="2" />
@@ -108,7 +125,7 @@ import SelectButton from 'primevue/selectbutton';
 import Tag from 'primevue/tag';
 import Chip from 'primevue/chip';
 import Knob from 'primevue/knob';
-import { LAYOUT, resolveFieldControl, CHIP_BUDGET, applyBudget, formatQuantity } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity } from '#shared/ui-mapping/index.js';
 import EntityChip from './EntityChip.vue';
 import QuantityInput from './QuantityInput.vue';
 import EnumSelect from './EnumSelect.vue';
@@ -135,15 +152,49 @@ const outcome = computed(() => resolveFieldControl(props.descriptor, { variant: 
 const displayValue = computed(() => (props.modelValue === null || props.modelValue === undefined ? fallback : String(props.modelValue)));
 const quantityValue = computed(() => formatQuantity(props.modelValue));
 const instantValue = computed(() => (props.modelValue ? new Date(props.modelValue).toLocaleDateString() : fallback));
-const objectSummary = computed(() => {
-  if (!props.modelValue || typeof props.modelValue !== 'object') return fallback;
-  return Object.entries(props.modelValue)
-    .filter(([, value]) => value !== null && value !== undefined)
-    .slice(0, 2)
-    .map(([key, value]) => `${key}: ${value && typeof value === 'object' ? formatQuantity(value) : String(value)}`)
-    .join(' · ');
+const compactValue = value => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value !== 'object') return value === true ? '✓' : value === false ? '—' : String(value);
+  if (Number.isFinite(value.value) && typeof value.unit === 'string') return formatQuantity(value);
+  const first = Object.values(value).find(entry => entry !== null && entry !== undefined);
+  if (first && typeof first === 'object' && Number.isFinite(first.value) && typeof first.unit === 'string') {
+    return formatQuantity(first);
+  }
+  if (first !== undefined && first !== null && typeof first !== 'object') {
+    return first === true ? '✓' : first === false ? '—' : String(first);
+  }
+  return fallback;
+};
+const summaryEntries = computed(() => {
+  const value = props.modelValue;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+  return applyBudget(
+    Object.entries(value).filter(([, entry]) => entry !== null && entry !== undefined),
+    SUMMARY_BUDGET
+  ).visible.map(([key, entry]) => ({ key: startCase(key), value: compactValue(entry) }));
 });
-const listSummary = computed(() => (Array.isArray(props.modelValue) ? `${props.modelValue.length}` : fallback));
+const listEntries = computed(() => {
+  const items = Array.isArray(props.modelValue) ? props.modelValue : [];
+  const outcome = applyBudget(items, SUMMARY_BUDGET);
+  return outcome.visible.map(item => {
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      const values = Object.values(item);
+      const done = values.find(value => typeof value === 'boolean');
+      const label = values.find(value => typeof value === 'string')
+        ?? values.find(value => value && typeof value === 'object' && Number.isFinite(value.value));
+      return { done: done === undefined ? null : done, label: compactValue(label) };
+    }
+    return { done: null, label: compactValue(item) };
+  });
+});
+const listHidden = computed(() => {
+  const items = Array.isArray(props.modelValue) ? props.modelValue : [];
+  return applyBudget(items, SUMMARY_BUDGET).hidden;
+});
+const variantValue = computed(() => {
+  const value = compactValue(props.modelValue?.value);
+  return value === fallback ? '' : value;
+});
 const percentValue = computed(() => {
   const value = props.modelValue?.value;
   return Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;

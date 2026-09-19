@@ -74,6 +74,7 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
 export const TABLE_COLUMN_BUDGET = Object.freeze({ max: 3, overflow: 'count' });
 export const CARD_FACT_BUDGET = Object.freeze({ max: 2, overflow: 'count' });
 export const CHIP_BUDGET = Object.freeze({ max: 3, overflow: 'count' });
+export const SUMMARY_BUDGET = Object.freeze({ max: 4, overflow: 'count' });
 export const ROW_RELATION_BUDGET = Object.freeze({ max: 2, overflow: 'count' });
 export const CHILDREN_TABS_AT = 2;
 export const DETAIL_FACT_BUDGET = Object.freeze({ max: 4, overflow: 'count' });

@@ -19,7 +19,21 @@
               />
             </div>
           </template>
-          <template #subtitle>{{ subtitleOf(instance) }}</template>
+          <template #subtitle>{{ type?.render?.label }}</template>
+          <template #content>
+            <div :class="LAYOUT.stackTight">
+              <div v-for="field in scalarFields" :key="field.name" :class="LAYOUT.rowBetween">
+                <span class="text-supporting text-muted">{{ field.label }}</span>
+                <FieldControl
+                  :model-value="instance.fields?.[field.name]"
+                  :descriptor="field.descriptor"
+                  variant="inline"
+                  :pool="pool"
+                  :bundle="bundle"
+                />
+              </div>
+            </div>
+          </template>
         </Card>
       </div>
     </template>
@@ -35,7 +49,8 @@ import DataView from 'primevue/dataview';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
-import { LAYOUT, SCALAR_BASES, CARD_FACT_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity, fieldLabel, formatValue } from '#shared/ui-mapping/index.js';
+import { LAYOUT, SCALAR_BASES, CARD_FACT_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity, fieldLabel } from '#shared/ui-mapping/index.js';
+import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 
 const props = defineProps({
@@ -58,8 +73,5 @@ const scalarFields = computed(() => applyBudget(
     .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)
       && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120))),
   CARD_FACT_BUDGET
-).visible);
-const subtitleOf = instance => scalarFields.value
-  .map(([name, descriptor]) => `${fieldLabel(name, descriptor)}: ${formatValue(descriptor, instance.fields?.[name])}`)
-  .join(' · ') || instance.id;
+).visible.map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
 </script>
