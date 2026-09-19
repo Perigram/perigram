@@ -190,6 +190,12 @@ data layer stands in with. The region tree is frozen, pure, and what
 - Fixtures: [test-data/ui-mapping-fixtures.js](../../test-data/ui-mapping-fixtures.js)
   — a synthetic CTS client bundle, compiled screens/actions, and instance
   graph (privacy-safe, factory-shaped).
+- Random hydration: [test-data/ui-mapping-random.js](../../test-data/ui-mapping-random.js)
+  — a seeded generator producing entire worlds (types, containment DAGs,
+  relations, instances, screens, actions) with nothing hand-authored; the
+  showcase rerolls seeds from the URL. Its spec validates every generated
+  instance against CTS `checkValue` and composes every screen across
+  seeds.
 - Spec: `ui-mapping.spec.js` (table-driven resolver/chrome/budget tests),
   `screen.spec.js` (composition mechanics), and
   `test-data/ui-mapping-fixtures.spec.js` (fixture/composition integration).
