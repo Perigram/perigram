@@ -590,10 +590,12 @@ Effect nodes take the species names of §8 (the canonical table is
 
 ### References
 
-- **Types**: `entityType: 'cassette_design'` becomes `type: 'cassette-design'`
+- **Types**: `entityType: 'cassette_design'` becomes `typeId: 'cassette-design'`
   (the CTS id) in every record collection — `processNodes`, `producerOutputs`
   (`fields` path lists included), `actions`, `sockets` (descriptors via the
-  grammar adapter), `screens` sources.
+  grammar adapter), `screens` sources. The binding key is `typeId`, never
+  `type`: `type` remains the value descriptor of the shared value algebra,
+  and load-time migration normalizes legacy persisted `type` strings.
 - **Fields**: row fields are row-relative (`specs.width` → `width`,
   `data.job.items` → `job.items`); managed slots keep qualified names
   (`identity.*`, `status.state.primary`, `lineage.<key>`, `relations.*`,
@@ -611,9 +613,11 @@ Effect nodes take the species names of §8 (the canonical table is
 
 - `resolveCtsDefinition(definition, view)` lowers v5 records to the
   executable working shapes (types back to storage ids, row paths back to
-  slot paths, species kinds back to operation kinds) and runs before the
-  process compiler. The lowered form is internal: never authored, never
-  persisted.
+  slot paths, species kinds back to operation kinds). It runs inside
+  `prepareAuthoredDefinition` (`@cutkit/processes`) — the single seam every
+  validate/compile/activate path flows through; no consumer outside that
+  package resolves or lowers the vocabulary. The lowered form is internal:
+  never authored, never persisted.
 - `migrateV4Definition(definition)` is the one-way persisted rewrite
   (same pattern as the process package's v4 identity migration). It runs at
   the server boundary on load, so stored graphs become v5 within one deploy;
@@ -701,9 +705,14 @@ transitions from state nodes and wires, edges from type wires); system
 types render read-only. The state machine is declared flat, in the same
 plane as everything else.
 
-**Generic instance services (§13, landed):** every type without an explicit
-feature service resolves through the registry's service resolver to a
-generic per-class instance service. No legacy entity services are mounted
+**Generic instance services (§13, landed; §3 stored shape):** every type
+without an explicit feature service resolves through the registry's service
+resolver to a generic per-class instance service. Instance documents are
+stored in the §3 shape (`type`, `typeVersion`, `name`, flat `fields`,
+`states.main`, `lineage`, `relations`); the block vocabulary
+(`identity`/`status`/`data`/`specs`) is a wire-DTO projection owned by the
+instance service boundary — screens and compiled contracts speak the wire
+shape, storage speaks §3. No legacy entity services are mounted
 at all: the CNC pack registers only its commands and the nesting task
 executor, and the legacy entity API surface (queues, projects, sheets,
 catalogs, machines, …) is deleted — the CNC feature modules that remain
