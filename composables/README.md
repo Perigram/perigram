@@ -93,42 +93,26 @@ nesting-run popup attempting to load readable sheet-design children by
 `runId`. Ordinary collection screens should keep the default logging behavior
 so access and endpoint errors remain visible during development.
 
-### Endpoint map
+### Endpoint resolution
 
-Endpoint metadata is supplied by the injected CutKit domain UI adapter from
-`plugins/cutkit-domain.js`; `useEntity` remains the app-facing compatibility
-composable and does not import the CNC domain package directly.
-During server-side rendering, `useEntity` forwards the incoming request cookie
-to internal `$fetch` calls. Generated process screens can therefore load
-authenticated entity sources during SSR without receiving false 401s from
-server API routes.
+Endpoint metadata comes from the instances store (`stores/instances.js`),
+which mirrors the server's resolver: framework party/service types
+(`organization`, `user`, `artifact`, `process_definition`, `entity_revision`)
+keep their feature routes, the remaining mounted pack feature modules
+(`cassette`, `cassette_design`, `facade`, `facade_pattern`,
+`geometry_capture`, `nesting_run`, `sheet_design`, `artifact_template`) keep
+theirs, and every other type resolves through the SPEC §13 instance
+transport `/api/instances/:typeId`. The injected CutKit domain UI adapter
+and its endpoint table are deleted; `useEntity` is the delegated legacy
+composable over that store (see [stores/README.md](../stores/README.md)).
+During server-side rendering, `useEntity` and generated screen loads forward
+the incoming request cookie to internal `$fetch` calls. Generated process
+screens can therefore load authenticated entity sources during SSR without
+receiving false 401s from server API routes.
 
-| Type key | Single endpoint | List / create endpoint |
-|---|---|---|
-| `material` | `/api/materials/:id` | `/api/materials` |
-| `project` | `/api/instances/project/:id` | `/api/instances/project` |
-| `queue` | `/api/instances/queue/:id` | `/api/instances/queue` |
-| `requisition` | `/api/requisitions/:id` | `/api/requisitions` |
-| `materialPile` / `pile` / `batch` | `/api/material-piles/:id` | `/api/material-piles` |
-| `sheet` | `/api/sheets/:id` | `/api/sheets` |
-| `remnant` | `/api/remnants/:id` | `/api/remnants` |
-| `cassette` / `cassetteTemplate` | `/api/cassettes/:id` | `/api/cassettes` |
-| `cassetteInstance` | `/api/cassette-instances/:id` | `/api/cassette-instances` |
-| `cassetteDesign` | `/api/cassette-designs/:id` | `/api/cassette-designs` |
-| `sheetDesign` | `/api/sheet-designs/:id` | `/api/sheet-designs` |
-| `artifact` | `/api/artifacts/:id` | `/api/artifacts` |
-| `artifactTemplate` | `/api/artifact-templates/:id` | `/api/artifact-templates` |
-| `catalog` | `/api/catalogs/:id` | `/api/catalogs` |
-| `color` | `/api/colors/:id` | `/api/colors` |
-| `warehouse` | `/api/warehouses/:id` | `/api/warehouses` |
-| `user` | `/api/users/:id` | `/api/users` |
-| `organization` | `/api/organizations/:id` | `/api/organizations` |
-| `nestingRun` | `/api/nesting-runs/:id` | `/api/nesting-runs` |
-
-The domain UI adapter registers both design-system surface keys and backend
-entity aliases, so `materialPile` and `material_pile` resolve to the same
-endpoint. New UI code should use surface keys because they identify the
-intended card contract.
+Legacy surface keys (`materialPile`) and graph type ids (`cut-plan`)
+canonicalize to snake_case cache keys through the store; new code should use
+registry type ids directly.
 
 > **Note:** Queue listing for a project should use the project-scoped
 > sub-resource `/api/project/:slug/queues` when the screen is already inside a
