@@ -3,36 +3,38 @@
     <StateStrip v-if="type.states?.main" :type="type" :instance="instance" />
     <PreviewBox v-if="hasPreview" :type="type" :payload="instance.payload" :seed="instance.id" />
 
-    <div v-if="shownFacts.length" :class="LAYOUT.factsGrid">
-      <div v-for="field in shownFacts" :key="field.name" class="flex min-w-0 flex-col gap-1">
-        <span class="text-supporting text-muted">{{ field.label }}</span>
-        <FieldControl
-          :model-value="instance.fields?.[field.name]"
-          :descriptor="field.descriptor"
-          variant="row"
-          :pool="pool"
-          :bundle="bundle"
-        />
+    <section v-for="group in groups" :key="group.id" :class="LAYOUT.stackTight">
+      <span v-if="group.label" class="text-label">{{ group.label }}</span>
+      <div v-if="shownFacts(group).length" :class="LAYOUT.factsGrid">
+        <div v-for="field in shownFacts(group)" :key="field.name" class="flex min-w-0 flex-col gap-1">
+          <span class="text-supporting text-muted">{{ field.label }}</span>
+          <FieldControl
+            :model-value="instance.fields?.[field.name]"
+            :descriptor="field.descriptor"
+            variant="row"
+            :pool="pool"
+            :bundle="bundle"
+          />
+        </div>
+        <Tag v-if="hiddenFactCount(group) > 0" :value="`+${hiddenFactCount(group)}`" severity="contrast" />
       </div>
-      <Tag v-if="hiddenFactCount > 0" :value="`+${hiddenFactCount}`" severity="contrast" />
-    </div>
-
-    <Accordion v-if="structuralFields.length" :value="['0']" multiple class="w-full">
-      <AccordionPanel
-        v-for="(field, index) in structuralFields"
-        :key="field.name"
-        :value="String(index)"
-        :header="field.label"
-      >
-        <FieldControl
-          :model-value="instance.fields?.[field.name]"
-          :descriptor="field.descriptor"
-          variant="row"
-          :pool="pool"
-          :bundle="bundle"
-        />
-      </AccordionPanel>
-    </Accordion>
+      <Accordion v-if="structuralOf(group).length" :value="['0']" multiple class="w-full">
+        <AccordionPanel
+          v-for="(field, index) in structuralOf(group)"
+          :key="field.name"
+          :value="String(index)"
+          :header="field.label"
+        >
+          <FieldControl
+            :model-value="instance.fields?.[field.name]"
+            :descriptor="field.descriptor"
+            variant="row"
+            :pool="pool"
+            :bundle="bundle"
+          />
+        </AccordionPanel>
+      </Accordion>
+    </section>
 
     <div v-for="relation in relationViews" :key="relation.key" :class="relationClass(relation)">
       <EntityChip v-for="ref in relation.shown" :key="ref.id" :value="ref" :pool="pool" :bundle="bundle" />
@@ -61,7 +63,7 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
-import { LAYOUT, fieldLabel, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import EntityChip from './EntityChip.vue';
 import PreviewBox from './PreviewBox.vue';
@@ -85,13 +87,18 @@ const hasPreview = computed(() => surface.value.slots.includes('preview'));
 
 const isLongString = descriptor => descriptor.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
-const fieldList = computed(() => Object.entries(props.type.fields || {})
-  .map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
-const scalarFields = computed(() => fieldList.value.filter(field => SCALAR_BASES.includes(field.descriptor.base) && !isLongString(field.descriptor)));
-const factOutcome = computed(() => applyBudget(scalarFields.value, DETAIL_FACT_BUDGET));
-const shownFacts = computed(() => (factOutcome.value.mode === 'collapsed' ? factOutcome.value.visible : scalarFields.value));
-const hiddenFactCount = computed(() => (factOutcome.value.mode === 'collapsed' ? factOutcome.value.hidden : 0));
-const structuralFields = computed(() => fieldList.value.filter(field => !SCALAR_BASES.includes(field.descriptor.base) || isLongString(field.descriptor)));
+const isScalarFact = field => SCALAR_BASES.includes(field.descriptor.base) && !isLongString(field.descriptor);
+const groups = computed(() => resolveFieldGroups(props.type));
+const scalarsOf = group => group.fields.filter(isScalarFact);
+const structuralOf = group => group.fields.filter(field => !isScalarFact(field));
+const shownFacts = group => {
+  const outcome = applyBudget(scalarsOf(group), DETAIL_FACT_BUDGET);
+  return outcome.mode === 'collapsed' ? outcome.visible : scalarsOf(group);
+};
+const hiddenFactCount = group => {
+  const outcome = applyBudget(scalarsOf(group), DETAIL_FACT_BUDGET);
+  return outcome.mode === 'collapsed' ? outcome.hidden : 0;
+};
 
 const relationViews = computed(() => {
   if (!surface.value.slots.includes('relations')) return [];

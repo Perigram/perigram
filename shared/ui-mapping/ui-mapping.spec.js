@@ -3,6 +3,8 @@ import {
   createUiMapping,
   formatValue,
   LAYOUT,
+  instanceIdentity,
+  resolveFieldGroups,
   resolveFieldControl,
   resolveSurface,
   resolvePreview,
@@ -192,6 +194,29 @@ describe('value formatting and layout vocabulary', () => {
     for (const key of ['stack', 'stackTight', 'row', 'rowBetween', 'factsGrid', 'formGrid', 'cardGrid', 'scrollX', 'dialog']) {
       expect(LAYOUT[key], key).toBeTruthy();
     }
+  });
+});
+
+describe('identity and field groups', () => {
+  it('honors the declared identity field before the heuristic', () => {
+    const type = { fields: { codename: { base: 'string' }, serial: { base: 'string' } }, render: { identityField: 'codename' } };
+    expect(instanceIdentity(type, { fields: { codename: 'Redshift', serial: 'S-1' } })).toBe('Redshift');
+    expect(instanceIdentity({ fields: {} }, { id: 'x-9', fields: {} })).toBe('x-9');
+    expect(instanceIdentity({ fields: { name: { base: 'string' } } }, { id: 'id-missing', fields: { name: 'Kepler' } })).toBe('Kepler');
+  });
+
+  it('resolves authored field groups with a trailing default group', () => {
+    const type = {
+      fields: { a: { base: 'string' }, b: { base: 'quantity', unit: 'mm' }, c: { base: 'boolean' } },
+      render: { groups: [{ id: 'core', fields: ['a', 'b'] }] }
+    };
+    const groups = resolveFieldGroups(type);
+    expect(groups[0]).toMatchObject({ id: 'core', label: 'Core' });
+    expect(groups[0].fields.map(field => field.name)).toEqual(['a', 'b']);
+    expect(groups[1].id).toBe('default');
+    expect(groups[1].label).toBeNull();
+    expect(groups[1].fields.map(field => field.name)).toEqual(['c']);
+    expect(resolveFieldGroups({ fields: { a: { base: 'string' } } }).map(group => group.id)).toEqual(['default']);
   });
 });
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  instanceIdentity,
   resolveFieldControl,
   resolveSurface,
   resolvePreview,
@@ -103,6 +104,9 @@ describe('screen composition over fixtures', () => {
       expect(bases.has(base), base).toBe(true);
     }
     expect(resolvePreview(bundle.types.find(type => type.id === 'spectrum')).component).toBe('GeometryPreview');
+    expect(bundle.types.find(type => type.id === 'observation').render.identityField).toBe('title');
+    expect(instanceIdentity(bundle.types.find(type => type.id === 'star_system'), pool.star_system['system-2'])).toBe('LYH-114 B');
+    expect(instanceIdentity(bundle.types.find(type => type.id === 'observation'), pool.observation['observation-3'])).toContain('Pass 3');
   });
 
   it('resolves every fixture field descriptor in every variant', () => {

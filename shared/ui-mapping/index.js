@@ -209,6 +209,8 @@ export function formatQuantity(quantity) {
 export function instanceIdentity(type, instance) {
   if (!instance) return '?';
   const fields = instance.fields || {};
+  const declared = type?.render?.identityField;
+  if (declared && typeof fields[declared] === 'string' && fields[declared]) return fields[declared];
   const preferred = ['serial', 'designation', 'title', 'grade', 'name', 'summary'];
   for (const key of preferred) {
     if (typeof fields[key] === 'string' && fields[key]) return fields[key];
@@ -241,6 +243,23 @@ export function formatValue(descriptor = {}, value) {
     default:
       return typeof value === 'object' ? VALUE_FALLBACK : String(value);
   }
+}
+
+export function resolveFieldGroups(type = {}) {
+  const declared = type.render?.groups || [];
+  const entries = Object.entries(type.fields || {})
+    .map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) }));
+  const assigned = new Set(declared.flatMap(group => group.fields || []));
+  const groups = declared
+    .map(group => ({
+      id: group.id,
+      label: group.label || String(group.id).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase()),
+      fields: entries.filter(entry => (group.fields || []).includes(entry.name))
+    }))
+    .filter(group => group.fields.length);
+  const rest = entries.filter(entry => !assigned.has(entry.name));
+  if (rest.length) groups.push({ id: 'default', label: null, fields: rest });
+  return Object.freeze(groups.map(group => Object.freeze({ ...group, fields: Object.freeze(group.fields) })));
 }
 
 export function fieldLabel(name, descriptor = {}) {

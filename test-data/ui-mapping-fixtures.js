@@ -59,7 +59,7 @@ export function createUiMappingClientBundle() {
           ageMyr: { base: 'quantity', unit: 'count', label: 'Age (Myr)' }
         },
         edges: { children: { probes: { types: ['probe'], onRemove: 'restrict' } } },
-        render: { label: 'Star system', icon: 'pi pi-globe' }
+        render: { label: 'Star system', icon: 'pi pi-globe', identityField: 'designation' }
       }),
       typeRecord({
         id: 'probe',
@@ -106,6 +106,12 @@ export function createUiMappingClientBundle() {
         render: {
           label: 'Probe',
           icon: 'pi pi-send',
+          identityField: 'serial',
+          groups: [
+            { id: 'overview', label: 'Overview', fields: ['serial', 'band', 'signal'] },
+            { id: 'orbit', label: 'Orbit', fields: ['inclination', 'orbitNumber', 'launchedAt', 'uptime'] },
+            { id: 'admin', label: 'Admin', fields: ['insuranceValue', 'active'] }
+          ],
           states: { active: { severity: 'info' }, maintenance: { severity: 'warning' }, retired: { severity: 'secondary' } }
         }
       }),
@@ -119,12 +125,13 @@ export function createUiMappingClientBundle() {
           preview: 'image'
         },
         fields: {
+          title: { base: 'string', label: 'Title' },
           exposure: { base: 'quantity', unit: 'min', label: 'Exposure' },
           frameCount: { base: 'number', label: 'Frames' },
           filter: { base: 'enum', values: ['H-alpha', 'O-III', 'IR'], label: 'Filter' },
           note: { base: 'string', max: 400, label: 'Note' }
         },
-        render: { label: 'Observation', icon: 'pi pi-image' }
+        render: { label: 'Observation', icon: 'pi pi-image', identityField: 'title' }
       }),
       typeRecord({
         id: 'spectrum',
@@ -187,6 +194,10 @@ export function createUiMappingClientBundle() {
         render: {
           label: 'Survey mission',
           icon: 'pi pi-slack',
+          groups: [
+            { id: 'mission', label: 'Mission', fields: ['objective', 'priority', 'target'] },
+            { id: 'execution', label: 'Execution', fields: ['config', 'checklist', 'telemetry'] }
+          ],
           states: { running: { severity: 'info' }, analyzing: { severity: 'info' }, complete: { severity: 'success' }, failed: { severity: 'danger' } }
         }
       })
@@ -493,6 +504,7 @@ export function createObservationInstance(overrides = {}) {
     type: 'observation',
     typeVersion: 1,
     fields: {
+      title: 'Pass 1 · primary target',
       exposure: { value: 12, unit: 'min' },
       frameCount: 9,
       filter: 'H-alpha',
@@ -569,6 +581,7 @@ export function createUiMappingInstances() {
   const observations = Array.from({ length: 10 }, (_, index) => createObservationInstance({
     id: `observation-${index + 1}`,
     fields: {
+      title: `Pass ${index + 1} · ${['primary target', 'guide field', 'dark frame'][index % 3]}`,
       exposure: { value: 4 + index * 2, unit: 'min' },
       frameCount: 6 + index * 3,
       filter: ['H-alpha', 'O-III', 'IR'][index % 3],
