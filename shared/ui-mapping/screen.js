@@ -1,7 +1,7 @@
 // Screen composition (see README.md): projects a compiled screen contract
 // plus a CTS client bundle and an instance pool into a pure render tree.
 // No Vue here — the components/ui-mapping layer materializes this tree.
-import { resolveSurface } from './index.js';
+import { resolveSurface, resolveChrome } from './index.js';
 
 export function buildInstancePool(instances = {}) {
   const pool = {};
@@ -52,6 +52,8 @@ function composeRegion(region, screen, contract, pool, typesById, depth) {
   const instances = single ? [single] : resolveList(source, screen, pool, sourcesById);
   const type = typesById[source.entityType] || null;
   const variant = surfaceKind === 'detail' ? (depth === 0 ? 'full' : 'detail') : 'row';
+  const containerRole = depth === 0 ? 'section' : 'card';
+  const chrome = resolveChrome(containerRole, depth === 0 ? null : 'section');
   const childRegions = region.slot === 'children' ? [] : (screen.regions || [])
     .filter(child => child.slot === 'children' && child.id !== region.id)
     .map(child => composeRegion(child, screen, contract, pool, typesById, depth + 1));
@@ -59,6 +61,7 @@ function composeRegion(region, screen, contract, pool, typesById, depth) {
     id: region.id,
     slot: region.slot,
     surfaceKind,
+    chrome,
     relationKey: source.relation?.key || null,
     lineageKey: source.lineage?.key || null,
     entityType: source.entityType || null,

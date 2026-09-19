@@ -94,6 +94,8 @@ export const LAYOUT = Object.freeze({
   formGrid: 'grid grid-cols-1 items-start gap-x-4 gap-y-4 md:grid-cols-2',
   cardGrid: 'grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4',
   scrollX: 'w-full overflow-x-auto',
+  clip: 'overflow-hidden',
+  bounded: 'w-full max-w-[var(--ck-bounded-grid-item-max-width)]',
   dialog: 'w-full max-w-full sm:w-[36rem]'
 });
 

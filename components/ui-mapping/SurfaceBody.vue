@@ -104,6 +104,7 @@ const props = defineProps({
   variant: { type: String, default: 'detail' },
   parentRole: { type: String, default: null },
   actions: { type: Array, default: () => [] },
+  chrome: { type: Object, default: null },
   coveredRelations: { type: Array, default: () => [] },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
@@ -112,7 +113,7 @@ const props = defineProps({
 defineEmits(['run']);
 
 const expanded = ref({});
-const flattened = computed(() => props.parentRole === 'card' && props.variant === 'detail');
+const flattened = computed(() => (props.chrome ? props.chrome.flattened : props.parentRole === 'card' && props.variant === 'detail'));
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
 const toggleRelation = key => {
   expanded.value[key] = !expanded.value[key];

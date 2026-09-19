@@ -1,8 +1,8 @@
 <template>
   <DataView :value="instances" data-key="id" layout="grid" :paginator="instances.length > 8" :rows="8">
     <template #grid="slotProps">
-      <div :class="LAYOUT.cardGrid">
-        <Card v-for="instance in slotProps.items" :key="instance.id" class="w-full">
+      <ResponsiveGrid variant="dense" responsive-context="container">
+        <Card v-for="instance in slotProps.items" :key="instance.id" :class="[LAYOUT.clip, 'w-full']">
           <template #header>
             <PreviewBox :type="type" :payload="instance.payload" :seed="instance.id" />
           </template>
@@ -35,7 +35,7 @@
             </div>
           </template>
         </Card>
-      </div>
+      </ResponsiveGrid>
     </template>
     <template #empty>
       <Message severity="info" :text="$t('uiMapping.emptyRegion')" />
@@ -49,6 +49,7 @@ import DataView from 'primevue/dataview';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
+import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { LAYOUT, SCALAR_BASES, CARD_FACT_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity, fieldLabel } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';

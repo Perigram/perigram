@@ -84,6 +84,23 @@ describe('screen composition', () => {
     expect(lineageScoped.regions[0].instances.map(instance => instance.id)).toEqual(['w2']);
   });
 
+  it('carries tree-owned chrome per region (container role by depth)', () => {
+    const composed = composeScreen(
+      { screenKey: 'c1', template: 'entityDetail', label: 'C1',
+        sources: [
+          { id: 'widget', entityType: 'widget', mode: 'single' },
+          { id: 'sheets', entityType: 'sheet_file', mode: 'list', relation: { sourceId: 'widget', key: 'sheets' } }
+        ],
+        regions: [
+          { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
+          { id: 'sheets', slot: 'children', sourceId: 'sheets', surface: 'list' }
+        ] },
+      contract, bundle, pool
+    );
+    expect(composed.regions[0].chrome).toMatchObject({ role: 'section', flattened: false, surface: 'none' });
+    expect(composed.regions[0].childRegions[0].chrome).toMatchObject({ role: 'card', flattened: false, surface: 'content' });
+  });
+
   it('resolves region action records and carries surface policy per region', () => {
     const composed = composeScreen(
       { screenKey: 'x1', template: 'entityList', label: 'X1',

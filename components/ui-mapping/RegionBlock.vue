@@ -97,6 +97,7 @@
       :type="node.type"
       :variant="node.variant"
       :actions="node.actions"
+      :chrome="node.chrome"
       :covered-relations="coveredRelationKeys"
       :pool="pool"
       :bundle="bundle"
