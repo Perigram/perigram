@@ -229,7 +229,7 @@ export function useProcessDesignerNodeRecords({
       id,
       kind,
       label: '',
-      ...(v5 ? { type: '' } : { entityType: '' }),
+      ...(v5 ? { typeId: '' } : { entityType: '' }),
       construction: { mode: 'genericCreate', inputs: [] },
       status: null,
       matching: 'item',

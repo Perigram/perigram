@@ -42,9 +42,38 @@ export function invalidateInstanceDeclarations(organizationId = null) {
   declarationCache.clear();
 }
 
-function toDto(doc) {
+// Stored shape (SPEC §3): { _id, type, typeVersion, name, fields, states,
+// lineage, relations, createdAt, updatedAt }. The wire DTO keeps the block
+// vocabulary (identity/status/data/specs) every screen and compiled
+// contract speaks; the §3 <-> wire mapping lives here, at the service
+// boundary, and nowhere else.
+function wireFieldsSplit(fields = {}, declaration = {}) {
+  const data = {};
+  const specs = {};
+  for (const [name, value] of Object.entries(fields)) {
+    const descriptor = declaration.fields?.[name];
+    const slot = descriptor ? (descriptor.slot || (declaration.class === 'item' && descriptor.base === 'quantity' ? 'specs' : 'data')) : 'data';
+    (slot === 'specs' ? specs : data)[name] = value;
+  }
+  return { data, specs };
+}
+
+function toDto(doc, declaration = {}) {
   if (!doc) return null;
-  return { ...doc, _id: String(doc._id) };
+  const { data, specs } = wireFieldsSplit(doc.fields || {}, declaration);
+  return {
+    _id: String(doc._id),
+    type: doc.type,
+    typeVersion: doc.typeVersion,
+    identity: { uid: doc._id.toString(), ...(doc.name != null ? { name: doc.name } : {}) },
+    status: { state: { primary: doc.states?.main || 'CREATED' } },
+    lineage: doc.lineage || {},
+    relations: doc.relations || {},
+    ...(Object.keys(data).length ? { data } : {}),
+    ...(Object.keys(specs).length ? { specs } : {}),
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt
+  };
 }
 
 async function requireDeclaration(typeId, organizationId) {
@@ -59,7 +88,7 @@ function instanceService(typeId) {
       // Without organization context the class (and therefore the
       // collection) is not statically known: search the per-class
       // collections for the typed document.
-      return toDto(await repository.findInstanceAnywhere(id, typeId));
+      return toDto(await repository.findInstanceAnywhere(id, typeId), await declarationFor(typeId, null) || {});
     },
 
     async list(filters = {}, userId, organizationId) {
@@ -70,7 +99,7 @@ function instanceService(typeId) {
         organizationId,
         Number(filters?.limit) || 200
       );
-      return docs.map(toDto);
+      return docs.map(doc => toDto(doc, declaration));
     },
 
     async create(draft = {}, userId, organizationId) {
@@ -80,30 +109,47 @@ function instanceService(typeId) {
         _id: new ObjectId(),
         type: typeId,
         typeVersion: declaration.version || 1,
-        identity: { ...(draft.identity || {}), uid: `cts-${typeId}-${new ObjectId().toString().slice(0, 8)}` },
-        origin: { state: { primary: 'CREATED' }, userId: userId || null, timestamp: now },
-        status: { state: { primary: declaration.states?.main?.initial || 'CREATED' }, userId: userId || null, timestamp: now },
+        name: draft.identity?.name ?? null,
+        // §3: the row is one flat fields map (data/specs split is wire-only)
+        fields: { ...(draft.data || {}), ...(draft.specs || {}) },
+        states: { main: draft.status?.state?.primary || declaration.states?.main?.initial || 'CREATED' },
         lineage: { ...(draft.lineage || {}), ...(organizationId ? { organizationId: toFlexibleId(organizationId) } : {}) },
-        data: { ...(draft.data || {}) },
-        ...(draft.specs ? { specs: draft.specs } : {}),
-        ...(draft.states ? { states: draft.states } : {}),
         ...(draft.relations ? { relations: draft.relations } : {}),
         createdAt: now,
         updatedAt: now
       };
       await repository.insertInstance(repository.collectionForClass(declaration.class), doc);
-      return toDto(doc);
+      return toDto(doc, declaration);
     },
 
     async processUpdate(id, patch = {}) {
-      const declaration = await declarationFor(typeId, null);
-      const collection = repository.collectionForClass(declaration?.class);
-      const update = {};
-      for (const block of ['identity', 'data', 'specs', 'status', 'lineage', 'relations']) {
-        if (patch[block] && typeof patch[block] === 'object') update[block] = { ...patch[block] };
+      const declaration = await requireDeclaration(typeId, null);
+      const collection = repository.collectionForClass(declaration.class);
+      // Wire patches (block paths from the effect boundary) map to §3
+      // writes: data/specs leaves land in the flat fields map,
+      // status.state.primary becomes states.main.
+      const set = {};
+      const mergeSlot = (slot, value) => {
+        for (const [key, leaf] of Object.entries(value || {})) {
+          if (leaf !== undefined) set[`fields.${key}`] = leaf;
+        }
+      };
+      if (patch.identity?.name !== undefined) set.name = patch.identity.name;
+      if (patch.data && typeof patch.data === 'object') mergeSlot('data', patch.data);
+      if (patch.specs && typeof patch.specs === 'object') mergeSlot('specs', patch.specs);
+      if (patch.status?.state?.primary !== undefined) set['states.main'] = patch.status.state.primary;
+      if (patch.lineage && typeof patch.lineage === 'object') {
+        for (const [key, value] of Object.entries(patch.lineage)) {
+          if (value !== undefined) set[`lineage.${key}`] = value;
+        }
       }
-      const updated = await repository.updateInstanceBlocks(collection, id, update);
-      return toDto(updated);
+      if (patch.relations && typeof patch.relations === 'object') {
+        for (const [key, value] of Object.entries(patch.relations)) {
+          if (value !== undefined) set[`relations.${key}`] = value;
+        }
+      }
+      const updated = await repository.updateInstanceFields(collection, id, set);
+      return toDto(updated, declaration);
     },
 
     async remove(id) {
@@ -117,7 +163,7 @@ function instanceService(typeId) {
     processGetById: async (id, auth) => {
       const declaration = await declarationFor(typeId, auth.organizationId);
       if (!declaration) return null;
-      return toDto(await repository.findInstance(repository.collectionForClass(declaration.class), id, typeId));
+      return toDto(await repository.findInstance(repository.collectionForClass(declaration.class), id, typeId), declaration);
     },
     processDelete: (id, auth) => instanceService(typeId).remove(id),
     processCapabilities: {

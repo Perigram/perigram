@@ -186,7 +186,7 @@ export function migrateV4Definition(definition = {}, domain = {}) {
   const producerOutputs = mapRecords(data.producerOutputs, (output, id) => {
     const migrated = { ...output };
     if (migrated.entityType) {
-      migrated.type = kebab(migrated.entityType);
+      migrated.typeId = kebab(migrated.entityType);
       delete migrated.entityType;
     }
     if (migrated.fields) {
@@ -199,7 +199,7 @@ export function migrateV4Definition(definition = {}, domain = {}) {
   const actions = mapRecords(data.actions, action => {
     const migrated = { ...action };
     if (migrated.entityType) {
-      migrated.type = kebab(migrated.entityType);
+      migrated.typeId = kebab(migrated.entityType);
       delete migrated.entityType;
     }
     if (migrated.targetStatus !== undefined) {
@@ -217,7 +217,7 @@ export function migrateV4Definition(definition = {}, domain = {}) {
   const screens = mapRecords(data.screens, screen => ({
     ...screen,
     ...(Array.isArray(screen?.sources)
-      ? { sources: screen.sources.map(source => ({ ...source, ...(source.entityType ? { type: kebab(source.entityType), entityType: undefined } : {}) })) }
+      ? { sources: screen.sources.map(source => ({ ...source, ...(source.entityType ? { typeId: kebab(source.entityType), entityType: undefined } : {}) })) }
       : {})
   }));
 
@@ -242,7 +242,14 @@ function mapRecords(records = {}, mapper) {
 function migrateNode(node, domain, diagnostics, at) {
   if (!node || typeof node !== 'object') return node;
   const mapping = V5_MAPPING[node.kind];
-  if (!mapping) return { ...node }; // pure value algebra: untouched
+  if (!mapping) {
+    // Legacy persisted v5 graphs carried the binding on `type` (a string
+    // colliding with the v4 value descriptor). Normalize to `typeId`.
+    if (String(node.kind || '').startsWith('cts.') && typeof node.type === 'string') {
+      return { ...node, typeId: node.type, type: undefined };
+    }
+    return { ...node }; // pure value algebra: untouched
+  }
   const migrated = { ...node, kind: mapping.kind };
   if (mapping.select) migrated.select = mapping.select;
   for (const flag of ['producer', 'archive', 'send', 'record', 'draft', 'one']) {
@@ -250,7 +257,7 @@ function migrateNode(node, domain, diagnostics, at) {
   }
   if (mapping.mode) migrated.mode = mapping.mode;
   if (migrated.entityType) {
-    migrated.type = kebab(migrated.entityType);
+    migrated.typeId = kebab(migrated.entityType);
     delete migrated.entityType;
   }
   if (migrated.blocks) {
@@ -320,9 +327,9 @@ export function resolveCtsDefinition(definition = {}, domain = {}) {
   }));
   const producerOutputs = mapRecords(data.producerOutputs, output => {
     const resolved = { ...output };
-    if (resolved.type) {
-      resolved.entityType = entityTypeFor(resolved.type) ?? snake(resolved.type);
-      delete resolved.type;
+    if (resolved.typeId) {
+      resolved.entityType = entityTypeFor(resolved.typeId) ?? snake(resolved.typeId);
+      delete resolved.typeId;
     }
     if (resolved.fields) {
       resolved.fields = Object.fromEntries(Object.entries(resolved.fields).map(([level, paths]) => [
@@ -333,9 +340,9 @@ export function resolveCtsDefinition(definition = {}, domain = {}) {
   });
   const actions = mapRecords(data.actions, action => {
     const resolved = { ...action };
-    if (resolved.type) {
-      resolved.entityType = resolved.type;
-      delete resolved.type;
+    if (resolved.typeId) {
+      resolved.entityType = resolved.typeId;
+      delete resolved.typeId;
     }
     if (resolved.target !== undefined) {
       resolved.status = { ...(resolved.status || {}), to: resolved.target };
@@ -347,7 +354,7 @@ export function resolveCtsDefinition(definition = {}, domain = {}) {
   const screens = mapRecords(data.screens, screen => ({
     ...screen,
     ...(Array.isArray(screen?.sources)
-      ? { sources: screen.sources.map(source => (source.type && !source.entityType ? { ...source, entityType: source.type, type: undefined } : { ...source })) }
+      ? { sources: screen.sources.map(source => (source.typeId && !source.entityType ? { ...source, entityType: source.typeId, typeId: undefined } : { ...source })) }
       : {})
   }));
 
@@ -400,9 +407,9 @@ function resolveNode(node, domain, entityTypeFor, diagnostics, at) {
   for (const flag of ['producer', 'archive', 'send', 'record', 'draft', 'one', 'mode', 'via']) {
     delete resolved[flag];
   }
-  if (resolved.type) {
-    resolved.entityType = entityTypeFor(resolved.type) ?? snake(resolved.type);
-    delete resolved.type;
+  if (resolved.typeId) {
+    resolved.entityType = entityTypeFor(resolved.typeId) ?? snake(resolved.typeId);
+    delete resolved.typeId;
   }
   if (resolved.slots) {
     resolved.blocks = [...resolved.slots];
@@ -466,7 +473,7 @@ export function checkCtsGraphBindings(definition = {}, domain = {}) {
 
   for (const [id, node] of Object.entries(data.processNodes || {})) {
     if (!String(node?.kind || '').startsWith('cts.')) continue;
-    const typeId = node?.type;
+    const typeId = node?.typeId;
     const entityType = typeId ? entityTypeFor(typeId) : node?.entityType || null;
     if (typeId && !entityType) {
       errors.push(`processNodes.${id}: unknown type ${typeId}`);

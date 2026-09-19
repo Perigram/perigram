@@ -1,6 +1,28 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import { CONSUMER_EFFECT_KINDS } from './node-catalog.js';
 import { operationKindOf, describeType, normalizeOperator } from '../../cts/src/index.js';
+import { migrateV4Definition, resolveCtsDefinition, checkCtsGraphBindings, isCtsGraphDefinition } from '../../cts/src/index.js';
+
+// The single authored-definition seam (SPEC §20): every consumer of an
+// authored graph — server validation/activation, canvas round trip —
+// flows through here. v4 graphs migrate one-way to the species
+// vocabulary (legacy `type` strings normalize to `typeId`), binding
+// checks run beside it, and lowering to the executable working shapes
+// happens exactly once, internally. Nothing outside this package
+// resolves or lowers the vocabulary.
+export function migrateProcessDefinition(data = {}, domain = {}) {
+  return migrateV4Definition(data, domain);
+}
+
+export function prepareAuthoredDefinition(data = {}, domain = {}) {
+  const wasCts = isCtsGraphDefinition(data);
+  const { definition: migrated } = migrateV4Definition(data, domain);
+  const { definition, diagnostics } = resolveCtsDefinition(migrated, domain);
+  // Declaration-binding checks are the cts vocabulary's gate; v4-authored
+  // graphs keep the compiler's own validation as their correctness gate.
+  const errors = [...(wasCts ? checkCtsGraphBindings(migrated, domain) : []), ...diagnostics];
+  return { definition, errors };
+}
 
 const BLOCK_PRESENTATION = {
   identity: { defaultPath: 'identity.name', icon: 'pi pi-id-card', fields: ['identity.uid', 'identity.name', 'identity.slug', 'identity.serial', 'identity.reference'] },
@@ -331,14 +353,14 @@ export function typeCatalogPaletteGroups(types = []) {
       label: entry.label || entry.id,
       icon: entry.icon,
       description: entry.description || entry.id,
-      preset: { type: entry.id, via: entry.via || 'genericCreate' }
+      preset: { typeId: entry.id, via: entry.via || 'genericCreate' }
     }));
     for (const operatorId of entry.constructOperators || []) {
       items.push(paletteItem(`${entry.id}:${operatorId}`, 'cts.construct', {
         label: `${entry.label || entry.id} · ${operatorId}`,
         icon: entry.icon,
         description: entry.description || entry.id,
-        preset: { type: entry.id, via: operatorId }
+        preset: { typeId: entry.id, via: operatorId }
       }));
     }
     byClass.set(entry.class, items);

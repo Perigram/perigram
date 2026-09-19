@@ -8,7 +8,7 @@ import {
   validateLineageBindingResolution
 } from '~/packages/processes/src/index.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { resolveCtsDefinition, checkCtsGraphBindings } from '~/packages/cts/src/index.js';
+import { prepareAuthoredDefinition } from '~/packages/processes/src/index.js';
 
 // Graph protocol v5 dual acceptance: definitions authored in the CTS
 // vocabulary (species kinds, type ids, row paths) lower to the executable
@@ -17,8 +17,7 @@ import { resolveCtsDefinition, checkCtsGraphBindings } from '~/packages/cts/src/
 // through untouched. Protocol binding errors (unknown type, undeclared
 // state, field outside the row) fail like any other definition error.
 function acceptGraphProtocol(data = {}, domain = {}) {
-  const { definition, diagnostics } = resolveCtsDefinition(data, domain);
-  const errors = [...checkCtsGraphBindings(data, domain), ...diagnostics];
+  const { definition, errors } = prepareAuthoredDefinition(data, domain);
   if (errors.length) {
     throw createError({
       statusCode: 400,

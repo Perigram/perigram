@@ -167,7 +167,7 @@ describe('process v4 node catalog', () => {
     // composer-less construct is the construction path, SPEC §20).
     const speciesCreate = resolveCatalogNodePorts({
       kind: 'cts.construct',
-      type: 'widget',
+      typeId: 'widget',
       via: 'genericCreate',
       slots: ['identity', 'data', 'specs'],
       construction: {
@@ -193,7 +193,7 @@ describe('process v4 node catalog', () => {
         { path: 'status.state.primary', block: 'status', type: { base: 'status', shape: 'item' }, writable: false }
       ]
     };
-    const ports = resolveCatalogNodePorts({ kind: 'cts.mutate', type: 'panel' }, context);
+    const ports = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel' }, context);
     const ids = ports.inputs.map(input => input.id);
     expect(ids[0]).toBe('entity');
     expect(ids).toEqual(expect.arrayContaining(['data.width', 'specs.thickness']));
@@ -205,7 +205,7 @@ describe('process v4 node catalog', () => {
 
   it('offers an unbound species record exactly one input: the type binding pin', () => {
     const context = { domain: {} };
-    const unbound = resolveCatalogNodePorts({ kind: 'cts.construct', type: '', via: 'genericCreate' }, context);
+    const unbound = resolveCatalogNodePorts({ kind: 'cts.construct', typeId: '', via: 'genericCreate' }, context);
     expect(unbound.inputs.map(input => input.id)).toEqual(['type']);
     expect(unbound.inputs[0].type).toMatchObject({ base: 'entityRef' });
     expect(unbound.outputs).toEqual([]);
