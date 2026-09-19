@@ -199,7 +199,7 @@
                     </div>
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('typesPane.typeId') }}</label>
-                      <InputText v-model="selectedNode.data.typeId" @update:model-value="() => { recountDeclaration(selectedNode); syncNodeData(); }" />
+                      <InputText v-model="selectedNode.data.typeId" />
                     </div>
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('typesPane.payloadMime') }}</label>
@@ -1091,6 +1091,7 @@ import {
   compileTreeDeclarations,
   createProcessDesignerContract,
   DECLARATION_NODE_TYPES,
+  declarationNodePorts,
   declarationWireLegality,
   definitionToCanvas,
   formatProcessType,
@@ -1106,8 +1107,7 @@ import {
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncUiSurfaces, cncPackContent } from '@cutkit/domain-cnc';
-import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, renderPolicyFor, frameworkTypes, DECLARABLE_CLASSES, ON_REMOVE, OPERATOR_SPECIES } from '~/packages/cts/src/index.js';
-import { ctsFieldToProcessType } from '~/packages/cts/src/index.js';
+import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, renderPolicyFor, frameworkTypes, DECLARABLE_CLASSES, ON_REMOVE, OPERATOR_SPECIES, typeIdOf, setTypeBinding } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
 import ClassNode from '~/components/type-designer/TypeNode.vue';
@@ -1137,6 +1137,7 @@ import {
 } from '~/composables/useProcessDesignerNodeRecords.js';
 import { useProcessDesignerPreview } from '~/composables/useProcessDesignerPreview.js';
 import { useProcessDesignerGraphEditing } from '~/composables/useProcessDesignerGraphEditing.js';
+import { useProcessDesignerLiveGraph } from '~/composables/useProcessDesignerLiveGraph.js';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
 
 const { t, te } = useI18n();
@@ -1232,12 +1233,20 @@ let designerCapabilities = null;
 
 function resetCtsRegistry() {
   ctsRegistryCache = null;
+  ctsDomainCache = null;
 }
 
+// One projection per registry generation: node syncing resolves ports
+// against the same projected domain object instead of rebuilding it per
+// node per pass.
+let ctsDomainCache = null;
 function ctsProjectedDomain() {
-  return projectDomainFromView(ctsRegistry(), activeOrganizationId(), cncDomain, {
-    packServices: cncPackContent.services
-  });
+  if (!ctsDomainCache) {
+    ctsDomainCache = projectDomainFromView(ctsRegistry(), activeOrganizationId(), cncDomain, {
+      packServices: cncPackContent.services
+    });
+  }
+  return ctsDomainCache;
 }
 
 // The registry view as the authoring catalog: class groups first (the
@@ -1314,15 +1323,16 @@ function isOpKind(node, kindOrPrefix) {
   const kind = opKind(node);
   return kindOrPrefix.endsWith('.') ? kind.startsWith(kindOrPrefix) : kind === kindOrPrefix;
 }
-// v5 species records carry `typeId`; v4 records carry `entityType`.
-const nodeEntityType = node => node?.typeId || node?.entityType || '';
+// The record vocabulary seam (typeIdOf/setTypeBinding from @perigram/cts):
+// v5 species records bind types through `typeId`, v4 records through
+// `entityType`. No local re-derivation of the branch.
+const nodeEntityType = node => typeIdOf(node || {});
 function setNodeEntityType(node, entityType) {
-  if (v5Record(node)) node.typeId = entityType;
-  else node.entityType = entityType;
+  setTypeBinding(node, entityType);
 }
 function catalogPorts(record) {
   // v5 cts records go to the catalog RAW: the cts() ports wrapper resolves
-  // the operation twin itself and owns the unbound type pin + the
+  // the operation twin itself and owns the persistent type binding pin + the
   // declaration-only construct contract (no block substrate). Pre-resving
   // here would bypass it.
   return resolveCatalogNodePorts(record, catalogContext(record));
@@ -1342,18 +1352,46 @@ function renameDeclarationNode(props, value) {
   if (!node) return;
   if (node.type === 'ctsField') node.data.name = String(value || '').trim();
   if (node.type === 'ctsState') node.data.value = String(value || '').trim();
+  // No manual propagation here: the live-graph watcher re-interprets the
+  // declaration wires, refreshes class counts and the tree overlay, and
+  // re-syncs dependent ports in the same tick.
 }
 
-// keep the class card's field/state counts honest as nodes wire in/out
-function recountDeclaration(classNode) {
-  if (!classNode || classNode.type !== 'ctsClass') return;
-  const typeId = classNode.data.typeId;
-  classNode.data.fields = nodes.value.filter(node => node.type === 'ctsField' && node.data.typeId === typeId).length;
-  classNode.data.states = nodes.value.filter(node => node.type === 'ctsState' && node.data.typeId === typeId).length;
+// The live evaluation loop (Blender-style): any authoring change — a
+// rename, a wire, an inspector edit, a descriptor change — re-interprets
+// declaration wires and re-syncs every dependent surface. Connect
+// handlers call evaluateNow() for instant feedback; everything else is
+// the watcher's job.
+const liveGraph = useProcessDesignerLiveGraph({
+  nodes,
+  edges,
+  draft,
+  apply: applyGraphInterpretation
+});
+const { evaluateNow } = liveGraph;
+
+function applyGraphInterpretation(mutations) {
+  for (const mutation of mutations) {
+    if (mutation.scope === 'node') {
+      const node = nodes.value.find(candidate => candidate.id === mutation.nodeId);
+      if (node) node.data[mutation.key] = mutation.value;
+      continue;
+    }
+    const record = draft.value?.data?.processNodes?.[mutation.recordId];
+    if (record) setNodeEntityType(record, mutation.value);
+  }
+  syncNodeData();
+  // Live sockets change with the declarations (a renamed field renames
+  // its construct socket): wires into inputs that no longer exist come
+  // off after every pass. The Type pin itself always survives.
+  for (const node of nodes.value) {
+    if (node.type !== 'processNode' || !node.data?.refId) continue;
+    const record = draft.value?.data?.processNodes?.[node.data.refId];
+    if (record) pruneMissingProcessNodeInputEdges(node.data.refId, record);
+  }
 }
 
 const sameTypeId = (a, b) => String(a || '').replace(/_/g, '-') === String(b || '').replace(/_/g, '-');
-const nodeBlocks = node => node?.slots || node?.blocks || [];
 function setNodeBlocks(node, blocks) {
   if (v5Record(node)) node.slots = blocks;
   else node.blocks = blocks;
@@ -1425,8 +1463,7 @@ const {
   createStatusDefinition,
   createValueInput,
   createProcessNode,
-  defaultEntityType,
-  defaultFeature
+  defaultEntityType
 } = useProcessDesignerNodeRecords({
   designer,
   translate: key => t(key),
@@ -1577,11 +1614,6 @@ const accessLevelOptions = [
 ];
 const processValueTypeOptions = ['string', 'number', 'integer', 'boolean', 'json', 'date', 'dateTime', 'duration', 'enum', 'entityRef', 'status'].map(value => ({ label: value, value }));
 const dataMatchingOptions = ['longest', 'shortest', 'cross'].map(value => ({ label: t(`processDesigner.matching.${value}`), value }));
-const relationMutationOptions = [
-  { label: t('processDesigner.operationLabels.link'), value: 'append' },
-  { label: t('processDesigner.operationLabels.unlink'), value: 'remove' },
-  { label: t('processDesigner.operationLabels.replaceRelation'), value: 'replace' }
-];
 const artifactUploadKindOptions = computed(() => designer.attachmentKindOptions
   .filter(option => ['upload', 'capture', 'editor'].includes(option.creation?.mode)));
 const statusSeverityOptions = [
@@ -1707,7 +1739,6 @@ const processStatusOptions = computed(() => {
 const statusParentOptions = computed(() => statusDefinitionList.value
   .filter(status => status.statusId)
   .map(status => ({ label: status.label || status.statusId, value: status.statusId })));
-const selectedEntityFeature = computed(() => selectedEntity.value.entityType ? featureForEntityType(selectedEntity.value.entityType) : defaultFeature());
 
 const roles = computed(() => organizationRoles.value);
 const servicePrincipals = computed(() => draft.value?.data?.servicePrincipals || {});
@@ -1839,7 +1870,7 @@ const selectedScreenSourceOptions = computed(() => (selectedScreenRecord.value?.
   label: source.id || source.entityType,
   value: source.id
 })));
-const screenFeatureOptions = computed(() => (cncDomain.entities || []).map(entity => ({
+const screenFeatureOptions = computed(() => (designer.domain.entities || []).map(entity => ({
   label: entity.label || entity.type,
   value: featureForEntityType(entity.type)
 })));
@@ -2312,10 +2343,6 @@ async function applyDraftRename() {
   }
 }
 
-function toggleProcessMenu(event) {
-  processMenu.value?.toggle?.(event);
-}
-
 function closeProcessMenu() {
   processMenu.value?.hide?.();
 }
@@ -2334,6 +2361,7 @@ function setDraft(value) {
     validation.value = { ok: false, errors: [error.message], warnings: [] };
   }
   resetGraphSelection();
+  liveGraph.reset();
   nodes.value = canvas.nodes.map(enrichNodeData);
   edges.value = decorateEdges(canvas.edges);
   selectedRoleId.value = Object.keys(organizationRoles.value)[0] || null;
@@ -2860,20 +2888,14 @@ function syncNodeData() {
     node.data.inputSpecs = (record.inputs || []).map(ioSpec);
     node.data.outputSpecs = (record.outputs || []).map(ioSpec);
     // Declaration nodes derive their typed specs from the declaration
-    // itself (declarationPorts / the registry entry), never from record
+    // itself (declarationNodePorts / the registry entry), never from record
     // inputs/outputs — the generic write above would otherwise wipe the
     // palette-drop enrichment and every declaration wire would die at the
     // first sync (onConnect's first statement).
-    if (node.type === 'ctsClass' || node.type === 'ctsField' || node.type === 'ctsState') {
-      const ports = declarationPorts(node) || {};
+    if (node.type === 'ctsClass' || node.type === 'ctsField' || node.type === 'ctsState' || node.type === 'ctsType') {
+      const ports = declarationNodePorts(node, ctsTypeView()) || {};
       node.data.inputSpecs = ports.inputSpecs || [];
       node.data.outputSpecs = ports.outputSpecs || [];
-    } else if (node.type === 'ctsType') {
-      const entry = ctsTypeView().find(candidate => candidate.id === node.data?.typeId);
-      node.data.inputSpecs = [];
-      node.data.outputSpecs = entry
-        ? [{ id: 'type', label: entry.id, role: 'data', type: processType('entityRef', { entityType: entry.id }), access: 'item' }]
-        : [];
     }
     node.data.fieldPolicy = record.fields || null;
     node.data.projection = record.projection || null;
@@ -3124,7 +3146,7 @@ function removeSelectedScreenRegion(index) {
 }
 
 function featureForEntityType(entityType) {
-  const entity = (cncDomain.entities || []).find(item => item.type === entityType);
+  const entity = (designer.domain.entities || []).find(item => item.type === entityType);
   return entity?.collection || `${entityType}s`;
 }
 
@@ -3298,13 +3320,8 @@ function updateArtifactCreationKinds(record = {}, kinds = []) {
   syncNodeData();
 }
 
-function parentRevisionScopeOptions(entityType = '') {
-  const contract = cncDomain.revisions?.[entityType] || {};
-  return (contract.scopes || []).map(value => ({ label: value, value }));
-}
-
 function syncParentRevision(action = {}) {
-  const contract = cncDomain.revisions?.[action.parentEntityType] || {};
+  const contract = designer.domain.revisions?.[action.parentEntityType] || {};
   const scopes = Array.isArray(contract.scopes) ? contract.scopes : [];
   action.parentRevision ||= { enabled: false, scope: '' };
   if (!scopes.length) {
@@ -3406,7 +3423,7 @@ function syncStatusDefinition(status = {}) {
 
 function isLegacyStatusNodeLabel(label = '') {
   const value = String(label || '').trim();
-  return (cncDomain.entities || []).some(entity => entity.type === value);
+  return (designer.domain.entities || []).some(entity => entity.type === value);
 }
 
 function pruneStatusLifecycle(status = {}) {
@@ -3737,7 +3754,7 @@ function writableEntityBlocks(entityType = '') {
   return [...new Set(designer.fieldsForEntity(entityType)
     .filter(field => field.writable !== false)
     .map(field => field.block)
-    .filter(block => block && !['origin', 'status', 'provenance', 'summary'].includes(block)))];
+    .filter(block => block && !managedProcessBlocks.has(block)))];
 }
 
 function processEntityTypeOptions(node = {}) {
@@ -3758,7 +3775,7 @@ function processPortTypeLabel(type = 'data') {
 }
 
 function relationOptionsForEntity(entityType = '') {
-  return (cncDomain.relations || [])
+  return (designer.domain.relations || [])
     .filter(relation => relation.ownerType === entityType)
     .map(relation => ({
       label: `${relation.key} · ${relation.targetType} · ${relation.cardinality}`,
@@ -3767,14 +3784,14 @@ function relationOptionsForEntity(entityType = '') {
 }
 
 function relationForNode(node = {}) {
-  return (cncDomain.relations || []).find(relation => (
+  return (designer.domain.relations || []).find(relation => (
     sameTypeId(relation.ownerType, nodeEntityType(node)) && relation.key === node.relationKey
   ));
 }
 
 function declaredRelationsForProfile(profile = {}) {
   const keys = new Set(profile.relations || []);
-  return (cncDomain.relations || []).filter(relation => relation.ownerType === profile.entityType && keys.has(relation.key));
+  return (designer.domain.relations || []).filter(relation => relation.ownerType === profile.entityType && keys.has(relation.key));
 }
 
 function declaredRelationsForEntity(entityType = '') {
@@ -3782,7 +3799,7 @@ function declaredRelationsForEntity(entityType = '') {
     .filter(output => output.entityType === entityType)
     .flatMap(output => output.relations || []));
   if (!keys.size) return [];
-  return (cncDomain.relations || []).filter(relation => relation.ownerType === entityType && keys.has(relation.key));
+  return (designer.domain.relations || []).filter(relation => relation.ownerType === entityType && keys.has(relation.key));
 }
 
 function processNodeDisplayLabel(node = {}) {
@@ -3835,7 +3852,7 @@ function initialSocketStatus(socket = {}) {
 }
 
 function initialStatusForEntity(entityType) {
-  const workflow = cncDomain.workflows?.[entityType];
+  const workflow = designer.domain.workflows?.[entityType];
   if (!workflow) return '';
   const region = workflow.regions?.[workflow.primaryRegion] || Object.values(workflow.regions || {})[0];
   return region?.initial || '';
@@ -4061,7 +4078,7 @@ function principalLabels(principalIds = []) {
 
 
 function workflowForEntity(profile = {}) {
-  if (profile.lifecycle?.mode === 'domainDefault' && cncDomain.workflows?.[profile.entityType]) return normalizeWorkflow(cncDomain.workflows[profile.entityType]);
+  if (profile.lifecycle?.mode === 'domainDefault' && designer.domain.workflows?.[profile.entityType]) return normalizeWorkflow(designer.domain.workflows[profile.entityType]);
   if (profile.lifecycle?.workflow) return normalizeWorkflow(profile.lifecycle.workflow);
   return normalizeWorkflow(createCreatedWorkflow());
 }
@@ -4074,36 +4091,6 @@ function parseJson(source, fallback) {
   } catch {
     return fallback;
   }
-}
-
-// Declaration nodes carry typed port specs like every other node: fields
-// output their declared type, states output a status contract, classes
-// accept declarations in and offer a typed entityRef of the declared id
-// out. Wires into species records then go through the standard
-// compatibility checker instead of the gesture bypass.
-function declarationPorts(node) {
-  if (node.type === 'ctsClass') {
-    return {
-      inputSpecs: [{ id: 'declare', label: 'fields · states', role: 'data', type: processType('json'), access: 'item' }],
-      outputSpecs: node.data.typeId
-        ? [{ id: 'type', label: node.data.typeId, role: 'data', type: processType('entityRef', { entityType: node.data.typeId }), access: 'item' }]
-        : []
-    };
-  }
-  if (node.type === 'ctsField') {
-    const descriptor = node.data.descriptor || {};
-    return {
-      inputSpecs: [],
-      outputSpecs: [{ id: 'field', label: node.data.name || 'field', role: 'data', type: ctsFieldToProcessType(descriptor) || processType('json'), access: 'item' }]
-    };
-  }
-  if (node.type === 'ctsState') {
-    return {
-      inputSpecs: [],
-      outputSpecs: [{ id: 'state', label: node.data.value || 'state', role: 'data', type: processType('status'), access: 'item' }]
-    };
-  }
-  return null;
 }
 
 // Declaration authoring state persists in `ctsTypes` records with the
@@ -4133,23 +4120,17 @@ function syncDeclarationRecord(record = {}, node = {}) {
 
 function enrichNodeData(node) {
   if (node.type === 'ctsClass') {
-    recountDeclaration(node);
     syncDeclarationRecord(ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type)), node);
-    return { ...node, data: { ...node.data, label: node.data.label || node.data.typeId, version: 1, scope: 'org', ...declarationPorts(node) } };
+    return { ...node, data: { ...node.data, label: node.data.label || node.data.typeId, version: 1, scope: 'org', ...declarationNodePorts(node, ctsTypeView()) } };
   }
   if (node.type === 'ctsField' || node.type === 'ctsState') {
     syncDeclarationRecord(ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type)), node);
-    return { ...node, data: { ...node.data, ...declarationPorts(node) } };
+    return { ...node, data: { ...node.data, ...declarationNodePorts(node, ctsTypeView()) } };
   }
   if (node.type === 'ctsType') {
     syncDeclarationRecord(ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type)), node);
     const entry = ctsTypeView().find(candidate => candidate.id === node.data?.typeId);
-    // a selected reference carries the same typed entityRef output as a
-    // bound class node, so binding wires typecheck identically
-    const outputSpecs = entry
-      ? [{ id: 'type', label: entry.id, role: 'data', type: processType('entityRef', { entityType: entry.id }), access: 'item' }]
-      : [];
-    return { ...node, data: { ...(node.data || {}), type: entry || null, label: entry?.label || node.data?.typeId || 'type', inputSpecs: [], outputSpecs } };
+    return { ...node, data: { ...(node.data || {}), type: entry || null, label: entry?.label || node.data?.typeId || 'type', ...declarationNodePorts(node, ctsTypeView()) } };
   }
   const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
   if (node.type === 'action') syncActionIo(record, node);
@@ -4548,7 +4529,6 @@ function stripRuntimeNodeData(node) {
     'triggerModeOptions',
     'fieldOptions',
     'onActionUpdate',
-    'onActionResetAccess',
     'valueInputRecord',
     'onValueInputUpdate',
     'processNodeRecord',
@@ -4556,10 +4536,6 @@ function stripRuntimeNodeData(node) {
     'statusDefinitionRecord',
     'onStatusDefinitionUpdate',
     'onStatusDefinitionDelete',
-    'statusSeverityOptions',
-    'statusIconOptions',
-    'attachmentKindOptions',
-    'evidenceLabel',
     'processValueTypeOptions',
     'processEntityTypeOptions',
     'processOperationOptions',
@@ -4609,40 +4585,6 @@ function countFieldBindings(fields = {}) {
 
 function fieldOptions(entityType) {
   return designer.fieldsForEntity(entityType);
-}
-
-function fieldOptionsForBlock(block = '', entityType = '') {
-  if (entityType) return designer.fieldsForEntity(entityType, block).filter(option => !option.value.endsWith('.*'));
-  const options = designer.entityOptions.flatMap(option => designer.fieldsForEntity(option.value, block));
-  return [...new Map(options.map(option => [option.value, option])).values()]
-    .filter(option => !option.value.endsWith('.*'));
-}
-
-function fieldPathAllowed(entityType = '', path = '', access = 'read') {
-  const policy = designer.fieldPolicy(entityType);
-  const allowed = [
-    ...(policy[access] || []),
-    ...(access === 'write' ? (policy.admin || []) : [])
-  ];
-  return allowed.some(pattern => (
-    pattern === path
-    || pattern === '*'
-    || (pattern.endsWith('.*') && path.startsWith(pattern.slice(0, -1)))
-  ));
-}
-
-function fieldPolicyForEntity(entityType) {
-  return entityType ? designer.fieldPolicy(entityType) : {};
-}
-
-function syncServiceFromCommand(service = selectedServiceRecord.value) {
-  const command = cncDomain.commands?.[service?.commandId];
-  if (!command || !service) return;
-  service.label = command.label || command.id;
-  service.serviceType = command.service;
-  service.inputs = commandInputs(command);
-  service.outputs = commandOutputs(command);
-  syncNodeData();
 }
 
 
@@ -4705,10 +4647,11 @@ function onConnect(connection) {
     });
     return;
   }
-  // declaration wires carry side effects after passing the SAME typed
-  // compatibility check as every other wire; they persist as role:'type'
-  // edges (the vocabulary persistTreeDeclarations compiles from) — never
-  // as generic data edges
+  // declaration wires carry their side effects through live interpretation
+  // (applyGraphInterpretation): they persist as role:'type' edges — the
+  // vocabulary compileTreeDeclarations and interpretDeclarationEdges read —
+  // never as generic data edges. Binding follows the wire for as long as it
+  // exists; renaming the source re-binds every wired descendant.
   const sourceNode = nodes.value.find(node => node.id === connection.source);
   const targetNode = nodes.value.find(node => node.id === connection.target);
   const targetNodeRecord = draft.value?.data?.processNodes?.[targetNode?.data?.refId];
@@ -4717,64 +4660,35 @@ function onConnect(connection) {
     targetType: targetNode?.type,
     targetRecordKind: targetNodeRecord?.kind
   });
-  if (legality === 'declares') {
-    sourceNode.data.typeId = targetNode.data.typeId;
-    recountDeclaration(targetNode);
-    // Live interpretation: the declaration changed, so every bound node
-    // re-derives its ports against the refreshed overlay (a construct
-    // bound to this class gains/removes field sockets immediately).
-    syncNodeData();
-    selectedEdgeId.value = null;
-    edges.value.push(decorateEdge({
+  if (legality) {
+    // one binding wire per record: a new bind replaces the previous one
+    if (legality === 'binds') {
+      edges.value = edges.value.filter(edge => !(
+        edge.role === 'type' && edge.label === 'type' && edge.target === targetNode.id
+      ));
+    }
+    const declarationEdge = {
       ...connection,
-      id: `declares:${sourceNode.id}-${targetNode.id}`,
       type: 'default',
       role: 'type',
-      label: sourceNode.type === 'ctsField' ? 'field' : 'state'
-    }));
-    syncEdgeSelection();
-    return;
-  }
-  if (legality === 'binds') {
-    setNodeEntityType(targetNodeRecord, sourceNode.data.typeId);
-    syncNodeData();
+      label: legality === 'declares' ? (sourceNode.type === 'ctsField' ? 'field' : 'state')
+        : legality === 'binds' ? 'type'
+          : legality
+    };
+    if (legality === 'declares') declarationEdge.id = `declares:${sourceNode.id}-${targetNode.id}`;
+    if (legality === 'children') {
+      declarationEdge.id = `children:${sourceNode.id}-${targetNode.id}`;
+      declarationEdge.data = { key: `${targetNode.data.typeId}s`, onRemove: 'restrict' };
+    }
+    if (legality === 'transition') {
+      declarationEdge.id = `transition:${sourceNode.id}-${targetNode.id}-${Date.now()}`;
+      declarationEdge.data = { intent: '' };
+    }
+    if (legality === 'binds') declarationEdge.id = `${sourceNode.id}-type-${targetNode.id}-${Date.now()}`;
     selectedEdgeId.value = null;
-    edges.value.push(decorateEdge({
-      ...connection,
-      id: `${sourceNode.id}-type-${targetNode.id}-${Date.now()}`,
-      type: 'default',
-      role: 'type',
-      label: 'type'
-    }));
+    edges.value.push(decorateEdge(declarationEdge));
     syncEdgeSelection();
-    return;
-  }
-  if (legality === 'children') {
-    syncNodeData();
-    selectedEdgeId.value = null;
-    edges.value.push(decorateEdge({
-      ...connection,
-      id: `children:${sourceNode.id}-${targetNode.id}`,
-      type: 'default',
-      role: 'type',
-      label: 'children',
-      data: { key: `${targetNode.data.typeId}s`, onRemove: 'restrict' }
-    }));
-    syncEdgeSelection();
-    return;
-  }
-  if (legality === 'transition') {
-    syncNodeData();
-    selectedEdgeId.value = null;
-    edges.value.push(decorateEdge({
-      ...connection,
-      id: `transition:${sourceNode.id}-${targetNode.id}-${Date.now()}`,
-      type: 'default',
-      role: 'type',
-      label: 'transition',
-      data: { intent: '' }
-    }));
-    syncEdgeSelection();
+    evaluateNow();
     return;
   }
   selectedEdgeId.value = null;
@@ -4836,28 +4750,22 @@ function connectionCompatibility(connection = {}) {
         };
       }
       if (legality === 'binds') {
-        if (source.type === 'ctsClass' && !source.data?.typeId) {
-          return { ok: false, reason: 'Name the class before binding its type' };
-        }
         const sourcePort = (source.data?.outputSpecs || [])[0];
-        if (!sourcePort) return { ok: false, reason: 'The type node has no selected type' };
-        // An unbound species record (e.g. a bare cts.construct) has no
-        // typed ports yet — the binding wire IS the authoring gesture that
-        // writes the type; it typechecks against the source alone. Unbound
-        // means: no storage entity id AND no v5 type-id string (the value
-        // descriptor object is not a binding; an empty string is not one
-        // either).
-        if (!targetRecord?.entityType && !targetRecord?.typeId) {
-          return { ok: true, source: sourcePort };
+        if (!sourcePort) {
+          return { ok: false, reason: source.type === 'ctsClass' ? 'Name the class before binding its type' : 'The type node has no selected type' };
         }
+        // The binding wire lands on the persistent Type pin (bound or
+        // unbound); it typechecks against the source alone — the pin's
+        // generic entityRef accepts any declared type.
         const inputs = resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs;
-        const targetPort = portForHandle(inputs, connection.targetHandle, 'input')
-          || inputs.find(port => port.type?.base === 'entity' || port.type?.base === 'entityRef');
-        if (!targetPort) return { ok: false };
+        const pin = portForHandle(inputs, connection.targetHandle, 'input') || inputs.find(port => port.id === 'type');
+        if (!pin || pin.id !== 'type') {
+          return { ok: false, reason: 'Type bindings wire into the Type pin' };
+        }
         return {
-          ...processSocketsCompatible(sourcePort, targetPort),
+          ...processSocketsCompatible(sourcePort, pin),
           source: sourcePort,
-          target: targetPort
+          target: pin
         };
       }
       if (legality === 'children') {
@@ -5185,29 +5093,6 @@ function inferIncomingEntityContract(nodeId) {
   };
 }
 
-function inferIncomingPortContract(nodeId, inputId = '') {
-  const targetNode = nodes.value.find(item => item.id === nodeId);
-  const targetRecord = targetNode?.data?.refId
-    ? draft.value?.data?.[recordKeyForType(targetNode.type)]?.[targetNode.data.refId]
-    : null;
-  const singleInput = targetRecord ? resolveProcessNodePorts(targetRecord).inputs.length === 1 : false;
-  const edge = edges.value.find(item => {
-    if (item.target !== nodeId || !String(item.targetHandle || '').startsWith('input')) return false;
-    if (!inputId) return true;
-    const handle = String(item.targetHandle || '');
-    if (handle === 'input' && singleInput) return true;
-    return handle.replace(/^input:/, '') === inputId;
-  });
-  if (!edge) return null;
-  const source = nodes.value.find(item => item.id === edge.source);
-  const sourceRecord = source?.data?.refId ? draft.value?.data?.[recordKeyForType(source.type)]?.[source.data.refId] : null;
-  const sourceOutputs = sourceRecord?.outputs || [];
-  const handleId = String(edge.sourceHandle || '');
-  const match = sourceOutputs.find((output, index) => socketHandleIdForRecord('output', output, index, sourceOutputs) === handleId)
-    || sourceOutputs.find(output => output.entityType || output.block);
-  return match || null;
-}
-
 function socketHandleIdForRecord(kind, item, index, items) {
   if (items.length === 1) return kind;
   return `${kind}:${item.id || index}`;
@@ -5269,17 +5154,6 @@ function addEffectiveRoleAccess(accessByRole, roleId, level, status) {
       status: status || existing?.status || ''
     });
   }
-}
-
-function actionAccessSummary(action = {}) {
-  const entityType = actionEntityType(action);
-  if (action.actionKind === 'updateEntity' && !entityType) return '';
-  const status = actionTargetStatus(action);
-  const subject = entityType || action.label || action.id || action.actionKind;
-  return [
-    [subject, normalizeAccessLevel(action.access?.level)].filter(Boolean).join(':'),
-    status ? `when ${status}` : ''
-  ].filter(Boolean).join(' ');
 }
 
 function actionEntityType(action = {}) {

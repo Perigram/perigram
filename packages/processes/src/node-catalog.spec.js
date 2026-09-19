@@ -163,8 +163,9 @@ describe('process v4 node catalog', () => {
     expect(width.type).toMatchObject({ base: 'number' });
     expect(width.required).toBe(false);
     // v4 twin keeps the block substrate; the cts species record speaks
-    // the declaration only — row fields + status, no block sockets (the
-    // composer-less construct is the construction path, SPEC §20).
+    // the declaration only — the persistent Type pin, row fields, and
+    // status, no block sockets (the composer-less construct is the
+    // construction path, SPEC §20).
     const speciesCreate = resolveCatalogNodePorts({
       kind: 'cts.construct',
       typeId: 'widget',
@@ -178,6 +179,7 @@ describe('process v4 node catalog', () => {
       }
     }, context);
     expect(speciesCreate.inputs.map(input => input.id)).toEqual([
+      'type',
       'specs.width',
       'status.state.primary'
     ]);
@@ -195,8 +197,8 @@ describe('process v4 node catalog', () => {
     };
     const ports = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel' }, context);
     const ids = ports.inputs.map(input => input.id);
-    expect(ids[0]).toBe('entity');
-    expect(ids).toEqual(expect.arrayContaining(['data.width', 'specs.thickness']));
+    expect(ids[0]).toBe('type');
+    expect(ids).toEqual(expect.arrayContaining(['entity', 'data.width', 'specs.thickness']));
     expect(ids).not.toContain('data.locked');
     expect(ids).not.toContain('identity');
     expect(ids).not.toContain('data');
@@ -209,6 +211,12 @@ describe('process v4 node catalog', () => {
     expect(unbound.inputs.map(input => input.id)).toEqual(['type']);
     expect(unbound.inputs[0].type).toMatchObject({ base: 'entityRef' });
     expect(unbound.outputs).toEqual([]);
+    // the pin persists on every type-bound species, bound or not, so a
+    // binding wire never dangles and re-binding stays possible
+    for (const kind of ['cts.mutate', 'cts.transition', 'cts.remove', 'cts.read']) {
+      const ports = resolveCatalogNodePorts({ kind, typeId: 'queue' }, { domain: {} });
+      expect(ports.inputs[0]?.id, kind).toBe('type');
+    }
   });
 
   it('declares List consumption on every mapped mutation effect input socket', () => {

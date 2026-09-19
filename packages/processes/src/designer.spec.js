@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { compileTreeDeclarations, createProcessDesignerContract, declarationWireLegality, syncProcessNodeProducerOutputs, typeCatalogPaletteGroups } from './designer.js';
+import { compileTreeDeclarations, createProcessDesignerContract, declarationNodePorts, declarationWireLegality, interpretDeclarationEdges, syncProcessNodeProducerOutputs, typeCatalogPaletteGroups } from './designer.js';
 import { getProcessNodeDefinition } from './node-catalog.js';
 
 describe('process designer domain contract', () => {
@@ -344,11 +344,14 @@ describe('declaration wire legality', () => {
     expect(legality({ sourceType: 'ctsState', targetType: 'ctsClass' })).toBe('declares');
   });
 
-  it('class and reference nodes bind cts species records only', () => {
+  it('class and reference nodes bind type-bound species records only', () => {
     expect(legality({ sourceType: 'ctsClass', targetType: 'processNode', targetRecordKind: 'cts.construct' })).toBe('binds');
     expect(legality({ sourceType: 'ctsType', targetType: 'processNode', targetRecordKind: 'cts.read' })).toBe('binds');
     // v4 working-vocabulary records are not declaration-bindable
     expect(legality({ sourceType: 'ctsClass', targetType: 'processNode', targetRecordKind: 'effect.createEntity' })).toBeNull();
+    // operator-bound and structure species carry no type to bind
+    expect(legality({ sourceType: 'ctsClass', targetType: 'processNode', targetRecordKind: 'cts.service' })).toBeNull();
+    expect(legality({ sourceType: 'ctsClass', targetType: 'processNode', targetRecordKind: 'cts.compose' })).toBeNull();
     expect(legality({ sourceType: 'ctsClass', targetType: 'processNode' })).toBeNull();
   });
 
@@ -483,5 +486,99 @@ describe('type catalog palette', () => {
     expect(items[0]).toMatchObject({ id: 'panel', kind: 'cts.construct', preset: { typeId: 'panel', via: 'genericCreate' } });
     expect(items[1]).toMatchObject({ id: 'panel:bake-panel', preset: { typeId: 'panel', via: 'bake-panel' } });
     expect(groups[1].items).toHaveLength(1);
+  });
+});
+
+describe('declaration node ports', () => {
+  it('gives every declaration handle a typed spec', () => {
+    const classPorts = declarationNodePorts({ type: 'ctsClass', data: { typeId: 'panel' } });
+    expect(classPorts.inputSpecs[0]).toMatchObject({ id: 'declare', role: 'data' });
+    expect(classPorts.outputSpecs[0]).toMatchObject({ id: 'type', type: { base: 'entityRef', entityType: 'panel' } });
+
+    const fieldPorts = declarationNodePorts({ type: 'ctsField', data: { name: 'width', descriptor: { base: 'quantity', unit: 'mm' } } });
+    expect(fieldPorts.outputSpecs[0]).toMatchObject({ id: 'field', label: 'width' });
+
+    // the state node's transition-from handle is a real spec, not a ghost
+    const statePorts = declarationNodePorts({ type: 'ctsState', data: { value: 'raw' } });
+    expect(statePorts.inputSpecs[0]).toMatchObject({ id: 'in', type: { base: 'status' } });
+    expect(statePorts.outputSpecs[0]).toMatchObject({ id: 'state', type: { base: 'status' } });
+
+    const typePorts = declarationNodePorts({ type: 'ctsType', data: { typeId: 'sheet' } }, [{ id: 'sheet' }]);
+    expect(typePorts.outputSpecs[0]).toMatchObject({ id: 'type', type: { base: 'entityRef', entityType: 'sheet' } });
+    expect(declarationNodePorts({ type: 'ctsType', data: { typeId: '' } }, [{ id: 'sheet' }]).outputSpecs).toEqual([]);
+  });
+});
+
+describe('live declaration wire interpretation', () => {
+  const graph = () => ({
+    nodes: [
+      { id: 'cls', type: 'ctsClass', data: { typeId: 'panel', fields: 0, states: 0 } },
+      { id: 'f1', type: 'ctsField', data: { typeId: null, name: 'width' } },
+      { id: 's1', type: 'ctsState', data: { typeId: null, value: 'raw' } },
+      { id: 'ctor', type: 'processNode', data: { refId: 'ctor' } }
+    ],
+    edges: [
+      { id: 'd1', source: 'f1', target: 'cls', role: 'type', label: 'field' },
+      { id: 'd2', source: 's1', target: 'cls', role: 'type', label: 'state' },
+      { id: 'b1', source: 'cls', target: 'ctor', role: 'type', label: 'type' }
+    ],
+    records: { ctor: { id: 'ctor', kind: 'cts.construct', typeId: '' } }
+  });
+  const apply = (state, mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.scope === 'node') {
+        state.nodes.find(node => node.id === mutation.nodeId).data[mutation.key] = mutation.value;
+      } else {
+        state.records[mutation.recordId].typeId = mutation.value;
+      }
+    }
+  };
+
+  it('derives declaration node type ids, class counts, and record bindings from the wires', () => {
+    const state = graph();
+    const first = interpretDeclarationEdges(state.nodes, state.edges, state.records, {});
+    apply(state, first.mutations);
+    expect(state.nodes.find(node => node.id === 'f1').data.typeId).toBe('panel');
+    expect(state.nodes.find(node => node.id === 's1').data.typeId).toBe('panel');
+    expect(state.nodes.find(node => node.id === 'cls').data).toMatchObject({ fields: 1, states: 1 });
+    expect(state.records.ctor.typeId).toBe('panel');
+
+    // a settled graph interprets to nothing — evaluation is idempotent
+    const second = interpretDeclarationEdges(state.nodes, state.edges, state.records, first.bindings);
+    expect(second.mutations).toEqual([]);
+  });
+
+  it('re-binds descendants live when the class is renamed', () => {
+    const state = graph();
+    apply(state, interpretDeclarationEdges(state.nodes, state.edges, state.records, {}).mutations);
+    state.nodes.find(node => node.id === 'cls').data.typeId = 'plate';
+    const pass = interpretDeclarationEdges(state.nodes, state.edges, state.records, {});
+    apply(state, pass.mutations);
+    expect(state.nodes.find(node => node.id === 'f1').data.typeId).toBe('plate');
+    expect(state.records.ctor.typeId).toBe('plate');
+  });
+
+  it('unbinds when the wire is removed but keeps palette-preset bindings', () => {
+    const state = graph();
+    const first = interpretDeclarationEdges(state.nodes, state.edges, state.records, {});
+    apply(state, first.mutations);
+    state.edges = state.edges.filter(edge => edge.id !== 'b1');
+    const pass = interpretDeclarationEdges(state.nodes, state.edges, state.records, first.bindings);
+    apply(state, pass.mutations);
+    expect(state.records.ctor.typeId).toBe('');
+
+    // a record bound by preset (no wire ever) is authored data: untouched
+    const preset = interpretDeclarationEdges(state.nodes, state.edges, { ctor: { id: 'ctor', kind: 'cts.construct', typeId: 'sheet' } }, {});
+    expect(preset.mutations.filter(mutation => mutation.scope === 'record')).toEqual([]);
+  });
+
+  it('clears the binding when the source class loses its type id', () => {
+    const state = graph();
+    apply(state, interpretDeclarationEdges(state.nodes, state.edges, state.records, {}).mutations);
+    state.nodes.find(node => node.id === 'cls').data.typeId = '';
+    const pass = interpretDeclarationEdges(state.nodes, state.edges, state.records, {});
+    apply(state, pass.mutations);
+    expect(state.records.ctor.typeId).toBe('');
+    expect(state.nodes.find(node => node.id === 'f1').data.typeId).toBeNull();
   });
 });

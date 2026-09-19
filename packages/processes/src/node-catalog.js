@@ -1,5 +1,5 @@
 import { mapDomainInputType, normalizeProcessSocket, processType } from './types.js';
-import { resolveCtsRecord } from '../../cts/src/index.js';
+import { resolveCtsRecord, typeIdOf } from '../../cts/src/index.js';
 
 const DATA = 'data';
 const CONTROL = 'control';
@@ -214,6 +214,14 @@ function definition(kind, label, family, level, pure, ports = { inputs: [], outp
   return { kind, label, family, level, pure, ports };
 }
 
+// Type-bound species (SPEC §20): records whose operation derives from a
+// bound type declaration. The type binding pin is a persistent input on
+// every one of them — bound or not — so a binding wire never dangles and
+// re-binding by dropping a new wire is always possible. Structure species
+// (field/compose/decompose/join) and operator-bound records
+// (service/command) do not bind a type.
+export const TYPE_BOUND_SPECIES = Object.freeze(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.read']);
+
 function cts(kind, label, family, level) {
   return {
     kind,
@@ -222,17 +230,11 @@ function cts(kind, label, family, level) {
     level,
     pure: false,
     ports: (record = {}, context = {}) => {
-      // An unbound type-binding species record (no typeId) offers exactly
-      // one input: the type binding pin. Everything else derives from the
-      // bound type. Structure species (field/compose/decompose/join) and
-      // operator-bound records (service/command) do not bind a type.
-      const TYPE_BOUND_SPECIES = ['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.read'];
-      if (TYPE_BOUND_SPECIES.includes(String(record.kind || '')) && !record.typeId) {
-        return {
-          inputs: [socket('type', processType('entityRef'), DATA, false)],
-          outputs: []
-        };
+      if (!TYPE_BOUND_SPECIES.includes(String(record.kind || ''))) {
+        return catalogPorts(resolveCtsRecord(record, context.domain || {}), context);
       }
+      const pin = socket('type', processType('entityRef'), DATA, false);
+      if (!typeIdOf(record)) return { inputs: [pin], outputs: [] };
       const ports = catalogPorts(resolveCtsRecord(record, context.domain || {}), context);
       // Bound constructs speak the declaration, not the block substrate:
       // row fields are the construction inputs (SPEC §20 composer-less
@@ -240,7 +242,7 @@ function cts(kind, label, family, level) {
       if (record.kind === 'cts.construct') {
         return {
           ...ports,
-          inputs: ports.inputs.filter(port => port.type?.base !== 'block')
+          inputs: [pin, ...ports.inputs.filter(port => port.type?.base !== 'block')]
         };
       }
       // Bound mutates patch leaves: writable row fields arrive as field
@@ -250,24 +252,25 @@ function cts(kind, label, family, level) {
         const leaves = (context.fieldSchemas || [])
           .filter(field => field.writable !== false && ['data', 'specs'].includes(field.block))
           .map(field => socket(field.path, field.type, DATA, false, 'list'));
-        const kept = ports.inputs.filter(port => port.id === 'entity' || port.id === 'status.state.primary');
-        const status = kept.find(port => port.id === 'status.state.primary');
+        const entity = ports.inputs.find(port => port.id === 'entity');
+        const status = ports.inputs.find(port => port.id === 'status.state.primary');
         return {
           ...ports,
           inputs: [
-            ...kept.filter(port => port.id !== 'status.state.primary'),
+            pin,
+            ...(entity ? [entity] : []),
             ...leaves,
             ...(status ? [status] : [])
           ]
         };
       }
-      return ports;
+      return { ...ports, inputs: [pin, ...ports.inputs] };
     }
   };
 }
 
-function socket(id, type, role = DATA, _required = false, access = 'item') {
-  return { id, label: id, type, role, required: Boolean(_required), access };
+function socket(id, type, role = DATA, required = false, access = 'item') {
+  return { id, label: id, type, role, required: Boolean(required), access };
 }
 
 function catalogPorts(record = {}, context = {}) {

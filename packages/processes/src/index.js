@@ -32,6 +32,8 @@ export {
   PROCESS_DESIGNER_PALETTE_GROUPS,
   DECLARATION_NODE_TYPES,
   compileTreeDeclarations,
+  declarationNodePorts,
+  interpretDeclarationEdges,
   migrateProcessDefinition,
   prepareAuthoredDefinition,
   operationKindOf,

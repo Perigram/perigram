@@ -1,10 +1,11 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { CONSUMER_EFFECT_KINDS } from './node-catalog.js';
-import { operationKindOf, describeType, normalizeOperator } from '../../cts/src/index.js';
+import { CONSUMER_EFFECT_KINDS, TYPE_BOUND_SPECIES } from './node-catalog.js';
+import { operationKindOf, describeType, normalizeOperator, typeIdOf, ctsFieldToProcessType } from '../../cts/src/index.js';
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
 export { operationKindOf };
 import { migrateV4Definition, resolveCtsDefinition, checkCtsGraphBindings, isCtsGraphDefinition } from '../../cts/src/index.js';
+import { processType } from './types.js';
 
 // The single authored-definition seam (SPEC §20): every consumer of an
 // authored graph — server validation/activation, canvas round trip —
@@ -149,7 +150,7 @@ export function declarationWireLegality({ sourceType = '', targetType = '', targ
   if (sourceType === 'ctsState' && targetType === 'ctsState') return 'transition';
   if ((sourceType === 'ctsClass' || sourceType === 'ctsType')
     && targetType === 'processNode'
-    && String(targetRecordKind || '').startsWith('cts.')) return 'binds';
+    && TYPE_BOUND_SPECIES.includes(String(targetRecordKind))) return 'binds';
   return null;
 }
 
@@ -285,6 +286,120 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
   });
 
   return { declarations, diagnostics };
+}
+
+// Typed port specs for declaration canvas nodes: every handle a
+// declaration node renders has a spec, exactly like operation nodes —
+// fields output their declared type, states expose a status input (the
+// transition-from handle) and a status output, classes accept declarations
+// and offer a typed entityRef of the declared id, and a type reference
+// offers the same typed output as a bound class. `types` is the
+// designer's registry view (ctstype entries by id) for reference nodes.
+export function declarationNodePorts(node = {}, types = []) {
+  if (node.type === 'ctsClass') {
+    return {
+      inputSpecs: [{ id: 'declare', label: 'fields · states', role: 'data', type: processType('json'), access: 'item' }],
+      outputSpecs: node.data?.typeId
+        ? [{ id: 'type', label: node.data.typeId, role: 'data', type: processType('entityRef', { entityType: node.data.typeId }), access: 'item' }]
+        : []
+    };
+  }
+  if (node.type === 'ctsField') {
+    return {
+      inputSpecs: [],
+      outputSpecs: [{
+        id: 'field',
+        label: node.data?.name || 'field',
+        role: 'data',
+        type: ctsFieldToProcessType(node.data?.descriptor || {}) || processType('json'),
+        access: 'item'
+      }]
+    };
+  }
+  if (node.type === 'ctsState') {
+    return {
+      inputSpecs: [{ id: 'in', label: 'transition from', role: 'data', type: processType('status'), access: 'item' }],
+      outputSpecs: [{ id: 'state', label: node.data?.value || 'state', role: 'data', type: processType('status'), access: 'item' }]
+    };
+  }
+  if (node.type === 'ctsType') {
+    const entry = types.find(candidate => candidate.id === node.data?.typeId);
+    return {
+      inputSpecs: [],
+      outputSpecs: entry
+        ? [{ id: 'type', label: entry.id, role: 'data', type: processType('entityRef', { entityType: entry.id }), access: 'item' }]
+        : []
+    };
+  }
+  return null;
+}
+
+// Live interpretation of declaration wires (SPEC §20/§21 one tree): the
+// wire IS the binding channel, evaluated on every graph change — not a
+// write-once gesture. A field/state node's type id follows the class it
+// declares on; a species record's binding follows the wire while one
+// exists. Removing a binds wire clears the binding it carried; a
+// palette-preset binding with no wire is authored data and stays.
+// Pure over the canvas arrays: returns only the mutations that differ
+// from current state, so an unchanged graph evaluates to no writes.
+export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, previousBindings = {}) {
+  const mutations = [];
+  const bindings = {};
+  const fieldCounts = new Map();
+  const stateCounts = new Map();
+  const declaredBy = new Map();
+  const nodeById = new Map(nodes.map(node => [node.id, node]));
+  const bindEdges = [];
+
+  for (const edge of edges) {
+    if (edge.role !== 'type') continue;
+    const source = nodeById.get(edge.source);
+    const target = nodeById.get(edge.target);
+    if (!source || !target) continue;
+    if ((source.type === 'ctsField' || source.type === 'ctsState') && target.type === 'ctsClass') {
+      declaredBy.set(source.id, target.id);
+      if (source.type === 'ctsField') fieldCounts.set(target.id, (fieldCounts.get(target.id) || 0) + 1);
+      else stateCounts.set(target.id, (stateCounts.get(target.id) || 0) + 1);
+    } else if ((source.type === 'ctsClass' || source.type === 'ctsType') && target.type === 'processNode') {
+      bindEdges.push([source, target]);
+    }
+  }
+
+  for (const node of nodes) {
+    if (node.type === 'ctsField' || node.type === 'ctsState') {
+      const classNode = declaredBy.has(node.id) ? nodeById.get(declaredBy.get(node.id)) : null;
+      const value = classNode?.data?.typeId || null;
+      if ((node.data?.typeId ?? null) !== value) {
+        mutations.push({ scope: 'node', nodeId: node.id, key: 'typeId', value });
+      }
+    }
+    if (node.type === 'ctsClass') {
+      const fields = fieldCounts.get(node.id) || 0;
+      const states = stateCounts.get(node.id) || 0;
+      if (node.data?.fields !== fields) mutations.push({ scope: 'node', nodeId: node.id, key: 'fields', value: fields });
+      if (node.data?.states !== states) mutations.push({ scope: 'node', nodeId: node.id, key: 'states', value: states });
+    }
+  }
+
+  for (const [source, target] of bindEdges) {
+    const record = records[target.data?.refId];
+    if (record && TYPE_BOUND_SPECIES.includes(String(record.kind || ''))) {
+      bindings[record.id] = source.data?.typeId || '';
+    }
+  }
+  // A wire removed since the last evaluation unbinds the record it carried.
+  for (const [recordId] of Object.entries(previousBindings)) {
+    if (bindings[recordId] === undefined && records[recordId]) bindings[recordId] = '';
+  }
+  for (const [recordId, typeId] of Object.entries(bindings)) {
+    const record = records[recordId];
+    if (!record) continue;
+    if (typeIdOf(record) !== typeId) {
+      mutations.push({ scope: 'record', recordId, key: 'typeId', value: typeId });
+    }
+  }
+
+  return { mutations, bindings };
 }
 
 export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
