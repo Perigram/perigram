@@ -247,6 +247,39 @@ describe('process v4 node catalog', () => {
     expect(typedRead.inputs[0]).toMatchObject({ id: 'type', type: { base: 'entityRef', entityType: 'queue' } });
   });
 
+  it('derives service ports from the declared signature, not the command table', () => {
+    const domain = {
+      serviceContracts: {
+        'nesting.solve': {
+          id: 'nesting.solve',
+          command: 'solveNestingValue',
+          signature: {
+            input: { base: 'record', fields: {
+              polygons: { base: 'list', itemType: { base: 'json' } },
+              sheet: { base: 'record', fields: { width: { base: 'quantity', unit: 'mm' } } }
+            } },
+            output: { base: 'json' }
+          }
+        }
+      }
+    };
+    const ports = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'nesting.solve' }, { domain });
+    expect(ports.inputs.map(input => input.id)).toEqual(['polygons', 'sheet']);
+    expect(ports.inputs[0].type).toMatchObject({ base: 'array' });
+    expect(ports.outputs[0]).toMatchObject({ id: 'result', type: { base: 'json' } });
+
+    // an unknown or signature-less operator resolves to empty ports;
+    // compilation names the unknown operator as a diagnostic
+    const unbound = resolveCatalogNodePorts({ kind: 'cts.service', operator: 'ghost' }, { domain });
+    expect(unbound).toEqual({ inputs: [], outputs: [] });
+  });
+
+  it('hides the runtime-only predicate input from the query read authoring card', () => {
+    const ports = resolveCatalogNodePorts({ kind: 'cts.read', select: 'query', typeId: 'sheet' }, { domain: {} });
+    expect(ports.inputs.map(input => input.id)).toEqual(['type']);
+    expect(ports.outputs.every(output => output.type?.base === 'entity')).toBe(true);
+  });
+
   it('declares List consumption on every mapped mutation effect input socket', () => {
     const context = {
       fieldSchemas: [
