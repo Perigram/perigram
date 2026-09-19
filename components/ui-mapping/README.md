@@ -23,13 +23,18 @@ inputs resolved against the target type's field descriptors.
 - `GeneratedMappingScreen.vue` — engine: composes and renders a compiled
   screen; owns the generated create dialog.
 - `RegionBlock.vue` — one composed region: list regions render as a Panel
-  collection (header, count, placed actions, scroll-bounded rows); detail
+  collection (header, count, placed actions, `CollectionTable`); detail
   regions render one surface plus nested child regions.
+- `CollectionTable.vue` — the columnar list projection: identity, status,
+  up to three scalar fields, and the first declared relation as budgeted
+  chips, generated from the type's field descriptors.
 - `SurfaceBody.vue` — instance surface by container variant: `full` →
-  Panel, `detail` → Card (same-role nesting flattens to a Divider), `row` /
-  `inline` → dense flex row with budgeted fields and relation chips.
-- `SurfaceDetailBody.vue` — shared detail/full body: preview, field grid,
-  budgeted relation chips with show-more toggles.
+  Panel with the placed actions in the header, `detail` → Card (same-role
+  nesting flattens to a Divider), `row` / `inline` → dense flex row with
+  budgeted fields and relation chips.
+- `SurfaceDetailBody.vue` — shared detail/full body: preview, scalar facts
+  strip (labeled via `fieldLabel`: descriptor label or start-case name),
+  structural fields below, budgeted relation chips with show-more toggles.
 - `FieldControl.vue` — the field dispatcher: resolves the descriptor in the
   given variant and renders the display primitive or delegates to an editor.
 - Editors: `QuantityInput` (InputGroup + unit addon), `EnumSelect`

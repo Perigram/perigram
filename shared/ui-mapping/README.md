@@ -50,6 +50,9 @@ in one render tree without any composite registry entries.
 ### Fields
 
 `resolveFieldControl(descriptor, { variant })` → `{ component, span, props }`.
+Field display names come from `fieldLabel(name, descriptor)`: the
+descriptor's `label` override, else the start-case name — the same policy
+`renderPolicyFor` applies to type labels.
 Edit variants resolve editor controls, refined by derived qualifiers:
 `quantity` → QuantityInput (InputGroup: InputNumber plus unit addon), few-option
 `enum` → SelectButton, large `enum` → filtered Select, `ref` → EntityPicker,
