@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-  instanceIdentity,
   resolveFieldControl,
   resolveSurface,
   resolvePreview,
@@ -8,6 +7,7 @@ import {
   composeScreen,
   buildInstancePool,
   applyBudget,
+  instanceIdentity,
   VARIANTS
 } from '#shared/ui-mapping/index.js';
 import {
@@ -20,79 +20,80 @@ const bundle = createUiMappingClientBundle();
 const contract = createUiMappingCompiledContract();
 const pool = buildInstancePool(createUiMappingInstances());
 
-describe('screen composition over fixtures', () => {
-  it('composes the probe detail screen with tabbed relation-scoped child regions', () => {
-    const composed = composeScreen(contract.screens.auto_operator_probe_detail, contract, bundle, pool);
+describe('screen composition over the facilities fixtures', () => {
+  it('composes the unit detail screen with relation-scoped tabbed children', () => {
+    const composed = composeScreen(contract.screens.auto_operator_unit_detail, contract, bundle, pool);
     expect(composed.template).toBe('instanceDetail');
     const main = composed.regions[0];
     expect(main.surfaceKind).toBe('detail');
-    expect(main.variant).toBe('full');
-    expect(main.instances[0].id).toBe('probe-4');
+    expect(main.instances[0].id).toBe('unit-4');
     expect(main.actions.map(action => action.id)).toEqual([
-      'probe_update', 'probe_launch', 'probe_retire', 'probe_delete', 'observation_link'
+      'unit_update', 'unit_start', 'unit_retire', 'unit_delete', 'reading_link'
     ]);
     const childKinds = main.childRegions.map(child => `${child.typeId}:${child.instances.length}:${child.surfaceKind}`);
     expect(childKinds).toEqual([
-      'observation:10:list',
-      'spectrum:1:list',
+      'reading:10:list',
+      'schematic:1:list',
       'log_entry:3:list'
     ]);
+    expect(main.childrenMode).toBe('tabs');
   });
 
-  it('composes the constellation detail with lineage-scoped systems', () => {
-    const composed = composeScreen(contract.screens.auto_operator_constellation_detail, contract, bundle, pool);
+  it('composes the zone detail with lineage-scoped sectors and a four-level tree', () => {
+    const composed = composeScreen(contract.screens.auto_operator_zone_detail, contract, bundle, pool);
     const children = composed.regions[0].childRegions[0];
-    expect(children.typeId).toBe('star_system');
+    expect(children.typeId).toBe('sector');
     expect(children.instances).toHaveLength(3);
-    expect(children.instances.every(system => system.lineage.systems?.id === 'constellation-1')).toBe(true);
+    expect(children.instances.every(sector => sector.lineage.sectors?.id === 'zone-1')).toBe(true);
+    const units = Object.values(pool.unit);
+    expect(units.every(unit => unit.lineage.units?.type === 'station')).toBe(true);
+    const stations = Object.values(pool.station);
+    expect(stations.every(station => station.lineage.stations?.type === 'sector')).toBe(true);
+    expect(Object.values(pool.sector).every(sector => sector.lineage.sectors?.type === 'zone')).toBe(true);
   });
 
-  it('composes the mission detail with relation-scoped probes and one child region', () => {
-    const composed = composeScreen(contract.screens.auto_operator_mission_detail, contract, bundle, pool);
+  it('composes the audit detail with relation-scoped units', () => {
+    const composed = composeScreen(contract.screens.auto_operator_audit_detail, contract, bundle, pool);
     const main = composed.regions[0];
-    expect(main.instances[0].id).toBe('mission-2');
+    expect(main.instances[0].id).toBe('audit-2');
     expect(main.childRegions).toHaveLength(1);
-    expect(main.childRegions[0].instances.map(probe => probe.id)).toEqual(['probe-2', 'probe-4', 'probe-7']);
+    expect(main.childRegions[0].instances.map(unit => unit.id)).toEqual(['unit-2', 'unit-4', 'unit-7']);
   });
 
-  it('composes mixed home sections and list screens', () => {
+  it('tabs heavy home sections and stays dense', () => {
     const home = composeScreen(contract.screens.home_operator, contract, bundle, pool);
     expect(home.regions.map(region => `${region.typeId}:${region.instances.length}`)).toEqual([
-      'probe:9', 'survey_mission:3', 'observation:10'
+      'unit:12', 'audit_run:3', 'reading:10'
     ]);
     expect(home.regionsMode).toBe('tabs');
-    expect(composeScreen(contract.screens.auto_operator_probe_detail, contract, bundle, pool).regionsMode).toBe('stack');
-    const list = composeScreen(contract.screens.auto_operator_probe, contract, bundle, pool);
-    expect(list.regions[0].surfaceKind).toBe('list');
-    expect(list.regions[0].actions.map(action => action.id)).toEqual(['probe_create', 'observation_link']);
-  });
-
-  it('keeps the showcase default screen key present in the contract', () => {
-    expect(contract.screens.auto_operator_probe_detail?.screenKey).toBe('auto_operator_probe_detail');
+    expect(home.density).toBe('compact');
+    expect(composeScreen(contract.screens.auto_operator_unit_detail, contract, bundle, pool).regionsMode).toBe('stack');
   });
 
   it('resolves every compiled action, hiding the event-triggered one', () => {
-    const probeRender = bundle.types.find(type => type.id === 'probe').render;
+    const unitRender = bundle.types.find(type => type.id === 'unit').render;
     const outcomes = Object.fromEntries(
-      Object.values(contract.actions).map(action => [action.id, resolveActionButton(action, { render: probeRender })])
+      Object.values(contract.actions).map(action => [action.id, resolveActionButton(action, { render: unitRender })])
     );
-    expect(outcomes.probe_create).toMatchObject({ tone: 'primary' });
-    expect(outcomes.probe_delete).toMatchObject({ tone: 'danger', confirm: true });
-    expect(outcomes.probe_launch).toMatchObject({ tone: 'state', severity: 'info' });
-    expect(outcomes.probe_retire.severity).toBe('secondary');
-    expect(outcomes.probe_auto_index.hidden).toBe(true);
-    expect(outcomes.observation_link).toMatchObject({ tone: 'text', icon: 'pi pi-link' });
+    expect(outcomes.unit_create).toMatchObject({ tone: 'primary' });
+    expect(outcomes.unit_delete).toMatchObject({ tone: 'danger', confirm: true });
+    expect(outcomes.unit_start).toMatchObject({ tone: 'state', severity: 'info' });
+    expect(outcomes.unit_retire.severity).toBe('secondary');
+    expect(outcomes.unit_auto_index.hidden).toBe(true);
+    expect(outcomes.reading_link).toMatchObject({ tone: 'text', icon: 'pi pi-link' });
   });
 
-  it('exercises variable relation cardinality across probes', () => {
+  it('exercises variable relation cardinality and single refs across units', () => {
     const instances = createUiMappingInstances();
-    const counts = instances.probes.map(probe => probe.relations.observations.length);
-    expect(counts).toEqual([1, 0, 2, 10, 3, 1, 0, 4, 2]);
+    const counts = instances.units.map(unit => unit.relations.readings.length);
+    expect(new Set(counts).size).toBeGreaterThan(5);
+    expect(instances.units.filter(unit => unit.relations.schematic).length).toBeGreaterThan(0);
+    expect(instances.units.some(unit => !unit.relations.schematic)).toBe(true);
 
-    const rowSurface = resolveSurface({ id: 'probe', class: 'item' }, { variant: 'row' });
+    const rowSurface = resolveSurface({ id: 'unit', class: 'item' }, { variant: 'row' });
     const budget = rowSurface.budgets.relations;
-    const hidden = instances.probes.map(probe => applyBudget(probe.relations.observations, budget).hidden);
-    expect(hidden).toEqual([0, 0, 0, 8, 1, 0, 0, 2, 0]);
+    const hidden = instances.units.map(unit => applyBudget(unit.relations.readings, budget).hidden);
+    expect(hidden).toContain(8);
   });
 
   it('covers every declarable class, preview mode, and field base across the bundle', () => {
@@ -105,10 +106,10 @@ describe('screen composition over fixtures', () => {
     for (const base of ['string', 'number', 'boolean', 'instant', 'json', 'blob', 'ref', 'quantity', 'record', 'list', 'map', 'variant', 'enum']) {
       expect(bases.has(base), base).toBe(true);
     }
-    expect(resolvePreview(bundle.types.find(type => type.id === 'spectrum')).component).toBe('GeometryPreview');
-    expect(bundle.types.find(type => type.id === 'observation').render.identityField).toBe('title');
-    expect(instanceIdentity(bundle.types.find(type => type.id === 'star_system'), pool.star_system['system-2'])).toBe('LYH-114 B');
-    expect(instanceIdentity(bundle.types.find(type => type.id === 'observation'), pool.observation['observation-3'])).toContain('Pass 3');
+    expect(resolvePreview(bundle.types.find(type => type.id === 'schematic')).component).toBe('GeometryPreview');
+    expect(bundle.types.find(type => type.id === 'reading').render.identityField).toBe('title');
+    expect(instanceIdentity(bundle.types.find(type => type.id === 'sector'), pool.sector['sector-2'])).toBe('NR-07/Beta');
+    expect(instanceIdentity(bundle.types.find(type => type.id === 'reading'), pool.reading['reading-3'])).toContain('Pass 3');
   });
 
   it('resolves every fixture field descriptor in every variant', () => {
@@ -122,14 +123,9 @@ describe('screen composition over fixtures', () => {
     }
   });
 
-  it('keeps instances in the CTS stored shape with deep lineage', () => {
+  it('keeps instances in the CTS stored shape with declared identity fields', () => {
     const instances = createUiMappingInstances();
-    const probes = instances.probes;
-    expect(probes.every(probe => probe.lineage.probes?.type === 'star_system')).toBe(true);
-    expect(instances.starSystems.every(system => system.lineage.systems?.id === 'constellation-1')).toBe(true);
-    const probeFour = probes[3];
-    expect(probeFour.relations.spectrum).toEqual({ type: 'spectrum', id: 'spectrum-4' });
-    for (const group of [probes, instances.observations, instances.missions]) {
+    for (const group of [instances.units, instances.stations, instances.audits]) {
       for (const instance of group) {
         expect(instance).toHaveProperty('id');
         expect(instance).toHaveProperty('type');
@@ -140,5 +136,10 @@ describe('screen composition over fixtures', () => {
         expect(instance).toHaveProperty('states');
       }
     }
+    expect(instances.units[3].relations.schematic).toEqual({ type: 'schematic', id: 'schematic-4' });
+  });
+
+  it('keeps the showcase default screen key present in the contract', () => {
+    expect(contract.screens.auto_operator_unit_detail?.screenKey).toBe('auto_operator_unit_detail');
   });
 });

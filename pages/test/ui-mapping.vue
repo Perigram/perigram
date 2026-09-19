@@ -47,6 +47,6 @@ const screenOptions = Object.values(contract.screens).map(screen => ({
   label: `${screen.label} (${screen.template})`,
   value: screen.screenKey
 }));
-const screenKey = ref(contract.screens.auto_operator_probe_detail?.screenKey || screenOptions[0].value);
+const screenKey = ref(contract.screens.auto_operator_unit_detail?.screenKey || screenOptions[0].value);
 const activeScreen = computed(() => contract.screens[screenKey.value] || contract.screens[screenOptions[0].value]);
 </script>

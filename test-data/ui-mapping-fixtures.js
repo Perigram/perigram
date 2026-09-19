@@ -1,16 +1,14 @@
-// Synthetic UI-mapping fixtures: a theoretical complex compiler output for
-// a deliberately fictional observatory domain — no real-world hierarchy or
-// construction semantics, only shapes chosen to exercise the mapping: every
-// field base and qualifier, all four declarable classes, all three preview
-// modes, deep multi-level lineage, single and array relations, and screens
-// that force every layout (tables, media card grids, tabbed child regions,
-// hierarchy trees, state strips). Pure factory data; never copied from
-// production records.
-//
-// Consumed by pages/test/ui-mapping.vue and the specs beside it; the mapping
-// contract itself lives in shared/ui-mapping (README.md there is canonical).
+// Synthetic UI-mapping fixtures: a second, completely different hydration
+// domain — a facilities grid (zones → sectors → stations → units, crews,
+// readings/schematics/logs, audit runs) — written to stress the mapping
+// layer's structural coverage, not to model anything real: four lineage
+// levels, cross-type refs (single and array), all field bases and units,
+// all preview modes, variable relation cardinality. The UI generation
+// layer (shared/ui-mapping, components/ui-mapping) consumes this without
+// any domain knowledge; only the timeline layout matcher's `log_entry`
+// type id is reused by name.
 
-const ORGANIZATION_ID = 'org-fixture';
+const ORGANIZATION_ID = 'org-fixture-2';
 
 // --- CTS client bundle --------------------------------------------------------
 
@@ -39,41 +37,51 @@ export function createUiMappingClientBundle() {
     organizationId: ORGANIZATION_ID,
     types: [
       typeRecord({
-        id: 'constellation',
+        id: 'zone',
         class: 'group',
         fields: {
           name: { base: 'string', label: 'Name' },
-          catalogCode: { base: 'string', label: 'Catalog code' },
-          declination: { base: 'quantity', unit: 'deg', label: 'Declination' }
+          code: { base: 'string', label: 'Code' },
+          area: { base: 'quantity', unit: 'm2', label: 'Area' }
         },
-        edges: { children: { systems: { types: ['star_system'], onRemove: 'restrict' } } },
-        render: { label: 'Constellation', icon: 'pi pi-star' }
+        edges: { children: { sectors: { types: ['sector'], onRemove: 'restrict' } } },
+        render: { label: 'Zone', icon: 'pi pi-th-large', identityField: 'name' }
       }),
       typeRecord({
-        id: 'star_system',
+        id: 'sector',
         class: 'group',
         fields: {
           designation: { base: 'string', label: 'Designation' },
-          starCount: { base: 'quantity', unit: 'count', label: 'Stars' },
-          metallicity: { base: 'quantity', unit: 'percent', label: 'Metallicity' },
-          ageMyr: { base: 'quantity', unit: 'count', label: 'Age (Myr)' }
+          index: { base: 'quantity', unit: 'count', label: 'Index' },
+          coverage: { base: 'quantity', unit: 'percent', label: 'Coverage' }
         },
-        edges: { children: { probes: { types: ['probe'], onRemove: 'restrict' } } },
-        render: { label: 'Star system', icon: 'pi pi-globe', identityField: 'designation' }
+        edges: { children: { stations: { types: ['station'], onRemove: 'restrict' } } },
+        render: { label: 'Sector', icon: 'pi pi-objects-column', identityField: 'designation' }
       }),
       typeRecord({
-        id: 'probe',
+        id: 'station',
+        class: 'group',
+        fields: {
+          label: { base: 'string', label: 'Label' },
+          capacity: { base: 'quantity', unit: 'count', label: 'Capacity' }
+        },
+        edges: { children: { units: { types: ['unit'], onRemove: 'restrict' } } },
+        render: { label: 'Station', icon: 'pi pi-building', identityField: 'label' }
+      }),
+      typeRecord({
+        id: 'unit',
         class: 'item',
         fields: {
           serial: { base: 'string', label: 'Serial' },
-          band: { base: 'enum', values: ['X', 'Y', 'K'], label: 'Band' },
-          signal: { base: 'quantity', unit: 'percent', label: 'Signal' },
-          inclination: { base: 'quantity', unit: 'deg', label: 'Inclination' },
-          orbitNumber: { base: 'quantity', unit: 'count', label: 'Orbit no.' },
-          insuranceValue: { base: 'quantity', unit: 'currency', label: 'Insured value' },
+          band: { base: 'enum', values: ['A', 'B', 'C'], label: 'Band' },
+          load: { base: 'quantity', unit: 'percent', label: 'Load' },
+          tolerance: { base: 'quantity', unit: 'mm', label: 'Tolerance' },
+          temperature: { base: 'quantity', unit: 'deg', label: 'Temperature' },
+          cycles: { base: 'quantity', unit: 'count', label: 'Cycles' },
+          cost: { base: 'quantity', unit: 'currency', label: 'Cost' },
           uptime: { base: 'quantity', unit: 'min', label: 'Uptime' },
           active: { base: 'boolean', label: 'Active' },
-          launchedAt: { base: 'instant', nullable: true, label: 'Launched' },
+          commissionedAt: { base: 'instant', nullable: true, label: 'Commissioned' },
           specification: {
             base: 'record',
             label: 'Specification',
@@ -83,65 +91,81 @@ export function createUiMappingClientBundle() {
             }
           },
           tags: { base: 'list', itemType: { base: 'string' }, label: 'Tags' },
-          homeSystem: { base: 'ref', accepts: ['star_system'], label: 'Home system' },
-          manifestBlob: { base: 'blob', label: 'Manifest' }
+          station: { base: 'ref', accepts: ['station'], label: 'Station' },
+          maintainer: { base: 'ref', accepts: ['crew'], label: 'Maintainer' },
+          manifest: { base: 'blob', label: 'Manifest' }
         },
         edges: {
           relations: {
-            observations: { types: ['observation'], onRemove: 'detach' },
-            spectrum: { types: ['spectrum'], onRemove: 'detach' },
+            readings: { types: ['reading'], onRemove: 'detach' },
+            schematic: { types: ['schematic'], onRemove: 'detach' },
             logs: { types: ['log_entry'], onRemove: 'detach' }
           }
         },
         states: {
-          main: { initial: 'idle', values: ['idle', 'active', 'maintenance', 'retired'], terminal: ['retired'] }
+          main: { initial: 'standby', values: ['standby', 'running', 'service', 'decommissioned'], terminal: ['decommissioned'] }
         },
         transitions: [
-          { from: 'idle', to: 'active', intent: 'launchProbe' },
-          { from: 'active', to: 'maintenance' },
-          { from: 'maintenance', to: 'active' },
-          { from: 'active', to: 'retired', intent: 'retireProbe' },
-          { from: 'idle', to: 'retired' }
+          { from: 'standby', to: 'running', intent: 'startUnit' },
+          { from: 'running', to: 'service' },
+          { from: 'service', to: 'running' },
+          { from: 'running', to: 'decommissioned', intent: 'retireUnit' },
+          { from: 'standby', to: 'decommissioned' }
         ],
         render: {
-          label: 'Probe',
-          icon: 'pi pi-send',
+          label: 'Unit',
+          icon: 'pi pi-microchip',
           identityField: 'serial',
           groups: [
-            { id: 'overview', label: 'Overview', fields: ['serial', 'band', 'signal'] },
-            { id: 'orbit', label: 'Orbit', fields: ['inclination', 'orbitNumber', 'launchedAt', 'uptime'] },
-            { id: 'admin', label: 'Admin', fields: ['insuranceValue', 'active'] }
+            { id: 'overview', label: 'Overview', fields: ['serial', 'band', 'load'] },
+            { id: 'telemetry', label: 'Telemetry', fields: ['temperature', 'cycles', 'uptime', 'commissionedAt'] },
+            { id: 'admin', label: 'Admin', fields: ['cost', 'active', 'maintainer'] }
           ],
-          states: { active: { severity: 'info' }, maintenance: { severity: 'warning' }, retired: { severity: 'secondary' } }
+          states: { running: { severity: 'info' }, service: { severity: 'warning' }, decommissioned: { severity: 'secondary' } }
         }
       }),
       typeRecord({
-        id: 'observation',
-        class: 'file',
-        payload: {
-          mime: ['image/png'],
-          accept: ['.png'],
-          maxSize: 25 * 1024 * 1024,
-          preview: 'image'
+        id: 'crew',
+        class: 'item',
+        fields: {
+          name: { base: 'string', label: 'Name' },
+          role: { base: 'enum', values: ['technician', 'engineer', 'lead'], label: 'Role' },
+          certifiedAt: { base: 'instant', label: 'Certified' },
+          onDuty: { base: 'boolean', label: 'On duty' }
         },
+        states: {
+          main: { initial: 'available', values: ['available', 'assigned', 'leave'], terminal: [] }
+        },
+        transitions: [
+          { from: 'available', to: 'assigned' },
+          { from: 'assigned', to: 'available' },
+          { from: 'assigned', to: 'leave' }
+        ],
+        render: { label: 'Crew', icon: 'pi pi-users', identityField: 'name', states: { assigned: { severity: 'info' } } }
+      }),
+      typeRecord({
+        id: 'reading',
+        class: 'file',
+        payload: { mime: ['image/png'], accept: ['.png'], maxSize: 20 * 1024 * 1024, preview: 'image' },
         fields: {
           title: { base: 'string', label: 'Title' },
           exposure: { base: 'quantity', unit: 'min', label: 'Exposure' },
-          frameCount: { base: 'number', label: 'Frames' },
-          filter: { base: 'enum', values: ['H-alpha', 'O-III', 'IR'], label: 'Filter' },
+          frames: { base: 'number', label: 'Frames' },
+          filter: { base: 'enum', values: ['wide', 'narrow', 'thermal'], label: 'Filter' },
           note: { base: 'string', max: 400, label: 'Note' }
         },
-        render: { label: 'Observation', icon: 'pi pi-image', identityField: 'title' }
+        render: { label: 'Reading', icon: 'pi pi-chart-line', identityField: 'title' }
       }),
       typeRecord({
-        id: 'spectrum',
+        id: 'schematic',
         class: 'file',
-        payload: { mime: ['application/x-spectrum'], accept: ['.spec'], preview: 'geometry' },
+        payload: { mime: ['application/x-schematic'], accept: ['.sch'], preview: 'geometry' },
         fields: {
-          resolution: { base: 'quantity', unit: 'count', label: 'Resolution' },
-          calibrated: { base: 'boolean', label: 'Calibrated' }
+          revision: { base: 'string', label: 'Revision' },
+          layers: { base: 'quantity', unit: 'count', label: 'Layers' },
+          updatedAt: { base: 'instant', label: 'Updated' }
         },
-        render: { label: 'Spectrum', icon: 'pi pi-wave-pulse' }
+        render: { label: 'Schematic', icon: 'pi pi-objects-column', identityField: 'revision' }
       }),
       typeRecord({
         id: 'log_entry',
@@ -151,17 +175,16 @@ export function createUiMappingClientBundle() {
         render: { label: 'Log entry', icon: 'pi pi-file-edit' }
       }),
       typeRecord({
-        id: 'survey_mission',
+        id: 'audit_run',
         class: 'process',
         fields: {
           objective: { base: 'string', max: 500, label: 'Objective' },
           priority: {
             base: 'enum',
             label: 'Priority',
-            values: ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10']
+            values: ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11']
           },
-          target: { base: 'ref', accepts: ['constellation'], label: 'Target' },
-          crewTags: { base: 'list', itemType: { base: 'string' }, label: 'Crew tags' },
+          lead: { base: 'ref', accepts: ['crew'], label: 'Lead' },
           checklist: {
             base: 'list',
             itemType: { base: 'record', fields: { step: { base: 'string', label: 'Step' }, done: { base: 'boolean', label: 'Done' } } },
@@ -178,24 +201,24 @@ export function createUiMappingClientBundle() {
               manual: { base: 'string' }
             }
           },
-          calibrationDump: { base: 'json', label: 'Calibration dump' }
+          dump: { base: 'json', label: 'Dump' }
         },
-        edges: { relations: { probes: { types: ['probe'], onRemove: 'detach' } } },
+        edges: { relations: { units: { types: ['unit'], onRemove: 'detach' } } },
         states: {
           main: { initial: 'planned', values: ['planned', 'running', 'analyzing', 'complete', 'failed'], terminal: ['complete', 'failed'] }
         },
         transitions: [
-          { from: 'planned', to: 'running', intent: 'startMission' },
+          { from: 'planned', to: 'running', intent: 'startAudit' },
           { from: 'running', to: 'analyzing' },
-          { from: 'analyzing', to: 'complete', intent: 'finishMission' },
+          { from: 'analyzing', to: 'complete', intent: 'finishAudit' },
           { from: 'running', to: 'failed' },
           { from: 'analyzing', to: 'failed' }
         ],
         render: {
-          label: 'Survey mission',
-          icon: 'pi pi-slack',
+          label: 'Audit run',
+          icon: 'pi pi-verified',
           groups: [
-            { id: 'mission', label: 'Mission', fields: ['objective', 'priority', 'target'] },
+            { id: 'mission', label: 'Mission', fields: ['objective', 'priority', 'lead'] },
             { id: 'execution', label: 'Execution', fields: ['config', 'checklist', 'telemetry'] }
           ],
           states: { running: { severity: 'info' }, analyzing: { severity: 'info' }, complete: { severity: 'success' }, failed: { severity: 'danger' } }
@@ -205,95 +228,95 @@ export function createUiMappingClientBundle() {
   };
 }
 
-// --- Compiled process contract -------------------------------------------------
+// --- Compiled process contract (CTS vocabulary: typeList / instanceDetail) -----
 
 export function createUiMappingCompiledContract() {
   const actions = {
-    probe_create: {
-      id: 'probe_create',
-      label: 'Create probe',
+    unit_create: {
+      id: 'unit_create',
+      label: 'Create unit',
       actionKind: 'createInstance',
-      typeId: 'probe',
+      typeId: 'unit',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] },
-      construction: { mode: 'generic', inputs: ['serial', 'band', 'signal'] }
+      construction: { mode: 'generic', inputs: ['serial', 'band', 'load'] }
     },
-    probe_update: {
-      id: 'probe_update',
-      label: 'Edit probe',
+    unit_update: {
+      id: 'unit_update',
+      label: 'Edit unit',
       actionKind: 'updateInstance',
-      typeId: 'probe',
+      typeId: 'unit',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
     },
-    probe_launch: {
-      id: 'probe_launch',
-      label: 'Launch',
+    unit_start: {
+      id: 'unit_start',
+      label: 'Start',
       actionKind: 'updateInstance',
-      typeId: 'probe',
+      typeId: 'unit',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] },
-      status: { to: 'active' }
+      status: { to: 'running' }
     },
-    probe_retire: {
-      id: 'probe_retire',
+    unit_retire: {
+      id: 'unit_retire',
       label: 'Retire',
       actionKind: 'updateInstance',
-      typeId: 'probe',
+      typeId: 'unit',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] },
-      status: { to: 'retired' }
+      status: { to: 'decommissioned' }
     },
-    probe_delete: {
-      id: 'probe_delete',
-      label: 'Delete probe',
+    unit_delete: {
+      id: 'unit_delete',
+      label: 'Delete unit',
       actionKind: 'deleteInstance',
-      typeId: 'probe',
+      typeId: 'unit',
       trigger: { mode: 'manual' },
       access: { level: 'admin', grants: [] }
     },
-    observation_link: {
-      id: 'observation_link',
-      label: 'Observation',
+    reading_link: {
+      id: 'reading_link',
+      label: 'Reading',
       actionKind: 'link',
-      typeId: 'probe',
-      relation: { key: 'observations', targetType: 'observation', cardinality: 'array' },
+      typeId: 'unit',
+      relation: { key: 'readings', targetType: 'reading', cardinality: 'array' },
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
     },
-    observation_unlink: {
-      id: 'observation_unlink',
-      label: 'Unlink observation',
+    reading_unlink: {
+      id: 'reading_unlink',
+      label: 'Unlink reading',
       actionKind: 'unlink',
-      typeId: 'probe',
-      relation: { key: 'observations', targetType: 'observation', cardinality: 'array' },
+      typeId: 'unit',
+      relation: { key: 'readings', targetType: 'reading', cardinality: 'array' },
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
     },
-    mission_analyze: {
-      id: 'mission_analyze',
+    audit_analyze: {
+      id: 'audit_analyze',
       label: 'Run analysis',
       actionKind: 'runCommand',
-      commandId: 'mission.analyze',
-      typeId: 'survey_mission',
+      commandId: 'audit.analyze',
+      typeId: 'audit_run',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
     },
-    probe_auto_index: {
-      id: 'probe_auto_index',
-      label: 'Index probe',
+    unit_auto_index: {
+      id: 'unit_auto_index',
+      label: 'Index unit',
       actionKind: 'updateInstance',
-      typeId: 'probe',
+      typeId: 'unit',
       trigger: { mode: 'event' },
       access: { level: 'write', grants: [] }
     }
   };
 
   return {
-    processId: 'proc_fixture_v1',
+    processId: 'proc_fixture_v2',
     dataflowVersion: 4,
     roles: {
-      operator: { id: 'operator', label: 'Operator', grants: [{ feature: 'probes', level: 'write' }] }
+      operator: { id: 'operator', label: 'Operator', grants: [{ feature: 'units', level: 'write' }] }
     },
     screens: {
       home_operator: {
@@ -311,143 +334,143 @@ export function createUiMappingCompiledContract() {
         scope: {},
         bindings: {},
         sources: [
-          { id: 'probes', typeId: 'probe', mode: 'list', required: null },
-          { id: 'missions', typeId: 'survey_mission', mode: 'list', required: null },
-          { id: 'observations', typeId: 'observation', mode: 'list', required: null }
+          { id: 'units', typeId: 'unit', mode: 'list', required: null },
+          { id: 'audits', typeId: 'audit_run', mode: 'list', required: null },
+          { id: 'readings', typeId: 'reading', mode: 'list', required: null }
         ],
         regions: [
-          { id: 'probes', slot: 'main', sourceId: 'probes', surface: 'list', actions: ['probe_create'] },
-          { id: 'missions', slot: 'main', sourceId: 'missions', surface: 'list', actions: [] },
-          { id: 'observations', slot: 'main', sourceId: 'observations', surface: 'list', actions: [] }
+          { id: 'units', slot: 'main', sourceId: 'units', surface: 'list', actions: ['unit_create'] },
+          { id: 'audits', slot: 'main', sourceId: 'audits', surface: 'list', actions: [] },
+          { id: 'readings', slot: 'main', sourceId: 'readings', surface: 'list', actions: [] }
         ],
-        actions: ['probe_create']
+        actions: ['unit_create']
       },
-      auto_operator_probe: {
-        id: 'auto_operator_probe',
-        screenKey: 'auto_operator_probe',
-        label: 'Operator probes',
+      auto_operator_unit: {
+        id: 'auto_operator_unit',
+        screenKey: 'auto_operator_unit',
+        label: 'Operator units',
         kind: 'typeList',
         template: 'typeList',
-        route: '/screens/auto_operator_probe',
-        sourceRoute: '/screens/auto_operator_probe',
+        route: '/screens/auto_operator_unit',
+        sourceRoute: '/screens/auto_operator_unit',
         placement: 'hub',
-        typeId: 'probe',
-        required: { feature: 'probes', level: 'read' },
+        typeId: 'unit',
+        required: { feature: 'units', level: 'read' },
         roleIds: ['operator'],
         scope: {},
         bindings: {},
-        sources: [{ id: 'probe', typeId: 'probe', mode: 'list', required: { feature: 'probes', level: 'read' } }],
-        regions: [{ id: 'main', slot: 'main', sourceId: 'probe', surface: 'list', actions: ['probe_create', 'observation_link'] }],
-        actions: ['probe_create', 'observation_link']
+        sources: [{ id: 'unit', typeId: 'unit', mode: 'list', required: { feature: 'units', level: 'read' } }],
+        regions: [{ id: 'main', slot: 'main', sourceId: 'unit', surface: 'list', actions: ['unit_create', 'reading_link'] }],
+        actions: ['unit_create', 'reading_link']
       },
-      auto_operator_observation: {
-        id: 'auto_operator_observation',
-        screenKey: 'auto_operator_observation',
-        label: 'Operator observations',
+      auto_operator_reading: {
+        id: 'auto_operator_reading',
+        screenKey: 'auto_operator_reading',
+        label: 'Operator readings',
         kind: 'typeList',
         template: 'typeList',
-        route: '/screens/auto_operator_observation',
-        sourceRoute: '/screens/auto_operator_observation',
+        route: '/screens/auto_operator_reading',
+        sourceRoute: '/screens/auto_operator_reading',
         placement: 'hub',
-        typeId: 'observation',
+        typeId: 'reading',
         required: null,
         roleIds: ['operator'],
         scope: {},
         bindings: {},
-        sources: [{ id: 'observation', typeId: 'observation', mode: 'list', required: null }],
-        regions: [{ id: 'main', slot: 'main', sourceId: 'observation', surface: 'list', actions: [] }],
+        sources: [{ id: 'reading', typeId: 'reading', mode: 'list', required: null }],
+        regions: [{ id: 'main', slot: 'main', sourceId: 'reading', surface: 'list', actions: [] }],
         actions: []
       },
-      auto_operator_constellation_detail: {
-        id: 'auto_operator_constellation_detail',
-        screenKey: 'auto_operator_constellation_detail',
-        label: 'Constellation detail',
+      auto_operator_zone_detail: {
+        id: 'auto_operator_zone_detail',
+        screenKey: 'auto_operator_zone_detail',
+        label: 'Zone detail',
         kind: 'instanceDetail',
         template: 'instanceDetail',
-        route: '/screens/auto_operator_constellation_detail',
-        sourceRoute: '/screens/auto_operator_constellation_detail',
+        route: '/screens/auto_operator_zone_detail',
+        sourceRoute: '/screens/auto_operator_zone_detail',
         placement: 'detail',
-        typeId: 'constellation',
+        typeId: 'zone',
         required: null,
         roleIds: ['operator'],
-        scope: { instanceId: 'constellation-1' },
+        scope: { instanceId: 'zone-1' },
         bindings: {},
         sources: [
-          { id: 'constellation', typeId: 'constellation', mode: 'single', required: null, identifier: '$screen.scope.instanceId' },
-          { id: 'systems', typeId: 'star_system', mode: 'list', required: null, lineage: { sourceId: 'constellation', key: 'systems' } }
+          { id: 'zone', typeId: 'zone', mode: 'single', required: null, identifier: '$screen.scope.instanceId' },
+          { id: 'sectors', typeId: 'sector', mode: 'list', required: null, lineage: { sourceId: 'zone', key: 'sectors' } }
         ],
         regions: [
-          { id: 'main', slot: 'main', sourceId: 'constellation', surface: 'detail', actions: [] },
-          { id: 'systems', slot: 'children', sourceId: 'systems', surface: 'list', actions: [] }
+          { id: 'main', slot: 'main', sourceId: 'zone', surface: 'detail', actions: [] },
+          { id: 'sectors', slot: 'children', sourceId: 'sectors', surface: 'list', actions: [] }
         ],
         actions: []
       },
-      auto_operator_probe_detail: {
-        id: 'auto_operator_probe_detail',
-        screenKey: 'auto_operator_probe_detail',
-        label: 'Probe detail',
+      auto_operator_unit_detail: {
+        id: 'auto_operator_unit_detail',
+        screenKey: 'auto_operator_unit_detail',
+        label: 'Unit detail',
         kind: 'instanceDetail',
         template: 'instanceDetail',
-        route: '/screens/auto_operator_probe_detail',
-        sourceRoute: '/screens/auto_operator_probe_detail',
+        route: '/screens/auto_operator_unit_detail',
+        sourceRoute: '/screens/auto_operator_unit_detail',
         placement: 'detail',
-        typeId: 'probe',
-        required: { feature: 'probes', level: 'read' },
+        typeId: 'unit',
+        required: { feature: 'units', level: 'read' },
         roleIds: ['operator'],
-        scope: { instanceId: 'probe-4' },
+        scope: { instanceId: 'unit-4' },
         bindings: {},
         sources: [
-          { id: 'probe', typeId: 'probe', mode: 'single', required: { feature: 'probes', level: 'read' }, identifier: '$screen.scope.instanceId' },
-          { id: 'observations', typeId: 'observation', mode: 'list', required: null, relation: { sourceId: 'probe', key: 'observations' } },
-          { id: 'spectra', typeId: 'spectrum', mode: 'list', required: null, relation: { sourceId: 'probe', key: 'spectrum' } },
-          { id: 'logs', typeId: 'log_entry', mode: 'list', required: null, relation: { sourceId: 'probe', key: 'logs' } }
+          { id: 'unit', typeId: 'unit', mode: 'single', required: { feature: 'units', level: 'read' }, identifier: '$screen.scope.instanceId' },
+          { id: 'readings', typeId: 'reading', mode: 'list', required: null, relation: { sourceId: 'unit', key: 'readings' } },
+          { id: 'schematic', typeId: 'schematic', mode: 'list', required: null, relation: { sourceId: 'unit', key: 'schematic' } },
+          { id: 'logs', typeId: 'log_entry', mode: 'list', required: null, relation: { sourceId: 'unit', key: 'logs' } }
         ],
         regions: [
-          { id: 'main', slot: 'main', sourceId: 'probe', surface: 'detail', actions: ['probe_update', 'probe_launch', 'probe_retire', 'probe_delete', 'observation_link'] },
-          { id: 'observations', slot: 'children', sourceId: 'observations', surface: 'list', actions: ['observation_link'] },
-          { id: 'spectra', slot: 'children', sourceId: 'spectra', surface: 'list', actions: [] },
+          { id: 'main', slot: 'main', sourceId: 'unit', surface: 'detail', actions: ['unit_update', 'unit_start', 'unit_retire', 'unit_delete', 'reading_link'] },
+          { id: 'readings', slot: 'children', sourceId: 'readings', surface: 'list', actions: ['reading_link'] },
+          { id: 'schematic', slot: 'children', sourceId: 'schematic', surface: 'list', actions: [] },
           { id: 'logs', slot: 'children', sourceId: 'logs', surface: 'list', actions: [] }
         ],
-        actions: ['probe_update', 'probe_launch', 'probe_retire', 'probe_delete', 'observation_link', 'observation_unlink']
+        actions: ['unit_update', 'unit_start', 'unit_retire', 'unit_delete', 'reading_link', 'reading_unlink']
       },
-      auto_operator_mission_detail: {
-        id: 'auto_operator_mission_detail',
-        screenKey: 'auto_operator_mission_detail',
-        label: 'Mission detail',
+      auto_operator_audit_detail: {
+        id: 'auto_operator_audit_detail',
+        screenKey: 'auto_operator_audit_detail',
+        label: 'Audit detail',
         kind: 'instanceDetail',
         template: 'instanceDetail',
-        route: '/screens/auto_operator_mission_detail',
-        sourceRoute: '/screens/auto_operator_mission_detail',
+        route: '/screens/auto_operator_audit_detail',
+        sourceRoute: '/screens/auto_operator_audit_detail',
         placement: 'detail',
-        typeId: 'survey_mission',
+        typeId: 'audit_run',
         required: null,
         roleIds: ['operator'],
-        scope: { instanceId: 'mission-2' },
+        scope: { instanceId: 'audit-2' },
         bindings: {},
         sources: [
-          { id: 'mission', typeId: 'survey_mission', mode: 'single', required: null, identifier: '$screen.scope.instanceId' },
-          { id: 'probes', typeId: 'probe', mode: 'list', required: null, relation: { sourceId: 'mission', key: 'probes' } }
+          { id: 'audit', typeId: 'audit_run', mode: 'single', required: null, identifier: '$screen.scope.instanceId' },
+          { id: 'units', typeId: 'unit', mode: 'list', required: null, relation: { sourceId: 'audit', key: 'units' } }
         ],
         regions: [
-          { id: 'main', slot: 'main', sourceId: 'mission', surface: 'detail', actions: ['mission_analyze'] },
-          { id: 'probes', slot: 'children', sourceId: 'probes', surface: 'list', actions: [] }
+          { id: 'main', slot: 'main', sourceId: 'audit', surface: 'detail', actions: ['audit_analyze'] },
+          { id: 'units', slot: 'children', sourceId: 'units', surface: 'list', actions: [] }
         ],
-        actions: ['mission_analyze']
+        actions: ['audit_analyze']
       }
     },
     actions,
-    navigation: [{ label: 'Probes', screenKey: 'auto_operator_probe', icon: 'pi pi-send' }]
+    navigation: [{ label: 'Units', screenKey: 'auto_operator_unit', icon: 'pi pi-microchip' }]
   };
 }
 
 // --- Instances (CTS stored shape, SPEC §3) --------------------------------------
 
-export function createConstellationInstance(overrides = {}) {
+export function createZoneInstance(overrides = {}) {
   return {
-    id: 'constellation-1',
-    type: 'constellation',
+    id: 'zone-1',
+    type: 'zone',
     typeVersion: 1,
-    fields: { name: 'Lynx Hollow', catalogCode: 'LYH-114', declination: { value: 47.2, unit: 'deg' } },
+    fields: { name: 'North Ridge', code: 'NR-07', area: { value: 4200, unit: 'm2' } },
     lineage: {},
     relations: {},
     states: {},
@@ -456,13 +479,13 @@ export function createConstellationInstance(overrides = {}) {
   };
 }
 
-export function createStarSystemInstance(overrides = {}) {
+export function createSectorInstance(overrides = {}) {
   return {
-    id: 'system-1',
-    type: 'star_system',
+    id: 'sector-1',
+    type: 'sector',
     typeVersion: 1,
-    fields: { designation: 'LYH-114 A', starCount: { value: 2, unit: 'count' }, metallicity: { value: 64, unit: 'percent' }, ageMyr: { value: 6100, unit: 'count' } },
-    lineage: { systems: { type: 'constellation', id: 'constellation-1' } },
+    fields: { designation: 'NR-07/Alpha', index: { value: 1, unit: 'count' }, coverage: { value: 72, unit: 'percent' } },
+    lineage: { sectors: { type: 'zone', id: 'zone-1' } },
     relations: {},
     states: {},
     payload: null,
@@ -470,64 +493,94 @@ export function createStarSystemInstance(overrides = {}) {
   };
 }
 
-export function createProbeInstance(overrides = {}) {
+export function createStationInstance(overrides = {}) {
   return {
-    id: 'probe-1',
-    type: 'probe',
+    id: 'station-1',
+    type: 'station',
+    typeVersion: 1,
+    fields: { label: 'Bay 12', capacity: { value: 8, unit: 'count' } },
+    lineage: { stations: { type: 'sector', id: 'sector-1' } },
+    relations: {},
+    states: {},
+    payload: null,
+    ...overrides
+  };
+}
+
+export function createUnitInstance(overrides = {}) {
+  return {
+    id: 'unit-1',
+    type: 'unit',
     typeVersion: 1,
     fields: {
-      serial: 'PRB-0001',
-      band: 'X',
-      signal: { value: 62, unit: 'percent' },
-      inclination: { value: 12.5, unit: 'deg' },
-      orbitNumber: { value: 41, unit: 'count' },
-      insuranceValue: { value: 12500, unit: 'currency' },
-      uptime: { value: 43200, unit: 'min' },
+      serial: 'UNT-0001',
+      band: 'A',
+      load: { value: 41, unit: 'percent' },
+      tolerance: { value: 0.2, unit: 'mm' },
+      temperature: { value: 63.5, unit: 'deg' },
+      cycles: { value: 1200, unit: 'count' },
+      cost: { value: 9800, unit: 'currency' },
+      uptime: { value: 26000, unit: 'min' },
       active: true,
-      launchedAt: '2026-03-14T08:30:00.000Z',
-      specification: { massG: { value: 850, unit: 'count' }, powerW: { value: 120, unit: 'count' } },
-      tags: ['deep-field', 'repeat-visit'],
-      homeSystem: { type: 'star_system', id: 'system-1' },
-      manifestBlob: { fileId: 'gridfs-manifest-1', mime: 'application/json', size: 12_400 }
+      commissionedAt: '2026-02-11T09:00:00.000Z',
+      specification: { massG: { value: 1400, unit: 'count' }, powerW: { value: 210, unit: 'count' } },
+      tags: ['rotating', 'primary'],
+      station: { type: 'station', id: 'station-1' },
+      maintainer: { type: 'crew', id: 'crew-1' },
+      manifest: { fileId: 'gridfs-manifest-1', mime: 'application/json', size: 9_800 }
     },
-    lineage: { probes: { type: 'star_system', id: 'system-1' } },
-    relations: { observations: [], spectrum: null, logs: [] },
-    states: { main: 'idle' },
+    lineage: { units: { type: 'station', id: 'station-1' } },
+    relations: { readings: [], schematic: null, logs: [] },
+    states: { main: 'standby' },
     payload: null,
     ...overrides
   };
 }
 
-export function createObservationInstance(overrides = {}) {
+export function createCrewInstance(overrides = {}) {
   return {
-    id: 'observation-1',
-    type: 'observation',
+    id: 'crew-1',
+    type: 'crew',
     typeVersion: 1,
-    fields: {
-      title: 'Pass 1 · primary target',
-      exposure: { value: 12, unit: 'min' },
-      frameCount: 9,
-      filter: 'H-alpha',
-      note: 'Long integration with guide corrections applied every 30 seconds across the primary target window.'
-    },
+    fields: { name: 'A. Ferro', role: 'engineer', certifiedAt: '2025-11-03T00:00:00.000Z', onDuty: true },
     lineage: {},
     relations: {},
-    states: {},
-    payload: { fileId: 'gridfs-observation-1', mime: 'image/png', size: 3_400_000 },
+    states: { main: 'assigned' },
+    payload: null,
     ...overrides
   };
 }
 
-export function createSpectrumInstance(overrides = {}) {
+export function createReadingInstance(overrides = {}) {
   return {
-    id: 'spectrum-1',
-    type: 'spectrum',
+    id: 'reading-1',
+    type: 'reading',
     typeVersion: 1,
-    fields: { resolution: { value: 2400, unit: 'count' }, calibrated: true },
+    fields: {
+      title: 'Pass 1 · main bus',
+      exposure: { value: 6, unit: 'min' },
+      frames: 12,
+      filter: 'wide',
+      note: 'Baseline capture across the main bus with the thermal overlay disabled for reference comparison.'
+    },
     lineage: {},
     relations: {},
     states: {},
-    payload: { fileId: 'gridfs-spectrum-1', mime: 'application/x-spectrum', size: 220_000 },
+    payload: { fileId: 'gridfs-reading-1', mime: 'image/png', size: 2_100_000 },
+    ...overrides
+  };
+}
+
+export function createSchematicInstance(overrides = {}) {
+  return {
+    id: 'schematic-1',
+    type: 'schematic',
+    typeVersion: 1,
+    fields: { revision: 'rev C', layers: { value: 7, unit: 'count' }, updatedAt: '2026-05-19T14:00:00.000Z' },
+    lineage: {},
+    relations: {},
+    states: {},
+    payload: { fileId: 'gridfs-schematic-1', mime: 'application/x-schematic', size: 340_000 },
     ...overrides
   };
 }
@@ -537,129 +590,142 @@ export function createLogEntryInstance(overrides = {}) {
     id: 'log-1',
     type: 'log_entry',
     typeVersion: 1,
-    fields: { entry: 'Reaction wheel 3 rebalanced after torque spike; nominal spin resumed within the expected damping window.' },
+    fields: { entry: 'Bearing noise resolved after lubrication cycle; vibration back within the green band on both probes.' },
     lineage: {},
     relations: {},
     states: {},
-    payload: { fileId: 'gridfs-log-1', mime: 'text/plain', size: 4_200 },
+    payload: { fileId: 'gridfs-log-1', mime: 'text/plain', size: 3_600 },
     ...overrides
   };
 }
 
-export function createMissionInstance(overrides = {}) {
+export function createAuditRunInstance(overrides = {}) {
   return {
-    id: 'mission-1',
-    type: 'survey_mission',
+    id: 'audit-1',
+    type: 'audit_run',
     typeVersion: 1,
     fields: {
-      objective: 'Wide-field survey of the hollow sector with repeated visits to variable targets and adaptive windows.',
-      priority: 'p2',
-      target: { type: 'constellation', id: 'constellation-1' },
-      crewTags: ['alpha-shift', 'optics'],
+      objective: 'Full-grid compliance sweep covering every station branch with repeated thermal and vibration sampling.',
+      priority: 'p3',
+      lead: { type: 'crew', id: 'crew-2' },
       checklist: [
-        { step: 'Calibrate guide optics', done: true },
-        { step: 'Verify downlink window', done: true },
-        { step: 'Lock adaptive config', done: false }
+        { step: 'Freeze grid snapshot', done: true },
+        { step: 'Collect thermal readings', done: true },
+        { step: 'Cross-check schematics', done: false }
       ],
-      telemetry: { pitch: { value: 4.5, unit: 'deg' }, yaw: { value: -1.25, unit: 'deg' } },
-      config: { tag: 'adaptive', value: { sensitivityPercent: { value: 78, unit: 'percent' } } },
-      calibrationDump: { biasFrame: '2026-04-01', darkFrames: 12 }
+      telemetry: { drift: { value: 2.75, unit: 'deg' }, skew: { value: -0.4, unit: 'deg' } },
+      config: { tag: 'adaptive', value: { sensitivityPercent: { value: 82, unit: 'percent' } } },
+      dump: { snapshot: '2026-06-01', branches: 6 }
     },
     lineage: {},
-    relations: { probes: [] },
+    relations: { units: [] },
     states: { main: 'planned' },
     payload: null,
     ...overrides
   };
 }
 
-// The instance graph: one constellation, three systems, nine probes (the
-// probe-4 branch carries the heavy file cardinality), observations with
-// varied filters, single-ref spectra, log entries, and three missions in
-// different lifecycle states.
+// The instance graph: one zone, three sectors, two stations per sector,
+// two-to-three units per station (four lineage levels), files with varied
+// cardinality, crews for cross-refs, and three audit runs.
 export function createUiMappingInstances() {
-  const observations = Array.from({ length: 10 }, (_, index) => createObservationInstance({
-    id: `observation-${index + 1}`,
+  const readings = Array.from({ length: 10 }, (_, index) => createReadingInstance({
+    id: `reading-${index + 1}`,
     fields: {
-      title: `Pass ${index + 1} · ${['primary target', 'guide field', 'dark frame'][index % 3]}`,
-      exposure: { value: 4 + index * 2, unit: 'min' },
-      frameCount: 6 + index * 3,
-      filter: ['H-alpha', 'O-III', 'IR'][index % 3],
-      note: `Survey pass ${index + 1} over the primary target; seeing improved mid-integration and the guiding loop held.`
+      title: `Pass ${index + 1} · ${['main bus', 'coolant loop', 'exhaust'][index % 3]}`,
+      exposure: { value: 3 + index, unit: 'min' },
+      frames: 8 + index * 2,
+      filter: ['wide', 'narrow', 'thermal'][index % 3],
+      note: `Capture ${index + 1} on the target branch; sensor settle time extended after the thermal transient.`
     },
-    payload: { fileId: `gridfs-observation-${index + 1}`, mime: 'image/png', size: 1_800_000 + index * 210_000 }
+    payload: { fileId: `gridfs-reading-${index + 1}`, mime: 'image/png', size: 1_500_000 + index * 180_000 }
   }));
 
-  const spectra = Array.from({ length: 4 }, (_, index) => createSpectrumInstance({
-    id: `spectrum-${index + 1}`,
-    fields: { resolution: { value: 1200 + index * 600, unit: 'count' }, calibrated: index % 2 === 0 },
-    payload: { fileId: `gridfs-spectrum-${index + 1}`, mime: 'application/x-spectrum', size: 180_000 + index * 30_000 }
+  const schematics = Array.from({ length: 4 }, (_, index) => createSchematicInstance({
+    id: `schematic-${index + 1}`,
+    fields: { revision: `rev ${String.fromCharCode(65 + index)}`, layers: { value: 4 + index * 3, unit: 'count' }, updatedAt: `2026-0${index + 3}-15T10:00:00.000Z` },
+    payload: { fileId: `gridfs-schematic-${index + 1}`, mime: 'application/x-schematic', size: 260_000 + index * 40_000 }
   }));
 
   const logs = Array.from({ length: 5 }, (_, index) => createLogEntryInstance({
     id: `log-${index + 1}`,
-    fields: { entry: `Cycle ${index + 1}: attitude control nominal, downlink margin ${(18 - index).toFixed(1)} dB, thermal band within limits.` },
-    payload: { fileId: `gridfs-log-${index + 1}`, mime: 'text/plain', size: 3_000 + index * 900 }
+    fields: { entry: `Shift ${index + 1}: load balanced across branches, peak draw ${(19 - index).toFixed(1)} A, no alarms latched overnight.` },
+    payload: { fileId: `gridfs-log-${index + 1}`, mime: 'text/plain', size: 2_800 + index * 700 }
   }));
 
-  const observationCounts = [1, 0, 2, 10, 3, 1, 0, 4, 2];
-  const systemByIndex = ['system-1', 'system-1', 'system-1', 'system-2', 'system-2', 'system-2', 'system-3', 'system-3', 'system-3'];
-  const probeStates = ['idle', 'active', 'maintenance', 'active', 'retired', 'idle', 'active', 'idle', 'maintenance'];
-  const bands = ['X', 'Y', 'K', 'X', 'Y', 'K', 'X', 'Y', 'K'];
-  const probes = observationCounts.map((observationCount, index) => createProbeInstance({
-    id: `probe-${index + 1}`,
+  const sectors = [
+    createSectorInstance(),
+    createSectorInstance({ id: 'sector-2', fields: { designation: 'NR-07/Beta', index: { value: 2, unit: 'count' }, coverage: { value: 55, unit: 'percent' } } }),
+    createSectorInstance({ id: 'sector-3', fields: { designation: 'NR-07/Gamma', index: { value: 3, unit: 'count' }, coverage: { value: 88, unit: 'percent' } } })
+  ];
+
+  const stations = [
+    createStationInstance(),
+    createStationInstance({ id: 'station-2', lineage: { stations: { type: 'sector', id: 'sector-1' } }, fields: { label: 'Bay 14', capacity: { value: 6, unit: 'count' } } }),
+    createStationInstance({ id: 'station-3', lineage: { stations: { type: 'sector', id: 'sector-2' } }, fields: { label: 'Bay 21', capacity: { value: 10, unit: 'count' } } }),
+    createStationInstance({ id: 'station-4', lineage: { stations: { type: 'sector', id: 'sector-2' } }, fields: { label: 'Bay 22', capacity: { value: 4, unit: 'count' } } }),
+    createStationInstance({ id: 'station-5', lineage: { stations: { type: 'sector', id: 'sector-3' } }, fields: { label: 'Bay 31', capacity: { value: 8, unit: 'count' } } }),
+    createStationInstance({ id: 'station-6', lineage: { stations: { type: 'sector', id: 'sector-3' } }, fields: { label: 'Bay 32', capacity: { value: 5, unit: 'count' } } })
+  ];
+
+  const stationByIndex = ['station-1', 'station-1', 'station-2', 'station-2', 'station-3', 'station-3', 'station-3', 'station-4', 'station-5', 'station-5', 'station-6', 'station-6'];
+  const readingCounts = [1, 0, 2, 10, 3, 1, 0, 4, 2, 5, 1, 3];
+  const unitStates = ['standby', 'running', 'service', 'running', 'decommissioned', 'standby', 'running', 'standby', 'service', 'running', 'standby', 'running'];
+  const bands = ['A', 'B', 'C', 'A', 'B', 'C', 'A', 'B', 'C', 'A', 'B', 'C'];
+  const loads = [92, 44, 67, 18, 78, 55, 96, 33, 61, 71, 25, 49];
+  const units = stationByIndex.map((stationId, index) => createUnitInstance({
+    id: `unit-${index + 1}`,
     fields: {
-      ...createProbeInstance().fields,
-      serial: `PRB-${String(index + 1).padStart(4, '0')}`,
+      ...createUnitInstance().fields,
+      serial: `UNT-${String(index + 1).padStart(4, '0')}`,
       band: bands[index],
-      signal: { value: [92, 44, 67, 18, 78, 55, 96, 33, 61][index], unit: 'percent' },
-      inclination: { value: 3 + index * 7.5, unit: 'deg' },
-      orbitNumber: { value: 12 + index * 9, unit: 'count' },
-      active: probeStates[index] === 'active',
-      launchedAt: index % 3 === 2 ? null : `2026-0${(index % 8) + 1}-1${index % 9}T10:00:00.000Z`,
-      specification: { massG: { value: 620 + index * 55, unit: 'count' }, powerW: { value: 95 + index * 8, unit: 'count' } },
-      tags: ['deep-field', 'repeat-visit', 'calibration', 'low-orbit'].slice(0, 1 + (index % 3)),
-      homeSystem: { type: 'star_system', id: systemByIndex[index] }
+      load: { value: loads[index], unit: 'percent' },
+      tolerance: { value: 0.1 + index * 0.05, unit: 'mm' },
+      temperature: { value: 40 + index * 3.5, unit: 'deg' },
+      cycles: { value: 400 + index * 350, unit: 'count' },
+      cost: { value: 4000 + index * 900, unit: 'currency' },
+      uptime: { value: 8000 + index * 2600, unit: 'min' },
+      active: unitStates[index] === 'running',
+      commissionedAt: index % 3 === 1 ? null : `2026-0${(index % 8) + 1}-0${(index % 8) + 1}T08:00:00.000Z`,
+      specification: { massG: { value: 900 + index * 120, unit: 'count' }, powerW: { value: 120 + index * 25, unit: 'count' } },
+      tags: ['rotating', 'primary', 'calibration', 'low-cycle'].slice(0, 1 + (index % 3)),
+      station: { type: 'station', id: stationId },
+      maintainer: { type: 'crew', id: index % 2 === 0 ? 'crew-1' : 'crew-2' }
     },
-    lineage: { probes: { type: 'star_system', id: systemByIndex[index] } },
+    lineage: { units: { type: 'station', id: stationId } },
     relations: {
-      observations: observations.slice(0, observationCount).map(observation => ({ type: 'observation', id: observation.id })),
-      spectrum: index % 3 === 0 ? { type: 'spectrum', id: `spectrum-${(index % 4) + 1}` } : null,
+      readings: readings.slice(0, readingCounts[index]).map(reading => ({ type: 'reading', id: reading.id })),
+      schematic: index % 3 === 0 ? { type: 'schematic', id: `schematic-${(index % 4) + 1}` } : null,
       logs: logs.slice(0, index % 4).map(log => ({ type: 'log_entry', id: log.id }))
     },
-    states: { main: probeStates[index] }
+    states: { main: unitStates[index] }
   }));
 
   return {
-    constellations: [createConstellationInstance()],
-    starSystems: [
-      createStarSystemInstance(),
-      createStarSystemInstance({
-        id: 'system-2',
-        fields: { designation: 'LYH-114 B', starCount: { value: 1, unit: 'count' }, metallicity: { value: 88, unit: 'percent' }, ageMyr: { value: 420, unit: 'count' } }
-      }),
-      createStarSystemInstance({
-        id: 'system-3',
-        fields: { designation: 'LYH-114 C', starCount: { value: 4, unit: 'count' }, metallicity: { value: 31, unit: 'percent' }, ageMyr: { value: 9800, unit: 'count' } }
-      })
+    zones: [createZoneInstance()],
+    sectors,
+    stations,
+    units,
+    crews: [
+      createCrewInstance(),
+      createCrewInstance({ id: 'crew-2', fields: { ...createCrewInstance().fields, name: 'M. Okafor', role: 'lead', onDuty: false }, states: { main: 'leave' } })
     ],
-    probes,
-    observations,
-    spectra,
+    readings,
+    schematics,
     logEntries: logs,
-    missions: [
-      createMissionInstance(),
-      createMissionInstance({
-        id: 'mission-2',
+    audits: [
+      createAuditRunInstance(),
+      createAuditRunInstance({
+        id: 'audit-2',
         states: { main: 'running' },
-        relations: { probes: [probes[1], probes[3], probes[6]].map(probe => ({ type: 'probe', id: probe.id })) },
-        fields: { ...createMissionInstance().fields, priority: 'p0', config: { tag: 'fixed', value: { windowMin: { value: 45, unit: 'min' } } } }
+        relations: { units: [units[1], units[3], units[6]].map(unit => ({ type: 'unit', id: unit.id })) },
+        fields: { ...createAuditRunInstance().fields, priority: 'p0', config: { tag: 'fixed', value: { windowMin: { value: 30, unit: 'min' } } } }
       }),
-      createMissionInstance({
-        id: 'mission-3',
+      createAuditRunInstance({
+        id: 'audit-3',
         states: { main: 'failed' },
-        relations: { probes: [{ type: 'probe', id: 'probe-5' }] },
-        fields: { ...createMissionInstance().fields, priority: 'p7', config: { tag: 'manual', value: 'operator override: split window across two shifts' } }
+        relations: { units: [{ type: 'unit', id: 'unit-5' }] },
+        fields: { ...createAuditRunInstance().fields, priority: 'p11', config: { tag: 'manual', value: 'operator override: split sweep across two shifts' } }
       })
     ]
   };
