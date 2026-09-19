@@ -53,9 +53,14 @@ in one render tree without any composite registry entries.
 Field display names come from `fieldLabel(name, descriptor)`: the
 descriptor's `label` override, else the start-case name — the same policy
 `renderPolicyFor` applies to type labels. `instanceIdentity(type,
-instance)` is the single record-label heuristic, and `formatQuantity`
-maps storage units to display symbols (`count`/`currency` render as bare
-localized numbers). Display presentations refine by
+instance)` resolves the record label: the type's declared
+`render.identityField` first, then the short-string heuristic, then the
+id — and `formatQuantity` maps storage units to display symbols
+(`count`/`currency` render as bare localized numbers). Detail surfaces
+are sectioned by authored `render.groups` (`resolveFieldGroups`: ordered
+groups with labels, unlisted fields trailing in an unlabeled default
+group), so record views carry field-group semantics instead of one
+undifferentiated stream. Display presentations refine by
 data shape: percent quantities render as Knob dials and string lists as
 budgeted chips.
 
