@@ -34,6 +34,10 @@ inputs resolved against the target type's field descriptors.
   main content in a 7-column lane with child regions in a 5-column lane
   (`detailSplit`, collapsing to stacked below xl); nested detail regions
   keep the Card surface. Empty regions render a Message.
+- `CarouselGrid.vue` — the large media collection projection: a circular
+  PrimeVue Carousel of clipped preview cards.
+- `BreadcrumbTrail.vue` — the lineage trail: a Breadcrumb of ancestor
+  identities walked from the instance's lineage through the pool.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identity, status, budgeted scalar descriptor columns, and the first
   declared relation as budgeted chips.
@@ -56,9 +60,10 @@ inputs resolved against the target type's field descriptors.
 - `HierarchyTree.vue` — the deep-nesting projection: a fully expanded
   PrimeVue Tree built recursively from the type's declared children edges
   and the instance pool's lineage, shown on group surfaces.
-- `SurfaceHeader.vue` — the record-page header bar: Avatar identity with
-  title and a `type · id` muted subtitle, status, placed actions, and the
-  lifecycle Stepper for stateful types.
+- `SurfaceHeader.vue` — the record-page header bar: lineage Breadcrumb
+  (when nested), Avatar identity with title and a `type · id` muted
+  subtitle, status, placed actions (SpeedDial overflow beyond four), the
+  Edit toggle, and the lifecycle Stepper for stateful types.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
   bare content column of a record page, `detail` → Card (same-role nesting
   flattens to a Divider), `row` / `inline` → dense flex row with budgeted
@@ -80,11 +85,13 @@ inputs resolved against the target type's field descriptors.
   budgeted description lists, record lists as checklist rows (boolean +
   string subfields), variants as tag plus payload value.
 - Editors: `QuantityInput` (InputGroup + unit addon), `EnumSelect`
-  (filtered, via the shared Select wrapper), `InstancePicker` (AutoComplete
-  with typeahead over the instance pool), `InstanceMultiPicker` (shared
-  MultiSelect wrapper), `ChipsInput`, `FileUploadControl`, and the
-  recursive `ObjectEditor` / `ListEditor` / `VariantEditor`. Percent
-  quantities display as Knob dials.
+  (filtered, via the shared Select wrapper), `InstancePicker` — AutoComplete
+  with typeahead over the instance pool, or TreeSelect when the accepted
+  type declares lineage children, `InstanceMultiPicker` (shared MultiSelect
+  wrapper), `ChipsInput`, `FileUploadControl`, `Slider` for bounded scalars
+  (declared min/max), and the recursive `ObjectEditor` / `ListEditor` /
+  `VariantEditor`. Percent quantities display as Knob dials, percent-valued
+  maps as MeterGroup, long strings as prose paragraphs.
 - `InstanceChip.vue`, `PreviewBox.vue`, `ActionButton.vue` — reference chips,
   payload previews keyed on the declared preview mode, and action-button
   presentation from the compiled action record.

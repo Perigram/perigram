@@ -61,8 +61,10 @@ are sectioned by authored `render.groups` (`resolveFieldGroups`: ordered
 groups with labels, unlisted fields trailing in an unlabeled default
 group), so record views carry field-group semantics instead of one
 undifferentiated stream. Display presentations refine by
-data shape: percent quantities render as Knob dials and string lists as
-budgeted chips.
+data shape: percent quantities render as Knob dials, percent-valued maps
+as MeterGroup, long strings as prose, string lists as budgeted chips;
+bounded scalars (declared min/max) edit through Slider, and large media
+collections lay out as a carousel.
 
 `resolveListLayout(type, { hierarchical, size })` → `'table' |
 'tree-table' | 'card-grid' | 'timeline' | 'stats' | 'list'` from one
