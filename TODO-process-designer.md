@@ -208,11 +208,17 @@ serialized to UI consumers — the manifest action records are its
 projection, so there is no dual UI vocabulary. All package/server/shared
 specs green (4 known pre-existing failures unchanged). Remaining on the
 branch before merge: [screenKey] renderer swap to the generator with a
-real instance-pool loader, action dispatch wiring, designer screens
-preview cutover, contract-diff extension to the projected channels, and
-the e2e surface. The branch stays unmerged until the browser side lands —
-the manifest vocabulary change would degrade the legacy generated
-renderer.
+real instance-pool loader, action dispatch wiring, and the e2e surface.
+The branch stays unmerged until the browser side lands — the manifest
+vocabulary change would degrade the legacy generated renderer.
+
+Update (same day, rebased on the placement-fix local): contract-diff now
+covers the projected UI contract (typeId/template/roleIds on screens;
+inputPolicy.prompt/construction.mode on actions), and the designer
+Screens tab renders the compiled draft through the real generator
+(GeneratedMappingScreen + client bundle + projected actions, empty pool) —
+ProcessScreenPreview.vue is deleted. Compiler-side P3 is complete; only
+the runtime renderer slice remains before merge.
 
 ## P4 — Runtime and designer cutover to the UI generator
 
