@@ -62,9 +62,11 @@ inputs resolved against the target type's field descriptors.
   budgeted relation chips with show-more toggles for relations not already
   covered by a child region, and the hierarchy tree for groups.
 - `PreviewBox.vue` — preview materialization keyed on the declared payload
-  preview mode with deterministic per-instance visuals (seeded hue):
-  gradient images for `image`, line-pattern plots for `geometry`, size and
-  MIME for `attachment`.
+  preview mode: deterministic per-instance inline SVG (seeded hue) built
+  entirely from theme tokens — `--ck-subtle-background` bases with
+  translucent hsl accents — so generated art adapts to light/dark and owns
+  no hardcoded colors; `image` renders a seeded gradient sky, `geometry` a
+  star plot, `attachment` a size/MIME row.
 - `FieldControl.vue` — the field dispatcher: resolves the descriptor in the
   given variant and renders the display primitive or delegates to an
   editor. Structural displays are labeled: records/maps/json render as
