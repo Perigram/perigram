@@ -33,7 +33,7 @@
     <Column v-if="relationKey" :header="relationLabel">
       <template #body="{ data }">
         <div class="flex flex-wrap items-center gap-1">
-          <EntityChip
+          <InstanceChip
             v-for="ref in budgetedRefs(data)"
             :key="ref.id"
             :value="ref"
@@ -55,7 +55,7 @@ import Column from 'primevue/column';
 import Tag from 'primevue/tag';
 import { LAYOUT, fieldLabel, SCALAR_BASES, TABLE_COLUMN_BUDGET, ROW_RELATION_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
-import EntityChip from './EntityChip.vue';
+import InstanceChip from './InstanceChip.vue';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },

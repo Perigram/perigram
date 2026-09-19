@@ -31,24 +31,24 @@ const pool = buildInstancePool(instances);
 
 const contract = {
   actions: {
-    widget_create: { id: 'widget_create', label: 'Create widget', actionKind: 'createEntity', entityType: 'widget', trigger: { mode: 'manual' } },
-    widget_auto: { id: 'widget_auto', label: 'Sync', actionKind: 'updateEntity', entityType: 'widget', trigger: { mode: 'event' } }
+    widget_create: { id: 'widget_create', label: 'Create widget', actionKind: 'createInstance', typeId: 'widget', trigger: { mode: 'manual' } },
+    widget_auto: { id: 'widget_auto', label: 'Sync', actionKind: 'updateInstance', typeId: 'widget', trigger: { mode: 'event' } }
   }
 };
 
 describe('screen composition', () => {
   it('resolves single sources by scope and falls back to the first instance', () => {
     const scoped = composeScreen(
-      { screenKey: 'd1', template: 'entityDetail', label: 'D1', scope: { entityId: 'w2' },
-        sources: [{ id: 'widget', entityType: 'widget', mode: 'single' }],
+      { screenKey: 'd1', template: 'instanceDetail', label: 'D1', scope: { instanceId: 'w2' },
+        sources: [{ id: 'widget', typeId: 'widget', mode: 'single' }],
         regions: [{ id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' }] },
       contract, bundle, pool
     );
     expect(scoped.regions[0].instances[0].id).toBe('w2');
 
     const unscoped = composeScreen(
-      { screenKey: 'd2', template: 'entityDetail', label: 'D2',
-        sources: [{ id: 'widget', entityType: 'widget', mode: 'single' }],
+      { screenKey: 'd2', template: 'instanceDetail', label: 'D2',
+        sources: [{ id: 'widget', typeId: 'widget', mode: 'single' }],
         regions: [{ id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' }] },
       contract, bundle, pool
     );
@@ -57,10 +57,10 @@ describe('screen composition', () => {
 
   it('scopes list sources by relation and lineage', () => {
     const relationScoped = composeScreen(
-      { screenKey: 'r1', template: 'entityDetail', label: 'R1', scope: { entityId: 'w1' },
+      { screenKey: 'r1', template: 'instanceDetail', label: 'R1', scope: { instanceId: 'w1' },
         sources: [
-          { id: 'widget', entityType: 'widget', mode: 'single' },
-          { id: 'sheets', entityType: 'sheet_file', mode: 'list', relation: { sourceId: 'widget', key: 'sheets' } }
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'sheets', typeId: 'sheet_file', mode: 'list', relation: { sourceId: 'widget', key: 'sheets' } }
         ],
         regions: [
           { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
@@ -71,10 +71,10 @@ describe('screen composition', () => {
     expect(relationScoped.regions[0].childRegions[0].instances.map(instance => instance.id)).toEqual(['s1']);
 
     const lineageScoped = composeScreen(
-      { screenKey: 'l1', template: 'entityList', label: 'L1',
+      { screenKey: 'l1', template: 'typeList', label: 'L1',
         sources: [
-          { id: 'widget', entityType: 'widget', mode: 'single' },
-          { id: 'children', entityType: 'widget', mode: 'list', lineage: { sourceId: 'widget', key: 'madeBy' } }
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'children', typeId: 'widget', mode: 'list', lineage: { sourceId: 'widget', key: 'madeBy' } }
         ],
         regions: [
           { id: 'main', slot: 'main', sourceId: 'children', surface: 'list' }
@@ -86,10 +86,10 @@ describe('screen composition', () => {
 
   it('carries tree-owned chrome per region (container role by depth)', () => {
     const composed = composeScreen(
-      { screenKey: 'c1', template: 'entityDetail', label: 'C1',
+      { screenKey: 'c1', template: 'instanceDetail', label: 'C1',
         sources: [
-          { id: 'widget', entityType: 'widget', mode: 'single' },
-          { id: 'sheets', entityType: 'sheet_file', mode: 'list', relation: { sourceId: 'widget', key: 'sheets' } }
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'sheets', typeId: 'sheet_file', mode: 'list', relation: { sourceId: 'widget', key: 'sheets' } }
         ],
         regions: [
           { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
@@ -103,8 +103,8 @@ describe('screen composition', () => {
 
   it('resolves region action records and carries surface policy per region', () => {
     const composed = composeScreen(
-      { screenKey: 'x1', template: 'entityList', label: 'X1',
-        sources: [{ id: 'widget', entityType: 'widget', mode: 'list' }],
+      { screenKey: 'x1', template: 'typeList', label: 'X1',
+        sources: [{ id: 'widget', typeId: 'widget', mode: 'list' }],
         regions: [{ id: 'main', slot: 'main', sourceId: 'widget', surface: 'list', actions: ['widget_create', 'widget_auto', 'missing'] }] },
       contract, bundle, pool
     );
@@ -115,8 +115,8 @@ describe('screen composition', () => {
   });
 
   it('is pure across repeated composition', () => {
-    const screen = { screenKey: 'p1', template: 'entityList', label: 'P1',
-      sources: [{ id: 'widget', entityType: 'widget', mode: 'list' }],
+    const screen = { screenKey: 'p1', template: 'typeList', label: 'P1',
+      sources: [{ id: 'widget', typeId: 'widget', mode: 'list' }],
       regions: [{ id: 'main', slot: 'main', sourceId: 'widget', surface: 'list' }] };
     expect(composeScreen(screen, contract, bundle, pool)).toEqual(composeScreen(screen, contract, bundle, pool));
   });

@@ -14,14 +14,14 @@ export function buildInstancePool(instances = {}) {
 }
 
 function resolveSingle(source, screen, pool) {
-  const byId = pool[source.entityType] || {};
-  const id = screen.scope?.entityId;
+  const byId = pool[source.typeId] || {};
+  const id = screen.scope?.instanceId;
   if (id && byId[id]) return byId[id];
   return Object.values(byId)[0] || null;
 }
 
 function resolveList(source, screen, pool, sourcesById) {
-  const byId = pool[source.entityType] || {};
+  const byId = pool[source.typeId] || {};
   if (source.relation) {
     const originSource = sourcesById[source.relation.sourceId];
     const origin = originSource ? resolveSingle(originSource, screen, pool) : null;
@@ -50,7 +50,7 @@ function composeRegion(region, screen, contract, pool, typesById, depth) {
   const surfaceKind = surfaceKindOf(region, source);
   const single = surfaceKind === 'detail' ? resolveSingle(source, screen, pool) : null;
   const instances = single ? [single] : resolveList(source, screen, pool, sourcesById);
-  const type = typesById[source.entityType] || null;
+  const type = typesById[source.typeId] || null;
   const variant = surfaceKind === 'detail' ? (depth === 0 ? 'full' : 'detail') : 'row';
   const containerRole = depth === 0 ? 'section' : 'card';
   const chrome = resolveChrome(containerRole, depth === 0 ? null : 'section');
@@ -64,7 +64,7 @@ function composeRegion(region, screen, contract, pool, typesById, depth) {
     chrome,
     relationKey: source.relation?.key || null,
     lineageKey: source.lineage?.key || null,
-    entityType: source.entityType || null,
+    typeId: source.typeId || null,
     type,
     variant,
     surface: type ? resolveSurface(type, { variant }) : null,
@@ -87,8 +87,8 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
     key: screen.screenKey || screen.id,
     template: screen.template,
     label: screen.label,
-    entityType: screen.entityType || null,
-    type: typesById[screen.entityType] || null,
+    typeId: screen.typeId || null,
+    type: typesById[screen.typeId] || null,
     regions: Object.freeze(regions)
   });
 }

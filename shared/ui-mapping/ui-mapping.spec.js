@@ -61,7 +61,7 @@ describe('field control resolution', () => {
     const refs = resolveFieldControl({ base: 'list', itemType: { base: 'ref', accepts: ['part'] } }, { variant: 'full' });
     const records = resolveFieldControl({ base: 'list', itemType: { base: 'record', fields: {} } }, { variant: 'full' });
     expect(strings.component).toBe('ChipsInput');
-    expect(refs.component).toBe('EntityMultiPicker');
+    expect(refs.component).toBe('InstanceMultiPicker');
     expect(records.component).toBe('ListEditor');
   });
 
@@ -70,7 +70,7 @@ describe('field control resolution', () => {
       component: 'Tag', props: { density: 'row' }
     });
     expect(resolveFieldControl({ base: 'ref', accepts: ['part'] }, { variant: 'inline' })).toMatchObject({
-      component: 'EntityChip', props: { density: 'inline' }
+      component: 'InstanceChip', props: { density: 'inline' }
     });
   });
 
@@ -160,22 +160,22 @@ describe('preview resolution', () => {
 
 describe('action button resolution', () => {
   it('maps action kinds to presentations', () => {
-    expect(resolveActionButton({ actionKind: 'createEntity' })).toMatchObject({ component: 'Button', tone: 'primary' });
-    expect(resolveActionButton({ actionKind: 'deleteEntity' })).toMatchObject({ tone: 'danger', confirm: true });
+    expect(resolveActionButton({ actionKind: 'createInstance' })).toMatchObject({ component: 'Button', tone: 'primary' });
+    expect(resolveActionButton({ actionKind: 'deleteInstance' })).toMatchObject({ tone: 'danger', confirm: true });
     expect(resolveActionButton({ actionKind: 'runCommand' })).toMatchObject({ tone: 'secondary', icon: 'pi pi-bolt' });
   });
 
   it('hides event-triggered actions regardless of kind', () => {
-    expect(resolveActionButton({ actionKind: 'createEntity', trigger: { mode: 'event' } }).hidden).toBe(true);
+    expect(resolveActionButton({ actionKind: 'createInstance', trigger: { mode: 'event' } }).hidden).toBe(true);
   });
 
   it('tones status transitions from the target state render policy', () => {
     const render = { states: { FAILED: { label: 'Failed', severity: 'danger' }, DONE: { severity: 'success' } } };
-    expect(resolveActionButton({ actionKind: 'updateEntity', status: { to: 'FAILED' } }, { render }))
+    expect(resolveActionButton({ actionKind: 'updateInstance', status: { to: 'FAILED' } }, { render }))
       .toMatchObject({ tone: 'state', severity: 'danger' });
-    expect(resolveActionButton({ actionKind: 'updateEntity', status: { to: 'DONE' } }, { render }))
+    expect(resolveActionButton({ actionKind: 'updateInstance', status: { to: 'DONE' } }, { render }))
       .toMatchObject({ severity: 'success' });
-    expect(resolveActionButton({ actionKind: 'updateEntity' }, { render }).tone).toBe('secondary');
+    expect(resolveActionButton({ actionKind: 'updateInstance' }, { render }).tone).toBe('secondary');
   });
 });
 

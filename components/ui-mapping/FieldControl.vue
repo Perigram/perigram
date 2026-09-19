@@ -19,7 +19,7 @@
     <Chip v-for="tag in chipsShown" :key="tag" :label="tag" />
     <Tag v-if="chipsHidden > 0" :value="`+${chipsHidden}`" severity="contrast" />
   </div>
-  <EntityChip v-else-if="outcome.component === 'EntityChip'" :value="model" :pool="pool" :bundle="bundle" />
+  <InstanceChip v-else-if="outcome.component === 'InstanceChip'" :value="model" :pool="pool" :bundle="bundle" />
   <Chip v-else-if="outcome.component === 'FileChip'" :label="model?.mime || fallback" icon="pi pi-file" />
   <div v-else-if="outcome.component === 'ObjectSummary'" :class="LAYOUT.stackTight">
     <div v-for="entry in summaryEntries" :key="entry.key" :class="LAYOUT.rowBetween">
@@ -71,15 +71,15 @@
     :options="descriptor.values || []"
     :filter="outcome.props.filter === true"
   />
-  <EntityPicker
-    v-else-if="outcome.component === 'EntityPicker'"
+  <InstancePicker
+    v-else-if="outcome.component === 'InstancePicker'"
     v-model="model"
     :accepts="descriptor.accepts || []"
     :pool="pool"
     :bundle="bundle"
   />
-  <EntityMultiPicker
-    v-else-if="outcome.component === 'EntityMultiPicker'"
+  <InstanceMultiPicker
+    v-else-if="outcome.component === 'InstanceMultiPicker'"
     v-model="model"
     :accepts="descriptor.accepts || []"
     :pool="pool"
@@ -126,11 +126,11 @@ import Tag from 'primevue/tag';
 import Chip from 'primevue/chip';
 import Knob from 'primevue/knob';
 import { LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity } from '#shared/ui-mapping/index.js';
-import EntityChip from './EntityChip.vue';
+import InstanceChip from './InstanceChip.vue';
 import QuantityInput from './QuantityInput.vue';
 import EnumSelect from './EnumSelect.vue';
-import EntityPicker from './EntityPicker.vue';
-import EntityMultiPicker from './EntityMultiPicker.vue';
+import InstancePicker from './InstancePicker.vue';
+import InstanceMultiPicker from './InstanceMultiPicker.vue';
 import ChipsInput from './ChipsInput.vue';
 import FileUploadControl from './FileUploadControl.vue';
 import ObjectEditor from './ObjectEditor.vue';

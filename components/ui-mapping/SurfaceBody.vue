@@ -70,7 +70,7 @@
       :bundle="bundle"
     />
     <Tag v-if="hiddenFieldCount > 0" :value="`+${hiddenFieldCount}`" severity="contrast" />
-    <EntityChip v-for="ref in rowRefs" :key="ref.id" :value="ref" :pool="pool" :bundle="bundle" />
+    <InstanceChip v-for="ref in rowRefs" :key="ref.id" :value="ref" :pool="pool" :bundle="bundle" />
     <Tag v-if="rowHidden > 0" :value="`+${rowHidden}`" severity="contrast" />
   </div>
 </template>
@@ -82,7 +82,7 @@ import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
 import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
-import EntityChip from './EntityChip.vue';
+import InstanceChip from './InstanceChip.vue';
 import SurfaceDetailBody from './SurfaceDetailBody.vue';
 
 const props = defineProps({

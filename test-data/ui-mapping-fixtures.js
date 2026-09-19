@@ -212,8 +212,8 @@ export function createUiMappingCompiledContract() {
     probe_create: {
       id: 'probe_create',
       label: 'Create probe',
-      actionKind: 'createEntity',
-      entityType: 'probe',
+      actionKind: 'createInstance',
+      typeId: 'probe',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] },
       construction: { mode: 'generic', inputs: ['serial', 'band', 'signal'] }
@@ -221,16 +221,16 @@ export function createUiMappingCompiledContract() {
     probe_update: {
       id: 'probe_update',
       label: 'Edit probe',
-      actionKind: 'updateEntity',
-      entityType: 'probe',
+      actionKind: 'updateInstance',
+      typeId: 'probe',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
     },
     probe_launch: {
       id: 'probe_launch',
       label: 'Launch',
-      actionKind: 'updateEntity',
-      entityType: 'probe',
+      actionKind: 'updateInstance',
+      typeId: 'probe',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] },
       status: { to: 'active' }
@@ -238,8 +238,8 @@ export function createUiMappingCompiledContract() {
     probe_retire: {
       id: 'probe_retire',
       label: 'Retire',
-      actionKind: 'updateEntity',
-      entityType: 'probe',
+      actionKind: 'updateInstance',
+      typeId: 'probe',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] },
       status: { to: 'retired' }
@@ -247,8 +247,8 @@ export function createUiMappingCompiledContract() {
     probe_delete: {
       id: 'probe_delete',
       label: 'Delete probe',
-      actionKind: 'deleteEntity',
-      entityType: 'probe',
+      actionKind: 'deleteInstance',
+      typeId: 'probe',
       trigger: { mode: 'manual' },
       access: { level: 'admin', grants: [] }
     },
@@ -256,7 +256,7 @@ export function createUiMappingCompiledContract() {
       id: 'observation_link',
       label: 'Observation',
       actionKind: 'link',
-      entityType: 'probe',
+      typeId: 'probe',
       relation: { key: 'observations', targetType: 'observation', cardinality: 'array' },
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
@@ -265,7 +265,7 @@ export function createUiMappingCompiledContract() {
       id: 'observation_unlink',
       label: 'Unlink observation',
       actionKind: 'unlink',
-      entityType: 'probe',
+      typeId: 'probe',
       relation: { key: 'observations', targetType: 'observation', cardinality: 'array' },
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
@@ -275,15 +275,15 @@ export function createUiMappingCompiledContract() {
       label: 'Run analysis',
       actionKind: 'runCommand',
       commandId: 'mission.analyze',
-      entityType: 'survey_mission',
+      typeId: 'survey_mission',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
     },
     probe_auto_index: {
       id: 'probe_auto_index',
       label: 'Index probe',
-      actionKind: 'updateEntity',
-      entityType: 'probe',
+      actionKind: 'updateInstance',
+      typeId: 'probe',
       trigger: { mode: 'event' },
       access: { level: 'write', grants: [] }
     }
@@ -305,15 +305,15 @@ export function createUiMappingCompiledContract() {
         route: '/screens/home_operator',
         sourceRoute: '/screens/home_operator',
         placement: 'hub',
-        entityType: null,
+        typeId: null,
         required: null,
         roleIds: ['operator'],
         scope: {},
         bindings: {},
         sources: [
-          { id: 'probes', entityType: 'probe', mode: 'list', required: null },
-          { id: 'missions', entityType: 'survey_mission', mode: 'list', required: null },
-          { id: 'observations', entityType: 'observation', mode: 'list', required: null }
+          { id: 'probes', typeId: 'probe', mode: 'list', required: null },
+          { id: 'missions', typeId: 'survey_mission', mode: 'list', required: null },
+          { id: 'observations', typeId: 'observation', mode: 'list', required: null }
         ],
         regions: [
           { id: 'probes', slot: 'main', sourceId: 'probes', surface: 'list', actions: ['probe_create'] },
@@ -326,17 +326,17 @@ export function createUiMappingCompiledContract() {
         id: 'auto_operator_probe',
         screenKey: 'auto_operator_probe',
         label: 'Operator probes',
-        kind: 'entityList',
-        template: 'entityList',
+        kind: 'typeList',
+        template: 'typeList',
         route: '/screens/auto_operator_probe',
         sourceRoute: '/screens/auto_operator_probe',
         placement: 'hub',
-        entityType: 'probe',
+        typeId: 'probe',
         required: { feature: 'probes', level: 'read' },
         roleIds: ['operator'],
         scope: {},
         bindings: {},
-        sources: [{ id: 'probe', entityType: 'probe', mode: 'list', required: { feature: 'probes', level: 'read' } }],
+        sources: [{ id: 'probe', typeId: 'probe', mode: 'list', required: { feature: 'probes', level: 'read' } }],
         regions: [{ id: 'main', slot: 'main', sourceId: 'probe', surface: 'list', actions: ['probe_create', 'observation_link'] }],
         actions: ['probe_create', 'observation_link']
       },
@@ -344,17 +344,17 @@ export function createUiMappingCompiledContract() {
         id: 'auto_operator_observation',
         screenKey: 'auto_operator_observation',
         label: 'Operator observations',
-        kind: 'entityList',
-        template: 'entityList',
+        kind: 'typeList',
+        template: 'typeList',
         route: '/screens/auto_operator_observation',
         sourceRoute: '/screens/auto_operator_observation',
         placement: 'hub',
-        entityType: 'observation',
+        typeId: 'observation',
         required: null,
         roleIds: ['operator'],
         scope: {},
         bindings: {},
-        sources: [{ id: 'observation', entityType: 'observation', mode: 'list', required: null }],
+        sources: [{ id: 'observation', typeId: 'observation', mode: 'list', required: null }],
         regions: [{ id: 'main', slot: 'main', sourceId: 'observation', surface: 'list', actions: [] }],
         actions: []
       },
@@ -362,19 +362,19 @@ export function createUiMappingCompiledContract() {
         id: 'auto_operator_constellation_detail',
         screenKey: 'auto_operator_constellation_detail',
         label: 'Constellation detail',
-        kind: 'entityDetail',
-        template: 'entityDetail',
+        kind: 'instanceDetail',
+        template: 'instanceDetail',
         route: '/screens/auto_operator_constellation_detail',
         sourceRoute: '/screens/auto_operator_constellation_detail',
         placement: 'detail',
-        entityType: 'constellation',
+        typeId: 'constellation',
         required: null,
         roleIds: ['operator'],
-        scope: { entityId: 'constellation-1' },
+        scope: { instanceId: 'constellation-1' },
         bindings: {},
         sources: [
-          { id: 'constellation', entityType: 'constellation', mode: 'single', required: null, identifier: '$screen.scope.entityId' },
-          { id: 'systems', entityType: 'star_system', mode: 'list', required: null, lineage: { sourceId: 'constellation', key: 'systems' } }
+          { id: 'constellation', typeId: 'constellation', mode: 'single', required: null, identifier: '$screen.scope.instanceId' },
+          { id: 'systems', typeId: 'star_system', mode: 'list', required: null, lineage: { sourceId: 'constellation', key: 'systems' } }
         ],
         regions: [
           { id: 'main', slot: 'main', sourceId: 'constellation', surface: 'detail', actions: [] },
@@ -386,21 +386,21 @@ export function createUiMappingCompiledContract() {
         id: 'auto_operator_probe_detail',
         screenKey: 'auto_operator_probe_detail',
         label: 'Probe detail',
-        kind: 'entityDetail',
-        template: 'entityDetail',
+        kind: 'instanceDetail',
+        template: 'instanceDetail',
         route: '/screens/auto_operator_probe_detail',
         sourceRoute: '/screens/auto_operator_probe_detail',
         placement: 'detail',
-        entityType: 'probe',
+        typeId: 'probe',
         required: { feature: 'probes', level: 'read' },
         roleIds: ['operator'],
-        scope: { entityId: 'probe-4' },
+        scope: { instanceId: 'probe-4' },
         bindings: {},
         sources: [
-          { id: 'probe', entityType: 'probe', mode: 'single', required: { feature: 'probes', level: 'read' }, identifier: '$screen.scope.entityId' },
-          { id: 'observations', entityType: 'observation', mode: 'list', required: null, relation: { sourceId: 'probe', key: 'observations' } },
-          { id: 'spectra', entityType: 'spectrum', mode: 'list', required: null, relation: { sourceId: 'probe', key: 'spectrum' } },
-          { id: 'logs', entityType: 'log_entry', mode: 'list', required: null, relation: { sourceId: 'probe', key: 'logs' } }
+          { id: 'probe', typeId: 'probe', mode: 'single', required: { feature: 'probes', level: 'read' }, identifier: '$screen.scope.instanceId' },
+          { id: 'observations', typeId: 'observation', mode: 'list', required: null, relation: { sourceId: 'probe', key: 'observations' } },
+          { id: 'spectra', typeId: 'spectrum', mode: 'list', required: null, relation: { sourceId: 'probe', key: 'spectrum' } },
+          { id: 'logs', typeId: 'log_entry', mode: 'list', required: null, relation: { sourceId: 'probe', key: 'logs' } }
         ],
         regions: [
           { id: 'main', slot: 'main', sourceId: 'probe', surface: 'detail', actions: ['probe_update', 'probe_launch', 'probe_retire', 'probe_delete', 'observation_link'] },
@@ -414,19 +414,19 @@ export function createUiMappingCompiledContract() {
         id: 'auto_operator_mission_detail',
         screenKey: 'auto_operator_mission_detail',
         label: 'Mission detail',
-        kind: 'entityDetail',
-        template: 'entityDetail',
+        kind: 'instanceDetail',
+        template: 'instanceDetail',
         route: '/screens/auto_operator_mission_detail',
         sourceRoute: '/screens/auto_operator_mission_detail',
         placement: 'detail',
-        entityType: 'survey_mission',
+        typeId: 'survey_mission',
         required: null,
         roleIds: ['operator'],
-        scope: { entityId: 'mission-2' },
+        scope: { instanceId: 'mission-2' },
         bindings: {},
         sources: [
-          { id: 'mission', entityType: 'survey_mission', mode: 'single', required: null, identifier: '$screen.scope.entityId' },
-          { id: 'probes', entityType: 'probe', mode: 'list', required: null, relation: { sourceId: 'mission', key: 'probes' } }
+          { id: 'mission', typeId: 'survey_mission', mode: 'single', required: null, identifier: '$screen.scope.instanceId' },
+          { id: 'probes', typeId: 'probe', mode: 'list', required: null, relation: { sourceId: 'mission', key: 'probes' } }
         ],
         regions: [
           { id: 'main', slot: 'main', sourceId: 'mission', surface: 'detail', actions: ['mission_analyze'] },

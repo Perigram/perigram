@@ -62,7 +62,7 @@ const composed = computed(() => composeScreen(props.screen, props.contract, prop
 const dialogVisible = ref(false);
 const dialogAction = ref(null);
 const draft = reactive({});
-const dialogType = computed(() => (props.bundle.types || []).find(type => type.id === dialogAction.value?.entityType) || null);
+const dialogType = computed(() => (props.bundle.types || []).find(type => type.id === dialogAction.value?.typeId) || null);
 const dialogFields = computed(() => {
   const inputs = dialogAction.value?.construction?.inputs || [];
   const fields = dialogType.value?.fields || {};

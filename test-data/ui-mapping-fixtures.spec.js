@@ -23,7 +23,7 @@ const pool = buildInstancePool(createUiMappingInstances());
 describe('screen composition over fixtures', () => {
   it('composes the probe detail screen with tabbed relation-scoped child regions', () => {
     const composed = composeScreen(contract.screens.auto_operator_probe_detail, contract, bundle, pool);
-    expect(composed.template).toBe('entityDetail');
+    expect(composed.template).toBe('instanceDetail');
     const main = composed.regions[0];
     expect(main.surfaceKind).toBe('detail');
     expect(main.variant).toBe('full');
@@ -31,7 +31,7 @@ describe('screen composition over fixtures', () => {
     expect(main.actions.map(action => action.id)).toEqual([
       'probe_update', 'probe_launch', 'probe_retire', 'probe_delete', 'observation_link'
     ]);
-    const childKinds = main.childRegions.map(child => `${child.entityType}:${child.instances.length}:${child.surfaceKind}`);
+    const childKinds = main.childRegions.map(child => `${child.typeId}:${child.instances.length}:${child.surfaceKind}`);
     expect(childKinds).toEqual([
       'observation:10:list',
       'spectrum:1:list',
@@ -42,7 +42,7 @@ describe('screen composition over fixtures', () => {
   it('composes the constellation detail with lineage-scoped systems', () => {
     const composed = composeScreen(contract.screens.auto_operator_constellation_detail, contract, bundle, pool);
     const children = composed.regions[0].childRegions[0];
-    expect(children.entityType).toBe('star_system');
+    expect(children.typeId).toBe('star_system');
     expect(children.instances).toHaveLength(3);
     expect(children.instances.every(system => system.lineage.systems?.id === 'constellation-1')).toBe(true);
   });
@@ -57,7 +57,7 @@ describe('screen composition over fixtures', () => {
 
   it('composes mixed home sections and list screens', () => {
     const home = composeScreen(contract.screens.home_operator, contract, bundle, pool);
-    expect(home.regions.map(region => `${region.entityType}:${region.instances.length}`)).toEqual([
+    expect(home.regions.map(region => `${region.typeId}:${region.instances.length}`)).toEqual([
       'probe:9', 'survey_mission:3', 'observation:10'
     ]);
     const list = composeScreen(contract.screens.auto_operator_probe, contract, bundle, pool);

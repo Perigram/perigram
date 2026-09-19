@@ -26,9 +26,9 @@ export const FIELD_EDIT_ENTRIES = Object.freeze([
   { match: { base: 'instant' }, component: 'DatePicker', span: 'half' },
   { match: { base: 'enum', enumSize: 'many' }, component: 'Select', span: 'half', filterable: true },
   { match: { base: 'enum' }, component: 'SelectButton', span: 'full' },
-  { match: { base: 'ref' }, component: 'EntityPicker', span: 'half' },
+  { match: { base: 'ref' }, component: 'InstancePicker', span: 'half' },
   { match: { base: 'list', itemBase: 'string' }, component: 'ChipsInput', span: 'full' },
-  { match: { base: 'list', itemBase: 'ref' }, component: 'EntityMultiPicker', span: 'full' },
+  { match: { base: 'list', itemBase: 'ref' }, component: 'InstanceMultiPicker', span: 'full' },
   { match: { base: 'blob' }, component: 'FileUpload', span: 'full' },
   { match: { base: 'record' }, component: 'ObjectEditor', span: 'full', recursive: true },
   { match: { base: 'map' }, component: 'ObjectEditor', span: 'full' },
@@ -45,7 +45,7 @@ export const FIELD_EDIT_ENTRIES = Object.freeze([
 export const FIELD_DISPLAY_ENTRIES = Object.freeze([
   { match: { base: 'quantity', unit: 'percent' }, component: 'Knob', span: 'half' },
   { match: { base: 'enum' }, component: 'Tag', span: 'half' },
-  { match: { base: 'ref' }, component: 'EntityChip', span: 'half' },
+  { match: { base: 'ref' }, component: 'InstanceChip', span: 'half' },
   { match: { base: 'quantity' }, component: 'QuantityText', span: 'half' },
   { match: { base: 'instant' }, component: 'InstantText', span: 'half' },
   { match: { base: 'boolean' }, component: 'BooleanIcon', span: 'half' },
@@ -144,7 +144,7 @@ export const SURFACE_ENTRIES = Object.freeze([
     slots: ['identity', 'status', 'fields', 'relations'],
     budgets: { fields: ROW_FIELD_BUDGET, relations: { max: 2, overflow: 'count' } }
   },
-  { match: { class: 'item', variant: 'inline' }, archetype: 'chip', component: 'EntityChip', slots: [] },
+  { match: { class: 'item', variant: 'inline' }, archetype: 'chip', component: 'InstanceChip', slots: [] },
   {
     match: { class: 'group', variant: 'full' },
     archetype: 'collection', component: 'CollectionSurface',
@@ -163,7 +163,7 @@ export const SURFACE_ENTRIES = Object.freeze([
     slots: ['identity', 'children'],
     budgets: { children: { max: 2, overflow: 'count' } }
   },
-  { match: { class: 'group', variant: 'inline' }, archetype: 'chip', component: 'EntityChip', slots: [] },
+  { match: { class: 'group', variant: 'inline' }, archetype: 'chip', component: 'InstanceChip', slots: [] },
   {
     match: { class: 'process', variant: 'full' },
     archetype: 'process-detail', component: 'ProcessSurface',
@@ -180,7 +180,7 @@ export const SURFACE_ENTRIES = Object.freeze([
     slots: ['identity', 'status', 'fields'],
     budgets: { fields: ROW_FIELD_BUDGET }
   },
-  { match: { class: 'process', variant: 'inline' }, archetype: 'chip', component: 'EntityChip', slots: [] },
+  { match: { class: 'process', variant: 'inline' }, archetype: 'chip', component: 'InstanceChip', slots: [] },
   { match: { variant: 'full' }, archetype: 'record', component: 'RecordSurface', slots: ['identity', 'fields'] },
   { match: {}, archetype: 'record', component: 'RecordSurface', slots: ['identity', 'fields'] }
 ]);
@@ -202,13 +202,13 @@ export const PREVIEW_ENTRIES = Object.freeze([
 // checked before kind entries (specificity handles ordering).
 export const ACTION_ENTRIES = Object.freeze([
   { match: { trigger: 'event' }, component: null, hidden: true },
-  { match: { actionKind: 'createEntity' }, component: 'Button', tone: 'primary', icon: 'pi pi-plus' },
-  { match: { actionKind: 'deleteEntity' }, component: 'Button', tone: 'danger', icon: 'pi pi-trash', confirm: true },
+  { match: { actionKind: 'createInstance' }, component: 'Button', tone: 'primary', icon: 'pi pi-plus' },
+  { match: { actionKind: 'deleteInstance' }, component: 'Button', tone: 'danger', icon: 'pi pi-trash', confirm: true },
   { match: { actionKind: 'runCommand' }, component: 'Button', tone: 'secondary', icon: 'pi pi-bolt' },
   { match: { actionKind: 'link' }, component: 'Button', tone: 'text', icon: 'pi pi-link' },
   { match: { actionKind: 'unlink' }, component: 'Button', tone: 'text', icon: 'pi pi-times', inline: true },
-  { match: { actionKind: 'updateEntity', statusTarget: true }, component: 'Button', tone: 'state' },
-  { match: { actionKind: 'updateEntity' }, component: 'Button', tone: 'secondary', icon: 'pi pi-pencil' },
+  { match: { actionKind: 'updateInstance', statusTarget: true }, component: 'Button', tone: 'state' },
+  { match: { actionKind: 'updateInstance' }, component: 'Button', tone: 'secondary', icon: 'pi pi-pencil' },
   { match: {}, component: 'Button', tone: 'secondary' }
 ]);
 

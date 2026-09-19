@@ -40,7 +40,7 @@
     </section>
 
     <div v-for="relation in relationViews" :key="relation.key" :class="relationClass(relation)">
-      <EntityChip v-for="ref in relation.shown" :key="ref.id" :value="ref" :pool="pool" :bundle="bundle" />
+      <InstanceChip v-for="ref in relation.shown" :key="ref.id" :value="ref" :pool="pool" :bundle="bundle" />
       <Tag v-if="relation.overflow === 'count' && relation.hidden > 0" :value="`+${relation.hidden}`" severity="contrast" />
       <Button
         v-if="(relation.overflow === 'more' && relation.hidden > 0) || relation.expanded"
@@ -68,7 +68,7 @@ import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
 import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
-import EntityChip from './EntityChip.vue';
+import InstanceChip from './InstanceChip.vue';
 import PreviewBox from './PreviewBox.vue';
 import HierarchyTree from './HierarchyTree.vue';
 import StateStrip from './StateStrip.vue';
