@@ -82,6 +82,20 @@ export const LIST_LAYOUT_ENTRIES = Object.freeze([
 
 export const SMALL_LIST_AT = 3;
 
+// Known list-layout values: validates authored `render.listLayout` and
+// bounds the resolver vocabulary.
+export const LIST_LAYOUT_VALUES = Object.freeze(['table', 'tree-table', 'card-grid', 'carousel', 'timeline', 'stats', 'list']);
+
+// Collection thresholds live with the other design-system budgets so
+// materializations carry no magic numbers: tables paginate past
+// TABLE_PAGINATE_AT rows and switch to virtual scrolling past
+// TABLE_VIRTUALIZE_AT; the region toolbar's search appears only past
+// SEARCH_AT rows.
+export const TABLE_PAGINATE_AT = 10;
+export const TABLE_PAGE_ROWS = 10;
+export const TABLE_VIRTUALIZE_AT = 50;
+export const SEARCH_AT = 8;
+
 // Fact budgets scale with the type's richness instead of fixed constants:
 // wide types earn more table columns and card facts, capped for density.
 export const TABLE_COLUMN_SCALE = Object.freeze([

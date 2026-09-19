@@ -17,11 +17,13 @@ Parent: [shared/README.md](../README.md).
 ## Inputs
 
 - **Field descriptors** — CTS row field descriptors (`{ base, unit?, accepts?,
-  values?, itemType?, fields?, tags?, nullable? }` per
-  [packages/cts/SPEC.md](../../packages/cts/SPEC.md) §2/§4).
+  values?, itemType?, fields?, tags?, nullable?, render?: { control } }` per
+  [packages/cts/SPEC.md](../../packages/cts/SPEC.md) §2/§4); the authored
+  `render.control` pins the edit-variant control.
 - **Type records** — entries of the CTS client bundle
   (`compileClientBundle()`), carrying `class`, `payload`, and `render`
-  (label/icon/preview/state severities).
+  (label/icon/preview/state severities plus the authored pass-through
+  vocabulary: `identityField`, `groups`, `listLayout`, `sortKey`).
 - **Action records** — compiled process actions (`actionKind`, `trigger`,
   `status.to`, relation operation), per
   [packages/processes/README.md](../../packages/processes/README.md).
@@ -50,9 +52,13 @@ in one render tree without any composite registry entries.
 ### Fields
 
 `resolveFieldControl(descriptor, { variant })` → `{ component, span, props }`.
-Field display names come from `fieldLabel(name, descriptor)`: the
-descriptor's `label` override, else the start-case name — the same policy
-`renderPolicyFor` applies to type labels. `instanceIdentity(type,
+An authored `render.control` string on the descriptor pins the editor
+control for edit variants (`full`/`detail`); display variants stay
+shape-derived projections — authored data chooses input affordances, not
+read-only presentations. Field display names come from
+`fieldLabel(name, descriptor)`: the descriptor's `label` override, else
+the start-case name — the same policy `renderPolicyFor` applies to type
+labels. `instanceIdentity(type,
 instance)` resolves the record label: the type's declared
 `render.identityField` first, then the short-string heuristic, then the
 id — and `formatQuantity` maps storage units to display symbols
@@ -60,7 +66,8 @@ id — and `formatQuantity` maps storage units to display symbols
 are sectioned by authored `render.groups` (`resolveFieldGroups`: ordered
 groups with labels, unlisted fields trailing in an unlabeled default
 group), so record views carry field-group semantics instead of one
-undifferentiated stream. Display presentations refine by
+undifferentiated stream. The same groups order generated edit dialogs.
+Display presentations refine by
 data shape: percent quantities render as Knob dials, percent-valued maps
 as MeterGroup, long strings as prose, string lists as budgeted chips;
 bounded scalars (declared min/max) edit through Slider, ordinal enums
@@ -77,9 +84,14 @@ chronological (timeline), percent/quantity-dominant types are statlike
 (StatGrid cards with the `text-metric` role), media types get card grids,
 lineage-holding collections get tree tables, handful-sized sets render as
 a bare stacked list, and the default is the generated columnar table — no
-hand-picked type ids anywhere. Presentation budgets scale with type
-richness (`TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE`: wide types earn more
-columns and facts) instead of fixed constants. The
+hand-picked type ids anywhere. An authored `render.listLayout` naming a
+known layout (`LIST_LAYOUT_VALUES`) wins over shape matching, the same
+declared-data precedence the preview mode uses. Presentation budgets
+scale with type richness (`TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE`: wide
+types earn more columns and facts) instead of fixed constants. Collection
+thresholds are budgets too (`TABLE_PAGINATE_AT`, `TABLE_PAGE_ROWS`,
+`TABLE_VIRTUALIZE_AT`, `SEARCH_AT`) so materializations carry no magic
+numbers. The
 shared presentation budgets (`CHIP_BUDGET`, `ROW_RELATION_BUDGET`,
 `CHILDREN_TABS_AT`, `SCALAR_BASES`) live beside the other defaults so
 materializations carry no magic numbers,
@@ -100,6 +112,41 @@ read-only presentations (`enum` → Tag, `ref` → InstanceChip, `quantity` →
 QuantityText, `blob` → FileChip). Spans are `'full' | 'half'`; the layout is
 a dumb responsive grid that consumes spans. Dense rows bound their field
 count through the same budget mechanism (`ROW_FIELD_BUDGET`).
+
+### Instance shape and list controls
+
+`analyzeInstanceShape(type, instances)` is the value-aware second pass —
+pure over the loaded pool. It reports which fields actually carry data
+(`filledScalarNames`; a field no instance fills never becomes a column
+or fact) and the enum values present per field
+(`enumValues`). `resolveListControls(type, instances)` builds the
+compose-time list contract every collection surface consumes:
+`searchKeys` (the declared identity field, the preferred identity names,
+else the first short string), `sortKeys` (filled short scalars with
+labels, the declared `render.sortKey` marked default), `facets` (enum
+fields over the values actually present), and `pagination` from the
+shared table budgets. The contract is total and deterministic over the
+type record plus instances — never instance-of-the-week heuristics.
+
+### Data states
+
+`composeScreen` accepts `options.sourceStates`, a map of source id to
+`'loading' | 'ready' | 'empty' | 'denied' | 'error'` from the data
+layer. Every composed region carries `dataState`: the reported state
+when present, else derived purely from the pool (`empty` for a list
+source with no instances, `missing` for a single source without one,
+`ready` otherwise). Materializations render one shared message per
+state, so loading/empty/denied surfaces never differ per component.
+
+### Generated labels
+
+`typeLabelKey`, `fieldLabelKey`, and `actionLabelKey` derive stable
+localization keys (`uiMapping.types.<id>`,
+`uiMapping.fields.<typeId>.<name>`, `uiMapping.actions.<id>`) with no
+authored vocabulary. `localizedLabel({ te, t }, key, fallback)` resolves
+them through any vue-i18n translator scope and falls back to the
+resolver-derived label when a key is absent — locale files may override
+any generated label without touching the resolvers.
 
 ### Surfaces and previews
 
@@ -162,7 +209,9 @@ Sibling arrangement is weight-driven and compose-time: `estimateRegionWeight`
 estimates each region's full rendered height from its own data — facts,
 structural fields, and relation refs for detail regions; per-layout row
 factors (`ROW_WEIGHT_BY_LAYOUT`: a preview card ≈ 4 table rows, a timeline
-entry ≈ 2) times actual instance counts for lists, with no sampling cap —
+entry ≈ 2) times actual instance counts for lists, plus the wrapped
+relation-chip rows the first declared relation adds, with no sampling
+cap —
 and `childrenModeFor` stacks siblings until their combined weight exceeds
 `SURFACE_ROW_BUDGET`, then arranges them into tabs at the top level. Never
 measured from the DOM. The screen's total weight also picks its density
@@ -184,18 +233,23 @@ tokens) and card grids run through the shared `ResponsiveGrid` primitive
 
 ## Composition
 
-`composeScreen(screen, contract, bundle, pool)` (in `screen.js`) projects one
-compiled screen contract into a pure region tree — no Vue. It resolves
-sources (`mode: 'single'` by `scope.instanceId` with first-instance fallback;
-`mode: 'list'` unscoped, or scoped by `relation: { sourceId, key }` /
-`lineage: { sourceId, key }` against the origin source's instance), maps
+`composeScreen(screen, contract, bundle, pool, options)` (in `screen.js`)
+projects one compiled screen contract into a pure region tree — no Vue.
+It resolves
+sources (`mode: 'single'` by `scope.instanceId` with first-instance
+fallback; `mode: 'list'` unscoped, or scoped by
+`relation: { sourceId, key }` / `lineage: { sourceId, key }` against the
+origin source's instance), maps
 regions to surface kinds (detail main regions at `full`, nested detail at
 `detail`, list rows at `row`), attaches resolved surface policy, resolved
-action records, and nested child regions. `buildInstancePool(instances)`
-normalizes instance groups into the `{ type -> { id -> instance } }` pool the
-data layer stands in with. The region tree is frozen, pure, and what
-[components/ui-mapping](../../components/ui-mapping/README.md) materializes
-— screens are generated from the contract, never handwritten.
+action records, the per-region `dataState` (see Data states), the
+`listControls` contract for list regions (see Instance shape and list
+controls), and nested child regions. `buildInstancePool(instances)`
+normalizes instance groups into the `{ type -> { id -> instance } }` pool
+the data layer stands in with. The region tree is frozen, pure, and what
+[components/ui-mapping](../../components/ui-mapping/README.md)
+materializes — screens are generated from the contract, never
+handwritten.
 
 ## Consumption
 

@@ -175,6 +175,7 @@
 
 <script setup>
 import { computed, inject } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Accordion from 'primevue/accordion';
@@ -182,7 +183,7 @@ import AccordionPanel from 'primevue/accordionpanel';
 import Fieldset from 'primevue/fieldset';
 import Inplace from 'primevue/inplace';
 import { reactive } from 'vue';
-import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups, typeLabelKey, fieldLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import InstanceChip from './InstanceChip.vue';
 import PreviewBox from './PreviewBox.vue';
@@ -221,7 +222,19 @@ const hasPreview = computed(() => surface.value.slots.includes('preview'));
 const isLongString = descriptor => descriptor.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
 const isScalarFact = field => SCALAR_BASES.includes(field.descriptor.base) && !isLongString(field.descriptor);
-const groups = computed(() => resolveFieldGroups(props.type));
+const { te, t } = useI18n();
+const fieldLabelKeyOf = name => fieldLabelKey(props.type?.id, name);
+// Fact labels resolve through the stable generated keys first (see the
+// ui-mapping label contract); the resolver-derived label stays the
+// fallback, so detail surfaces read the same labels as collections.
+const groups = computed(() => resolveFieldGroups(props.type)
+  .map(group => ({
+    ...group,
+    fields: group.fields.map(field => ({
+      ...field,
+      label: localizedLabel({ te, t }, fieldLabelKeyOf(field.name), field.label)
+    }))
+  })));
 const isQuantityMap = field => field.descriptor.base === 'map'
   && field.descriptor.itemType?.base === 'quantity';
 const inlineMapsOf = group => group.fields.filter(isQuantityMap);

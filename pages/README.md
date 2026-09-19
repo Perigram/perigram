@@ -38,7 +38,9 @@ render through the UI generator (`composeScreen` +
 bundle and projected action contract carried by auth hydration; the instance
 pool loads the referenced entity collections through
 `composables/useScreenInstancePool.js` (row-slot mapping, lineage/reference
-normalization) and action runs dispatch to the process run API. System
+normalization) and also reports per-source data states
+(loading/ready/empty/denied/error) that `composeScreen` folds into the region
+tree, and action runs dispatch to the process run API. System
 screens (organization overview/account era templates) keep the legacy fixed
 renderer until they migrate, including the compiler-synthesized `home`
 screen's Discord-style workspace overload (see

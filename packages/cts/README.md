@@ -56,7 +56,12 @@ module layout and how the code maps to the spec's build-order tiers.
   repository.
 - `render.js` — render-policy projection (labels/icons/state severities
   derived from declarations; where hand-mirrored status tables die) and
-  `compileClientBundle()`, the single frontend/designer consumption contract.
+  `compileClientBundle()`, the single frontend/designer consumption
+  contract. The projection compiles label/icon/preview/state policy and
+  passes the authored UI vocabulary through verbatim — `identityField`,
+  field `groups`, `listLayout`, and `sortKey` — so the client bundle is
+  the one input the UI mapping resolvers need (see
+  [shared/ui-mapping](../../shared/ui-mapping/README.md)).
 - `compat/domain-cnc.js` — DELETED (the strangler converter). The
   equivalence phase is over: the projection synthesizes from declarations
   only and legacy tables are not converted, projected, or served.

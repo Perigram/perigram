@@ -22,7 +22,13 @@ import {
   applyBudget,
   SEVERITY_MAP,
   ROW_FIELD_BUDGET,
-  VARIANTS
+  VARIANTS,
+  analyzeInstanceShape,
+  resolveListControls,
+  typeLabelKey,
+  fieldLabelKey,
+  actionLabelKey,
+  localizedLabel
 } from './index.js';
 
 describe('field control resolution', () => {
@@ -387,5 +393,95 @@ describe('budgets', () => {
 
   it('shows everything when there is no budget', () => {
     expect(applyBudget(items, null)).toEqual({ mode: 'all', visible: items, hidden: 0 });
+  });
+});
+
+describe('authored render overrides', () => {
+  it('lets an authored render.listLayout win over shape matching when it names a known layout', () => {
+    const media = { class: 'file', payload: { preview: 'image' }, fields: { title: { base: 'string' } } };
+    expect(resolveListLayout({ ...media, render: { listLayout: 'timeline' } })).toBe('timeline');
+    expect(resolveListLayout(media)).toBe('card-grid');
+  });
+
+  it('ignores authored list layouts outside the vocabulary', () => {
+    const plain = { class: 'item', states: { main: { values: ['a'] } }, fields: { name: { base: 'string' } } };
+    expect(resolveListLayout({ ...plain, render: { listLayout: 'hologram' } })).toBe('table');
+    expect(resolveListLayout({ ...plain, render: { listLayout: 7 } })).toBe('table');
+  });
+
+  it('pins editor controls through descriptor render.control; display variants stay derived', () => {
+    const descriptor = { base: 'string', render: { control: 'Textarea' } };
+    expect(resolveFieldControl(descriptor, { variant: 'detail' }).component).toBe('Textarea');
+    expect(resolveFieldControl({ base: 'string' }, { variant: 'detail' }).component).toBe('InputText');
+    expect(resolveFieldControl(descriptor, { variant: 'row' }).component).toBe('ValueText');
+  });
+});
+
+describe('instance-aware list controls', () => {
+  const type = {
+    id: 'probe',
+    class: 'item',
+    fields: {
+      name: { base: 'string' },
+      note: { base: 'string', multiline: true },
+      size: { base: 'quantity', unit: 'mm' },
+      grade: { base: 'enum', values: ['a', 'b', 'c'] },
+      alwaysNull: { base: 'number' }
+    },
+    render: { identityField: 'name', sortKey: 'size' }
+  };
+
+  const instances = [
+    { id: '1', fields: { name: 'A', size: { value: 2, unit: 'mm' }, grade: 'a' } },
+    { id: '2', fields: { name: 'B', size: { value: 1, unit: 'mm' }, grade: 'b' } },
+    { id: '3', fields: { name: 'C', grade: 'b' } }
+  ];
+
+  it('reports which fields carry data and the enum values present', () => {
+    const shape = analyzeInstanceShape(type, instances);
+    expect(shape.filledScalarNames).toEqual(['name', 'size', 'grade']);
+    expect(shape.enumValues.grade).toEqual(['a', 'b']);
+    expect(shape.instanceCount).toBe(3);
+  });
+
+  it('derives search keys, filled sort keys with the declared default, facets, and budgets', () => {
+    const controls = resolveListControls(type, instances);
+    expect(controls.searchKeys).toEqual(['name']);
+    expect(controls.sortKeys.map(key => key.name)).toEqual(['name', 'size', 'grade']);
+    expect(controls.sortKeys.find(key => key.name === 'size').default).toBe(true);
+    expect(controls.defaultSort).toBe('size');
+    expect(controls.facets).toEqual([{ name: 'grade', label: 'Grade', values: ['a', 'b'] }]);
+    expect(controls.pagination).toEqual({ paginateAt: 10, rows: 10, virtualizeAt: 50 });
+  });
+
+  it('drops the declared sort key when no instance fills it', () => {
+    const empty = resolveListControls(type, []);
+    expect(empty.defaultSort).toBeNull();
+    expect(empty.sortKeys).toEqual([]);
+    expect(empty.facets).toEqual([]);
+  });
+
+  it('counts budgeted relation refs in list weight', () => {
+    const related = {
+      surfaceKind: 'list',
+      type: { edges: { relations: { docs: { types: ['x'] } } } },
+      instances: [{ relations: { docs: [{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }, { id: '5' }] } }]
+    };
+    expect(estimateRegionWeight(related)).toBe(2 + 1 + Math.ceil(5 / 4));
+  });
+});
+
+describe('generated label keys', () => {
+  it('derives stable keys per type, field, and action id', () => {
+    expect(typeLabelKey('cassette')).toBe('uiMapping.types.cassette');
+    expect(fieldLabelKey('cassette', 'sheetCount')).toBe('uiMapping.fields.cassette.sheetCount');
+    expect(actionLabelKey('cassette_create')).toBe('uiMapping.actions.cassette_create');
+  });
+
+  it('falls back to the derived label when the key is absent or the translator is missing', () => {
+    const translator = { te: key => key === 'uiMapping.types.cassette', t: () => 'Кассета' };
+    expect(localizedLabel(translator, 'uiMapping.types.cassette', 'Cassette')).toBe('Кассета');
+    expect(localizedLabel(translator, 'uiMapping.types.other', 'Other')).toBe('Other');
+    expect(localizedLabel(null, 'uiMapping.types.cassette', 'Cassette')).toBe('Cassette');
   });
 });
