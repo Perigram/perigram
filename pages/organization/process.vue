@@ -187,6 +187,8 @@
                   :type-options="declarationTypeOptions"
                   :type-anchor-options="typeAnchorOptions"
                   @sync="syncNodeData"
+                  @update-name="value => updateClassName(selectedNode, value)"
+                  @update-type-id="value => updateClassTypeId(selectedNode, value)"
                 />
 
                 <ProcessNodeInspector
@@ -1485,6 +1487,49 @@ function suggestTreeTypeId() {
   return `type-${index}`;
 }
 
+// A name authors identity; the registry id is derived from it. The id only
+// becomes hand-authored when the author edits it directly — until then,
+// renaming re-derives the id (deduped against registry + tree).
+function slugifyTypeName(name = '') {
+  const slug = String(name)
+    .toLowerCase()
+    .replace(/['’]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/^([0-9])/, 't-$1');
+  return slug;
+}
+
+function derivedTypeId(name = '', currentId = '', idCustom = false) {
+  if (idCustom) return currentId;
+  const slug = slugifyTypeName(name);
+  if (!slug) return currentId;
+  if (slug === currentId) return currentId;
+  const taken = new Set([
+    ...ctsTypeView().map(entry => entry.id),
+    ...nodes.value.filter(node => node.type === 'ctsClass').map(node => node.data.typeId)
+  ]);
+  taken.delete(currentId);
+  if (!taken.has(slug)) return slug;
+  let index = 2;
+  while (taken.has(`${slug}-${index}`)) index += 1;
+  return `${slug}-${index}`;
+}
+
+function updateClassName(node, name) {
+  if (!node || node.type !== 'ctsClass') return;
+  node.data.name = String(name || '');
+  node.data.typeId = derivedTypeId(node.data.name, node.data.typeId, node.data.idCustom === true);
+  syncNodeData();
+}
+
+function updateClassTypeId(node, typeId) {
+  if (!node || node.type !== 'ctsClass') return;
+  node.data.typeId = String(typeId || '');
+  node.data.idCustom = true;
+  syncNodeData();
+}
+
 function renameDeclarationNode(props, value) {
   const node = nodes.value.find(candidate => candidate.id === props.id);
   if (!node) return;
@@ -1520,7 +1565,7 @@ function addNode(item, position = nextNodePosition()) {
       data: {
         refId: id,
         ...(type === 'ctsClass'
-          ? { typeId: suggestTreeTypeId(), class: classOf || 'file', scope: 'tree', label: '', payload: null, fields: 0, states: 0 }
+          ? { typeId: suggestTreeTypeId(), name: '', class: classOf || 'file', scope: 'tree', label: '', payload: null, fields: 0, states: 0 }
           : type === 'ctsType'
             ? { typeId: '', label: '' }
             : type === 'ctsField'
@@ -1714,7 +1759,7 @@ function enrichNodeData(node) {
 }
 
 function declarationNodeLabel(node, record) {
-  if (node.type === 'ctsClass') return node.data?.typeId || '';
+  if (node.type === 'ctsClass') return node.data?.name || node.data?.typeId || '';
   if (node.type === 'ctsField') return node.data?.name || '';
   if (node.type === 'ctsState') return node.data?.value || '';
   if (node.type === 'ctsType') return node.data?.typeId || 'type';
@@ -1842,6 +1887,8 @@ function syncDeclarationRecord(record = {}, node = {}) {
   record.kind = { ctsClass: 'class', ctsField: 'field', ctsState: 'state', ctsType: 'type' }[node.type] || record.kind;
   if (node.type === 'ctsClass') {
     record.typeId = node.data.typeId || '';
+    record.name = node.data.name || '';
+    record.idCustom = node.data.idCustom === true;
     record.class = node.data.class || 'file';
     record.payload = node.data.payload || null;
     record.operators = Array.isArray(node.data.operators) ? node.data.operators : [];
@@ -1998,9 +2045,37 @@ function withoutKeys(value = {}, keys = []) {
   return Object.fromEntries(Object.entries(value || {}).filter(([key]) => !keys.includes(key)));
 }
 
+// One wire per single-value socket: a second connection into an input
+// that does not declare `multiple` is rejected on the gesture, not at save
+// time — the canvas never shows a wire the serializer would have to drop.
+function singleWireViolation(connection = {}) {
+  const target = nodes.value.find(node => node.id === connection.target);
+  if (!target || target.type !== 'processNode') return null;
+  if (String(connection.targetHandle || '').startsWith('control:')) return null;
+  const record = draft.value?.data?.processNodes?.[target.data?.refId];
+  if (!record) return null;
+  const input = portForHandle(catalogPorts(record).inputs, connection.targetHandle, 'input');
+  if (!input || input.multiple === true) return null;
+  const occupied = edges.value.some(edge => (
+    edge.target === connection.target
+    && String(edge.targetHandle || '') === String(connection.targetHandle || '')
+  ));
+  return occupied ? input : null;
+}
+
 function onConnect(connection) {
   contextPalette.value.socket = null;
   syncNodeData();
+  const occupiedInput = singleWireViolation(connection);
+  if (occupiedInput) {
+    toast.add({
+      severity: 'warn',
+      summary: t('processDesigner.incompatiblePorts'),
+      detail: t('processDesigner.socketSingleWire', { socket: occupiedInput.label || occupiedInput.id }),
+      life: 3000
+    });
+    return;
+  }
   const processNodeSnapshot = clonePlainData(draft.value?.data?.processNodes || {});
   inferGenericNodeTypeFromConnection(connection);
   const compatibility = connectionCompatibility(connection);
@@ -2063,6 +2138,9 @@ function onConnect(connection) {
     }
     if (legality === 'binds') declarationEdge.id = `${sourceNode.id}-type-${targetNode.id}-${Date.now()}`;
     if (legality === 'targets') declarationEdge.id = `ref-target:${sourceNode.id}-${targetNode.id}-${Date.now()}`;
+    // Deterministic declares/children ids: the same declaration wire twice
+    // is a no-op, not a duplicate edge.
+    if (edges.value.some(edge => edge.id === declarationEdge.id)) return;
     selectedEdgeId.value = null;
     edges.value.push(decorateEdge(declarationEdge));
     syncEdgeSelection();

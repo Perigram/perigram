@@ -3,6 +3,14 @@
     <template v-if="node.type === 'ctsClass'">
       <div class="flex flex-col gap-3">
         <div class="flex flex-col gap-1">
+          <label>{{ $t('processDesigner.label') }}</label>
+          <InputText
+            :model-value="node.data.name || ''"
+            :placeholder="$t('processDesigner.classNamePlaceholder')"
+            @update:model-value="value => $emit('update-name', String(value || ''))"
+          />
+        </div>
+        <div class="flex flex-col gap-1">
           <label>{{ $t('typesPane.class') }}</label>
           <Select
             :model-value="node.data.class"
@@ -14,7 +22,11 @@
         </div>
         <div class="flex flex-col gap-1">
           <label>{{ $t('typesPane.typeId') }}</label>
-          <InputText v-model="node.data.typeId" :invalid="!typeIdValid" />
+          <InputText
+            :model-value="node.data.typeId"
+            :invalid="!typeIdValid"
+            @update:model-value="value => $emit('update-type-id', String(value || ''))"
+          />
           <Message v-if="!typeIdValid" severity="error" size="small" :closable="false">
             {{ $t('typesPane.typeIdHint') }}
           </Message>
@@ -105,7 +117,7 @@ const props = defineProps({
   typeAnchorOptions: { type: Array, default: () => [] }
 });
 
-const emit = defineEmits(['sync']);
+const emit = defineEmits(['sync', 'update-name', 'update-type-id']);
 
 const classOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
 

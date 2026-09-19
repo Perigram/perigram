@@ -116,6 +116,8 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
       typeId: data.typeId ?? null,
       ...(kind === 'class' ? {
         class: data.class || 'file',
+        name: data.name || '',
+        idCustom: data.idCustom === true,
         payload: data.payload || null,
         operators: Array.isArray(data.operators) ? data.operators : []
       } : {}),
@@ -225,6 +227,8 @@ function projectDeclarationRecords(records = {}, x) {
         semanticId: `${type}:${refId}`,
         ...(record.kind === 'class' ? {
           typeId: record.typeId || '',
+          name: record.name || '',
+          idCustom: record.idCustom === true,
           class: record.class || 'file',
           payload: record.payload || null,
           operators: record.operators || []
@@ -325,8 +329,13 @@ function normalizeCanvasEdge(edge = {}) {
     targetHandle,
     type: edge.type || 'default',
     // 'type'-role wires are binding gestures (type node -> species node);
-    // they persist with the canvas and are filtered from validation.
+    // they persist with the canvas and are filtered from validation. Their
+    // label IS the wire's semantics (field/state/transition/children/
+    // ref-target declares; transition intents) — compileTreeDeclarations
+    // matches declaration partners by it, so it must round-trip or the
+    // declaration tree hollows out after reload.
     ...(edge.role ? { role: edge.role } : {}),
+    ...(edge.label ? { label: edge.label } : {}),
     data: edge.data && typeof edge.data === 'object' ? edge.data : {}
   };
 }

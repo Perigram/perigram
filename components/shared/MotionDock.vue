@@ -245,19 +245,17 @@
 
             if (this.item.attention) children.push(h('span', { style: indicatorStyle, 'aria-hidden': 'true' }))
 
-            if (!this.reducedMotion || this.labelVisible) {
-                children.push(
-                    h(
-                        'div',
-                        {
-                            ref: this.setLabelRef,
-                            role: 'tooltip',
-                            style: this.reducedMotion ? { ...labelStyle, opacity: 1 } : labelStyle,
-                        },
-                        [this.item.label],
-                    ),
-                )
-            }
+            children.push(
+                h(
+                    'div',
+                    {
+                        ref: this.setLabelRef,
+                        role: 'tooltip',
+                        style: labelStyle,
+                    },
+                    [this.item.label],
+                ),
+            )
 
             return h(
                 'button',
