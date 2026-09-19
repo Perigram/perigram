@@ -93,7 +93,8 @@ inputs resolved against the target type's field descriptors.
   type declares lineage children, `InstanceMultiPicker` (shared MultiSelect
   wrapper), `ChipsInput`, `FileUploadControl`, `Slider` for bounded scalars
   (declared min/max), and the recursive `ObjectEditor` / `ListEditor` /
-  `VariantEditor`; maps and json edit through the JsonEditor textarea
+  `VariantEditor` (compact density shrinks editors through PrimeVue
+  sizes); maps and json edit through the JsonEditor textarea
   (pretty-printed, invalid JSON flagged inline). Percent quantities
   display as Knob dials, percent-valued
   maps as MeterGroup, non-percent quantity maps as bar Charts, ordinal

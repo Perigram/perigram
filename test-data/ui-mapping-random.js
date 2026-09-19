@@ -41,7 +41,7 @@ function randomDescriptor(rnd, { allowStructural = true, allowRefTypes = null, a
   if (label) descriptor.label = label.charAt(0).toUpperCase() + label.slice(1);
   if (rnd.chance(0.2)) descriptor.nullable = true;
   const bases = ['string', 'number', 'boolean', 'instant', 'quantity', 'enum'];
-  if (allowStructural && depth < 2) bases.push('record', 'list', 'map', 'variant', 'json', 'blob', 'ref');
+  if (allowStructural && depth < 2) bases.push('record', 'list', 'map', 'map', 'variant', 'json', 'blob', 'ref');
   descriptor.base = rnd.pick(bases);
   switch (descriptor.base) {
     case 'string':

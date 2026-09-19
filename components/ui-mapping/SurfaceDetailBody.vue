@@ -30,14 +30,32 @@
                   <i class="pi pi-pencil text-muted shrink-0" />
                 </div>
               </template>
-              <template #content>
-                <FieldControl
-                  v-model="inlineDraft[field.name]"
-                  :descriptor="field.descriptor"
-                  variant="detail"
-                  :pool="pool"
-                  :bundle="bundle"
-                />
+              <template #content="{ closeCallback }">
+                <div class="flex min-w-0 flex-1 flex-col gap-2">
+                  <FieldControl
+                    v-model="inlineDraft[field.name]"
+                    :descriptor="field.descriptor"
+                    variant="detail"
+                    :pool="pool"
+                    :bundle="bundle"
+                  />
+                  <div class="flex items-center gap-2">
+                    <Button
+                      icon="pi pi-check"
+                      :label="$t('uiMapping.save')"
+                      size="small"
+                      @click="confirmInline(field); closeCallback()"
+                    />
+                    <Button
+                      icon="pi pi-times"
+                      :label="$t('uiMapping.discard')"
+                      size="small"
+                      severity="danger"
+                      text
+                      @click="discardInline(field); closeCallback()"
+                    />
+                  </div>
+                </div>
               </template>
             </Inplace>
           </div>
@@ -82,7 +100,30 @@
           :bundle="bundle"
         />
       </div>
-      <Accordion v-else-if="structuralOf(group).length" :value="['0']" multiple class="w-full">
+      <div
+        v-for="field in inlineMapsOf(group)"
+        :key="field.name"
+        class="flex w-full flex-col gap-1"
+      >
+        <span :class="LAYOUT.sectionTitle">{{ field.label }}</span>
+        <FieldControl
+          v-if="editing"
+          v-model="draft[field.name]"
+          :descriptor="field.descriptor"
+          variant="detail"
+          :pool="pool"
+          :bundle="bundle"
+        />
+        <FieldControl
+          v-else
+          :model-value="instance.fields?.[field.name]"
+          :descriptor="field.descriptor"
+          variant="row"
+          :pool="pool"
+          :bundle="bundle"
+        />
+      </div>
+      <Accordion v-if="structuralOf(group).length > 1" :value="['0']" multiple class="w-full">
         <AccordionPanel
           v-for="(field, index) in structuralOf(group)"
           :key="field.name"
@@ -160,7 +201,7 @@ const props = defineProps({
   draft: { type: Object, default: null }
 });
 
-defineEmits(['toggle']);
+const emit = defineEmits(['toggle', 'inline-change']);
 
 const inlineDraft = reactive({});
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
@@ -168,12 +209,21 @@ const inlineValue = (field) => {
   if (!(field.name in inlineDraft)) inlineDraft[field.name] = props.instance.fields?.[field.name];
   return inlineDraft[field.name];
 };
+const confirmInline = field => {
+  emit('inline-change', { name: field.name, value: inlineDraft[field.name] });
+};
+const discardInline = field => {
+  inlineDraft[field.name] = props.instance.fields?.[field.name];
+};
 const hasPreview = computed(() => surface.value.slots.includes('preview'));
 
 const isLongString = descriptor => descriptor.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
 const isScalarFact = field => SCALAR_BASES.includes(field.descriptor.base) && !isLongString(field.descriptor);
 const groups = computed(() => resolveFieldGroups(props.type));
+const isQuantityMap = field => field.descriptor.base === 'map'
+  && field.descriptor.itemType?.base === 'quantity';
+const inlineMapsOf = group => group.fields.filter(isQuantityMap);
 const isRichStructure = field => {
   const value = props.instance.fields?.[field.name];
   if (field.descriptor.base === 'blob') return false;
@@ -185,7 +235,7 @@ const hasValue = field => props.instance.fields?.[field.name] !== null
   && props.instance.fields?.[field.name] !== undefined
   && props.instance.fields?.[field.name] !== '';
 const scalarsOf = group => group.fields.filter(field => isScalarFact(field) && (props.editing || hasValue(field)));
-const structuralOf = group => group.fields.filter(field => !isScalarFact(field));
+const structuralOf = group => group.fields.filter(field => !isScalarFact(field) && !isQuantityMap(field));
 const shownFacts = group => {
   const outcome = applyBudget(scalarsOf(group), DETAIL_FACT_BUDGET);
   return outcome.mode === 'collapsed' ? outcome.visible : scalarsOf(group);

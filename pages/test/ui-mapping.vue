@@ -9,6 +9,15 @@
       <span class="text-label">{{ $t('uiMapping.seedLabel') }}</span>
       <InputText :model-value="String(seed)" class="w-24" readonly />
       <Button :label="$t('uiMapping.randomize')" icon="pi pi-refresh" size="small" @click="reroll" />
+      <span class="text-label">{{ $t('uiMapping.densityLabel') }}</span>
+      <SelectButton
+        :model-value="densityMode"
+        :options="densityOptions"
+        option-label="label"
+        option-value="value"
+        size="small"
+        @update:model-value="mode => setDensity(mode)"
+      />
     </div>
 
     <section v-for="screen in screens" :key="screen.screenKey" class="flex flex-col gap-3">
@@ -34,6 +43,7 @@ import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import ScrollTop from 'primevue/scrolltop';
+import SelectButton from 'primevue/selectbutton';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import { generateUiMappingWorld, DEFAULT_RANDOM_SEED } from '~/test-data/ui-mapping-random.js';
 
@@ -46,6 +56,19 @@ const seed = computed(() => {
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_RANDOM_SEED;
 });
 const world = computed(() => generateUiMappingWorld(seed.value));
+const densityMode = computed(() => {
+  const raw = route.query.density;
+  return raw === 'compact' || raw === 'regular' ? raw : 'auto';
+});
+const effectiveDensity = computed(() => (densityMode.value === 'auto' ? null : densityMode.value));
+const densityOptions = [
+  { label: 'Auto', value: 'auto' },
+  { label: 'Compact', value: 'compact' },
+  { label: 'Regular', value: 'regular' }
+];
+const setDensity = mode => {
+  router.push({ query: { ...route.query, density: mode === 'auto' ? undefined : mode } });
+};
 const screens = computed(() => Object.values(world.value.contract.screens));
 
 const reroll = () => {

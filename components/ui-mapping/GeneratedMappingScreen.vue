@@ -77,12 +77,13 @@ const props = defineProps({
   screen: { type: Object, required: true },
   contract: { type: Object, required: true },
   bundle: { type: Object, required: true },
-  instances: { type: Object, default: () => ({}) }
+  instances: { type: Object, default: () => ({}) },
+  densityOverride: { type: String, default: null }
 });
 
 const pool = computed(() => buildInstancePool(props.instances));
 const composed = computed(() => composeScreen(props.screen, props.contract, props.bundle, pool.value));
-provide('uiMappingDensity', composed.value.density);
+provide('uiMappingDensity', props.densityOverride || composed.value.density);
 
 const confirm = useConfirm();
 const toast = useToast();
