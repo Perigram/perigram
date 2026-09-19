@@ -172,11 +172,15 @@ function setsEqual(left, right) {
 
 export function diffProcessContracts(previous = {}, next = {}) {
   return {
+    // The UI contract channels: the emitted screens are projected
+    // (typeId/typeList/instanceDetail) and the diff fields follow that
+    // vocabulary; `compiled.actions` stays the execution contract, so its
+    // diff keeps the execution fields.
     actions: diffKeyedRecords(previous.actions, next.actions, [
-      'actionKind', 'entityType', 'producerOutputId', 'commandId', 'trigger.mode', 'access.level'
+      'actionKind', 'entityType', 'producerOutputId', 'commandId', 'trigger.mode', 'access.level', 'inputPolicy.prompt', 'construction.mode'
     ]),
     screens: diffKeyedRecords(previous.screens, next.screens, [
-      'route', 'template', 'required.access', 'sources', 'regions'
+      'route', 'template', 'typeId', 'roleIds', 'required.access', 'sources', 'regions'
     ]),
     roles: diffKeyedRecords(previous.roles, next.roles, ['grants', 'actions']),
     capabilities: diffCapabilities(previous.actions, next.actions),

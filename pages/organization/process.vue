@@ -317,12 +317,25 @@
             <TabPanel value="screens">
               <div class="flex flex-col gap-4">
                 <Message v-if="compiledPreviewError" severity="error">{{ compiledPreviewError }}</Message>
-                <ProcessScreenPreview
-                  v-if="compiledScreenPreview.length"
-                  :screens="compiledScreenPreview"
-                  :roles="roles"
-                  :actions="draft?.data?.actions || {}"
-                />
+                <div
+                  v-for="screen in compiledScreenPreview"
+                  :key="screen.id"
+                  class="flex flex-col gap-2 rounded-ui border border-content-border p-3"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="min-w-0 truncate text-label">{{ screen.label || screen.id }}</span>
+                    <div class="flex shrink-0 items-center gap-1">
+                      <Tag v-if="screen.typeId" :value="screen.typeId" severity="secondary" size="small" />
+                      <Tag :value="screen.template" size="small" />
+                    </div>
+                  </div>
+                  <GeneratedMappingScreen
+                    :screen="screen"
+                    :contract="compiledPreviewContract"
+                    :bundle="compiledPreviewBundle"
+                  />
+                  <small class="truncate text-muted">{{ screen.route || screen.id }}</small>
+                </div>
                 <StateBlock v-if="!compiledScreenPreview.length && !compiledPreviewError" :message="$t('processDesigner.noCompiledScreens')" />
                 <div class="flex justify-end">
                   <Button icon="pi pi-plus" :label="$t('processDesigner.addScreen')" size="small" @click="addScreen" />
@@ -514,6 +527,7 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import PermissionEditor from '~/components/PermissionEditor.vue';
+import { projectUiAction } from '~/packages/processes/src/ui-contract-projection.js';
 import {
   canvasToDefinition,
   compileProcessDefinition,
@@ -528,13 +542,13 @@ import {
 } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { cncDomain, cncPackContent } from '@cutkit/domain-cnc';
-import { checkDeclarationsAgainstCts, projectDomainFromView, normalizeType } from '~/packages/cts/src/index.js';
+import { checkDeclarationsAgainstCts, compileClientBundle, projectDomainFromView, normalizeType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
 import ClassNode from '~/components/type-designer/TypeNode.vue';
 import FieldNode from '~/components/type-designer/FieldNode.vue';
 import StateNode from '~/components/type-designer/StateNode.vue';
-import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
+import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import ProcessNodeInspector from '~/components/process-designer/inspector/ProcessNodeInspector.vue';
 import DeclarationInspector from '~/components/process-designer/inspector/DeclarationInspector.vue';
 import DeclarationEdgeInspector from '~/components/process-designer/inspector/DeclarationEdgeInspector.vue';
@@ -1182,15 +1196,15 @@ const grantEditorPermissions = computed(() => {
 });
 const compiledScreenPreview = computed(() => Object.values(compiledPreview.value?.screens || {})
   .filter(screen => screen && typeof screen === 'object' && !Array.isArray(screen))
-  .map(screen => {
-    const normalized = normalizeScreenContract(screen);
-    return {
-      ...normalized,
-      roleLabels: (normalized.roleIds || []).map(roleId => roles.value[roleId]?.label || roleId),
-      requiredLabel: normalized.required?.feature ? `${normalized.required.feature}:${normalized.required.level || 'read'}` : ''
-    };
-  })
   .sort((left, right) => String(left.label || left.id).localeCompare(String(right.label || right.id))));
+// The generator consumes projected action records: the execution contract
+// (`compiled.actions`) projects once for presentation.
+const compiledPreviewContract = computed(() => ({
+  actions: Object.fromEntries(Object.values(compiledPreview.value?.actions || {})
+    .map(action => [action.id, projectUiAction(action)])
+    .filter(([, projected]) => projected))
+}));
+const compiledPreviewBundle = computed(() => compiledPreview.value?.bundle || { types: [] });
 
 watch(selectedScreenRecord, () => syncSelectedScreenUi(), { immediate: true });
 
@@ -1613,11 +1627,13 @@ function recomputeProcessPreview(shouldApply = () => true) {
     return;
   }
   try {
-    compiledPreview.value = compileProcessDefinition(
+    const compiled = compileProcessDefinition(
       processDefinitionSnapshot(),
       projectDomainFromView(ctsRegistry(), activeOrganizationId(), cncDomain),
       { roles: organizationRoles.value }
     );
+    compiled.bundle = compileClientBundle(ctsRegistry(), activeOrganizationId());
+    compiledPreview.value = compiled;
     compiledPreviewError.value = '';
   } catch (error) {
     compiledPreview.value = null;
