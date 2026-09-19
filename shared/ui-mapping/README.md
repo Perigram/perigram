@@ -70,7 +70,9 @@ and `LAYOUT` is the only layout-class vocabulary they may use — PrimeVue
 components own their internal layout, and every grid/stack/row/gap the
 generator needs comes from that table. `formatValue(descriptor, value)`
 projects any field to display text (unit symbols, dates, enums, counts),
-which text surfaces (card subtitles, timeline meta) consume.
+which text surfaces (timeline meta) consume; structural displays render
+as labeled description lists and checklists bounded by
+`SUMMARY_BUDGET`.
 Edit variants resolve editor controls, refined by derived qualifiers:
 `quantity` → QuantityInput (InputGroup: InputNumber plus unit addon), few-option
 `enum` → SelectButton, large `enum` → filtered Select, `ref` → EntityPicker,

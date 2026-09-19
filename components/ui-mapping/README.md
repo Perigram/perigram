@@ -39,9 +39,9 @@ inputs resolved against the target type's field descriptors.
   the collection plus its lineage descendants nested as expandable rows
   with the same generated columns.
 - `CardGrid.vue` — the media collection projection (DataView, paginated):
-  each card is a stock PrimeVue Card on its native slot layout — preview
-  as `#header`, identity + status in `#title`, and the budgeted scalar
-  facts as a `formatValue` text line in `#subtitle`.
+  stock Card anatomy — preview as `#header`, identity + status in `#title`,
+  the type label in `#subtitle`, and a labeled budgeted fact list in
+  `#content` rendering live display controls.
 - `TimelineCollection.vue` — the chronological list projection (Timeline):
   marker-per-entry with identity, inline scalar facts, and the type's
   primary long-text (or first structural) field as the entry body,
@@ -66,7 +66,10 @@ inputs resolved against the target type's field descriptors.
   gradient images for `image`, line-pattern plots for `geometry`, size and
   MIME for `attachment`.
 - `FieldControl.vue` — the field dispatcher: resolves the descriptor in the
-  given variant and renders the display primitive or delegates to an editor.
+  given variant and renders the display primitive or delegates to an
+  editor. Structural displays are labeled: records/maps/json render as
+  budgeted description lists, record lists as checklist rows (boolean +
+  string subfields), variants as tag plus payload value.
 - Editors: `QuantityInput` (InputGroup + unit addon), `EnumSelect`
   (filtered, via the shared Select wrapper), `EntityPicker` (AutoComplete
   with typeahead over the instance pool), `EntityMultiPicker` (shared
