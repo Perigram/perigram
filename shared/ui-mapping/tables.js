@@ -90,8 +90,6 @@ export const CARD_FACT_SCALE = Object.freeze([
 
 // Presentation budgets and thresholds consumed by materializations so the
 // numbers live with the rest of the design-system defaults.
-export const TABLE_COLUMN_BUDGET = Object.freeze({ max: 3, overflow: 'count' });
-export const CARD_FACT_BUDGET = Object.freeze({ max: 2, overflow: 'count' });
 export const CHIP_BUDGET = Object.freeze({ max: 3, overflow: 'count' });
 export const SUMMARY_BUDGET = Object.freeze({ max: 4, overflow: 'count' });
 export const ROW_RELATION_BUDGET = Object.freeze({ max: 2, overflow: 'count' });

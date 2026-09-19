@@ -74,9 +74,9 @@ a bare stacked list, and the default is the generated columnar table — no
 hand-picked type ids anywhere. Presentation budgets scale with type
 richness (`TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE`: wide types earn more
 columns and facts) instead of fixed constants. The
-shared presentation budgets (`TABLE_COLUMN_BUDGET`, `CARD_FACT_BUDGET`,
-`CHIP_BUDGET`, `ROW_RELATION_BUDGET`, `CHILDREN_TABS_AT`, `SCALAR_BASES`)
-live beside the other defaults so materializations carry no magic numbers,
+shared presentation budgets (`CHIP_BUDGET`, `ROW_RELATION_BUDGET`,
+`CHILDREN_TABS_AT`, `SCALAR_BASES`) live beside the other defaults so
+materializations carry no magic numbers,
 and `LAYOUT` is the only layout-class vocabulary they may use — PrimeVue
 components own their internal layout, and every grid/stack/row/gap the
 generator needs comes from that table. `formatValue(descriptor, value)`

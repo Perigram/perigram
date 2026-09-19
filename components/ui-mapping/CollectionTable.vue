@@ -53,7 +53,7 @@ import { computed } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
-import { LAYOUT, fieldLabel, SCALAR_BASES, TABLE_COLUMN_BUDGET, ROW_RELATION_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
+import { LAYOUT, fieldLabel, SCALAR_BASES, tableColumnCount, ROW_RELATION_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import InstanceChip from './InstanceChip.vue';
 
