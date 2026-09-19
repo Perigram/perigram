@@ -4,30 +4,31 @@ import { useProcessDesignerInspector } from './useProcessDesignerInspector.js';
 
 describe('process designer producer-output inspector', () => {
   it('keeps same-type outputs independent by stable producer identity', () => {
-    const draft = ref({ data: { producerOutputs: {} } });
-    const selectedNode = ref({ id: 'create', type: 'entity', data: { refId: 'create:entity' } });
+    const draft = ref({
+      data: {
+        producerOutputs: {
+          'create:entity': { producerOutputId: 'create:entity', entityType: 'project', nodeId: 'create' },
+          'import:entity': { producerOutputId: 'import:entity', entityType: 'project', nodeId: 'import' }
+        },
+        processNodes: {
+          create: { id: 'create', kind: 'effect.createEntity', entityType: 'project', producerOutputId: 'create:entity' },
+          import: { id: 'import', kind: 'effect.createEntity', entityType: 'project', producerOutputId: 'import:entity' }
+        }
+      }
+    });
+    const selectedNode = ref({ id: 'create', type: 'processNode', data: { refId: 'create' } });
     const inspector = useProcessDesignerInspector({
       draft,
       selectedNode,
-      factories: { entity: id => ({ producerOutputId: id, entityType: 'project', lifecycle: {} }) }
+      factories: { processNode: id => draft.value.data.processNodes[id] || { id } }
     });
 
     inspector.selectedEntity.value.lifecycle = { workflow: { initial: 'DRAFT' } };
-    selectedNode.value = { id: 'import', type: 'entity', data: { refId: 'import:entity' } };
+    selectedNode.value = { id: 'import', type: 'processNode', data: { refId: 'import' } };
     inspector.selectedEntity.value.lifecycle = { workflow: { initial: 'IMPORTED' } };
 
-    expect(draft.value.data.producerOutputs).toEqual({
-      'create:entity': {
-        producerOutputId: 'create:entity',
-        entityType: 'project',
-        lifecycle: { workflow: { initial: 'DRAFT' } }
-      },
-      'import:entity': {
-        producerOutputId: 'import:entity',
-        entityType: 'project',
-        lifecycle: { workflow: { initial: 'IMPORTED' } }
-      }
-    });
+    expect(draft.value.data.producerOutputs['create:entity'].lifecycle).toEqual({ workflow: { initial: 'DRAFT' } });
+    expect(draft.value.data.producerOutputs['import:entity'].lifecycle).toEqual({ workflow: { initial: 'IMPORTED' } });
   });
 
   it('resolves the producer output from the producing process node selection', () => {
@@ -45,10 +46,7 @@ describe('process designer producer-output inspector', () => {
     const inspector = useProcessDesignerInspector({
       draft,
       selectedNode,
-      factories: {
-        entity: id => ({ producerOutputId: id, lifecycle: {} }),
-        processNode: id => draft.value.data.processNodes[id] || { id }
-      }
+      factories: { processNode: id => draft.value.data.processNodes[id] || { id } }
     });
 
     expect(inspector.selectedEntity.value).toMatchObject({
@@ -75,10 +73,7 @@ describe('process designer producer-output inspector', () => {
     const inspector = useProcessDesignerInspector({
       draft,
       selectedNode,
-      factories: {
-        entity: id => ({ producerOutputId: id, lifecycle: {} }),
-        processNode: id => draft.value.data.processNodes[id] || { id }
-      }
+      factories: { processNode: id => draft.value.data.processNodes[id] || { id } }
     });
 
     expect(inspector.selectedEntity.value.lifecycle).toEqual({ mode: 'defaultCreated' });

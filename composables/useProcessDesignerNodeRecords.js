@@ -1,5 +1,4 @@
 import { operationKindOf, typeIdOf } from '~/packages/cts/src/index.js';
-import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 
 // Node-record factories for the process designer. The page remains the
 // composition root: domain-derived option lists, entity-type resolution, and
@@ -15,8 +14,6 @@ const processNodeOperations = {
   'collection.sort': ['asc', 'desc'],
   'record.fieldChange': ['set', 'unset', 'append', 'remove']
 };
-
-
 
 export function humanizeNodeLabel(value = '') {
   return String(value)
@@ -47,130 +44,79 @@ export function iconForProcessNode(kind = '') {
   return 'pi pi-directions';
 }
 
-export function defaultProcessNodeValueType(kind = '', operation = '') {
-  if (kind === 'compare') return ['gt', 'gte', 'lt', 'lte'].includes(operation) ? 'number' : 'string';
-  return 'string';
-}
-
 export function defaultProcessNodeOperation(kind = '') {
   return (processNodeOperations[kind] || [''])[0] || '';
 }
 
-export function createCreatedWorkflow() {
-  return normalizeWorkflow({
-    schemaVersion: 2,
-    primaryRegion: 'main',
-    regions: { main: { label: 'Lifecycle', initial: 'CREATED', states: { CREATED: { canUpdateMeta: true } }, transitions: [] } }
-  });
-}
-
-
 export function useProcessDesignerNodeRecords({
   designer,
   translate = key => key,
-  featureForEntityType,
-  relationOptionsForEntity,
-  syncEntityProfileIo = () => {},
-  initialStatusForEntity = () => '',
   syncProcessNode = () => {}
 } = {}) {
   const processNodeOperationLabels = {
-
-  add: translate('processDesigner.operationLabels.add'),
-  subtract: translate('processDesigner.operationLabels.subtract'),
-  multiply: translate('processDesigner.operationLabels.multiply'),
-  divide: translate('processDesigner.operationLabels.divide'),
-  modulo: translate('processDesigner.operationLabels.modulo'),
-  power: translate('processDesigner.operationLabels.power'),
-  min: translate('processDesigner.operationLabels.min'),
-  max: translate('processDesigner.operationLabels.max'),
-  absolute: translate('processDesigner.operationLabels.absolute'),
-  negate: translate('processDesigner.operationLabels.negate'),
-  round: translate('processDesigner.operationLabels.round'),
-  floor: translate('processDesigner.operationLabels.floor'),
-  ceil: translate('processDesigner.operationLabels.ceil'),
-  sqrt: translate('processDesigner.operationLabels.sqrt'),
-  clamp: translate('processDesigner.operationLabels.clamp'),
-  current: translate('processDesigner.useCurrentEntity'),
-  parent: translate('processDesigner.useParentEntity'),
-  children: translate('processDesigner.useChildEntities'),
-  related: translate('processDesigner.useRelatedEntities'),
-  concat: translate('processDesigner.useJoinText'),
-  template: translate('processDesigner.useBuildText'),
-  replace: translate('processDesigner.useReplaceText'),
-  lower: translate('processDesigner.useLowerText'),
-  upper: translate('processDesigner.useUpperText'),
-  trim: translate('processDesigner.useTrimText'),
-  substring: translate('processDesigner.operationLabels.substring'),
-  split: translate('processDesigner.operationLabels.split'),
-  join: translate('processDesigner.operationLabels.join'),
-  length: translate('processDesigner.operationLabels.length'),
-  eq: translate('processDesigner.useEquals'),
-  neq: translate('processDesigner.useNotEquals'),
-  gt: translate('processDesigner.useGreaterThan'),
-  gte: translate('processDesigner.useGreaterOrEqual'),
-  lt: translate('processDesigner.useLessThan'),
-  lte: translate('processDesigner.useLessOrEqual'),
-  contains: translate('processDesigner.useContains'),
-  startsWith: translate('processDesigner.operationLabels.startsWith'),
-  endsWith: translate('processDesigner.operationLabels.endsWith'),
-  isNull: translate('processDesigner.operationLabels.isEmpty'),
-  isNotNull: translate('processDesigner.operationLabels.isNotEmpty'),
-  exists: translate('processDesigner.useExists'),
-  and: translate('processDesigner.useAllConditions'),
-  or: translate('processDesigner.useAnyCondition'),
-  xor: translate('processDesigner.useExclusiveCondition'),
-  nand: translate('processDesigner.operationLabels.nand'),
-  nor: translate('processDesigner.operationLabels.nor'),
-  xnor: translate('processDesigner.operationLabels.xnor'),
-  not: translate('processDesigner.useInvertCondition'),
-  first: translate('processDesigner.useFirstItem'),
-  last: translate('processDesigner.useLastItem'),
-  index: translate('processDesigner.useIndexedItem'),
-  asc: translate('processDesigner.operationLabels.ascending'),
-  desc: translate('processDesigner.operationLabels.descending'),
-  set: translate('processDesigner.operationLabels.set'),
-  unset: translate('processDesigner.operationLabels.clear'),
-  append: translate('processDesigner.operationLabels.append'),
-  remove: translate('processDesigner.operationLabels.remove'),
-  addDays: translate('processDesigner.operationLabels.addDays'),
-  addHours: translate('processDesigner.operationLabels.addHours'),
-  addMinutes: translate('processDesigner.operationLabels.addMinutes'),
-  addMonths: translate('processDesigner.operationLabels.addMonths'),
-  addDuration: translate('processDesigner.operationLabels.addDuration'),
-  subtractDuration: translate('processDesigner.operationLabels.subtractDuration'),
-  differenceDays: translate('processDesigner.operationLabels.differenceDays'),
-  differenceHours: translate('processDesigner.operationLabels.differenceHours'),
-  differenceMinutes: translate('processDesigner.operationLabels.differenceMinutes'),
-  startOfDay: translate('processDesigner.operationLabels.startOfDay'),
+    add: translate('processDesigner.operationLabels.add'),
+    subtract: translate('processDesigner.operationLabels.subtract'),
+    multiply: translate('processDesigner.operationLabels.multiply'),
+    divide: translate('processDesigner.operationLabels.divide'),
+    modulo: translate('processDesigner.operationLabels.modulo'),
+    power: translate('processDesigner.operationLabels.power'),
+    min: translate('processDesigner.operationLabels.min'),
+    max: translate('processDesigner.operationLabels.max'),
+    absolute: translate('processDesigner.operationLabels.absolute'),
+    negate: translate('processDesigner.operationLabels.negate'),
+    round: translate('processDesigner.operationLabels.round'),
+    floor: translate('processDesigner.operationLabels.floor'),
+    ceil: translate('processDesigner.operationLabels.ceil'),
+    sqrt: translate('processDesigner.operationLabels.sqrt'),
+    clamp: translate('processDesigner.operationLabels.clamp'),
+    concat: translate('processDesigner.useJoinText'),
+    replace: translate('processDesigner.useReplaceText'),
+    lower: translate('processDesigner.useLowerText'),
+    upper: translate('processDesigner.useUpperText'),
+    trim: translate('processDesigner.useTrimText'),
+    substring: translate('processDesigner.operationLabels.substring'),
+    split: translate('processDesigner.operationLabels.split'),
+    join: translate('processDesigner.operationLabels.join'),
+    length: translate('processDesigner.operationLabels.length'),
+    eq: translate('processDesigner.useEquals'),
+    neq: translate('processDesigner.useNotEquals'),
+    gt: translate('processDesigner.useGreaterThan'),
+    gte: translate('processDesigner.useGreaterOrEqual'),
+    lt: translate('processDesigner.useLessThan'),
+    lte: translate('processDesigner.useLessOrEqual'),
+    contains: translate('processDesigner.useContains'),
+    startsWith: translate('processDesigner.operationLabels.startsWith'),
+    endsWith: translate('processDesigner.operationLabels.endsWith'),
+    isNull: translate('processDesigner.operationLabels.isEmpty'),
+    isNotNull: translate('processDesigner.operationLabels.isNotEmpty'),
+    and: translate('processDesigner.useAllConditions'),
+    or: translate('processDesigner.useAnyCondition'),
+    xor: translate('processDesigner.useExclusiveCondition'),
+    nand: translate('processDesigner.operationLabels.nand'),
+    nor: translate('processDesigner.operationLabels.nor'),
+    xnor: translate('processDesigner.operationLabels.xnor'),
+    not: translate('processDesigner.useInvertCondition'),
+    asc: translate('processDesigner.operationLabels.ascending'),
+    desc: translate('processDesigner.operationLabels.descending'),
+    set: translate('processDesigner.operationLabels.set'),
+    unset: translate('processDesigner.operationLabels.clear'),
+    append: translate('processDesigner.operationLabels.append'),
+    remove: translate('processDesigner.operationLabels.remove'),
+    addDays: translate('processDesigner.operationLabels.addDays'),
+    addHours: translate('processDesigner.operationLabels.addHours'),
+    addMinutes: translate('processDesigner.operationLabels.addMinutes'),
+    addMonths: translate('processDesigner.operationLabels.addMonths'),
+    addDuration: translate('processDesigner.operationLabels.addDuration'),
+    subtractDuration: translate('processDesigner.operationLabels.subtractDuration'),
+    differenceDays: translate('processDesigner.operationLabels.differenceDays'),
+    differenceHours: translate('processDesigner.operationLabels.differenceHours'),
+    differenceMinutes: translate('processDesigner.operationLabels.differenceMinutes'),
+    startOfDay: translate('processDesigner.operationLabels.startOfDay'),
     endOfDay: translate('processDesigner.operationLabels.endOfDay')
   };
 
   function defaultEntityType() {
     return designer.entityOptions[0]?.value || '';
-  }
-
-  function defaultFeature() {
-    return featureForEntityType(defaultEntityType());
-  }
-
-  function createServicePrincipal(id) {
-    return { id, label: id };
-  }
-
-  function createEntityProfile(id) {
-    const profile = {
-      id,
-      entityType: '',
-      label: id,
-      lifecycle: { mode: 'defaultCreated', workflow: createCreatedWorkflow() },
-      fields: { read: ['identity.*', 'status.*', 'lineage.*'], write: [], private: [] },
-      relations: [],
-      stateVisibility: { publicRegions: ['main'], privateRegions: [], publicStates: [] },
-      allowedRoles: { read: [], write: [], admin: [] }
-    };
-    syncEntityProfileIo(profile);
-    return profile;
   }
 
   function createService(id) {
@@ -198,33 +144,11 @@ export function useProcessDesignerNodeRecords({
     };
   }
 
-  function createStatusDefinition(id) {
-    return { id, label: '', statusId: 'STATUS', severity: 'info', color: 'info', icon: 'pi pi-circle-fill' };
-  }
-
-  function createValueInput(id, structure = 'item') {
-    return {
-      id,
-      label: id,
-      valueType: 'string',
-      structure,
-      access: structure,
-      value: structure === 'list' ? [] : structure === 'tree' ? { branches: [] } : null
-    };
-  }
-
-  const nodeEntityType = node => typeIdOf(node || {});
-  function setDefaultBlocks(node, blocks) {
-    if (node.kind?.startsWith('cts.')) node.slots = blocks;
-    else node.blocks = blocks;
-  }
-  // Graph protocol v5: palette items create cts.* records. Defaults derive
-  // from the operation-kind twin (one seam); the record stores the authored
-  // vocabulary — `type`/`via`/`slots` for species kinds.
+  // Graph protocol v5: palette items create cts.* records. Defaults derive  // from the operation-kind twin (one seam); the record stores the authored
+  // vocabulary — `type`/`via` for species kinds.
   function createProcessNode(id, kind = 'source.literalItem') {
     const v5 = kind.startsWith('cts.');
     const op = operationKindOf({ kind });
-    const fieldKind = ['record.getField', 'record.fieldChange'].includes(op);
     const node = {
       id,
       kind,
@@ -248,35 +172,9 @@ export function useProcessDesignerNodeRecords({
     if (op === 'producer.join') {
       node.selectedProducerOutputId = '';
     }
-    if (fieldKind) {
-      const fields = op === 'record.getField' ? designer.fieldsForBlock() : designer.fieldsForEntity(nodeEntityType(node));
-      node.path = fields
-        .find(field => field[op === 'record.fieldChange' ? 'writable' : 'readable'] !== false)?.value || '';
-    }
     // initial status derives post-preset in syncProcessNode (the palette
     // preset may bind a different type than the default).
     if (['effect.createEntity', 'effect.runProducer'].includes(op)) node.status = {};
-    if (op === 'record.deconstruct') {
-      setDefaultBlocks(node, designer.blocksForEntity(nodeEntityType(node)).map(block => block.id));
-    }
-    if (['record.getBlock', 'record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(kind)) {
-      const access = kind === 'record.composeBlock' ? 'constructible'
-        : kind === 'record.modifyBlock' ? 'writable'
-          : 'readable';
-      const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(kind);
-      const availableFields = (structural ? designer.fieldsForBlock() : designer.fieldsForEntity(node.entityType))
-        .filter(field => field[access] !== false);
-      node.block = availableFields[0]?.block || designer.blocksForEntity(node.entityType)[0]?.id || designer.blocks[0]?.id || '';
-      if (kind === 'record.getField') {
-        node.path = availableFields.find(field => field.block === node.block)?.value || '';
-      }
-    }
-    if (kind === 'read.related') {
-      node.relationKey = relationOptionsForEntity(node.entityType)[0]?.value || '';
-    }
-    if (kind === 'effect.runCommand') node.commandId = '';
-    if (kind === 'effect.generateAttachment') node.attachmentKind = '';
-    if (kind === 'control.domainEventTrigger') node.eventId = '';
     syncProcessNode(node);
     return node;
   }
@@ -284,14 +182,9 @@ export function useProcessDesignerNodeRecords({
   return {
     processNodeOperations,
     processNodeOperationLabels,
-    createServicePrincipal,
-    createEntityProfile,
     createService,
     createSocket,
-    createStatusDefinition,
-    createValueInput,
     createProcessNode,
-    defaultEntityType,
-    defaultFeature
+    defaultEntityType
   };
 }

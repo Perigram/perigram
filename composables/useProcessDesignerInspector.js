@@ -2,12 +2,6 @@ import { computed } from 'vue';
 import { CONSUMER_EFFECT_KINDS } from '~/packages/processes/src/node-catalog.js';
 
 const RECORD_KEYS = Object.freeze({
-  entity: 'producerOutputs',
-  action: 'actions',
-  service: 'services',
-  socket: 'sockets',
-  statusDefinition: 'statusDefinitions',
-  valueInput: 'valueInputs',
   processNode: 'processNodes',
   // Declaration-plane nodes own their authoring records in `ctsTypes`
   // (persisted with the draft; compiled to the registry at activation).
@@ -19,11 +13,11 @@ const RECORD_KEYS = Object.freeze({
 
 export function useProcessDesignerInspector({ draft, selectedNode, factories }) {
   function recordKeyForType(type) {
-    return RECORD_KEYS[type] || RECORD_KEYS.entity;
+    return RECORD_KEYS[type] || RECORD_KEYS.processNode;
   }
 
   function factoryForType(type) {
-    return factories[type] || factories.entity;
+    return factories[type] || factories.processNode;
   }
 
   function ensureRecord(key, node, factory) {
@@ -32,27 +26,17 @@ export function useProcessDesignerInspector({ draft, selectedNode, factories }) 
     draft.value.data[key] ||= {};
     const refId = node?.data?.refId || node?.id || `${key}_${Date.now()}`;
     draft.value.data[key][refId] ||= factory(refId);
-    if (key === 'services') {
-      draft.value.data[key][refId].billing ||= { mode: 'none', tokenCost: 0, meterKey: '' };
-    }
     return draft.value.data[key][refId];
   }
 
-  function selectedRecordFor(type) {
-    const node = selectedNode.value;
-    if (node?.type !== type) return {};
-    return ensureRecord(recordKeyForType(type), node, factoryForType(type));
-  }
-
   // The entity-producing process node is the only workflow editing anchor:
-  // selecting it resolves its producer output directly instead of projecting
-  // a second detached entity canvas node. Node-synced outputs may not yet
-  // carry the editor shape (the old entity-node factory seeded it lazily), so
-  // resolution seeds the same defaults the editor binds to.
+  // selecting it resolves its producer output directly. Node-synced outputs
+  // may not yet carry the editor shape, so resolution seeds the defaults the
+  // created-entity panel binds to.
   function producerOutputForProcessNode() {
     const node = selectedNode.value;
     if (node?.type !== 'processNode') return {};
-    const record = selectedRecordFor('processNode');
+    const record = ensureRecord(recordKeyForType('processNode'), node, factoryForType('processNode'));
     // Consumer effects never anchor the created-entity panel — a stale
     // producerOutputId on a loaded pre-protocol draft must not resurrect it.
     if (CONSUMER_EFFECT_KINDS.includes(record?.kind)) return {};
@@ -77,21 +61,14 @@ export function useProcessDesignerInspector({ draft, selectedNode, factories }) 
     ensureRecord,
     factoryForType,
     recordKeyForType,
-    selectedRecord: computed(() => {
-      const node = selectedNode.value;
-      if (!node) return {};
-      return ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
+    selectedEntity: computed(() => {
+      const output = producerOutputForProcessNode();
+      return Object.keys(output).length ? output : {};
     }),
-    selectedEntity: computed(() => (
-      Object.keys(producerOutputForProcessNode()).length
-        ? producerOutputForProcessNode()
-        : selectedRecordFor('entity')
-    )),
-    selectedAction: computed(() => selectedRecordFor('action')),
-    selectedService: computed(() => selectedRecordFor('service')),
-    selectedSocket: computed(() => selectedRecordFor('socket')),
-    selectedStatusDefinition: computed(() => selectedRecordFor('statusDefinition')),
-    selectedValueInput: computed(() => selectedRecordFor('valueInput')),
-    selectedProcessNode: computed(() => selectedRecordFor('processNode'))
+    selectedProcessNode: computed(() => {
+      const node = selectedNode.value;
+      if (node?.type !== 'processNode') return {};
+      return ensureRecord(recordKeyForType('processNode'), node, factoryForType('processNode'));
+    })
   };
 }

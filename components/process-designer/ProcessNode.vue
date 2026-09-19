@@ -84,15 +84,6 @@
         size="small"
         @update:model-value="value => update({ value: serializeLiteralDate(value) })"
       />
-      <Select
-        v-if="opKind === 'source.literalItem' && record.type?.base === 'status'"
-        :model-value="record.value"
-        :options="data.processStatusOptions || []"
-        option-label="label"
-        option-value="value"
-        size="small"
-        @update:model-value="value => update({ value })"
-      />
       <Textarea
         v-if="['source.literalList', 'source.literalTree'].includes(opKind)"
         :model-value="literalDisplay"
@@ -267,8 +258,7 @@ const baseTypeOptions = computed(() => [
   'dateTime',
   'duration',
   'enum',
-  'entityRef',
-  'status'
+  'entityRef'
 ].map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value })));
 const literalDisplay = computed(() => {
   if (record.value.type?.base === 'entityRef') return record.value.value?.id || '';
@@ -465,10 +455,8 @@ function updateInputDefault(id, value) {
 }
 
 function updateStatusInputDefault(id, value) {
-  const option = (props.data.processStatusOptions || []).find(item => item.value === value);
   update({
     inputDefaults: { ...(record.value.inputDefaults || {}), [id]: { branches: [{ path: [], items: [value] }] } },
-    statusRef: option?.refId || '',
     status: { ...(record.value.status || {}), to: value }
   });
 }

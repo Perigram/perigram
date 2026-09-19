@@ -6,9 +6,7 @@ export function useProcessDesignerGraphEditing({
   selectedNodeId,
   selectedEdgeId,
   recordKeyForType,
-  clearSemanticConnection,
-  syncInferredActionInputs,
-  onBlockedStatusNodes
+  onGraphChange
 }) {
   function selectedGraphNodes() {
     const selected = nodes.value.filter(node => node.selected);
@@ -24,43 +22,22 @@ export function useProcessDesignerGraphEditing({
   }
 
   function deleteGraphSelection() {
-    const selectedNodes = selectedGraphNodes();
-    const candidateNodeIds = new Set(selectedNodes.map(node => node.id));
-    const selectedProcessRefs = new Set(selectedNodes
-      .filter(node => node.type === 'processNode')
-      .map(node => node.data?.refId)
-      .filter(Boolean));
-    const remainingProcessNodes = Object.entries(draft.value?.data?.processNodes || {})
-      .filter(([refId]) => !selectedProcessRefs.has(refId))
-      .map(([, node]) => node);
-    const blockedStatusNodeIds = new Set(selectedNodes
-      .filter(node => node.type === 'statusDefinition')
-      .filter(node => remainingProcessNodes.some(record => record.statusRef === (node.data?.refId || node.id)))
-      .map(node => node.id));
-    const removedNodeIds = new Set([...candidateNodeIds].filter(id => !blockedStatusNodeIds.has(id)));
-    const protectedStatusEdges = new Set(edges.value
-      .filter(edge => blockedStatusNodeIds.has(edge.source) && !removedNodeIds.has(edge.target))
-      .map(edge => edge.id));
-    const removedEdgeIds = new Set(selectedGraphEdges()
-      .map(edge => edge.id)
-      .filter(id => !protectedStatusEdges.has(id)));
-
+    const removedNodeIds = new Set(selectedGraphNodes().map(node => node.id));
+    const removedEdgeIds = new Set(selectedGraphEdges().map(edge => edge.id));
     for (const edge of edges.value) {
-      if ((removedNodeIds.has(edge.source) || removedNodeIds.has(edge.target)) && !protectedStatusEdges.has(edge.id)) {
+      if (removedNodeIds.has(edge.source) || removedNodeIds.has(edge.target)) {
         removedEdgeIds.add(edge.id);
       }
     }
-    for (const edge of edges.value.filter(edge => removedEdgeIds.has(edge.id))) clearSemanticConnection(edge);
-    for (const node of selectedNodes.filter(node => removedNodeIds.has(node.id))) {
+    for (const node of selectedGraphNodes()) {
       const refId = node.data?.refId;
       if (refId && draft.value?.data) delete draft.value.data[recordKeyForType(node.type)]?.[refId];
     }
     nodes.value = nodes.value.filter(node => !removedNodeIds.has(node.id));
     edges.value = edges.value.filter(edge => !removedEdgeIds.has(edge.id));
-    if (blockedStatusNodeIds.size) onBlockedStatusNodes();
-    selectedNodeId.value = nodes.value.find(node => blockedStatusNodeIds.has(node.id))?.id || null;
+    selectedNodeId.value = null;
     selectedEdgeId.value = null;
-    syncInferredActionInputs();
+    onGraphChange?.();
   }
 
   return { deleteGraphSelection, selectedGraphEdges, selectedGraphNodes };
