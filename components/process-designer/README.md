@@ -34,12 +34,18 @@ organization's type view. **Operations** holds the effect species
 (construct, mutate, transition, remove, join). **Instances** holds the
 reads (entity from context, by id, by reference, parent, children,
 related, query). **Structure** holds field/record shaping (read field,
-compose fields, decompose). **Values** and **Lists and trees** hold the
+compose fields, decompose). The query read never shows its runtime
+predicate input — no authoring node produces a predicate; filtering a
+queried list is the list-plus-`collection.filter` mask path. **Values** and **Lists and trees** hold the
 pure value algebra. **Services** is derived from the projected domain's
 `serviceContracts` — the registered operator surface: dropping a service
 item binds its operator, whose declared command is the executable twin.
-There is no "run service" operation against the legacy command table —
-what is not registered is not offered. **No node ever drops pre-bound**
+A service node's ports derive from the operator's declared V -> V
+signature (the registration is the contract — not the legacy command
+table, which may carry no entry for a registered operator); an unknown
+operator shows empty ports and fails compilation with a named
+diagnostic. There is no "run service" operation against the legacy
+command table — what is not registered is not offered. **No node ever drops pre-bound**
 (except the type catalog's constructs, whose binding IS the item you
 chose): records are unbound until the author binds them.
 
