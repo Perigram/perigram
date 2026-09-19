@@ -540,7 +540,8 @@ describe('Design system manifest', () => {
       'components/shared/DesignerDialog.vue',
       'components/shared/ChatSupportDialog.vue',
       'components/ui-mapping/SurfaceBody.vue',
-      'components/ui-mapping/GeneratedMappingScreen.vue'
+      'components/ui-mapping/GeneratedMappingScreen.vue',
+      'components/ui-mapping/CardGrid.vue'
     ]);
 
     const offenders = usedVueFiles().filter((file) => {

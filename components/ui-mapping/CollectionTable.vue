@@ -1,5 +1,9 @@
 <template>
-  <DataTable :value="instances" size="small" striped-rows data-key="id" :empty="$t('uiMapping.emptyRegion')">
+  <div class="w-full overflow-x-auto">
+    <DataTable :value="instances" size="small" striped-rows data-key="id" class="min-w-max">
+      <template #empty>
+        <span class="text-supporting text-muted">{{ $t('uiMapping.emptyRegion') }}</span>
+      </template>
     <Column class="w-8">
       <template #body="{ data }">
         <i :class="type?.render?.icon || 'pi pi-circle'" class="text-muted" />
@@ -40,7 +44,8 @@
         </div>
       </template>
     </Column>
-  </DataTable>
+    </DataTable>
+  </div>
 </template>
 
 <script setup>

@@ -1,11 +1,13 @@
 <template>
-  <Stepper :value="activeValue">
-    <StepList>
-      <Step v-for="value in stateValues" :key="value" :value="value">
-        {{ labelFor(value) }}
-      </Step>
-    </StepList>
-  </Stepper>
+  <div class="w-full overflow-x-auto">
+    <Stepper :value="activeStep" class="min-w-max">
+      <StepList>
+        <Step v-for="(value, index) in stateValues" :key="value" :value="String(index + 1)">
+          {{ labelFor(value) }}
+        </Step>
+      </StepList>
+    </Stepper>
+  </div>
 </template>
 
 <script setup>
@@ -22,5 +24,5 @@ const props = defineProps({
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const stateValues = computed(() => props.type.states?.main?.values || []);
 const labelFor = value => props.type.render?.states?.[value]?.label || startCase(value);
-const activeValue = computed(() => props.instance.states?.main || stateValues.value[0]);
+const activeStep = computed(() => String(Math.max(1, stateValues.value.indexOf(props.instance.states?.main) + 1)));
 </script>

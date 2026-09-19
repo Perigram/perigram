@@ -1,5 +1,6 @@
 <template>
-  <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key">
+  <div class="w-full overflow-x-auto">
+    <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key" class="min-w-max">
     <Column>
       <template #body="{ node }">
         <div class="flex items-center gap-2">
@@ -28,7 +29,8 @@
         />
       </template>
     </Column>
-  </TreeTable>
+    </TreeTable>
+  </div>
 </template>
 
 <script setup>

@@ -13,7 +13,7 @@
       v-model:visible="dialogVisible"
       modal
       :header="dialogAction?.label || ''"
-      class="w-full md:w-[36rem]"
+      class="w-full sm:w-[36rem] max-w-full"
     >
       <div v-if="dialogFields.length" class="grid grid-cols-1 items-start gap-x-4 gap-y-4 md:grid-cols-2">
         <div
