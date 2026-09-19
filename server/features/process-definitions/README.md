@@ -55,7 +55,14 @@ vocabulary (`cts.*` species kinds, type ids, row paths; see
 [packages/cts/SPEC.md](../../../packages/cts/SPEC.md) §20) lower to the
 executable working shapes through `resolveCtsDefinition`/`checkCtsGraphBindings`
 at this one seam, so validate, activate, preview, and run paths accept both
-vocabularies while stored v4 graphs pass through untouched.
+vocabularies while stored v4 graphs pass through untouched. Acceptance
+validates against the projected domain **overlaid with the draft's own
+`ctsTypes` declarations** (`declarationsFromCtsRecords`): SAVE persists
+in-tree-authored types as draft data — they only land in the registry at
+APPLY — so bindings to them must resolve at save time. Declarations that
+do not compile stub into the entity list (bindings save; APPLY reports
+the declaration error where it belongs); `draft-overlay.spec.js` pins
+the contract.
 `relation-option-resolver.js` owns scoped relation choices, `run-repository.js`
 owns the durable run/invocation/wait/receipt execution store, and `runtime.js`
 owns active-process compilation/auth hydration. Organization configuration is

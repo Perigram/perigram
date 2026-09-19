@@ -477,6 +477,62 @@ function resolveDescriptorRecord(record = {}) {
   };
 }
 
+// The persisted form of in-tree declaration authoring: `ctsTypes` records
+// (class/field/state kinds, SPEC §20/§21 one tree) travel with the draft
+// and land in the registry at APPLY. This projects them back into
+// declaration objects — the same shape compileTreeDeclarations emits — so
+// acceptance gates can validate a draft against its own declarations
+// before they are posted. Transitions are canvas wires and are not part
+// of the persisted record set; states still project so transition-target
+// checks resolve. `type`-kind records are registry references, not
+// declarations.
+export function declarationsFromCtsRecords(records = {}) {
+  const byKind = kind => Object.values(records || {}).filter(record => record?.kind === kind);
+  const declarations = [];
+  for (const cls of byKind('class')) {
+    if (!cls.typeId) continue;
+    const declaration = {
+      id: cls.typeId,
+      class: cls.class || 'file',
+      fields: {},
+      ...(cls.payload ? { payload: cls.payload } : {})
+    };
+    for (const field of byKind('field')) {
+      if (field.typeId === cls.typeId && field.name) {
+        declaration.fields[field.name] = { ...(field.descriptor || { base: 'string' }) };
+      }
+    }
+    const states = byKind('state').filter(state => state.typeId === cls.typeId && state.value);
+    if (states.length) {
+      const initial = states.filter(state => state.initial === true).map(state => state.value);
+      declaration.states = {
+        main: {
+          initial: initial[0] || states[0].value,
+          values: states.map(state => state.value),
+          terminal: states.filter(state => state.terminal === true).map(state => state.value)
+        }
+      };
+      declaration.transitions = [];
+    }
+    const operators = Array.isArray(cls.operators) ? cls.operators : [];
+    if (operators.length) {
+      declaration.operators = {};
+      for (const operator of operators) {
+        const id = String(operator.id || '').trim();
+        if (!id) continue;
+        declaration.operators[id] = {
+          species: operator.species,
+          ...(operator.input ? { input: operator.input } : {}),
+          ...(operator.output ? { output: operator.output } : {}),
+          triggers: (operator.triggers || []).filter(trigger => String(trigger.event || trigger.schedule || '').trim())
+        };
+      }
+    }
+    declarations.push(declaration);
+  }
+  return declarations;
+}
+
 // -- binding checks (SPEC §20, beside R1-R6) --
 
 export function checkCtsGraphBindings(definition = {}, domain = {}) {

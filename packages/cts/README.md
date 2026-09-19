@@ -74,7 +74,11 @@ module layout and how the code maps to the spec's build-order tiers.
   domain — internal, never persisted), `checkCtsGraphBindings`
   (declaration-level binding validation), `operationKindOf` /
   `resolveCtsRecord` (the single-record seam the designer and node catalog
-  route kind matching and port resolution through). The v4 kind mapping
+  route kind matching and port resolution through), and
+  `declarationsFromCtsRecords` (persisted `ctsTypes` draft records back
+  into declaration objects, so acceptance gates can validate a draft
+  against its own in-tree declarations before APPLY posts them). The v4
+  kind mapping
   derives from `SPECIES_BY_EFFECT_KIND`; equivalence gates live in the
   server process-definitions suite and the processes designer round-trip
   spec.
