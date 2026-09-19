@@ -117,6 +117,11 @@ export const SUMMARY_BUDGET = Object.freeze({ max: 4, overflow: 'count' });
 export const ROW_RELATION_BUDGET = Object.freeze({ max: 2, overflow: 'count' });
 export const CHILDREN_TABS_AT = 2;
 
+// Record-header action budget: at most this many generated action buttons
+// render inline beside the title; a third and every further action join
+// the SpeedDial overflow (plus the Edit toggle, which stays separate).
+export const HEADER_ACTIONS_INLINE = 2;
+
 // Weight-driven composition: sibling content whose estimated rendered
 // height (in rows) exceeds the surface budget stops stacking and arranges
 // into tabs at the top level (stacked accordions deeper) — decided at
@@ -201,9 +206,17 @@ export const LAYOUT = Object.freeze({
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
   bounded: 'w-full max-w-[var(--ck-bounded-grid-item-max-width)]',
-  headerBar: 'bg-content border-content-border rounded-ui border p-4',
+  headerBar: '@container bg-content border-content-border rounded-ui border p-4',
   sectionTitle: 'text-label text-muted uppercase',
-  headerRow: 'flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between',
+  // The record-header row is container-relative, never viewport-relative:
+  // headers render inside panels and detail side columns of any width, so
+  // the row direction engages from the header container's own width.
+  headerRow: 'flex flex-col items-start gap-3 @[34rem]:flex-row @[34rem]:flex-wrap @[34rem]:items-center @[34rem]:justify-between',
+  // The identity block owns a readable floor: the header title never
+  // shrinks below it, so the action cluster wraps to the next line
+  // instead of crunching the name. min(100%, ...) keeps the floor from
+  // overflowing very narrow containers.
+  headerIdentity: 'min-w-[min(100%,16rem)] flex-1',
   cellText: 'line-clamp-2 max-w-96 break-words text-left',
   chipRow: 'flex flex-wrap items-center gap-2 pt-2',
   panelBody: 'py-2',

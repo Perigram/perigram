@@ -1867,7 +1867,8 @@
     "discard": "Отменить",
     "scaleLabel": "Отступы",
     "sortLabel": "Сортировка",
-    "sortOrderLabel": "Изменить порядок сортировки"
+    "sortOrderLabel": "Изменить порядок сортировки",
+    "moreActions": "Ещё действия"
   },
   "uiConstructor": {
     "title": "Демо UI-конструктора",

@@ -235,7 +235,13 @@ regions. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` and
 scale are data too. Widths stay in
 the vocabulary (`LAYOUT.clip`, `LAYOUT.bounded` over the bounded-grid-item
 tokens) and card grids run through the shared `ResponsiveGrid` primitive
-(container queries), never viewport breakpoints inside panels.
+(container queries), never viewport breakpoints inside panels. Record
+headers are container-relative the same way: `LAYOUT.headerBar` declares
+the `@container`, `LAYOUT.headerRow` engages its row direction from the
+header container width, and `LAYOUT.headerIdentity` gives the title a
+readable floor so the action cluster wraps below it instead of crunching
+it — with at most `HEADER_ACTIONS_INLINE` generated buttons inline before
+the SpeedDial overflow.
 
 ## Composition
 

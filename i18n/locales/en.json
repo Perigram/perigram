@@ -1867,7 +1867,8 @@
     "discard": "Discard",
     "scaleLabel": "Spacing",
     "sortLabel": "Sort by",
-    "sortOrderLabel": "Toggle sort order"
+    "sortOrderLabel": "Toggle sort order",
+    "moreActions": "More actions"
   },
   "uiConstructor": {
     "title": "UI Constructor Demo",
