@@ -5,7 +5,9 @@ vi.mock('../cts-types/repository.js', () => ({
   findByTypeId: vi.fn(async (organizationId, typeId) => (
     typeId === 'panel'
       ? { id: 'panel', class: 'item', version: 2, fields: { serial: { base: 'string' }, width: { base: 'quantity', unit: 'mm' } }, states: { main: { initial: 'available' } } }
-      : null
+      : typeId === 'gallery'
+        ? { id: 'gallery', class: 'file', version: 1, payload: { mime: ['image/*'], maxSize: 1024 }, fields: { name: { base: 'string' } } }
+        : null
   )),
   listByOrganization: vi.fn(async () => [])
 }));
@@ -90,6 +92,75 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     // organizationId key is not a writable edge.
     expect(set['lineage.organizationId']).toBeUndefined();
     expect(set.organizationId).toBeUndefined();
+  });
+
+  it('validates and stores the payload slot from either wire shape', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('cassette'); // mounted pack file type, raw payload traits
+
+    const dto = await service.create(
+      { payload: { fileId: 'file-1', mime: 'application/perigram+occs', size: 1024 } },
+      'user-1',
+      'org-1'
+    );
+    const stored = coll.insertOne.mock.calls[0][0];
+    expect(stored.payload).toEqual({ fileId: 'file-1', mime: 'application/perigram+occs', size: 1024 });
+    expect(dto.attachments.primary).toEqual({ fileId: 'file-1', mime: 'application/perigram+occs', size: 1024 });
+
+    const legacy = await service.create(
+      { attachments: { primary: { fileId: 'file-2', mime: 'application/perigram+occs' } } },
+      'user-1',
+      'org-1'
+    );
+    expect(legacy.attachments.primary.fileId).toBe('file-2');
+  });
+
+  it('accepts wildcard declared mime lists and enforces maxSize', async () => {
+    stubCollection();
+    const service = instanceServiceResolver('gallery'); // org file type: mime ['image/*'], maxSize 1024
+
+    const dto = await service.create(
+      { payload: { fileId: 'shot-1', mime: 'image/png', size: 100 } },
+      'user-1',
+      'org-1'
+    );
+    expect(dto.attachments.primary.mime).toBe('image/png');
+
+    await expect(service.create({ payload: { fileId: 'big', mime: 'image/png', size: 2048 } }, 'user-1', 'org-1'))
+      .rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('rejects payload references that violate the declared traits', async () => {
+    stubCollection();
+    const cassette = instanceServiceResolver('cassette');
+    await expect(cassette.create({ payload: { fileId: 'f', mime: 'image/png' } }, 'user-1', 'org-1'))
+      .rejects.toMatchObject({ statusCode: 400 });
+    await expect(cassette.create({ payload: {} }, 'user-1', 'org-1'))
+      .rejects.toMatchObject({ statusCode: 400 });
+
+    const panel = instanceServiceResolver('panel'); // org item type without payload traits
+    await expect(panel.create({ payload: { fileId: 'f', mime: 'image/png' } }, 'user-1', 'org-1'))
+      .rejects.toMatchObject({ statusCode: 400 });
+  });
+
+  it('stores provenance verbatim and never patches it', async () => {
+    const coll = stubCollection();
+    coll.findOneAndUpdate.mockResolvedValue({ _id: '507f1f77bcf86cd799439011', type: 'cassette', fields: {}, lineage: {} });
+    const service = instanceServiceResolver('cassette');
+    const provenance = { op: 'effect.createEntity:n1:bake', sources: [{ type: 'cassette', id: 'c-1' }], effective: { via: 'bake', targetState: 'READY' } };
+
+    const dto = await service.create({ provenance }, 'user-1', 'org-1');
+    expect(coll.insertOne.mock.calls[0][0].provenance).toEqual(provenance);
+    expect(dto.provenance).toEqual(provenance);
+
+    await service.processUpdate('507f1f77bcf86cd799439011', {
+      provenance: { op: 'forged' },
+      attachments: { primary: { fileId: 'evil' } }
+    });
+    const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
+    expect(set.provenance).toBeUndefined();
+    expect(set.payload).toBeUndefined();
+    expect(set['payload.fileId']).toBeUndefined();
   });
 
   it('stores tenancy in the §3 slot and re-projects it onto the wire lineage', async () => {

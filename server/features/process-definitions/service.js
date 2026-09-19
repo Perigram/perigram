@@ -1412,8 +1412,17 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
     const executionAuth = createActionExecutionAuth(auth, record);
     blockDraft = await normalizeProcessMutation(entityType, blockDraft, relationContracts, executionAuth);
-    const draft = { ...blockDraft, ...constructionDraft };
     const targetState = inputs['status.state.primary'] || record.status?.to;
+    const draft = {
+      ...blockDraft,
+      ...constructionDraft,
+      // §3/§8 causal record: the effect boundary stamps provenance on
+      // every process-constructed instance — op names the node and its
+      // construction mode, sources collect the typed entity inputs plus
+      // the run-context entity, effective carries the resolved parameters
+      // (the conversion's replay-safety inputs).
+      provenance: constructProvenance(record, constructionDraft, targetState, inputs)
+    };
     const statusMetadata = draft.status?.metadata && typeof draft.status.metadata === 'object'
       ? draft.status.metadata
       : {};
@@ -1615,6 +1624,43 @@ function processBlockInputRecord(record = {}, inputs = {}) {
     }
   }
   return result;
+}
+
+// Provenance stamp for the generic construct boundary (SPEC §3/§8).
+export function constructProvenance(record = {}, constructionDraft = {}, targetState = null, inputs = {}) {
+  const mode = record.construction?.mode || '';
+  const sources = [];
+  const seen = new Set();
+  const addSource = (type, id) => {
+    if (!id) return;
+    const key = `${type || ''}:${id}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    sources.push({ ...(type ? { type } : {}), id: String(id) });
+  };
+  for (const input of record.construction?.inputs || []) {
+    if (input.type !== 'entity' && input.type !== 'entityList') continue;
+    const supplied = Object.hasOwn(inputs, input.id || input.path) ? inputs[input.id || input.path] : input.default;
+    const values = input.type === 'entityList'
+      ? (Array.isArray(supplied) ? supplied : [supplied])
+      : [supplied];
+    for (const value of values) {
+      const ref = normalizeEntityRef(value) || (value?.id || value?._id ? { type: input.entityType, id: value.id || value._id } : null);
+      if (ref) addSource(ref.type || input.entityType, ref.id);
+    }
+  }
+  const contextRef = normalizeEntityRef(inputs.entity || null);
+  if (contextRef) addSource(contextRef.type, contextRef.id);
+  const effective = { via: mode || 'genericCreate' };
+  if (targetState) effective.targetState = targetState;
+  const parameters = Object.fromEntries(Object.entries(constructionDraft || {})
+    .filter(([, value]) => value !== undefined && value !== null));
+  if (Object.keys(parameters).length) effective.parameters = parameters;
+  return {
+    op: `${record.kind || 'effect.createEntity'}:${record.id}${mode ? `:${mode}` : ''}`,
+    sources,
+    effective
+  };
 }
 
 function processConstructionInputRecord(record = {}, inputs = {}) {

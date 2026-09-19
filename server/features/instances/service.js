@@ -7,6 +7,7 @@
 //
 // The service resolves the type's declaration per call: framework and pack
 // types from static declarations, org types from `cts_types` (cached).
+import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { frameworkTypes } from '~/packages/cts/src/index.js';
@@ -73,11 +74,77 @@ function toDto(doc, declaration = {}) {
     status: { state: { primary: doc.states?.main || 'CREATED' } },
     lineage,
     relations: doc.relations || {},
+    // §3 payload slot projects onto the legacy wire attachments block.
+    ...(doc.payload?.fileId ? { attachments: { primary: doc.payload } } : {}),
+    ...(doc.provenance ? { provenance: doc.provenance } : {}),
     ...(Object.keys(data).length ? { data } : {}),
     ...(Object.keys(specs).length ? { specs } : {}),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt
   };
+}
+
+// Payload reference (SPEC §3/§4): §3-honest callers pass `payload`, legacy
+// wire callers pass `attachments.primary`. Validated against the type's
+// declared payload traits at construct; mime/size checks run on the values
+// the reference carries.
+function payloadFromWire(draft = {}, declaration = {}) {
+  const reference = draft.payload || draft.attachments?.primary || null;
+  if (!reference) return null;
+  const traits = declaration.payload;
+  if (!traits) {
+    throw createError({ statusCode: 400, message: `Type ${typeIdOf(declaration)} declares no payload` });
+  }
+  const fileId = reference.fileId || reference.id;
+  if (!fileId) {
+    throw createError({ statusCode: 400, message: 'Payload reference requires a fileId' });
+  }
+  // Trait mime may be the registry-normalized list or the raw pack
+  // declaration's single string.
+  const acceptedMime = typeof traits.mime === 'string' ? [traits.mime] : [...(traits.mime || [])];
+  const mime = reference.mime || reference.mimeType || null;
+  if (mime && !acceptedMime.some(accepted => mimeMatches(mime, accepted))) {
+    throw createError({ statusCode: 400, message: `Payload mime ${mime} is not accepted by ${typeIdOf(declaration)} (${acceptedMime.join(', ')})` });
+  }
+  const size = Number.isFinite(reference.size) ? reference.size : null;
+  if (size != null && Number.isFinite(traits.maxSize) && size > traits.maxSize) {
+    throw createError({ statusCode: 400, message: `Payload size ${size} exceeds the ${traits.maxSize}-byte limit of ${typeIdOf(declaration)}` });
+  }
+  return {
+    fileId: String(fileId),
+    ...(mime ? { mime } : {}),
+    ...(size != null ? { size } : {}),
+    ...(reference.name ? { name: String(reference.name) } : {})
+  };
+}
+
+function mimeMatches(actual = '', accepted = '') {
+  if (accepted === '*/*' || accepted === actual) return true;
+  if (accepted.endsWith('/*')) return actual.split('/')[0] === accepted.slice(0, -2) && actual.includes('/');
+  return false;
+}
+
+function typeIdOf(declaration = {}) {
+  return declaration.id || '';
+}
+
+// Provenance (SPEC §3/§8): the causal record stamped by the construct
+// boundary — `{ op, sources: [{ type, id }], effective }`. Stored
+// verbatim; never patched.
+function provenanceFromWire(draft = {}) {
+  const provenance = draft.provenance;
+  if (!provenance || typeof provenance !== 'object') return null;
+  const op = provenance.op == null ? null : String(provenance.op);
+  const sources = Array.isArray(provenance.sources)
+    ? provenance.sources
+      .filter(ref => ref?.id != null)
+      .map(ref => ({ ...(ref.type != null ? { type: String(ref.type) } : {}), id: String(ref.id) }))
+    : [];
+  if (!op && !sources.length) return null;
+  const effective = provenance.effective && typeof provenance.effective === 'object'
+    ? structuredClone(provenance.effective)
+    : {};
+  return { ...(op ? { op } : {}), sources, effective };
 }
 
 async function requireDeclaration(typeId, organizationId) {
@@ -114,6 +181,8 @@ function instanceService(typeId) {
       const wireLineage = { ...(draft.lineage || {}) };
       const tenancyId = organizationId ?? wireLineage.organizationId ?? null;
       delete wireLineage.organizationId;
+      const payload = payloadFromWire(draft, declaration);
+      const provenance = provenanceFromWire(draft);
       const doc = {
         _id: new ObjectId(),
         type: typeId,
@@ -125,6 +194,8 @@ function instanceService(typeId) {
         states: { main: draft.status?.state?.primary || declaration.states?.main?.initial || 'CREATED' },
         lineage: wireLineage,
         ...(draft.relations ? { relations: draft.relations } : {}),
+        ...(payload ? { payload } : {}),
+        ...(provenance ? { provenance } : {}),
         createdAt: now,
         updatedAt: now
       };
@@ -156,6 +227,9 @@ function instanceService(typeId) {
           if (value !== undefined) set[`lineage.${key}`] = value;
         }
       }
+      // Payload and provenance are construct-time records (SPEC §3): the
+      // processUpdate contract deliberately has no patch path for them —
+      // payload replacement is a construct/editor concern.
       if (patch.relations && typeof patch.relations === 'object') {
         for (const [key, value] of Object.entries(patch.relations)) {
           if (value !== undefined) set[`relations.${key}`] = value;

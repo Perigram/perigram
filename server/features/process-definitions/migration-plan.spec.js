@@ -186,3 +186,42 @@ describe('apply migration executor', () => {
     ]);
   });
 });
+
+describe('construct provenance stamp', () => {
+  it('names the op, collects typed entity sources, and records effective parameters', async () => {
+    const { constructProvenance } = await import('./service.js');
+    const record = {
+      id: 'bake-1',
+      kind: 'cts.conversion',
+      construction: {
+        mode: 'bakeFromTemplate',
+        inputs: [
+          { id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette' },
+          { id: 'qty', path: 'qty', type: 'number' }
+        ]
+      }
+    };
+    const provenance = constructProvenance(
+      record,
+      { templateId: 'tpl-9', qty: 4 },
+      'READY',
+      { templateId: { type: 'cassette', id: 'tpl-9' }, qty: 4, entity: { type: 'queue', id: 'q-1' } }
+    );
+    expect(provenance.op).toBe('cts.conversion:bake-1:bakeFromTemplate');
+    expect(provenance.sources).toEqual([
+      { type: 'cassette', id: 'tpl-9' },
+      { type: 'queue', id: 'q-1' }
+    ]);
+    expect(provenance.effective).toEqual({
+      via: 'bakeFromTemplate',
+      targetState: 'READY',
+      parameters: { templateId: 'tpl-9', qty: 4 }
+    });
+  });
+
+  it('falls back to the generic construct op with no sources', async () => {
+    const { constructProvenance } = await import('./service.js');
+    const provenance = constructProvenance({ id: 'n2' }, {}, null, {});
+    expect(provenance).toEqual({ op: 'effect.createEntity:n2', sources: [], effective: { via: 'genericCreate' } });
+  });
+});
