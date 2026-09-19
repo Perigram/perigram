@@ -144,8 +144,16 @@ tight budgets (`max: 2, overflow: 'count'`); full surfaces scroll instead.
 
 Presentation context is tree-owned: every composed region node carries
 `chrome` (`resolveChrome` of its container role by depth — top regions are
-sections, nested regions are cards), so materializations style themselves
-from their position in the hierarchy instead of guessing. Widths stay in
+sections, nested regions are cards) plus its `level`, so materializations
+style themselves from their position in the hierarchy instead of guessing.
+Sibling arrangement is weight-driven and compose-time: `estimateRegionWeight`
+bounds each region's rendered rows from its own data (facts + relations for
+detail regions, capped instance counts for lists), and `childrenModeFor`
+stacks siblings until their combined weight exceeds `SURFACE_ROW_BUDGET`,
+then arranges them into tabs at the top level — never measured from the
+DOM. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` and
+`TYPE_BY_LEVEL` (heading typography role per level), so spacing and text
+scale are data too. Widths stay in
 the vocabulary (`LAYOUT.clip`, `LAYOUT.bounded` over the bounded-grid-item
 tokens) and card grids run through the shared `ResponsiveGrid` primitive
 (container queries), never viewport breakpoints inside panels.
