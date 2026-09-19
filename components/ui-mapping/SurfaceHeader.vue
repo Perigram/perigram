@@ -1,5 +1,5 @@
 <template>
-  <div :class="[(DENSITY[density] || DENSITY.regular).stackTight, LAYOUT.headerBar]">
+  <div :class="[spacing ? spacing.stackTight : 'flex flex-col gap-3', LAYOUT.headerBar]">
     <BreadcrumbTrail v-if="trail.length > 1" :instance="instance" :bundle="bundle" :pool="pool" />
     <div :class="LAYOUT.headerRow">
       <div :class="LAYOUT.row" class="min-w-0 flex-1">
@@ -45,12 +45,12 @@ import { computed, inject } from 'vue';
 import Avatar from 'primevue/avatar';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import { DENSITY, LAYOUT, TYPE_BY_LEVEL, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
+import { LAYOUT, TYPE_BY_LEVEL, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import ActionButton from './ActionButton.vue';
 import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import StateStrip from './StateStrip.vue';
 
-const density = inject('uiMappingDensity', 'regular');
+const spacing = inject('uiMappingSpacing', null);
 
 const props = defineProps({
   type: { type: Object, required: true },

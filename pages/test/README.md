@@ -32,9 +32,9 @@ sectors → stations → units); the fixtures can be swapped for any other
 hydration with the same structure without touching the generation layer. The page mounts
 `components/ui-mapping/GeneratedMappingScreen` for every screen of the
 seeded random world on one page (no picker — random screen keys cannot
-survive a reroll), with a pressure control beside the seed (Relaxed/Auto/Tight biases
-the density-classification threshold up or down — density stays
-procedural, every screen still derives its own from its weight); the region tree
+survive a reroll), with a spacing-coefficient slider beside the seed (0.5–2, `?scale=`)
+that scales the whole rhythm set — gaps, paddings, control and editor
+sizes — through the literal SPACING_SCALES table; the region tree
 comes from the pure
 `composeScreen` projection (see
 [shared/ui-mapping/README.md](../../shared/ui-mapping/README.md)) and every

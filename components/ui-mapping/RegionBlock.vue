@@ -209,7 +209,7 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import { DENSITY, LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout } from '#shared/ui-mapping/index.js';
+import { LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout } from '#shared/ui-mapping/index.js';
 import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
 import HierarchyTable from './HierarchyTable.vue';
@@ -229,8 +229,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['run']);
-const density = inject('uiMappingDensity', 'regular');
-const stackFor = computed(() => (density.value === 'compact' ? DENSITY.compact.stack : LAYOUT[GAP_BY_LEVEL[props.node.level] || 'stack']));
+const spacing = inject('uiMappingSpacing', null);
+const stackFor = computed(() => (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[props.node.level] || 'stack']));
 const editing = ref(false);
 const draft = reactive({});
 const toggleEditing = () => {

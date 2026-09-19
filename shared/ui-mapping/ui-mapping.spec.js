@@ -8,6 +8,8 @@ import {
   estimateRegionWeight,
   childrenModeFor,
   screenDensityFor,
+  spacingClasses,
+  SPACING_STEPS,
   resolveFieldControl,
   resolveSurface,
   resolvePreview,
@@ -308,6 +310,22 @@ describe('weight-driven arrangement', () => {
     expect(estimateRegionWeight(detailNode(12))).toBe(12);
     const cardList = { surfaceKind: 'list', type: { id: 'o', class: 'file' }, instances: Array.from({ length: 10 }) };
     expect(estimateRegionWeight(cardList)).toBe(42);
+  });
+
+  it('scales the rhythm set from one spacing coefficient', () => {
+    const tight = spacingClasses(0.5);
+    const normal = spacingClasses(1);
+    const loose = spacingClasses(2);
+    expect(tight.specRow).toContain('py-0.5');
+    expect(tight.knob).toBe(40);
+    expect(tight.editorSize).toBe('small');
+    expect(normal.specRow).toContain('py-2');
+    expect(normal.knob).toBe(64);
+    expect(normal.editorSize).toBeNull();
+    expect(loose.specRow).toContain('py-6');
+    expect(loose.knob).toBe(96);
+    expect(spacingClasses(0.6)).toBe(spacingClasses(1));
+    expect(SPACING_STEPS).toEqual([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]);
   });
 
   it('picks screen density from total information; the driver biases the threshold', () => {

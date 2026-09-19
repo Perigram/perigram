@@ -1,5 +1,5 @@
 <template>
-  <div :class="LAYOUT.scrollX" class="[&_td]:align-top">
+  <div :class="LAYOUT.scrollX">
     <DataTable
     :value="instances"
     size="small"

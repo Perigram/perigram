@@ -1,5 +1,5 @@
 <template>
-  <div :class="d.stack">
+  <div v-if="d" :class="d.stack">
     <StateStrip v-if="type.states?.main" :type="type" :instance="instance" />
     <PreviewBox v-if="hasPreview" :type="type" :payload="instance.payload" :seed="instance.id" />
 
@@ -182,7 +182,7 @@ import AccordionPanel from 'primevue/accordionpanel';
 import Fieldset from 'primevue/fieldset';
 import Inplace from 'primevue/inplace';
 import { reactive } from 'vue';
-import { DENSITY, LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import InstanceChip from './InstanceChip.vue';
 import PreviewBox from './PreviewBox.vue';
@@ -202,8 +202,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['toggle', 'inline-change']);
-const density = inject('uiMappingDensity', 'regular');
-const d = computed(() => DENSITY[density.value] || DENSITY.regular);
+const d = inject('uiMappingSpacing');
 
 const inlineDraft = reactive({});
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));

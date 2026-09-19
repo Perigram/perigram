@@ -21,7 +21,7 @@
           </template>
           <template #subtitle>{{ type?.render?.label }}</template>
           <template #content>
-            <div :class="(DENSITY[density] || DENSITY.regular).stackTight">
+            <div :class="spacing ? spacing.stackTight : 'flex flex-col gap-3'">
               <div v-for="field in scalarFields" :key="field.name" :class="LAYOUT.rowBetween">
                 <span class="text-supporting text-muted">{{ field.label }}</span>
                 <FieldControl
@@ -50,11 +50,11 @@ import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
-import { DENSITY, LAYOUT, SCALAR_BASES, cardFactCount, SEVERITY_MAP, instanceIdentity, fieldLabel } from '#shared/ui-mapping/index.js';
+import { LAYOUT, SCALAR_BASES, cardFactCount, SEVERITY_MAP, instanceIdentity, fieldLabel } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 
-const density = inject('uiMappingDensity', 'regular');
+const spacing = inject('uiMappingSpacing', null);
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },

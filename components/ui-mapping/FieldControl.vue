@@ -1,6 +1,6 @@
 <template>
   <span v-if="outcome.component === 'ValueText'" :class="[densityScale.factValue, LAYOUT.cellText]">{{ displayValue }}</span>
-  <p v-else-if="outcome.component === 'ProseText'" class="text-prose line-clamp-4 w-full break-words">{{ model }}</p>
+  <p v-else-if="outcome.component === 'ProseText'" class="text-prose line-clamp-4 w-full break-words">{{ formatValue({ base: 'string' }, model) }}</p>
   <MeterGroup
     v-else-if="outcome.component === 'MeterGroup'"
     :value="meterSegments"
@@ -34,7 +34,7 @@
     :stroke-width="8"
     readonly
   />
-  <div v-else-if="outcome.component === 'ChipsDisplay'" class="flex min-w-0 flex-wrap items-start gap-1.5">
+  <div v-else-if="outcome.component === 'ChipsDisplay'" class="flex min-w-0 flex-wrap items-center gap-1.5">
     <Chip v-for="tag in chipsShown" :key="tag" :label="String(tag ?? fallback)" />
     <Tag v-if="chipsHidden > 0" :value="`+${chipsHidden}`" severity="contrast" />
   </div>
@@ -166,7 +166,7 @@ import SelectButton from 'primevue/selectbutton';
 import Tag from 'primevue/tag';
 import Chip from 'primevue/chip';
 import Knob from 'primevue/knob';
-import { DENSITY, LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity, formatValue } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity, formatValue } from '#shared/ui-mapping/index.js';
 import InstanceChip from './InstanceChip.vue';
 import QuantityInput from './QuantityInput.vue';
 import EnumSelect from './EnumSelect.vue';
@@ -189,9 +189,9 @@ const props = defineProps({
 
 const model = defineModel();
 const fallback = '—';
-const density = inject('uiMappingDensity', 'regular');
-const densityScale = computed(() => DENSITY[density.value] || DENSITY.regular);
-const editorSize = computed(() => (density.value === 'compact' ? 'small' : undefined));
+const spacing = inject('uiMappingSpacing', null);
+const densityScale = computed(() => ({ factValue: 'text-body', knob: spacing ? spacing.knob : 64 }));
+const editorSize = computed(() => (spacing ? spacing.editorSize : undefined));
 
 const outcome = computed(() => resolveFieldControl(props.descriptor, { variant: props.variant }));
 const displayValue = computed(() => formatValue({ base: 'string' }, props.modelValue));

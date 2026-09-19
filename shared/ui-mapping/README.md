@@ -167,12 +167,12 @@ and `childrenModeFor` stacks siblings until their combined weight exceeds
 `SURFACE_ROW_BUDGET`, then arranges them into tabs at the top level. Never
 measured from the DOM. The screen's total weight also picks its density
 (`screenDensityFor(totalWeight, bias)` → `DENSITY.compact | regular`;
-the bias shifts the classification threshold — relaxed/tight — and
-never overrides the derived outcome), which owns the
-spacing scales — stack rhythm, section gaps, fact-row padding, chip-row
-leading, and the facts-grid gutters — plus control size (knob 40/64,
-editors small/normal) and value typography, so density is a real rhythm
-control, not just a knob size. The rule binds everywhere siblings exist: composed screens carry
+the bias shifts the classification threshold and never overrides the
+outcome). One global spacing coefficient (0.5–2, the showcase slider)
+selects the rhythm set (`spacingClasses` over the literal
+`SPACING_SCALES` table): stack rhythm, section gaps, fact-row padding,
+chip-row leading, facts-grid gutters, control size, and editor size
+move together — real coefficients, Tailwind-scannable by construction. The rule binds everywhere siblings exist: composed screens carry
 `regionsMode` for their top-level regions (a heavy home tabs its
 sections), and detail nodes carry `childrenMode` for their child
 regions. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` and

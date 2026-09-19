@@ -1,5 +1,5 @@
 <template>
-  <div :class="LAYOUT.scrollX" class="[&_td]:align-top">
+  <div :class="LAYOUT.scrollX">
     <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key" class="min-w-max" :paginator="nodes.length > 10" :rows="10">
     <Column>
       <template #body="{ node }">

@@ -138,7 +138,7 @@ export const DENSITY = Object.freeze({
     stackTight: 'flex flex-col gap-3',
     factsGrid: 'grid grid-cols-1 items-start gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
-    chipRow: 'flex flex-wrap items-start gap-1.5 pt-2',
+    chipRow: 'flex flex-wrap items-center gap-2 pt-2',
     sectionTitle: 'text-label text-muted uppercase',
     knob: 64,
     factValue: 'text-body'
@@ -181,7 +181,7 @@ export const LAYOUT = Object.freeze({
   labelCell: 'shrink-0 text-body text-muted',
   rowBetween: 'flex flex-wrap items-center justify-between gap-2',
   factsGrid: 'grid grid-cols-1 items-start gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-4',
-  factCell: 'flex min-w-0 flex-col items-start gap-1 self-start',
+  factCell: 'flex min-w-0 flex-col gap-1',
   formGrid: 'grid grid-cols-1 items-start gap-x-4 gap-y-4 md:grid-cols-2',
   cardGrid: 'grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4',
   scrollX: 'w-full overflow-x-auto',
@@ -191,7 +191,7 @@ export const LAYOUT = Object.freeze({
   sectionTitle: 'text-label text-muted uppercase',
   headerRow: 'flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between',
   cellText: 'line-clamp-2 max-w-96 break-words text-left',
-  chipRow: 'flex flex-wrap items-start gap-1.5 pt-2',
+  chipRow: 'flex flex-wrap items-center gap-2 pt-2',
   panelBody: 'py-2',
   nameClamp: 'min-w-0 truncate',
   chipClamp: 'max-w-48 [&_.p-chip-label]:truncate',
@@ -342,3 +342,86 @@ const DEGRADE = Object.freeze({
 });
 
 export { EDIT_VARIANTS, DEGRADE };
+
+// Spacing coefficient: one slider step maps to a full literal rhythm set
+// (Tailwind only compiles classes it can see, so every step is written out).
+// The coefficient scales gaps, paddings, control size, and editor size
+// together; density classification still derives per screen.
+export const SPACING_SCALES = Object.freeze({
+  0.5: Object.freeze({
+    stack: 'flex flex-col gap-2',
+    stackTight: 'flex flex-col gap-1',
+    factsGrid: 'grid grid-cols-1 items-start gap-x-2 gap-y-1 sm:grid-cols-2 xl:grid-cols-4',
+    specRow: 'flex min-w-0 items-center justify-between gap-2 py-0.5',
+    chipRow: 'flex flex-wrap items-center gap-1 pt-0.5',
+    sectionTitle: 'text-label text-muted uppercase',
+    knob: 40,
+    editorSize: 'small'
+  }),
+  0.75: Object.freeze({
+    stack: 'flex flex-col gap-3',
+    stackTight: 'flex flex-col gap-2',
+    factsGrid: 'grid grid-cols-1 items-start gap-x-4 gap-y-2 sm:grid-cols-2 xl:grid-cols-4',
+    specRow: 'flex min-w-0 items-center justify-between gap-3 py-1',
+    chipRow: 'flex flex-wrap items-center gap-1 pt-1',
+    sectionTitle: 'text-label text-muted uppercase',
+    knob: 48,
+    editorSize: 'small'
+  }),
+  1: Object.freeze({
+    stack: 'flex flex-col gap-6',
+    stackTight: 'flex flex-col gap-3',
+    factsGrid: 'grid grid-cols-1 items-start gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-4',
+    specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
+    chipRow: 'flex flex-wrap items-center gap-2 pt-2',
+    sectionTitle: 'text-label text-muted uppercase',
+    knob: 64,
+    editorSize: null
+  }),
+  1.25: Object.freeze({
+    stack: 'flex flex-col gap-6',
+    stackTight: 'flex flex-col gap-4',
+    factsGrid: 'grid grid-cols-1 items-start gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-4',
+    specRow: 'flex min-w-0 items-center justify-between gap-5 py-2',
+    chipRow: 'flex flex-wrap items-center gap-2 pt-2',
+    sectionTitle: 'text-label text-muted uppercase',
+    knob: 72,
+    editorSize: null
+  }),
+  1.5: Object.freeze({
+    stack: 'flex flex-col gap-8',
+    stackTight: 'flex flex-col gap-5',
+    factsGrid: 'grid grid-cols-1 items-start gap-x-8 gap-y-6 sm:grid-cols-2 xl:grid-cols-4',
+    specRow: 'flex min-w-0 items-center justify-between gap-6 py-3',
+    chipRow: 'flex flex-wrap items-center gap-3 pt-3',
+    sectionTitle: 'text-label text-muted uppercase',
+    knob: 80,
+    editorSize: null
+  }),
+  1.75: Object.freeze({
+    stack: 'flex flex-col gap-8',
+    stackTight: 'flex flex-col gap-6',
+    factsGrid: 'grid grid-cols-1 items-start gap-x-8 gap-y-6 sm:grid-cols-2 xl:grid-cols-4',
+    specRow: 'flex min-w-0 items-center justify-between gap-6 py-4',
+    chipRow: 'flex flex-wrap items-center gap-3 pt-4',
+    sectionTitle: 'text-label text-muted uppercase',
+    knob: 88,
+    editorSize: null
+  }),
+  2: Object.freeze({
+    stack: 'flex flex-col gap-8',
+    stackTight: 'flex flex-col gap-8',
+    factsGrid: 'grid grid-cols-1 items-start gap-x-8 gap-y-8 sm:grid-cols-2 xl:grid-cols-4',
+    specRow: 'flex min-w-0 items-center justify-between gap-8 py-6',
+    chipRow: 'flex flex-wrap items-center gap-4 pt-4',
+    sectionTitle: 'text-label text-muted uppercase',
+    knob: 96,
+    editorSize: null
+  })
+});
+
+export const SPACING_STEPS = Object.freeze([0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]);
+
+export function spacingClasses(scale = 1) {
+  return SPACING_SCALES[scale] || SPACING_SCALES[1];
+}

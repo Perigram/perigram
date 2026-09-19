@@ -69,7 +69,7 @@ import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
-import { LAYOUT, composeScreen, buildInstancePool, resolveFieldControl } from '#shared/ui-mapping/index.js';
+import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveFieldControl } from '#shared/ui-mapping/index.js';
 import RegionBlock from './RegionBlock.vue';
 import FieldControl from './FieldControl.vue';
 
@@ -78,12 +78,12 @@ const props = defineProps({
   contract: { type: Object, required: true },
   bundle: { type: Object, required: true },
   instances: { type: Object, default: () => ({}) },
-  densityBias: { type: Number, default: 0 }
+  spacingScale: { type: Number, default: 1 }
 });
 
 const pool = computed(() => buildInstancePool(props.instances));
-const composed = computed(() => composeScreen(props.screen, props.contract, props.bundle, pool.value, { densityBias: props.densityBias }));
-provide('uiMappingDensity', composed.value.density);
+const composed = computed(() => composeScreen(props.screen, props.contract, props.bundle, pool.value));
+provide('uiMappingSpacing', spacingClasses(props.spacingScale));
 
 const confirm = useConfirm();
 const toast = useToast();

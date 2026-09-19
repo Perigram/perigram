@@ -26,7 +26,7 @@
 <script setup>
 import { computed } from 'vue';
 import Timeline from 'primevue/timeline';
-import { LAYOUT, fieldLabel, SCALAR_BASES, instanceIdentity } from '#shared/ui-mapping/index.js';
+import { LAYOUT, fieldLabel, formatValue, SCALAR_BASES, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
@@ -46,7 +46,12 @@ const bodyField = computed(() => {
   const structural = entries.find(([, descriptor]) => !SCALAR_BASES.includes(descriptor.base));
   return structural ? { name: structural[0] } : null;
 });
-const bodyValue = instance => (bodyField.value ? instance.fields?.[bodyField.value.name] ?? null : null);
+const bodyValue = (instance) => {
+  if (!bodyField.value) return null;
+  const raw = instance.fields?.[bodyField.value.name];
+  const descriptor = { base: typeof raw === 'object' && raw !== null ? 'json' : 'string' };
+  return formatValue(descriptor, raw);
+};
 const scalarFields = computed(() => Object.entries(props.type?.fields || {})
   .filter(([name, descriptor]) => SCALAR_BASES.includes(descriptor.base)
     && !isLongString(descriptor)
