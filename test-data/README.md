@@ -22,17 +22,17 @@ Artifact viewer dispatch. It must never be replaced with copied production
 records or credentials.
 
 `ui-mapping-fixtures.js` is the synthetic compiler output for the UI mapping
-contract: hydration three, a maritime-logistics shape chosen to stress
-structures the earlier hydrations never contained — a group with two child
-types (fleet: convoys + direct vessels), the same child type under three
-parents (vessel under fleet, convoy, and port), a self-type ref (escortOf),
-a ref inside a variant payload (route config viaHub.hub -> convoy),
-list<enum> flags and map<instant> waypoints, group-to-item relations
-(fleet partnerPorts), a typeList of a group (convoy tree-table), a file
-instanceDetail (certificate), and a single-instance type (beacon). The UI
-generation layer (shared/ui-mapping, components/ui-mapping) renders any of
-the three hydrations without domain knowledge; only the timeline layout
-matcher's `log_entry` type id is reused by name.
+contract: hydration four, a self-recursive filesystem-like graph that breaks
+the skeleton every earlier hydration shared (rooted group-tree with items
+inside and files attached). Here containment recurses (folders inside
+folders, six levels) across a forest of three top folders with no single
+root; items (keepers) float with no lineage at all; the rich types are
+files — documents supersede each other in a chain and many-to-many link
+sheets in both directions, folders pin documents (group-to-file); and the
+bulk of the data is a stream of fourteen small stateful watch jobs, so the
+home screen is a heavy table stream plus a document grid. No timeline type
+exists. The UI generation layer renders any hydration without domain
+knowledge.
 
 ## Usage
 
