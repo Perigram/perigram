@@ -35,7 +35,7 @@ function makeRandom(seed) {
   return { next, rand, pick, chance, word, name };
 }
 
-function randomDescriptor(rnd, { allowStructural = true, allowRefTypes = null, depth = 0 } = {}) {
+function randomDescriptor(rnd, { allowStructural = true, allowRefTypes = null, allowGroupTypes = null, depth = 0 } = {}) {
   const label = rnd.chance(0.5) ? `${pick2(rnd)} ${pick2(rnd)}` : undefined;
   const descriptor = {};
   if (label) descriptor.label = label.charAt(0).toUpperCase() + label.slice(1);
@@ -63,17 +63,24 @@ function randomDescriptor(rnd, { allowStructural = true, allowRefTypes = null, d
     case 'enum':
       descriptor.values = Array.from({ length: rnd.rand(2, 12) }, (_, index) => `${pick2(rnd)}-${index + 1}`);
       break;
-    case 'ref':
-      descriptor.accepts = [rnd.pick(allowRefTypes || ['thing'])];
+    case 'ref': {
+      const groups = (allowRefTypes || []).filter(id => allowGroupTypes && allowGroupTypes.includes(id));
+      descriptor.accepts = [groups.length && rnd.chance(0.4) ? rnd.pick(groups) : rnd.pick(allowRefTypes || ['thing'])];
       break;
+    }
     case 'record':
       descriptor.fields = Object.fromEntries(Array.from({ length: rnd.rand(1, 4) }, () => [
         pick2(rnd),
-        randomDescriptor(rnd, { allowStructural: depth < 1, allowRefTypes, depth: depth + 1 })
+        randomDescriptor(rnd, { allowStructural: depth < 1, allowRefTypes, allowGroupTypes, depth: depth + 1 })
       ]));
       break;
+    case 'map': {
+      descriptor.itemType = rnd.chance(0.6)
+        ? { base: 'quantity', unit: rnd.chance(0.4) ? 'percent' : rnd.pick(UNITS) }
+        : randomDescriptor(rnd, { allowStructural: false, allowRefTypes, depth: depth + 1 });
+      break;
+    }
     case 'list':
-    case 'map':
       descriptor.itemType = randomDescriptor(rnd, { allowStructural: false, allowRefTypes, depth: depth + 1 });
       break;
     case 'variant': {
@@ -81,7 +88,7 @@ function randomDescriptor(rnd, { allowStructural = true, allowRefTypes = null, d
       descriptor.tags = [...new Set(tags)];
       descriptor.payloads = Object.fromEntries(descriptor.tags.map(tag => [
         tag,
-        randomDescriptor(rnd, { allowStructural: depth < 1, allowRefTypes, depth: depth + 1 })
+        randomDescriptor(rnd, { allowStructural: depth < 1, allowRefTypes, allowGroupTypes, depth: depth + 1 })
       ]));
       break;
     }
@@ -153,12 +160,13 @@ export function generateUiMappingWorld(seed = 7) {
   }
   if (!kinds.includes('item')) kinds[typeCount - 1] = 'item';
 
+  const groupTypeIds = ids.filter((_, index) => kinds[index] === 'group');
   const types = ids.map((id, index) => {
     const kind = kinds[index];
     const fieldCount = rnd.rand(0, 8);
     const fields = Object.fromEntries(Array.from({ length: fieldCount }, () => [
       pick2(rnd) + String(rnd.rand(1, 99)),
-      randomDescriptor(rnd, { allowRefTypes: ids })
+      randomDescriptor(rnd, { allowRefTypes: ids, allowGroupTypes: groupTypeIds })
     ]));
     if (kind === 'item' && !Object.values(fields).some(descriptor => descriptor.base === 'string')) {
       fields.serial = { base: 'string', label: 'Serial' };
@@ -224,7 +232,8 @@ export function generateUiMappingWorld(seed = 7) {
   // descriptors, each instance takes at most one random lineage parent.
   const instancesByType = {};
   types.forEach(type => {
-    instancesByType[type.id] = Array.from({ length: rnd.rand(0, 12) }, (_, index) => ({ id: `${type.id}-i${index + 1}`, type: type.id }));
+    const max = type.class === 'file' ? 20 : 12;
+    instancesByType[type.id] = Array.from({ length: rnd.rand(0, max) }, (_, index) => ({ id: `${type.id}-i${index + 1}`, type: type.id }));
   });
   const refTargets = {};
   types.forEach(type => {
@@ -351,7 +360,12 @@ export function generateUiMappingWorld(seed = 7) {
     const key = `detail_${type.id}`;
     const instance = instancesByType[type.id][0];
     const sources = [{ id: 'main', typeId: type.id, mode: 'single', required: null, identifier: '$screen.scope.instanceId' }];
-    const regions = [{ id: 'main', slot: 'main', sourceId: 'main', surface: 'detail', actions: [`a_shift_${type.id}`, `a_delete_${type.id}`].filter(id => actions[id]) }];
+    const detailActionPool = [`a_create_${type.id}`, `a_shift_${type.id}`, `a_delete_${type.id}`, `a_link_${type.id}`]
+      .filter(id => actions[id]);
+    const detailActions = rnd.chance(0.5)
+      ? detailActionPool
+      : detailActionPool.slice(0, rnd.rand(1, 3));
+    const regions = [{ id: 'main', slot: 'main', sourceId: 'main', surface: 'detail', actions: detailActions }];
     const childEdges = Object.entries(type.edges.children || {});
     childEdges.slice(0, 2).forEach(([edgeKey, edge], index) => {
       if (!instancesByType[edge.types[0]]?.length) return;
