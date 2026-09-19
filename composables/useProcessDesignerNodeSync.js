@@ -9,6 +9,7 @@ import {
   syncProcessNodeProducerOutputs
 } from '~/packages/processes/src/index.js';
 import { normalizeDesignerAccess } from '~/utils/processDesignerAccess.js';
+import { defaultProcessNodeOperation, humanizeNodeLabel, iconForProcessNode } from './useProcessDesignerNodeRecords.js';
 
 // The node-sync family: record-level derivation for process nodes — kind
 // normalization, construction contracts, path/status defaults, port
@@ -39,10 +40,7 @@ export function useProcessDesignerNodeSync({
   const {
     processNodeOperations,
     processNodeOperationLabels,
-    defaultProcessNodeOperation,
-    defaultEntityType,
-    iconForProcessNode,
-    humanizeNodeLabel
+    defaultEntityType
   } = nodeRecords;
 
   const artifactUploadKindOptions = computed(() => designer.attachmentKindOptions
