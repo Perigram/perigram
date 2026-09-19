@@ -35,14 +35,21 @@ Region data states and the collection toolbar are shared surface
 concerns:
 
 - `RegionDataState.vue` — materializes the composed region `dataState`:
-  one shared Message for loading/empty/missing/denied/error; ready
-  regions render nothing. No component invents its own empty state.
+  skeleton lines on first load (system stack rhythm), one shared Message
+  for empty/missing/denied/error, nothing for ready. Reloads with
+  already-loaded instances keep their stale surfaces under one
+  indeterminate progress bar instead — no component invents its own
+  empty or loading state.
 - `CollectionToolbar.vue` — materializes the composed `listControls`
-  contract above list regions: a search input over the resolved
-  `searchKeys` and one clearable select per enum facet over the values
-  actually present. It appears only past the `SEARCH_AT` budget; search
-  and facet selections are region-owned models RegionBlock applies
-  client-side over the loaded instances.
+  contract above non-table list regions: a search input over the
+  resolved `searchKeys` and one clearable select per enum facet over the
+  values actually present. It appears only past the `SEARCH_AT` budget,
+  its gaps come from the system spacing scale (`spacing.toolbar`) and
+  its control sizes from `editorSize`, and it owns no per-type logic —
+  the region tree carries every decision. Search and facet selections
+  are region-owned models RegionBlock applies client-side over the
+  loaded instances. Table-layout regions skip the toolbar: their
+  DataTable filters natively over the same contract.
 
 ## Components
 
@@ -68,7 +75,12 @@ concerns:
   identity/status/scalar columns are sortable (quantity values sort by
   their numeric value), the declared `render.sortKey` is the default
   sort, and the paginate/virtualize thresholds are the shared
-  `TABLE_*` budgets from the mapping contract, never literals.
+  `TABLE_*` budgets from the mapping contract, never literals. The
+  table filters natively in row display over the same contract (enum
+  and boolean selects over present values, numeric input for
+  numbers/quantities, text for the rest, plus a global search over the
+  resolved search keys), so RegionBlock feeds it raw instances and no
+  second toolbar.
 - `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
   the collection plus its lineage descendants nested as expandable rows
   with the same generated columns.
@@ -77,14 +89,23 @@ concerns:
   queries and bounded item tokens (viewport breakpoints lie inside panels),
   each Card clipped (`overflow-hidden`) on the stock anatomy — preview as
   `#header`, identity + status in `#title`, type label in `#subtitle`,
-  labeled budgeted facts in `#content`.
+  labeled budgeted facts in `#content`. The DataView header carries the
+  composed sort contract: a select over the resolved `sortKeys` with the
+  declared default preselected plus an order toggle, ordered through the
+  shared `sortControlRows` comparator.
 - `TimelineCollection.vue` — the chronological list projection (Timeline):
   marker-per-entry with identity, inline scalar facts, and the type's
   primary long-text (or first structural) field as the entry body,
-  selected by type matcher (log entries).
+  selected by type matcher (log entries). Past the shared page budget
+  the entries page through a standalone Paginator over `pageSlice`.
 - `StateStrip.vue` — the lifecycle projection: the declared state axis as
   a linear PrimeVue Stepper (numbered steps, active state from the
-  instance), horizontally scrollable.
+  instance), horizontally scrollable. A state with a runnable manual
+  transition action in the region action set is an enabled step that
+  emits the action through the screen `run` contract (optimistic
+  highlight, re-anchored from the instance on reload); event-triggered,
+  hidden, and current-state entries stay disabled, so without transition
+  actions the strip is a pure display.
 - `HierarchyTree.vue` — the deep-nesting projection: a fully expanded
   PrimeVue Tree built recursively from the type's declared children edges
   and the instance pool's lineage, shown on group surfaces.
