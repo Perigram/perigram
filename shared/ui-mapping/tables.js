@@ -186,7 +186,7 @@ export const LAYOUT = Object.freeze({
   nameClamp: 'min-w-0 truncate',
   chipClamp: 'max-w-48 [&_.p-chip-label]:truncate',
   specList: 'flex flex-col divide-y divide-content-border',
-  specRow: 'flex min-w-0 items-start justify-between gap-4 py-2',
+  specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
   detailSplit: 'grid grid-cols-1 items-start gap-6 xl:grid-cols-12',
   mainCol: 'xl:col-span-7',
   sideCol: 'xl:col-span-5',
