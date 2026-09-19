@@ -206,17 +206,17 @@ export const LAYOUT = Object.freeze({
   scrollX: 'w-full overflow-x-auto',
   clip: 'overflow-hidden',
   bounded: 'w-full max-w-[var(--ck-bounded-grid-item-max-width)]',
-  headerBar: '@container bg-content border-content-border rounded-ui border p-4',
+  headerBar: 'bg-content border-content-border rounded-ui border p-4',
   sectionTitle: 'text-label text-muted uppercase',
-  // The record-header row is container-relative, never viewport-relative:
-  // headers render inside panels and detail side columns of any width, so
-  // the row direction engages from the header container's own width.
-  headerRow: 'flex flex-col items-start gap-3 @[34rem]:flex-row @[34rem]:flex-wrap @[34rem]:items-center @[34rem]:justify-between',
-  // The identity block owns a readable floor: the header title never
-  // shrinks below it, so the action cluster wraps to the next line
-  // instead of crunching the name. min(100%, ...) keeps the floor from
-  // overflowing very narrow containers.
-  headerIdentity: 'min-w-[min(100%,16rem)] flex-1',
+  // The record-header row is container-relative, never viewport-relative —
+  // but through scoped CSS in SurfaceHeader (the ResponsiveGrid pattern),
+  // not Tailwind variants: the tailwindcss build here has no
+  // container-queries plugin, so any @container/@[w]: class silently
+  // compiles to nothing. These tokens carry only the static stacked
+  // layout; the row direction and the 16rem identity floor live in the
+  // component scoped block.
+  headerRow: 'flex flex-col items-start gap-3',
+  headerIdentity: 'min-w-0 flex-1',
   cellText: 'line-clamp-2 max-w-96 break-words text-left',
   chipRow: 'flex flex-wrap items-center gap-2 pt-2',
   panelBody: 'py-2',
