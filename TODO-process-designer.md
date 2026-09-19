@@ -93,23 +93,55 @@ moves with the composable extraction.
 
 ## P2 — Designer separation of concerns
 
-- [ ] Extract from the page: `useProcessDesignerTypes` (CTS registry /
+- [x] Extract from the page: `useProcessDesignerTypes` (CTS registry /
   projection / tree-overlay lifecycle and caches), `useProcessDesignerCanvas`
   (viewport, zoom, keyboard, touch, placement), context-palette composable,
   per-kind inspector components (class inspector reuses
   `components/type-designer/*`), Roles/Screens panel components, and the
   apply/persistence orchestration (`activateDraft`,
   `persistTreeDeclarations`).
-- [ ] Extract the node-sync family (`syncProcessNode` and friends) as a
+- [x] Extract the node-sync family (`syncProcessNode` and friends) as a
   dedicated module with the designer contract injected, preserving the
   realtime derivation pipeline exactly: live-graph signature ->
   `interpretDeclarationEdges` -> tree overlay -> registry invalidation ->
   designer refresh -> node sync, sequenced through one sync entry point.
-- [ ] Unify port resolution to catalog + `declarationNodePorts`; remove the
+- [x] Unify port resolution to catalog + `declarationNodePorts`; remove the
   `outputSpecs[0]` fallback paths and `socketKind`/`ioSpec` shape-sniffing in
   favor of the port contract.
-- [ ] Behavioral specs stay green throughout (`useProcessDesigner*.spec.js`,
+- [x] Behavioral specs stay green throughout (`useProcessDesigner*.spec.js`,
   `shared/process-designer-ui.spec.js`, `palette-trace.spec.js`).
+
+##### Agent Notes — 2026-09-19 P2 complete
+
+P2 landed in `agent/process-designer-separation-20260919`. New modules:
+`composables/useProcessDesignerTypes.js` (registry generation + projected
+contract + tree overlay + declaration persistence),
+`composables/useProcessDesignerNodeSync.js` (the whole record-derivation
+family incl. port resolution and producer-output sync),
+`composables/useProcessDesignerCanvas.js`,
+`composables/useProcessDesignerContextPalette.js`,
+`composables/useProcessDesignerApply.js`,
+`utils/processDesignerAccess.js`, `utils/processDesignerPaletteText.js`,
+and `components/process-designer/inspector/{ProcessNodeInspector,
+DeclarationInspector,DeclarationEdgeInspector}.vue`. The page dropped from
+3576 to ~2050 lines and now owns: document lifecycle (load/select/rename),
+the canvas projection and serialization boundary, connection legality, and
+the single sync entry point. The realtime pipeline is unchanged: the
+live-graph watcher still fires after every composable its sync pass reads
+(pinned by `shared/process-designer-ui.spec.js`, now asserting
+producer-output sync in the node-sync module). The
+`inferIncomingEntityContract` shape-sniffing was replaced with catalog-port
+resolution, and the dead non-declaration `outputSpecs` fallback branch is
+gone. Scope note: Roles/Screens panel components were NOT extracted — the
+Screens tab is replaced outright in P4 and the Roles tab moves with that
+rework; extracting them now would build components P4 deletes (smallest
+implementation). Composables consume the domain only through injection
+(`baseDomain`/`packContent` params) per the architecture guard.
+Validation: 498 tests green across composables, designer shared specs,
+`packages/processes`, design-system manifest (regenerated for the new
+inspector components), localization; `check-arch`, `check-docs`,
+`framework:validate` pass. Pre-existing unrelated failures unchanged
+(entity-select DescriptorEditor import, three framework-manifest checks).
 
 ## P3 — Compiler emits the UI contract (hard cutover)
 

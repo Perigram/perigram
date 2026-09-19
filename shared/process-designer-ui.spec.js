@@ -15,8 +15,10 @@ import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptan
 describe('process designer interaction boundaries', () => {
   it('uses producer-output ownership instead of the removed entity-profile helper', () => {
     const designer = readFileSync(new URL('../pages/organization/process.vue', import.meta.url), 'utf8');
+    const nodeSync = readFileSync(new URL('../composables/useProcessDesignerNodeSync.js', import.meta.url), 'utf8');
 
-    expect(designer).toContain('syncProcessNodeProducerOutputs');
+    // The sync pass owns producer-output synchronization now.
+    expect(nodeSync).toContain('syncProcessNodeProducerOutputs');
     expect(designer).not.toContain('requiredEntityProfileTypes');
     expect(designer).not.toContain('ensureRequiredEntityProfiles');
   });

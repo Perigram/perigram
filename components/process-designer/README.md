@@ -21,11 +21,40 @@ type's declared lifecycle states.
 The route is a composition surface, not the owner of every editor concern.
 Focused composables own process selection, draft persistence, graph
 selection and deletion, connection inference, palette queries, inspector
-record access, roles, screens, and dock/panel state. Node cards and the
-inspector read exactly one derivation: `enrichNodeData` is the single
-node-data enrichment pass (record sync, derived labels, port specs, option
-lists), run by initial projection and by every live sync — `stripRuntimeNodeData`
-lists the keys it owns, and nothing else persists derived node data.
+record access, roles, screens, and dock/panel state:
+
+- `useProcessDesignerTypes` — the CTS registry generation, the projected
+  designer contract, and the live tree overlay (one registry per overlay
+  signature; APPLY persists declarations through `persistTreeDeclarations`).
+- `useProcessDesignerNodeSync` — the record-derivation family
+  (`syncProcessNode`, construction contracts, port resolution, labels,
+  option lists). Mutations flow back through the page's single sync entry
+  point; the sync functions never re-enter the live-graph pass.
+- `useProcessDesignerCanvas` — viewport, zoom, keyboard, coarse-pointer
+  pan, and node placement.
+- `useProcessDesignerContextPalette` — the socket-filtered drop palette.
+- `useProcessDesignerApply` — save/validate/activate as one operation with
+  first-diagnostic focus.
+- `utils/processDesignerAccess.js` (grant-row normalization) and
+  `utils/processDesignerPaletteText.js` (localized palette labels) are the
+  shared pure helpers.
+
+Per-kind inspector sections live in
+[`inspector/`](./inspector/): `ProcessNodeInspector.vue` (authorization
+rows, producer-output panel, data matching, output preview,
+service/join/construction sections), `DeclarationInspector.vue` (class,
+field, state, and type-reference authoring — the field descriptor reuses
+the shared `type-designer/DescriptorEditor`), and
+`DeclarationEdgeInspector.vue` (transition intents, children edges). They
+are pure presentation: every mutation is an event back to the page's
+update/sync entry points. The Roles and Screens tabs remain page-owned
+until the compile-to-apps rework replaces the screens surface.
+
+Node cards and the inspector read exactly one derivation: `enrichNodeData`
+is the single node-data enrichment pass (record sync, derived labels, port
+specs, option lists), run by initial projection and by every live sync —
+`stripRuntimeNodeData` lists the keys it owns, and nothing else persists
+derived node data.
 The palette is grouped by authoring concern, and every group draws from one
 source of truth. **Types** opens with declaration authoring (class, field,
 state, type reference) and continues with the registry catalog — one bound
