@@ -31,10 +31,17 @@ Authenticated route groups continue to use `layout: 'app'` and `middleware:
 
 `pages/screens/[screenKey].vue` is the generated operational screen route for
 active organization processes. It looks up the current user's compiled screen
-manifest from the auth store and renders it through the fixed generated screen
-runtime, including the compiler-synthesized `home` screen, whose template is
-overloaded into the Discord-style home workspace shell (sidebar navigation
-plus the tab/split pane area; see
+manifest from the auth store. Process screens arrive in the compiled UI
+contract vocabulary (`typeList`/`instanceDetail`/`home` plus `typeId`) and
+render through the UI generator (`composeScreen` +
+[components/ui-mapping](../components/ui-mapping/README.md)) with the client
+bundle and projected action contract carried by auth hydration; the instance
+pool loads the referenced entity collections through
+`composables/useScreenInstancePool.js` (row-slot mapping, lineage/reference
+normalization) and action runs dispatch to the process run API. System
+screens (organization overview/account era templates) keep the legacy fixed
+renderer until they migrate, including the compiler-synthesized `home`
+screen's Discord-style workspace overload (see
 [components/generated/README.md](../components/generated/README.md)). Process
 navigation points to `/screens/:screenKey`; the route does not load arbitrary
 Vue components from process data. The auth middleware is the sole hydration

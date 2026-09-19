@@ -223,6 +223,18 @@ pinned by the runtime spec), so the renderer swap is purely browser-side.
 Compiler-side P3 is complete; only the runtime renderer slice remains
 before merge.
 
+Update (renderer landed): `[screenKey].vue` renders process screens
+(typeList/instanceDetail/home) through the generator with
+`composables/useScreenInstancePool.js` (row-slot DTO->instance mapping,
+lineage `{ id }` normalization, typed relations, main-axis states),
+`GeneratedMappingScreen` gains a real `onRun` executor prop (create dialog
+drafts, delete confirm, run API dispatch, pool reload, outbox-aware), and
+auth hydration's generator payload is exposed as `authStore.processPayload`.
+System screens keep the legacy renderer until they migrate. Remaining after
+merge: retire the legacy generated surface used by shared consumers
+(EntityCard, chats, artifacts, billing/org pages), migrate link/unlink
+dialogs to the generator, system-screen migration, and the e2e pass.
+
 ## P4 — Runtime and designer cutover to the UI generator
 
 - [ ] `pages/screens/[screenKey].vue` renders through `composeScreen` +
