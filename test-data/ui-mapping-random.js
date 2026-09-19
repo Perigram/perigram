@@ -367,7 +367,7 @@ export function generateUiMappingWorld(seed = 7) {
     const key = `detail_${type.id}`;
     const instance = instancesByType[type.id][0];
     const sources = [{ id: 'main', typeId: type.id, mode: 'single', required: null, identifier: '$screen.scope.instanceId' }];
-    const detailActionPool = [`a_create_${type.id}`, `a_shift_${type.id}`, `a_delete_${type.id}`, `a_link_${type.id}`]
+    const detailActionPool = [`a_create_${type.id}`, `a_stage_${type.id}`, `a_shift_${type.id}`, `a_delete_${type.id}`, `a_link_${type.id}`]
       .filter(id => actions[id]);
     const detailActions = rnd.chance(0.5)
       ? detailActionPool
