@@ -1,7 +1,7 @@
 <template>
   <span v-if="outcome.component === 'ValueText'" class="text-body">{{ displayValue }}</span>
-  <span v-else-if="outcome.component === 'QuantityText'" class="text-technical">{{ quantityValue }}</span>
-  <span v-else-if="outcome.component === 'InstantText'" class="text-technical">{{ instantValue }}</span>
+  <span v-else-if="outcome.component === 'QuantityText'" :class="densityScale.factValue">{{ quantityValue }}</span>
+  <span v-else-if="outcome.component === 'InstantText'" :class="densityScale.factValue">{{ instantValue }}</span>
   <Tag
     v-else-if="outcome.component === 'BooleanIcon'"
     :value="model === true ? '✓' : model === false ? '—' : '·'"
@@ -11,7 +11,7 @@
   <Knob
     v-else-if="outcome.component === 'Knob'"
     :model-value="percentValue"
-    :size="64"
+    :size="densityScale.knob"
     :stroke-width="8"
     readonly
   />
@@ -115,7 +115,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import InputNumber from 'primevue/inputnumber';
@@ -125,7 +125,7 @@ import SelectButton from 'primevue/selectbutton';
 import Tag from 'primevue/tag';
 import Chip from 'primevue/chip';
 import Knob from 'primevue/knob';
-import { LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity } from '#shared/ui-mapping/index.js';
+import { DENSITY, LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity } from '#shared/ui-mapping/index.js';
 import InstanceChip from './InstanceChip.vue';
 import QuantityInput from './QuantityInput.vue';
 import EnumSelect from './EnumSelect.vue';
@@ -147,6 +147,8 @@ const props = defineProps({
 
 const model = defineModel();
 const fallback = '—';
+const density = inject('uiMappingDensity', 'regular');
+const densityScale = computed(() => DENSITY[density.value] || DENSITY.regular);
 
 const outcome = computed(() => resolveFieldControl(props.descriptor, { variant: props.variant }));
 const displayValue = computed(() => (props.modelValue === null || props.modelValue === undefined ? fallback : String(props.modelValue)));

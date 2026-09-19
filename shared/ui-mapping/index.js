@@ -6,7 +6,9 @@ import {
   FIELD_DISPLAY_ENTRIES,
   CHILDREN_TABS_AT,
   SURFACE_ROW_BUDGET,
-  LIST_SAMPLE_WEIGHT,
+  ROW_WEIGHT_BY_LAYOUT,
+  SCALAR_BASES,
+  SCREEN_DENSITY_AT,
   SURFACE_ENTRIES,
   PREVIEW_ENTRIES,
   ACTION_ENTRIES,
@@ -26,7 +28,9 @@ export {
   ROW_FIELD_BUDGET,
   LAYOUT,
   SURFACE_ROW_BUDGET,
-  LIST_SAMPLE_WEIGHT,
+  ROW_WEIGHT_BY_LAYOUT,
+  SCREEN_DENSITY_AT,
+  DENSITY,
   GAP_BY_LEVEL,
   TYPE_BY_LEVEL,
   DETAIL_FACT_BUDGET,
@@ -254,12 +258,23 @@ export function formatValue(descriptor = {}, value) {
 
 export function estimateRegionWeight(node = {}) {
   if (node.surfaceKind !== 'list') {
-    const factRows = (node.groups || resolveFieldGroups(node.type || {}))
-      .reduce((sum, group) => sum + group.fields.length, 0);
-    const relations = Object.keys(node.instances?.[0]?.relations || {}).length;
-    return factRows + relations;
+    const groups = node.groups || resolveFieldGroups(node.type || {});
+    const facts = groups.reduce((sum, group) => sum + group.fields.length, 0);
+    const structural = groups.reduce((sum, group) => sum
+      + group.fields.filter(field => !SCALAR_BASES.includes(field.descriptor.base)).length, 0);
+    const relationRefs = Object.values(node.instances?.[0]?.relations || {})
+      .reduce((sum, refs) => sum + (Array.isArray(refs) ? refs.length : refs ? 1 : 0), 0);
+    return facts + structural * 2 + Math.ceil(relationRefs / 4);
   }
-  return Math.min(node.instances?.length || 0, LIST_SAMPLE_WEIGHT);
+  const layout = resolveListLayout(node.type || {}, {
+    hierarchical: Boolean(Object.keys(node.type?.edges?.children || {}).length)
+  });
+  const perRow = ROW_WEIGHT_BY_LAYOUT[layout] || 1;
+  return 2 + (node.instances?.length || 0) * perRow;
+}
+
+export function screenDensityFor(totalWeight = 0) {
+  return totalWeight > SCREEN_DENSITY_AT ? 'compact' : 'regular';
 }
 
 export function childrenModeFor(childRegions = [], level = 0) {

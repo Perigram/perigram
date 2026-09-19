@@ -21,7 +21,7 @@
           </template>
           <template #subtitle>{{ type?.render?.label }}</template>
           <template #content>
-            <div :class="LAYOUT.stackTight">
+            <div :class="DENSITY.compact.stack">
               <div v-for="field in scalarFields" :key="field.name" :class="LAYOUT.rowBetween">
                 <span class="text-supporting text-muted">{{ field.label }}</span>
                 <FieldControl
@@ -50,7 +50,7 @@ import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
-import { LAYOUT, SCALAR_BASES, CARD_FACT_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity, fieldLabel } from '#shared/ui-mapping/index.js';
+import { DENSITY, LAYOUT, SCALAR_BASES, CARD_FACT_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity, fieldLabel } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 

@@ -7,6 +7,7 @@ import {
   resolveFieldGroups,
   estimateRegionWeight,
   childrenModeFor,
+  screenDensityFor,
   resolveFieldControl,
   resolveSurface,
   resolvePreview,
@@ -230,10 +231,17 @@ describe('weight-driven arrangement', () => {
     instances: [{ relations: {} }]
   });
 
-  it('estimates rendered weight from data', () => {
-    expect(estimateRegionWeight(listNode(20))).toBe(8);
-    expect(estimateRegionWeight(listNode(3))).toBe(3);
+  it('estimates the full rendered height, not a sample', () => {
+    expect(estimateRegionWeight(listNode(20))).toBe(22);
+    expect(estimateRegionWeight(listNode(3))).toBe(5);
     expect(estimateRegionWeight(detailNode(12))).toBe(12);
+    const cardList = { surfaceKind: 'list', type: { id: 'o', class: 'file' }, instances: Array.from({ length: 10 }) };
+    expect(estimateRegionWeight(cardList)).toBe(42);
+  });
+
+  it('picks screen density from total information', () => {
+    expect(screenDensityFor(58)).toBe('compact');
+    expect(screenDensityFor(12)).toBe('regular');
   });
 
   it('tabs only when siblings are many and heavy at the top level', () => {

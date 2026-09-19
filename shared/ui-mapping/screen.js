@@ -1,7 +1,7 @@
 // Screen composition (see README.md): projects a compiled screen contract
 // plus a CTS client bundle and an instance pool into a pure render tree.
 // No Vue here — the components/ui-mapping layer materializes this tree.
-import { resolveSurface, resolveChrome, childrenModeFor } from './index.js';
+import { resolveSurface, resolveChrome, childrenModeFor, estimateRegionWeight, screenDensityFor } from './index.js';
 
 export function buildInstancePool(instances = {}) {
   const pool = {};
@@ -65,6 +65,7 @@ function composeRegion(region, screen, contract, pool, typesById, depth) {
     chrome,
     level: depth,
     childrenMode,
+    weight: estimateRegionWeight({ surfaceKind, type, instances }),
     relationKey: source.relation?.key || null,
     lineageKey: source.lineage?.key || null,
     typeId: source.typeId || null,
@@ -86,13 +87,17 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
   const regions = (screen.regions || [])
     .filter(region => region.slot !== 'children')
     .map((region, index) => composeRegion(region, screen, contract, pool, typesById, index === 0 ? 0 : 1));
+  const totalWeight = regions.reduce((sum, region) => sum + region.weight
+    + region.childRegions.reduce((childSum, child) => childSum + child.weight, 0), 0);
+  const density = screenDensityFor(totalWeight);
   return Object.freeze({
     key: screen.screenKey || screen.id,
     template: screen.template,
     label: screen.label,
     typeId: screen.typeId || null,
     type: typesById[screen.typeId] || null,
-    regions: Object.freeze(regions),
-    regionsMode: childrenModeFor(regions, 0)
+    regions: Object.freeze(regions.map(region => Object.freeze({ ...region, density }))),
+    regionsMode: childrenModeFor(regions, 0),
+    density
   });
 }

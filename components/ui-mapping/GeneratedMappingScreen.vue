@@ -56,7 +56,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, provide, reactive, ref } from 'vue';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
 import Tabs from 'primevue/tabs';
@@ -78,6 +78,7 @@ const props = defineProps({
 
 const pool = computed(() => buildInstancePool(props.instances));
 const composed = computed(() => composeScreen(props.screen, props.contract, props.bundle, pool.value));
+provide('uiMappingDensity', composed.value.density);
 
 const dialogVisible = ref(false);
 const dialogAction = ref(null);

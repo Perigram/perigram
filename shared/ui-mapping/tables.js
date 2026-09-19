@@ -83,7 +83,32 @@ export const CHILDREN_TABS_AT = 2;
 // into tabs at the top level (stacked accordions deeper) — decided at
 // compose time from data, never measured from the DOM.
 export const SURFACE_ROW_BUDGET = 10;
-export const LIST_SAMPLE_WEIGHT = 8;
+
+// Full-height weight: every element counts, scaled by how tall its
+// presentation renders (a preview card is ~4 table rows, a timeline entry
+// ~2). No sampling cap — sibling arrangement must see the true total.
+export const ROW_WEIGHT_BY_LAYOUT = Object.freeze({
+  table: 1,
+  'tree-table': 1,
+  timeline: 2,
+  'card-grid': 4
+});
+
+// Density x hierarchy: how much information the screen carries picks the
+// density scale; spacing, control size, and value typography follow it.
+export const SCREEN_DENSITY_AT = 24;
+export const DENSITY = Object.freeze({
+  compact: Object.freeze({
+    stack: 'flex flex-col gap-2',
+    knob: 40,
+    factValue: 'text-body'
+  }),
+  regular: Object.freeze({
+    stack: 'flex flex-col gap-3',
+    knob: 64,
+    factValue: 'text-body'
+  })
+});
 
 // Hierarchy-driven rhythm and type: the composed node's chrome level picks
 // the stack gap and the heading typography role, so spacing and type scale

@@ -282,7 +282,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-templatesmanager-vue` | `components/TemplatesManager.vue` | derived usage | compliant |
 | `ui-components-themeswitcher-vue` | `components/ThemeSwitcher.vue` | derived usage | compliant |
 | `ui-components-type-designer-descriptoreditor-vue` | `components/type-designer/DescriptorEditor.vue` | derived usage | compliant |
-| `ui-components-type-designer-fieldnode-vue` | `components/type-designer/FieldNode.vue` | derived usage | replace:chrome (6); remove:important-override (6) |
+| `ui-components-type-designer-fieldnode-vue` | `components/type-designer/FieldNode.vue` | derived usage | replace:chrome (7); remove:important-override (11) |
 | `ui-components-type-designer-statenode-vue` | `components/type-designer/StateNode.vue` | derived usage | replace:chrome (7); remove:important-override (11) |
 | `ui-components-type-designer-typenode-vue` | `components/type-designer/TypeNode.vue` | derived usage | replace:chrome (11); remove:important-override (11) |
 | `ui-components-ui-mapping-actionbutton-vue` | `components/ui-mapping/ActionButton.vue` | derived usage | compliant |
