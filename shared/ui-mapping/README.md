@@ -65,7 +65,12 @@ grids, lineage-holding collections get tree tables, chronological types
 match by type id, everything else gets the generated columnar table. The
 shared presentation budgets (`TABLE_COLUMN_BUDGET`, `CARD_FACT_BUDGET`,
 `CHIP_BUDGET`, `ROW_RELATION_BUDGET`, `CHILDREN_TABS_AT`, `SCALAR_BASES`)
-live beside the other defaults so materializations carry no magic numbers.
+live beside the other defaults so materializations carry no magic numbers,
+and `LAYOUT` is the only layout-class vocabulary they may use — PrimeVue
+components own their internal layout, and every grid/stack/row/gap the
+generator needs comes from that table. `formatValue(descriptor, value)`
+projects any field to display text (unit symbols, dates, enums, counts),
+which text surfaces (card subtitles, timeline meta) consume.
 Edit variants resolve editor controls, refined by derived qualifiers:
 `quantity` → QuantityInput (InputGroup: InputNumber plus unit addon), few-option
 `enum` → SelectButton, large `enum` → filtered Select, `ref` → EntityPicker,

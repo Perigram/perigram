@@ -1,5 +1,5 @@
 <template>
-  <div v-if="embedded && node.surfaceKind === 'list'" class="flex w-full flex-col gap-3">
+  <div v-if="embedded && node.surfaceKind === 'list'" :class="[LAYOUT.stackTight, 'w-full']">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex flex-wrap items-center gap-2">
         <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
@@ -85,7 +85,7 @@
     />
   </Panel>
 
-  <div v-else class="flex w-full flex-col gap-4">
+  <div v-else :class="[LAYOUT.stack, 'w-full']">
     <Message
       v-if="!node.instances.length"
       severity="info"
@@ -139,7 +139,7 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import { resolveListLayout, CHILDREN_TABS_AT } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveListLayout, CHILDREN_TABS_AT } from '#shared/ui-mapping/index.js';
 import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
 import HierarchyTable from './HierarchyTable.vue';

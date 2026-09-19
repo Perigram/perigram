@@ -21,6 +21,7 @@ export {
   CHROME_ROLES,
   SEVERITY_MAP,
   ROW_FIELD_BUDGET,
+  LAYOUT,
   DETAIL_FACT_BUDGET,
   SCALAR_BASES,
   TABLE_COLUMN_BUDGET,
@@ -217,6 +218,28 @@ export function instanceIdentity(type, instance) {
     && typeof fields[name] === 'string'
     && fields[name]);
   return firstShortString ? firstShortString[1] : instance.id;
+}
+
+const VALUE_FALLBACK = '—';
+
+export function formatValue(descriptor = {}, value) {
+  if (value === null || value === undefined || value === '') return VALUE_FALLBACK;
+  switch (descriptor.base) {
+    case 'quantity':
+      return formatQuantity(value);
+    case 'instant':
+      return new Date(value).toLocaleDateString();
+    case 'boolean':
+      return value ? '✓' : '—';
+    case 'enum':
+      return String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
+    case 'ref':
+      return value.id;
+    case 'list':
+      return Array.isArray(value) ? `${value.length}` : VALUE_FALLBACK;
+    default:
+      return typeof value === 'object' ? VALUE_FALLBACK : String(value);
+  }
 }
 
 export function fieldLabel(name, descriptor = {}) {

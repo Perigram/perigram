@@ -80,6 +80,22 @@ export const DETAIL_FACT_BUDGET = Object.freeze({ max: 4, overflow: 'count' });
 
 export const SCALAR_BASES = Object.freeze(['string', 'number', 'quantity', 'instant', 'boolean', 'enum']);
 
+// Layout vocabulary: the only layout classes the materializations may use.
+// Components never declare gaps, grids, or stacks of their own — PrimeVue
+// components own their internal layout, and everything else comes from
+// this table so the design system stays procedural and overridable.
+export const LAYOUT = Object.freeze({
+  stack: 'flex flex-col gap-6',
+  stackTight: 'flex flex-col gap-3',
+  row: 'flex flex-wrap items-center gap-2',
+  rowBetween: 'flex flex-wrap items-center justify-between gap-2',
+  factsGrid: 'grid grid-cols-2 items-start gap-x-6 gap-y-4 md:grid-cols-4',
+  formGrid: 'grid grid-cols-1 items-start gap-x-4 gap-y-4 md:grid-cols-2',
+  cardGrid: 'grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4',
+  scrollX: 'w-full overflow-x-auto',
+  dialog: 'w-full max-w-full sm:w-[36rem]'
+});
+
 // Row-variant field budgets: dense rows show a bounded number of fields and
 // count the rest, reusing the same budget mechanism as slot cardinality.
 export const ROW_FIELD_BUDGET = Object.freeze({ max: 3, overflow: 'count' });

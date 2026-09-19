@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   createUiMapping,
+  formatValue,
+  LAYOUT,
   resolveFieldControl,
   resolveSurface,
   resolvePreview,
@@ -172,6 +174,24 @@ describe('action button resolution', () => {
     expect(resolveActionButton({ actionKind: 'updateEntity', status: { to: 'DONE' } }, { render }))
       .toMatchObject({ severity: 'success' });
     expect(resolveActionButton({ actionKind: 'updateEntity' }, { render }).tone).toBe('secondary');
+  });
+});
+
+describe('value formatting and layout vocabulary', () => {
+  it('formats display values per descriptor base', () => {
+    expect(formatValue({ base: 'quantity', unit: 'deg' }, { value: 25.5, unit: 'deg' })).toBe('25.5 °');
+    expect(formatValue({ base: 'quantity', unit: 'count' }, { value: 42000, unit: 'count' })).toBe('42,000');
+    expect(formatValue({ base: 'instant' }, '2026-03-14T08:30:00.000Z')).toBeTruthy();
+    expect(formatValue({ base: 'boolean' }, true)).toBe('✓');
+    expect(formatValue({ base: 'enum' }, 'h-alpha')).toBe('H Alpha');
+    expect(formatValue({ base: 'list' }, [1, 2, 3])).toBe('3');
+    expect(formatValue({ base: 'string' }, null)).toBe('—');
+  });
+
+  it('exposes the layout vocabulary as the single styling home', () => {
+    for (const key of ['stack', 'stackTight', 'row', 'rowBetween', 'factsGrid', 'formGrid', 'cardGrid', 'scrollX', 'dialog']) {
+      expect(LAYOUT[key], key).toBeTruthy();
+    }
   });
 });
 

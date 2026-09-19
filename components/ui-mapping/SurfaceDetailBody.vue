@@ -1,9 +1,9 @@
 <template>
-  <div class="flex flex-col gap-6">
+  <div :class="LAYOUT.stack">
     <StateStrip v-if="type.states?.main" :type="type" :instance="instance" />
     <PreviewBox v-if="hasPreview" :type="type" :payload="instance.payload" :seed="instance.id" />
 
-    <div v-if="shownFacts.length" class="grid grid-cols-2 items-start gap-x-6 gap-y-4 md:grid-cols-4">
+    <div v-if="shownFacts.length" :class="LAYOUT.factsGrid">
       <div v-for="field in shownFacts" :key="field.name" class="flex min-w-0 flex-col gap-1">
         <span class="text-supporting text-muted">{{ field.label }}</span>
         <FieldControl
@@ -61,7 +61,7 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
-import { fieldLabel, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET } from '#shared/ui-mapping/index.js';
+import { LAYOUT, fieldLabel, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import EntityChip from './EntityChip.vue';
 import PreviewBox from './PreviewBox.vue';
@@ -113,6 +113,6 @@ const relationViews = computed(() => {
   });
 });
 const relationClass = relation => (relation.mode === 'scroll'
-  ? 'flex max-h-48 flex-wrap gap-2 overflow-y-auto'
-  : 'flex flex-wrap items-center gap-2');
+  ? relation.mode === 'scroll' ? 'flex max-h-48 flex-wrap gap-2 overflow-y-auto' : LAYOUT.row
+  : LAYOUT.row);
 </script>

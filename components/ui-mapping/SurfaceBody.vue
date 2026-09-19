@@ -1,7 +1,7 @@
 <template>
   <Panel v-if="variant === 'full'" class="w-full">
     <template #header>
-      <div class="flex flex-wrap items-center gap-2">
+      <div :class="LAYOUT.row">
         <i :class="type.render.icon" />
         <span class="text-section-heading">{{ instanceLabel }}</span>
         <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
@@ -26,8 +26,8 @@
 
   <Card v-else-if="variant === 'detail' && !flattened" class="w-full">
     <template #content>
-      <div class="flex flex-col gap-3">
-        <div class="flex flex-wrap items-center justify-between gap-2">
+      <div :class="LAYOUT.stackTight">
+        <div :class="LAYOUT.rowBetween">
           <div class="flex flex-wrap items-center gap-2">
             <i :class="type.render.icon" />
             <span class="text-section-heading">{{ instanceLabel }}</span>
@@ -47,10 +47,10 @@
     </template>
   </Card>
 
-  <div v-else-if="variant === 'detail' && flattened" class="flex flex-col gap-3">
+  <div v-else-if="variant === 'detail' && flattened" :class="LAYOUT.stackTight">
     <Divider class="my-0" />
     <div class="flex flex-wrap items-center justify-between gap-2">
-      <div class="flex flex-wrap items-center gap-2">
+      <div :class="LAYOUT.row">
         <i :class="type.render.icon" />
         <span class="text-section-heading">{{ instanceLabel }}</span>
       </div>
@@ -68,7 +68,7 @@
     />
   </div>
 
-  <div v-else class="flex flex-wrap items-center gap-2">
+  <div v-else :class="LAYOUT.row">
     <i :class="type.render.icon" />
     <span class="text-body">{{ instanceLabel }}</span>
     <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
@@ -93,7 +93,7 @@ import Panel from 'primevue/panel';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
-import { resolveSurface, applyBudget, ROW_FIELD_BUDGET, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import EntityChip from './EntityChip.vue';
 import SurfaceDetailBody from './SurfaceDetailBody.vue';

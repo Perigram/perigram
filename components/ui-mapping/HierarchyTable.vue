@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full overflow-x-auto">
+  <div :class="LAYOUT.scrollX">
     <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key" class="min-w-max">
     <Column>
       <template #body="{ node }">
@@ -38,7 +38,7 @@ import { computed } from 'vue';
 import TreeTable from 'primevue/treetable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
-import { fieldLabel, SCALAR_BASES, TABLE_COLUMN_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
+import { LAYOUT, fieldLabel, SCALAR_BASES, TABLE_COLUMN_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({

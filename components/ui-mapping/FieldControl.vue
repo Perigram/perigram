@@ -15,7 +15,7 @@
     :stroke-width="8"
     readonly
   />
-  <div v-else-if="outcome.component === 'ChipsDisplay'" class="flex flex-wrap items-center gap-1">
+  <div v-else-if="outcome.component === 'ChipsDisplay'" :class="[LAYOUT.row, 'gap-1']">
     <Chip v-for="tag in chipsShown" :key="tag" :label="tag" />
     <Tag v-if="chipsHidden > 0" :value="`+${chipsHidden}`" severity="contrast" />
   </div>
@@ -108,7 +108,7 @@ import SelectButton from 'primevue/selectbutton';
 import Tag from 'primevue/tag';
 import Chip from 'primevue/chip';
 import Knob from 'primevue/knob';
-import { resolveFieldControl, CHIP_BUDGET, applyBudget, formatQuantity } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveFieldControl, CHIP_BUDGET, applyBudget, formatQuantity } from '#shared/ui-mapping/index.js';
 import EntityChip from './EntityChip.vue';
 import QuantityInput from './QuantityInput.vue';
 import EnumSelect from './EnumSelect.vue';

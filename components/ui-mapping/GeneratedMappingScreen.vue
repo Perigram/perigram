@@ -13,9 +13,9 @@
       v-model:visible="dialogVisible"
       modal
       :header="dialogAction?.label || ''"
-      class="w-full sm:w-[36rem] max-w-full"
+      :class="LAYOUT.dialog"
     >
-      <div v-if="dialogFields.length" class="grid grid-cols-1 items-start gap-x-4 gap-y-4 md:grid-cols-2">
+      <div v-if="dialogFields.length" :class="LAYOUT.formGrid">
         <div
           v-for="field in dialogFields"
           :key="field.name"
@@ -45,7 +45,7 @@
 import { computed, reactive, ref } from 'vue';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
-import { composeScreen, buildInstancePool, resolveFieldControl } from '#shared/ui-mapping/index.js';
+import { LAYOUT, composeScreen, buildInstancePool, resolveFieldControl } from '#shared/ui-mapping/index.js';
 import RegionBlock from './RegionBlock.vue';
 import FieldControl from './FieldControl.vue';
 

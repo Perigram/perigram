@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-1 items-start gap-x-4 gap-y-3 rounded-ui bg-subtle p-3 md:grid-cols-2">
+  <div :class="[LAYOUT.formGrid, 'rounded-ui bg-subtle p-3']">
     <div
       v-for="[name, sub] in Object.entries(fields)"
       :key="name"
@@ -22,7 +22,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { resolveFieldControl } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolveFieldControl } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({

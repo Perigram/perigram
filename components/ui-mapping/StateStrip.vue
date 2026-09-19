@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full overflow-x-auto">
+  <div :class="LAYOUT.scrollX">
     <Stepper :value="activeStep" class="min-w-max">
       <StepList>
         <Step v-for="(value, index) in stateValues" :key="value" :value="String(index + 1)">
@@ -15,6 +15,7 @@ import { computed } from 'vue';
 import Stepper from 'primevue/stepper';
 import StepList from 'primevue/steplist';
 import Step from 'primevue/step';
+import { LAYOUT } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   type: { type: Object, required: true },

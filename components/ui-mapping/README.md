@@ -38,9 +38,10 @@ inputs resolved against the target type's field descriptors.
 - `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
   the collection plus its lineage descendants nested as expandable rows
   with the same generated columns.
-- `CardGrid.vue` — the media collection projection (DataView, paginated
-  grid of preview cards with Avatar identity, status, deterministic
-  preview, budgeted scalar facts).
+- `CardGrid.vue` — the media collection projection (DataView, paginated):
+  each card is a stock PrimeVue Card on its native slot layout — preview
+  as `#header`, identity + status in `#title`, and the budgeted scalar
+  facts as a `formatValue` text line in `#subtitle`.
 - `TimelineCollection.vue` — the chronological list projection (Timeline):
   marker-per-entry with identity, inline scalar facts, and the type's
   primary long-text (or first structural) field as the entry body,

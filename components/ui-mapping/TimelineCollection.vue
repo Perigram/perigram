@@ -1,15 +1,10 @@
 <template>
   <Timeline :value="instances" class="w-full">
-    <template #marker="{ item }">
-      <span class="bg-content border-content-border flex h-7 w-7 items-center justify-center rounded-full border">
-        <i :class="type?.render?.icon || 'pi pi-circle'" class="text-muted text-supporting" />
-      </span>
-    </template>
     <template #content="{ item }">
-      <div class="flex flex-col gap-2 pb-4">
-        <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <div :class="LAYOUT.stackTight">
+        <div :class="LAYOUT.rowBetween">
           <span class="text-supporting text-muted">{{ identityOf(item) }}</span>
-          <div v-if="scalarFields.length" class="flex flex-wrap items-center gap-3">
+          <div v-if="scalarFields.length" :class="LAYOUT.row">
             <div v-for="field in scalarFields" :key="field.name" class="flex items-baseline gap-1">
               <span class="text-supporting text-muted">{{ field.label }}</span>
               <FieldControl
@@ -31,7 +26,7 @@
 <script setup>
 import { computed } from 'vue';
 import Timeline from 'primevue/timeline';
-import { fieldLabel, SCALAR_BASES, instanceIdentity } from '#shared/ui-mapping/index.js';
+import { LAYOUT, fieldLabel, SCALAR_BASES, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({

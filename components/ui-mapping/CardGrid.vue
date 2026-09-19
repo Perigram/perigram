@@ -1,41 +1,30 @@
 <template>
   <DataView :value="instances" data-key="id" layout="grid" :paginator="instances.length > 8" :rows="8">
     <template #grid="slotProps">
-      <div class="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      <div :class="LAYOUT.cardGrid">
         <Card v-for="instance in slotProps.items" :key="instance.id" class="w-full">
-          <template #content>
-            <div class="flex h-full flex-col gap-3">
-              <div class="flex min-w-0 items-center justify-between gap-2">
-                <div class="flex min-w-0 items-center gap-2">
-                  <Avatar :icon="type?.render?.icon || 'pi pi-circle'" shape="circle" />
-                  <span class="text-body truncate">{{ identityOf(instance) }}</span>
-                </div>
-                <Tag v-if="statusOf(instance)" :value="statusOf(instance).label" :severity="statusOf(instance).severity" />
+          <template #header>
+            <PreviewBox :type="type" :payload="instance.payload" :seed="instance.id" />
+          </template>
+          <template #title>
+            <div :class="LAYOUT.rowBetween">
+              <div :class="LAYOUT.row">
+                <i :class="type?.render?.icon || 'pi pi-circle'" class="text-muted" />
+                <span>{{ identityOf(instance) }}</span>
               </div>
-              <PreviewBox :type="type" :payload="instance.payload" :seed="instance.id" />
-              <div v-if="scalarFields.length" class="mt-auto flex flex-col gap-1">
-                <div
-                  v-for="field in scalarFields"
-                  :key="field.name"
-                  class="flex min-w-0 items-baseline justify-between gap-2"
-                >
-                  <span class="text-supporting text-muted">{{ field.label }}</span>
-                  <FieldControl
-                    :model-value="instance.fields?.[field.name]"
-                    :descriptor="field.descriptor"
-                    variant="row"
-                    :pool="pool"
-                    :bundle="bundle"
-                  />
-                </div>
-              </div>
+              <Tag
+                v-if="statusOf(instance)"
+                :value="statusOf(instance).label"
+                :severity="statusOf(instance).severity"
+              />
             </div>
           </template>
+          <template #subtitle>{{ subtitleOf(instance) }}</template>
         </Card>
       </div>
     </template>
     <template #empty>
-      <span class="text-supporting text-muted">{{ $t('uiMapping.emptyRegion') }}</span>
+      <Message severity="info" :text="$t('uiMapping.emptyRegion')" />
     </template>
   </DataView>
 </template>
@@ -43,11 +32,10 @@
 <script setup>
 import { computed } from 'vue';
 import DataView from 'primevue/dataview';
-import Avatar from 'primevue/avatar';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
-import { fieldLabel, SCALAR_BASES, CARD_FACT_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
-import FieldControl from './FieldControl.vue';
+import Message from 'primevue/message';
+import { LAYOUT, SCALAR_BASES, CARD_FACT_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity, fieldLabel, formatValue } from '#shared/ui-mapping/index.js';
 import PreviewBox from './PreviewBox.vue';
 
 const props = defineProps({
@@ -70,5 +58,8 @@ const scalarFields = computed(() => applyBudget(
     .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)
       && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120))),
   CARD_FACT_BUDGET
-).visible.map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
+).visible);
+const subtitleOf = instance => scalarFields.value
+  .map(([name, descriptor]) => `${fieldLabel(name, descriptor)}: ${formatValue(descriptor, instance.fields?.[name])}`)
+  .join(' · ') || instance.id;
 </script>
