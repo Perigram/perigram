@@ -17,36 +17,28 @@
               :pool="pool"
               :bundle="bundle"
             />
-            <FieldControl
-              v-else-if="inlineValue(field) === null"
-              :model-value="instance.fields?.[field.name]"
-              :descriptor="field.descriptor"
-              variant="row"
-              :pool="pool"
-              :bundle="bundle"
-            />
             <Inplace v-else closable>
-            <template #display>
-              <div class="group -mx-1.5 flex cursor-pointer items-center gap-1.5 rounded-ui px-1.5 py-0.5 transition-colors hover:bg-subtle">
+              <template #display>
+                <div class="flex min-w-0 items-center gap-1.5 rounded-ui px-1 py-0.5 transition-colors hover:bg-subtle">
+                  <FieldControl
+                    :model-value="inlineValue(field)"
+                    :descriptor="field.descriptor"
+                    variant="row"
+                    :pool="pool"
+                    :bundle="bundle"
+                  />
+                  <i class="pi pi-pencil text-muted shrink-0" />
+                </div>
+              </template>
+              <template #content>
                 <FieldControl
-                  :model-value="inlineValue(field)"
+                  v-model="inlineDraft[field.name]"
                   :descriptor="field.descriptor"
-                  variant="row"
+                  variant="detail"
                   :pool="pool"
                   :bundle="bundle"
                 />
-                <i class="pi pi-pencil text-muted opacity-0 transition-opacity group-hover:opacity-100" />
-              </div>
-            </template>
-            <template #content>
-              <FieldControl
-                v-model="inlineDraft[field.name]"
-                :descriptor="field.descriptor"
-                variant="detail"
-                :pool="pool"
-                :bundle="bundle"
-              />
-            </template>
+              </template>
             </Inplace>
           </div>
         </div>
@@ -171,11 +163,11 @@ const props = defineProps({
 defineEmits(['toggle']);
 
 const inlineDraft = reactive({});
-const inlineValue = field => {
+const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
+const inlineValue = (field) => {
   if (!(field.name in inlineDraft)) inlineDraft[field.name] = props.instance.fields?.[field.name];
   return inlineDraft[field.name];
 };
-const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
 const hasPreview = computed(() => surface.value.slots.includes('preview'));
 
 const isLongString = descriptor => descriptor.base === 'string'

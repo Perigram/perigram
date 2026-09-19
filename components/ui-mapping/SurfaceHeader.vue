@@ -2,9 +2,9 @@
   <div :class="[LAYOUT.stackTight, LAYOUT.headerBar]">
     <BreadcrumbTrail v-if="trail.length > 1" :instance="instance" :bundle="bundle" :pool="pool" />
     <div :class="LAYOUT.headerRow">
-      <div :class="LAYOUT.row">
+      <div :class="LAYOUT.row" class="min-w-0 flex-1">
         <Avatar :icon="type?.render?.icon || 'pi pi-circle'" shape="circle" size="large" />
-        <div class="flex min-w-0 flex-col gap-0.5">
+        <div class="flex min-w-0 flex-1 flex-col gap-0.5">
           <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
           <span class="text-supporting text-muted truncate">{{ type?.render?.label }} · {{ instance.id }}</span>
         </div>
