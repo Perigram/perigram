@@ -3,7 +3,6 @@
     <DataTable
     :value="instances"
     size="small"
-    striped-rows
     data-key="id"
     :class="virtual ? '' : 'min-w-max'"
     :scrollable="virtual"
