@@ -49,6 +49,13 @@ describe('process runtime auth hydration', () => {
       expect.objectContaining({ typeId: 'project' })
     ]));
     expect(auth.roleAssignments.roleIds).toEqual([PERSISTED_ACCEPTANCE_IDS.role]);
+    // The generator payload rides with hydration: bundle types and projected
+    // action records keyed by id.
+    expect(Array.isArray(auth.process.bundle.types)).toBe(true);
+    for (const action of Object.values(auth.process.actions || {})) {
+      expect(action.typeId || action.actionKind).toBeTruthy();
+      expect(action.id).toBe(action.id);
+    }
   });
 
   it('does not grant process access without an organization assignment', async () => {

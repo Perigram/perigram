@@ -9,6 +9,7 @@ import {
 import { cncDomain, cncPackContent } from '~/packages/domain-cnc/src/index.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { compileClientBundle, projectDomainFromView } from '~/packages/cts/src/index.js';
+import { projectUiAction } from '~/packages/processes/src/ui-contract-projection.js';
 import * as repository from './repository.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { resolveOrganizationSystemScreens } from '../organizations/system-screens.js';
@@ -94,7 +95,14 @@ export async function resolveProcessAuth(auth = {}) {
       active: true,
       schemaVersion: compiled.schemaVersion,
       producerOutputs: compiled.producerOutputs || {},
-      lineageBindings: compiled.lineageBindings || []
+      lineageBindings: compiled.lineageBindings || [],
+      // The UI generator's inputs ride with the hydration payload: the CTS
+      // client bundle and the projected action contract, so the screens
+      // renderer never consults the registry or the execution channel.
+      bundle: compiled.bundle || { types: [] },
+      actions: Object.fromEntries(Object.values(compiled.actions || {})
+        .map(action => [action.id, projectUiAction(action)])
+        .filter(([, projected]) => projected))
     },
     navigation: [...system.navigation, ...processNavigation],
     screens: [...system.screens, ...processScreens],
