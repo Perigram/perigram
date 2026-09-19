@@ -168,6 +168,14 @@ confirm, hidden }` from a fixed table: `createInstance` → primary,
 presentations, event-triggered actions → hidden. Status-transition actions
 carry the target state's render severity as their tone.
 
+`resolveInstanceActions(actions, typeId)` selects the per-instance quick
+actions a collection surface may offer without a form context: manual
+status transitions (`updateInstance` with a declared `status.to`),
+deletion, and instance-scoped commands for exactly that type, in contract
+order. Plain `updateInstance` edits, creates, relation link/unlink
+(owner-scoped), and event-triggered actions never qualify — they belong
+to their own surfaces.
+
 ## Chrome
 
 Components declare a role; `resolveChrome(role, parentRole)` →

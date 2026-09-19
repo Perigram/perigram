@@ -40,7 +40,12 @@ pool loads the referenced entity collections through
 `composables/useScreenInstancePool.js` (row-slot mapping, lineage/reference
 normalization) and also reports per-source data states
 (loading/ready/empty/denied/error) that `composeScreen` folds into the region
-tree, and action runs dispatch to the process run API. System
+tree. Collection identities are link buttons: `onOpen` routes to the
+compiler-paired detail screen (`auto_<type>_detail`) with the instance id in
+the route scope, silently staying put when the user manifest carries no
+paired detail screen; per-card quick actions run through the same run API
+with the card instance as the target entity. Action runs dispatch to the
+process run API. System
 screens (organization overview/account era templates) keep the legacy fixed
 renderer until they migrate, including the compiler-synthesized `home`
 screen's Discord-style workspace overload (see
