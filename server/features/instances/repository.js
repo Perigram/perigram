@@ -45,11 +45,11 @@ export async function findInstanceAnywhere(id, typeId) {
   return null;
 }
 
-export async function updateInstanceBlocks(collection, id, blocks) {
+export async function updateInstanceFields(collection, id, set) {
   const db = await connectDB();
   return await db.collection(collection).findOneAndUpdate(
     { _id: new ObjectId(String(id)) },
-    { $set: { ...blocks, updatedAt: new Date().toISOString() } },
+    { $set: { ...set, updatedAt: new Date().toISOString() } },
     { returnDocument: 'after' }
   );
 }

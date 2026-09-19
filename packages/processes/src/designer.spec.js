@@ -480,8 +480,8 @@ describe('type catalog palette', () => {
     ]);
     expect(groups.map(group => group.id)).toEqual(['types-item', 'types-group']);
     const items = groups[0].items;
-    expect(items[0]).toMatchObject({ id: 'panel', kind: 'cts.construct', preset: { type: 'panel', via: 'genericCreate' } });
-    expect(items[1]).toMatchObject({ id: 'panel:bake-panel', preset: { type: 'panel', via: 'bake-panel' } });
+    expect(items[0]).toMatchObject({ id: 'panel', kind: 'cts.construct', preset: { typeId: 'panel', via: 'genericCreate' } });
+    expect(items[1]).toMatchObject({ id: 'panel:bake-panel', preset: { typeId: 'panel', via: 'bake-panel' } });
     expect(groups[1].items).toHaveLength(1);
   });
 });

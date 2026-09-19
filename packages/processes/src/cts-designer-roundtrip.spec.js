@@ -40,22 +40,22 @@ describe('graph protocol v5 designer round trip', () => {
   it('catalog ports resolve cts records through the operation-kind twin', () => {
     const domain = projectedDomain();
     const context = record => ({
-      fieldSchemas: domain.fieldSchemas[record.type || record.entityType] || [],
+      fieldSchemas: domain.fieldSchemas[record.typeId || record.entityType] || [],
       domain
     });
-    const construct = resolveCatalogNodePorts({ kind: 'cts.construct', type: 'project', via: 'genericCreate' }, context({ type: 'project' }));
+    const construct = resolveCatalogNodePorts({ kind: 'cts.construct', typeId: 'project', via: 'genericCreate' }, context({ type: 'project' }));
     expect(construct.outputs.some(port => port.type?.base === 'entity')).toBe(true);
 
-    const transition = resolveCatalogNodePorts({ kind: 'cts.transition', type: 'queue' }, context({ type: 'queue' }));
+    const transition = resolveCatalogNodePorts({ kind: 'cts.transition', typeId: 'queue' }, context({ type: 'queue' }));
     expect(transition.inputs.some(port => port.id === 'entity')).toBe(true);
 
-    const read = resolveCatalogNodePorts({ kind: 'cts.read', select: 'parent', type: 'sheet' }, context({ type: 'sheet' }));
+    const read = resolveCatalogNodePorts({ kind: 'cts.read', select: 'parent', typeId: 'sheet' }, context({ type: 'sheet' }));
     expect(read.outputs).toHaveLength(1);
 
     // cts and v4 twins expose identical port contracts
     for (const [ctsRecord, v4Record] of [
-      [{ kind: 'cts.transition', type: 'queue' }, { kind: 'effect.changeStatus', entityType: 'queue' }],
-      [{ kind: 'cts.read', select: 'parent', type: 'sheet' }, { kind: 'read.parent', entityType: 'sheet' }],
+      [{ kind: 'cts.transition', typeId: 'queue' }, { kind: 'effect.changeStatus', entityType: 'queue' }],
+      [{ kind: 'cts.read', select: 'parent', typeId: 'sheet' }, { kind: 'read.parent', entityType: 'sheet' }],
       [{ kind: 'cts.field', slot: 'identity', path: 'identity.name' }, { kind: 'record.getField', block: 'identity', path: 'identity.name' }]
     ]) {
       const ctsPorts = resolveCatalogNodePorts(ctsRecord, { domain, fieldSchemas: domain.fieldSchemas.sheet || [] });
@@ -116,7 +116,7 @@ describe('graph protocol v5 designer round trip', () => {
     const saved = canvasToDefinition(canvas, migrated);
     expect(saved.graphProtocol).toBe(5);
     expect(saved.processNodes.update.kind).toBe('cts.mutate');
-    expect(saved.processNodes.update.type).toBe('cut-plan');
+    expect(saved.processNodes.update.typeId).toBe('cut-plan');
     expect(validateRoundTrip(saved).ok).toBe(true);
 
     // resolution brings the working shapes back for the compiler
@@ -149,7 +149,7 @@ describe('graph protocol v5 designer round trip', () => {
       valueInputs: {},
       screens: {},
       processNodes: {
-        construct: { id: 'construct', kind: 'cts.construct', type: 'sheet', via: 'genericCreate', trigger: { mode: 'manual' }, access: { level: 'write', grants: [] } }
+        construct: { id: 'construct', kind: 'cts.construct', typeId: 'sheet', via: 'genericCreate', trigger: { mode: 'manual' }, access: { level: 'write', grants: [] } }
       }
     };
     const canvas = definitionToCanvas(structuredClone(v5));
@@ -157,7 +157,7 @@ describe('graph protocol v5 designer round trip', () => {
     const saved = canvasToDefinition(canvas, structuredClone(v5));
     expect(saved.graph.nodes.some(node => node.type === 'ctsType')).toBe(true);
     expect(saved.graph.edges.some(edge => edge.role === 'type')).toBe(true);
-    expect(saved.processNodes.construct.type).toBe('sheet');
+    expect(saved.processNodes.construct.typeId).toBe('sheet');
     expect(validateRoundTrip(saved).ok).toBe(true);
 
     // normalization drops the binding wire: it is a canvas gesture, not dataflow

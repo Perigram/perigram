@@ -29,7 +29,10 @@ should call `getAppRegistry()`.
   and pack types from static declarations, org types from the `cts_types`
   store, cached and invalidated on type writes). Types with no declaration
   in the registry view fail loudly (`Unknown type`) — that is the intended
-  contract: the registry view is the whole catalog.
+  contract: the registry view is the whole catalog. Instance documents are
+  stored in the CTS §3 shape (flat `fields`, `states.main`, `name`); the
+  service boundary owns the §3 ⇄ wire-DTO (block vocabulary) mapping for
+  screens and compiled contracts.
 - Command handlers from the mounted packs (the CNC pack registers
   `saveCassetteTemplate`, `solveNestingValue`, `convertArtifact`) plus the
   framework's `generateAttachment`, `generateConfigBotDraft`,

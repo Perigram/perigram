@@ -176,7 +176,7 @@ describe('graph protocol v5 (SPEC §20)', () => {
     const migrated = migrateV4Definition(readModifyWriteDefinition(), projectedDomain()).definition;
     const update = migrated.processNodes.update;
     expect(update.kind).toBe('cts.mutate');
-    expect(update.type).toBe('sheet');
+    expect(update.typeId).toBe('sheet');
     expect(update.slots).toEqual(['identity']);
     const deconstruct = migrated.processNodes.deconstruct;
     expect(deconstruct.kind).toBe('cts.decompose');
@@ -184,7 +184,7 @@ describe('graph protocol v5 (SPEC §20)', () => {
     expect(modify.kind).toBe('cts.compose');
     expect(modify.mode).toBe('modify');
     const output = migrated.producerOutputs['machine_context:entity'];
-    expect(output.type).toBe('sheet');
+    expect(output.typeId).toBe('sheet');
 
     const created = migrateV4Definition(relationCreateDefinition(), projectedDomain()).definition;
     expect(created.processNodes.effect.kind).toBe('cts.construct');
@@ -212,7 +212,7 @@ describe('graph protocol v5 (SPEC §20)', () => {
     // a type with real rows strips and restores byte-identically
     const queueOutput = {
       id: 'q:entity', producerOutputId: 'q:entity', nodeId: 'q', outputSocketId: 'entity',
-      type: 'queue', lifecycle: { mode: 'domainDefault' },
+      typeId: 'queue', lifecycle: { mode: 'domainDefault' },
       fields: { read: ['identity.*', 'job', 'data.value'], write: ['job'], private: [] }
     };
     const resolved = resolveCtsDefinition(
@@ -229,8 +229,8 @@ describe('graph protocol v5 (SPEC §20)', () => {
     original.processNodes.effect.entityType = 'solve_run';
     original.producerOutputs['facade_context:entity'].entityType = 'solve_run';
     const { definition: migrated } = migrateV4Definition(original, domain);
-    expect(migrated.processNodes.effect.type).toBe('solve-run');
-    expect(migrated.producerOutputs['facade_context:entity'].type).toBe('solve-run');
+    expect(migrated.processNodes.effect.typeId).toBe('solve-run');
+    expect(migrated.producerOutputs['facade_context:entity'].typeId).toBe('solve-run');
     const { definition: resolved } = resolveCtsDefinition(migrated, domain);
     // After the cut, storage entity ids are the kebab type ids themselves
     expect(resolved.processNodes.effect.entityType).toBe('solve-run');
@@ -241,19 +241,19 @@ describe('graph protocol v5 (SPEC §20)', () => {
     const domain = projectedDomain();
     const base = migrateV4Definition(readModifyWriteDefinition(), domain).definition;
     const unknownType = structuredClone(base);
-    unknownType.processNodes.update.type = 'ghost-panel';
+    unknownType.processNodes.update.typeId = 'ghost-panel';
     expect(checkCtsGraphBindings(unknownType, domain))
       .toContainEqual(expect.stringMatching(/unknown type ghost-panel/));
 
     const badState = structuredClone(base);
     badState.processNodes.update.kind = 'cts.transition';
-    badState.processNodes.update.type = 'facade';
+    badState.processNodes.update.typeId = 'facade';
     badState.processNodes.update.target = 'FLYING';
     expect(checkCtsGraphBindings(badState, domain))
       .toContainEqual(expect.stringMatching(/target state FLYING is not declared/));
 
     const badField = structuredClone(base);
-    badField.processNodes.present = { id: 'present', kind: 'cts.field', type: 'material', path: 'rogue' };
+    badField.processNodes.present = { id: 'present', kind: 'cts.field', typeId: 'material', path: 'rogue' };
     expect(checkCtsGraphBindings(badField, domain))
       .toContainEqual(expect.stringMatching(/field rogue is not in the material row/));
   });

@@ -1094,6 +1094,8 @@ import {
   declarationWireLegality,
   definitionToCanvas,
   formatProcessType,
+  migrateProcessDefinition,
+  operationKindOf,
   PROCESS_DATAFLOW_VERSION,
   processSocketsCompatible,
   processType,
@@ -1104,7 +1106,7 @@ import {
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncUiSurfaces, cncPackContent } from '@cutkit/domain-cnc';
-import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, operationKindOf, resolveCtsRecord, migrateV4Definition, renderPolicyFor, frameworkTypes, DECLARABLE_CLASSES, ON_REMOVE, OPERATOR_SPECIES } from '~/packages/cts/src/index.js';
+import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, renderPolicyFor, frameworkTypes, DECLARABLE_CLASSES, ON_REMOVE, OPERATOR_SPECIES } from '~/packages/cts/src/index.js';
 import { ctsFieldToProcessType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
@@ -1312,10 +1314,10 @@ function isOpKind(node, kindOrPrefix) {
   const kind = opKind(node);
   return kindOrPrefix.endsWith('.') ? kind.startsWith(kindOrPrefix) : kind === kindOrPrefix;
 }
-// v5 records carry `type`; the working entity id is whichever is present.
-const nodeEntityType = node => node?.type || node?.entityType || '';
+// v5 species records carry `typeId`; v4 records carry `entityType`.
+const nodeEntityType = node => node?.typeId || node?.entityType || '';
 function setNodeEntityType(node, entityType) {
-  if (v5Record(node)) node.type = entityType;
+  if (v5Record(node)) node.typeId = entityType;
   else node.entityType = entityType;
 }
 function catalogPorts(record) {
@@ -2311,7 +2313,7 @@ function setDraft(value) {
   selectedProcessId.value = value?._id ? String(value._id) : null;
   let canvas;
   try {
-    const { definition: migrated } = migrateV4Definition(value?.data || {}, ctsProjectedDomain());
+    const { definition: migrated } = migrateProcessDefinition(value?.data || {}, ctsProjectedDomain());
     canvas = definitionToCanvas(migrated);
     validation.value = null;
   } catch (error) {
@@ -3431,13 +3433,7 @@ function syncProcessNode(node = {}) {
   } else {
     node.operation ||= defaultProcessNodeOperation(node.kind);
   }
-  // v5 species records carry the CTS type id as a STRING on `type`; v4
-  // records carry the value-type descriptor object on the same key. Never
-  // overwrite a string binding — the value descriptor belongs to v4
-  // records only (a construct's "value type" is its bound type).
-  if (typeof node.type !== 'string') {
-    node.type = node.type?.base ? processType(node.type.base, node.type) : processType('json');
-  }
+  node.type = node.type?.base ? processType(node.type.base, node.type) : processType('json');
   node.access = node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : (node.access || 'item');
   node.matching = ['longest', 'shortest', 'cross'].includes(node.matching) ? node.matching : 'longest';
   node.inputTransforms ||= {};
@@ -3784,10 +3780,10 @@ function processNodeDisplayLabel(node = {}) {
   // The bound type decides the catalog item: a bare species record must
   // not borrow the first catalog entry's label (the type catalog leads
   // the palette, so items[0] is always a pre-bound variant).
-  const boundType = typeof node.type === 'string' ? node.type : (node.entityType || '');
+  const boundType = node.typeId || node.entityType || '';
   const items = designer.paletteGroups.flatMap(group => group.items)
     .filter(candidate => candidate.kind === node.kind)
-    .filter(candidate => !candidate.preset?.type || candidate.preset.type === boundType);
+    .filter(candidate => !candidate.preset?.typeId || candidate.preset.typeId === boundType);
   const item = items.find(candidate => candidate.preset?.select && candidate.preset.select === node.select)
     || items[0];
   return item ? paletteLabel(item) : humanizeNodeLabel(node.kind || '');
@@ -4832,8 +4828,7 @@ function connectionCompatibility(connection = {}) {
         // means: no storage entity id AND no v5 type-id string (the value
         // descriptor object is not a binding; an empty string is not one
         // either).
-        const boundTypeId = typeof targetRecord?.type === 'string' ? targetRecord.type : '';
-        if (!targetRecord?.entityType && !boundTypeId) {
+        if (!targetRecord?.entityType && !targetRecord?.typeId) {
           return { ok: true, source: sourcePort };
         }
         const inputs = resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs;

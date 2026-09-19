@@ -222,11 +222,12 @@ function cts(kind, label, family, level) {
     level,
     pure: false,
     ports: (record = {}, context = {}) => {
-      // An unbound v5 species record (empty type-id string) offers exactly
-      // one input: the type binding pin. Everything else — value sockets,
-      // status, blocks — derives from the bound type and appears the
-      // moment a type reference or class wire carries the binding in.
-      if (String(record.kind || '').startsWith('cts.') && typeof record.type === 'string' && !record.type) {
+      // An unbound type-binding species record (no typeId) offers exactly
+      // one input: the type binding pin. Everything else derives from the
+      // bound type. Structure species (field/compose/decompose/join) and
+      // operator-bound records (service/command) do not bind a type.
+      const TYPE_BOUND_SPECIES = ['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.read'];
+      if (TYPE_BOUND_SPECIES.includes(String(record.kind || '')) && !record.typeId) {
         return {
           inputs: [socket('type', processType('entityRef'), DATA, false)],
           outputs: []
