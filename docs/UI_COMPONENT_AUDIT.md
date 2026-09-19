@@ -289,15 +289,15 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-cardgrid-vue` | `components/ui-mapping/CardGrid.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-chipsinput-vue` | `components/ui-mapping/ChipsInput.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-collectiontable-vue` | `components/ui-mapping/CollectionTable.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-entitychip-vue` | `components/ui-mapping/EntityChip.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-entitymultipicker-vue` | `components/ui-mapping/EntityMultiPicker.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-entitypicker-vue` | `components/ui-mapping/EntityPicker.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-enumselect-vue` | `components/ui-mapping/EnumSelect.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-fieldcontrol-vue` | `components/ui-mapping/FieldControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-fileuploadcontrol-vue` | `components/ui-mapping/FileUploadControl.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-generatedmappingscreen-vue` | `components/ui-mapping/GeneratedMappingScreen.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-hierarchytable-vue` | `components/ui-mapping/HierarchyTable.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-hierarchytree-vue` | `components/ui-mapping/HierarchyTree.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-instancechip-vue` | `components/ui-mapping/InstanceChip.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-instancemultipicker-vue` | `components/ui-mapping/InstanceMultiPicker.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-instancepicker-vue` | `components/ui-mapping/InstancePicker.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-listeditor-vue` | `components/ui-mapping/ListEditor.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-objecteditor-vue` | `components/ui-mapping/ObjectEditor.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-previewbox-vue` | `components/ui-mapping/PreviewBox.vue` | derived usage | compliant |
@@ -320,7 +320,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-invitation-token-vue` | `pages/invitation/[token].vue` | derived usage | replace:chrome (3) |
 | `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
 | `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | compliant |
-| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (6); replace:chrome (21); remove:state (1); remove:important-override (19); replace:inline-visual (1) |
+| `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (6); replace:chrome (21); remove:state (1); remove:important-override (34); replace:inline-visual (1) |
 | `ui-pages-organization-types-vue` | `pages/organization/types.vue` | derived usage | replace:chrome (4) |
 | `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | compliant |
 | `ui-pages-profile-index-vue` | `pages/profile/index.vue` | derived usage | replace:chrome (4) |

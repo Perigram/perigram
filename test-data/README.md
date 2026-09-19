@@ -27,8 +27,11 @@ systems → probes → files, survey missions) chosen to exercise the mapping,
 not to model anything real. The CTS client bundle covers every field base
 and qualifier (all units, few/many enums, single/array relations, variants
 with payloads, records, lists, maps, json, blobs), all four declarable
-classes, and all three preview modes; the compiled contract covers home /
-list / detail screens with relation- and lineage-scoped child regions; the
+classes, and all three preview modes; the compiled contract speaks CTS
+vocabulary (`typeList` / `instanceDetail` screens, `typeId` sources scoped
+by `instanceId`, `createInstance` / `updateInstance` / `deleteInstance`
+actions) — the future compiler contract, not the current entity-era one —
+with relation- and lineage-scoped child regions; the
 instance graph runs three lineage levels deep with varied relation
 cardinality (probes carry 0–10 related files) — the variable-cardinality
 case slot budgets collapse. The

@@ -9,7 +9,7 @@ It is the seam between the semantic layers (the CTS client bundle from
 
 This module is pure data and pure functions: no Vue, no Nuxt, no PrimeVue
 imports, no CNC names. Resolver output names registered component keys
-(`'InputNumber'`, `'EntityChip'`, …); the app-side fixed registry maps keys to
+(`'InputNumber'`, `'InstanceChip'`, …); the app-side fixed registry maps keys to
 components. Persisted/process data never selects a component directly.
 
 Parent: [shared/README.md](../README.md).
@@ -80,11 +80,11 @@ as labeled description lists and checklists bounded by
 `SUMMARY_BUDGET`.
 Edit variants resolve editor controls, refined by derived qualifiers:
 `quantity` → QuantityInput (InputGroup: InputNumber plus unit addon), few-option
-`enum` → SelectButton, large `enum` → filtered Select, `ref` → EntityPicker,
-`list` of strings → InputChips, `list` of refs → EntityMultiPicker, long
+`enum` → SelectButton, large `enum` → filtered Select, `ref` → InstancePicker,
+`list` of strings → InputChips, `list` of refs → InstanceMultiPicker, long
 strings → Textarea, payload blobs → FileUpload, and `record`/`variant`/
 heterogeneous `list` → recursive structural editors. Display variants resolve
-read-only presentations (`enum` → Tag, `ref` → EntityChip, `quantity` →
+read-only presentations (`enum` → Tag, `ref` → InstanceChip, `quantity` →
 QuantityText, `blob` → FileChip). Spans are `'full' | 'half'`; the layout is
 a dumb responsive grid that consumes spans. Dense rows bound their field
 count through the same budget mechanism (`ROW_FIELD_BUDGET`).
@@ -104,8 +104,8 @@ data, never guessed from MIME or extension.
 ### Actions
 
 `resolveActionButton(action, { render })` → `{ component, tone, icon,
-confirm, hidden }` from a fixed table: `createEntity` → primary,
-`deleteEntity` → danger + confirmation, relation link/unlink → text/icon
+confirm, hidden }` from a fixed table: `createInstance` → primary,
+`deleteInstance` → danger + confirmation, relation link/unlink → text/icon
 presentations, event-triggered actions → hidden. Status-transition actions
 carry the target state's render severity as their tone.
 
@@ -154,7 +154,7 @@ tokens) and card grids run through the shared `ResponsiveGrid` primitive
 
 `composeScreen(screen, contract, bundle, pool)` (in `screen.js`) projects one
 compiled screen contract into a pure region tree — no Vue. It resolves
-sources (`mode: 'single'` by `scope.entityId` with first-instance fallback;
+sources (`mode: 'single'` by `scope.instanceId` with first-instance fallback;
 `mode: 'list'` unscoped, or scoped by `relation: { sourceId, key }` /
 `lineage: { sourceId, key }` against the origin source's instance), maps
 regions to surface kinds (detail main regions at `full`, nested detail at

@@ -18,7 +18,7 @@ Composition flow
 `GeneratedMappingScreen.vue` composes the compiled screen contract
 (`composeScreen` — pure, in `shared/ui-mapping/screen.js`) into a region
 tree and materializes it with `RegionBlock` → `SurfaceBody` →
-`FieldControl` / `EntityChip` / `PreviewBox` / `ActionButton`. Region
+`FieldControl` / `InstanceChip` / `PreviewBox` / `ActionButton`. Region
 actions run through `ActionButton`; actions with construction inputs open
 the generated create dialog, whose fields are the declared construction
 inputs resolved against the target type's field descriptors.
@@ -80,12 +80,12 @@ inputs resolved against the target type's field descriptors.
   budgeted description lists, record lists as checklist rows (boolean +
   string subfields), variants as tag plus payload value.
 - Editors: `QuantityInput` (InputGroup + unit addon), `EnumSelect`
-  (filtered, via the shared Select wrapper), `EntityPicker` (AutoComplete
-  with typeahead over the instance pool), `EntityMultiPicker` (shared
+  (filtered, via the shared Select wrapper), `InstancePicker` (AutoComplete
+  with typeahead over the instance pool), `InstanceMultiPicker` (shared
   MultiSelect wrapper), `ChipsInput`, `FileUploadControl`, and the
   recursive `ObjectEditor` / `ListEditor` / `VariantEditor`. Percent
   quantities display as Knob dials.
-- `EntityChip.vue`, `PreviewBox.vue`, `ActionButton.vue` — reference chips,
+- `InstanceChip.vue`, `PreviewBox.vue`, `ActionButton.vue` — reference chips,
   payload previews keyed on the declared preview mode, and action-button
   presentation from the compiled action record.
 
