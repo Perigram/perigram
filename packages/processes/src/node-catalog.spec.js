@@ -205,6 +205,22 @@ describe('process v4 node catalog', () => {
     expect(ids.at(-1)).toBe('status.state.primary');
   });
 
+  it('renders a migrated mutate record with persisted block slots after the leaves', () => {
+    const context = {
+      fieldSchemas: [
+        { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' }, writable: true },
+        { path: 'data.width', block: 'data', type: { base: 'number', shape: 'item' }, writable: true }
+      ]
+    };
+    // a v4 updateEntity wired through blocks migrates with slots: the block
+    // sockets must survive so the legacy graph keeps working
+    const migrated = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel', slots: ['identity'] }, context);
+    expect(migrated.inputs.map(input => input.id)).toEqual(['entity', 'data.width', 'identity', 'status.state.primary']);
+    // a fresh mutate carries no slots: leaves only
+    const fresh = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel' }, context);
+    expect(fresh.inputs.map(input => input.id)).toEqual(['entity', 'data.width', 'status.state.primary']);
+  });
+
   it('splits the species binding contract: origins carry a typed pin, consumers adapt to their entity wire', () => {
     const context = { domain: {} };
 

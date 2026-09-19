@@ -241,7 +241,7 @@ describe('process designer domain contract', () => {
     // the same tree (SPEC §20/§21); the registry catalog prepends to it at
     // the designer surface
     expect(groups.types.map(item => item.type)).toEqual([
-      'ctsClass', 'ctsField', 'ctsState', 'statusDefinition', 'ctsType'
+      'ctsClass', 'ctsField', 'ctsState', 'ctsType'
     ]);
     // operations are the effect species over declarations plus the explicit
     // producer join — no legacy "run service" against the command table:
@@ -355,9 +355,14 @@ describe('declaration wire legality', () => {
     expect(legality({ sourceType: 'ctsState', targetType: 'ctsClass' })).toBe('declares');
   });
 
-  it('class and reference nodes bind type-bound species records only', () => {
+  it('class and reference nodes bind origin species only; consumers adapt to their entity stream', () => {
     expect(legality({ sourceType: 'ctsClass', targetType: 'processNode', targetRecordKind: 'cts.construct' })).toBe('binds');
     expect(legality({ sourceType: 'ctsType', targetType: 'processNode', targetRecordKind: 'cts.read' })).toBe('binds');
+    // consumer species carry no Type pin: their entity input accepts
+    // instance streams only, never a declaration wire
+    for (const kind of ['cts.mutate', 'cts.transition', 'cts.remove']) {
+      expect(legality({ sourceType: 'ctsClass', targetType: 'processNode', targetRecordKind: kind })).toBeNull();
+    }
     // v4 working-vocabulary records are not declaration-bindable
     expect(legality({ sourceType: 'ctsClass', targetType: 'processNode', targetRecordKind: 'effect.createEntity' })).toBeNull();
     // operator-bound and structure species carry no type to bind

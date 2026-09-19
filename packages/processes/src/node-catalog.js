@@ -264,18 +264,25 @@ function cts(kind, label, family, level) {
         const ports = catalogPorts(resolveCtsRecord(record, context.domain || {}), context);
         // Bound mutates patch leaves: writable row fields arrive as field
         // sockets keyed by schema path, consumed by the effect boundary as
-        // direct field writes — blocks stay on the v4 twin.
+        // direct field writes. Block sockets render only from the record's
+        // persisted `slots` — the legacy v4 composition a migrated graph
+        // arrived with stays wired and executable; fresh mutates carry no
+        // slots and show leaves only.
         if (record.kind === 'cts.mutate') {
           const leaves = (context.fieldSchemas || [])
             .filter(field => field.writable !== false && ['data', 'specs'].includes(field.block))
             .map(field => socket(field.path, field.type, DATA, false, 'list'));
           const entity = ports.inputs.find(port => port.id === 'entity');
+          const blocks = (Array.isArray(record.slots) ? record.slots : [])
+            .filter(slot => ports.inputs.some(port => port.id === slot && port.type?.base === 'block'))
+            .map(slot => ports.inputs.find(port => port.id === slot));
           const status = ports.inputs.find(port => port.id === 'status.state.primary');
           return {
             ...ports,
             inputs: [
               ...(entity ? [entity] : []),
               ...leaves,
+              ...blocks,
               ...(status ? [status] : [])
             ]
           };
