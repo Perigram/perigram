@@ -44,9 +44,11 @@ twin are identical by test after stripping the origin species'
 authoring-only `Type` pin — the persistent binding input on
 `cts.construct`/`cts.read` (`TYPE_PIN_SPECIES`), typed by the binding
 once bound. Consumer species (`cts.mutate`, `cts.transition`,
-`cts.remove` — `TYPE_BOUND_SPECIES` minus the origins) carry no pin:
-their binding follows the Type wire, else the entity input's source
-type, else the stored preset. Declaration authoring composes in the same
+`cts.remove` — `TYPE_BOUND_SPECIES` minus the origins) carry no pin and
+never receive declaration wires — their entity input is a value socket;
+the binding follows the entity input's source type, else the stored
+preset. A migrated mutate renders its persisted `slots` as block sockets
+after the leaves, so legacy v4 block wiring keeps executing. Declaration authoring composes in the same
 tree: Class/Field/State canvas nodes wire through the legality matrix
 (`declarationWireLegality`) and compile into registry declarations via
 `compileTreeDeclarations` (R4-enforcing, pure over the canvas arrays).

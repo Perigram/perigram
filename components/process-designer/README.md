@@ -10,9 +10,11 @@ surfaces — the producer workflow inspector opens on the entity-producing
 process node, while services and sockets are edited in collapsible panels of
 the Roles tab. Role identities are organization data,
 and the Roles panel performs immediate organization CRUD independently of
-process Save/Apply. Assignments belong to Team Management. Statuses have a
-definition item in the Entities palette and render as inline-editable canvas
-nodes; they are not inspector tabs or process-selector controls. A status node
+process Save/Apply. Assignments belong to Team Management. Statuses are
+authored as state declaration nodes on their class (the Types palette);
+legacy v4 status definitions render as their inline-editable canvas nodes
+for graphs that already carry them, but the palette no longer offers the
+item. A status node
 exposes one typed `status` output backed by its stable definition reference.
 Modify Entity consumes that output through `status.state.primary`; changing the
 authored status id updates the referenced value without breaking the wire.
@@ -47,12 +49,21 @@ carry a persistent **Type pin** (typed by the binding once bound), wired
 from a class node or a **Type reference** item's `ctsType` node.
 Consumer species (`cts.mutate`, `cts.transition`, `cts.remove`)
 transform entities that arrive over their entity input: they carry no
-pin — their binding follows the Type wire while one exists, else the
-entity input's source type (plugging a typed entity stream into an
-unbound mutate adapts it to that type), else the stored preset.
+pin and never receive a declaration wire — the entity input accepts
+instance streams only. Their binding follows the entity input's source
+type live (plugging a typed entity stream into an unbound mutate adapts
+it to that type), falling back to the stored preset.
 Stored v4 graphs migrate to the species vocabulary on load, and every
 kind-matching consumer routes through `operationKindOf` — the authored
 vocabulary is the type system's, not a labeled legacy layer.
+
+Declaration authoring validates live: the class inspector enforces the
+registry's kebab-case type id (an invalid id is why a class silently
+drops out of the overlay and bound sockets stop regenerating) and shows
+`compileTreeDeclarations` plus `normalizeType` diagnostics while
+authoring — what SAVE/APPLY would reject is visible immediately, not
+after a frozen canvas. Class card labels derive from the current type
+id, so renames show on the card and in every binding option list.
 
 **Live evaluation** (`useProcessDesignerLiveGraph` over
 `interpretDeclarationEdges` in `@cutkit/processes`): the designer behaves
@@ -73,9 +84,10 @@ idempotent passes converge instead of oscillating.
 Declaration-plane wires (`declarationWireLegality` in
 `packages/processes/src/designer.js`, SPEC §20/§21 one tree) are legal only
 between declaration partners: field/state nodes declare on a class node;
-class/reference nodes bind a type-bound species record — onto its `Type`
-pin (origins) or its entity input (consumers); operator-bound and
-structure species carry no type to bind; class→class wires declare
+class/reference nodes bind an origin species record's `Type` pin
+(consumers carry none — their entity input is a value socket);
+operator-bound and structure species carry no type to bind;
+class→class wires declare
 children edges (key + `onRemove`); state→state wires are transitions
 with intents. Their typed port specs
 (`declarationNodePorts`, the single home for every declaration handle —
@@ -113,9 +125,10 @@ binding channel owns the type, the species owns the operation.
 A bound `cts.mutate` patches leaves: writable `data`/`specs` row fields
 arrive as field sockets keyed by schema path (beside the entity input and
 the status input), and the effect boundary persists each wired or
-prompted leaf as a direct field write — no block composition. The v4
-`effect.updateEntity` twin keeps block sockets for legacy graphs. An
-unbound mutate offers only its entity input: wiring a typed entity
+prompted leaf as a direct field write — no block composition. Block
+sockets render only from the record's persisted `slots`: a migrated v4
+graph's block wiring stays live, while fresh mutates never derive blocks.
+An unbound mutate offers only its entity input: wiring a typed entity
 stream in adapts it to that type and surfaces the leaves.
 
 The type catalog completes the Types group: `typeCatalogPaletteGroups`

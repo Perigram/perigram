@@ -639,9 +639,10 @@ the binding). Type reference nodes persist on the canvas as `ctsType`
 nodes (they own no records). Binding semantics split by species: origin
 species (`cts.construct`, `cts.read`) carry a persistent Type pin wired
 from a type node or class; consumer species (`cts.mutate`,
-`cts.transition`, `cts.remove`) carry no pin — their binding follows the
-Type wire while one exists, else the entity input's source type, else
-the stored preset. Binding wires are `role: 'type'` canvas edges — live
+`cts.transition`, `cts.remove`) carry no pin and never receive
+declaration wires — their entity input accepts instance streams only;
+the binding follows the entity input's source type, else the stored
+preset. Binding wires are `role: 'type'` canvas edges — live
 binding channels, interpreted on every graph change (renaming the
 source re-binds every wired descendant; removing the channel unbinds
 what it carried). Normalization drops them before validation because
