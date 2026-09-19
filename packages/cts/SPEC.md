@@ -635,26 +635,30 @@ The palette is operations, never a domain catalog. No node drops pre-bound:
 a seeded domain type is an invisible authoring decision the user never
 made — records are unbound until the author binds them. Type reference
 nodes persist on the canvas as `ctsType` nodes (they own no records); a
-wire between a type node and a species record carries the binding into the
-record's `type` field. Binding wires are `role: 'type'` canvas edges —
-visualization and re-binding gestures; normalization drops them before
-validation because the binding itself is persisted in the record.
+wire between a type node and a type-bound species record carries the
+binding into the record's `typeId`/`type` field. Binding wires are
+`role: 'type'` canvas edges — the live binding channel, interpreted on
+every graph change (renaming the source re-binds every wired descendant;
+removing the wire unbinds what it carried) — and the Type pin they land
+on is a persistent socket of the species record, so a wire never dangles
+and re-binding stays possible. Normalization drops them before validation
+because the interpreted binding itself is persisted in the record.
 
 ### Residue (explicit)
 
 The designer authors v5: the palette speaks species kinds (`cts.*`), node
-creation writes `type`/`via`/`slots`, stored v4 graphs migrate on load, and
-`operationKindOf` is the single seam every kind-matching consumer routes
-through (client and catalog; no duplicated vocabulary). Producer outputs
-synced by the designer keep storage entity ids — load-time migration
-normalizes them on the next cycle. The composer-less construct landed
-(2026-09-18): declared row fields project as generic-construction inputs
-and surface as typed construct sockets beside the block sockets, and
-declared construct operators project as `via` modes with
-signature-derived mode inputs. Remaining residue: mutate keeps block
-sockets (field changes compose through blocks by contract — effects never
-own leaf mutation fields), and field pickers list slot paths, which
-resolution passes through unchanged. `statusDefinitions` remain
+creation writes `typeId`/`via`/`slots`, stored v4 graphs migrate on load,
+and `operationKindOf` is the single seam every kind-matching consumer
+routes through (client and catalog; no duplicated vocabulary). Producer
+outputs synced by the designer keep storage entity ids — load-time
+migration normalizes them on the next cycle. The composer-less construct
+landed (2026-09-18): declared row fields project as generic-construction
+inputs and surface as typed construct sockets (no block sockets on the
+species record; blocks are the v4 twin's substrate), declared construct
+operators project as `via` modes with signature-derived mode inputs, and
+`cts.mutate` patches leaves (writable row fields as field sockets; blocks
+stay on the v4 twin). Remaining residue: field pickers list slot paths,
+which resolution passes through unchanged. `statusDefinitions` remain
 definition-plane records authoring state metadata; per §7 they compile
 into declarations, never alongside.
 
