@@ -158,7 +158,7 @@ import { projectContextActionEntries } from '~/components/generated/project-cont
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 import { useAuthStore } from '~/stores/auth';
 import { useEntityStore } from '~/stores/entities.js';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { useInstancesStore } from '~/stores/instances';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
@@ -188,7 +188,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action']);
 const authStore = useAuthStore();
 const entityStore = useEntityStore();
-const domainUi = useCutkitDomainUi();
+const instances = useInstancesStore();
 const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
 const explorerOpen = ref(true);
@@ -329,7 +329,7 @@ const explorerNodes = computed(() => {
   if (!projectItem.value) return [];
   return [{
     key: projectItem.value.key,
-    icon: domainUi.getIcon('project'),
+    icon: instances.iconFor('project'),
     data: { item: projectItem.value },
     children: [
       ...(explorerHierarchy.value.linkedRootItems.length ? [{
@@ -430,7 +430,7 @@ watch(linkedChildSources, async sources => {
   const sequence = ++linkedChildLoadSequence;
   const loaded = await Promise.all(sources.map(async source => {
     try {
-      const entities = await $fetch(domainUi.getListEndpoint(source.entityType, source.filters));
+      const entities = await instances.listInstances(instances.canonicalTypeKey(source.entityType), source.filters);
       return (Array.isArray(entities) ? entities : []).map(entity => workspaceEntityItem(source.entityType, entity));
     } catch {
       return [];
@@ -469,7 +469,7 @@ function explorerEntityNode(item, prefix = '') {
   const contained = explorerHierarchy.value.childrenByKey.get(item.key) || [];
   return {
     key: prefix ? `${prefix}:${item.key}` : item.key,
-    icon: domainUi.getIcon(item.type),
+    icon: instances.iconFor(item.type),
     data: { item },
     children: [
       ...contained.map(child => explorerEntityNode(child)),

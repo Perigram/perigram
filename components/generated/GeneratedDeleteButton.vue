@@ -22,7 +22,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { useEntity } from '~/composables/useEntity.js';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { useInstancesStore } from '~/stores/instances';
 import { canDeleteGeneratedEntity, uiEntityType } from '~/components/generated/delete-visibility.js';
 
 const props = defineProps({
@@ -34,16 +34,15 @@ const props = defineProps({
 const emit = defineEmits(['deleted']);
 
 const authStore = useAuthStore();
-const domainUi = useCutkitDomainUi();
+const instances = useInstancesStore();
 const toast = useToast();
 const confirm = useConfirm();
 const { t } = useI18n();
 const loading = ref(false);
 
-const normalizedType = computed(() => uiEntityType(domainUi, props.entityType));
+const normalizedType = computed(() => instances.canonicalTypeKey(props.entityType));
 const visible = computed(() => canDeleteGeneratedEntity({
   authStore,
-  domainUi,
   entity: props.entity,
   entityType: props.entityType
 }));

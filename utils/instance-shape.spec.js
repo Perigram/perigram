@@ -4,7 +4,7 @@
 // references, relations passed through as typed refs, and the primary
 // status landing on the main state axis.
 import { describe, expect, it } from 'vitest';
-import { entityDtoToScreenInstance } from './useScreenInstancePool.js';
+import { entityDtoToScreenInstance } from './instance-shape.js';
 
 const typeRecord = {
   id: 'part',

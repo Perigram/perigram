@@ -17,7 +17,7 @@ import { generatedDetailActionIds } from '~/components/generated/detail-screen-a
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { openEntityChat } from '~/utils/entity-chat.js';
 import { openEntityInWorkspace } from '~/utils/entity-workspace-open.js';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi';
+import { useInstancesStore } from '~/stores/instances';
 import { normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
 import { useEntity } from '~/composables/useEntity';
 import { useAuthStore } from '~/stores/auth';
@@ -75,7 +75,7 @@ const loaded = ref(null);
 const compactOp = ref();
 const authStore = useAuthStore();
 const entityStore = useEntityStore();
-const domainUi = useCutkitDomainUi();
+const instances = useInstancesStore();
 const { t } = useI18n();
 const sheetDesignApi = useEntity('sheetDesign');
 const entityContext = inject('entityContext', null);
@@ -110,7 +110,7 @@ const resolvedId = computed(() => normalizedId.value
   || resolved.value?.identity?.uid
   || ''
 );
-const icon = computed(() => domainUi.getIcon?.(props.type) || 'pi pi-box');
+const icon = computed(() => instances.iconFor(props.type));
 const cardComponent = computed(() => CARD_COMPONENTS[contract.value?.key] || null);
 // `interactive: false` renders the inline entity card non-expandable, so
 // non-interactive rows (explorer entries, static summaries) can consume the

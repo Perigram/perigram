@@ -7,7 +7,8 @@ import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions';
 import { processOperationalScreens, resolveVisibleNavigation, resolveVisibleScreens } from '~/utils/process-navigation';
 import { generatedScreenLabel } from '~/utils/generated-labels.js';
 import { useEntityStore } from './entities.js';
-import { cncDomain } from '@cutkit/domain-cnc';
+import { useInstancesStore } from './instances';
+import { useRegistryStore } from './registry';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { entityUiFor } from '~/utils/status-engine.js';
 import { containmentAncestors, entityHierarchyId, hierarchyTypeAlias, normalizeHierarchyType, projectHierarchyRoute, rootContainmentFilter, siblingContainmentScope } from '~/utils/entity-hierarchy.js';
@@ -17,6 +18,8 @@ export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
     const globalStore = useGlobalStore();
     const entityStore = useEntityStore();
+    const instances = useInstancesStore();
+    const registry = useRegistryStore();
     const { t, te } = useI18n();
 
     function effectiveContainment() {
@@ -28,7 +31,7 @@ export const useNavigationStore = defineStore('navigation', () => {
                 lineageKey: binding.lineageKey
             }));
         }
-        return cncDomain.containment;
+        return registry.containment;
     }
 
     // Store-managed state for project context
@@ -99,11 +102,11 @@ export const useNavigationStore = defineStore('navigation', () => {
     }
 
     async function fetchHierarchySiblings(entity, entityType, fetchOptions = {}) {
-        const endpoint = entityEndpoint(entityType);
-        if (!endpoint?.routes?.list) return [];
+        const listEndpoint = instances.endpointsFor(instances.canonicalTypeKey(entityType)).list();
+        if (!listEndpoint) return [];
         const scope = siblingContainmentScope(entity, entityType, effectiveContainment());
         try {
-            const items = await $fetch(endpoint.routes.list, { ...fetchOptions, query: scope });
+            const items = await $fetch(listEndpoint, { ...fetchOptions, query: scope });
             const rootKeys = Object.keys(rootContainmentFilter(entityType, effectiveContainment())).map(key => key.replace(/^lineage\./, ''));
             return (Array.isArray(items) ? items : []).filter(item => (
                 Object.entries(scope).every(([key, value]) => item.lineage?.[key]?.toString?.() === value?.toString?.())
@@ -112,10 +115,6 @@ export const useNavigationStore = defineStore('navigation', () => {
         } catch {
             return [];
         }
-    }
-
-    function entityEndpoint(entityType = '') {
-        return (cncDomain.ui?.endpoints || []).find(endpoint => normalizeHierarchyType(endpoint.type) === normalizeHierarchyType(entityType));
     }
 
     function hierarchyRoute(item = {}) {

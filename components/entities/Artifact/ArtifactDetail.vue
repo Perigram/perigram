@@ -29,20 +29,19 @@ import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
 import SketchEditor from '~/components/artifacts/SketchEditor.vue';
 import ArtifactLayoutEditor from '~/components/ArtifactLayoutEditor.vue';
 import { useAuthStore } from '~/stores/auth';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { artifactRevisionOptions, resolveArtifactEditingContract } from '~/utils/artifact-detail.js';
 
 const props = defineProps({ artifact: { type: Object, required: true } });
 const emit = defineEmits(['saved']);
 const authStore = useAuthStore();
-const domainUi = useCutkitDomainUi();
 const revisions = ref([]);
 const selectedRevisionId = ref('');
 const layoutDraft = ref(null);
 const replacementInput = ref(null);
 const canEdit = computed(() => hasPermissionGrant({ permissions: authStore.activePermissions, feature: 'artifacts', level: 'write', entity: props.artifact, entityType: 'artifact' }));
-const editing = computed(() => resolveArtifactEditingContract({ artifact: props.artifact, domainUi, canEdit: canEdit.value }));
+const editing = computed(() => resolveArtifactEditingContract({ artifact: props.artifact, canEdit: canEdit.value }));
 const creation = computed(() => editing.value.creation);
 const editor = computed(() => editing.value.editor);
 const canReplaceFile = computed(() => editing.value.canReplaceFile);

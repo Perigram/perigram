@@ -1,4 +1,4 @@
-import { canonicalEntityType } from '@cutkit/domain-cnc';
+import { normalizeHierarchyType } from './entity-hierarchy.js';
 
 export function resolveEntityRelationRefs(rawValue, field = {}) {
   const refs = [];
@@ -33,7 +33,7 @@ function normalizeRelationRef(value, fallbackEntityType = null) {
   if (typeof value !== 'object') return null;
 
   const id = value.id || value.entityId || value._id || value.value;
-  const entityType = canonicalEntityType(value.entityType || value.type || fallbackEntityType);
+  const entityType = normalizeHierarchyType(value.entityType || value.type || fallbackEntityType);
   if (!id || !entityType) return null;
 
   if (value.revisionId) {

@@ -57,7 +57,7 @@ import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import { useI18n } from 'vue-i18n';
-import { useCutkitDomainUi } from '~/composables/useCutkitDomainUi.js';
+import { useRegistryStore } from '~/stores/registry';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 import EntityStatus from '~/components/shared/status/EntityStatus.vue';
 
@@ -69,7 +69,7 @@ defineProps({
 defineEmits(['select', 'close', 'add', 'refresh']);
 
 const { t } = useI18n();
-const domainUi = useCutkitDomainUi();
+const registry = useRegistryStore();
 
 function tabLabel(tab = {}) {
   if (tab.kind === 'empty') return t('project.newTab');
@@ -84,7 +84,7 @@ function tabLabel(tab = {}) {
 
 function tabIcon(tab = {}) {
   if (tab.kind === 'empty') return 'pi pi-plus';
-  if (tab.kind === 'entity') return domainUi.getIcon(tab.type);
+  if (tab.kind === 'entity') return registry.iconFor(tab.type);
   return resolveGeneratedWorkspacePage(tab.pageId)?.icon || 'pi pi-file';
 }
 </script>

@@ -1,16 +1,23 @@
 import { hasPermissionGrant } from '#shared/access-control.js';
-import { cncDomain } from '@cutkit/domain-cnc';
+import { useInstancesStore } from '~/stores/instances';
+import { useRegistryStore } from '~/stores/registry';
 
+// Generated-surface delete visibility on the client state model: the
+// feature gate comes from effective permissions over the type's feature
+// key, and the delete capability from the registry view — a registry-known
+// type is deletable through its generic instance service; a legacy type
+// keeps its feature route only while that route stays mounted.
 export function canDeleteGeneratedEntity({ authStore, domainUi, entity, entityType } = {}) {
-  const normalizedType = uiEntityType(domainUi, entityType);
+  const instances = useInstancesStore();
+  const registry = useRegistryStore();
+  const typeKey = instances.canonicalTypeKey(entityType);
   const entityId = entity?._id || entity?.identity?.uid || '';
   return Boolean(
     entityId
-    && domainUi?.endpointMap?.[normalizedType]
-    && domainEntitySupportsDelete(entityType)
+    && typeSupportsClientDelete(typeKey, registry, instances)
     && hasPermissionGrant({
       permissions: authStore?.activePermissions,
-      feature: featureKey(domainUi, entityType),
+      feature: featureKey(typeKey),
       action: 'delete',
       entity,
       entityType
@@ -18,37 +25,31 @@ export function canDeleteGeneratedEntity({ authStore, domainUi, entity, entityTy
   );
 }
 
-export function featureKey(domainUi, entityType = '') {
-  const collection = domainEntityCollection(entityType)
-    || domainEntityCollection(uiEntityType(domainUi, entityType))
-    || `${entityType}s`;
-  return collection.replace(/-/g, '_');
+export function featureKey(entityType = '') {
+  const instances = useInstancesStore();
+  const typeKey = instances.canonicalTypeKey(entityType);
+  const route = instances.endpointsFor(typeKey).list();
+  // Feature-routed types keep the route's collection feature; types on the
+  // generic instance transport share the server's cts-types access feature
+  // (the projected field policy binds every instance-served type to it).
+  if (!route.startsWith('/api/instances/')) {
+    const fromRoute = /^\/api\/([^/]+)/.exec(route)?.[1];
+    if (fromRoute) return fromRoute.replace(/-/g, '_');
+  }
+  return 'cts-types';
 }
 
-export function uiEntityType(domainUi, entityType = '') {
-  if (domainUi?.endpointMap?.[entityType]) return entityType;
-  const camel = String(entityType).replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
-  return domainUi?.endpointMap?.[camel] ? camel : entityType;
+// Back-compat signature kept for the two-argument call sites; the adapter
+// argument is ignored — canonicalization lives in the instances store.
+export function uiEntityType(_domainUi, entityType = '') {
+  return useInstancesStore().canonicalTypeKey(entityType);
 }
 
-function domainEntityCollection(entityType = '') {
-  return domainEntity(entityType)?.collection || '';
-}
-
-function domainEntitySupportsDelete(entityType = '') {
-  return domainEntity(entityType)?.operations?.delete === true;
-}
-
-function domainEntity(entityType = '') {
-  const normalized = String(entityType);
-  const snake = normalized.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
-  const camel = normalized.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
-  return (cncDomain.entities || []).find(item => (
-    item.type === normalized
-    || item.entityType === normalized
-    || item.type === snake
-    || item.entityType === snake
-    || item.type === camel
-    || item.entityType === camel
-  ));
+function typeSupportsClientDelete(typeKey = '', registry = {}, instances = {}) {
+  // Registry-known types are executable through the generic instance
+  // service, whose capability contract allows delete.
+  if (registry.typeRecord?.(typeKey)) return true;
+  // Legacy types keep mounted feature routes; the endpoint resolver knows
+  // which (framework + pack feature modules).
+  return !String(instances.endpointsFor(typeKey).list()).startsWith('/api/instances/');
 }
