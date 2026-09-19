@@ -1041,6 +1041,139 @@ const classDeclarationDiagnostics = computed(() => {
 });
 const declarationNodeTypes = DECLARATION_NODE_TYPES;
 const selectedDeclarationEdge = computed(() => edges.value.find(edge => edge.id === selectedEdgeId.value && edge.role === 'type') || null);
+
+const typeAnchorOptions = computed(() => ctsTypeView().map(entry => ({
+  label: `${entry.label} · ${entry.class}`,
+  value: entry.id
+})));
+const optionalEntityTypeOptions = computed(() => [{ label: 'None', value: '' }, ...entityTypeOptions.value]);
+const commandOptions = computed(() => designer.commandOptions);
+const screenActionOptions = computed(() => Object.values(draft.value?.data?.actions || {}).map(action => ({
+  label: action.label || action.id,
+  value: action.id
+})));
+const selectedScreenSourceOptions = computed(() => (selectedScreenRecord.value?.sources || []).map(source => ({
+  label: source.id || source.entityType,
+  value: source.id
+})));
+const screenFeatureOptions = computed(() => (designer.domain.entities || []).map(entity => ({
+  label: entity.label || entity.type,
+  value: featureForEntityType(entity.type)
+})));
+const permissionFeatureOptions = computed(() => screenFeatureOptions.value.map(option => ({
+  key: option.value,
+  label: option.label,
+  actions: ['view', 'create', 'update', 'delete', 'run', 'send', 'approve', 'reject', 'fulfill']
+})));
+const fieldOptionsForSelectedSocket = computed(() => designer.fieldsForEntity(selectedSocketRecord.value?.entityType));
+const serviceList = computed(() => Object.values(draft.value?.data?.services || {}));
+const socketList = computed(() => Object.values(draft.value?.data?.sockets || {}));
+const selectedSocketId = ref('');
+const selectedSocketRecord = computed(() => draft.value?.data?.sockets?.[selectedSocketId.value] || socketList.value[0] || null);
+const selectedEntityAvailable = computed(() => Boolean(selectedEntity.value?.producerOutputId));
+function commandForId(commandId) {
+  return cncDomain.commands?.[commandId] || null;
+}
+
+const selectedCommandService = computed(() => {
+  const node = selectedProcessNode.value;
+  if (!isOpKind(node, 'effect.runCommand') || !node.commandId) return null;
+  return serviceList.value.find(service => service.commandId === node.commandId) || null;
+});
+function createCommandServiceForSelectedNode() {
+  const node = selectedProcessNode.value;
+  if (!isOpKind(node, 'effect.runCommand') || !node.commandId) return;
+  const id = `service_${Date.now()}`;
+  const record = createService(id);
+  record.commandId = node.commandId;
+  const command = commandForId(node.commandId);
+  record.label = command?.label || node.commandId;
+  record.serviceType = command?.service || '';
+  record.inputs = commandInputs(command);
+  record.outputs = commandOutputs(command);
+  draft.value.data.services ||= {};
+  draft.value.data.services[id] = record;
+  syncNodeData();
+}
+function removeSelectedCommandService() {
+  const record = selectedCommandService.value;
+  if (!record) return;
+  delete draft.value.data.services[record.id];
+  syncNodeData();
+}
+function addSocket() {
+  const id = `socket_${Date.now()}`;
+  draft.value.data.sockets ||= {};
+  draft.value.data.sockets[id] = createSocket(id);
+  selectedSocketId.value = id;
+}
+function removeSelectedSocket() {
+  if (!selectedSocketRecord.value) return;
+  delete draft.value.data.sockets[selectedSocketRecord.value.id];
+  selectedSocketId.value = '';
+}
+const ACCESS_LEVEL_ORDER = { read: 0, write: 1, admin: 2 };
+const selectedProcessNodeAccessDetail = computed(() => {
+  const node = selectedProcessNode.value;
+  if (!node?.kind || !['effect.changeStatus', 'effect.archiveEntity', 'effect.updateEntity'].includes(opKind(node))) return '';
+  const incoming = node.id ? inferIncomingEntityContract(node.id) : {};
+  const from = incoming.status || '';
+  const to = node.status?.to || '';
+  if (!from && !to) return '';
+  return [from || '?', to || '?'].join(' -> ');
+});
+const selectedProcessNodeEffectiveAccess = computed(() => {
+  const node = selectedProcessNode.value;
+  const entityType = nodeEntityType(node) || node?.targetEntityType || '';
+  if (!isOpKind(node, 'effect.') || !entityType) return [];
+  const byRole = new Map();
+  const record = (roleId, level, inherited) => {
+    const current = byRole.get(roleId);
+    if (current && ACCESS_LEVEL_ORDER[current.level] >= ACCESS_LEVEL_ORDER[level]) return;
+    byRole.set(roleId, { roleId, level, inherited });
+  };
+  for (const grant of node.access?.grants || []) {
+    if (grant.roleId) record(grant.roleId, grant.level || node.access?.level || 'write', false);
+  }
+  for (const output of Object.values(draft.value?.data?.producerOutputs || {})) {
+    if (output.entityType !== entityType) continue;
+    for (const level of ['read', 'write', 'admin']) {
+      for (const roleId of output.allowedRoles?.[level] || []) record(roleId, level, true);
+    }
+  }
+  return [...byRole.values()]
+    .map(item => ({
+      label: `${roles.value[item.roleId]?.label || item.roleId}: ${item.level}${item.inherited ? ' (from entity access)' : ''}`,
+      inherited: item.inherited
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label));
+});
+const selectedProcessNodeGrants = computed(() => (selectedProcessNode.value?.access?.grants || []).filter(grant => grant.roleId));
+const selectedProcessNodeGrantRoleIds = computed(() => [
+  ...new Set((selectedProcessNodeGrants.value || []).map(grant => grant.roleId).filter(Boolean))
+]);
+function updateSelectedProcessNodeGrantRoles(roleIds = []) {
+  const node = selectedProcessNode.value;
+  if (!node) return;
+  const current = node.access?.grants || [];
+  const kept = current.filter(grant => roleIds.includes(grant.roleId));
+  const added = roleIds
+    .filter(roleId => !kept.some(grant => grant.roleId === roleId))
+    .map(roleId => ({ roleId, level: isOpKind(node, 'effect.deleteEntity') ? 'admin' : 'write' }));
+  node.access = { ...(node.access || {}), grants: [...kept, ...added] };
+  syncNodeData();
+}
+function updateSelectedProcessNodeGrantLevel(index, level) {
+  const node = selectedProcessNode.value;
+  if (!node) return;
+  const grants = [...(node.access?.grants || [])];
+  if (grants[index]) grants[index] = { ...grants[index], level: level || 'write' };
+  node.access = { ...(node.access || {}), grants };
+  syncNodeData();
+}
+const selectedRoleAccessSummary = computed(() => selectedRoleId.value
+  ? flattenRoleAccessSummary(deriveRoleAccessSummary({ process: draft.value, roleIds: [selectedRoleId.value] }))
+  : []);
 const grantEditorPermissions = computed(() => {
   const target = grantEditorTarget.value;
   if (!target?.feature) return {};
