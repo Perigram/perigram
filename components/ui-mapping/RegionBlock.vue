@@ -100,7 +100,7 @@
     />
   </Panel>
 
-  <div v-else :class="[LAYOUT[GAP_BY_LEVEL[node.level] || 'stack'], 'w-full']">
+  <div v-else :class="[stackFor, 'w-full']">
     <Message
       v-if="!node.instances.length"
       severity="info"
@@ -200,7 +200,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, inject, reactive, ref } from 'vue';
 import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
@@ -209,7 +209,7 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import { LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout } from '#shared/ui-mapping/index.js';
+import { DENSITY, LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout } from '#shared/ui-mapping/index.js';
 import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
 import HierarchyTable from './HierarchyTable.vue';
@@ -229,6 +229,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['run']);
+const density = inject('uiMappingDensity', 'regular');
+const stackFor = computed(() => (density.value === 'compact' ? DENSITY.compact.stack : LAYOUT[GAP_BY_LEVEL[props.node.level] || 'stack']));
 const editing = ref(false);
 const draft = reactive({});
 const toggleEditing = () => {

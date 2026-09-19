@@ -124,12 +124,22 @@ export const ROW_WEIGHT_BY_LAYOUT = Object.freeze({
 export const SCREEN_DENSITY_AT = 24;
 export const DENSITY = Object.freeze({
   compact: Object.freeze({
-    stack: 'flex flex-col gap-2',
+    stack: 'flex flex-col gap-3',
+    stackTight: 'flex flex-col gap-2',
+    factsGrid: 'grid grid-cols-1 items-start gap-x-4 gap-y-2 sm:grid-cols-2 xl:grid-cols-4',
+    specRow: 'flex min-w-0 items-center justify-between gap-3 py-1',
+    chipRow: 'flex flex-wrap items-start gap-1.5 pt-1',
+    sectionTitle: 'text-label text-muted uppercase mb-1',
     knob: 40,
     factValue: 'text-body'
   }),
   regular: Object.freeze({
-    stack: 'flex flex-col gap-3',
+    stack: 'flex flex-col gap-6',
+    stackTight: 'flex flex-col gap-3',
+    factsGrid: 'grid grid-cols-1 items-start gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-4',
+    specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
+    chipRow: 'flex flex-wrap items-start gap-1.5 pt-2',
+    sectionTitle: 'text-label text-muted uppercase',
     knob: 64,
     factValue: 'text-body'
   })

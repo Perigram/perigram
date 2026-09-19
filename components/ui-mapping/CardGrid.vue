@@ -21,7 +21,7 @@
           </template>
           <template #subtitle>{{ type?.render?.label }}</template>
           <template #content>
-            <div :class="DENSITY.compact.stack">
+            <div :class="(DENSITY[density] || DENSITY.regular).stackTight">
               <div v-for="field in scalarFields" :key="field.name" :class="LAYOUT.rowBetween">
                 <span class="text-supporting text-muted">{{ field.label }}</span>
                 <FieldControl
@@ -44,7 +44,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import DataView from 'primevue/dataview';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
@@ -53,6 +53,8 @@ import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { DENSITY, LAYOUT, SCALAR_BASES, cardFactCount, SEVERITY_MAP, instanceIdentity, fieldLabel } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
+
+const density = inject('uiMappingDensity', 'regular');
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },

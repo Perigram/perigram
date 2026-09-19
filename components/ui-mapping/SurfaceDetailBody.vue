@@ -1,12 +1,12 @@
 <template>
-  <div :class="LAYOUT.stack">
+  <div :class="d.stack">
     <StateStrip v-if="type.states?.main" :type="type" :instance="instance" />
     <PreviewBox v-if="hasPreview" :type="type" :payload="instance.payload" :seed="instance.id" />
 
-    <section v-for="group in groups" :key="group.id" :class="LAYOUT.stackTight">
-      <span v-if="group.label" :class="LAYOUT.sectionTitle">{{ group.label }}</span>
+    <section v-for="group in groups" :key="group.id" :class="d.stackTight">
+      <span v-if="group.label" :class="d.sectionTitle">{{ group.label }}</span>
       <div v-if="shownFacts(group).length" :class="LAYOUT.specList">
-        <div v-for="field in shownFacts(group)" :key="field.name" :class="LAYOUT.specRow">
+        <div v-for="field in shownFacts(group)" :key="field.name" :class="d.specRow">
           <span :class="LAYOUT.labelCell">{{ field.label }}</span>
           <div :class="LAYOUT.factCell">
             <FieldControl
@@ -60,7 +60,7 @@
             </Inplace>
           </div>
         </div>
-        <div v-if="hiddenFactCount(group) > 0" :class="LAYOUT.specRow">
+        <div v-if="hiddenFactCount(group) > 0" :class="d.specRow">
           <span class="text-body text-muted">…</span>
           <Tag :value="`+${hiddenFactCount(group)}`" severity="contrast" />
         </div>
@@ -90,7 +90,7 @@
           />
         </div>
       </Fieldset>
-      <div v-else-if="structuralOf(group).length === 1" :class="LAYOUT.specRow">
+      <div v-else-if="structuralOf(group).length === 1" :class="d.specRow">
         <span class="text-body text-muted">{{ structuralOf(group)[0].label }}</span>
         <FieldControl
           :model-value="instance.fields?.[structuralOf(group)[0].name]"
@@ -174,7 +174,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Accordion from 'primevue/accordion';
@@ -182,7 +182,7 @@ import AccordionPanel from 'primevue/accordionpanel';
 import Fieldset from 'primevue/fieldset';
 import Inplace from 'primevue/inplace';
 import { reactive } from 'vue';
-import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups } from '#shared/ui-mapping/index.js';
+import { DENSITY, LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import InstanceChip from './InstanceChip.vue';
 import PreviewBox from './PreviewBox.vue';
@@ -202,6 +202,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['toggle', 'inline-change']);
+const density = inject('uiMappingDensity', 'regular');
+const d = computed(() => DENSITY[density.value] || DENSITY.regular);
 
 const inlineDraft = reactive({});
 const surface = computed(() => resolveSurface(props.type, { variant: props.variant }));
@@ -265,6 +267,6 @@ const relationViews = computed(() => {
   });
 });
 const relationClass = relation => (relation.mode === 'scroll'
-  ? relation.mode === 'scroll' ? 'flex max-h-48 flex-wrap gap-2 overflow-y-auto' : LAYOUT.chipRow
+  ? relation.mode === 'scroll' ? 'flex max-h-48 flex-wrap gap-2 overflow-y-auto' : d.chipRow
   : LAYOUT.row);
 </script>
