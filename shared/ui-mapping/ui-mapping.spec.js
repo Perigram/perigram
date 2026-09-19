@@ -13,6 +13,9 @@ import {
   resolvePreview,
   resolveActionButton,
   resolveListLayout,
+  tableColumnCount,
+  cardFactCount,
+  cardVariantFor,
   resolveChrome,
   applyBudget,
   SEVERITY_MAP,
@@ -92,15 +95,36 @@ describe('field control resolution', () => {
     });
   });
 
-  it('resolves list layouts by class, hierarchy, and type override', () => {
-    expect(resolveListLayout({ id: 'observation', class: 'file' })).toBe('card-grid');
-    expect(resolveListLayout({ id: 'star_system', class: 'group' }, { hierarchical: true })).toBe('tree-table');
-    expect(resolveListLayout({ id: 'probe', class: 'item' })).toBe('table');
-    expect(resolveListLayout({ id: 'log_entry', class: 'file' })).toBe('timeline');
+  it('resolves list layouts from type shape, size, and overrides', () => {
+    const prose = { class: 'file', fields: { body: { base: 'string', max: 400 } } };
+    const numeric = { class: 'item', states: { main: { values: ['a'] } }, fields: {
+      load: { base: 'quantity', unit: 'percent' },
+      speed: { base: 'quantity', unit: 'count' },
+      label: { base: 'string' }
+    } };
+    const media = { class: 'file', payload: { preview: 'image' }, fields: { title: { base: 'string' } } };
+    const plain = { class: 'item', states: { main: { values: ['a'] } }, fields: {
+      name: { base: 'string' }, size: { base: 'number' }, mass: { base: 'quantity', unit: 'count' }, note: { base: 'string' }
+    } };
+    expect(resolveListLayout(prose)).toBe('timeline');
+    expect(resolveListLayout(numeric)).toBe('stats');
+    expect(resolveListLayout(media)).toBe('card-grid');
+    expect(resolveListLayout(plain, { size: 'small' })).toBe('list');
+    expect(resolveListLayout(plain)).toBe('table');
     const mapping = createUiMapping({
       listLayouts: [{ match: { type: 'probe' }, layout: 'timeline' }]
     });
-    expect(mapping.resolveListLayout({ id: 'probe', class: 'item' })).toBe('timeline');
+    expect(mapping.resolveListLayout({ id: 'probe', class: 'item', fields: plain.fields, states: plain.states })).toBe('timeline');
+  });
+
+  it('scales presentation budgets with type richness', () => {
+    const wide = { fields: Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`f${i}`, { base: 'number' }])) };
+    const narrow = { fields: { a: { base: 'string' }, b: { base: 'number' } } };
+    expect(tableColumnCount(wide)).toBe(5);
+    expect(tableColumnCount(narrow)).toBe(2);
+    expect(cardFactCount(wide)).toBe(5);
+    expect(cardFactCount(narrow)).toBe(2);
+    expect(cardVariantFor({ class: 'file', payload: { preview: 'image' }, fields: {} })).toBe('media');
   });
 
   it('lets app overrides with narrow matchers win by specificity', () => {

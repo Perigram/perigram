@@ -60,13 +60,32 @@ export const FIELD_DISPLAY_ENTRIES = Object.freeze([
 ]);
 
 // List-region layout entries: the presentation of a collection is a
-// resolver decision, not a component branch. `hierarchical` is true when
-// the collected type declares lineage children.
+// resolver decision over the TYPE'S SHAPE, not a component branch or a
+// hand-picked type id. Shape keys come from analyzeTypeShape; `size` is
+// the caller's collection size class ('small' for handful-sized sets).
 export const LIST_LAYOUT_ENTRIES = Object.freeze([
-  { match: { type: 'log_entry' }, layout: 'timeline' },
+  { match: { shape: 'chronological' }, layout: 'timeline' },
+  { match: { shape: 'statlike' }, layout: 'stats' },
   { match: { class: 'file' }, layout: 'card-grid' },
   { match: { hierarchical: true }, layout: 'tree-table' },
+  { match: { size: 'small' }, layout: 'list' },
   { match: {}, layout: 'table' }
+]);
+
+export const SMALL_LIST_AT = 3;
+
+// Fact budgets scale with the type's richness instead of fixed constants:
+// wide types earn more table columns and card facts, capped for density.
+export const TABLE_COLUMN_SCALE = Object.freeze([
+  { at: 8, columns: 5 },
+  { at: 5, columns: 4 },
+  { at: 0, columns: 3 }
+]);
+export const CARD_FACT_SCALE = Object.freeze([
+  { at: 8, facts: 5 },
+  { at: 6, facts: 4 },
+  { at: 3, facts: 3 },
+  { at: 0, facts: 2 }
 ]);
 
 // Presentation budgets and thresholds consumed by materializations so the
@@ -108,6 +127,14 @@ export const DENSITY = Object.freeze({
     knob: 64,
     factValue: 'text-body'
   })
+});
+
+// Card anatomy variants, selected by type shape: media cards for payloads,
+// stat cards for percent/quantity-dominant types, text cards otherwise.
+export const CARD_VARIANT_RULES = Object.freeze({
+  media: 'media',
+  statlike: 'stat',
+  default: 'text'
 });
 
 // Hierarchy-driven rhythm and type: the composed node's chrome level picks

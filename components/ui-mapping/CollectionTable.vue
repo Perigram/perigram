@@ -73,12 +73,11 @@ const statusOf = instance => {
   const render = props.type.render?.states?.[value];
   return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
 };
-const scalarFields = computed(() => applyBudget(
-  Object.entries(props.type?.fields || {})
-    .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)
-      && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120))),
-  TABLE_COLUMN_BUDGET
-).visible.map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
+const scalarFields = computed(() => Object.entries(props.type?.fields || {})
+  .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)
+    && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120)))
+  .slice(0, tableColumnCount(props.type))
+  .map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
 const relationKey = computed(() => Object.keys(props.type?.edges?.relations || {})[0] || null);
 const relationLabel = computed(() => (relationKey.value ? startCase(relationKey.value) : ''));
 const budgetedRefs = instance => {

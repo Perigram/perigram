@@ -6,6 +6,9 @@ import {
   FIELD_DISPLAY_ENTRIES,
   CHILDREN_TABS_AT,
   SURFACE_ROW_BUDGET,
+  SMALL_LIST_AT,
+  TABLE_COLUMN_SCALE,
+  CARD_FACT_SCALE,
   ROW_WEIGHT_BY_LAYOUT,
   SCALAR_BASES,
   SCREEN_DENSITY_AT,
@@ -28,6 +31,9 @@ export {
   ROW_FIELD_BUDGET,
   LAYOUT,
   SURFACE_ROW_BUDGET,
+  SMALL_LIST_AT,
+  TABLE_COLUMN_SCALE,
+  CARD_FACT_SCALE,
   ROW_WEIGHT_BY_LAYOUT,
   SCREEN_DENSITY_AT,
   DENSITY,
@@ -156,14 +162,72 @@ export function createUiMapping(overrides = {}) {
     return Object.freeze(outcome);
   }
 
-  // resolveListLayout(typeRecord, { hierarchical }) -> 'table' | 'tree-table' | 'card-grid' | 'timeline'
+  const isLongText = descriptor => descriptor?.base === 'string'
+    && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
+
+  // analyzeTypeShape(type): the shape signals that pick presentations —
+  // a chronological type is prose-or-instant dominant (timeline), a
+  // statlike type carries mostly percent/quantity scalars (stat cards),
+  // media types have payloads, wide types have many scalar fields.
+  function analyzeTypeShape(typeRecord = {}) {
+    const fields = Object.values(typeRecord.fields || {});
+    const scalars = fields.filter(descriptor => SCALAR_BASES.includes(descriptor.base) && !isLongText(descriptor));
+    const longTexts = fields.filter(isLongText);
+    const percents = scalars.filter(descriptor => descriptor.base === 'quantity' && descriptor.unit === 'percent');
+    const quantities = scalars.filter(descriptor => descriptor.base === 'quantity' || descriptor.base === 'number');
+    const chronologySignal = typeRecord.states?.main ? 0 : 1;
+    return Object.freeze({
+      fieldCount: fields.length,
+      scalarCount: scalars.length,
+      hasMedia: Boolean(typeRecord.payload),
+      chronological: longTexts.length >= 1 && scalars.length <= 3 + chronologySignal,
+      statlike: !typeRecord.payload && scalars.length >= 2
+        && percents.length + quantities.length >= Math.max(2, scalars.length - 1),
+      metricField: Object.entries(typeRecord.fields || {}).find(([, descriptor]) => descriptor.base === 'quantity' && descriptor.unit === 'percent')?.[0]
+        || Object.entries(typeRecord.fields || {}).find(([, descriptor]) => descriptor.base === 'quantity')?.[0]
+        || null
+    });
+  }
+
+  // resolveListLayout(typeRecord, { hierarchical, size })
   function resolveListLayout(typeRecord = {}, options = {}) {
+    const shape = analyzeTypeShape(typeRecord);
     const entry = pickEntry(listLayoutEntries, {
       type: typeRecord.id || null,
       class: typeRecord.class || null,
-      hierarchical: options.hierarchical === true ? true : null
+      shape: shape.chronological ? 'chronological' : shape.statlike ? 'statlike' : null,
+      hierarchical: options.hierarchical === true ? true : null,
+      size: options.size === 'small' ? 'small' : null
     });
     return entry.layout;
+  }
+
+  function cardVariantFor(typeRecord = {}) {
+    const shape = analyzeTypeShape(typeRecord);
+    if (shape.hasMedia) return 'media';
+    if (shape.statlike) return 'stat';
+    return 'text';
+  }
+
+  function scaledBudget(scale, available, compact = false) {
+    const cap = compact ? Math.max(2, scale[0].columns - 1) : Infinity;
+    for (const step of scale) {
+      if (available >= step.at) {
+        const value = 'columns' in step ? step.columns : step.facts;
+        return Math.min(available, compact ? Math.min(value, cap) : value);
+      }
+    }
+    return scale[scale.length - 1].columns || scale[scale.length - 1].facts;
+  }
+
+  function tableColumnCount(typeRecord = {}, compact = false) {
+    const shape = analyzeTypeShape(typeRecord);
+    return scaledBudget(TABLE_COLUMN_SCALE, shape.scalarCount, compact);
+  }
+
+  function cardFactCount(typeRecord = {}) {
+    const shape = analyzeTypeShape(typeRecord);
+    return scaledBudget(CARD_FACT_SCALE, shape.scalarCount);
   }
 
   return {
@@ -171,7 +235,11 @@ export function createUiMapping(overrides = {}) {
     resolveSurface,
     resolvePreview,
     resolveActionButton,
-    resolveListLayout
+    resolveListLayout,
+    analyzeTypeShape,
+    cardVariantFor,
+    tableColumnCount,
+    cardFactCount
   };
 }
 
@@ -312,4 +380,8 @@ export const resolveSurface = defaultMapping.resolveSurface;
 export const resolvePreview = defaultMapping.resolvePreview;
 export const resolveActionButton = defaultMapping.resolveActionButton;
 export const resolveListLayout = defaultMapping.resolveListLayout;
+export const analyzeTypeShape = defaultMapping.analyzeTypeShape;
+export const cardVariantFor = defaultMapping.cardVariantFor;
+export const tableColumnCount = defaultMapping.tableColumnCount;
+export const cardFactCount = defaultMapping.cardFactCount;
 export { composeScreen, buildInstancePool } from './screen.js';

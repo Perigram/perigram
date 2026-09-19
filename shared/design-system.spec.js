@@ -541,7 +541,8 @@ describe('Design system manifest', () => {
       'components/shared/ChatSupportDialog.vue',
       'components/ui-mapping/SurfaceBody.vue',
       'components/ui-mapping/GeneratedMappingScreen.vue',
-      'components/ui-mapping/CardGrid.vue'
+      'components/ui-mapping/CardGrid.vue',
+      'components/ui-mapping/StatGrid.vue'
     ]);
 
     const offenders = usedVueFiles().filter((file) => {

@@ -50,7 +50,7 @@ import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
-import { DENSITY, LAYOUT, SCALAR_BASES, CARD_FACT_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity, fieldLabel } from '#shared/ui-mapping/index.js';
+import { DENSITY, LAYOUT, SCALAR_BASES, cardFactCount, SEVERITY_MAP, instanceIdentity, fieldLabel } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 
@@ -69,10 +69,9 @@ const statusOf = instance => {
   const render = props.type.render?.states?.[value];
   return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
 };
-const scalarFields = computed(() => applyBudget(
-  Object.entries(props.type?.fields || {})
-    .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)
-      && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120))),
-  CARD_FACT_BUDGET
-).visible.map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
+const scalarFields = computed(() => Object.entries(props.type?.fields || {})
+  .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)
+    && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120)))
+  .slice(0, cardFactCount(props.type))
+  .map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
 </script>

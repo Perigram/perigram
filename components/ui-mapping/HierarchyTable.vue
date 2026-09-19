@@ -38,7 +38,7 @@ import { computed } from 'vue';
 import TreeTable from 'primevue/treetable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
-import { LAYOUT, fieldLabel, SCALAR_BASES, TABLE_COLUMN_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
+import { LAYOUT, fieldLabel, SCALAR_BASES, tableColumnCount, applyBudget, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
@@ -57,12 +57,11 @@ const statusOf = (instance, type) => {
   const render = type.render?.states?.[value];
   return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
 };
-const scalarFields = computed(() => applyBudget(
-  Object.entries(props.type?.fields || {})
-    .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)
-      && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120))),
-  TABLE_COLUMN_BUDGET
-).visible.map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
+const scalarFields = computed(() => Object.entries(props.type?.fields || {})
+  .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)
+    && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120)))
+  .slice(0, tableColumnCount(props.type))
+  .map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
 const hasStatus = computed(() => Boolean(props.type?.states?.main));
 
 const buildNode = (instance, seen = new Set()) => {

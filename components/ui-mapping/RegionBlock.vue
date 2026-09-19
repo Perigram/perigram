@@ -74,6 +74,19 @@
     />
     <CardGrid v-else-if="listLayout === 'card-grid'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
     <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
+    <StatGrid v-else-if="listLayout === 'stats'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
+    <div v-else-if="listLayout === 'list'" :class="LAYOUT.stackTight">
+      <SurfaceBody
+        v-for="instance in node.instances"
+        :key="instance.id"
+        :instance="instance"
+        :type="node.type"
+        variant="row"
+        parent-role="card"
+        :pool="pool"
+        :bundle="bundle"
+      />
+    </div>
     <RegionBlock
       v-for="child in node.childRegions"
       :key="child.id"
@@ -187,12 +200,13 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import { LAYOUT, GAP_BY_LEVEL, resolveListLayout } from '#shared/ui-mapping/index.js';
+import { LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout } from '#shared/ui-mapping/index.js';
 import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
 import HierarchyTable from './HierarchyTable.vue';
 import CardGrid from './CardGrid.vue';
 import TimelineCollection from './TimelineCollection.vue';
+import StatGrid from './StatGrid.vue';
 import ActionButton from './ActionButton.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
 
@@ -207,7 +221,8 @@ const props = defineProps({
 const emit = defineEmits(['run']);
 const emitRun = action => emit('run', action);
 const listLayout = computed(() => resolveListLayout(props.node.type, {
-  hierarchical: Boolean(Object.keys(props.node.type?.edges?.children || {}).length)
+  hierarchical: Boolean(Object.keys(props.node.type?.edges?.children || {}).length),
+  size: props.node.instances.length <= SMALL_LIST_AT ? 'small' : null
 }));
 const coveredRelationKeys = computed(() => props.node.childRegions
   .map(child => child.relationKey)
