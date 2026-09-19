@@ -142,6 +142,14 @@ declare per-slot budgets (`{ max, overflow }`, `overflow` is
 collapses the list (`+n`, "show more", or bounded scroll). Row variants use
 tight budgets (`max: 2, overflow: 'count'`); full surfaces scroll instead.
 
+Presentation context is tree-owned: every composed region node carries
+`chrome` (`resolveChrome` of its container role by depth — top regions are
+sections, nested regions are cards), so materializations style themselves
+from their position in the hierarchy instead of guessing. Widths stay in
+the vocabulary (`LAYOUT.clip`, `LAYOUT.bounded` over the bounded-grid-item
+tokens) and card grids run through the shared `ResponsiveGrid` primitive
+(container queries), never viewport breakpoints inside panels.
+
 ## Composition
 
 `composeScreen(screen, contract, bundle, pool)` (in `screen.js`) projects one

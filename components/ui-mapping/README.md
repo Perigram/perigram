@@ -39,9 +39,11 @@ inputs resolved against the target type's field descriptors.
   the collection plus its lineage descendants nested as expandable rows
   with the same generated columns.
 - `CardGrid.vue` — the media collection projection (DataView, paginated):
-  stock Card anatomy — preview as `#header`, identity + status in `#title`,
-  the type label in `#subtitle`, and a labeled budgeted fact list in
-  `#content` rendering live display controls.
+  cards lay out in the shared `ResponsiveGrid` primitive with container
+  queries and bounded item tokens (viewport breakpoints lie inside panels),
+  each Card clipped (`overflow-hidden`) on the stock anatomy — preview as
+  `#header`, identity + status in `#title`, type label in `#subtitle`,
+  labeled budgeted facts in `#content`.
 - `TimelineCollection.vue` — the chronological list projection (Timeline):
   marker-per-entry with identity, inline scalar facts, and the type's
   primary long-text (or first structural) field as the entry body,
