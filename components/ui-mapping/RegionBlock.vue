@@ -35,7 +35,7 @@
     <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
   </div>
 
-  <Panel v-else-if="node.surfaceKind === 'list'" class="w-full">
+  <Panel v-else-if="node.surfaceKind === 'list'" class="w-full" :pt="{ contentWrapper: { class: 'min-w-0' } }">
     <template #header>
       <div class="flex flex-wrap items-center gap-2">
         <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
