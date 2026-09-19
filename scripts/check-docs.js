@@ -28,6 +28,10 @@ const SKIP_DIRS = new Set([
   '.nuxt',
   '.output',
   '.git',
+  // Agent session worktrees are ephemeral per-session checkouts: scanning
+  // them flags every committed README passage against its own copies while
+  // parallel sessions run.
+  '.agent-worktrees',
   'coverage',
   'dist',
   '.obsidian'
