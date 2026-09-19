@@ -55,6 +55,8 @@ vi.mock('~/server/core/machines/service.js', async (importOriginal) => {
   };
 });
 
+vi.mock('../instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
+
 vi.mock('~/server/features/entity-revisions/service.js', () => ({
   getById: vi.fn()
 }));

@@ -42,6 +42,8 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(stored.type).toBe('cassette');
     expect(stored.fields).toEqual({ name: 'My cassette' });
     expect(stored.states).toEqual({ main: 'draft' });
+    expect(stored.organizationId).toBe('org-1');
+    expect(stored.lineage).toEqual({});
     expect(stored.identity).toBeUndefined();
     expect(stored.data).toBeUndefined();
     expect(stored.status).toBeUndefined();
@@ -84,6 +86,25 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
     expect(set['fields.name']).toBe('Renamed');
     expect(set['states.main']).toBe('active');
-    expect(set['lineage.organizationId']).toBe('org-1');
+    // Tenancy is immutable after construct: the wire lineage projection's
+    // organizationId key is not a writable edge.
+    expect(set['lineage.organizationId']).toBeUndefined();
+    expect(set.organizationId).toBeUndefined();
+  });
+
+  it('stores tenancy in the §3 slot and re-projects it onto the wire lineage', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('cassette');
+
+    const dto = await service.create(
+      { identity: { name: 'Scoped' }, lineage: { projectId: 'p-1', organizationId: 'org-1' } },
+      'user-1',
+      'org-1'
+    );
+
+    const stored = coll.insertOne.mock.calls[0][0];
+    expect(stored.organizationId).toBe('org-1');
+    expect(stored.lineage).toEqual({ projectId: 'p-1' });
+    expect(dto.lineage).toEqual({ projectId: 'p-1', organizationId: 'org-1' });
   });
 });

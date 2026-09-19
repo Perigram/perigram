@@ -39,6 +39,7 @@ import * as repository from './repository.js';
 import { normalizeLegacyProcessActions } from './action-migration.js';
 import { compileActiveProcessRuntime } from './runtime.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
+import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { projectDomainFromView } from '~/packages/cts/src/index.js';
 import { cncPackContent } from '~/packages/domain-cnc/src/index.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
@@ -291,6 +292,9 @@ export async function activate(id, auth, payload = {}) {
   applyProcessStatus(process, 'ACTIVE', auth.userId, 'Process activated');
   let updated = await repository.updateById(id, process);
   await organizationProcessService().setActiveProcessDefinition(process.lineage.organizationId, updated._id);
+  // Activation can flip the org's registry view (APPLY posts in-tree
+  // declarations before activate): re-derive the instance indexes.
+  await ensureInstanceIndexes((await compileRegistryForOrganization(process.lineage.organizationId)).resolveView(process.lineage.organizationId));
   if (stranded.length) {
     // Activate, then migrate (one request): the status machine resolves the
     // active contract, so target states only exist after activation. Writes

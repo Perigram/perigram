@@ -42,11 +42,12 @@ export function invalidateInstanceDeclarations(organizationId = null) {
   declarationCache.clear();
 }
 
-// Stored shape (SPEC §3): { _id, type, typeVersion, name, fields, states,
-// lineage, relations, createdAt, updatedAt }. The wire DTO keeps the block
-// vocabulary (identity/status/data/specs) every screen and compiled
-// contract speaks; the §3 <-> wire mapping lives here, at the service
-// boundary, and nowhere else.
+// Stored shape (SPEC §3): { _id, type, typeVersion, organizationId, name,
+// fields, states, lineage, relations, createdAt, updatedAt }. Tenancy is
+// the top-level `organizationId` slot; `lineage` holds pure tree edges —
+// the wire DTO's `lineage.organizationId` is a boundary projection owned
+// here (create maps it to the slot, toDto re-projects it for the legacy
+// block vocabulary) and nowhere else.
 function wireFieldsSplit(fields = {}, declaration = {}) {
   const data = {};
   const specs = {};
@@ -61,13 +62,16 @@ function wireFieldsSplit(fields = {}, declaration = {}) {
 function toDto(doc, declaration = {}) {
   if (!doc) return null;
   const { data, specs } = wireFieldsSplit(doc.fields || {}, declaration);
+  // §3 tenancy slot projects back into the wire lineage block.
+  const lineage = { ...(doc.lineage || {}) };
+  if (doc.organizationId != null) lineage.organizationId = doc.organizationId;
   return {
     _id: String(doc._id),
     type: doc.type,
     typeVersion: doc.typeVersion,
     identity: { uid: doc._id.toString(), ...(doc.name != null ? { name: doc.name } : {}) },
     status: { state: { primary: doc.states?.main || 'CREATED' } },
-    lineage: doc.lineage || {},
+    lineage,
     relations: doc.relations || {},
     ...(Object.keys(data).length ? { data } : {}),
     ...(Object.keys(specs).length ? { specs } : {}),
@@ -105,15 +109,21 @@ function instanceService(typeId) {
     async create(draft = {}, userId, organizationId) {
       const declaration = await requireDeclaration(typeId, organizationId || draft?.lineage?.organizationId);
       const now = new Date().toISOString();
+      // Tenancy: the wire may carry lineage.organizationId (the legacy
+      // projection); storage keeps the top-level slot and pure tree edges.
+      const wireLineage = { ...(draft.lineage || {}) };
+      const tenancyId = organizationId ?? wireLineage.organizationId ?? null;
+      delete wireLineage.organizationId;
       const doc = {
         _id: new ObjectId(),
         type: typeId,
         typeVersion: declaration.version || 1,
+        organizationId: tenancyId == null ? null : toFlexibleId(tenancyId),
         name: draft.identity?.name ?? null,
         // §3: the row is one flat fields map (data/specs split is wire-only)
         fields: { ...(draft.data || {}), ...(draft.specs || {}) },
         states: { main: draft.status?.state?.primary || declaration.states?.main?.initial || 'CREATED' },
-        lineage: { ...(draft.lineage || {}), ...(organizationId ? { organizationId: toFlexibleId(organizationId) } : {}) },
+        lineage: wireLineage,
         ...(draft.relations ? { relations: draft.relations } : {}),
         createdAt: now,
         updatedAt: now
@@ -140,6 +150,9 @@ function instanceService(typeId) {
       if (patch.status?.state?.primary !== undefined) set['states.main'] = patch.status.state.primary;
       if (patch.lineage && typeof patch.lineage === 'object') {
         for (const [key, value] of Object.entries(patch.lineage)) {
+          // Tenancy is immutable after construct: the wire projection's
+          // organizationId key is deliberately not a writable edge.
+          if (key === 'organizationId') continue;
           if (value !== undefined) set[`lineage.${key}`] = value;
         }
       }
