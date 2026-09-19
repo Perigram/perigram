@@ -214,12 +214,16 @@ function definition(kind, label, family, level, pure, ports = { inputs: [], outp
   return { kind, label, family, level, pure, ports };
 }
 
-// Type-bound species (SPEC §20): records whose operation derives from a
-// bound type declaration. The type binding pin is a persistent input on
-// every one of them — bound or not — so a binding wire never dangles and
-// re-binding by dropping a new wire is always possible. Structure species
-// (field/compose/decompose/join) and operator-bound records
-// (service/command) do not bind a type.
+// Type-bound species (SPEC §20) split by binding semantics.
+// Origin species (construct, read) mint values out of a type declaration:
+// they carry the persistent Type binding pin — bound or not — so a
+// binding wire never dangles and re-binding by dropping a new wire is
+// always possible; when bound, the pin is typed by the binding.
+// Consumer species (mutate, transition, remove) transform entities that
+// arrive over their entity input: they carry no pin — the binding follows
+// the Type wire while one exists, else the entity input's source type
+// (live inference), else the stored preset binding.
+export const TYPE_PIN_SPECIES = Object.freeze(['cts.construct', 'cts.read']);
 export const TYPE_BOUND_SPECIES = Object.freeze(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.read']);
 
 function cts(kind, label, family, level) {
@@ -230,41 +234,55 @@ function cts(kind, label, family, level) {
     level,
     pure: false,
     ports: (record = {}, context = {}) => {
-      if (!TYPE_BOUND_SPECIES.includes(String(record.kind || ''))) {
-        return catalogPorts(resolveCtsRecord(record, context.domain || {}), context);
+      const species = String(record.kind || '');
+      if (TYPE_PIN_SPECIES.includes(species)) {
+        const pin = socket('type', processType('entityRef', typeIdOf(record)
+          ? { entityType: typeIdOf(record) }
+          : undefined), DATA, false);
+        if (!typeIdOf(record)) return { inputs: [pin], outputs: [] };
+        const ports = catalogPorts(resolveCtsRecord(record, context.domain || {}), context);
+        // Bound constructs speak the declaration, not the block substrate:
+        // row fields are the construction inputs (SPEC §20 composer-less
+        // construct); block sockets are the legacy composition path.
+        if (record.kind === 'cts.construct') {
+          return {
+            ...ports,
+            inputs: [pin, ...ports.inputs.filter(port => port.type?.base !== 'block')]
+          };
+        }
+        return { ...ports, inputs: [pin, ...ports.inputs] };
       }
-      const pin = socket('type', processType('entityRef'), DATA, false);
-      if (!typeIdOf(record)) return { inputs: [pin], outputs: [] };
-      const ports = catalogPorts(resolveCtsRecord(record, context.domain || {}), context);
-      // Bound constructs speak the declaration, not the block substrate:
-      // row fields are the construction inputs (SPEC §20 composer-less
-      // construct); block sockets are the legacy composition path.
-      if (record.kind === 'cts.construct') {
-        return {
-          ...ports,
-          inputs: [pin, ...ports.inputs.filter(port => port.type?.base !== 'block')]
-        };
+      if (TYPE_BOUND_SPECIES.includes(species)) {
+        if (!typeIdOf(record)) {
+          // An unbound consumer offers its entity input (untyped until the
+          // binding derives from the wire) plus its fixed secondary input.
+          return {
+            inputs: [socket('entity', processType('entityRef'), DATA, true, 'list')],
+            outputs: []
+          };
+        }
+        const ports = catalogPorts(resolveCtsRecord(record, context.domain || {}), context);
+        // Bound mutates patch leaves: writable row fields arrive as field
+        // sockets keyed by schema path, consumed by the effect boundary as
+        // direct field writes — blocks stay on the v4 twin.
+        if (record.kind === 'cts.mutate') {
+          const leaves = (context.fieldSchemas || [])
+            .filter(field => field.writable !== false && ['data', 'specs'].includes(field.block))
+            .map(field => socket(field.path, field.type, DATA, false, 'list'));
+          const entity = ports.inputs.find(port => port.id === 'entity');
+          const status = ports.inputs.find(port => port.id === 'status.state.primary');
+          return {
+            ...ports,
+            inputs: [
+              ...(entity ? [entity] : []),
+              ...leaves,
+              ...(status ? [status] : [])
+            ]
+          };
+        }
+        return ports;
       }
-      // Bound mutates patch leaves: writable row fields arrive as field
-      // sockets keyed by schema path, consumed by the effect boundary as
-      // direct field writes — blocks stay on the v4 twin.
-      if (record.kind === 'cts.mutate') {
-        const leaves = (context.fieldSchemas || [])
-          .filter(field => field.writable !== false && ['data', 'specs'].includes(field.block))
-          .map(field => socket(field.path, field.type, DATA, false, 'list'));
-        const entity = ports.inputs.find(port => port.id === 'entity');
-        const status = ports.inputs.find(port => port.id === 'status.state.primary');
-        return {
-          ...ports,
-          inputs: [
-            pin,
-            ...(entity ? [entity] : []),
-            ...leaves,
-            ...(status ? [status] : [])
-          ]
-        };
-      }
-      return { ...ports, inputs: [pin, ...ports.inputs] };
+      return catalogPorts(resolveCtsRecord(record, context.domain || {}), context);
     }
   };
 }

@@ -229,41 +229,35 @@ describe('process designer domain contract', () => {
     const items = contract.paletteGroups.flatMap(group => group.items);
 
     expect(Object.keys(groups)).toEqual([
-      'declarations',
+      'types',
       'operations',
+      'instances',
+      'structure',
       'values',
       'listTree'
     ]);
-    // declarations ARE program nodes: classes and their fields/states
-    // compose in the same tree (SPEC §20/§21)
-    expect(groups.declarations.map(item => item.type)).toEqual([
-      'ctsClass', 'ctsField', 'ctsState'
+    // the Types group opens with declaration authoring: classes, their
+    // fields/states, status definitions, and the type reference compose in
+    // the same tree (SPEC §20/§21); the registry catalog prepends to it at
+    // the designer surface
+    expect(groups.types.map(item => item.type)).toEqual([
+      'ctsClass', 'ctsField', 'ctsState', 'statusDefinition', 'ctsType'
     ]);
-    // The palette is operations over types — never a domain catalog dump.
-    // Types reach the canvas by composition (type reference nodes wired
-    // into species records), not by palette groups listing them.
+    // operations are the effect species over declarations plus the explicit
+    // producer join — no legacy "run service" against the command table:
+    // services are registered operators, offered by their own group
     expect(groups.operations.map(item => item.kind || item.type)).toEqual([
       'cts.construct',
       'cts.mutate',
       'cts.transition',
       'cts.remove',
-      'cts.command',
-      'statusDefinition',
-      'cts.join',
-      'cts.read',
-      'cts.read',
-      'cts.read',
-      'cts.read',
-      'cts.read',
-      'cts.read',
-      'cts.read',
-      'cts.field',
-      'cts.compose',
-      'cts.decompose',
-      'ctsType'
+      'cts.join'
     ]);
-    expect(contract.paletteGroups[1].items.slice(7, 14).map(item => item.preset.select)).toEqual([
+    expect(groups.instances.map(item => item.preset.select)).toEqual([
       'current', 'byId', 'byRef', 'parent', 'children', 'related', 'query'
+    ]);
+    expect(groups.structure.map(item => item.kind)).toEqual([
+      'cts.field', 'cts.compose', 'cts.decompose'
     ]);
     expect(groups.values.map(item => item.kind)).toEqual([
       'source.literalItem',
@@ -297,6 +291,7 @@ describe('process designer domain contract', () => {
     expect(items.map(item => item.kind)).not.toContain('value.cast');
     expect(items.map(item => item.kind)).not.toContain('value.parse');
     expect(items.map(item => item.kind)).not.toContain('source.triggerPayload');
+    expect(items.map(item => item.kind)).not.toContain('cts.command');
     // statusDefinition and the ctsType reference node are canvas surfaces, not catalog operations
     // declaration canvas nodes (class/field/state/reference) are tree vocabulary, not catalog operations
     expect(items.every(item => ['statusDefinition', 'ctsType', 'ctsClass', 'ctsField', 'ctsState'].includes(item.type) || getProcessNodeDefinition(item.kind))).toBe(true);
@@ -307,6 +302,22 @@ describe('process designer domain contract', () => {
       inputDefaults: { amount: 30 }
     });
     expect(contract.fieldType('work_item', 'identity.name')).toMatchObject({ base: 'string', shape: 'item' });
+  });
+
+  it('offers services from the projected operator registry, never a legacy command list', () => {
+    const withServices = createProcessDesignerContract({
+      ...domain,
+      serviceContracts: {
+        'nesting.solve': { id: 'nesting.solve', command: 'solveNestingValue', render: { label: 'Nesting solver', icon: 'pi pi-compass' } },
+        incomplete: { id: 'incomplete' }
+      }
+    });
+    const servicesGroup = withServices.paletteGroups.find(group => group.id === 'services');
+    expect(servicesGroup.items.map(item => item.kind)).toEqual(['cts.service']);
+    expect(servicesGroup.items[0].preset).toEqual({ operator: 'nesting.solve' });
+
+    const withoutServices = createProcessDesignerContract(domain);
+    expect(withoutServices.paletteGroups.some(group => group.id === 'services')).toBe(false);
   });
 
   it('keeps domain construction producers out of the authoring palette', () => {
@@ -475,17 +486,19 @@ describe('tree declaration compilation', () => {
 });
 
 describe('type catalog palette', () => {
-  it('groups constructible types by class with operator via variants', () => {
+  it('offers constructible types with operator via variants in one Types group', () => {
     const groups = typeCatalogPaletteGroups([
       { id: 'panel', class: 'item', label: 'Panel', icon: 'pi pi-box', description: 'item type', constructible: true, via: 'genericCreate', constructOperators: ['bake-panel'] },
       { id: 'project', class: 'group', label: 'Project', icon: 'pi pi-folder', description: 'group type', constructible: true, via: 'genericCreate' },
       { id: 'revision', class: 'process', label: 'Revision', icon: 'pi pi-cog', description: 'meta', constructible: false, via: 'genericCreate' }
     ]);
-    expect(groups.map(group => group.id)).toEqual(['types-item', 'types-group']);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].id).toBe('types');
     const items = groups[0].items;
     expect(items[0]).toMatchObject({ id: 'panel', kind: 'cts.construct', preset: { typeId: 'panel', via: 'genericCreate' } });
     expect(items[1]).toMatchObject({ id: 'panel:bake-panel', preset: { typeId: 'panel', via: 'bake-panel' } });
-    expect(groups[1].items).toHaveLength(1);
+    expect(items[2]).toMatchObject({ id: 'project' });
+    expect(items.some(item => item.id === 'revision')).toBe(false);
   });
 });
 
@@ -580,5 +593,40 @@ describe('live declaration wire interpretation', () => {
     apply(state, pass.mutations);
     expect(state.records.ctor.typeId).toBe('');
     expect(state.nodes.find(node => node.id === 'f1').data.typeId).toBeNull();
+  });
+
+  it('adapts consumer species to their entity input when no binds wire exists', () => {
+    const nodes = [
+      { id: 'src', type: 'processNode', data: { refId: 'src' } },
+      { id: 'mut', type: 'processNode', data: { refId: 'mut' } }
+    ];
+    const edges = [
+      { id: 'flow', source: 'src', target: 'mut', sourceHandle: 'data:result', targetHandle: 'data:entity' }
+    ];
+    const records = {
+      src: { id: 'src', kind: 'cts.construct', typeId: 'sheet' },
+      mut: { id: 'mut', kind: 'cts.mutate', typeId: '' }
+    };
+    const resolvers = { entityInputType: recordId => (recordId === 'mut' ? 'sheet' : '') };
+    const pass = interpretDeclarationEdges(nodes, edges, records, {}, resolvers);
+    apply({ nodes, records }, pass.mutations);
+    expect(records.mut.typeId).toBe('sheet');
+
+    // the entity source re-typing re-binds the consumer live
+    records.src.typeId = 'plate';
+    const next = interpretDeclarationEdges(nodes, edges, records, pass.bindings, {
+      entityInputType: () => 'plate'
+    });
+    apply({ nodes, records }, next.mutations);
+    expect(records.mut.typeId).toBe('plate');
+
+    // unplugging the entity wire unbinds the consumer it had adapted
+    const unplugged = interpretDeclarationEdges(nodes, [], records, next.bindings, { entityInputType: () => '' });
+    apply({ nodes, records }, unplugged.mutations);
+    expect(records.mut.typeId).toBe('');
+
+    // a stored preset survives when no channel ever supplied a binding
+    const preset = interpretDeclarationEdges(nodes, [], { mut: { id: 'mut', kind: 'cts.mutate', typeId: 'sheet' } }, {}, resolvers);
+    expect(preset.mutations.filter(mutation => mutation.scope === 'record')).toEqual([]);
   });
 });

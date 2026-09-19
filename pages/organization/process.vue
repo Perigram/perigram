@@ -1287,31 +1287,31 @@ function ctsTypeView() {
 // One joint: rebuild the designer option lists from the registry view.
 // The services group and editor registry come from the mounted pack's
 // operator registrations (SPEC §8/§21).
+// The type catalog lives inside the Types group (SPEC §20/§21 L2):
+// declaration authoring first, then one bound construct per
+// constructible registry type plus one variant per declared construct
+// operator.
+function paletteWithTypeCatalog(contract) {
+  const catalogItems = typeCatalogPaletteGroups(ctsTypeView())[0]?.items || [];
+  return contract.paletteGroups.map(group => (
+    group.id === 'types' ? { ...group, items: [...group.items, ...catalogItems] } : group
+  ));
+}
+
 function refreshDesignerFromTypes() {
   const refreshed = createProcessDesignerContract(ctsProjectedDomain(), designerCapabilities, {
-    services: cncPackContent.services,
     editors: cncPackContent.editors
   });
   Object.assign(designer, refreshed);
-  // The type catalog leads the palette (SPEC §20/§21 L2): one bound
-  // construct per constructible registry type, plus one variant per
-  // declared construct operator.
-  designer.paletteGroups = [
-    ...typeCatalogPaletteGroups(ctsTypeView()),
-    ...refreshed.paletteGroups
-  ];
+  designer.paletteGroups = paletteWithTypeCatalog(refreshed);
 }
 
 const designerContract = createProcessDesignerContract(ctsProjectedDomain(), null, {
-  services: cncPackContent.services,
   editors: cncPackContent.editors
 });
 const designer = reactive({
   ...designerContract,
-  paletteGroups: [
-    ...typeCatalogPaletteGroups(ctsTypeView()),
-    ...designerContract.paletteGroups
-  ]
+  paletteGroups: paletteWithTypeCatalog(designerContract)
 });
 
 // Graph protocol v5: canvas records speak the type system (cts.* species
@@ -2012,13 +2012,42 @@ let touchPointerQuery = null;
 // the watcher's job. Instantiated after every composable and option list
 // the sync pass reads: the watcher runs its first pass immediately, and
 // those bindings must not be in their temporal dead zone.
+// Consumer species (mutate/transition/remove) carry no Type pin — plugging
+// a typed entity stream into one adapts it to that type through the
+// resolver below.
 const liveGraph = useProcessDesignerLiveGraph({
   nodes,
   edges,
   draft,
-  apply: applyGraphInterpretation
+  apply: applyGraphInterpretation,
+  resolveEntityBinding: resolveEntityInputType
 });
 const { evaluateNow } = liveGraph;
+
+// The entity-input source type of one record: the entity-bearing output
+// port of whatever feeds its `entity` input, resolved through the same
+// catalog the sockets render from.
+function resolveEntityInputType(recordId) {
+  const graphNode = nodes.value.find(node => node.type === 'processNode' && node.data?.refId === recordId);
+  if (!graphNode) return '';
+  const edge = edges.value.find(item => (
+    item.target === graphNode.id
+    && String(item.targetHandle || '').replace(/^(?:input|data):/, '') === 'entity'
+  ));
+  if (!edge) return '';
+  const source = nodes.value.find(node => node.id === edge.source);
+  if (!source) return '';
+  const sourceRecord = source.data?.refId
+    ? draft.value?.data?.processNodes?.[source.data.refId]
+    : null;
+  if (sourceRecord) {
+    const port = portForHandle(catalogPorts(sourceRecord).outputs, edge.sourceHandle, 'output');
+    const entityType = port?.type?.entityType || port?.type?.itemType?.entityType;
+    if (entityType) return entityType;
+    return nodeEntityType(sourceRecord) || '';
+  }
+  return source.data?.entityType || '';
+}
 
 function applyGraphInterpretation(mutations) {
   for (const mutation of mutations) {
@@ -4756,18 +4785,22 @@ function connectionCompatibility(connection = {}) {
         if (!sourcePort) {
           return { ok: false, reason: source.type === 'ctsClass' ? 'Name the class before binding its type' : 'The type node has no selected type' };
         }
-        // The binding wire lands on the persistent Type pin (bound or
-        // unbound); it typechecks against the source alone — the pin's
-        // generic entityRef accepts any declared type.
+        // The binding wire lands on the persistent Type pin (origin
+        // species: construct/read) or the entity input (consumers:
+        // mutate/transition/remove, which carry no pin and otherwise adapt
+        // to their entity wire). It typechecks against the source alone —
+        // the target accepts any declared type.
         const inputs = resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs;
-        const pin = portForHandle(inputs, connection.targetHandle, 'input') || inputs.find(port => port.id === 'type');
-        if (!pin || pin.id !== 'type') {
-          return { ok: false, reason: 'Type bindings wire into the Type pin' };
+        const bindPort = portForHandle(inputs, connection.targetHandle, 'input')
+          || inputs.find(port => port.id === 'type')
+          || inputs.find(port => port.id === 'entity');
+        if (!bindPort || !['type', 'entity'].includes(bindPort.id)) {
+          return { ok: false, reason: 'Type bindings wire into the Type pin or the entity input' };
         }
         return {
-          ...processSocketsCompatible(sourcePort, pin),
+          ok: true,
           source: sourcePort,
-          target: pin
+          target: bindPort
         };
       }
       if (legality === 'children') {

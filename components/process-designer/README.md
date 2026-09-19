@@ -23,22 +23,36 @@ and deletion, connection inference, palette queries, inspector record access,
 roles, screens, and dock/panel state. Their contracts are exercised directly in
 behavior tests so a disconnected Save, selection, or graph mutation fails even
 when labels remain in the page source.
+The palette is grouped by authoring concern, and every group draws from
+one source of truth. **Types** opens with declaration authoring (class,
+field, state, status definition, type reference) and continues with the
+registry catalog — one bound construct per constructible type plus one
+variant per declared construct operator, refreshed live from the
+organization's type view. **Operations** holds the effect species
+(construct, mutate, transition, remove, join). **Instances** holds the
+reads (entity from context, by id, by reference, parent, children,
+related, query). **Structure** holds field/record shaping (read field,
+compose fields, decompose). **Values** and **Lists and trees** hold the
+pure value algebra. **Services** is derived from the projected domain's
+`serviceContracts` — the registered operator surface: dropping a service
+item binds its operator, whose declared command is the executable twin.
+There is no "run service" operation against the legacy command table —
+what is not registered is not offered. **No node ever drops pre-bound**
+(except the type catalog's constructs, whose binding IS the item you
+chose): records are unbound until the author binds them.
 
-Registered services lead the palette: pack operators (`cts.service`, e.g.
-the nesting solver) drop pre-bound to their declared operator — the node
-resolves to the operator's command, so its signature is the command
-contract. Below them, the palette is operations, never a catalog: species operations
-(`cts.construct`, `cts.mutate`, `cts.transition`, `cts.remove`,
-`cts.command`, `cts.read` by select, field/compose/decompose), values, and
-lists. **No node ever drops pre-bound** — a seeded domain type would be an
-invisible authoring decision the user never made; records are unbound until
-the author binds them. Binding is composition: the **Type reference** item
-drops a `ctsType` canvas node whose wire into a species record's `Type` pin
-carries the binding (`role: 'type'` edges), or the type is picked
-explicitly in the inspector from gated, relevant lists with an empty
-state. Stored v4 graphs migrate to the species vocabulary on load, and
-every kind-matching consumer routes through `operationKindOf` — the
-authored vocabulary is the type system's, not a labeled legacy layer.
+Binding is composition, split by species semantics. Origin species
+(`cts.construct`, `cts.read`) mint values out of a declaration: they
+carry a persistent **Type pin** (typed by the binding once bound), wired
+from a class node or a **Type reference** item's `ctsType` node.
+Consumer species (`cts.mutate`, `cts.transition`, `cts.remove`)
+transform entities that arrive over their entity input: they carry no
+pin — their binding follows the Type wire while one exists, else the
+entity input's source type (plugging a typed entity stream into an
+unbound mutate adapts it to that type), else the stored preset.
+Stored v4 graphs migrate to the species vocabulary on load, and every
+kind-matching consumer routes through `operationKindOf` — the authored
+vocabulary is the type system's, not a labeled legacy layer.
 
 **Live evaluation** (`useProcessDesignerLiveGraph` over
 `interpretDeclarationEdges` in `@cutkit/processes`): the designer behaves
@@ -46,22 +60,24 @@ like a node editor, not a form. Authoring state (canvas nodes minus
 presentation, edges, draft records) folds into one semantic signature; any
 change — a wire, a rename, an inspector edit — re-runs wire
 interpretation and the sync pass in the same tick. Declaration wires are
-the live binding channel, not write-once gestures: a field/state node's
-type id follows the class it declares on, a species record's binding
-follows its wire for as long as the wire exists, and renaming a class
+live binding channels, not write-once gestures: a field/state node's
+type id follows the class it declares on, and a species record's binding
+resolves by precedence — its Type wire (origin species) or entity-input
+source type (consumers), else the stored preset. Renaming a class
 re-binds every wired descendant (constructs gain or lose their row-field
-sockets immediately). Removing a binds wire unbinds the record it
-carried; a palette-preset binding with no wire is authored data and
+sockets immediately); removing the channel that supplied a binding
+clears it, while a preset no channel ever supplied is authored data and
 stays. Position drags and selection churn never re-evaluate, and
 idempotent passes converge instead of oscillating.
 
 Declaration-plane wires (`declarationWireLegality` in
 `packages/processes/src/designer.js`, SPEC §20/§21 one tree) are legal only
 between declaration partners: field/state nodes declare on a class node;
-class/reference nodes bind a type-bound species record's `Type` pin
-(operator-bound and structure species carry no type to bind);
-class→class wires declare children edges (key + `onRemove`);
-state→state wires are transitions with intents. Their typed port specs
+class/reference nodes bind a type-bound species record — onto its `Type`
+pin (origins) or its entity input (consumers); operator-bound and
+structure species carry no type to bind; class→class wires declare
+children edges (key + `onRemove`); state→state wires are transitions
+with intents. Their typed port specs
 (`declarationNodePorts`, the single home for every declaration handle —
 including the state node's transition-from input) exist for those wires
 only — a declaration node is never a value source, and nothing from the
@@ -86,23 +102,25 @@ can be wired or prompted directly and a compose node is optional. The cts
 species record carries no block sockets: blocks are the legacy v4
 composition substrate and stay on the v4 twin only. Declared construct
 operators project as additional `via` modes with signature-derived
-`modeInputs`. The `Type` binding pin is a persistent input on every
-type-bound species record — bound or not — so a binding wire never
-dangles and re-binding by dropping a new wire is always possible; an
-unbound record offers the pin and nothing else, and every other socket
-derives from the bound type.
+`modeInputs`. The `Type` binding pin is a persistent input on origin
+species (`cts.construct`, `cts.read`) — bound or not, typed once bound —
+so a binding wire never dangles and re-binding by dropping a new wire is
+always possible; an unbound origin offers the pin and nothing else, and
+every other socket derives from the bound type.
 Species cards carry no entity-type dropdown and no operation switch: the
-binding wire owns the type, the species owns the operation.
+binding channel owns the type, the species owns the operation.
 
 A bound `cts.mutate` patches leaves: writable `data`/`specs` row fields
 arrive as field sockets keyed by schema path (beside the entity input and
 the status input), and the effect boundary persists each wired or
 prompted leaf as a direct field write — no block composition. The v4
-`effect.updateEntity` twin keeps block sockets for legacy graphs.
+`effect.updateEntity` twin keeps block sockets for legacy graphs. An
+unbound mutate offers only its entity input: wiring a typed entity
+stream in adapts it to that type and surfaces the leaves.
 
-The type catalog leads the palette (L2): `typeCatalogPaletteGroups`
-projects the registry view into class groups (File types, Items, Groups,
-Processes) — one bound construct per constructible type, plus one variant
+The type catalog completes the Types group: `typeCatalogPaletteGroups`
+projects the registry view into construct items — one bound construct
+per constructible type, plus one variant
 per declared construct operator — so types and their operators are
 draggable composables, refreshed from the registry with the designer
 contract. A dropped variant seeds the record's construction mode from its
