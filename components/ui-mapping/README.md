@@ -29,9 +29,11 @@ inputs resolved against the target type's field descriptors.
   screen; owns the generated create dialog.
 - `RegionBlock.vue` — one composed region with data-driven layout: the list
   layout comes from `resolveListLayout` (`table` | `tree-table` |
-  `card-grid` | `timeline`, matched by class, hierarchy, or type override);
-  detail regions with `CHILDREN_TABS_AT` or more child regions render them
-  as Tabs; empty regions render a Message; actions sit in the Panel header.
+  `card-grid` | `timeline`, matched by class, hierarchy, or type override).
+  Top-level detail regions compose a record page: `SurfaceHeader` plus the
+  main content in a 7-column lane with child regions in a 5-column lane
+  (`detailSplit`, collapsing to stacked below xl); nested detail regions
+  keep the Card surface. Empty regions render a Message.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identity, status, budgeted scalar descriptor columns, and the first
   declared relation as budgeted chips.
@@ -54,10 +56,12 @@ inputs resolved against the target type's field descriptors.
 - `HierarchyTree.vue` — the deep-nesting projection: a fully expanded
   PrimeVue Tree built recursively from the type's declared children edges
   and the instance pool's lineage, shown on group surfaces.
-- `SurfaceBody.vue` — instance surface by container variant: `full` →
-  Panel with the placed actions in the header, `detail` → Card (same-role
-  nesting flattens to a Divider), `row` / `inline` → dense flex row with
-  budgeted fields and relation chips.
+- `SurfaceHeader.vue` — the record-page header bar: identity, status,
+  placed actions, and the lifecycle Stepper for stateful types.
+- `SurfaceBody.vue` — instance surface by container variant: `full` → the
+  bare content column of a record page, `detail` → Card (same-role nesting
+  flattens to a Divider), `row` / `inline` → dense flex row with budgeted
+  fields and relation chips.
 - `SurfaceDetailBody.vue` — shared detail/full body: Stepper lifecycle
   strip on stateful types, preview, a bounded scalar facts strip (`DETAIL_FACT_BUDGET`, labeled via `fieldLabel`:
   descriptor label or start-case name), structural fields as an Accordion,
