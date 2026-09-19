@@ -298,7 +298,7 @@ export function generateUiMappingWorld(seed = 7) {
   const addAction = (id, action) => {
     actions[id] = action;
   };
-  populated.slice(0, 3).forEach(type => {
+  populated.forEach(type => {
     const inputNames = Object.keys(type.fields).slice(0, 3);
     addAction(`a_create_${type.id}`, {
       id: `a_create_${type.id}`, label: `New ${type.render.label}`, actionKind: 'createInstance', typeId: type.id,
@@ -311,6 +311,13 @@ export function generateUiMappingWorld(seed = 7) {
         trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
         status: { to: type.states.main.values[type.states.main.values.length - 1] }
       });
+      if (type.states.main.values.length > 2) {
+        addAction(`a_stage_${type.id}`, {
+          id: `a_stage_${type.id}`, label: 'Stage', actionKind: 'updateInstance', typeId: type.id,
+          trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
+          status: { to: type.states.main.values[1] }
+        });
+      }
     }
     addAction(`a_delete_${type.id}`, {
       id: `a_delete_${type.id}`, label: `Delete ${type.render.label}`, actionKind: 'deleteInstance', typeId: type.id,
