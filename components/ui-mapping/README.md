@@ -132,10 +132,12 @@ concerns:
   Stepper for stateful types. The bar is its own layout container: the
   identity/actions row engages from the header container width (never the
   viewport — headers render inside panels and detail side columns), the
-  identity block owns a readable title floor (`LAYOUT.headerIdentity`), so
+  identity block stays one avatar-title-status row (`LAYOUT.row` plus the
+  `LAYOUT.headerIdentity` floor), so
   a large action cluster wraps below the title instead of crunching it,
   and at most `HEADER_ACTIONS_INLINE` generated buttons render inline —
-  a third and every further action join the SpeedDial overflow with the
+  a third and every further action join one popup ellipsis menu (no
+  reserved layout space) with the
   same localized labels.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
   bare content column of a record page, `detail` → Card (same-role nesting
