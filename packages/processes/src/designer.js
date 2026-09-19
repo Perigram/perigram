@@ -1,5 +1,5 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { CONSUMER_EFFECT_KINDS, TYPE_BOUND_SPECIES, TYPE_PIN_SPECIES } from './node-catalog.js';
+import { CONSUMER_EFFECT_KINDS, TYPE_BOUND_SPECIES, carriesTypePin } from './node-catalog.js';
 import { operationKindOf, describeType, normalizeOperator, typeIdOf, ctsFieldToProcessType } from '../../cts/src/index.js';
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
@@ -162,17 +162,18 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
 // path must never apply to them.
 export const DECLARATION_NODE_TYPES = Object.freeze(['ctsClass', 'ctsType', 'ctsField', 'ctsState']);
 
-export function declarationWireLegality({ sourceType = '', targetType = '', targetRecordKind = '' } = {}) {
+export function declarationWireLegality({ sourceType = '', targetType = '', targetRecord = null, targetRecordKind = '' } = {}) {
   if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
   if (sourceType === 'ctsClass' && targetType === 'ctsClass') return 'children';
   if (sourceType === 'ctsState' && targetType === 'ctsState') return 'transition';
-  // Binding wires land on the Type pin — an origin-species socket. Consumer
-  // species (mutate/transition/remove) carry no pin: their entity input
-  // accepts instance streams only and their binding adapts to the stream's
-  // type, so a declaration node never wires into it.
+  // Binding wires land on the Type pin — an origin-species socket.
+  // Consumers (entity-derived reads, mutate/transition/remove, the field
+  // projection) carry no pin: their entity input accepts instance streams
+  // only and their binding adapts to the stream's type, so a declaration
+  // node never wires into it.
   if ((sourceType === 'ctsClass' || sourceType === 'ctsType')
     && targetType === 'processNode'
-    && TYPE_PIN_SPECIES.includes(String(targetRecordKind))) return 'binds';
+    && carriesTypePin(targetRecord || { kind: targetRecordKind })) return 'binds';
   return null;
 }
 
@@ -200,10 +201,16 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
     if (edge.label === 'field' && source.type === 'ctsField' && target.type === 'ctsClass') {
       const map = fieldsByType.get(target.data.typeId) || new Map();
       const name = String(source.data.name || '').trim();
-      if (name) {
+      const descriptor = source.data.descriptor || {};
+      // Unfinished authoring is silent, not a diagnostic: an unnamed field
+      // and an unset ref (no accepted targets picked yet) stay out of the
+      // declaration until completed — exactly like any unsaved edit.
+      const unset = descriptor.base === 'ref'
+        && (!Array.isArray(descriptor.accepts) || !descriptor.accepts.length);
+      if (name && !unset) {
         try {
-          describeType(source.data.descriptor || {});
-          map.set(name, { ...(source.data.descriptor || {}) });
+          describeType(descriptor);
+          map.set(name, { ...descriptor });
         } catch (error) {
           diagnostics.push(`type ${target.data.typeId}: field ${name}: ${error.message}`);
         }
@@ -420,7 +427,7 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
   if (typeof resolvers.entityInputType === 'function') {
     for (const record of Object.values(records)) {
       if (entityBound.has(record.id)) continue;
-      if (!TYPE_BOUND_SPECIES.includes(String(record.kind || '')) || TYPE_PIN_SPECIES.includes(record.kind)) continue;
+      if (!TYPE_BOUND_SPECIES.includes(String(record.kind || '')) || carriesTypePin(record)) continue;
       const fromWire = resolvers.entityInputType(record.id);
       if (fromWire) bindings[record.id] = fromWire;
     }

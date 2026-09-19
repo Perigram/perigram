@@ -123,8 +123,16 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind === 'tree.clean') return cleanDataTree(required(packets, 'value', record));
   if (kind === 'tree.stats') return createDataPacket(treeStats(required(packets, 'value', record)));
   if (kind === 'record.getField') {
-    return mapDataPacket(required(packets, 'block', record), value => {
-      const fieldValue = readPath(value, blockLocalPath(record.block, record.path));
+    // The projection path (SPEC §8 p): a cts.field record feeds the whole
+    // entity and reads the slot-qualified path off it; a legacy v4 record
+    // feeds one block and the path is block-relative. The entity DTO is
+    // itself the block container, so both read identically.
+    const fromEntity = !packets.block && packets.entity;
+    const source = required(packets, fromEntity ? 'entity' : 'block', record);
+    return mapDataPacket(source, value => {
+      const fieldValue = readPath(value, fromEntity
+        ? String(record.path || '')
+        : blockLocalPath(record.block, record.path));
       if (isMissingField(fieldValue)) return missingFieldMarker(record.path);
       if (record.compositionMode === 'ancestors' && fieldValue != null) {
         return { type: record.type?.entityType, id: fieldValue };
@@ -366,9 +374,12 @@ async function executeRead(record, packets, context) {
   if (record.kind === 'read.currentEntity') return createDataPacket(await context.currentEntity?.(record.entityType));
   if (record.kind === 'read.entityById') return createDataPacket(await context.entityById?.(record.entityType, packetValue(required(packets, 'id', record))));
   if (record.kind === 'read.resolveEntityRef') return createDataPacket(await context.resolveEntityRef?.(packetValue(required(packets, 'value', record))));
-  if (record.kind === 'read.parent') return createDataPacket(await context.parentEntity?.(packetValue(required(packets, 'value', record)), record.entityType));
-  if (record.kind === 'read.children') return createDataPacket(await context.childEntities?.(packetValue(required(packets, 'value', record)), record.entityType) || [], 'list');
-  if (record.kind === 'read.related') return createDataPacket(await context.relatedEntities?.(packetValue(required(packets, 'value', record)), record.relationKey || record.relation, record.entityType) || [], 'list');
+  // v5 species records name the stream input `entity` (the consumer
+  // convention); legacy v4 records keep `value`.
+  const readStream = record => packetValue(required(packets, packets.entity ? 'entity' : 'value', record));
+  if (record.kind === 'read.parent') return createDataPacket(await context.parentEntity?.(readStream(record), record.entityType));
+  if (record.kind === 'read.children') return createDataPacket(await context.childEntities?.(readStream(record), record.entityType) || [], 'list');
+  if (record.kind === 'read.related') return createDataPacket(await context.relatedEntities?.(readStream(record), record.relationKey || record.relation, record.entityType) || [], 'list');
   if (record.kind === 'read.queryEntities') {
     const predicate = packets.predicate ? packetValue(packets.predicate) : null;
     return createDataPacket(await context.queryEntities?.(record.entityType, predicate) || [], 'list');

@@ -2089,14 +2089,11 @@ function applyGraphInterpretation(mutations) {
     if (record) setNodeEntityType(record, mutation.value);
   }
   syncNodeData();
-  // Live sockets change with the declarations (a renamed field renames
-  // its construct socket): wires into inputs that no longer exist come
-  // off after every pass. The Type pin itself always survives.
-  for (const node of nodes.value) {
-    if (node.type !== 'processNode' || !node.data?.refId) continue;
-    const record = draft.value?.data?.processNodes?.[node.data.refId];
-    if (record) pruneMissingProcessNodeInputEdges(node.data.refId, record);
-  }
+  // No live edge pruning here: sockets legitimately vanish and return
+  // during transient authoring (an unset ref mid-gesture, a rename), and
+  // deleting the wire destroys the author's wiring when the socket comes
+  // back. Serialization owns stale-edge filtering (`validProcessEdges`), so
+  // a genuinely removed socket drops its edge at save — never before.
 }
 
 onMounted(() => {
@@ -3596,9 +3593,10 @@ function syncProcessNode(node = {}) {
     } else {
       delete node.compositionMode;
       delete node.compositionValueBase;
-      const available = (isOpKind(node, 'record.getField') ? designer.fieldsForBlock(node.block) : designer.fieldsForEntity(nodeEntityType(node)))
+      const bound = isOpKind(node, 'record.getField') && nodeEntityType(node);
+      const available = (bound ? designer.fieldsForEntity(nodeEntityType(node)) : isOpKind(node, 'record.getField') ? designer.fieldsForBlock(node.block) : designer.fieldsForEntity(nodeEntityType(node)))
         .filter(field => field[access] !== false)
-        .filter(field => !nodeBlock(node) || field.block === nodeBlock(node));
+        .filter(field => bound || !nodeBlock(node) || field.block === nodeBlock(node));
       if (!available.some(field => field.value === node.path)) node.path = available[0]?.value || '';
       delete node.entryKey;
     }
@@ -3715,7 +3713,8 @@ function processNodeFieldOptions(node = {}) {
     : ['record.fieldChange', 'record.modifyBlock'].includes(opKind(node)) ? 'writable'
       : 'readable';
   const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(opKind(node));
-  return (structural ? designer.fieldsForBlock(nodeBlock(node)) : designer.fieldsForEntity(nodeEntityType(node)))
+  const bound = structural && nodeEntityType(node);
+  return (bound ? designer.fieldsForEntity(nodeEntityType(node)) : structural ? designer.fieldsForBlock(nodeBlock(node)) : designer.fieldsForEntity(nodeEntityType(node)))
     .filter(field => field[access] !== false)
     .filter(field => !nodeBlock(node) || field.block === nodeBlock(node))
     .map(field => ({
@@ -3771,12 +3770,19 @@ function processNodeOutputs(node = {}) {
 }
 
 function catalogContext(node = {}) {
+  // Structural nodes resolve fields against their bound type when one
+  // exists (cts.field is the entity projection); only the type-agnostic
+  // v4 substrate falls back to block schemas.
   const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(opKind(node));
+  const bound = structural && nodeEntityType(node);
+  const fields = bound
+    ? designer.fieldsForEntity(nodeEntityType(node))
+    : structural
+      ? designer.fieldsForBlock(nodeBlock(node))
+      : designer.fieldsForEntity(nodeEntityType(node));
   return {
-    fieldSchema: structural
-      ? designer.fieldsForBlock(nodeBlock(node)).find(field => field.value === node.path) || null
-      : designer.fieldsForEntity(nodeEntityType(node)).find(field => field.value === node.path) || null,
-    fieldSchemas: structural ? designer.fieldsForBlock(nodeBlock(node)) : designer.fieldsForEntity(nodeEntityType(node)),
+    fieldSchema: fields.find(field => field.value === node.path) || null,
+    fieldSchemas: fields,
     blockComposition: openBlockComposition(node),
     command: designer.domain.commands?.[node.commandId] || null,
     domain: ctsProjectedDomain()
@@ -4739,7 +4745,7 @@ function onConnect(connection) {
   const legality = declarationWireLegality({
     sourceType: sourceNode?.type,
     targetType: targetNode?.type,
-    targetRecordKind: targetNodeRecord?.kind
+    targetRecord: targetNodeRecord
   });
   if (legality) {
     // one binding wire per record: a new bind replaces the previous one
@@ -4816,7 +4822,7 @@ function connectionCompatibility(connection = {}) {
       const legality = declarationWireLegality({
         sourceType: source.type,
         targetType: target.type,
-        targetRecordKind: targetRecord?.kind
+        targetRecord: targetRecord
       });
       if (legality === 'declares') {
         const sourcePort = (source.data?.outputSpecs || [])[0];

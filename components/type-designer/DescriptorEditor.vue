@@ -107,6 +107,14 @@ const baseOptions = FIELD_BASES.map(base => ({ label: base, value: base }));
 const units = [...UNITS];
 
 const error = computed(() => {
+  // An unset ref (no accepted targets yet) is authored-in-progress, not a
+  // validation failure: the multiselect's own empty state communicates it,
+  // and the field simply stays out of the declaration until targets are
+  // picked. Everything else describeType rejects surfaces live.
+  if (props.modelValue.base === 'ref'
+    && (!Array.isArray(props.modelValue.accepts) || !props.modelValue.accepts.length)) {
+    return '';
+  }
   try {
     describeType(props.modelValue);
     return '';
@@ -125,7 +133,7 @@ function setBase(base) {
   const next = { base };
   if (props.modelValue.nullable === true) next.nullable = true;
   if (base === 'quantity') next.unit = props.modelValue.unit || units[0];
-  if (base === 'ref') next.accepts = props.modelValue.accepts?.length ? props.modelValue.accepts : (props.typeOptions.length ? [props.typeOptions[0]] : []);
+  if (base === 'ref') next.accepts = props.modelValue.accepts?.length ? props.modelValue.accepts : [];
   emit('update:modelValue', next);
 }
 

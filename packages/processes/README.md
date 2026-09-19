@@ -46,12 +46,16 @@ kind mapping, never duplicated); port contracts of a cts record and its v4
 twin are identical by test after stripping the origin species'
 authoring-only `Type` pin — the persistent binding input on
 `cts.construct`/`cts.read` (`TYPE_PIN_SPECIES`), typed by the binding
-once bound. Consumer species (`cts.mutate`, `cts.transition`,
-`cts.remove` — `TYPE_BOUND_SPECIES` minus the origins) carry no pin and
-never receive declaration wires — their entity input is a value socket;
-the binding follows the entity input's source type, else the stored
-preset. A migrated mutate renders its persisted `slots` as block sockets
-after the leaves, so legacy v4 block wiring keeps executing. Declaration authoring composes in the same
+once bound. Consumers (`carriesTypePin` false: mutate/transition/remove, the
+entity-derived reads parent/children/related, and `cts.field` — the
+SPEC §8 projection, entity in, value out at the authored slot path)
+carry no pin and never receive declaration wires — their `entity` input
+is a value socket; the binding follows the entity input's source type,
+else the stored preset. A migrated mutate renders its persisted `slots`
+as block sockets after the leaves, so legacy v4 block wiring keeps
+executing. `packages/processes/src/palette-trace.spec.js` walks every
+palette item through record creation, typed port resolution, and twin
+lowering — the executable form of the palette audit. Declaration authoring composes in the same
 tree: Class/Field/State canvas nodes wire through the legality matrix
 (`declarationWireLegality`) and compile into registry declarations via
 `compileTreeDeclarations` (R4-enforcing, pure over the canvas arrays).

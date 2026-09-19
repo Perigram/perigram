@@ -636,13 +636,14 @@ a seeded domain type is an invisible authoring decision the user never
 made — records are unbound until the author binds them (the palette's
 type-catalog constructs are the one exception, where the chosen item IS
 the binding). Type reference nodes persist on the canvas as `ctsType`
-nodes (they own no records). Binding semantics split by species: origin
-species (`cts.construct`, `cts.read`) carry a persistent Type pin wired
-from a type node or class; consumer species (`cts.mutate`,
-`cts.transition`, `cts.remove`) carry no pin and never receive
-declaration wires — their entity input accepts instance streams only;
-the binding follows the entity input's source type, else the stored
-preset. Binding wires are `role: 'type'` canvas edges — live
+nodes (they own no records). Binding semantics split by species (`carriesTypePin`): origin
+species (constructs; reads that start from a declaration — current,
+byId, byRef, query) carry a persistent Type pin wired from a type node
+or class; consumers (mutate, transition, remove; the entity-derived
+reads parent/children/related; the field projection) carry no pin and
+never receive declaration wires — their entity input accepts instance
+streams only; the binding follows the entity input's source type, else
+the stored preset. Binding wires are `role: 'type'` canvas edges — live
 binding channels, interpreted on every graph change (renaming the
 source re-binds every wired descendant; removing the channel unbinds
 what it carried). Normalization drops them before validation because

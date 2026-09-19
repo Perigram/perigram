@@ -33,10 +33,13 @@ variant per declared construct operator, refreshed live from the
 organization's type view. **Operations** holds the effect species
 (construct, mutate, transition, remove, join). **Instances** holds the
 reads (entity from context, by id, by reference, parent, children,
-related, query). **Structure** holds field/record shaping (read field,
-compose fields, decompose). The query read never shows its runtime
-predicate input — no authoring node produces a predicate; filtering a
-queried list is the list-plus-`collection.filter` mask path. **Values** and **Lists and trees** hold the
+related, query). **Structure** holds field/record shaping. **Read field** is the
+projection gate (SPEC §8 p): entity in, value out at the authored slot
+path — one node, no intermediate block step; its binding adapts to the
+entity stream like every consumer. The query read never shows its
+runtime predicate input — no authoring node produces a predicate;
+filtering a queried list is the list-plus-`collection.filter` mask
+path. **Values** and **Lists and trees** hold the
 pure value algebra. **Services** is derived from the projected domain's
 `serviceContracts` — the registered operator surface: dropping a service
 item binds its operator, whose declared command is the executable twin.
@@ -49,16 +52,17 @@ command table — what is not registered is not offered. **No node ever drops pr
 (except the type catalog's constructs, whose binding IS the item you
 chose): records are unbound until the author binds them.
 
-Binding is composition, split by species semantics. Origin species
-(`cts.construct`, `cts.read`) mint values out of a declaration: they
-carry a persistent **Type pin** (typed by the binding once bound), wired
-from a class node or a **Type reference** item's `ctsType` node.
-Consumer species (`cts.mutate`, `cts.transition`, `cts.remove`)
-transform entities that arrive over their entity input: they carry no
-pin and never receive a declaration wire — the entity input accepts
-instance streams only. Their binding follows the entity input's source
-type live (plugging a typed entity stream into an unbound mutate adapts
-it to that type), falling back to the stored preset.
+Binding is composition, split by species semantics (`carriesTypePin`
+is the seam). Origin species — constructs and the reads that start from
+nothing but a declaration (context, by id, by reference, query) — carry
+a persistent **Type pin** (typed by the binding once bound), wired from
+a class node or a **Type reference** item's `ctsType` node. Consumers —
+mutate/transition/remove, the entity-derived reads (parent, children,
+related), and the field projection — carry no pin and never receive a
+declaration wire: their `entity` input accepts instance streams only
+(the reads present it under the consumer name, not the v4 twin's
+generic `value`). Their binding follows the entity input's source type
+live, falling back to the stored preset.
 Stored v4 graphs migrate to the species vocabulary on load, and every
 kind-matching consumer routes through `operationKindOf` — the authored
 vocabulary is the type system's, not a labeled legacy layer.
@@ -84,8 +88,13 @@ source type (consumers), else the stored preset. Renaming a class
 re-binds every wired descendant (constructs gain or lose their row-field
 sockets immediately); removing the channel that supplied a binding
 clears it, while a preset no channel ever supplied is authored data and
-stays. Position drags and selection churn never re-evaluate, and
-idempotent passes converge instead of oscillating.
+stays. Sockets may vanish and return during transient authoring (an
+unset ref mid-gesture, a rename in progress) — edges are never pruned
+live, because serialization owns stale-edge filtering and a transient
+must not destroy wiring. Unfinished authoring is silent: an unnamed
+field and an unset ref stay out of the declaration until completed, the
+same as any unsaved edit. Position drags and selection churn never
+re-evaluate, and idempotent passes converge instead of oscillating.
 
 Declaration-plane wires (`declarationWireLegality` in
 `packages/processes/src/designer.js`, SPEC §20/§21 one tree) are legal only

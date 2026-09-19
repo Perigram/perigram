@@ -215,16 +215,24 @@ function definition(kind, label, family, level, pure, ports = { inputs: [], outp
 }
 
 // Type-bound species (SPEC §20) split by binding semantics.
-// Origin species (construct, read) mint values out of a type declaration:
-// they carry the persistent Type binding pin — bound or not — so a
-// binding wire never dangles and re-binding by dropping a new wire is
-// always possible; when bound, the pin is typed by the binding.
-// Consumer species (mutate, transition, remove) transform entities that
-// arrive over their entity input: they carry no pin — the binding follows
-// the Type wire while one exists, else the entity input's source type
-// (live inference), else the stored preset binding.
-export const TYPE_PIN_SPECIES = Object.freeze(['cts.construct', 'cts.read']);
-export const TYPE_BOUND_SPECIES = Object.freeze(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.read']);
+// Origin species mint values out of a type declaration and carry the
+// persistent Type binding pin: constructs, and the reads that start from
+// nothing but a declared type (current, byId, byRef, query). The
+// entity-derived reads (parent, children, related), the effect consumers
+// (mutate, transition, remove), and the field projection are consumers:
+// no pin, entity input only, binding adapts to the entity stream's type.
+// `carriesTypePin(record)` is the per-record seam — kind plus read
+// select — every binding consumer routes through.
+const ENTITY_DERIVED_READS = Object.freeze(['parent', 'children', 'related']);
+
+export function carriesTypePin(record = {}) {
+  const kind = String(record.kind || '');
+  if (kind === 'cts.construct') return true;
+  if (kind === 'cts.read') return !ENTITY_DERIVED_READS.includes(String(record.select || ''));
+  return false;
+}
+
+export const TYPE_BOUND_SPECIES = Object.freeze(['cts.construct', 'cts.mutate', 'cts.transition', 'cts.remove', 'cts.read', 'cts.field']);
 
 function cts(kind, label, family, level) {
   return {
@@ -244,7 +252,7 @@ function cts(kind, label, family, level) {
           || { inputs: [], outputs: [] };
       }
       const species = String(record.kind || '');
-      if (TYPE_PIN_SPECIES.includes(species)) {
+      if (carriesTypePin(record)) {
         const pin = socket('type', processType('entityRef', typeIdOf(record)
           ? { entityType: typeIdOf(record) }
           : undefined), DATA, false);
@@ -287,6 +295,31 @@ function cts(kind, label, family, level) {
         // persisted `slots` — the legacy v4 composition a migrated graph
         // arrived with stays wired and executable; fresh mutates carry no
         // slots and show leaves only.
+        // Entity-derived reads present their stream input under the
+        // consumer convention (`entity`), not the v4 twin's generic
+        // `value` — the binding resolver and wire compatibility speak one
+        // vocabulary across every consumer.
+        if (record.kind === 'cts.read') {
+          return {
+            ...ports,
+            inputs: ports.inputs.map(port => (
+              port.id === 'value' ? { ...port, id: 'entity', label: 'entity' } : port
+            ))
+          };
+        }
+        // cts.field is the projection gate (SPEC §8 p): entity in, value
+        // out at the authored slot path — no intermediate block node. The
+        // declared field's type types the output; the entity input is
+        // typed by the binding.
+        if (record.kind === 'cts.field') {
+          const field = (context.fieldSchemas || []).find(schema => schema.path === record.path)
+            || (context.fieldSchema ? [context.fieldSchema] : []).find(schema => schema.path === record.path);
+          const output = socket('value', field?.type || processType('json', { nullable: true }));
+          return {
+            inputs: [socket('entity', processType('entity', { entityType: typeIdOf(record) }), DATA, true)],
+            outputs: [output]
+          };
+        }
         if (record.kind === 'cts.mutate') {
           const leaves = (context.fieldSchemas || [])
             .filter(field => field.writable !== false && ['data', 'specs'].includes(field.block))
