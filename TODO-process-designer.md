@@ -273,3 +273,34 @@ designer review (dead-code inventory, block-substrate verdict, unification
 map, separation-of-concerns targets, and the missing
 compiler -> UI-contract -> ui-mapping wiring). P1 started in the same
 session branch.
+
+##### Agent Notes — 2026-09-19 round-trip + authoring-UX fixes
+
+User-reported defects, all root-caused and fixed on
+`agent/process-designer-roundtrip-20260919`:
+
+1. **Wires drop after reload / stop transmitting data.**
+   `normalizeCanvasEdge` did not persist `edge.label`, and
+   `compileTreeDeclarations`/`interpretDeclarationEdges` matched
+   field/state/transition/children declaration wires BY label — after a
+   save/reload the declaration tree hollowed out (fields/states/transitions
+   silently dropped), constructs lost their row-field sockets, and the next
+   save filtered their wires as missing inputs. Labels now round-trip
+   (pinned by `transpiler-roundtrip.spec.js`: canvas -> definition -> canvas
+   preserves labels and the compiled tree still declares the wired members)
+   and the declaration matchers key on node types — a transition with an
+   authored intent (label = intent, not 'transition') compiles instead of
+   silently vanishing.
+2. **Class authoring demanded an id.** Authoring is name-first now: a Name
+   field drives a derived kebab registry id (deduplicated; slugified), the
+   id becomes hand-authored only when edited directly, and the authored
+   name travels as the declaration's render label. The 'Bbraugh must be
+   kebab' class of friction disappears for normal authoring.
+3. **Doubled dock labels.** MotionDock rendered a persistent (opacity-1)
+   tooltip label per item under reduced motion — a stack of labels over the
+   canvas. Labels are hover/focus-only for everyone (instant opacity under
+   reduced motion via `useEnterExit`).
+4. **Multiple wires into one socket.** Single-value inputs (not `multiple`)
+   reject a second wire at the connect gesture with a named-socket notice;
+   duplicate deterministic declaration wires (declares/children) are
+   no-ops instead of same-id duplicates.

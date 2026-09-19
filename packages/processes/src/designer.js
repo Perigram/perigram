@@ -200,7 +200,7 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
     const source = nodeById.get(edge.source);
     const target = nodeById.get(edge.target);
     if (!source || !target) continue;
-    if (edge.label === 'field' && source.type === 'ctsField' && target.type === 'ctsClass') {
+    if (source.type === 'ctsField' && target.type === 'ctsClass') {
       const map = fieldsByType.get(target.data.typeId) || new Map();
       const name = String(source.data.name || '').trim();
       const descriptor = source.data.descriptor || {};
@@ -219,7 +219,7 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
       }
       fieldsByType.set(target.data.typeId, map);
     }
-    if (edge.label === 'state' && source.type === 'ctsState' && target.type === 'ctsClass') {
+    if (source.type === 'ctsState' && target.type === 'ctsClass') {
       const map = statesByType.get(target.data.typeId) || new Map();
       const value = String(source.data.value || '').trim();
       if (value) {
@@ -227,7 +227,7 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
       }
       statesByType.set(target.data.typeId, map);
     }
-    if (edge.label === 'transition' && source.type === 'ctsState' && target.type === 'ctsState') {
+    if (source.type === 'ctsState' && target.type === 'ctsState') {
       const typeId = source.data?.typeId;
       if (!typeId || typeId !== target.data?.typeId) {
         diagnostics.push(`transition ${source.data?.value || '(state)'} -> ${target.data?.value || '(state)'}: states of one declared type only`);
@@ -238,7 +238,7 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
       list.push({ from: String(source.data.value || ''), to: String(target.data.value || ''), ...(intent ? { intent } : {}) });
       transitionsByType.set(typeId, list);
     }
-    if (edge.label === 'children' && source.type === 'ctsClass' && target.type === 'ctsClass') {
+    if (source.type === 'ctsClass' && target.type === 'ctsClass' && source.id !== target.id) {
       const parentTypeId = source.data?.typeId;
       const childTypeId = target.data?.typeId;
       if (!parentTypeId || !childTypeId) {
@@ -261,6 +261,7 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
       id: typeId,
       class: classNode.data.class,
       fields: Object.fromEntries([...(fieldsByType.get(typeId) || new Map()).entries()]),
+      ...(classNode.data.name ? { render: { label: classNode.data.name } } : {}),
       ...(classNode.data.payload ? { payload: classNode.data.payload } : {})
     };
     if (states.size) {

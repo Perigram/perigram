@@ -101,8 +101,10 @@ registry's kebab-case type id (an invalid id is why a class silently
 drops out of the overlay and bound sockets stop regenerating) and shows
 `compileTreeDeclarations` plus `normalizeType` diagnostics while
 authoring — what SAVE/APPLY would reject is visible immediately, not
-after a frozen canvas. Class card labels derive from the current type
-id, so renames show on the card and in every binding option list.
+after a frozen canvas. Class authoring is name-first: the author names the class and the kebab
+registry id is derived from the name (deduplicated against the registry
+and the tree); the id only becomes hand-authored when edited directly.
+Class card labels derive from the authored name.
 
 **Live evaluation** (`useProcessDesignerLiveGraph` over
 `interpretDeclarationEdges` in `@cutkit/processes`): the designer behaves
@@ -147,8 +149,9 @@ including the state node's transition-from input) exist for those wires
 only — a declaration node is never a value source, and nothing from the
 data plane feeds a class declare input — so declaration endpoints never
 pass through the generic socket-compatibility path. Declaration wires
-persist as `role: 'type'` edges (field/state/type/children/transition
-labels); `compileTreeDeclarations` compiles exactly those edges into
+persist as `role: 'type'` edges whose labels (field/state/children and
+transition intents) round-trip through save/reload — declaration matching
+is by node types, the label is semantics-carrying display; `compileTreeDeclarations` compiles exactly those edges into
 registry declarations (invalid descriptors and cross-type transitions are
 named diagnostics). Persistence follows the draft contract: declaration
 nodes own `ctsTypes` records in the process definition, so SAVE keeps the
@@ -269,8 +272,10 @@ exactly as the mapper consumes it. Literal value authoring offers the plain
 value bases; a `status` literal base does not exist — statuses are type-scoped
 and enter graphs only through state declaration sockets. A connected wire
 always wins. An open socket is a composition affordance, not an error.
-Process sockets are always optional; validation only rejects invalid wires,
-duplicate single-value connections, and invalid authored contracts.
+Process sockets are always optional; validation only rejects invalid wires
+and invalid authored contracts — single-value sockets (inputs without
+`multiple`) reject a second wire on the connect gesture itself, with the
+socket named in the notice.
 
 Fallback/default policy is omission-first. A connected value wins; otherwise
 an explicit authored `inputDefaults` value is used. If neither exists, the
