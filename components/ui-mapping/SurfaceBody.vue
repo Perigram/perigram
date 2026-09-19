@@ -4,6 +4,7 @@
       :instance="instance"
       :type="type"
       variant="full"
+      :actions="actions"
       :pool="pool"
       :bundle="bundle"
       :expanded="expanded"
@@ -11,6 +12,7 @@
       :editing="editing"
       :draft="draft"
       @toggle="toggleRelation"
+      @run="$emit('run', $event)"
     />
   </div>
 
@@ -28,10 +30,12 @@
           :instance="instance"
           :type="type"
           variant="detail"
+          :actions="actions"
           :pool="pool"
           :bundle="bundle"
           :expanded="expanded"
           @toggle="toggleRelation"
+          @run="$emit('run', $event)"
         />
       </div>
     </template>
@@ -46,18 +50,20 @@
       </div>
       <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
     </div>
-    <SurfaceDetailBody
-      :instance="instance"
-      :type="type"
-      variant="detail"
-      :pool="pool"
-      :bundle="bundle"
-      :expanded="expanded"
-      :covered-relations="coveredRelations"
-      :editing="editing"
-      :draft="draft"
-      @toggle="toggleRelation"
-    />
+      <SurfaceDetailBody
+        :instance="instance"
+        :type="type"
+        variant="detail"
+        :actions="actions"
+        :pool="pool"
+        :bundle="bundle"
+        :expanded="expanded"
+        :covered-relations="coveredRelations"
+        :editing="editing"
+        :draft="draft"
+        @toggle="toggleRelation"
+        @run="$emit('run', $event)"
+      />
   </div>
 
   <div v-else class="flex min-w-0 flex-wrap items-center gap-2">

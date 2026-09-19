@@ -1,6 +1,12 @@
 <template>
   <div v-if="d" :class="d.stack">
-    <StateStrip v-if="type.states?.main" :type="type" :instance="instance" />
+    <StateStrip
+      v-if="type.states?.main"
+      :type="type"
+      :instance="instance"
+      :actions="actions"
+      @run="$emit('run', $event)"
+    />
     <PreviewBox v-if="hasPreview" :type="type" :payload="instance.payload" :seed="instance.id" />
 
     <section v-for="group in groups" :key="group.id" :class="d.stackTight">
@@ -194,6 +200,7 @@ const props = defineProps({
   instance: { type: Object, required: true },
   type: { type: Object, required: true },
   variant: { type: String, default: 'detail' },
+  actions: { type: Array, default: () => [] },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   expanded: { type: Object, default: () => ({}) },
@@ -202,7 +209,7 @@ const props = defineProps({
   draft: { type: Object, default: null }
 });
 
-const emit = defineEmits(['toggle', 'inline-change']);
+const emit = defineEmits(['toggle', 'inline-change', 'run']);
 const d = inject('uiMappingSpacing');
 
 const inlineDraft = reactive({});
