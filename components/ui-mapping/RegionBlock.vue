@@ -1,12 +1,12 @@
 <template>
   <div v-if="embedded && node.surfaceKind === 'list'" :class="[LAYOUT.stackTight, 'w-full']">
-    <div class="flex flex-wrap justify-between gap-2">
-      <div class="flex flex-wrap gap-2">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
         <span class="text-label">{{ node.type?.render?.label || node.id }}</span>
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
-      <div v-if="node.actions.length" class="flex flex-wrap gap-2">
+      <div v-if="node.actions.length" class="flex flex-wrap items-center gap-2">
         <ActionButton
           v-for="action in node.actions"
           :key="action.id"
@@ -37,14 +37,14 @@
 
   <Panel v-else-if="node.surfaceKind === 'list'" class="w-full" :pt="{ contentWrapper: { class: 'min-w-0' } }">
     <template #header>
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
         <span class="text-section-heading">{{ node.type?.render?.label || node.id }}</span>
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
     </template>
     <template v-if="node.actions.length" #icons>
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <ActionButton
           v-for="action in node.actions"
           :key="action.id"

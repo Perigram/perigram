@@ -18,7 +18,7 @@
     <template #content>
       <div :class="LAYOUT.stackTight">
         <div :class="LAYOUT.rowBetween">
-          <div class="flex flex-wrap gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <i :class="type.render.icon" />
             <span class="text-section-heading">{{ instanceLabel }}</span>
           </div>
@@ -39,7 +39,7 @@
 
   <div v-else-if="variant === 'detail' && flattened" :class="LAYOUT.stackTight">
     <Divider class="my-0" />
-    <div class="flex flex-wrap justify-between gap-2">
+    <div class="flex flex-wrap items-center justify-between gap-2">
       <div :class="LAYOUT.row">
         <i :class="type.render.icon" />
         <span class="text-section-heading">{{ instanceLabel }}</span>
@@ -60,7 +60,7 @@
     />
   </div>
 
-  <div v-else class="flex min-w-0 flex-wrap gap-2">
+  <div v-else class="flex min-w-0 flex-wrap items-center gap-2">
     <i :class="type.render.icon" />
     <span class="text-body">{{ instanceLabel }}</span>
     <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />

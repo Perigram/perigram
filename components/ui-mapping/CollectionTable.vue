@@ -42,7 +42,7 @@
     </Column>
     <Column v-if="relationKey" :header="relationLabel">
       <template #body="{ data }">
-        <div class="flex flex-wrap gap-1">
+        <div class="flex flex-wrap items-center gap-1">
           <InstanceChip
             v-for="ref in budgetedRefs(data)"
             :key="ref.id"
