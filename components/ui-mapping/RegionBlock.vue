@@ -1,5 +1,5 @@
 <template>
-  <div v-if="embedded && node.surfaceKind === 'list'" :class="[LAYOUT.stackTight, 'w-full']">
+  <div v-if="embedded && node.surfaceKind === 'list'" :class="[embeddedStack, 'w-full']">
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex flex-wrap items-center gap-2">
         <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
@@ -16,12 +16,13 @@
         />
       </div>
     </div>
-    <RegionDataState :node="node" />
-    <template v-if="node.dataState === 'ready'">
-      <CollectionToolbar v-model:search="search" v-model:facets="facets" :node="node" />
+    <RegionDataState v-if="showState" :node="node" />
+    <template v-if="showSurfaces">
+      <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
+      <CollectionToolbar v-if="listLayout !== 'table'" v-model:search="search" v-model:facets="facets" :node="node" />
       <CollectionTable
         v-if="listLayout === 'table'"
-        :instances="filteredInstances"
+        :instances="tableInstances"
         :type="node.type"
         :controls="node.listControls"
         :pool="pool"
@@ -34,9 +35,9 @@
         :pool="pool"
         :bundle="bundle"
       />
-      <CardGrid v-else-if="listLayout === 'card-grid'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <CardGrid v-else-if="listLayout === 'card-grid'" :instances="filteredInstances" :type="node.type" :controls="node.listControls" :pool="pool" :bundle="bundle" />
       <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
-      <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="filteredInstances" :type="node.type" :controls="node.listControls" :pool="pool" :bundle="bundle" />
     </template>
   </div>
 
@@ -59,12 +60,13 @@
         />
       </div>
     </template>
-    <RegionDataState :node="node" />
-    <template v-if="node.dataState === 'ready'">
-      <CollectionToolbar v-model:search="search" v-model:facets="facets" :node="node" />
+    <RegionDataState v-if="showState" :node="node" />
+    <template v-if="showSurfaces">
+      <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
+      <CollectionToolbar v-if="listLayout !== 'table'" v-model:search="search" v-model:facets="facets" :node="node" />
       <CollectionTable
         v-if="listLayout === 'table'"
-        :instances="filteredInstances"
+        :instances="tableInstances"
         :type="node.type"
         :controls="node.listControls"
         :pool="pool"
@@ -77,9 +79,9 @@
         :pool="pool"
         :bundle="bundle"
       />
-      <CardGrid v-else-if="listLayout === 'card-grid'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <CardGrid v-else-if="listLayout === 'card-grid'" :instances="filteredInstances" :type="node.type" :controls="node.listControls" :pool="pool" :bundle="bundle" />
       <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
-      <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="filteredInstances" :type="node.type" :controls="node.listControls" :pool="pool" :bundle="bundle" />
       <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
       <div v-else-if="listLayout === 'list'" :class="LAYOUT.stackTight">
         <SurfaceBody
@@ -106,9 +108,10 @@
   </Panel>
 
   <div v-else :class="[stackFor, 'w-full']">
-    <RegionDataState :node="node" />
-    <div v-if="depth === 0 && node.dataState === 'ready'" :class="LAYOUT.detailSplit">
+    <RegionDataState v-if="showState" :node="node" />
+    <div v-if="depth === 0 && showSurfaces" :class="LAYOUT.detailSplit">
       <div :class="[LAYOUT.mainCol, 'min-w-0 flex flex-col gap-6']">
+        <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
         <SurfaceHeader
           :type="node.type"
           :instance="node.instances[0]"
@@ -125,6 +128,7 @@
           :instance="node.instances[0]"
           :type="node.type"
           variant="full"
+          :actions="node.actions"
           :chrome="node.chrome"
           :covered-relations="coveredRelationKeys"
           :editing="editing"
@@ -160,7 +164,8 @@
         />
       </div>
     </div>
-    <template v-else-if="node.dataState === 'ready'">
+    <template v-else-if="showSurfaces">
+      <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
       <SurfaceBody
         :instance="node.instances[0]"
         :type="node.type"
@@ -205,6 +210,7 @@ import { computed, inject, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
+import ProgressBar from 'primevue/progressbar';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
@@ -248,6 +254,20 @@ const toggleEditing = () => {
   editing.value = !editing.value;
 };
 const emitRun = action => emit('run', action);
+// Surface visibility derives from the composed dataState: ready regions
+// render; a loading region with already-loaded instances keeps its stale
+// surfaces under an indeterminate progress bar; every other state shows
+// the shared RegionDataState (skeletons on first load, messages after).
+const state = computed(() => props.node.dataState || 'ready');
+const hasInstances = computed(() => props.node.instances.length > 0);
+const isReloading = computed(() => state.value === 'loading' && hasInstances.value);
+const showSurfaces = computed(() => state.value === 'ready' || isReloading.value);
+const showState = computed(() => !showSurfaces.value);
+const embeddedStack = computed(() => (spacing ? spacing.stackTight : LAYOUT.stackTight));
+// The table layout filters natively through the DataTable (same contract),
+// so it consumes the raw instances; every other layout consumes the
+// toolbar-filtered rows.
+const tableInstances = computed(() => (listLayout.value === 'table' ? props.node.instances : filteredInstances.value));
 const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type?.render?.label || region.id);
 const regionLabel = computed(() => regionLabelFor(props.node));
 const listLayout = computed(() => resolveListLayout(props.node.type, {

@@ -1,8 +1,8 @@
 <template>
-  <div v-if="visible" :class="LAYOUT.row">
+  <div v-if="visible" :class="toolbarClasses">
     <InputText
       v-model="searchModel"
-      size="small"
+      :size="editorSize"
       :placeholder="$t('uiMapping.searchPlaceholder')"
       class="max-w-56"
       :aria-label="$t('uiMapping.searchPlaceholder')"
@@ -16,7 +16,7 @@
       option-value="value"
       :placeholder="facet.label"
       show-clear
-      size="small"
+      :size="editorSize"
       class="max-w-44"
       :aria-label="facet.label"
       @update:model-value="value => setFacet(facet.name, value)"
@@ -25,7 +25,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import InputText from 'primevue/inputtext';
 import { LAYOUT, SEARCH_AT } from '#shared/ui-mapping/index.js';
 import AppSelect from '~/components/shared/EntitySelect.vue';
@@ -35,13 +35,18 @@ import AppSelect from '~/components/shared/EntitySelect.vue';
 // list region. It appears only past the SEARCH_AT budget and owns no
 // per-type logic — the region tree carries every decision. Search and
 // facet selections are region-owned models applied client-side by
-// RegionBlock over the loaded instances.
+// RegionBlock over the loaded instances. Rhythm (gaps) and control size
+// follow the system spacing scale through the injected mapping spacing,
+// never hardcoded row classes.
 const props = defineProps({
   node: { type: Object, required: true }
 });
 
 const searchModel = defineModel('search', { type: String, default: '' });
 const facetsModel = defineModel('facets', { type: Object, default: () => ({}) });
+const spacing = inject('uiMappingSpacing', null);
+const toolbarClasses = computed(() => (spacing ? spacing.toolbar : LAYOUT.row));
+const editorSize = computed(() => (spacing ? spacing.editorSize : undefined));
 
 const controls = computed(() => props.node.listControls || null);
 const visible = computed(() => Boolean(

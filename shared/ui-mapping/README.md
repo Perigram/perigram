@@ -200,6 +200,11 @@ declare per-slot budgets (`{ max, overflow }`, `overflow` is
 `'count' | 'more' | 'scroll'`). Children render themselves; the budget rule
 collapses the list (`+n`, "show more", or bounded scroll). Row variants use
 tight budgets (`max: 2, overflow: 'count'`); full surfaces scroll instead.
+Client-side ordering and paging over the list-controls contract stay pure
+too: `sortControlRows(rows, key, order)` orders by a `sortKeys` entry
+(quantities by numeric value, absent values always last, never mutating
+the input) and `pageSlice(rows, first, rowsPerPage)` cuts one page — the
+shared semantics for surfaces that sort or page without PrimeVue.
 
 Presentation context is tree-owned: every composed region node carries
 `chrome` (`resolveChrome` of its container role by depth — top regions are
@@ -220,7 +225,8 @@ the bias shifts the classification threshold and never overrides the
 outcome). One global spacing coefficient (0.5–2, the showcase slider)
 selects the rhythm set (`spacingClasses` over the literal
 `SPACING_SCALES` table): stack rhythm, section gaps, fact-row padding,
-chip-row leading, facts-grid gutters, control size, and editor size
+chip-row leading, toolbar gaps, facts-grid gutters, control size, and
+editor size
 move together — real coefficients, Tailwind-scannable by construction. The rule binds everywhere siblings exist: composed screens carry
 `regionsMode` for their top-level regions (a heavy home tabs its
 sections), and detail nodes carry `childrenMode` for their child

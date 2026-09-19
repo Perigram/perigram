@@ -1,5 +1,5 @@
 <template>
-  <Timeline :value="instances" class="w-full">
+  <Timeline :value="page" class="w-full">
     <template #content="{ item }">
       <div :class="LAYOUT.stackTight">
         <div :class="LAYOUT.rowBetween">
@@ -21,23 +21,44 @@
       </div>
     </template>
   </Timeline>
+  <Paginator
+    v-if="instances.length > pageSize"
+    v-model:first="first"
+    :rows="pageSize"
+    :total-records="instances.length"
+  />
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Timeline from 'primevue/timeline';
-import { LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, formatValue, SCALAR_BASES, instanceIdentity } from '#shared/ui-mapping/index.js';
+import Paginator from 'primevue/paginator';
+import {
+  LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, formatValue,
+  SCALAR_BASES, instanceIdentity, resolveListControls, pageSlice
+} from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
   type: { type: Object, default: null },
+  // Composed list-controls contract from the region tree; recomputed from
+  // the type and loaded instances when absent (direct timeline usage).
+  controls: { type: Object, default: null },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });
 
 const { te, t } = useI18n();
+
+const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
+// The timeline pages through the shared page budget (same rows contract
+// as the table); shorter streams render whole without a pager.
+const pageSize = computed(() => resolvedControls.value.pagination.rows);
+const first = ref(0);
+watch(() => props.instances, () => { first.value = 0; });
+const page = computed(() => pageSlice(props.instances, first.value, pageSize.value));
 
 const isLongString = descriptor => descriptor.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
