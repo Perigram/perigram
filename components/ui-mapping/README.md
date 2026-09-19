@@ -56,8 +56,9 @@ inputs resolved against the target type's field descriptors.
 - `HierarchyTree.vue` — the deep-nesting projection: a fully expanded
   PrimeVue Tree built recursively from the type's declared children edges
   and the instance pool's lineage, shown on group surfaces.
-- `SurfaceHeader.vue` — the record-page header bar: identity, status,
-  placed actions, and the lifecycle Stepper for stateful types.
+- `SurfaceHeader.vue` — the record-page header bar: Avatar identity with
+  title and a `type · id` muted subtitle, status, placed actions, and the
+  lifecycle Stepper for stateful types.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
   bare content column of a record page, `detail` → Card (same-role nesting
   flattens to a Divider), `row` / `inline` → dense flex row with budgeted
