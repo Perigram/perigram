@@ -323,6 +323,17 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
     expect(primeComponentTokens).toEqual({
+      card: { root: { shadow: 'none' } },
+      datatable: {
+        root: { background: 'transparent' }, header: { background: 'transparent' },
+        body: { background: 'transparent' }, row: { background: 'transparent' },
+        footer: { background: 'transparent' }
+      },
+      treetable: {
+        root: { background: 'transparent' }, header: { background: 'transparent' },
+        body: { background: 'transparent' }, row: { background: 'transparent' },
+        footer: { background: 'transparent' }
+      },
       tabs: { tablist: { background: 'transparent' }, tabpanel: { background: 'transparent' } },
       tree: { root: { background: 'transparent' } }
     });

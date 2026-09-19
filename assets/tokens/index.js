@@ -350,6 +350,45 @@ export const primeSemanticTokens = {
 // needs a token-level decision: tab strips are transparent so the chrome
 // surface shows through, and tree rows run at explorer density.
 export const primeComponentTokens = {
+    card: {
+        root: {
+            shadow: 'none'
+        }
+    },
+    datatable: {
+        root: {
+            background: 'transparent'
+        },
+        header: {
+            background: 'transparent'
+        },
+        body: {
+            background: 'transparent'
+        },
+        row: {
+            background: 'transparent'
+        },
+        footer: {
+            background: 'transparent'
+        }
+    },
+    treetable: {
+        root: {
+            background: 'transparent'
+        },
+        header: {
+            background: 'transparent'
+        },
+        body: {
+            background: 'transparent'
+        },
+        row: {
+            background: 'transparent'
+        },
+        footer: {
+            background: 'transparent'
+        }
+    },
     tabs: {
         tablist: {
             background: 'transparent'
