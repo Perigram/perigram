@@ -46,6 +46,7 @@
     "@vue-flow/core": "^1.48.2",
     "archiver": "^7.0.1",
     "argon2": "^0.44.0",
+    "chart.js": "^4.5.1",
     "clipper2-wasm": "^0.4.0",
     "docx-preview": "^0.4.0",
     "dxf-parser": "^1.1.2",
