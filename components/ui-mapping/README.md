@@ -42,8 +42,12 @@ inputs resolved against the target type's field descriptors.
   grid of preview cards with Avatar identity, status, deterministic
   preview, budgeted scalar facts).
 - `TimelineCollection.vue` — the chronological list projection (Timeline):
-  marker-per-entry with identity and budgeted facts, selected by type
-  matcher (log entries).
+  marker-per-entry with identity, inline scalar facts, and the type's
+  primary long-text (or first structural) field as the entry body,
+  selected by type matcher (log entries).
+- `StateStrip.vue` — the lifecycle projection: the declared state axis as
+  a linear PrimeVue Stepper (numbered steps, active state from the
+  instance), horizontally scrollable.
 - `HierarchyTree.vue` — the deep-nesting projection: a fully expanded
   PrimeVue Tree built recursively from the type's declared children edges
   and the instance pool's lineage, shown on group surfaces.
@@ -51,8 +55,8 @@ inputs resolved against the target type's field descriptors.
   Panel with the placed actions in the header, `detail` → Card (same-role
   nesting flattens to a Divider), `row` / `inline` → dense flex row with
   budgeted fields and relation chips.
-- `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
-  scalar facts strip (`DETAIL_FACT_BUDGET`, labeled via `fieldLabel`:
+- `SurfaceDetailBody.vue` — shared detail/full body: Stepper lifecycle
+  strip on stateful types, preview, a bounded scalar facts strip (`DETAIL_FACT_BUDGET`, labeled via `fieldLabel`:
   descriptor label or start-case name), structural fields as an Accordion,
   budgeted relation chips with show-more toggles for relations not already
   covered by a child region, and the hierarchy tree for groups.

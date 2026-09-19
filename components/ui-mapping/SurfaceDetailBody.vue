@@ -1,5 +1,6 @@
 <template>
   <div class="flex flex-col gap-6">
+    <StateStrip v-if="type.states?.main" :type="type" :instance="instance" />
     <PreviewBox v-if="hasPreview" :type="type" :payload="instance.payload" :seed="instance.id" />
 
     <div v-if="shownFacts.length" class="grid grid-cols-2 items-start gap-x-6 gap-y-4 md:grid-cols-4">
@@ -65,6 +66,7 @@ import FieldControl from './FieldControl.vue';
 import EntityChip from './EntityChip.vue';
 import PreviewBox from './PreviewBox.vue';
 import HierarchyTree from './HierarchyTree.vue';
+import StateStrip from './StateStrip.vue';
 
 const props = defineProps({
   instance: { type: Object, required: true },

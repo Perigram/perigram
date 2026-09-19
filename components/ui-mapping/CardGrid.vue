@@ -1,29 +1,33 @@
 <template>
   <DataView :value="instances" data-key="id" layout="grid" :paginator="instances.length > 8" :rows="8">
     <template #grid="slotProps">
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div class="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
         <Card v-for="instance in slotProps.items" :key="instance.id" class="w-full">
-          <template #header>
-            <div class="flex items-center justify-between gap-2 p-3 pb-0">
-              <div class="flex min-w-0 items-center gap-2">
-                <Avatar :icon="type?.render?.icon || 'pi pi-circle'" shape="circle" />
-                <span class="text-body truncate">{{ identityOf(instance) }}</span>
-              </div>
-              <Tag v-if="statusOf(instance)" :value="statusOf(instance).label" :severity="statusOf(instance).severity" />
-            </div>
-          </template>
           <template #content>
-            <div class="flex flex-col gap-3">
+            <div class="flex h-full flex-col gap-3">
+              <div class="flex min-w-0 items-center justify-between gap-2">
+                <div class="flex min-w-0 items-center gap-2">
+                  <Avatar :icon="type?.render?.icon || 'pi pi-circle'" shape="circle" />
+                  <span class="text-body truncate">{{ identityOf(instance) }}</span>
+                </div>
+                <Tag v-if="statusOf(instance)" :value="statusOf(instance).label" :severity="statusOf(instance).severity" />
+              </div>
               <PreviewBox :type="type" :payload="instance.payload" :seed="instance.id" />
-              <div v-for="field in scalarFields" :key="field.name" class="flex min-w-0 flex-col gap-1">
-                <span class="text-supporting text-muted">{{ field.label }}</span>
-                <FieldControl
-                  :model-value="instance.fields?.[field.name]"
-                  :descriptor="field.descriptor"
-                  variant="row"
-                  :pool="pool"
-                  :bundle="bundle"
-                />
+              <div v-if="scalarFields.length" class="mt-auto flex flex-col gap-1">
+                <div
+                  v-for="field in scalarFields"
+                  :key="field.name"
+                  class="flex min-w-0 items-baseline justify-between gap-2"
+                >
+                  <span class="text-supporting text-muted">{{ field.label }}</span>
+                  <FieldControl
+                    :model-value="instance.fields?.[field.name]"
+                    :descriptor="field.descriptor"
+                    variant="row"
+                    :pool="pool"
+                    :bundle="bundle"
+                  />
+                </div>
               </div>
             </div>
           </template>
