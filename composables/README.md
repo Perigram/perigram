@@ -313,7 +313,12 @@ it remains top-level. Non-home sources are never root-filtered.
 The organization process page delegates process catalog selection, persistence,
 graph selection/editing, connection inference, palette filtering, inspector
 records, roles, screens, and dock/panel state to focused
-`useProcessDesigner*` composables. The page remains the view composition root;
+`useProcessDesigner*` composables. Node selection is authoritative at click
+time: `selectNode`/`selectEdge` synchronize the canvas `selected` flags, so
+a stale flag left by a palette drop or a finished rubber-band can never
+redirect deletion onto a node other than the one clicked
+(`useProcessDesignerCanvasModel.spec.js` drives the full lifecycle —
+declaration authoring, wiring, renames, deletions — against this invariant). The page remains the view composition root;
 these composables own mutations for their concern and are behavior-tested
 without reading Vue source text.
 `useProcessDesignerLiveGraph` is the designer's realtime evaluation loop: one

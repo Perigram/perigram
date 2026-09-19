@@ -8,12 +8,21 @@ export function useProcessDesignerSelection({ nodes, edges, decorateEdge, closeP
   function selectNode(node) {
     selectedNodeId.value = node.id;
     selectedEdgeId.value = null;
+    // Selection flags are authoritative at click time: a stale `selected`
+    // left by a palette drop or a finished rubber-band must never redirect
+    // deletion onto a different node than the one clicked.
+    for (const candidate of nodes.value) {
+      if (candidate.selected !== (candidate.id === node.id)) candidate.selected = candidate.id === node.id;
+    }
     syncEdges();
   }
 
   function selectEdge(edge) {
     selectedEdgeId.value = edge.id;
     selectedNodeId.value = null;
+    for (const candidate of nodes.value) {
+      if (candidate.selected) candidate.selected = false;
+    }
     syncEdges();
   }
 
