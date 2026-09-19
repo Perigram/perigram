@@ -8,23 +8,24 @@
       <div v-if="shownFacts(group).length" :class="LAYOUT.specList">
         <div v-for="field in shownFacts(group)" :key="field.name" :class="LAYOUT.specRow">
           <span :class="LAYOUT.labelCell">{{ field.label }}</span>
-          <FieldControl
-            v-if="editing"
-            v-model="draft[field.name]"
-            :descriptor="field.descriptor"
-            variant="detail"
-            :pool="pool"
-            :bundle="bundle"
-          />
-          <FieldControl
-            v-else-if="inlineValue(field) === null"
-            :model-value="instance.fields?.[field.name]"
-            :descriptor="field.descriptor"
-            variant="row"
-            :pool="pool"
-            :bundle="bundle"
-          />
-          <Inplace v-else closable>
+          <div :class="LAYOUT.factCell">
+            <FieldControl
+              v-if="editing"
+              v-model="draft[field.name]"
+              :descriptor="field.descriptor"
+              variant="detail"
+              :pool="pool"
+              :bundle="bundle"
+            />
+            <FieldControl
+              v-else-if="inlineValue(field) === null"
+              :model-value="instance.fields?.[field.name]"
+              :descriptor="field.descriptor"
+              variant="row"
+              :pool="pool"
+              :bundle="bundle"
+            />
+            <Inplace v-else closable>
             <template #display>
               <div class="group -mx-1.5 flex cursor-pointer items-center gap-1.5 rounded-ui px-1.5 py-0.5 transition-colors hover:bg-subtle">
                 <FieldControl
@@ -46,7 +47,8 @@
                 :bundle="bundle"
               />
             </template>
-          </Inplace>
+            </Inplace>
+          </div>
         </div>
         <div v-if="hiddenFactCount(group) > 0" :class="LAYOUT.specRow">
           <span class="text-body text-muted">…</span>

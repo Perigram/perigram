@@ -60,7 +60,7 @@
     />
   </div>
 
-  <div v-else :class="LAYOUT.row">
+  <div v-else class="flex min-w-0 flex-wrap items-start gap-2">
     <i :class="type.render.icon" />
     <span class="text-body">{{ instanceLabel }}</span>
     <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />

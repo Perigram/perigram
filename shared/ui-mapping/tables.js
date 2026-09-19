@@ -171,6 +171,7 @@ export const LAYOUT = Object.freeze({
   labelCell: 'shrink-0 text-body text-muted',
   rowBetween: 'flex flex-wrap items-center justify-between gap-2',
   factsGrid: 'grid grid-cols-1 items-start gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-4',
+  factCell: 'flex min-w-0 flex-col items-start gap-1 self-start',
   formGrid: 'grid grid-cols-1 items-start gap-x-4 gap-y-4 md:grid-cols-2',
   cardGrid: 'grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4',
   scrollX: 'w-full overflow-x-auto',
