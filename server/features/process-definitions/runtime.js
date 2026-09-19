@@ -8,7 +8,7 @@ import {
 } from '~/packages/processes/src/index.js';
 import { cncDomain, cncPackContent } from '~/packages/domain-cnc/src/index.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
-import { projectDomainFromView } from '~/packages/cts/src/index.js';
+import { compileClientBundle, projectDomainFromView } from '~/packages/cts/src/index.js';
 import * as repository from './repository.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { resolveOrganizationSystemScreens } from '../organizations/system-screens.js';
@@ -48,13 +48,20 @@ async function getProjectedDomainFor(organizationId) {
 }
 
 // The active runtime compiles through the CTS-projected domain so authored
-// organization types are live in every compiled contract.
+// organization types are live in every compiled contract. The CTS client
+// bundle is emitted beside the UI contract so renderers never consult the
+// registry directly.
 export async function compileActiveProcessRuntime(data = null, roles = {}, organizationId = null) {
   if (!data) return null;
   const domain = await getProjectedDomainFor(organizationId);
   const migration = migrateProducerOutputIdentities(data, domain);
   if (migration.errors.length) throw new Error(migration.errors.join('; '));
-  return compileProcessDefinition({ ...migration.data, compiled: null }, domain, { roles });
+  const compiled = compileProcessDefinition({ ...migration.data, compiled: null }, domain, { roles });
+  if (compiled) {
+    const registry = await compileRegistryForOrganization(organizationId);
+    compiled.bundle = compileClientBundle(registry, organizationId);
+  }
+  return compiled;
 }
 
 export async function resolveProcessAuth(auth = {}) {

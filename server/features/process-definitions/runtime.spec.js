@@ -46,7 +46,7 @@ describe('process runtime auth hydration', () => {
       expect.objectContaining({ level: 'write' })
     ]));
     expect(auth.screens).toEqual(expect.arrayContaining([
-      expect.objectContaining({ entityType: 'project' })
+      expect.objectContaining({ typeId: 'project' })
     ]));
     expect(auth.roleAssignments.roleIds).toEqual([PERSISTED_ACCEPTANCE_IDS.role]);
   });

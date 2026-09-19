@@ -13,6 +13,7 @@ import {
   validateProcessEdges
 } from './ports.js';
 import { CONSUMER_EFFECT_KINDS, entityBlocks, getFieldPolicy, getProcessNodeDefinition, resolveCatalogNodePorts } from './node-catalog.js';
+import { projectUiAction, projectUiContractChannels } from './ui-contract-projection.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
 import { normalizeHandle, lineageKeyForEntityType, lineageRelationsForParent } from './hierarchy-utils.js';
@@ -1092,7 +1093,7 @@ export function compileProcessDefinition(definition = {}, domain = {}, { roles =
     processNodes: compileProcessNodes(process.processNodes),
     services: compileServices(process.services),
     sockets: compileSockets(process.sockets),
-    screens: compiledScreens,
+    screens: projectUiContractChannels({ screens: compiledScreens }).screens,
     lineageBindings,
     warnings: validation.warnings
   };
@@ -1197,6 +1198,7 @@ export function resolveRoleAssignmentAccess({ compiled, assignment, domain = {} 
     assignment,
     roles: compiled?.roles || {},
     screens: compiled?.screens || {},
+    actions: compiled?.actions || {},
     lineageBindings: compiled?.lineageBindings || [],
     domain
   });
@@ -1507,7 +1509,7 @@ function actionEntityType(action = {}) {
     || '';
 }
 
-export function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {}, lineageBindings = [], domain = {} } = {}) {
+export function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {}, actions = {}, lineageBindings = [], domain = {} } = {}) {
   const permissions = {};
   const screenMap = new Map();
   const actionMap = new Map();
@@ -1526,10 +1528,15 @@ export function compileAssignmentAccess({ assignment = {}, roles = {}, screens =
       permissions[grant.feature].push(compiledGrant.grant);
     }
     for (const action of role.actions || []) {
-      const existing = actionMap.get(action.actionId) || {};
-      actionMap.set(action.actionId, {
+      // The manifest action entry is the projected UI contract record; the
+      // rich exposure window (status from, feature, contracts) stays in the
+      // roles channel for grant derivation and the run API.
+      const projected = projectUiAction(action);
+      const actionId = action.actionId || action.id;
+      const existing = actionMap.get(actionId) || {};
+      actionMap.set(actionId, {
         ...existing,
-        ...action,
+        ...(projected || { ...action, id: actionId }),
         sourceRoleIds: [...new Set([...(existing.sourceRoleIds || []), roleId])]
       });
     }
@@ -1578,7 +1585,7 @@ export function compileHomeScreenForAssignment({ assignment = {}, screens = [], 
     sources: sections.map(section => ({
       id: section.sourceId,
       label: section.label,
-      entityType: section.entityType,
+      typeId: section.typeId,
       mode: 'list',
       required: section.required || null,
       filters: section.filters || {},
@@ -1599,19 +1606,20 @@ export function compileHomeScreenForAssignment({ assignment = {}, screens = [], 
 }
 
 function topLevelHomeSections(screens = [], domain = {}) {
-  const listScreens = screens.filter(screen => screen.template === 'entityList' && screen.entityType && screen.sources?.some(source => source.mode === 'list'));
-  const sectionsByEntity = new Map();
+  const listScreens = screens.filter(screen => (screen.template === 'typeList' || screen.template === 'entityList') && (screen.typeId || screen.entityType) && screen.sources?.some(source => source.mode === 'list'));
+  const sectionsByType = new Map();
   for (const screen of listScreens) {
-    if (sectionsByEntity.has(screen.entityType)) {
-      const existing = sectionsByEntity.get(screen.entityType);
+    const typeId = screen.typeId || screen.entityType;
+    if (sectionsByType.has(typeId)) {
+      const existing = sectionsByType.get(typeId);
       existing.actions = [...new Set([...(existing.actions || []), ...(screen.actions || [])])];
       continue;
     }
     const source = screen.sources.find(item => item.mode === 'list') || {};
-    sectionsByEntity.set(screen.entityType, {
-      entityType: screen.entityType,
-      sourceId: `home_${screen.entityType}`,
-      label: screen.label || screen.entityType,
+    sectionsByType.set(typeId, {
+      typeId,
+      sourceId: `home_${typeId}`,
+      label: screen.label || typeId,
       required: source.required || screen.required || null,
       filters: source.filters || {},
       actions: screen.actions || [],
@@ -1619,7 +1627,7 @@ function topLevelHomeSections(screens = [], domain = {}) {
       route: screen.route
     });
   }
-  return [...sectionsByEntity.values()];
+  return [...sectionsByType.values()];
 }
 
 function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineageBindings = []) {
@@ -2582,7 +2590,7 @@ function compileScreenForAssignment(screen = {}, assignment = {}, roleId = null)
     route: screen.route,
     sourceRoute: screen.sourceRoute || screen.route,
     placement: screen.placement,
-    entityType: screen.entityType,
+    typeId: screen.typeId || screen.entityType || null,
     required: screen.required,
     scope: { ...(screen.scope || {}), ...(screen.bindings || {}) },
     sources: screen.sources || [],
@@ -2626,10 +2634,11 @@ function mergeCompiledScreen(screenMap, screen) {
 
 function screenMergeKey(screen = {}) {
   if (screen.template === 'home') return screen.screenKey || screen.id;
-  if (!String(screen.id || '').startsWith('auto_') || !screen.entityType) return screen.screenKey || screen.id;
-  const suffix = screen.template === 'entityDetail' ? '_detail' : '';
+  const typeId = screen.typeId || screen.entityType;
+  if (!String(screen.id || '').startsWith('auto_') || !typeId) return screen.screenKey || screen.id;
+  const suffix = screen.template === 'instanceDetail' || screen.template === 'entityDetail' ? '_detail' : '';
   const scopeValues = Object.values(screen.scope || {}).filter(value => value !== undefined && value !== null && value !== '');
-  return [`auto_${screen.entityType}${suffix}`, ...scopeValues].filter(Boolean).map(String).join(':');
+  return [`auto_${typeId}${suffix}`, ...scopeValues].filter(Boolean).map(String).join(':');
 }
 
 function mergeScreenSources(existing = [], next = []) {
@@ -2649,7 +2658,7 @@ function mergeScreenSources(existing = [], next = []) {
 
 function sourceMergeKey(source = {}) {
   return [
-    source.entityType || source.id,
+    source.typeId || source.entityType || source.id,
     source.mode || '',
     JSON.stringify(source.filters || {}),
     source.identifier || ''
