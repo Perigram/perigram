@@ -215,6 +215,8 @@ describe('value formatting and layout vocabulary', () => {
     expect(formatValue({ base: 'enum' }, 'h-alpha')).toBe('H Alpha');
     expect(formatValue({ base: 'list' }, [1, 2, 3])).toBe('3');
     expect(formatValue({ base: 'string' }, null)).toBe('—');
+    expect(formatValue({}, '2026-11-12T17:00:00.000Z')).toBe(new Date('2026-11-12T17:00:00.000Z').toLocaleDateString());
+    expect(formatValue({}, { fileId: 'gridfs-1' })).toBe('gridfs-1');
   });
 
   it('exposes the layout vocabulary as the single styling home', () => {

@@ -37,22 +37,24 @@
           :value="String(index)"
           :header="field.label"
         >
-          <FieldControl
-            v-if="editing"
-            v-model="draft[field.name]"
-            :descriptor="field.descriptor"
-            variant="detail"
-            :pool="pool"
-            :bundle="bundle"
-          />
-          <FieldControl
-            v-else
-            :model-value="instance.fields?.[field.name]"
-            :descriptor="field.descriptor"
-            variant="row"
-            :pool="pool"
-            :bundle="bundle"
-          />
+          <div :class="LAYOUT.panelBody">
+            <FieldControl
+              v-if="editing"
+              v-model="draft[field.name]"
+              :descriptor="field.descriptor"
+              variant="detail"
+              :pool="pool"
+              :bundle="bundle"
+            />
+            <FieldControl
+              v-else
+              :model-value="instance.fields?.[field.name]"
+              :descriptor="field.descriptor"
+              variant="row"
+              :pool="pool"
+              :bundle="bundle"
+            />
+          </div>
         </AccordionPanel>
       </Accordion>
     </section>

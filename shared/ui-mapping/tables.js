@@ -172,6 +172,7 @@ export const LAYOUT = Object.freeze({
   headerRow: 'flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between',
   cellText: 'line-clamp-2 max-w-96 break-words text-left',
   chipRow: 'flex flex-wrap items-center gap-2 pt-2',
+  panelBody: 'py-2',
   specList: 'flex flex-col divide-y divide-content-border',
   specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
   detailSplit: 'grid grid-cols-1 items-start gap-6 xl:grid-cols-12',

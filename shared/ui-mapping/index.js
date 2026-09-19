@@ -308,9 +308,13 @@ export function formatValue(descriptor = {}, value) {
     if (Number.isFinite(value.value)) return formatQuantity(value);
     if (value.tag) return String(value.tag);
     if (value.id) return String(value.id);
+    if (value.fileId) return String(value.fileId);
     return VALUE_FALLBACK;
   }
   if (Array.isArray(value)) return `${value.length}`;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+    return new Date(value).toLocaleDateString();
+  }
   switch (descriptor.base) {
     case 'quantity':
       return formatQuantity(value);

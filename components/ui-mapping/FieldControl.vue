@@ -154,18 +154,15 @@ const outcome = computed(() => resolveFieldControl(props.descriptor, { variant: 
 const displayValue = computed(() => formatValue({ base: 'string' }, props.modelValue));
 const quantityValue = computed(() => formatQuantity(props.modelValue));
 const instantValue = computed(() => (props.modelValue ? new Date(props.modelValue).toLocaleDateString() : fallback));
-const compactValue = value => {
-  if (value === null || value === undefined) return fallback;
-  if (typeof value !== 'object') return value === true ? '✓' : value === false ? '—' : String(value);
-  if (Number.isFinite(value.value) && typeof value.unit === 'string') return formatQuantity(value);
+const compactValue = value => formatValue({ base: 'json' }, value) === '—'
+  && value !== null && value !== undefined && typeof value === 'object'
+  ? firstMeaningful(value)
+  : formatValue({ base: 'json' }, value);
+
+const firstMeaningful = value => {
   const first = Object.values(value).find(entry => entry !== null && entry !== undefined);
-  if (first && typeof first === 'object' && Number.isFinite(first.value) && typeof first.unit === 'string') {
-    return formatQuantity(first);
-  }
-  if (first !== undefined && first !== null && typeof first !== 'object') {
-    return first === true ? '✓' : first === false ? '—' : String(first);
-  }
-  return fallback;
+  if (first === undefined) return fallback;
+  return compactValue(first);
 };
 const summaryEntries = computed(() => {
   const value = props.modelValue;
