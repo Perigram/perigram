@@ -5,13 +5,16 @@ import { CLASS_COLLECTIONS } from '~/packages/cts/src/index.js';
 
 // Per-class instance collections (SPEC §13) — the map's single home is
 // @perigram/cts (`domain-projection.js`); this repository consumes it.
+// Tenancy is the top-level `organizationId` slot (SPEC §3): `lineage`
+// holds pure tree edges, and the wire DTO's `lineage.organizationId` is a
+// boundary projection owned by the service, never storage.
 
 export function collectionForClass(classOf = '') {
   return CLASS_COLLECTIONS[classOf] || 'files';
 }
 
 function orgFilter(organizationId) {
-  return organizationId ? { 'lineage.organizationId': toFlexibleId(organizationId) } : {};
+  return organizationId ? { organizationId: toFlexibleId(organizationId) } : {};
 }
 
 export async function insertInstance(collection, doc) {

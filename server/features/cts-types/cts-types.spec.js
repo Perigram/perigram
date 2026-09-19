@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+vi.mock('../instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
+
 vi.mock('./repository.js', () => ({
   create: vi.fn(),
   findByTypeId: vi.fn(async () => null),

@@ -8,6 +8,7 @@ import * as repository from './repository.js';
 import { createTypeRegistry, compileClientBundle, frameworkTypes } from '~/packages/cts/src/index.js';
 import { cncPackContent, cncPackAttachmentKinds } from '~/packages/domain-cnc/src/index.js';
 import { invalidateInstanceDeclarations } from '../instances/service.js';
+import { ensureInstanceIndexes } from '../instances/indexes.js';
 
 function to400(error) {
   if (error?.statusCode) throw error;
@@ -84,6 +85,8 @@ export async function defineType(declaration = {}, { organizationId } = {}) {
     if (!existing) await repository.deleteByTypeId(organizationId, orgDeclaration.id);
     throw createError({ statusCode: 400, message: compiled.errors.join('; ') });
   }
+  // Declaration writes can change the derived index set (SPEC §13).
+  await ensureInstanceIndexes(registry.resolveView(organizationId));
   return stored;
 }
 
@@ -97,5 +100,8 @@ export async function removeType(typeId, { organizationId } = {}) {
   }
   const removed = await repository.deleteByTypeId(organizationId, typeId);
   invalidateInstanceDeclarations(String(organizationId));
+  // A removed type may have been the last declaring an edge index.
+  const after = await compileRegistryForOrganization(organizationId);
+  await ensureInstanceIndexes(after.resolveView(organizationId));
   return removed;
 }

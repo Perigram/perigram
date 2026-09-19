@@ -98,20 +98,27 @@ nothing is a special case:
 
 ```
 entity := {
-  id:         Id
-  type:       TypeId            -- assigned at construct, immutable
-  typeVersion: Number           -- version of T's row it conforms to (§11)
-  fields:     T.row             -- the type's product, instantiated
-  lineage:    { key -> Ref }    -- tree edges (containment), from child
-  relations:  { key -> Ref | [Ref] }   -- peer edges
-  provenance: { op, sources: [Ref], effective: Record }
-                                  -- causal edges; `effective` records params
-                                  -- AND input versions (§8 purity)
-  states:     { axis -> enum value }  -- may be empty
-  payload:    Blob | none       -- iff T declares payload
-  history:    [revision]        -- iff T declares a revision scope
+  id:             Id
+  organizationId: Id                -- tenancy slot; immutable at construct
+  type:           TypeId            -- assigned at construct, immutable
+  typeVersion:    Number            -- version of T's row it conforms to (§11)
+  fields:         T.row             -- the type's product, instantiated
+  lineage:        { key -> Ref }    -- tree edges (containment), from child
+  relations:      { key -> Ref | [Ref] }   -- peer edges
+  provenance:     { op, sources: [Ref], effective: Record }
+                                   -- causal edges; `effective` records params
+                                   -- AND input versions (§8 purity)
+  states:         { axis -> enum value }  -- may be empty
+  payload:        Blob | none       -- iff T declares payload
+  history:        [revision]        -- iff T declares a revision scope
 }
 ```
+
+Tenancy lives in the top-level `organizationId` slot, never inside an edge
+map: `lineage` holds pure tree edges (a stored `lineage.organizationId` is
+the same drift class R2 forbids). The wire DTO still projects tenancy as
+`lineage.organizationId` for the legacy block vocabulary — that projection
+belongs to the instance service boundary (§13), storage speaks §3.
 
 The ten canonical blocks reduce to slots: `data`/`specs` -> fields (specs
 become `Quantity` fields), `identity/origin/status` -> id/states/history,
@@ -336,6 +343,14 @@ The compiler enforces exactly these; each replaces a hand-maintained guard:
 
 Collections are per class with `type` discriminator (+ `typeVersion`); typed
 fields with query hints project to compound indexes on `(type, field)`.
+Index definitions derive from the registry view — never a hand-mirrored
+list: every class collection carries `(type, organizationId, createdAt)`
+for list ordering and `(type, organizationId, states.main)`; each declared
+children edge adds `(type, organizationId, lineage.<key>)` on the child
+type's class collection and each declared relation edge adds
+`(type, organizationId, relations.<key>)` on the owner's. The instance
+feature derives and (idempotently) applies them when declarations change
+and at process activation.
 
 ## 14. Process designer in development
 
