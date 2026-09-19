@@ -1,22 +1,35 @@
 <template>
-  <div v-if="preview.component === 'ImagePreview'" class="flex w-full flex-col gap-1">
-    <Image :src="imageDataUri" :alt="mime" class="w-full rounded-ui" />
-    <span class="text-supporting text-muted">{{ mime }}</span>
+  <div v-if="preview.component === 'ImagePreview'" class="w-full">
+    <svg viewBox="0 0 240 96" width="100%" preserveAspectRatio="xMidYMid slice" role="img">
+      <defs>
+        <linearGradient :id="gradientId" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" :stop-color="accent" stop-opacity="0.5" />
+          <stop offset="1" :stop-color="accentAlt" stop-opacity="0.3" />
+        </linearGradient>
+      </defs>
+      <rect width="240" height="96" fill="var(--ck-subtle-background)" />
+      <rect width="240" height="96" :fill="`url(#${gradientId})`" />
+      <circle v-for="star in stars" :key="star.key" :cx="star.x" :cy="star.y" :r="star.r" :fill="star.fill" opacity="0.9" />
+      <path :d="ridgePath" fill="var(--p-text-color)" opacity="0.12" />
+    </svg>
   </div>
-  <div v-else-if="preview.component === 'GeometryPreview'" class="flex w-full flex-col gap-1">
-    <img :src="geometryDataUri" :alt="mime" class="w-full rounded-ui" >
-    <span class="text-supporting text-muted">{{ mime }}</span>
+  <div v-else-if="preview.component === 'GeometryPreview'" class="w-full">
+    <svg viewBox="0 0 240 96" width="100%" role="img">
+      <rect width="240" height="96" fill="var(--ck-subtle-background)" />
+      <circle cx="120" cy="48" r="38" :stroke="accent" stroke-dasharray="3 4" stroke-width="1.5" fill="none" opacity="0.7" />
+      <polygon :points="starPoints" :stroke="accent" stroke-width="1.5" fill="none" opacity="0.9" />
+      <circle v-for="node in starNodes" :key="node.key" :cx="node.x" :cy="node.y" r="2" :fill="accent" />
+    </svg>
   </div>
-  <div v-else-if="preview.component" class="flex h-24 w-full flex-col items-center justify-center gap-1 rounded-ui bg-subtle">
-    <i :class="placeholderIcon" class="text-muted" />
-    <span class="text-supporting">{{ sizeLabel }}</span>
+  <div v-else-if="preview.component" :class="[LAYOUT.row, 'h-16 w-full rounded-ui bg-subtle text-supporting text-muted']">
+    <i class="pi pi-file" />
+    <span>{{ sizeLabel }}</span>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
-import Image from 'primevue/image';
-import { resolvePreview } from '#shared/ui-mapping/index.js';
+import { LAYOUT, resolvePreview } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   type: { type: Object, default: null },
@@ -26,7 +39,6 @@ const props = defineProps({
 
 const preview = computed(() => resolvePreview(props.type || {}));
 const mime = computed(() => props.payload?.mime || preview.value.mime[0] || preview.value.mode);
-const placeholderIcon = computed(() => 'pi pi-file');
 const sizeLabel = computed(() => (props.payload?.size
   ? `${(props.payload.size / 1024).toFixed(0)} KB · ${mime.value}`
   : mime.value));
@@ -34,38 +46,35 @@ const sizeLabel = computed(() => (props.payload?.size
 const hashCode = computed(() => Array.from(props.seed || props.payload?.fileId || mime.value || 'x')
   .reduce((acc, character) => ((acc * 31) + character.charCodeAt(0)) >>> 0, 7));
 const hue = computed(() => hashCode.value % 360);
+const accent = computed(() => `hsl(${hue.value} 62% 52% / 0.55)`);
+const accentAlt = computed(() => `hsl(${(hashCode.value >> 4) % 360} 55% 55% / 0.4)`);
+const gradientId = computed(() => `preview-gradient-${hashCode.value % 100000}`);
 
-const imageDataUri = computed(() => {
-  const h = hue.value;
-  const alt = (hashCode.value >> 4) % 360;
-  const stars = Array.from({ length: 6 }, (_, index) => {
-    const x = 20 + ((hashCode.value >> (index + 2)) % 200);
-    const y = 15 + ((hashCode.value >> (index + 5)) % 60);
-    const r = 1 + ((hashCode.value >> index) % 3);
-    return `<circle cx="${x}" cy="${y}" r="${r}" fill="hsl(${alt}, 60%, 85%)" opacity="0.9"/>`;
-  }).join('');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="96">`
-    + `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">`
-    + `<stop offset="0" stop-color="hsl(${h}, 65%, 22%)"/><stop offset="1" stop-color="hsl(${alt}, 55%, 38%)"/>`
-    + `</linearGradient></defs>`
-    + `<rect width="240" height="96" rx="8" fill="url(#g)"/>${stars}`
-    + `<path d="M0 78 Q 40 ${58 + (h % 12)} 80 74 T 160 ${60 + (alt % 14)} T 240 72 L 240 96 L 0 96 Z" fill="hsl(${h}, 45%, 12%)" opacity="0.75"/>`
-    + `</svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+const stars = computed(() => Array.from({ length: 7 }, (_, index) => ({
+  key: index,
+  x: 16 + ((hashCode.value >> (index + 2)) % 208),
+  y: 12 + ((hashCode.value >> (index + 5)) % 52),
+  r: 1 + ((hashCode.value >> index) % 3),
+  fill: `hsl(${(hue.value + 40 * index) % 360} 70% 80% / ${(0.5 + ((hashCode.value >> index) % 4) / 10).toFixed(2)})`
+})));
+
+const ridgePath = computed(() => {
+  const a = 58 + (hue.value % 12);
+  const b = 60 + ((hashCode.value >> 6) % 14);
+  return `M0 78 Q 40 ${a} 80 74 T 160 ${b} T 240 72 L 240 96 L 0 96 Z`;
 });
 
-const geometryDataUri = computed(() => {
-  const points = Array.from({ length: 9 }, (_, index) => {
-    const angle = (index / 8) * Math.PI * 2 + (hashCode.value % 10) / 14;
-    const radius = index % 2 === 0 ? 34 : 14 + ((hashCode.value >> index) % 10);
-    return `${(120 + radius * Math.cos(angle)).toFixed(1)},${(48 + radius * Math.sin(angle)).toFixed(1)}`;
-  }).join(' ');
-  const h = hue.value;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="96">`
-    + `<rect width="240" height="96" rx="8" fill="hsl(${h}, 25%, 92%)"/>`
-    + `<polyline points="${points}" fill="none" stroke="hsl(${h}, 60%, 38%)" stroke-width="2"/>`
-    + `<circle cx="120" cy="48" r="2.5" fill="hsl(${h}, 60%, 30%)"/>`
-    + `</svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+const starNodes = computed(() => {
+  const count = 8;
+  return Array.from({ length: count }, (_, index) => {
+    const angle = (index / count) * Math.PI * 2 + (hashCode.value % 10) / 14;
+    const radius = index % 2 === 0 ? 30 : 13 + ((hashCode.value >> index) % 8);
+    return {
+      key: index,
+      x: 120 + radius * Math.cos(angle),
+      y: 48 + radius * Math.sin(angle)
+    };
+  });
 });
+const starPoints = computed(() => starNodes.value.map(node => `${node.x.toFixed(1)},${node.y.toFixed(1)}`).join(' '));
 </script>
