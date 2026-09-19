@@ -199,8 +199,18 @@
                     </div>
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('typesPane.typeId') }}</label>
-                      <InputText v-model="selectedNode.data.typeId" />
+                      <InputText v-model="selectedNode.data.typeId" :invalid="!classTypeIdValid" />
+                      <Message v-if="!classTypeIdValid" severity="error" size="small" :closable="false">
+                        {{ $t('typesPane.typeIdHint') }}
+                      </Message>
                     </div>
+                    <Message
+                      v-for="diagnostic in classDeclarationDiagnostics"
+                      :key="diagnostic"
+                      severity="error"
+                      size="small"
+                      :closable="false"
+                    >{{ diagnostic }}</Message>
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('typesPane.payloadMime') }}</label>
                       <InputChips v-model="classPayloadMimeValues" :placeholder="'application/perigram+occs'" />
@@ -1107,7 +1117,7 @@ import {
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { cncDomain, cncUiSurfaces, cncPackContent } from '@cutkit/domain-cnc';
-import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, renderPolicyFor, frameworkTypes, DECLARABLE_CLASSES, ON_REMOVE, OPERATOR_SPECIES, typeIdOf, setTypeBinding } from '~/packages/cts/src/index.js';
+import { createTypeRegistry, checkDeclarationsAgainstCts, projectDomainFromView, renderPolicyFor, frameworkTypes, DECLARABLE_CLASSES, ON_REMOVE, OPERATOR_SPECIES, typeIdOf, setTypeBinding, normalizeType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
 import ClassNode from '~/components/type-designer/TypeNode.vue';
@@ -1758,6 +1768,25 @@ const declarationTypeOptions = computed(() => [
     ...nodes.value.filter(node => node.type === 'ctsClass' && node.data?.typeId).map(node => node.data.typeId)
   ])
 ]);
+// The registry accepts kebab ids only; anything else silently drops the
+// declaration from the overlay (defineType throws), which reads on the
+// canvas as "sockets stopped regenerating". Validity is authored live.
+const classTypeIdValid = computed(() => /^[a-z][a-z0-9-]*$/.test(selectedNode.value?.type === 'ctsClass' ? selectedNode.value.data?.typeId || '' : 'x'));
+// Declaration diagnostics against the registry's own normalizer: what
+// SAVE/APPLY would reject is visible while authoring, not after.
+const classDeclarationDiagnostics = computed(() => {
+  const classes = nodes.value.filter(node => node.type === 'ctsClass');
+  if (!classes.length) return [];
+  const { declarations, diagnostics } = compileTreeDeclarations(nodes.value, edges.value);
+  for (const declaration of declarations) {
+    try {
+      normalizeType({ ...declaration, scope: 'org', organizationId: activeOrganizationId() });
+    } catch (error) {
+      diagnostics.push(`${declaration.id || '(unnamed type)'}: ${error.message}`);
+    }
+  }
+  return diagnostics;
+});
 const declarableClassOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
 const declarationNodeTypes = DECLARATION_NODE_TYPES;
 const onRemoveOptions = ON_REMOVE.map(value => ({ label: value, value }));
@@ -2854,17 +2883,34 @@ function syncNodeData() {
   syncOpenBlockEntryContracts();
   for (const node of nodes.value) {
     if (!node.data?.refId) continue;
-    const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
-    if (node.type === 'action') syncActionIo(record, node);
-    if (node.type === 'entity') syncEntityProfileIo(record);
-    if (node.type === 'socket') syncSocketIo(record);
-    if (node.type === 'statusDefinition') syncStatusDefinition(record);
-    if (node.type === 'valueInput') syncValueInput(record);
-    if (node.type === 'processNode') {
-      applyInferredProcessNodeInputs(record, node);
-      syncProcessNode(record);
+    // One malformed record must not freeze the sync for every other node:
+    // a thrown error here would kill the live-evaluation pass midway and
+    // read on the canvas as "sockets stopped updating".
+    try {
+      syncCanvasNode(node);
+    } catch (error) {
+      console.error(`[process-designer] sync failed for ${node.type} ${node.id}`, error);
     }
-    node.data.label = nodeDisplayLabel(record, node);
+  }
+}
+
+function syncCanvasNode(node) {
+  const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
+  if (node.type === 'action') syncActionIo(record, node);
+  if (node.type === 'entity') syncEntityProfileIo(record);
+  if (node.type === 'socket') syncSocketIo(record);
+  if (node.type === 'statusDefinition') syncStatusDefinition(record);
+  if (node.type === 'valueInput') syncValueInput(record);
+  if (node.type === 'processNode') {
+    applyInferredProcessNodeInputs(record, node);
+    syncProcessNode(record);
+  }
+  node.data.label = nodeDisplayLabel(record, node);
+  // Declaration node labels derive from the declaration itself — a
+    // renamed class card shows the current name, not the drop-time one.
+    if (node.type === 'ctsClass') node.data.label = node.data.typeId || '';
+    if (node.type === 'ctsField') node.data.label = node.data.name || '';
+    if (node.type === 'ctsState') node.data.label = node.data.value || '';
     node.data.actionKind = record.actionKind;
     node.data.entityType = nodeEntityType(record);
     node.data.commandId = record.commandId;
@@ -2943,7 +2989,6 @@ function syncNodeData() {
     node.data.kindLabel = node.type === 'processNode' ? processNodeDisplayLabel(record) : record.kind;
     node.data.summary = processNodeSummary(record);
     node.data.purpose = node.type === 'processNode' ? processNodeDescription(record) : '';
-  }
 }
 
 function syncOpenBlockEntryContracts() {
@@ -3604,12 +3649,17 @@ function syncProcessNode(node = {}) {
     }
     delete node.fieldSchemas;
   }
-  if (['effect.createEntity', 'effect.updateEntity'].includes(opKind(node))) {
-    setNodeBlocks(node, isOpKind(node, 'effect.createEntity')
-      ? constructibleEntityBlocks(nodeEntityType(node))
-      : writableEntityBlocks(nodeEntityType(node)));
+  if (opKind(node) === 'effect.createEntity') {
+    setNodeBlocks(node, constructibleEntityBlocks(nodeEntityType(node)));
     node.fields = [];
   }
+  if (node.kind === 'effect.updateEntity') {
+    setNodeBlocks(node, writableEntityBlocks(nodeEntityType(node)));
+    node.fields = [];
+  }
+  // A v5 cts.mutate keeps whatever slots migration gave it (legacy block
+  // composition stays wired and executable) but never re-derives blocks:
+  // its authoring surface is the leaf field sockets.
   if (['predicate.field', 'value.compare'].includes(node.kind)) {
     const allowed = processNodeOperationOptions(node).map(option => option.value);
     if (!allowed.includes(node.operation)) node.operation = allowed[0] || 'eq';
@@ -4786,21 +4836,17 @@ function connectionCompatibility(connection = {}) {
           return { ok: false, reason: source.type === 'ctsClass' ? 'Name the class before binding its type' : 'The type node has no selected type' };
         }
         // The binding wire lands on the persistent Type pin (origin
-        // species: construct/read) or the entity input (consumers:
-        // mutate/transition/remove, which carry no pin and otherwise adapt
-        // to their entity wire). It typechecks against the source alone —
-        // the target accepts any declared type.
+        // species: construct/read). It typechecks against the source
+        // alone — the pin accepts any declared type.
         const inputs = resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs;
-        const bindPort = portForHandle(inputs, connection.targetHandle, 'input')
-          || inputs.find(port => port.id === 'type')
-          || inputs.find(port => port.id === 'entity');
-        if (!bindPort || !['type', 'entity'].includes(bindPort.id)) {
-          return { ok: false, reason: 'Type bindings wire into the Type pin or the entity input' };
+        const pin = portForHandle(inputs, connection.targetHandle, 'input') || inputs.find(port => port.id === 'type');
+        if (!pin || pin.id !== 'type') {
+          return { ok: false, reason: 'Type bindings wire into the Type pin' };
         }
         return {
-          ok: true,
+          ...processSocketsCompatible(sourcePort, pin),
           source: sourcePort,
-          target: bindPort
+          target: pin
         };
       }
       if (legality === 'children') {
@@ -4813,7 +4859,12 @@ function connectionCompatibility(connection = {}) {
           ? { ok: true }
           : { ok: false, reason: 'Transitions connect states of one declared type' };
       }
-      return { ok: false, reason: 'Only current operation nodes can be connected' };
+      return {
+        ok: false,
+        reason: (source.type === 'ctsClass' || source.type === 'ctsType') && targetRecord
+          ? 'Only construct and read carry a Type pin — mutates adapt to their entity stream'
+          : 'Only current operation nodes can be connected'
+      };
     }
     // other record-owning canvas nodes (value inputs, entity profiles,
     // sockets, status definitions into records) participate through their

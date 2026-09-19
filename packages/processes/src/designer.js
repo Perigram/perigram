@@ -77,7 +77,6 @@ export const TYPE_AUTHORING_PALETTE_ITEMS = Object.freeze([
   definitionPaletteItem('class', 'ctsClass'),
   definitionPaletteItem('field', 'ctsField'),
   definitionPaletteItem('state', 'ctsState'),
-  definitionPaletteItem('defineStatus', 'statusDefinition'),
   definitionPaletteItem('typeReference', 'ctsType')
 ].map(Object.freeze));
 
@@ -167,9 +166,13 @@ export function declarationWireLegality({ sourceType = '', targetType = '', targ
   if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
   if (sourceType === 'ctsClass' && targetType === 'ctsClass') return 'children';
   if (sourceType === 'ctsState' && targetType === 'ctsState') return 'transition';
+  // Binding wires land on the Type pin — an origin-species socket. Consumer
+  // species (mutate/transition/remove) carry no pin: their entity input
+  // accepts instance streams only and their binding adapts to the stream's
+  // type, so a declaration node never wires into it.
   if ((sourceType === 'ctsClass' || sourceType === 'ctsType')
     && targetType === 'processNode'
-    && TYPE_BOUND_SPECIES.includes(String(targetRecordKind))) return 'binds';
+    && TYPE_PIN_SPECIES.includes(String(targetRecordKind))) return 'binds';
   return null;
 }
 
