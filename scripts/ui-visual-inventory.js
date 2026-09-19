@@ -74,11 +74,6 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
     ':style="handleStyle(row.input)"',
     ':style="handleStyle(row.output)"'
   ]],
-  'components/process-designer/ProcessStatusDefinitionNode.vue': ['data-driven', [
-    ':style="{ backgroundColor: toneColor }"',
-    ':style="{ color: toneColor }"',
-    ':style="statusHandleStyle"'
-  ]],
   'components/shared/EntityInlineRef.vue': ['data-driven', [':style="toneStyle"', ':style="toneStyle"']],
 });
 
