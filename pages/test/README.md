@@ -27,7 +27,9 @@ UI Lab seeds the entity store with demo lineage labels before rendering so
 ## UI Mapping Showcase
 
 `ui-mapping.vue` renders screens **generated** from synthetic compiler
-output over a deliberately fictional observatory domain. The page only
+output over a deliberately fictional facilities-grid domain (zones →
+sectors → stations → units); the fixtures can be swapped for any other
+hydration with the same structure without touching the generation layer. The page only
 mounts `components/ui-mapping/GeneratedMappingScreen` over the fixture
 contract with a screen picker; the region tree comes from the pure
 `composeScreen` projection (see

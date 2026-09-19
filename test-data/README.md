@@ -22,9 +22,14 @@ Artifact viewer dispatch. It must never be replaced with copied production
 records or credentials.
 
 `ui-mapping-fixtures.js` is the synthetic compiler output for the UI mapping
-contract: a deliberately fictional observatory domain (constellations → star
-systems → probes → files, survey missions) chosen to exercise the mapping,
-not to model anything real. The CTS client bundle covers every field base
+contract: a deliberately fictional facilities-grid domain (zones → sectors →
+stations → units, crews, readings/schematics/logs, audit runs) chosen to
+exercise the mapping, not to model anything real — four lineage levels,
+single and array cross-type refs, and variable file cardinality. It is the
+second full hydration of the same contract; the UI generation layer
+(shared/ui-mapping, components/ui-mapping) renders either domain without
+domain knowledge (only the timeline layout matcher's `log_entry` type id is
+reused by name). The CTS client bundle covers every field base
 and qualifier (all units, few/many enums, single/array relations, variants
 with payloads, records, lists, maps, json, blobs), all four declarable
 classes, and all three preview modes; the compiled contract speaks CTS
