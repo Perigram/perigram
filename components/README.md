@@ -106,56 +106,47 @@ All entity-related components MUST use these patterns:
 | Single-field rename/edit | `<NameEditPopover>` |
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
 | Entity dropdowns | `<EntitySelect>` / `<EntityMultiSelect>` with explicit `entity-type` |
-| Compact contextual canvas/workspace actions | PrimeVue `<Dock>` via `components/process-designer/ProcessDesignerDock.vue` (GSAP magnification from `composables/useMotion.js`) |
+| Compact contextual canvas/workspace actions | Shared `MotionDock` (GSAP magnification from `composables/useMotion.js`) |
 
 workbench and organization workflow overrides page. It normalizes flat legacy
 workflows into a `regions` contract, edits the selected region's states and
 transitions, and keeps lifecycle metadata, transition capabilities, access JSON,
 and hooks JSON editable.
 The organization process designer keeps lifecycle design inside the same Vue
-Flow workspace: status definitions are created from the Entities palette and
-edited on their own definition nodes, while Modify Entity applies those states
-through a dedicated typed status socket. Entity lifecycle data compiles into the runtime
-status machine. The Roles panel immediately manages organization-owned role
-identities; it is not process draft state. Process records map those role ids
-onto executable nodes, screens, and lifecycle transitions. User assignments are
-managed by Team Management and never serialized with the canvas.
-Process designer nodes live under `components/process-designer/` and must show
-typed Vue Flow handles that match the process compiler contract: role access,
-service input/output, and socket projection/transfer. Do not reduce these nodes
-to generic cards; their surface should expose the entity/service/socket
-semantics that the active process runtime consumes.
+Flow workspace: statuses are authored as state declaration nodes on their
+class and enter effects through typed status sockets wired from those nodes.
+Entity lifecycle data compiles into the runtime status machine. The Roles
+panel immediately manages organization-owned role identities; it is not
+process draft state. Process records map those role ids onto executable
+nodes, screens, and lifecycle transitions. User assignments are managed by
+Team Management and never serialized with the canvas.
+Process designer nodes live under `components/process-designer/` and render
+the process catalog's resolved typed Vue Flow handles. Do not reduce these
+nodes to generic cards; their surface exposes the entity/species semantics
+that the active process runtime consumes.
 The canvas is intentionally a compact semantic overview. Palette controls are
 grouped and labeled, node accent colors identify those groups, and executable
 nodes keep Manual/Automatic execution visible on the node. Socket rows align
 on fixed left/right rails; exact structured types are exposed by hover and
 assistive metadata rather than repeated beside every socket. Role access
 remains secondary inspector configuration; retry is not hidden node metadata.
-Canonical entity block choices come from `@cutkit/core` through the generic
-`@cutkit/processes` designer contract; concrete entity, workflow, field, and
-attachment choices come from the supplied domain
-implementation. Compose/Modify Block own leaf fields. Create/Modify Entity
-consume blocks and lifecycle status rather than recreating CRUD forms.
-Open canonical blocks expose inspector-authored typed entry rows rather than a
-global union of entity fields or a raw map input. Entry ids own wire stability;
-keys and qualifiers own the stored block shape.
-Relations entries on Modify Block expose Link, Unlink, and Replace operations.
-Their entity type and one/many cardinality still come from the connected exact,
-socket, or filtered entity value. Before a socket is connected, the inspector
-can establish the same typed entry so an exact entity id can be entered inline;
-a later connection remains authoritative and updates type, cardinality, and key.
-The resulting block must feed a manual Modify
-Entity effect to produce generated entity-detail action chrome; block nodes do
-not create buttons independently.
+There is no block substrate: constructs expose their bound type's declared
+row fields directly, mutates patch writable leaves and declared relation
+keys, and the field projection reads one field of the incoming entity — all
+through the generic `@cutkit/processes` designer contract over the supplied
+domain implementation.
+
 The process designer also exposes non-effect process algebra nodes for typed
 source/transform work: entity references, field reads, string operations,
 comparisons, logic, and collection transforms. These nodes are semantic
 `processNodes` records and must not perform mutations; persistent state changes
-remain action-node responsibilities.
+remain effect-node responsibilities.
 The designer's screens tab renders a structural preview of the compiled screen
 manifest grouped by process role. That preview shows templates, regions,
 sources, filters, and action buttons from normalized screen contracts without
-fetching live entity data.
+fetching live entity data; it is the transitional wireframe over the legacy
+screen contract, to be replaced by the real UI-generator preview (see
+[`TODO-process-designer.md`](../TODO-process-designer.md)).
 Generated operational screens live under `components/generated/`. They render
 compiled process screen manifests through a fixed template registry and shared
 entity primitives (`EntityCard`, `EntityPage`, `EntitySurfaceContent`,

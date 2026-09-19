@@ -1,6 +1,6 @@
 # TODO: Process Designer polish, unification, separation, compile-to-apps
 
-Status: IN_PROGRESS
+Status: WAITING
 
 Successor of `TODO-process-designer.md_archive` (procedural entity CRUD plan,
 completed). This plan is the accepted outcome of the 2026-09-19 designer
@@ -32,7 +32,7 @@ Scope: `pages/organization/process.vue`,
 `components/process-designer/*`, `composables/useProcessDesigner*` — page and
 component side only.
 
-- [ ] Remove dead husks from the legacy cut: `applySemanticConnection`,
+- [x] Remove dead husks from the legacy cut: `applySemanticConnection`,
   `clearSemanticConnection`, `syncInferredActionInputs` (and their threading
   through `useProcessDesignerGraphEditing`, whose statusDefinition-blocking
   logic is equally dead), the ~60 blank-line scar clusters, and the dead
@@ -41,7 +41,7 @@ component side only.
   `relationKeyFromHandle`, `processPortTypeLabel`, `parseValueInput`,
   `normalizeTriggerMode`, `fieldOptionsForSelectedEntity`, `fieldLabel`,
   `addEffectiveRoleAccess`, `actionEventOutputs`).
-- [ ] Cut the block substrate from the designer: open-block-entry inspector
+- [x] Cut the block substrate from the designer: open-block-entry inspector
   editor, open-block read editor, field-set multiselect, block option
   helpers (`openBlockComposition`, `*OpenBlockEntry*`, `*OpenBlockRead*`,
   `processNodeBlockOptions`, `processNodeUsesBlock`, `managedProcessBlocks`,
@@ -49,20 +49,47 @@ component side only.
   `blocks`/`slots` shims, and the `slots`/`entries` branches of
   `syncProcessNode`. `cts.field` keeps its path handling (fields of the bound
   type only).
-- [ ] Fix the silent `processStatusOptions` break: status inline fallbacks on
+- [x] Fix the silent `processStatusOptions` break: status inline fallbacks on
   effect nodes derive options from the bound type's declared states; the
   unbound `status` literal base leaves the literal type choices (statuses are
   type-scoped and arrive through wired state declaration sockets).
-- [ ] Unify node-data enrichment: one `syncCanvasNode`/`enrichNodeData`
+- [x] Unify node-data enrichment: one `syncCanvasNode`/`enrichNodeData`
   implementation instead of two near-identical ~80-line blocks.
-- [ ] Deduplicate option lists: one value-type list (page
+- [x] Deduplicate option lists: one value-type list (page
   `processValueTypeOptions` vs `ProcessNode` `baseTypeOptions`), localize
   trigger-mode options once, collapse the repeated `te/t` fallback pattern.
-- [ ] Visual quick wins: CtsTypeNode raw `var(--ck-status-neutral)` inline
+- [x] Visual quick wins: CtsTypeNode raw `var(--ck-status-neutral)` inline
   style becomes a `signal-*` alias; node frame classes converge on one
   shared frame primitive.
-- [ ] Rewrite `components/process-designer/README.md` to the post-cut
+- [x] Rewrite `components/process-designer/README.md` to the post-cut
   reality (palette groups, no block substrate, no preserved-slot rendering).
+
+##### Agent Notes — 2026-09-19 P1 complete
+
+P1 landed in `agent/process-designer-plan-20260919`. The page dropped from
+4495 to ~3560 lines. Beyond the listed items: the unreachable canvas-node
+machinery for socket/valueInput/action/entity/statusDefinition records was
+removed end-to-end (page sync branches, inspector `RECORD_KEYS` rows,
+node-record factories — `createEntityProfile`, `createStatusDefinition`,
+`createValueInput`, `createServicePrincipal`, `createCreatedWorkflow` are
+gone; sockets remain panel-owned through `addSocket`/`createSocket`).
+`enrichNodeData` is now the single node-data derivation for initial
+projection and live sync, `stripRuntimeNodeData` owns its key list
+(`RUNTIME_NODE_DATA_KEYS`), and `useProcessDesignerGraphEditing`'s API
+shrank to `onGraphChange`. `catalogContext`/`processNodeFieldOptions`
+resolve only `cts.field` against the bound type. Spec updates:
+`useProcessDesignerInspector.spec.js` (producer-output anchor only) and
+`shared/process-designer-ui.spec.js` (authored-record boundary via
+processNode, `onGraphChange` deletion boundary). Validation:
+vitest composables/packages/shared designer suites 442 passed;
+`node scripts/check-arch.js`, `npm run framework:validate`,
+`node scripts/check-docs.js` pass. Pre-existing unrelated failures left
+as-is: `components/shared/entity-select.spec.js` (DescriptorEditor direct
+Select import) and three `shared/framework-packages.spec.js` manifest
+checks. Not done in P1 (deferred to P2 by design): class inspector still
+duplicates type-designer editors; port-resolution unification
+(`outputSpecs[0]` fallbacks, `inferIncomingEntityContract` shape-sniffing)
+moves with the composable extraction.
 
 ## P2 — Designer separation of concerns
 
