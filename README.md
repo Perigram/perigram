@@ -118,9 +118,12 @@ The E2E command assumes the app stack is already running and uses Playwright
 against the configured `E2E_BASE_URL`.
 Agent session worktrees are nested under `.agent-worktrees/` in the project
 root; the Nuxt/Vite and Nitro dev watchers ignore that tree (`nuxt.config.js`
-watch ignores), because nested worktree tsconfigs otherwise trip Nuxt's
-"changed tsconfig file detected" cache-clear/full-reload loop and freeze
-hydration for anyone testing against the dev server while an agent session
+watch ignores — a path predicate, because chokidar v4 leaks glob-ignored
+nested file events), because worktree `tsconfig.json` checkouts otherwise
+trip Vite's "changed tsconfig file detected" cache-clear/full-reload loop;
+the reload storm then stalls the vite-node SSR module bridge past its 60s
+timeout and surfaces as `500: Request timeout after 60000ms for type:
+module` for anyone testing against the dev server while an agent session
 runs.
 
 ## Progressive Web App
