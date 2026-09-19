@@ -8,7 +8,12 @@ tree. They own no per-type or per-screen logic — every component decision
 component keys to these SFCs is the handwritten design-system surface, and
 it is the only handwritten part.
 
-## Composition flow
+## Display helpers live in the mapping contract: `instanceIdentity(type,
+instance)` is the single identity heuristic (preferred short-string fields,
+then the first short string field, then the id) and `formatQuantity`
+renders unit symbols (`25.5°`, `43,200 min`) instead of raw storage units.
+
+Composition flow
 
 `GeneratedMappingScreen.vue` composes the compiled screen contract
 (`composeScreen` — pure, in `shared/ui-mapping/screen.js`) into a region
@@ -42,16 +47,15 @@ inputs resolved against the target type's field descriptors.
 - `HierarchyTree.vue` — the deep-nesting projection: a fully expanded
   PrimeVue Tree built recursively from the type's declared children edges
   and the instance pool's lineage, shown on group surfaces.
-- `StateStrip.vue` — the lifecycle projection: the declared state axis as
-  a linear PrimeVue Stepper with the instance's current state active.
 - `SurfaceBody.vue` — instance surface by container variant: `full` →
   Panel with the placed actions in the header, `detail` → Card (same-role
   nesting flattens to a Divider), `row` / `inline` → dense flex row with
   budgeted fields and relation chips.
-- `SurfaceDetailBody.vue` — shared detail/full body: Stepper state strip,
-  preview, scalar facts strip (labeled via `fieldLabel`: descriptor label or
-  start-case name), structural fields as an Accordion, budgeted relation
-  chips with show-more toggles, and the hierarchy tree for groups.
+- `SurfaceDetailBody.vue` — shared detail/full body: preview, a bounded
+  scalar facts strip (`DETAIL_FACT_BUDGET`, labeled via `fieldLabel`:
+  descriptor label or start-case name), structural fields as an Accordion,
+  budgeted relation chips with show-more toggles for relations not already
+  covered by a child region, and the hierarchy tree for groups.
 - `PreviewBox.vue` — preview materialization keyed on the declared payload
   preview mode with deterministic per-instance visuals (seeded hue):
   gradient images for `image`, line-pattern plots for `geometry`, size and

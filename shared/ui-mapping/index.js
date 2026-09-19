@@ -21,6 +21,7 @@ export {
   CHROME_ROLES,
   SEVERITY_MAP,
   ROW_FIELD_BUDGET,
+  DETAIL_FACT_BUDGET,
   SCALAR_BASES,
   TABLE_COLUMN_BUDGET,
   CARD_FACT_BUDGET,
@@ -189,6 +190,33 @@ export function applyBudget(items = [], budget = null) {
     visible: Object.freeze(items.slice(0, max)),
     hidden: items.length - max
   });
+}
+
+const UNIT_SYMBOLS = Object.freeze({
+  mm: 'mm', m2: 'm²', min: 'min', deg: '°', percent: '%', currency: '', count: ''
+});
+
+export function formatQuantity(quantity) {
+  if (!quantity || !Number.isFinite(quantity.value)) return '—';
+  const suffix = UNIT_SYMBOLS[quantity.unit];
+  if (suffix === undefined) return `${quantity.value} ${quantity.unit}`;
+  const value = quantity.value.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return suffix ? `${value} ${suffix}` : value;
+}
+
+export function instanceIdentity(type, instance) {
+  if (!instance) return '?';
+  const fields = instance.fields || {};
+  const preferred = ['serial', 'designation', 'title', 'grade', 'name', 'summary'];
+  for (const key of preferred) {
+    if (typeof fields[key] === 'string' && fields[key]) return fields[key];
+  }
+  const descriptors = type?.fields || {};
+  const firstShortString = Object.entries(descriptors).find(([name, descriptor]) => descriptor.base === 'string'
+    && !(descriptor.multiline === true || (descriptor.max || 0) >= 120)
+    && typeof fields[name] === 'string'
+    && fields[name]);
+  return firstShortString ? firstShortString[1] : instance.id;
 }
 
 export function fieldLabel(name, descriptor = {}) {

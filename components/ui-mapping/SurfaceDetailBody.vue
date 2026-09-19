@@ -1,10 +1,9 @@
 <template>
   <div class="flex flex-col gap-6">
-    <StateStrip v-if="type.states?.main" :type="type" :instance="instance" />
     <PreviewBox v-if="hasPreview" :type="type" :payload="instance.payload" :seed="instance.id" />
 
-    <div v-if="scalarFields.length" class="grid grid-cols-2 items-start gap-x-6 gap-y-4 md:grid-cols-4">
-      <div v-for="field in scalarFields" :key="field.name" class="flex min-w-0 flex-col gap-1">
+    <div v-if="shownFacts.length" class="grid grid-cols-2 items-start gap-x-6 gap-y-4 md:grid-cols-4">
+      <div v-for="field in shownFacts" :key="field.name" class="flex min-w-0 flex-col gap-1">
         <span class="text-supporting text-muted">{{ field.label }}</span>
         <FieldControl
           :model-value="instance.fields?.[field.name]"
@@ -14,6 +13,7 @@
           :bundle="bundle"
         />
       </div>
+      <Tag v-if="hiddenFactCount > 0" :value="`+${hiddenFactCount}`" severity="contrast" />
     </div>
 
     <Accordion v-if="structuralFields.length" :value="['0']" multiple class="w-full">
@@ -60,11 +60,10 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
-import { fieldLabel, resolveSurface, applyBudget, SCALAR_BASES } from '#shared/ui-mapping/index.js';
+import { fieldLabel, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import EntityChip from './EntityChip.vue';
 import PreviewBox from './PreviewBox.vue';
-import StateStrip from './StateStrip.vue';
 import HierarchyTree from './HierarchyTree.vue';
 
 const props = defineProps({
@@ -73,7 +72,8 @@ const props = defineProps({
   variant: { type: String, default: 'detail' },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
-  expanded: { type: Object, default: () => ({}) }
+  expanded: { type: Object, default: () => ({}) },
+  coveredRelations: { type: Array, default: () => [] }
 });
 
 defineEmits(['toggle']);
@@ -86,11 +86,16 @@ const isLongString = descriptor => descriptor.base === 'string'
 const fieldList = computed(() => Object.entries(props.type.fields || {})
   .map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
 const scalarFields = computed(() => fieldList.value.filter(field => SCALAR_BASES.includes(field.descriptor.base) && !isLongString(field.descriptor)));
+const factOutcome = computed(() => applyBudget(scalarFields.value, DETAIL_FACT_BUDGET));
+const shownFacts = computed(() => (factOutcome.value.mode === 'collapsed' ? factOutcome.value.visible : scalarFields.value));
+const hiddenFactCount = computed(() => (factOutcome.value.mode === 'collapsed' ? factOutcome.value.hidden : 0));
 const structuralFields = computed(() => fieldList.value.filter(field => !SCALAR_BASES.includes(field.descriptor.base) || isLongString(field.descriptor)));
 
 const relationViews = computed(() => {
   if (!surface.value.slots.includes('relations')) return [];
-  return Object.entries(props.instance.relations || {}).map(([key, refs]) => {
+  return Object.entries(props.instance.relations || {})
+    .filter(([key]) => !props.coveredRelations.includes(key))
+    .map(([key, refs]) => {
     const list = Array.isArray(refs) ? refs : refs ? [refs] : [];
     const budget = surface.value.budgets[key];
     const outcome = applyBudget(list, budget);

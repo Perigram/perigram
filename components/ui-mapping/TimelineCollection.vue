@@ -25,7 +25,7 @@
 <script setup>
 import { computed } from 'vue';
 import Timeline from 'primevue/timeline';
-import { fieldLabel, SCALAR_BASES, CARD_FACT_BUDGET, applyBudget } from '#shared/ui-mapping/index.js';
+import { fieldLabel, SCALAR_BASES, CARD_FACT_BUDGET, applyBudget, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
@@ -35,13 +35,12 @@ const props = defineProps({
   bundle: { type: Object, default: null }
 });
 
-const identityOf = instance => {
-  const fields = instance.fields || {};
-  return fields.serial || fields.title || fields.entry || instance.id;
-};
+const isLongString = descriptor => descriptor.base === 'string'
+  && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
+const identityOf = instance => instanceIdentity(props.type, instance);
 const scalarFields = computed(() => applyBudget(
   Object.entries(props.type?.fields || {})
-    .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)),
+    .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base) && !isLongString(descriptor)),
   CARD_FACT_BUDGET
 ).visible.map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
 </script>

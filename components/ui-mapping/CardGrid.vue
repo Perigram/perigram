@@ -42,7 +42,7 @@ import DataView from 'primevue/dataview';
 import Avatar from 'primevue/avatar';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
-import { fieldLabel, SCALAR_BASES, CARD_FACT_BUDGET, applyBudget, SEVERITY_MAP } from '#shared/ui-mapping/index.js';
+import { fieldLabel, SCALAR_BASES, CARD_FACT_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 
@@ -54,10 +54,7 @@ const props = defineProps({
 });
 
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const identityOf = instance => {
-  const fields = instance.fields || {};
-  return fields.serial || fields.title || fields.grade || fields.name || fields.summary || instance.id;
-};
+const identityOf = instance => instanceIdentity(props.type, instance);
 const statusOf = instance => {
   const value = instance.states?.main;
   if (!value || !props.type?.states?.main) return null;

@@ -5,6 +5,7 @@
 <script setup>
 import { computed } from 'vue';
 import Tree from 'primevue/tree';
+import { instanceIdentity } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   root: { type: Object, required: true },
@@ -14,10 +15,7 @@ const props = defineProps({
 
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
 
-const instanceLabel = (instance, type) => {
-  const fields = instance.fields || {};
-  return fields.serial || fields.title || fields.grade || fields.name || fields.summary || instance.id;
-};
+const instanceLabel = (instance, type) => instanceIdentity(type, instance);
 
 const childrenOf = (instance, type, seen) => Object.entries(type?.edges?.children || {}).flatMap(([edgeKey, edge]) => {
   const byId = props.pool[edge.types?.[0]] || {};

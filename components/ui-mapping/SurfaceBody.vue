@@ -19,6 +19,7 @@
       :pool="pool"
       :bundle="bundle"
       :expanded="expanded"
+      :covered-relations="coveredRelations"
       @toggle="toggleRelation"
     />
   </Panel>
@@ -62,6 +63,7 @@
       :pool="pool"
       :bundle="bundle"
       :expanded="expanded"
+      :covered-relations="coveredRelations"
       @toggle="toggleRelation"
     />
   </div>
@@ -102,6 +104,7 @@ const props = defineProps({
   variant: { type: String, default: 'detail' },
   parentRole: { type: String, default: null },
   actions: { type: Array, default: () => [] },
+  coveredRelations: { type: Array, default: () => [] },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });
@@ -116,10 +119,7 @@ const toggleRelation = key => {
 };
 
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const instanceLabel = computed(() => {
-  const fields = props.instance.fields || {};
-  return fields.serial || fields.title || fields.grade || fields.name || fields.summary || props.instance.id;
-});
+const instanceLabel = computed(() => instanceIdentity(props.type, props.instance));
 const statusValue = computed(() => props.instance.states?.main);
 const statusTag = computed(() => {
   if (!statusValue.value) return null;

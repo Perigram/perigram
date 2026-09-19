@@ -59,6 +59,8 @@ function composeRegion(region, screen, contract, pool, typesById, depth) {
     id: region.id,
     slot: region.slot,
     surfaceKind,
+    relationKey: source.relation?.key || null,
+    lineageKey: source.lineage?.key || null,
     entityType: source.entityType || null,
     type,
     variant,
