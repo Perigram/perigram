@@ -30,7 +30,32 @@
           <Tag :value="`+${hiddenFactCount(group)}`" severity="contrast" />
         </div>
       </div>
-      <Accordion v-if="structuralOf(group).length" :value="['0']" multiple class="w-full">
+      <Fieldset
+        v-if="structuralOf(group).length === 1"
+        :legend="structuralOf(group)[0].label"
+        toggleable
+        class="w-full"
+      >
+        <div :class="LAYOUT.panelBody">
+          <FieldControl
+            v-if="editing"
+            v-model="draft[structuralOf(group)[0].name]"
+            :descriptor="structuralOf(group)[0].descriptor"
+            variant="detail"
+            :pool="pool"
+            :bundle="bundle"
+          />
+          <FieldControl
+            v-else
+            :model-value="instance.fields?.[structuralOf(group)[0].name]"
+            :descriptor="structuralOf(group)[0].descriptor"
+            variant="row"
+            :pool="pool"
+            :bundle="bundle"
+          />
+        </div>
+      </Fieldset>
+      <Accordion v-else-if="structuralOf(group).length" :value="['0']" multiple class="w-full">
         <AccordionPanel
           v-for="(field, index) in structuralOf(group)"
           :key="field.name"
@@ -86,6 +111,7 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
+import Fieldset from 'primevue/fieldset';
 import { LAYOUT, resolveSurface, applyBudget, SCALAR_BASES, DETAIL_FACT_BUDGET, resolveFieldGroups } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import InstanceChip from './InstanceChip.vue';

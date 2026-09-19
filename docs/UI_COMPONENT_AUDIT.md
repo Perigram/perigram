@@ -285,7 +285,9 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-type-designer-statenode-vue` | `components/type-designer/StateNode.vue` | derived usage | replace:chrome (7); remove:important-override (11) |
 | `ui-components-type-designer-typenode-vue` | `components/type-designer/TypeNode.vue` | derived usage | replace:chrome (11); remove:important-override (11) |
 | `ui-components-ui-mapping-actionbutton-vue` | `components/ui-mapping/ActionButton.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-breadcrumbtrail-vue` | `components/ui-mapping/BreadcrumbTrail.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-cardgrid-vue` | `components/ui-mapping/CardGrid.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-carouselgrid-vue` | `components/ui-mapping/CarouselGrid.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-chipsinput-vue` | `components/ui-mapping/ChipsInput.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-collectiontable-vue` | `components/ui-mapping/CollectionTable.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-enumselect-vue` | `components/ui-mapping/EnumSelect.vue` | derived usage | compliant |

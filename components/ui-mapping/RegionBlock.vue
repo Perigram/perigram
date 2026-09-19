@@ -31,6 +31,7 @@
       :bundle="bundle"
     />
     <CardGrid v-else-if="listLayout === 'card-grid'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
+    <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
     <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
   </div>
 
@@ -73,6 +74,7 @@
       :bundle="bundle"
     />
     <CardGrid v-else-if="listLayout === 'card-grid'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
+    <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
     <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
     <StatGrid v-else-if="listLayout === 'stats'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
     <div v-else-if="listLayout === 'list'" :class="LAYOUT.stackTight">
@@ -113,6 +115,8 @@
           :level="node.level"
           editable
           :editing="editing"
+          :pool="pool"
+          :bundle="bundle"
           @run="emitRun"
           @toggle-edit="toggleEditing"
         />
@@ -210,6 +214,7 @@ import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
 import HierarchyTable from './HierarchyTable.vue';
 import CardGrid from './CardGrid.vue';
+import CarouselGrid from './CarouselGrid.vue';
 import TimelineCollection from './TimelineCollection.vue';
 import StatGrid from './StatGrid.vue';
 import ActionButton from './ActionButton.vue';
@@ -236,7 +241,9 @@ const toggleEditing = () => {
 const emitRun = action => emit('run', action);
 const listLayout = computed(() => resolveListLayout(props.node.type, {
   hierarchical: Boolean(Object.keys(props.node.type?.edges?.children || {}).length),
-  size: props.node.instances.length <= SMALL_LIST_AT ? 'small' : null
+  size: props.node.instances.length <= SMALL_LIST_AT
+    ? 'small'
+    : props.node.instances.length > 12 ? 'large' : null
 }));
 const coveredRelationKeys = computed(() => props.node.childRegions
   .map(child => child.relationKey)

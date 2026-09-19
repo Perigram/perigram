@@ -20,6 +20,8 @@ export const SPANS = Object.freeze(['full', 'half']);
 export const FIELD_EDIT_ENTRIES = Object.freeze([
   { match: { base: 'string', long: true }, component: 'Textarea', span: 'full' },
   { match: { base: 'string' }, component: 'InputText', span: 'half' },
+  { match: { base: 'number', bounded: true }, component: 'Slider', span: 'full' },
+  { match: { base: 'quantity', bounded: true }, component: 'Slider', span: 'full' },
   { match: { base: 'number' }, component: 'InputNumber', span: 'half' },
   { match: { base: 'quantity' }, component: 'QuantityInput', span: 'half', unitSuffix: true },
   { match: { base: 'boolean' }, component: 'ToggleSwitch', span: 'half' },
@@ -43,6 +45,8 @@ export const FIELD_EDIT_ENTRIES = Object.freeze([
 // Data-shaped refinements: percent quantities render as Knob dials, string
 // lists render as budgeted chips.
 export const FIELD_DISPLAY_ENTRIES = Object.freeze([
+  { match: { base: 'string', long: true }, component: 'ProseText', span: 'full' },
+  { match: { base: 'map', itemBase: 'quantity', itemUnit: 'percent' }, component: 'MeterGroup', span: 'full' },
   { match: { base: 'quantity', unit: 'percent' }, component: 'Knob', span: 'half' },
   { match: { base: 'enum' }, component: 'Tag', span: 'half' },
   { match: { base: 'ref' }, component: 'InstanceChip', span: 'half' },
@@ -66,6 +70,7 @@ export const FIELD_DISPLAY_ENTRIES = Object.freeze([
 export const LIST_LAYOUT_ENTRIES = Object.freeze([
   { match: { shape: 'chronological' }, layout: 'timeline' },
   { match: { shape: 'statlike' }, layout: 'stats' },
+  { match: { class: 'file', size: 'large' }, layout: 'carousel' },
   { match: { class: 'file' }, layout: 'card-grid' },
   { match: { hierarchical: true }, layout: 'tree-table' },
   { match: { size: 'small' }, layout: 'list' },
@@ -173,6 +178,8 @@ export const LAYOUT = Object.freeze({
   cellText: 'line-clamp-2 max-w-96 break-words text-left',
   chipRow: 'flex flex-wrap items-center gap-2 pt-2',
   panelBody: 'py-2',
+  nameClamp: 'min-w-0 truncate',
+  chipClamp: 'max-w-48 [&_.p-chip-label]:truncate',
   specList: 'flex flex-col divide-y divide-content-border',
   specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
   detailSplit: 'grid grid-cols-1 items-start gap-6 xl:grid-cols-12',

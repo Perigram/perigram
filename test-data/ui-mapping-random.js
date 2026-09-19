@@ -49,6 +49,16 @@ function randomDescriptor(rnd, { allowStructural = true, allowRefTypes = null, d
       break;
     case 'quantity':
       descriptor.unit = rnd.pick(UNITS);
+      if (rnd.chance(0.4)) {
+        descriptor.min = 0;
+        descriptor.max = rnd.pick([10, 100, 1000]);
+      }
+      break;
+    case 'number':
+      if (rnd.chance(0.4)) {
+        descriptor.min = 0;
+        descriptor.max = rnd.pick([10, 100, 1000]);
+      }
       break;
     case 'enum':
       descriptor.values = Array.from({ length: rnd.rand(2, 12) }, (_, index) => `${pick2(rnd)}-${index + 1}`);

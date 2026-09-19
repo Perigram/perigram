@@ -85,6 +85,13 @@ export function createUiMapping(overrides = {}) {
       || (Number.isFinite(descriptor.max) && descriptor.max >= LONG_STRING_AT))) {
       candidate.long = true;
     }
+    if ((base === 'number' || base === 'quantity')
+      && Number.isFinite(descriptor.min) && Number.isFinite(descriptor.max)) {
+      candidate.bounded = true;
+    }
+    if ((base === 'list' || base === 'map') && descriptor.itemType?.base === 'quantity') {
+      candidate.itemUnit = descriptor.itemType.unit || null;
+    }
     if (base === 'enum') candidate.enumSize = (descriptor.values?.length || 0) > ENUM_MANY_AT ? 'many' : 'few';
     if (base === 'quantity') candidate.unit = descriptor.unit || null;
     if (base === 'ref') candidate.accepts = descriptor.accepts || null;
@@ -195,7 +202,7 @@ export function createUiMapping(overrides = {}) {
       class: typeRecord.class || null,
       shape: shape.chronological ? 'chronological' : shape.statlike ? 'statlike' : null,
       hierarchical: options.hierarchical === true ? true : null,
-      size: options.size === 'small' ? 'small' : null
+      size: options.size === 'small' ? 'small' : options.size === 'large' ? 'large' : null
     });
     return entry.layout;
   }

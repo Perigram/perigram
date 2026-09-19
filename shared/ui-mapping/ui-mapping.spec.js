@@ -117,6 +117,24 @@ describe('field control resolution', () => {
     expect(mapping.resolveListLayout({ id: 'probe', class: 'item', fields: plain.fields, states: plain.states })).toBe('timeline');
   });
 
+  it('resolves prose, meters, sliders, and carousels from shape', () => {
+    expect(resolveFieldControl({ base: 'string', max: 400 }, { variant: 'row' })).toMatchObject({
+      component: 'ProseText', span: 'full'
+    });
+    expect(resolveFieldControl({ base: 'map', itemType: { base: 'quantity', unit: 'percent' } }, { variant: 'row' })).toMatchObject({
+      component: 'MeterGroup'
+    });
+    expect(resolveFieldControl({ base: 'number', min: 0, max: 100 }, { variant: 'detail' })).toMatchObject({
+      component: 'Slider'
+    });
+    expect(resolveFieldControl({ base: 'quantity', unit: 'mm', min: 0, max: 1000 }, { variant: 'detail' })).toMatchObject({
+      component: 'Slider'
+    });
+    const media = { class: 'file', payload: { preview: 'image' }, fields: { title: { base: 'string' } } };
+    expect(resolveListLayout(media, { size: 'large' })).toBe('carousel');
+    expect(resolveListLayout(media, {})).toBe('card-grid');
+  });
+
   it('scales presentation budgets with type richness', () => {
     const wide = { fields: Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`f${i}`, { base: 'number' }])) };
     const narrow = { fields: { a: { base: 'string' }, b: { base: 'number' } } };

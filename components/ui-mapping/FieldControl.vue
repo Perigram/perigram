@@ -1,5 +1,11 @@
 <template>
   <span v-if="outcome.component === 'ValueText'" :class="[densityScale.factValue, LAYOUT.cellText]">{{ displayValue }}</span>
+  <p v-else-if="outcome.component === 'ProseText'" class="text-prose w-full">{{ model }}</p>
+  <MeterGroup
+    v-else-if="outcome.component === 'MeterGroup'"
+    :value="meterSegments"
+    class="w-full"
+  />
   <span v-else-if="outcome.component === 'QuantityText'" :class="densityScale.factValue">{{ quantityValue }}</span>
   <span v-else-if="outcome.component === 'InstantText'" :class="densityScale.factValue">{{ instantValue }}</span>
   <Tag
@@ -43,6 +49,17 @@
   </div>
 
   <InputText v-else-if="outcome.component === 'InputText'" v-model="model" class="w-full" />
+  <div v-else-if="outcome.component === 'Slider'" :class="LAYOUT.row" class="w-full">
+    <Slider
+      :model-value="sliderValue"
+      :min="descriptor.min"
+      :max="descriptor.max"
+      :step="sliderStep"
+      class="w-full"
+      @update:model-value="value => (model = sliderWrite(value))"
+    />
+    <span class="text-technical w-16 text-right">{{ sliderLabel }}</span>
+  </div>
   <Textarea v-else-if="outcome.component === 'Textarea'" v-model="model" class="w-full" :rows="2" />
   <InputNumber
     v-else-if="outcome.component === 'InputNumber'"
@@ -189,6 +206,31 @@ const listEntries = computed(() => {
 const listHidden = computed(() => {
   const items = Array.isArray(props.modelValue) ? props.modelValue : [];
   return applyBudget(items, SUMMARY_BUDGET).hidden;
+});
+const meterSegments = computed(() => {
+  const value = props.modelValue;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+  return Object.entries(value)
+    .filter(([, entry]) => entry && typeof entry === 'object' && Number.isFinite(entry.value))
+    .slice(0, 8)
+    .map(([key, entry]) => ({ label: startCase(key), value: Math.max(0, Math.min(100, entry.value)) }));
+});
+const sliderValue = computed(() => {
+  const raw = props.modelValue;
+  const number = raw && typeof raw === 'object' ? raw.value : raw;
+  return Number.isFinite(number) ? number : (props.descriptor.min ?? 0);
+});
+const sliderStep = computed(() => {
+  const span = (props.descriptor.max ?? 1) - (props.descriptor.min ?? 0);
+  return span > 100 ? 5 : span > 10 ? 1 : 0.1;
+});
+const sliderWrite = value => (props.modelValue && typeof props.modelValue === 'object'
+  ? { value, unit: props.modelValue.unit }
+  : value);
+const sliderLabel = computed(() => {
+  const raw = props.modelValue;
+  if (raw && typeof raw === 'object') return formatQuantity(raw);
+  return String(sliderValue.value ?? '—');
 });
 const variantValue = computed(() => {
   const value = compactValue(props.modelValue?.value);

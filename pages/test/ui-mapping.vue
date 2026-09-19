@@ -23,6 +23,8 @@
         :instances="world.instances"
       />
     </section>
+
+    <ScrollTop />
   </div>
 </template>
 
@@ -31,6 +33,7 @@ import { computed } from 'vue';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
+import ScrollTop from 'primevue/scrolltop';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import { generateUiMappingWorld, DEFAULT_RANDOM_SEED } from '~/test-data/ui-mapping-random.js';
 
