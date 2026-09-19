@@ -18,7 +18,7 @@ import {
 } from '~/packages/processes/src/index.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView } from '~/packages/cts/src/index.js';
 import { cncTypePack } from '~/packages/cts/src/pack/cnc.js';
-import { cncDomain, cncPackContent } from '@cutkit/domain-cnc';
+import { cncDomain, cncPackContent } from '~/packages/domain-cnc/src/index.js';
 import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
 
 function projectedDomain() {

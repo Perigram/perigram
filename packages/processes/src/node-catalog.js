@@ -322,7 +322,7 @@ function cts(kind, label, family, level) {
         }
         if (record.kind === 'cts.mutate') {
           const leaves = (context.fieldSchemas || [])
-            .filter(field => field.writable !== false && ['data', 'specs'].includes(field.block))
+            .filter(field => field.writable !== false && ['data', 'specs', 'relations'].includes(field.block))
             .map(field => socket(field.path, field.type, DATA, false, 'list'));
           const entity = ports.inputs.find(port => port.id === 'entity');
           const blocks = (Array.isArray(record.slots) ? record.slots : [])
