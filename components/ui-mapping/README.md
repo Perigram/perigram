@@ -42,7 +42,7 @@ inputs resolved against the target type's field descriptors.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identity, status, budgeted scalar descriptor columns, and the first
   declared relation as budgeted chips; collections beyond ten rows
-  paginate.
+  paginate, and beyond fifty switch to PrimeVue virtual scrolling.
 - `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
   the collection plus its lineage descendants nested as expandable rows
   with the same generated columns.
@@ -93,7 +93,9 @@ inputs resolved against the target type's field descriptors.
   type declares lineage children, `InstanceMultiPicker` (shared MultiSelect
   wrapper), `ChipsInput`, `FileUploadControl`, `Slider` for bounded scalars
   (declared min/max), and the recursive `ObjectEditor` / `ListEditor` /
-  `VariantEditor`. Percent quantities display as Knob dials, percent-valued
+  `VariantEditor`; maps and json edit through the JsonEditor textarea
+  (pretty-printed, invalid JSON flagged inline). Percent quantities
+  display as Knob dials, percent-valued
   maps as MeterGroup, non-percent quantity maps as bar Charts, ordinal
   enums as Rating, enum lists edit through OrderList, and spec-row values
   are click-to-edit through Inplace with visible affordance — hover
