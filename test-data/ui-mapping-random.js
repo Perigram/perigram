@@ -232,7 +232,7 @@ export function generateUiMappingWorld(seed = 7) {
   // descriptors, each instance takes at most one random lineage parent.
   const instancesByType = {};
   types.forEach(type => {
-    const max = type.class === 'file' ? 20 : 12;
+    const max = type.class === 'file' ? (rnd.chance(0.25) ? 64 : 20) : 12;
     instancesByType[type.id] = Array.from({ length: rnd.rand(0, max) }, (_, index) => ({ id: `${type.id}-i${index + 1}`, type: type.id }));
   });
   const refTargets = {};

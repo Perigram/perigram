@@ -299,6 +299,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-instancechip-vue` | `components/ui-mapping/InstanceChip.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-instancemultipicker-vue` | `components/ui-mapping/InstanceMultiPicker.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-instancepicker-vue` | `components/ui-mapping/InstancePicker.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-jsoneditor-vue` | `components/ui-mapping/JsonEditor.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-listeditor-vue` | `components/ui-mapping/ListEditor.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-objecteditor-vue` | `components/ui-mapping/ObjectEditor.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-previewbox-vue` | `components/ui-mapping/PreviewBox.vue` | derived usage | compliant |

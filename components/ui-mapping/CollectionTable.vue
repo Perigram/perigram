@@ -1,6 +1,17 @@
 <template>
   <div :class="LAYOUT.scrollX" class="[&_td]:align-top">
-    <DataTable :value="instances" size="small" striped-rows data-key="id" class="min-w-max" :paginator="instances.length > 10" :rows="10">
+    <DataTable
+    :value="instances"
+    size="small"
+    striped-rows
+    data-key="id"
+    :class="virtual ? '' : 'min-w-max'"
+    :scrollable="virtual"
+    :scroll-height="virtual ? '26rem' : undefined"
+    :virtual-scroller-options="virtual ? { itemSize: 40 } : undefined"
+    :paginator="!virtual && instances.length > 10"
+    :rows="10"
+  >
       <template #empty>
         <span class="text-supporting text-muted">{{ $t('uiMapping.emptyRegion') }}</span>
       </template>
@@ -64,6 +75,7 @@ const props = defineProps({
   bundle: { type: Object, default: null }
 });
 
+const virtual = computed(() => props.instances.length > 50);
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const identityOf = instance => instanceIdentity(props.type, instance);
 const hasStatus = computed(() => Boolean(props.type?.states?.main));

@@ -34,8 +34,8 @@ export const FIELD_EDIT_ENTRIES = Object.freeze([
   { match: { base: 'list', itemBase: 'ref' }, component: 'InstanceMultiPicker', span: 'full' },
   { match: { base: 'blob' }, component: 'FileUpload', span: 'full' },
   { match: { base: 'record' }, component: 'ObjectEditor', span: 'full', recursive: true },
-  { match: { base: 'map' }, component: 'ObjectEditor', span: 'full' },
-  { match: { base: 'json' }, component: 'ObjectEditor', span: 'full' },
+  { match: { base: 'map' }, component: 'JsonEditor', span: 'full' },
+  { match: { base: 'json' }, component: 'JsonEditor', span: 'full' },
   { match: { base: 'list' }, component: 'ListEditor', span: 'full', recursive: true },
   { match: { base: 'variant' }, component: 'VariantEditor', span: 'full', recursive: true },
   { match: {}, component: 'ObjectEditor', span: 'full' }

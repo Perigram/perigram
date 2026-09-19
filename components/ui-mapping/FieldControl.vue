@@ -127,6 +127,7 @@
     @update:model-value="value => (model = value)"
   />
   <FileUploadControl v-else-if="outcome.component === 'FileUpload'" :payload="payload" />
+  <JsonEditor v-else-if="outcome.component === 'JsonEditor'" v-model="model" />
   <ObjectEditor
     v-else-if="outcome.component === 'ObjectEditor'"
     v-model="model"
@@ -174,6 +175,7 @@ import InstanceMultiPicker from './InstanceMultiPicker.vue';
 import ChipsInput from './ChipsInput.vue';
 import FileUploadControl from './FileUploadControl.vue';
 import ObjectEditor from './ObjectEditor.vue';
+import JsonEditor from './JsonEditor.vue';
 import ListEditor from './ListEditor.vue';
 import VariantEditor from './VariantEditor.vue';
 
