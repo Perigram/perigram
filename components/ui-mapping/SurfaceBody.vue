@@ -1,17 +1,5 @@
 <template>
-  <Panel v-if="variant === 'full'" class="w-full">
-    <template #header>
-      <div :class="LAYOUT.row">
-        <i :class="type.render.icon" />
-        <span class="text-section-heading">{{ instanceLabel }}</span>
-        <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
-      </div>
-    </template>
-    <template v-if="actions.length" #icons>
-      <div class="flex flex-wrap items-center gap-2">
-        <ActionButton v-for="action in actions" :key="action.id" :action="action" :render="type.render" @run="$emit('run', action)" />
-      </div>
-    </template>
+  <div v-if="variant === 'full'" :class="LAYOUT.stack">
     <SurfaceDetailBody
       :instance="instance"
       :type="type"
@@ -22,7 +10,7 @@
       :covered-relations="coveredRelations"
       @toggle="toggleRelation"
     />
-  </Panel>
+  </div>
 
   <Card v-else-if="variant === 'detail' && !flattened" class="w-full">
     <template #content>
@@ -89,7 +77,6 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import Panel from 'primevue/panel';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';

@@ -91,41 +91,87 @@
       severity="info"
       :text="$t('uiMapping.emptyRegion')"
     />
-    <SurfaceBody
-      v-else
-      :instance="node.instances[0]"
-      :type="node.type"
-      :variant="node.variant"
-      :actions="node.actions"
-      :chrome="node.chrome"
-      :covered-relations="coveredRelationKeys"
-      :pool="pool"
-      :bundle="bundle"
-      @run="emitRun"
-    />
-    <Tabs v-if="node.childRegions.length >= CHILDREN_TABS_AT" :value="node.childRegions[0].id" class="w-full">
-      <TabList>
-        <Tab v-for="child in node.childRegions" :key="child.id" :value="child.id">
-          {{ child.type?.render?.label || child.id }}
-          <Tag v-if="child.instances.length" :value="String(child.instances.length)" severity="secondary" />
-        </Tab>
-      </TabList>
-      <TabPanels>
-        <TabPanel v-for="child in node.childRegions" :key="child.id" :value="child.id">
-          <RegionBlock :node="child" :pool="pool" :bundle="bundle" :depth="depth + 1" embedded @run="emitRun" />
-        </TabPanel>
-      </TabPanels>
-    </Tabs>
+    <div v-else-if="depth === 0" :class="LAYOUT.detailSplit">
+      <div :class="[LAYOUT.mainCol, 'min-w-0 flex flex-col gap-6']">
+        <SurfaceHeader
+          :type="node.type"
+          :instance="node.instances[0]"
+          :actions="node.actions"
+          @run="emitRun"
+        />
+        <SurfaceBody
+          :instance="node.instances[0]"
+          :type="node.type"
+          variant="full"
+          :chrome="node.chrome"
+          :covered-relations="coveredRelationKeys"
+          :pool="pool"
+          :bundle="bundle"
+          @run="emitRun"
+        />
+      </div>
+      <div v-if="node.childRegions.length" :class="[LAYOUT.sideCol, 'min-w-0 flex flex-col gap-4']">
+        <Tabs v-if="node.childRegions.length >= CHILDREN_TABS_AT" :value="node.childRegions[0].id" class="w-full">
+          <TabList>
+            <Tab v-for="child in node.childRegions" :key="child.id" :value="child.id">
+              {{ child.type?.render?.label || child.id }}
+              <Tag v-if="child.instances.length" :value="String(child.instances.length)" severity="secondary" />
+            </Tab>
+          </TabList>
+          <TabPanels>
+            <TabPanel v-for="child in node.childRegions" :key="child.id" :value="child.id">
+              <RegionBlock :node="child" :pool="pool" :bundle="bundle" :depth="depth + 1" embedded @run="emitRun" />
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
+        <RegionBlock
+          v-for="child in node.childRegions"
+          v-else
+          :key="child.id"
+          :node="child"
+          :pool="pool"
+          :bundle="bundle"
+          :depth="depth + 1"
+          @run="emitRun"
+        />
+      </div>
+    </div>
     <template v-else>
-      <RegionBlock
-        v-for="child in node.childRegions"
-        :key="child.id"
-        :node="child"
+      <SurfaceBody
+        :instance="node.instances[0]"
+        :type="node.type"
+        :variant="node.variant"
+        :actions="node.actions"
+        :chrome="node.chrome"
+        :covered-relations="coveredRelationKeys"
         :pool="pool"
         :bundle="bundle"
-        :depth="depth + 1"
         @run="emitRun"
       />
+      <Tabs v-if="node.childRegions.length >= CHILDREN_TABS_AT" :value="node.childRegions[0].id" class="w-full">
+        <TabList>
+          <Tab v-for="child in node.childRegions" :key="child.id" :value="child.id">
+            {{ child.type?.render?.label || child.id }}
+            <Tag v-if="child.instances.length" :value="String(child.instances.length)" severity="secondary" />
+          </Tab>
+        </TabList>
+        <TabPanels>
+          <TabPanel v-for="child in node.childRegions" :key="child.id" :value="child.id">
+            <RegionBlock :node="child" :pool="pool" :bundle="bundle" :depth="depth + 1" embedded @run="emitRun" />
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
+      <template v-else>
+        <RegionBlock
+          v-for="child in node.childRegions"
+          :key="child.id"
+          :node="child"
+          :pool="pool"
+          :bundle="bundle"
+          :depth="depth + 1"
+          @run="emitRun"
+        />
+      </template>
     </template>
   </div>
 </template>
@@ -147,6 +193,7 @@ import HierarchyTable from './HierarchyTable.vue';
 import CardGrid from './CardGrid.vue';
 import TimelineCollection from './TimelineCollection.vue';
 import ActionButton from './ActionButton.vue';
+import SurfaceHeader from './SurfaceHeader.vue';
 
 const props = defineProps({
   node: { type: Object, required: true },

@@ -306,6 +306,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-statestrip-vue` | `components/ui-mapping/StateStrip.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-surfacebody-vue` | `components/ui-mapping/SurfaceBody.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-surfacedetailbody-vue` | `components/ui-mapping/SurfaceDetailBody.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-surfaceheader-vue` | `components/ui-mapping/SurfaceHeader.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-timelinecollection-vue` | `components/ui-mapping/TimelineCollection.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-varianteditor-vue` | `components/ui-mapping/VariantEditor.vue` | derived usage | compliant |
 | `ui-components-userform-vue` | `components/UserForm.vue` | derived usage | compliant |
