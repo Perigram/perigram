@@ -4,10 +4,10 @@
     <PreviewBox v-if="hasPreview" :type="type" :payload="instance.payload" :seed="instance.id" />
 
     <section v-for="group in groups" :key="group.id" :class="LAYOUT.stackTight">
-      <span v-if="group.label" class="text-label">{{ group.label }}</span>
-      <div v-if="shownFacts(group).length" :class="LAYOUT.factsGrid">
-        <div v-for="field in shownFacts(group)" :key="field.name" class="flex min-w-0 flex-col gap-1">
-          <span class="text-supporting text-muted">{{ field.label }}</span>
+      <span v-if="group.label" :class="LAYOUT.sectionTitle">{{ group.label }}</span>
+      <div v-if="shownFacts(group).length" :class="LAYOUT.specList">
+        <div v-for="field in shownFacts(group)" :key="field.name" :class="LAYOUT.specRow">
+          <span class="text-body text-muted">{{ field.label }}</span>
           <FieldControl
             :model-value="instance.fields?.[field.name]"
             :descriptor="field.descriptor"
@@ -16,7 +16,10 @@
             :bundle="bundle"
           />
         </div>
-        <Tag v-if="hiddenFactCount(group) > 0" :value="`+${hiddenFactCount(group)}`" severity="contrast" />
+        <div v-if="hiddenFactCount(group) > 0" :class="LAYOUT.specRow">
+          <span class="text-body text-muted">…</span>
+          <Tag :value="`+${hiddenFactCount(group)}`" severity="contrast" />
+        </div>
       </div>
       <Accordion v-if="structuralOf(group).length" :value="['0']" multiple class="w-full">
         <AccordionPanel

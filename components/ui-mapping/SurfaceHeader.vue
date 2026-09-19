@@ -2,8 +2,11 @@
   <div :class="[LAYOUT.stackTight, LAYOUT.headerBar]">
     <div :class="LAYOUT.rowBetween">
       <div :class="LAYOUT.row">
-        <i :class="type?.render?.icon || 'pi pi-circle'" />
-        <span class="text-section-heading">{{ identity }}</span>
+        <Avatar :icon="type?.render?.icon || 'pi pi-circle'" shape="circle" size="large" />
+        <div class="flex min-w-0 flex-col gap-0.5">
+          <span class="text-section-heading truncate">{{ identity }}</span>
+          <span class="text-supporting text-muted">{{ type?.render?.label }} · {{ instance.id }}</span>
+        </div>
         <Tag v-if="status" :value="status.label" :severity="status.severity" />
       </div>
       <div v-if="actions.length" :class="LAYOUT.row">
@@ -22,6 +25,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import Avatar from 'primevue/avatar';
 import Tag from 'primevue/tag';
 import { LAYOUT, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import ActionButton from './ActionButton.vue';
