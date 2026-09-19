@@ -93,7 +93,7 @@ import Panel from 'primevue/panel';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
-import { resolveSurface, applyBudget, ROW_FIELD_BUDGET, SEVERITY_MAP } from '#shared/ui-mapping/index.js';
+import { resolveSurface, applyBudget, ROW_FIELD_BUDGET, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import EntityChip from './EntityChip.vue';
 import SurfaceDetailBody from './SurfaceDetailBody.vue';
