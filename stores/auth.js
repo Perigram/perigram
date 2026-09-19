@@ -40,6 +40,9 @@ export const useAuthStore = defineStore('auth', () => {
     const actionManifest = computed(() => user.value?.roleAssignments?.actions || []);
     const fieldPolicies = computed(() => user.value?.fieldPolicies || {});
     const processActive = computed(() => user.value?.process?.active === true);
+  // The generator payload from auth hydration: the CTS client bundle and the
+  // projected action contract for the screens renderer.
+  const processPayload = computed(() => user.value?.process || null);
     const statusWorkflows = computed(() => user.value?.process?.workflows || null);
     const lineageBindings = computed(() => user.value?.process?.lineageBindings || []);
 
@@ -201,6 +204,7 @@ export const useAuthStore = defineStore('auth', () => {
         actionManifest,
         fieldPolicies,
         processActive,
+        processPayload,
         statusWorkflows,
         lineageBindings,
         canManagePlatform,

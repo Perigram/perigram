@@ -48,8 +48,8 @@
         </div>
       </div>
       <template #footer>
-        <Button :label="$t('uiMapping.dialogCancel')" severity="secondary" text @click="dialogVisible = false" />
-        <Button :label="$t('uiMapping.dialogSubmit')" @click="dialogVisible = false" />
+        <Button :label="$t('uiMapping.dialogCancel')" severity="secondary" text :disabled="submitting" @click="dialogVisible = false" />
+        <Button :label="$t('uiMapping.dialogSubmit')" :loading="submitting" @click="submitDialog" />
       </template>
     </Dialog>
   </div>
@@ -78,6 +78,9 @@ const props = defineProps({
   contract: { type: Object, required: true },
   bundle: { type: Object, required: true },
   instances: { type: Object, default: () => ({}) },
+  // Real dispatch executor: `async (action, draft) => any`. When provided,
+  // action runs go through it instead of the showcase toast.
+  onRun: { type: Function, default: null },
   spacingScale: { type: Number, default: 1 }
 });
 
@@ -100,7 +103,17 @@ const dialogFields = computed(() => {
     .map(field => ({ ...field, span: resolveFieldControl(field.descriptor, { variant: 'detail' }).span }));
 });
 
-const runAction = action => {
+const submitting = ref(false);
+const runAction = async (action, draft = {}) => {
+  if (props.onRun) {
+    submitting.value = true;
+    try {
+      await props.onRun(action, draft);
+    } finally {
+      submitting.value = false;
+    }
+    return;
+  }
   toast.add({
     severity: 'info',
     summary: action.label,
@@ -108,6 +121,13 @@ const runAction = action => {
     life: 2400
   });
 };
+const submitDialog = () => {
+  const action = dialogAction.value;
+  const payload = { ...draft };
+  dialogVisible.value = false;
+  if (action) runAction(action, payload);
+};
+
 const openAction = action => {
   if (action.access?.level === 'admin' || action.actionKind === 'deleteInstance') {
     confirm.require({

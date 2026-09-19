@@ -1,6 +1,26 @@
 <template>
   <StateBlock v-if="refreshingAuth" state="loading" :message="$t('common.loading')" />
-  <GeneratedScreen v-else-if="screen" :screen="screen" />
+  <GeneratedScreen v-else-if="screen && !isGeneratedScreen" :screen="screen" />
+  <StandardPage v-else-if="screen" workspace>
+    <template #actions>
+      <Button icon="pi pi-refresh" :label="$t('common.refresh')" severity="secondary" outlined size="small" :loading="poolLoading" @click="reload" />
+    </template>
+    <Message v-if="poolError" severity="error" :closable="false">{{ poolError }}</Message>
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-section-heading">{{ screen.label || screen.screenKey }}</span>
+        <Tag v-if="screen.typeId" :value="screen.typeId" severity="secondary" />
+        <Tag :value="screen.template" severity="info" />
+      </div>
+      <GeneratedMappingScreen
+        :screen="screen"
+        :contract="{ actions: processActions }"
+        :bundle="processBundle"
+        :instances="pool"
+        :on-run="runGeneratedAction"
+      />
+    </div>
+  </StandardPage>
   <StandardPage v-else>
     <StateBlock state="error" :message="$t('generatedScreen.notFound')" />
   </StandardPage>
@@ -9,10 +29,18 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import { useToast } from 'primevue/usetoast';
+import { useI18n } from 'vue-i18n';
+import Button from 'primevue/button';
+import Message from 'primevue/message';
+import Tag from 'primevue/tag';
 import { useAuthStore } from '~/stores/auth';
 import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
+import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import { useScreenInstancePool } from '~/composables/useScreenInstancePool.js';
+import { isOfflineQueuedError } from '~/utils/outbox.js';
 
 definePageMeta({
   layout: 'app',
@@ -20,6 +48,8 @@ definePageMeta({
 });
 
 const route = useRoute();
+const toast = useToast();
+const { t } = useI18n();
 const authStore = useAuthStore();
 // The auth middleware has already hydrated this store for SSR and client route
 // navigation. Re-fetching it on mount replaces the manifest and unmounts the
@@ -30,6 +60,11 @@ const screenKey = computed(() => Array.isArray(route.params.screenKey)
   ? route.params.screenKey.join('/')
   : route.params.screenKey
 );
+
+// Process screens arrive in the compiled UI contract vocabulary
+// (typeList/instanceDetail/home + typeId) and render through the generator;
+// system screens keep the legacy renderer until they migrate.
+const GENERATED_TEMPLATES = new Set(['typeList', 'instanceDetail', 'home']);
 const screen = computed(() => {
   const base = authStore.screenManifest.find(item => item.screenKey === screenKey.value)
     || synthesizedDetailScreen(screenKey.value);
@@ -42,6 +77,37 @@ const screen = computed(() => {
     }
   };
 });
+const isGeneratedScreen = computed(() => GENERATED_TEMPLATES.has(screen.value?.template));
+
+const processBundle = computed(() => authStore.processPayload?.bundle || { types: [] });
+const processActions = computed(() => authStore.processPayload?.actions || {});
+
+const { pool, loading: poolLoading, error: poolError, load: loadPool } = useScreenInstancePool();
+async function reload() {
+  if (screen.value) await loadPool(screen.value, processBundle.value);
+}
+watch([screen, processBundle], () => reload(), { immediate: true });
+
+// Action dispatch: the projected manifest action id is the execution
+// contract's id — the run API resolves the rest server-side.
+async function runGeneratedAction(action, data = {}) {
+  const scope = screen.value?.scope || {};
+  const entityId = scope.instanceId || scope.entityId || null;
+  try {
+    await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(action.id)}/execute`, {
+      method: 'POST',
+      body: { entityId, entities: {}, data, parameters: {} }
+    });
+    toast.add({ severity: 'success', summary: action.label || action.id, detail: t('generatedScreen.actionCompleted'), life: 2000 });
+    await reload();
+  } catch (error) {
+    if (isOfflineQueuedError(error)) {
+      toast.add({ severity: 'info', summary: t('outbox.queuedTitle'), detail: t('outbox.queuedNotice'), life: 4000 });
+      return;
+    }
+    toast.add({ severity: 'error', summary: action.label || action.id, detail: error?.data?.message || error?.message || '', life: 5000 });
+  }
+}
 
 function synthesizedDetailScreen(key = '') {
   if (!String(key).endsWith('_detail')) return null;
@@ -76,9 +142,12 @@ function synthesizedDetailScreen(key = '') {
 }
 
 function scopeFromQuery(query = {}) {
-  return Object.fromEntries(Object.entries(query)
+  const scope = Object.fromEntries(Object.entries(query)
     .filter(([key]) => key === 'entityId' || key.endsWith('Id'))
     .map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])
     .filter(([, value]) => value !== undefined && value !== null && value !== ''));
+  // The generator resolves single sources through scope.instanceId.
+  if (scope.entityId && !scope.instanceId) scope.instanceId = scope.entityId;
+  return scope;
 }
 </script>
