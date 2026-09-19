@@ -136,18 +136,17 @@ describe('process designer interaction boundaries', () => {
 
   it('keeps inspector record creation inside the authored record boundary', () => {
     const draft = ref({ data: {} });
-    const selectedNode = ref({ id: 'action-node', type: 'action', data: { refId: 'create-artifact' } });
+    const selectedNode = ref({ id: 'construct-node', type: 'processNode', data: { refId: 'create-project' } });
     const inspector = useProcessDesignerInspector({
       draft,
       selectedNode,
       factories: {
-        entity: id => ({ id }),
-        action: id => ({ id, label: 'Create artifact' })
+        processNode: id => ({ id, kind: 'cts.construct', label: 'Create project' })
       }
     });
 
-    expect(inspector.selectedAction.value).toEqual({ id: 'create-artifact', label: 'Create artifact' });
-    expect(draft.value.data.actions['create-artifact']).toBe(inspector.selectedAction.value);
+    expect(inspector.selectedProcessNode.value).toEqual({ id: 'create-project', kind: 'cts.construct', label: 'Create project' });
+    expect(draft.value.data.processNodes['create-project']).toBe(inspector.selectedProcessNode.value);
     expect(inspector.selectedEntity.value).toEqual({});
   });
 
@@ -160,8 +159,7 @@ describe('process designer interaction boundaries', () => {
     const edges = ref([{ id: 'connection', source: 'source-node', target: 'target-node', selected: false }]);
     const selectedNodeId = ref('source-node');
     const selectedEdgeId = ref(null);
-    const clearSemanticConnection = vi.fn();
-    const syncInferredActionInputs = vi.fn();
+    const onGraphChange = vi.fn();
     const editing = useProcessDesignerGraphEditing({
       draft,
       nodes,
@@ -170,9 +168,7 @@ describe('process designer interaction boundaries', () => {
       selectedNodeId,
       selectedEdgeId,
       recordKeyForType: () => 'processNodes',
-      clearSemanticConnection,
-      syncInferredActionInputs,
-      onBlockedStatusNodes: vi.fn()
+      onGraphChange
     });
 
     editing.deleteGraphSelection();
@@ -180,8 +176,7 @@ describe('process designer interaction boundaries', () => {
     expect(nodes.value.map(node => node.id)).toEqual(['target-node']);
     expect(edges.value).toEqual([]);
     expect(draft.value.data.processNodes).toEqual({ target: { id: 'target' } });
-    expect(clearSemanticConnection).toHaveBeenCalledWith(expect.objectContaining({ id: 'connection' }));
-    expect(syncInferredActionInputs).toHaveBeenCalledOnce();
+    expect(onGraphChange).toHaveBeenCalledOnce();
   });
 
   it('authors complete screen sources, regions, and typed bindings through the canonical contract', () => {
