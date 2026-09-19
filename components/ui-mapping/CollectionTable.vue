@@ -48,11 +48,9 @@ import { computed } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
-import { fieldLabel, applyBudget, SEVERITY_MAP } from '#shared/ui-mapping/index.js';
+import { fieldLabel, SCALAR_BASES, TABLE_COLUMN_BUDGET, ROW_RELATION_BUDGET, applyBudget, SEVERITY_MAP } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import EntityChip from './EntityChip.vue';
-
-const SCALAR_BASES = new Set(['string', 'number', 'quantity', 'instant', 'boolean', 'enum']);
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
@@ -73,21 +71,22 @@ const statusOf = instance => {
   const render = props.type.render?.states?.[value];
   return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
 };
-const scalarFields = computed(() => Object.entries(props.type?.fields || {})
-  .filter(([, descriptor]) => SCALAR_BASES.has(descriptor.base)
-    && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120)))
-  .slice(0, 3)
-  .map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
+const scalarFields = computed(() => applyBudget(
+  Object.entries(props.type?.fields || {})
+    .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)
+      && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120))),
+  TABLE_COLUMN_BUDGET
+).visible.map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
 const relationKey = computed(() => Object.keys(props.type?.edges?.relations || {})[0] || null);
 const relationLabel = computed(() => (relationKey.value ? startCase(relationKey.value) : ''));
 const budgetedRefs = instance => {
   const refs = instance.relations?.[relationKey.value];
   const list = Array.isArray(refs) ? refs : refs ? [refs] : [];
-  return applyBudget(list, { max: 2, overflow: 'count' }).visible;
+  return applyBudget(list, ROW_RELATION_BUDGET).visible;
 };
 const hiddenRefCount = instance => {
   const refs = instance.relations?.[relationKey.value];
   const list = Array.isArray(refs) ? refs : refs ? [refs] : [];
-  return applyBudget(list, { max: 2, overflow: 'count' }).hidden;
+  return applyBudget(list, ROW_RELATION_BUDGET).hidden;
 };
 </script>

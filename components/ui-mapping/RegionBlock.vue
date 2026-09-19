@@ -18,14 +18,27 @@
         />
       </div>
     </template>
+    <Message
+      v-if="!node.instances.length"
+      severity="info"
+      :text="$t('uiMapping.emptyRegion')"
+    />
     <CollectionTable
-      v-if="!isMediaCollection"
+      v-else-if="listLayout === 'table'"
       :instances="node.instances"
       :type="node.type"
       :pool="pool"
       :bundle="bundle"
     />
-    <CardGrid v-else :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
+    <HierarchyTable
+      v-else-if="listLayout === 'tree-table'"
+      :instances="node.instances"
+      :type="node.type"
+      :pool="pool"
+      :bundle="bundle"
+    />
+    <CardGrid v-else-if="listLayout === 'card-grid'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
+    <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
     <RegionBlock
       v-for="child in node.childRegions"
       :key="child.id"
@@ -38,7 +51,11 @@
   </Panel>
 
   <div v-else class="flex w-full flex-col gap-4">
-    <span v-if="!node.instances.length" class="text-supporting text-muted">{{ $t('uiMapping.emptyRegion') }}</span>
+    <Message
+      v-if="!node.instances.length"
+      severity="info"
+      :text="$t('uiMapping.emptyRegion')"
+    />
     <SurfaceBody
       v-else
       :instance="node.instances[0]"
@@ -49,7 +66,7 @@
       :bundle="bundle"
       @run="emitRun"
     />
-    <Tabs v-if="node.childRegions.length >= 2" :value="node.childRegions[0].id" class="w-full">
+    <Tabs v-if="node.childRegions.length >= CHILDREN_TABS_AT" :value="node.childRegions[0].id" class="w-full">
       <TabList>
         <Tab v-for="child in node.childRegions" :key="child.id" :value="child.id">
           {{ child.type?.render?.label || child.id }}
@@ -80,14 +97,18 @@
 import { computed } from 'vue';
 import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
+import Message from 'primevue/message';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
+import { resolveListLayout, CHILDREN_TABS_AT } from '#shared/ui-mapping/index.js';
 import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
+import HierarchyTable from './HierarchyTable.vue';
 import CardGrid from './CardGrid.vue';
+import TimelineCollection from './TimelineCollection.vue';
 import ActionButton from './ActionButton.vue';
 
 const props = defineProps({
@@ -99,5 +120,7 @@ const props = defineProps({
 
 const emit = defineEmits(['run']);
 const emitRun = action => emit('run', action);
-const isMediaCollection = computed(() => props.node.type?.class === 'file');
+const listLayout = computed(() => resolveListLayout(props.node.type, {
+  hierarchical: Boolean(Object.keys(props.node.type?.edges?.children || {}).length)
+}));
 </script>

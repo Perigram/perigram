@@ -7,6 +7,7 @@ import {
   SURFACE_ENTRIES,
   PREVIEW_ENTRIES,
   ACTION_ENTRIES,
+  LIST_LAYOUT_ENTRIES,
   SEVERITY_MAP,
   CHROME_ROLES,
   CHROME_TABLE,
@@ -15,7 +16,38 @@ import {
   VARIANTS
 } from './tables.js';
 
-export { VARIANTS, CHROME_ROLES, SEVERITY_MAP, ROW_FIELD_BUDGET } from './tables.js';
+export {
+  VARIANTS,
+  CHROME_ROLES,
+  SEVERITY_MAP,
+  ROW_FIELD_BUDGET,
+  SCALAR_BASES,
+  TABLE_COLUMN_BUDGET,
+  CARD_FACT_BUDGET,
+  CHIP_BUDGET,
+  ROW_RELATION_BUDGET,
+  CHILDREN_TABS_AT
+} from './tables.js';
+
+function pickEntry(entries, candidate) {
+  let best = null;
+  let bestScore = -1;
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index];
+    const match = entry.match || {};
+    let score = 0;
+    let matched = true;
+    for (const [key, value] of Object.entries(match)) {
+      if (candidate[key] === value) score += 1;
+      else { matched = false; break; }
+    }
+    if (matched && score > bestScore) {
+      best = entry;
+      bestScore = score;
+    }
+  }
+  return best || entries[entries.length - 1];
+}
 
 const ENUM_MANY_AT = 7;
 const LONG_STRING_AT = 120;
@@ -26,26 +58,7 @@ export function createUiMapping(overrides = {}) {
   const surfaceEntries = [...(overrides.surfaces || []), ...SURFACE_ENTRIES];
   const previewEntries = [...(overrides.previews || []), ...PREVIEW_ENTRIES];
   const actionEntries = [...(overrides.actions || []), ...ACTION_ENTRIES];
-
-  function pickEntry(entries, candidate) {
-    let best = null;
-    let bestScore = -1;
-    for (let index = 0; index < entries.length; index += 1) {
-      const entry = entries[index];
-      const match = entry.match || {};
-      let score = 0;
-      let matched = true;
-      for (const [key, value] of Object.entries(match)) {
-        if (candidate[key] === value) score += 1;
-        else { matched = false; break; }
-      }
-      if (matched && score > bestScore) {
-        best = entry;
-        bestScore = score;
-      }
-    }
-    return best || entries[entries.length - 1];
-  }
+  const listLayoutEntries = [...(overrides.listLayouts || []), ...LIST_LAYOUT_ENTRIES];
 
   function fieldCandidate(descriptor, variant) {
     const base = descriptor.base;
@@ -129,11 +142,22 @@ export function createUiMapping(overrides = {}) {
     return Object.freeze(outcome);
   }
 
+  // resolveListLayout(typeRecord, { hierarchical }) -> 'table' | 'tree-table' | 'card-grid' | 'timeline'
+  function resolveListLayout(typeRecord = {}, options = {}) {
+    const entry = pickEntry(listLayoutEntries, {
+      type: typeRecord.id || null,
+      class: typeRecord.class || null,
+      hierarchical: options.hierarchical === true ? true : null
+    });
+    return entry.layout;
+  }
+
   return {
     resolveFieldControl,
     resolveSurface,
     resolvePreview,
-    resolveActionButton
+    resolveActionButton,
+    resolveListLayout
   };
 }
 
@@ -177,4 +201,5 @@ export const resolveFieldControl = defaultMapping.resolveFieldControl;
 export const resolveSurface = defaultMapping.resolveSurface;
 export const resolvePreview = defaultMapping.resolvePreview;
 export const resolveActionButton = defaultMapping.resolveActionButton;
+export const resolveListLayout = defaultMapping.resolveListLayout;
 export { composeScreen, buildInstancePool } from './screen.js';

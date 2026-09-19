@@ -5,6 +5,7 @@ import {
   resolveSurface,
   resolvePreview,
   resolveActionButton,
+  resolveListLayout,
   resolveChrome,
   applyBudget,
   SEVERITY_MAP,
@@ -71,7 +72,7 @@ describe('field control resolution', () => {
 
   it('refines display presentations by data shape', () => {
     expect(resolveFieldControl({ base: 'quantity', unit: 'percent' }, { variant: 'row' })).toMatchObject({
-      component: 'ProgressBar'
+      component: 'Knob'
     });
     expect(resolveFieldControl({ base: 'quantity', unit: 'mm' }, { variant: 'row' })).toMatchObject({
       component: 'QuantityText'
@@ -82,6 +83,17 @@ describe('field control resolution', () => {
     expect(resolveFieldControl({ base: 'list', itemType: { base: 'ref', accepts: ['x'] } }, { variant: 'row' })).toMatchObject({
       component: 'ListSummary'
     });
+  });
+
+  it('resolves list layouts by class, hierarchy, and type override', () => {
+    expect(resolveListLayout({ id: 'observation', class: 'file' })).toBe('card-grid');
+    expect(resolveListLayout({ id: 'star_system', class: 'group' }, { hierarchical: true })).toBe('tree-table');
+    expect(resolveListLayout({ id: 'probe', class: 'item' })).toBe('table');
+    expect(resolveListLayout({ id: 'log_entry', class: 'file' })).toBe('timeline');
+    const mapping = createUiMapping({
+      listLayouts: [{ match: { type: 'probe' }, layout: 'timeline' }]
+    });
+    expect(mapping.resolveListLayout({ id: 'probe', class: 'item' })).toBe('timeline');
   });
 
   it('lets app overrides with narrow matchers win by specificity', () => {
