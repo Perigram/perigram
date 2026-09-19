@@ -34,6 +34,7 @@ export {
   compileTreeDeclarations,
   migrateProcessDefinition,
   prepareAuthoredDefinition,
+  operationKindOf,
   createProcessDesignerContract,
   declarationWireLegality,
   servicesPaletteGroups,

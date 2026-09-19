@@ -1,6 +1,9 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import { CONSUMER_EFFECT_KINDS } from './node-catalog.js';
 import { operationKindOf, describeType, normalizeOperator } from '../../cts/src/index.js';
+// Single vocabulary seam: the species/operation table is re-exported, never
+// imported from the type system package directly by app surfaces.
+export { operationKindOf };
 import { migrateV4Definition, resolveCtsDefinition, checkCtsGraphBindings, isCtsGraphDefinition } from '../../cts/src/index.js';
 
 // The single authored-definition seam (SPEC §20): every consumer of an

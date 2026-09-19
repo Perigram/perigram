@@ -1094,6 +1094,8 @@ import {
   declarationWireLegality,
   definitionToCanvas,
   formatProcessType,
+  migrateProcessDefinition,
+  operationKindOf,
   PROCESS_DATAFLOW_VERSION,
   processSocketsCompatible,
   processType,
@@ -3781,7 +3783,7 @@ function processNodeDisplayLabel(node = {}) {
   const boundType = node.typeId || node.entityType || '';
   const items = designer.paletteGroups.flatMap(group => group.items)
     .filter(candidate => candidate.kind === node.kind)
-    .filter(candidate => !candidate.preset?.type || candidate.preset.type === boundType);
+    .filter(candidate => !candidate.preset?.typeId || candidate.preset.typeId === boundType);
   const item = items.find(candidate => candidate.preset?.select && candidate.preset.select === node.select)
     || items[0];
   return item ? paletteLabel(item) : humanizeNodeLabel(node.kind || '');
