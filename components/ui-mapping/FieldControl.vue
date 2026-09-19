@@ -61,7 +61,7 @@
     <span v-if="variantValue" class="text-body">{{ variantValue }}</span>
   </div>
 
-  <InputText v-else-if="outcome.component === 'InputText'" v-model="model" class="w-full" />
+  <InputText v-else-if="outcome.component === 'InputText'" v-model="model" :size="editorSize" class="w-full" />
   <div v-else-if="outcome.component === 'Slider'" :class="LAYOUT.row" class="w-full">
     <Slider
       :model-value="sliderValue"
@@ -73,7 +73,7 @@
     />
     <span class="text-technical w-16 text-right">{{ sliderLabel }}</span>
   </div>
-  <Textarea v-else-if="outcome.component === 'Textarea'" v-model="model" class="w-full" :rows="2" />
+  <Textarea v-else-if="outcome.component === 'Textarea'" v-model="model" :size="editorSize" class="w-full" :rows="2" />
   <InputNumber
     v-else-if="outcome.component === 'InputNumber'"
     :model-value="typeof model === 'number' ? model : model?.value ?? null"
@@ -86,7 +86,7 @@
     :unit="descriptor.unit"
   />
   <ToggleSwitch v-else-if="outcome.component === 'ToggleSwitch'" v-model="model" />
-  <DatePicker v-else-if="outcome.component === 'DatePicker'" v-model="model" class="w-full" />
+  <DatePicker v-else-if="outcome.component === 'DatePicker'" v-model="model" :size="editorSize" class="w-full" />
   <SelectButton
     v-else-if="outcome.component === 'SelectButton'"
     v-model="model"
@@ -191,6 +191,7 @@ const model = defineModel();
 const fallback = '—';
 const density = inject('uiMappingDensity', 'regular');
 const densityScale = computed(() => DENSITY[density.value] || DENSITY.regular);
+const editorSize = computed(() => (density.value === 'compact' ? 'small' : undefined));
 
 const outcome = computed(() => resolveFieldControl(props.descriptor, { variant: props.variant }));
 const displayValue = computed(() => formatValue({ base: 'string' }, props.modelValue));
