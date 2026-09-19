@@ -1,6 +1,6 @@
 <template>
   <StateBlock v-if="refreshingAuth" state="loading" :message="$t('common.loading')" />
-  <GeneratedScreen v-else-if="screen && !isGeneratedScreen" :screen="screen" />
+  <GeneratedScreen v-else-if="screen && !isGeneratedScreen" :screen="legacyViewScreen" />
   <StandardPage v-else-if="screen" workspace>
     <template #actions>
       <Button icon="pi pi-refresh" :label="$t('common.refresh')" severity="secondary" outlined size="small" :loading="poolLoading" @click="reload" />
@@ -41,6 +41,7 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { useScreenInstancePool } from '~/composables/useScreenInstancePool.js';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
+import { resolveGeneratedEntityDetailOverload } from '~/components/generated/overloads.js';
 
 definePageMeta({
   layout: 'app',
@@ -62,9 +63,33 @@ const screenKey = computed(() => Array.isArray(route.params.screenKey)
 );
 
 // Process screens arrive in the compiled UI contract vocabulary
-// (typeList/instanceDetail/home + typeId) and render through the generator;
-// system screens keep the legacy renderer until they migrate.
-const GENERATED_TEMPLATES = new Set(['typeList', 'instanceDetail', 'home']);
+// (typeList/instanceDetail/home + typeId) and render through the generator.
+// Workspace overloads (the home shell and editor-backed detail types:
+// project/cassette/facade/queue/artifact...) stay on the legacy renderer,
+// which owns their data loader and action surface, until the generator
+// grows workspace equivalents.
+const detailOverload = computed(() => (
+  screen.value?.template === 'instanceDetail' && screen.value?.typeId
+    ? resolveGeneratedEntityDetailOverload(screen.value.typeId)
+    : null
+));
+const isGeneratedScreen = computed(() => (
+  screen.value?.template === 'typeList'
+  || (screen.value?.template === 'instanceDetail' && !detailOverload.value)
+));
+// View adapter for the not-yet-migrated workspace overloads: the legacy
+// renderer still speaks its own template/entity names. This dies with the
+// workspace migration; the compiled contract itself stays single-vocabulary.
+const legacyViewScreen = computed(() => {
+  if (isGeneratedScreen.value || !screen.value) return screen.value;
+  const view = {
+    ...screen.value,
+    template: screen.value.template === 'instanceDetail' ? 'entityDetail' : screen.value.template,
+    entityType: screen.value.typeId || screen.value.entityType || null,
+    sources: (screen.value.sources || []).map(source => ({ ...source, entityType: source.typeId || source.entityType || null }))
+  };
+  return view;
+});
 const screen = computed(() => {
   const base = authStore.screenManifest.find(item => item.screenKey === screenKey.value)
     || synthesizedDetailScreen(screenKey.value);
@@ -77,8 +102,6 @@ const screen = computed(() => {
     }
   };
 });
-const isGeneratedScreen = computed(() => GENERATED_TEMPLATES.has(screen.value?.template));
-
 const processBundle = computed(() => authStore.processPayload?.bundle || { types: [] });
 const processActions = computed(() => authStore.processPayload?.actions || {});
 

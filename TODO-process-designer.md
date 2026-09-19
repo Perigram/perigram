@@ -235,6 +235,20 @@ merge: retire the legacy generated surface used by shared consumers
 (EntityCard, chats, artifacts, billing/org pages), migrate link/unlink
 dialogs to the generator, system-screen migration, and the e2e pass.
 
+Update (overload restore): the first post-merge e2e run exposed that the
+cutover screens route bypassed the workspace overloads (home shell,
+project/cassette/facade/queue/artifact editors) — restored in
+`agent/process-designer-overloads-20260919` by routing home and
+editor-backed detail types through the legacy renderer behind an explicit
+view adapter (deleted with the workspace migration; the compiled contract
+stays single-vocabulary). The e2e investigation also established the suite
+is stale independent of the cutover: it expects static pages removed on
+Sept 13 (`/projects`) and a contractor-template bootstrap removed on
+Sept 15 (registration seeds an empty process), so 28/30 tests fail on
+untouched code paths. The e2e item is therefore a suite rewrite — seed the
+org with a real species process via the draft/activate API and retarget
+expectations at the generated-screens IA — not a pass/fail run.
+
 ## P4 — Runtime and designer cutover to the UI generator
 
 - [ ] `pages/screens/[screenKey].vue` renders through `composeScreen` +
