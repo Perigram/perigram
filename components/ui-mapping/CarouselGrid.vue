@@ -1,5 +1,5 @@
 <template>
-  <Carousel :value="instances" :num-visible="3" :num-scroll="1" :responsive-options="responsive" circular class="w-full">
+  <Carousel :value="instances" :num-visible="3" :num-scroll="1" circular class="w-full [&_.p-carousel-item]:grow-0 [&_.p-carousel-item]:shrink-0 [&_.p-carousel-item]:basis-1/3">
     <template #item="slotProps">
       <Card v-if="slotProps.data" :class="[LAYOUT.clip, 'mx-2 w-full']">
         <template #header>
@@ -26,10 +26,5 @@ const props = defineProps({
   bundle: { type: Object, default: null }
 });
 
-const responsive = [
-  { breakpoint: '1280px', numVisible: 3, numScroll: 1 },
-  { breakpoint: '768px', numVisible: 2, numScroll: 1 },
-  { breakpoint: '560px', numVisible: 1, numScroll: 1 }
-];
 const identityOf = instance => instanceIdentity(props.type, instance);
 </script>

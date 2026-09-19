@@ -1,7 +1,7 @@
 <template>
   <Breadcrumb :model="crumbs" class="w-full">
     <template #item="{ item, props: breadcrumbProps }">
-      <span class="text-supporting text-muted">{{ item.label }}</span>
+      <span class="text-supporting text-muted block max-w-44 truncate">{{ item.label }}</span>
     </template>
   </Breadcrumb>
 </template>

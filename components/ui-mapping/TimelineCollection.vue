@@ -17,7 +17,7 @@
             </div>
           </div>
         </div>
-        <span v-if="bodyValue(item)" class="text-body">{{ bodyValue(item) }}</span>
+        <span v-if="bodyValue(item)" class="text-body line-clamp-3 break-words">{{ bodyValue(item) }}</span>
       </div>
     </template>
   </Timeline>
