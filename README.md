@@ -93,10 +93,16 @@ sequenceDiagram
 ```bash
 npm install
 npx vitest run shared/framework-packages.spec.js shared/design-system.spec.js
+npx vitest run --config vitest.ssr.config.js
 node scripts/check-arch.js
 npm run framework:validate
 E2E_BASE_URL=http://localhost:3000 npm run test:e2e
 ```
+
+The `vitest.ssr.config.js` run mounts real pages through
+`vue/server-renderer` with Nuxt globals stubbed (see
+[`test-tools/`](./test-tools/README.md)) — it guards against template
+bindings that script-only checks cannot see.
 
 Do not run `npm run build` or start dev servers from coding-agent tasks unless a
 human explicitly asks. Worker endpoints require matching `WORKER_TOKEN` on app

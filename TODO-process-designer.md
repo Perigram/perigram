@@ -143,6 +143,21 @@ inspector components), localization; `check-arch`, `check-docs`,
 `framework:validate` pass. Pre-existing unrelated failures unchanged
 (entity-select DescriptorEditor import, three framework-manifest checks).
 
+##### Agent Notes — 2026-09-19 P2 corrective: swallowed page block
+
+The P2 assembly cut (a scripted block removal with a bad end marker)
+silently swallowed a 132-line script region (`socketList` and the
+socket/command-service/access-summary bindings) while the template kept
+referencing it — shipping as a runtime 500 on the roles tab. Script-only
+identifier checks cannot see template bindings and no suite mounted the
+page, so every guard passed. Repaired in
+`agent/process-designer-ssrfix-20260919`: the block is restored and the
+page SSR smoke harness (`vitest.ssr.config.js` + `test-tools/`) now mounts
+the real page through `vue/server-renderer` — the exact defect fails the
+smoke before merge. The smoke is part of the documented validation
+commands (root README). Lesson recorded: template-coupled refactors need a
+rendering guard, not just identifier resolution.
+
 ## P3 — Compiler emits the UI contract (hard cutover)
 
 - [ ] `compileProcessDefinition` emits the CTS-vocabulary UI contract:
