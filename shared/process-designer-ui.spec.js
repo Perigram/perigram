@@ -21,6 +21,17 @@ describe('process designer interaction boundaries', () => {
     expect(designer).not.toContain('ensureRequiredEntityProfiles');
   });
 
+  it('wires the live evaluation loop after every composable its sync pass reads', () => {
+    const designer = readFileSync(new URL('../pages/organization/process.vue', import.meta.url), 'utf8');
+    const engine = designer.indexOf('useProcessDesignerLiveGraph({');
+    const preview = designer.indexOf('useProcessDesignerPreview({');
+
+    expect(engine).toBeGreaterThan(-1);
+    // the engine's watcher runs its first pass immediately, so any binding
+    // the sync pass touches must already be initialized
+    expect(engine).toBeGreaterThan(preview);
+  });
+
   it('uses the shared annotated summary and typed grant editor without raw grant JSON', () => {
     const designer = readFileSync(new URL('../pages/organization/process.vue', import.meta.url), 'utf8');
     const team = readFileSync(new URL('../pages/organization/users.vue', import.meta.url), 'utf8');
