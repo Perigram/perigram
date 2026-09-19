@@ -1,5 +1,5 @@
 import { mapDomainInputType, normalizeProcessSocket, processType } from './types.js';
-import { resolveCtsRecord, typeIdOf } from '../../cts/src/index.js';
+import { resolveCtsRecord, typeIdOf, ctsFieldToProcessType } from '../../cts/src/index.js';
 
 const DATA = 'data';
 const CONTROL = 'control';
@@ -234,6 +234,15 @@ function cts(kind, label, family, level) {
     level,
     pure: false,
     ports: (record = {}, context = {}) => {
+      // A registered service speaks its declared V -> V signature (SPEC
+      // §8): the operator's registration is the contract, not a legacy
+      // command-table entry that may not exist for it. An unknown or
+      // signature-less operator resolves to empty ports — compilation
+      // names the unknown operator as a diagnostic.
+      if (String(record.kind || '') === 'cts.service') {
+        return serviceSignaturePorts(context.domain?.serviceContracts?.[record.operator]?.signature)
+          || { inputs: [], outputs: [] };
+      }
       const species = String(record.kind || '');
       if (TYPE_PIN_SPECIES.includes(species)) {
         const pin = socket('type', processType('entityRef', typeIdOf(record)
@@ -248,6 +257,16 @@ function cts(kind, label, family, level) {
           return {
             ...ports,
             inputs: [pin, ...ports.inputs.filter(port => port.type?.base !== 'block')]
+          };
+        }
+        // The query read's predicate input is runtime vocabulary: no
+        // authoring node produces a predicate (the authoring filter path
+        // is query-all + collection.filter with a logic mask), so the
+        // socket never renders on the species card.
+        if (record.kind === 'cts.read' && record.select === 'query') {
+          return {
+            ...ports,
+            inputs: [pin, ...ports.inputs.filter(port => port.id !== 'predicate')]
           };
         }
         return { ...ports, inputs: [pin, ...ports.inputs] };
@@ -291,6 +310,22 @@ function cts(kind, label, family, level) {
       }
       return catalogPorts(resolveCtsRecord(record, context.domain || {}), context);
     }
+  };
+}
+
+// The s-species port projection: signature descriptors (V grammar)
+// translate through the field-type seam into process sockets. A missing
+// or non-record input falls back to the caller's twin resolution.
+function serviceSignaturePorts(signature = {}) {
+  const input = signature.input?.base === 'record' ? signature.input : null;
+  const outputType = signature.output ? ctsFieldToProcessType(signature.output) : null;
+  if (!input && !outputType) return null;
+  return {
+    inputs: Object.entries(input?.fields || {}).map(([id, descriptor]) => ({
+      ...socket(id, ctsFieldToProcessType(descriptor) || processType('json'), DATA, descriptor.nullable !== true),
+      label: id
+    })),
+    outputs: [socket('result', outputType || processType('json', { nullable: true }))]
   };
 }
 

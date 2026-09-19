@@ -118,7 +118,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   {
     id: 'values',
     items: [
-      paletteItem('valueInput', 'source.literalItem', { preset: { type: { base: 'string', nullable: false }, access: 'item', value: '' } }),
+      paletteItem('literal', 'source.literalItem', { preset: { type: { base: 'string', nullable: false }, access: 'item', value: '' } }),
       paletteItem('logic', 'value.logic', { preset: { type: { base: 'string', nullable: true }, operation: 'eq' } }),
       paletteItem('text', 'value.string', { preset: { type: { base: 'string', nullable: false }, operation: 'concat' } }),
       paletteItem('calculate', 'value.math', { preset: { type: { base: 'number', nullable: false } } }),

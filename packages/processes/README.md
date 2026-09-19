@@ -32,7 +32,10 @@ surface), Operations (the effect species), Instances (reads), Structure
 localization and description ids. Services are offered from the
 projected domain's `serviceContracts` — the registered operator surface
 — never from a legacy command table: there is no "run service"
-operation, because dropping a registered service item IS running it.
+operation, because dropping a registered service item IS running it,
+and the item's ports derive from the operator's declared signature
+(`cts.service` resolves through the field-type seam, with empty ports
+and a compile diagnostic for unknown operators).
 Entity-bound palette items are graph-protocol v5 species kinds (`cts.*`,
 SPEC §20 of the CTS spec): Construct/Mutate/Transition/Remove over
 type declarations, one `cts.read` kind discriminated by `select`, and the

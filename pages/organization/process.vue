@@ -1732,7 +1732,7 @@ const servicePrincipalOptions = computed(() => servicePrincipalList.value.map(pr
 const entityTypeOptions = computed(() => designer.entityOptions);
 const joinProducerOptions = computed(() => {
   const node = selectedProcessNode.value;
-  if (node?.kind !== 'producer.join') return [];
+  if (!isOpKind(node, 'producer.join')) return [];
   const producerOutputs = draft.value?.data?.producerOutputs || {};
   const options = [];
   for (const edge of edges.value || []) {
