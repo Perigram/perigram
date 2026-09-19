@@ -21,6 +21,19 @@ filtering, project detail scoping, role-owned actions, selectors/status, and
 Artifact viewer dispatch. It must never be replaced with copied production
 records or credentials.
 
+`ui-mapping-real.js` hydrates the showcase from the REAL pipeline
+(`?source=real`): the CTS registry (CNC starter pack through the real
+`compileClientBundle`, plus a synthesized `artifact` type for fixture
+entities the pack does not type yet), the REAL process compiler
+(`compileProcessDefinition` + `resolveRoleAssignmentAccess` over the
+persisted acceptance fixture) projected from the compiler's entity
+vocabulary into the CTS vocabulary this layer consumes, and the
+fixture's real v24 block DTOs (project, facade) projected into the CTS
+stored shape. The bridge is mechanical projection; gaps are honest —
+state values stay domain-shaped until the compiler emits CTS-native
+contracts, and instances stay DTO projections until SPEC §13 per-class
+instance services exist.
+
 `ui-mapping-fixtures.js` is the synthetic compiler output for the UI mapping
 contract: hydration four, a self-recursive filesystem-like graph that breaks
 the skeleton every earlier hydration shared (rooted group-tree with items

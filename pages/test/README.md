@@ -29,9 +29,12 @@ UI Lab seeds the entity store with demo lineage labels before rendering so
 `ui-mapping.vue` renders screens **generated** from synthetic compiler
 output over a deliberately fictional facilities-grid domain (zones →
 sectors → stations → units); the fixtures can be swapped for any other
-hydration with the same structure without touching the generation layer. The page mounts
-`components/ui-mapping/GeneratedMappingScreen` for every screen of the
-seeded random world on one page (no picker — random screen keys cannot
+hydration with the same structure without touching the generation layer. A source toggle switches between the seeded random world and the REAL
+pipeline (`?source=real`: CTS registry bundle, real process compiler
+contract over the persisted acceptance fixture, projected DTO
+instances — test-data/README.md documents the honest gaps). The page
+mounts `components/ui-mapping/GeneratedMappingScreen` for every screen
+of the active world on one page (no picker — random screen keys cannot
 survive a reroll), with a spacing-coefficient slider beside the seed (0.5–2, `?scale=`)
 that scales the whole rhythm set — gaps, paddings, control and editor
 sizes — through the literal SPACING_SCALES table; the region tree
