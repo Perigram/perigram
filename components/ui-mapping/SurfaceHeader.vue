@@ -2,7 +2,7 @@
   <div :class="[spacing ? spacing.stackTight : 'flex flex-col gap-3', LAYOUT.headerBar]">
     <BreadcrumbTrail v-if="trail.length > 1" :instance="instance" :bundle="bundle" :pool="pool" />
     <div :class="LAYOUT.headerRow">
-      <div :class="LAYOUT.row" class="min-w-0 flex-1">
+      <div :class="LAYOUT.headerIdentity">
         <Avatar :icon="type?.render?.icon || 'pi pi-circle'" shape="circle" size="large" />
         <div class="flex min-w-0 flex-1 flex-col gap-0.5">
           <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
@@ -20,19 +20,20 @@
           :text="!editing"
           @click="$emit('toggle-edit')"
         />
-        <SpeedDial
-          v-if="actions.length > 4"
-          :model="speedDialActions"
-          direction="left"
-          :button-props="{ severity: 'secondary', outlined: true, size: 'small' }"
-          @click="action => $emit('run', action.commandAction)"
-        />
         <ActionButton
-          v-for="action in actions.slice(0, 4)"
+          v-for="action in inlineActions"
           :key="action.id"
           :action="action"
           :render="type?.render"
           @run="$emit('run', action)"
+        />
+        <SpeedDial
+          v-if="overflowActions.length"
+          :model="speedDialActions"
+          direction="left"
+          :button-props="{ severity: 'secondary', outlined: true, size: 'small', 'aria-label': $t('uiMapping.moreActions') }"
+          :tooltip-options="{ event: 'hover', position: 'top' }"
+          @click="action => $emit('run', action.commandAction)"
         />
       </div>
     </div>
@@ -48,15 +49,20 @@
 
 <script setup>
 import { computed, inject } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Avatar from 'primevue/avatar';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import { LAYOUT, TYPE_BY_LEVEL, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
+import {
+  LAYOUT, TYPE_BY_LEVEL, SEVERITY_MAP, HEADER_ACTIONS_INLINE, instanceIdentity,
+  actionLabelKey, localizedLabel
+} from '#shared/ui-mapping/index.js';
 import ActionButton from './ActionButton.vue';
 import BreadcrumbTrail from './BreadcrumbTrail.vue';
 import StateStrip from './StateStrip.vue';
 
 const spacing = inject('uiMappingSpacing', null);
+const { te, t } = useI18n();
 
 const props = defineProps({
   type: { type: Object, required: true },
@@ -87,8 +93,17 @@ const trail = computed(() => {
   }
   return chain;
 });
-const speedDialActions = computed(() => props.actions.slice(4).map(action => ({
-  label: action.label,
+// Action placement budget: at most HEADER_ACTIONS_INLINE generated
+// buttons render beside the title; the rest join the SpeedDial overflow
+// with the same localized labels ActionButton renders.
+const inlineActions = computed(() => props.actions
+  .filter(action => action?.trigger?.mode !== 'event')
+  .slice(0, HEADER_ACTIONS_INLINE));
+const overflowActions = computed(() => props.actions
+  .filter(action => action?.trigger?.mode !== 'event')
+  .filter(action => !inlineActions.value.includes(action)));
+const speedDialActions = computed(() => overflowActions.value.map(action => ({
+  label: localizedLabel({ te, t }, actionLabelKey(action.id), action.label || action.id),
   icon: action.trigger?.mode === 'event' ? 'pi pi-bolt' : 'pi pi-cog',
   commandAction: action
 })));

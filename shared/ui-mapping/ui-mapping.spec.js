@@ -22,6 +22,7 @@ import {
   applyBudget,
   SEVERITY_MAP,
   ROW_FIELD_BUDGET,
+  HEADER_ACTIONS_INLINE,
   VARIANTS,
   analyzeInstanceShape,
   resolveListControls,
@@ -279,6 +280,16 @@ describe('value formatting and layout vocabulary', () => {
       expect(LAYOUT[key], key).toBeTruthy();
     }
   });
+
+  it('keeps the record header container-relative with a title floor and action budget', () => {
+    expect(LAYOUT.headerBar).toContain('@container');
+    expect(LAYOUT.headerRow).not.toContain('sm:');
+    expect(LAYOUT.headerRow).toContain('@[34rem]:flex-row');
+    // The identity floor caps at the container width so narrow panels wrap
+    // the action cluster instead of overflowing.
+    expect(LAYOUT.headerIdentity).toBe('min-w-[min(100%,16rem)] flex-1');
+    expect(HEADER_ACTIONS_INLINE).toBe(2);
+  });
 });
 
 describe('identity and field groups', () => {
@@ -369,6 +380,7 @@ describe('chrome', () => {
   it('exposes the shared severity vocabulary and row field budget', () => {
     expect(SEVERITY_MAP.danger).toBe('danger');
     expect(ROW_FIELD_BUDGET).toEqual({ max: 3, overflow: 'count' });
+    expect(HEADER_ACTIONS_INLINE).toBe(2);
   });
 
   it('degrades unknown roles to section chrome', () => {
