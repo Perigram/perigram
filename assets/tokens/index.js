@@ -362,6 +362,12 @@ export const primeComponentTokens = {
         header: {
             background: 'transparent'
         },
+        headerCell: {
+            background: 'transparent'
+        },
+        bodyCell: {
+            background: 'transparent'
+        },
         body: {
             background: 'transparent'
         },
@@ -379,6 +385,12 @@ export const primeComponentTokens = {
         header: {
             background: 'transparent'
         },
+        headerCell: {
+            background: 'transparent'
+        },
+        bodyCell: {
+            background: 'transparent'
+        },
         body: {
             background: 'transparent'
         },
@@ -386,6 +398,14 @@ export const primeComponentTokens = {
             background: 'transparent'
         },
         footer: {
+            background: 'transparent'
+        }
+    },
+    dataview: {
+        root: {
+            background: 'transparent'
+        },
+        content: {
             background: 'transparent'
         }
     },
