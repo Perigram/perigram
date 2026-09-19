@@ -1,7 +1,21 @@
 <template>
-  <div class="flex flex-col gap-6">
+  <div :class="LAYOUT.stack">
+    <Tabs v-if="composed.regionsMode === 'tabs'" :value="composed.regions[0].id">
+      <TabList>
+        <Tab v-for="region in composed.regions" :key="region.id" :value="region.id">
+          {{ region.type?.render?.label || region.label }}
+          <Tag v-if="region.instances.length" :value="String(region.instances.length)" severity="secondary" />
+        </Tab>
+      </TabList>
+      <TabPanels>
+        <TabPanel v-for="region in composed.regions" :key="region.id" :value="region.id">
+          <RegionBlock :node="region" :pool="pool" :bundle="bundle" embedded @run="openAction" />
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
     <RegionBlock
       v-for="region in composed.regions"
+      v-else
       :key="region.id"
       :node="region"
       :pool="pool"
@@ -45,6 +59,12 @@
 import { computed, reactive, ref } from 'vue';
 import Dialog from 'primevue/dialog';
 import Button from 'primevue/button';
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
+import TabPanels from 'primevue/tabpanels';
+import TabPanel from 'primevue/tabpanel';
+import Tag from 'primevue/tag';
 import { LAYOUT, composeScreen, buildInstancePool, resolveFieldControl } from '#shared/ui-mapping/index.js';
 import RegionBlock from './RegionBlock.vue';
 import FieldControl from './FieldControl.vue';

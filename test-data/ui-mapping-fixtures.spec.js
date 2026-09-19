@@ -60,6 +60,8 @@ describe('screen composition over fixtures', () => {
     expect(home.regions.map(region => `${region.typeId}:${region.instances.length}`)).toEqual([
       'probe:9', 'survey_mission:3', 'observation:10'
     ]);
+    expect(home.regionsMode).toBe('tabs');
+    expect(composeScreen(contract.screens.auto_operator_probe_detail, contract, bundle, pool).regionsMode).toBe('stack');
     const list = composeScreen(contract.screens.auto_operator_probe, contract, bundle, pool);
     expect(list.regions[0].surfaceKind).toBe('list');
     expect(list.regions[0].actions.map(action => action.id)).toEqual(['probe_create', 'observation_link']);

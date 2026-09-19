@@ -92,6 +92,7 @@ export function composeScreen(screen = {}, contract = { actions: {} }, bundle = 
     label: screen.label,
     typeId: screen.typeId || null,
     type: typesById[screen.typeId] || null,
-    regions: Object.freeze(regions)
+    regions: Object.freeze(regions),
+    regionsMode: childrenModeFor(regions, 0)
   });
 }
