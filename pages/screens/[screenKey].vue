@@ -19,6 +19,7 @@
         :instances="pool"
         :source-states="poolStates"
         :on-run="runGeneratedAction"
+        :on-open="openInstance"
       />
     </div>
   </StandardPage>
@@ -145,11 +146,13 @@ async function reload() {
 watch([screen, processBundle], () => reload(), { immediate: true });
 
 // Action dispatch: the projected manifest action id is the execution
-// contract's id — the run API resolves the rest server-side. Runs flow
-// through the instances store (the offline outbox boundary).
-async function runGeneratedAction(action, data = {}) {
+// contract id — the run API resolves the rest server-side. Runs flow
+// through the instances store (the offline outbox boundary). An
+// instance-scoped quick action (card menu) carries its row instance so
+// the run targets that entity instead of the screen scope.
+async function runGeneratedAction(action, data = {}, context = {}) {
   const scope = screen.value?.scope || {};
-  const entityId = scope.instanceId || scope.entityId || null;
+  const entityId = context.instance?.id || scope.instanceId || scope.entityId || null;
   try {
     await instances.runAction({ actionId: action.id, entityId, entities: {}, data, parameters: {} });
     toast.add({ severity: 'success', summary: action.label || action.id, detail: t('generatedScreen.actionCompleted'), life: 2000 });
@@ -161,6 +164,18 @@ async function runGeneratedAction(action, data = {}) {
     }
     toast.add({ severity: 'error', summary: action.label || action.id, detail: error?.data?.message || error?.message || '', life: 5000 });
   }
+}
+
+// Collection identity navigation: opens the compiler-paired detail
+// screen (auto_<type>_detail) with the instance id in the route scope.
+// Types without a paired detail screen in the user manifest stay
+// non-navigable (silent no-op — the generator emits, the route decides).
+function openInstance(instance) {
+  if (!instance?.type || !instance?.id) return;
+  const detailKey = `auto_${instance.type}_detail`;
+  const exists = authStore.screenManifest.some(item => item.screenKey === detailKey);
+  if (!exists) return;
+  navigateTo({ path: `/screens/${encodeURIComponent(detailKey)}`, query: { entityId: instance.id } });
 }
 
 function synthesizedDetailScreen(key = '') {

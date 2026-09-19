@@ -5,7 +5,15 @@
       <template #body="{ node }">
         <div class="flex items-center gap-2">
           <i :class="node.data.icon" class="text-muted" />
-          <span class="text-body block max-w-72 truncate">{{ node.data.label }}</span>
+          <Button
+            v-if="openable && node.data.instance"
+            link
+            size="small"
+            :label="node.data.label"
+            class="max-w-72 text-left [&_.p-button-label]:truncate"
+            @click="$emit('open', node.data.instance)"
+          />
+          <span v-else class="text-body block max-w-72 truncate">{{ node.data.label }}</span>
         </div>
       </template>
     </Column>
@@ -39,15 +47,20 @@ import { useI18n } from 'vue-i18n';
 import TreeTable from 'primevue/treetable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
+import Button from 'primevue/button';
 import { LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, SCALAR_BASES, tableColumnCount, applyBudget, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
   type: { type: Object, default: null },
+  // Row identities render as links when an open handler exists upstream.
+  openable: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });
+
+defineEmits(['open']);
 
 const { te, t } = useI18n();
 
@@ -85,7 +98,8 @@ const buildNode = (instance, seen = new Set()) => {
       icon: type?.render?.icon || 'pi pi-circle',
       label: identityOf(instance),
       status: statusOf(instance, type),
-      fields: instance.fields
+      fields: instance.fields,
+      instance
     },
     children: children.map(child => buildNode(child, nextSeen)).filter(Boolean)
   };

@@ -40,7 +40,11 @@ instances store (`stores/instances.js`) loads the referenced collections
 (row-slot mapping, lineage/reference normalization, per-source data states
 loading/ready/empty/denied/error that `composeScreen` folds into the region
 tree), and action runs dispatch to the process run API through the same
-store. System
+store. Collection identities are link buttons: `onOpen` routes to the
+compiler-paired detail screen (`auto_<type>_detail`) with the instance id
+in the route scope, silently staying put when the user manifest carries no
+paired detail screen; per-card quick actions run through the same store
+with the card instance as the target entity. System
 screens (organization overview/account era templates) keep the legacy fixed
 renderer until they migrate, including the compiler-synthesized `home`
 screen's Discord-style workspace overload (see

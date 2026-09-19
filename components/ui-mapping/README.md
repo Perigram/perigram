@@ -31,6 +31,15 @@ The screen accepts a `sourceStates` prop (per-source
 loading/ready/empty/denied/error from the data layer) that
 `composeScreen` folds into the region tree.
 
+Instance navigation and quick actions follow the same
+callback-not-routing rule as `onRun`: an `onOpen(instance)` prop turns
+collection identities (cards, table rows, tree rows, timeline entries)
+into link buttons that emit the instance — the app decides where they
+go — and without it identities stay plain text. `onRun` receives a
+third `context` argument: `{ instance }` when an instance-scoped quick
+action (the per-card ellipsis menu) launched the run, so executors
+target that entity instead of the screen scope.
+
 Region data states and the collection toolbar are shared surface
 concerns:
 
@@ -68,7 +77,8 @@ concerns:
 - `BreadcrumbTrail.vue` — the lineage trail: a Breadcrumb of ancestor
   identities walked from the instance's lineage through the pool.
 - `CollectionTable.vue` — the columnar list projection (DataTable):
-  identity, status, budgeted scalar descriptor columns, and the first
+  identity (a link button when the screen has an `onOpen` handler),
+  status, budgeted scalar descriptor columns, and the first
   declared relation as budgeted chips. Columns come from the composed
   `listControls` contract (filled short scalars bounded by the richness
   budget — a field no loaded instance fills never becomes a column),
@@ -83,7 +93,8 @@ concerns:
   second toolbar.
 - `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
   the collection plus its lineage descendants nested as expandable rows
-  with the same generated columns.
+  with the same generated columns; row identities are link buttons under
+  the same `onOpen` navigation contract.
 - `CardGrid.vue` — the media collection projection (DataView, paginated):
   cards lay out in the shared `ResponsiveGrid` primitive with container
   queries and bounded item tokens (viewport breakpoints lie inside panels),
@@ -92,9 +103,15 @@ concerns:
   labeled budgeted facts in `#content`. The DataView header carries the
   composed sort contract: a select over the resolved `sortKeys` with the
   declared default preselected plus an order toggle, ordered through the
-  shared `sortControlRows` comparator.
+  shared `sortControlRows` comparator. The card identity is a link button
+  when the screen has an `onOpen` handler, and the type's per-instance
+  quick actions (resolveInstanceActions: transitions, deletion,
+  instance-scoped commands) render as one shared ellipsis menu per card
+  that re-emits through the region run contract with that card as
+  instance context — confirmation and dispatch stay upstream.
 - `TimelineCollection.vue` — the chronological list projection (Timeline):
-  marker-per-entry with identity, inline scalar facts, and the type's
+  marker-per-entry with identity (link button under the `onOpen`
+  contract), inline scalar facts, and the type's
   primary long-text (or first structural) field as the entry body,
   selected by type matcher (log entries). Past the shared page budget
   the entries page through a standalone Paginator over `pageSlice`.

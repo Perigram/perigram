@@ -32,7 +32,15 @@
       </template>
     <Column sortable :sort-field="sortByIdentity" :header="$t('uiMapping.identityColumn')">
       <template #body="{ data }">
-        <span class="text-body block max-w-72 truncate">{{ identityOf(data) }}</span>
+        <Button
+          v-if="openable"
+          link
+          size="small"
+          :label="identityOf(data)"
+          class="max-w-72 text-left [&_.p-button-label]:truncate"
+          @click="$emit('open', data)"
+        />
+        <span v-else class="text-body block max-w-72 truncate">{{ identityOf(data) }}</span>
       </template>
     </Column>
     <Column
@@ -133,6 +141,7 @@ import { FilterMatchMode } from '@primevue/core/api';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
+import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import {
@@ -150,9 +159,13 @@ const props = defineProps({
   // Composed list-controls contract from the region tree; recomputed from
   // the type and loaded instances when absent (direct table usage).
   controls: { type: Object, default: null },
+  // Identity cells render as links when an open handler exists upstream.
+  openable: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });
+
+defineEmits(['open']);
 
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);

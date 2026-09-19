@@ -36,13 +36,31 @@
             <div :class="LAYOUT.rowBetween">
               <div :class="LAYOUT.row">
                 <i :class="type?.render?.icon || 'pi pi-circle'" class="text-muted" />
-                <span>{{ identityOf(instance) }}</span>
+                <Button
+                  v-if="openable"
+                  link
+                  :label="identityOf(instance)"
+                  class="text-left [&_.p-button-label]:truncate"
+                  @click="$emit('open', instance)"
+                />
+                <span v-else class="truncate">{{ identityOf(instance) }}</span>
               </div>
-              <Tag
-                v-if="statusOf(instance)"
-                :value="statusOf(instance).label"
-                :severity="statusOf(instance).severity"
-              />
+              <div :class="LAYOUT.row">
+                <Tag
+                  v-if="statusOf(instance)"
+                  :value="statusOf(instance).label"
+                  :severity="statusOf(instance).severity"
+                />
+                <Button
+                  v-if="actions.length"
+                  icon="pi pi-ellipsis-v"
+                  text
+                  rounded
+                  severity="secondary"
+                  :aria-label="$t('uiMapping.moreActions')"
+                  @click="event => openCardMenu(event, instance)"
+                />
+              </div>
             </div>
           </template>
           <template #subtitle>{{ type?.render?.label }}</template>
@@ -67,6 +85,7 @@
       <Message severity="info" :text="$t('uiMapping.emptyRegion')" />
     </template>
   </DataView>
+  <Menu ref="cardMenu" :model="cardMenuItems" popup />
 </template>
 
 <script setup>
@@ -77,10 +96,12 @@ import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
+import Menu from 'primevue/menu';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import {
   LAYOUT, SCALAR_BASES, cardFactCount, SEVERITY_MAP, instanceIdentity,
-  fieldLabel, fieldLabelKey, localizedLabel, resolveListControls, sortControlRows
+  fieldLabel, fieldLabelKey, localizedLabel, resolveListControls, sortControlRows,
+  resolveActionButton, actionLabelKey
 } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
@@ -95,9 +116,17 @@ const props = defineProps({
   // Composed list-controls contract from the region tree; recomputed from
   // the type and loaded instances when absent (direct grid usage).
   controls: { type: Object, default: null },
+  // Per-instance quick actions for the type (resolveInstanceActions):
+  // status transitions, deletion, instance-scoped commands. Rendered as
+  // one ellipsis menu per card; empty set renders no control.
+  actions: { type: Array, default: () => [] },
+  // Collection identities render as links when an open handler exists.
+  openable: { type: Boolean, default: false },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });
+
+const emit = defineEmits(['open', 'run']);
 
 const { te, t } = useI18n();
 
@@ -133,4 +162,22 @@ const scalarFields = computed(() => Object.entries(props.type?.fields || {})
     descriptor,
     label: localizedLabel({ te, t }, fieldLabelKey(props.type?.id, name), fieldLabel(name, descriptor))
   })));
+
+// One shared popup menu: the ellipsis remembers the card it opened for,
+// and menu commands re-emit through the region run contract with that
+// instance as context (confirmation and dispatch stay upstream).
+const cardMenu = ref(null);
+const menuInstance = ref(null);
+function openCardMenu(event, instance) {
+  menuInstance.value = instance;
+  cardMenu.value?.toggle(event);
+}
+const cardMenuItems = computed(() => props.actions.map(action => {
+  const resolved = resolveActionButton(action, { render: props.type?.render });
+  return {
+    label: localizedLabel({ te, t }, actionLabelKey(action.id), resolved.label || action.label || action.id),
+    icon: resolved.icon || undefined,
+    command: () => emit('run', action, { instance: menuInstance.value })
+  };
+}));
 </script>

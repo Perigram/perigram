@@ -26,6 +26,7 @@ import {
   VARIANTS,
   analyzeInstanceShape,
   resolveListControls,
+  resolveInstanceActions,
   sortControlRows,
   pageSlice,
   typeLabelKey,
@@ -526,5 +527,28 @@ describe('client-side row ordering and paging', () => {
     expect(spacingClasses(0.5).toolbar).toContain('gap-1');
     expect(spacingClasses(1).toolbar).toContain('gap-2');
     expect(spacingClasses(2).toolbar).toContain('gap-4');
+  });
+});
+
+describe('per-instance quick actions', () => {
+  const actions = {
+    a_create: { id: 'a_create', actionKind: 'createInstance', typeId: 'document', trigger: { mode: 'manual' } },
+    a_transition: { id: 'a_transition', actionKind: 'updateInstance', typeId: 'document', trigger: { mode: 'manual' }, status: { to: 'archived' } },
+    a_edit: { id: 'a_edit', actionKind: 'updateInstance', typeId: 'document', trigger: { mode: 'manual' } },
+    a_auto: { id: 'a_auto', actionKind: 'updateInstance', typeId: 'document', trigger: { mode: 'event' }, status: { to: 'synced' } },
+    a_delete: { id: 'a_delete', actionKind: 'deleteInstance', typeId: 'document', trigger: { mode: 'manual' } },
+    a_link: { id: 'a_link', actionKind: 'link', typeId: 'document', trigger: { mode: 'manual' } },
+    a_other: { id: 'a_other', actionKind: 'deleteInstance', typeId: 'sheet', trigger: { mode: 'manual' } }
+  };
+
+  it('keeps only manual per-instance transitions, deletions, and commands for the type', () => {
+    expect(resolveInstanceActions(actions, 'document').map(action => action.id)).toEqual(['a_transition', 'a_delete']);
+    expect(resolveInstanceActions(actions, 'sheet').map(action => action.id)).toEqual(['a_other']);
+  });
+
+  it('is empty without a type and never throws on sparse contracts', () => {
+    expect(resolveInstanceActions(actions, null)).toEqual([]);
+    expect(resolveInstanceActions({}, 'document')).toEqual([]);
+    expect(resolveInstanceActions({ broken: null }, 'document')).toEqual([]);
   });
 });

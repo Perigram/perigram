@@ -25,19 +25,43 @@
         :instances="tableInstances"
         :type="node.type"
         :controls="node.listControls"
+        :openable="openable"
         :pool="pool"
         :bundle="bundle"
+        @open="emitOpen"
       />
       <HierarchyTable
         v-else-if="listLayout === 'tree-table'"
         :instances="filteredInstances"
         :type="node.type"
+        :openable="openable"
         :pool="pool"
         :bundle="bundle"
+        @open="emitOpen"
       />
-      <CardGrid v-else-if="listLayout === 'card-grid'" :instances="filteredInstances" :type="node.type" :controls="node.listControls" :pool="pool" :bundle="bundle" />
+      <CardGrid
+        v-else-if="listLayout === 'card-grid'"
+        :instances="filteredInstances"
+        :type="node.type"
+        :controls="node.listControls"
+        :actions="instanceActionsForType"
+        :openable="openable"
+        :pool="pool"
+        :bundle="bundle"
+        @open="emitOpen"
+        @run="emitRun"
+      />
       <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
-      <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="filteredInstances" :type="node.type" :controls="node.listControls" :pool="pool" :bundle="bundle" />
+      <TimelineCollection
+        v-else-if="listLayout === 'timeline'"
+        :instances="filteredInstances"
+        :type="node.type"
+        :controls="node.listControls"
+        :openable="openable"
+        :pool="pool"
+        :bundle="bundle"
+        @open="emitOpen"
+      />
     </template>
   </div>
 
@@ -69,19 +93,43 @@
         :instances="tableInstances"
         :type="node.type"
         :controls="node.listControls"
+        :openable="openable"
         :pool="pool"
         :bundle="bundle"
+        @open="emitOpen"
       />
       <HierarchyTable
         v-else-if="listLayout === 'tree-table'"
         :instances="filteredInstances"
         :type="node.type"
+        :openable="openable"
         :pool="pool"
         :bundle="bundle"
+        @open="emitOpen"
       />
-      <CardGrid v-else-if="listLayout === 'card-grid'" :instances="filteredInstances" :type="node.type" :controls="node.listControls" :pool="pool" :bundle="bundle" />
+      <CardGrid
+        v-else-if="listLayout === 'card-grid'"
+        :instances="filteredInstances"
+        :type="node.type"
+        :controls="node.listControls"
+        :actions="instanceActionsForType"
+        :openable="openable"
+        :pool="pool"
+        :bundle="bundle"
+        @open="emitOpen"
+        @run="emitRun"
+      />
       <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
-      <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="filteredInstances" :type="node.type" :controls="node.listControls" :pool="pool" :bundle="bundle" />
+      <TimelineCollection
+        v-else-if="listLayout === 'timeline'"
+        :instances="filteredInstances"
+        :type="node.type"
+        :controls="node.listControls"
+        :openable="openable"
+        :pool="pool"
+        :bundle="bundle"
+        @open="emitOpen"
+      />
       <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
       <div v-else-if="listLayout === 'list'" :class="LAYOUT.stackTight">
         <SurfaceBody
@@ -103,7 +151,10 @@
       :pool="pool"
       :bundle="bundle"
       :depth="depth + 1"
+      :openable="openable"
+      :instance-actions="instanceActions"
       @run="emitRun"
+      @open="emitOpen"
     />
   </Panel>
 
@@ -148,7 +199,7 @@
           </TabList>
           <TabPanels>
             <TabPanel v-for="child in node.childRegions" :key="child.id" :value="child.id">
-              <RegionBlock :node="child" :pool="pool" :bundle="bundle" :depth="depth + 1" embedded @run="emitRun" />
+              <RegionBlock :node="child" :pool="pool" :bundle="bundle" :depth="depth + 1" :openable="openable" :instance-actions="instanceActions" embedded @run="emitRun" @open="emitOpen" />
             </TabPanel>
           </TabPanels>
         </Tabs>
@@ -160,7 +211,10 @@
           :pool="pool"
           :bundle="bundle"
           :depth="depth + 1"
+          :openable="openable"
+          :instance-actions="instanceActions"
           @run="emitRun"
+          @open="emitOpen"
         />
       </div>
     </div>
@@ -186,7 +240,7 @@
         </TabList>
         <TabPanels>
           <TabPanel v-for="child in node.childRegions" :key="child.id" :value="child.id">
-            <RegionBlock :node="child" :pool="pool" :bundle="bundle" :depth="depth + 1" embedded @run="emitRun" />
+            <RegionBlock :node="child" :pool="pool" :bundle="bundle" :depth="depth + 1" :openable="openable" :instance-actions="instanceActions" embedded @run="emitRun" @open="emitOpen" />
           </TabPanel>
         </TabPanels>
       </Tabs>
@@ -237,10 +291,16 @@ const props = defineProps({
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   depth: { type: Number, default: 0 },
-  embedded: { type: Boolean, default: false }
+  embedded: { type: Boolean, default: false },
+  // Collection identities render as links when an instance-open handler
+  // exists upstream (GeneratedMappingScreen onOpen).
+  openable: { type: Boolean, default: false },
+  // Per-instance quick actions by type id (resolveInstanceActions map).
+  instanceActions: { type: Object, default: null }
 });
 
-const emit = defineEmits(['run']);
+const emit = defineEmits(['run', 'open']);
+const emitOpen = instance => emit('open', instance);
 const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
 const stackFor = computed(() => (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[props.node.level] || 'stack']));
@@ -253,7 +313,8 @@ const toggleEditing = () => {
   }
   editing.value = !editing.value;
 };
-const emitRun = action => emit('run', action);
+const emitRun = (action, context) => emit('run', action, context);
+const instanceActionsForType = computed(() => props.instanceActions?.[props.node.typeId] || []);
 // Surface visibility derives from the composed dataState: ready regions
 // render; a loading region with already-loaded instances keeps its stale
 // surfaces under an indeterminate progress bar; every other state shows

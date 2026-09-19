@@ -9,7 +9,16 @@
       </TabList>
       <TabPanels>
         <TabPanel v-for="region in composed.regions" :key="region.id" :value="region.id">
-          <RegionBlock :node="region" :pool="pool" :bundle="bundle" embedded @run="openAction" />
+          <RegionBlock
+            :node="region"
+            :pool="pool"
+            :bundle="bundle"
+            :openable="openable"
+            :instance-actions="instanceActionsByType"
+            embedded
+            @run="openAction"
+            @open="openInstance"
+          />
         </TabPanel>
       </TabPanels>
     </Tabs>
@@ -20,7 +29,10 @@
       :node="region"
       :pool="pool"
       :bundle="bundle"
+      :openable="openable"
+      :instance-actions="instanceActionsByType"
       @run="openAction"
+      @open="openInstance"
     />
 
     <Dialog
@@ -93,7 +105,7 @@ import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
-import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveFieldControl, resolveFieldGroups, fieldLabel, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
+import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveFieldControl, resolveFieldGroups, fieldLabel, typeLabelKey, localizedLabel, resolveInstanceActions } from '#shared/ui-mapping/index.js';
 import RegionBlock from './RegionBlock.vue';
 import InstancePicker from './InstancePicker.vue';
 import FieldControl from './FieldControl.vue';
@@ -107,9 +119,16 @@ const props = defineProps({
   // 'empty' | 'denied' | 'error'); unreported sources derive their state
   // from the pool at compose time.
   sourceStates: { type: Object, default: null },
-  // Real dispatch executor: `async (action, draft) => any`. When provided,
-  // action runs go through it instead of the showcase toast.
+  // Real dispatch executor: `async (action, draft, context) => any`.
+  // When provided, action runs go through it instead of the showcase
+  // toast. `context.instance` carries the row/card an instance-scoped
+  // quick action was launched from.
   onRun: { type: Function, default: null },
+  // Instance navigation: `(instance) => any`. When provided, collection
+  // identities (cards, table rows, timeline entries) render as links and
+  // emit the instance here — routing stays with the app, not the
+  // generator.
+  onOpen: { type: Function, default: null },
   spacingScale: { type: Number, default: 1 }
 });
 
@@ -121,6 +140,15 @@ provide('uiMappingSpacing', spacingClasses(props.spacingScale));
 
 const { te, t } = useI18n();
 const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type?.render?.label || region.label);
+const openable = computed(() => typeof props.onOpen === 'function');
+// Per-instance quick actions by type (resolveInstanceActions contract):
+// status transitions, deletion, and instance-scoped commands a collection
+// surface may run against one loaded instance without a form context.
+const instanceActionsByType = computed(() => Object.fromEntries((props.bundle.types || [])
+  .map(type => [type.id, resolveInstanceActions(props.contract?.actions || {}, type.id)])));
+const openInstance = instance => {
+  if (openable.value) props.onOpen(instance);
+};
 
 const confirm = useConfirm();
 const toast = useToast();
@@ -154,11 +182,11 @@ const dialogGroups = computed(() => {
 });
 
 const submitting = ref(false);
-const runAction = async (action, draft = {}) => {
+const runAction = async (action, draft = {}, context = {}) => {
   if (props.onRun) {
     submitting.value = true;
     try {
-      await props.onRun(action, draft);
+      await props.onRun(action, draft, context);
     } finally {
       submitting.value = false;
     }
@@ -191,7 +219,10 @@ const submitLink = () => {
   });
 };
 
-const openAction = action => {
+// `context` carries the instance an instance-scoped quick action was
+// launched from (cards, rows); it travels beside the action through
+// confirmation and dialogs so the executor receives it either way.
+const openAction = (action, context = {}) => {
   if (action.actionKind === 'link') {
     linkAction.value = action;
     linkTargetId.value = null;
@@ -203,7 +234,7 @@ const openAction = action => {
       group: 'uiMappingConfirm',
       header: action.label,
       message: [action.actionKind, action.typeId].filter(Boolean).join(' '),
-      accept: () => runAction(action)
+      accept: () => runAction(action, {}, context)
     });
     return;
   }
@@ -213,6 +244,6 @@ const openAction = action => {
     dialogVisible.value = true;
     return;
   }
-  runAction(action);
+  runAction(action, {}, context);
 };
 </script>
