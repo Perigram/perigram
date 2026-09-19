@@ -25,7 +25,12 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   directly. `assets/css/main.css` consumes those variables but must not
   duplicate their values or bridge PrimeVue `--p-*` variables.
 - `assets/presets/re_l.js` extends Aura with the bounded primary palette and zinc surface scale
-  projection only. The component-token projection remains empty.
+  projection plus a minimal component-token set: collection chrome —
+  table/tree-table/view headers, footers, footer cells, and paginators
+  (standalone or embedded) — renders transparent so the hosting surface
+  (page, panel, card) owns the background, cards drop their shadow, tab
+  strips stay transparent, and tree rows run at explorer density.
+  Everything else keeps Aura defaults.
 - Tailwind semantic aliases are consumed by `tailwind.config.js`, whose
   content globs include `shared/ui-mapping/*.js`: the UI mapping contract's
   LAYOUT vocabulary is complete class strings in that file, so Tailwind
