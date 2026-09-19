@@ -282,13 +282,15 @@ describe('value formatting and layout vocabulary', () => {
     }
   });
 
-  it('keeps the record header container-relative with a title floor and action budget', () => {
-    expect(LAYOUT.headerBar).toContain('@container');
-    expect(LAYOUT.headerRow).not.toContain('sm:');
-    expect(LAYOUT.headerRow).toContain('@[34rem]:flex-row');
-    // The identity floor caps at the container width so narrow panels wrap
-    // the action cluster instead of overflowing.
-    expect(LAYOUT.headerIdentity).toBe('min-w-[min(100%,16rem)] flex-1');
+  it('keeps the record header contract static-token plus scoped CSS', () => {
+    // No Tailwind container-query variants: the build has no
+    // container-queries plugin, so any @container/@[w]: class compiles to
+    // nothing. The responsive switch lives in SurfaceHeader scoped CSS;
+    // tokens carry only the static stacked layout and the shrink contract
+    // (min-w-0 keeps long names truncating instead of overflowing).
+    expect(LAYOUT.headerBar).not.toContain('@');
+    expect(LAYOUT.headerRow).toBe('flex flex-col items-start gap-3');
+    expect(LAYOUT.headerIdentity).toBe('min-w-0 flex-1');
     expect(HEADER_ACTIONS_INLINE).toBe(2);
   });
 });

@@ -244,12 +244,15 @@ scale are data too. Widths stay in
 the vocabulary (`LAYOUT.clip`, `LAYOUT.bounded` over the bounded-grid-item
 tokens) and card grids run through the shared `ResponsiveGrid` primitive
 (container queries), never viewport breakpoints inside panels. Record
-headers are container-relative the same way: `LAYOUT.headerBar` declares
-the `@container`, `LAYOUT.headerRow` engages its row direction from the
-header container width, and `LAYOUT.headerIdentity` gives the title a
-readable floor so the action cluster wraps below it instead of crunching
-it — with at most `HEADER_ACTIONS_INLINE` generated buttons inline before
-the SpeedDial overflow.
+headers are container-relative the same way, but through scoped CSS in
+`SurfaceHeader` (the `ResponsiveGrid` pattern), never Tailwind variants —
+the tailwindcss build ships no container-queries plugin, so
+`@container`/`@[w]:` classes silently compile to nothing. The header bar
+declares its own `container-type`; wide headers lay identity and actions
+on one wrapping row with a 16rem title floor (long names still truncate
+through the `min-w-0` chain), narrow headers stack — with at most
+`HEADER_ACTIONS_INLINE` generated buttons inline before the ellipsis
+overflow menu.
 
 ## Composition
 

@@ -1,8 +1,8 @@
 <template>
-  <div :class="[spacing ? spacing.stackTight : 'flex flex-col gap-3', LAYOUT.headerBar]">
+  <div :class="[spacing ? spacing.stackTight : 'flex flex-col gap-3', LAYOUT.headerBar, 'surface-header']">
     <BreadcrumbTrail v-if="trail.length > 1" :instance="instance" :bundle="bundle" :pool="pool" />
-    <div :class="LAYOUT.headerRow">
-      <div :class="[LAYOUT.row, LAYOUT.headerIdentity]">
+    <div :class="LAYOUT.headerRow" class="header-row">
+      <div :class="[LAYOUT.row, LAYOUT.headerIdentity]" class="header-identity">
         <Avatar :icon="type?.render?.icon || 'pi pi-circle'" shape="circle" size="large" />
         <div class="flex min-w-0 flex-1 flex-col gap-0.5">
           <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
@@ -122,3 +122,29 @@ const status = computed(() => {
   return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
 });
 </script>
+
+<style scoped>
+/* Container-relative record header (the ResponsiveGrid pattern — the
+   tailwindcss build has no container-queries plugin, so this lives in
+   real CSS, not Tailwind variants). The header bar is its own layout
+   container; wide headers lay identity and actions on one wrapping row
+   with a readable 16rem title floor (long names still truncate through
+   the min-w-0 chain), while narrow headers — panels, detail side
+   columns — stack the action cluster below the full-width title. */
+.surface-header {
+  container-type: inline-size;
+}
+
+@container (min-width: 34rem) {
+  .header-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .header-identity {
+    min-width: 16rem;
+  }
+}
+</style>

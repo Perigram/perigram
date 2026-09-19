@@ -130,10 +130,12 @@ concerns:
   (when nested), Avatar identity with title and a `type · id` muted
   subtitle, status, placed actions, the Edit toggle, and the lifecycle
   Stepper for stateful types. The bar is its own layout container: the
-  identity/actions row engages from the header container width (never the
-  viewport — headers render inside panels and detail side columns), the
-  identity block stays one avatar-title-status row (`LAYOUT.row` plus the
-  `LAYOUT.headerIdentity` floor), so
+  identity/actions row engages from the header container width through
+  the scoped CSS block (never the viewport — headers render inside panels
+  and detail side columns): the identity block stays one
+  avatar-title-status row (`LAYOUT.row` plus `LAYOUT.headerIdentity`) that
+  still truncates long names through the `min-w-0` chain, wide headers
+  floor the title at 16rem so
   a large action cluster wraps below the title instead of crunching it,
   and at most `HEADER_ACTIONS_INLINE` generated buttons render inline —
   a third and every further action join one popup ellipsis menu (no
