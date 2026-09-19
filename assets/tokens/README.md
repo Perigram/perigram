@@ -26,7 +26,10 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   duplicate their values or bridge PrimeVue `--p-*` variables.
 - `assets/presets/re_l.js` extends Aura with the bounded primary palette and zinc surface scale
   projection only. The component-token projection remains empty.
-- Tailwind semantic aliases are consumed by `tailwind.config.js`.
+- Tailwind semantic aliases are consumed by `tailwind.config.js`, whose
+  content globs include `shared/ui-mapping/*.js`: the UI mapping contract's
+  LAYOUT vocabulary is complete class strings in that file, so Tailwind
+  must scan it or every layout class it emits silently compiles to nothing.
 
 ## Rules
 
