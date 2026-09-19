@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   resolveFieldControl,
-  resolveSurface,
   resolveActionButton,
   composeScreen,
   buildInstancePool,
@@ -21,71 +20,96 @@ const contract = createUiMappingCompiledContract();
 const instances = createUiMappingInstances();
 const pool = buildInstancePool(instances);
 
-describe('the maritime hydration stresses structures the layer never saw', () => {
-  it('declares one group with two child types and a third parent for the same child', () => {
-    const fleet = bundle.types.find(type => type.id === 'fleet');
-    expect(Object.keys(fleet.edges.children)).toEqual(['convoys', 'directVessels']);
-    const parentsOfVessel = bundle.types
-      .filter(type => Object.values(type.edges?.children || {}).some(edge => edge.types.includes('vessel')))
-      .map(type => type.id);
-    expect(parentsOfVessel).toEqual(['fleet', 'convoy', 'port']);
+describe('hydration four breaks the previous skeleton', () => {
+  it('recurses containment and has no single root', () => {
+    const folderType = bundle.types.find(type => type.id === 'folder');
+    expect(folderType.edges.children.folders.types).toEqual(['folder']);
+    const tops = instances.folders.filter(folder => Object.keys(folder.lineage).length === 0);
+    expect(tops.length).toBeGreaterThanOrEqual(3);
+    const depthOf = (folder, size = 1) => {
+      const parent = Object.values(folder.lineage)[0];
+      if (!parent) return size;
+      return depthOf(pool.folder[parent.id], size + 1);
+    };
+    expect(Math.max(...instances.folders.map(folder => depthOf(folder)))).toBeGreaterThanOrEqual(6);
   });
 
-  it('composes the fleet detail with two lineage-scoped child regions of different kinds', () => {
-    const composed = composeScreen(contract.screens.auto_operator_fleet_detail, contract, bundle, pool);
+  it('keeps items floating with no lineage at all', () => {
+    expect(instances.keepers.every(keeper => Object.keys(keeper.lineage).length === 0)).toBe(true);
+    expect(instances.keepers).toHaveLength(3);
+  });
+
+  it('chains documents through a self-type supersedes ref', () => {
+    expect(instances.documents[0].fields.supersedes).toBeNull();
+    expect(instances.documents[2].fields.supersedes).toEqual({ type: 'document', id: 'document-2' });
+    let chain = 1;
+    let cursor = instances.documents[10];
+    while (cursor.fields.supersedes) {
+      cursor = instances.documents.find(document => document.id === cursor.fields.supersedes.id);
+      chain += 1;
+    }
+    expect(chain).toBeGreaterThanOrEqual(4);
+  });
+
+  it('links files many-to-many in both directions', () => {
+    const docFour = instances.documents[3];
+    const linked = docFour.relations.linkedSheets.map(ref => ref.id);
+    for (const sheetId of linked) {
+      const sheet = pool.sheet[sheetId];
+      expect(sheet.relations.sources.some(ref => ref.id === 'document-4')).toBe(true);
+    }
+    expect(linked.length).toBe(5);
+  });
+
+  it('relates groups to files (folder pins)', () => {
+    expect(bundle.types.find(type => type.id === 'folder').edges.relations.pinned.types).toEqual(['document']);
+    expect(instances.folders[0].relations.pinned).toHaveLength(2);
+  });
+
+  it('makes the process stream the bulk of the data', () => {
+    expect(instances.jobs).toHaveLength(14);
+    expect(instances.jobs.length).toBeGreaterThan(instances.documents.length);
+    const home = composeScreen(contract.screens.home_operator, contract, bundle, pool);
+    expect(home.regions.map(region => `${region.typeId}:${region.instances.length}`)).toEqual([
+      'watch_job:14', 'document:11'
+    ]);
+    expect(home.regionsMode).toBe('tabs');
+    expect(home.density).toBe('compact');
+  });
+
+  it('composes the deep folder detail with recursive subfolders and documents', () => {
+    const composed = composeScreen(contract.screens.auto_operator_folder_detail, contract, bundle, pool);
     const main = composed.regions[0];
-    expect(main.instances[0].id).toBe('fleet-1');
+    expect(main.instances[0].id).toBe('folder-a1ai');
     const childKinds = main.childRegions.map(child => `${child.typeId}:${child.instances.length}`);
-    expect(childKinds).toEqual(['convoy:3', 'vessel:2']);
-    expect(main.childRegions[0].instances.every(convoy => convoy.lineage.convoys?.id === 'fleet-1')).toBe(true);
-    expect(main.childRegions[1].instances.every(vessel => vessel.lineage.directVessels?.id === 'fleet-1')).toBe(true);
+    expect(childKinds).toEqual(['folder:1', 'document:4']);
+    expect(main.childRegions[0].instances[0].id).toBe('folder-a1aialpha');
+    expect(main.childRegions[1].instances.every(document => document.lineage.documents?.id === 'folder-a1ai')).toBe(true);
+    expect(resolveListLayout(bundle.types.find(type => type.id === 'folder'), { hierarchical: true })).toBe('tree-table');
   });
 
-  it('resolves a hierarchical list layout for the convoy typeList screen', () => {
-    const composed = composeScreen(contract.screens.auto_operator_convoy, contract, bundle, pool);
-    expect(resolveListLayout(composed.regions[0].type, { hierarchical: true })).toBe('tree-table');
-    expect(composed.regions[0].instances).toHaveLength(3);
+  it('composes document, sheet, and job details from relation scopes', () => {
+    const doc = composeScreen(contract.screens.auto_operator_document_detail, contract, bundle, pool);
+    expect(doc.regions[0].instances[0].id).toBe('document-4');
+    expect(doc.regions[0].childRegions.map(child => `${child.typeId}:${child.instances.length}`)).toEqual([
+      'sheet:5', 'watch_job:14'
+    ]);
+    const sheet = composeScreen(contract.screens.auto_operator_sheet_detail, contract, bundle, pool);
+    expect(sheet.regions[0].childRegions[0].instances.length).toBeGreaterThanOrEqual(1);
+    const job = composeScreen(contract.screens.auto_operator_job_detail, contract, bundle, pool);
+    expect(job.regions[0].instances[0].id).toBe('job-3');
+    expect(job.regions[0].childRegions[0].typeId).toBe('document');
   });
 
-  it('composes the vessel detail with certificate cards and a log timeline', () => {
-    const composed = composeScreen(contract.screens.auto_operator_vessel_detail, contract, bundle, pool);
-    const main = composed.regions[0];
-    expect(main.instances[0].id).toBe('vessel-3');
-    const childKinds = main.childRegions.map(child => `${child.typeId}:${child.instances.length}`);
-    expect(childKinds).toEqual(['certificate:1', 'log_entry:2']);
-    expect(resolveListLayout(bundle.types.find(type => type.id === 'certificate'), {})).toBe('card-grid');
-    expect(resolveListLayout(bundle.types.find(type => type.id === 'log_entry'), {})).toBe('timeline');
-  });
-
-  it('renders a file instanceDetail (certificate preview surface)', () => {
-    const composed = composeScreen(contract.screens.auto_operator_certificate_detail, contract, bundle, pool);
-    expect(composed.regions[0].surfaceKind).toBe('detail');
-    expect(composed.regions[0].instances[0].id).toBe('certificate-2');
-    expect(composed.regions[0].childRegions).toHaveLength(0);
-  });
-
-  it('carries refs in exotic positions: self-type, inside variant payloads, group-to-item', () => {
-    expect(bundle.types.find(type => type.id === 'vessel').fields.escortOf.accepts).toEqual(['vessel']);
-    expect(instances.vessels[0].fields.escortOf).toBeNull();
-    expect(instances.vessels[1].fields.escortOf).toEqual({ type: 'vessel', id: 'vessel-1' });
-    const routePayloads = bundle.types.find(type => type.id === 'route_run').fields.config.payloads;
-    expect(routePayloads.viaHub.fields.hub.accepts).toEqual(['convoy']);
-    expect(instances.routes[1].fields.config.value.hub).toEqual({ type: 'convoy', id: 'convoy-2' });
-    expect(bundle.types.find(type => type.id === 'fleet').edges.relations.partnerPorts.types).toEqual(['port']);
-  });
-
-  it('covers every declarable class, preview mode, and field base', () => {
+  it('covers every declarable class and field base with a different distribution', () => {
     const classes = new Set(bundle.types.map(type => type.class));
     expect([...classes].sort()).toEqual(['file', 'group', 'item', 'process']);
-    expect(bundle.types.filter(type => type.class === 'file').map(type => type.payload.preview)).toEqual([
-      'image', 'attachment'
-    ]);
     const bases = new Set(bundle.types.flatMap(type => Object.values(type.fields).map(descriptor => descriptor.base)));
     for (const base of ['string', 'number', 'boolean', 'instant', 'json', 'blob', 'ref', 'quantity', 'record', 'list', 'map', 'variant', 'enum']) {
       expect(bases.has(base), base).toBe(true);
     }
-    expect(bundle.types.find(type => type.id === 'vessel').fields.flags.itemType.base).toBe('enum');
-    expect(bundle.types.find(type => type.id === 'route_run').fields.waypoints.itemType.base).toBe('instant');
+    const files = bundle.types.filter(type => type.class === 'file');
+    expect(files.map(type => type.payload.preview)).toEqual(['image', 'geometry']);
   });
 
   it('resolves every fixture field descriptor in every variant', () => {
@@ -99,43 +123,29 @@ describe('the maritime hydration stresses structures the layer never saw', () =>
     }
   });
 
-  it('places the home sections by weight', () => {
-    const home = composeScreen(contract.screens.home_operator, contract, bundle, pool);
-    expect(home.regions.map(region => `${region.typeId}:${region.instances.length}`)).toEqual(['vessel:10', 'convoy:3']);
-    expect(home.regionsMode).toBe('tabs');
-    expect(home.density).toBe('regular');
-  });
-
-  it('exercises variable certificate cardinality and single-instance types', () => {
-    const counts = instances.vessels.map(vessel => vessel.relations.certificates.length);
-    expect(new Set(counts).size).toBeGreaterThan(4);
-    expect(counts).toContain(6);
-    expect(counts).toContain(0);
-    expect(instances.beacons).toHaveLength(1);
-    const budget = resolveSurface({ id: 'vessel', class: 'item' }, { variant: 'row' }).budgets.relations;
-    expect(instances.vessels.map(vessel => applyBudget(vessel.relations.certificates, budget).hidden)).toContain(4);
-  });
-
   it('resolves every compiled action with the CTS vocabulary', () => {
-    const vesselRender = bundle.types.find(type => type.id === 'vessel').render;
+    const jobRender = bundle.types.find(type => type.id === 'watch_job').render;
     const outcomes = Object.fromEntries(
-      Object.values(contract.actions).map(action => [action.id, resolveActionButton(action, { render: vesselRender })])
+      Object.values(contract.actions).map(action => [action.id, resolveActionButton(action, { render: jobRender })])
     );
-    expect(outcomes.vessel_create).toMatchObject({ tone: 'primary' });
-    expect(outcomes.vessel_delete).toMatchObject({ tone: 'danger', confirm: true });
-    expect(outcomes.vessel_depart).toMatchObject({ tone: 'state', severity: 'info' });
-    expect(outcomes.vessel_auto_ping.hidden).toBe(true);
-    expect(outcomes.certificate_link).toMatchObject({ tone: 'text', icon: 'pi pi-link' });
+    expect(outcomes.doc_create).toMatchObject({ tone: 'primary' });
+    expect(outcomes.doc_delete).toMatchObject({ tone: 'danger', confirm: true });
+    expect(outcomes.job_start).toMatchObject({ tone: 'state', severity: 'info' });
+    expect(outcomes.job_abort.severity).toBe('danger');
+    expect(outcomes.job_auto_recheck.hidden).toBe(true);
+    expect(outcomes.sheet_link).toMatchObject({ tone: 'text', icon: 'pi pi-link' });
   });
 
-  it('resolves declared identities across every type', () => {
-    expect(instanceIdentity(bundle.types.find(type => type.id === 'fleet'), pool.fleet['fleet-1'])).toBe('Meridian Line');
-    expect(instanceIdentity(bundle.types.find(type => type.id === 'port'), pool.port['port-2'])).toBe('PT-KLV');
-    expect(instanceIdentity(bundle.types.find(type => type.id === 'vessel'), pool.vessel['vessel-4'])).toBe('Dourado');
-    expect(instanceIdentity(bundle.types.find(type => type.id === 'certificate'), pool.certificate['certificate-2'])).toBe('A2');
+  it('resolves declared identities and variable link cardinality', () => {
+    expect(instanceIdentity(bundle.types.find(type => type.id === 'folder'), pool.folder['folder-a1aialpha'])).toBe('Sleeve A1a-i-α');
+    expect(instanceIdentity(bundle.types.find(type => type.id === 'keeper'), pool.keeper['keeper-3'])).toBe('KPR-03');
+    const counts = instances.documents.map(document => document.relations.linkedSheets.length);
+    expect(new Set(counts).size).toBeGreaterThan(3);
+    const budget = { max: 2, overflow: 'count' };
+    expect(instances.documents.map(document => applyBudget(document.relations.linkedSheets, budget).hidden)).toContain(3);
   });
 
   it('keeps the showcase default screen key present in the contract', () => {
-    expect(contract.screens.auto_operator_vessel_detail?.screenKey).toBe('auto_operator_vessel_detail');
+    expect(contract.screens.auto_operator_document_detail?.screenKey).toBe('auto_operator_document_detail');
   });
 });
