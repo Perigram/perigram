@@ -53,8 +53,16 @@ in one render tree without any composite registry entries.
 Field display names come from `fieldLabel(name, descriptor)`: the
 descriptor's `label` override, else the start-case name — the same policy
 `renderPolicyFor` applies to type labels. Display presentations refine by
-data shape: percent quantities render as progress bars and string lists as
+data shape: percent quantities render as Knob dials and string lists as
 budgeted chips.
+
+`resolveListLayout(type, { hierarchical })` → `'table' | 'tree-table' |
+'card-grid' | 'timeline'` from one matcher table: media classes get card
+grids, lineage-holding collections get tree tables, chronological types
+match by type id, everything else gets the generated columnar table. The
+shared presentation budgets (`TABLE_COLUMN_BUDGET`, `CARD_FACT_BUDGET`,
+`CHIP_BUDGET`, `ROW_RELATION_BUDGET`, `CHILDREN_TABS_AT`, `SCALAR_BASES`)
+live beside the other defaults so materializations carry no magic numbers.
 Edit variants resolve editor controls, refined by derived qualifiers:
 `quantity` → QuantityInput (InputGroup: InputNumber plus unit addon), few-option
 `enum` → SelectButton, large `enum` → filtered Select, `ref` → EntityPicker,

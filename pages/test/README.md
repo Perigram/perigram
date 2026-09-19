@@ -38,8 +38,9 @@ in the page or the components.
 
 The fixture screens demonstrate:
 
-- layouts chosen by data: tabular collections as generated tables, media
-  collections as paginated card grids, detail screens with three child
+- layouts chosen by data: tabular collections as generated tables,
+  lineage-holding collections as TreeTables, media collections as paginated
+  card grids, log entries as a Timeline, detail screens with three child
   regions as tabs, group surfaces with fully expanded hierarchy trees
 - deep nesting: constellation → star systems → probes, with files attached
   by single and array relations carrying 0–10 items
