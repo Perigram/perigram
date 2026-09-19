@@ -111,8 +111,15 @@ concerns:
   and the instance pool's lineage, shown on group surfaces.
 - `SurfaceHeader.vue` — the record-page header bar: lineage Breadcrumb
   (when nested), Avatar identity with title and a `type · id` muted
-  subtitle, status, placed actions (SpeedDial overflow beyond four), the
-  Edit toggle, and the lifecycle Stepper for stateful types.
+  subtitle, status, placed actions, the Edit toggle, and the lifecycle
+  Stepper for stateful types. The bar is its own layout container: the
+  identity/actions row engages from the header container width (never the
+  viewport — headers render inside panels and detail side columns), the
+  identity block owns a readable title floor (`LAYOUT.headerIdentity`), so
+  a large action cluster wraps below the title instead of crunching it,
+  and at most `HEADER_ACTIONS_INLINE` generated buttons render inline —
+  a third and every further action join the SpeedDial overflow with the
+  same localized labels.
 - `SurfaceBody.vue` — instance surface by container variant: `full` → the
   bare content column of a record page, `detail` → Card (same-role nesting
   flattens to a Divider), `row` / `inline` → dense flex row with budgeted
