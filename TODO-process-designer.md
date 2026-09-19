@@ -217,8 +217,11 @@ covers the projected UI contract (typeId/template/roleIds on screens;
 inputPolicy.prompt/construction.mode on actions), and the designer
 Screens tab renders the compiled draft through the real generator
 (GeneratedMappingScreen + client bundle + projected actions, empty pool) —
-ProcessScreenPreview.vue is deleted. Compiler-side P3 is complete; only
-the runtime renderer slice remains before merge.
+ProcessScreenPreview.vue is deleted. Auth hydration now carries the
+generator payload (`process.bundle` + `process.actions` projected records,
+pinned by the runtime spec), so the renderer swap is purely browser-side.
+Compiler-side P3 is complete; only the runtime renderer slice remains
+before merge.
 
 ## P4 — Runtime and designer cutover to the UI generator
 
