@@ -97,9 +97,18 @@ field and an unset ref stay out of the declaration until completed, the
 same as any unsaved edit. Position drags and selection churn never
 re-evaluate, and idempotent passes converge instead of oscillating.
 
+A `ref` field receives its accepted target types as **wired inputs**:
+wiring a class (or type reference) into the field node's targets socket
+derives the descriptor's `accepts` live from the tree — renaming a
+target class re-derives it, and the multiselect in the inspector remains
+the fallback for registry types with no canvas node. The socket carries
+the target's registry id verbatim (kebab), so ref field inputs typecheck
+against real entity outputs.
+
 Declaration-plane wires (`declarationWireLegality` in
 `packages/processes/src/designer.js`, SPEC §20/§21 one tree) are legal only
 between declaration partners: field/state nodes declare on a class node;
+class/type-reference nodes target a ref field's inputs;
 class/reference nodes bind an origin species record's `Type` pin
 (consumers carry none — their entity input is a value socket);
 operator-bound and structure species carry no type to bind;
