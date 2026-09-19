@@ -22,26 +22,17 @@ Artifact viewer dispatch. It must never be replaced with copied production
 records or credentials.
 
 `ui-mapping-fixtures.js` is the synthetic compiler output for the UI mapping
-contract: a deliberately fictional facilities-grid domain (zones → sectors →
-stations → units, crews, readings/schematics/logs, audit runs) chosen to
-exercise the mapping, not to model anything real — four lineage levels,
-single and array cross-type refs, and variable file cardinality. It is the
-second full hydration of the same contract; the UI generation layer
-(shared/ui-mapping, components/ui-mapping) renders either domain without
-domain knowledge (only the timeline layout matcher's `log_entry` type id is
-reused by name). The CTS client bundle covers every field base
-and qualifier (all units, few/many enums, single/array relations, variants
-with payloads, records, lists, maps, json, blobs), all four declarable
-classes, and all three preview modes; the compiled contract speaks CTS
-vocabulary (`typeList` / `instanceDetail` screens, `typeId` sources scoped
-by `instanceId`, `createInstance` / `updateInstance` / `deleteInstance`
-actions) — the future compiler contract, not the current entity-era one —
-with relation- and lineage-scoped child regions; the
-instance graph runs three lineage levels deep with varied relation
-cardinality (probes carry 0–10 related files) — the variable-cardinality
-case slot budgets collapse. The
-[UI mapping showcase](../pages/test/README.md) renders it; the mapping
-contract itself is canonical in [shared/ui-mapping/README.md](../shared/ui-mapping/README.md).
+contract: hydration three, a maritime-logistics shape chosen to stress
+structures the earlier hydrations never contained — a group with two child
+types (fleet: convoys + direct vessels), the same child type under three
+parents (vessel under fleet, convoy, and port), a self-type ref (escortOf),
+a ref inside a variant payload (route config viaHub.hub -> convoy),
+list<enum> flags and map<instant> waypoints, group-to-item relations
+(fleet partnerPorts), a typeList of a group (convoy tree-table), a file
+instanceDetail (certificate), and a single-instance type (beacon). The UI
+generation layer (shared/ui-mapping, components/ui-mapping) renders any of
+the three hydrations without domain knowledge; only the timeline layout
+matcher's `log_entry` type id is reused by name.
 
 ## Usage
 
