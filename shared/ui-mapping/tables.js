@@ -359,8 +359,8 @@ export { EDIT_VARIANTS, DEGRADE };
 
 // Spacing coefficient: one slider step maps to a full literal rhythm set
 // (Tailwind only compiles classes it can see, so every step is written out).
-// The coefficient scales gaps, paddings, control size, and editor size
-// together; density classification still derives per screen.
+// The coefficient scales gaps, paddings, toolbar rhythm, control size, and
+// editor size together; density classification still derives per screen.
 export const SPACING_SCALES = Object.freeze({
   0.5: Object.freeze({
     stack: 'flex flex-col gap-2',
@@ -368,6 +368,7 @@ export const SPACING_SCALES = Object.freeze({
     factsGrid: 'grid grid-cols-1 gap-x-2 gap-y-1 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-2 py-0.5',
     chipRow: 'flex flex-wrap items-center gap-1 pt-0.5',
+    toolbar: 'flex flex-wrap items-center gap-1',
     sectionTitle: 'text-label text-muted uppercase',
     knob: 40,
     editorSize: 'small'
@@ -378,6 +379,7 @@ export const SPACING_SCALES = Object.freeze({
     factsGrid: 'grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-3 py-1',
     chipRow: 'flex flex-wrap items-center gap-1 pt-1',
+    toolbar: 'flex flex-wrap items-center gap-1',
     sectionTitle: 'text-label text-muted uppercase',
     knob: 48,
     editorSize: 'small'
@@ -388,6 +390,7 @@ export const SPACING_SCALES = Object.freeze({
     factsGrid: 'grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-4 py-2',
     chipRow: 'flex flex-wrap items-center gap-2 pt-2',
+    toolbar: 'flex flex-wrap items-center gap-2',
     sectionTitle: 'text-label text-muted uppercase',
     knob: 64,
     editorSize: null
@@ -398,6 +401,7 @@ export const SPACING_SCALES = Object.freeze({
     factsGrid: 'grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-5 py-2',
     chipRow: 'flex flex-wrap items-center gap-2 pt-2',
+    toolbar: 'flex flex-wrap items-center gap-2',
     sectionTitle: 'text-label text-muted uppercase',
     knob: 72,
     editorSize: null
@@ -408,6 +412,7 @@ export const SPACING_SCALES = Object.freeze({
     factsGrid: 'grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-6 py-3',
     chipRow: 'flex flex-wrap items-center gap-3 pt-3',
+    toolbar: 'flex flex-wrap items-center gap-3',
     sectionTitle: 'text-label text-muted uppercase',
     knob: 80,
     editorSize: null
@@ -418,6 +423,7 @@ export const SPACING_SCALES = Object.freeze({
     factsGrid: 'grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-6 py-4',
     chipRow: 'flex flex-wrap items-center gap-3 pt-4',
+    toolbar: 'flex flex-wrap items-center gap-3',
     sectionTitle: 'text-label text-muted uppercase',
     knob: 88,
     editorSize: null
@@ -428,6 +434,7 @@ export const SPACING_SCALES = Object.freeze({
     factsGrid: 'grid grid-cols-1 gap-x-8 gap-y-8 sm:grid-cols-2 xl:grid-cols-4',
     specRow: 'flex min-w-0 items-center justify-between gap-8 py-6',
     chipRow: 'flex flex-wrap items-center gap-4 pt-4',
+    toolbar: 'flex flex-wrap items-center gap-4',
     sectionTitle: 'text-label text-muted uppercase',
     knob: 96,
     editorSize: null

@@ -25,6 +25,8 @@ import {
   VARIANTS,
   analyzeInstanceShape,
   resolveListControls,
+  sortControlRows,
+  pageSlice,
   typeLabelKey,
   fieldLabelKey,
   actionLabelKey,
@@ -483,5 +485,34 @@ describe('generated label keys', () => {
     expect(localizedLabel(translator, 'uiMapping.types.cassette', 'Cassette')).toBe('Кассета');
     expect(localizedLabel(translator, 'uiMapping.types.other', 'Other')).toBe('Other');
     expect(localizedLabel(null, 'uiMapping.types.cassette', 'Cassette')).toBe('Cassette');
+  });
+});
+
+describe('client-side row ordering and paging', () => {
+  const rows = [
+    { id: 'a', fields: { name: 'Pear', size: { value: 3, unit: 'mm' } } },
+    { id: 'b', fields: { name: 'apple' } },
+    { id: 'c', fields: { name: 'Fig', size: { value: 1, unit: 'mm' } } }
+  ];
+
+  it('sorts strings case-insensitively and keeps absent quantity values last', () => {
+    expect(sortControlRows(rows, { name: 'name', base: 'string' }).map(row => row.id)).toEqual(['b', 'c', 'a']);
+    expect(sortControlRows(rows, { name: 'size', base: 'quantity' }).map(row => row.id)).toEqual(['c', 'a', 'b']);
+    expect(sortControlRows(rows, { name: 'size', base: 'quantity' }, -1).map(row => row.id)).toEqual(['a', 'c', 'b']);
+  });
+
+  it('never mutates the input rows and slices pages defensively', () => {
+    const snapshot = JSON.parse(JSON.stringify(rows));
+    sortControlRows(rows, { name: 'name', base: 'string' });
+    expect(rows).toEqual(snapshot);
+    expect(pageSlice(rows, 1, 1).map(row => row.id)).toEqual(['b']);
+    expect(pageSlice(rows, 99, 10)).toEqual([]);
+    expect(pageSlice(null, -5, 0).length).toBe(0);
+  });
+
+  it('scales the toolbar rhythm with the spacing coefficient', () => {
+    expect(spacingClasses(0.5).toolbar).toContain('gap-1');
+    expect(spacingClasses(1).toolbar).toContain('gap-2');
+    expect(spacingClasses(2).toolbar).toContain('gap-4');
   });
 });

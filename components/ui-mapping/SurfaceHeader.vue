@@ -36,7 +36,13 @@
         />
       </div>
     </div>
-    <StateStrip v-if="type?.states?.main" :type="type" :instance="instance" />
+    <StateStrip
+      v-if="type?.states?.main"
+      :type="type"
+      :instance="instance"
+      :actions="actions"
+      @run="$emit('run', $event)"
+    />
   </div>
 </template>
 

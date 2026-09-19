@@ -308,6 +308,36 @@ export function applyBudget(items = [], budget = null) {
   });
 }
 
+// sortControlRows(rows, key, order): client-side ordering over the
+// list-controls `sortKeys` shape (`{ name, base }`) — the same semantics
+// for every surface that sorts without PrimeVue (cards, timelines):
+// quantity rows order by their numeric `value`, numbers numerically,
+// everything else by string comparison, absent values always last.
+// Returns a new array; the input is never mutated.
+export function sortControlRows(rows = [], key = {}, order = 1) {
+  const direction = order < 0 ? -1 : 1;
+  const read = key.base === 'quantity'
+    ? row => row?.fields?.[key.name]?.value ?? null
+    : row => row?.fields?.[key.name] ?? null;
+  return [...(Array.isArray(rows) ? rows : [])].sort((a, b) => {
+    const left = read(a);
+    const right = read(b);
+    if (left === null || left === undefined) return 1;
+    if (right === null || right === undefined) return -1;
+    if (typeof left === 'number' && typeof right === 'number') return (left - right) * direction;
+    return String(left).localeCompare(String(right)) * direction;
+  });
+}
+
+// pageSlice(rows, first, rowsPerPage): the one paging cut for paged
+// custom surfaces (timelines); DataTable/DataView page natively.
+export function pageSlice(rows = [], first = 0, rowsPerPage = 10) {
+  const list = Array.isArray(rows) ? rows : [];
+  const start = Math.max(0, first || 0);
+  const count = Math.max(1, rowsPerPage || 10);
+  return list.slice(start, start + count);
+}
+
 const UNIT_SYMBOLS = Object.freeze({
   mm: 'mm', m2: 'm²', min: 'min', deg: '°', percent: '%', currency: '', count: ''
 });
