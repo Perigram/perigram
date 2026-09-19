@@ -171,6 +171,13 @@ export function processTypesCompatible(sourceType, targetType) {
   if (source.base === 'number' && target.base === 'number' && source.unit && target.unit && source.unit !== target.unit) {
     return convertible('value.convertUnit', `Unit conversion ${source.unit} → ${target.unit} must remain visible`, source, target);
   }
+  // A unit-less number adopts the socket's declared unit: the unit is the
+  // field's metadata, not a distinct transport type — literals and other
+  // raw number sources stay wireable into quantity fields. Only
+  // unit -> different-unit conversion stays explicit.
+  if (source.base === 'number' && target.base === 'number' && !source.unit && target.unit) {
+    return { ok: true, implicit: true, source, target, coercion: 'adoptsUnit' };
+  }
   if (target.base === 'json') {
     return { ok: true, implicit: true, source, target, coercion: 'toJson' };
   }

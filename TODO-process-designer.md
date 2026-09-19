@@ -304,3 +304,35 @@ User-reported defects, all root-caused and fixed on
    reject a second wire at the connect gesture with a named-socket notice;
    duplicate deterministic declaration wires (declares/children) are
    no-ops instead of same-id duplicates.
+
+##### Agent Notes — 2026-09-19 literal/construct socket matrix
+
+User report: "literals aren't typed as create node expects" — root-caused
+as three concrete defects, not one:
+
+1. **The cascade behind the user's broken graph**: an invalid class id
+   ('Bbraugh') yields no construction contract, so the bound construct
+   exposed only the Type pin and status socket — every literal wire was
+   rejected with type-mismatch reasons that looked like literal typing
+   bugs. Addressed by the name-first id derivation (previous fix); the
+   remaining contract stays: an unbound/invalid construct offers the pin
+   only, by design.
+2. **Quantity fields were unwireable from literals on mutates**: mutate
+   leaf sockets kept their unit (number:mm) while number literals are
+   unit-less, and unit-less -> unit-ed was rejected; constructs silently
+   DROPPED units instead (constructionInputKind mapped number+unit ->
+   plain number) — two nodes, two rules. Now one rule:
+   `constructionInputKind` keeps the unit qualifier (and stops collapsing
+   dateTime -> date), the construct socket carries it, and
+   `processTypesCompatible` accepts unit-less number -> unit-ed number as
+   an implicit `adoptsUnit` coercion; unit -> different-unit conversion
+   stays explicit (`value.convertUnit`).
+3. **entityRef literals force-default to the first entity option** and the
+   authored record type drives the socket qualifier — documented in the
+   new spec.
+
+Pinned by `composables/useProcessDesignerLiteralCompatibility.spec.js`:
+the full literal <-> bound-construct matrix through the REAL sync pipeline
+(row sockets exposed, same-base wiring, adoptsUnit, cross-unit and
+cross-type ref rejection). The user's meta-point is accepted and answered
+with a contract test at the seam rather than per-node patches.
