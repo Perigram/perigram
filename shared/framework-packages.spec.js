@@ -299,10 +299,10 @@ describe('Framework package contracts', () => {
     expect(cncAttachmentKinds.LAYOUT_DXF).toMatchObject({ bucket: 'nestDxf', preview: { mode: 'dxf' } });
     const endpointMap = createEndpointMap(cncDomain.ui.endpoints);
     const domainUi = createDomainUiAdapter(cncDomain);
-    expect(getSingleEndpoint(endpointMap, 'project', 'p-1')).toBe('/api/project/p-1');
-    expect(getListEndpoint(endpointMap, 'cassetteInstance', { 'lineage.queueId': 'q-1' })).toBe('/api/cassette-instances?lineage.queueId=q-1');
-    expect(existsSync('server/api/cassette-instances/index.get.js')).toBe(true);
-    expect(domainUi.getSingleEndpoint('project', 'p-1')).toBe('/api/project/p-1');
+    expect(getSingleEndpoint(endpointMap, 'project', 'p-1')).toBe('/api/instances/project/p-1');
+    expect(getListEndpoint(endpointMap, 'cassetteInstance', { 'lineage.queueId': 'q-1' })).toBe('/api/instances/cassette-instance?lineage.queueId=q-1');
+    expect(existsSync('server/api/instances/[type]/index.get.js')).toBe(true);
+    expect(domainUi.getSingleEndpoint('project', 'p-1')).toBe('/api/instances/project/p-1');
     expect(domainUi.getAttachmentPreview('LAYOUT_DXF')).toEqual({ mode: 'dxf' });
     expect(domainUi.getAttachmentCreation('DXF_SOURCE')).toMatchObject({
       mode: 'upload',

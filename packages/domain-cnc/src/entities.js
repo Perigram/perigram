@@ -24,13 +24,19 @@ function defaultRoutes({ type = '', collection = '' }) {
   if (type === 'artifact_template') {
     return { single, download: `${single}/source`, list: `/api/${routeBase}` };
   }
-  if (type === 'project') {
-    return { single: '/api/project/:id', list: '/api/project' };
+  // REST-backed collections keep their feature routes; everything else
+  // rides the generic instance transport (SPEC §13) — the legacy per-entity
+  // REST surface was deleted.
+  const restBacked = new Set([
+    'artifacts', 'artifact-templates', 'cassettes', 'cassette-designs',
+    'entity-revisions', 'facades', 'facade-patterns', 'geometry-captures',
+    'nesting-runs', 'organizations', 'process-definitions', 'sheet-designs', 'users'
+  ]);
+  if (restBacked.has(routeBase)) {
+    return { single, list: `/api/${routeBase}` };
   }
-  if (type === 'queue') {
-    return { single: '/api/queue/:id', list: '/api/queue' };
-  }
-  return { single, list: `/api/${routeBase}` };
+  const instanceBase = `/api/instances/${String(type).replace(/_/g, '-')}`;
+  return { single: `${instanceBase}/:id`, list: instanceBase };
 }
 
 export const cncEntities = [
@@ -52,16 +58,16 @@ export const cncEntities = [
   { type: 'material_pile', collection: 'material_piles', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'nesting_run', collection: 'nesting_runs', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'organization', collection: 'organizations', meta: true, blocks: ['identity', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
-  { type: 'pen_template', collection: 'pen_templates', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], routes: { single: '/api/templates/pens/:id', list: '/api/templates/pens' } },
+  { type: 'pen_template', collection: 'pen_templates', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], routes: { single: '/api/instances/pen-template/:id', list: '/api/instances/pen-template' } },
   { type: 'process_definition', collection: 'process_definitions', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'profile_template', collection: 'profile_templates', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
-  { type: 'project', collection: 'projects', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'], operations: { delete: true } },
-  { type: 'queue', collection: 'queues', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'], operations: { delete: true } },
+  { type: 'project', collection: 'projects', routes: { single: '/api/instances/project/:id', list: '/api/instances/project' }, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'], operations: { delete: true } },
+  { type: 'queue', collection: 'queues', routes: { single: '/api/instances/queue/:id', list: '/api/instances/queue' }, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'], operations: { delete: true } },
   { type: 'remnant', collection: 'remnants', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'requisition', collection: 'requisitions', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'sheet', collection: 'sheets', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'specs'] },
   { type: 'sheet_design', collection: 'sheet_designs', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
-  { type: 'tool_profile', collection: 'tool_profiles', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], routes: { single: '/api/templates/tools/:id', list: '/api/templates/tools' } },
+  { type: 'tool_profile', collection: 'tool_profiles', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], routes: { single: '/api/instances/tool-profile/:id', list: '/api/instances/tool-profile' } },
   { type: 'user', collection: 'users', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
   { type: 'warehouse', collection: 'warehouses', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'] }
 ].map(withReferenceBlocks).map(withRoutes).map(withIdentityProjection);
