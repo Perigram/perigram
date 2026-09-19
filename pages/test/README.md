@@ -29,9 +29,10 @@ UI Lab seeds the entity store with demo lineage labels before rendering so
 `ui-mapping.vue` renders screens **generated** from synthetic compiler
 output over a deliberately fictional facilities-grid domain (zones →
 sectors → stations → units); the fixtures can be swapped for any other
-hydration with the same structure without touching the generation layer. The page only
-mounts `components/ui-mapping/GeneratedMappingScreen` over the fixture
-contract with a screen picker; the region tree comes from the pure
+hydration with the same structure without touching the generation layer. The page mounts
+`components/ui-mapping/GeneratedMappingScreen` for every screen of the
+seeded random world on one page (no picker — random screen keys cannot
+survive a reroll); the region tree comes from the pure
 `composeScreen` projection (see
 [shared/ui-mapping/README.md](../../shared/ui-mapping/README.md)) and every
 surface, field control, budget collapse, preview, and action button is
