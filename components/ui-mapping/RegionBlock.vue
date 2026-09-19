@@ -85,7 +85,7 @@
     />
   </Panel>
 
-  <div v-else :class="[LAYOUT.stack, 'w-full']">
+  <div v-else :class="[LAYOUT[GAP_BY_LEVEL[node.level] || 'stack'], 'w-full']">
     <Message
       v-if="!node.instances.length"
       severity="info"
@@ -97,6 +97,7 @@
           :type="node.type"
           :instance="node.instances[0]"
           :actions="node.actions"
+          :level="node.level"
           @run="emitRun"
         />
         <SurfaceBody
@@ -111,7 +112,7 @@
         />
       </div>
       <div v-if="node.childRegions.length" :class="[LAYOUT.sideCol, 'min-w-0 flex flex-col gap-4']">
-        <Tabs v-if="node.childRegions.length >= CHILDREN_TABS_AT" :value="node.childRegions[0].id" class="w-full">
+        <Tabs v-if="node.childrenMode === 'tabs'" :value="node.childRegions[0].id" class="w-full">
           <TabList>
             <Tab v-for="child in node.childRegions" :key="child.id" :value="child.id">
               {{ child.type?.render?.label || child.id }}
@@ -148,7 +149,7 @@
         :bundle="bundle"
         @run="emitRun"
       />
-      <Tabs v-if="node.childRegions.length >= CHILDREN_TABS_AT" :value="node.childRegions[0].id" class="w-full">
+      <Tabs v-if="node.childrenMode === 'tabs'" :value="node.childRegions[0].id" class="w-full">
         <TabList>
           <Tab v-for="child in node.childRegions" :key="child.id" :value="child.id">
             {{ child.type?.render?.label || child.id }}
@@ -186,7 +187,7 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import { LAYOUT, resolveListLayout, CHILDREN_TABS_AT } from '#shared/ui-mapping/index.js';
+import { LAYOUT, GAP_BY_LEVEL, resolveListLayout } from '#shared/ui-mapping/index.js';
 import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
 import HierarchyTable from './HierarchyTable.vue';

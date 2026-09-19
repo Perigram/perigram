@@ -4,6 +4,9 @@
 import {
   FIELD_EDIT_ENTRIES,
   FIELD_DISPLAY_ENTRIES,
+  CHILDREN_TABS_AT,
+  SURFACE_ROW_BUDGET,
+  LIST_SAMPLE_WEIGHT,
   SURFACE_ENTRIES,
   PREVIEW_ENTRIES,
   ACTION_ENTRIES,
@@ -22,6 +25,10 @@ export {
   SEVERITY_MAP,
   ROW_FIELD_BUDGET,
   LAYOUT,
+  SURFACE_ROW_BUDGET,
+  LIST_SAMPLE_WEIGHT,
+  GAP_BY_LEVEL,
+  TYPE_BY_LEVEL,
   DETAIL_FACT_BUDGET,
   SCALAR_BASES,
   TABLE_COLUMN_BUDGET,
@@ -243,6 +250,23 @@ export function formatValue(descriptor = {}, value) {
     default:
       return typeof value === 'object' ? VALUE_FALLBACK : String(value);
   }
+}
+
+export function estimateRegionWeight(node = {}) {
+  if (node.surfaceKind !== 'list') {
+    const factRows = (node.groups || resolveFieldGroups(node.type || {}))
+      .reduce((sum, group) => sum + group.fields.length, 0);
+    const relations = Object.keys(node.instances?.[0]?.relations || {}).length;
+    return factRows + relations;
+  }
+  return Math.min(node.instances?.length || 0, LIST_SAMPLE_WEIGHT);
+}
+
+export function childrenModeFor(childRegions = [], level = 0) {
+  if (childRegions.length < CHILDREN_TABS_AT) return 'stack';
+  const weight = childRegions.reduce((sum, child) => sum + estimateRegionWeight(child), 0);
+  if (weight > SURFACE_ROW_BUDGET && level === 0) return 'tabs';
+  return 'stack';
 }
 
 export function resolveFieldGroups(type = {}) {

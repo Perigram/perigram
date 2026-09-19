@@ -4,7 +4,7 @@
       <div :class="LAYOUT.row">
         <Avatar :icon="type?.render?.icon || 'pi pi-circle'" shape="circle" size="large" />
         <div class="flex min-w-0 flex-col gap-0.5">
-          <span class="text-section-heading truncate">{{ identity }}</span>
+          <span :class="TYPE_BY_LEVEL[props.level] || 'text-section-heading'" class="truncate">{{ identity }}</span>
           <span class="text-supporting text-muted">{{ type?.render?.label }} · {{ instance.id }}</span>
         </div>
         <Tag v-if="status" :value="status.label" :severity="status.severity" />
@@ -27,14 +27,15 @@
 import { computed } from 'vue';
 import Avatar from 'primevue/avatar';
 import Tag from 'primevue/tag';
-import { LAYOUT, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
+import { LAYOUT, TYPE_BY_LEVEL, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import ActionButton from './ActionButton.vue';
 import StateStrip from './StateStrip.vue';
 
 const props = defineProps({
   type: { type: Object, required: true },
   instance: { type: Object, required: true },
-  actions: { type: Array, default: () => [] }
+  actions: { type: Array, default: () => [] },
+  level: { type: Number, default: 0 }
 });
 
 defineEmits(['run']);

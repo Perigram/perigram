@@ -77,6 +77,27 @@ export const CHIP_BUDGET = Object.freeze({ max: 3, overflow: 'count' });
 export const SUMMARY_BUDGET = Object.freeze({ max: 4, overflow: 'count' });
 export const ROW_RELATION_BUDGET = Object.freeze({ max: 2, overflow: 'count' });
 export const CHILDREN_TABS_AT = 2;
+
+// Weight-driven composition: sibling content whose estimated rendered
+// height (in rows) exceeds the surface budget stops stacking and arranges
+// into tabs at the top level (stacked accordions deeper) — decided at
+// compose time from data, never measured from the DOM.
+export const SURFACE_ROW_BUDGET = 10;
+export const LIST_SAMPLE_WEIGHT = 8;
+
+// Hierarchy-driven rhythm and type: the composed node's chrome level picks
+// the stack gap and the heading typography role, so spacing and type scale
+// follow position instead of per-component choices.
+export const GAP_BY_LEVEL = Object.freeze({
+  0: 'stack',
+  1: 'stackTight'
+});
+
+export const TYPE_BY_LEVEL = Object.freeze({
+  0: 'text-section-heading',
+  1: 'text-section-heading',
+  2: 'text-label'
+});
 export const DETAIL_FACT_BUDGET = Object.freeze({ max: 4, overflow: 'count' });
 
 export const SCALAR_BASES = Object.freeze(['string', 'number', 'quantity', 'instant', 'boolean', 'enum']);

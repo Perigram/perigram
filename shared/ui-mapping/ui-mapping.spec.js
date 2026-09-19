@@ -5,6 +5,8 @@ import {
   LAYOUT,
   instanceIdentity,
   resolveFieldGroups,
+  estimateRegionWeight,
+  childrenModeFor,
   resolveFieldControl,
   resolveSurface,
   resolvePreview,
@@ -217,6 +219,28 @@ describe('identity and field groups', () => {
     expect(groups[1].label).toBeNull();
     expect(groups[1].fields.map(field => field.name)).toEqual(['c']);
     expect(resolveFieldGroups({ fields: { a: { base: 'string' } } }).map(group => group.id)).toEqual(['default']);
+  });
+});
+
+describe('weight-driven arrangement', () => {
+  const listNode = items => ({ surfaceKind: 'list', instances: Array.from({ length: items }) });
+  const detailNode = rows => ({
+    surfaceKind: 'detail',
+    type: { fields: Object.fromEntries(Array.from({ length: rows }, (_, i) => [`f${i}`, { base: 'string' }])) },
+    instances: [{ relations: {} }]
+  });
+
+  it('estimates rendered weight from data', () => {
+    expect(estimateRegionWeight(listNode(20))).toBe(8);
+    expect(estimateRegionWeight(listNode(3))).toBe(3);
+    expect(estimateRegionWeight(detailNode(12))).toBe(12);
+  });
+
+  it('tabs only when siblings are many and heavy at the top level', () => {
+    expect(childrenModeFor([listNode(8), listNode(8)], 0)).toBe('tabs');
+    expect(childrenModeFor([listNode(2), listNode(3)], 0)).toBe('stack');
+    expect(childrenModeFor([detailNode(16)], 0)).toBe('stack');
+    expect(childrenModeFor([listNode(8), listNode(8)], 1)).toBe('stack');
   });
 });
 
