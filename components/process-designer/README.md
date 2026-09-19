@@ -30,16 +30,17 @@ one source of truth. **Types** opens with declaration authoring (class,
 field, state, status definition, type reference) and continues with the
 registry catalog — one bound construct per constructible type plus one
 variant per declared construct operator, refreshed live from the
-organization's type view. **Operations** holds the effect species
-(construct, mutate, transition, remove, join). **Instances** holds the
-reads (entity from context, by id, by reference, parent, children,
-related, query). **Structure** holds field/record shaping. **Read field** is the
-projection gate (SPEC §8 p): entity in, value out at the authored slot
-path — one node, no intermediate block step; its binding adapts to the
-entity stream like every consumer. The query read never shows its
-runtime predicate input — no authoring node produces a predicate;
-filtering a queried list is the list-plus-`collection.filter` mask
-path. **Values** and **Lists and trees** hold the
+organization's type view. **Operations** holds the effect species, labeled by what they do
+(Create, Set fields, Set state, Delete, Join paths). **Instances** holds the
+entity sources (from context, by id, by reference, parent, children,
+related, query) and **Get field** — the projection gate (SPEC §8 p):
+entity in, one field's value out at the authored path, one node, no
+intermediate block step; its binding adapts to the entity stream like
+every consumer. The query read never shows its runtime predicate input
+— no authoring node produces a predicate; filtering a queried list is
+the list-plus-`collection.filter` mask path. Block composition
+(compose/decompose) is catalog-only: migrated v4 graphs keep their
+nodes, but no palette item produces or consumes blocks anymore. **Values** and **Lists and trees** hold the
 pure value algebra. **Services** is derived from the projected domain's
 `serviceContracts` — the registered operator surface: dropping a service
 item binds its operator, whose declared command is the executable twin.

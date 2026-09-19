@@ -27,8 +27,8 @@ block fields against their target entity policy at the consumer boundary.
 The grouped authoring palette is a curated framework projection, separate from
 the exhaustive runtime catalog. It groups by authoring concern: Types
 (declaration items plus the registry type catalog at the designer
-surface), Operations (the effect species), Instances (reads), Structure
-(field/record shaping), Values, and Lists and trees, with stable
+surface), Operations (the effect species), Instances (entity sources
+plus the field projection), Values, and Lists and trees, with stable
 localization and description ids. Services are offered from the
 projected domain's `serviceContracts` — the registered operator surface
 — never from a legacy command table: there is no "run service"
