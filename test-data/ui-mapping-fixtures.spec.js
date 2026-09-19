@@ -64,6 +64,10 @@ describe('screen composition over fixtures', () => {
     expect(list.regions[0].actions.map(action => action.id)).toEqual(['probe_create', 'observation_link']);
   });
 
+  it('keeps the showcase default screen key present in the contract', () => {
+    expect(contract.screens.auto_operator_probe_detail?.screenKey).toBe('auto_operator_probe_detail');
+  });
+
   it('resolves every compiled action, hiding the event-triggered one', () => {
     const probeRender = bundle.types.find(type => type.id === 'probe').render;
     const outcomes = Object.fromEntries(
