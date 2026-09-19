@@ -1,5 +1,5 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { CONSUMER_EFFECT_KINDS, TYPE_BOUND_SPECIES } from './node-catalog.js';
+import { CONSUMER_EFFECT_KINDS, TYPE_BOUND_SPECIES, TYPE_PIN_SPECIES } from './node-catalog.js';
 import { operationKindOf, describeType, normalizeOperator, typeIdOf, ctsFieldToProcessType } from '../../cts/src/index.js';
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
@@ -65,14 +65,26 @@ const definitionPaletteItem = (id, type, options = {}) => Object.freeze({
 // This is an authoring catalog, not the runtime operation catalog. Runtime-only
 // coercions and plumbing are deliberately absent: the connection planner owns
 // those operations and may insert them when two compatible sockets are joined.
+//
+// Group structure: `types` (declaration authoring + the registry catalog),
+// `operations` (the effect species over declarations), `instances` (reads),
+// `structure` (field/record shaping), `values`, `listTree`. Services come
+// from the projected domain's `serviceContracts` — the registered operator
+// surface — never from a legacy command table: running a service means
+// dropping its registered item, so there is no separate "run service"
+// operation against the legacy command registry.
+export const TYPE_AUTHORING_PALETTE_ITEMS = Object.freeze([
+  definitionPaletteItem('class', 'ctsClass'),
+  definitionPaletteItem('field', 'ctsField'),
+  definitionPaletteItem('state', 'ctsState'),
+  definitionPaletteItem('defineStatus', 'statusDefinition'),
+  definitionPaletteItem('typeReference', 'ctsType')
+].map(Object.freeze));
+
 export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   {
-    id: 'declarations',
-    items: [
-      definitionPaletteItem('class', 'ctsClass'),
-      definitionPaletteItem('field', 'ctsField'),
-      definitionPaletteItem('state', 'ctsState')
-    ]
+    id: 'types',
+    items: TYPE_AUTHORING_PALETTE_ITEMS
   },
   {
     id: 'operations',
@@ -81,20 +93,27 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('mutate', 'cts.mutate'),
       paletteItem('transition', 'cts.transition'),
       paletteItem('remove', 'cts.remove'),
-      paletteItem('runService', 'cts.command'),
-      definitionPaletteItem('defineStatus', 'statusDefinition'),
-      paletteItem('joinProducers', 'cts.join'),
-      paletteItem('currentInstance', 'cts.read', { preset: { select: 'current' } }),
-      paletteItem('findById', 'cts.read', { preset: { select: 'byId' } }),
-      paletteItem('findByReference', 'cts.read', { preset: { select: 'byRef' } }),
-      paletteItem('parentInstance', 'cts.read', { preset: { select: 'parent' } }),
-      paletteItem('childInstances', 'cts.read', { preset: { select: 'children' } }),
-      paletteItem('relatedInstances', 'cts.read', { preset: { select: 'related' } }),
-      paletteItem('queryInstances', 'cts.read', { preset: { select: 'query' } }),
+      paletteItem('joinProducers', 'cts.join')
+    ]
+  },
+  {
+    id: 'instances',
+    items: [
+      paletteItem('contextEntity', 'cts.read', { preset: { select: 'current' } }),
+      paletteItem('findEntityById', 'cts.read', { preset: { select: 'byId' } }),
+      paletteItem('findEntityByReference', 'cts.read', { preset: { select: 'byRef' } }),
+      paletteItem('parentEntity', 'cts.read', { preset: { select: 'parent' } }),
+      paletteItem('childEntities', 'cts.read', { preset: { select: 'children' } }),
+      paletteItem('relatedEntities', 'cts.read', { preset: { select: 'related' } }),
+      paletteItem('queryEntities', 'cts.read', { preset: { select: 'query' } })
+    ]
+  },
+  {
+    id: 'structure',
+    items: [
       paletteItem('readField', 'cts.field'),
       paletteItem('composeFields', 'cts.compose', { preset: { mode: 'compose' } }),
-      paletteItem('decomposeInstance', 'cts.decompose'),
-      definitionPaletteItem('typeReference', 'ctsType')
+      paletteItem('decomposeInstance', 'cts.decompose')
     ]
   },
   {
@@ -337,12 +356,18 @@ export function declarationNodePorts(node = {}, types = []) {
 // Live interpretation of declaration wires (SPEC §20/§21 one tree): the
 // wire IS the binding channel, evaluated on every graph change — not a
 // write-once gesture. A field/state node's type id follows the class it
-// declares on; a species record's binding follows the wire while one
-// exists. Removing a binds wire clears the binding it carried; a
-// palette-preset binding with no wire is authored data and stays.
-// Pure over the canvas arrays: returns only the mutations that differ
-// from current state, so an unchanged graph evaluates to no writes.
-export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, previousBindings = {}) {
+// declares on. A species record's binding resolves by precedence:
+// 1. an explicit binds wire (class/type reference -> record): the source's
+//    type id, live — renaming the source re-binds every wired descendant;
+// 2. for consumer species (no Type pin), the entity input's source type —
+//    `resolvers.entityInputType(recordId)` supplies it from the designer's
+//    port resolution, so plugging an entity stream into an unbound
+//    mutate/transition/remove adapts it to that type;
+// 3. the stored binding (palette preset, migration) — authored data.
+// Removing the channel that supplied a binding clears it. Pure over the
+// canvas arrays: returns only the mutations that differ from current
+// state, so an unchanged graph evaluates to no writes.
+export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, previousBindings = {}, resolvers = {}) {
   const mutations = [];
   const bindings = {};
   const fieldCounts = new Map();
@@ -381,13 +406,24 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
     }
   }
 
+  const entityBound = new Set();
   for (const [source, target] of bindEdges) {
     const record = records[target.data?.refId];
     if (record && TYPE_BOUND_SPECIES.includes(String(record.kind || ''))) {
       bindings[record.id] = source.data?.typeId || '';
+      entityBound.add(record.id);
     }
   }
-  // A wire removed since the last evaluation unbinds the record it carried.
+  if (typeof resolvers.entityInputType === 'function') {
+    for (const record of Object.values(records)) {
+      if (entityBound.has(record.id)) continue;
+      if (!TYPE_BOUND_SPECIES.includes(String(record.kind || '')) || TYPE_PIN_SPECIES.includes(record.kind)) continue;
+      const fromWire = resolvers.entityInputType(record.id);
+      if (fromWire) bindings[record.id] = fromWire;
+    }
+  }
+  // A channel removed since the last evaluation unbinds the record it
+  // carried (unless another channel or an authored preset supplies one).
   for (const [recordId] of Object.entries(previousBindings)) {
     if (bindings[recordId] === undefined && records[recordId]) bindings[recordId] = '';
   }
@@ -454,19 +490,30 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
 
 // Services group from the operator registry (SPEC §8 s species): one item
 // per registered service — dropping one binds the operator; the executable
-// twin is the operator's declared command.
+// twin is the operator's declared command. The projected domain's
+// `serviceContracts` is the single source: what is not registered is not
+// offered.
+export function servicesPaletteGroups(serviceContracts = {}) {
+  const items = Object.values(serviceContracts || {})
+    .filter(service => service?.id && service.command)
+    .map(service => paletteItem(`service:${service.id}`, 'cts.service', {
+      label: service.render?.label || service.id,
+      description: service.render?.label || service.id,
+      icon: service.render?.icon || 'pi pi-bolt',
+      preset: { operator: service.id }
+    }));
+  return items.length ? [{ id: 'services', items }] : [];
+}
 
 // Type catalog palette (SPEC §20/§21, L2): registry types are draggable
 // composables — one bound construct per constructible type, plus one
-// variant per declared construct operator (the org-authored `via`).
-// Groups follow the type's class; the pure projection takes the
-// designer's type view entries.
+// variant per declared construct operator (the org-authored `via`). One
+// group beside the declaration items, labeled by the item's class in the
+// description.
 export function typeCatalogPaletteGroups(types = []) {
-  const groups = [];
-  const byClass = new Map();
+  const items = [];
   for (const entry of types) {
     if (!entry?.constructible) continue;
-    const items = byClass.get(entry.class) || [];
     items.push(paletteItem(entry.id, 'cts.construct', {
       label: entry.label || entry.id,
       icon: entry.icon,
@@ -481,23 +528,8 @@ export function typeCatalogPaletteGroups(types = []) {
         preset: { typeId: entry.id, via: operatorId }
       }));
     }
-    byClass.set(entry.class, items);
   }
-  for (const [classOf, items] of byClass) {
-    groups.push({ id: `types-${classOf}`, items: Object.freeze(items) });
-  }
-  return groups;
-}
-export function servicesPaletteGroups(services = []) {
-  const items = (services || [])
-    .filter(service => service?.id && service.command)
-    .map(service => paletteItem(`service:${service.id}`, 'cts.service', {
-      label: service.render?.label || service.id,
-      description: service.render?.label || service.id,
-      icon: service.render?.icon || 'pi pi-bolt',
-      preset: { operator: service.id }
-    }));
-  return items.length ? [{ id: 'services', items }] : [];
+  return items.length ? [{ id: 'types', items: Object.freeze(items) }] : [];
 }
 
 export function createProcessDesignerContract(domain = {}, capabilities = null, options = {}) {
@@ -558,7 +590,7 @@ export function createProcessDesignerContract(domain = {}, capabilities = null, 
   }
 
   const paletteGroups = [
-    ...servicesPaletteGroups(options.services || []),
+    ...servicesPaletteGroups(domain.serviceContracts || {}),
     ...PROCESS_DESIGNER_PALETTE_GROUPS.map(group => ({
       ...group,
       items: group.items

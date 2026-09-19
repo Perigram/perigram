@@ -197,26 +197,38 @@ describe('process v4 node catalog', () => {
     };
     const ports = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel' }, context);
     const ids = ports.inputs.map(input => input.id);
-    expect(ids[0]).toBe('type');
-    expect(ids).toEqual(expect.arrayContaining(['entity', 'data.width', 'specs.thickness']));
+    expect(ids[0]).toBe('entity');
+    expect(ids).toEqual(expect.arrayContaining(['data.width', 'specs.thickness']));
     expect(ids).not.toContain('data.locked');
     expect(ids).not.toContain('identity');
     expect(ids).not.toContain('data');
     expect(ids.at(-1)).toBe('status.state.primary');
   });
 
-  it('offers an unbound species record exactly one input: the type binding pin', () => {
+  it('splits the species binding contract: origins carry a typed pin, consumers adapt to their entity wire', () => {
     const context = { domain: {} };
-    const unbound = resolveCatalogNodePorts({ kind: 'cts.construct', typeId: '', via: 'genericCreate' }, context);
-    expect(unbound.inputs.map(input => input.id)).toEqual(['type']);
-    expect(unbound.inputs[0].type).toMatchObject({ base: 'entityRef' });
-    expect(unbound.outputs).toEqual([]);
-    // the pin persists on every type-bound species, bound or not, so a
-    // binding wire never dangles and re-binding stays possible
-    for (const kind of ['cts.mutate', 'cts.transition', 'cts.remove', 'cts.read']) {
-      const ports = resolveCatalogNodePorts({ kind, typeId: 'queue' }, { domain: {} });
-      expect(ports.inputs[0]?.id, kind).toBe('type');
+
+    // an unbound mutate offers only its (untyped) entity input — plugging a
+    // typed entity stream in adapts it; there is no Type pin to also satisfy
+    const unboundConsumer = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: '' }, context);
+    expect(unboundConsumer.inputs.map(input => input.id)).toEqual(['entity']);
+    expect(unboundConsumer.inputs[0].required).toBe(true);
+    expect(unboundConsumer.outputs).toEqual([]);
+    for (const kind of ['cts.transition', 'cts.remove']) {
+      const ports = resolveCatalogNodePorts({ kind, typeId: '' }, context);
+      expect(ports.inputs.map(input => input.id), kind).toEqual(['entity']);
     }
+
+    // the pin persists on origin species, typed by the binding when bound
+    for (const record of [
+      { kind: 'cts.construct', typeId: '', via: 'genericCreate' },
+      { kind: 'cts.read', typeId: '' }
+    ]) {
+      const ports = resolveCatalogNodePorts(record, context);
+      expect(ports.inputs.map(input => input.id), record.kind).toEqual(['type']);
+    }
+    const typedRead = resolveCatalogNodePorts({ kind: 'cts.read', select: 'byId', typeId: 'queue' }, context);
+    expect(typedRead.inputs[0]).toMatchObject({ id: 'type', type: { base: 'entityRef', entityType: 'queue' } });
   });
 
   it('declares List consumption on every mapped mutation effect input socket', () => {

@@ -13,9 +13,13 @@ import { interpretDeclarationEdges } from '~/packages/processes/src/designer.js'
 // Contract with the page:
 // - `apply(mutations)` writes interpretation results and re-syncs every
 //   dependent surface (tree overlay, registry, ports, palette options).
+// - `resolveEntityBinding(recordId)` supplies the entity-input source type
+//   of one record from the designer's port resolution, so plugging an
+//   entity stream into an unbound consumer species (mutate/transition/
+//   remove — they carry no Type pin) adapts it to that type live.
 // - `evaluateNow()` runs one pass synchronously (connect handlers want
 //   instant feedback before the next gesture).
-export function useProcessDesignerLiveGraph({ nodes, edges, draft, apply }) {
+export function useProcessDesignerLiveGraph({ nodes, edges, draft, apply, resolveEntityBinding = null }) {
   let bindings = {};
 
   const signature = computed(() => JSON.stringify({
@@ -38,7 +42,8 @@ export function useProcessDesignerLiveGraph({ nodes, edges, draft, apply }) {
       nodes.value || [],
       edges.value || [],
       draft.value?.data?.processNodes || {},
-      bindings
+      bindings,
+      resolveEntityBinding ? { entityInputType: resolveEntityBinding } : {}
     );
     bindings = nextBindings;
     // Apply unconditionally: interpretation mutations are only the

@@ -28,12 +28,11 @@ function projectedDomain() {
 describe('graph protocol v5 designer round trip', () => {
   it('the palette speaks species kinds only for entity-bound operations', () => {
     const groups = Object.fromEntries(PROCESS_DESIGNER_PALETTE_GROUPS.map(group => [group.id, group.items]));
-    for (const item of groups.operations) {
-      if (['statusDefinition', 'ctsType'].includes(item.type)) continue;
+    for (const item of [...groups.operations, ...groups.instances, ...groups.structure]) {
       expect(item.kind, item.id).toMatch(/^cts\./);
       expect(getProcessNodeDefinition(item.kind), item.kind).not.toBeNull();
     }
-    const readPresets = groups.operations.filter(item => item.kind === 'cts.read').map(item => item.preset.select);
+    const readPresets = groups.instances.filter(item => item.kind === 'cts.read').map(item => item.preset.select);
     expect(readPresets).toEqual(['current', 'byId', 'byRef', 'parent', 'children', 'related', 'query']);
   });
 
@@ -169,10 +168,10 @@ describe('graph protocol v5 designer round trip', () => {
   });
 
   it('registered services appear as palette operators and resolve to their commands', () => {
-    const groups = servicesPaletteGroups([
-      { id: 'nesting.solve', command: 'solveNesting', render: { label: 'Nesting solver', icon: 'pi pi-compass' } },
-      { id: 'no-command', render: { label: 'Incomplete' } }
-    ]);
+    const groups = servicesPaletteGroups({
+      'nesting.solve': { id: 'nesting.solve', command: 'solveNestingValue', render: { label: 'Nesting solver', icon: 'pi pi-compass' } },
+      'no-command': { id: 'no-command', render: { label: 'Incomplete' } }
+    });
     expect(groups).toHaveLength(1);
     expect(groups[0].id).toBe('services');
     const [item] = groups[0].items;
