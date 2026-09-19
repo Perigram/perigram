@@ -349,6 +349,9 @@ export const primeSemanticTokens = {
 // Generic controls keep Material defaults except where the app-shell anatomy
 // needs a token-level decision: tab strips are transparent so the chrome
 // surface shows through, and tree rows run at explorer density.
+// Collection chrome (table/tree-table/view headers, footers, footer cells,
+// and paginators — standalone or embedded) is transparent everywhere:
+// the hosting surface (page, panel, card) owns the background.
 export const primeComponentTokens = {
     card: {
         root: {
@@ -376,6 +379,9 @@ export const primeComponentTokens = {
         },
         footer: {
             background: 'transparent'
+        },
+        footerCell: {
+            background: 'transparent'
         }
     },
     treetable: {
@@ -399,13 +405,27 @@ export const primeComponentTokens = {
         },
         footer: {
             background: 'transparent'
+        },
+        footerCell: {
+            background: 'transparent'
         }
     },
     dataview: {
         root: {
             background: 'transparent'
         },
+        header: {
+            background: 'transparent'
+        },
         content: {
+            background: 'transparent'
+        },
+        footer: {
+            background: 'transparent'
+        }
+    },
+    paginator: {
+        root: {
             background: 'transparent'
         }
     },

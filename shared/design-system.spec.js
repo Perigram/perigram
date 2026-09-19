@@ -328,15 +328,19 @@ describe('Design system manifest', () => {
         root: { background: 'transparent' }, header: { background: 'transparent' },
         headerCell: { background: 'transparent' }, bodyCell: { background: 'transparent' },
         body: { background: 'transparent' }, row: { background: 'transparent' },
-        footer: { background: 'transparent' }
+        footer: { background: 'transparent' }, footerCell: { background: 'transparent' }
       },
       treetable: {
         root: { background: 'transparent' }, header: { background: 'transparent' },
         headerCell: { background: 'transparent' }, bodyCell: { background: 'transparent' },
         body: { background: 'transparent' }, row: { background: 'transparent' },
-        footer: { background: 'transparent' }
+        footer: { background: 'transparent' }, footerCell: { background: 'transparent' }
       },
-      dataview: { root: { background: 'transparent' }, content: { background: 'transparent' } },
+      dataview: {
+        root: { background: 'transparent' }, header: { background: 'transparent' },
+        content: { background: 'transparent' }, footer: { background: 'transparent' }
+      },
+      paginator: { root: { background: 'transparent' } },
       tabs: { tablist: { background: 'transparent' }, tabpanel: { background: 'transparent' } },
       tree: { root: { background: 'transparent' } }
     });
