@@ -1259,7 +1259,10 @@ const liveGraph = useProcessDesignerLiveGraph({
   edges,
   draft,
   apply: applyGraphInterpretation,
-  resolveEntityBinding: resolveEntityInputType
+  resolveEntityBinding: resolveEntityInputType,
+  // The registry view owns the rest of the known vocabulary; tree classes
+  // are known through the canvas itself inside interpretation.
+  knownTypeIds: () => ctsTypeView().map(entry => entry.id)
 });
 const { evaluateNow } = liveGraph;
 

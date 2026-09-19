@@ -17,9 +17,12 @@ import { interpretDeclarationEdges } from '~/packages/processes/src/designer.js'
 //   of one record from the designer's port resolution, so plugging an
 //   entity stream into an unbound consumer species (mutate/transition/
 //   remove — they carry no Type pin) adapts it to that type live.
+// - `knownTypeIds` (array or getter) names every type the binding may
+//   resolve to: the registry view. A binding to none of them is dangling
+//   (its class left the tree in an earlier session) and is cleared.
 // - `evaluateNow()` runs one pass synchronously (connect handlers want
 //   instant feedback before the next gesture).
-export function useProcessDesignerLiveGraph({ nodes, edges, draft, apply, resolveEntityBinding = null }) {
+export function useProcessDesignerLiveGraph({ nodes, edges, draft, apply, resolveEntityBinding = null, knownTypeIds = null }) {
   let bindings = {};
 
   const signature = computed(() => JSON.stringify({
@@ -43,7 +46,8 @@ export function useProcessDesignerLiveGraph({ nodes, edges, draft, apply, resolv
       edges.value || [],
       draft.value?.data?.processNodes || {},
       bindings,
-      resolveEntityBinding ? { entityInputType: resolveEntityBinding } : {}
+      resolveEntityBinding ? { entityInputType: resolveEntityBinding } : {},
+      typeof knownTypeIds === 'function' ? knownTypeIds() : knownTypeIds || []
     );
     bindings = nextBindings;
     // Apply unconditionally: interpretation mutations are only the
