@@ -1,13 +1,18 @@
 <template>
-  <Stepper :value="activeIndex" linear>
-    <StepperPanel v-for="value in stateValues" :key="value" :header="labelFor(value)" />
+  <Stepper :value="activeValue">
+    <StepList>
+      <Step v-for="value in stateValues" :key="value" :value="value">
+        {{ labelFor(value) }}
+      </Step>
+    </StepList>
   </Stepper>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import Stepper from 'primevue/stepper';
-import StepperPanel from 'primevue/stepperpanel';
+import StepList from 'primevue/steplist';
+import Step from 'primevue/step';
 
 const props = defineProps({
   type: { type: Object, required: true },
@@ -17,5 +22,5 @@ const props = defineProps({
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const stateValues = computed(() => props.type.states?.main?.values || []);
 const labelFor = value => props.type.render?.states?.[value]?.label || startCase(value);
-const activeIndex = computed(() => Math.max(0, stateValues.value.indexOf(props.instance.states?.main)));
+const activeValue = computed(() => props.instance.states?.main || stateValues.value[0]);
 </script>
