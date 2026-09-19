@@ -22,11 +22,16 @@ Artifact viewer dispatch. It must never be replaced with copied production
 records or credentials.
 
 `ui-mapping-fixtures.js` is the synthetic compiler output for the UI mapping
-contract: a CTS client bundle (one type per declarable class plus three
-payload preview modes), a compiled process contract in the
-`@cutkit/processes` screen/action shape, and an instance graph in the CTS
-stored shape whose four parts carry 0, 1, 3, and 8 related files — the
-variable-cardinality case slot budgets collapse. The
+contract: a deliberately fictional observatory domain (constellations → star
+systems → probes → files, survey missions) chosen to exercise the mapping,
+not to model anything real. The CTS client bundle covers every field base
+and qualifier (all units, few/many enums, single/array relations, variants
+with payloads, records, lists, maps, json, blobs), all four declarable
+classes, and all three preview modes; the compiled contract covers home /
+list / detail screens with relation- and lineage-scoped child regions; the
+instance graph runs three lineage levels deep with varied relation
+cardinality (probes carry 0–10 related files) — the variable-cardinality
+case slot budgets collapse. The
 [UI mapping showcase](../pages/test/README.md) renders it; the mapping
 contract itself is canonical in [shared/ui-mapping/README.md](../shared/ui-mapping/README.md).
 

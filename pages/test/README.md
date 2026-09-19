@@ -27,24 +27,28 @@ UI Lab seeds the entity store with demo lineage labels before rendering so
 ## UI Mapping Showcase
 
 `ui-mapping.vue` renders screens **generated** from synthetic compiler
-output. The page only mounts `components/ui-mapping/GeneratedMappingScreen`
-over the fixture contract with a screen picker; the region tree comes from
-the pure `composeScreen` projection (see
+output over a deliberately fictional observatory domain. The page only
+mounts `components/ui-mapping/GeneratedMappingScreen` over the fixture
+contract with a screen picker; the region tree comes from the pure
+`composeScreen` projection (see
 [shared/ui-mapping/README.md](../../shared/ui-mapping/README.md)) and every
-surface, field control, budget collapse, and action button is resolver
-output. There is no handwritten section, grid, or per-type branch in the
-page or the components.
+surface, field control, budget collapse, preview, and action button is
+resolver output. There is no handwritten section, grid, or per-type branch
+in the page or the components.
 
 The fixture screens demonstrate:
 
-- an entity detail screen with a scoped single source, placed actions
-  (including the destructive confirm-required and hidden event-triggered
-  ones), and a relation-scoped child collection with per-row file budgets
-  (items carry 0, 1, 3, and 8 related files)
-- a group detail screen with lineage-scoped children and a create action on
-  the child region, opening the generated create dialog whose fields come
-  from the action's declared construction inputs
-- list and home screens with unscoped collections and toolbar actions
+- layouts chosen by data: tabular collections as generated tables, media
+  collections as paginated card grids, detail screens with three child
+  regions as tabs, group surfaces with fully expanded hierarchy trees
+- deep nesting: constellation → star systems → probes, with files attached
+  by single and array relations carrying 0–10 items
+- every field base and display refinement (percent quantities as progress
+  bars, string lists as budgeted chips, variants, maps, records, blobs)
+- deterministic per-instance previews for all three payload preview modes
+- placed actions: toolbar placement, state-toned transitions, destructive
+  confirm, hidden event triggers, and a generated create dialog whose
+  fields come from the action's declared construction inputs
 
 ## Related
 
