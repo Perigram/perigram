@@ -38,7 +38,7 @@ import { computed } from 'vue';
 import TreeTable from 'primevue/treetable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
-import { fieldLabel, SCALAR_BASES, TABLE_COLUMN_BUDGET, applyBudget, SEVERITY_MAP } from '#shared/ui-mapping/index.js';
+import { fieldLabel, SCALAR_BASES, TABLE_COLUMN_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
@@ -50,10 +50,7 @@ const props = defineProps({
 
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const identityOf = instance => {
-  const fields = instance.fields || {};
-  return fields.serial || fields.designation || fields.name || instance.id;
-};
+const identityOf = instance => instanceIdentity(typesById.value[instance.type], instance);
 const statusOf = (instance, type) => {
   const value = instance.states?.main;
   if (!value || !type?.states?.main) return null;

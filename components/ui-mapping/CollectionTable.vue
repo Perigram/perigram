@@ -53,7 +53,7 @@ import { computed } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
-import { fieldLabel, SCALAR_BASES, TABLE_COLUMN_BUDGET, ROW_RELATION_BUDGET, applyBudget, SEVERITY_MAP } from '#shared/ui-mapping/index.js';
+import { fieldLabel, SCALAR_BASES, TABLE_COLUMN_BUDGET, ROW_RELATION_BUDGET, applyBudget, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import EntityChip from './EntityChip.vue';
 
@@ -65,10 +65,7 @@ const props = defineProps({
 });
 
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const identityOf = instance => {
-  const fields = instance.fields || {};
-  return fields.serial || fields.title || fields.grade || fields.name || fields.summary || instance.id;
-};
+const identityOf = instance => instanceIdentity(props.type, instance);
 const hasStatus = computed(() => Boolean(props.type?.states?.main));
 const statusOf = instance => {
   const value = instance.states?.main;

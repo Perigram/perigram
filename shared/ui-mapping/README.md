@@ -52,7 +52,10 @@ in one render tree without any composite registry entries.
 `resolveFieldControl(descriptor, { variant })` → `{ component, span, props }`.
 Field display names come from `fieldLabel(name, descriptor)`: the
 descriptor's `label` override, else the start-case name — the same policy
-`renderPolicyFor` applies to type labels. Display presentations refine by
+`renderPolicyFor` applies to type labels. `instanceIdentity(type,
+instance)` is the single record-label heuristic, and `formatQuantity`
+maps storage units to display symbols (`count`/`currency` render as bare
+localized numbers). Display presentations refine by
 data shape: percent quantities render as Knob dials and string lists as
 budgeted chips.
 

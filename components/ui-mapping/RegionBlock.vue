@@ -1,5 +1,40 @@
 <template>
-  <Panel v-if="node.surfaceKind === 'list'" class="w-full">
+  <div v-if="embedded && node.surfaceKind === 'list'" class="flex w-full flex-col gap-3">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
+        <span class="text-label">{{ node.type?.render?.label || node.id }}</span>
+        <Tag :value="String(node.instances.length)" severity="secondary" />
+      </div>
+      <div v-if="node.actions.length" class="flex flex-wrap items-center gap-2">
+        <ActionButton
+          v-for="action in node.actions"
+          :key="action.id"
+          :action="action"
+          :render="node.type?.render"
+          @run="emitRun"
+        />
+      </div>
+    </div>
+    <CollectionTable
+      v-if="listLayout === 'table'"
+      :instances="node.instances"
+      :type="node.type"
+      :pool="pool"
+      :bundle="bundle"
+    />
+    <HierarchyTable
+      v-else-if="listLayout === 'tree-table'"
+      :instances="node.instances"
+      :type="node.type"
+      :pool="pool"
+      :bundle="bundle"
+    />
+    <CardGrid v-else-if="listLayout === 'card-grid'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
+    <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
+  </div>
+
+  <Panel v-else-if="node.surfaceKind === 'list'" class="w-full">
     <template #header>
       <div class="flex flex-wrap items-center gap-2">
         <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
@@ -62,6 +97,7 @@
       :type="node.type"
       :variant="node.variant"
       :actions="node.actions"
+      :covered-relations="coveredRelationKeys"
       :pool="pool"
       :bundle="bundle"
       @run="emitRun"
@@ -75,7 +111,7 @@
       </TabList>
       <TabPanels>
         <TabPanel v-for="child in node.childRegions" :key="child.id" :value="child.id">
-          <RegionBlock :node="child" :pool="pool" :bundle="bundle" :depth="depth + 1" @run="emitRun" />
+          <RegionBlock :node="child" :pool="pool" :bundle="bundle" :depth="depth + 1" embedded @run="emitRun" />
         </TabPanel>
       </TabPanels>
     </Tabs>
@@ -115,7 +151,8 @@ const props = defineProps({
   node: { type: Object, required: true },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
-  depth: { type: Number, default: 0 }
+  depth: { type: Number, default: 0 },
+  embedded: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['run']);
@@ -123,4 +160,7 @@ const emitRun = action => emit('run', action);
 const listLayout = computed(() => resolveListLayout(props.node.type, {
   hierarchical: Boolean(Object.keys(props.node.type?.edges?.children || {}).length)
 }));
+const coveredRelationKeys = computed(() => props.node.childRegions
+  .map(child => child.relationKey)
+  .filter(Boolean));
 </script>

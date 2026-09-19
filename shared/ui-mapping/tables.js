@@ -76,6 +76,7 @@ export const CARD_FACT_BUDGET = Object.freeze({ max: 2, overflow: 'count' });
 export const CHIP_BUDGET = Object.freeze({ max: 3, overflow: 'count' });
 export const ROW_RELATION_BUDGET = Object.freeze({ max: 2, overflow: 'count' });
 export const CHILDREN_TABS_AT = 2;
+export const DETAIL_FACT_BUDGET = Object.freeze({ max: 4, overflow: 'count' });
 
 export const SCALAR_BASES = Object.freeze(['string', 'number', 'quantity', 'instant', 'boolean', 'enum']);
 

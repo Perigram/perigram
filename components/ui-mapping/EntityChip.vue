@@ -6,6 +6,7 @@
 <script setup>
 import { computed } from 'vue';
 import Chip from 'primevue/chip';
+import { instanceIdentity } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   value: { type: Object, default: null },
@@ -18,8 +19,8 @@ const instance = computed(() => (props.value ? props.pool?.[props.value.type]?.[
 const type = computed(() => (props.bundle?.types || []).find(candidate => candidate.id === props.value?.type) || null);
 const label = computed(() => {
   if (!props.value) return null;
-  const fields = instance.value?.fields || {};
-  return fields.serial || fields.title || fields.grade || fields.name || fields.summary || props.value.id;
+  if (!instance.value) return props.value.id;
+  return instanceIdentity(type.value, instance.value);
 });
 const icon = computed(() => type.value?.render?.icon || 'pi pi-circle');
 </script>

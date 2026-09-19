@@ -108,7 +108,7 @@ import SelectButton from 'primevue/selectbutton';
 import Tag from 'primevue/tag';
 import Chip from 'primevue/chip';
 import Knob from 'primevue/knob';
-import { resolveFieldControl, CHIP_BUDGET, applyBudget } from '#shared/ui-mapping/index.js';
+import { resolveFieldControl, CHIP_BUDGET, applyBudget, formatQuantity } from '#shared/ui-mapping/index.js';
 import EntityChip from './EntityChip.vue';
 import QuantityInput from './QuantityInput.vue';
 import EnumSelect from './EnumSelect.vue';
@@ -133,11 +133,16 @@ const fallback = '—';
 
 const outcome = computed(() => resolveFieldControl(props.descriptor, { variant: props.variant }));
 const displayValue = computed(() => (props.modelValue === null || props.modelValue === undefined ? fallback : String(props.modelValue)));
-const quantityValue = computed(() => (props.modelValue ? `${props.modelValue.value} ${props.modelValue.unit}` : fallback));
+const quantityValue = computed(() => formatQuantity(props.modelValue));
 const instantValue = computed(() => (props.modelValue ? new Date(props.modelValue).toLocaleDateString() : fallback));
-const objectSummary = computed(() => (props.modelValue && typeof props.modelValue === 'object'
-  ? Object.keys(props.modelValue).slice(0, 3).join(', ')
-  : fallback));
+const objectSummary = computed(() => {
+  if (!props.modelValue || typeof props.modelValue !== 'object') return fallback;
+  return Object.entries(props.modelValue)
+    .filter(([, value]) => value !== null && value !== undefined)
+    .slice(0, 2)
+    .map(([key, value]) => `${key}: ${value && typeof value === 'object' ? formatQuantity(value) : String(value)}`)
+    .join(' · ');
+});
 const listSummary = computed(() => (Array.isArray(props.modelValue) ? `${props.modelValue.length}` : fallback));
 const percentValue = computed(() => {
   const value = props.modelValue?.value;
