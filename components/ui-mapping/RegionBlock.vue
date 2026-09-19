@@ -111,7 +111,10 @@
           :instance="node.instances[0]"
           :actions="node.actions"
           :level="node.level"
+          editable
+          :editing="editing"
           @run="emitRun"
+          @toggle-edit="toggleEditing"
         />
         <SurfaceBody
           :instance="node.instances[0]"
@@ -119,6 +122,8 @@
           variant="full"
           :chrome="node.chrome"
           :covered-relations="coveredRelationKeys"
+          :editing="editing"
+          :draft="draft"
           :pool="pool"
           :bundle="bundle"
           @run="emitRun"
@@ -191,7 +196,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
@@ -219,6 +224,15 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['run']);
+const editing = ref(false);
+const draft = reactive({});
+const toggleEditing = () => {
+  if (!editing.value) {
+    Object.keys(draft).forEach(key => delete draft[key]);
+    Object.assign(draft, JSON.parse(JSON.stringify(props.node.instances[0]?.fields || {})));
+  }
+  editing.value = !editing.value;
+};
 const emitRun = action => emit('run', action);
 const listLayout = computed(() => resolveListLayout(props.node.type, {
   hierarchical: Boolean(Object.keys(props.node.type?.edges?.children || {}).length),

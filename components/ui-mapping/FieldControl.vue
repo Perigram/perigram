@@ -1,5 +1,5 @@
 <template>
-  <span v-if="outcome.component === 'ValueText'" class="text-body">{{ displayValue }}</span>
+  <span v-if="outcome.component === 'ValueText'" :class="[densityScale.factValue, LAYOUT.cellText]">{{ displayValue }}</span>
   <span v-else-if="outcome.component === 'QuantityText'" :class="densityScale.factValue">{{ quantityValue }}</span>
   <span v-else-if="outcome.component === 'InstantText'" :class="densityScale.factValue">{{ instantValue }}</span>
   <Tag
@@ -7,7 +7,7 @@
     :value="model === true ? '✓' : model === false ? '—' : '·'"
     :severity="model === true ? 'success' : 'secondary'"
   />
-  <Tag v-else-if="outcome.component === 'Tag'" :value="enumLabel" severity="secondary" />
+  <Tag v-else-if="outcome.component === 'Tag'" :value="enumLabel" severity="secondary" class="max-w-48 truncate" />
   <Knob
     v-else-if="outcome.component === 'Knob'"
     :model-value="percentValue"
@@ -16,7 +16,7 @@
     readonly
   />
   <div v-else-if="outcome.component === 'ChipsDisplay'" :class="[LAYOUT.row, 'gap-1']">
-    <Chip v-for="tag in chipsShown" :key="tag" :label="tag" />
+    <Chip v-for="tag in chipsShown" :key="tag" :label="String(tag ?? fallback)" />
     <Tag v-if="chipsHidden > 0" :value="`+${chipsHidden}`" severity="contrast" />
   </div>
   <InstanceChip v-else-if="outcome.component === 'InstanceChip'" :value="model" :pool="pool" :bundle="bundle" />
@@ -151,7 +151,7 @@ const density = inject('uiMappingDensity', 'regular');
 const densityScale = computed(() => DENSITY[density.value] || DENSITY.regular);
 
 const outcome = computed(() => resolveFieldControl(props.descriptor, { variant: props.variant }));
-const displayValue = computed(() => (props.modelValue === null || props.modelValue === undefined ? fallback : String(props.modelValue)));
+const displayValue = computed(() => formatValue({ base: 'string' }, props.modelValue));
 const quantityValue = computed(() => formatQuantity(props.modelValue));
 const instantValue = computed(() => (props.modelValue ? new Date(props.modelValue).toLocaleDateString() : fallback));
 const compactValue = value => {
@@ -205,6 +205,10 @@ const chipsOutcome = computed(() => applyBudget(Array.isArray(props.modelValue) 
 const chipsShown = computed(() => chipsOutcome.value.visible);
 const chipsHidden = computed(() => chipsOutcome.value.hidden);
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const enumLabel = computed(() => (props.modelValue === null || props.modelValue === undefined ? fallback : startCase(props.modelValue)));
+const enumLabel = computed(() => {
+  const value = props.modelValue;
+  if (value === null || value === undefined || typeof value === 'object') return fallback;
+  return startCase(value);
+});
 const enumOptions = computed(() => (props.descriptor.values || []).map(value => ({ label: startCase(value), value })));
 </script>

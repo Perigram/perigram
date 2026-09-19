@@ -1,5 +1,5 @@
 <template>
-  <div :class="LAYOUT.scrollX">
+  <div :class="LAYOUT.scrollX" class="[&_td]:align-top">
     <DataTable :value="instances" size="small" striped-rows data-key="id" class="min-w-max">
       <template #empty>
         <span class="text-supporting text-muted">{{ $t('uiMapping.emptyRegion') }}</span>

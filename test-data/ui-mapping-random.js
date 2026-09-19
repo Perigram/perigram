@@ -44,6 +44,9 @@ function randomDescriptor(rnd, { allowStructural = true, allowRefTypes = null, d
   if (allowStructural && depth < 2) bases.push('record', 'list', 'map', 'variant', 'json', 'blob', 'ref');
   descriptor.base = rnd.pick(bases);
   switch (descriptor.base) {
+    case 'string':
+      if (rnd.chance(0.25)) descriptor.max = rnd.rand(300, 600);
+      break;
     case 'quantity':
       descriptor.unit = rnd.pick(UNITS);
       break;
@@ -83,10 +86,12 @@ function pick2(rnd) {
 }
 
 function randomValue(rnd, descriptor, refTargets) {
-  if (descriptor.nullable && rnd.chance(0.3)) return null;
+  if (descriptor.nullable && rnd.chance(0.15)) return null;
   switch (descriptor.base) {
     case 'string':
-      return rnd.chance(0.2) ? `${rnd.word()} ${rnd.word()} — a longer line of prose that wraps and fills the row.` : rnd.word();
+      return (descriptor.max || 0) >= 120
+        ? `${rnd.word()} ${rnd.word()} — ${rnd.word()} ${rnd.word()}; ${rnd.word()} ${rnd.word()} against the ${rnd.word()} ${rnd.word()} with a longer prose body for the accordion panel.`
+        : rnd.word();
     case 'number':
       return rnd.rand(1, 999);
     case 'boolean':

@@ -304,6 +304,13 @@ const VALUE_FALLBACK = '—';
 
 export function formatValue(descriptor = {}, value) {
   if (value === null || value === undefined || value === '') return VALUE_FALLBACK;
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    if (Number.isFinite(value.value)) return formatQuantity(value);
+    if (value.tag) return String(value.tag);
+    if (value.id) return String(value.id);
+    return VALUE_FALLBACK;
+  }
+  if (Array.isArray(value)) return `${value.length}`;
   switch (descriptor.base) {
     case 'quantity':
       return formatQuantity(value);

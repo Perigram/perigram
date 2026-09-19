@@ -9,6 +9,15 @@
         <div v-for="field in shownFacts(group)" :key="field.name" :class="LAYOUT.specRow">
           <span class="text-body text-muted">{{ field.label }}</span>
           <FieldControl
+            v-if="editing"
+            v-model="draft[field.name]"
+            :descriptor="field.descriptor"
+            variant="detail"
+            :pool="pool"
+            :bundle="bundle"
+          />
+          <FieldControl
+            v-else
             :model-value="instance.fields?.[field.name]"
             :descriptor="field.descriptor"
             variant="row"
@@ -29,6 +38,15 @@
           :header="field.label"
         >
           <FieldControl
+            v-if="editing"
+            v-model="draft[field.name]"
+            :descriptor="field.descriptor"
+            variant="detail"
+            :pool="pool"
+            :bundle="bundle"
+          />
+          <FieldControl
+            v-else
             :model-value="instance.fields?.[field.name]"
             :descriptor="field.descriptor"
             variant="row"
@@ -80,7 +98,9 @@ const props = defineProps({
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
   expanded: { type: Object, default: () => ({}) },
-  coveredRelations: { type: Array, default: () => [] }
+  coveredRelations: { type: Array, default: () => [] },
+  editing: { type: Boolean, default: false },
+  draft: { type: Object, default: null }
 });
 
 defineEmits(['toggle']);
@@ -92,7 +112,10 @@ const isLongString = descriptor => descriptor.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
 const isScalarFact = field => SCALAR_BASES.includes(field.descriptor.base) && !isLongString(field.descriptor);
 const groups = computed(() => resolveFieldGroups(props.type));
-const scalarsOf = group => group.fields.filter(isScalarFact);
+const hasValue = field => props.instance.fields?.[field.name] !== null
+  && props.instance.fields?.[field.name] !== undefined
+  && props.instance.fields?.[field.name] !== '';
+const scalarsOf = group => group.fields.filter(field => isScalarFact(field) && (props.editing || hasValue(field)));
 const structuralOf = group => group.fields.filter(field => !isScalarFact(field));
 const shownFacts = group => {
   const outcome = applyBudget(scalarsOf(group), DETAIL_FACT_BUDGET);
@@ -123,6 +146,6 @@ const relationViews = computed(() => {
   });
 });
 const relationClass = relation => (relation.mode === 'scroll'
-  ? relation.mode === 'scroll' ? 'flex max-h-48 flex-wrap gap-2 overflow-y-auto' : LAYOUT.row
+  ? relation.mode === 'scroll' ? 'flex max-h-48 flex-wrap gap-2 overflow-y-auto' : LAYOUT.chipRow
   : LAYOUT.row);
 </script>

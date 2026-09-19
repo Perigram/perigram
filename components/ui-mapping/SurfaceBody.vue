@@ -8,6 +8,8 @@
       :bundle="bundle"
       :expanded="expanded"
       :covered-relations="coveredRelations"
+      :editing="editing"
+      :draft="draft"
       @toggle="toggleRelation"
     />
   </div>
@@ -52,6 +54,8 @@
       :bundle="bundle"
       :expanded="expanded"
       :covered-relations="coveredRelations"
+      :editing="editing"
+      :draft="draft"
       @toggle="toggleRelation"
     />
   </div>
@@ -93,6 +97,8 @@ const props = defineProps({
   actions: { type: Array, default: () => [] },
   chrome: { type: Object, default: null },
   coveredRelations: { type: Array, default: () => [] },
+  editing: { type: Boolean, default: false },
+  draft: { type: Object, default: null },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });
