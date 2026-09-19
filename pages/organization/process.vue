@@ -3594,8 +3594,11 @@ function syncProcessNode(node = {}) {
     } else {
       delete node.compositionMode;
       delete node.compositionValueBase;
-      const bound = isOpKind(node, 'record.getField') && nodeEntityType(node);
-      const available = (bound ? designer.fieldsForEntity(nodeEntityType(node)) : isOpKind(node, 'record.getField') ? designer.fieldsForBlock(node.block) : designer.fieldsForEntity(nodeEntityType(node)))
+      const isFieldSpecies = node.kind === 'cts.field';
+      const bound = isFieldSpecies && nodeEntityType(node);
+      const available = (isFieldSpecies
+        ? (bound ? designer.fieldsForEntity(nodeEntityType(node)) : [])
+        : isOpKind(node, 'record.getField') ? designer.fieldsForBlock(node.block) : designer.fieldsForEntity(nodeEntityType(node)))
         .filter(field => field[access] !== false)
         .filter(field => bound || !nodeBlock(node) || field.block === nodeBlock(node));
       if (!available.some(field => field.value === node.path)) node.path = available[0]?.value || '';
@@ -3713,9 +3716,12 @@ function processNodeFieldOptions(node = {}) {
   const access = isOpKind(node, 'record.composeBlock') ? 'constructible'
     : ['record.fieldChange', 'record.modifyBlock'].includes(opKind(node)) ? 'writable'
       : 'readable';
-  const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(opKind(node));
-  const bound = structural && nodeEntityType(node);
-  return (bound ? designer.fieldsForEntity(nodeEntityType(node)) : structural ? designer.fieldsForBlock(nodeBlock(node)) : designer.fieldsForEntity(nodeEntityType(node)))
+  const isFieldSpecies = node.kind === 'cts.field';
+  const structural = !isFieldSpecies && ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(opKind(node));
+  const bound = (isFieldSpecies || structural) && nodeEntityType(node);
+  return (isFieldSpecies
+    ? (bound ? designer.fieldsForEntity(nodeEntityType(node)) : [])
+    : bound ? designer.fieldsForEntity(nodeEntityType(node)) : structural ? designer.fieldsForBlock(nodeBlock(node)) : designer.fieldsForEntity(nodeEntityType(node)))
     .filter(field => field[access] !== false)
     .filter(field => !nodeBlock(node) || field.block === nodeBlock(node))
     .map(field => ({
@@ -3753,6 +3759,7 @@ function processNodeBlockOptions(node = {}) {
 }
 
 function processNodeUsesBlock(node = {}) {
+  if (node.kind === 'cts.field') return false;
   return ['record.getBlock', 'record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(opKind(node));
 }
 
@@ -3774,13 +3781,16 @@ function catalogContext(node = {}) {
   // Structural nodes resolve fields against their bound type when one
   // exists (cts.field is the entity projection); only the type-agnostic
   // v4 substrate falls back to block schemas.
-  const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(opKind(node));
-  const bound = structural && nodeEntityType(node);
-  const fields = bound
-    ? designer.fieldsForEntity(nodeEntityType(node))
-    : structural
-      ? designer.fieldsForBlock(nodeBlock(node))
-      : designer.fieldsForEntity(nodeEntityType(node));
+  const isFieldSpecies = node.kind === 'cts.field';
+  const structural = !isFieldSpecies && ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(opKind(node));
+  const bound = (isFieldSpecies || structural) && nodeEntityType(node);
+  const fields = isFieldSpecies
+    ? (bound ? designer.fieldsForEntity(nodeEntityType(node)) : [])
+    : bound
+      ? designer.fieldsForEntity(nodeEntityType(node))
+      : structural
+        ? designer.fieldsForBlock(nodeBlock(node))
+        : designer.fieldsForEntity(nodeEntityType(node));
   return {
     fieldSchema: fields.find(field => field.value === node.path) || null,
     fieldSchemas: fields,

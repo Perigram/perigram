@@ -36,7 +36,10 @@ entity sources (from context, by id, by reference, parent, children,
 related, query) and **Get field** — the projection gate (SPEC §8 p):
 entity in, one field's value out at the authored path, one node, no
 intermediate block step; its binding adapts to the entity stream like
-every consumer. The query read never shows its runtime predicate input
+every consumer. The species card never shows the block substrate: no
+block selector, no block-relative field lists — an unbound Get field
+offers only its entity input, and a bound one offers the bound type's
+fields as its path choices. The query read never shows its runtime predicate input
 — no authoring node produces a predicate; filtering a queried list is
 the list-plus-`collection.filter` mask path. Block composition
 (compose/decompose) is catalog-only: migrated v4 graphs keep their
