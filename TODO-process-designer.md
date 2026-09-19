@@ -191,6 +191,29 @@ type id, validity, diagnostics; fields/states wire as before).
   switch (resolveProcessAuth, screen manifests, navigation) so no stored
   contract is read through the removed vocabulary.
 
+
+##### Agent Notes — 2026-09-19 P3 in progress (branch, unmerged)
+
+`agent/process-designer-uicontract-20260919` (commit 3a3cc652) lands the
+compiler-side cutover: `ui-contract-projection.js` as the single emit
+boundary (screens: typeId/typeList/instanceDetail + lineage refs; manifest
+actions: projected createInstance/updateInstance/deleteInstance/link/
+unlink/runCommand), assignment access/home/navigation on the projected
+vocabulary, server-side `compileClientBundle` emission, and the
+`ui-contract.spec.js` regression bridge that composes real compiler output
+through the real generator. Architectural decision recorded: the screen
+channel is cut over hard; `compiled.actions` stays the server execution
+contract (the run API and producer outputs consume it) and is never
+serialized to UI consumers — the manifest action records are its
+projection, so there is no dual UI vocabulary. All package/server/shared
+specs green (4 known pre-existing failures unchanged). Remaining on the
+branch before merge: [screenKey] renderer swap to the generator with a
+real instance-pool loader, action dispatch wiring, designer screens
+preview cutover, contract-diff extension to the projected channels, and
+the e2e surface. The branch stays unmerged until the browser side lands —
+the manifest vocabulary change would degrade the legacy generated
+renderer.
+
 ## P4 — Runtime and designer cutover to the UI generator
 
 - [ ] `pages/screens/[screenKey].vue` renders through `composeScreen` +
