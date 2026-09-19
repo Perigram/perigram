@@ -40,13 +40,17 @@ export const FIELD_EDIT_ENTRIES = Object.freeze([
 
 // Display-family entries: compact value presentations for rows and inline
 // contexts. The resolved density ('row' | 'inline') travels as a prop.
+// Data-shaped refinements: percent quantities render as progress, string
+// lists render as budgeted chips.
 export const FIELD_DISPLAY_ENTRIES = Object.freeze([
+  { match: { base: 'quantity', unit: 'percent' }, component: 'ProgressBar', span: 'half' },
   { match: { base: 'enum' }, component: 'Tag', span: 'half' },
   { match: { base: 'ref' }, component: 'EntityChip', span: 'half' },
   { match: { base: 'quantity' }, component: 'QuantityText', span: 'half' },
   { match: { base: 'instant' }, component: 'InstantText', span: 'half' },
   { match: { base: 'boolean' }, component: 'BooleanIcon', span: 'half' },
   { match: { base: 'blob' }, component: 'FileChip', span: 'half' },
+  { match: { base: 'list', itemBase: 'string' }, component: 'ChipsDisplay', span: 'full' },
   { match: { base: 'record' }, component: 'ObjectSummary', span: 'half' },
   { match: { base: 'map' }, component: 'ObjectSummary', span: 'half' },
   { match: { base: 'json' }, component: 'ObjectSummary', span: 'half' },

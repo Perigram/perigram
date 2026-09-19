@@ -18,7 +18,14 @@
         />
       </div>
     </template>
-    <CollectionTable :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
+    <CollectionTable
+      v-if="!isMediaCollection"
+      :instances="node.instances"
+      :type="node.type"
+      :pool="pool"
+      :bundle="bundle"
+    />
+    <CardGrid v-else :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
     <RegionBlock
       v-for="child in node.childRegions"
       :key="child.id"
@@ -40,27 +47,50 @@
       :actions="node.actions"
       :pool="pool"
       :bundle="bundle"
-    />
-    <RegionBlock
-      v-for="child in node.childRegions"
-      :key="child.id"
-      :node="child"
-      :pool="pool"
-      :bundle="bundle"
-      :depth="depth + 1"
       @run="emitRun"
     />
+    <Tabs v-if="node.childRegions.length >= 2" :value="node.childRegions[0].id" class="w-full">
+      <TabList>
+        <Tab v-for="child in node.childRegions" :key="child.id" :value="child.id">
+          {{ child.type?.render?.label || child.id }}
+          <Tag v-if="child.instances.length" :value="String(child.instances.length)" severity="secondary" />
+        </Tab>
+      </TabList>
+      <TabPanels>
+        <TabPanel v-for="child in node.childRegions" :key="child.id" :value="child.id">
+          <RegionBlock :node="child" :pool="pool" :bundle="bundle" :depth="depth + 1" @run="emitRun" />
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
+    <template v-else>
+      <RegionBlock
+        v-for="child in node.childRegions"
+        :key="child.id"
+        :node="child"
+        :pool="pool"
+        :bundle="bundle"
+        :depth="depth + 1"
+        @run="emitRun"
+      />
+    </template>
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
+import TabPanels from 'primevue/tabpanels';
+import TabPanel from 'primevue/tabpanel';
 import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
+import CardGrid from './CardGrid.vue';
 import ActionButton from './ActionButton.vue';
 
-defineProps({
+const props = defineProps({
   node: { type: Object, required: true },
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null },
@@ -69,4 +99,5 @@ defineProps({
 
 const emit = defineEmits(['run']);
 const emitRun = action => emit('run', action);
+const isMediaCollection = computed(() => props.node.type?.class === 'file');
 </script>

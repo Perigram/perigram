@@ -52,7 +52,7 @@ function composeRegion(region, screen, contract, pool, typesById, depth) {
   const instances = single ? [single] : resolveList(source, screen, pool, sourcesById);
   const type = typesById[source.entityType] || null;
   const variant = surfaceKind === 'detail' ? (depth === 0 ? 'full' : 'detail') : 'row';
-  const childRegions = (screen.regions || [])
+  const childRegions = region.slot === 'children' ? [] : (screen.regions || [])
     .filter(child => child.slot === 'children' && child.id !== region.id)
     .map(child => composeRegion(child, screen, contract, pool, typesById, depth + 1));
   return Object.freeze({

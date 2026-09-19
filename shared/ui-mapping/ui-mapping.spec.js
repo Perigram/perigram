@@ -69,6 +69,21 @@ describe('field control resolution', () => {
     });
   });
 
+  it('refines display presentations by data shape', () => {
+    expect(resolveFieldControl({ base: 'quantity', unit: 'percent' }, { variant: 'row' })).toMatchObject({
+      component: 'ProgressBar'
+    });
+    expect(resolveFieldControl({ base: 'quantity', unit: 'mm' }, { variant: 'row' })).toMatchObject({
+      component: 'QuantityText'
+    });
+    expect(resolveFieldControl({ base: 'list', itemType: { base: 'string' } }, { variant: 'row' })).toMatchObject({
+      component: 'ChipsDisplay', span: 'full'
+    });
+    expect(resolveFieldControl({ base: 'list', itemType: { base: 'ref', accepts: ['x'] } }, { variant: 'row' })).toMatchObject({
+      component: 'ListSummary'
+    });
+  });
+
   it('lets app overrides with narrow matchers win by specificity', () => {
     const mapping = createUiMapping({
       fields: [{ match: { base: 'quantity', unit: 'deg' }, component: 'AngleInput', span: 'half' }]

@@ -1,6 +1,7 @@
 <template>
   <div class="flex flex-col gap-6">
-    <PreviewBox v-if="hasPreview" :type="type" :payload="instance.payload" />
+    <StateStrip v-if="type.states?.main" :type="type" :instance="instance" />
+    <PreviewBox v-if="hasPreview" :type="type" :payload="instance.payload" :seed="instance.id" />
 
     <div v-if="scalarFields.length" class="grid grid-cols-2 items-start gap-x-6 gap-y-4 md:grid-cols-4">
       <div v-for="field in scalarFields" :key="field.name" class="flex min-w-0 flex-col gap-1">
@@ -39,6 +40,13 @@
         @click="$emit('toggle', relation.key)"
       />
     </div>
+
+    <HierarchyTree
+      v-if="surface.slots.includes('children')"
+      :root="instance"
+      :bundle="bundle"
+      :pool="pool"
+    />
   </div>
 </template>
 
@@ -50,6 +58,8 @@ import { fieldLabel, resolveSurface, applyBudget } from '#shared/ui-mapping/inde
 import FieldControl from './FieldControl.vue';
 import EntityChip from './EntityChip.vue';
 import PreviewBox from './PreviewBox.vue';
+import StateStrip from './StateStrip.vue';
+import HierarchyTree from './HierarchyTree.vue';
 
 const SCALAR_BASES = new Set(['string', 'number', 'quantity', 'instant', 'boolean', 'enum']);
 
