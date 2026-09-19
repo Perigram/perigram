@@ -1029,7 +1029,6 @@ import FieldNode from '~/components/type-designer/FieldNode.vue';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
 import StateNode from '~/components/type-designer/StateNode.vue';
 import ProcessScreenPreview from '~/components/process-designer/ProcessScreenPreview.vue';
-import ProcessStatusDefinitionNode from '~/components/process-designer/ProcessStatusDefinitionNode.vue';
 import MotionDock from '~/components/shared/MotionDock.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
