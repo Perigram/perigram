@@ -438,12 +438,12 @@ describe('Design system manifest', () => {
 
   it('keeps shared status and entity accents inside the token system', () => {
     const entityInlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityInlineRef.vue'), 'utf8');
-    const statusDefinitionNode = fs.readFileSync(path.join(REPO_ROOT, 'components/process-designer/ProcessStatusDefinitionNode.vue'), 'utf8');
+    const statusBadge = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/StatusBadge.vue'), 'utf8');
 
     expect(entityInlineRef).toContain('var(--ck-entity-tone-command)');
     expect(entityInlineRef).not.toMatch(/var\(--p-(?:blue|orange|teal|green|purple)-500\)/);
-    expect(statusDefinitionNode).toContain('var(--ck-status-info)');
-    expect(statusDefinitionNode).not.toMatch(/var\(--p-(?:green|blue|amber|red)-500\)/);
+    expect(statusBadge).toMatch(/bg-status-(?:info|neutral|success|warning|danger)/);
+    expect(statusBadge).not.toMatch(/var\(--p-(?:green|blue|amber|red)-500\)/);
   });
 
   it('keeps app chrome and process signals on semantic color aliases', () => {
