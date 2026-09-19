@@ -40,10 +40,10 @@ export const FIELD_EDIT_ENTRIES = Object.freeze([
 
 // Display-family entries: compact value presentations for rows and inline
 // contexts. The resolved density ('row' | 'inline') travels as a prop.
-// Data-shaped refinements: percent quantities render as progress, string
+// Data-shaped refinements: percent quantities render as Knob dials, string
 // lists render as budgeted chips.
 export const FIELD_DISPLAY_ENTRIES = Object.freeze([
-  { match: { base: 'quantity', unit: 'percent' }, component: 'ProgressBar', span: 'half' },
+  { match: { base: 'quantity', unit: 'percent' }, component: 'Knob', span: 'half' },
   { match: { base: 'enum' }, component: 'Tag', span: 'half' },
   { match: { base: 'ref' }, component: 'EntityChip', span: 'half' },
   { match: { base: 'quantity' }, component: 'QuantityText', span: 'half' },
@@ -58,6 +58,26 @@ export const FIELD_DISPLAY_ENTRIES = Object.freeze([
   { match: { base: 'variant' }, component: 'VariantTag', span: 'half' },
   { match: {}, component: 'ValueText', span: 'half' }
 ]);
+
+// List-region layout entries: the presentation of a collection is a
+// resolver decision, not a component branch. `hierarchical` is true when
+// the collected type declares lineage children.
+export const LIST_LAYOUT_ENTRIES = Object.freeze([
+  { match: { type: 'log_entry' }, layout: 'timeline' },
+  { match: { class: 'file' }, layout: 'card-grid' },
+  { match: { hierarchical: true }, layout: 'tree-table' },
+  { match: {}, layout: 'table' }
+]);
+
+// Presentation budgets and thresholds consumed by materializations so the
+// numbers live with the rest of the design-system defaults.
+export const TABLE_COLUMN_BUDGET = Object.freeze({ max: 3, overflow: 'count' });
+export const CARD_FACT_BUDGET = Object.freeze({ max: 2, overflow: 'count' });
+export const CHIP_BUDGET = Object.freeze({ max: 3, overflow: 'count' });
+export const ROW_RELATION_BUDGET = Object.freeze({ max: 2, overflow: 'count' });
+export const CHILDREN_TABS_AT = 2;
+
+export const SCALAR_BASES = Object.freeze(['string', 'number', 'quantity', 'instant', 'boolean', 'enum']);
 
 // Row-variant field budgets: dense rows show a bounded number of fields and
 // count the rest, reusing the same budget mechanism as slot cardinality.

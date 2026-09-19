@@ -8,10 +8,12 @@
     :severity="model === true ? 'success' : 'secondary'"
   />
   <Tag v-else-if="outcome.component === 'Tag'" :value="enumLabel" severity="secondary" />
-  <ProgressBar
-    v-else-if="outcome.component === 'ProgressBar'"
-    :value="percentValue"
-    class="w-full"
+  <Knob
+    v-else-if="outcome.component === 'Knob'"
+    :model-value="percentValue"
+    :size="64"
+    :stroke-width="8"
+    readonly
   />
   <div v-else-if="outcome.component === 'ChipsDisplay'" class="flex flex-wrap items-center gap-1">
     <Chip v-for="tag in chipsShown" :key="tag" :label="tag" />
@@ -105,8 +107,8 @@ import DatePicker from 'primevue/datepicker';
 import SelectButton from 'primevue/selectbutton';
 import Tag from 'primevue/tag';
 import Chip from 'primevue/chip';
-import ProgressBar from 'primevue/progressbar';
-import { resolveFieldControl } from '#shared/ui-mapping/index.js';
+import Knob from 'primevue/knob';
+import { resolveFieldControl, CHIP_BUDGET, applyBudget } from '#shared/ui-mapping/index.js';
 import EntityChip from './EntityChip.vue';
 import QuantityInput from './QuantityInput.vue';
 import EnumSelect from './EnumSelect.vue';
@@ -141,8 +143,9 @@ const percentValue = computed(() => {
   const value = props.modelValue?.value;
   return Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
 });
-const chipsShown = computed(() => (Array.isArray(props.modelValue) ? props.modelValue.slice(0, 3) : []));
-const chipsHidden = computed(() => (Array.isArray(props.modelValue) ? Math.max(0, props.modelValue.length - 3) : 0));
+const chipsOutcome = computed(() => applyBudget(Array.isArray(props.modelValue) ? props.modelValue : [], CHIP_BUDGET));
+const chipsShown = computed(() => chipsOutcome.value.visible);
+const chipsHidden = computed(() => chipsOutcome.value.hidden);
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const enumLabel = computed(() => (props.modelValue === null || props.modelValue === undefined ? fallback : startCase(props.modelValue)));
 const enumOptions = computed(() => (props.descriptor.values || []).map(value => ({ label: startCase(value), value })));
