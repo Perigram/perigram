@@ -134,9 +134,28 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     };
     const blocks = new Set(entities.find(entity => entity.type === type.id)?.blocks || []);
     const lineageFields = orgLineageFields(type, view);
+    // Declared relation edges are addressable fields (SPEC §6): each key
+    // projects as a `relations.<key>` schema so constructs receive them as
+    // construction inputs and mutates as leaf sockets — a declared edge is
+    // the only legal place a ref may be stored.
+    const relationFields = [];
+    for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
+      for (const target of declaration.types || []) {
+        if (!view.has(target)) continue;
+        relationFields.push({
+          path: `relations.${key}`,
+          block: 'relations',
+          label: `relations.${key}`,
+          type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', entityType: target } },
+          writable: true,
+          constructible: true
+        });
+      }
+    }
     fieldSchemas[type.id] = [
       ...CORE_BLOCK_FIELDS.filter(field => blocks.has(field.block) || field.path === '_id'),
       ...lineageFields,
+      ...relationFields,
       ...rowEntries
     ].map(schema => withAccessFlags(schema, fieldAccess[type.id]));
   }
@@ -193,8 +212,27 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
 
   // construction: genericCreate from declared rows (the composer-less
   // construct) plus declared construct operators as `via` modes with
-  // signature-derived modeInputs.
+  // signature-derived modeInputs. Lineage keys and declared relation
+  // edges are construct-addressable (SPEC §6): the schemas were built in
+  // the fieldSchemas pass above and are re-derived here per type.
   const construction = {};
+
+  function edgeFieldsFor(type) {
+    const lineage = orgLineageFields(type, view);
+    const relations = [];
+    for (const [key, declaration] of Object.entries(type.edges?.relations || {})) {
+      for (const target of declaration.types || []) {
+        if (!view.has(target)) continue;
+        relations.push({
+          path: `relations.${key}`,
+          label: `relations.${key}`,
+          type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', entityType: target } },
+          constructible: true
+        });
+      }
+    }
+    return { lineage, relations };
+  }
   for (const type of types) {
     const constructOperators = Object.values(type.operators || {}).filter(operator => operator.species === 'construct');
     construction[type.id] = {
@@ -202,6 +240,27 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
       defaultMode: 'genericCreate',
       inputs: [
         { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true },
+        // lineage and relation edges are construct-addressable: a child
+        // type's parent key and declared relation keys arrive as typed
+        // inputs where the entity begins
+        ...(edgeFieldsFor(type).lineage)
+          .filter(schema => schema.constructible !== false)
+          .map(schema => ({
+            id: schema.path,
+            label: schema.label || schema.path,
+            path: schema.path,
+            ...constructionInputKind(schema.type),
+            required: false,
+            prompt: true
+          })),
+        ...edgeFieldsFor(type).relations.map(schema => ({
+          id: schema.path,
+          label: schema.label || schema.path,
+          path: schema.path,
+          ...constructionInputKind(schema.type),
+          required: false,
+          prompt: true
+        })),
         ...(rowEntriesByType.get(type.id) || [])
           .filter(schema => schema.constructible !== false)
           .map(schema => ({
@@ -302,6 +361,9 @@ function orgLineageFields(type, view, visited = new Set()) {
 // operatorModeInputs uses for operator signatures): entity refs carry their
 // typed constraint, everything structural rides as an object payload.
 function constructionInputKind(type = {}) {
+  if (type.base === 'array' && ['entityRef', 'entity'].includes(type.itemType?.base || '')) {
+    return { type: 'entityList', ...(type.itemType.entityType ? { entityType: type.itemType.entityType } : {}) };
+  }
   if (type.base === 'entityRef' || type.base === 'entity') {
     return { type: 'entity', ...(type.entityType ? { entityType: type.entityType } : {}) };
   }

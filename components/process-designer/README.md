@@ -151,9 +151,15 @@ Species cards carry no entity-type dropdown and no operation switch: the
 binding channel owns the type, the species owns the operation.
 
 A bound `cts.mutate` patches leaves: writable `data`/`specs` row fields
-arrive as field sockets keyed by schema path (beside the entity input and
-the status input), and the effect boundary persists each wired or
-prompted leaf as a direct field write — no block composition. Block
+**and declared relation keys** (`relations.<key>`, typed by the edge's
+target) arrive as field sockets keyed by schema path (beside the entity
+input and the status input), and the effect boundary persists each
+wired or prompted leaf as a direct field write — no block composition.
+Lineage is construct-only: the parent key is set where the entity
+begins (a declared children edge projects `lineage.<key>` as a
+construction input); re-parenting is a structural move, not a field
+patch. Constructs therefore receive Name, their parent key, declared
+relation keys, row fields, and the status input. Block
 sockets render only from the record's persisted `slots`: a migrated v4
 graph's block wiring stays live, while fresh mutates never derive blocks.
 An unbound mutate offers only its entity input: wiring a typed entity

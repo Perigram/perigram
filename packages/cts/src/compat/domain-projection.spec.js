@@ -134,7 +134,16 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     const construction = projected.construction.panel;
     expect(construction.modes).toEqual(['genericCreate']);
     expect(construction.defaultMode).toBe('genericCreate');
-    expect(construction.inputs.map(input => input.id)).toEqual(['name', 'data.serial', 'specs.width']);
+    // lineage keys and declared relation edges are construct-addressable
+    // (SPEC §6): the panel's parent bin arrives as lineage.binId, its
+    // declared relation as relations.placed-on
+    expect(construction.inputs.map(input => input.id)).toEqual(
+      ['name', 'lineage.binId', 'relations.placed-on', 'data.serial', 'specs.width']
+    );
+    expect(construction.inputs.find(input => input.id === 'relations.placed-on')).toMatchObject({
+      type: 'entityList',
+      entityType: 'sheet'
+    });
     const occs = projected.construction.occs;
     expect(occs.modes).toEqual(['genericCreate']);
   });

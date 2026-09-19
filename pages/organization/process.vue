@@ -36,7 +36,6 @@
           @connect-end="endSocketConnection"
           @connect="onConnect"
         >
-          <template #node-statusDefinition="props"><ProcessStatusDefinitionNode v-bind="props" /></template>
           <template #node-ctsType="props"><CtsTypeNode v-bind="props" /></template>
           <template #node-ctsClass="props"><ClassNode v-bind="props" /></template>
           <template #node-ctsField="props"><FieldNode v-bind="props" @rename="value => renameDeclarationNode(props, value)" /></template>
@@ -180,7 +179,7 @@
             <TabPanels class="min-h-0 flex-1 overflow-y-auto">
             <TabPanel value="inspector">
               <div v-if="selectedNode" class="flex min-w-0 flex-col gap-4">
-                <div v-if="!['action', 'statusDefinition', 'processNode', ...declarationNodeTypes].includes(selectedNode.type)" class="flex flex-col gap-1">
+                <div v-if="!['action', 'processNode', ...declarationNodeTypes].includes(selectedNode.type)" class="flex flex-col gap-1">
                   <label>{{ $t('processDesigner.label') }}</label>
                   <InputText v-model="selectedRecord.label" />
                 </div>
@@ -361,102 +360,6 @@
                   </div>
                 </template>
 
-                <template v-else-if="selectedNode.type === 'statusDefinition'">
-                  <div class="grid grid-cols-2 gap-2">
-                    <div class="flex min-w-0 flex-col gap-1">
-                      <label>{{ $t('processDesigner.severity') }}</label>
-                      <Select
-                        :model-value="selectedStatusDefinition.severity"
-                        :options="statusSeverityOptions"
-                        option-label="label"
-                        option-value="value"
-                        @update:model-value="value => updateStatusDefinitionRecord(selectedStatusDefinition.id, { severity: value, color: value })"
-                      />
-                    </div>
-                    <div class="flex min-w-0 flex-col gap-1">
-                      <label>{{ $t('processDesigner.parentStatus') }}</label>
-                      <Select
-                        :model-value="selectedStatusDefinition.parentStatusId || ''"
-                        :options="statusParentOptions.filter(option => option.value !== selectedStatusDefinition.statusId)"
-                        option-label="label"
-                        option-value="value"
-                        show-clear
-                        @update:model-value="value => updateStatusDefinitionRecord(selectedStatusDefinition.id, { parentStatusId: value || '' })"
-                      />
-                    </div>
-                    <div class="flex min-w-0 flex-col gap-1">
-                      <label>{{ $t('processDesigner.icon') }}</label>
-                      <Select
-                        :model-value="selectedStatusDefinition.icon"
-                        :options="statusIconOptions"
-                        option-label="label"
-                        option-value="value"
-                        @update:model-value="value => updateStatusDefinitionRecord(selectedStatusDefinition.id, { icon: value })"
-                      >
-                        <template #option="{ option }">
-                          <div class="flex items-center gap-2">
-                            <i :class="option.value" aria-hidden="true"></i>
-                            <span>{{ option.label }}</span>
-                          </div>
-                        </template>
-                      </Select>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <Checkbox
-                      :model-value="Boolean(selectedStatusDefinition.lifecycle?.description?.required)"
-                      binary
-                      input-id="selected-status-description"
-                      @update:model-value="setSelectedStatusDescriptionRequired"
-                    />
-                    <label for="selected-status-description">{{ $t('processDesigner.requireDescription') }}</label>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between gap-2">
-                      <label>{{ $t('processDesigner.attachments') }}</label>
-                      <Button icon="pi pi-plus" text size="small" :aria-label="$t('processDesigner.addAttachment')" @click="addSelectedStatusAttachment" />
-                    </div>
-                    <div v-for="entry in selectedStatusAttachmentEntries" :key="entry.key" class="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] items-center gap-1">
-                      <InputText :model-value="entry.key" size="small" @change="event => renameSelectedStatusLifecycleEntry('attachments', entry.key, event.target.value)" />
-                      <Select
-                        :model-value="entry.schema.kind"
-                        :options="designer.attachmentKindOptions"
-                        option-label="label"
-                        option-value="value"
-                        editable
-                        size="small"
-                        @update:model-value="value => updateSelectedStatusAttachment(entry.key, { kind: value })"
-                      />
-                      <Checkbox :model-value="Boolean(entry.schema.required)" binary @update:model-value="value => updateSelectedStatusAttachment(entry.key, { required: value })" />
-                      <Button icon="pi pi-times" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedStatusAttachment(entry.key)" />
-                    </div>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-center justify-between gap-2">
-                      <label>{{ $t('processDesigner.snapshots') }}</label>
-                      <Button icon="pi pi-plus" text size="small" :aria-label="$t('processDesigner.addSnapshot')" @click="addSelectedStatusSnapshot" />
-                    </div>
-                    <div v-for="entry in selectedStatusSnapshotEntries" :key="entry.key" class="grid grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-1">
-                      <InputText :model-value="entry.key" size="small" @change="event => renameSelectedStatusLifecycleEntry('snapshots', entry.key, event.target.value)" />
-                      <Select
-                        :model-value="entry.schema.entityType"
-                        :options="entityTypeOptions"
-                        option-label="label"
-                        option-value="value"
-                        size="small"
-                        @update:model-value="value => updateSelectedStatusSnapshot(entry.key, { entityType: value })"
-                      />
-                      <InputText
-                        :model-value="entry.schema.lineageKey"
-                        size="small"
-                        :placeholder="$t('processDesigner.lineageKey')"
-                        @update:model-value="value => updateSelectedStatusSnapshot(entry.key, { lineageKey: value })"
-                      />
-                      <Button icon="pi pi-times" severity="danger" text size="small" :aria-label="$t('common.delete')" @click="removeSelectedStatusSnapshot(entry.key)" />
-                    </div>
-                  </div>
-                  <Button icon="pi pi-trash" :label="$t('common.delete')" severity="danger" outlined size="small" @click="removeStatusDefinition(selectedStatusDefinition.id)" />
-                </template>
 
 
                 <template v-else-if="selectedNode.type === 'processNode'">
@@ -1457,7 +1360,6 @@ const {
   recordKeyForType,
   selectedRecord,
   selectedEntity,
-  selectedStatusDefinition,
   selectedProcessNode
 } = useProcessDesignerInspector({
   draft,
@@ -1467,7 +1369,6 @@ const {
     action: createAction,
     service: createService,
     socket: createSocket,
-    statusDefinition: createStatusDefinition,
     valueInput: createValueInput,
     processNode: createProcessNode,
     ctsClass: id => ({ id, kind: 'class', typeId: '', class: 'file', payload: null, operators: [] }),
@@ -1688,35 +1589,6 @@ const emptyCanvasMessage = computed(() => {
   if (processLoadError.value) return processLoadError.value;
   return t('processDesigner.noActiveDraft');
 });
-const selectedStatusAttachmentEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.attachments || {})
-  .map(([key, schema]) => ({ key, schema })));
-const selectedStatusSnapshotEntries = computed(() => Object.entries(selectedStatusDefinition.value.lifecycle?.snapshots || {})
-  .map(([key, schema]) => ({ key, schema })));
-const statusDefinitionList = computed(() => Object.values(draft.value?.data?.statusDefinitions || {}));
-const processStatusOptions = computed(() => {
-  const definitions = statusDefinitionList.value.filter(status => status.statusId);
-  const byStatusId = new Map(definitions.map(status => [status.statusId, status]));
-  return definitions.map(status => {
-    const parts = [];
-    let cursor = status;
-    const seen = new Set();
-    while (cursor && !seen.has(cursor.statusId)) {
-      seen.add(cursor.statusId);
-      parts.unshift(cursor.statusId);
-      cursor = cursor.parentStatusId ? byStatusId.get(cursor.parentStatusId) : null;
-    }
-    const value = parts.join('.');
-    return {
-      label: parts.length > 1 ? value : (status.label || status.statusId),
-      value,
-      refId: status.id
-    };
-  });
-});
-const statusParentOptions = computed(() => statusDefinitionList.value
-  .filter(status => status.statusId)
-  .map(status => ({ label: status.label || status.statusId, value: status.statusId })));
-
 const roles = computed(() => organizationRoles.value);
 const servicePrincipals = computed(() => draft.value?.data?.servicePrincipals || {});
 const screens = computed(() => draft.value?.data?.screens || {});
@@ -2743,7 +2615,6 @@ function sourcePortForEdge(edge = {}) {
   const source = nodes.value.find(node => node.id === edge.source);
   if (!source) return {};
   if (edge.role === 'type') return { type: { base: 'json' } };
-  if (source.type === 'statusDefinition') return { type: processType('status') };
   if (source.type === 'processNode') {
     const record = draft.value?.data?.processNodes?.[source.data?.refId];
     if (!record) return {};
@@ -2897,7 +2768,6 @@ function syncCanvasNode(node) {
   if (node.type === 'action') syncActionIo(record, node);
   if (node.type === 'entity') syncEntityProfileIo(record);
   if (node.type === 'socket') syncSocketIo(record);
-  if (node.type === 'statusDefinition') syncStatusDefinition(record);
   if (node.type === 'valueInput') syncValueInput(record);
   if (node.type === 'processNode') {
     applyInferredProcessNodeInputs(record, node);
@@ -2913,14 +2783,10 @@ function syncCanvasNode(node) {
     node.data.entityType = nodeEntityType(record);
     node.data.commandId = record.commandId;
     node.data.triggerMode = record.trigger?.mode;
-    node.data.actionTitleLabel = node.type === 'action' ? actionTitleLabel(record) : null;
     node.data.eventLabel = node.type === 'action' ? (record.events?.[0]?.label || t('processDesigner.actionCompleted')) : null;
     node.data.actionRecord = node.type === 'action' ? record : null;
     node.data.entityTypeOptions = node.type === 'action' ? entityTypeOptions.value : [];
     node.data.commandOptions = node.type === 'action' ? commandOptions.value : [];
-    node.data.roleOptions = node.type === 'action' ? actionRoleOptions(record, node) : [];
-    node.data.effectiveAccessLabels = node.type === 'action' ? effectiveActionAccessLabels(record, node) : [];
-    node.data.inheritedAccessLabels = node.type === 'action' ? inheritedActionAccessLabels(record, node) : [];
     node.data.accessLevelOptions = node.type === 'action' ? accessLevelOptions : [];
     node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
     node.data.fieldOptions = node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [];
@@ -2929,10 +2795,6 @@ function syncCanvasNode(node) {
     node.data.onValueInputUpdate = node.type === 'valueInput' ? updates => updateValueInputRecord(record.id || node.data.refId, updates) : null;
     node.data.processNodeRecord = node.type === 'processNode' ? record : null;
     node.data.onProcessNodeUpdate = node.type === 'processNode' ? updates => updateProcessNodeRecord(record.id || node.data.refId, updates) : null;
-    node.data.statusDefinitionRecord = node.type === 'statusDefinition' ? record : null;
-    node.data.onStatusDefinitionUpdate = node.type === 'statusDefinition' ? updates => updateStatusDefinitionRecord(record.id || node.data.refId, updates) : null;
-    node.data.onStatusDefinitionDelete = node.type === 'statusDefinition' ? () => removeStatusDefinition(record.id || node.data.refId) : null;
-    node.data.statusParentOptions = node.type === 'statusDefinition' ? statusParentOptions.value : [];
     node.data.processValueTypeOptions = ['valueInput', 'processNode'].includes(node.type) ? processValueTypeOptions : [];
     node.data.processEntityTypeOptions = node.type === 'processNode' ? processEntityTypeOptions(record) : [];
     node.data.processOperationOptions = node.type === 'processNode' ? processNodeOperationOptions(record) : [];
@@ -3041,53 +2903,9 @@ function paletteGroupLabel(id) {
 
 
 
-function createAction(id, actionKind = 'createEntity') {
-  const action = {
-    id,
-    label: '',
-    actionKind,
-    entityType: ['runCommand', 'updateEntity'].includes(actionKind) ? '' : defaultEntityType(),
-    commandId: '',
-    parentEntityType: '',
-    parentRevision: { enabled: false, scope: '' },
-    status: { from: '', to: '' },
-    mutation: { fields: [] },
-    projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
-    access: { grants: [] },
-    trigger: { mode: 'manual' },
-    inputs: [],
-    outputs: [],
-    events: []
-  };
-  syncActionIo(action);
-  return action;
-}
 
 
 
-function removeStatusDefinition(id) {
-  if (!id) return;
-  const used = Object.values(draft.value.data.processNodes || {})
-    .some(node => node.statusRef === id);
-  if (used) {
-    toast.add({
-      severity: 'warn',
-      summary: t('processDesigner.statusInUse'),
-      detail: t('processDesigner.statusInUseHelp'),
-      life: 3000
-    });
-    return;
-  }
-  delete draft.value.data.statusDefinitions[id];
-  const removedNodeIds = new Set(nodes.value
-    .filter(node => node.type === 'statusDefinition' && node.data?.refId === id)
-    .map(node => node.id));
-  nodes.value = nodes.value.filter(node => !removedNodeIds.has(node.id));
-  edges.value = edges.value.filter(edge => !removedNodeIds.has(edge.source) && !removedNodeIds.has(edge.target));
-  selectedNodeId.value = null;
-  selectedEdgeId.value = null;
-  syncNodeData();
-}
 
 
 
@@ -3226,114 +3044,7 @@ function featureForEntityType(entityType) {
 
 
 
-function syncActionIo(action = {}, node = null) {
-  action.trigger ||= { mode: 'manual' };
-  action.access = normalizeDesignerAccess(action.access);
-  action.trigger.mode = normalizeTriggerMode(action.trigger.mode);
-  delete action.trigger.roleIds;
-  action.access.level = normalizeAccessLevel(action.access.level);
-  action.status ||= {};
-  applyStatusDefinitionToAction(action);
-  action.events = actionEventOutputs(action);
-  if (action.actionKind === 'createEntity') {
-    const incoming = node?.id ? inferIncomingEntityContract(node.id) : {};
-    syncActionConstruction(action);
-    action.status.to ||= initialStatusForEntity(action.entityType);
-    action.parentEntityType = incoming.entityType || '';
-    syncParentRevision(action);
-    const parentInput = {
-      id: 'parent',
-      label: incoming.entityType || t('processDesigner.parentEntity'),
-      entityType: incoming.entityType || '',
-      status: incoming.status || '',
-      required: false
-    };
-    action.inputs = [
-      parentInput,
-      { id: 'status', label: t('processDesigner.targetStatus'), kind: 'status', required: true },
-      ...createInputSockets(action)
-    ];
-    action.outputs = [{ id: 'created', entityType: action.entityType, status: action.status.to }];
-    return;
-  }
-  if (action.actionKind === 'updateEntity') {
-    const incoming = node?.id ? inferIncomingEntityContract(node.id) : {};
-    const incomingEntityType = node ? (incoming.entityType || '') : (action.inputs?.find(input => input.id === 'entity')?.entityType || '');
-    const inheritedAccess = incoming.access || {};
-    action.entityType = '';
-    action.mutation ||= { fields: [] };
-    if (node) action.status.from = incoming.status || '';
-    else if (incoming.status && !action.status.from) action.status.from = incoming.status;
-    if (node && !action.access.modified && inheritedAccess.grants?.length) {
-      action.access = normalizeDesignerAccess({
-        ...action.access,
-        grants: inheritedAccess.grants.map(grant => ({ ...grant }))
-      });
-    }
-    action.access.statusFrom = action.status.from || '';
-    action.access.statusTo = action.status.to || '';
-    syncMutationInputPolicy(action);
-    const fieldInputs = (action.mutation.fields || []).length
-      ? (action.mutation.fields || []).map(path => ({
-          id: `field:${path}`,
-          label: fieldLabel(incomingEntityType, path),
-          dataPath: path,
-          kind: 'data',
-          required: false
-        }))
-      : [{ id: 'field', label: t('processDesigner.field'), dataPath: '', kind: 'data', required: false }];
-    const relationInputs = declaredRelationsForEntity(incomingEntityType).map(relation => ({
-      id: `relation:${relation.key}`,
-      label: relation.key,
-      kind: 'entity',
-      entityType: relation.targetType,
-      relationKey: relation.key,
-      cardinality: relation.cardinality,
-      required: false
-    }));
-    action.inputs = [
-      { id: 'entity', label: incomingEntityType || t('processDesigner.incomingEntity'), entityType: incomingEntityType, status: incoming.status || '' },
-      { id: 'status', label: t('processDesigner.targetStatus'), kind: 'status', required: false },
-      ...fieldInputs,
-      ...relationInputs
-    ];
-    action.outputs = [{ id: 'entity', label: incomingEntityType || t('processDesigner.sameEntity'), entityType: incomingEntityType, status: action.status.to || incoming.status || '' }];
-    return;
-  }
-  if (action.actionKind === 'sendToOrganization') {
-    action.projection ||= { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } };
-    action.inputs = [{ id: 'entity', entityType: action.entityType }];
-    action.outputs = [{ id: 'projection', entityType: action.entityType, projection: true, fields: action.projection.fields || [] }];
-    return;
-  }
-  if (action.actionKind === 'runCommand') {
-    const command = cncDomain.commands?.[action.commandId];
-    action.inputs = commandInputs(command);
-    action.outputs = commandOutputs(command);
-  }
-}
 
-function syncMutationInputPolicy(action = {}) {
-  const existingFields = new Map((action.inputPolicy?.fields || []).map(field => [field.id || field.path, field]));
-  const fields = (action.mutation?.fields || []).map(path => {
-    const id = `field:${path}`;
-    const existing = existingFields.get(id) || existingFields.get(path) || {};
-    return {
-      ...existing,
-      id,
-      label: path,
-      path,
-      type: existing.type || 'string',
-      prompt: existing.prompt !== false,
-      required: false
-    };
-  });
-  action.inputPolicy = {
-    ...(action.inputPolicy || {}),
-    prompt: fields.length > 0,
-    fields
-  };
-}
 
 function syncActionConstruction(action = {}) {
   const contract = constructionContractForEntity(action.entityType);
@@ -3394,31 +3105,8 @@ function updateArtifactCreationKinds(record = {}, kinds = []) {
   syncNodeData();
 }
 
-function syncParentRevision(action = {}) {
-  const contract = designer.domain.revisions?.[action.parentEntityType] || {};
-  const scopes = Array.isArray(contract.scopes) ? contract.scopes : [];
-  action.parentRevision ||= { enabled: false, scope: '' };
-  if (!scopes.length) {
-    action.parentRevision.enabled = false;
-    action.parentRevision.scope = '';
-    return;
-  }
-  if (!scopes.includes(action.parentRevision.scope)) {
-    action.parentRevision.scope = contract.defaultScope || scopes[0];
-  }
-}
 
 
-function applyStatusDefinitionToAction(action = {}) {
-  if (!action.statusRef) return;
-  const status = draft.value?.data?.statusDefinitions?.[action.statusRef];
-  if (!status) return;
-  syncStatusDefinition(status);
-  action.status ||= {};
-  action.status.to = status.statusId;
-  action.access = normalizeDesignerAccess(action.access);
-  action.access.statusTo = status.statusId;
-}
 
 function constructionContractForEntity(entityType) {
   return designer.construction(entityType) || {};
@@ -3484,30 +3172,8 @@ function initialStatusForProfile(profile = {}) {
   return region?.initial || '';
 }
 
-function syncStatusDefinition(status = {}) {
-  status.statusId ||= String(status.label || 'STATUS').trim().toUpperCase().replace(/\s+/g, '_');
-  if (status.label === 'Created' && status.statusId !== 'CREATED') status.label = '';
-  if (isLegacyStatusNodeLabel(status.label)) status.label = '';
-  status.label ??= '';
-  status.severity ||= status.color || 'info';
-  status.color = status.severity;
-  status.icon ||= 'pi pi-circle-fill';
-  pruneStatusLifecycle(status);
-}
 
-function isLegacyStatusNodeLabel(label = '') {
-  const value = String(label || '').trim();
-  return (designer.domain.entities || []).some(entity => entity.type === value);
-}
 
-function pruneStatusLifecycle(status = {}) {
-  const lifecycle = status.lifecycle;
-  if (!lifecycle) return;
-  if (!lifecycle.description?.required) delete lifecycle.description;
-  if (!lifecycle.attachments || Object.keys(lifecycle.attachments).length === 0) delete lifecycle.attachments;
-  if (!lifecycle.snapshots || Object.keys(lifecycle.snapshots).length === 0) delete lifecycle.snapshots;
-  if (Object.keys(lifecycle).length === 0) delete status.lifecycle;
-}
 
 function syncValueInput(input = {}) {
   input.valueType ||= 'string';
@@ -3542,15 +3208,6 @@ function syncProcessNode(node = {}) {
   node.matching = ['longest', 'shortest', 'cross'].includes(node.matching) ? node.matching : 'longest';
   node.inputTransforms ||= {};
   node.icon = iconForProcessNode(node.kind);
-  const referencedStatus = node.statusRef
-    ? draft.value?.data?.statusDefinitions?.[node.statusRef]
-    : null;
-  if (referencedStatus?.statusId) {
-    node.inputDefaults ||= {};
-    node.inputDefaults['status.state.primary'] = { branches: [{ path: [], items: [referencedStatus.statusId] }] };
-    node.status ||= {};
-    node.status.to = referencedStatus.statusId;
-  }
   if (op === 'source.literalItem' && node.type?.base === 'entityRef') {
     node.entityType ||= defaultEntityType();
     node.type.entityType = node.entityType;
@@ -3968,35 +3625,9 @@ function nodeDisplayLabel(record = {}, node = {}) {
   return record.label || record.entityType || record.commandId || node.data?.label || '';
 }
 
-function actionHeaderLabel(action = {}) {
-  if (isStatusUpdate(action)) return `${actionKindLabel(action.actionKind)} · ${statusTargetLabel(action)}`;
-  return actionKindLabel(action.actionKind);
-}
 
-function actionTitleLabel(action = {}) {
-  const explicit = String(action.label || '').trim();
-  if (explicit && !isGenericDesignerActionLabel(explicit, action.actionKind)) return explicit;
-  if (isStatusUpdate(action)) return statusTargetLabel(action) || t('processDesigner.targetStatus');
-  if (action.actionKind === 'runCommand') {
-    return commandOptions.value.find(option => option.value === action.commandId)?.label || action.commandId || action.id || '';
-  }
-  return actionEntityType(action) || actionKindLabel(action.actionKind) || action.id || '';
-}
 
-function isStatusUpdate(action = {}) {
-  return action.actionKind === 'updateEntity' && Boolean(action.statusRef || action.status?.to || action.access?.statusTo);
-}
 
-function statusTargetLabel(action = {}) {
-  const definition = action.statusRef ? draft.value?.data?.statusDefinitions?.[action.statusRef] : null;
-  return definition?.label
-    || definition?.statusId
-    || action.status?.label
-    || action.status?.to
-    || action.access?.statusTo
-    || action.outputs?.find(output => output.status)?.status
-    || '';
-}
 
 function isGenericDesignerActionLabel(label, actionKind = '') {
   const normalized = String(label || '').trim().toLowerCase();
@@ -4045,17 +3676,6 @@ function normalizeDesignerAccess(access = {}) {
 
 
 
-function createInputSockets(action = {}) {
-  const contract = constructionContractForEntity(action.entityType);
-  return constructionInputsForMode(contract, action.construction?.mode).map(input => ({
-    ...input,
-    id: `data:${input.id || input.path}`,
-    label: input.label || input.path,
-    dataPath: input.path,
-    kind: input.type || 'data',
-    constructionInputId: input.id || input.path
-  }));
-}
 
 function actionEventOutputs(action = {}) {
   return [{
@@ -4238,7 +3858,6 @@ function enrichNodeData(node) {
   if (node.type === 'action') syncActionIo(record, node);
   if (node.type === 'entity') syncEntityProfileIo(record);
   if (node.type === 'socket') syncSocketIo(record);
-  if (node.type === 'statusDefinition') syncStatusDefinition(record);
   if (node.type === 'valueInput') syncValueInput(record);
   if (node.type === 'processNode') applyInferredProcessNodeInputs(record, node);
   if (node.type === 'processNode') syncProcessNode(record);
@@ -4249,13 +3868,9 @@ function enrichNodeData(node) {
       label: nodeDisplayLabel(record, node),
       entityType: record.entityType,
       commandId: record.commandId,
-      actionTitleLabel: node.type === 'action' ? actionTitleLabel(record) : null,
       actionRecord: node.type === 'action' ? record : null,
       entityTypeOptions: node.type === 'action' ? entityTypeOptions.value : [],
       commandOptions: node.type === 'action' ? commandOptions.value : [],
-      roleOptions: node.type === 'action' ? actionRoleOptions(record, node) : [],
-      effectiveAccessLabels: node.type === 'action' ? effectiveActionAccessLabels(record, node) : [],
-      inheritedAccessLabels: node.type === 'action' ? inheritedActionAccessLabels(record, node) : [],
       accessLevelOptions: node.type === 'action' ? accessLevelOptions : [],
       triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
       fieldOptions: node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [],
@@ -4264,9 +3879,6 @@ function enrichNodeData(node) {
       onValueInputUpdate: node.type === 'valueInput' ? updates => updateValueInputRecord(record.id || node.data?.refId, updates) : null,
       processNodeRecord: node.type === 'processNode' ? record : null,
       onProcessNodeUpdate: node.type === 'processNode' ? updates => updateProcessNodeRecord(record.id || node.data?.refId, updates) : null,
-      statusDefinitionRecord: node.type === 'statusDefinition' ? record : null,
-      onStatusDefinitionUpdate: node.type === 'statusDefinition' ? updates => updateStatusDefinitionRecord(record.id || node.data?.refId, updates) : null,
-      onStatusDefinitionDelete: node.type === 'statusDefinition' ? () => removeStatusDefinition(record.id || node.data?.refId) : null,
       processValueTypeOptions: ['valueInput', 'processNode'].includes(node.type) ? processValueTypeOptions : [],
       processEntityTypeOptions: node.type === 'processNode' ? processEntityTypeOptions(record) : [],
       processOperationOptions: node.type === 'processNode' ? processNodeOperationOptions(record) : [],
@@ -4275,7 +3887,6 @@ function enrichNodeData(node) {
       processRelationOptions: node.type === 'processNode' ? relationOptionsForEntity(record.entityType) : [],
       processEventOptions: node.type === 'processNode' ? designer.eventOptions : [],
       processStatusOptions: node.type === 'processNode' ? processStatusOptions.value : [],
-      statusParentOptions: node.type === 'statusDefinition' ? statusParentOptions.value : [],
       processTriggerModeOptions: node.type === 'processNode' ? localizedTriggerModeOptions() : [],
       processRoleOptions: node.type === 'processNode' ? roleOptions.value : [],
       processAccessLevelOptions: node.type === 'processNode' ? accessLevelOptions : [],
@@ -4339,83 +3950,16 @@ function updateValueInputRecord(inputId, updates = {}) {
   syncNodeData();
 }
 
-function updateStatusDefinitionRecord(statusId, updates = {}) {
-  const status = draft.value?.data?.statusDefinitions?.[statusId];
-  if (!status) return;
-  Object.assign(status, updates);
-  syncStatusDefinition(status);
-  syncNodeData();
-}
 
-function mutateSelectedStatusLifecycle(mutator) {
-  if (!selectedStatusDefinition.value?.id) return;
-  const lifecycle = structuredClone(selectedStatusDefinition.value.lifecycle || {});
-  mutator(lifecycle);
-  if (!lifecycle.description?.required) delete lifecycle.description;
-  if (!Object.keys(lifecycle.attachments || {}).length) delete lifecycle.attachments;
-  if (!Object.keys(lifecycle.snapshots || {}).length) delete lifecycle.snapshots;
-  updateStatusDefinitionRecord(selectedStatusDefinition.value.id, {
-    lifecycle: Object.keys(lifecycle).length ? lifecycle : undefined
-  });
-}
 
-function setSelectedStatusDescriptionRequired(required) {
-  mutateSelectedStatusLifecycle(lifecycle => {
-    if (required) lifecycle.description = { required: true };
-    else delete lifecycle.description;
-  });
-}
 
-function addSelectedStatusAttachment() {
-  mutateSelectedStatusLifecycle(lifecycle => {
-    lifecycle.attachments ||= {};
-    const key = uniqueStatusLifecycleKey('proof', lifecycle.attachments);
-    lifecycle.attachments[key] = { kind: 'photo', required: true };
-  });
-}
 
-function updateSelectedStatusAttachment(key, updates) {
-  mutateSelectedStatusLifecycle(lifecycle => Object.assign(lifecycle.attachments[key], updates));
-}
 
-function removeSelectedStatusAttachment(key) {
-  mutateSelectedStatusLifecycle(lifecycle => delete lifecycle.attachments?.[key]);
-}
 
-function addSelectedStatusSnapshot() {
-  mutateSelectedStatusLifecycle(lifecycle => {
-    lifecycle.snapshots ||= {};
-    const key = uniqueStatusLifecycleKey('snapshot', lifecycle.snapshots);
-    lifecycle.snapshots[key] = {
-      entityType: entityTypeOptions.value[0]?.value || '',
-      lineageKey: '',
-      required: true
-    };
-  });
-}
 
-function updateSelectedStatusSnapshot(key, updates) {
-  mutateSelectedStatusLifecycle(lifecycle => Object.assign(lifecycle.snapshots[key], updates));
-}
 
-function removeSelectedStatusSnapshot(key) {
-  mutateSelectedStatusLifecycle(lifecycle => delete lifecycle.snapshots?.[key]);
-}
 
-function renameSelectedStatusLifecycleEntry(section, previous, value) {
-  const next = String(value || '').trim();
-  if (!next || next === previous || selectedStatusDefinition.value.lifecycle?.[section]?.[next]) return;
-  mutateSelectedStatusLifecycle(lifecycle => {
-    lifecycle[section][next] = lifecycle[section][previous];
-    delete lifecycle[section][previous];
-  });
-}
 
-function uniqueStatusLifecycleKey(prefix, entries) {
-  let index = 1;
-  while (entries[`${prefix}${index}`]) index += 1;
-  return `${prefix}${index}`;
-}
 
 function updateProcessNodeRecord(nodeId, updates = {}) {
   const node = draft.value?.data?.processNodes?.[nodeId];
@@ -4635,9 +4179,6 @@ function stripRuntimeNodeData(node) {
     'onValueInputUpdate',
     'processNodeRecord',
     'onProcessNodeUpdate',
-    'statusDefinitionRecord',
-    'onStatusDefinitionUpdate',
-    'onStatusDefinitionDelete',
     'processValueTypeOptions',
     'processEntityTypeOptions',
     'processOperationOptions',
@@ -4814,21 +4355,6 @@ function connectionCompatibility(connection = {}) {
   if (!source || !target) return { ok: true };
   const sourceRecord = draft.value?.data?.processNodes?.[source.data?.refId];
   const targetRecord = draft.value?.data?.processNodes?.[target.data?.refId];
-  if (source.type === 'statusDefinition' && targetRecord) {
-    const targetPort = portForHandle(resolveCatalogNodePorts(targetRecord, catalogContext(targetRecord)).inputs, connection.targetHandle, 'input');
-    if (!targetPort) return { ok: false };
-    const sourcePort = {
-      id: 'status',
-      label: draft.value?.data?.statusDefinitions?.[source.data?.refId]?.label || t('processDesigner.socketLabels.status'),
-      role: 'data',
-      type: processType('status')
-    };
-    return {
-      ...processSocketsCompatible(sourcePort, targetPort),
-      source: sourcePort,
-      target: targetPort
-    };
-  }
   if (!sourceRecord || !targetRecord) {
     // Declaration wires are legal only between declaration partners
     // (declarationWireLegality): field/state -> class declares;
@@ -4938,36 +4464,6 @@ function applySemanticConnection(connection = {}) {
   const entityProfile = target.type === 'entity' ? draft.value?.data?.producerOutputs?.[target.data?.refId] : null;
   const processNode = target.type === 'processNode' ? draft.value?.data?.processNodes?.[target.data?.refId] : null;
 
-  if (source.type === 'statusDefinition') {
-    const status = draft.value?.data?.statusDefinitions?.[source.data?.refId];
-    if (!status) return;
-    syncStatusDefinition(status);
-    if (processNode) {
-      const targetInput = String(connection.targetHandle || '').replace(/^(input|data):/, '');
-      if (targetInput !== 'status.state.primary') return;
-      processNode.statusRef = status.id || source.data?.refId;
-      processNode.inputDefaults ||= {};
-      processNode.inputDefaults[targetInput] = { branches: [{ path: [], items: [status.statusId] }] };
-      processNode.status = { ...(processNode.status || {}), to: status.statusId };
-      syncProcessNode(processNode);
-      return;
-    }
-    if (entityProfile) {
-      applyStatusDefinitionToEntity(status, entityProfile);
-      syncEntityProfileIo(entityProfile);
-      syncNodeData();
-      return;
-    }
-    if (!action) return;
-    action.statusRef = status.id || source.data?.refId;
-    action.status ||= {};
-    action.status.to = status.statusId;
-    action.access = normalizeDesignerAccess(action.access);
-    action.access.statusTo = status.statusId;
-    syncActionIo(action, target);
-    return;
-  }
-
   if (source.type === 'valueInput') {
     const input = draft.value?.data?.valueInputs?.[source.data?.refId];
     if (!input) return;
@@ -4999,133 +4495,15 @@ function applySemanticConnection(connection = {}) {
 function clearSemanticConnection(edge = {}) {
   const source = nodes.value.find(item => item.id === edge.source);
   const target = nodes.value.find(item => item.id === edge.target);
-  if (source?.type !== 'statusDefinition' || target?.type !== 'processNode') return;
-  const targetInput = String(edge.targetHandle || '').replace(/^(input|data):/, '');
-  if (targetInput !== 'status.state.primary') return;
-  const processNode = draft.value?.data?.processNodes?.[target.data?.refId];
-  const status = draft.value?.data?.statusDefinitions?.[source.data?.refId];
-  if (!processNode || processNode.statusRef !== (status?.id || source.data?.refId)) return;
-  delete processNode.statusRef;
-  if (processNode.inputDefaults) delete processNode.inputDefaults[targetInput];
-  if (processNode.status?.to === status?.statusId) delete processNode.status.to;
-  syncProcessNode(processNode);
-}
-
-function applyStatusDefinitionToEntity(status = {}, profile = {}) {
-  profile.lifecycle = {
-    mode: 'custom',
-    workflow: workflowForEntity(profile)
-  };
-  const region = ensureLifecycleRegion(profile);
-  const decorated = {
-    label: status.label || status.statusId,
-    color: status.color || status.severity || 'info',
-    severity: status.severity || status.color || 'info',
-    icon: status.icon || 'pi pi-circle-fill',
-    canUpdateMeta: true
-  };
-  const parentStatusId = status.parentStatusId || '';
-  if (parentStatusId) {
-    region.states[parentStatusId] ||= { canUpdateMeta: true };
-    region.states[parentStatusId].states ||= {};
-    region.states[parentStatusId].states[status.statusId] = {
-      ...(region.states[parentStatusId].states[status.statusId] || {}),
-      ...decorated
-    };
-    return;
-  }
-  region.states[status.statusId] = {
-    ...(region.states[status.statusId] || {}),
-    ...decorated
-  };
-  if (!region.initial) region.initial = status.statusId;
-}
-
-function ensureLifecycleRegion(profile = {}) {
-  const workflow = normalizeWorkflow(profile.lifecycle?.workflow || createCreatedWorkflow());
-  profile.lifecycle ||= {};
-  profile.lifecycle.workflow = workflow;
-  const regionId = workflow.primaryRegion || 'main';
-  workflow.regions[regionId] ||= { id: regionId, label: 'Lifecycle', initial: '', states: {}, transitions: [] };
-  return workflow.regions[regionId];
-}
-
-function applyValueInputToAction(input = {}, action = {}, inputId = '', connection = {}) {
-  const targetId = String(connection.targetHandle || '').replace(/^input:/, '').replace(/^data:/, '');
-  const targetInput = (action.inputs || []).find(item => item.id === targetId || item.dataPath === targetId);
-  const targetPath = targetInput?.dataPath || targetInput?.path || targetId.replace(/^field:/, '');
-  const field = fieldContractFromValueInput(input, inputId, targetPath);
-
-  if (action.actionKind === 'updateEntity') {
-    if (!targetPath || targetPath === 'field') return;
-    action.mutation ||= { fields: [] };
-    if (!action.mutation.fields.includes(targetPath)) action.mutation.fields = [...action.mutation.fields, targetPath];
-    upsertInputPolicyField(action, field);
-    return;
-  }
-
-  if (action.actionKind === 'createEntity') {
-    const targetField = findConstructionField(action, targetId);
-    upsertInputPolicyField(action, fieldForTargetSocket(field, targetField, targetId));
-    return;
-  }
 
 }
 
-function findConstructionField(action = {}, targetId = '') {
-  const inputs = [
-    ...(action.construction?.inputs || []),
-    ...(constructionContractForEntity(action.entityType).inputs || [])
-  ];
-  return inputs.find(input =>
-    input.id === targetId ||
-    input.path === targetId ||
-    `data:${input.id}` === targetId ||
-    `data:${input.path}` === targetId
-  ) || null;
-}
 
-function fieldForTargetSocket(field = {}, targetField = null, targetId = '') {
-  if (!targetField) return { ...field, id: targetId || field.id };
-  return {
-    ...field,
-    ...targetField,
-    id: targetField.id || targetId || field.id,
-    label: targetField.label || field.label,
-    path: targetField.path || field.path,
-    type: targetField.type || field.type,
-    prompt: false,
-    required: false,
-    default: field.default,
-    valueRef: field.valueRef
-  };
-}
 
-function fieldContractFromValueInput(input = {}, inputId = '', path = '') {
-  return {
-    id: input.id || inputId,
-    label: input.label || input.id || inputId,
-    path,
-    type: input.valueType || 'string',
-    prompt: false,
-    required: false,
-    default: parseValueInput(input),
-    valueRef: input.id || inputId || ''
-  };
-}
 
-function upsertInputPolicyField(action = {}, field = {}) {
-  action.inputPolicy ||= { prompt: true, fields: [] };
-  const fields = action.inputPolicy.fields || [];
-  const index = fields.findIndex(item => item.id === field.id || item.path === field.path);
-  if (index >= 0) fields[index] = { ...fields[index], ...field };
-  else fields.push(field);
-  action.inputPolicy = {
-    ...action.inputPolicy,
-    prompt: fields.some(item => item.prompt !== false),
-    fields: [...fields]
-  };
-}
+
+
+
 
 function parseValueInput(input = {}) {
   if (input.structure === 'list') return parseJson(input.value || '[]', []);
@@ -5142,29 +4520,6 @@ function syncInferredActionInputs() {
   for (const node of nodes.value.filter(item => item.type === 'action')) {
     const action = draft.value?.data?.actions?.[node.data?.refId];
     if (!action || action.actionKind !== 'updateEntity') continue;
-    const statusEdge = edges.value.find(edge => {
-      if (edge.target !== node.id) return false;
-      const source = nodes.value.find(item => item.id === edge.source);
-      return source?.type === 'statusDefinition';
-    });
-    if (statusEdge) {
-      const source = nodes.value.find(item => item.id === statusEdge.source);
-      const status = draft.value?.data?.statusDefinitions?.[source?.data?.refId];
-      if (status) {
-        syncStatusDefinition(status);
-        action.statusRef = status.id || source.data?.refId;
-        action.status ||= {};
-        action.status.to = status.statusId;
-        action.access = normalizeDesignerAccess(action.access);
-        action.access.statusTo = status.statusId;
-      }
-    } else if (action.statusRef) {
-      delete action.statusRef;
-      action.status ||= {};
-      action.status.to = '';
-      action.access = normalizeDesignerAccess(action.access);
-      action.access.statusTo = '';
-    }
     const inferred = inferIncomingEntityContract(node.id);
     const entityInput = action.inputs?.find(input => input.id === 'entity');
     if (entityInput && inferred.entityType) entityInput.entityType = inferred.entityType;
@@ -5216,50 +4571,8 @@ function socketHandleIdForRecord(kind, item, index, items) {
   return `${kind}:${item.id || index}`;
 }
 
-function actionRoleOptions() {
-  return roleOptions.value;
-}
 
-function effectiveActionAccessLabels(action = {}, node = {}) {
-  const entityType = actionEntityType(action) || inferIncomingEntityContract(node.id).entityType;
-  if (!entityType) return [];
-  const targetStatus = actionTargetStatus(action);
-  const currentRoleIds = new Set(normalizeDesignerAccess(action.access).roleIds);
-  const accessByRole = new Map();
 
-  for (const output of Object.values(draft.value?.data?.producerOutputs || {})) {
-    if (output.entityType !== entityType) continue;
-    for (const level of ['read', 'write', 'admin']) {
-      for (const roleId of output.allowedRoles?.[level] || []) {
-        addEffectiveRoleAccess(accessByRole, roleId, level, '');
-      }
-    }
-  }
-
-  for (const otherAction of Object.values(draft.value?.data?.actions || {})) {
-    if ((otherAction.id || '') === (action.id || '')) continue;
-    if (actionEntityType(otherAction) !== entityType) continue;
-    const otherStatus = actionTargetStatus(otherAction);
-    if (targetStatus && otherStatus && targetStatus !== otherStatus) continue;
-    for (const grant of normalizeDesignerAccess(otherAction.access).grants) {
-      addEffectiveRoleAccess(accessByRole, grant.roleId, normalizeAccessLevel(grant.level), otherStatus);
-    }
-  }
-
-  return [...accessByRole.values()]
-    .filter(item => !currentRoleIds.has(item.roleId))
-    .map(item => [item.label, item.level].filter(Boolean).join(' · '));
-}
-
-function inheritedActionAccessLabels(action = {}, node = {}) {
-  if (action.actionKind !== 'updateEntity') return [];
-  const inherited = inferIncomingEntityContract(node.id).access;
-  if (!inherited?.grants?.length) return [];
-  return inherited.grants.map(grant => [
-    roles.value[grant.roleId]?.label || grant.roleId,
-    grant.level || 'write'
-  ].join(' · '));
-}
 
 function addEffectiveRoleAccess(accessByRole, roleId, level, status) {
   const normalizedLevel = normalizeAccessLevel(level);
@@ -5274,17 +4587,5 @@ function addEffectiveRoleAccess(accessByRole, roleId, level, status) {
   }
 }
 
-function actionEntityType(action = {}) {
-  return action.entityType
-    || action.outputs?.find(output => output.entityType)?.entityType
-    || action.inputs?.find(input => input.entityType)?.entityType
-    || '';
-}
 
-function actionTargetStatus(action = {}) {
-  return action.access?.statusTo
-    || action.status?.to
-    || action.outputs?.find(output => typeof output.status === 'string')?.status
-    || '';
-}
 </script>
