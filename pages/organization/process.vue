@@ -1042,6 +1042,7 @@ import { useProcessDesignerScreens } from '~/composables/useProcessDesignerScree
 import { useProcessDesignerPalette } from '~/composables/useProcessDesignerPalette.js';
 import { useProcessDesignerInspector } from '~/composables/useProcessDesignerInspector.js';
 import {
+  createCreatedWorkflow,
   defaultProcessNodeOperation,
   defaultProcessNodeValueType,
   humanizeNodeLabel,
@@ -1365,7 +1366,6 @@ const {
   selectedNode,
   factories: {
     entity: createEntityProfile,
-    action: createAction,
     service: createService,
     socket: createSocket,
     valueInput: createValueInput,
@@ -1440,13 +1440,6 @@ const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = u
   searchText: paletteSearchText,
   isCompatible: contextItemCompatible
 });
-const actionKindOptions = [
-  { label: t('processDesigner.paletteItems.create'), value: 'createEntity' },
-  { label: t('processDesigner.paletteItems.modify'), value: 'updateEntity' },
-  { label: t('processDesigner.paletteItems.service'), value: 'runCommand' },
-  { label: t('processDesigner.paletteItems.send'), value: 'sendToOrganization' }
-];
-const genericActionLabels = new Set(['action', 'create', 'modify', 'status', 'service', 'send', 'update']);
 const triggerModeOptions = [
   { label: 'Manual', value: 'manual' },
   { label: 'Automatic', value: 'event' }
@@ -2368,9 +2361,6 @@ function addNode(item, position = nextNodePosition()) {
     return enrichedNode;
   }
   const record = ensureRecord(recordKeyForType(type), { data: { refId }, type }, factoryForType(type));
-  if (type === 'action' && actionKind) {
-    Object.assign(record, createAction(refId, actionKind));
-  }
   if (type === 'socket' && socketDirection) {
     Object.assign(record, createSocket(refId, socketDirection));
   }
@@ -2764,8 +2754,6 @@ function syncNodeData() {
 
 function syncCanvasNode(node) {
   const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
-  if (node.type === 'action') syncActionIo(record, node);
-  if (node.type === 'entity') syncEntityProfileIo(record);
   if (node.type === 'socket') syncSocketIo(record);
   if (node.type === 'valueInput') syncValueInput(record);
   if (node.type === 'processNode') {
@@ -2788,8 +2776,6 @@ function syncCanvasNode(node) {
     node.data.commandOptions = node.type === 'action' ? commandOptions.value : [];
     node.data.accessLevelOptions = node.type === 'action' ? accessLevelOptions : [];
     node.data.triggerModeOptions = node.type === 'action' ? localizedTriggerModeOptions() : [];
-    node.data.fieldOptions = node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [];
-    node.data.onActionUpdate = node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data.refId, updates, options) : null;
     node.data.valueInputRecord = node.type === 'valueInput' ? record : null;
     node.data.onValueInputUpdate = node.type === 'valueInput' ? updates => updateValueInputRecord(record.id || node.data.refId, updates) : null;
     node.data.processNodeRecord = node.type === 'processNode' ? record : null;
@@ -2801,7 +2787,6 @@ function syncCanvasNode(node) {
     node.data.processBlockOptions = node.type === 'processNode' ? processNodeBlockOptions(record) : [];
     node.data.processRelationOptions = node.type === 'processNode' ? relationOptionsForEntity(record.entityType) : [];
     node.data.processEventOptions = node.type === 'processNode' ? designer.eventOptions : [];
-    node.data.processStatusOptions = node.type === 'processNode' ? processStatusOptions.value : [];
     node.data.processTriggerModeOptions = node.type === 'processNode' ? localizedTriggerModeOptions() : [];
     node.data.processRoleOptions = node.type === 'processNode' ? roleOptions.value : [];
     node.data.processAccessLevelOptions = node.type === 'processNode' ? accessLevelOptions : [];
@@ -3616,9 +3601,6 @@ function initialStatusForEntity(entityType) {
   return region?.initial || '';
 }
 
-function actionKindLabel(actionKind) {
-  return actionKindOptions.find(option => option.value === actionKind)?.label || '';
-}
 
 function nodeDisplayLabel(record = {}, node = {}) {
   return record.label || record.entityType || record.commandId || node.data?.label || '';
@@ -3628,11 +3610,6 @@ function nodeDisplayLabel(record = {}, node = {}) {
 
 
 
-function isGenericDesignerActionLabel(label, actionKind = '') {
-  const normalized = String(label || '').trim().toLowerCase();
-  if (!normalized) return false;
-  return genericActionLabels.has(normalized) || normalized === String(actionKind || '').toLowerCase();
-}
 
 function localizedTriggerModeOptions() {
   return triggerModeOptions.map(option => ({
@@ -3854,8 +3831,6 @@ function enrichNodeData(node) {
     return { ...node, data: { ...(node.data || {}), type: entry || null, label: entry?.label || node.data?.typeId || 'type', ...declarationNodePorts(node, ctsTypeView()) } };
   }
   const record = ensureRecord(recordKeyForType(node.type), node, factoryForType(node.type));
-  if (node.type === 'action') syncActionIo(record, node);
-  if (node.type === 'entity') syncEntityProfileIo(record);
   if (node.type === 'socket') syncSocketIo(record);
   if (node.type === 'valueInput') syncValueInput(record);
   if (node.type === 'processNode') applyInferredProcessNodeInputs(record, node);
@@ -3872,8 +3847,6 @@ function enrichNodeData(node) {
       commandOptions: node.type === 'action' ? commandOptions.value : [],
       accessLevelOptions: node.type === 'action' ? accessLevelOptions : [],
       triggerModeOptions: node.type === 'action' ? localizedTriggerModeOptions() : [],
-      fieldOptions: node.type === 'action' ? fieldOptions(actionEntityType(record) || inferIncomingEntityContract(node.id).entityType) : [],
-      onActionUpdate: node.type === 'action' ? (updates, options = {}) => updateActionRecord(record.id || node.data?.refId, updates, options) : null,
       valueInputRecord: node.type === 'valueInput' ? record : null,
       onValueInputUpdate: node.type === 'valueInput' ? updates => updateValueInputRecord(record.id || node.data?.refId, updates) : null,
       processNodeRecord: node.type === 'processNode' ? record : null,
@@ -3885,7 +3858,6 @@ function enrichNodeData(node) {
       processBlockOptions: node.type === 'processNode' ? processNodeBlockOptions(record) : [],
       processRelationOptions: node.type === 'processNode' ? relationOptionsForEntity(record.entityType) : [],
       processEventOptions: node.type === 'processNode' ? designer.eventOptions : [],
-      processStatusOptions: node.type === 'processNode' ? processStatusOptions.value : [],
       processTriggerModeOptions: node.type === 'processNode' ? localizedTriggerModeOptions() : [],
       processRoleOptions: node.type === 'processNode' ? roleOptions.value : [],
       processAccessLevelOptions: node.type === 'processNode' ? accessLevelOptions : [],
@@ -3924,22 +3896,6 @@ function enrichNodeData(node) {
   };
 }
 
-function updateActionRecord(actionId, updates = {}, options = {}) {
-  const action = draft.value?.data?.actions?.[actionId];
-  if (!action) return;
-  Object.assign(action, updates);
-  if (updates.access && !options.inheritAccess) {
-    action.access = normalizeDesignerAccess(action.access);
-    action.access.modified = true;
-  }
-  if (updates.status && action.actionKind === 'updateEntity') {
-    action.access = normalizeDesignerAccess(action.access);
-    action.access.statusFrom = action.status?.from || '';
-    action.access.statusTo = action.status?.to || '';
-  }
-  if (options.syncIo) syncActionIo(action, selectedNode.value);
-  syncNodeData();
-}
 
 function updateValueInputRecord(inputId, updates = {}) {
   const input = draft.value?.data?.valueInputs?.[inputId];
@@ -4459,43 +4415,13 @@ function applySemanticConnection(connection = {}) {
   const source = nodes.value.find(item => item.id === connection.source);
   const target = nodes.value.find(item => item.id === connection.target);
   if (!source || !target) return;
-  const action = target.type === 'action' ? draft.value?.data?.actions?.[target.data?.refId] : null;
   const entityProfile = target.type === 'entity' ? draft.value?.data?.producerOutputs?.[target.data?.refId] : null;
   const processNode = target.type === 'processNode' ? draft.value?.data?.processNodes?.[target.data?.refId] : null;
 
-  if (source.type === 'valueInput') {
-    const input = draft.value?.data?.valueInputs?.[source.data?.refId];
-    if (!input) return;
-    syncValueInput(input);
-    if (!action) return;
-    applyValueInputToAction(input, action, source.data?.refId, connection);
-    syncActionIo(action, target);
-    return;
-  }
-
-  if (action?.actionKind === 'updateEntity') {
-    const relationKey = relationKeyFromHandle(connection.targetHandle);
-    const entityType = actionEntityType(action) || inferIncomingEntityContract(target.id).entityType;
-    const relation = declaredRelationsForEntity(entityType).find(item => item.key === relationKey);
-    if (relation) {
-      action.mutation ||= { fields: [] };
-      const path = `relations.${relation.key}`;
-      if (!action.mutation.fields.includes(path)) action.mutation.fields = [...action.mutation.fields, path];
-      syncActionIo(action, target);
-      return;
-    }
-  }
-
-  if (source.type === 'entity' && action) {
-    syncActionIo(action, target);
-  }
+  if (source.type === 'valueInput') return;
 }
 
-function clearSemanticConnection(edge = {}) {
-  const source = nodes.value.find(item => item.id === edge.source);
-  const target = nodes.value.find(item => item.id === edge.target);
-
-}
+function clearSemanticConnection() {}
 
 
 
@@ -4516,27 +4442,6 @@ function parseValueInput(input = {}) {
 }
 
 function syncInferredActionInputs() {
-  for (const node of nodes.value.filter(item => item.type === 'action')) {
-    const action = draft.value?.data?.actions?.[node.data?.refId];
-    if (!action || action.actionKind !== 'updateEntity') continue;
-    const inferred = inferIncomingEntityContract(node.id);
-    const entityInput = action.inputs?.find(input => input.id === 'entity');
-    if (entityInput && inferred.entityType) entityInput.entityType = inferred.entityType;
-    if (!action.status?.from && inferred.status) {
-      action.status ||= {};
-      action.status.from = inferred.status;
-    }
-    const entityType = inferred.entityType || actionEntityType(action);
-    for (const relation of declaredRelationsForEntity(entityType)) {
-      const connected = edges.value.some(edge => edge.target === node.id && relationKeyFromHandle(edge.targetHandle) === relation.key);
-      const path = `relations.${relation.key}`;
-      action.mutation ||= { fields: [] };
-      action.mutation.fields = connected
-        ? [...new Set([...(action.mutation.fields || []), path])]
-        : (action.mutation.fields || []).filter(field => field !== path);
-    }
-    syncActionIo(action, node);
-  }
   syncNodeData();
 }
 
