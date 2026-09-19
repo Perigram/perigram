@@ -65,7 +65,11 @@ entity workflows, services, sockets, and field policies. The checkmark apply
 button saves or forks the visible graph, activates the resulting process
 definition, and records activation warnings/errors in the centered canvas
 validation feedback so operators can inspect the result without a persistent
-canvas panel.
+canvas panel. When the next contract removes workflow states still held by
+live instances, Apply pauses in the migration dialog: the author maps each
+removed state to a retained target, and activation re-targets the affected
+instances (the canonical Apply migration contract lives in
+[server/features/process-definitions/README.md](../../server/features/process-definitions/README.md)).
 
 The designer authors the graph protocol v5 (SPEC §20): palette items are
 species kinds (`cts.construct`/`mutate`/`transition`/`remove`/`command`,

@@ -30,11 +30,56 @@ diff for the designer's Apply summary. Activation is a migration gate for the
 last category: when live entities still hold a removed workflow state
 (checked through the registered entity services with the activating actor's
 auth context), activation fails with HTTP 409 and `migrationRequired` data
-naming each entity type, its removed states, and the affected count — the
-author first migrates those entities through the status engine or keeps the
-states. Entity types whose status check cannot run do not block activation,
-and a previous contract that can no longer be compiled (domain drift) makes
-the diff unavailable rather than blocking activation.
+naming each entity type, its removed states, and the affected count. Entity
+types whose status check cannot run do not block activation, and a previous
+contract that can no longer be compiled (domain drift) makes the diff
+unavailable rather than blocking activation.
+
+## Apply migration plan (canonical)
+
+Apply turns the removed-status gate from a dead end into a confirmed
+migration. `migration-plan.js` owns the contract:
+
+- **Plan** (`migrationPlan` on the validate response and on the 409 data):
+  one row per entity type with live instances in removed primary states —
+  `{ statuses: [{ entityType, removed: [{ state, count }], targets }] }`,
+  where `targets` are the entity type's retained primary states in the next
+  compiled contract (recomputed from both sides, never trusted from the
+  client). The plan is the whole database impact statement for instance
+  mutations: compatible declaration evolution needs no instance rewrite
+  (absent-from-row renders absent), field-policy changes are redaction
+  only, and the append-only logs are never mutated. An abandoned/deleted
+  bucket is structurally absent today because breaking declaration changes
+  are refused at the registry and Apply never removes types; declared
+  migrations (CTS SPEC §11 deferred tier) will land in this same plan when
+  that tier is built.
+- **Decision** — `POST …/activate` accepts `{ migration: { statuses:
+  [{ entityType, from, to }] } }`. Every removed state with a live count
+  must carry exactly one mapping whose `to` is a retained target for that
+  entity type; invalid or partial mappings are HTTP 400 with the plan
+  attached. Without a payload the boundary keeps the historical 409.
+- **Ordering** — activate, then migrate, inside one request. The status
+  machine resolves the *active* contract (`resolveActiveWorkflow`), so
+  re-targeting before activation would validate targets against machines
+  that do not contain them yet. After the new contract is active, each
+  affected instance is re-targeted through
+  `statusService.setInitialStateForOrganization` (initial-state semantics:
+  the `status_events` record carries `fromState: null`; the old→new mapping
+  is preserved in the migration summary on the definition). The producer
+  output whose machine contains the target state is resolved per write and
+  passed as `producerOutputId` metadata, so machines are never guessed.
+  Reads go through the registered entity service's `processList` with the
+  activating actor's auth — process definitions never run generic Mongo
+  writes for business entities.
+- **Idempotent resume** — re-targeting skips instances no longer holding
+  the removed state, so re-POSTing activate with the same mappings
+  completes an interrupted migration. The applied summary is persisted as
+  `data.migration` on the activated definition (`appliedAt`, actor,
+  mappings, per-mapping counts, failures). A migration step that fails
+  after activation returns HTTP 500 with `migrationIncomplete` and the
+  partial summary; every re-target publishes the shared typed
+  invalidation event, so open screens reconcile exactly as if the
+  mutation happened through an action.
 
 Creation, update, validation, and activation accept only the current semantic
 source at `dataflowVersion: 4`. Definitions with a missing or different

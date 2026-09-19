@@ -43,6 +43,13 @@ import { projectDomainFromView } from '~/packages/cts/src/index.js';
 import { cncPackContent } from '~/packages/domain-cnc/src/index.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
 import {
+  applyStatusMigrations,
+  buildStatusMigrationPlan,
+  normalizeStatusMappings,
+  throwMigrationRequired,
+  validateStatusMappings
+} from './migration-plan.js';
+import {
   assertCurrentProcessDefinition,
   currentProcessDefinition,
   validateActivatableProcess
@@ -204,14 +211,16 @@ async function contractDiffFor(process, auth) {
 }
 
 // Activation must not silently orphan live entities on workflow states the
-// next contract removes: the author first migrates those entities (through
-// the status engine) or keeps the states. Entity types whose status check
-// cannot run are not treated as affected.
-async function assertNoStrandedEntityStatuses(process, auth, nextCompiled) {
+// next contract removes. The gate now doubles as the Apply migration plan
+// generator (canonical contract in this feature's README): live counts per
+// removed state become plan rows, and a confirmed mapping payload re-targets
+// the affected instances right after the new contract is active. Entity
+// types whose status check cannot run are not treated as affected.
+async function collectStrandedEntityStatuses(process, auth, nextCompiled) {
   const baseline = await activeContractBaseline(process, auth);
-  if (!baseline) return;
+  if (!baseline) return [];
   const removed = diffProcessContracts(baseline, nextCompiled).removedEntityStatuses;
-  const affected = [];
+  const stranded = [];
   for (const { entityType, statuses } of removed) {
     let entities = [];
     try {
@@ -219,17 +228,16 @@ async function assertNoStrandedEntityStatuses(process, auth, nextCompiled) {
     } catch {
       continue;
     }
-    const count = entities.filter(entity => statuses.includes(entity?.status?.state?.primary)).length;
-    if (count) affected.push({ entityType, statuses, count });
+    const counts = Object.fromEntries(statuses.map(state => [state, 0]));
+    for (const entity of entities) {
+      const primary = entity?.status?.state?.primary;
+      if (Object.hasOwn(counts, primary)) counts[primary] += 1;
+    }
+    const present = statuses.filter(state => counts[state] > 0)
+      .map(state => ({ state, count: counts[state] }));
+    if (present.length) stranded.push({ entityType, statuses: present });
   }
-  if (affected.length) {
-    const detail = affected.map(item => `${item.entityType} ${item.statuses.join(', ')} (${item.count})`).join('; ');
-    throw createError({
-      statusCode: 409,
-      message: `Removed workflow states still used by active entities require a migration decision: ${detail}`,
-      data: { migrationRequired: true, affected }
-    });
-  }
+  return stranded;
 }
 
 export async function validate(id, auth) {
@@ -237,10 +245,22 @@ export async function validate(id, auth) {
   const accepted = currentProcessDefinition(process.data, getDomain());
   assertCanonicalProcessSource(accepted);
   const validation = validateActivatableProcess(accepted, getDomain(), await loadOrganizationRoles(process.lineage.organizationId));
-  return { ...validation, diff: await contractDiffFor(process, auth) };
+  const diff = await contractDiffFor(process, auth);
+  let migrationPlan = null;
+  if (diff?.removedEntityStatuses?.length) {
+    try {
+      const nextCompiled = await compileOrganizationProcess(process.data, process.lineage.organizationId, await loadOrganizationRoles(process.lineage.organizationId));
+      const stranded = await collectStrandedEntityStatuses(process, auth, nextCompiled);
+      if (stranded.length) migrationPlan = buildStatusMigrationPlan(stranded, nextCompiled);
+    } catch {
+      // The activate boundary recomputes the plan from fresh compiles; a
+      // failed plan build here must not mask the validation result.
+    }
+  }
+  return { ...validation, diff, ...(migrationPlan ? { migrationPlan } : {}) };
 }
 
-export async function activate(id, auth) {
+export async function activate(id, auth, payload = {}) {
   const process = await loadAuthorized(id, auth, 'admin');
   const accepted = currentProcessDefinition(process.data, getDomain());
   assertCanonicalProcessSource(accepted);
@@ -257,11 +277,47 @@ export async function activate(id, auth) {
     ...process.data,
     compiled: await compileOrganizationProcess(process.data, process.lineage.organizationId, roles)
   };
-  await assertNoStrandedEntityStatuses(process, auth, process.data.compiled);
+  const stranded = await collectStrandedEntityStatuses(process, auth, process.data.compiled);
+  const plan = stranded.length ? buildStatusMigrationPlan(stranded, process.data.compiled) : null;
+  const mappings = normalizeStatusMappings(payload?.migration?.statuses);
+  if (stranded.length) {
+    if (!mappings.length) throwMigrationRequired(stranded, plan);
+    const mappingErrors = validateStatusMappings(plan, mappings);
+    if (mappingErrors.length) {
+      throw createError({ statusCode: 400, message: mappingErrors.join('; '), data: { migrationPlan: plan } });
+    }
+  }
   await repository.archiveActiveByOrganization(process.lineage.organizationId, auth.userId);
   applyProcessStatus(process, 'ACTIVE', auth.userId, 'Process activated');
-  const updated = await repository.updateById(id, process);
+  let updated = await repository.updateById(id, process);
   await organizationProcessService().setActiveProcessDefinition(process.lineage.organizationId, updated._id);
+  if (stranded.length) {
+    // Activate, then migrate (one request): the status machine resolves the
+    // active contract, so target states only exist after activation. Writes
+    // are initial-state re-targets; every step is idempotent and publishes
+    // the shared invalidation event.
+    const migration = await applyStatusMigrations({
+      mappings,
+      auth,
+      organizationId: process.lineage.organizationId,
+      compiled: process.data.compiled
+    });
+    process.data.migration = {
+      appliedAt: new Date().toISOString(),
+      actor: auth.userId || 'SYSTEM',
+      mappings,
+      applied: migration.applied,
+      failures: migration.failures
+    };
+    updated = await repository.updateById(id, process);
+    if (migration.failures.length) {
+      throw createError({
+        statusCode: 500,
+        message: `Migration incomplete: ${migration.failures.length} instance(s) failed to re-target. Re-apply with the same mappings to resume.`,
+        data: { migrationIncomplete: true, migration: process.data.migration, migrationPlan: plan }
+      });
+    }
+  }
   return new ProcessDefinition(updated).toJSON();
 }
 

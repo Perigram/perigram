@@ -53,7 +53,10 @@ function regionEntries(workflow = {}) {
   return entries;
 }
 
-function primaryStates(producerOutputs = {}, entityType = '') {
+// Retained primary-region states for one entity type across its producers.
+// Shared by the contract diff (removedEntityStatuses) and the Apply
+// migration plan (target choices), so both speak the same state set.
+export function primaryStates(producerOutputs = {}, entityType = '') {
   const states = new Set();
   for (const output of Object.values(producerOutputs || {})) {
     if (output.entityType !== entityType) continue;
