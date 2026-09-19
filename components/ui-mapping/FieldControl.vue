@@ -125,7 +125,7 @@ import SelectButton from 'primevue/selectbutton';
 import Tag from 'primevue/tag';
 import Chip from 'primevue/chip';
 import Knob from 'primevue/knob';
-import { DENSITY, LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity } from '#shared/ui-mapping/index.js';
+import { DENSITY, LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity, formatValue } from '#shared/ui-mapping/index.js';
 import InstanceChip from './InstanceChip.vue';
 import QuantityInput from './QuantityInput.vue';
 import EnumSelect from './EnumSelect.vue';

@@ -16,6 +16,15 @@ describe('ui-mapping component module imports', () => {
       for (const name of sharedImports) {
         expect(indexModule[name], `${file} imports ${name}`).toBeDefined();
       }
+      const SHARED_HELPERS = ['formatValue', 'formatQuantity', 'instanceIdentity', 'fieldLabel',
+        'applyBudget', 'resolveListLayout', 'resolveSurface', 'resolveFieldControl',
+        'tableColumnCount', 'cardFactCount', 'cardVariantFor', 'analyzeTypeShape', 'composeScreen'];
+      const scriptBody = source.slice(source.indexOf('<script'));
+      for (const helper of SHARED_HELPERS) {
+        const called = new RegExp(`\\b${helper}\\s*\\(`).test(scriptBody);
+        const imported = sharedImports.includes(helper);
+        expect(called && !imported, `${file} calls ${helper} without importing it`).toBe(false);
+      }
     }
   });
 });
