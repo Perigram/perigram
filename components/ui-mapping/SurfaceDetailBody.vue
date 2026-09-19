@@ -7,7 +7,7 @@
       <span v-if="group.label" :class="LAYOUT.sectionTitle">{{ group.label }}</span>
       <div v-if="shownFacts(group).length" :class="LAYOUT.specList">
         <div v-for="field in shownFacts(group)" :key="field.name" :class="LAYOUT.specRow">
-          <span class="text-body text-muted">{{ field.label }}</span>
+          <span :class="LAYOUT.labelCell">{{ field.label }}</span>
           <FieldControl
             v-if="editing"
             v-model="draft[field.name]"
