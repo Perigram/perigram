@@ -223,6 +223,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-partlibrary-vue` | `components/PartLibrary.vue` | derived usage | replace:chrome (3) |
 | `ui-components-permissioneditor-vue` | `components/PermissionEditor.vue` | derived usage | centralize:layout (2); replace:chrome (2) |
 | `ui-components-permissionrulebuilder-vue` | `components/PermissionRuleBuilder.vue` | derived usage | replace:chrome (8) |
+| `ui-components-process-designer-applymigrationdialog-vue` | `components/process-designer/ApplyMigrationDialog.vue` | derived usage | replace:chrome (4) |
 | `ui-components-process-designer-ctstypenode-vue` | `components/process-designer/CtsTypeNode.vue` | derived usage | replace:chrome (8); remove:important-override (11) |
 | `ui-components-process-designer-inspector-declarationedgeinspector-vue` | `components/process-designer/inspector/DeclarationEdgeInspector.vue` | derived usage | compliant |
 | `ui-components-process-designer-inspector-declarationinspector-vue` | `components/process-designer/inspector/DeclarationInspector.vue` | derived usage | compliant |

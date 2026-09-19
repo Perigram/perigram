@@ -34,7 +34,12 @@ record access, roles, screens, and dock/panel state:
   pan, and node placement.
 - `useProcessDesignerContextPalette` — the socket-filtered drop palette.
 - `useProcessDesignerApply` — save/validate/activate as one operation with
-  first-diagnostic focus.
+  first-diagnostic focus. When validation returns an Apply migration plan
+  (removed workflow states with live instances), Apply pauses with
+  `pendingMigration` instead of activating; `ApplyMigrationDialog` collects
+  one target state per removed state, and confirming re-posts activate
+  with the mapping payload (see the canonical Apply migration contract in
+  [server/features/process-definitions/README.md](../../server/features/process-definitions/README.md)).
 - `utils/processDesignerAccess.js` (grant-row normalization) and
   `utils/processDesignerPaletteText.js` (localized palette labels) are the
   shared pure helpers.
@@ -414,7 +419,11 @@ silently failing. Save remains available for every loaded process and
 persists the authored graph as a draft even when it is incomplete or fails
 activation validation; dirty state is an attention indicator, never a
 persistence gate. Apply saves and validates the draft first and refuses
-activation when validation fails. The side rails are always non-modal
+activation when validation fails. A validation result carrying a migration
+plan pauses Apply in `ApplyMigrationDialog`: each removed workflow state
+with live instances is listed with its count and a target-state select
+(the next contract's retained states), and activation proceeds only after
+every state is mapped. The side rails are always non-modal
 drawer overlays and the bottom dock stays icon-only on narrow layouts.
 
 Every effect has one bottom execution switch: Manual exposes the operation
