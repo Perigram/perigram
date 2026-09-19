@@ -35,7 +35,7 @@
                   :pool="pool"
                   :bundle="bundle"
                 />
-                <i class="pi pi-pencil text-supporting text-muted opacity-0 transition-opacity group-hover:opacity-100" />
+                <i class="pi pi-pencil text-muted opacity-0 transition-opacity group-hover:opacity-100" />
               </div>
             </template>
             <template #content>
