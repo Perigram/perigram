@@ -6,6 +6,7 @@ import {
   diffTypes, requireCompatible,
   evaluate, checkMatch,
   normalizeOperator,
+  renderPolicyFor, compileClientBundle,
   cncTypePack, partyTypes, nestingOperators, packFixtures
 } from './index.js';
 
@@ -231,5 +232,43 @@ describe('payload traits (SPEC §4)', () => {
       .toEqual({ mime: ['image/png', 'image/jpeg'], maxSize: 1024, preview: 'attachment' });
     expect(() => normalizeType({ id: 'empty-doc', class: 'file', payload: { mime: [] } })).toThrow(/at least one accepted MIME/);
     expect(normalizeType({ id: 'bare-doc', class: 'item', states: { main: { initial: 'new', values: ['new'] } }, fields: { serial: { base: 'string' } } }).payload).toBeNull();
+  });
+});
+
+describe('render policy (SPEC §7)', () => {
+  it('carries the authored UI vocabulary through the client bundle', () => {
+    const registry = createTypeRegistry({ id: 'render-spec' });
+    registry.defineType({
+      id: 'widget', class: 'item',
+      fields: { name: { base: 'string' }, size: { base: 'quantity', unit: 'mm' } },
+      states: { main: { initial: 'draft', values: ['draft', 'done'], terminal: ['done'] } },
+      render: {
+        label: 'Widget',
+        identityField: 'name',
+        sortKey: 'size',
+        listLayout: 'timeline',
+        groups: [{ id: 'core', fields: ['name'] }]
+      }
+    });
+    const bundle = compileClientBundle(registry);
+    const render = bundle.types.find(type => type.id === 'widget').render;
+    expect(render.identityField).toBe('name');
+    expect(render.sortKey).toBe('size');
+    expect(render.listLayout).toBe('timeline');
+    expect(render.groups).toEqual([{ id: 'core', label: null, fields: ['name'] }]);
+  });
+
+  it('defaults the authored vocabulary to empty when undeclared', () => {
+    const registry = createTypeRegistry({ id: 'render-spec-bare' });
+    registry.defineType({
+      id: 'bare', class: 'item',
+      fields: { serial: { base: 'string' } },
+      states: { main: { initial: 'new', values: ['new'] } }
+    });
+    const render = compileClientBundle(registry).types[0].render;
+    expect(render.identityField).toBeNull();
+    expect(render.sortKey).toBeNull();
+    expect(render.listLayout).toBeNull();
+    expect(render.groups).toEqual([]);
   });
 });

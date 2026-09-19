@@ -25,8 +25,9 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Timeline from 'primevue/timeline';
-import { LAYOUT, fieldLabel, formatValue, SCALAR_BASES, instanceIdentity } from '#shared/ui-mapping/index.js';
+import { LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, formatValue, SCALAR_BASES, instanceIdentity } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
@@ -35,6 +36,8 @@ const props = defineProps({
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });
+
+const { te, t } = useI18n();
 
 const isLongString = descriptor => descriptor.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
@@ -56,5 +59,9 @@ const scalarFields = computed(() => Object.entries(props.type?.fields || {})
   .filter(([name, descriptor]) => SCALAR_BASES.includes(descriptor.base)
     && !isLongString(descriptor)
     && name !== bodyField.value?.name)
-  .map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
+  .map(([name, descriptor]) => ({
+    name,
+    descriptor,
+    label: localizedLabel({ te, t }, fieldLabelKey(props.type?.id, name), fieldLabel(name, descriptor))
+  })));
 </script>

@@ -120,4 +120,41 @@ describe('screen composition', () => {
       regions: [{ id: 'main', slot: 'main', sourceId: 'widget', surface: 'list' }] };
     expect(composeScreen(screen, contract, bundle, pool)).toEqual(composeScreen(screen, contract, bundle, pool));
   });
+
+  it('derives per-region data states from the pool and reported source states', () => {
+    const screen = { screenKey: 'ds1', template: 'typeList', label: 'DS',
+      sources: [
+        { id: 'widget', typeId: 'widget', mode: 'list' },
+        { id: 'detail', typeId: 'widget', mode: 'single' }
+      ],
+      regions: [
+        { id: 'list', slot: 'main', sourceId: 'widget', surface: 'list' },
+        { id: 'single', slot: 'main', sourceId: 'detail', surface: 'detail' }
+      ] };
+    const ready = composeScreen(screen, contract, bundle, pool);
+    expect(ready.regions[0].dataState).toBe('ready');
+    expect(ready.regions[1].dataState).toBe('ready');
+
+    const emptyPool = composeScreen(screen, contract, bundle, {});
+    expect(emptyPool.regions[0].dataState).toBe('empty');
+    expect(emptyPool.regions[1].dataState).toBe('missing');
+
+    const loading = composeScreen(screen, contract, bundle, {}, { sourceStates: { widget: 'loading', detail: 'denied' } });
+    expect(loading.regions[0].dataState).toBe('loading');
+    expect(loading.regions[1].dataState).toBe('denied');
+  });
+
+  it('attaches the list-controls contract to list regions only', () => {
+    const composed = composeScreen(
+      { screenKey: 'lc1', template: 'typeList', label: 'LC',
+        sources: [{ id: 'widget', typeId: 'widget', mode: 'list' }],
+        regions: [{ id: 'main', slot: 'main', sourceId: 'widget', surface: 'list', actions: [] }] },
+      contract, bundle, pool
+    );
+    const controls = composed.regions[0].listControls;
+    expect(controls).toBeTruthy();
+    expect(controls.sortKeys.map(key => key.name)).toEqual(['name', 'size']);
+    expect(controls.searchKeys).toEqual(['name']);
+    expect(controls.pagination.rows).toBe(10);
+  });
 });

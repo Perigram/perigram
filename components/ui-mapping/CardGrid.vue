@@ -45,12 +45,13 @@
 
 <script setup>
 import { computed, inject } from 'vue';
+import { useI18n } from 'vue-i18n';
 import DataView from 'primevue/dataview';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
-import { LAYOUT, SCALAR_BASES, cardFactCount, SEVERITY_MAP, instanceIdentity, fieldLabel } from '#shared/ui-mapping/index.js';
+import { LAYOUT, SCALAR_BASES, cardFactCount, SEVERITY_MAP, instanceIdentity, fieldLabel, fieldLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 
@@ -62,6 +63,8 @@ const props = defineProps({
   pool: { type: Object, default: () => ({}) },
   bundle: { type: Object, default: null }
 });
+
+const { te, t } = useI18n();
 
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const identityOf = instance => instanceIdentity(props.type, instance);
@@ -75,5 +78,9 @@ const scalarFields = computed(() => Object.entries(props.type?.fields || {})
   .filter(([, descriptor]) => SCALAR_BASES.includes(descriptor.base)
     && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120)))
   .slice(0, cardFactCount(props.type))
-  .map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) })));
+  .map(([name, descriptor]) => ({
+    name,
+    descriptor,
+    label: localizedLabel({ te, t }, fieldLabelKey(props.type?.id, name), fieldLabel(name, descriptor))
+  })));
 </script>

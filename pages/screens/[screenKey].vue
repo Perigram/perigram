@@ -17,6 +17,7 @@
         :contract="{ actions: processActions }"
         :bundle="processBundle"
         :instances="pool"
+        :source-states="poolStates"
         :on-run="runGeneratedAction"
       />
     </div>
@@ -105,7 +106,7 @@ const screen = computed(() => {
 const processBundle = computed(() => authStore.processPayload?.bundle || { types: [] });
 const processActions = computed(() => authStore.processPayload?.actions || {});
 
-const { pool, loading: poolLoading, error: poolError, load: loadPool } = useScreenInstancePool();
+const { pool, loading: poolLoading, error: poolError, states: poolStates, load: loadPool } = useScreenInstancePool();
 async function reload() {
   if (screen.value) await loadPool(screen.value, processBundle.value);
 }

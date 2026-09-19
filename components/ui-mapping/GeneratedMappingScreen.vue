@@ -3,7 +3,7 @@
     <Tabs v-if="composed.regionsMode === 'tabs'" :value="composed.regions[0].id">
       <TabList>
         <Tab v-for="region in composed.regions" :key="region.id" :value="region.id">
-          {{ region.type?.render?.label || region.label }}
+          {{ regionLabelFor(region) }}
           <Tag v-if="region.instances.length" :value="String(region.instances.length)" severity="secondary" />
         </Tab>
       </TabList>
@@ -49,24 +49,27 @@
       :header="dialogAction?.label || ''"
       :class="LAYOUT.dialog"
     >
-      <div v-if="dialogFields.length" :class="LAYOUT.formGrid">
-        <div
-          v-for="field in dialogFields"
-          :key="field.name"
-          class="flex min-w-0 flex-col gap-1"
-          :class="field.span === 'full' ? 'md:col-span-2' : ''"
-        >
-          <span class="text-label">{{ field.name }}</span>
-          <FieldControl
-            v-model="draft[field.name]"
-            :descriptor="field.descriptor"
-            variant="detail"
-            :pool="pool"
-            :bundle="bundle"
-            :payload="dialogType?.payload"
-          />
+      <template v-for="group in dialogGroups" :key="group.id">
+        <div v-if="group.label && dialogGroups.length > 1" class="text-label text-muted uppercase">{{ group.label }}</div>
+        <div :class="LAYOUT.formGrid">
+          <div
+            v-for="field in group.fields"
+            :key="field.name"
+            class="flex min-w-0 flex-col gap-1"
+            :class="field.span === 'full' ? 'md:col-span-2' : ''"
+          >
+            <span class="text-label">{{ field.label }}</span>
+            <FieldControl
+              v-model="draft[field.name]"
+              :descriptor="field.descriptor"
+              variant="detail"
+              :pool="pool"
+              :bundle="bundle"
+              :payload="dialogType?.payload"
+            />
+          </div>
         </div>
-      </div>
+      </template>
       <template #footer>
         <Button :label="$t('uiMapping.dialogCancel')" severity="secondary" text :disabled="submitting" @click="dialogVisible = false" />
         <Button :label="$t('uiMapping.dialogSubmit')" :loading="submitting" @click="submitDialog" />
@@ -77,6 +80,7 @@
 
 <script setup>
 import { computed, provide, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Dialog from 'primevue/dialog';
 import ConfirmDialog from 'primevue/confirmdialog';
 import Toast from 'primevue/toast';
@@ -89,7 +93,7 @@ import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
-import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveFieldControl } from '#shared/ui-mapping/index.js';
+import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveFieldControl, resolveFieldGroups, fieldLabel, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import RegionBlock from './RegionBlock.vue';
 import InstancePicker from './InstancePicker.vue';
 import FieldControl from './FieldControl.vue';
@@ -99,6 +103,10 @@ const props = defineProps({
   contract: { type: Object, required: true },
   bundle: { type: Object, required: true },
   instances: { type: Object, default: () => ({}) },
+  // Per-source data states from the data layer ('loading' | 'ready' |
+  // 'empty' | 'denied' | 'error'); unreported sources derive their state
+  // from the pool at compose time.
+  sourceStates: { type: Object, default: null },
   // Real dispatch executor: `async (action, draft) => any`. When provided,
   // action runs go through it instead of the showcase toast.
   onRun: { type: Function, default: null },
@@ -106,8 +114,13 @@ const props = defineProps({
 });
 
 const pool = computed(() => buildInstancePool(props.instances));
-const composed = computed(() => composeScreen(props.screen, props.contract, props.bundle, pool.value));
+const composed = computed(() => composeScreen(props.screen, props.contract, props.bundle, pool.value, {
+  sourceStates: props.sourceStates || null
+}));
 provide('uiMappingSpacing', spacingClasses(props.spacingScale));
+
+const { te, t } = useI18n();
+const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type?.render?.label || region.label);
 
 const confirm = useConfirm();
 const toast = useToast();
@@ -115,13 +128,29 @@ const dialogVisible = ref(false);
 const dialogAction = ref(null);
 const draft = reactive({});
 const dialogType = computed(() => (props.bundle.types || []).find(type => type.id === dialogAction.value?.typeId) || null);
-const dialogFields = computed(() => {
-  const inputs = dialogAction.value?.construction?.inputs || [];
+// Dialog fields reuse the authored render groups of the type (same
+// contract as detail surfaces): construction inputs are ordered and
+// sectioned by resolveFieldGroups, the unlisted remainder staying in the
+// trailing default group. The draft stays flat and keyed by field name; a
+// type without authored groups renders one unlabelled section (no
+// headers).
+const dialogGroups = computed(() => {
+  const inputs = new Set(dialogAction.value?.construction?.inputs || []);
   const fields = dialogType.value?.fields || {};
-  return inputs
-    .map(name => ({ name, descriptor: fields[name] }))
-    .filter(field => field.descriptor)
-    .map(field => ({ ...field, span: resolveFieldControl(field.descriptor, { variant: 'detail' }).span }));
+  return resolveFieldGroups(dialogType.value || {})
+    .map(group => ({
+      id: group.id,
+      label: group.label,
+      fields: group.fields
+        .filter(field => inputs.has(field.name) && fields[field.name])
+        .map(field => ({
+          name: field.name,
+          descriptor: fields[field.name],
+          label: fieldLabel(field.name, field.descriptor),
+          span: resolveFieldControl(field.descriptor, { variant: 'detail' }).span
+        }))
+    }))
+    .filter(group => group.fields.length);
 });
 
 const submitting = ref(false);

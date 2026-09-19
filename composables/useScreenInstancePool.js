@@ -68,6 +68,11 @@ export function useScreenInstancePool() {
   const pool = ref({});
   const loading = ref(false);
   const error = ref('');
+  // Per-source data states for composeScreen's `sourceStates` input:
+  // 'loading' while the source's type is loading, 'ready'/'empty' once
+  // its collection lands, 'denied' on 403, 'error' otherwise. Pure
+  // derivation over the load result — the composable owns no rendering.
+  const states = ref({});
 
   function sourceTypeIds(screen = {}) {
     const ids = new Set();
@@ -75,6 +80,17 @@ export function useScreenInstancePool() {
       if (source.typeId) ids.add(source.typeId);
     }
     return [...ids];
+  }
+
+  function statesForTypeMap(screen, typeMap, base = {}) {
+    const next = { ...base };
+    for (const source of screen.sources || []) {
+      if (!source.id || !source.typeId) continue;
+      const loaded = typeMap[source.typeId];
+      if (loaded === undefined) continue;
+      next[source.id] = Object.keys(loaded).length ? 'ready' : 'empty';
+    }
+    return next;
   }
 
   // Loads every type the screen references (the list surfaces plus the
@@ -85,10 +101,14 @@ export function useScreenInstancePool() {
     const typeIds = sourceTypeIds(screen);
     if (!typeIds.length) {
       pool.value = {};
+      states.value = {};
       return pool.value;
     }
     loading.value = true;
     error.value = '';
+    states.value = Object.fromEntries((screen.sources || [])
+      .filter(source => source.id && source.typeId)
+      .map(source => [source.id, 'loading']));
     const next = { ...pool.value };
     try {
       for (const typeId of typeIds) {
@@ -102,15 +122,19 @@ export function useScreenInstancePool() {
           if (instance.id) instances[instance.id] = instance;
         }
         next[typeId] = instances;
+        states.value = statesForTypeMap(screen, next, states.value);
       }
       pool.value = next;
     } catch (err) {
       error.value = err?.data?.message || err?.message || String(err);
+      const denied = err?.status === 403 || err?.statusCode === 403 || err?.data?.statusCode === 403;
+      states.value = Object.fromEntries(Object.entries(states.value)
+        .map(([id, value]) => [id, value === 'loading' ? (denied ? 'denied' : 'error') : value]));
     } finally {
       loading.value = false;
     }
     return pool.value;
   }
 
-  return { pool, loading, error, load };
+  return { pool, loading, error, states, load };
 }

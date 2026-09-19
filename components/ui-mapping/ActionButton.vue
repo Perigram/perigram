@@ -1,7 +1,8 @@
 <template>
   <Button
     v-if="!resolved.hidden"
-    :label="resolved.label || action.label"
+    :label="label"
+    :aria-label="label"
     :severity="resolved.severity || (resolved.tone === 'danger' ? 'danger' : resolved.tone === 'primary' ? undefined : 'secondary')"
     :outlined="resolved.tone === 'secondary'"
     :text="resolved.tone === 'text'"
@@ -13,8 +14,9 @@
 
 <script setup>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
-import { resolveActionButton } from '#shared/ui-mapping/index.js';
+import { resolveActionButton, actionLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   action: { type: Object, required: true },
@@ -23,5 +25,7 @@ const props = defineProps({
 
 defineEmits(['run']);
 
+const { te, t } = useI18n();
 const resolved = computed(() => resolveActionButton(props.action, { render: props.render }));
+const label = computed(() => localizedLabel({ te, t }, actionLabelKey(props.action.id), resolved.value.label || props.action.label));
 </script>

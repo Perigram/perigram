@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="flex flex-wrap items-center gap-2">
         <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
-        <span class="text-label">{{ node.type?.render?.label || node.id }}</span>
+        <span class="text-label">{{ regionLabel }}</span>
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
       <div v-if="node.actions.length" class="flex flex-wrap items-center gap-2">
@@ -16,30 +16,35 @@
         />
       </div>
     </div>
-    <CollectionTable
-      v-if="listLayout === 'table'"
-      :instances="node.instances"
-      :type="node.type"
-      :pool="pool"
-      :bundle="bundle"
-    />
-    <HierarchyTable
-      v-else-if="listLayout === 'tree-table'"
-      :instances="node.instances"
-      :type="node.type"
-      :pool="pool"
-      :bundle="bundle"
-    />
-    <CardGrid v-else-if="listLayout === 'card-grid'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
-    <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
-    <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
+    <RegionDataState :node="node" />
+    <template v-if="node.dataState === 'ready'">
+      <CollectionToolbar v-model:search="search" v-model:facets="facets" :node="node" />
+      <CollectionTable
+        v-if="listLayout === 'table'"
+        :instances="filteredInstances"
+        :type="node.type"
+        :controls="node.listControls"
+        :pool="pool"
+        :bundle="bundle"
+      />
+      <HierarchyTable
+        v-else-if="listLayout === 'tree-table'"
+        :instances="filteredInstances"
+        :type="node.type"
+        :pool="pool"
+        :bundle="bundle"
+      />
+      <CardGrid v-else-if="listLayout === 'card-grid'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+    </template>
   </div>
 
   <Panel v-else-if="node.surfaceKind === 'list'" class="w-full" :pt="{ contentWrapper: { class: 'min-w-0' } }">
     <template #header>
       <div class="flex flex-wrap items-center gap-2">
         <i v-if="node.type?.render?.icon" :class="node.type.render.icon" />
-        <span class="text-section-heading">{{ node.type?.render?.label || node.id }}</span>
+        <span class="text-section-heading">{{ regionLabel }}</span>
         <Tag :value="String(node.instances.length)" severity="secondary" />
       </div>
     </template>
@@ -54,41 +59,41 @@
         />
       </div>
     </template>
-    <Message
-      v-if="!node.instances.length"
-      severity="info"
-      :text="$t('uiMapping.emptyRegion')"
-    />
-    <CollectionTable
-      v-else-if="listLayout === 'table'"
-      :instances="node.instances"
-      :type="node.type"
-      :pool="pool"
-      :bundle="bundle"
-    />
-    <HierarchyTable
-      v-else-if="listLayout === 'tree-table'"
-      :instances="node.instances"
-      :type="node.type"
-      :pool="pool"
-      :bundle="bundle"
-    />
-    <CardGrid v-else-if="listLayout === 'card-grid'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
-    <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
-    <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
-    <StatGrid v-else-if="listLayout === 'stats'" :instances="node.instances" :type="node.type" :pool="pool" :bundle="bundle" />
-    <div v-else-if="listLayout === 'list'" :class="LAYOUT.stackTight">
-      <SurfaceBody
-        v-for="instance in node.instances"
-        :key="instance.id"
-        :instance="instance"
+    <RegionDataState :node="node" />
+    <template v-if="node.dataState === 'ready'">
+      <CollectionToolbar v-model:search="search" v-model:facets="facets" :node="node" />
+      <CollectionTable
+        v-if="listLayout === 'table'"
+        :instances="filteredInstances"
         :type="node.type"
-        variant="row"
-        parent-role="card"
+        :controls="node.listControls"
         :pool="pool"
         :bundle="bundle"
       />
-    </div>
+      <HierarchyTable
+        v-else-if="listLayout === 'tree-table'"
+        :instances="filteredInstances"
+        :type="node.type"
+        :pool="pool"
+        :bundle="bundle"
+      />
+      <CardGrid v-else-if="listLayout === 'card-grid'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <CarouselGrid v-else-if="listLayout === 'carousel'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <TimelineCollection v-else-if="listLayout === 'timeline'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <div v-else-if="listLayout === 'list'" :class="LAYOUT.stackTight">
+        <SurfaceBody
+          v-for="instance in filteredInstances"
+          :key="instance.id"
+          :instance="instance"
+          :type="node.type"
+          variant="row"
+          parent-role="card"
+          :pool="pool"
+          :bundle="bundle"
+        />
+      </div>
+    </template>
     <RegionBlock
       v-for="child in node.childRegions"
       :key="child.id"
@@ -101,12 +106,8 @@
   </Panel>
 
   <div v-else :class="[stackFor, 'w-full']">
-    <Message
-      v-if="!node.instances.length"
-      severity="info"
-      :text="$t('uiMapping.emptyRegion')"
-    />
-    <div v-else-if="depth === 0" :class="LAYOUT.detailSplit">
+    <RegionDataState :node="node" />
+    <div v-if="depth === 0 && node.dataState === 'ready'" :class="LAYOUT.detailSplit">
       <div :class="[LAYOUT.mainCol, 'min-w-0 flex flex-col gap-6']">
         <SurfaceHeader
           :type="node.type"
@@ -137,7 +138,7 @@
         <Tabs v-if="node.childrenMode === 'tabs'" :value="node.childRegions[0].id" class="w-full">
           <TabList>
             <Tab v-for="child in node.childRegions" :key="child.id" :value="child.id">
-              {{ child.type?.render?.label || child.id }}
+              {{ regionLabelFor(child) }}
               <Tag v-if="child.instances.length" :value="String(child.instances.length)" severity="secondary" />
             </Tab>
           </TabList>
@@ -159,7 +160,7 @@
         />
       </div>
     </div>
-    <template v-else>
+    <template v-else-if="node.dataState === 'ready'">
       <SurfaceBody
         :instance="node.instances[0]"
         :type="node.type"
@@ -174,7 +175,7 @@
       <Tabs v-if="node.childrenMode === 'tabs'" :value="node.childRegions[0].id" class="w-full">
         <TabList>
           <Tab v-for="child in node.childRegions" :key="child.id" :value="child.id">
-            {{ child.type?.render?.label || child.id }}
+            {{ regionLabelFor(child) }}
             <Tag v-if="child.instances.length" :value="String(child.instances.length)" severity="secondary" />
           </Tab>
         </TabList>
@@ -200,16 +201,19 @@
 </template>
 
 <script setup>
-import { computed, inject, reactive, ref } from 'vue';
+import { computed, inject, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
-import Message from 'primevue/message';
 import Tabs from 'primevue/tabs';
 import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
-import { LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout } from '#shared/ui-mapping/index.js';
+import {
+  LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, SEARCH_AT, resolveListLayout,
+  localizedLabel, typeLabelKey
+} from '#shared/ui-mapping/index.js';
 import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
 import HierarchyTable from './HierarchyTable.vue';
@@ -219,6 +223,8 @@ import TimelineCollection from './TimelineCollection.vue';
 import StatGrid from './StatGrid.vue';
 import ActionButton from './ActionButton.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
+import RegionDataState from './RegionDataState.vue';
+import CollectionToolbar from './CollectionToolbar.vue';
 
 const props = defineProps({
   node: { type: Object, required: true },
@@ -229,6 +235,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['run']);
+const { te, t } = useI18n();
 const spacing = inject('uiMappingSpacing', null);
 const stackFor = computed(() => (spacing ? spacing.stack : LAYOUT[GAP_BY_LEVEL[props.node.level] || 'stack']));
 const editing = ref(false);
@@ -241,6 +248,8 @@ const toggleEditing = () => {
   editing.value = !editing.value;
 };
 const emitRun = action => emit('run', action);
+const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type?.render?.label || region.id);
+const regionLabel = computed(() => regionLabelFor(props.node));
 const listLayout = computed(() => resolveListLayout(props.node.type, {
   hierarchical: Boolean(Object.keys(props.node.type?.edges?.children || {}).length),
   size: props.node.instances.length <= SMALL_LIST_AT
@@ -250,4 +259,35 @@ const listLayout = computed(() => resolveListLayout(props.node.type, {
 const coveredRelationKeys = computed(() => props.node.childRegions
   .map(child => child.relationKey)
   .filter(Boolean));
+
+// Region-local search/facet state over the composed list-controls
+// contract; filters apply client-side over the loaded instances.
+const search = ref('');
+const facets = reactive({});
+watch(() => props.node.id, () => {
+  search.value = '';
+  Object.keys(facets).forEach(key => delete facets[key]);
+});
+const filteredInstances = computed(() => {
+  if (props.node.surfaceKind !== 'list') return props.node.instances;
+  const controls = props.node.listControls;
+  if (!controls) return props.node.instances;
+  const query = search.value.trim().toLowerCase();
+  const activeFacets = Object.entries(facets).filter(([, value]) => value);
+  if (!query && !activeFacets.length) return props.node.instances;
+  return props.node.instances.filter(instance => {
+    if (query) {
+      const haystack = controls.searchKeys
+        .map(key => instance.fields?.[key])
+        .filter(value => typeof value === 'string')
+        .join(' ')
+        .toLowerCase();
+      if (haystack && !haystack.includes(query)) return false;
+    }
+    for (const [name, expected] of activeFacets) {
+      if (String(instance.fields?.[name] ?? '') !== String(expected)) return false;
+    }
+    return true;
+  });
+});
 </script>

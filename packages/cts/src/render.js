@@ -12,6 +12,10 @@ function startCase(value = '') {
   return String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 }
 
+// Authored render keys that pass through to the client bundle verbatim:
+// identity/authoring vocabulary the UI mapping layer consumes
+// (identityField, field groups, and the authored list-layout / default
+// sort overrides). Everything else here is compiled policy.
 export function renderPolicyFor(type = {}) {
   const render = type.render || {};
   const axis = type.states?.main;
@@ -21,6 +25,14 @@ export function renderPolicyFor(type = {}) {
     label: render.label || startCase(type.id),
     icon: render.icon || ICON_BY_CLASS[type.class] || 'pi pi-circle',
     preview: render.preview || type.payload?.preview || (type.payload ? 'attachment' : 'none'),
+    identityField: render.identityField || null,
+    listLayout: render.listLayout || null,
+    sortKey: render.sortKey || null,
+    groups: Object.freeze((Array.isArray(render.groups) ? render.groups : []).map(group => Object.freeze({
+      id: group.id,
+      label: group.label || null,
+      fields: Object.freeze([...(group.fields || [])])
+    }))),
     states: Object.fromEntries((axis?.values || []).map(value => [
       value,
       Object.freeze({

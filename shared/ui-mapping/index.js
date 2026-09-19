@@ -5,12 +5,17 @@ import {
   FIELD_EDIT_ENTRIES,
   FIELD_DISPLAY_ENTRIES,
   CHILDREN_TABS_AT,
+  LIST_LAYOUT_VALUES,
+  SEARCH_AT,
   SURFACE_ROW_BUDGET,
   SMALL_LIST_AT,
   SPACING_SCALES,
   SPACING_STEPS,
   spacingClasses,
   TABLE_COLUMN_SCALE,
+  TABLE_PAGE_ROWS,
+  TABLE_PAGINATE_AT,
+  TABLE_VIRTUALIZE_AT,
   CARD_FACT_SCALE,
   ROW_WEIGHT_BY_LAYOUT,
   SCALAR_BASES,
@@ -33,12 +38,17 @@ export {
   SEVERITY_MAP,
   ROW_FIELD_BUDGET,
   LAYOUT,
+  LIST_LAYOUT_VALUES,
+  SEARCH_AT,
   SURFACE_ROW_BUDGET,
   SMALL_LIST_AT,
   SPACING_SCALES,
   SPACING_STEPS,
   spacingClasses,
   TABLE_COLUMN_SCALE,
+  TABLE_PAGE_ROWS,
+  TABLE_PAGINATE_AT,
+  TABLE_VIRTUALIZE_AT,
   CARD_FACT_SCALE,
   ROW_WEIGHT_BY_LAYOUT,
   SCREEN_DENSITY_AT,
@@ -111,9 +121,14 @@ export function createUiMapping(overrides = {}) {
   }
 
   // resolveFieldControl(descriptor, { variant }) -> { component, span, props }
+  // An authored `render.control` on the descriptor pins the editor control
+  // (edit variants only); display variants stay shape-derived projections.
   function resolveFieldControl(descriptor = {}, options = {}) {
     const variant = options.variant || 'detail';
     const edit = EDIT_VARIANTS.has(variant);
+    const authored = edit && typeof descriptor.render?.control === 'string' && descriptor.render.control
+      ? descriptor.render.control
+      : null;
     const entry = pickEntry(edit ? fieldEntries : fieldDisplayEntries, fieldCandidate(descriptor, variant));
     const props = { ...(entry.props || {}) };
     if (entry.unitSuffix && descriptor.unit) props.suffix = ` ${descriptor.unit}`;
@@ -121,7 +136,7 @@ export function createUiMapping(overrides = {}) {
     if (descriptor.base === 'enum' && edit) props.options = descriptor.values || [];
     if (descriptor.base === 'ref') props.accepts = descriptor.accepts || [];
     if (!edit) props.density = variant;
-    return Object.freeze({ component: entry.component, span: entry.span || 'half', props });
+    return Object.freeze({ component: authored || entry.component, span: entry.span || 'half', props });
   }
 
   // resolveSurface(typeRecord, { variant }) -> { archetype, component, slots, budgets }
@@ -205,8 +220,12 @@ export function createUiMapping(overrides = {}) {
     });
   }
 
-  // resolveListLayout(typeRecord, { hierarchical, size })
+  // resolveListLayout(typeRecord, { hierarchical, size }). An authored
+  // `render.listLayout` wins when it names a known layout — declared data
+  // over shape guessing, same precedence as the declared preview mode.
   function resolveListLayout(typeRecord = {}, options = {}) {
+    const authored = typeRecord.render?.listLayout;
+    if (typeof authored === 'string' && LIST_LAYOUT_VALUES.includes(authored)) return authored;
     const shape = analyzeTypeShape(typeRecord);
     const entry = pickEntry(listLayoutEntries, {
       type: typeRecord.id || null,
@@ -293,6 +312,10 @@ const UNIT_SYMBOLS = Object.freeze({
   mm: 'mm', m2: 'm²', min: 'min', deg: '°', percent: '%', currency: '', count: ''
 });
 
+// Preferred identity field names, first match wins; shared by
+// instanceIdentity and the list-controls search-key derivation.
+const PREFERRED_IDENTITY_KEYS = Object.freeze(['serial', 'designation', 'title', 'grade', 'name', 'summary']);
+
 export function formatQuantity(quantity) {
   if (!quantity || !Number.isFinite(quantity.value)) return '—';
   const suffix = UNIT_SYMBOLS[quantity.unit];
@@ -306,8 +329,7 @@ export function instanceIdentity(type, instance) {
   const fields = instance.fields || {};
   const declared = type?.render?.identityField;
   if (declared && typeof fields[declared] === 'string' && fields[declared]) return fields[declared];
-  const preferred = ['serial', 'designation', 'title', 'grade', 'name', 'summary'];
-  for (const key of preferred) {
+  for (const key of PREFERRED_IDENTITY_KEYS) {
     if (typeof fields[key] === 'string' && fields[key]) return fields[key];
   }
   const descriptors = type?.fields || {};
@@ -316,6 +338,82 @@ export function instanceIdentity(type, instance) {
     && typeof fields[name] === 'string'
     && fields[name]);
   return firstShortString ? fields[firstShortString[0]] : instance.id;
+}
+
+const isFilled = value => !(value === null || value === undefined || value === ''
+  || (Array.isArray(value) && !value.length));
+
+// analyzeInstanceShape(type, instances): the value-aware second pass over
+// the loaded instances — pure over the pool. Reports which fields actually
+// carry data (column/facet materializations hide permanently empty ones)
+// and the enum values present per field.
+export function analyzeInstanceShape(typeRecord = {}, instances = []) {
+  const rows = Array.isArray(instances) ? instances : [];
+  const filledCounts = {};
+  for (const instance of rows) {
+    for (const [name, value] of Object.entries(instance?.fields || {})) {
+      if (isFilled(value)) filledCounts[name] = (filledCounts[name] || 0) + 1;
+    }
+  }
+  const enumValues = {};
+  for (const [name, descriptor] of Object.entries(typeRecord.fields || {})) {
+    if (descriptor.base !== 'enum') continue;
+    const present = new Set();
+    for (const instance of rows) {
+      const value = instance?.fields?.[name];
+      if (isFilled(value)) present.add(String(value));
+    }
+    enumValues[name] = Object.freeze([...present]);
+  }
+  const filledScalarNames = Object.keys(typeRecord.fields || {}).filter(name => filledCounts[name]);
+  return Object.freeze({
+    instanceCount: rows.length,
+    filledScalarNames: Object.freeze(filledScalarNames),
+    enumValues: Object.freeze(enumValues)
+  });
+}
+
+// resolveListControls(type, instances): the compose-time list contract one
+// collection surface consumes — search keys (identity-shaped short
+// strings), filled scalar sort keys with the declared `render.sortKey` as
+// default, enum facets over the values actually present, and the shared
+// pagination budgets. Pure over the type record and the loaded instances.
+export function resolveListControls(typeRecord = {}, instances = []) {
+  const descriptors = typeRecord.fields || {};
+  const shape = analyzeInstanceShape(typeRecord, instances);
+  const sortKeys = shape.filledScalarNames
+    .filter(name => {
+      const descriptor = descriptors[name];
+      if (!SCALAR_BASES.includes(descriptor.base)) return false;
+      return !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120));
+    })
+    .map(name => ({ name, label: fieldLabel(name, descriptors[name]), base: descriptors[name].base }));
+  const declaredSort = typeof typeRecord.render?.sortKey === 'string' ? typeRecord.render.sortKey : null;
+  const declaredIdentity = typeRecord.render?.identityField;
+  const shortStringNames = Object.entries(descriptors)
+    .filter(([, descriptor]) => descriptor.base === 'string'
+      && !(descriptor.multiline === true || (descriptor.max || 0) >= 120))
+    .map(([name]) => name);
+  const searchKeys = [];
+  if (declaredIdentity && shortStringNames.includes(declaredIdentity)) searchKeys.push(declaredIdentity);
+  for (const name of PREFERRED_IDENTITY_KEYS) {
+    if (shortStringNames.includes(name) && !searchKeys.includes(name)) searchKeys.push(name);
+  }
+  if (!searchKeys.length && shortStringNames.length) searchKeys.push(shortStringNames[0]);
+  const facets = Object.entries(shape.enumValues)
+    .filter(([, values]) => values.length > 0)
+    .map(([name, values]) => ({ name, label: fieldLabel(name, descriptors[name]), values }));
+  return Object.freeze({
+    searchKeys: Object.freeze(searchKeys),
+    sortKeys: Object.freeze(sortKeys.map(key => Object.freeze({ ...key, default: key.name === declaredSort || null }))),
+    defaultSort: sortKeys.some(key => key.name === declaredSort) ? declaredSort : null,
+    facets: Object.freeze(facets.map(facet => Object.freeze({ ...facet, values: Object.freeze([...facet.values]) }))),
+    pagination: Object.freeze({
+      paginateAt: TABLE_PAGINATE_AT,
+      rows: TABLE_PAGE_ROWS,
+      virtualizeAt: TABLE_VIRTUALIZE_AT
+    })
+  });
 }
 
 const VALUE_FALLBACK = '—';
@@ -365,7 +463,16 @@ export function estimateRegionWeight(node = {}) {
     hierarchical: Boolean(Object.keys(node.type?.edges?.children || {}).length)
   });
   const perRow = ROW_WEIGHT_BY_LAYOUT[layout] || 1;
-  return 2 + (node.instances?.length || 0) * perRow;
+  // Rows grow with budgeted relation chips: the first declared relation's
+  // refs across the loaded instances add wrapped chip rows to the weight.
+  const relationKey = Object.keys(node.type?.edges?.relations || {})[0] || null;
+  const relationRefs = relationKey
+    ? (node.instances || []).reduce((sum, instance) => {
+        const refs = instance.relations?.[relationKey];
+        return sum + (Array.isArray(refs) ? refs.length : refs ? 1 : 0);
+      }, 0)
+    : 0;
+  return 2 + (node.instances?.length || 0) * perRow + Math.ceil(relationRefs / 4);
 }
 
 // screenDensityFor(totalWeight, bias): density stays procedural — the
@@ -403,6 +510,30 @@ export function resolveFieldGroups(type = {}) {
 export function fieldLabel(name, descriptor = {}) {
   if (descriptor.label) return descriptor.label;
   return String(name).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
+}
+
+// Stable localization key derivation for generated surfaces: keys are
+// deterministic per type/field/action id; locale files may define them,
+// and materializations fall back to the resolver-derived label when a key
+// is absent (localizedLabel). Keys carry no hand-authored vocabulary.
+export function typeLabelKey(typeId) {
+  return `uiMapping.types.${typeId}`;
+}
+
+export function fieldLabelKey(typeId, name) {
+  return `uiMapping.fields.${typeId}.${name}`;
+}
+
+export function actionLabelKey(actionId) {
+  return `uiMapping.actions.${actionId}`;
+}
+
+// localizedLabel(translator, key, fallback): translator is any
+// `{ te, t }` pair (the vue-i18n instance/component scope). Absent keys
+// fall back to the passed label; a missing translator is transparent.
+export function localizedLabel(translator, key, fallback) {
+  if (!translator || typeof translator.te !== 'function' || typeof translator.t !== 'function') return fallback;
+  return translator.te(key) ? translator.t(key) : fallback;
 }
 
 export const defaultMapping = createUiMapping();
