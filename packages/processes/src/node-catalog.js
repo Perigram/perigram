@@ -962,8 +962,14 @@ function constructionInputs(record = {}) {
       ? multiple
         ? processType('array', { itemType: processType('entityRef', { entityType: input.entityType, accepts: input.accepts }) })
         : processType('entityRef', { entityType: input.entityType, accepts: input.accepts })
-      : mapDomainInputType(input.type || 'json');
-    return { ...input, id: input.id || input.path, type };
+      : mapDomainInputType(input.type || 'json', { ...input, optional: undefined });
+    // The projected construction input may carry a unit qualifier for
+    // quantity fields; the socket must keep it (unit -> different-unit
+    // conversion stays explicit, unit-less sources adopt it).
+    const withUnit = type.base === 'number' && input.unit && !type.unit
+      ? { ...type, unit: input.unit }
+      : type;
+    return { ...input, id: input.id || input.path, type: withUnit };
   }).filter(input => input.id);
 }
 

@@ -367,8 +367,9 @@ function constructionInputKind(type = {}) {
   if (type.base === 'entityRef' || type.base === 'entity') {
     return { type: 'entity', ...(type.entityType ? { entityType: type.entityType } : {}) };
   }
-  if (['string', 'number', 'boolean'].includes(type.base)) return { type: type.base };
-  if (type.base === 'dateTime' || type.base === 'date') return { type: 'date' };
+  if (['string', 'boolean'].includes(type.base)) return { type: type.base };
+  if (type.base === 'number') return { type: 'number', ...(type.unit ? { unit: type.unit } : {}) };
+  if (type.base === 'dateTime' || type.base === 'date') return { type: 'dateTime' };
   return { type: 'object' };
 }
 
