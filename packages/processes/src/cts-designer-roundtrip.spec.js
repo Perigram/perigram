@@ -28,7 +28,7 @@ function projectedDomain() {
 describe('graph protocol v5 designer round trip', () => {
   it('the palette speaks species kinds only for entity-bound operations', () => {
     const groups = Object.fromEntries(PROCESS_DESIGNER_PALETTE_GROUPS.map(group => [group.id, group.items]));
-    for (const item of [...groups.operations, ...groups.instances, ...groups.structure]) {
+    for (const item of [...groups.operations, ...groups.instances]) {
       expect(item.kind, item.id).toMatch(/^cts\./);
       expect(getProcessNodeDefinition(item.kind), item.kind).not.toBeNull();
     }

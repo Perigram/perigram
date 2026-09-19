@@ -67,12 +67,16 @@ const definitionPaletteItem = (id, type, options = {}) => Object.freeze({
 // those operations and may insert them when two compatible sockets are joined.
 //
 // Group structure: `types` (declaration authoring + the registry catalog),
-// `operations` (the effect species over declarations), `instances` (reads),
-// `structure` (field/record shaping), `values`, `listTree`. Services come
+// `operations` (the effect species over declarations), `instances` (entity
+// sources and the field projection), `values`, `listTree`. Services come
 // from the projected domain's `serviceContracts` — the registered operator
 // surface — never from a legacy command table: running a service means
 // dropping its registered item, so there is no separate "run service"
-// operation against the legacy command registry.
+// operation against the legacy command registry. The block-composition
+// nodes (cts.compose, cts.decompose) stay catalog-only: fresh constructs
+// take fields directly, fresh mutates patch leaves, and the field
+// projection reads entities — no palette item consumes blocks anymore, so
+// block composition is reachable only by migrated legacy graphs.
 export const TYPE_AUTHORING_PALETTE_ITEMS = Object.freeze([
   definitionPaletteItem('class', 'ctsClass'),
   definitionPaletteItem('field', 'ctsField'),
@@ -104,15 +108,9 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
       paletteItem('parentEntity', 'cts.read', { preset: { select: 'parent' } }),
       paletteItem('childEntities', 'cts.read', { preset: { select: 'children' } }),
       paletteItem('relatedEntities', 'cts.read', { preset: { select: 'related' } }),
-      paletteItem('queryEntities', 'cts.read', { preset: { select: 'query' } })
-    ]
-  },
-  {
-    id: 'structure',
-    items: [
-      paletteItem('readField', 'cts.field'),
-      paletteItem('composeFields', 'cts.compose', { preset: { mode: 'compose' } }),
-      paletteItem('decomposeInstance', 'cts.decompose')
+      paletteItem('queryEntities', 'cts.read', { preset: { select: 'query' } }),
+      // the field projection: entity in, one field's value out
+      paletteItem('getField', 'cts.field')
     ]
   },
   {
