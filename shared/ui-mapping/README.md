@@ -151,7 +151,10 @@ bounds each region's rendered rows from its own data (facts + relations for
 detail regions, capped instance counts for lists), and `childrenModeFor`
 stacks siblings until their combined weight exceeds `SURFACE_ROW_BUDGET`,
 then arranges them into tabs at the top level — never measured from the
-DOM. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` and
+DOM. The rule binds everywhere siblings exist: composed screens carry
+`regionsMode` for their top-level regions (a heavy home tabs its
+sections), and detail nodes carry `childrenMode` for their child
+regions. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` and
 `TYPE_BY_LEVEL` (heading typography role per level), so spacing and text
 scale are data too. Widths stay in
 the vocabulary (`LAYOUT.clip`, `LAYOUT.bounded` over the bounded-grid-item
