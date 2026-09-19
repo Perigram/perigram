@@ -166,9 +166,11 @@ entry ≈ 2) times actual instance counts for lists, with no sampling cap —
 and `childrenModeFor` stacks siblings until their combined weight exceeds
 `SURFACE_ROW_BUDGET`, then arranges them into tabs at the top level. Never
 measured from the DOM. The screen's total weight also picks its density
-(`screenDensityFor` → `DENSITY.compact | regular`), which scales control
-size, fact-row gaps, and value typography with how much information the
-screen carries. The rule binds everywhere siblings exist: composed screens carry
+(`screenDensityFor` → `DENSITY.compact | regular`), which owns the
+spacing scales — stack rhythm, section gaps, fact-row padding, chip-row
+leading, and the facts-grid gutters — plus control size (knob 40/64,
+editors small/normal) and value typography, so density is a real rhythm
+control, not just a knob size. The rule binds everywhere siblings exist: composed screens carry
 `regionsMode` for their top-level regions (a heavy home tabs its
 sections), and detail nodes carry `childrenMode` for their child
 regions. Rhythm and type follow hierarchy through `GAP_BY_LEVEL` and
