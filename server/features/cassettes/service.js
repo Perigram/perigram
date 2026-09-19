@@ -130,18 +130,14 @@ function resolveTemplateDefinition(template = {}) {
 
 function assertEvaluatableParametricTemplate(template = {}) {
   const definition = resolveTemplateDefinition(template);
-  if (!definition) {
-    throw createError({ statusCode: 400, message: 'Cassette template has no construction definition' });
+  if (!isOccsDocument(definition)) {
+    throw createError({
+      statusCode: 422,
+      message: 'Cassette template has no OCCS construction definition — legacy parametric templates are no longer supported; recreate the template as an OCCS design'
+    });
   }
-  if (isOccsDocument(definition)) {
-    if (!definition.extensions?.cutkit?.graphTree) {
-      throw createError({ statusCode: 400, message: 'Cassette template has no OCCS graph tree' });
-    }
-    return definition;
-  }
-  const params = definition.params || {};
-  if (!Object.prototype.hasOwnProperty.call(params, 'A') || !Object.prototype.hasOwnProperty.call(params, 'B')) {
-    throw createError({ statusCode: 400, message: 'Cassette template requires A and B parameters for construction' });
+  if (!definition.extensions?.cutkit?.graphTree) {
+    throw createError({ statusCode: 400, message: 'Cassette template has no OCCS graph tree' });
   }
   return definition;
 }

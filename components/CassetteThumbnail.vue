@@ -96,14 +96,7 @@ const hasBakedPreviewGeometry = (cassette) => Boolean(
   cassette?.data?.geometry?.data?.layerData?.length ||
   cassette?.data?.geometry?.data?.polygonParts?.length
 );
-const cassetteGraph = (cassette) => {
-  const definition = cassetteDefinition(cassette);
-  return {
-    params: definition?.params || {},
-    extrusions: Array.isArray(definition?.extrusions) ? definition.extrusions : [],
-    layers: definition?.layers || definition?.layerRoles || {}
-  };
-};
+;
 
 const loadCassette = async () => {
   if (props.cassette) return props.cassette;
@@ -123,19 +116,6 @@ const setGeometrySource = (cassette) => {
     ? { ...cassette, __cutkitPreferLayerData: true }
     : cassette;
   canvasSourceType.value = 'geometry-preview';
-  canvasLayerMapping.value = {};
-};
-
-const setParametricSource = (graph) => {
-  canvasSource.value = {
-    params: {
-      ...graph.params,
-      ...(props.dimensions || {})
-    },
-    extrusions: graph.extrusions,
-    layers: graph.layers || {}
-  };
-  canvasSourceType.value = 'parametric-cassette';
   canvasLayerMapping.value = {};
 };
 
@@ -205,12 +185,6 @@ const updateThumbnail = async () => {
     const definition = cassetteDefinition(cassette);
     if (isOccsCassetteDefinition(definition)) {
       setOccsSource(definition);
-      return;
-    }
-
-    const graph = cassetteGraph(cassette);
-    if (type === 'PARAMETRIC' || graph.extrusions.length > 0 || Object.keys(graph.params).length > 0) {
-      setParametricSource(graph);
       return;
     }
 

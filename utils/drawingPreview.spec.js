@@ -1,52 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyLayerPens,
-  normalizeCassetteDrawing,
   normalizeGeometryDrawing
 } from './drawingPreview.js';
 
-const cassetteResult = {
-  viewBox: '0 0 100 100',
-  path: 'M 0 0 L 100 0 L 100 100 Z',
-  vertices: [[0, 0], [100, 0], [100, -100]],
-  allCurves: [
-    { path: 'M 10 10 L 20 10 L 20 20 Z', isExtrusion: true },
-    { path: 'M 0 0 L 100 0 L 100 100 Z', isBoundary: true }
-  ]
-};
 
 describe('drawing preview contract', () => {
-  it('normalizes parametric cassette geometry without injecting production layer standards', () => {
-    const drawing = normalizeCassetteDrawing(cassetteResult, { params: { A: 100 } });
-
-    expect(drawing.layers).toHaveLength(2);
-    expect(drawing.layers[0].name).toBe('geometry');
-    expect(drawing.layers[0].standardCode).toBeUndefined();
-    expect(drawing.layers[1]).toMatchObject({
-      name: 'dimension.cassette',
-      standardCode: 'dimension.cassette'
-    });
-    expect(drawing.layers[1].paths[0]).toMatchObject({
-      kind: 'text',
-      text: 'A'
-    });
-    expect(JSON.stringify(drawing)).not.toContain('1_1_FACE');
-    expect(JSON.stringify(drawing)).not.toContain('1_3_UNFOLD_BOUNDARY');
-  });
-
-  it('uses caller-provided layer metadata for cassette geometry', () => {
-    const drawing = normalizeCassetteDrawing(cassetteResult, {
-      params: { A: 100 },
-      layers: {
-        face: { name: 'face-layer', standardCode: 'FACE_STD' },
-        boundary: { name: 'boundary-layer', standardCode: 'BOUNDARY_STD' }
-      }
-    });
-
-    expect(drawing.layers.map(layer => layer.name)).toEqual(['face-layer', 'boundary-layer', 'dimension.cassette']);
-    expect(drawing.layers.map(layer => layer.standardCode)).toEqual(['FACE_STD', 'BOUNDARY_STD', 'dimension.cassette']);
-  });
-
   it('preserves designer overlays from layered geometry previews', () => {
     const drawing = normalizeGeometryDrawing({
       viewBox: '0 0 10 10',

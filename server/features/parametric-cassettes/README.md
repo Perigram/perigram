@@ -81,17 +81,13 @@ Triggered by `GET /api/cassettes/:id/export?A=...&B=...`:
 3. A DXF string is generated and returned directly to the client.
 
 ## Algorithmic Consistency
-Legacy templates use the same `nodi-modular` WASM engine and
-`cassetteGraphBuilder` utility as the legacy frontend designer. OCCS v2
-templates use the same graph-tree, trapezoid, Clipper, and layer helpers as
-Cassette Designer v2 previews, so saved workbench templates feed nesting
-without re-entering Nodi.
-Runtime requires `nodi-modular/index_bg.wasm` (copied from node_modules or bundled in the Nuxt output) and `public/Cassette.json` to be present in the production image.
-The engine instance is stateful and not concurrency-safe for parallel `loadGraph`/`evaluate`.
-`service.js` enforces this with a process-wide evaluation lock and per-call deep cloning of the template graph before `loadGraph`.
+Templates evaluate through the same graph-tree, trapezoid, Clipper, and
+layer helpers as Cassette Designer v2 previews, so saved workbench
+templates feed nesting identically. A template definition that is not an
+OCCS document fails with a named 422 (legacy parametric templates must be
+recreated as OCCS designs).
 
 ## Shared Utilities
-- `server/utils/cassetteGraphBuilder.js`: Shared by both frontend components and backend services to construct the geometry evaluation graph.
 - `utils/occs/evaluate.js`: Evaluates OCCS v2 graph-tree templates into
   production cut polygons and fold layer data, split by `sheet` workpiece for
   nesting.

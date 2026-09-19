@@ -45,13 +45,13 @@ Current owners:
 | File | Current responsibility |
 |---|---|
 | `components/CassetteDesigner.vue` (deleted; superseded by `components/CassetteDesignerV2.vue`) | Historically owned editor state as `{ params, extrusions, layers }`, rendered parameters with `InputNumber`, added extrusions by clicked boundary edge index, and saved through `saveCassetteTemplate`. |
-| [components/shared/DrawingCanvas.vue](../../components/shared/DrawingCanvas.vue) | For `source-type="parametric-cassette"`, calls `renderCassetteToSVG()`, normalizes the result into `{ viewBox, layers }`, and emits edge-index designer actions. |
-| [utils/cassetteRenderer.js](../../utils/cassetteRenderer.js) | Browser-side Nodi WASM renderer. Loads `/Cassette.json`, builds a Nodi graph, and returns the largest evaluated curve as boundary. |
-| [server/utils/cassetteGraphBuilder.js](../../server/utils/cassetteGraphBuilder.js) | Converts `{ params, extrusions }` into Nodi nodes: parameter numbers, one root rectangle from `A/B`, then a linear chain of grow operations by numeric edge index. |
+| [components/shared/DrawingCanvas.vue](../../components/shared/DrawingCanvas.vue) | The `parametric-cassette` source type and its Nodi render path are removed; the canvas renders DXF, sketch, geometry-preview, and OCCS sources. |
+| `utils/cassetteRenderer.js` (deleted) | Was the browser-side Nodi WASM renderer. |
+| `server/utils/cassetteGraphBuilder.js` (deleted) | Converted `{ params, extrusions }` into Nodi nodes. |
 | [server/features/cassettes/operations.js](../../server/features/cassettes/operations.js) | Converts command input into cassette service data. `definition` is opaque, so it can carry OCCS after validation is added. |
 | [server/features/cassettes/service.js](../../server/features/cassettes/service.js) | Stores `data.type`, `data.definition`, and `data.parameters`; updates legacy direct `params/extrusions` into `definition`. |
-| [server/features/parametric-cassettes/service.js](../../server/features/parametric-cassettes/service.js) | Backend Nodi evaluation, DXF generation, and baked cassette creation. Assumes `definition.params` and `definition.extrusions`. |
-| [components/CassetteThumbnail.vue](../../components/CassetteThumbnail.vue) | Reads old graph fields to render thumbnails through `parametric-cassette`. |
+| [server/features/parametric-cassettes/service.js](../../server/features/parametric-cassettes/service.js) | OCCS-only evaluation, DXF generation, and baked cassette creation; the Nodi WASM path is removed and non-OCCS definitions fail with a named 422. |
+| [components/CassetteThumbnail.vue](../../components/CassetteThumbnail.vue) | Renders thumbnails through OCCS and DXF/geometry sources; the legacy `parametric-cassette` path is removed. |
 
 Important consequences:
 
