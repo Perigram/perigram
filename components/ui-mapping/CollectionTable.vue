@@ -1,6 +1,6 @@
 <template>
   <div :class="LAYOUT.scrollX" class="[&_td]:align-top">
-    <DataTable :value="instances" size="small" striped-rows data-key="id" class="min-w-max">
+    <DataTable :value="instances" size="small" striped-rows data-key="id" class="min-w-max" :paginator="instances.length > 10" :rows="10">
       <template #empty>
         <span class="text-supporting text-muted">{{ $t('uiMapping.emptyRegion') }}</span>
       </template>
@@ -11,7 +11,7 @@
     </Column>
     <Column :header="$t('uiMapping.identityColumn')">
       <template #body="{ data }">
-        <span class="text-body">{{ identityOf(data) }}</span>
+        <span class="text-body block max-w-72 truncate">{{ identityOf(data) }}</span>
       </template>
     </Column>
     <Column v-if="hasStatus" :header="$t('uiMapping.statusColumn')">

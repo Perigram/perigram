@@ -1,11 +1,11 @@
 <template>
   <div :class="LAYOUT.scrollX" class="[&_td]:align-top">
-    <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key" class="min-w-max">
+    <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key" class="min-w-max" :paginator="nodes.length > 10" :rows="10">
     <Column>
       <template #body="{ node }">
         <div class="flex items-center gap-2">
           <i :class="node.data.icon" class="text-muted" />
-          <span class="text-body">{{ node.data.label }}</span>
+          <span class="text-body block max-w-72 truncate">{{ node.data.label }}</span>
         </div>
       </template>
     </Column>

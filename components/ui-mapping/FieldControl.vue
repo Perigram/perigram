@@ -1,6 +1,6 @@
 <template>
   <span v-if="outcome.component === 'ValueText'" :class="[densityScale.factValue, LAYOUT.cellText]">{{ displayValue }}</span>
-  <p v-else-if="outcome.component === 'ProseText'" class="text-prose w-full">{{ model }}</p>
+  <p v-else-if="outcome.component === 'ProseText'" class="text-prose line-clamp-4 w-full break-words">{{ model }}</p>
   <MeterGroup
     v-else-if="outcome.component === 'MeterGroup'"
     :value="meterSegments"

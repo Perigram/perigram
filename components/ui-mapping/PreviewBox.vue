@@ -1,6 +1,6 @@
 <template>
   <div v-if="preview.component === 'ImagePreview'" class="w-full">
-    <svg viewBox="0 0 240 96" width="100%" preserveAspectRatio="xMidYMid slice" role="img">
+    <svg viewBox="0 0 240 96" width="100%" class="h-28 w-full" preserveAspectRatio="xMidYMid slice" role="img">
       <defs>
         <linearGradient :id="gradientId" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" :stop-color="accent" stop-opacity="0.5" />
@@ -14,7 +14,7 @@
     </svg>
   </div>
   <div v-else-if="preview.component === 'GeometryPreview'" class="w-full">
-    <svg viewBox="0 0 240 96" width="100%" role="img">
+    <svg viewBox="0 0 240 96" width="100%" class="h-28 w-full" role="img">
       <rect width="240" height="96" fill="var(--ck-subtle-background)" />
       <circle cx="120" cy="48" r="38" :stroke="accent" stroke-dasharray="3 4" stroke-width="1.5" fill="none" opacity="0.7" />
       <polygon :points="starPoints" :stroke="accent" stroke-width="1.5" fill="none" opacity="0.9" />

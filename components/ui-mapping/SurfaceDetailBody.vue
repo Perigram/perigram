@@ -26,13 +26,16 @@
           />
           <Inplace v-else closable>
             <template #display>
-              <FieldControl
-                :model-value="inlineValue(field)"
-                :descriptor="field.descriptor"
-                variant="row"
-                :pool="pool"
-                :bundle="bundle"
-              />
+              <div class="group -mx-1.5 flex cursor-pointer items-center gap-1.5 rounded-ui px-1.5 py-0.5 transition-colors hover:bg-subtle">
+                <FieldControl
+                  :model-value="inlineValue(field)"
+                  :descriptor="field.descriptor"
+                  variant="row"
+                  :pool="pool"
+                  :bundle="bundle"
+                />
+                <i class="pi pi-pencil text-supporting text-muted opacity-0 transition-opacity group-hover:opacity-100" />
+              </div>
             </template>
             <template #content>
               <FieldControl
@@ -51,7 +54,7 @@
         </div>
       </div>
       <Fieldset
-        v-if="structuralOf(group).length === 1"
+        v-if="structuralOf(group).length === 1 && isRichStructure(structuralOf(group)[0])"
         :legend="structuralOf(group)[0].label"
         toggleable
         class="w-full"
@@ -75,6 +78,16 @@
           />
         </div>
       </Fieldset>
+      <div v-else-if="structuralOf(group).length === 1" :class="LAYOUT.specRow">
+        <span class="text-body text-muted">{{ structuralOf(group)[0].label }}</span>
+        <FieldControl
+          :model-value="instance.fields?.[structuralOf(group)[0].name]"
+          :descriptor="structuralOf(group)[0].descriptor"
+          variant="row"
+          :pool="pool"
+          :bundle="bundle"
+        />
+      </div>
       <Accordion v-else-if="structuralOf(group).length" :value="['0']" multiple class="w-full">
         <AccordionPanel
           v-for="(field, index) in structuralOf(group)"
@@ -167,6 +180,13 @@ const isLongString = descriptor => descriptor.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
 const isScalarFact = field => SCALAR_BASES.includes(field.descriptor.base) && !isLongString(field.descriptor);
 const groups = computed(() => resolveFieldGroups(props.type));
+const isRichStructure = field => {
+  const value = props.instance.fields?.[field.name];
+  if (field.descriptor.base === 'blob') return false;
+  if (value && typeof value === 'object' && !Array.isArray(value)) return Object.keys(value).length > 1;
+  if (Array.isArray(value)) return value.length > 2;
+  return typeof value === 'string' && value.length > 80;
+};
 const hasValue = field => props.instance.fields?.[field.name] !== null
   && props.instance.fields?.[field.name] !== undefined
   && props.instance.fields?.[field.name] !== '';
