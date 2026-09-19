@@ -7,12 +7,10 @@ import ProgressSpinner from 'primevue/progressspinner';
 import ScrollPanel from 'primevue/scrollpanel';
 import Tag from 'primevue/tag';
 import { generateSvgData } from '~/utils/dxfParser';
-import { renderCassetteToSVG } from '~/utils/cassetteRenderer';
 import { renderCassetteV2TreeToDrawing } from '~/utils/cassetteV2Renderer';
 import {
   DEFAULT_DRAWING_PEN,
   applyLayerPens,
-  normalizeCassetteDrawing,
   normalizeGeometryDrawing
 } from '~/utils/drawingPreview';
 import { normalizeSketchDrawing, parseScene } from '~/utils/sketch.js';
@@ -225,7 +223,7 @@ const sourceHasStandardCodes = (source) => (
 const resolveDrawing = async () => {
   if (!props.source) return null;
   const usesLayerContract = (
-    ['dxf-text', 'dxf-url', 'parametric-cassette'].includes(props.sourceType) ||
+    ['dxf-text', 'dxf-url'].includes(props.sourceType) ||
     props.sourceType === 'occs-cassette' ||
     Object.keys(props.layerMapping).length > 0 ||
     (props.sourceType === 'geometry-preview' && sourceHasStandardCodes(props.source))
@@ -271,14 +269,6 @@ const resolveDrawing = async () => {
       ? await fetchText(props.source)
       : JSON.stringify(props.source);
     return normalizeSketchDrawing(parseScene(raw));
-  }
-
-  if (props.sourceType === 'parametric-cassette') {
-    const result = await renderCassetteToSVG(props.source);
-    return applyLayerPens(normalizeCassetteDrawing(result, {
-      params: props.source?.params || {},
-      layers: props.source?.layers || props.source?.layerRoles || {}
-    }), penOptions);
   }
 
   if (props.sourceType === 'occs-cassette') {

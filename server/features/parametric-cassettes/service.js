@@ -3,16 +3,11 @@
  * Handles geometry generation and baking of parametric templates into DXF files.
  */
 
+import { createError } from 'h3';
 import * as repository from './repository.js';
-import { buildNodiGraph } from '../../utils/cassetteGraphBuilder.js';
-import init, { Modular } from 'nodi-modular';
-import fs from 'fs/promises';
-import path from 'path';
 import { OCCS_LAYER_CUT_OUTER } from '#utils/occs/layers.js';
 import { isOccsDocument } from '#utils/occs/parameters.js';
 
-let wasmInitialized = false;
-let baseTemplateGraph = null;
 let evaluationChain = Promise.resolve();
 
 const OCCS_CASSETTE_FACE_LAYER = 'contour.cassette_face';
@@ -41,61 +36,6 @@ async function runWithEvaluationLock(task) {
   const run = evaluationChain.then(() => task());
   evaluationChain = run.catch(() => {});
   return run;
-}
-
-/**
- * Initialize the Nodi engine on the server
- */
-async function getEngine() {
-  if (wasmInitialized && baseTemplateGraph) {
-    return Modular.new();
-  }
-
-  try {
-    // Load WASM from node_modules
-    const wasmCandidates = [
-      path.resolve(process.cwd(), 'node_modules/nodi-modular/index_bg.wasm'),
-      path.resolve(process.cwd(), '.output/server/node_modules/nodi-modular/index_bg.wasm')
-    ];
-    let wasmPath = null;
-    for (const candidate of wasmCandidates) {
-      try {
-        await fs.access(candidate);
-        wasmPath = candidate;
-        break;
-      } catch {}
-    }
-    if (!wasmPath) {
-      throw new Error(`nodi-modular WASM not found. Tried: ${wasmCandidates.join(', ')}`);
-    }
-    const wasmBuffer = await fs.readFile(wasmPath);
-    await init(wasmBuffer);
-    
-    // Load the default graph structure
-    const graphCandidates = [
-      path.resolve(process.cwd(), 'public/Cassette.json'),
-      path.resolve(process.cwd(), '.output/public/Cassette.json')
-    ];
-    let graphPath = null;
-    for (const candidate of graphCandidates) {
-      try {
-        await fs.access(candidate);
-        graphPath = candidate;
-        break;
-      } catch {}
-    }
-    if (!graphPath) {
-      throw new Error(`Cassette.json not found. Tried: ${graphCandidates.join(', ')}`);
-    }
-    const graphContent = await fs.readFile(graphPath, 'utf-8');
-    baseTemplateGraph = JSON.parse(graphContent);
-    wasmInitialized = true;
-    
-    return Modular.new();
-  } catch (err) {
-    console.error('Failed to initialize parametric engine:', err);
-    throw err;
-  }
 }
 
 /**
@@ -323,67 +263,13 @@ export async function evaluateTemplate(cassetteId, dimensions) {
       });
     }
 
-    const engine = await getEngine();
-    const mergedParams = { ...(definitionData.params || {}), ...dimensions };
-
-    // Keep backend evaluation behavior aligned with frontend renderer:
-    // zero/NaN/negative values can panic the WASM engine on graph evaluation.
-    const sanitizedParams = {};
-    for (const [key, value] of Object.entries(mergedParams)) {
-      const num = Number(value);
-      sanitizedParams[key] = Number.isFinite(num) && num > 0 ? num : 1;
-    }
-
-    const cassetteData = {
-      params: sanitizedParams,
-      extrusions: definitionData.extrusions || []
-    };
-
-    // Always pass a deep-cloned template graph to avoid shared-reference aliasing
-    // across repeated WASM evaluations.
-    const isolatedBaseGraph = JSON.parse(JSON.stringify(baseTemplateGraph));
-    const { graph } = buildNodiGraph(cassetteData, isolatedBaseGraph);
-    engine.loadGraph(JSON.stringify(graph));
-
-    try {
-      const result = await engine.evaluate();
-      if (!result || !result.geometryIdentifiers) {
-        throw new Error('Geometry evaluation returned no identifiers');
-      }
-      
-      const { geometryIdentifiers } = result;
-
-      const allCurves = [];
-      geometryIdentifiers.forEach((id) => {
-        const interop = engine.findGeometryInteropById(id);
-        if (interop?.variant === 'Curve' && interop?.data?.vertices) {
-          const vertices = interop.data.vertices;
-          if (Array.isArray(vertices) && vertices.length >= 3) {
-            allCurves.push({ 
-              vertices, 
-              id,
-              area: calculateArea(vertices)
-            });
-          }
-        }
-      });
-      
-      if (allCurves.length === 0) {
-        throw new Error('Geometry evaluation produced no valid curves');
-      }
-
-      // Sort by area descending so largest is first (assumed boundary)
-      allCurves.sort((a, b) => b.area - a.area);
-
-      const polygons = allCurves.map(c => ({ coordinates: c.vertices }));
-
-      return {
-        polygons,
-        dimensions: cassetteData.params
-      };
-    } catch (e) {
-      console.error('Nodi evaluation failed:', e);
-      throw new Error(`Geometry evaluation failed: ${e.message}`);
-    }
+    // Legacy parametric (WASM) definitions are gone: the OCCS graph tree is
+    // the one construction contract, evaluated in pure JS. A template that
+    // carries neither is legacy data and must be recreated as an OCCS
+    // design.
+    throw createError({
+      statusCode: 422,
+      message: 'Cassette template has no OCCS construction definition — legacy parametric templates are no longer supported; recreate the template as an OCCS design'
+    });
   });
 }

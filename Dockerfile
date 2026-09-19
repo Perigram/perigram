@@ -38,8 +38,6 @@ COPY --from=build /src/.output/public /src/.output/server/chunks/public
 COPY --from=build /src/server/scripts /src/server/scripts
 COPY --from=build /src/server/features /src/server/features
 COPY --from=build /src/public /src/public
-# Include nodi-modular WASM for parametric engine at runtime
-COPY --from=build /src/node_modules/nodi-modular /src/node_modules/nodi-modular
 # Include @napi-rs/canvas so pdfjs-dist can polyfill DOMMatrix in Node at runtime
 COPY --from=build /src/node_modules/@napi-rs /src/node_modules/@napi-rs
 # Include xlsx so Nitro-bundled chunks can resolve its cpexcel.js codepage data
