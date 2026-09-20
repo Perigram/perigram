@@ -225,7 +225,10 @@ The compiled runtime contract is not a design source. Stored definitions that
 only contain `data.compiled` without semantic records are rejected during
 validation and activation so operators do not edit a guessed reconstruction.
 Current process edits should fork the active definition into a draft and
-activate that draft when validation succeeds.
+activate that draft when validation succeeds. When a save lands on a
+definition that went ACTIVE after the workspace loaded, the designer forks
+the draft copy from the current canvas instead of surfacing the 409 as a
+dead end, so no edit is lost.
 
 Entity lifecycle profiles and action nodes compile directly into normalized
 `@cutkit/workflows` v2 machines. Runtime status resolution uses the active
