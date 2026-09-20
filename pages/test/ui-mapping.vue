@@ -25,6 +25,7 @@
         :aria-label="$t('uiMapping.stateMatrix')"
         @click="toggleStateMatrix"
       />
+      <span v-if="stateMatrix" class="text-supporting text-muted">{{ $t('uiMapping.stateMatrixHint') }}</span>
       <span class="text-label">{{ $t('uiMapping.scaleLabel') }}</span>
       <Slider
         :model-value="scale"
@@ -96,13 +97,15 @@ const screens = computed(() => Object.values(world.value.contract.screens));
 
 // Data-state matrix: applies the world's seeded loading/denied/error
 // source states so every RegionDataState presentation renders beside the
-// naturally-ready screens (empty and missing already ship as screens).
-const stateMatrix = computed(() => route.query.state === 'matrix');
+// naturally-ready screens (empty and no-record already ship as screens).
+// On by default — the showcase exists to display the possibilities; the
+// toggle opts back to the natural world.
+const stateMatrix = computed(() => route.query.state !== 'off');
 const sourceStatesFor = screen => (stateMatrix.value
   ? world.value.sourceStatesMatrix?.[screen.screenKey] || null
   : null);
 const toggleStateMatrix = () => {
-  const next = stateMatrix.value ? undefined : 'matrix';
+  const next = stateMatrix.value ? 'off' : undefined;
   router.push({ query: { ...route.query, state: next } });
 };
 

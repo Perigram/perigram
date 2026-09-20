@@ -46,10 +46,12 @@ resolver output. There is no handwritten section, grid, or per-type branch
 in the page or the components. Collection identities are live links: the
 page routes `onOpen` in-page — the type's detail section scrolls into
 view through the `?screen=` query, and types without a detail screen
-toast. A data-states toggle (`?state=matrix`) applies the world's seeded
-`sourceStatesMatrix` (loading/denied/error) so every RegionDataState
-presentation renders beside the naturally-ready screens; the empty and
-missing states ship as their own generated screens.
+toast. The data-states mode is on by default: the world's seeded
+`sourceStatesMatrix` injects loading/denied/error source states so every
+RegionDataState presentation renders beside the naturally-ready screens
+(`?state=off` returns to the natural world). The empty and no-record
+states ship as their own explicitly labelled generated screens — they
+demonstrate the surfaces, not broken data.
 
 The fixture screens demonstrate:
 

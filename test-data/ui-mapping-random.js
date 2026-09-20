@@ -425,7 +425,7 @@ export function generateUiMappingWorld(seed = 7) {
     const type = emptyType;
     const key = `list_${type.id}`;
     screens[key] = {
-      id: key, screenKey: key, label: `${type.render.label} list (empty)`, kind: 'typeList', template: 'typeList',
+      id: key, screenKey: key, label: `${type.render.label} list — empty state`, kind: 'typeList', template: 'typeList',
       route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'hub', typeId: type.id,
       required: null, roleIds: ['operator'], scope: {}, bindings: {},
       sources: [{ id: 'main', typeId: type.id, mode: 'list', required: null }],
@@ -468,7 +468,7 @@ export function generateUiMappingWorld(seed = 7) {
     const type = emptyType;
     const key = `detail_missing_${type.id}`;
     screens[key] = {
-      id: key, screenKey: key, label: `${type.render.label} detail (no record)`, kind: 'instanceDetail', template: 'instanceDetail',
+      id: key, screenKey: key, label: `${type.render.label} detail — no record state`, kind: 'instanceDetail', template: 'instanceDetail',
       route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'detail', typeId: type.id,
       required: null, roleIds: ['operator'], scope: { instanceId: `${type.id}-none` }, bindings: {},
       sources: [{ id: 'main', typeId: type.id, mode: 'single', required: null, identifier: '$screen.scope.instanceId' }],

@@ -1868,6 +1868,7 @@
     "scaleLabel": "Отступы",
     "stateMatrix": "Состояния данных",
     "openTargetMissing": "У этой записи нет экрана деталей",
+    "stateMatrixHint": "Подставлены состояния загрузки/отказа/ошибки",
     "sortLabel": "Сортировка",
     "sortOrderLabel": "Изменить порядок сортировки",
     "moreActions": "Ещё действия"
