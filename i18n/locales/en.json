@@ -1868,6 +1868,7 @@
     "scaleLabel": "Spacing",
     "stateMatrix": "Data states",
     "openTargetMissing": "No detail screen for this record",
+    "stateMatrixHint": "Injected loading/denied/error source states",
     "sortLabel": "Sort by",
     "sortOrderLabel": "Toggle sort order",
     "moreActions": "More actions"

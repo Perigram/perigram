@@ -98,7 +98,7 @@ describe('showcase-reachable contracts in every world', () => {
       // One large collection: virtualization (>50), pagination, toolbar search.
       expect(world.bundle.types.some(type => world.instances[type.id].length > 50), `seed ${seed} volume type`).toBe(true);
       // The guaranteed-empty type has a screen whose main region composes empty.
-      const emptyScreen = Object.values(world.contract.screens).find(screen => screen.label?.endsWith('(empty)'));
+      const emptyScreen = Object.values(world.contract.screens).find(screen => screen.label?.endsWith('— empty state'));
       expect(emptyScreen, `seed ${seed} empty screen`).toBeTruthy();
       expect(composeScreen(emptyScreen, world.contract, world.bundle, pool).regions[0].dataState).toBe('empty');
       // The dangling-scope detail composes missing.
