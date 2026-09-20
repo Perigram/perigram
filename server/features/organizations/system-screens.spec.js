@@ -16,6 +16,8 @@ describe('organization system screens', () => {
       'organization_overview',
       'organization_billing',
       'organization_team',
+      'organization_drawing',
+      'organization_packs',
       'organization_process'
     ]);
     expect(result.screens[0]).toMatchObject({
@@ -28,6 +30,8 @@ describe('organization system screens', () => {
     expect(result.screens[0].systemScreens.map(screen => screen.screenKey)).toEqual([
       'organization_billing',
       'organization_team',
+      'organization_drawing',
+      'organization_packs',
       'organization_process'
     ]);
 
@@ -52,6 +56,8 @@ describe('organization system screens', () => {
       'organization_overview',
       'organization_billing',
       'organization_team',
+      'organization_drawing',
+      'organization_packs',
       'organization_process'
     ]);
   });

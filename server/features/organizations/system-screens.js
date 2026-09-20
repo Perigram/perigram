@@ -85,6 +85,36 @@ export function resolveOrganizationSystemScreens(auth = {}) {
 
   if (canManageOrganization) {
     screens.push({
+      id: 'organization_drawing',
+      screenKey: 'organization_drawing',
+      labelKey: 'drawing.title',
+      descriptionKey: 'drawing.hint',
+      kind: 'system',
+      template: 'route',
+      placement: 'hub',
+      route: '/organization/drawing',
+      sourceRoute: '/organization/drawing',
+      entityType: 'organization',
+      icon: 'pi pi-pencil',
+      scope: organizationScope,
+      required: { feature: 'organizations', level: 'admin' }
+    });
+    screens.push({
+      id: 'organization_packs',
+      screenKey: 'organization_packs',
+      labelKey: 'packs.title',
+      descriptionKey: 'packs.hint',
+      kind: 'system',
+      template: 'route',
+      placement: 'hub',
+      route: '/organization/packs',
+      sourceRoute: '/organization/packs',
+      entityType: 'organization',
+      icon: 'pi pi-box',
+      scope: organizationScope,
+      required: { feature: 'organizations', level: 'admin' }
+    });
+    screens.push({
       id: ORGANIZATION_PROCESS_SCREEN_KEY,
       screenKey: ORGANIZATION_PROCESS_SCREEN_KEY,
       labelKey: 'processDesigner.title',
