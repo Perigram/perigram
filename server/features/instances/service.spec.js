@@ -163,6 +163,19 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(set['payload.fileId']).toBeUndefined();
   });
 
+  it('admits the system catalog beside org rows and serves pack types', async () => {
+    const coll = stubCollection();
+    // tech-drawing pack type resolves through the composed static map
+    const pens = instanceServiceResolver('pen-template');
+    await pens.list({}, 'user-1', 'org-1');
+    const filter = coll.find.mock.calls[0][0];
+    expect(filter.type).toBe('pen-template');
+    expect(filter.$or).toEqual([
+      { organizationId: 'org-1' },
+      { organizationId: null }
+    ]);
+  });
+
   it('answers undeclared types with a clean 404, not a server fault', async () => {
     stubCollection();
     const service = instanceServiceResolver('mystery-thing');

@@ -13,8 +13,12 @@ export function collectionForClass(classOf = '') {
   return CLASS_COLLECTIONS[classOf] || 'files';
 }
 
+// Org scoping admits the system catalog (SPEC §3 system instances):
+// pack-seeded reference rows carry `organizationId: null` and are
+// read-visible to every organization; writes stamp the caller's org.
 function orgFilter(organizationId) {
-  return organizationId ? { organizationId: toFlexibleId(organizationId) } : {};
+  if (!organizationId) return {};
+  return { $or: [{ organizationId: toFlexibleId(organizationId) }, { organizationId: null }] };
 }
 
 export async function insertInstance(collection, doc) {
