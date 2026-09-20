@@ -2,7 +2,48 @@
 
 ## Integrations
 
-- [ ] **Payload creation protocols: upload / capture / editor as construct
+- [ ] **Construct-mode hygiene: protocols own payload constructs, derived
+  types are not constructible, cassette creates through its editor.**
+  Seventh slice — removes the slop from via-pickers.
+  - Payload-bearing types offer ONLY their declared creation protocols
+    (no `genericCreate` — the `editor` protocol already is the
+    blank-first-save flow); default via is the first declared protocol.
+    Payload-less types (reference data: pens, layer standards, colors,
+    facade patterns) keep `genericCreate`.
+  - `derived: true` declaration facet: operator/service-produced types
+    (legacy semantics: system- or command-produced records) synthesize
+    NO construction entry — they enter graphs as operator outputs.
+    `sheet-design` is derived (nesting-run-produced, matching the legacy
+    construction exclusion); its editor binding drops the create mode.
+  - Cassette declares `creation: ['editor']` — the designer is the main
+    entry (matches the legacy invariant that created templates open with
+    the default OCCS document). Dual-world caveat: instance-path blank
+    cassettes carry fields only until the designer flow migrates onto
+    the instance payload path (tracked with the artifact flow
+    migration).
+  - Deferred (tracked): generateAttachment/convertArtifact operator
+    declarations; chat/proof/capture/upload flow migration off artifact;
+    artifact overload cut.
+  ### Agent Notes — 2026-09-21
+  Implemented in `agent/cts-construct-hygiene-20260921`. The projection
+  synthesizes protocols-only construction for payload types
+  (`defaultMode` = first protocol; `genericCreate` dropped — the editor
+  protocol is the blank-create) and NO construction for `derived`
+  types (new normalized declaration facet; `sheet-design` marked
+  derived, editor binding narrowed to `edit`, matching the legacy
+  system/command-produced exclusion). Cassette declares
+  `creation: ['editor']` — the designer is the main entry. Instance
+  capability literals mirror the static declarations; org-authored
+  (async store) declarations keep the payload-less genericCreate
+  literal with the projection authoritative — residual: an org payload
+  type's literal lags until a sync org-declaration source exists (no
+  consumer; noted here deliberately). Validation: cts (derived facet +
+  protocols-only projection cases), cts-types, instances,
+  app-registry (minus the pre-existing generic-create dispatch
+  failure), generated suites, packs, localization, arch, docs,
+  framework:validate, SSR — all pass. Status: WAITING.
+
+- [x] **Payload creation protocols: upload / capture / editor as construct
   via modes.** Sixth slice — restores the artifact-era creation-protocol
   choice on create nodes, declared on file types.
   - Payload traits gain a `creation` facet (list of `upload | capture |
