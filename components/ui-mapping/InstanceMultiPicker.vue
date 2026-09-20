@@ -30,5 +30,6 @@ const options = computed(() => props.accepts
     label: `${typeLabel(instance.type)}: ${instanceLabel(instance)}`,
     value: { type: instance.type, id: instance.id }
   })));
-const typeLabel = typeId => (props.bundle?.types || []).find(type => type.id === typeId)?.render?.label || typeId;
+const { localizedTypeLabelById } = useLocalizedTypeLabel();
+const typeLabel = typeId => localizedTypeLabelById(typeId, props.bundle?.types || []);
 </script>

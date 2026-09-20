@@ -117,6 +117,7 @@ import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
 import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveCreateDialogInputs, typeLabelKey, localizedLabel, resolveInstanceActions } from '#shared/ui-mapping/index.js';
 import RegionBlock from './RegionBlock.vue';
+import { useLocalizedTypeLabel } from './type-labels.js';
 import InstancePicker from './InstancePicker.vue';
 import FieldControl from './FieldControl.vue';
 
@@ -149,7 +150,8 @@ const composed = computed(() => composeScreen(props.screen, props.contract, prop
 provide('uiMappingSpacing', spacingClasses(props.spacingScale));
 
 const { te, t } = useI18n();
-const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type?.render?.label || region.label);
+const { localizedTypeLabel } = useLocalizedTypeLabel();
+const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type ? localizedTypeLabel(region.type) : region.label);
 const openable = computed(() => typeof props.onOpen === 'function');
 // Per-instance quick actions by type (resolveInstanceActions contract):
 // status transitions, deletion, and instance-scoped commands a collection

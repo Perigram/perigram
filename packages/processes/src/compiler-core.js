@@ -16,7 +16,7 @@ import { CONSUMER_EFFECT_KINDS, entityBlocks, getFieldPolicy, getProcessNodeDefi
 import { projectUiAction, projectUiContractChannels } from './ui-contract-projection.js';
 import { normalizeProcessType, sanitizeProcessType, processSocketsCompatible, processType } from './types.js';
 import { createDataTree, isDataTree } from './data-tree.js';
-import { normalizeHandle, lineageKeyForEntityType, lineageRelationsForParent } from './hierarchy-utils.js';
+import { normalizeHandle, lineageKeyForEntityType, lineageRelationsForParent, mergedHierarchyBindings } from './hierarchy-utils.js';
 
 export const PROCESS_SCHEMA_VERSION = 1;
 const ACCESS_ORDER = { none: 0, read: 1, write: 2, admin: 3 };
@@ -1607,7 +1607,7 @@ export function compileAssignmentAccess({ assignment = {}, roles = {}, screens =
 }
 
 export function compileHomeScreenForAssignment({ assignment = {}, screens = [], lineageBindings = [], domain = {} } = {}) {
-  const sections = topLevelHomeSections(screens, domain);
+  const sections = topLevelHomeSections(screens, mergedHierarchyBindings(lineageBindings, domain));
   if (!sections.length) return null;
   const screenKey = `home_${assignment.userId || assignment.id || 'user'}`;
   return {
@@ -1643,7 +1643,7 @@ export function compileHomeScreenForAssignment({ assignment = {}, screens = [], 
   };
 }
 
-function topLevelHomeSections(screens = [], domain = {}) {
+function topLevelHomeSections(screens = [], hierarchy = []) {
   const listScreens = screens.filter(screen => (screen.template === 'typeList' || screen.template === 'entityList') && (screen.typeId || screen.entityType) && screen.sources?.some(source => source.mode === 'list'));
   const sectionsByType = new Map();
   for (const screen of listScreens) {
@@ -1665,7 +1665,15 @@ function topLevelHomeSections(screens = [], domain = {}) {
       route: screen.route
     });
   }
-  return [...sectionsByType.values()];
+  // Declared and compiled hierarchy both scope the home: a section whose
+  // type is a child of another sectioned type is suppressed — it remains
+  // reachable through its parent's detail child region.
+  const sectionTypes = new Set(sectionsByType.keys());
+  const childTypes = new Set(hierarchy
+    .filter(relation => sectionTypes.has(relation.ancestorEntityType)
+      && relation.childEntityType !== relation.ancestorEntityType)
+    .map(relation => relation.childEntityType));
+  return [...sectionsByType.values()].filter(section => !childTypes.has(section.typeId));
 }
 
 function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineageBindings = []) {
@@ -2435,7 +2443,7 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, pro
         graphContext,
         lineageBindings
       });
-      const contextualActions = contextualParentActions(role.actions || [], entityType, domain, actions, graphContext, lineageBindings);
+      const contextualActions = contextualParentActions(role.actions || [], entityType, domain, actions, graphContext, mergedHierarchyBindings(lineageBindings, domain));
       inferred[id] = {
         id,
         label: entityLabelOf(domain, entityType) || entityType,
@@ -2543,7 +2551,11 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
   const regions = [];
   const actionIds = [];
   const grantsByFeature = groupGrantsByFeature(role.grants || []);
-  const childRelations = lineageRelationsForParent(parentEntityType, lineageBindings) || [];
+  // Presentation placement reads the merged hierarchy: compiled lineage
+  // bindings first, declared containment (children edges) filling pairs
+  // the graph never composed.
+  const hierarchy = mergedHierarchyBindings(lineageBindings, domain);
+  const childRelations = lineageRelationsForParent(parentEntityType, hierarchy) || [];
 
   for (const relation of childRelations) {
     if (!relation.childType || !relation.lineageKey) continue;
@@ -2566,10 +2578,18 @@ function childRegionsForParentDetail({ role = {}, parentEntityType = '', domain 
     const processAction = actions[actionId] || {};
     const kind = action.actionKind || processAction.actionKind || 'createEntity';
     const actionParent = effectiveActionParentEntityType({ ...processAction, ...action }, graphContext.parentIncomingByActionId.get(actionId), lineageBindings);
-    if (kind !== 'createEntity' || actionParent !== parentEntityType) continue;
     const childEntityType = action.entityType || processAction.entityType || '';
     if (!childEntityType) continue;
-    const parentRelation = parentRelationForChild(childEntityType, parentEntityType, lineageBindings);
+    // A root create whose construction prompts a lineage parent belongs to
+    // that parent's child region: the declared children edge makes the
+    // pair valid and the picker binds the created child under the opened
+    // parent.
+    const constructionParent = constructionLineageParentEntityType({ ...processAction, ...action }, parentEntityType);
+    if (kind !== 'createEntity' || (actionParent !== parentEntityType && constructionParent !== parentEntityType)) continue;
+    const parentRelation = parentRelationForChild(childEntityType, parentEntityType, hierarchy)
+      || (constructionParent === parentEntityType
+        ? declaredParentRelation(childEntityType, parentEntityType, domain)
+        : null);
     if (!parentRelation) continue;
     const childFeature = featureFromEntityType(domain, childEntityType);
     if (!childFeature) continue;
@@ -2616,6 +2636,26 @@ function ensureChildRegion({ sourcesByEntity, regions, childEntityType, childFea
     regions.push(region);
   }
   return region;
+}
+
+// The parent a root create's construction prompts: a lineage input whose
+// declared entity type matches the region parent (the org children-edge
+// picker). Only the construction contract is consulted — graph parents
+// still come from compiled lineage bindings.
+function constructionLineageParentEntityType(action = {}, parentEntityType = '') {
+  if (!parentEntityType) return '';
+  return (action.construction?.inputs || [])
+    .filter(input => String(input.id || input.path || '').startsWith('lineage.'))
+    .some(input => input.entityType === parentEntityType || input.type?.entityType === parentEntityType)
+    ? parentEntityType
+    : '';
+}
+
+function declaredParentRelation(childEntityType = '', parentEntityType = '', domain = {}) {
+  const triple = (domain.containment || []).find(candidate => (
+    candidate.childType === childEntityType && candidate.parentType === parentEntityType
+  ));
+  return triple ? { childType: childEntityType, parentType: parentEntityType, lineageKey: triple.lineageKey } : null;
 }
 
 function parentRelationForChild(childEntityType = '', parentEntityType = '', lineageBindings = []) {

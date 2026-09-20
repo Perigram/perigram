@@ -4,22 +4,32 @@ import { useRegistryStore } from '~/stores/registry';
 /**
  * Returns the effective hierarchy containment contract.
  *
- * Active processes use only graph-derived lineage bindings. Static domain
- * containment remains available outside process mode for non-authored legacy
- * application routes, but it never creates process hierarchy.
+ * Active processes merge both hierarchy sources, keyed by child+parent
+ * pair: compiled lineage bindings (graph-authored composition) are
+ * authoritative, declared containment — the org's children edges in the
+ * registry bundle — fills every pair the graph never composed. Without a
+ * process, the declared registry containment stands alone.
  */
 export function useEffectiveContainment() {
   const authStore = useAuthStore();
   const registry = useRegistryStore();
   return () => {
-    const bindings = authStore.lineageBindings || [];
-    if (authStore.processActive) {
-      return bindings.map(binding => ({
-        childType: binding.childEntityType,
-        parentType: binding.ancestorEntityType,
-        lineageKey: binding.lineageKey
-      }));
+    const bindings = (authStore.lineageBindings || []).map(binding => ({
+      childType: binding.childEntityType,
+      parentType: binding.ancestorEntityType,
+      lineageKey: binding.lineageKey
+    }));
+    if (!authStore.processActive) return registry.containment;
+    const byPair = new Map();
+    for (const triple of registry.containment) {
+      // Org-authored children edges participate beside compiled bindings;
+      // system pack containment stays non-authoritative in process mode.
+      if (triple.declared !== 'org') continue;
+      byPair.set(`${triple.childType}:${triple.parentType}`, triple);
     }
-    return registry.containment;
+    for (const triple of bindings) {
+      byPair.set(`${triple.childType}:${triple.parentType}`, triple);
+    }
+    return [...byPair.values()];
   };
 }

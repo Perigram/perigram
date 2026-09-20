@@ -29,6 +29,7 @@ import { computed, ref } from 'vue';
 import AutoComplete from 'primevue/autocomplete';
 import TreeSelect from 'primevue/treeselect';
 import { instanceIdentity } from '#shared/ui-mapping/index.js';
+import { useLocalizedTypeLabel } from './type-labels.js';
 
 const props = defineProps({
   accepts: { type: Array, default: () => [] },
@@ -44,7 +45,8 @@ const instanceLabel = instance => {
   const identityField = Object.keys(fields).find(key => typeof fields[key] === 'string' && fields[key]);
   return identityField ? fields[identityField] : instance.id;
 };
-const typeLabel = typeId => (props.bundle?.types || []).find(type => type.id === typeId)?.render?.label || typeId;
+const { localizedTypeLabelById } = useLocalizedTypeLabel();
+const typeLabel = typeId => localizedTypeLabelById(typeId, props.bundle?.types || []);
 
 const acceptedType = computed(() => (props.bundle?.types || []).find(type => type.id === props.accepts[0]) || null);
 const hierarchical = computed(() => Boolean(Object.keys(acceptedType.value?.edges?.children || {}).length));

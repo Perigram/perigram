@@ -1362,6 +1362,56 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('scopes home and detail placement by declared containment without graph lineage compositions', () => {
+    // The org-authoring shape: hierarchy declared through children edges
+    // (domain containment), no Lineage composition wired in the graph.
+    const containedDomain = {
+      ...domain,
+      containment: [...(domain.containment || []), { parentType: 'project', childType: 'queue', lineageKey: 'projectId', declared: 'org' }]
+    };
+    const compiled = compileProcessDefinition({
+      roles: { role_op: { id: 'role_op', label: 'Operator' } },
+      roleGrants: {
+        role_op: [
+          { feature: 'projects', level: 'read' },
+          { feature: 'queues', level: 'write' }
+        ]
+      },
+      producerOutputs: {
+        ...producerOutputRecords([['queue_source', 'queue']]),
+        'project_source:result': {
+          id: 'project_source:result', producerOutputId: 'project_source:result',
+          nodeId: 'project_source', outputSocketId: 'result', entityType: 'project',
+          lifecycle: { mode: 'domainDefault' },
+          fields: { read: ['identity.*'], write: [], private: [] },
+          allowedRoles: { read: ['role_op'], write: ['role_op'], admin: [] }
+        }
+      },
+      actions: {},
+      assignments: {
+        user_a: { userId: 'user_a', roleIds: ['role_op'], bindings: {}, status: 'active' }
+      }
+    }, containedDomain);
+    const access = resolveRoleAssignmentAccess({
+      compiled,
+      assignment: { userId: 'user_a', roleIds: ['role_op'], bindings: {}, status: 'active' },
+      domain: containedDomain
+    });
+
+    // The declared child list is suppressed from home: it remains
+    // reachable through its parent's detail child region.
+    const home = access.screens.find(screen => screen.template === 'home');
+    expect(home.sources.map(source => source.typeId)).toEqual(['project']);
+
+    // The parent detail screen carries the child collection region,
+    // filtered by the declared lineage key.
+    const projectDetail = access.screens.find(screen => screen.screenKey === 'auto_project_detail');
+    const childRegion = (projectDetail.regions || []).find(region => region.sourceId === 'queue_children');
+    expect(childRegion).toMatchObject({ slot: 'main' });
+    expect(projectDetail.sources.find(source => source.id === 'queue_children'))
+      .toMatchObject({ typeId: 'queue', mode: 'list', filters: { projectId: '$screen.scope.entityId' } });
+  });
+
   it('excludes detail screens from top-level navigation while keeping them in the manifest', () => {
     const compiled = compileProcessDefinition({
       roles: { role_op: { id: 'role_op', label: 'Operator' } },

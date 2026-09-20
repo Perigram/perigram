@@ -122,7 +122,7 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
   it('synthesizes containment from children edges with camel-case lineage keys', () => {
     const projected = projectDomainFromView(orgRegistry(), 'org-1');
     expect(projected.containment).toEqual(expect.arrayContaining([
-      { parentType: 'bin', childType: 'panel', lineageKey: 'binId' }
+      { parentType: 'bin', childType: 'panel', lineageKey: 'binId', declared: 'org' }
     ]));
     expect(projected.containment).toEqual(expect.arrayContaining([
       { parentType: 'project', childType: 'queue', lineageKey: 'projectId' }
