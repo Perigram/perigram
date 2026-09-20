@@ -178,7 +178,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-entities-queue-queuecard-vue` | `components/entities/Queue/QueueCard.vue` | derived usage | compliant |
 | `ui-components-entities-queue-queuedetail-vue` | `components/entities/Queue/QueueDetail.vue` | derived usage | compliant |
 | `ui-components-entities-queue-queueentrycard-vue` | `components/entities/Queue/QueueEntryCard.vue` | derived usage | remove:important-override (2); compliant:scoped-layout |
-| `ui-components-entities-queue-queuesourcecard-vue` | `components/entities/Queue/QueueSourceCard.vue` | derived usage | replace:chrome (7) |
 | `ui-components-entities-remnant-remnantcard-vue` | `components/entities/Remnant/RemnantCard.vue` | derived usage | compliant |
 | `ui-components-entities-remnant-remnantdetail-vue` | `components/entities/Remnant/RemnantDetail.vue` | derived usage | compliant |
 | `ui-components-entities-requisition-requisitioncard-vue` | `components/entities/Requisition/RequisitionCard.vue` | derived usage | compliant |
@@ -212,7 +211,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
 | `ui-components-generated-generatedprojectactionpalette-vue` | `components/generated/GeneratedProjectActionPalette.vue` | derived usage | compliant |
 | `ui-components-generated-generatedprojectworkspace-vue` | `components/generated/GeneratedProjectWorkspace.vue` | derived usage | replace:chrome (10); remove:important-override (27); compliant:scoped-layout |
-| `ui-components-generated-generatedqueuedetail-vue` | `components/generated/GeneratedQueueDetail.vue` | derived usage | compliant |
 | `ui-components-generated-generatedregion-vue` | `components/generated/GeneratedRegion.vue` | derived usage | compliant |
 | `ui-components-generated-generatedscreen-vue` | `components/generated/GeneratedScreen.vue` | derived usage | centralize:layout (1) |
 | `ui-components-generated-generatedworkspacepage-vue` | `components/generated/GeneratedWorkspacePage.vue` | derived usage | replace:chrome (3) |
@@ -231,7 +229,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-process-designer-processnode-vue` | `components/process-designer/ProcessNode.vue` | derived usage | replace:chrome (23); remove:important-override (9); narrowly-allowlist:inline-data-driven (4) |
 | `ui-components-profilesketcheditor-vue` | `components/ProfileSketchEditor.vue` | derived usage | centralize:layout (2); replace:chrome (13) |
 | `ui-components-projectstatistics-vue` | `components/ProjectStatistics.vue` | derived usage | compliant |
-| `ui-components-queueeditor-vue` | `components/QueueEditor.vue` | derived usage | replace:chrome (8); compliant:scoped-layout; compliant:inline-layout (1) |
 | `ui-components-shared-actiontoolbar-vue` | `components/shared/ActionToolbar.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-blocks-datablock-vue` | `components/shared/blocks/DataBlock.vue` | shared/domain primitive | replace:chrome (1); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-shared-blocks-identityblock-vue` | `components/shared/blocks/IdentityBlock.vue` | shared/domain primitive | compliant |

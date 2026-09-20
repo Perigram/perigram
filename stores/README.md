@@ -49,17 +49,20 @@ the typed invalidation other sessions poll). `dtoRegistry` is the wire-DTO
 projection for the remaining handwritten card/detail surfaces.
 
 **Legacy seams (load-bearing, removal tied to their features):** the
-delegated `useEntity` composable and entity store are deleted; five client
-imports of `@cutkit/domain-cnc` remain because their concerns are still
-owned by legacy server contracts, not by declarations —
+delegated `useEntity` composable and entity store are deleted, and the
+hardcoded legacy navigation cluster went with them (the boot-time projects
+fetch, the project-slug route hierarchy watcher against an unmounted
+endpoint, the hardcoded per-entity route tables in breadcrumb/trace
+routing, the queue editor flow and its orphan stores). The remaining
+client imports of `@cutkit/domain-cnc` are owned by legacy server
+contracts, not by declarations —
 `utils/status-engine.js` (status labels/severity for feature-served
 types whose compiled workflows supplement the table),
 `utils/entity-display-contract.js` (the legacy card surface registry),
-`components/QueueEditor.vue` and `components/PermissionEditor.vue` (the
-queue relation/construction contracts and the membership feature-key
+`components/PermissionEditor.vue` (the membership feature-key
 vocabulary that membership grants are written against), and the designer
-inspector's palette-surface metadata. Each dies when its feature
-re-authors on declarations (queues) or when membership grants move to the
+inspector's palette-surface metadata. Each dies when membership grants
+move to the
 process vocabulary; none may gain new consumers.
 
 ## Core Stores
@@ -75,7 +78,6 @@ process vocabulary; none may gain new consumers.
   `pen.data.stroke`. `ensurePens()` follows the same authenticated-scope cache
   contract as layer standards, while `fetchPens()` remains the explicit refresh
   operation.
-- `batches.js`: Batch list/current batch, nesting actions, status polling.
 - `artifacts.js`: Batch artifacts fetching and cache.
 - `supportChat.js`: Chats drawer conversation snapshot state, unread totals,
   and read acknowledgement for the app-shell chat badge and drawer inbox. The
@@ -122,10 +124,11 @@ process vocabulary; none may gain new consumers.
   It also exposes the active process's compiled lifecycle machines through
   `statusWorkflows`; entity UI uses this contract for workflow-derived status
   visibility and transitions.
-- `navigation.js` owns project breadcrumb context. SSR callers must pass request
-  headers through `fetchProjectContext(slug, fetchOptions)` so protected project
-  lookups use the same session cookie as auth middleware. Breadcrumb sibling
-  options normalize canonical DTO labels before passing them to PrimeVue Select.
+- `navigation.js` owns route breadcrumbs. SSR callers must pass request
+  headers through `fetchRouteHierarchy(path, query, fetchOptions)` so
+  protected lookups use the same session cookie as auth middleware.
+  Breadcrumb sibling options normalize canonical DTO labels before passing
+  them to PrimeVue Select.
   When auth includes an active process, hubs and breadcrumbs are built only from
   the compiled process screen manifest plus the active permission evaluator, so
   a user's app menu follows their compiled process assignment and scoped
@@ -151,19 +154,8 @@ process vocabulary; none may gain new consumers.
   fixtures and dropping manual entries. Preview status transitions update this
   context locally so draft/manual entities do not call the persisted status API.
 - Long-running operations start optimistic UI updates and polling until
-  terminal states. Queue nesting completion is emitted as an event object
-  (`{ queueId, completedAt }`) rather than a bare queue id so repeated runs for
-  the same queue still trigger component watchers and related entity refetches.
-  Queue nesting polling reads lifecycle state through `getPrimaryState()` so it
-  works for both legacy string statuses and v2 process/status-machine blocks.
-  Fetched queue runs are sorted by `data.runNumber` before being written into
-  the store so UI selectors can treat the last run as the newest run.
-  Generated process queue actions that run `solveNesting` must start the same
-  queue polling path as `/api/queue/:id/nest`; otherwise the UI will keep the
-  freshly-created run snapshot and miss the asynchronous task completion update.
-  Process-authored run statuses can be applied before the async nesting worker
-  writes `data.results` and `data.sheetDesignIds`, so polling treats the latest
-  run as active until it has solver output, even when its primary status is no
-  longer the domain `NESTING` state. Older empty historical runs are ignored
-  when a newer run already has results.
-- Internal demo pages may pre-seed `entities.registry` with DTO-shaped mock entities so shared trace components render examples without calling authenticated APIs.
+  terminal states. The legacy queue-nesting polling store was deleted with
+  the queue editor flow: nesting solves run as process actions
+  (`solveNesting`), and their async completion reaches open screens through
+  the shared entity-event reconciliation like every other mutation.
+- Internal demo pages may pre-seed the instances store with DTO-shaped mock records (`upsertRecord`) so shared trace components render examples without calling authenticated APIs.

@@ -1,6 +1,5 @@
 import GeneratedHomeWorkspace from '~/components/generated/GeneratedHomeWorkspace.vue';
 import GeneratedProjectWorkspace from '~/components/generated/GeneratedProjectWorkspace.vue';
-import GeneratedQueueDetail from '~/components/generated/GeneratedQueueDetail.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
 import GeneratedFacadeDesignerWorkspacePage from '~/components/generated/GeneratedFacadeDesignerWorkspacePage.vue';
@@ -40,17 +39,6 @@ export const generatedEntityDetailOverloads = [
     entityType: 'facade_pattern',
     component: GeneratedFacadePatternDesignerWorkspacePage,
     props: ({ entity }) => ({ facadePattern: entity })
-  },
-  {
-    entityType: 'queue',
-    component: GeneratedQueueDetail,
-    ownsActionSurface: true,
-    props: ({ entity, screenKey, queueDetailActions, mode }) => ({
-      queue: entity,
-      screenKey,
-      processActions: queueDetailActions,
-      flush: mode === 'file'
-    })
   },
   {
     entityType: 'sheet_design',

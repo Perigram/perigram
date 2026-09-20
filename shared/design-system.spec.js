@@ -531,7 +531,7 @@ describe('Design system manifest', () => {
     expect(new Set(Object.values(SCOPED_STYLE_EXCEPTIONS))).toEqual(new Set(['layout']));
     expect(SCOPED_EXCEPTION_PROPERTIES.layout.has('padding')).toBe(false);
     expect(new Set(Object.values(INLINE_STYLE_EXCEPTIONS).map(([category]) => category)))
-      .toEqual(new Set(['data-driven', 'layout']));
+      .toEqual(new Set(['data-driven']));
 
     for (const [file, [category, expectedStyles]] of Object.entries(INLINE_STYLE_EXCEPTIONS)) {
       expect(files, `${file} must retain its ${category} inline exception`).toContain(file);
@@ -543,10 +543,6 @@ describe('Design system manifest', () => {
       'components/AssetsLibrary.vue',
       '<template><div :style="{ borderRadius: \'1rem\' }" /></template>'
     )).toContain('replace:inline-visual (1)');
-    expect(analyzeVueVisuals(
-      'components/QueueEditor.vue',
-      '<template><div style="width: var(--ck-table-action-column-width)" /></template>'
-    )).toContain('compliant:inline-layout (1)');
     expect(analyzeVueVisuals(
       'components/AssetsLibrary.vue',
       '<template><div :style="{ backgroundColor: penForm.stroke.color }" /></template>'
@@ -743,7 +739,6 @@ describe('Design system manifest', () => {
 
   it('keeps nesting runs focused on sheet design outputs', () => {
     const nestingRunCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/NestingRun/NestingRunCard.vue'), 'utf8');
-    const queueEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/QueueEditor.vue'), 'utf8');
     const nestingRunService = fs.readFileSync(path.join(REPO_ROOT, 'server/features/nesting-runs/service.js'), 'utf8');
 
     expect(nestingRunCard).toContain('EntityRelationsBlock');
@@ -757,10 +752,6 @@ describe('Design system manifest', () => {
     expect(nestingRunCard).not.toContain('relatedArtifacts');
     expect(nestingRunCard).toContain("feature: 'nesting_runs'");
     expect(nestingRunCard).not.toContain("authStore.can('queues', 'edit')");
-    expect(queueEditor).toContain('readableQueueRuns');
-    expect(queueEditor).toContain("feature: 'nesting_runs'");
-    expect(queueEditor).not.toContain('getRunArtifacts');
-    expect(queueEditor).not.toContain('@artifact-click');
     expect(nestingRunService).toContain("run, 'nesting_runs', 'read'");
     expect(nestingRunService).not.toContain("run.lineage, 'queues', 'read'");
     expect(DESIGN_SYSTEM_SURFACES.nestingRun.surfaces.card.fieldGroups).toContain('production');
@@ -785,7 +776,6 @@ describe('Design system manifest', () => {
     const cassetteDesigner = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteDesignerV2.vue'), 'utf8');
     const cassetteManager = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteManager.vue'), 'utf8');
     const generatedCassetteAction = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedCassetteDesignerAction.vue'), 'utf8');
-    const queueEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/QueueEditor.vue'), 'utf8');
 
     expect(cassetteDesigner).toContain('saveTemplate({ saveAs: true })');
     expect(cassetteDesigner).toContain('handleDesignerEscape');
@@ -793,7 +783,6 @@ describe('Design system manifest', () => {
     expect(cassetteManager).not.toContain('showDesignerDialog.value = false;\n};\n\nconst onRename');
     expect(generatedCassetteAction).toContain(':close-on-escape="false"');
     expect(generatedCassetteAction).not.toContain('visible.value = false;\n  emit(\'refresh\')');
-    expect(queueEditor).toContain('saveQueue({ notify: false })');
   });
 
   it('keeps generated home cards as horizontal carousel items', () => {
@@ -860,14 +849,10 @@ describe('Design system manifest', () => {
 
   it('keeps queue entity controls scoped to the concrete queue', () => {
     const queueCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Queue/QueueCard.vue'), 'utf8');
-    const queueEditor = fs.readFileSync(path.join(REPO_ROOT, 'components/QueueEditor.vue'), 'utf8');
 
     expect(queueCard).toContain('hasPermissionGrant');
     expect(queueCard).not.toContain("authStore.can('queues', 'edit')");
     expect(queueCard).not.toContain("authStore.can('queues', 'delete')");
-    expect(queueEditor).toContain('props.processActions');
-    expect(queueEditor).toContain("isProcessMode.value ? Boolean(processRunNestingAction.value) : canEditQueue.value");
-    expect(queueEditor).not.toContain('canEditQueue.value || Boolean(processRunNestingAction.value)');
   });
 
 

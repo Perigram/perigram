@@ -341,9 +341,9 @@ This lets an embedded queue consume queue-detail commands and cassette-design
 producer actions without granting or discovering actions outside the user's
 compiled process access. `GeneratedEntityDetailBody` passes only that scoped
 action set into operational overloads. Child-region action ids travel through
-the separate `bodyActions` channel: QueueEditor receives its compiled producer
-operations while surrounding headers continue to exclude them. Those ids are
-already compiler-scoped and access-filtered, so the body resolves them directly
+the separate `bodyActions` channel so operational overload surfaces receive
+their scoped producer operations while surrounding headers continue to exclude
+them. Those ids are already compiler-scoped and access-filtered, so the body resolves them directly
 from the user's action manifest instead of incorrectly comparing the producer's
 output entity type to the open queue. The body never scans the global action
 manifest for additional queue producers.

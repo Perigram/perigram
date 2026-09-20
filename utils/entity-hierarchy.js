@@ -106,16 +106,3 @@ export function siblingContainmentScope(entity = {}, entityType = '', containmen
   return { [relation.lineageKey]: entity.lineage[relation.lineageKey] };
 }
 
-export function projectHierarchyRoute({ type = '', id = '', entity = null, project = null } = {}) {
-  const normalizedType = normalizeHierarchyType(type);
-  const projectEntity = normalizedType === 'project' ? entity : project;
-  const projectSlug = projectEntity?.identity?.slug
-    || projectEntity?.identity?.uid
-    || projectEntity?.slug
-    || (normalizedType === 'project' ? id : '');
-  if (normalizedType === 'project') return projectSlug ? `/project/${projectSlug}/queues` : null;
-  if (!projectSlug || !id) return null;
-  if (normalizedType === 'queue') return `/project/${projectSlug}/queue/${id}`;
-  if (normalizedType === 'sheet_design') return `/project/${projectSlug}/sheet-design/${id}`;
-  return null;
-}

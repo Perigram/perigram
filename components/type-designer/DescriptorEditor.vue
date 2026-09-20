@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col gap-2">
     <div class="flex items-center gap-2">
-      <Select
+      <SelectButton
         :model-value="modelValue.base"
         :options="baseOptions"
         option-label="label"
@@ -43,16 +43,17 @@
 
     <div v-if="modelValue.base === 'quantity'" class="flex flex-col gap-1">
       <label>{{ $t('typeCanvas.unit') }}</label>
-      <Select :model-value="modelValue.unit" :options="units" size="small" @update:model-value="value => patch({ unit: value })" />
+      <SelectButton :model-value="modelValue.unit" :options="units" size="small" @update:model-value="value => patch({ unit: value })" />
     </div>
 
     <div v-else-if="modelValue.base === 'ref'" class="flex flex-col gap-1">
       <label>{{ $t('typeCanvas.accepts') }}</label>
-      <Select
+      <SelectButton
         :model-value="modelValue.accepts || []"
         :options="typeOptions"
+        option-label="label"
+        option-value="value"
         multiple
-        filter
         size="small"
         @update:model-value="value => patch({ accepts: value })"
       />
@@ -116,7 +117,7 @@ import Checkbox from 'primevue/checkbox';
 import InputChips from 'primevue/inputchips';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
-import Select from 'primevue/select';
+import SelectButton from 'primevue/selectbutton';
 import { describeType, FIELD_BASES, UNITS } from '~/packages/cts/src/index.js';
 
 const props = defineProps({
