@@ -12,8 +12,10 @@ strangler layer 0 of the designer rebuild (see
   system types first, the org's stored declarations overlaying (shadowing a
   system id is refused). `defineType` validates the declaration through the
   real CTS registry, refuses breaking redefinitions (diff per SPEC §11,
-  version bump on compatible change), and compiles the whole org view before
-  acknowledging the write — cross-type breakage (R2) rolls a new type back.
+  version bump on compatible change), and compiles the whole org view
+  BEFORE persisting — a write whose view compile fails (class obligations,
+  cross-type references) never touches the stored declaration, so a failed
+  redefinition cannot replace a valid stored type and wedge later writes.
   `removeType` deletes org declarations only.
 - `describeOrganizationTypes` returns the compiled client bundle (types,
   states, operators, render policy, JSON Schemas) plus attachment-kind
