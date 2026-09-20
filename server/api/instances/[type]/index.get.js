@@ -18,6 +18,9 @@ export default defineEventHandler(async (event) => {
   }
   const query = getQuery(event);
   const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
-  const items = await service.processList(query, auth.userId, organizationId, { auth });
+  // processList takes ONE context object (userId + organizationId ride on
+  // it) — passing them positionally resolved declarations with no org and
+  // 404'd every org-authored type on list loads.
+  const items = await service.processList(query, { auth, userId: auth.userId, organizationId });
   return items;
 });

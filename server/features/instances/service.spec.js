@@ -163,6 +163,16 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(set['payload.fileId']).toBeUndefined();
   });
 
+  it('processList resolves declarations through its context object (the route contract)', async () => {
+    const coll = stubCollection();
+    // Org-authored type: only resolvable when organizationId rides the
+    // context object — the positional call shape 404'd org types.
+    const service = instanceServiceResolver('panel');
+    const items = await service.processList({}, { userId: 'user-1', organizationId: 'org-1' });
+    expect(Array.isArray(items)).toBe(true);
+    expect(coll.find.mock.calls[0][0].type).toBe('panel');
+  });
+
   it('admits the system catalog beside org rows and serves pack types', async () => {
     const coll = stubCollection();
     // tech-drawing pack type resolves through the composed static map
