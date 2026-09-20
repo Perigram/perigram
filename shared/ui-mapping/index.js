@@ -331,11 +331,15 @@ export function toolbarVisibleFor(node = {}) {
 export function instanceMatchesToolbar(type = {}, controls = {}, instance = {}, query = '', facetSelections = {}) {
   const normalized = String(query || '').trim().toLowerCase();
   if (normalized) {
+    // Search matches the identity label AND the instance id: the label
+    // never carries the raw id (it is private display vocabulary), but
+    // finding a row by its id stays functional.
     const haystack = [
       ...((controls.searchKeys || [])
         .map(key => instance.fields?.[key])
         .filter(value => typeof value === 'string')),
-      instanceIdentity(type, instance)
+      instanceIdentity(type, instance),
+      instance.id || ''
     ].join(' ').toLowerCase();
     if (!haystack.includes(normalized)) return false;
   }
