@@ -88,7 +88,11 @@ function lineageRefOfSource(source = {}, mainSourceId) {
   return null;
 }
 
-export function projectUiAction(action = {}) {
+// Node labels default to the record's kind string; a button caption that is
+// just the kind leaks machinery vocabulary instead of the target entity.
+const DEFAULT_ACTION_LABELS = new Set(['cts.construct', 'effect.createEntity', 'effect.runProducer', 'Action', 'action', 'Create', 'create']);
+
+export function projectUiAction(action = {}, { typeLabels = new Map() } = {}) {
   const legacyKind = action.actionKind || 'createEntity';
   if (RUNTIME_ONLY_ACTION_KINDS.has(legacyKind)) return null;
   const relationOperation = action.relationMutation?.operation;
@@ -96,11 +100,17 @@ export function projectUiAction(action = {}) {
     ? relationOperation
     : ACTION_KIND_BY_LEGACY[legacyKind] || null;
   if (!actionKind) return null;
+  const typeId = typeIdOfRecord(action);
+  const typeLabel = typeLabels.get(typeId) || null;
+  const rawLabel = action.label || action.id || action.actionId;
+  const label = typeLabel && DEFAULT_ACTION_LABELS.has(String(rawLabel))
+    ? (actionKind === 'createInstance' || actionKind === 'link' ? `New ${typeLabel}` : typeLabel)
+    : rawLabel;
   const projected = {
     id: action.id || action.actionId,
-    label: action.label || action.id || action.actionId,
+    label,
     actionKind,
-    typeId: typeIdOfRecord(action),
+    typeId,
     trigger: { mode: action.trigger?.mode || 'manual' },
     access: {
       level: action.access?.level || 'write',

@@ -2375,18 +2375,34 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, pro
       const contextualActions = contextualParentActions(role.actions || [], entityType, domain, actions, graphContext, lineageBindings);
       inferred[id] = {
         id,
-        label: `${role.label || roleId} ${entityType}`,
+        label: entityLabelOf(domain, entityType) || entityType,
         kind: 'entityList',
         template: 'entityList',
         placement: 'hub',
         entityType,
         required,
         roleIds: [roleId],
+        sources: [{
+          id: entityType,
+          entityType,
+          mode: 'list',
+          required
+        }],
+        // Class-level actions (create) attach to the list's main region —
+        // the surface the generator renders buttons on; screen-level
+        // actions alone were never drawn.
+        regions: [{
+          id: 'main',
+          slot: 'main',
+          sourceId: entityType,
+          surface: 'table',
+          actions: directActions
+        }],
         actions: directActions
       };
       inferred[detailId] = {
         id: detailId,
-        label: `${role.label || roleId} ${entityType} detail`,
+        label: entityLabelOf(domain, entityType) || entityType,
         kind: 'entityDetail',
         template: 'entityDetail',
         placement: 'detail',
@@ -2602,6 +2618,10 @@ function entityTypeFromProducerOutputs(producerOutputs = {}, domain = {}, featur
     ?.entityType || null;
   const definition = (domain.entities || []).find(entity => entity.type === entityType);
   return definition?.meta ? null : entityType;
+}
+
+function entityLabelOf(domain = {}, entityType = '') {
+  return (domain.entities || []).find(entity => entity.type === entityType)?.label || null;
 }
 
 function featureFromEntityType(domain = {}, entityType) {

@@ -9,8 +9,6 @@
     <div class="flex flex-col gap-3">
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-section-heading">{{ screen.label || screen.screenKey }}</span>
-        <Tag v-if="screen.typeId" :value="screen.typeId" severity="secondary" />
-        <Tag :value="screen.template" severity="info" />
       </div>
       <GeneratedMappingScreen
         :screen="screen"

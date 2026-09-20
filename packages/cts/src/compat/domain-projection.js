@@ -108,6 +108,9 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     const usesSpecs = Object.values(type.fields || {}).some(descriptor => slotFor(descriptor, type.class) === 'specs');
     return {
       type: type.id,
+      // The authored name (render policy) — the label every compiler and
+      // generator surface uses; raw type ids never reach users.
+      label: renderPolicyFor(type).label,
       collection: CLASS_COLLECTIONS[type.class] || CLASS_COLLECTIONS.file,
       blocks: ['identity', 'origin', 'status', 'lineage', 'relations', 'provenance', 'attachments', 'data',
         ...(usesSpecs ? ['specs'] : [])],

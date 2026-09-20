@@ -108,7 +108,9 @@ export async function resolveProcessAuth(auth = {}) {
       // renderer never consults the registry or the execution channel.
       bundle: compiled.bundle || { types: [] },
       actions: Object.fromEntries(Object.values(compiled.actions || {})
-        .map(action => [action.id, projectUiAction(action)])
+        .map(action => [action.id, projectUiAction(action, {
+          typeLabels: new Map((compiled.bundle?.types || []).map(type => [type.id, type.render?.label || type.id]))
+        })])
         .filter(([, projected]) => projected))
     },
     navigation: [...system.navigation, ...processNavigation],
