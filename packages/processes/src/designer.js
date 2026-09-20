@@ -397,7 +397,43 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
     return declaration;
   });
 
-  return { declarations, diagnostics };
+  return { declarations: declarationsInDependencyOrder(declarations), diagnostics };
+}
+
+// Declarations post in dependency order: a declaration referencing another
+// in-tree type (children edge target, ref-field accepts) comes AFTER its
+// references, so one apply can introduce a parent and its child together —
+// the registry compiles cross-references only against stored and already
+// posted types. Cycles fall back to node order; the registry's own compile
+// owns the cycle diagnostic.
+function declarationsInDependencyOrder(declarations = []) {
+  const byId = new Map(declarations.map(declaration => [declaration.id, declaration]));
+  const ordered = [];
+  const placed = new Set();
+  const visiting = new Set();
+  const visit = (declaration) => {
+    if (placed.has(declaration.id) || visiting.has(declaration.id)) return;
+    visiting.add(declaration.id);
+    for (const reference of referencedTypeIds(declaration)) {
+      if (byId.has(reference)) visit(byId.get(reference));
+    }
+    visiting.delete(declaration.id);
+    placed.add(declaration.id);
+    ordered.push(declaration);
+  };
+  for (const declaration of declarations) visit(declaration);
+  return ordered;
+}
+
+function referencedTypeIds(declaration = {}) {
+  const ids = [];
+  for (const edge of Object.values(declaration.edges?.children || {})) {
+    ids.push(...(edge.types || []));
+  }
+  for (const descriptor of Object.values(declaration.fields || {})) {
+    if (descriptor?.base === 'ref') ids.push(...(descriptor.accepts || []));
+  }
+  return ids;
 }
 
 // Typed port specs for declaration canvas nodes: every handle a

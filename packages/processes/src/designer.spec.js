@@ -510,6 +510,29 @@ describe('tree declaration compilation', () => {
       .toEqual({ children: { parts: { types: ['t-part-1'], onRemove: 'restrict' } } });
   });
 
+  it('emits declarations in dependency order regardless of canvas node order', () => {
+    // The parent is the FIRST canvas node, but its children edge references
+    // the child: the child declaration must come out first so one apply can
+    // introduce both — the registry compiles cross-references only against
+    // stored and already posted types.
+    const parent = classNode('t-parent-1', { class: 'group' });
+    const child = classNode('t-child-1', { class: 'item', fields: undefined });
+    const refParent = classNode('t-ref-parent-1', {
+      class: 'file',
+      name: 'Index',
+      operators: undefined
+    });
+    const nodes = [parent, child, refParent];
+    const edges = [
+      { id: 'c1', source: parent.id, target: child.id, role: 'type', label: 'children', data: { key: 'parts' } },
+      declares(fieldNode('t-ref-parent-1', 'part', { base: 'ref', accepts: ['t-child-1'] }), refParent, 'field')
+    ];
+    const { declarations } = compileTreeDeclarations(nodes, edges);
+    const ids = declarations.map(declaration => declaration.id);
+    expect(ids.indexOf('t-child-1')).toBeLessThan(ids.indexOf('t-parent-1'));
+    expect(ids.indexOf('t-child-1')).toBeLessThan(ids.indexOf('t-ref-parent-1'));
+  });
+
   it('transitions across types are diagnostics', () => {
     const a = stateNode('widget', 'raw');
     const b = stateNode('gadget', 'new');
