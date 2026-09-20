@@ -224,7 +224,11 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
         containment.push({
           parentType: parent.id,
           childType,
-          lineageKey: declaration.lineageKey || `${camel(parent.id)}Id`
+          lineageKey: declaration.lineageKey || `${camel(parent.id)}Id`,
+          // Org-authored children edges are the organization's own
+          // hierarchy declaration; system pack containment is framework
+          // opinion and stays non-authoritative for process placement.
+          ...(parent.scope === 'org' ? { declared: 'org' } : {})
         });
       }
     }

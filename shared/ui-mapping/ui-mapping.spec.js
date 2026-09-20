@@ -304,7 +304,7 @@ describe('identity and field groups', () => {
     expect(instanceIdentity(type, { fields: { codename: 'Redshift', serial: 'S-1' } })).toBe('Redshift');
     // Instance ids are private display vocabulary: with no field and no
     // render label the identity is the placeholder, never the raw id.
-    expect(instanceIdentity({ fields: {} }, { id: 'x-9', fields: {} })).toBe('?');
+    expect(instanceIdentity({ fields: {} }, { id: 'x-9', fields: {} })).toBe('—');
     expect(instanceIdentity({ fields: {}, render: { label: 'Bin' } }, { id: 'x-9', fields: {} })).toBe('Bin');
     expect(instanceIdentity({ fields: { name: { base: 'string' } } }, { id: 'id-missing', fields: { name: 'Kepler' } })).toBe('Kepler');
     const valueOnly = { fields: { zeta: { base: 'string' } } };

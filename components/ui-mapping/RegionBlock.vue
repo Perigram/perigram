@@ -301,6 +301,7 @@ import ActionButton from './ActionButton.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
 import RegionDataState from './RegionDataState.vue';
 import CollectionToolbar from './CollectionToolbar.vue';
+import { useLocalizedTypeLabel } from './type-labels.js';
 
 const props = defineProps({
   node: { type: Object, required: true },
@@ -341,7 +342,8 @@ const isReloading = computed(() => state.value === 'loading' && hasInstances.val
 const showSurfaces = computed(() => state.value === 'ready' || isReloading.value);
 const showState = computed(() => !showSurfaces.value);
 const embeddedStack = computed(() => (spacing ? spacing.stackTight : LAYOUT.stackTight));
-const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type?.render?.label || region.id);
+const { localizedTypeLabel } = useLocalizedTypeLabel();
+const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type ? localizedTypeLabel(region.type) : region.id);
 const regionLabel = computed(() => regionLabelFor(props.node));
 const listLayout = computed(() => resolveListLayout(props.node.type, {
   hierarchical: Boolean(Object.keys(props.node.type?.edges?.children || {}).length),

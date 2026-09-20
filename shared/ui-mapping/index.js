@@ -397,7 +397,9 @@ export function formatQuantity(quantity) {
 }
 
 export function instanceIdentity(type, instance) {
-  if (!instance) return '?';
+  // Neutral placeholder glyph: private ids never render, and a bare '?'
+  // reads as a broken string rather than an unnamed record.
+  if (!instance) return '—';
   const fields = instance.fields || {};
   const declared = type?.render?.identityField;
   if (declared && typeof fields[declared] === 'string' && fields[declared]) return fields[declared];
@@ -411,7 +413,7 @@ export function instanceIdentity(type, instance) {
     && fields[name]);
   // Identity fallback is the class label — raw instance ids are private
   // and never render in user-facing labels.
-  return firstShortString ? fields[firstShortString[0]] : (type?.render?.label || '?');
+  return firstShortString ? fields[firstShortString[0]] : (type?.render?.label || '—');
 }
 
 const isFilled = value => !(value === null || value === undefined || value === ''
