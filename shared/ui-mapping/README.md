@@ -302,7 +302,9 @@ handwritten.
   `sourceStatesMatrix` (loading/denied/error, one per screen) the
   showcase applies on demand. Its spec validates every generated
   instance against CTS `checkValue`, composes every screen across
-  seeds, and pins each guarantee.
+  seeds, and pins each guarantee. Percent quantities roll within their
+  scale so meter and knob presentations show distributions instead of
+  clamped saturation.
 - Spec: `ui-mapping.spec.js` (table-driven resolver/chrome/budget tests),
   `screen.spec.js` (composition mechanics), and
   `test-data/ui-mapping-fixtures.spec.js` (fixture/composition integration).

@@ -32,7 +32,9 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   all (no hover or sorted-column tint — the sort state is the icon) and
   carries no bottom border; header slots (the generated search/sort
   strips) lose the theme side padding so they align inside padded
-  surfaces with a bottom rhythm instead. Cards drop their shadow, tab
+  surfaces with a bottom rhythm instead, and embedded paginators
+  (table, tree-table, and view — top and bottom) carry no separator
+  borders. Cards drop their shadow, tab
   strips stay transparent, and tree rows run at explorer density.
   Everything else keeps Aura defaults.
 - Tailwind semantic aliases are consumed by `tailwind.config.js`, whose
