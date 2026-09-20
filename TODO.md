@@ -2,7 +2,35 @@
 
 ## Integrations
 
-- [ ] **Construct-mode hygiene: protocols own payload constructs, derived
+- [ ] **Load-time construction-mode re-bind for persisted graphs.**
+  Eighth slice — migrates existing definitions over the construct-mode
+  hygiene change instead of failing them.
+  - `resolveCtsDefinition`'s node lowering silently re-binds a persisted
+    construction mode the type no longer declares to the type's current
+    `defaultMode` (genericCreate on cassette/sketch → editor; on upload
+    types → upload). Derived types keep failing validation with the
+    existing clear message — a create node on an operator-produced type
+    is a semantic change the author must make, not a rewriteable mode.
+  - The rewrite is acceptance-time (in-memory, re-applied per load),
+    the same seam as the v4→v5 identity migration; saving persists the
+    re-bound mode naturally.
+  - Deferred (tracked): generateAttachment/convertArtifact operator
+    declarations; chat/proof/capture/upload flow migration off artifact;
+    artifact overload cut.
+  ### Agent Notes — 2026-09-21
+  Implemented in `agent/cts-mode-migration-20260921` after live
+  validation errors on persisted graphs (genericCreate on cassette and
+  sketch). `resolveCtsDefinition`'s node lowering re-binds stale modes
+  silently to the type's current `defaultMode` (the `slotOrDefault`
+  contract-migration pattern — diagnostics are fatal at the seam, so the
+  rewrite is silent); derived-type create nodes keep failing validation
+  deliberately. New focused spec covers editor/upload re-binds,
+  untouched modes, and the derived case. Validation: cts suites,
+  v5-equivalence gate, cts-types, app-registry (minus the pre-existing
+  generic-create dispatch failure), generated suites, arch, docs,
+  framework:validate, SSR, localization — all pass. Status: WAITING.
+
+- [x] **Construct-mode hygiene: protocols own payload constructs, derived
   types are not constructible, cassette creates through its editor.**
   Seventh slice — removes the slop from via-pickers.
   - Payload-bearing types offer ONLY their declared creation protocols
