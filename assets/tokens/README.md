@@ -28,7 +28,11 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   projection plus a minimal component-token set: collection chrome —
   table/tree-table/view headers, footers, footer cells, and paginators
   (standalone or embedded) — renders transparent so the hosting surface
-  (page, panel, card) owns the background, cards drop their shadow, tab
+  (page, panel, card) owns the background. Header chrome never paints at
+  all (no hover or sorted-column tint — the sort state is the icon) and
+  carries no bottom border; header slots (the generated search/sort
+  strips) lose the theme side padding so they align inside padded
+  surfaces with a bottom rhythm instead. Cards drop their shadow, tab
   strips stay transparent, and tree rows run at explorer density.
   Everything else keeps Aura defaults.
 - Tailwind semantic aliases are consumed by `tailwind.config.js`, whose

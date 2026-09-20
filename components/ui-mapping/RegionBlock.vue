@@ -85,7 +85,10 @@
       </div>
     </template>
     <RegionDataState v-if="showState" :node="node" />
-    <template v-if="showSurfaces">
+    <!-- Panel content has no strip-to-content gap of its own: the toolbar,
+         progress, and collection surface stack on the system rhythm so the
+         search bar never sticks to the content below it. -->
+    <div v-if="showSurfaces" :class="embeddedStack">
       <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
       <CollectionToolbar v-if="listLayout !== 'table'" v-model:search="search" v-model:facets="facets" :node="node" />
       <CollectionTable
@@ -143,7 +146,7 @@
           :bundle="bundle"
         />
       </div>
-    </template>
+    </div>
     <RegionBlock
       v-for="child in node.childRegions"
       :key="child.id"

@@ -351,7 +351,12 @@ export const primeSemanticTokens = {
 // surface shows through, and tree rows run at explorer density.
 // Collection chrome (table/tree-table/view headers, footers, footer cells,
 // and paginators — standalone or embedded) is transparent everywhere:
-// the hosting surface (page, panel, card) owns the background.
+// the hosting surface (page, panel, card) owns the background. Header
+// chrome never paints at all — no hover or sorted-column tint (the sort
+// state is the icon) — and carries no bottom border: the column header
+// row reads through spacing, not a hairline. View/table header slots
+// (the generated search and sort strips) drop the theme's side padding
+// so they align with the content inside already-padded surfaces.
 export const primeComponentTokens = {
     card: {
         root: {
@@ -363,10 +368,19 @@ export const primeComponentTokens = {
             background: 'transparent'
         },
         header: {
-            background: 'transparent'
+            background: 'transparent',
+            borderColor: 'transparent',
+            borderWidth: '0 0 0 0',
+            padding: '0 0 0.75rem 0',
+            sm: {
+                padding: '0 0 0.5rem 0'
+            }
         },
         headerCell: {
-            background: 'transparent'
+            background: 'transparent',
+            hoverBackground: 'transparent',
+            selectedBackground: 'transparent',
+            borderColor: 'transparent'
         },
         bodyCell: {
             background: 'transparent'
@@ -378,10 +392,12 @@ export const primeComponentTokens = {
             background: 'transparent'
         },
         footer: {
-            background: 'transparent'
+            background: 'transparent',
+            borderColor: 'transparent'
         },
         footerCell: {
-            background: 'transparent'
+            background: 'transparent',
+            borderColor: 'transparent'
         }
     },
     treetable: {
@@ -389,10 +405,19 @@ export const primeComponentTokens = {
             background: 'transparent'
         },
         header: {
-            background: 'transparent'
+            background: 'transparent',
+            borderColor: 'transparent',
+            borderWidth: '0 0 0 0',
+            padding: '0 0 0.75rem 0',
+            sm: {
+                padding: '0 0 0.5rem 0'
+            }
         },
         headerCell: {
-            background: 'transparent'
+            background: 'transparent',
+            hoverBackground: 'transparent',
+            selectedBackground: 'transparent',
+            borderColor: 'transparent'
         },
         bodyCell: {
             background: 'transparent'
@@ -404,10 +429,12 @@ export const primeComponentTokens = {
             background: 'transparent'
         },
         footer: {
-            background: 'transparent'
+            background: 'transparent',
+            borderColor: 'transparent'
         },
         footerCell: {
-            background: 'transparent'
+            background: 'transparent',
+            borderColor: 'transparent'
         }
     },
     dataview: {
@@ -415,7 +442,10 @@ export const primeComponentTokens = {
             background: 'transparent'
         },
         header: {
-            background: 'transparent'
+            background: 'transparent',
+            borderColor: 'transparent',
+            borderWidth: '0 0 0 0',
+            padding: '0 0 0.75rem 0'
         },
         content: {
             background: 'transparent'
