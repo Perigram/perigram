@@ -120,7 +120,8 @@ const sketch = Object.freeze({
     mime: ['application/json'],
     accept: ['.json', 'application/json'],
     maxSize: 25 * 1024 * 1024,
-    preview: 'sketch'
+    preview: 'sketch',
+    creation: ['editor']
   },
   revisions: 'scene',
   fields: {

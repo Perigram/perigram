@@ -276,11 +276,22 @@ describe('collapse table acceptance (SPEC §15, §19 core tier)', () => {
 describe('payload traits (SPEC §4)', () => {
   it('normalizes MIME strings and objects to the canonical trait shape', () => {
     expect(normalizeType({ id: 'legacy-doc', class: 'file', payload: 'application/x-legacy' }).payload)
-      .toEqual({ mime: ['application/x-legacy'] });
+      .toEqual({ mime: ['application/x-legacy'], creation: ['upload'] });
     expect(normalizeType({ id: 'traits-doc', class: 'file', payload: { mime: ['image/png', 'image/jpeg'], maxSize: 1024, preview: 'attachment' } }).payload)
-      .toEqual({ mime: ['image/png', 'image/jpeg'], maxSize: 1024, preview: 'attachment' });
+      .toEqual({ mime: ['image/png', 'image/jpeg'], maxSize: 1024, preview: 'attachment', creation: ['upload'] });
     expect(() => normalizeType({ id: 'empty-doc', class: 'file', payload: { mime: [] } })).toThrow(/at least one accepted MIME/);
     expect(normalizeType({ id: 'bare-doc', class: 'item', states: { main: { initial: 'new', values: ['new'] } }, fields: { serial: { base: 'string' } } }).payload).toBeNull();
+  });
+
+  it('normalizes and validates the creation protocol list', () => {
+    expect(normalizeType({ id: 'photo-doc', class: 'file', payload: { mime: ['image/*'], creation: ['upload', 'capture'] } }).payload.creation)
+      .toEqual(['upload', 'capture']);
+    expect(normalizeType({ id: 'note-doc', class: 'file', payload: { mime: ['application/json'], creation: 'editor' } }).payload.creation)
+      .toEqual(['editor']);
+    expect(() => normalizeType({ id: 'bad-doc', class: 'file', payload: { mime: ['text/plain'], creation: ['telepathy'] } }))
+      .toThrow(/creation protocol telepathy/);
+    expect(() => normalizeType({ id: 'none-doc', class: 'file', payload: { mime: ['text/plain'], creation: [] } }))
+      .toThrow(/at least one creation protocol/);
   });
 });
 

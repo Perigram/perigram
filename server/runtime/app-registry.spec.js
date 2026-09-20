@@ -136,7 +136,12 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
       const service = registry.getEntityService(entity.type);
       const declaredModes = (domain.construction[entity.type]?.modes || []).slice().sort();
 
-      expect(Object.keys(service.constructionHandlers || {}).sort(), entity.type).toEqual(declaredModes);
+      // Handlers are shared generic machinery (genericCreate plus the
+      // payload protocols); every DECLARED mode must have one — no
+      // handlerless mode, no phantom capability.
+      for (const mode of declaredModes) {
+        expect(Object.hasOwn(service.constructionHandlers || {}, mode), `${entity.type} mode ${mode}`).toBe(true);
+      }
       expect(service.processCapabilities.createModes, entity.type).toEqual(declaredModes);
       expect(service.processCapabilities.create, entity.type).toBe(declaredModes.length > 0);
       expect(projection[entity.type].createModes, entity.type).toEqual(declaredModes);
