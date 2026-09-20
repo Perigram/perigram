@@ -514,7 +514,7 @@ function requiredAssignmentBindings(roleIds = []) {
 async function confirmDelete(user) {
     if (confirm(t('auth.removeUserConfirm', { name: user.identity?.name }))) {
         try {
-            \1remove();
+            await instances.removeInstance('user', user._id, { entity: user });
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.userRemoved'), life: 3000 });
             await loadUsers();
         } catch (error) {

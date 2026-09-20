@@ -158,7 +158,6 @@ import { projectContextActionEntries } from '~/components/generated/project-cont
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
-import { useInstancesStore } from '~/stores/instances';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
 import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
@@ -187,7 +186,6 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh', 'execute-action']);
 const authStore = useAuthStore();
-const instances = useInstancesStore();
 const instances = useInstancesStore();
 const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();

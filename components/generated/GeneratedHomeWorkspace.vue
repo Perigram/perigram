@@ -222,7 +222,6 @@ import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useSupportChatStore } from '~/stores/supportChat';
 import { useCallsStore } from '~/stores/calls';
-import { useInstancesStore } from '~/stores/instances';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedActionLabel, generatedRegionLabel } from '~/utils/generated-labels.js';
 import { callRoomIcon, callRoomLabel, conversationKeyForRoom } from '~/utils/call-rooms.js';
@@ -255,7 +254,6 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
-const instances = useInstancesStore();
 const instances = useInstancesStore();
 const supportChatStore = useSupportChatStore();
 const callsStore = useCallsStore();
