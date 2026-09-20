@@ -2,7 +2,45 @@
 
 ## Integrations
 
-- [ ] **Revisioned instance payload replacement + sketch/facade-pattern editor
+- [ ] **Documents pack: generic file types + text/csv editor surfaces.**
+  Fourth slice of the entity-category cut (SPEC §21) — payload traits
+  replace the artifact kind registry for common document/media kinds.
+  - New `@perigram/documents` pack declares the generic file types with
+    payload traits and preview modes matching the shared viewer modules:
+    `image`, `pdf-document`, `text-document` (editor-replaceable,
+    `revisions: 'content'`), `csv-table` (editor-replaceable,
+    `revisions: 'content'`), `svg-file`, `dxf-source`, `xlsx-workbook`,
+    `docx-document`.
+  - `ArtifactTextEditor` takes a host-supplied persistence contract
+    (`format: text|csv`), mirroring the sketch inversion;
+    `ArtifactDetail` supplies the artifact-backed adapter, the file
+    surfaces the instance-backed ones (`text-editor`, `csv-editor`
+    surfaces bound to the new types). The instance persistence helper is
+    generalized over the type id (the payload route is generic).
+  - Deferred (tracked): operator declarations for
+    `generateAttachment`/`convertArtifact` (signatures would describe
+    soon-dead artifact refs; declare when outputs flip to file
+    instances); migrating chat/proof/capture/upload flows off the
+    artifact entity; payload upload creator; artifact overload cut.
+  ### Agent Notes — 2026-09-20
+  Implemented in `agent/cts-documents-20260920`. `@perigram/documents`
+  (packages/documents) declares the eight generic file types; the pack
+  mounts first in `server/packs/declarations.js` and its editors compose
+  into the client-side binding list (documents + tech-drawing + cnc in
+  mount order). `ArtifactTextEditor` now takes the persistence contract
+  plus `format` (`text`/`csv`); `ArtifactDetail` passes the artifact
+  adapter, the `text-editor`/`csv-editor` surfaces pass instance-backed
+  adapters over `instancePayloadPersistence(entity, typeId, mime)` —
+  the generic payload-transport helper that `sketchInstancePersistence`
+  now projects from. `fileDetailOverloads` injects the derived `typeId`
+  into detail props adapters so surfaces never hardcode their route
+  type. Deferred with stated reason: generateAttachment/convertArtifact
+  operator declarations.
+  Validation: documents spec (5 cases), file-surfaces/overloads/
+  cts-types/instances/tech-drawing suites, localization, arch guard,
+  docs guard, framework:validate, SSR smoke — all pass. Status: WAITING.
+
+- [x] **Revisioned instance payload replacement + sketch/facade-pattern editor
   surfaces.** Third slice of the entity-category cut (SPEC §21).
   - Instance service gains `replacePayload` (editor concern, SPEC §3): the
     route accepts a multipart file, validates it against the type's payload

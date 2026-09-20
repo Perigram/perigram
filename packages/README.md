@@ -16,6 +16,7 @@ Internal npm workspace packages used to extract the reusable industrial workflow
 | `@cutkit/processes` | Organization process definition normalization, validation, and compilation |
 | `@perigram/cts` | Perigram Type System: value universe, type declarations, classes, edges, states, operators, expressions, diffing, tenancy (see its `SPEC.md`) |
 | `@perigram/tech-drawing` | Technical-drawing reference pack declarations: pen templates and layer standards (requires-aware composition) |
+| `@perigram/documents` | Documents reference pack declarations: generic document/media file types with payload traits and preview modes |
 | `@cutkit/domain-cnc` | CutKit CNC entity, workflow, command, task, attachment-kind, UI, and summary definitions |
 
 Module boundaries, runtime relationships, and per-package contracts are

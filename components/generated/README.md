@@ -109,25 +109,28 @@ contract. It combines two halves:
 
 `overloads.js`, `entity-editor-action.js`, and `workspace-pages.js` derive
 their file-type rows (cassette, sheet-design, facade-design,
-facade-pattern, sketch) from the pack editor bindings through this
-registry instead of hand-maintained entity-keyed maps. Rows key by the
-CTS type id — the projected entity key — so legacy pre-projection keys
-(`sheet_design`, `facade`, `facade_pattern`) no longer resolve an editor
-surface (abandoned data, SPEC §19). Editor surfaces with
-`ownsActionSurface: true` (cassette-designer, sheet-design-editor,
-sketch-editor) suppress the generated action surface; the sheet-design
-editor receives the caller's resolved write grant through its props
-adapter and degrades to view-only without it.
+facade-pattern, sketch, text-document, csv-table) from the pack editor
+bindings through this registry instead of hand-maintained entity-keyed
+maps. Rows key by the CTS type id — the projected entity key — so legacy
+pre-projection keys (`sheet_design`, `facade`, `facade_pattern`) no
+longer resolve an editor surface (abandoned data, SPEC §19). Editor
+surfaces with `ownsActionSurface: true` (cassette-designer,
+sheet-design-editor, sketch-editor, text-editor, csv-editor) suppress
+the generated action surface; the sheet-design editor receives the
+caller's resolved write grant through its props adapter and degrades to
+view-only without it.
 
-The `sketch-editor` surface mounts `SketchEditor` with an
-instance-backed persistence contract (scene load from the payload
-download URL, saves through `PUT /api/instances/sketch/:id/payload`,
-which records an immutable scene revision per save). `SketchEditor`
-itself takes only that persistence contract — `ArtifactDetail` supplies
-the artifact-backed adapter for `SKETCH`-kind artifacts, so one editor
-serves both hosts without duplicate drawing logic. The
-`facade-pattern-designer` surface mounts the pattern designer workspace
-page; persistence stays on its pack-internal feature route.
+The `sketch-editor` surface mounts `SketchEditor` and the
+`text-editor`/`csv-editor` surfaces mount `ArtifactTextEditor` — each
+with an instance-backed persistence contract (payload download URL for
+loads, `PUT /api/instances/:type/:id/payload` for saves, which records
+an immutable content revision per save; the helper is generic over the
+type id). Both editors take only that persistence contract —
+`ArtifactDetail` supplies the artifact-backed adapters for
+`SKETCH`/`TEXT`/`CSV`-kind artifacts, so one editor serves both hosts
+without duplicate editing logic. The `facade-pattern-designer` surface
+mounts the pattern designer workspace page; persistence stays on its
+pack-internal feature route.
 
 ### File payload previews
 
