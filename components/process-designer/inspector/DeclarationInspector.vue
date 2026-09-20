@@ -20,18 +20,6 @@
             @update:model-value="value => { node.data.class = value; }"
           />
         </div>
-        <div class="flex flex-col gap-1">
-          <label>{{ $t('typesPane.typeId') }}</label>
-          <InputText
-            :model-value="node.data.typeId"
-            :invalid="!typeIdValid"
-            @update:model-value="value => $emit('update-type-id', slugTypeId(value))"
-          />
-          <Message v-if="!typeIdValid" severity="error" size="small" :closable="false">
-            {{ $t('typesPane.typeIdHint') }}
-          </Message>
-        </div>
-
         <div class="flex flex-col gap-2">
           <div class="flex items-center justify-between">
             <label>{{ $t('processDesigner.lifecycle') }}</label>
@@ -40,10 +28,12 @@
           <Message v-if="!lifecycle.states.length" severity="secondary" size="small" :closable="false">
             {{ $t('processDesigner.lifecycleEmptyHint') }}
           </Message>
+          <small class="text-muted">{{ $t('processDesigner.lifecycleHint') }}</small>
           <div
             v-for="state in lifecycle.states"
             :key="state.nodeId"
             class="flex items-center gap-2 rounded-ui border border-content-border p-1.5"
+            :title="state.initial ? $t('processDesigner.stateInitialHint') : state.terminal ? $t('processDesigner.stateTerminalHint') : ''"
           >
             <InputText
               :model-value="state.value"
@@ -67,12 +57,42 @@
             <Button icon="pi pi-times" text severity="danger" size="small" :aria-label="$t('common.delete')" @click="emit('remove-state', state.nodeId)" />
           </div>
           <small class="text-muted">{{ $t('typesPane.initial') }} / {{ $t('typesPane.terminal') }}</small>
-          <div v-if="lifecycle.transitions.length" class="flex flex-col gap-1">
+          <div class="flex flex-col gap-1">
             <label>{{ $t('typesPane.transitions') }}</label>
+            <div v-if="lifecycle.states.length > 1" class="flex items-center gap-2 rounded-ui border border-dashed border-content-border p-1.5">
+              <Select
+                v-model="newTransitionFrom"
+                :options="stateOptions"
+                option-label="label"
+                option-value="value"
+                size="small"
+                class="w-24"
+                :aria-label="$t('processDesigner.transitionFrom')"
+              />
+              <i class="pi pi-arrow-right text-muted" aria-hidden="true" />
+              <Select
+                v-model="newTransitionTo"
+                :options="stateOptions"
+                option-label="label"
+                option-value="value"
+                size="small"
+                class="w-24"
+                :aria-label="$t('processDesigner.transitionTo')"
+              />
+              <InputText
+                v-model="newTransitionIntent"
+                size="small"
+                class="min-w-0 flex-1"
+                :placeholder="$t('typesPane.intent')"
+              />
+              <Button icon="pi pi-plus" text size="small" :disabled="!newTransitionFrom || !newTransitionTo" :aria-label="$t('typesPane.addTransition')" @click="emitTransition" />
+            </div>
+            <div v-if="lifecycle.transitions.length" class="flex flex-col gap-1">
             <div
               v-for="transition in lifecycle.transitions"
               :key="transition.edgeId"
               class="flex items-center gap-2 rounded-ui border border-content-border p-1.5"
+              :title="transition.from === transition.to ? $t('processDesigner.transitionLoopHint') : ''"
             >
               <span class="shrink-0 text-supporting text-muted">{{ transition.from }} → {{ transition.to }}</span>
               <InputText
@@ -83,6 +103,7 @@
                 @update:model-value="value => emit('update-transition', { edgeId: transition.edgeId, intent: String(value || '') })"
               />
               <Button icon="pi pi-times" text severity="danger" size="small" :aria-label="$t('common.delete')" @click="emit('remove-transition', transition.edgeId)" />
+            </div>
             </div>
           </div>
         </div>
@@ -156,7 +177,7 @@
 // pack/registry authoring and stay off the canvas. Mutations write the
 // canvas node's declaration data and emit `sync`; the live-graph pass
 // re-derives records, ports, and the tree overlay from it.
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
@@ -177,19 +198,9 @@ const props = defineProps({
   lifecycle: { type: Object, default: () => ({ states: [], transitions: [] }) }
 });
 
-const emit = defineEmits(['sync', 'update-name', 'update-type-id', 'add-state', 'update-state', 'remove-state', 'update-transition', 'remove-transition']);
+const emit = defineEmits(['sync', 'update-name', 'add-state', 'update-state', 'remove-state', 'add-transition', 'update-transition', 'remove-transition']);
 
 const classOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
-
-// The registry speaks kebab only; the id field sanitizes as you type so an
-// invalid id can never persist and poison the graph downstream.
-function slugTypeId(value = '') {
-  return String(value)
-    .toLowerCase()
-    .replace(/['’]/g, '')
-    .replace(/[^a-z0-9-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
 
 const suggestedStateValue = computed(() => {
   const taken = new Set(props.lifecycle.states.map(state => state.value));
@@ -197,6 +208,20 @@ const suggestedStateValue = computed(() => {
   while (taken.has(`state-${index}`)) index += 1;
   return `state-${index}`;
 });
+
+const stateOptions = computed(() => props.lifecycle.states.map(state => ({ label: state.value || '…', value: state.nodeId })));
+const newTransitionFrom = ref(null);
+const newTransitionTo = ref(null);
+const newTransitionIntent = ref('');
+function emitTransition() {
+  if (!newTransitionFrom.value || !newTransitionTo.value) return;
+  emit('add-transition', {
+    fromNodeId: newTransitionFrom.value,
+    toNodeId: newTransitionTo.value,
+    intent: newTransitionIntent.value.trim()
+  });
+  newTransitionIntent.value = '';
+}
 
 
 </script>

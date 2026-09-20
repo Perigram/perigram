@@ -189,10 +189,10 @@
                   :lifecycle="classLifecycle"
                   @sync="syncNodeData"
                   @update-name="value => updateClassName(selectedNode, value)"
-                  @update-type-id="value => updateClassTypeId(selectedNode, value)"
                   @add-state="addClassState"
                   @update-state="updateClassState"
                   @remove-state="removeClassState"
+                  @add-transition="addClassTransition"
                   @update-transition="updateClassTransitionIntent"
                   @remove-transition="removeClassTransition"
                 />
@@ -1123,6 +1123,19 @@ function removeClassState(nodeId) {
   if (selectedNodeId.value === nodeId) selectedNodeId.value = null;
   syncNodeData();
 }
+function addClassTransition({ fromNodeId, toNodeId, intent = '' }) {
+  if (!fromNodeId || !toNodeId) return;
+  edges.value.push(decorateEdge({
+    id: `transition:${fromNodeId}-${toNodeId}-${Date.now()}`,
+    source: fromNodeId,
+    target: toNodeId,
+    type: 'default',
+    role: 'type',
+    label: intent || 'transition',
+    data: { intent }
+  }));
+  syncNodeData();
+}
 function updateClassTransitionIntent({ edgeId, intent }) {
   const edge = edges.value.find(candidate => candidate.id === edgeId);
   if (!edge) return;
@@ -1585,8 +1598,7 @@ function slugifyTypeName(name = '') {
   return slug;
 }
 
-function derivedTypeId(name = '', currentId = '', idCustom = false) {
-  if (idCustom) return currentId;
+function derivedTypeId(name = '', currentId = '') {
   const slug = slugifyTypeName(name);
   if (!slug) return currentId;
   if (slug === currentId) return currentId;
@@ -1604,14 +1616,7 @@ function derivedTypeId(name = '', currentId = '', idCustom = false) {
 function updateClassName(node, name) {
   if (!node || node.type !== 'ctsClass') return;
   node.data.name = String(name || '');
-  node.data.typeId = derivedTypeId(node.data.name, node.data.typeId, node.data.idCustom === true);
-  syncNodeData();
-}
-
-function updateClassTypeId(node, typeId) {
-  if (!node || node.type !== 'ctsClass') return;
-  node.data.typeId = String(typeId || '');
-  node.data.idCustom = true;
+  node.data.typeId = derivedTypeId(node.data.name, node.data.typeId);
   syncNodeData();
 }
 
@@ -1973,7 +1978,6 @@ function syncDeclarationRecord(record = {}, node = {}) {
   if (node.type === 'ctsClass') {
     record.typeId = node.data.typeId || '';
     record.name = node.data.name || '';
-    record.idCustom = node.data.idCustom === true;
     record.class = node.data.class || 'file';
     record.payload = node.data.payload || null;
     record.operators = Array.isArray(node.data.operators) ? node.data.operators : [];

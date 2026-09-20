@@ -106,14 +106,17 @@ registry's kebab-case type id (an invalid id is why a class silently
 drops out of the overlay and bound sockets stop regenerating) and shows
 `compileTreeDeclarations` plus `normalizeType` diagnostics while
 authoring — what SAVE/APPLY would reject is visible immediately, not
-after a frozen canvas. Class authoring is name-first: the author names the class and the kebab
-registry id is derived from the name (deduplicated against the registry
-and the tree); the id only becomes hand-authored when edited directly,
-and the id input sanitizes as typed so an invalid id can never persist.
+after a frozen canvas. Class identity is the authored name — the kebab registry id is an
+invisible implementation detail, always derived from the name and
+deduplicated against the registry and the tree; the author never sees
+or types it, so an invalid or stale id cannot be hand-authored at all.
+Bindings follow wires and name-derived ids, never typed ids.
 The class inspector carries a lifecycle panel — states (value, initial,
-terminal), transitions with intents — that edits the SAME ctsState nodes
-and state-to-state wires the canvas renders (`classLifecycleOf` derives
-it; the panel is a view over one data model, not a second editor).
+terminal with plain-language hints), transitions with intents, loops
+(self-transitions) included, and an add-transition row — that edits the
+SAME ctsState nodes and state-to-state wires the canvas renders
+(`classLifecycleOf` derives it; the panel is a view over one data
+model, not a second editor).
 Class card labels derive from the authored name. Field mutability is
 authored on the descriptor (Writable / Constructible toggles in the
 shared descriptor editor): writable governs mutate leaf sockets and
@@ -348,6 +351,18 @@ occupying canvas space. Right-clicking empty canvas opens the palette at that
 graph position. Dropping a socket wire on empty canvas opens the same palette
 filtered to operations with a compatible opposite socket; choosing one
 creates and connects it immediately.
+
+## Status model at runtime
+
+Lifecycle declarations compile to workflow machines, and the runtime
+status is stored in two places by design: the entity carries ONE
+immutable status snapshot (`status.state` with the primary and nested
+axes, `userId`, `timestamp`, `metadata.note` from Change Status, and
+lifecycle evidence — `server/core/blocks/Status.js`), while the full
+transition history is an append-only `status_events` collection queried
+through the status service (`server/features/statuses/`). The snapshot
+IS the "last" state for read efficiency; "first" is the earliest event —
+no embedded history arrays on entities.
 
 ## Types and connections
 
