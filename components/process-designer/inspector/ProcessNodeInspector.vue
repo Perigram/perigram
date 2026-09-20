@@ -219,6 +219,9 @@ const props = defineProps({
   producer: { type: Object, default: () => ({}) },
   producerAvailable: { type: Boolean, default: false },
   producerRelationOptions: { type: Array, default: () => [] },
+  // Field paths of the producer's bound type — the read/write/private
+  // policy lists on the producer output select among them.
+  fieldPolicyOptions: { type: Array, default: () => [] },
   relationOptionsFor: { type: Function, default: () => [] },
   entityTypeOptions: { type: Array, default: () => [] },
   roleOptions: { type: Array, default: () => [] },
