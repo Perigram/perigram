@@ -325,20 +325,42 @@ describe('Design system manifest', () => {
     expect(primeComponentTokens).toEqual({
       card: { root: { shadow: 'none' } },
       datatable: {
-        root: { background: 'transparent' }, header: { background: 'transparent' },
-        headerCell: { background: 'transparent' }, bodyCell: { background: 'transparent' },
-        body: { background: 'transparent' }, row: { background: 'transparent' },
-        footer: { background: 'transparent' }, footerCell: { background: 'transparent' }
+        root: { background: 'transparent' },
+        header: {
+          background: 'transparent', borderColor: 'transparent', borderWidth: '0 0 0 0',
+          padding: '0 0 0.75rem 0', sm: { padding: '0 0 0.5rem 0' }
+        },
+        headerCell: {
+          background: 'transparent', hoverBackground: 'transparent',
+          selectedBackground: 'transparent', borderColor: 'transparent'
+        },
+        bodyCell: { background: 'transparent' },
+        body: { background: 'transparent' },
+        row: { background: 'transparent' },
+        footer: { background: 'transparent', borderColor: 'transparent' },
+        footerCell: { background: 'transparent', borderColor: 'transparent' }
       },
       treetable: {
-        root: { background: 'transparent' }, header: { background: 'transparent' },
-        headerCell: { background: 'transparent' }, bodyCell: { background: 'transparent' },
-        body: { background: 'transparent' }, row: { background: 'transparent' },
-        footer: { background: 'transparent' }, footerCell: { background: 'transparent' }
+        root: { background: 'transparent' },
+        header: {
+          background: 'transparent', borderColor: 'transparent', borderWidth: '0 0 0 0',
+          padding: '0 0 0.75rem 0', sm: { padding: '0 0 0.5rem 0' }
+        },
+        headerCell: {
+          background: 'transparent', hoverBackground: 'transparent',
+          selectedBackground: 'transparent', borderColor: 'transparent'
+        },
+        bodyCell: { background: 'transparent' },
+        body: { background: 'transparent' },
+        row: { background: 'transparent' },
+        footer: { background: 'transparent', borderColor: 'transparent' },
+        footerCell: { background: 'transparent', borderColor: 'transparent' }
       },
       dataview: {
-        root: { background: 'transparent' }, header: { background: 'transparent' },
-        content: { background: 'transparent' }, footer: { background: 'transparent' }
+        root: { background: 'transparent' },
+        header: { background: 'transparent', borderColor: 'transparent', borderWidth: '0 0 0 0', padding: '0 0 0.75rem 0' },
+        content: { background: 'transparent' },
+        footer: { background: 'transparent' }
       },
       paginator: { root: { background: 'transparent' } },
       tabs: { tablist: { background: 'transparent' }, tabpanel: { background: 'transparent' } },
