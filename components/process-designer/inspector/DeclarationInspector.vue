@@ -29,32 +29,47 @@
             {{ $t('processDesigner.lifecycleEmptyHint') }}
           </Message>
           <small class="text-muted">{{ $t('processDesigner.lifecycleHint') }}</small>
-          <div v-if="lifecycle.states.length" class="flex flex-col gap-1">
-            <label>{{ $t('processDesigner.startsAt') }}</label>
-            <Select
-              :model-value="lifecycle.states.find(state => state.initial)?.nodeId || null"
-              :options="lifecycle.states.map(state => ({ label: state.value || '…', value: state.nodeId }))"
-              option-label="label"
-              option-value="value"
-              size="small"
-              class="w-full"
-              @update:model-value="value => emit('update-state', { nodeId: value, changes: { initial: true } })"
-            />
-          </div>
+          <Message severity="secondary" size="small" :closable="false">{{ $t('processDesigner.entryHint') }}</Message>
           <div
             v-for="state in lifecycle.states"
             :key="state.nodeId"
-            class="flex items-center gap-2 rounded-ui border border-content-border p-1.5"
+            class="flex flex-col gap-1 rounded-ui border border-content-border p-1.5"
+            :class="state.initial ? 'border-primary' : ''"
           >
-            <InputText
-              :model-value="state.value"
-              size="small"
-              class="min-w-0 flex-1"
-              :placeholder="$t('typeCanvas.stateName')"
-              @update:model-value="value => emit('update-state', { nodeId: state.nodeId, changes: { value: String(value || '') } })"
-            />
-            <Tag v-if="state.terminal" :value="$t('processDesigner.endState')" severity="secondary" size="small" />
-            <Button icon="pi pi-times" text severity="danger" size="small" :aria-label="$t('common.delete')" @click="emit('remove-state', state.nodeId)" />
+            <div class="flex items-center gap-2">
+              <InputText
+                :model-value="state.value"
+                size="small"
+                class="min-w-0 flex-1"
+                :placeholder="$t('typeCanvas.stateName')"
+                @update:model-value="value => emit('update-state', { nodeId: state.nodeId, changes: { value: String(value || '') } })"
+              />
+              <Tag v-if="state.initial" :value="$t('processDesigner.entryState')" severity="info" size="small" />
+              <Tag v-else-if="state.terminal" :value="$t('processDesigner.endState')" severity="secondary" size="small" />
+              <Button icon="pi pi-times" text severity="danger" size="small" :aria-label="$t('common.delete')" @click="emit('remove-state', state.nodeId)" />
+            </div>
+            <div class="flex items-center gap-2">
+              <Select
+                :model-value="state.severity || 'info'"
+                :options="severityOptions"
+                option-label="label"
+                option-value="value"
+                size="small"
+                class="min-w-0 flex-1"
+                :aria-label="$t('processDesigner.stateSeverity')"
+                @update:model-value="value => emit('update-state', { nodeId: state.nodeId, changes: { severity: value } })"
+              />
+              <Select
+                :model-value="state.icon || ''"
+                :options="stateIconOptions"
+                option-label="label"
+                option-value="value"
+                size="small"
+                class="min-w-0 flex-1"
+                :aria-label="$t('processDesigner.stateIcon')"
+                @update:model-value="value => emit('update-state', { nodeId: state.nodeId, changes: { icon: value || null } })"
+              />
+            </div>
           </div>
           <div class="flex flex-col gap-1">
             <label>{{ $t('typesPane.transitions') }}</label>
@@ -138,6 +153,28 @@
           <label>{{ $t('typeCanvas.stateName') }}</label>
           <InputText v-model="node.data.value" @update:model-value="$emit('sync')" />
         </div>
+        <div class="flex items-center gap-2">
+          <Select
+            :model-value="node.data.severity || 'info'"
+            :options="severityOptions"
+            option-label="label"
+            option-value="value"
+            size="small"
+            class="min-w-0 flex-1"
+            :aria-label="$t('processDesigner.stateSeverity')"
+            @update:model-value="value => { node.data.severity = value; $emit('sync'); }"
+          />
+          <Select
+            :model-value="node.data.icon || ''"
+            :options="stateIconOptions"
+            option-label="label"
+            option-value="value"
+            size="small"
+            class="min-w-0 flex-1"
+            :aria-label="$t('processDesigner.stateIcon')"
+            @update:model-value="value => { node.data.icon = value || null; $emit('sync'); }"
+          />
+        </div>
         <Message severity="info" size="small" :closable="false">{{ $t('processDesigner.stateNodeHint') }}</Message>
       </div>
     </template>
@@ -193,6 +230,19 @@ const props = defineProps({
 const emit = defineEmits(['sync', 'update-name', 'add-state', 'update-state', 'remove-state', 'add-transition', 'update-transition', 'remove-transition']);
 
 const classOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
+
+const severityOptions = ['info', 'success', 'warn', 'danger', 'secondary'].map(value => ({ label: value, value }));
+const stateIconOptions = [
+  { label: 'default', value: '' },
+  { label: 'circle', value: 'pi pi-circle-fill' },
+  { label: 'draft', value: 'pi pi-file-edit' },
+  { label: 'active', value: 'pi pi-play-circle' },
+  { label: 'review', value: 'pi pi-eye' },
+  { label: 'ready', value: 'pi pi-check-circle' },
+  { label: 'blocked', value: 'pi pi-ban' },
+  { label: 'warning', value: 'pi pi-exclamation-triangle' },
+  { label: 'archived', value: 'pi pi-box' }
+];
 
 const suggestedStateValue = computed(() => {
   const taken = new Set(props.lifecycle.states.map(state => state.value));

@@ -234,7 +234,7 @@ function projectDeclarationRecords(records = {}, x) {
           operators: record.operators || []
         } : {}),
         ...(record.kind === 'field' ? { typeId: record.typeId || null, name: record.name || '', descriptor: { ...(record.descriptor || { base: 'string' }) } } : {}),
-        ...(record.kind === 'state' ? { typeId: record.typeId || null, value: record.value || '', initial: record.initial === true } : {}),
+        ...(record.kind === 'state' ? { typeId: record.typeId || null, value: record.value || '', severity: record.severity || null, icon: record.icon || null } : {}),
         ...(record.kind === 'type' ? { typeId: record.typeId || '' } : {})
       }
     };

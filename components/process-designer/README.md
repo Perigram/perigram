@@ -113,13 +113,16 @@ node creation): never derived from the name, never shown, never edited.
 Renaming is always a pure label change; persisted instances, posted org
 types, producer outputs, and relation references keep resolving.
 The class inspector carries a lifecycle panel authored as a machine:
-states are names, transitions (including loops) come with intents and an
-add-transition row, and ONE authored choice — "Starts at" — names the
-entry state. End states are never flagged: they derive from the graph
-(states with no outgoing transition; `compileTreeDeclarations` emits
-them as sinks). The panel edits the SAME ctsState nodes and
-state-to-state wires the canvas renders (`classLifecycleOf` derives
-it; one data model, two views).
+states are names (with severity and icon render overrides), transitions
+(including loops) come with intents and an add-transition row, and the
+ENTRY is a wire — a state wired into a Create node's status input
+authors both the machine entry and the creation state (the same wire
+into a status-mutating effect targets its transition). End states are
+never flagged: they derive from the graph (states with no outgoing
+transition). The panel edits the SAME ctsState nodes and wires the
+canvas renders (`classLifecycleOf` derives it; one data model, two
+views). Declared severities/icons compile into `render.states`, which
+`renderPolicyFor` consumes for state chips and action tones.
 Class card labels derive from the authored name. Field mutability is
 authored on the descriptor (Writable / Constructible toggles in the
 shared descriptor editor): writable governs mutate leaf sockets and

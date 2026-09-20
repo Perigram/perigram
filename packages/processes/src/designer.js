@@ -164,6 +164,15 @@ export function declarationWireLegality({ sourceType = '', targetType = '', targ
   if ((sourceType === 'ctsField' || sourceType === 'ctsState') && targetType === 'ctsClass') return 'declares';
   if (sourceType === 'ctsClass' && targetType === 'ctsClass') return 'children';
   if (sourceType === 'ctsState' && targetType === 'ctsState') return 'transition';
+  // A state wires into a status-bearing process node: it authors the
+  // machine entry (on constructs) and the action's target state (on
+  // status-mutating effects) — the wire IS the status value. The connect
+  // gate additionally requires the landed input to be status-typed.
+  if (sourceType === 'ctsState' && targetType === 'processNode'
+    && (carriesTypePin(targetRecord || { kind: targetRecordKind })
+      || ['cts.transition', 'effect.changeStatus', 'effect.archiveEntity'].includes(targetRecordKind))) {
+    return 'entry';
+  }
   // A ref field receives its accepted target types as inputs: wiring a
   // class (or type reference) into the field's targets socket derives the
   // descriptor's `accepts` live from the tree.
@@ -189,6 +198,35 @@ export function declarationWireLegality({ sourceType = '', targetType = '', targ
 export function compileTreeDeclarations(nodes = [], edges = []) {
   const nodeById = new Map(nodes.map(node => [node.id, node]));
   const classes = nodes.filter(node => node.type === 'ctsClass' && node.data?.typeId);
+  // Entry wires: a state wired into a process node's status input. On a
+  // construct of the type it authors the machine entry AND the creation
+  // state; on a status-mutating effect it targets the transition. The
+  // entry for a class is the state wired into any construct bound to it
+  // (by binds wire or recorded type).
+  const nodeById0 = nodeById;
+  const entryStatesByType = new Map();
+  for (const edge of edges) {
+    if (edge.role !== 'type' || edge.label !== 'entry') continue;
+    const source = nodeById0.get(edge.source);
+    const target = nodeById0.get(edge.target);
+    if (source?.type !== 'ctsState' || target?.type !== 'processNode') continue;
+    const value = String(source.data?.value || '').trim();
+    if (!value) continue;
+    let boundType = target.data?.entityType || target.data?.typeId || '';
+    if (!boundType) {
+      const bindWire = edges.find(candidate => (
+        candidate.role === 'type'
+        && (candidate.label === 'type' || candidate.label === 'binds')
+        && candidate.target === edge.target
+        && nodeById0.get(candidate.source)?.type === 'ctsClass'
+      ));
+      boundType = bindWire ? nodeById0.get(bindWire.source)?.data?.typeId : '';
+    }
+    if (!boundType) continue;
+    const list = entryStatesByType.get(boundType) || [];
+    if (!list.includes(value)) list.push(value);
+    entryStatesByType.set(boundType, list);
+  }
   const fieldsByType = new Map();
   const statesByType = new Map();
   const transitionsByType = new Map();
@@ -223,7 +261,10 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
       const map = statesByType.get(target.data.typeId) || new Map();
       const value = String(source.data.value || '').trim();
       if (value) {
-        map.set(value, { initial: source.data.initial === true });
+        map.set(value, {
+          severity: source.data.severity || null,
+          icon: source.data.icon || null
+        });
       }
       statesByType.set(target.data.typeId, map);
     }
@@ -261,21 +302,39 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
       id: typeId,
       class: classNode.data.class,
       fields: Object.fromEntries([...(fieldsByType.get(typeId) || new Map()).entries()]),
-      ...(classNode.data.name ? { render: { label: classNode.data.name } } : {}),
+      ...(classNode.data.name || [...states.entries()].some(([, flags]) => flags.severity || flags.icon)
+        ? {
+            render: {
+              ...(classNode.data.name ? { label: classNode.data.name } : {}),
+              ...([...states.entries()].some(([, flags]) => flags.severity || flags.icon)
+                ? {
+                    states: Object.fromEntries([...states.entries()]
+                      .filter(([, flags]) => flags.severity || flags.icon)
+                      .map(([value, flags]) => [value, {
+                        ...(flags.severity ? { severity: flags.severity } : {}),
+                        ...(flags.icon ? { icon: flags.icon } : {})
+                      }]))
+                  }
+                : {})
+            }
+          }
+        : {}),
       ...(classNode.data.payload ? { payload: classNode.data.payload } : {})
     };
     if (states.size) {
-      const initial = [...states.entries()].filter(([, flags]) => flags.initial).map(([value]) => value);
-      // A sole wired state is necessarily the initial one — there is no
-      // choice to make, so it is not a guess. Among several states the
-      // author marks exactly one (R4); a missing or ambiguous mark is a
-      // named diagnostic, never a default.
-      if (initial.length > 1 || (states.size > 1 && initial.length === 0)) {
-        diagnostics.push(`type ${typeId}: mark exactly one initial state (R4) — got ${initial.length}`);
+      // The entry comes from entry wires (a state wired into a construct
+      // of this type). A sole wired state is necessarily the entry. Among
+      // several states with no entry wire, the diagnostic names the fix;
+      // disagreeing entries are a named ambiguity — never a default.
+      const wiredEntries = (entryStatesByType.get(typeId) || []).filter(value => states.has(value));
+      if (wiredEntries.length > 1) {
+        diagnostics.push(`type ${typeId}: entry states disagree — ${wiredEntries.join(', ')}; wire exactly one entry state into the create node`);
+      } else if (states.size > 1 && wiredEntries.length === 0) {
+        diagnostics.push(`type ${typeId}: no entry state — wire a state into the create node to set where instances start`);
       } else {
         declaration.states = {
           main: {
-            initial: initial[0] || [...states.keys()][0],
+            initial: wiredEntries[0] || [...states.keys()][0],
             values: [...states.keys()]
           }
         };
@@ -416,13 +475,26 @@ export function classLifecycleOf(nodes = [], edges = [], classNodeId = '') {
       to: String(nodeById.get(edge.target)?.data?.value || ''),
       intent: String(edge.data?.intent || '')
     }));
-  // End states are derived: a state with no outgoing transition. Only the
-  // entry point ("starts at") is authored.
+  // End states are derived: a state with no outgoing transition. The entry
+  // is authored by wiring a state into a construct of this class (an entry
+  // wire) — not by flagging the state.
   const hasOutgoing = new Set(transitions.map(transition => transition.from));
+  const constructIds = new Set(edges
+    .filter(edge => edge.role === 'type' && edge.target === classNodeId && false)
+    .map(edge => edge.target));
+  // constructs bound to this class: binds wires class -> processNode
+  const boundConstructs = new Set(edges
+    .filter(edge => edge.role === 'type' && (edge.label === 'type' || edge.label === 'binds') && edge.source === classNodeId)
+    .map(edge => edge.target));
+  const entryNodeIds = new Set(edges
+    .filter(edge => edge.role === 'type' && edge.label === 'entry' && boundConstructs.has(edge.target))
+    .map(edge => edge.source));
   const states = [...stateNodes.values()].map(node => ({
     nodeId: node.id,
     value: String(node.data?.value || ''),
-    initial: node.data?.initial === true,
+    severity: node.data?.severity || null,
+    icon: node.data?.icon || null,
+    initial: entryNodeIds.has(node.id),
     terminal: !hasOutgoing.has(node.id)
   }));
   return { states, transitions };
@@ -449,6 +521,13 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
       else stateCounts.set(target.id, (stateCounts.get(target.id) || 0) + 1);
     } else if ((source.type === 'ctsClass' || source.type === 'ctsType') && target.type === 'processNode') {
       bindEdges.push([source, target]);
+    } else if (source.type === 'ctsState' && target.type === 'processNode') {
+      // entry wire: the state value is the record's status target
+      const value = String(source.data?.value || '').trim();
+      const record = records[target.data?.refId];
+      if (value && record && record.status?.to !== value) {
+        mutations.push({ scope: 'record', recordId: target.data.refId, key: 'status.to', value });
+      }
     } else if ((source.type === 'ctsClass' || source.type === 'ctsType') && target.type === 'ctsField') {
       const targets = refTargetsByField.get(target.id) || [];
       const typeId = source.data?.typeId;

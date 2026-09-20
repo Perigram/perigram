@@ -1116,12 +1116,6 @@ function updateClassState({ nodeId, changes = {} }) {
   const node = nodes.value.find(candidate => candidate.id === nodeId);
   if (!node || node.type !== 'ctsState') return;
   Object.assign(node.data, changes);
-  // "Starts at" is exclusive: marking one state initial clears the others.
-  if (changes.initial === true) {
-    for (const other of nodes.value) {
-      if (other.type === 'ctsState' && other.id !== nodeId) other.data.initial = false;
-    }
-  }
   syncNodeData();
 }
 function removeClassState(nodeId) {
@@ -1388,7 +1382,12 @@ function applyGraphInterpretation(mutations) {
       continue;
     }
     const record = draft.value?.data?.processNodes?.[mutation.recordId];
-    if (record) setNodeEntityType(record, mutation.value);
+    if (!record) continue;
+    if (mutation.key === 'status.to') {
+      record.status = { ...(record.status || {}), to: mutation.value };
+      continue;
+    }
+    setNodeEntityType(record, mutation.value);
   }
   syncNodeData();
   // No live edge pruning here: sockets legitimately vanish and return
@@ -2197,7 +2196,8 @@ function onConnect(connection) {
       label: legality === 'declares' ? (sourceNode.type === 'ctsField' ? 'field' : 'state')
         : legality === 'binds' ? 'type'
           : legality === 'targets' ? 'ref-target'
-            : legality
+            : legality === 'entry' ? 'entry'
+              : legality
     };
     if (legality === 'declares') declarationEdge.id = `declares:${sourceNode.id}-${targetNode.id}`;
     if (legality === 'children') {
@@ -2209,6 +2209,7 @@ function onConnect(connection) {
       declarationEdge.data = { intent: '' };
     }
     if (legality === 'binds') declarationEdge.id = `${sourceNode.id}-type-${targetNode.id}-${Date.now()}`;
+    if (legality === 'entry') declarationEdge.id = `entry:${sourceNode.id}-${targetNode.id}-${Date.now()}`;
     if (legality === 'targets') declarationEdge.id = `ref-target:${sourceNode.id}-${targetNode.id}-${Date.now()}`;
     // Deterministic declares/children ids: the same declaration wire twice
     // is a no-op, not a duplicate edge.
@@ -2288,6 +2289,18 @@ function connectionCompatibility(connection = {}) {
         return source.data?.typeId && source.data.typeId === target.data?.typeId
           ? { ok: true }
           : { ok: false, reason: 'Transitions connect states of one declared type' };
+      }
+      if (legality === 'entry') {
+        // The state wire lands on a status-typed input of the target
+        // record (construct creation state, transition target).
+        const targetRecord2 = draft.value?.data?.processNodes?.[target.data?.refId];
+        if (!targetRecord2) return { ok: false, reason: 'State wires land on process nodes' };
+        const inputs = catalogPorts(targetRecord2).inputs;
+        const input = portForHandle(inputs, connection.targetHandle, 'input') || inputs.find(port => port.type?.base === 'status');
+        if (!input || input.type?.base !== 'status') {
+          return { ok: false, reason: 'State wires land on status inputs' };
+        }
+        return { ok: true };
       }
       if (legality === 'targets') {
         // ref fields receive their accepted target types as wired inputs
