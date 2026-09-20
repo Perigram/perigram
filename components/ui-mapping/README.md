@@ -55,7 +55,9 @@ concerns:
   values actually present. It appears only past the `SEARCH_AT` budget,
   its gaps come from the system spacing scale (`spacing.toolbar`) and
   its control sizes from `editorSize`, and it owns no per-type logic —
-  the region tree carries every decision. Search and facet selections
+  the region tree carries every decision. RegionBlock stacks it on the
+  system rhythm (`spacing.stackTight`) ahead of the collection surface,
+  so it never sticks to the content below. Search and facet selections
   are region-owned models RegionBlock applies client-side over the
   loaded instances. Table-layout regions skip the toolbar: their
   DataTable filters natively over the same contract.
