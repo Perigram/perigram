@@ -398,6 +398,14 @@ export const primeComponentTokens = {
         footerCell: {
             background: 'transparent',
             borderColor: 'transparent'
+        },
+        paginatorTop: {
+            borderColor: 'transparent',
+            borderWidth: '0 0 0 0'
+        },
+        paginatorBottom: {
+            borderColor: 'transparent',
+            borderWidth: '0 0 0 0'
         }
     },
     treetable: {
@@ -435,6 +443,14 @@ export const primeComponentTokens = {
         footerCell: {
             background: 'transparent',
             borderColor: 'transparent'
+        },
+        paginatorTop: {
+            borderColor: 'transparent',
+            borderWidth: '0 0 0 0'
+        },
+        paginatorBottom: {
+            borderColor: 'transparent',
+            borderWidth: '0 0 0 0'
         }
     },
     dataview: {
@@ -452,6 +468,14 @@ export const primeComponentTokens = {
         },
         footer: {
             background: 'transparent'
+        },
+        paginatorTop: {
+            borderColor: 'transparent',
+            borderWidth: '0 0 0 0'
+        },
+        paginatorBottom: {
+            borderColor: 'transparent',
+            borderWidth: '0 0 0 0'
         }
     },
     paginator: {

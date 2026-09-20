@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const dir = new URL('.', import.meta.url).pathname;
+const VUE_BUILTINS = new Set(['Transition', 'TransitionGroup', 'KeepAlive', 'Teleport', 'Suspense']);
 
 describe('ui-mapping component module imports', () => {
   it('every SFC module loads with resolvable named imports', async () => {
@@ -25,6 +26,23 @@ describe('ui-mapping component module imports', () => {
         const imported = sharedImports.includes(helper);
         expect(called && !imported, `${file} calls ${helper} without importing it`).toBe(false);
       }
+    }
+  });
+
+  it('imports every component its template references', () => {
+    // The auto-import module may resolve unimported components at Nuxt
+    // runtime, but anything else (SSR smoke, plain Vue consumers, the
+    // showcase) renders them as empty nodes — the MeterGroup/Chart/Rating
+    // defect. A capitalized template tag must be imported by the SFC
+    // (self-reference by filename and Vue built-ins excepted).
+    for (const file of readdirSync(dir).filter(file => file.endsWith('.vue'))) {
+      const source = readFileSync(join(dir, file), 'utf8');
+      const template = source.slice(0, source.indexOf('<script'));
+      const tags = new Set([...template.matchAll(/<([A-Z][A-Za-z0-9]*)\b/g)].map(match => match[1]));
+      const imports = new Set([...source.matchAll(/import ([A-Z][A-Za-z0-9]*) from/g)].map(match => match[1]));
+      const self = file.replace(/\.vue$/, '');
+      const missing = [...tags].filter(tag => !imports.has(tag) && !VUE_BUILTINS.has(tag) && tag !== self);
+      expect(missing, `${file} references unimported components`).toEqual([]);
     }
   });
 });

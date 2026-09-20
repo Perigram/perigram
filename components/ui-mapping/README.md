@@ -166,7 +166,12 @@ concerns:
   given variant and renders the display primitive or delegates to an
   editor. Structural displays are labeled: records/maps/json render as
   budgeted description lists, record lists as checklist rows (boolean +
-  string subfields), variants as tag plus payload value.
+  string subfields), variants as tag plus payload value. Every component
+  it dispatches to (including MeterGroup, Chart, Rating, Slider,
+  OrderList) is imported explicitly — the module-imports spec fails on
+  any capitalized template tag without a matching import, because
+  unresolved components render as empty nodes outside the Nuxt
+  auto-import runtime.
 - Editors: `QuantityInput` (InputGroup + unit addon), `EnumSelect`
   (filtered, via the shared Select wrapper), `InstancePicker` — AutoComplete
   with typeahead over the instance pool, or TreeSelect when the accepted
