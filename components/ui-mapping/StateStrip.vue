@@ -1,21 +1,20 @@
 <template>
-  <div :class="LAYOUT.scrollX">
-    <Stepper :value="displayStep" class="min-w-max">
-      <StepList>
-        <Step
-          v-for="(value, index) in stateValues"
-          :key="value"
-          :value="String(index + 1)"
-          :disabled="!stepAction(value)"
-          :class="stepAction(value) ? 'cursor-pointer' : ''"
-          :aria-label="stepLabel(value)"
-          @click="onStep(value)"
-        >
-          {{ labelFor(value) }}
-        </Step>
-      </StepList>
-    </Stepper>
-  </div>
+  <Stepper :value="displayStep" class="w-full">
+    <StepList>
+      <Step
+        v-for="(value, index) in stateValues"
+        :key="value"
+        :value="String(index + 1)"
+        :disabled="!stepAction(value)"
+        :class="['min-w-0', '[&_.p-step-header]:w-full', stepAction(value) ? 'cursor-pointer' : '']"
+        :title="labelFor(value)"
+        :aria-label="stepLabel(value)"
+        @click="onStep(value)"
+      >
+        {{ labelFor(value) }}
+      </Step>
+    </StepList>
+  </Stepper>
 </template>
 
 <script setup>
@@ -23,10 +22,13 @@ import { computed, ref, watch } from 'vue';
 import Stepper from 'primevue/stepper';
 import StepList from 'primevue/steplist';
 import Step from 'primevue/step';
-import { LAYOUT, resolveActionButton } from '#shared/ui-mapping/index.js';
+import { resolveActionButton } from '#shared/ui-mapping/index.js';
 
 // The lifecycle strip: the declared state axis as a linear PrimeVue
-// Stepper, horizontally scrollable. A state with a runnable manual
+// Stepper. The strip fits its container: steps shrink and share the row
+// (min-w-0; PrimeVue sizes .p-step-header to content by default), and
+// long state labels crop with the built-in title ellipsis — the native
+// title attribute carries the full name. A state with a runnable manual
 // transition action in the region action set is an enabled step —
 // clicking it emits the action through the same `run` contract as every
 // other action (confirmation and dispatch stay with the screen), so the
