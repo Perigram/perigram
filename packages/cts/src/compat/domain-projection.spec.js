@@ -144,6 +144,12 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
       type: 'entityList',
       entityType: 'sheet'
     });
+    // Create-dialog labels are authored vocabulary: the lineage input is
+    // named by its parent type's render label, row inputs by the
+    // start-cased row name — storage paths never reach a dialog.
+    expect(construction.inputs.find(input => input.id === 'lineage.binId')).toMatchObject({ label: 'Bin' });
+    expect(construction.inputs.find(input => input.id === 'data.serial')).toMatchObject({ label: 'Serial' });
+    expect(construction.inputs.find(input => input.id === 'specs.width')).toMatchObject({ label: 'Width' });
     const occs = projected.construction.occs;
     expect(occs.modes).toEqual(['genericCreate']);
   });

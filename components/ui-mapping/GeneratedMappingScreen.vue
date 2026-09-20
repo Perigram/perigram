@@ -61,27 +61,32 @@
       :header="dialogAction?.label || ''"
       :class="LAYOUT.dialog"
     >
-      <template v-for="group in dialogGroups" :key="group.id">
-        <div v-if="group.label && dialogGroups.length > 1" class="text-label text-muted uppercase">{{ group.label }}</div>
-        <div :class="LAYOUT.formGrid">
-          <div
-            v-for="field in group.fields"
-            :key="field.name"
-            class="flex min-w-0 flex-col gap-1"
-            :class="field.span === 'full' ? 'md:col-span-2' : ''"
-          >
-            <span class="text-label">{{ field.label }}</span>
-            <FieldControl
-              v-model="draft[field.name]"
-              :descriptor="field.descriptor"
-              variant="detail"
-              :pool="pool"
-              :bundle="bundle"
-              :payload="dialogType?.payload"
-            />
-          </div>
+      <div :class="LAYOUT.formGrid">
+        <div
+          v-for="row in dialogRows"
+          :key="row.id"
+          class="flex min-w-0 flex-col gap-1"
+          :class="row.span === 'full' ? 'md:col-span-2' : ''"
+        >
+          <span class="text-label">{{ row.label }}</span>
+          <InstancePicker
+            v-if="row.lineage"
+            v-model="dialogDraft[row.id]"
+            :accepts="row.lineage.accepts"
+            :pool="pool"
+            :bundle="bundle"
+          />
+          <FieldControl
+            v-else
+            v-model="dialogDraft[row.id]"
+            :descriptor="row.descriptor"
+            variant="detail"
+            :pool="pool"
+            :bundle="bundle"
+            :payload="dialogType?.payload"
+          />
         </div>
-      </template>
+      </div>
       <template #footer>
         <Button :label="$t('uiMapping.dialogCancel')" severity="secondary" text :disabled="submitting" @click="dialogVisible = false" />
         <Button :label="$t('uiMapping.dialogSubmit')" :loading="submitting" @click="submitDialog" />
@@ -110,7 +115,7 @@ import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
-import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveFieldControl, resolveFieldGroups, fieldLabel, typeLabelKey, localizedLabel, resolveInstanceActions } from '#shared/ui-mapping/index.js';
+import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveCreateDialogInputs, typeLabelKey, localizedLabel, resolveInstanceActions } from '#shared/ui-mapping/index.js';
 import RegionBlock from './RegionBlock.vue';
 import InstancePicker from './InstancePicker.vue';
 import FieldControl from './FieldControl.vue';
@@ -159,32 +164,14 @@ const confirm = useConfirm();
 const toast = useToast();
 const dialogVisible = ref(false);
 const dialogAction = ref(null);
-const draft = reactive({});
+const dialogDraft = reactive({});
 const dialogType = computed(() => (props.bundle.types || []).find(type => type.id === dialogAction.value?.typeId) || null);
-// Dialog fields reuse the authored render groups of the type (same
-// contract as detail surfaces): construction inputs are ordered and
-// sectioned by resolveFieldGroups, the unlisted remainder staying in the
-// trailing default group. The draft stays flat and keyed by field name; a
-// type without authored groups renders one unlabelled section (no
-// headers).
-const dialogGroups = computed(() => {
-  const inputs = new Set(dialogAction.value?.construction?.inputs || []);
-  const fields = dialogType.value?.fields || {};
-  return resolveFieldGroups(dialogType.value || {})
-    .map(group => ({
-      id: group.id,
-      label: group.label,
-      fields: group.fields
-        .filter(field => inputs.has(field.name) && fields[field.name])
-        .map(field => ({
-          name: field.name,
-          descriptor: fields[field.name],
-          label: fieldLabel(field.name, field.descriptor),
-          span: resolveFieldControl(field.descriptor, { variant: 'detail' }).span
-        }))
-    }))
-    .filter(group => group.fields.length);
-});
+// Dialog rows come from the shared resolver: authored fields (matched by
+// bare name or slot-qualified path), the identity name, and lineage parent
+// pickers over reverse containment — construction inputs are never dropped
+// for a path/name mismatch again. The draft is keyed by the compiled input
+// id, so the submitted payload lands exactly on the construction paths.
+const dialogRows = computed(() => resolveCreateDialogInputs(dialogAction.value || {}, dialogType.value, props.bundle));
 
 const submitting = ref(false);
 const runAction = async (action, draft = {}, context = {}) => {
@@ -206,7 +193,12 @@ const runAction = async (action, draft = {}, context = {}) => {
 };
 const submitDialog = () => {
   const action = dialogAction.value;
-  const payload = { ...draft };
+  // Lineage pickers model `{ type, id }`; the construction path wants the
+  // bare instance id.
+  const payload = {};
+  for (const [key, value] of Object.entries(dialogDraft)) {
+    payload[key] = value && typeof value === 'object' && !Array.isArray(value) ? value.id : value;
+  }
   dialogVisible.value = false;
   if (action) runAction(action, payload);
 };
@@ -245,7 +237,7 @@ const openAction = (action, context = {}) => {
   }
   if (action.construction?.inputs?.length) {
     dialogAction.value = action;
-    for (const key of Object.keys(draft)) delete draft[key];
+    for (const key of Object.keys(dialogDraft)) delete dialogDraft[key];
     dialogVisible.value = true;
     return;
   }

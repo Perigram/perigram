@@ -21,10 +21,16 @@ tree and materializes it with
 `RegionBlock` → `SurfaceBody` →
 `FieldControl` / `InstanceChip` / `PreviewBox` / `ActionButton`. Region
 actions run through `ActionButton`; actions with construction inputs open
-the generated create dialog, whose fields are the declared construction
-inputs resolved against the target type's field descriptors and ordered
-and sectioned by the type's authored `render.groups` (`resolveFieldGroups`)
-— one unlabelled section for groupless types. `link`
+the generated create dialog, whose rows are the declared construction
+inputs resolved by `resolveCreateDialogInputs`
+([shared/ui-mapping](../../shared/ui-mapping/README.md)): authored fields
+(bare name or slot-qualified `data.`/`specs.` path) render through their
+descriptor, the identity `name` renders as a plain string control, and
+`lineage.<key>` inputs render an `InstancePicker` over the parent types
+whose children edges declare that key (reverse containment over the
+bundle). The draft keys are the compiled input ids, so the payload lands
+exactly on the construction paths; pickers model `{ type, id }` and are
+reduced to the bare instance id at submit. `link`
 actions prompt for the relation target through `InstancePicker` over the
 pool before dispatch (`onRun` receives `{ relations: { key: ref } }`).
 The screen accepts a `sourceStates` prop (per-source
