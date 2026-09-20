@@ -107,7 +107,11 @@ in-tree-authored types as draft data — they only land in the registry at
 APPLY — so bindings to them must resolve at save time. Declarations that
 do not compile stub into the entity list (bindings save; APPLY reports
 the declaration error where it belongs); `draft-overlay.spec.js` pins
-the contract.
+the contract. The same tolerance covers every other protocol binding
+diagnostic (undeclared states, fields outside the row): an in-progress
+draft with access rules on a still-unbound node stays savable, and
+validate/apply own the report (`tryAcceptGraphProtocol` in the adapter,
+`persistedRewrites` in the service).
 `relation-option-resolver.js` owns scoped relation choices, `run-repository.js`
 owns the durable run/invocation/wait/receipt execution store, and `runtime.js`
 owns active-process compilation/auth hydration. Organization configuration is
