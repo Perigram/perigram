@@ -410,7 +410,7 @@ export function classLifecycleOf(nodes = [], edges = [], classNodeId = '') {
   }));
   const stateIds = new Set(stateNodes.keys());
   const transitions = edges
-    .filter(edge => edge.role === 'type' && stateIds.has(edge.source) && stateIds.has(edge.target) && edge.source !== edge.target)
+    .filter(edge => edge.role === 'type' && stateIds.has(edge.source) && stateIds.has(edge.target))
     .map(edge => ({
       edgeId: edge.id,
       from: String(nodeById.get(edge.source)?.data?.value || ''),

@@ -31,11 +31,12 @@ describe('classLifecycleOf', () => {
       { id: 'd1', source: 's1', target: 'cls', role: 'type', label: 'state' },
       { id: 'd2', source: 's2', target: 'cls', role: 'type', label: 'state' },
       { id: 't1', source: 's1', target: 's2', role: 'type', label: 'finish', data: { intent: 'finish' } },
-      { id: 't2', source: 's2', target: 's2', role: 'type' }
+      { id: 't2', source: 's2', target: 's2', role: 'type' } // loop: done -> done
     ];
     const lifecycle = classLifecycleOf(nodes, edges, 'cls');
     expect(lifecycle.transitions).toEqual([
-      { edgeId: 't1', from: 'draft', to: 'done', intent: 'finish' }
+      { edgeId: 't1', from: 'draft', to: 'done', intent: 'finish' },
+      { edgeId: 't2', from: 'done', to: 'done', intent: '' }
     ]);
   });
 
