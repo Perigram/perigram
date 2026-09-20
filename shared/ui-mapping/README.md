@@ -142,7 +142,9 @@ Two pure helpers consume it: `toolbarVisibleFor(node)` decides the bar
 (large lists always, small lists through multi-value facets, never off
 list surfaces) and `instanceMatchesToolbar(type, controls, instance,
 query, facetSelections)` applies it — substring search over the
-search-key fields plus the resolved identity label (the id fallback), and
+search-key fields plus the resolved identity label and the raw instance id
+(ids stay private display vocabulary, but finding a row by id remains
+functional), and
 exact facet matches.
 
 ### Data states
