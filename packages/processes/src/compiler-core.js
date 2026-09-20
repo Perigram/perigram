@@ -2580,12 +2580,20 @@ function aggregateScreenRequirement(feature, grants = []) {
   };
 }
 
+// Grant features resolve to a type by exact type identity only. The
+// per-class collection names ('files', 'items', 'groups', 'processes')
+// are shared by every type of that class by design: attributing a
+// collection-level feature to whichever type composes first is mount
+// order dependent, so a shared collection attributes a screen only when
+// exactly one non-meta type stores in it — otherwise the grant carries
+// no attributable entity and inference skips it.
 function entityTypeFromFeature(domain = {}, feature) {
-  return (domain.entities || []).find(entity => !entity.meta && (
-    entity.collection === feature ||
-    entity.type === feature ||
-    `${entity.type}s` === feature
-  ))?.type || null;
+  const entities = (domain.entities || []).filter(entity => !entity.meta);
+  const exact = entities.filter(entity => entity.type === feature || `${entity.type}s` === feature);
+  if (exact.length === 1) return exact[0].type;
+  if (exact.length > 1) return null;
+  const sharers = entities.filter(entity => entity.collection === feature);
+  return sharers.length === 1 ? sharers[0].type : null;
 }
 
 function entityTypeFromProducerOutputs(producerOutputs = {}, domain = {}, feature) {
