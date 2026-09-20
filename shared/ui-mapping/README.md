@@ -127,6 +127,12 @@ labels, the declared `render.sortKey` marked default), `facets` (enum
 fields over the values actually present), and `pagination` from the
 shared table budgets. The contract is total and deterministic over the
 type record plus instances — never instance-of-the-week heuristics.
+Two pure helpers consume it: `toolbarVisibleFor(node)` decides the bar
+(large lists always, small lists through multi-value facets, never off
+list surfaces) and `instanceMatchesToolbar(type, controls, instance,
+query, facetSelections)` applies it — substring search over the
+search-key fields plus the resolved identity label (the id fallback), and
+exact facet matches.
 
 ### Data states
 
