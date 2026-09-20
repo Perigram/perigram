@@ -163,6 +163,15 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(set['payload.fileId']).toBeUndefined();
   });
 
+  it('answers undeclared types with a clean 404, not a server fault', async () => {
+    stubCollection();
+    const service = instanceServiceResolver('mystery-thing');
+    await expect(service.list({}, 'user-1', 'org-1')).rejects.toMatchObject({
+      statusCode: 404,
+      message: expect.stringContaining('Unknown type mystery-thing')
+    });
+  });
+
   it('stores tenancy in the §3 slot and re-projects it onto the wire lineage', async () => {
     const coll = stubCollection();
     const service = instanceServiceResolver('cassette');

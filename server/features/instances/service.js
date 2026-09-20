@@ -149,7 +149,11 @@ function provenanceFromWire(draft = {}) {
 
 async function requireDeclaration(typeId, organizationId) {
   const declaration = await declarationFor(typeId, organizationId);
-  if (!declaration) throw new Error(`Unknown type ${typeId}: no declaration in the registry view`);
+  if (!declaration) {
+    // Reads and constructs of undeclared types fail loudly but cleanly:
+    // the type is a missing resource class, not a server fault.
+    throw createError({ statusCode: 404, message: `Unknown type ${typeId}: no declaration in the registry view` });
+  }
   return declaration;
 }
 
