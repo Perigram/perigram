@@ -304,6 +304,19 @@ describe('current process-definition service contract', () => {
     expect(processRepository.archiveActiveByOrganization).not.toHaveBeenCalled();
   });
 
+  it('accepts the manifest action record shape in the availability check', async () => {
+    // Regression: the assignment manifest carries full records keyed `id`
+    // while the check matched only `actionId` — every manual action 403'd.
+    const { executeActiveProcessAction } = await import('./service.js');
+    // Shaped like event.context.auth after resolveProcessAuth.
+    const auth = { userId: 'user-1', organizationId: 'org-acceptance', roleAssignments: { actions: [{ id: 'act-1' }] } };
+    try {
+      await executeActiveProcessAction({ actionId: 'act-1', data: {} }, auth);
+    } catch (error) {
+      expect(error.statusCode).not.toBe(403);
+    }
+  });
+
   it('activates when removed workflow states have no live entities', async () => {
     const fixture = createPersistedAcceptanceFixture();
     const entityType = fixture.processDefinition.data.producerOutputs['project_source:result'].entityType;

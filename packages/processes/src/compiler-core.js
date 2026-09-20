@@ -1557,7 +1557,11 @@ export function compileAssignmentAccess({ assignment = {}, roles = {}, screens =
   const screensList = [...screenMap.values()];
   const homeScreen = compileHomeScreenForAssignment({ assignment, screens: screensList, lineageBindings, domain });
   const userScreens = homeScreen ? [homeScreen, ...screensList] : screensList;
-  const screenNavigation = userScreens.map(screenToNavigation);
+  // Detail screens stay paired with their list screen: they open by entity
+  // context and never appear as duplicate top-level destinations.
+  const screenNavigation = userScreens
+    .filter(screen => screen.placement !== 'detail')
+    .map(screenToNavigation);
   return {
     roleIds,
     permissions,

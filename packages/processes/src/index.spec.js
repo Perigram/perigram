@@ -1301,6 +1301,21 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('excludes detail screens from top-level navigation while keeping them in the manifest', () => {
+    const compiled = compileProcessDefinition({
+      roles: { role_op: { id: 'role_op', label: 'Operator' } },
+      roleGrants: { role_op: [{ feature: 'queues', level: 'read' }] },
+      producerOutputs: producerOutputRecords([['queue_source', 'queue']]),
+      actions: {},
+      assignments: { user_a: { userId: 'user_a', roleIds: ['role_op'], bindings: {}, status: 'active' } }
+    }, domain);
+    const access = resolveRoleAssignmentAccess({ compiled, assignment: { userId: 'user_a', roleIds: ['role_op'], bindings: {}, status: 'active' }, domain });
+    const navIds = access.navigation.map(item => item.id);
+    expect(navIds).toContain('auto_queue');
+    expect(navIds).not.toContain('auto_queue_detail');
+    expect(access.screens.some(screen => (screen.screenKey || screen.id) === 'auto_queue_detail')).toBe(true);
+  });
+
   it('does not pin inferred screens to one status when a role has multiple grants for the same entity', () => {
     const compiled = compileProcessDefinition({
       roles: {

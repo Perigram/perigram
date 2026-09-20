@@ -1088,7 +1088,9 @@ function applyProcessStatus(process, primary, userId, note) {
 
 function assertCompiledActionAvailable(actionId, auth = {}) {
   const available = auth.roleAssignments?.actions || [];
-  if (!available.some(action => action.actionId === actionId)) {
+  // The assignment manifest carries full action records keyed `id`; the
+  // lean exposure shape used `actionId`. Both identify the same action.
+  if (!available.some(action => (action.actionId ?? action.id) === actionId)) {
     throw createError({ statusCode: 403, message: `Action ${actionId} is not available to the current process role` });
   }
 }
