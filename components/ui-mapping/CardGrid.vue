@@ -82,7 +82,7 @@
       </ResponsiveGrid>
     </template>
     <template #empty>
-      <Message severity="info" :text="$t('uiMapping.emptyRegion')" />
+      <Message severity="info">{{ $t('uiMapping.emptyRegion') }}</Message>
     </template>
   </DataView>
   <Menu ref="cardMenu" :model="cardMenuItems" popup />

@@ -5,7 +5,7 @@
     <Skeleton width="78%" height="1rem" />
     <Skeleton width="91%" height="1rem" />
   </div>
-  <Message v-else-if="text" :severity="severity" :text="text" />
+  <Message v-else-if="text" :severity="severity">{{ text }}</Message>
 </template>
 
 <script setup>
