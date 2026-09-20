@@ -358,10 +358,18 @@ uses that full identity and never merges bindings merely because child type,
 ancestor type, and lineage key match. The child type is
 derived from the Create/Modify entity consumer wired to the composed block, so
 persisted composers need no manually selected `targetEntityType`. Each
-compiled producer output exposes only its own `lineageBindings`. Compiled lineage bindings are the authoritative
-hierarchy contract for the active process. Home eligibility, root scoping, and
-inferred child regions use those bindings exclusively; static domain
-containment neither creates nor repairs process hierarchy. Once resolved, the compiler recognizes one lineage entity
+ compiled producer output exposes only its own `lineageBindings`. Compiled lineage bindings are the authoritative
+hierarchy contract for the active process; access scoping and grant
+windows read them alone. Presentation placement — home eligibility, root
+scoping, inferred child regions, contextual action placement — reads the
+merged hierarchy view: compiled bindings first per child/parent pair, then
+org-authored children edges (containment triples the domain projection
+marks `declared: 'org'`), so declaring containment on the org's own types
+places child collections and suppresses child home sections without
+wiring a Lineage composition. System pack containment never participates
+— static framework opinion still neither creates nor repairs process
+hierarchy. The client explorer merges the same two sources through
+`useEffectiveContainment`. Once resolved, the compiler recognizes one lineage entity
 reference as contextual parent scope while the effect boundary persists its
 normalized id. Fixed-field and open-entry composers contribute to that same
 schema set, so contextual action placement does not depend on how the block was
