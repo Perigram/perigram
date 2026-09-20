@@ -320,4 +320,24 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
     const { deleteFile } = await import('../files/service.js');
     expect(deleteFile).toHaveBeenCalledWith('stored-scene.json', 'files');
   });
+
+  it('enforces payload creation protocols on the construct handlers', async () => {
+    const coll = stubCollection();
+    const image = instanceServiceResolver('image'); // documents pack: upload + capture
+
+    await expect(image.constructionHandlers.capture({ data: { name: 'Shot' } }, { userId: 'u-1', organizationId: 'org-1' }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('requires a payload file') });
+
+    const shot = await image.constructionHandlers.upload(
+      { identity: { name: 'Shot' }, payload: { fileId: 'img-1', mime: 'image/png', size: 2048 } },
+      { userId: 'u-1', organizationId: 'org-1' }
+    );
+    expect(shot.type).toBe('image');
+    expect(coll.insertOne.mock.calls[0][0].payload).toMatchObject({ fileId: 'img-1', mime: 'image/png' });
+
+    const sketch = instanceServiceResolver('sketch'); // editor protocol: blank-first-save
+    const blank = await sketch.constructionHandlers.editor({ identity: { name: 'Field notes' } }, { userId: 'u-1', organizationId: 'org-1' });
+    expect(blank.type).toBe('sketch');
+    expect(blank.attachments).toBeUndefined();
+  });
 });

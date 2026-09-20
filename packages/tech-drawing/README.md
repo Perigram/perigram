@@ -46,8 +46,9 @@ fabrication domain (laser, vinyl, plotter) can require it without CNC.
   instances render through `DrawingCanvas` in generated detail previews
   (see [components/generated/README.md](../../components/generated/README.md)).
   The type declares `revisions: 'scene'`, which makes the instance
-  payload replaceable: the editor surface (`sketch-editor`, `edit` mode)
-  saves scenes through `PUT /api/instances/sketch/:id/payload`, each save
+  payload replaceable: the editor surface (`sketch-editor`, `edit` mode,
+  creation protocol `editor`) saves scenes through
+  `PUT /api/instances/sketch/:id/payload`, each save
   recording an immutable scene revision. The editor starts a blank scene
   on payload-less instances, so creation without an upload creator is
   simply first-save. The legacy artifact-bound `SketchEditor` component

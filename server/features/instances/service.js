@@ -168,6 +168,47 @@ async function requireDeclaration(typeId, organizationId) {
 }
 
 function instanceService(typeId) {
+  // Static-declaration creation protocols (SPEC §4): pack types declare
+  // their protocols synchronously, so the capability literal reflects
+  // them exactly; org-authored payload types keep the unconditional
+  // handlers and gain their modes through the authoritative projection
+  // (domain construction ∩ service handlers).
+  const staticProtocols = (() => {
+    const declaration = staticTypes.get(typeId);
+    if (!declaration?.payload) return [];
+    return [...new Set([].concat(declaration.payload.creation || ['upload']).map(String))];
+  })();
+  // Shared construct body: the §3 document build common to every
+  // construction mode.
+  async function createValidated(draft, declaration, userId, organizationId) {
+    // Tenancy: the wire may carry lineage.organizationId (the legacy
+    // projection); storage keeps the top-level slot and pure tree edges.
+    const wireLineage = { ...(draft.lineage || {}) };
+    const tenancyId = organizationId ?? wireLineage.organizationId ?? null;
+    delete wireLineage.organizationId;
+    const payload = payloadFromWire(draft, declaration);
+    const provenance = provenanceFromWire(draft);
+    const now = new Date().toISOString();
+    const doc = {
+      _id: new ObjectId(),
+      type: typeId,
+      typeVersion: declaration.version || 1,
+      organizationId: tenancyId == null ? null : toFlexibleId(tenancyId),
+      name: draft.identity?.name ?? null,
+      // §3: the row is one flat fields map (data/specs split is wire-only)
+      fields: { ...(draft.data || {}), ...(draft.specs || {}) },
+      states: { main: draft.status?.state?.primary || declaration.states?.main?.initial || 'CREATED' },
+      lineage: wireLineage,
+      ...(draft.relations ? { relations: draft.relations } : {}),
+      ...(payload ? { payload } : {}),
+      ...(provenance ? { provenance } : {}),
+      createdAt: now,
+      updatedAt: now
+    };
+    await repository.insertInstance(repository.collectionForClass(declaration.class), doc);
+    return toDto(doc, declaration);
+  }
+
   return {
     async getById(id) {
       // Without organization context the class (and therefore the
@@ -189,32 +230,22 @@ function instanceService(typeId) {
 
     async create(draft = {}, userId, organizationId) {
       const declaration = await requireDeclaration(typeId, organizationId || draft?.lineage?.organizationId);
-      const now = new Date().toISOString();
-      // Tenancy: the wire may carry lineage.organizationId (the legacy
-      // projection); storage keeps the top-level slot and pure tree edges.
-      const wireLineage = { ...(draft.lineage || {}) };
-      const tenancyId = organizationId ?? wireLineage.organizationId ?? null;
-      delete wireLineage.organizationId;
-      const payload = payloadFromWire(draft, declaration);
-      const provenance = provenanceFromWire(draft);
-      const doc = {
-        _id: new ObjectId(),
-        type: typeId,
-        typeVersion: declaration.version || 1,
-        organizationId: tenancyId == null ? null : toFlexibleId(tenancyId),
-        name: draft.identity?.name ?? null,
-        // §3: the row is one flat fields map (data/specs split is wire-only)
-        fields: { ...(draft.data || {}), ...(draft.specs || {}) },
-        states: { main: draft.status?.state?.primary || declaration.states?.main?.initial || 'CREATED' },
-        lineage: wireLineage,
-        ...(draft.relations ? { relations: draft.relations } : {}),
-        ...(payload ? { payload } : {}),
-        ...(provenance ? { provenance } : {}),
-        createdAt: now,
-        updatedAt: now
-      };
-      await repository.insertInstance(repository.collectionForClass(declaration.class), doc);
-      return toDto(doc, declaration);
+      return await createValidated(draft, declaration, userId, organizationId);
+    },
+
+    // Upload/capture protocol constructs: the payload reference is the
+    // protocol's whole point — a missing one is a protocol violation,
+    // not a silent blank instance.
+    async createWithPayloadProtocol(draft = {}, { userId, organizationId } = {}, protocol = 'upload') {
+      const declaration = await requireDeclaration(typeId, organizationId || draft?.lineage?.organizationId);
+      if (!declaration.payload) {
+        throw createError({ statusCode: 400, message: `Type ${typeId} declares no payload; creation protocol ${protocol} does not apply` });
+      }
+      const reference = draft.payload || draft.attachments?.primary || null;
+      if (!reference?.fileId && !reference?.id) {
+        throw createError({ statusCode: 400, message: `Creation protocol ${protocol} requires a payload file` });
+      }
+      return await createValidated(draft, declaration, userId, organizationId);
     },
 
     async processUpdate(id, patch = {}) {
@@ -339,13 +370,26 @@ function instanceService(typeId) {
     processDelete: (id, auth) => instanceService(typeId).remove(id),
     processCapabilities: {
       create: true,
-      createModes: ['genericCreate'],
+      createModes: ['genericCreate', ...staticProtocols],
       processUpdate: true,
       delete: true,
       archive: false
     },
     constructionHandlers: {
       genericCreate: (draft, context = {}) => instanceService(typeId).create(
+        draft, context.userId, context.organizationId
+      ),
+      // Payload creation protocols (SPEC §4): upload/capture require the
+      // payload reference the dialog uploaded (trait-validated by the
+      // construct path); editor constructs a blank instance whose first
+      // editor save fills the payload.
+      upload: (draft, context = {}) => instanceService(typeId).createWithPayloadProtocol(
+        draft, context, 'upload'
+      ),
+      capture: (draft, context = {}) => instanceService(typeId).createWithPayloadProtocol(
+        draft, context, 'capture'
+      ),
+      editor: (draft, context = {}) => instanceService(typeId).create(
         draft, context.userId, context.organizationId
       )
     }

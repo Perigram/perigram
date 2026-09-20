@@ -8,22 +8,33 @@ import { normalizeOperator, OPERATOR_SPECIES_BY_LETTER } from './operators.js';
 import { requireCompatible } from './diff.js';
 
 // Payload traits (SPEC §4): the payload declaration carries the accepted
-// MIME list, byte limit, and preview mode. Canonical shape is
-// { mime: string[], accept?, maxSize?, preview? }; a bare MIME string and
-// a `byteLimit` key (legacy persisted org docs and pack fixtures)
-// normalize at this boundary. This is
-// the whole of today's attachment-kind authoring, as data on the type.
+// MIME list, byte limit, preview mode, and creation protocols. Canonical
+// shape is { mime: string[], accept?, maxSize?, preview?, creation? };
+// a bare MIME string and a `byteLimit` key (legacy persisted org docs
+// and pack fixtures) normalize at this boundary. This is the whole of
+// today's attachment-kind authoring, as data on the type.
+const CREATION_PROTOCOLS = Object.freeze(['upload', 'capture', 'editor']);
+
 function normalizePayload(payload) {
   if (!payload) return null;
-  if (typeof payload === 'string') return Object.freeze({ mime: Object.freeze([payload]) });
+  if (typeof payload === 'string') return Object.freeze({ mime: Object.freeze([payload]), creation: Object.freeze(['upload']) });
   const mime = typeof payload.mime === 'string' ? [payload.mime] : [...(payload.mime || [])];
   if (!mime.length) throw new Error('payload requires at least one accepted MIME type');
   const maxSize = Number.isFinite(payload.maxSize) ? payload.maxSize : payload.byteLimit;
+  const creationRaw = payload.creation == null ? ['upload'] : [].concat(payload.creation);
+  const creation = [...new Set(creationRaw.map(String))];
+  if (!creation.length) throw new Error('payload requires at least one creation protocol');
+  for (const protocol of creation) {
+    if (!CREATION_PROTOCOLS.includes(protocol)) {
+      throw new Error(`payload creation protocol ${protocol} is not one of ${CREATION_PROTOCOLS.join(' | ')}`);
+    }
+  }
   return Object.freeze({
     mime: Object.freeze(mime),
     ...(payload.accept?.length ? { accept: Object.freeze([...payload.accept]) } : {}),
     ...(Number.isFinite(maxSize) ? { maxSize } : {}),
-    ...(payload.preview ? { preview: String(payload.preview) } : {})
+    ...(payload.preview ? { preview: String(payload.preview) } : {}),
+    creation: Object.freeze(creation)
   });
 }
 

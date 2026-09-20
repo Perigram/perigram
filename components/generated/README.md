@@ -17,10 +17,13 @@ substitutes a global entity list for that scoped contract.
 
 `GeneratedScreen.vue` maps each prompted action field to a shared typed
 control keyed purely off the field type: `entity`/`entityList` use the shared
-entity pickers, `enum` uses a Select over the declared options, `boolean` uses
-a ToggleSwitch, `date`/`dateTime` use a DatePicker (time selection only for
-`dateTime`), `number`/text use InputText, and `object`/`json` use
-`GeneratedObjectInput.vue`. Boolean and date prompt values are tri-state: an
+entity pickers, `enum` uses a Select over the declared options, `boolean`
+uses a ToggleSwitch, `date`/`dateTime` use a DatePicker (time selection only for
+`dateTime`), `number`/text use InputText, `object`/`json` use
+`GeneratedObjectInput.vue`, and `file` renders the payload creator input
+(accept/capture attributes from the field; selection uploads to the
+`files` bucket and submits the payload reference). Boolean and date
+prompt values are tri-state: an
 untouched field stays `null` and is omitted from the submission payload
 instead of being coerced to `false` or the current time; once touched, the
 control submits a real boolean or an ISO string (`YYYY-MM-DD` for `date`,

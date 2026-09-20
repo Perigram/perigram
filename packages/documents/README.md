@@ -18,12 +18,17 @@ preview contract in
 
 | Type | Payload | Preview | Notes |
 |---|---|---|---|
-| `image` | `image/jpeg`, `image/png` (25 MB) | `image` | the photo/capture document |
+| `image` | `image/jpeg`, `image/png` (25 MB) | `image` | creation protocols `upload` + `capture` (mobile camera) |
 | `pdf-document` | `application/pdf` (25 MB) | `pdf` | |
-| `text-document` | `text/plain` (10 MB) | `text` | `revisions: 'content'` — editor-replaceable through the `text-editor` surface |
-| `csv-table` | `text/csv` (10 MB) | `table` | `revisions: 'content'` — editor-replaceable through the `csv-editor` surface |
+| `text-document` | `text/plain` (10 MB) | `text` | `revisions: 'content'`; creation protocol `editor` |
+| `csv-table` | `text/csv` (10 MB) | `table` | `revisions: 'content'`; creation protocol `editor` |
 | `xlsx-workbook` | spreadsheet xlsx (25 MB) | `workbook` | |
 | `docx-document` | wordprocessing docx (25 MB) | `docx` | |
+
+Creation protocols project as construct `via` modes: `upload`/`capture`
+add a typed `file` input (accept/capture attrs) to the generated create
+dialog; `editor` constructs a blank instance whose first editor save
+fills the payload.
 
 ## Editor bindings
 

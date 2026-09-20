@@ -152,10 +152,15 @@ FieldType ::= any V production without Ref
             | Quantity(Unit)
 ```
 
-Payload traits: the payload declaration carries the accepted MIME list and
-byte limits (enforced at construct time) plus the preview mode (render
-policy, projected to UI like enum labels). This is the whole of today's
-`attachment-kinds.js`, as data on the type.
+Payload traits: the payload declaration carries the accepted MIME list
+and byte limits (enforced at construct time) plus the preview mode
+(render policy, projected to UI like enum labels) and the creation
+protocols — a list of `upload | capture | editor` stating how instances
+of the type come into being (`upload`: file picker on the payload
+traits; `capture`: camera capture; `editor`: blank instance whose first
+editor save fills the payload). Protocols project as construct `via`
+modes. This is the whole of today's `attachment-kinds.js`, as data on
+the type.
 
 "Not in the row" means "does not exist": selectable field lists, predicate
 paths, patch paths, and card fields are all derived from the row. No list is

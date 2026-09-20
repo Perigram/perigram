@@ -150,8 +150,22 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     expect(construction.inputs.find(input => input.id === 'lineage.binId')).toMatchObject({ label: 'Bin' });
     expect(construction.inputs.find(input => input.id === 'data.serial')).toMatchObject({ label: 'Serial' });
     expect(construction.inputs.find(input => input.id === 'specs.width')).toMatchObject({ label: 'Width' });
+  });
+
+  it('projects payload creation protocols as construct via modes', () => {
+    const projected = projectDomainFromView(orgRegistry(), 'org-1');
     const occs = projected.construction.occs;
-    expect(occs.modes).toEqual(['genericCreate']);
+    // Default protocol: payload without an explicit creation list is
+    // upload-backed.
+    expect(occs.modes).toEqual(['genericCreate', 'upload']);
+    expect(occs.modeInputs.upload.find(input => input.id === 'payload')).toMatchObject({
+      type: 'file',
+      required: true,
+      prompt: true
+    });
+    expect(occs.modeInputs.upload.map(input => input.id)).toEqual(['name', 'payload']);
+    // Payload-less types gain no protocol modes.
+    expect(projected.construction.panel.modes).toEqual(['genericCreate']);
   });
 
   it('projects declared relation edges from view types', () => {

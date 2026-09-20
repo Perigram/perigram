@@ -6,12 +6,12 @@
 
 const MB = 1024 * 1024;
 
-function documentType({ id, mime, accept, maxSize, preview, icon, label, revisions = null }) {
+function documentType({ id, mime, accept, maxSize, preview, icon, label, revisions = null, creation = null }) {
   return Object.freeze({
     id,
     class: 'file',
     scope: 'system',
-    payload: { mime: [].concat(mime), accept, maxSize, preview },
+    payload: { mime: [].concat(mime), accept, maxSize, preview, ...(creation ? { creation: [].concat(creation) } : {}) },
     ...(revisions ? { revisions } : {}),
     fields: { name: { base: 'string' } },
     render: { label, icon }
@@ -26,7 +26,8 @@ export const documentsTypes = Object.freeze([
     maxSize: 25 * MB,
     preview: 'image',
     icon: 'pi pi-image',
-    label: 'Image'
+    label: 'Image',
+    creation: ['upload', 'capture']
   }),
   documentType({
     id: 'pdf-document',
@@ -45,7 +46,8 @@ export const documentsTypes = Object.freeze([
     preview: 'text',
     icon: 'pi pi-file-edit',
     label: 'Text document',
-    revisions: 'content'
+    revisions: 'content',
+    creation: ['editor']
   }),
   documentType({
     id: 'csv-table',
@@ -55,7 +57,8 @@ export const documentsTypes = Object.freeze([
     preview: 'table',
     icon: 'pi pi-table',
     label: 'CSV table',
-    revisions: 'content'
+    revisions: 'content',
+    creation: ['editor']
   }),
   documentType({
     id: 'xlsx-workbook',

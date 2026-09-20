@@ -231,11 +231,37 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   }
 
   // construction: genericCreate from declared rows (the composer-less
-  // construct) plus declared construct operators as `via` modes with
-  // signature-derived modeInputs. Lineage keys and declared relation
-  // edges are construct-addressable (SPEC §6): the schemas were built in
-  // the fieldSchemas pass above and are re-derived here per type.
+  // construct) plus declared construct operators and payload creation
+  // protocols (SPEC §4) as `via` modes. Protocol modes carry
+  // signature-derived mode inputs — upload/capture add the typed `file`
+  // payload input; editor constructs blank. Lineage keys and declared
+  // relation edges are construct-addressable (SPEC §6): the schemas were
+  // built in the fieldSchemas pass above and are re-derived here per
+  // type.
   const construction = {};
+
+  function payloadProtocolModes(type) {
+    return (type.payload?.creation || ['upload']);
+  }
+
+  function protocolModeInputs(type, protocol) {
+    const inputs = [
+      { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true }
+    ];
+    if (protocol === 'upload' || protocol === 'capture') {
+      inputs.push({
+        id: 'payload',
+        label: 'File',
+        path: 'payload',
+        type: 'file',
+        accept: (type.payload?.accept || type.payload?.mime || []).join(','),
+        required: true,
+        prompt: true,
+        ...(protocol === 'capture' ? { capture: 'environment' } : {})
+      });
+    }
+    return inputs;
+  }
 
   function edgeFieldsFor(type) {
     const lineage = orgLineageFields(type, view);
@@ -256,8 +282,9 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   for (const type of types) {
     const constructOperators = Object.values(type.operators || {}).filter(operator => operator.species === 'construct');
     const labelByType = new Map(entities.map(entity => [entity.type, entity.label]));
+    const protocols = type.payload ? payloadProtocolModes(type) : [];
     construction[type.id] = {
-      modes: ['genericCreate', ...constructOperators.map(operator => operator.id)],
+      modes: ['genericCreate', ...protocols, ...constructOperators.map(operator => operator.id)],
       defaultMode: 'genericCreate',
       inputs: [
         { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true },
@@ -299,8 +326,11 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
             prompt: true
           }))
       ],
-      ...(constructOperators.length ? {
-        modeInputs: Object.fromEntries(constructOperators.map(operator => [operator.id, operatorModeInputs(operator)]))
+      ...((constructOperators.length || protocols.length) ? {
+        modeInputs: {
+          ...Object.fromEntries(constructOperators.map(operator => [operator.id, operatorModeInputs(operator)])),
+          ...Object.fromEntries(protocols.map(protocol => [protocol, protocolModeInputs(type, protocol)]))
+        }
       } : {})
     };
   }
@@ -317,15 +347,16 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
 
   // attachmentKinds: payload traits are the whole upload contract (SPEC
   // §4) — one upload-backed kind per payload-bearing type, keyed by type
-  // id.
+  // id. The creation mode is the type's first declared protocol.
   const attachmentKinds = {};
   for (const type of types) {
     if (!type.payload) continue;
     const mime = [].concat(type.payload.mime || []);
+    const creationMode = (type.payload.creation || ['upload'])[0];
     attachmentKinds[type.id] = {
       kind: type.id,
       mimeType: mime[0] || 'application/octet-stream',
-      ...(type.payload.accept?.length ? { creation: { mode: 'upload', accept: type.payload.accept.join(',') } } : { creation: { mode: 'upload' } }),
+      ...(type.payload.accept?.length ? { creation: { mode: creationMode, accept: type.payload.accept.join(',') } } : { creation: { mode: creationMode } }),
       preview: { mode: type.payload.preview || 'download' },
       ...(Number.isFinite(type.payload.maxSize) ? { file: { maxBytes: type.payload.maxSize } } : {})
     };

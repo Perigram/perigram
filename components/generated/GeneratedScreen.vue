@@ -166,6 +166,26 @@
             v-model="promptValues[field.id]"
             :schema="field.schema || null"
           />
+          <div v-else-if="field.type === 'file'" class="flex items-center gap-2">
+            <input
+              :ref="el => setPayloadInputEl(field.id, el)"
+              class="hidden"
+              type="file"
+              :accept="field.accept || undefined"
+              :capture="field.capture || undefined"
+              @change="event => uploadPayloadFile(field, event)"
+            >
+            <Button
+              icon="pi pi-upload"
+              :label="$t('common.upload')"
+              size="small"
+              severity="secondary"
+              outlined
+              :loading="uploadingPayloadField === field.id"
+              @click="payloadInputEl(field.id)?.click()"
+            />
+            <span v-if="promptValues[field.id]?.name" class="text-muted text-supporting truncate">{{ promptValues[field.id].name }}</span>
+          </div>
           <ToggleSwitch
             v-else-if="field.type === 'boolean'"
             v-model="promptValues[field.id]"
@@ -307,8 +327,7 @@ const props = defineProps({
   screen: { type: Object, required: true }
 });
 
-const toast = useToast();
-const confirm = useConfirm();
+const toast = useToast();const confirm = useConfirm();
 const { t, te } = useI18n();
 const authStore = useAuthStore();
 const route = useRoute();
@@ -327,6 +346,34 @@ const artifactCreatorField = ref(null);
 const relationCreatorMode = ref(false);
 const relationCreatorValues = reactive({});
 const relationCreatorOptions = reactive({});
+
+// Payload creation protocol (SPEC §4): the `file` prompt control uploads
+// to the files bucket and submits the payload reference.
+const uploadingPayloadField = ref('');
+const payloadInputEls = new Map();
+function setPayloadInputEl(fieldId, el) {
+  if (el) payloadInputEls.set(fieldId, el);
+  else payloadInputEls.delete(fieldId);
+}
+function payloadInputEl(fieldId) {
+  return payloadInputEls.get(fieldId) || null;
+}
+async function uploadPayloadFile(field, event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  uploadingPayloadField.value = field.id;
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const stored = await $fetch('/api/files/upload?bucket=files', { method: 'POST', body: form });
+    promptValues[field.id] = { fileId: stored.id, mime: file.type || null, size: file.size, name: file.name };
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message, life: 8000 });
+  } finally {
+    uploadingPayloadField.value = '';
+  }
+}
 
 const regionBySlot = computed(() => Object.fromEntries(
   screen.value.regions.map(region => [region.slot || 'main', region])
