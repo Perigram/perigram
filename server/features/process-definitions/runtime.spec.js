@@ -24,6 +24,55 @@ import { createPersistedAcceptanceFixture, PERSISTED_ACCEPTANCE_IDS } from '~/te
 describe('process runtime auth hydration', () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it('hydrates v5 species drafts: cts.construct grants reach the compiled access contract', async () => {
+    // Regression: compileActiveProcessRuntime compiled the raw draft
+    // without the v5 lowering seam, so cts.* records contributed no
+    // grants and no screens to hydration — active v5 processes served
+    // their authors an empty screen manifest.
+    const fixture = createPersistedAcceptanceFixture();
+    const v5Draft = {
+      ...fixture.processDefinition,
+      data: {
+        ...fixture.processDefinition.data,
+        processNodes: {
+          ...fixture.processDefinition.data.processNodes,
+          construct_queue: {
+            id: 'construct_queue',
+            kind: 'cts.construct',
+            typeId: 'queue',
+            construction: { mode: 'genericCreate', inputs: [] },
+            trigger: { mode: 'manual' },
+            status: { to: 'draft' },
+            access: { level: 'write', grants: [{ roleId: PERSISTED_ACCEPTANCE_IDS.role, level: 'write' }] }
+          }
+        },
+        producerOutputs: {
+          ...fixture.processDefinition.data.producerOutputs,
+          'construct_queue:result': {
+            producerOutputId: 'construct_queue:result',
+            nodeId: 'construct_queue',
+            outputSocketId: 'result',
+            entityType: 'queue',
+            lifecycle: { mode: 'domainDefault' },
+            fields: { read: ['identity.*'], write: [], private: [] },
+            allowedRoles: { read: [], write: [], admin: [] }
+          }
+        }
+      }
+    };
+    repository.findActiveByOrganization.mockResolvedValue(v5Draft);
+    mocks.organizationService.getProcessConfiguration.mockResolvedValue({
+      roles: fixture.roles,
+      roleAssignments: { user_a: { userId: 'user_a', roleIds: [PERSISTED_ACCEPTANCE_IDS.role], bindings: {} } },
+      activeProcessDefinitionId: v5Draft._id
+    });
+
+    const auth = await resolveProcessAuth({ userId: 'user_a', organizationId: 'org-acceptance' });
+    const keys = (auth.screens || []).map(screen => screen.screenKey || screen.id);
+    expect(keys.some(key => String(key).includes('queue'))).toBe(true);
+    expect(auth.process?.active).toBe(true);
+  });
+
   it('combines the active process role contract with the organization assignment', async () => {
     const fixture = createPersistedAcceptanceFixture();
     repository.findActiveByOrganization.mockResolvedValue(fixture.processDefinition);

@@ -55,7 +55,14 @@ async function getProjectedDomainFor(organizationId) {
 export async function compileActiveProcessRuntime(data = null, roles = {}, organizationId = null) {
   if (!data) return null;
   const domain = await getProjectedDomainFor(organizationId);
-  const migration = migrateProducerOutputIdentities(data, domain);
+  // The single lowering seam (SPEC §20): active processes authored in the
+  // v5 species vocabulary lower to the executable working shapes here —
+  // hydration compiles the same accepted form validate/activate do.
+  // Without this, v5 cts.* records contribute no grants or screens to
+  // the hydrated access contract.
+  const { currentProcessDefinition } = await import('./compiler-adapter.js');
+  const accepted = currentProcessDefinition(data, domain);
+  const migration = migrateProducerOutputIdentities(accepted, domain);
   if (migration.errors.length) throw new Error(migration.errors.join('; '));
   const compiled = compileProcessDefinition({ ...migration.data, compiled: null }, domain, { roles });
   if (compiled) {
