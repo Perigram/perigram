@@ -16,6 +16,11 @@ strangler layer 0 of the designer rebuild (see
   BEFORE persisting — a write whose view compile fails (class obligations,
   cross-type references) never touches the stored declaration, so a failed
   redefinition cannot replace a valid stored type and wedge later writes.
+  Beside the zero-instance relief, redefinition is also free when the
+  stored declaration could never compile (obligation violations,
+  unresolvable children edges): an invalid stored contract is a repair
+  target, not something the diff protects — no migration is required to
+  move away from it.
   `removeType` deletes org declarations only.
 - `describeOrganizationTypes` returns the compiled client bundle (types,
   states, operators, render policy, JSON Schemas) plus attachment-kind

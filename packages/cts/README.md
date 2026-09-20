@@ -35,7 +35,11 @@ module layout and how the code maps to the spec's build-order tiers.
   step budget, `map`/`filter` comprehensions, compile-checked exhaustive
   `match` (§18).
 - `diff.js` — version stamping and refuse-on-breaking-diff (R7 core tier);
-  declarative migration steps are deferred per SPEC §19.
+  declarative migration steps are deferred per SPEC §19. Redefinition is
+  free for empty types (instance probe reports zero rows) and for repairs:
+  a stored declaration that itself violates class obligations or declares
+  unresolvable children never compiled as a contract, so the diff does not
+  protect it.
 - `registry.js` — type records as data, tenancy resolution (system first,
   one org overlay, no shadowing), `compile()` running R1–R6, instance
   validation with `typeVersion` ill-typing. Payload declarations normalize
