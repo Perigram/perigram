@@ -13,14 +13,16 @@ strangler layer 0 of the designer rebuild (see
   system id is refused). `defineType` validates the declaration through the
   real CTS registry, refuses breaking redefinitions (diff per SPEC §11,
   version bump on compatible change), and compiles the whole org view
-  BEFORE persisting — a write whose view compile fails (class obligations,
-  cross-type references) never touches the stored declaration, so a failed
-  redefinition cannot replace a valid stored type and wedge later writes.
-  Beside the zero-instance relief, redefinition is also free when the
+  BEFORE persisting — the write gate refuses exactly the compile errors
+  the candidate introduces (its own obligations, cross-type references it
+  breaks); a failing write never touches the stored declaration. Beside
+  the zero-instance relief, redefinition is also free when the
   stored declaration could never compile (obligation violations,
   unresolvable children edges): an invalid stored contract is a repair
   target, not something the diff protects — no migration is required to
-  move away from it.
+  move away from it. Pre-existing view errors from a historically stored
+  invalid type block only their own repair: valid writes around it still
+  land, which is what un-wedges an org.
   `removeType` deletes org declarations only.
 - `describeOrganizationTypes` returns the compiled client bundle (types,
   states, operators, render policy, JSON Schemas) plus attachment-kind
