@@ -92,7 +92,7 @@ export const PROCESS_DESIGNER_PALETTE_GROUPS = Object.freeze([
   {
     id: 'operations',
     items: [
-      paletteItem('construct', 'cts.construct', { preset: { via: 'genericCreate' } }),
+      paletteItem('construct', 'cts.construct'),
       paletteItem('mutate', 'cts.mutate'),
       paletteItem('transition', 'cts.transition'),
       paletteItem('remove', 'cts.remove'),
@@ -763,12 +763,20 @@ export function typeCatalogPaletteGroups(types = []) {
   const items = [];
   for (const entry of types) {
     if (!entry?.constructible) continue;
-    items.push(paletteItem(entry.id, 'cts.construct', {
-      label: entry.label || entry.id,
-      icon: entry.icon,
-      description: entry.description || entry.id,
-      preset: { typeId: entry.id, via: entry.via || 'genericCreate' }
-    }));
+    // One construct variant per construction mode (SPEC §20/§4): the
+    // default mode keeps the plain type label, additional modes get
+    // `· mode` suffixes — the artifact-era protocol picker, now the
+    // palette listing. `via` carries the actual default (protocols for
+    // payload types, genericCreate for payload-less).
+    const modes = (entry.modes && entry.modes.length ? entry.modes : [entry.via || 'genericCreate']);
+    for (const mode of modes) {
+      items.push(paletteItem(mode === modes[0] ? entry.id : `${entry.id}:${mode}`, 'cts.construct', {
+        label: mode === modes[0] ? (entry.label || entry.id) : `${entry.label || entry.id} · ${mode}`,
+        icon: entry.icon,
+        description: entry.description || entry.id,
+        preset: { typeId: entry.id, via: mode }
+      }));
+    }
     for (const operatorId of entry.constructOperators || []) {
       items.push(paletteItem(`${entry.id}:${operatorId}`, 'cts.construct', {
         label: `${entry.label || entry.id} · ${operatorId}`,

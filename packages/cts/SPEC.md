@@ -675,7 +675,9 @@ The palette is operations, never a domain catalog. No node drops pre-bound:
 a seeded domain type is an invisible authoring decision the user never
 made — records are unbound until the author binds them (the palette's
 type-catalog constructs are the one exception, where the chosen item IS
-the binding). Type reference nodes persist on the canvas as `ctsType`
+the binding: one variant per declared construction mode — creation
+protocols surface as `· mode` variants, the artifact-era protocol
+picker — plus one per declared construct operator). Type reference nodes persist on the canvas as `ctsType`
 nodes (they own no records). Binding semantics split by species (`carriesTypePin`): origin
 species (constructs; reads that start from a declaration — current,
 byId, byRef, query) carry a persistent Type pin wired from a type node

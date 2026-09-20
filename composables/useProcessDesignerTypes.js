@@ -76,6 +76,9 @@ export function useProcessDesignerTypes({
           description: `${type.class} type${payload}`,
           constructible: Boolean(construction),
           via: construction?.defaultMode || (construction?.modes || [])[0] || 'genericCreate',
+          // Every declared construct mode: the type catalog lists one
+          // variant per mode (creation protocols for payload types).
+          modes: [...(construction?.modes || [])],
           constructOperators
         };
       });
@@ -85,8 +88,8 @@ export function useProcessDesignerTypes({
   // The services group and editor registry come from the mounted pack's
   // operator registrations (SPEC §8/§21). The type catalog lives inside the
   // Types group (SPEC §20/§21 L2): declaration authoring first, then one
-  // bound construct per constructible registry type plus one variant per
-  // declared construct operator.
+  // bound construct variant per constructible registry type per declared
+  // construction mode, plus one per declared construct operator.
   function paletteWithTypeCatalog(contract) {
     const catalogItems = typeCatalogPaletteGroups(ctsTypeView())[0]?.items || [];
     return contract.paletteGroups.map(group => (

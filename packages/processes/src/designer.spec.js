@@ -574,6 +574,28 @@ describe('type catalog palette', () => {
     expect(items[2]).toMatchObject({ id: 'project' });
     expect(items.some(item => item.id === 'revision')).toBe(false);
   });
+
+  it('lists one construct variant per declared creation mode', () => {
+    const groups = typeCatalogPaletteGroups([
+      { id: 'image', class: 'file', label: 'Image', constructible: true, via: 'upload', modes: ['upload', 'capture'], constructOperators: [] },
+      { id: 'cassette', class: 'file', label: 'Cassette', constructible: true, via: 'editor', modes: ['editor'], constructOperators: [] }
+    ]);
+    const items = groups[0].items;
+    // Default mode keeps the plain label; additional modes become
+    // `· mode` variants — the artifact-era protocol picker.
+    expect(items.map(item => item.id)).toEqual(['image', 'image:capture', 'cassette']);
+    expect(items[0]).toMatchObject({ label: 'Image', preset: { typeId: 'image', via: 'upload' } });
+    expect(items[1]).toMatchObject({ label: 'Image · capture', preset: { typeId: 'image', via: 'capture' } });
+    expect(items[2]).toMatchObject({ label: 'Cassette', preset: { typeId: 'cassette', via: 'editor' } });
+  });
+
+  it('falls back to the entry via when no modes list is supplied', () => {
+    const groups = typeCatalogPaletteGroups([
+      { id: 'legacy-entry', constructible: true, via: 'genericCreate' }
+    ]);
+    expect(groups[0].items).toHaveLength(1);
+    expect(groups[0].items[0].preset).toEqual({ typeId: 'legacy-entry', via: 'genericCreate' });
+  });
 });
 
 describe('declaration node ports', () => {
