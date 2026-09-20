@@ -26,6 +26,10 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
   }
 
   const data = processDefinition?.data || processDefinition || {};
+  // The canvas graph is presentation (Vue Flow node/edge types, positions,
+  // viewport) — declaration checks read semantic records only. Walking it
+  // would misread card kinds such as `ctsField` as referenced type ids.
+  const { graph: _presentation, ...semantic } = data;
 
   for (const [producerOutputId, output] of Object.entries(data.producerOutputs || {})) {
     if (output?.entityType && !view.has(output.entityType)) {
@@ -39,7 +43,7 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
     }
   }
 
-  walk(data, (node, path) => {
+  walk(semantic, (node, path) => {
     if (!node || typeof node !== 'object') return;
     // v5 records carry `type` (CTS id); v4 records carry storage entity ids.
     // Both normalize to the view's kebab ids.

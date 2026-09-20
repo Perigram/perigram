@@ -122,4 +122,25 @@ describe('declaration-check phase', () => {
     }, registry, 'org-2');
     expect(errors).toContain('Producer output out1 references unknown type widget');
   });
+
+  it('ignores the presentation graph: canvas card kinds are not type references', () => {
+    const registry = registryWithOrgType();
+    const errors = checkDeclarationsAgainstCts({
+      data: {
+        graph: {
+          nodes: [
+            { id: 'f1', type: 'ctsField', position: { x: 0, y: 0 }, data: { refId: 'f1', typeId: 'widget' } },
+            { id: 's1', type: 'ctsState', position: { x: 0, y: 0 }, data: { refId: 's1' } },
+            { id: 'c1', type: 'ctsClass', position: { x: 0, y: 0 }, data: { refId: 'c1' } },
+            { id: 'p1', type: 'processNode', position: { x: 0, y: 0 }, data: { refId: 'p1' } }
+          ],
+          edges: [{ id: 'e1', source: 'c1', target: 'p1', type: 'default' }]
+        },
+        processNodes: {
+          p1: { id: 'p1', kind: 'cts.construct', typeId: 'widget', via: 'genericCreate' }
+        }
+      }
+    }, registry, 'org-1');
+    expect(errors).toEqual([]);
+  });
 });
