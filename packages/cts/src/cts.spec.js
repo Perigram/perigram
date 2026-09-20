@@ -207,6 +207,32 @@ describe('evolution (R7, refuse-on-diff)', () => {
     })).not.toThrow();
   });
 
+  it('redefining away from a never-compiling stored declaration is a free repair', () => {
+    // Stored state only the historical persist-before-compile write order
+    // could produce: a file class carrying children edges. Instances or
+    // not, the diff must not protect it — there is no valid contract to
+    // migrate away from.
+    const registry = createTypeRegistry({ id: 'spec-repair', hasInstances: () => 7 });
+    registry.defineType({
+      id: 'yu', class: 'file', scope: 'org', organizationId: 'org-1',
+      fields: { note: { base: 'string' } },
+      edges: { children: { parts: { types: ['missing-child'] } } }
+    });
+    const repaired = registry.defineType({
+      id: 'yu', class: 'file', scope: 'org', organizationId: 'org-1',
+      fields: { note: { base: 'string' } }
+    });
+    expect(repaired.version).toBe(2);
+    expect(repaired.edges).toEqual({});
+    expect(registry.compile('org-1').errors).toEqual([]);
+
+    // Healthy stored declarations with live instances still refuse.
+    expect(() => registry.defineType({
+      id: 'yu', class: 'file', scope: 'org', organizationId: 'org-1',
+      fields: {}
+    })).toThrow(/breaking change/);
+  });
+
   it('instances behind typeVersion are ill-typed', () => {
     const registry = packRegistry();
     const sheet = registry.getType('sheet');
