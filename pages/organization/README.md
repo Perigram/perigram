@@ -21,15 +21,6 @@ exposes runtime-configuration implementation wording, and it shows a current
 tariff tag only when deployment billing mode is `tariff` and a current tariff
 is configured.
 
-`drawing.vue` manages the tech-drawing catalogue (see
-[server/packs/README.md](../../server/packs/README.md)): pen templates
-with the PrimeVue color picker, a visual stroke-pattern picker, and live
-`StrokePreview` samples; layer standards show the effective default pen
-resolved through the declared relation, with org overrides shadowing by
-code (system rows never mutate). `packs.vue` is the read-only mounted-pack
-inventory over `GET /api/admin/packs` — composition/enabling stays a
-deploy-time change in `server/packs/declarations.js`.
-
 `users.vue` is the team management route for invitations, membership approval,
 user creation, and process role assignment. The page reads roles from the
 active process definition, and writes assignments through
