@@ -108,8 +108,18 @@ drops out of the overlay and bound sockets stop regenerating) and shows
 authoring — what SAVE/APPLY would reject is visible immediately, not
 after a frozen canvas. Class authoring is name-first: the author names the class and the kebab
 registry id is derived from the name (deduplicated against the registry
-and the tree); the id only becomes hand-authored when edited directly.
-Class card labels derive from the authored name.
+and the tree); the id only becomes hand-authored when edited directly,
+and the id input sanitizes as typed so an invalid id can never persist.
+The class inspector carries a lifecycle panel — states (value, initial,
+terminal), transitions with intents — that edits the SAME ctsState nodes
+and state-to-state wires the canvas renders (`classLifecycleOf` derives
+it; the panel is a view over one data model, not a second editor).
+Class card labels derive from the authored name. Field mutability is
+authored on the descriptor (Writable / Constructible toggles in the
+shared descriptor editor): writable governs mutate leaf sockets and
+update paths, constructible governs construct sockets and creation
+forms. Per-producer field visibility (read / write / private lists) is
+authored on the producer output panel and compiles into the field policy.
 
 **Live evaluation** (`useProcessDesignerLiveGraph` over
 `interpretDeclarationEdges` in `@cutkit/processes`): the designer behaves
