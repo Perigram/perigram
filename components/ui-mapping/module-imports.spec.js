@@ -45,4 +45,21 @@ describe('ui-mapping component module imports', () => {
       expect(missing, `${file} references unimported components`).toEqual([]);
     }
   });
+
+  it('renders every imported primevue component', () => {
+    // The inverse defect: Toast/ConfirmDialog were imported but never
+    // placed in the tree, so toasts and confirmations fired into nothing.
+    // A default import from a primevue component module must appear as a
+    // template tag in the same SFC.
+    for (const file of readdirSync(dir).filter(file => file.endsWith('.vue'))) {
+      const source = readFileSync(join(dir, file), 'utf8');
+      const template = source.slice(0, source.indexOf('<script'));
+      const componentImports = [...source.matchAll(/import ([A-Z][A-Za-z0-9]*) from 'primevue\/([a-z]+)';/g)]
+        .filter(match => !['config', 'useconfirm', 'usetoast', 'api'].includes(match[2]));
+      const unused = componentImports
+        .map(match => match[1])
+        .filter(name => !new RegExp(`<${name}\\b`).test(template));
+      expect(unused, `${file} imports unused primevue components`).toEqual([]);
+    }
+  });
 });

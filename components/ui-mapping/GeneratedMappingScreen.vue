@@ -87,6 +87,11 @@
         <Button :label="$t('uiMapping.dialogSubmit')" :loading="submitting" @click="submitDialog" />
       </template>
     </Dialog>
+    <!-- The screen hosts its own feedback surfaces: without these elements
+         in the tree, useToast and the uiMappingConfirm confirmation group
+         fire into nothing. -->
+    <Toast />
+    <ConfirmDialog group="uiMappingConfirm" />
   </div>
 </template>
 
