@@ -69,7 +69,9 @@ module layout and how the code maps to the spec's build-order tiers.
   domain projection synthesizes through: block-slot conventions,
   descriptor typing, nested-path grouping.
 - `compat/process-checks.js` — declaration checks against a registry view,
-  run before the process compiler's graph validation.
+  run before the process compiler's graph validation. It reads semantic
+  records only; the presentation `graph` subtree (canvas node/edge types,
+  positions) is skipped so card kinds are never misread as type references.
 - `compat/domain-projection.js` — the single CTS → compiler-domain
   translator. See SPEC §15/§19 for what it owns per key.
 - `compat/graph-protocol.js` — the v5 graph protocol (SPEC §20):
