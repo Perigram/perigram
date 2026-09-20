@@ -119,6 +119,26 @@ the generated action surface; the sheet-design editor receives the caller's
 resolved write grant through its props adapter and degrades to view-only
 without it.
 
+### File payload previews
+
+`resolveFilePreview` (in `file-surfaces.js`) is the pure decision helper:
+given a file instance's wire `attachments.primary` and its served type
+record, it returns the preview mode from the type's compiled render policy
+(`render.preview`, derived from payload traits) plus the payload download
+URL (instance payload blobs live in the `files` GridFS bucket). Modes that
+the shared viewer modules render (`dxf`, `svg`, `sketch`, `image`, `pdf`,
+`docx`, `table`, `workbook`, `text`) are delegated to `ArtifactViewer`
+through its explicit-source override; `attachment`/`download`/unknown modes
+degrade to a download action instead of an empty preview pane.
+`GeneratedFilePreview.vue` mounts that contract inside
+`GeneratedEntityDetailBody`'s non-overload branch, so every file-typed
+instance opened through generated screens and project panes shows its
+payload preview without a hand-written surface. The type records come from
+`useFileTypeView()` ([composables/README.md](../../composables/README.md)),
+the organization-scoped cached read of the served type view. Editor
+overloads keep owning their surfaces — the preview panel renders only when
+no editor overload is present.
+
 ## Home Workspace
 
 `GeneratedHomeWorkspace.vue` renders the generated `home` template as a

@@ -275,6 +275,17 @@ const { ancestors, descendants, fetch } = useTraceability(entity);
 
 Used by `<TraceChain>` component.
 
+## useFileTypeView
+
+Organization-scoped cached read of the served CTS type view
+(`GET /api/admin/cts/types`). One in-flight fetch per organization is
+shared by every consumer; components resolve type records by id through
+`typeById(typeId)`. File surfaces use it to derive editor bindings and
+payload preview policy from declarations instead of hardcoded entity
+tables (see
+[components/generated/README.md](../components/generated/README.md)).
+The cache never serves another organization's view after an org switch.
+
 ---
 
 ## State Management (Pinia) — stores/

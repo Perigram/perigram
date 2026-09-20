@@ -28,9 +28,12 @@ hand-written services.
   reference is validated against the type's declared payload traits at
   construct (fileId required; `mime` must be in the declared list;
   `size` within `maxSize` when both are known) and stored as the §3
-  payload slot. `toDto` projects the slot back onto the wire
-  `attachments.primary` block. Payload, tenancy, and provenance are
-  immutable after construct: `processUpdate` ignores their wire keys.
+  payload slot. Payload blobs live in the `files` GridFS bucket — the
+  §3 Blob home; upload callers pass `bucket=files` and the wire payload
+  reference carries no bucket by design. `toDto` projects the slot back
+  onto the wire `attachments.primary` block. Payload, tenancy, and
+  provenance are immutable after construct: `processUpdate` ignores
+  their wire keys.
 - Provenance (SPEC §3/§8): create accepts `provenance` shaped
   `{ op, sources: [{ type, id }], effective }` and stores it verbatim as
   the causal record. The process effect boundary stamps it for every

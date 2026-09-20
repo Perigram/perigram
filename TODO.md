@@ -2,7 +2,49 @@
 
 ## Integrations
 
-- [ ] **CTS file editors and preview contracts served with the type view.**
+- [ ] **File payload previews in generated surfaces + sketch file type.**
+  Second slice of the entity-category cut (SPEC §21): files used in
+  process definitions get previews in the app, driven by declared payload
+  traits.
+  - Declared preview policy (render/payload traits, already compiled into
+    the served type view) resolves the viewer mode for a file instance's
+    payload; a generated detail preview panel renders it through the
+    shared viewer modules (`ArtifactViewer` branches: dxf/svg/sketch/image/
+    pdf/docx/table/workbook/text), falling back to a payload download for
+    non-renderable modes.
+  - Instance payload blobs use the `files` GridFS bucket (the §3 Blob
+    home); the download URL builder lives beside the file-surface
+    registry.
+  - The `sketch` file type joins the tech-drawing pack (JSON scene
+    payload, `sketch` preview mode — the draw-over-images scene renders
+    through `DrawingCanvas`). Its editor binding is deliberately deferred:
+    instance payloads are immutable after construct, so an editing sketch
+    surface needs payload revisioning first.
+  - Blocked/deferred (tracked here): sketch editor binding for CTS
+    instances; preview for `facade-design` GLB payloads (needs a model3d
+    viewer module); deleting the `artifact`/`facade_pattern` legacy
+    overloads once those types are declared.
+  ### Agent Notes — 2026-09-20
+  Implemented in `agent/cts-file-previews-20260920`. `resolveFilePreview`
+  in `components/generated/file-surfaces.js` is the pure decision helper
+  (mode from the served type record's compiled `render.preview`, payload
+  URL against the `files` GridFS bucket); `ArtifactViewer` gained an
+  explicit `source` override so its viewer branches render CTS file
+  payloads without artifact DTOs (artifact-entity path unchanged).
+  `GeneratedFilePreview.vue` mounts the contract in
+  `GeneratedEntityDetailBody`'s non-overload branch — non-renderable modes
+  degrade to a download action, payload-less types render nothing.
+  `useFileTypeView` caches the served org type view (one in-flight fetch
+  per organization). The `sketch` file type joined the tech-drawing pack
+  with preview mode `sketch`; its editor binding is deferred on payload
+  immutability (risky assumption stated before implementation — the
+  artifact-bound `SketchEditor` keeps serving SKETCH artifacts).
+  Validation: file-surfaces + tech-drawing specs, cts-types/overloads
+  specs, design-system (audit row regenerated via
+  `scripts/ui-visual-inventory.js`), localization, SSR smoke, arch guard,
+  docs guard, framework:validate — all pass. Status: WAITING.
+
+- [x] **CTS file editors and preview contracts served with the type view.**
   First slice of the entity-category cut (SPEC §21): editors and previews
   bind to CTS file types, not entity types.
   - Pack editor bindings (`packages/domain-cnc/src/pack.js` `cncEditors`) are

@@ -19,6 +19,16 @@ and carries no service bindings.
   `parameterSchema`, `defaultExport`, `i18n`, `source` — and the
   declared relation `defaultPen: one pen-template` (`onRemove:
   restrict`), the R2-legal home of the legacy `defaultPenId`.
+- `sketch` (file class): freehand annotation scenes — the draw-over-image
+  document (`{ version, background: { fileId, url } | null, strokes: [...] }`,
+  the scene contract owned by `utils/sketch.js`). Payload is the JSON
+  scene (`application/json`, 25 MB limit) with preview mode `sketch`, so
+  instances render through `DrawingCanvas` in generated detail previews
+  (see [components/generated/README.md](../../components/generated/README.md)).
+  The type declares no editor binding yet: instance payloads are
+  immutable after construct, so an editing sketch surface needs payload
+  revisioning first (tracked in `TODO.md`). The legacy artifact-bound
+  `SketchEditor` continues to serve `SKETCH`-kind artifacts unchanged.
 
 ## Management surfaces
 
