@@ -66,7 +66,11 @@ concerns:
 
 - `GeneratedMappingScreen.vue` — engine: composes and renders a compiled
   screen; owns the generated create dialog, ConfirmDialog for destructive
-  actions, and Toast feedback on runs.
+  actions, and Toast feedback on runs. The screen hosts its own
+  `<Toast />` and `<ConfirmDialog group="uiMappingConfirm" />` elements —
+  without them in the tree the toast/confirm services fire into nothing
+  (the module-imports spec also fails on imported-but-unrendered
+  components).
 - `RegionBlock.vue` — one composed region with data-driven layout: the list
   layout comes from `resolveListLayout` (`table` | `tree-table` |
   `card-grid` | `timeline`, matched by class, hierarchy, or type override).
@@ -171,7 +175,13 @@ concerns:
   OrderList) is imported explicitly — the module-imports spec fails on
   any capitalized template tag without a matching import, because
   unresolved components render as empty nodes outside the Nuxt
-  auto-import runtime.
+  auto-import runtime. Data-visualization color travels with the data,
+  decided by the medium: meter bars are DOM spans, so segments cycle the
+  PrimeVue palette CSS vars (theme reactive); chart bars paint on a
+  canvas where CSS variables cannot resolve, so datasets take concrete
+  colors from the canonical design-token palette source
+  (`designTokens.palette.primary` — chart.js v4 has no default palette;
+  unclored datasets draw near-invisible bars).
 - Editors: `QuantityInput` (InputGroup + unit addon), `EnumSelect`
   (filtered, via the shared Select wrapper), `InstancePicker` — AutoComplete
   with typeahead over the instance pool, or TreeSelect when the accepted
