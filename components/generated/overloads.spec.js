@@ -8,6 +8,7 @@ vi.mock('~/components/generated/GeneratedCassetteDesignerAction.vue', () => ({ d
 vi.mock('~/components/generated/GeneratedFacadeDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedFacadeDesignerWorkspacePage' } }));
 vi.mock('~/components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedFacadePatternDesignerWorkspacePage' } }));
 vi.mock('~/components/artifacts/SketchEditor.vue', () => ({ default: { name: 'SketchEditor' } }));
+vi.mock('~/components/artifacts/ArtifactTextEditor.vue', () => ({ default: { name: 'ArtifactTextEditor' } }));
 vi.mock('~/components/entities/Artifact/ArtifactDetail.vue', () => ({ default: { name: 'ArtifactDetail' } }));
 
 import {
@@ -57,6 +58,8 @@ describe('generated overload registry', () => {
     expect(resolveGeneratedEntityDetailOverload('queue')).toBeNull();
     expect(resolveGeneratedEntityDetailOverload('sheet-design')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('sketch')?.component).toBeTruthy();
+    expect(resolveGeneratedEntityDetailOverload('text-document')?.component).toBeTruthy();
+    expect(resolveGeneratedEntityDetailOverload('csv-table')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('project')).toBeNull();
   });
 

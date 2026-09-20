@@ -21,16 +21,23 @@ import DataTable from 'primevue/datatable';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 
-const props = defineProps({ artifact: { type: Object, required: true } });
+// Persistence contract, host-supplied: `title`, `loadText()` returning
+// the raw text, `saveText(text, filename)`. `format` selects the csv
+// table surface vs plain text. One editor serves artifact-backed and
+// instance-backed hosts.
+const props = defineProps({
+  persistence: { type: Object, required: true },
+  format: { type: String, default: 'text' }
+});
 const emit = defineEmits(['saved']);
 const content = ref('');
 const columns = ref([]);
 const rows = ref([]);
 const saving = ref(false);
-const isCsv = computed(() => props.artifact.data?.type?.includes('CSV'));
+const isCsv = computed(() => props.format === 'csv');
 
 onMounted(async () => {
-  content.value = await (await fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}`)).text();
+  content.value = await props.persistence.loadText();
   if (!isCsv.value) return;
   const sheet = XLSX.read(content.value, { type: 'string' }).Sheets.Sheet1;
   const values = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
@@ -41,14 +48,11 @@ onMounted(async () => {
 async function save() {
   saving.value = true;
   try {
-    const mimeType = props.artifact.attachments?.primary?.metadata?.mimeType || 'text/plain';
-    const extension = props.artifact.data?.type?.includes('CSV') ? '.csv' : '.txt';
-    const form = new FormData();
+    const extension = isCsv.value ? '.csv' : '.txt';
     const nextContent = isCsv.value
       ? XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(rows.value, { header: columns.value }))
       : content.value;
-    form.append('file', new File([nextContent], `${props.artifact.identity?.name || 'artifact'}${extension}`, { type: mimeType }));
-    emit('saved', await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}/file`, { method: 'PUT', body: form }));
+    emit('saved', await props.persistence.saveText(nextContent, `${props.persistence.title || 'document'}${extension}`));
   } finally { saving.value = false; }
 }
 </script>

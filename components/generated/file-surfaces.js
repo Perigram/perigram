@@ -4,8 +4,10 @@ import GeneratedFacadeDesignerWorkspacePage from '~/components/generated/Generat
 import GeneratedFacadePatternDesignerWorkspacePage from '~/components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import SketchEditor from '~/components/artifacts/SketchEditor.vue';
+import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
 import { cncEditors } from '@cutkit/domain-cnc';
 import { techDrawingEditors } from '~/packages/tech-drawing/src/index.js';
+import { documentsEditors } from '~/packages/documents/src/index.js';
 
 /**
  * File surfaces: the single app-side home of the CTS file-type editor
@@ -62,39 +64,87 @@ export const fileSurfaceRegistry = {
     detail: {
       component: SketchEditor,
       ownsActionSurface: true,
-      props: ({ entity }) => ({ persistence: sketchInstancePersistence(entity) })
+      props: ({ entity, typeId }) => ({ persistence: sketchInstancePersistence(entity, typeId) })
+    },
+    forcesIdentity: true
+  },
+  'text-editor': {
+    detail: {
+      component: ArtifactTextEditor,
+      ownsActionSurface: true,
+      props: ({ entity, typeId }) => ({
+        persistence: textInstancePersistence(entity, typeId, 'text'),
+        format: 'text'
+      })
+    },
+    forcesIdentity: true
+  },
+  'csv-editor': {
+    detail: {
+      component: ArtifactTextEditor,
+      ownsActionSurface: true,
+      props: ({ entity, typeId }) => ({
+        persistence: textInstancePersistence(entity, typeId, 'csv'),
+        format: 'csv'
+      })
     },
     forcesIdentity: true
   }
 };
 
 /**
- * Instance-backed persistence contract for the sketch editor: scenes load
- * from the payload download URL and save through the revisioned instance
- * payload transport. Sketch-scoped by nature — the surface exists only
- * for the `sketch` file type.
+ * Generic instance-backed persistence: loads text from the payload
+ * download URL, saves through the revisioned instance payload transport
+ * (which records an immutable content revision per save). Editors'
+ * surface adapters project this onto their own contract shapes.
  */
-export function sketchInstancePersistence(entity = {}) {
+export function instancePayloadPersistence(entity = {}, typeId = '', mimeType = 'application/octet-stream') {
   const payloadUrl = instancePayloadFileUrl(entity.attachments?.primary);
+  const instanceId = String(entity._id || '');
   return {
     title: entity.identity?.name || '',
-    loadScene: async () => {
+    load: async () => {
       if (!payloadUrl) return '';
       const response = await fetch(payloadUrl);
       if (!response.ok) return '';
       return await response.text();
     },
-    saveScene: async (sceneText, filename) => {
+    save: async (text, filename) => {
       const form = new FormData();
-      form.append('file', new File([sceneText], filename, { type: 'application/json' }));
-      return await $fetch(`/api/instances/sketch/${encodeURIComponent(String(entity._id))}/payload`, { method: 'PUT', body: form });
+      form.append('file', new File([text], filename, { type: mimeType }));
+      return await $fetch(`/api/instances/${encodeURIComponent(typeId)}/${encodeURIComponent(instanceId)}/payload`, { method: 'PUT', body: form });
     }
+  };
+}
+
+/**
+ * Sketch-scoped projection of the instance persistence: the scene
+ * contract (`loadScene`/`saveScene`; origin stays artifact-path-only).
+ */
+export function sketchInstancePersistence(entity = {}, typeId = 'sketch') {
+  const base = instancePayloadPersistence(entity, typeId, 'application/json');
+  return {
+    title: base.title,
+    loadScene: base.load,
+    saveScene: (sceneText, filename) => base.save(sceneText, filename)
+  };
+}
+
+/**
+ * Text/csv-scoped projection of the instance persistence.
+ */
+export function textInstancePersistence(entity = {}, typeId = '', format = 'text') {
+  const base = instancePayloadPersistence(entity, typeId, format === 'csv' ? 'text/csv' : 'text/plain');
+  return {
+    title: base.title,
+    loadText: base.load,
+    saveText: base.save
   };
 }
 
 // The mounted packs' editor bindings in composition order — the same
 // records the cts-types feature serves with the organization type view.
-export const packEditorBindings = [...techDrawingEditors, ...cncEditors];
+export const packEditorBindings = [...documentsEditors, ...techDrawingEditors, ...cncEditors];
 
 /**
  * Resolve one file type's surface record from editor bindings. Returns
@@ -130,7 +180,7 @@ export function fileDetailOverloads(editors = packEditorBindings) {
             entityType: editor.type,
             component: surface.detail.component,
             ownsActionSurface: Boolean(surface.detail.ownsActionSurface),
-            props: surface.detail.props
+            props: context => surface.detail.props({ ...context, typeId: editor.type })
           }
         : null;
     })

@@ -12,7 +12,7 @@
         <Select v-if="revisions.length" v-model="selectedRevisionId" :options="revisionOptions" option-label="label" option-value="value" size="small" class="min-w-48" />
       </div>
       <template v-if="canEdit && layoutDraft && editor.mode === 'layout'"><ArtifactLayoutEditor v-model="layoutDraft" /></template>
-      <ArtifactTextEditor v-else-if="canEdit && ['text', 'csv'].includes(editor.mode)" :artifact="artifact" @saved="$emit('saved', $event)" />
+      <ArtifactTextEditor v-else-if="canEdit && ['text', 'csv'].includes(editor.mode)" :persistence="textPersistence" :format="editor.mode" @saved="$emit('saved', $event)" />
       <SketchEditor v-else-if="canEdit && editor.mode === 'sketch'" :persistence="sketchPersistence" @saved="$emit('saved', $event)" />
       <ArtifactViewer v-else :artifact="artifact" :revision="revision" />
     </div>
@@ -60,6 +60,19 @@ const sketchPersistence = computed(() => ({
     return savedArtifact;
   },
   origin: { value: props.artifact.data?.metadata?.origin || null }
+}));
+// Artifact-backed persistence for the shared text/csv editor: bytes
+// through the artifact file-revision transport, mime preserved.
+const textPersistence = computed(() => ({
+  title: props.artifact.identity?.name || '',
+  loadText: () => fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}`).then(response => response.text()),
+  saveText: async (text, filename) => {
+    const mimeType = props.artifact.attachments?.primary?.metadata?.mimeType
+      || (editor.value.mode === 'csv' ? 'text/csv' : 'text/plain');
+    const form = new FormData();
+    form.append('file', new File([text], filename, { type: mimeType }));
+    return await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}/file`, { method: 'PUT', body: form });
+  }
 }));
 const editing = computed(() => resolveArtifactEditingContract({ artifact: props.artifact, canEdit: canEdit.value }));
 const creation = computed(() => editing.value.creation);

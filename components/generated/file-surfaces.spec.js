@@ -6,6 +6,7 @@ vi.mock('~/components/generated/GeneratedFacadeDesignerWorkspacePage.vue', () =>
 vi.mock('~/components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedFacadePatternDesignerWorkspacePage' } }));
 vi.mock('~/components/SheetDesignEditor.vue', () => ({ default: { name: 'SheetDesignEditor' } }));
 vi.mock('~/components/artifacts/SketchEditor.vue', () => ({ default: { name: 'SketchEditor' } }));
+vi.mock('~/components/artifacts/ArtifactTextEditor.vue', () => ({ default: { name: 'ArtifactTextEditor' } }));
 
 import {
   fileDetailOverloads,
@@ -16,7 +17,8 @@ import {
   packEditorBindings,
   resolveFilePreview,
   resolveFileSurface,
-  sketchInstancePersistence
+  sketchInstancePersistence,
+  textInstancePersistence
 } from './file-surfaces.js';
 
 describe('file surface registry', () => {
@@ -59,21 +61,32 @@ describe('file surface registry', () => {
     expect(actions.get('facade-design')).toMatchObject({ component: null, forceIdentity: false });
     expect(actions.get('facade-pattern')).toMatchObject({ component: null, forceIdentity: false });
     expect(actions.get('sketch')).toMatchObject({ component: null, forceIdentity: true });
+    expect(actions.get('text-document')).toMatchObject({ component: null, forceIdentity: true });
+    expect(actions.get('csv-table')).toMatchObject({ component: null, forceIdentity: true });
   });
 
   it('derives detail and workspace page rows only for surfaces with presentations', () => {
     const detailTypes = fileDetailOverloads().map(overload => overload.entityType).sort();
-    expect(detailTypes).toEqual(['cassette', 'facade-design', 'facade-pattern', 'sheet-design', 'sketch']);
+    expect(detailTypes).toEqual(['cassette', 'csv-table', 'facade-design', 'facade-pattern', 'sheet-design', 'sketch', 'text-document']);
     const pageIds = fileWorkspacePages().map(page => page.id);
     expect(pageIds).toEqual(['cassette-designer']);
     expect(fileWorkspacePages()[0].entityType).toBe('cassette');
+  });
+
+  it('passes the derived type id into detail props adapters', () => {
+    const row = fileDetailOverloads().find(overload => overload.entityType === 'text-document');
+    const props = row.props({ entity: { _id: 't-1' } });
+    expect(props.format).toBe('text');
+    expect(props.persistence.title).toBe('');
+    expect(props.persistence.loadText).toBeInstanceOf(Function);
+    expect(props.persistence.saveText).toBeInstanceOf(Function);
   });
 
   it('binds the sketch editor with an instance-backed persistence contract', () => {
     const surface = resolveFileSurface(packEditorBindings, 'sketch');
     expect(surface.detail.ownsActionSurface).toBe(true);
     expect(surface.forcesIdentity).toBe(true);
-    const { persistence } = surface.detail.props({ entity: { _id: 's-1', identity: { name: 'Marks' }, attachments: { primary: { fileId: 'f-9' } } } });
+    const { persistence } = surface.detail.props({ entity: { _id: 's-1', identity: { name: 'Marks' }, attachments: { primary: { fileId: 'f-9' } } }, typeId: 'sketch' });
     expect(persistence.title).toBe('Marks');
     expect(persistence.origin).toBeUndefined();
     expect(persistence.loadScene).toBeInstanceOf(Function);
@@ -81,9 +94,19 @@ describe('file surface registry', () => {
   });
 
   it('builds the sketch persistence save against the instance payload route', async () => {
-    const persistence = sketchInstancePersistence({ _id: 's-1', identity: { name: 'Marks' } });
+    const persistence = sketchInstancePersistence({ _id: 's-1', identity: { name: 'Marks' } }, 'sketch');
     expect(persistence.title).toBe('Marks');
     await expect(persistence.loadScene()).resolves.toBe('');
+  });
+
+  it('projects the generic instance persistence for text and csv formats', async () => {
+    const text = textInstancePersistence({ _id: 't-1' }, 'text-document', 'text');
+    expect(text.title).toBe('');
+    await expect(text.loadText()).resolves.toBe('');
+    expect(text.saveText).toBeInstanceOf(Function);
+
+    const csv = textInstancePersistence({ _id: 'c-1' }, 'csv-table', 'csv');
+    expect(csv.saveText).toBeInstanceOf(Function);
   });
 
   it('accepts served editor records in place of the pack import', () => {
@@ -98,7 +121,7 @@ describe('file surface registry', () => {
     expect(resolveFileSurface(packEditorBindings, 'queue')).toBeNull();
     expect(resolveFileSurface([{ type: 'x', surface: 'no-such-surface', modes: ['edit'] }], 'x')).toBeNull();
     expect(resolveFileSurface(packEditorBindings, '')).toBeNull();
-    expect(Object.keys(fileSurfaceRegistry)).toEqual(expect.arrayContaining(['cassette-designer', 'sheet-design-editor', 'facade-designer', 'facade-pattern-designer', 'sketch-editor']));
+    expect(Object.keys(fileSurfaceRegistry)).toEqual(expect.arrayContaining(['cassette-designer', 'sheet-design-editor', 'facade-designer', 'facade-pattern-designer', 'sketch-editor', 'text-editor', 'csv-editor']));
   });
 
   it('builds payload download URLs against the files bucket', () => {
