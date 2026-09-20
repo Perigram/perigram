@@ -218,6 +218,7 @@ import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/ge
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { resolveGeneratedWorkspacePage, generatedWorkspacePages } from '~/components/generated/workspace-pages.js';
 import { generatedDetailScreenForEntityType } from '~/components/generated/detail-screen-actions.js';
+import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useSupportChatStore } from '~/stores/supportChat';
@@ -747,6 +748,19 @@ function entityNode(item) {
 function selectNode(node) {
   const item = node.data?.item;
   if (!item) return;
+  // Sidebar rows are contract-generated destinations: the compiled detail
+  // screen for the row's type is the canonical instance surface, so the
+  // click routes there. With no paired detail screen the row keeps its
+  // workspace-pane behavior (selected in the open pane, dead when none).
+  const route = detailRouteForEntity({
+    entity: item.entity,
+    entityType: item.type,
+    manifest: authStore.screenManifest
+  });
+  if (route) {
+    navigateTo(route);
+    return;
+  }
   selectByKey(item.key);
 }
 
