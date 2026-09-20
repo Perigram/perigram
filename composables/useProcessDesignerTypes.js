@@ -1,6 +1,7 @@
 import { reactive, ref } from 'vue';
 import { compileTreeDeclarations, createProcessDesignerContract, typeCatalogPaletteGroups } from '~/packages/processes/src/index.js';
 import { createTypeRegistry, projectDomainFromView, renderPolicyFor, frameworkTypes } from '~/packages/cts/src/index.js';
+import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 
 // The CTS declaration layer's lifecycle: the organization's type registry
 // view (system pack extracted from the domain content plus authored org
@@ -130,9 +131,10 @@ export function useProcessDesignerTypes({
   function ctsRegistry() {
     if (ctsRegistryCache) return ctsRegistryCache;
     const registry = createTypeRegistry({ id: 'designer-cts' });
-    // System types: framework party declarations plus mounted pack types
-    // (SPEC §21). No converted legacy entity tables.
-    for (const declaration of [...frameworkTypes, ...packContent.types]) {
+    // System types: the same composed view the server registry compiles
+    // (framework + mounted packs in dependency order) — the designer tree
+    // shows every pack type, not only the editors' trio.
+    for (const declaration of [...frameworkTypes, ...composeSystemDeclarations()]) {
       registry.defineType(declaration);
     }
     for (const declaration of ctsOrgTypes.value) {
