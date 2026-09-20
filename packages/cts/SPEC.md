@@ -654,7 +654,10 @@ Effect nodes take the species names of §8 (the canonical table is
   `prepareAuthoredDefinition` (`@cutkit/processes`) — the single seam every
   validate/compile/activate path flows through; no consumer outside that
   package resolves or lowers the vocabulary. The lowered form is internal:
-  never authored, never persisted.
+  never authored, never persisted. Persisted construction modes the type
+  no longer declares re-bind silently to the type's current default mode
+  (contract migration, the `slotOrDefault` pattern) — a create node on a
+  derived type keeps failing validation; the author re-authors it.
 - `migrateV4Definition(definition)` is the one-way persisted rewrite
   (same pattern as the process package's v4 identity migration). It runs at
   the server boundary on load, so stored graphs become v5 within one deploy;

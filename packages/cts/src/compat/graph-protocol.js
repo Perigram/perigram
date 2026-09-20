@@ -450,6 +450,18 @@ function resolveNode(node, domain, entityTypeFor, diagnostics, at) {
   if (resolved.construction?.mode === undefined && node.via) {
     resolved.construction = { ...(resolved.construction || {}), mode: node.via };
   }
+  // Contract migration (SPEC §20): persisted construction modes the type
+  // no longer declares re-bind silently to the type's current default —
+  // e.g. genericCreate on a payload type whose protocols now own
+  // construction (cassette/sketch create through their editors). Derived
+  // types have no contract, so their create nodes keep failing
+  // validation with the clear authoring message.
+  if (resolved.construction?.mode) {
+    const contract = domain.construction?.[resolved.entityType] || null;
+    if (contract?.modes?.length && contract.defaultMode && !contract.modes.includes(resolved.construction.mode)) {
+      resolved.construction = { ...resolved.construction, mode: contract.defaultMode };
+    }
+  }
   return resolved;
 }
 
