@@ -282,7 +282,11 @@ instead of collapsing onto an arbitrary feature sibling; feature-only
 grants keep legacy feature resolution. Each inferred
 role/entity list screen also gets a paired `entityDetail` screen with the same
 required access and action set, so generated collection names can open an
-entity page through `screen.scope.entityId`. Grant-only inferred screens are
+entity page through `screen.scope.entityId`. Inferred list screens carry their own list region so class-level actions
+(the create button) render through the same region mechanism authored
+screens use, and both inferred surfaces are labeled by the entity's
+authored render label — role names and raw type ids never reach screen
+titles. Grant-only inferred screens are
 still valid destinations, and inferred `auto_*` list surfaces also seed the
 synthesized process `home` screen so the active process opens on a stable home
 surface instead of jumping directly into the first inferred entity list.
