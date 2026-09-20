@@ -119,7 +119,11 @@ function randomValue(rnd, descriptor, refTargets) {
       return `2026-${month}-${day}T${String(rnd.rand(0, 23)).padStart(2, '0')}:00:00.000Z`;
     }
     case 'quantity':
-      return { value: rnd.rand(0, 4000) + rnd.rand(0, 99) / 100, unit: descriptor.unit };
+      // Percent quantities roll within their scale so meters and knobs
+      // show meaningful distributions instead of clamped saturation.
+      return descriptor.unit === 'percent'
+        ? { value: rnd.rand(0, 99) + rnd.rand(0, 99) / 100, unit: descriptor.unit }
+        : { value: rnd.rand(0, 4000) + rnd.rand(0, 99) / 100, unit: descriptor.unit };
     case 'enum':
       return rnd.pick(descriptor.values);
     case 'ref': {

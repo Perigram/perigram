@@ -338,7 +338,9 @@ describe('Design system manifest', () => {
         body: { background: 'transparent' },
         row: { background: 'transparent' },
         footer: { background: 'transparent', borderColor: 'transparent' },
-        footerCell: { background: 'transparent', borderColor: 'transparent' }
+        footerCell: { background: 'transparent', borderColor: 'transparent' },
+        paginatorTop: { borderColor: 'transparent', borderWidth: '0 0 0 0' },
+        paginatorBottom: { borderColor: 'transparent', borderWidth: '0 0 0 0' }
       },
       treetable: {
         root: { background: 'transparent' },
@@ -354,13 +356,17 @@ describe('Design system manifest', () => {
         body: { background: 'transparent' },
         row: { background: 'transparent' },
         footer: { background: 'transparent', borderColor: 'transparent' },
-        footerCell: { background: 'transparent', borderColor: 'transparent' }
+        footerCell: { background: 'transparent', borderColor: 'transparent' },
+        paginatorTop: { borderColor: 'transparent', borderWidth: '0 0 0 0' },
+        paginatorBottom: { borderColor: 'transparent', borderWidth: '0 0 0 0' }
       },
       dataview: {
         root: { background: 'transparent' },
         header: { background: 'transparent', borderColor: 'transparent', borderWidth: '0 0 0 0', padding: '0 0 0.75rem 0' },
         content: { background: 'transparent' },
-        footer: { background: 'transparent' }
+        footer: { background: 'transparent' },
+        paginatorTop: { borderColor: 'transparent', borderWidth: '0 0 0 0' },
+        paginatorBottom: { borderColor: 'transparent', borderWidth: '0 0 0 0' }
       },
       paginator: { root: { background: 'transparent' } },
       tabs: { tablist: { background: 'transparent' }, tabpanel: { background: 'transparent' } },
