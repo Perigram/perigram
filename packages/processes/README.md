@@ -274,7 +274,12 @@ When an assignment contains multiple role ids, generated and authored screens
 from every selected role are merged into that user's screen manifest. Explicit
 screen records that name several roles still compile to one shared screen key;
 compiler-inferred role/entity screens stay separate per role and entity so a
-multi-role user receives every matching operational screen. Each inferred
+multi-role user receives every matching operational screen. Grants derived
+from actions and producer outputs carry their authored entity type, and
+inference resolves that type directly — types sharing one collection
+(org-authored file-class types, for example) each get their own screen
+instead of collapsing onto an arbitrary feature sibling; feature-only
+grants keep legacy feature resolution. Each inferred
 role/entity list screen also gets a paired `entityDetail` screen with the same
 required access and action set, so generated collection names can open an
 entity page through `screen.scope.entityId`. Grant-only inferred screens are
