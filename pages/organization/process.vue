@@ -186,15 +186,8 @@
                   :diagnostics="classDeclarationDiagnostics"
                   :type-options="declarationTypeOptions"
                   :type-anchor-options="typeAnchorOptions"
-                  :lifecycle="classLifecycle"
                   @sync="syncNodeData"
                   @update-name="value => updateClassName(selectedNode, value)"
-                  @add-state="addClassState"
-                  @update-state="updateClassState"
-                  @remove-state="removeClassState"
-                  @add-transition="addClassTransition"
-                  @update-transition="updateClassTransitionIntent"
-                  @remove-transition="removeClassTransition"
                 />
 
                 <ProcessNodeInspector
@@ -547,7 +540,6 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import PermissionEditor from '~/components/PermissionEditor.vue';
 import { projectUiAction } from '~/packages/processes/src/ui-contract-projection.js';
-import { classLifecycleOf } from '~/packages/processes/src/designer.js';
 import {
   canvasToDefinition,
   compileProcessDefinition,
@@ -1079,75 +1071,6 @@ const classDeclarationDiagnostics = computed(() => {
 });
 const declarationNodeTypes = DECLARATION_NODE_TYPES;
 const selectedDeclarationEdge = computed(() => edges.value.find(edge => edge.id === selectedEdgeId.value && edge.role === 'type') || null);
-
-// Lifecycle of the selected class, derived from the declaration tree. The
-// class inspector's panel edits write the SAME ctsState nodes and
-// state-to-state transition wires the canvas renders — one data model, two
-// views.
-const classLifecycle = computed(() => (
-  selectedNode.value?.type === 'ctsClass'
-    ? classLifecycleOf(nodes.value, edges.value, selectedNode.value.id)
-    : { states: [], transitions: [] }
-));
-function addClassState(value) {
-  const classNode = selectedNode.value;
-  if (!classNode || classNode.type !== 'ctsClass') return;
-  const stateNode = addNode({ type: 'ctsState', preset: {} }, {
-    x: Math.round((classNode.position?.x || 0) + 40),
-    y: Math.round((classNode.position?.y || 0) + 150 + classLifecycle.value.states.length * 24)
-  });
-  const node = nodes.value.find(candidate => candidate.id === stateNode.id);
-  if (!node) return;
-  const trimmed = String(value || '').trim();
-  if (trimmed) node.data.value = trimmed;
-  edges.value.push(decorateEdge({
-    id: `declares:${stateNode.id}-${classNode.id}`,
-    source: stateNode.id,
-    target: classNode.id,
-    sourceHandle: 'output:state',
-    targetHandle: 'input:declare',
-    type: 'default',
-    role: 'type',
-    label: 'state'
-  }));
-  syncNodeData();
-}
-function updateClassState({ nodeId, changes = {} }) {
-  const node = nodes.value.find(candidate => candidate.id === nodeId);
-  if (!node || node.type !== 'ctsState') return;
-  Object.assign(node.data, changes);
-  syncNodeData();
-}
-function removeClassState(nodeId) {
-  edges.value = edges.value.filter(edge => edge.source !== nodeId && edge.target !== nodeId);
-  nodes.value = nodes.value.filter(node => node.id !== nodeId);
-  if (selectedNodeId.value === nodeId) selectedNodeId.value = null;
-  syncNodeData();
-}
-function addClassTransition({ fromNodeId, toNodeId, intent = '' }) {
-  if (!fromNodeId || !toNodeId) return;
-  edges.value.push(decorateEdge({
-    id: `transition:${fromNodeId}-${toNodeId}-${Date.now()}`,
-    source: fromNodeId,
-    target: toNodeId,
-    type: 'default',
-    role: 'type',
-    label: intent || 'transition',
-    data: { intent }
-  }));
-  syncNodeData();
-}
-function updateClassTransitionIntent({ edgeId, intent }) {
-  const edge = edges.value.find(candidate => candidate.id === edgeId);
-  if (!edge) return;
-  edge.data = { ...(edge.data || {}), intent: String(intent || '') };
-  edge.label = String(intent || '') || 'transition';
-  syncNodeData();
-}
-function removeClassTransition(edgeId) {
-  edges.value = edges.value.filter(edge => edge.id !== edgeId);
-  syncNodeData();
-}
 
 const typeAnchorOptions = computed(() => ctsTypeView().map(entry => ({
   label: `${entry.label} · ${entry.class}`,
