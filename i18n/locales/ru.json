@@ -1866,6 +1866,8 @@
     "save": "Готово",
     "discard": "Отменить",
     "scaleLabel": "Отступы",
+    "stateMatrix": "Состояния данных",
+    "openTargetMissing": "У этой записи нет экрана деталей",
     "sortLabel": "Сортировка",
     "sortOrderLabel": "Изменить порядок сортировки",
     "moreActions": "Ещё действия"

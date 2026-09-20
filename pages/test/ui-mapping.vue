@@ -16,6 +16,15 @@
         :severity="source === 'real' ? undefined : 'secondary'"
         @click="toggleSource"
       />
+      <Button
+        :label="$t('uiMapping.stateMatrix')"
+        icon="pi pi-eye"
+        size="small"
+        :severity="stateMatrix ? undefined : 'secondary'"
+        :outlined="!stateMatrix"
+        :aria-label="$t('uiMapping.stateMatrix')"
+        @click="toggleStateMatrix"
+      />
       <span class="text-label">{{ $t('uiMapping.scaleLabel') }}</span>
       <Slider
         :model-value="scale"
@@ -28,7 +37,7 @@
       <span class="text-technical w-10">{{ scale.toFixed(2) }}</span>
     </div>
 
-    <section v-for="screen in screens" :key="screen.screenKey" class="flex flex-col gap-3">
+    <section v-for="screen in screens" :id="`wsection-${screen.screenKey}`" :key="screen.screenKey" class="flex flex-col gap-3 scroll-mt-24">
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-section-heading">{{ screen.label }}</span>
         <Tag :value="screen.template" severity="secondary" />
@@ -38,7 +47,9 @@
         :contract="world.contract"
         :bundle="world.bundle"
         :instances="world.instances"
+        :source-states="sourceStatesFor(screen)"
         :spacing-scale="scale"
+        :on-open="openInstance"
       />
     </section>
 
@@ -47,7 +58,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, nextTick, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/usetoast';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
@@ -62,6 +75,8 @@ definePageMeta({ layout: 'ui-lab-layout' });
 
 const route = useRoute();
 const router = useRouter();
+const toast = useToast();
+const { t } = useI18n();
 const seed = computed(() => {
   const parsed = Number(route.query.seed);
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_RANDOM_SEED;
@@ -78,6 +93,36 @@ const setScale = value => {
   router.push({ query: { ...route.query, scale: String(value) } });
 };
 const screens = computed(() => Object.values(world.value.contract.screens));
+
+// Data-state matrix: applies the world's seeded loading/denied/error
+// source states so every RegionDataState presentation renders beside the
+// naturally-ready screens (empty and missing already ship as screens).
+const stateMatrix = computed(() => route.query.state === 'matrix');
+const sourceStatesFor = screen => (stateMatrix.value
+  ? world.value.sourceStatesMatrix?.[screen.screenKey] || null
+  : null);
+const toggleStateMatrix = () => {
+  const next = stateMatrix.value ? undefined : 'matrix';
+  router.push({ query: { ...route.query, state: next } });
+};
+
+// Instance navigation: the showcase routes identities in-page — the type's
+// detail screen scrolls into view through the ?screen= query, so the
+// onOpen contract (link-button identities) is demonstrable without a
+// router-aware data layer. Types without a detail screen toast instead.
+function openInstance(instance) {
+  const key = `detail_${instance?.type}`;
+  if (!world.value.contract.screens[key]) {
+    toast.add({ severity: 'info', summary: t('uiMapping.openTargetMissing'), life: 2400 });
+    return;
+  }
+  router.push({ query: { ...route.query, screen: key } });
+}
+watch(() => route.query.screen, async key => {
+  if (!key || !import.meta.client) return;
+  await nextTick();
+  document.getElementById(`wsection-${String(key).replace(/[^a-zA-Z0-9_-]/g, '-')}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}, { immediate: true });
 
 const toggleSource = () => {
   router.push({ query: { ...route.query, source: source.value === 'real' ? undefined : 'real' } });

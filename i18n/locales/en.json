@@ -1866,6 +1866,8 @@
     "save": "Done",
     "discard": "Discard",
     "scaleLabel": "Spacing",
+    "stateMatrix": "Data states",
+    "openTargetMissing": "No detail screen for this record",
     "sortLabel": "Sort by",
     "sortOrderLabel": "Toggle sort order",
     "moreActions": "More actions"

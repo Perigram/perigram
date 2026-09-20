@@ -62,6 +62,19 @@
         :bundle="bundle"
         @open="emitOpen"
       />
+      <StatGrid v-else-if="listLayout === 'stats'" :instances="filteredInstances" :type="node.type" :pool="pool" :bundle="bundle" />
+      <div v-else :class="LAYOUT.stackTight">
+        <SurfaceBody
+          v-for="instance in filteredInstances"
+          :key="instance.id"
+          :instance="instance"
+          :type="node.type"
+          variant="row"
+          parent-role="card"
+          :pool="pool"
+          :bundle="bundle"
+        />
+      </div>
     </template>
   </div>
 
