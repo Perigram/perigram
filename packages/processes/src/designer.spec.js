@@ -375,7 +375,8 @@ describe('declaration wire legality', () => {
   it('refuses every other declaration pairing', () => {
     // a declaration node is never a value source
     expect(legality({ sourceType: 'ctsField', targetType: 'processNode', targetRecordKind: 'value.math' })).toBeNull();
-    expect(legality({ sourceType: 'ctsState', targetType: 'processNode', targetRecordKind: 'cts.transition' })).toBeNull();
+    expect(legality({ sourceType: 'ctsState', targetType: 'processNode', targetRecordKind: 'cts.transition' })).toBe('entry');
+    expect(legality({ sourceType: 'ctsState', targetType: 'processNode', targetRecordKind: 'value.math' })).toBeNull();
     // ref fields receive their target types as wired inputs
     expect(legality({ sourceType: 'ctsClass', targetType: 'ctsField' })).toBe('targets');
     expect(legality({ sourceType: 'ctsType', targetType: 'ctsField' })).toBe('targets');
@@ -407,14 +408,16 @@ describe('tree declaration compilation', () => {
   it('compiles wired fields, states, transitions, and children edges', () => {
     const widget = classNode('widget');
     const gadget = classNode('gadget');
+    const construct = { id: 'mk', type: 'processNode', data: { refId: 'mk', entityType: 'widget' } };
     const nodes = [
       widget,
       gadget,
       fieldNode('widget', 'name', { base: 'string' }),
       fieldNode('widget', 'width', { base: 'quantity', unit: 'mm' }),
-      stateNode('widget', 'raw', { initial: true }),
-      stateNode('widget', 'done', { terminal: true }),
-      stateNode('gadget', 'new', { initial: true })
+      stateNode('widget', 'raw'),
+      stateNode('widget', 'done'),
+      stateNode('gadget', 'new'),
+      construct
     ];
     const edges = [
       declares(nodes[2], widget, 'field'),
@@ -422,6 +425,8 @@ describe('tree declaration compilation', () => {
       declares(nodes[4], widget, 'state'),
       declares(nodes[5], widget, 'state'),
       declares(nodes[6], gadget, 'state'),
+      // entry: the state wired into the construct IS the machine entry
+      { id: 'entry1', source: nodes[4].id, target: 'mk', role: 'type', label: 'entry' },
       { id: 't1', source: nodes[4].id, target: nodes[5].id, role: 'type', label: 'transition', data: { intent: 'finish' } },
       { id: 'c1', source: widget.id, target: gadget.id, role: 'type', label: 'children', data: { key: 'parts', onRemove: 'cascade' } }
     ];
@@ -442,14 +447,20 @@ describe('tree declaration compilation', () => {
     const widget = classNode('widget');
     const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'done')];
     const edges = [declares(nodes[1], widget, 'state'), declares(nodes[2], widget, 'state')];
-    const noInitial = compileTreeDeclarations(nodes, edges);
-    expect(noInitial.diagnostics.some(message => message.includes('exactly one initial'))).toBe(true);
-    expect(noInitial.declarations[0].states).toBeUndefined();
+    const noEntry = compileTreeDeclarations(nodes, edges);
+    expect(noEntry.diagnostics.some(message => message.includes('no entry state'))).toBe(true);
+    expect(noEntry.declarations[0].states).toBeUndefined();
 
-    nodes[1].data.initial = true;
-    nodes[2].data.initial = true;
-    const twoInitials = compileTreeDeclarations(nodes, edges);
-    expect(twoInitials.diagnostics.some(message => message.includes('exactly one initial'))).toBe(true);
+    // two constructs wired to different states: the entries disagree
+    const constructA = { id: 'ca', type: 'processNode', data: { refId: 'ca', entityType: 'widget' } };
+    const constructB = { id: 'cb', type: 'processNode', data: { refId: 'cb', entityType: 'widget' } };
+    const disagree = compileTreeDeclarations(
+      [...nodes, constructA, constructB],
+      [...edges,
+        { id: 'e1', source: nodes[1].id, target: 'ca', role: 'type', label: 'entry' },
+        { id: 'e2', source: nodes[2].id, target: 'cb', role: 'type', label: 'entry' }]
+    );
+    expect(disagree.diagnostics.some(message => message.includes('entry states disagree'))).toBe(true);
   });
 
   it('a sole wired state is the initial state — there is no choice to make', () => {

@@ -3177,7 +3177,11 @@
     "transitionTo": "To state",
     "startsAt": "Starts at",
     "endState": "end state",
-    "stateNodeHint": "States are names in the class lifecycle. The entry point is chosen on the class; end states derive from the transitions."
+    "stateNodeHint": "States are names in the class lifecycle. Wire this state into a Create or status node to author the entry or the transition target.",
+    "entryHint": "Wire a state into the Create node to set where instances start; end states follow from the transitions.",
+    "entryState": "entry",
+    "stateSeverity": "Severity",
+    "stateIcon": "Icon"
   },
   "generatedScreen": {
     "home": "Home",

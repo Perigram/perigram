@@ -11,17 +11,20 @@ const classNode = { id: 'cls', type: 'ctsClass', data: { refId: 'cls', typeId: '
 const state = (id, value, extra = {}) => ({ id, type: 'ctsState', data: { refId: id, typeId: null, value, initial: false, terminal: false, ...extra } });
 
 describe('classLifecycleOf', () => {
-  it('collects the states declaring on the class and ignores foreign ones', () => {
-    const nodes = [classNode, state('s1', 'draft', { initial: true }), state('s2', 'done', { terminal: true }), state('s9', 'other')];
+  it('collects states with render overrides; initial comes from the entry wire', () => {
+    const construct = { id: 'mk', type: 'processNode', data: { refId: 'mk' } };
+    const nodes = [classNode, state('s1', 'draft', { severity: 'info' }), state('s2', 'done', { severity: 'success', icon: 'pi pi-check-circle' }), construct];
     const edges = [
       { id: 'd1', source: 's1', target: 'cls', role: 'type', label: 'state' },
-      { id: 'd2', source: 's2', target: 'cls', role: 'type', label: 'state' }
+      { id: 'd2', source: 's2', target: 'cls', role: 'type', label: 'state' },
+      // binds the construct to this class, then wires the entry state
+      { id: 'b1', source: 'cls', target: 'mk', role: 'type', label: 'type' },
+      { id: 'e1', source: 's1', target: 'mk', role: 'type', label: 'entry' }
     ];
     const lifecycle = classLifecycleOf(nodes, edges, 'cls');
     expect(lifecycle.states).toEqual([
-      // no transitions wired: every state is a derived sink
-      { nodeId: 's1', value: 'draft', initial: true, terminal: true },
-      { nodeId: 's2', value: 'done', initial: false, terminal: true }
+      { nodeId: 's1', value: 'draft', severity: 'info', icon: null, initial: true, terminal: true },
+      { nodeId: 's2', value: 'done', severity: 'success', icon: 'pi pi-check-circle', initial: false, terminal: true }
     ]);
     expect(lifecycle.transitions).toEqual([]);
   });
