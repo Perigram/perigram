@@ -4,7 +4,7 @@ import { operationKindOf, describeType, normalizeOperator, typeIdOf, ctsFieldToP
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
 export { operationKindOf };
-import { migrateV4Definition, resolveCtsDefinition, checkCtsGraphBindings, isCtsGraphDefinition } from '../../cts/src/index.js';
+import { migrateV4Definition, resolveCtsDefinition, checkCtsGraphBindings, isCtsGraphDefinition, classMayDeclareChildren } from '../../cts/src/index.js';
 import { processType } from './types.js';
 
 // The single authored-definition seam (SPEC §20): every consumer of an
@@ -195,6 +195,14 @@ export function declarationWireLegality({ sourceType = '', targetType = '', targ
 // canvas arrays — the page supplies nodes/edges, the server re-validates
 // through the real registry. States follow R4: exactly one initial when any
 // state is declared; the compiler never picks a default.
+// Tree diagnostics name the authored class name (the declaration's future
+// render label), falling back to the registry id — raw `t-…` ids never
+// stand alone in a message the designer renders.
+function classLabelOf(classNode = null) {
+  const name = String(classNode?.data?.name || '').trim();
+  return name || String(classNode?.data?.typeId || '').trim();
+}
+
 export function compileTreeDeclarations(nodes = [], edges = []) {
   const nodeById = new Map(nodes.map(node => [node.id, node]));
   const classes = nodes.filter(node => node.type === 'ctsClass' && node.data?.typeId);
@@ -252,7 +260,7 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
           describeType(descriptor);
           map.set(name, { ...descriptor });
         } catch (error) {
-          diagnostics.push(`type ${target.data.typeId}: field ${name}: ${error.message}`);
+          diagnostics.push(`class ${classLabelOf(target)}: field ${name}: ${error.message}`);
         }
       }
       fieldsByType.set(target.data.typeId, map);
@@ -284,6 +292,14 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
       const childTypeId = target.data?.typeId;
       if (!parentTypeId || !childTypeId) {
         diagnostics.push('children wire requires both classes to carry a type id');
+        continue;
+      }
+      // SPEC §5 containment: a file's identity is its content — file
+      // classes never declare lineage children. The wire is a completed
+      // authoring gesture, so it diagnostics loudly instead of failing at
+      // the registry with id-soup.
+      if (!classMayDeclareChildren(source.data?.class)) {
+        diagnostics.push(`class ${classLabelOf(source)} (${source.data.class}): ${source.data.class} classes may not declare lineage children — containment belongs to item, group, or process classes`);
         continue;
       }
       const map = childrenByType.get(parentTypeId) || new Map();
@@ -328,9 +344,9 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
       // disagreeing entries are a named ambiguity — never a default.
       const wiredEntries = (entryStatesByType.get(typeId) || []).filter(value => states.has(value));
       if (wiredEntries.length > 1) {
-        diagnostics.push(`type ${typeId}: entry states disagree — ${wiredEntries.join(', ')}; wire exactly one entry state into the create node`);
+        diagnostics.push(`class ${classLabelOf(classNode)}: entry states disagree — ${wiredEntries.join(', ')}; wire exactly one entry state into the create node`);
       } else if (states.size > 1 && wiredEntries.length === 0) {
-        diagnostics.push(`type ${typeId}: no entry state — wire a state into the create node to set where instances start`);
+        diagnostics.push(`class ${classLabelOf(classNode)}: no entry state — wire a state into the create node to set where instances start`);
       } else {
         declaration.states = {
           main: {
@@ -374,7 +390,7 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
             triggers
           };
         } catch (error) {
-          diagnostics.push(`type ${typeId}: operator ${id || '(unnamed)'}: ${error.message}`);
+          diagnostics.push(`class ${classLabelOf(classNode)}: operator ${id || '(unnamed)'}: ${error.message}`);
         }
       }
     }

@@ -8,7 +8,7 @@ export {
   normalizeRow, rowToSchema, checkFields
 } from './rows.js';
 export {
-  CLASSES, DECLARABLE_CLASSES, checkClassObligations
+  CLASSES, DECLARABLE_CLASSES, checkClassObligations, classMayDeclareChildren
 } from './classes.js';
 export {
   EDGE_KINDS, ON_REMOVE, normalizeEdges, checkLineageAcyclic

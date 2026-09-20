@@ -555,7 +555,7 @@ import {
 } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
 import { cncDomain, cncPackContent } from '@cutkit/domain-cnc';
-import { checkDeclarationsAgainstCts, compileClientBundle, projectDomainFromView, normalizeType } from '~/packages/cts/src/index.js';
+import { checkDeclarationsAgainstCts, classMayDeclareChildren, compileClientBundle, projectDomainFromView, normalizeType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';
 import ClassNode from '~/components/type-designer/TypeNode.vue';
@@ -2213,6 +2213,16 @@ function connectionCompatibility(connection = {}) {
         };
       }
       if (legality === 'children') {
+        // SPEC §5 containment at the gate: file classes never declare
+        // lineage children. The reason names the authored class so the
+        // rejection is traceable on the canvas.
+        if (!classMayDeclareChildren(source.data?.class)) {
+          const className = String(source.data?.name || source.data?.typeId || '').trim() || 'The parent class';
+          return {
+            ok: false,
+            reason: `${className} is a ${source.data.class} class — ${source.data.class} classes may not declare lineage children (containment belongs to item, group, or process classes)`
+          };
+        }
         return source.data?.typeId && target.data?.typeId
           ? { ok: true }
           : { ok: false, reason: 'Both classes need a type id before declaring children' };

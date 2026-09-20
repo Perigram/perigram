@@ -170,7 +170,11 @@ class/type-reference nodes target a ref field's inputs;
 class/reference nodes bind an origin species record's `Type` pin
 (consumers carry none — their entity input is a value socket);
 operator-bound and structure species carry no type to bind;
-class→class wires declare children edges (key + `onRemove`); state→state
+class→class wires declare children edges (key + `onRemove`) — gated by
+`classMayDeclareChildren` (SPEC §5): a wire from a file-class parent is
+rejected at the connect gate and diagnosable in the tree with the class
+NAMED, because file identity is content and never carries containment;
+state→state
 wires are transitions with intents. Their typed port specs
 (`declarationNodePorts`, the single home for every declaration handle —
 including the state node's transition-from input) exist for those wires
@@ -181,7 +185,11 @@ persist as `role: 'type'` edges whose labels (field/state/children and
 transition intents) round-trip through save/reload — declaration matching
 is by node types, the label is semantics-carrying display; `compileTreeDeclarations` compiles exactly those edges into
 registry declarations (invalid descriptors and cross-type transitions are
-named diagnostics). Persistence follows the draft contract: declaration
+named diagnostics). Tree diagnostics and apply failures NAME classes —
+the authored class name first, registry id in parentheses — never a bare
+`t-…` id: `compileTreeDeclarations` prefixes with the class name, and the
+apply path (`useProcessDesignerTypes`) rewrites type ids inside server
+compile messages through the tree-class/org-view label map. Persistence follows the draft contract: declaration
 nodes own `ctsTypes` records in the process definition, so SAVE keeps the
 whole tree exactly as authored (no registry side effects), and APPLY
 compiles the app — declarations land in the registry first, then

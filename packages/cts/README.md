@@ -18,7 +18,10 @@ module layout and how the code maps to the spec's build-order tiers.
 - `rows.js` — closed field rows; compiles to JSON Schema 2020-12 with
   `x-quantity`/`x-ref` custom keywords (the substrate for standard
   validators and designer form generation); total instance walker (R1).
-- `classes.js` — the five class presets and their structural obligations
+- `classes.js` — the five class presets, their structural obligations, and
+  `classMayDeclareChildren` — the SPEC §5 containment predicate authoring
+  surfaces gate on (file/party classes never declare lineage children) so
+  wire legality and type-compile obligations share one home
   (R6; classes constrain declarations, never content), plus
   `DECLARABLE_CLASSES` (party is framework-only — what org authoring and
   every class picker offer).

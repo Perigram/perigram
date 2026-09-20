@@ -42,3 +42,12 @@ export function checkClassObligations(type = {}, context = {}) {
   }
   return errors;
 }
+
+// SPEC §5 containment predicate: a file's identity is its content, so file
+// types never declare lineage children; membership-bearing classes (item,
+// group, process) may. The single seam for authoring-surface legality
+// checks (wire gates, tree diagnostics) so the designer and the
+// type-compile obligations can never disagree.
+export function classMayDeclareChildren(className = '') {
+  return className === 'item' || className === 'group' || className === 'process';
+}
