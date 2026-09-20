@@ -49,18 +49,18 @@ concerns:
   already-loaded instances keep their stale surfaces under one
   indeterminate progress bar instead — no component invents its own
   empty or loading state.
-- `CollectionToolbar.vue` — materializes the composed `listControls`
-  contract above non-table list regions: a search input over the
-  resolved `searchKeys` and one clearable select per enum facet over the
-  values actually present. It appears only past the `SEARCH_AT` budget,
-  its gaps come from the system spacing scale (`spacing.toolbar`) and
-  its control sizes from `editorSize`, and it owns no per-type logic —
-  the region tree carries every decision. RegionBlock stacks it on the
-  system rhythm (`spacing.stackTight`) ahead of the collection surface,
-  so it never sticks to the content below. Search and facet selections
-  are region-owned models RegionBlock applies client-side over the
-  loaded instances. Table-layout regions skip the toolbar: their
-  DataTable filters natively over the same contract.
+- `CollectionToolbar.vue` — the one filtering surface for every list
+  layout: it materializes the composed `listControls` contract above the
+  region (a search input over the resolved `searchKeys` plus one clearable
+  select per enum facet over the values actually present). It appears only
+  past the `SEARCH_AT` budget, its gaps come from the system spacing scale
+  (`spacing.toolbar`) and its control sizes from `editorSize`, and it owns
+  no per-type logic — the region tree carries every decision. RegionBlock
+  stacks it on the system rhythm (`spacing.stackTight`) ahead of every
+  collection surface (table included), so it never sticks to the content
+  below. Search and facet selections are region-owned models RegionBlock
+  applies client-side over the loaded instances; columns keep only their
+  native sorting.
 
 ## Components
 
@@ -91,12 +91,9 @@ concerns:
   identity/status/scalar columns are sortable (quantity values sort by
   their numeric value), the declared `render.sortKey` is the default
   sort, and the paginate/virtualize thresholds are the shared
-  `TABLE_*` budgets from the mapping contract, never literals. The
-  table filters natively in row display over the same contract (enum
-  and boolean selects over present values, numeric input for
-  numbers/quantities, text for the rest, plus a global search over the
-  resolved search keys), so RegionBlock feeds it raw instances and no
-  second toolbar.
+  `TABLE_*` budgets from the mapping contract, never literals. Filtering
+  belongs to the region toolbar above the table, not to a per-column
+  filter row.
 - `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
   the collection plus its lineage descendants nested as expandable rows
   with the same generated columns; row identities are link buttons under
