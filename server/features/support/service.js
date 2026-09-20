@@ -1166,8 +1166,10 @@ function scopedEntityOptionSources(auth = {}) {
  */
 function hasArtifactCreatorAction(auth = {}) {
     return (auth.roleAssignments?.actions || []).some(action => (
-        action?.actionKind === 'createEntity'
-        && [...(action.construction?.inputs || []), ...(action.inputPolicy?.fields || [])]
+        // The manifest speaks the projected UI-contract kinds beside the
+        // legacy exposure fields; both identify creates.
+        ['createEntity', 'createInstance'].includes(action?.actionKind)
+        && [...(action.inputPolicy?.fields || []), ...(action.construction?.inputs || [])]
             .some(field => field?.creator?.entityType && userCreatableAttachmentKinds(field.creator.attachmentKinds))
     ));
 }

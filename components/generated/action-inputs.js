@@ -1,10 +1,12 @@
+import { isCreateAction } from '~/components/generated/action-visibility.js';
+
 export function hasUploadCreator(field = {}) {
   return Boolean(field.creator?.entityType)
     && field.creator.attachmentKinds?.some(item => ['upload', 'capture', 'editor'].includes(item.creation?.mode));
 }
 
 export function artifactCreatorForAction(action = {}) {
-  if (action.actionKind !== 'createEntity' || !action.entityType) return null;
+  if (!isCreateAction(action) || !(action.entityType || action.typeId)) return null;
   const field = [...(action.construction?.inputs || []), ...(action.inputPolicy?.fields || [])]
     .find(input => input.creator?.entityType);
   return hasUploadCreator(field) ? field.creator : null;
@@ -59,7 +61,7 @@ export function initialPromptValue(field = {}) {
 function promptFieldHidden(field = {}, action = {}) {
   const parentType = action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || '';
   const templateEntityType = field.templateEntityType || field.entityType || '';
-  return action.actionKind === 'createEntity'
+  return isCreateAction(action)
     && templateEntityType
     && parentType === templateEntityType
     && field.id === (field.templateFieldId || 'templateId');

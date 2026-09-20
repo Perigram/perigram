@@ -3285,6 +3285,58 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('exposes a root create from the producer output create rights and labels it with the authored entity label', () => {
+    const labeledDomain = {
+      ...domain,
+      entities: domain.entities.map(entity => (
+        entity.type === 'project' ? { ...entity, label: 'Production Order' } : entity
+      ))
+    };
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_maker: { id: 'role_maker' }
+      },
+      producerOutputs: producerOutputRecords([['make_project', 'project', {
+        allowedRoles: { read: ['role_maker'], write: ['role_maker'], admin: [] }
+      }]]),
+      actions: {
+        make_project: {
+          id: 'make_project',
+          actionKind: 'createEntity',
+          entityType: 'project',
+          producerOutputId: 'make_project:entity',
+          status: { to: INITIAL_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: [], grants: [] },
+          inputs: [],
+          outputs: [{ id: 'created', entityType: 'project', status: INITIAL_STATE }]
+        }
+      },
+      assignments: {
+        user_maker: {
+          userId: 'user_maker',
+          roleIds: ['role_maker'],
+          status: 'active'
+        }
+      }
+    }, labeledDomain);
+
+    // Create rights on the producer output expose the manual create: the
+    // role manifest, the assignment manifest, and the inferred list/home
+    // region all carry the class-level create action.
+    expect(compiled.roles.role_maker.actions.map(action => action.actionId)).toContain('make_project');
+    expect(compiled.userAccess.user_maker.actions.find(action => action.id === 'make_project')).toMatchObject({
+      actionKind: 'createInstance',
+      typeId: 'project',
+      label: `Create Production Order ${INITIAL_STATE}`
+    });
+    expect(compiled.userAccess.user_maker.actions.find(action => action.id === 'make_project').entityType).toBe('project');
+    expect(compiled.userAccess.user_maker.actions.find(action => action.id === 'make_project').inputPolicy).toBeTruthy();
+    expect(compiled.screens.auto_role_maker_project.regions[0].actions).toContain('make_project');
+    const home = compiled.userAccess.user_maker.screens.find(screen => screen.template === 'home');
+    expect(home.regions[0].actions).toContain('make_project');
+  });
+
   it('keeps per-role action access levels separate', () => {
     const compiled = compileProcessDefinition({
       roles: {

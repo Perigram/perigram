@@ -11,6 +11,7 @@ import { useRegistryStore } from './registry';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { containmentAncestors, entityHierarchyId, normalizeHierarchyType, rootContainmentFilter, siblingContainmentScope } from '~/utils/entity-hierarchy.js';
 import { organizationBreadcrumbEntries } from '~/utils/navigation-breadcrumbs.js';
+import { isDetailScreenTemplate } from '~/components/generated/action-visibility.js';
 
 export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
@@ -63,8 +64,9 @@ export const useNavigationStore = defineStore('navigation', () => {
         const parts = String(path || '').split('/').filter(Boolean);
         if (parts[0] === 'screens' && parts[1]) {
             const screen = visibleProcessScreens.value.find(item => (item.screenKey || item.id) === parts[1]);
-            if (screen?.template !== 'entityDetail') return null;
-            return { entityType: screen.entityType, id: query.entityId || query[`${screen.entityType}Id`] };
+            if (!isDetailScreenTemplate(screen?.template)) return null;
+            const entityType = screen.entityType || screen.typeId || '';
+            return { entityType, id: query.entityId || query[`${entityType}Id`] };
         }
         return null;
     }
@@ -109,7 +111,7 @@ export const useNavigationStore = defineStore('navigation', () => {
         authStore.activePermissions
     ));
     const processScreenSiblings = computed(() => processOperationalScreens(visibleProcessScreens.value).filter(screen => {
-        if (screen.template === 'entityDetail') return false;
+        if (isDetailScreenTemplate(screen.template)) return false;
         return (screen.placement || 'hub') === 'hub';
     }));
     const routeMatches = (candidate, route) => Boolean(candidate && route)
@@ -198,7 +200,7 @@ export const useNavigationStore = defineStore('navigation', () => {
             if (currentScreen) {
                 const siblingScreens = processScreenSiblings.value;
                 const siblings = siblingScreens.map(screen => siblingOption(screenName(screen), screen.route));
-                if (currentScreen.template !== 'entityDetail' && (!currentHub || currentHub.to !== currentScreen.route)) {
+                if (!isDetailScreenTemplate(currentScreen.template) && (!currentHub || currentHub.to !== currentScreen.route)) {
                     nav.push({
                         name: screenName(currentScreen),
                         to: currentScreen.route,

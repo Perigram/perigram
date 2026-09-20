@@ -1509,6 +1509,19 @@ function actionEntityType(action = {}) {
     || '';
 }
 
+// The exposure keys a projected manifest record does not redefine: identity
+// and type aliases, parent context, prompt policy, and relation mutation.
+// Colliding keys the UI contract owns (actionKind, construction, fields,
+// label, status, typeId, trigger, access, relation) are stripped here.
+function exposureFieldsOf(action = {}) {
+  const {
+    actionKind: _actionKind, construction: _construction, fields: _fields,
+    label: _label, status: _status, typeId: _typeId, trigger: _trigger,
+    access: _access, relation: _relation, ...exposure
+  } = action;
+  return exposure;
+}
+
 export function compileAssignmentAccess({ assignment = {}, roles = {}, screens = {}, actions = {}, lineageBindings = [], domain = {} } = {}) {
   const permissions = {};
   const screenMap = new Map();
@@ -1530,13 +1543,18 @@ export function compileAssignmentAccess({ assignment = {}, roles = {}, screens =
     for (const action of role.actions || []) {
       // The manifest action entry is the projected UI contract record; the
       // rich exposure window (status from, feature, contracts) stays in the
-      // roles channel for grant derivation and the run API.
+      // roles channel for grant derivation and the run API. Its non-projected
+      // fields (actionId, entityType, parent context, input policy,
+      // relation mutation) ride along under their legacy keys so the legacy
+      // renderer surfaces and the server manifest consumers keep working;
+      // the projected keys stay authoritative.
       const projected = projectUiAction(action);
       const actionId = action.actionId || action.id;
       const existing = actionMap.get(actionId) || {};
       actionMap.set(actionId, {
         ...existing,
         ...(projected || { ...action, id: actionId }),
+        ...exposureFieldsOf(action),
         sourceRoleIds: [...new Set([...(existing.sourceRoleIds || []), roleId])]
       });
     }
@@ -1697,7 +1715,7 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
       const outputs = action.outputs || [];
       roles[roleId].actions.push({
         actionId: action.id || actionId,
-        label: displayActionLabel(action, actionId, process),
+        label: displayActionLabel(action, actionId, process, domain),
         level: 'run',
         actionKind: action.actionKind || 'createEntity',
         commandId: action.commandId || null,
@@ -1962,7 +1980,15 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
     (kind === 'updateEntity' && Boolean(actionTargetState(action, process)) && !access.modified) ||
     (kind === 'runCommand' && !hasExplicitRoleGrants && !access.modified)
   );
-  const roleGrants = useInherited ? inheritedRoleGrants : explicitRoleGrants;
+  let roleGrants = useInherited ? inheritedRoleGrants : explicitRoleGrants;
+  // A root create with no authored action roles of its own inherits its
+  // producer output's create rights: write/admin `allowedRoles` open the
+  // created-status window, so the class-level create action surfaces to the
+  // roles that hold create rights on the type even when the action record
+  // itself was never granted explicitly.
+  if (!roleGrants.length && !useInherited && kind === 'createEntity' && !incoming) {
+    roleGrants = producerOutputRoleGrants(process, action);
+  }
   const roleIds = [...new Set(roleGrants.map(grant => grant.roleId).filter(Boolean))];
   const level = maxGrantLevel(roleGrants, useInherited ? (incoming.level || access.level) : access.level);
   const scope = deriveActionWindowScope(action, incoming, lineageBindings);
@@ -2026,6 +2052,23 @@ function grantsFromRoleIds(roleIds = [], level = 'write') {
   return [...new Set(roleIds)]
     .filter(Boolean)
     .map(roleId => ({ roleId, level: normalizeAccessLevel(level) }));
+}
+
+// Create rights declared on the producer output profile (`allowedRoles`),
+// flattened to explicit grant rows: admin roles keep admin, write roles
+// that are not also admin get write.
+function producerOutputRoleGrants(process = {}, action = {}) {
+  const profile = action.producerOutputId
+    ? (process.producerOutputs || {})[action.producerOutputId]
+    : null;
+  const allowed = profile?.allowedRoles || {};
+  const admins = new Set(allowed.admin || []);
+  return [
+    ...[...admins].map(roleId => ({ roleId, level: 'admin' })),
+    ...(allowed.write || [])
+      .filter(roleId => !admins.has(roleId))
+      .map(roleId => ({ roleId, level: 'write' }))
+  ];
 }
 
 function maxGrantLevel(grants = [], fallback = 'write') {
@@ -3164,7 +3207,7 @@ function compiledInputPolicy(action = {}, domain = {}) {
     : normalizeInputPolicy(action.inputPolicy);
 }
 
-function displayActionLabel(action = {}, id = '', process = {}) {
+function displayActionLabel(action = {}, id = '', process = {}, domain = {}) {
   const explicit = String(action.label || '').trim();
   if (explicit && !isGenericActionLabel(explicit, action.actionKind)) return explicit;
 
@@ -3173,17 +3216,17 @@ function displayActionLabel(action = {}, id = '', process = {}) {
     || action.outputs?.find(output => output.entityType)?.entityType
     || '';
   if ((action.actionKind || 'createEntity') === 'createEntity') {
-    return ['Create', entityTypeLabel(entityType), action.status?.to].filter(Boolean).join(' ');
+    return ['Create', entityTypeLabel(domain, entityType), action.status?.to].filter(Boolean).join(' ');
   }
   if (action.actionKind === 'updateEntity') {
-    if (actionTargetState(action, process)) return statusTargetLabel(action, process) || ['Move', entityTypeLabel(entityType), action.status?.to].filter(Boolean).join(' ');
-    return ['Update', entityTypeLabel(entityType)].filter(Boolean).join(' ');
+    if (actionTargetState(action, process)) return statusTargetLabel(action, process) || ['Move', entityTypeLabel(domain, entityType), action.status?.to].filter(Boolean).join(' ');
+    return ['Update', entityTypeLabel(domain, entityType)].filter(Boolean).join(' ');
   }
   if (action.actionKind === 'runCommand') {
     return ['Run', action.commandId].filter(Boolean).join(' ');
   }
   if (action.actionKind === 'sendToOrganization') {
-    return ['Send', entityTypeLabel(entityType)].filter(Boolean).join(' ');
+    return ['Send', entityTypeLabel(domain, entityType)].filter(Boolean).join(' ');
   }
   return action.actionKind || id;
 }
@@ -3205,8 +3248,9 @@ function isGenericActionLabel(label, actionKind = '') {
   return generic.has(normalized);
 }
 
-function entityTypeLabel(entityType = '') {
-  return entityType ? entityType.replace(/_/g, ' ') : '';
+function entityTypeLabel(domain = {}, entityType = '') {
+  if (!entityType) return '';
+  return entityLabelOf(domain, entityType) || entityType.replace(/_/g, ' ');
 }
 
 function normalizeActionAccess(access = {}) {

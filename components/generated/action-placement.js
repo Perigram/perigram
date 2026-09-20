@@ -1,3 +1,5 @@
+import { isCreateAction, isRelationLinkAction, isRelationUnlinkAction } from './action-visibility.js';
+
 export const GENERATED_ACTION_SURFACES = Object.freeze({
   collection: 'collection',
   entity: 'entity',
@@ -5,8 +7,8 @@ export const GENERATED_ACTION_SURFACES = Object.freeze({
 });
 
 export function generatedActionSurface(action = {}) {
-  if (action?.relationMutation) return GENERATED_ACTION_SURFACES.relation;
-  if (action?.actionKind === 'createEntity') return GENERATED_ACTION_SURFACES.collection;
+  if (action?.relationMutation || isRelationLinkAction(action || {}) || isRelationUnlinkAction(action || {})) return GENERATED_ACTION_SURFACES.relation;
+  if (isCreateAction(action || {})) return GENERATED_ACTION_SURFACES.collection;
   return GENERATED_ACTION_SURFACES.entity;
 }
 

@@ -288,7 +288,7 @@ import { entityIdentifier, resolveGeneratedActionEntities } from '~/components/g
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
-import { actionAppliesToEntity } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, isCreateAction, isDeleteAction, isUpdateAction } from '~/components/generated/action-visibility.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
 import { occsQueueParameters } from '~/utils/occs/parameters.js';
@@ -378,7 +378,7 @@ async function executeAction(action, entity = null, context = {}) {
   const actionId = action?.actionId || action?.id;
   if (!actionId) return;
   try {
-    if (action.actionKind === 'deleteEntity') {
+    if (isDeleteAction(action)) {
       confirm.require({
         message: t('messages.confirmDelete'),
         header: t('common.confirmation'),
@@ -395,7 +395,7 @@ async function executeAction(action, entity = null, context = {}) {
       artifactCreatorVisible.value = true;
       return;
     }
-    if (['createEntity', 'updateEntity', 'runCommand'].includes(action.actionKind) && promptedFields(action).length) {
+    if ((isCreateAction(action) || isUpdateAction(action) || action.actionKind === 'runCommand') && promptedFields(action).length) {
       await openInputDialog(action, entity, context);
       return;
     }
@@ -497,7 +497,7 @@ async function postAction(action, entity = null, data = {}, context = {}) {
         parameters: { ...(context?.parameters || {}), ...(data?.parameters || {}) }
       }
     });
-    if (action.actionKind === 'deleteEntity') await load();
+    if (isDeleteAction(action)) await load();
     else applyActionResult(action, result);
     await openCreatedEntity(action, result);
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('generatedScreen.actionCompleted'), life: 2000 });
@@ -558,7 +558,7 @@ function mappedMutationItems(result) {
 }
 
 async function openCreatedEntity(action = {}, result = null) {
-  if (action.actionKind !== 'createEntity' || !result || typeof result !== 'object') return;
+  if (!isCreateAction(action) || !result || typeof result !== 'object') return;
   const mapped = mappedMutationItems(result);
   const entity = mapped
     ? (mapped.length === 1 ? mapped[0] : null)

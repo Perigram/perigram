@@ -8,6 +8,31 @@ import {
 } from './action-visibility.js';
 
 describe('generated action visibility', () => {
+  it('accepts the projected manifest vocabulary beside the legacy kinds', () => {
+    expect(actionAppliesToEntity({ actionKind: 'createInstance', typeId: 'cassette' }, {}, 'cassette')).toBe(false);
+    expect(actionAppliesToEntity(
+      { actionKind: 'updateInstance', typeId: 'cassette', status: { from: 'CREATED', to: 'DELETED' } },
+      { status: { state: { primary: 'CREATED' } } },
+      'cassette'
+    )).toBe(true);
+    expect(parentBoundCreateAppliesToEntityType({
+      actionKind: 'createInstance',
+      typeId: 'cassette_design',
+      parentEntityType: 'cassette'
+    }, 'cassette')).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'createInstance' })).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'updateInstance' })).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'deleteInstance' })).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'link' })).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'unlink' })).toBe(false);
+    expect(resolveGeneratedEntityActions({
+      actionIds: ['run'],
+      actionManifest: [{ id: 'run', actionKind: 'runCommand', typeId: 'queue' }],
+      entity: {},
+      entityType: 'queue'
+    })).toHaveLength(1);
+  });
+
   it('shows status-bearing updates only on entities in the source status', () => {
     const action = {
       actionKind: 'updateEntity',

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
 import { generatedActionLabel, generatedEntityLabel, generatedScreenLabel } from './generated-labels.js';
+import { useAuthStore } from '~/stores/auth';
 
 const messages = {
   'common.confirm': 'Confirm',
@@ -56,5 +58,45 @@ describe('generated labels', () => {
         operation: 'link'
       }
     }, '', i18n)).toBe('Cassette design');
+  });
+
+  it('accepts the projected manifest vocabulary (createInstance, link, typeId)', () => {
+    expect(generatedActionLabel({
+      actionKind: 'createInstance',
+      typeId: 'cassette',
+      label: 'Create cassette NEW'
+    }, '', i18n)).toBe('Cassette');
+
+    expect(generatedActionLabel({
+      actionKind: 'link',
+      typeId: 'queue',
+      relation: { key: 'cassettes', targetType: 'cassette_design', cardinality: 'many' }
+    }, '', i18n)).toBe('Cassette design');
+
+    expect(generatedScreenLabel({ template: 'typeList', typeId: 'cassette_design' }, i18n)).toBe('Cassette design');
+  });
+
+  it('labels org-authored types by their authored render label from the registry bundle', () => {
+    setActivePinia(createPinia());
+    const authStore = useAuthStore();
+    authStore.user = {
+      organizationId: 'org-1',
+      process: {
+        active: true,
+        bundle: {
+          types: [{ id: 't-k3x9fj2mqa', render: { label: 'Job Ticket' } }]
+        }
+      }
+    };
+
+    expect(generatedEntityLabel('t-k3x9fj2mqa', i18n)).toBe('Job Ticket');
+    expect(generatedActionLabel({
+      actionKind: 'createInstance',
+      typeId: 't-k3x9fj2mqa',
+      label: 'Create t-k3x9fj2mqa new'
+    }, '', i18n)).toBe('Job Ticket');
+
+    // Without a bundle entry the deterministic humanized fallback stays.
+    expect(generatedEntityLabel('t-unknown', i18n)).toBe('t unknown');
   });
 });

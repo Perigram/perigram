@@ -214,7 +214,7 @@ import { consumePendingWorkspaceEntity, workspaceEntityOpenEvent } from '~/utils
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
-import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, isCreateAction, isGeneratedSurfaceAction, isRelationLinkAction } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { resolveGeneratedWorkspacePage, generatedWorkspacePages } from '~/components/generated/workspace-pages.js';
 import { generatedDetailScreenForEntityType } from '~/components/generated/detail-screen-actions.js';
@@ -614,12 +614,12 @@ function rowActions(item = null) {
 
 function collectionActions(region = {}) {
   return resolvedRegionActions(region)
-    .filter(action => action?.actionKind === 'createEntity');
+    .filter(isCreateAction);
 }
 
 function resolvedRegionActions(region = {}) {
   return [...new Map((region.actions || [])
-    .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
+    .map(actionId => authStore.actionManifest.find(action => (action.actionId ?? action.id) === actionId))
     .filter(Boolean)
     .map(action => [action.actionId || action.id, action])).values()];
 }
@@ -642,7 +642,7 @@ function linkActions(item = null) {
   ));
   const actionIds = [...new Set([...(mainRegion?.actions || []), ...(detailScreen.actions || [])])];
   return resolvedRegionActions({ actions: actionIds })
-    .filter(action => action.relationMutation?.operation === 'link')
+    .filter(isRelationLinkAction)
     .filter(isGeneratedSurfaceAction)
     .map(action => ({
       action,
@@ -665,7 +665,7 @@ function childCreateActions(item = null) {
   for (const region of detailScreen.regions || []) {
     const source = (detailScreen.sources || []).find(candidate => candidate.id === region.sourceId);
     if (!source || source.mode !== 'list' || source.entityType === item.type) continue;
-    for (const action of resolvedRegionActions(region).filter(action => action.actionKind === 'createEntity')) {
+    for (const action of resolvedRegionActions(region).filter(isCreateAction)) {
       entries.push({
         action,
         context: mergeCollectionActionContext({
@@ -975,13 +975,13 @@ function actionEntriesForPane(pane) {
 
 function entityActionEntries(actionIds, item, context = {}) {
   return [...new Set(actionIds)]
-    .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
+    .map(actionId => authStore.actionManifest.find(action => (action.actionId ?? action.id) === actionId))
     .filter(Boolean)
     .filter(isGeneratedSurfaceAction)
     .filter(action => actionAppliesToEntity(action, item.entity, item.type))
     .map(action => ({
-      key: `${item.key}:${action.actionId}`,
-      actionId: action.actionId,
+      key: `${item.key}:${action.actionId || action.id}`,
+      actionId: action.actionId || action.id,
       entity: item.entity,
       item,
       context
