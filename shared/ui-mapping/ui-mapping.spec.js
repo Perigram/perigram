@@ -302,7 +302,10 @@ describe('identity and field groups', () => {
   it('honors the declared identity field before the heuristic', () => {
     const type = { fields: { codename: { base: 'string' }, serial: { base: 'string' } }, render: { identityField: 'codename' } };
     expect(instanceIdentity(type, { fields: { codename: 'Redshift', serial: 'S-1' } })).toBe('Redshift');
-    expect(instanceIdentity({ fields: {} }, { id: 'x-9', fields: {} })).toBe('x-9');
+    // Instance ids are private display vocabulary: with no field and no
+    // render label the identity is the placeholder, never the raw id.
+    expect(instanceIdentity({ fields: {} }, { id: 'x-9', fields: {} })).toBe('?');
+    expect(instanceIdentity({ fields: {}, render: { label: 'Bin' } }, { id: 'x-9', fields: {} })).toBe('Bin');
     expect(instanceIdentity({ fields: { name: { base: 'string' } } }, { id: 'id-missing', fields: { name: 'Kepler' } })).toBe('Kepler');
     const valueOnly = { fields: { zeta: { base: 'string' } } };
     expect(instanceIdentity(valueOnly, { id: 'x-1', fields: { zeta: 'Nomad' } })).toBe('Nomad');
