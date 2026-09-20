@@ -47,8 +47,12 @@ hand-written services.
   `invalidateInstanceDeclarations` on writes).
 - Service surface: the feature-service shape (getById/list/create/
   processUpdate/remove) plus the process bindings (processList,
-  processGetById, processDelete, processCapabilities, genericCreate
-  construction handler). Wire patches map to §3 writes; wire
+  processGetById, processDelete, processCapabilities, and construction
+  handlers: `genericCreate` plus the payload creation protocols
+  `upload`/`capture`/`editor` declared on payload types — upload and
+  capture require a payload reference (validated by the construct-time
+  trait checks), editor constructs a blank instance whose first editor
+  save fills the payload). Wire patches map to §3 writes; wire
   `lineage.organizationId` is ignored on update (tenancy is immutable
   after construct).
 - Payload replacement (`replacePayload`, the editor concern SPEC §3

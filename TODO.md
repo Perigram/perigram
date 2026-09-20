@@ -2,7 +2,53 @@
 
 ## Integrations
 
-- [ ] **Drawing vocabulary completes in tech-drawing: color type,
+- [ ] **Payload creation protocols: upload / capture / editor as construct
+  via modes.** Sixth slice — restores the artifact-era creation-protocol
+  choice on create nodes, declared on file types.
+  - Payload traits gain a `creation` facet (list of `upload | capture |
+    editor`, normalized/validated by the registry, default `['upload']`).
+    `image` declares upload+capture (mobile camera), `sketch`/
+    `text-document`/`csv-table` declare editor (blank-first-save).
+  - The domain projection emits each protocol as a construct `via` mode
+    with mode inputs (`upload`/`capture` add a typed `file` input
+    carrying accept/capture; `editor` constructs blank). The
+    attachment-kind projection carries the first declared protocol.
+  - Generic instance services register `upload`/`capture`/`editor`
+    construction handlers: upload/capture require a payload reference
+    (validated by the existing trait checks), editor allows a blank
+    instance.
+  - The generated create dialog renders a `file` control (accept +
+    capture attrs, upload to the `files` bucket, submits the payload
+    reference) — riding the existing prompted-field machinery, no
+    kind-specific creator path.
+  - Deferred (tracked): generateAttachment/convertArtifact operator
+    declarations; chat/proof/capture/upload flow migration off artifact;
+    artifact overload cut.
+  ### Agent Notes — 2026-09-21
+  Implemented in `agent/cts-creation-protocols-20260921`. `normalizePayload`
+  validates/normalizes the `creation` list (default `['upload']`); the
+  domain projection emits protocols as construct `via` modes with
+  mode inputs (upload/capture add the typed `file` input, capture sets
+  `capture: 'environment'`; editor constructs blank) and the
+  attachment-kind projection carries the first declared protocol.
+  Instance services register unconditional protocol construction
+  handlers (upload/capture require the payload reference; editor is
+  blank-first-save) while their capability literal derives exact modes
+  from the static pack declaration — org-authored payload types gain
+  modes through the authoritative projection (domain construction ∩
+  service handlers). `GeneratedScreen`'s prompt map renders the `file`
+  control: accept/capture attrs, upload to the `files` bucket, payload
+  reference submitted on the construct path. The app-registry
+  per-mode agreement spec was relaxed from handler-keys equality to
+  per-declared-mode handler containment (handlers are shared machinery).
+  Validation: cts (incl. new protocol normalization/projection cases),
+  instances (protocol handler enforcement), app-registry (minus the
+  pre-existing generic-create dispatch failure), generated suites,
+  packs, localization, arch, docs, framework:validate, SSR — all pass;
+  pre-existing audit drift on `GeneratedHomeWorkspace.vue` unchanged.
+  Status: WAITING.
+
+- [x] **Drawing vocabulary completes in tech-drawing: color type,
   palette edge, DXF/SVG homes.** Fifth slice — corrects the documents
   misfiling and gives colors/pens/layer standards their declared places
   (framework core stays domain-free; `domain-cnc` only shrinks).

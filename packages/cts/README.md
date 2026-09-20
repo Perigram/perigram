@@ -44,8 +44,10 @@ module layout and how the code maps to the spec's build-order tiers.
   one org overlay, no shadowing), `compile()` running R1–R6, instance
   validation with `typeVersion` ill-typing. Payload declarations normalize
   to the canonical trait shape (`mime` list, `accept`, `maxSize`,
-  `preview`); a bare MIME string and a `byteLimit` key (legacy persisted
-  docs and older pack fixtures) normalize at the boundary.
+  `preview`, `creation` protocol list — `upload | capture | editor`,
+  defaulting to `upload`); a bare MIME string and a `byteLimit` key
+  (legacy persisted docs and older pack fixtures) normalize at the
+  boundary.
 - `compat/domain-projection.js` — the single CTS → compiler-domain
   translator, synthesis-only: every type in the view (framework, pack,
   org) synthesizes its entities entry (per-class collection, §13),
