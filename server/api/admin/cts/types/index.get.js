@@ -3,11 +3,11 @@ import { describeOrganizationTypes } from '~/server/features/cts-types/service.j
 
 // Compiled CTS view of one organization: system types (strangler-converted
 // from the domain packs) overlaid with the org's authored declarations,
-// plus payload-trait data and compile diagnostics. Read by the designer
-// types pane and the language tester.
+// payload-trait data, pack editor bindings, and compile diagnostics. Read
+// by the designer types pane and the language tester.
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
-  const { bundle, attachmentKinds } = await describeOrganizationTypes(auth.organizationId);
+  const { bundle, attachmentKinds, editors } = await describeOrganizationTypes(auth.organizationId);
   return {
     success: bundle.ok,
     errors: bundle.errors,
@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
       typeCount: bundle.types.length
     },
     attachmentKinds,
+    editors,
     types: bundle.types
   };
 });

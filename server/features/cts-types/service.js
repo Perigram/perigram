@@ -7,7 +7,7 @@ import { createError } from 'h3';
 import * as repository from './repository.js';
 import { createTypeRegistry, compileClientBundle, frameworkTypes } from '~/packages/cts/src/index.js';
 import { cncPackAttachmentKinds } from '~/packages/domain-cnc/src/index.js';
-import { composeSystemDeclarations } from '~/server/packs/declarations.js';
+import { composeSystemDeclarations, composePackEditors } from '~/server/packs/declarations.js';
 import { invalidateInstanceDeclarations } from '../instances/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
@@ -57,7 +57,8 @@ export async function describeOrganizationTypes(organizationId) {
   const registry = await compileRegistryForOrganization(organizationId);
   return {
     bundle: compileClientBundle(registry, organizationId),
-    attachmentKinds: cncPackAttachmentKinds
+    attachmentKinds: cncPackAttachmentKinds,
+    editors: composePackEditors()
   };
 }
 

@@ -4,6 +4,7 @@ vi.mock('~/components/generated/GeneratedHomeWorkspace.vue', () => ({ default: {
 vi.mock('~/components/generated/GeneratedProjectWorkspace.vue', () => ({ default: { name: 'GeneratedProjectWorkspace' } }));
 vi.mock('~/components/SheetDesignEditor.vue', () => ({ default: { name: 'SheetDesignEditor' } }));
 vi.mock('~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedCassetteDesignerWorkspacePage' } }));
+vi.mock('~/components/generated/GeneratedCassetteDesignerAction.vue', () => ({ default: { name: 'GeneratedCassetteDesignerAction' } }));
 vi.mock('~/components/generated/GeneratedFacadeDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedFacadeDesignerWorkspacePage' } }));
 vi.mock('~/components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedFacadePatternDesignerWorkspacePage' } }));
 vi.mock('~/components/entities/Artifact/ArtifactDetail.vue', () => ({ default: { name: 'ArtifactDetail' } }));
@@ -50,10 +51,24 @@ describe('generated overload registry', () => {
   it('keeps entity detail body overloads in the registry', () => {
     expect(resolveGeneratedEntityDetailOverload('artifact')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('cassette')?.component).toBeTruthy();
-    expect(resolveGeneratedEntityDetailOverload('facade')?.component).toBeTruthy();
+    expect(resolveGeneratedEntityDetailOverload('facade-design')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('facade_pattern')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('queue')).toBeNull();
-    expect(resolveGeneratedEntityDetailOverload('sheet_design')?.component).toBeTruthy();
+    expect(resolveGeneratedEntityDetailOverload('sheet-design')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('project')).toBeNull();
+  });
+
+  it('derives file-type overload rows from the pack editor bindings', () => {
+    // The projected entity key is the CTS type id; legacy pre-projection
+    // keys no longer resolve an editor surface (abandoned data, SPEC §19).
+    expect(resolveGeneratedEntityDetailOverload('sheet_design')).toBeNull();
+    expect(resolveGeneratedEntityDetailOverload('facade')).toBeNull();
+
+    const cassette = resolveGeneratedEntityDetailOverload('cassette');
+    expect(cassette.ownsActionSurface).toBe(true);
+    const sheetDesign = resolveGeneratedEntityDetailOverload('sheet-design');
+    expect(sheetDesign.ownsActionSurface).toBe(true);
+    expect(sheetDesign.props({ entity: { id: 'sd-1' }, canEditSheetDesign: true }))
+      .toEqual({ design: { id: 'sd-1' }, editable: true });
   });
 });
