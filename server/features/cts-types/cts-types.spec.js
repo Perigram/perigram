@@ -109,6 +109,27 @@ describe('cts type storage', () => {
     expect(repository.upsertByTypeId).not.toHaveBeenCalled();
   });
 
+  it('repairs a historically stored invalid declaration without a migration', async () => {
+    // The org view holds a file class with children edges (stored by the
+    // old persist-before-compile order) WITH live instances: the corrected
+    // redefinition must land freely — the diff never protected a
+    // declaration that could not compile.
+    const { countInstancesOfType } = await import('../instances/count.js');
+    countInstancesOfType.mockResolvedValue(4);
+    const broken = { id: 'yu', class: 'file', scope: 'org', organizationId: ORG, version: 1,
+      fields: { note: { base: 'string' } },
+      edges: { children: { parts: { types: ['t-missing-child'] } } } };
+    repository.findByTypeId.mockResolvedValue(broken);
+    repository.listByOrganization.mockResolvedValue([broken]);
+    const stored = await defineType(
+      { id: 'yu', class: 'file', fields: { note: { base: 'string' } } },
+      { organizationId: ORG }
+    );
+    expect(stored.version).toBe(2);
+    expect(stored.edges).toEqual({});
+    expect(repository.upsertByTypeId).toHaveBeenCalled();
+  });
+
   it('refuses shadowing a system type', async () => {
     await expect(defineType(
       { id: 'cassette', class: 'file', fields: { rogue: { base: 'string' } } },
