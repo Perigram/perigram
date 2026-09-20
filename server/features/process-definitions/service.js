@@ -1670,7 +1670,7 @@ export function constructProvenance(record = {}, constructionDraft = {}, targetS
   };
 }
 
-function processConstructionInputRecord(record = {}, inputs = {}) {
+export function processConstructionInputRecord(record = {}, inputs = {}) {
   const result = {};
   for (const input of record.construction?.inputs || []) {
     const id = input.id || input.path;
@@ -1682,6 +1682,14 @@ function processConstructionInputRecord(record = {}, inputs = {}) {
       : input.type === 'entityList'
         ? (Array.isArray(supplied) ? supplied : [supplied]).map(entityInputId).filter(Boolean)
         : supplied;
+    // The identity 'name' construction input writes the wire identity
+    // block — the §3 instance boundary reads draft.identity.name, and a
+    // top-level `name` key would silently drop (fields landed, names
+    // did not).
+    if (id === 'name' || input.path === 'name') {
+      setByPath(result, 'identity.name', value);
+      continue;
+    }
     setByPath(result, input.path || id, value);
   }
   return result;

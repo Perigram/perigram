@@ -304,8 +304,33 @@ describe('current process-definition service contract', () => {
     expect(processRepository.archiveActiveByOrganization).not.toHaveBeenCalled();
   });
 
-  it('accepts the manifest action record shape in the availability check', async () => {
-    // Regression: the assignment manifest carries full records keyed `id`
+  it('maps construction inputs onto the wire blocks the §3 boundary reads', async () => {
+    // Regression: the identity 'name' input wrote a top-level draft key
+    // the instance create ignores (draft.identity.name is what lands) —
+    // fields arrived while every created record stayed unnamed.
+    const { processConstructionInputRecord } = await import('./service.js');
+    const record = {
+      construction: {
+        inputs: [
+          { id: 'name', path: 'name', type: 'string' },
+          { id: 'lineage.parentId', path: 'lineage.parentId', type: 'entity' },
+          { id: 'data.note', path: 'data.note', type: 'string' }
+        ]
+      }
+    };
+    const draft = processConstructionInputRecord(record, {
+      name: 'Named',
+      'lineage.parentId': { type: 'parent', id: 'p-1' },
+      'data.note': 'hello'
+    });
+    expect(draft).toEqual({
+      identity: { name: 'Named' },
+      lineage: { parentId: 'p-1' },
+      data: { note: 'hello' }
+    });
+  });
+
+  it('accepts the manifest action record shape in the availability check', async () => {    // Regression: the assignment manifest carries full records keyed `id`
     // while the check matched only `actionId` — every manual action 403'd.
     const { executeActiveProcessAction } = await import('./service.js');
     // Shaped like event.context.auth after resolveProcessAuth.
