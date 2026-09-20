@@ -10,6 +10,7 @@ import { cncPackAttachmentKinds } from '~/packages/domain-cnc/src/index.js';
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import { invalidateInstanceDeclarations } from '../instances/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
+import { countInstancesOfType } from '../instances/count.js';
 import { publishOrgContractChanged } from '../entity-events/service.js';
 
 function to400(error) {
@@ -19,8 +20,18 @@ function to400(error) {
 
 // One registry per organization view: system types first, the org's stored
 // declarations overlaying. Shadowing a system id throws here (R6/§4).
-export async function compileRegistryForOrganization(organizationId) {
-  const registry = createTypeRegistry({ id: `cts-types:${organizationId || 'system'}` });
+// Authoring relief (SPEC §11): breaking redefinitions of types with
+// zero persisted instances are free — there is nothing to migrate. The
+// probe must be synchronous, so authoring callers pre-count the type
+// being written into `emptyTypeIds`; every other composition passes no
+// probe and refuse-on-breaking holds exactly as before.
+export async function compileRegistryForOrganization(organizationId, { emptyTypeIds = null } = {}) {
+  const registry = createTypeRegistry({
+    id: `cts-types:${organizationId || 'system'}`,
+    hasInstances: emptyTypeIds
+      ? type => (emptyTypeIds.has(type.id) ? 0 : 1)
+      : null
+  });
   // System types are the framework's party declarations plus every
   // mounted pack's types in dependency order (SPEC §21 requirements) —
   // no converted legacy entity tables.
@@ -58,8 +69,13 @@ export async function defineType(declaration = {}, { organizationId } = {}) {
     organizationId: String(organizationId)
   };
 
-  const registry = await compileRegistryForOrganization(organizationId);
   const existing = await repository.findByTypeId(organizationId, orgDeclaration.id);
+  // An empty type redefines freely: nothing to migrate (SPEC §11).
+  const emptyTypeIds = new Set();
+  if (existing && (await countInstancesOfType(orgDeclaration.id, organizationId)) === 0) {
+    emptyTypeIds.add(orgDeclaration.id);
+  }
+  const registry = await compileRegistryForOrganization(organizationId, { emptyTypeIds });
 
   let stored;
   try {

@@ -57,7 +57,7 @@ export function normalizeType(declaration = {}) {
   return Object.freeze(type);
 }
 
-export function createTypeRegistry({ id = 'cts' } = {}) {
+export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
   const types = new Map();
 
   function keyOf(type) {
@@ -68,7 +68,13 @@ export function createTypeRegistry({ id = 'cts' } = {}) {
     const type = normalizeType(declaration);
     const existing = types.get(keyOf(type));
     if (existing) {
-      const diff = requireCompatible(existing, type);
+      // Breaking diffs are refused only for types with live data: an
+      // empty type has nothing to migrate, so the redefinition lands
+      // with a plain version bump. The probe returns a synchronous
+      // instance count; registries without one refuse as before.
+      const diff = hasInstances && hasInstances(existing) === 0
+        ? { changes: [{ severity: 'minor', kind: 'empty-redefinition' }], breaking: false }
+        : requireCompatible(existing, type);
       types.set(keyOf(type), Object.freeze({ ...type, version: existing.version + (diff.changes.length ? 1 : 0) }));
     } else {
       types.set(keyOf(type), type);

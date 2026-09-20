@@ -17,12 +17,6 @@ export function checkClassObligations(type = {}, context = {}) {
     return [`type ${type.id}: unknown class ${className}`];
   }
 
-  const hasSpecsOrSerial = Boolean(
-    fields.serial
-    || Object.values(fields).some(descriptor => descriptor.slot === 'specs' || descriptor.base === 'quantity')
-    || context.childTypes?.has(type.id)
-  );
-
   switch (className) {
     case 'party':
       if (type.scope !== 'system') errors.push(`type ${type.id}: party types are framework-only`);
@@ -33,7 +27,6 @@ export function checkClassObligations(type = {}, context = {}) {
       break;
     case 'item':
       if (!states.main) errors.push(`type ${type.id}: item requires states`);
-      if (!hasSpecsOrSerial) errors.push(`type ${type.id}: item requires serial or specs`);
       if (payload) errors.push(`type ${type.id}: item may not declare payload`);
       break;
     case 'group':

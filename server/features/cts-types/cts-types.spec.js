@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
+vi.mock('../instances/count.js', () => ({ countInstancesOfType: vi.fn(async () => 5) }));
 
 vi.mock('./repository.js', () => ({
   create: vi.fn(),
@@ -41,6 +42,21 @@ describe('cts type storage', () => {
     expect(stored.scope).toBe('org');
     expect(stored.version).toBe(1);
     expect(repository.upsertByTypeId).toHaveBeenCalled();
+  });
+
+  it('allows breaking redefinition of a type with zero instances', async () => {
+    const { countInstancesOfType } = await import('../instances/count.js');
+    countInstancesOfType.mockResolvedValueOnce(0);
+    const storedGadget = { id: 'gadget', class: 'file', scope: 'org', organizationId: ORG, version: 3,
+      fields: { code: { base: 'string' }, gone: { base: 'string' } } };
+    repository.findByTypeId.mockResolvedValue(storedGadget);
+    repository.listByOrganization.mockResolvedValue([storedGadget]);
+    const stored = await defineType(
+      { id: 'gadget', class: 'file', fields: { code: { base: 'string' } } },
+      { organizationId: ORG }
+    );
+    expect(stored.id).toBe('gadget');
+    expect(stored.version).toBe(4);
   });
 
   it('refuses breaking redefinition and rolls back new writes on cross-type breakage', async () => {

@@ -76,6 +76,13 @@ describe('class obligations (R6)', () => {
     const registry = packRegistry();
     registry.defineType({ id: 'bad-item', class: 'item', fields: { note: { base: 'string' } } });
     expect(registry.compile().errors).toContainEqual(expect.stringMatching(/bad-item: item requires states/));
+    // Items carry individuality through their lifecycle and data, not a
+    // mandated serial/specs field: the content mandate is gone (SPEC §5).
+    expect(() => registry.defineType({
+      id: 'bare-item', class: 'item', scope: 'system',
+      fields: { name: { base: 'string' } },
+      states: { main: { initial: 'new', values: ['new', 'done'] } }
+    })).not.toThrow();
     registry.defineType({ id: 'bad-file', class: 'file', edges: { children: { c: { types: ['material'] } } } });
     expect(registry.compile().errors).toContainEqual(expect.stringMatching(/bad-file: file may not declare lineage children/));
     registry.defineType({ id: 'bad-party', class: 'party', scope: 'org', organizationId: 'org-1', fields: {} });
@@ -182,6 +189,13 @@ describe('evolution (R7, refuse-on-diff)', () => {
         placed: sheet.fields.placed
       }
     })).toThrow(/breaking change/);
+    // Empty types have nothing to migrate: with an instance probe
+    // reporting zero rows, the same breaking redefinition lands freely.
+    const probed = createTypeRegistry({ id: 'spec-probed', hasInstances: () => 0 });
+    probed.defineType(sheet);
+    expect(() => probed.defineType({
+      ...sheet, fields: { serial: sheet.fields.serial }
+    })).not.toThrow();
   });
 
   it('instances behind typeVersion are ill-typed', () => {
