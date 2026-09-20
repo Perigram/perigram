@@ -622,6 +622,67 @@ export function localizedLabel(translator, key, fallback) {
   return translator.te(key) ? translator.t(key) : fallback;
 }
 
+// Create-dialog input resolution: compiled construction inputs are
+// slot-qualified row paths ('data.note', 'specs.width'), the identity
+// 'name', and lineage parent references ('lineage.<key>'), while the
+// type's authored fields are bare row names. One resolver maps every
+// input onto a dialog row: declared fields (matched by bare name or by
+// slot-qualified path) render through their descriptor, the identity name
+// renders as a plain string control, and a lineage input renders an
+// instance picker over the parent types whose children edges declare that
+// key for this type (reverse containment over the bundle). Inputs that
+// resolve to nothing stay hidden — typed constructor inputs owned by
+// editor surfaces keep their owners.
+export function resolveCreateDialogInputs(action = {}, type = null, bundle = null) {
+  const fields = type?.fields || {};
+  const rows = [];
+  for (const inputId of action.construction?.inputs || []) {
+    const id = String(inputId);
+    const fieldName = Object.hasOwn(fields, id)
+      ? id
+      : Object.keys(fields).find(name => id === `data.${name}` || id === `specs.${name}`);
+    if (fieldName) {
+      rows.push({
+        id,
+        label: fieldLabel(fieldName, fields[fieldName]),
+        descriptor: fields[fieldName],
+        span: 'half'
+      });
+      continue;
+    }
+    if (id === 'name') {
+      rows.push({ id, label: fieldLabel('name'), descriptor: { base: 'string' }, span: 'half' });
+      continue;
+    }
+    if (id.startsWith('lineage.')) {
+      const key = id.slice('lineage.'.length);
+      const accepts = parentTypesForChildrenKey(bundle, type?.id, key);
+      if (accepts.length) {
+        const parentLabel = (bundle?.types || []).find(candidate => candidate.id === accepts[0])?.render?.label;
+        rows.push({
+          id,
+          label: parentLabel || fieldLabel(key.replace(/Id$/, '')),
+          lineage: { key, accepts },
+          span: 'half'
+        });
+      }
+    }
+  }
+  return Object.freeze(rows.map(row => Object.freeze(row)));
+}
+
+// Reverse containment: the parent types whose children edges store
+// `lineage.<key>` on `typeId`. The child's own declaration carries no
+// parent list — the parents' edges are the declaration home.
+function parentTypesForChildrenKey(bundle = null, typeId = '', key = '') {
+  const parents = [];
+  for (const candidate of bundle?.types || []) {
+    const declaration = candidate?.edges?.children?.[key];
+    if ((declaration?.types || []).includes(typeId)) parents.push(candidate.id);
+  }
+  return parents;
+}
+
 export const defaultMapping = createUiMapping();
 export const resolveFieldControl = defaultMapping.resolveFieldControl;
 export const resolveSurface = defaultMapping.resolveSurface;

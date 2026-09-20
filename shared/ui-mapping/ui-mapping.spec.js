@@ -34,7 +34,8 @@ import {
   typeLabelKey,
   fieldLabelKey,
   actionLabelKey,
-  localizedLabel
+  localizedLabel,
+  resolveCreateDialogInputs
 } from './index.js';
 
 describe('field control resolution', () => {
@@ -600,5 +601,58 @@ describe('toolbar visibility and matching', () => {
     expect(instanceMatchesToolbar(type, {}, instance, '', { grade: 'b' })).toBe(false);
     expect(instanceMatchesToolbar(type, {}, instance, '', { grade: '' })).toBe(true);
     expect(instanceMatchesToolbar(type, {}, instance, '', { grade: null })).toBe(true);
+  });
+});
+
+describe('create dialog input resolution', () => {
+  const bundle = {
+    types: [
+      {
+        id: 't-bin-1',
+        render: { label: 'Bin' },
+        edges: { children: { tPart1Id: { types: ['t-part-1'] } } }
+      },
+      { id: 't-part-1', class: 'item', fields: { note: { base: 'string' }, width: { base: 'quantity', unit: 'mm' } } }
+    ]
+  };
+  const type = bundle.types[1];
+
+  it('maps slot-qualified construction inputs onto declared fields', () => {
+    const rows = resolveCreateDialogInputs(
+      { construction: { inputs: ['name', 'data.note', 'specs.width'] } },
+      type,
+      bundle
+    );
+    expect(rows.map(row => row.id)).toEqual(['name', 'data.note', 'specs.width']);
+    expect(rows[0]).toMatchObject({ label: 'Name', descriptor: { base: 'string' } });
+    expect(rows[1]).toMatchObject({ label: 'Note', descriptor: { base: 'string' } });
+    expect(rows[2]).toMatchObject({ descriptor: { base: 'quantity', unit: 'mm' } });
+  });
+
+  it('resolves lineage inputs to parent pickers over reverse containment', () => {
+    const rows = resolveCreateDialogInputs(
+      { construction: { inputs: ['lineage.tPart1Id'] } },
+      type,
+      bundle
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      id: 'lineage.tPart1Id',
+      label: 'Bin',
+      lineage: { key: 'tPart1Id', accepts: ['t-bin-1'] }
+    });
+  });
+
+  it('keeps inputs that resolve to nothing hidden', () => {
+    expect(resolveCreateDialogInputs(
+      { construction: { inputs: ['templateId'] } },
+      type,
+      bundle
+    )).toEqual([]);
+    expect(resolveCreateDialogInputs(
+      { construction: { inputs: ['lineage.unknownId'] } },
+      type,
+      bundle
+    )).toEqual([]);
   });
 });

@@ -25,6 +25,23 @@ function camel(kebab = '') {
   return kebab.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
 }
 
+// Create-dialog labels are authored vocabulary: a lineage input is named by
+// its parent type's render label, a row input by the start-cased row name;
+// anything already carrying an authored label keeps it.
+function constructionInputLabel({ path = '', label = '', entityType = '' } = {}, labelByType = new Map()) {
+  const clean = String(path);
+  if (clean.startsWith('lineage.')) {
+    const parent = labelByType.get(entityType);
+    if (parent) return parent;
+  }
+  const [block, name] = clean.split('.');
+  if (['data', 'specs'].includes(block) && name) {
+    return String(name).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
+  }
+  if (label && label !== clean) return label;
+  return label || clean;
+}
+
 const CORE_BLOCK_FIELDS = [
   coreField('_id', 'identity', 'json', { writable: false }),
   coreField('identity.uid', 'identity', 'string', { writable: false, constructible: false }),
@@ -238,6 +255,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   }
   for (const type of types) {
     const constructOperators = Object.values(type.operators || {}).filter(operator => operator.species === 'construct');
+    const labelByType = new Map(entities.map(entity => [entity.type, entity.label]));
     construction[type.id] = {
       modes: ['genericCreate', ...constructOperators.map(operator => operator.id)],
       defaultMode: 'genericCreate',
@@ -245,12 +263,18 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
         { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true },
         // lineage and relation edges are construct-addressable: a child
         // type's parent key and declared relation keys arrive as typed
-        // inputs where the entity begins
+        // inputs where the entity begins. Labels are authored vocabulary
+        // (the parent type's render label; the row's start-cased name) —
+        // raw storage paths never reach a generated create dialog.
         ...(edgeFieldsFor(type).lineage)
           .filter(schema => schema.constructible !== false)
           .map(schema => ({
             id: schema.path,
-            label: schema.label || schema.path,
+            label: constructionInputLabel({
+              path: schema.path,
+              label: schema.label,
+              entityType: schema.type?.entityType
+            }, labelByType),
             path: schema.path,
             ...constructionInputKind(schema.type),
             required: false,
@@ -258,7 +282,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
           })),
         ...edgeFieldsFor(type).relations.map(schema => ({
           id: schema.path,
-          label: schema.label || schema.path,
+          label: constructionInputLabel({ path: schema.path, label: schema.label }, labelByType),
           path: schema.path,
           ...constructionInputKind(schema.type),
           required: false,
@@ -268,7 +292,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
           .filter(schema => schema.constructible !== false)
           .map(schema => ({
             id: schema.path,
-            label: schema.label || schema.path,
+            label: constructionInputLabel({ path: schema.path, label: schema.label }, labelByType),
             path: schema.path,
             ...constructionInputKind(schema.type),
             required: schema.type?.nullable !== true,
