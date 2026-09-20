@@ -576,6 +576,7 @@ import MotionDock from '~/components/shared/MotionDock.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
+import { derivedTypeId } from '~/utils/processDesignerIdentity.js';
 import { normalizeDesignerAccess } from '~/utils/processDesignerAccess.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
 import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
@@ -1588,35 +1589,20 @@ function suggestTreeTypeId() {
 // A name authors identity; the registry id is derived from it. The id only
 // becomes hand-authored when the author edits it directly — until then,
 // renaming re-derives the id (deduped against registry + tree).
-function slugifyTypeName(name = '') {
-  const slug = String(name)
-    .toLowerCase()
-    .replace(/['’]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .replace(/^([0-9])/, 't-$1');
-  return slug;
-}
-
-function derivedTypeId(name = '', currentId = '') {
-  const slug = slugifyTypeName(name);
-  if (!slug) return currentId;
-  if (slug === currentId) return currentId;
-  const taken = new Set([
-    ...ctsTypeView().map(entry => entry.id),
-    ...nodes.value.filter(node => node.type === 'ctsClass').map(node => node.data.typeId)
-  ]);
-  taken.delete(currentId);
-  if (!taken.has(slug)) return slug;
-  let index = 2;
-  while (taken.has(`${slug}-${index}`)) index += 1;
-  return `${slug}-${index}`;
-}
-
 function updateClassName(node, name) {
   if (!node || node.type !== 'ctsClass') return;
   node.data.name = String(name || '');
-  node.data.typeId = derivedTypeId(node.data.name, node.data.typeId);
+  // The id is derived ONCE from the first non-empty name and frozen:
+  // renaming is a label change and must never re-key the registry id
+  // (persisted instances, producer outputs, and relations reference it).
+  node.data.typeId = derivedTypeId({
+    name: node.data.name,
+    currentId: node.data.typeId,
+    taken: [
+      ...ctsTypeView().map(entry => entry.id),
+      ...nodes.value.filter(candidate => candidate.type === 'ctsClass').map(candidate => candidate.data.typeId)
+    ]
+  });
   syncNodeData();
 }
 
