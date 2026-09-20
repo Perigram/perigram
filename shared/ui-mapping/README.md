@@ -291,9 +291,18 @@ handwritten.
 - Random hydration: [test-data/ui-mapping-random.js](../../test-data/ui-mapping-random.js)
   — a seeded generator producing entire worlds (types, containment DAGs,
   relations, instances, screens, actions) with nothing hand-authored; the
-  showcase rerolls seeds from the URL. Its spec validates every generated
-  instance against CTS `checkValue` and composes every screen across
-  seeds.
+  showcase rerolls seeds from the URL. Beyond the random shapes, every
+  world guarantees the showcase-reachable contracts by construction: at
+  least one authored `render.sortKey`, `render.listLayout` override, and
+  per-field `render.control`; `runCommand` and `unlink` beside the
+  create/transition/delete/link/hidden kinds; one volume collection over
+  fifty instances (virtualized tables, paginated views, toolbar search);
+  one guaranteed-empty type with its own list screen (empty state) and a
+  detail screen over it (missing state); and a seeded
+  `sourceStatesMatrix` (loading/denied/error, one per screen) the
+  showcase applies on demand. Its spec validates every generated
+  instance against CTS `checkValue`, composes every screen across
+  seeds, and pins each guarantee.
 - Spec: `ui-mapping.spec.js` (table-driven resolver/chrome/budget tests),
   `screen.spec.js` (composition mechanics), and
   `test-data/ui-mapping-fixtures.spec.js` (fixture/composition integration).

@@ -43,7 +43,13 @@ comes from the pure
 [shared/ui-mapping/README.md](../../shared/ui-mapping/README.md)) and every
 surface, field control, budget collapse, preview, and action button is
 resolver output. There is no handwritten section, grid, or per-type branch
-in the page or the components.
+in the page or the components. Collection identities are live links: the
+page routes `onOpen` in-page — the type's detail section scrolls into
+view through the `?screen=` query, and types without a detail screen
+toast. A data-states toggle (`?state=matrix`) applies the world's seeded
+`sourceStatesMatrix` (loading/denied/error) so every RegionDataState
+presentation renders beside the naturally-ready screens; the empty and
+missing states ship as their own generated screens.
 
 The fixture screens demonstrate:
 
@@ -57,8 +63,16 @@ The fixture screens demonstrate:
   bars, string lists as budgeted chips, variants, maps, records, blobs)
 - deterministic per-instance previews for all three payload preview modes
 - placed actions: toolbar placement, state-toned transitions, destructive
-  confirm, hidden event triggers, and a generated create dialog whose
+  confirm, hidden event triggers, per-card quick-action menus
+  (transitions, deletion, instance commands), relation link and unlink,
+  and a generated create dialog whose
   fields come from the action's declared construction inputs
+- the authored render vocabulary overriding shape inference: declared
+  sort keys, authored list layouts (including deliberately
+  contradictory ones), and a pinned editor control
+- data states (skeletons, empty, missing, denied, error) and the budget
+  thresholds (virtualized >50, paginated >10, toolbar search >8) —
+  guaranteed in every random world, not left to seed luck
 
 ## Related
 
