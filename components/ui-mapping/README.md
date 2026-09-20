@@ -123,8 +123,11 @@ concerns:
   the entries page through a standalone Paginator over `pageSlice`.
 - `StateStrip.vue` — the lifecycle projection: the declared state axis as
   a linear PrimeVue Stepper (numbered steps, active state from the
-  instance). The strip fits its container: steps shrink and share the
-  row, long state labels crop with the built-in title ellipsis (the
+  instance). The strip fits its container through a scoped CSS block:
+  steps take equal flex-basis-0 shares with min-width 0 down the chain
+  (PrimeVue sizes steps on content and scrolls the list, which
+  overflowed long labels), and long state labels crop with the built-in
+  title ellipsis (the
   native title attribute carries the full name) — no horizontal
   scrolling. A state with a runnable manual
   transition action in the region action set is an enabled step that
