@@ -308,11 +308,11 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       commandId: node.commandId || derived[actionId]?.commandId || '',
       parentEntityType: promptContract.parentEntityType || derived[actionId]?.parentEntityType || '',
       construction: node.kind === 'effect.createEntity'
-        ? node.construction?.mode === 'genericCreate' && node.blocks?.length
+        ? node.construction?.mode === 'genericCreate' && isBlockComposedCreate(nodeId, node, graph)
           ? { mode: 'genericCreate', inputs: [], blockComposed: true }
           : {
               ...(node.construction || derived[actionId]?.construction || {}),
-              blockComposed: Boolean(node.blocks?.length)
+              ...(isBlockComposedCreate(nodeId, node, graph) ? { blockComposed: true } : {})
             }
         : (node.construction || derived[actionId]?.construction || {}),
       mutation: {
@@ -414,6 +414,22 @@ function deriveRelationMutationActions(actions = {}, domain = {}) {
     }
   }
   return derived;
+}
+
+// A generic create is block-composed only when block data actually arrives
+// from the graph — a wired composer edge into one of the create's
+// block sockets (each accepted block renders its own `data:<block>`
+// input). The `blocks` list is the designer's presentation of the type's
+// canonical blocks (persisted on every construct node) and never implies
+// composition: reading presence as composition suppressed every typed
+// construction input — rows, lineage, name — into name-only dialogs.
+function isBlockComposedCreate(nodeId, node, graph) {
+  const blocks = new Set((node.blocks || []).map(block => String(block)));
+  if (!blocks.size) return false;
+  return (graph?.edges || []).some(edge => (
+    String(edge.target) === String(nodeId)
+    && blocks.has(normalizeHandle(edge.targetHandle))
+  ));
 }
 
 function effectPromptContract(nodeId, node, processNodes, graph, domain = {}) {
@@ -3244,7 +3260,14 @@ function statusTargetLabel(action = {}, process = {}) {
 
 function isGenericActionLabel(label, actionKind = '') {
   const normalized = label.trim().toLowerCase();
-  const generic = new Set(['create', 'status', 'service', 'update', 'send', 'action', actionKind?.toLowerCase?.()].filter(Boolean));
+  // Raw node-kind strings the designer saves as default labels are
+  // machinery vocabulary, not captions — the same set the UI projection
+  // treats as default action labels.
+  const generic = new Set([
+    'create', 'status', 'service', 'update', 'send', 'action',
+    'cts.construct', 'effect.createentity', 'effect.runproducer',
+    actionKind?.toLowerCase?.()
+  ].filter(Boolean));
   return generic.has(normalized);
 }
 
