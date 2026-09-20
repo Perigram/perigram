@@ -1644,7 +1644,11 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
       for (const roleId of profile.allowedRoles?.[level] || []) {
         if (!roles[roleId]) continue;
         roles[roleId].grants ||= [];
-        upsertGrant(roles[roleId].grants, { feature, level });
+        // The authored entity type rides on the grant so screen inference
+        // resolves the type the graph actually produces; the feature alone
+        // cannot distinguish types sharing one collection (org file-class
+        // types all project onto one shared collection).
+        upsertGrant(roles[roleId].grants, { feature, level, ...(profile.entityType ? { entityType: profile.entityType } : {}) });
       }
     }
   }
@@ -1652,11 +1656,12 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
   for (const [actionId, action] of Object.entries(process.actions || {})) {
     const access = normalizeActionAccess(action.access);
     const actionWindow = actionWindows.get(actionId);
+    const actionEntityType = action.entityType || action.inputs?.find(input => input.entityType)?.entityType || actionWindow?.outputs?.[0]?.entityType || '';
     for (const grant of actionWindow?.grants || []) {
       for (const roleId of grant.roleIds || []) {
         if (!roles[roleId]) continue;
         roles[roleId].grants ||= [];
-        upsertGrant(roles[roleId].grants, grant);
+        upsertGrant(roles[roleId].grants, actionEntityType ? { ...grant, entityType: actionEntityType } : grant);
       }
     }
     if ((action.trigger?.mode || 'manual') !== 'manual') continue;
@@ -1812,6 +1817,10 @@ function normalizeCompiledGrant(grant = {}) {
 function grantKey(grant = {}) {
   return JSON.stringify({
     feature: grant.feature,
+    // Types sharing one collection are separate grant identities — without
+    // this, the second type's grant merges into the first and its screens
+    // never infer.
+    entityType: grant.entityType || null,
     scope: grant.scope || null,
     transitions: grant.transitions || null,
     rule: grant.rule || null,
@@ -2339,14 +2348,22 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, pro
   for (const [roleId, role] of Object.entries(roles)) {
     const grantsByFeature = groupGrantsByFeature(role.grants || []);
     for (const [feature, grants] of grantsByFeature) {
-      const entityType = entityTypeFromFeature(domain, feature)
-        || entityTypeFromProducerOutputs(producerOutputs, domain, feature);
-      if (!entityType || existingKeys.has(`${roleId}:${feature}`)) continue;
+      // Grants derived from actions and producer outputs carry the entity
+      // type they were authored against — inference emits one screen per
+      // such type, so org-authored types sharing one collection (feature)
+      // each get their own surface instead of collapsing onto an arbitrary
+      // pack sibling. Feature-only grants keep the legacy resolution.
+      const authoredTypes = [...new Set(grants.map(grant => grant.entityType).filter(Boolean))];
+      const resolvedTypes = authoredTypes.length
+        ? authoredTypes
+        : [entityTypeFromFeature(domain, feature) || entityTypeFromProducerOutputs(producerOutputs, domain, feature)].filter(Boolean);
+      for (const entityType of resolvedTypes) {
+      if (existingKeys.has(`${roleId}:${feature}`) || existingKeys.has(`${roleId}:${entityType}`)) continue;
       const id = `auto_${roleId}_${entityType}`;
       const detailId = `${id}_detail`;
       const required = aggregateScreenRequirement(feature, grants);
-      const directActions = inferredScreenActions(role.actions || [], feature);
-      const detailDirectActions = inferredDetailScreenActions(role.actions || [], feature);
+      const directActions = inferredScreenActions(role.actions || [], feature, entityType);
+      const detailDirectActions = inferredDetailScreenActions(role.actions || [], feature, entityType);
       const childRegions = childRegionsForParentDetail({
         role,
         parentEntityType: entityType,
@@ -2392,6 +2409,8 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, pro
         }, ...childRegions.regions],
         actions: [...new Set([...detailDirectActions, ...contextualActions, ...childRegions.actionIds])]
       };
+      existingKeys.add(`${roleId}:${entityType}`);
+      }
       existingKeys.add(`${roleId}:${feature}`);
     }
   }
@@ -2399,15 +2418,22 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, pro
   return inferred;
 }
 
-function inferredScreenActions(roleActions = [], feature) {
+// Screen actions attach by the screen's entity type when the action knows
+// one (org-type actions must not attach to a sibling type's screen through
+// a shared feature); feature-only actions keep the feature match.
+function actionTargetsScreenType(action = {}, entityType = '', feature = '') {
+  return action.entityType ? action.entityType === entityType : action.feature === feature;
+}
+
+function inferredScreenActions(roleActions = [], feature, entityType = '') {
   return roleActions
-    .filter(action => action.feature === feature)
+    .filter(action => actionTargetsScreenType(action, entityType, feature))
     .map(action => action.actionId);
 }
 
-function inferredDetailScreenActions(roleActions = [], feature) {
+function inferredDetailScreenActions(roleActions = [], feature, entityType = '') {
   return roleActions
-    .filter(action => action.feature === feature)
+    .filter(action => actionTargetsScreenType(action, entityType, feature))
     .filter(action => (action.actionKind || 'createEntity') !== 'createEntity')
     .map(action => action.actionId);
 }

@@ -301,19 +301,50 @@ describe('graph protocol v5 (SPEC §20)', () => {
     // The compiled-preview contract: an authored v5 graph must lower before
     // compiling, because screen inference reads the role grants derived from
     // the create action's access — a raw compile ignores cts.* records
-    // entirely and reports an empty contract. The inferred screen id is
-    // role+feature-derived (the facade feature's list entity in this domain).
+    // entirely and reports an empty contract.
     const domain = projectedDomain();
     const original = grantedCreateDefinition();
     const { definition: migrated } = migrateV4Definition(structuredClone(original), domain);
     const { definition: resolved, diagnostics } = resolveCtsDefinition(migrated, domain);
     expect(diagnostics).toEqual([]);
     const compiled = compileProcessDefinition(structuredClone(resolved), domain, { roles });
-    const inferred = Object.values(compiled.screens).filter(screen => screen.id?.startsWith('auto_role_admin_'));
-    expect(inferred.length).toBeGreaterThan(0);
-    expect(inferred[0]).toMatchObject({ kind: 'entityList', roleIds: ['role_admin'] });
-    expect(compiled.roles.role_admin.grants).toEqual([expect.objectContaining({ level: 'admin' })]);
+    // The inferred screen is for the action's OWN entity type — feature
+    // resolution must never substitute an arbitrary sibling type.
+    expect(compiled.screens['auto_role_admin_facade']).toMatchObject({ kind: 'entityList', typeId: 'facade', roleIds: ['role_admin'] });
+    expect(Object.keys(compiled.screens).every(id => !id.includes('project'))).toBe(true);
+    expect(compiled.roles.role_admin.grants).toEqual([expect.objectContaining({ feature: 'groups', level: 'admin', entityType: 'facade' })]);
     expect(compiled.roles.role_admin.actions.map(action => action.actionId)).toContain('create');
+  });
+
+  it('org types sharing a collection each infer their own screen', () => {
+    // Two org file-class types share one feature (collection); grants
+    // authored against each must emit separate screens for THOSE types,
+    // not one screen for an arbitrary pack sibling of the feature.
+    const view = createTypeRegistry({ id: 'v5-org-types' });
+    for (const declaration of [...frameworkTypes, ...cncTypePack]) view.defineType(declaration);
+    view.defineType({ id: 'panel-a', class: 'file', scope: 'org', organizationId: 'org-1', fields: { name: { base: 'string' } }, states: { main: { initial: 'draft', values: ['draft'], terminal: [] } } });
+    view.defineType({ id: 'panel-b', class: 'file', scope: 'org', organizationId: 'org-1', fields: { name: { base: 'string' } }, states: { main: { initial: 'draft', values: ['draft'], terminal: [] } } });
+    const domain = projectDomainFromView(view, 'org-1');
+
+    const definition = {
+      schemaVersion: 1,
+      dataflowVersion: PROCESS_DATAFLOW_VERSION,
+      graph: { nodes: [], edges: [] },
+      roleGrants: {},
+      producerOutputs: {
+        'a:result': { id: 'a:result', producerOutputId: 'a:result', nodeId: 'a', outputSocketId: 'result', entityType: 'panel-a', lifecycle: { mode: 'domainDefault' }, fields: { read: [], write: [], private: [] } },
+        'b:result': { id: 'b:result', producerOutputId: 'b:result', nodeId: 'b', outputSocketId: 'result', entityType: 'panel-b', lifecycle: { mode: 'domainDefault' }, fields: { read: [], write: [], private: [] } }
+      },
+      actions: {}, services: {}, sockets: {}, screens: {},
+      processNodes: {
+        a: { id: 'a', kind: 'effect.createEntity', entityType: 'panel-a', producerOutputId: 'a:result', construction: { mode: 'genericCreate' }, blocks: [], trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }, status: { to: 'draft' } },
+        b: { id: 'b', kind: 'effect.createEntity', entityType: 'panel-b', producerOutputId: 'b:result', construction: { mode: 'genericCreate' }, blocks: [], trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }, status: { to: 'draft' } }
+      }
+    };
+    const compiled = compileProcessDefinition(definition, domain, { roles });
+    expect(compiled.screens['auto_role_admin_panel-a']).toMatchObject({ typeId: 'panel-a', actions: ['a'] });
+    expect(compiled.screens['auto_role_admin_panel-b']).toMatchObject({ typeId: 'panel-b', actions: ['b'] });
+    expect(Object.keys(compiled.screens).some(id => /pen-template|material/.test(id))).toBe(false);
   });
 
   it('migration is idempotent', () => {
