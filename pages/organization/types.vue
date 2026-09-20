@@ -83,7 +83,6 @@ import TypeNode from '~/components/type-designer/TypeNode.vue';
 import FieldNode from '~/components/type-designer/FieldNode.vue';
 import StateNode from '~/components/type-designer/StateNode.vue';
 import { canvasFromDeclarations } from '~/composables/useTypeCanvas.js';
-import { cncPackContent } from '@cutkit/domain-cnc';
 import { describeLabel } from '~/packages/cts/src/index.js';
 
 definePageMeta({
@@ -95,6 +94,7 @@ const toast = useToast();
 const { t } = useI18n();
 
 const declarations = ref([]);
+const packEditors = ref([]);
 const nodes = ref([]);
 const edges = ref([]);
 const loading = ref(false);
@@ -134,6 +134,7 @@ async function load() {
   try {
     const response = await $fetch('/api/admin/cts/types');
     declarations.value = response.types || [];
+    packEditors.value = response.editors || [];
     errors.value = response.errors || [];
     projectCanvas();
   } catch (error) {
@@ -147,7 +148,7 @@ function projectCanvas() {
   const canvas = canvasFromDeclarations(declarations.value);
   const fieldCounts = new Map(declarations.value.map(declaration => [declaration.id, Object.keys(declaration.fields || {}).length]));
   const stateCounts = new Map(declarations.value.map(declaration => [declaration.id, (declaration.states?.main?.values || []).length]));
-  const editorByType = new Map((cncPackContent.editors || []).map(editor => [editor.type, editor.surface]));
+  const editorByType = new Map((packEditors.value || []).map(editor => [editor.type, editor.surface]));
   nodes.value = canvas.nodes
     .map(node => node.type === 'typeNode'
       ? { ...node, draggable: false, data: { ...node.data, fieldCount: fieldCounts.get(node.data.typeId) || 0, stateCount: stateCounts.get(node.data.typeId) || 0, editor: editorByType.get(node.data.typeId) || null } }

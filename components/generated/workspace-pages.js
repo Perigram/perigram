@@ -1,22 +1,15 @@
 import ChatSupport from '~/components/ChatSupport.vue';
 import CallWorkspacePage from '~/components/calls/CallWorkspacePage.vue';
-import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
+import { fileWorkspacePages } from '~/components/generated/file-surfaces.js';
 
+// Entity-bound editor pages (for example the cassette designer) derive
+// from the pack editor bindings through the file-surface registry; their
+// page ids are the surface ids, so persisted pane state stays stable.
 // Entity-less pages are always openable tabs. `ephemeral: true` marks
 // runtime-parameterized pages that only open programmatically with per-call
 // props (a live call room) and never appear in add-tab lists.
 export const generatedWorkspacePages = [
-  {
-    id: 'cassette-designer',
-    entityType: 'cassette',
-    labelKey: 'cassette.designerTitle',
-    icon: 'pi pi-pencil',
-    component: GeneratedCassetteDesignerWorkspacePage,
-    props: page => ({
-      cassette: page.entity,
-      cassettes: page.cassettes || []
-    })
-  },
+  ...fileWorkspacePages(),
   {
     id: 'chats',
     labelKey: 'support.chatTitle',

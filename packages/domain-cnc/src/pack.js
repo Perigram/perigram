@@ -60,11 +60,14 @@ export const cncFileTypes = [
 
 // Editors bound to file types: which authoring surface opens for a type's
 // payload. The surfaces themselves are existing designer components; the
-// binding is pack data.
+// binding is pack data. This list is the canonical editor contract — it is
+// served with the organization type view (server/features/cts-types) and
+// drives the app's generated surface registries through
+// components/generated/file-surfaces.js.
 export const cncEditors = [
   { type: 'cassette', surface: 'cassette-designer', modes: ['create', 'edit'] },
-  { type: 'facade-design', surface: 'facade-designer', modes: ['create', 'edit'] },
-  { type: 'sheet-design', surface: 'sheet-design-preview', modes: ['view'] }
+  { type: 'sheet-design', surface: 'sheet-design-editor', modes: ['create', 'edit'] },
+  { type: 'facade-design', surface: 'facade-designer', modes: ['create', 'edit'] }
 ];
 
 // Registered services (SPEC §8 s species): the nesting solver is a pure

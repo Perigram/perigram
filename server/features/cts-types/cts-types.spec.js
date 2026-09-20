@@ -36,6 +36,14 @@ describe('cts type storage', () => {
     expect(bundle.attachmentKinds.OCCS_SOURCE).toMatchObject({ mimeType: 'application/perigram+occs' });
   });
 
+  it('serves the composed pack editor bindings with the type view', async () => {
+    const described = await describeOrganizationTypes(ORG);
+    const byType = new Map((described.editors || []).map(editor => [editor.type, editor]));
+    expect(byType.get('cassette')).toMatchObject({ surface: 'cassette-designer', modes: ['create', 'edit'] });
+    expect(byType.get('sheet-design')).toMatchObject({ surface: 'sheet-design-editor', modes: ['create', 'edit'] });
+    expect(byType.get('facade-design')).toMatchObject({ surface: 'facade-designer', modes: ['create', 'edit'] });
+  });
+
   it('stores valid org declarations after full-view compile', async () => {
     const stored = await defineType({ id: 'gadget', class: 'file', fields: { code: { base: 'string' } } }, { organizationId: ORG });
     expect(stored.id).toBe('gadget');

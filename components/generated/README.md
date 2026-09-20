@@ -88,8 +88,36 @@ The current default overloads are:
 - project `entityDetail` screens render `GeneratedProjectWorkspace.vue`, an
   IDE-style project workspace over the generated project source and child
   sources.
-- queue detail bodies render `GeneratedQueueDetail.vue`.
-- sheet-design detail bodies render `SheetDesignEditor.vue`.
+- `artifact` detail bodies render `ArtifactDetail.vue` (framework file
+  service; static until the artifact type is declared in a pack).
+
+### File surfaces (CTS file types)
+
+`file-surfaces.js` is the single app-side home of the file-type editor
+contract. It combines two halves:
+
+- **Served/pack data** — the pack editor bindings (`{ type, surface, modes }`,
+  see the [domain-cnc pack direction](../../packages/domain-cnc/README.md)),
+  served with the organization type view by
+  [cts-types](../../server/features/cts-types/README.md). This decides which
+  file type opens which surface and in which modes.
+- **The fixed surface registry** — surface id → app presentations. Each
+  surface record may carry the detail-body overload component (with its props
+  adapter and `ownsActionSurface`), the card/detail editor-action component,
+  and the workspace-page presentation (label key, icon, component, props).
+  Process data never selects components; the surface id does.
+
+`overloads.js`, `entity-editor-action.js`, and `workspace-pages.js` derive
+their file-type rows (cassette, sheet-design, facade-design) from the pack
+editor bindings through this registry instead of hand-maintained entity-keyed
+maps. Rows key by the CTS type id — the projected entity key — so legacy
+pre-projection keys (`sheet_design`, `facade`) no longer resolve an editor
+surface (abandoned data, SPEC §19). `facade_pattern` remains a static legacy
+overload until its type is declared in a pack. Editor surfaces with
+`ownsActionSurface: true` (cassette-designer, sheet-design-editor) suppress
+the generated action surface; the sheet-design editor receives the caller's
+resolved write grant through its props adapter and degrades to view-only
+without it.
 
 ## Home Workspace
 

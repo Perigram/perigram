@@ -16,14 +16,15 @@ export const mountedPackDeclarations = [
   {
     id: 'cnc',
     requires: ['tech-drawing'],
-    types: cncPackContent.types
+    types: cncPackContent.types,
+    editors: cncPackContent.editors
   }
 ];
 
-// Framework-first, dependency order, one system id each. A missing
-// requirement or an inter-pack id collision is a composition error —
-// packs never shadow each other.
-export function composeSystemDeclarations() {
+// Framework-first, dependency order, each pack once. A missing requirement
+// or a requirement cycle is a composition error — packs never shadow each
+// other.
+export function orderedMountedPacks() {
   const byId = new Map(mountedPackDeclarations.map(pack => [pack.id, pack]));
   const ordered = [];
   const visiting = new Set();
@@ -45,10 +46,15 @@ export function composeSystemDeclarations() {
     ordered.push(pack);
   };
   for (const pack of mountedPackDeclarations) visit(pack);
+  return ordered;
+}
 
+// System type declarations: every mounted pack's types in dependency order,
+// one system id each.
+export function composeSystemDeclarations() {
   const declarations = [];
   const seen = new Set();
-  for (const pack of ordered) {
+  for (const pack of orderedMountedPacks()) {
     for (const declaration of pack.types || []) {
       if (seen.has(declaration.id)) {
         throw new Error(`duplicate system type id ${declaration.id} across packs (last: ${pack.id})`);
@@ -58,4 +64,21 @@ export function composeSystemDeclarations() {
     }
   }
   return declarations;
+}
+
+// Editor bindings (SPEC §21): `{ type, surface, modes }` records binding a
+// file type to its authoring surface. Composed in the same dependency
+// order as the type declarations; a malformed binding is a mount error,
+// not a silently dropped editor.
+export function composePackEditors() {
+  const editors = [];
+  for (const pack of orderedMountedPacks()) {
+    for (const editor of pack.editors || []) {
+      if (!editor?.type || !editor?.surface || !(editor.modes || []).length) {
+        throw new Error(`pack ${pack.id} declares a malformed editor binding: ${JSON.stringify(editor)}`);
+      }
+      editors.push(Object.freeze({ type: editor.type, surface: editor.surface, modes: Object.freeze([...editor.modes]) }));
+    }
+  }
+  return editors;
 }

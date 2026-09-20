@@ -1,11 +1,13 @@
 import GeneratedHomeWorkspace from '~/components/generated/GeneratedHomeWorkspace.vue';
 import GeneratedProjectWorkspace from '~/components/generated/GeneratedProjectWorkspace.vue';
-import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
-import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
-import GeneratedFacadeDesignerWorkspacePage from '~/components/generated/GeneratedFacadeDesignerWorkspacePage.vue';
 import GeneratedFacadePatternDesignerWorkspacePage from '~/components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue';
 import ArtifactDetail from '~/components/entities/Artifact/ArtifactDetail.vue';
+import { fileDetailOverloads } from '~/components/generated/file-surfaces.js';
 
+// File-type detail bodies (cassette, sheet-design, facade-design) derive
+// from the pack editor bindings through the file-surface registry — the
+// type id is the projected entity key. Static rows remain only for
+// surfaces whose type is not yet declared in a pack.
 export const generatedScreenOverloads = [
   {
     template: 'home',
@@ -24,30 +26,11 @@ export const generatedEntityDetailOverloads = [
     component: ArtifactDetail,
     props: ({ entity }) => ({ artifact: entity })
   },
-  {
-    entityType: 'cassette',
-    component: GeneratedCassetteDesignerWorkspacePage,
-    ownsActionSurface: true,
-    props: ({ entity }) => ({ cassette: entity })
-  },
-  {
-    entityType: 'facade',
-    component: GeneratedFacadeDesignerWorkspacePage,
-    props: ({ entity }) => ({ facade: entity })
-  },
+  ...fileDetailOverloads(),
   {
     entityType: 'facade_pattern',
     component: GeneratedFacadePatternDesignerWorkspacePage,
     props: ({ entity }) => ({ facadePattern: entity })
-  },
-  {
-    entityType: 'sheet_design',
-    component: SheetDesignEditor,
-    ownsActionSurface: true,
-    props: ({ entity, canEditSheetDesign }) => ({
-      design: entity,
-      editable: canEditSheetDesign
-    })
   }
 ];
 

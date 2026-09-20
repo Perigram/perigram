@@ -2,6 +2,55 @@
 
 ## Integrations
 
+- [ ] **CTS file editors and preview contracts served with the type view.**
+  First slice of the entity-category cut (SPEC §21): editors and previews
+  bind to CTS file types, not entity types.
+  - Pack editor bindings (`packages/domain-cnc/src/pack.js` `cncEditors`) are
+    the single type→surface+modes source; sheet design is promoted from the
+    view-only `sheet-design-preview` surface to the editing
+    `sheet-design-editor` surface.
+  - `GET /api/admin/cts/types` serves the composed pack editors beside the
+    compiled bundle, so app surfaces resolve editors server-driven instead
+    of importing pack modules.
+  - One app-owned surface registry (`components/generated/file-surfaces.js`)
+    maps surface ids to the app's editor presentations (detail-body overload,
+    card/detail editor action, workspace page). The generated overload,
+    editor-action, and workspace-page registries derive their file-type rows
+    from the pack editor bindings through it; entity-keyed rows for
+    cassette/sheet-design/facade-design are replaced by type-keyed derived
+    rows (legacy pre-projection keys are abandoned data, SPEC §19).
+  - The types registry browser consumes the served editors.
+  - Later slices (not this task): image sketch-editor binding for image
+    payload file types, runtime preview-mode resolution from payload traits
+    replacing `utils/artifact-ui.js`, and deleting the remaining legacy
+    entity overloads (`artifact`, `facade_pattern`) once those types exist.
+  ### Agent Notes — 2026-09-20
+  Implemented in `agent/cts-file-editors-20260920`. `composePackEditors()`
+  composes the mounted packs' editor bindings in dependency order
+  (malformed bindings are mount errors); `describeOrganizationTypes` and
+  `GET /api/admin/cts/types` serve them beside the bundle. The pack
+  binding for sheet design is promoted to `sheet-design-editor`
+  (create/edit) — the surface registry's props adapter receives the
+  caller's resolved `canEditSheetDesign` grant, degrading to view-only
+  without it, exactly like the legacy overload did.
+  `components/generated/file-surfaces.js` is the new single app-side
+  surface registry (surface id → detail-body overload / editor action /
+  workspace page); `overloads.js`, `entity-editor-action.js`, and
+  `workspace-pages.js` derive their file-type rows from the pack editor
+  bindings through it. Derived rows key by CTS type id, so the legacy
+  `sheet_design`/`facade` keys no longer resolve an editor surface
+  (SPEC §19 abandoned data — risky assumption stated before
+  implementation). Workspace page ids stay the surface ids (`cassette-designer`),
+  so persisted pane state is unaffected. The types registry browser reads
+  the served editors instead of importing the pack module.
+  Validation: focused specs (file-surfaces, overloads, cts-types), cts
+  package suite, arch guard, framework:validate, SSR smoke, localization,
+  docs guard — all pass. Pre-existing failures on `local` (unrelated,
+  verified by baseline run): `shared/framework-packages.spec.js` (3 stale
+  assertions vs the pack-mounting refactor) and one
+  `server/runtime/app-registry.spec.js` generic-create dispatch assertion.
+  Status: WAITING.
+
 - [x] **Sketch drawings: attachment kind + minimal drawing editor surface.**
   > Decision record, 2026-09-12: original scope said "incorporate the
   > Excalidraw editor". Excalidraw's editor is React-only; a lazily-loaded
