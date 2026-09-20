@@ -79,6 +79,15 @@ function acceptGraphProtocol(data = {}, domain = {}) {
   return definition;
 }
 
+// The overlaid domain is the acceptance vocabulary: lowering AND the
+// downstream validation/availability/lineage passes must resolve entity
+// types against the draft's own declarations. Validating against the raw
+// domain made every producer output bound to an in-tree class fail with
+// `unknown entity type` at validate/activate.
+function overlaidDomainFor(data = {}, domain = {}) {
+  return declarationOverlayDomain(data, domain);
+}
+
 function capabilityBindings(domain = {}) {
   const registry = getAppRegistry();
   const capabilities = {};
@@ -91,14 +100,15 @@ function capabilityBindings(domain = {}) {
 
 export function validateActivatableProcess(data = {}, domain = {}, roles = {}) {
   const accepted = acceptGraphProtocol(data, domain);
-  const capabilities = capabilityBindings(domain);
-  const validation = validateProcessDefinition(accepted, domain, {
+  const overlaid = overlaidDomainFor(data, domain);
+  const capabilities = capabilityBindings(overlaid);
+  const validation = validateProcessDefinition(accepted, overlaid, {
     roles,
     ...(Object.keys(capabilities).length ? { capabilities } : {})
   });
   const process = validation.definition || normalizeProcessDefinition(data);
-  const availability = validateRequiredInputAvailability(process, domain);
-  const lineageResolution = validateLineageBindingResolution(process, domain);
+  const availability = validateRequiredInputAvailability(process, overlaid);
+  const lineageResolution = validateLineageBindingResolution(process, overlaid);
   const errors = [
     ...(validation.errors || []),
     ...availability.map(diagnostic => diagnostic.message),
@@ -129,7 +139,7 @@ export function assertCurrentProcessDefinition(data = {}) {
 export function currentProcessDefinition(data = {}, domain = {}) {
   assertCurrentProcessDefinition(data);
   const accepted = acceptGraphProtocol(data, domain);
-  const migration = migrateProducerOutputIdentities(accepted, domain);
+  const migration = migrateProducerOutputIdentities(accepted, overlaidDomainFor(data, domain));
   if (migration.errors.length) {
     throw createError({
       statusCode: 400,
