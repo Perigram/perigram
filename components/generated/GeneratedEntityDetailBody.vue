@@ -7,21 +7,24 @@
       @refresh="$emit('refresh')"
       @saved="$emit('refresh')"
     />
-    <EntitySurfaceContent
-      v-else
-      :entity="entity"
-      :entity-type="entityType"
-      :surface="surface"
-      :display-overrides="displayOverrides"
-      :relation-variant="relationVariant"
-      :suppress-child-summaries="suppressChildSummaries"
-    />
+    <template v-else>
+      <GeneratedFilePreview :entity="entity" :entity-type="entityType" />
+      <EntitySurfaceContent
+        :entity="entity"
+        :entity-type="entityType"
+        :surface="surface"
+        :display-overrides="displayOverrides"
+        :relation-variant="relationVariant"
+        :suppress-child-summaries="suppressChildSummaries"
+      />
+    </template>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
+import GeneratedFilePreview from '~/components/generated/GeneratedFilePreview.vue';
 import { useAuthStore } from '~/stores/auth';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { resolveGeneratedEntityDetailOverload } from '~/components/generated/overloads.js';

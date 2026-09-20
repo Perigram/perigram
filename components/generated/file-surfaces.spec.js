@@ -10,7 +10,9 @@ import {
   fileEditorActions,
   fileSurfaceRegistry,
   fileWorkspacePages,
+  instancePayloadFileUrl,
   packEditorBindings,
+  resolveFilePreview,
   resolveFileSurface
 } from './file-surfaces.js';
 
@@ -75,5 +77,40 @@ describe('file surface registry', () => {
     expect(resolveFileSurface([{ type: 'x', surface: 'no-such-surface', modes: ['edit'] }], 'x')).toBeNull();
     expect(resolveFileSurface(packEditorBindings, '')).toBeNull();
     expect(Object.keys(fileSurfaceRegistry)).toEqual(expect.arrayContaining(['cassette-designer', 'sheet-design-editor', 'facade-designer']));
+  });
+
+  it('builds payload download URLs against the files bucket', () => {
+    expect(instancePayloadFileUrl({ fileId: 'abc123' })).toBe('/api/files/download/abc123?bucket=files');
+    expect(instancePayloadFileUrl({})).toBe('');
+    expect(instancePayloadFileUrl(null)).toBe('');
+  });
+
+  it('resolves file previews from the type render policy', () => {
+    const sketchType = { id: 'sketch', payload: { mime: ['application/json'] }, render: { preview: 'sketch' } };
+    const entity = { attachments: { primary: { fileId: 'f-1', mime: 'application/json' } } };
+    expect(resolveFilePreview(entity, sketchType)).toMatchObject({
+      mode: 'sketch',
+      fileUrl: '/api/files/download/f-1?bucket=files',
+      renderable: true,
+      hasPayload: true
+    });
+  });
+
+  it('falls back to attachment mode for payload types without authored preview', () => {
+    const occsType = { id: 'cassette', payload: { mime: ['application/perigram+occs'] }, render: {} };
+    const entity = { attachments: { primary: { fileId: 'f-2' } } };
+    expect(resolveFilePreview(entity, occsType)).toMatchObject({
+      mode: 'attachment',
+      renderable: false,
+      hasPayload: true
+    });
+  });
+
+  it('renders nothing for payload-less entities and payload-less types', () => {
+    const type = { id: 'sheet-design', render: {} };
+    expect(resolveFilePreview({}, type).mode).toBe('none');
+    expect(resolveFilePreview({}, null).mode).toBe('none');
+    const payloadType = { id: 'sketch', payload: {}, render: { preview: 'sketch' } };
+    expect(resolveFilePreview({}, payloadType)).toMatchObject({ mode: 'sketch', hasPayload: false, fileUrl: '', renderable: true });
   });
 });

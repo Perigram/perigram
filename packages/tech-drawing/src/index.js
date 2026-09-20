@@ -52,7 +52,27 @@ const layerStandard = Object.freeze({
   render: { label: 'Layer standard', icon: 'pi pi-list' }
 });
 
-export const techDrawingTypes = Object.freeze([penTemplate, layerStandard]);
+// The freehand annotation scene (draw-over-image document): the JSON
+// scene contract owned by utils/sketch.js. Preview mode `sketch` renders
+// through DrawingCanvas; the editor binding is deferred until instance
+// payload revisioning exists (payloads are immutable after construct).
+const sketch = Object.freeze({
+  id: 'sketch',
+  class: 'file',
+  scope: 'system',
+  payload: {
+    mime: ['application/json'],
+    accept: ['.json', 'application/json'],
+    maxSize: 25 * 1024 * 1024,
+    preview: 'sketch'
+  },
+  fields: {
+    name: { base: 'string' }
+  },
+  render: { label: 'Sketch', icon: 'pi pi-pencil' }
+});
+
+export const techDrawingTypes = Object.freeze([penTemplate, layerStandard, sketch]);
 
 export const techDrawingPack = Object.freeze({
   id: 'tech-drawing',

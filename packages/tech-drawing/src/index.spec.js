@@ -49,4 +49,19 @@ describe('tech-drawing pack declarations', () => {
     expect(techDrawingPack.requires).toEqual([]);
     expect(techDrawingPack.types).toBe(techDrawingTypes);
   });
+
+  it('declares the sketch scene file type with a sketch preview payload', () => {
+    const sketch = techDrawingTypes.find(type => type.id === 'sketch');
+    expect(sketch).toMatchObject({
+      class: 'file',
+      scope: 'system',
+      payload: {
+        mime: ['application/json'],
+        preview: 'sketch'
+      }
+    });
+    // The editor binding is deferred until instance payload revisioning
+    // exists: the pack declares no editors for the sketch type.
+    expect(techDrawingPack.editors || []).toEqual([]);
+  });
 });

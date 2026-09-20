@@ -39,17 +39,34 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 
 import { resolveArtifactViewer } from '~/utils/artifact-viewer.js';
 
-const props = defineProps({ artifact: { type: Object, required: true }, revision: { type: Object, default: null } });
+// `artifact`/`revision` drive the artifact-entity path. Callers without an
+// artifact record (CTS file instances) pass an explicit `source`
+// `{ mode, fileUrl, attachment }` resolved from the type's preview policy.
+const props = defineProps({
+  artifact: { type: Object, default: null },
+  revision: { type: Object, default: null },
+  source: { type: Object, default: null }
+});
 const docxHost = ref(null);
 const text = ref('');
 const rows = ref([]);
 const columns = ref([]);
 const error = ref('');
 const blobUrl = ref('');
-const viewer = computed(() => resolveArtifactViewer({ artifact: props.artifact, revision: props.revision }));
+const viewer = computed(() => {
+  if (props.source) {
+    const fileUrl = props.source.fileUrl || '';
+    return { attachment: props.source.attachment || null, fileUrl, hasFile: Boolean(fileUrl), mode: props.source.mode || 'download' };
+  }
+  return resolveArtifactViewer({ artifact: props.artifact, revision: props.revision });
+});
 const mode = computed(() => viewer.value.mode);
 const hasFile = computed(() => viewer.value.hasFile);
 const fileUrl = computed(() => viewer.value.fileUrl);
+const mimeType = computed(() => props.source?.attachment?.mime
+  || props.revision?.attachments?.primary?.metadata?.mimeType
+  || props.artifact?.attachments?.primary?.metadata?.mimeType
+  || 'application/octet-stream');
 
 function releaseBlob() {
   if (blobUrl.value) URL.revokeObjectURL(blobUrl.value);
@@ -78,7 +95,7 @@ async function load() {
       rows.value = values.map(row => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ''])));
       return;
     }
-    blobUrl.value = URL.createObjectURL(new Blob([buffer], { type: props.revision?.attachments?.primary?.metadata?.mimeType || props.artifact.attachments?.primary?.metadata?.mimeType }));
+    blobUrl.value = URL.createObjectURL(new Blob([buffer], { type: mimeType.value }));
     if (mode.value === 'docx') {
       await nextTick();
       const { renderAsync } = await import('docx-preview');
