@@ -119,7 +119,10 @@ concerns:
   the entries page through a standalone Paginator over `pageSlice`.
 - `StateStrip.vue` — the lifecycle projection: the declared state axis as
   a linear PrimeVue Stepper (numbered steps, active state from the
-  instance), horizontally scrollable. A state with a runnable manual
+  instance). The strip fits its container: steps shrink and share the
+  row, long state labels crop with the built-in title ellipsis (the
+  native title attribute carries the full name) — no horizontal
+  scrolling. A state with a runnable manual
   transition action in the region action set is an enabled step that
   emits the action through the screen `run` contract (optimistic
   highlight, re-anchored from the instance on reload); event-triggered,
