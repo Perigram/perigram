@@ -114,7 +114,7 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import { entityEditorActionFor, entityHasEditorAction } from '~/components/generated/entity-editor-action.js';
 import { useAuthStore } from '~/stores/auth';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
-import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, isCreateAction, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
 import { generatedRegionLabel } from '~/utils/generated-labels.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 
@@ -147,7 +147,7 @@ const sections = computed(() => props.screen.regions
 
 function collectionActions(region = {}) {
   return resolvedRegionActions(region)
-    .filter(action => action?.actionKind === 'createEntity');
+    .filter(isCreateAction);
 }
 
 function entityActionsFor(section = {}, entity = {}) {
@@ -160,7 +160,7 @@ function entityActionsFor(section = {}, entity = {}) {
 
 function resolvedRegionActions(region = {}) {
   return [...new Map((region.actions || [])
-    .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
+    .map(actionId => authStore.actionManifest.find(action => (action.actionId ?? action.id) === actionId))
     .filter(Boolean)
     .map(action => [action.actionId || action.id, action])).values()];
 }

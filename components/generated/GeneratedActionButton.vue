@@ -21,6 +21,12 @@ import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { generatedActionLabel } from '~/utils/generated-labels.js';
+import {
+  isCreateAction,
+  isDeleteAction,
+  isRelationLinkAction,
+  isUpdateAction
+} from '~/components/generated/action-visibility.js';
 
 const props = defineProps({
   actionId: { type: String, required: true },
@@ -32,17 +38,18 @@ defineEmits(['execute']);
 
 const authStore = useAuthStore();
 const { t, te } = useI18n();
-const action = computed(() => authStore.actionManifest.find(item => item.actionId === props.actionId));
+const action = computed(() => authStore.actionManifest.find(item => (item.actionId ?? item.id) === props.actionId));
 const actionLabel = computed(() => generatedActionLabel(action.value || {}, props.actionId, { t, te }));
-const actionSeverity = computed(() => action.value?.actionKind === 'deleteEntity' ? 'danger' : 'secondary');
+const actionSeverity = computed(() => isDeleteAction(action.value || {}) ? 'danger' : 'secondary');
 const actionIcon = computed(() => {
-  if (action.value?.relationMutation?.operation === 'link') return 'pi pi-link';
-  if (action.value?.actionKind === 'createEntity') return 'pi pi-plus';
-  if (action.value?.actionKind === 'archiveEntity') return 'pi pi-box';
-  if (action.value?.actionKind === 'deleteEntity') return 'pi pi-trash';
-  if (action.value?.actionKind === 'updateEntity' && action.value?.status?.to) return 'pi pi-arrow-right-arrow-left';
-  if (action.value?.actionKind === 'updateEntity') return 'pi pi-pencil';
-  if (action.value?.actionKind === 'sendToOrganization') return 'pi pi-send';
+  const value = action.value || {};
+  if (isRelationLinkAction(value)) return 'pi pi-link';
+  if (isCreateAction(value)) return 'pi pi-plus';
+  if (value.actionKind === 'archiveEntity') return 'pi pi-box';
+  if (isDeleteAction(value)) return 'pi pi-trash';
+  if (isUpdateAction(value) && value.status?.to) return 'pi pi-arrow-right-arrow-left';
+  if (isUpdateAction(value)) return 'pi pi-pencil';
+  if (value.actionKind === 'sendToOrganization') return 'pi pi-send';
   return 'pi pi-play';
 });
 </script>

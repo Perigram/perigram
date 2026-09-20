@@ -1,0 +1,163 @@
+// SSR smoke for the generated screens page with a projected (CTS-vocabulary)
+// hydration payload: boots the real page SFC through pinia-backed stores and
+// renders one inferred typeList screen to string. Reproduces the renderer
+// choice and the class-level create-button resolution end to end.
+import { describe, expect, it, vi } from 'vitest';
+import { createSSRApp, h, watch } from 'vue';
+import { createRouter, createMemoryHistory } from 'vue-router';
+import { renderToString } from 'vue/server-renderer';
+import { createI18n } from 'vue-i18n';
+import { createPinia, setActivePinia } from 'pinia';
+import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
+import ConfirmService from 'primevue/confirmationservice';
+import Re_L from '~/assets/presets/re_l';
+import ScreensPage from '~/pages/screens/[screenKey].vue';
+import { useAuthStore } from '~/stores/auth';
+
+globalThis.h = h;
+globalThis.watch = watch;
+globalThis.$fetch = vi.fn(async (url) => {
+  if (String(url).startsWith('/api/auth/me')) return hydrationUser();
+  return [];
+});
+globalThis.definePageMeta = () => {};
+globalThis.navigateTo = () => {};
+globalThis.useAuthStore = () => useAuthStore();
+globalThis.useRoute = undefined;
+const router = createRouter({
+  history: createMemoryHistory(),
+  routes: [{ path: '/screens/:screenKey', component: { render: () => null } }]
+});
+router.push('/screens/auto_t-k3x9fj2mqa');
+await router.isReady();
+globalThis.useRouter = () => ({ push: () => {} });
+
+const bundle = {
+  ok: true,
+  organizationId: 'org-1',
+  types: [{
+    id: 't-k3x9fj2mqa',
+    class: 'item',
+    scope: 'org',
+    version: 1,
+    fields: { note: { base: 'string' } },
+    payload: null,
+    edges: {},
+    states: { main: { initial: 'new', values: ['new'], terminal: [] } },
+    transitions: [],
+    operators: {},
+    revisions: [],
+    schema: {},
+    render: { label: 'Job Ticket', icon: 'pi pi-box', preview: 'none', identityField: null, listLayout: null, sortKey: null, groups: [], states: { new: { label: 'New', icon: null, severity: 'info' } } }
+  }]
+};
+
+const projectedAction = {
+  id: 'ctor',
+  label: 'Create Job Ticket new',
+  actionKind: 'createInstance',
+  typeId: 't-k3x9fj2mqa',
+  trigger: { mode: 'manual' },
+  access: { level: 'write', grants: [{ roleId: 'role_op', level: 'write' }] },
+  status: { to: 'new' },
+  construction: { mode: 'genericCreate', inputs: ['name', 'data.note'] },
+  fields: ['name', 'data.note', 'field:identity.name'],
+  actionId: 'ctor',
+  entityType: 't-k3x9fj2mqa',
+  parentEntityType: null,
+  inputPolicy: { prompt: true, fields: [{ id: 'name', type: 'string', prompt: true, required: true }] }
+};
+
+const screens = [
+  {
+    id: 'home_user_a',
+    screenKey: 'home_user_a',
+    label: 'Home',
+    kind: 'home',
+    template: 'home',
+    placement: 'home',
+    route: '/screens/home_user_a',
+    roleIds: ['role_op'],
+    sources: [{ id: 'home_t-k3x9fj2mqa', label: 'Job Ticket', typeId: 't-k3x9fj2mqa', mode: 'list', required: null, filters: {}, lineageBindings: [] }],
+    regions: [{ id: 'home_t-k3x9fj2mqa_section', label: 'Job Ticket', slot: 'main', sourceId: 'home_t-k3x9fj2mqa', surface: 'card', actions: ['ctor'], screenKey: 'auto_t-k3x9fj2mqa', route: '/screens/auto_t-k3x9fj2mqa' }],
+    actions: ['ctor']
+  },
+  {
+    id: 'auto_role_op_t-k3x9fj2mqa',
+    screenKey: 'auto_t-k3x9fj2mqa',
+    label: 'Job Ticket',
+    kind: 'entityList',
+    template: 'typeList',
+    placement: 'hub',
+    typeId: 't-k3x9fj2mqa',
+    route: '/screens/auto_t-k3x9fj2mqa',
+    roleIds: ['role_op'],
+    sources: [{ id: 't-k3x9fj2mqa', label: 'Job Ticket', typeId: 't-k3x9fj2mqa', mode: 'list', required: null, filters: {} }],
+    regions: [{ id: 'main', label: 'Job Ticket', slot: 'main', sourceId: 't-k3x9fj2mqa', surface: 'table', actions: ['ctor'] }],
+    actions: ['ctor']
+  },
+  {
+    id: 'auto_role_op_t-k3x9fj2mqa_detail',
+    screenKey: 'auto_t-k3x9fj2mqa_detail',
+    label: 'Job Ticket',
+    kind: 'entityDetail',
+    template: 'instanceDetail',
+    placement: 'detail',
+    typeId: 't-k3x9fj2mqa',
+    route: '/screens/auto_t-k3x9fj2mqa_detail',
+    roleIds: ['role_op'],
+    sources: [{ id: 't-k3x9fj2mqa', typeId: 't-k3x9fj2mqa', mode: 'single', required: null, identifier: '$screen.scope.entityId', filters: {} }],
+    regions: [{ id: 'main', slot: 'main', sourceId: 't-k3x9fj2mqa', surface: 'detail', actions: [] }],
+    actions: []
+  }
+];
+
+function hydrationUser() {
+  return {
+    userId: 'user_a',
+    organizationId: 'org-1',
+    screens,
+    navigation: [],
+    effectivePermissions: { items: [{ level: 'read' }] },
+    roleAssignments: { actions: [projectedAction] },
+    process: {
+      active: true,
+      bundle,
+      actions: { ctor: projectedAction },
+      producerOutputs: {},
+      lineageBindings: []
+    }
+  };
+}
+
+describe('generated screens page with projected vocabulary', () => {
+  it('renders the typeList screen through the generator with its create action', async () => {
+    setActivePinia(createPinia());
+    const authStore = useAuthStore();
+    await authStore.setUser();
+
+    const i18n = createI18n({
+      legacy: false,
+      missingWarn: false,
+      fallbackWarn: false,
+      messages: { en: {} }
+    });
+    const app = createSSRApp({ render: () => h(ScreensPage) });
+    app.use(i18n);
+    app.use(router);
+    app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
+    app.use(ToastService);
+    app.use(ConfirmService);
+    app.directive('tooltip', { getSSRProps: () => ({}) });
+
+    const html = await renderToString(app);
+    // The generator owns the route (ui-mapping Panel chrome, not the legacy
+    // GeneratedScreen shell) and the class-level create action renders with
+    // the authored class label.
+    expect(html).toContain('Job Ticket');
+    expect(html).toContain('p-panel');
+    expect(html).toContain('Create Job Ticket new');
+    expect(html).not.toContain('t-k3x9fj2mqa');
+  });
+});

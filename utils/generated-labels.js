@@ -1,39 +1,62 @@
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
+import { useRegistryStore } from '~/stores/registry';
+import { isCreateAction, isRelationLinkAction, isUpdateAction } from '~/components/generated/action-visibility.js';
 
 const ENTITY_CONTRACTS_BY_TYPE = new Map(DESIGN_SYSTEM_ENTITY_CONTRACTS.flatMap(entry => [
   [entry.entityType, entry],
   [entry.key, entry]
 ]));
 
+// The authored render label from the CTS client bundle riding auth
+// hydration (the registry store is the runtime consumption contract).
+// Guarded: contexts without an active Pinia (specs, pure utils) keep the
+// deterministic fallbacks below.
+function authoredTypeLabel(entityType = '') {
+  if (!entityType) return '';
+  try {
+    return useRegistryStore().renderOf(entityType).label || '';
+  } catch {
+    return '';
+  }
+}
+
 export function generatedEntityLabel(entityType = '', { t, te } = {}) {
   const key = ENTITY_CONTRACTS_BY_TYPE.get(entityType)?.labelKey;
   if (key && canTranslate(te, key)) return t(key);
-  return humanize(entityType);
+  return authoredTypeLabel(entityType) || humanize(entityType);
 }
 
 export function generatedScreenLabel(screen = {}, { t, te } = {}) {
   if (screen.labelKey && canTranslate(te, screen.labelKey)) return t(screen.labelKey);
   if (screen.template === 'home') return t('generatedScreen.home');
-  if (screen.entityType) return generatedEntityLabel(screen.entityType, { t, te });
+  if (screen.entityType || screen.typeId) return generatedEntityLabel(screen.entityType || screen.typeId, { t, te });
   return meaningfulLabel(screen.label || screen.id || screen.screenKey);
 }
 
 export function generatedRegionLabel(region = {}, source = {}, { t, te } = {}) {
   if (region.labelKey && canTranslate(te, region.labelKey)) return t(region.labelKey);
-  if (source.entityType) return generatedEntityLabel(source.entityType, { t, te });
+  if (source.entityType || source.typeId) return generatedEntityLabel(source.entityType || source.typeId, { t, te });
   return meaningfulLabel(region.label || source.label || region.id || source.id);
 }
 
+function actionTypeOf(action = {}) {
+  return action.entityType || action.typeId || '';
+}
+
+function relationLinkTarget(action = {}) {
+  if (!isRelationLinkAction(action)) return '';
+  return action.relationMutation?.targetType || action.relation?.targetType || '';
+}
+
 export function generatedActionLabel(action = {}, fallback = '', { t, te } = {}) {
-  if (action.actionKind === 'createEntity') return generatedEntityLabel(action.entityType, { t, te }) || fallback;
-  if (action.relationMutation?.operation === 'link' && action.relationMutation.targetType) {
-    return generatedEntityLabel(action.relationMutation.targetType, { t, te }) || fallback;
-  }
+  if (isCreateAction(action)) return generatedEntityLabel(actionTypeOf(action), { t, te }) || fallback;
+  const relationTarget = relationLinkTarget(action);
+  if (relationTarget) return generatedEntityLabel(relationTarget, { t, te }) || fallback;
 
   const explicit = String(action.label || '').trim();
   if (explicit && !isGenericActionLabel(explicit, action)) return explicit;
 
-  if (action.actionKind === 'updateEntity') return action.status?.to ? t('generatedScreen.actions.change') : t('common.edit');
+  if (isUpdateAction(action)) return action.status?.to ? t('generatedScreen.actions.change') : t('common.edit');
   if (action.actionKind === 'runCommand') return meaningfulLabel(action.commandId) || t('generatedScreen.actions.run');
   if (action.actionKind === 'sendToOrganization') return t('generatedScreen.actions.send');
   return fallback || t('common.confirm');

@@ -216,7 +216,13 @@ Discord-style operational shell:
   (`generatedDetailScreenForEntityType`) with the row entity bound as the
   opened parent through `mergeCollectionActionContext`, plus the compiled
   relation Link actions of the detail screen's main region, which execute
-  against the row entity itself. The ellipsis opens a
+  against the row entity itself. Action records are resolved from the
+  user's assignment manifest through the shared kind predicates in
+  `action-visibility.js`, which accept both manifest vocabularies (the
+  projected `createInstance`/`link` + `typeId` records and the legacy
+  exposure kinds); labels come from `utils/generated-labels.js`, which
+  resolves org-authored types by their authored render label through the
+  registry bundle before humanizing. The ellipsis opens a
   popover of menu-item `GeneratedActionButton`s and only renders when the
   row has actions. Nothing is hardcoded per entity type; a row without
   compiled mutations shows no ellipsis.

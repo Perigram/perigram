@@ -180,19 +180,23 @@ function synthesizedDetailScreen(key = '') {
   if (!String(key).endsWith('_detail')) return null;
   const baseKey = String(key).slice(0, -'_detail'.length);
   const base = authStore.screenManifest.find(item => item.screenKey === baseKey);
-  if (!base?.entityType) return null;
-  const sourceId = base.sources?.[0]?.id || base.entityType;
+  const typeId = base?.entityType || base?.typeId;
+  if (!base || !typeId) return null;
+  const sourceId = base.sources?.[0]?.id || typeId;
   const required = base.required || base.sources?.[0]?.required || null;
+  // The synthesized fallback speaks the compiled UI contract vocabulary
+  // (instanceDetail + typeId) so it renders through the generator like the
+  // compiler-paired detail screens it stands in for.
   return {
     ...base,
     id: `${base.id || baseKey}_detail`,
     screenKey: key,
     route: `/screens/${encodeURIComponent(key)}`,
-    template: 'entityDetail',
+    template: 'instanceDetail',
     placement: 'detail',
     sources: [{
       id: sourceId,
-      entityType: base.entityType,
+      typeId,
       mode: 'single',
       required,
       identifier: '$screen.scope.entityId'

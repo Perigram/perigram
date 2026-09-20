@@ -325,9 +325,11 @@ async function resolveIntentTransition({
 function appendProcessStatusActions(actions = [], { auth = {}, entityType = '', primaryState = '' } = {}) {
   const existingTargets = new Set(actions.map(action => `${action.from || ''}->${action.to || ''}`));
   for (const action of auth.roleAssignments?.actions || []) {
-    if (action.actionKind !== 'updateEntity' || !(action.status?.to || action.access?.statusTo)) continue;
+    // The assignment manifest carries the projected UI-contract kinds
+    // (`updateInstance`) beside the legacy exposure fields.
+    if ((action.actionKind !== 'updateEntity' && action.actionKind !== 'updateInstance') || !(action.status?.to || action.access?.statusTo)) continue;
     if ((action.mutation?.fields || []).length || (action.inputPolicy?.fields || []).length) continue;
-    if (normalizeEntityType(action.entityType) !== entityType) continue;
+    if (normalizeEntityType(action.entityType || action.typeId) !== entityType) continue;
     const from = action.status?.from || action.access?.statusFrom || '';
     const to = action.status?.to || action.access?.statusTo || '';
     if (!to) continue;
