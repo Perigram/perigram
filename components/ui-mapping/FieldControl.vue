@@ -172,6 +172,7 @@ import Rating from 'primevue/rating';
 import Slider from 'primevue/slider';
 import OrderList from 'primevue/orderlist';
 import { LAYOUT, resolveFieldControl, CHIP_BUDGET, SUMMARY_BUDGET, applyBudget, formatQuantity, formatValue } from '#shared/ui-mapping/index.js';
+import { designTokens } from '~/assets/tokens/index.js';
 import InstanceChip from './InstanceChip.vue';
 import QuantityInput from './QuantityInput.vue';
 import EnumSelect from './EnumSelect.vue';
@@ -238,13 +239,32 @@ const listHidden = computed(() => {
   const items = Array.isArray(props.modelValue) ? props.modelValue : [];
   return applyBudget(items, SUMMARY_BUDGET).hidden;
 });
+// Meter bars are DOM spans — PrimeVue paints backgroundColor from each
+// item's color, so segments cycle the PrimeVue palette CSS vars (theme
+// reactive in both modes). Chart bars draw on a canvas where CSS
+// variables do not resolve, so charts take concrete colors from the
+// canonical design-token palette source instead.
+const METER_COLORS = Object.freeze([
+  'var(--p-cyan-500)',
+  'var(--p-orange-500)',
+  'var(--p-violet-500)',
+  'var(--p-emerald-500)',
+  'var(--p-blue-500)',
+  'var(--p-pink-500)',
+  'var(--p-amber-500)',
+  'var(--p-teal-500)'
+]);
 const meterSegments = computed(() => {
   const value = props.modelValue;
   if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
   return Object.entries(value)
     .filter(([, entry]) => entry && typeof entry === 'object' && Number.isFinite(entry.value))
     .slice(0, 8)
-    .map(([key, entry]) => ({ label: startCase(key), value: Math.max(0, Math.min(100, entry.value)) }));
+    .map(([key, entry], index) => ({
+      label: startCase(key),
+      value: Math.max(0, Math.min(100, entry.value)),
+      color: METER_COLORS[index % METER_COLORS.length]
+    }));
 });
 const sliderValue = computed(() => {
   const raw = props.modelValue;
@@ -269,11 +289,15 @@ const chartData = computed(() => {
   const entries = Object.entries(value)
     .filter(([, entry]) => entry && typeof entry === 'object' && Number.isFinite(entry.value))
     .slice(0, 10);
+  const primary = designTokens.palette.primary;
   return {
     labels: entries.map(([key]) => startCase(key)),
     datasets: [{
       label: props.descriptor.label || '',
-      data: entries.map(([, entry]) => entry.value)
+      data: entries.map(([, entry]) => entry.value),
+      backgroundColor: primary[400],
+      borderColor: primary[600],
+      borderWidth: 1
     }]
   };
 });
