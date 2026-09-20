@@ -742,7 +742,13 @@ services appear as `cts.service` palette nodes bound to their operator;
 resolution maps the operator to its declared command (the executable twin),
 and ports resolve from the command contract. Unknown operators are
 compile-time diagnostics. Editor registrations surface as chips on file
-type nodes (the types canvas) and on the designer contract.
+type nodes (the types canvas) and on the designer contract, and are served
+with the organization type view (`describeOrganizationTypes`) so app
+surfaces resolve `type → surface + modes` server-driven; the app maps
+surface ids to its editor components in one fixed surface registry instead
+of entity-keyed overload tables. Sheet design binds the editing
+`sheet-design-editor` surface (create/edit), receiving the caller's write
+grant — view-only when the grant is absent.
 
 **Declaration authoring in nodes (§20/§7, landed):** the types surface is a
 node canvas — type/field/state nodes, declares wires, state-to-state

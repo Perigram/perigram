@@ -17,12 +17,17 @@ strangler layer 0 of the designer rebuild (see
   `removeType` deletes org declarations only.
 - `describeOrganizationTypes` returns the compiled client bundle (types,
   states, operators, render policy, JSON Schemas) plus attachment-kind
-  payload traits.
+  payload traits and the composed pack editor bindings (SPEC §21: each
+  mounted pack's `{ type, surface, modes }` records, dependency-ordered by
+  `server/packs/declarations.js`). The editor list is the served half of
+  the type→surface contract; the app maps surface ids to components in
+  [components/generated/file-surfaces](../../../components/generated/README.md).
 
 ## API
 
 `GET /api/admin/cts/types` — merged org view (the designer types pane and
-the process designer's registry read this). `POST /api/admin/cts/types` —
+the process designer's registry read this): compiled types, diagnostics,
+attachment kinds, and pack editor bindings. `POST /api/admin/cts/types` —
 author/evolve a declaration. `DELETE /api/admin/cts/types/:id` — remove an
 org type.
 

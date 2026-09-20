@@ -353,3 +353,15 @@ designer palette does not offer them, and the runtime serves none of
 them. They remain as pack-internal content for the non-process surfaces
 that still import them (editors' feature modules, the legacy UI
 fallbacks) and shrink as those surfaces are deleted.
+
+`cncEditors` is the canonical editor-binding contract of the pack: one
+`{ type, surface, modes }` record per file type that has an authoring
+surface. Cassette binds `cassette-designer` (create/edit), facade design
+binds `facade-designer` (create/edit), and sheet design binds
+`sheet-design-editor` (create/edit) — the editing surface receives the
+instance plus the caller's resolved write grant, exactly like the legacy
+sheet-design detail overload did. The bindings are served with the
+organization type view by the cts-types feature and drive the app's
+generated surface registries through
+[components/generated/file-surfaces](../../components/generated/README.md);
+they must not be restated as entity-keyed maps anywhere else.
