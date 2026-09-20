@@ -32,7 +32,9 @@ describe('random worlds', () => {
       for (const screen of Object.values(world.contract.screens)) {
         const composed = composeScreen(screen, world.contract, world.bundle, pool);
         expect(composed.regions.length, `seed ${seed} ${screen.screenKey}`).toBeGreaterThan(0);
-        if (screen.template === 'instanceDetail') {
+        // The deliberate dangling-scope screen is the one instanceDetail
+        // whose main region resolves no instance (the missing state).
+        if (screen.template === 'instanceDetail' && !screen.screenKey.startsWith('detail_missing_')) {
           const main = composed.regions[0];
           expect(main.surfaceKind).toBe('detail');
           expect(main.instances.length, `seed ${seed} ${screen.screenKey} main instance`).toBeGreaterThan(0);
@@ -72,5 +74,47 @@ describe('random worlds', () => {
     expect(stats.structuralFields).toBeGreaterThan(10);
     expect(stats.nullableRefs).toBeGreaterThan(0);
     expect(stats.lists).toBeGreaterThan(10);
+  });
+});
+
+describe('showcase-reachable contracts in every world', () => {
+  it('ships the authored render vocabulary and full action-kind coverage', () => {
+    for (const seed of SEEDS) {
+      const world = generateUiMappingWorld(seed);
+      const types = world.bundle.types;
+      expect(types.some(type => type.render?.sortKey), `seed ${seed} authored sortKey`).toBe(true);
+      expect(types.some(type => type.render?.listLayout), `seed ${seed} authored listLayout`).toBe(true);
+      expect(types.some(type => Object.values(type.fields).some(field => field.render?.control)), `seed ${seed} authored control`).toBe(true);
+      const kinds = Object.values(world.contract.actions).map(action => action.actionKind);
+      expect(kinds, `seed ${seed} runCommand`).toContain('runCommand');
+      expect(kinds, `seed ${seed} unlink`).toContain('unlink');
+    }
+  });
+
+  it('guarantees the budget thresholds and data-state surfaces', () => {
+    for (const seed of SEEDS) {
+      const world = generateUiMappingWorld(seed);
+      const pool = buildInstancePool(world.instances);
+      // One large collection: virtualization (>50), pagination, toolbar search.
+      expect(world.bundle.types.some(type => world.instances[type.id].length > 50), `seed ${seed} volume type`).toBe(true);
+      // The guaranteed-empty type has a screen whose main region composes empty.
+      const emptyScreen = Object.values(world.contract.screens).find(screen => screen.label?.endsWith('(empty)'));
+      expect(emptyScreen, `seed ${seed} empty screen`).toBeTruthy();
+      expect(composeScreen(emptyScreen, world.contract, world.bundle, pool).regions[0].dataState).toBe('empty');
+      // The dangling-scope detail composes missing.
+      const missingScreen = Object.values(world.contract.screens).find(screen => screen.screenKey.startsWith('detail_missing_'));
+      expect(missingScreen, `seed ${seed} missing screen`).toBeTruthy();
+      expect(composeScreen(missingScreen, world.contract, world.bundle, pool).regions[0].dataState).toBe('missing');
+      // The seeded state matrix assigns only known states to existing sources.
+      for (const [screenKey, states] of Object.entries(world.sourceStatesMatrix || {})) {
+        const screen = world.contract.screens[screenKey];
+        expect(screen, `seed ${seed} matrix screen ${screenKey}`).toBeTruthy();
+        expect(Object.keys(states).length).toBeGreaterThan(0);
+        for (const [sourceId, state] of Object.entries(states)) {
+          expect(screen.sources.some(source => source.id === sourceId), `seed ${seed} matrix source ${sourceId}`).toBe(true);
+          expect(['loading', 'denied', 'error']).toContain(state);
+        }
+      }
+    }
   });
 });

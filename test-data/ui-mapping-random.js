@@ -185,6 +185,18 @@ export function generateUiMappingWorld(seed = 7) {
     const stringField = Object.entries(fields).find(([, descriptor]) => descriptor.base === 'string');
     const render = { label: rnd.word().replace(/^./, character => character.toUpperCase()), icon: `pi pi-${rnd.pick(['circle', 'bolt', 'bookmark', 'box', 'tag', 'star', 'cog', 'send'])}` };
     if (stringField && rnd.chance(0.8)) render.identityField = stringField[0];
+    // Authored render vocabulary: the declared sortKey (default ordering),
+    // the authored listLayout override (occasionally contradicting the
+    // shape-derived layout), and a pinned editor control on a short string
+    // all exercise the declared-beats-derived precedence paths live.
+    const scalars = Object.entries(fields)
+      .filter(([, descriptor]) => ['string', 'number', 'quantity', 'instant', 'enum', 'boolean'].includes(descriptor.base)
+        && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120)));
+    if (scalars.length && rnd.chance(0.5)) render.sortKey = rnd.pick(scalars)[0];
+    if (rnd.chance(0.25)) render.listLayout = rnd.pick(['table', 'card-grid', 'timeline', 'stats', 'list']);
+    const shortString = Object.entries(fields)
+      .find(([name, descriptor]) => descriptor.base === 'string' && !(descriptor.multiline === true || (descriptor.max || 0) >= 120) && name !== render.identityField);
+    if (shortString && rnd.chance(0.3)) shortString[1].render = { control: 'Textarea' };
     if (Object.keys(fields).length > 4 && rnd.chance(0.6)) {
       const names = Object.keys(fields);
       render.groups = Array.from({ length: rnd.rand(1, 3) }, (_, groupIndex) => ({
@@ -196,6 +208,22 @@ export function generateUiMappingWorld(seed = 7) {
     type.render = render;
     return type;
   });
+  // Guarantee at least one authored editor control per world: pin a
+  // Textarea on the first short string, preferring non-identity fields.
+  if (!types.some(type => Object.values(type.fields).some(field => field.render?.control))) {
+    const isShortString = descriptor => descriptor.base === 'string'
+      && !(descriptor.multiline === true || (descriptor.max || 0) >= 120);
+    const host = types.find(type => Object.entries(type.fields).some(([name, descriptor]) => isShortString(descriptor) && name !== type.render?.identityField))
+      || types.find(type => Object.values(type.fields).some(isShortString));
+    const pinned = host && Object.entries(host.fields).find(([name, descriptor]) => isShortString(descriptor)
+      && (name !== host.render?.identityField || Object.values(host.fields).filter(d => isShortString(d)).length === 1));
+    if (pinned) pinned[1].render = { control: 'Textarea' };
+  }
+  // Guarantee at least one authored list-layout override per world.
+  if (!types.some(type => type.render?.listLayout)) {
+    const host = types[types.length - 1];
+    host.render.listLayout = 'timeline';
+  }
 
   // Containment: children edges point forward only (acyclic), groups may
   // hold several child types, any class can be a leaf child.
@@ -230,10 +258,18 @@ export function generateUiMappingWorld(seed = 7) {
 
   // Instances: random counts (some types stay empty), values conform to
   // descriptors, each instance takes at most one random lineage parent.
+  // Budget guarantees, not chances: one file type always carries a large
+  // collection (virtualized table >50, paginated views, toolbar search
+  // past SEARCH_AT, large-size carousel), and one type always stays empty
+  // so the empty-state surface is reachable in every world.
   const instancesByType = {};
+  const fileTypes = types.filter(type => type.class === 'file');
+  const volumeType = fileTypes[0] || types[types.length - 1];
+  const emptyType = types.find(type => type.id !== volumeType.id) || types[0];
   types.forEach(type => {
-    const max = type.class === 'file' ? (rnd.chance(0.25) ? 64 : 20) : 12;
-    instancesByType[type.id] = Array.from({ length: rnd.rand(0, max) }, (_, index) => ({ id: `${type.id}-i${index + 1}`, type: type.id }));
+    const max = type.id === volumeType.id ? 60 : type.class === 'file' ? (rnd.chance(0.25) ? 64 : 20) : 12;
+    const count = type.id === volumeType.id ? max : type.id === emptyType.id ? 0 : rnd.rand(0, max);
+    instancesByType[type.id] = Array.from({ length: count }, (_, index) => ({ id: `${type.id}-i${index + 1}`, type: type.id }));
   });
   const refTargets = {};
   types.forEach(type => {
@@ -323,12 +359,21 @@ export function generateUiMappingWorld(seed = 7) {
       id: `a_delete_${type.id}`, label: `Delete ${type.render.label}`, actionKind: 'deleteInstance', typeId: type.id,
       trigger: { mode: 'manual' }, access: { level: 'admin', grants: [] }
     });
+    addAction(`a_run_${type.id}`, {
+      id: `a_run_${type.id}`, label: `Sync ${type.render.label}`, actionKind: 'runCommand', typeId: type.id,
+      trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
+    });
   });
   populated.forEach(type => {
     const relation = Object.entries(type.edges.relations)[0];
     if (relation) {
       addAction(`a_link_${type.id}`, {
         id: `a_link_${type.id}`, label: 'Link', actionKind: 'link', typeId: type.id,
+        relation: { key: relation[0], targetType: relation[1].types[0], cardinality: relation[1].cardinality || 'array' },
+        trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
+      });
+      addAction(`a_unlink_${type.id}`, {
+        id: `a_unlink_${type.id}`, label: 'Unlink', actionKind: 'unlink', typeId: type.id,
         relation: { key: relation[0], targetType: relation[1].types[0], cardinality: relation[1].cardinality || 'array' },
         trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
       });
@@ -359,15 +404,36 @@ export function generateUiMappingWorld(seed = 7) {
       route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'hub', typeId: type.id,
       required: null, roleIds: ['operator'], scope: {}, bindings: {},
       sources: [{ id: 'main', typeId: type.id, mode: 'list', required: null }],
-      regions: [{ id: 'main', slot: 'main', sourceId: 'main', surface: 'list', actions: [`a_create_${type.id}`, `a_link_${type.id}`].filter(id => actions[id]) }],
+      regions: [{ id: 'main', slot: 'main', sourceId: 'main', surface: 'list', actions: [`a_create_${type.id}`, `a_run_${type.id}`, `a_link_${type.id}`].filter(id => actions[id]) }],
       actions: []
     };
   });
+  // The guaranteed-empty type gets its own list screen so the empty-state
+  // surface (and its region create action) is reachable in every world.
+  if (!actions[`a_create_${emptyType.id}`]) {
+    addAction(`a_create_${emptyType.id}`, {
+      id: `a_create_${emptyType.id}`, label: `New ${emptyType.render.label}`, actionKind: 'createInstance', typeId: emptyType.id,
+      trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
+      construction: { mode: 'generic', inputs: Object.keys(emptyType.fields).slice(0, 3) }
+    });
+  }
+  {
+    const type = emptyType;
+    const key = `list_${type.id}`;
+    screens[key] = {
+      id: key, screenKey: key, label: `${type.render.label} list (empty)`, kind: 'typeList', template: 'typeList',
+      route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'hub', typeId: type.id,
+      required: null, roleIds: ['operator'], scope: {}, bindings: {},
+      sources: [{ id: 'main', typeId: type.id, mode: 'list', required: null }],
+      regions: [{ id: 'main', slot: 'main', sourceId: 'main', surface: 'list', actions: [`a_create_${type.id}`].filter(id => actions[id]) }],
+      actions: []
+    };
+  }
   detailTypes.forEach(type => {
     const key = `detail_${type.id}`;
     const instance = instancesByType[type.id][0];
     const sources = [{ id: 'main', typeId: type.id, mode: 'single', required: null, identifier: '$screen.scope.instanceId' }];
-    const detailActionPool = [`a_create_${type.id}`, `a_stage_${type.id}`, `a_shift_${type.id}`, `a_delete_${type.id}`, `a_link_${type.id}`]
+    const detailActionPool = [`a_create_${type.id}`, `a_stage_${type.id}`, `a_shift_${type.id}`, `a_delete_${type.id}`, `a_run_${type.id}`, `a_link_${type.id}`]
       .filter(id => actions[id]);
     const detailActions = rnd.chance(0.5)
       ? detailActionPool
@@ -382,7 +448,7 @@ export function generateUiMappingWorld(seed = 7) {
     const relation = Object.entries(type.edges.relations)[0];
     if (relation && instancesByType[relation[1].types[0]]?.length) {
       sources.push({ id: 'crel', typeId: relation[1].types[0], mode: 'list', required: null, relation: { sourceId: 'main', key: relation[0] } });
-      regions.push({ id: 'crel', slot: 'children', sourceId: 'crel', surface: 'list', actions: [`a_link_${type.id}`].filter(id => actions[id]) });
+      regions.push({ id: 'crel', slot: 'children', sourceId: 'crel', surface: 'list', actions: [`a_link_${type.id}`, `a_unlink_${type.id}`].filter(id => actions[id]) });
     }
     screens[key] = {
       id: key, screenKey: key, label: `${type.render.label} detail`, kind: 'instanceDetail', template: 'instanceDetail',
@@ -390,6 +456,34 @@ export function generateUiMappingWorld(seed = 7) {
       required: null, roleIds: ['operator'], scope: { instanceId: instance.id }, bindings: {},
       sources, regions, actions: regions.flatMap(region => region.actions)
     };
+  });
+  // One detail screen that resolves no instance: a single-mode source over
+  // the guaranteed-empty type composes the missing-state surface (a
+  // dangling id alone would fall back to the first instance).
+  {
+    const type = emptyType;
+    const key = `detail_missing_${type.id}`;
+    screens[key] = {
+      id: key, screenKey: key, label: `${type.render.label} detail (no record)`, kind: 'instanceDetail', template: 'instanceDetail',
+      route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'detail', typeId: type.id,
+      required: null, roleIds: ['operator'], scope: { instanceId: `${type.id}-none` }, bindings: {},
+      sources: [{ id: 'main', typeId: type.id, mode: 'single', required: null, identifier: '$screen.scope.instanceId' }],
+      regions: [{ id: 'main', slot: 'main', sourceId: 'main', surface: 'detail', actions: [] }],
+      actions: []
+    };
+  }
+
+  // Data-state matrix: seeded assignments the showcase applies on demand
+  // (?state=matrix) so loading skeletons, denied, and error states render
+  // beside the naturally-ready world. One state per screen, distinct
+  // screens, only sources that exist.
+  const stateMatrix = {};
+  const STATES = ['loading', 'denied', 'error'];
+  const matrixScreens = Object.values(screens)
+    .filter(screen => screen.template === 'typeList' && screen.sources.length)
+    .slice(0, STATES.length);
+  matrixScreens.forEach((screen, index) => {
+    stateMatrix[screen.screenKey] = { [screen.sources[0].id]: STATES[index] };
   });
 
   const instances = {};
@@ -401,7 +495,8 @@ export function generateUiMappingWorld(seed = 7) {
     seed,
     bundle: { ok: true, errors: [], organizationId: `org-seed-${seed}`, types },
     contract: { processId: `proc_seed_${seed}`, dataflowVersion: 4, roles: { operator: { id: 'operator', label: 'Operator', grants: [] } }, screens, actions, navigation: [] },
-    instances
+    instances,
+    sourceStatesMatrix: stateMatrix
   };
 }
 
