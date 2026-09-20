@@ -333,13 +333,15 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_project.inputPolicy).toMatchObject({
-      prompt: true,
-      fields: [expect.objectContaining({ path: 'identity.name', type: 'string', prompt: true, required: false })]
-    });
+    // The blocks list is presentation: with no composer wired, the typed
+    // construction inputs prompt beside the identity-name fallback.
+    expect(compiled.actions.create_project.inputPolicy).toMatchObject({ prompt: true });
+    expect(compiled.actions.create_project.inputPolicy.fields).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: 'identity.name', type: 'string', prompt: true, required: false })
+    ]));
   });
 
-  it('keeps non-block construction inputs when generic create consumes blocks', () => {
+  it('keeps typed construction inputs when a create only lists canonical blocks', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,
       producerOutputs: producerOutputRecords([['create_facade', 'facade']]),
@@ -379,6 +381,65 @@ describe('@cutkit/processes compiler', () => {
       }
     });
 
+    // No composer is wired: the canonical block list never implies
+    // composition, so every typed input prompts.
+    expect(compiled.actions.create_facade.construction.inputs.map(input => input.id)).toEqual(['name', 'customLabel']);
+  });
+
+  it('suppresses canonical-block inputs only when a composer is actually wired', () => {
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      producerOutputs: producerOutputRecords([['create_facade', 'facade']]),
+      processNodes: {
+        compose_identity: {
+          id: 'compose_identity',
+          kind: 'record.composeBlock',
+          block: 'identity',
+          fields: ['identity.name'],
+          inputDefaults: { 'identity.name': 'Facade' }
+        },
+        create_facade: {
+          id: 'create_facade',
+          kind: 'effect.createEntity',
+          entityType: 'facade',
+          producerOutputId: 'create_facade:entity',
+          trigger: { mode: 'manual' },
+          construction: { mode: 'genericCreate' },
+          blocks: ['identity', 'lineage'],
+          status: { to: SOURCE_STATE }
+        }
+      },
+      graph: {
+        nodes: [
+          { id: 'compose_identity', type: 'processNode', data: { refId: 'compose_identity' } },
+          { id: 'create_facade', type: 'processNode', data: { refId: 'create_facade' } }
+        ],
+        edges: [
+          { id: 'identity-block', source: 'compose_identity', sourceHandle: 'data:block', target: 'create_facade', targetHandle: 'data:identity', role: 'data' }
+        ]
+      }
+    }, {
+      ...domain,
+      entities: [...domain.entities, { type: 'facade' }],
+      fieldSchemas: {
+        ...domain.fieldSchemas,
+        facade: domain.fieldSchemas.queue
+      },
+      construction: {
+        ...domain.construction,
+        facade: {
+          modes: ['genericCreate'],
+          defaultMode: 'genericCreate',
+          inputs: [
+            { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
+            { id: 'customLabel', path: 'customLabel', type: 'string', required: false, prompt: true }
+          ]
+        }
+      }
+    });
+
+    // The wired identity composer owns the canonical content: the name
+    // input is suppressed, non-block inputs stay.
     expect(compiled.actions.create_facade.construction.inputs).toEqual([
       expect.objectContaining({ id: 'customLabel', type: 'string', prompt: true })
     ]);
