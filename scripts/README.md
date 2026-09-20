@@ -114,6 +114,15 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   the tech-drawing palette colors (§3 system instances in the `files`
   collection; `seed-palette-colors.js` upserts by code, `--apply` to
   persist).
+- `server/scripts/migrate-construction-modes.js`: Persists the
+  construct-mode hygiene re-bind into stored process definitions — create
+  nodes whose mode the type no longer declares are rewritten to the
+  type's current default through the same acceptance seam the server
+  uses (org declaration overlay included). Dry-run reports; `--apply`
+  persists. Definitions whose drafts fail strict acceptance (unbound
+  experimental types) are reported, not touched. Dev-stack runs need the
+  host-mapped Mongo with `?directConnection=true` (the replSet advertises
+  its internal hostname).
 - `test-*.js`, `debug_*.js`, `check-data.js`, `check-jobs.js`: Manual
   diagnostics for local database, auth, jobs, and data shape investigations.
 
