@@ -277,6 +277,10 @@ generator (`composeScreen` + the ui-mapping registry) over the
 CTS-vocabulary UI contract and the client bundle — a structural preview
 with an empty instance pool; the runtime data layer is the screens-route
 renderer's concern (see [`TODO-process-designer.md`](../../TODO-process-designer.md)).
+The preview lowers the authored snapshot through the same graph-protocol
+acceptance seam the server uses (`prepareAuthoredDefinition`) before
+compiling, so `cts.*` species records drive actions, grants, and inferred
+screens exactly as they do at validate/apply.
 
 ## Node cards and sockets
 
