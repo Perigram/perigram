@@ -43,7 +43,10 @@ tree), and action runs dispatch to the process run API through the same
 store. Collection identities are link buttons: `onOpen` routes to the
 compiler-paired detail screen (`auto_<type>_detail`) with the instance id
 in the route scope, silently staying put when the user manifest carries no
-paired detail screen; per-card quick actions run through the same store
+paired detail screen; when the manifest carries the list screen but not its
+pair, the route synthesizes the detail in the same projected vocabulary so
+it still renders through the generator. Per-card quick actions run through
+the same store
 with the card instance as the target entity. System
 screens (organization overview/account era templates) keep the legacy fixed
 renderer until they migrate, including the compiler-synthesized `home`

@@ -270,6 +270,12 @@ contract, and the command runtime debits the active organization's billing
 account after successful command execution. Token package prices stay outside
 process definitions in runtime billing configuration.
 At runtime this resolved view is the organization's active access source.
+The per-user action manifest entries are the projected UI-contract records
+(`id`, `actionKind`, `typeId`, thin `construction`/`fields`) with the rich
+exposure fields — `actionId`, `entityType`, parent context, prompt
+`inputPolicy`, relation mutation — riding along under their legacy keys; the
+projected keys stay authoritative, so one record serves the generator, the
+legacy renderer surfaces, and the server manifest consumers.
 When an assignment contains multiple role ids, generated and authored screens
 from every selected role are merged into that user's screen manifest. Explicit
 screen records that name several roles still compile to one shared screen key;
@@ -312,7 +318,14 @@ action availability uses the same
 status-scoped access window as grants: a status-mutating update action with
 unmodified access inherits role-level grants from the incoming action output,
 so a status step placed after a create step appears for users who received
-access to the created state. For status-mutating updates, run availability is
+access to the created state. A manual root create with no incoming window and
+no authored action roles of its own inherits its producer output's create
+rights: write/admin `allowedRoles` on the producer open the created-status
+window, so granting create rights on the type's producer surfaces the
+class-level create action even when the action record itself was never
+granted explicitly. Compiled manifest action labels resolve the target
+entity's authored render label through the domain projection — raw type ids
+never reach button captions. For status-mutating updates, run availability is
 derived from the incoming entity window: roles with write/admin access to the
 current state can execute the transition, while the action's grant rows define
 access after the target state is reached. The compiled workflow transition uses those same

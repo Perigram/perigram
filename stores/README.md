@@ -128,7 +128,11 @@ process vocabulary; none may gain new consumers.
 - `navigation.js` owns route breadcrumbs. SSR callers must pass request
   headers through `fetchRouteHierarchy(path, query, fetchOptions)` so
   protected lookups use the same session cookie as auth middleware.
-  Breadcrumb sibling options normalize canonical DTO labels before passing
+  Detail-screen detection accepts both template vocabularies
+  (`entityDetail` and the projected `instanceDetail`) and reads the screen
+  type from `entityType` or `typeId`, so compiled process manifests keep
+  detail screens out of hub siblings and breadcrumbs after the UI-contract
+  cutover. Breadcrumb sibling options normalize canonical DTO labels before passing
   them to PrimeVue Select.
   When auth includes an active process, hubs and breadcrumbs are built only from
   the compiled process screen manifest plus the active permission evaluator, so
