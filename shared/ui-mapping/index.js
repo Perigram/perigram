@@ -310,6 +310,42 @@ export function applyBudget(items = [], budget = null) {
   });
 }
 
+// toolbarVisibleFor(node): the collection toolbar appears on list regions
+// past SEARCH_AT, or whenever a multi-value enum facet exists. Identity
+// search always functions (instanceIdentity falls back to the id), so the
+// bar is never gated on the descriptor vocabulary alone — a type with no
+// short strings and no enums still earns search on large collections,
+// while a small enum-heavy collection still earns its facet selects.
+export function toolbarVisibleFor(node = {}) {
+  if (node.surfaceKind !== 'list') return false;
+  const controls = node.listControls || {};
+  const rows = Array.isArray(node.instances) ? node.instances.length : 0;
+  if (rows > SEARCH_AT) return true;
+  return (controls.facets || []).some(facet => (facet.values || []).length > 1);
+}
+
+// instanceMatchesToolbar(type, controls, instance, query, facetSelections):
+// identity-plus-fields substring match combined with exact facet matches.
+// Empty queries and empty selections are no-ops, so an untouched toolbar
+// never filters anything out.
+export function instanceMatchesToolbar(type = {}, controls = {}, instance = {}, query = '', facetSelections = {}) {
+  const normalized = String(query || '').trim().toLowerCase();
+  if (normalized) {
+    const haystack = [
+      ...((controls.searchKeys || [])
+        .map(key => instance.fields?.[key])
+        .filter(value => typeof value === 'string')),
+      instanceIdentity(type, instance)
+    ].join(' ').toLowerCase();
+    if (!haystack.includes(normalized)) return false;
+  }
+  for (const [name, expected] of Object.entries(facetSelections || {})) {
+    if (expected === null || expected === undefined || expected === '') continue;
+    if (String(instance.fields?.[name] ?? '') !== String(expected)) return false;
+  }
+  return true;
+}
+
 // sortControlRows(rows, key, order): client-side ordering over the
 // list-controls `sortKeys` shape (`{ name, base }`) — the same semantics
 // for every surface that sorts without PrimeVue (cards, timelines):

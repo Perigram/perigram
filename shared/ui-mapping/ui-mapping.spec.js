@@ -29,6 +29,8 @@ import {
   resolveInstanceActions,
   sortControlRows,
   pageSlice,
+  toolbarVisibleFor,
+  instanceMatchesToolbar,
   typeLabelKey,
   fieldLabelKey,
   actionLabelKey,
@@ -552,5 +554,51 @@ describe('per-instance quick actions', () => {
     expect(resolveInstanceActions(actions, null)).toEqual([]);
     expect(resolveInstanceActions({}, 'document')).toEqual([]);
     expect(resolveInstanceActions({ broken: null }, 'document')).toEqual([]);
+  });
+});
+
+describe('toolbar visibility and matching', () => {
+  const type = {
+    id: 'gear', class: 'item',
+    fields: { code: { base: 'string' }, size: { base: 'quantity', unit: 'mm' } },
+    render: { identityField: 'code' }
+  };
+  const rows = count => Array.from({ length: count }, (_, i) => ({
+    id: `g${i + 1}`, type: 'gear', fields: { code: `G-${i + 1}`, size: { value: i, unit: 'mm' } }
+  }));
+
+  it('shows on large collections even with no search keys or facets', () => {
+    const bare = { surfaceKind: 'list', instances: rows(20), listControls: { searchKeys: [], sortKeys: [], facets: [], defaultSort: null } };
+    expect(toolbarVisibleFor(bare)).toBe(true);
+  });
+
+  it('shows on small collections only through a multi-value facet', () => {
+    const single = rows(3);
+    const oneValue = { surfaceKind: 'list', instances: single, listControls: { searchKeys: [], sortKeys: [], facets: [{ name: 'grade', label: 'Grade', values: ['a'] }] } };
+    const multi = { surfaceKind: 'list', instances: single, listControls: { searchKeys: [], sortKeys: [], facets: [{ name: 'grade', label: 'Grade', values: ['a', 'b'] }] } };
+    expect(toolbarVisibleFor(oneValue)).toBe(false);
+    expect(toolbarVisibleFor(multi)).toBe(true);
+  });
+
+  it('never shows off list surfaces or without a composed tree', () => {
+    expect(toolbarVisibleFor({ surfaceKind: 'detail', instances: rows(20) })).toBe(false);
+    expect(toolbarVisibleFor({ surfaceKind: 'list', instances: rows(20) })).toBe(true);
+    expect(toolbarVisibleFor()).toBe(false);
+  });
+
+  it('matches identity fallback (id) when no field matches', () => {
+    const controls = resolveListControls(type, rows(2));
+    const instance = { id: 'mystery-9', type: 'gear', fields: {} };
+    expect(instanceMatchesToolbar(type, controls, instance, 'mystery')).toBe(true);
+    expect(instanceMatchesToolbar(type, controls, instance, 'zzz')).toBe(false);
+    expect(instanceMatchesToolbar(type, controls, rows(2)[0], 'g-1')).toBe(true);
+  });
+
+  it('matches facets exactly and ignores empty selections', () => {
+    const instance = { id: 'g1', type: 'gear', fields: { grade: 'a' } };
+    expect(instanceMatchesToolbar(type, {}, instance, '', { grade: 'a' })).toBe(true);
+    expect(instanceMatchesToolbar(type, {}, instance, '', { grade: 'b' })).toBe(false);
+    expect(instanceMatchesToolbar(type, {}, instance, '', { grade: '' })).toBe(true);
+    expect(instanceMatchesToolbar(type, {}, instance, '', { grade: null })).toBe(true);
   });
 });
