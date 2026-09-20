@@ -26,18 +26,22 @@ describe('documents pack declarations', () => {
       'pdf-document': 'pdf',
       'text-document': 'text',
       'csv-table': 'table',
-      'svg-file': 'svg',
-      'dxf-source': 'dxf',
       'xlsx-workbook': 'workbook',
       'docx-document': 'docx'
     });
   });
 
+  it('keeps drawing/CAD formats out of the office/media pack', () => {
+    const ids = documentsTypes.map(type => type.id);
+    expect(ids).not.toContain('dxf-source');
+    expect(ids).not.toContain('svg-file');
+  });
+
   it('restricts payload traits to the declared document kinds', () => {
     const text = documentsTypes.find(type => type.id === 'text-document');
     expect(text.payload).toMatchObject({ mime: ['text/plain'], maxSize: 10 * 1024 * 1024 });
-    const dxf = documentsTypes.find(type => type.id === 'dxf-source');
-    expect(dxf.payload).toMatchObject({ mime: ['application/dxf'], maxSize: 50 * 1024 * 1024 });
+    const image = documentsTypes.find(type => type.id === 'image');
+    expect(image.payload).toMatchObject({ mime: ['image/jpeg', 'image/png'], maxSize: 25 * 1024 * 1024 });
   });
 
   it('declares revision scopes only for editor-replaceable types', () => {

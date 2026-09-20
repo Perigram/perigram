@@ -1,7 +1,8 @@
 // The documents pack's declaration data (SPEC §21): browser-safe, no
-// server imports. The generic document/media file types — the
+// server imports. The generic media/office file types — the
 // payload-trait replacements for the artifact kind registry's common
-// kinds. Mounting is by composition in server/packs/declarations.js.
+// kinds. Drawing/CAD formats (DXF, SVG) live in @perigram/tech-drawing.
+// Mounting is by composition in server/packs/declarations.js.
 
 const MB = 1024 * 1024;
 
@@ -55,24 +56,6 @@ export const documentsTypes = Object.freeze([
     icon: 'pi pi-table',
     label: 'CSV table',
     revisions: 'content'
-  }),
-  documentType({
-    id: 'svg-file',
-    mime: ['image/svg+xml'],
-    accept: ['.svg', 'image/svg+xml'],
-    maxSize: 10 * MB,
-    preview: 'svg',
-    icon: 'pi pi-code',
-    label: 'SVG file'
-  }),
-  documentType({
-    id: 'dxf-source',
-    mime: ['application/dxf'],
-    accept: ['.dxf', 'application/dxf'],
-    maxSize: 50 * MB,
-    preview: 'dxf',
-    icon: 'pi pi-objects-column',
-    label: 'DXF source'
   }),
   documentType({
     id: 'xlsx-workbook',

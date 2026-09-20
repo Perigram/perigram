@@ -26,6 +26,35 @@ describe('tech-drawing pack declarations', () => {
     });
   });
 
+  it('declares the color catalog and the pen palette relation', () => {
+    const registry = createTypeRegistry({ id: 'spec-tech-drawing-color' });
+    for (const declaration of techDrawingTypes) registry.defineType(declaration);
+    const pen = registry.getType('pen-template');
+    expect(pen.edges.relations.palette).toMatchObject({
+      types: ['color'],
+      onRemove: 'detach'
+    });
+    const color = registry.getType('color');
+    expect(color).toMatchObject({ class: 'file', scope: 'system' });
+    expect(Object.keys(color.fields)).toEqual(['code', 'name', 'hex']);
+  });
+
+  it('homes the drawing exchange formats with preview modes', () => {
+    const registry = createTypeRegistry({ id: 'spec-tech-drawing-formats' });
+    for (const declaration of techDrawingTypes) registry.defineType(declaration);
+    expect(registry.getType('dxf-source').payload).toMatchObject({
+      mime: ['application/dxf'],
+      maxSize: 50 * 1024 * 1024,
+      preview: 'dxf'
+    });
+    expect(registry.getType('svg-file').payload).toMatchObject({
+      mime: ['image/svg+xml'],
+      preview: 'svg'
+    });
+    const ids = techDrawingTypes.map(type => type.id);
+    expect(ids).toEqual(expect.arrayContaining(['pen-template', 'layer-standard', 'color', 'dxf-source', 'svg-file', 'sketch']));
+  });
+
   it('typechecks pen stroke values against the declared row', () => {
     expect(checkValue({
       base: 'record',

@@ -20,7 +20,62 @@ const penTemplate = Object.freeze({
       }
     }
   },
+  edges: {
+    relations: {
+      // Catalog inks: the R2-legal home for color-catalog references
+      // (arbitrary ink stays the stroke.color hex literal).
+      palette: { types: ['color'], onRemove: 'detach' }
+    }
+  },
   render: { label: 'Pen template', icon: 'pi pi-pencil' }
+});
+
+// The drawing palette catalog (SPEC §3 system-instance pattern):
+// `code` is the org-shadow key. The legacy material-`color` entity
+// (catalog children with textures) is a different domain concern and
+// re-declares under the materials domain later, under its own id.
+const color = Object.freeze({
+  id: 'color',
+  class: 'file',
+  scope: 'system',
+  fields: {
+    code: { base: 'string' },
+    name: { base: 'string' },
+    hex: { base: 'string', render: { control: 'ColorPicker' } }
+  },
+  render: { label: 'Color', icon: 'pi pi-palette' }
+});
+
+// The CAD drawing exchange document — drawing vocabulary, home is here
+// (the nesting/cassette pipelines consume it as their drawing input).
+const dxfSource = Object.freeze({
+  id: 'dxf-source',
+  class: 'file',
+  scope: 'system',
+  payload: {
+    mime: ['application/dxf'],
+    accept: ['.dxf', 'application/dxf'],
+    maxSize: 50 * 1024 * 1024,
+    preview: 'dxf'
+  },
+  fields: { name: { base: 'string' } },
+  render: { label: 'DXF source', icon: 'pi pi-objects-column' }
+});
+
+// The vector drawing document, kept with the vector-drawing family for
+// drawing-canvas coherence.
+const svgFile = Object.freeze({
+  id: 'svg-file',
+  class: 'file',
+  scope: 'system',
+  payload: {
+    mime: ['image/svg+xml'],
+    accept: ['.svg', 'image/svg+xml'],
+    maxSize: 10 * 1024 * 1024,
+    preview: 'svg'
+  },
+  fields: { name: { base: 'string' } },
+  render: { label: 'SVG file', icon: 'pi pi-code' }
 });
 
 const layerStandard = Object.freeze({
@@ -74,7 +129,7 @@ const sketch = Object.freeze({
   render: { label: 'Sketch', icon: 'pi pi-pencil' }
 });
 
-export const techDrawingTypes = Object.freeze([penTemplate, layerStandard, sketch]);
+export const techDrawingTypes = Object.freeze([penTemplate, layerStandard, color, dxfSource, svgFile, sketch]);
 
 // Editor bindings (SPEC §21): the sketch surface edits existing scenes —
 // creation is first-save on a payload-less instance, so no create mode
