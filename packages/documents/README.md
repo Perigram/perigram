@@ -1,11 +1,13 @@
 # COMPONENT: @perigram/documents
 
-The documents reference pack (SPEC §21): the generic document/media file
+The documents reference pack (SPEC §21): the generic media/office file
 types as declarations — the payload-trait replacements for the artifact
 kind registry's common kinds. Pure, browser-safe declaration data;
 mounting is by composition — the pack appears in
 [server/packs/declarations.js](../../server/packs/declarations.js) and
-carries no service bindings.
+carries no service bindings. Drawing/CAD formats (DXF, SVG) are NOT
+here — they are tech-drawing vocabulary
+([@perigram/tech-drawing](../tech-drawing/README.md)).
 
 ## Types
 
@@ -20,8 +22,6 @@ preview contract in
 | `pdf-document` | `application/pdf` (25 MB) | `pdf` | |
 | `text-document` | `text/plain` (10 MB) | `text` | `revisions: 'content'` — editor-replaceable through the `text-editor` surface |
 | `csv-table` | `text/csv` (10 MB) | `table` | `revisions: 'content'` — editor-replaceable through the `csv-editor` surface |
-| `svg-file` | `image/svg+xml` (10 MB) | `svg` | |
-| `dxf-source` | `application/dxf` (50 MB) | `dxf` | the raw drawing exchange document |
 | `xlsx-workbook` | spreadsheet xlsx (25 MB) | `workbook` | |
 | `docx-document` | wordprocessing docx (25 MB) | `docx` | |
 

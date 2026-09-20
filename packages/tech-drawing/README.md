@@ -1,10 +1,12 @@
 # COMPONENT: @perigram/tech-drawing
 
-The technical-drawing reference pack (SPEC §21): the OCCS/DXF drawing
-vocabulary as declarations — pen templates and layer standards. Pure,
+The technical-drawing reference pack (SPEC §21): the drawing/CAD
+vocabulary as declarations — pen templates, layer standards, the color
+catalog, the freehand sketch, and the drawing exchange formats. Pure,
 browser-safe declaration data; mounting is by composition — the pack
-appears in [server/packs/declarations.js](../../server/packs/README.md)
-and carries no service bindings.
+appears in [server/packs/README.md](../../server/packs/README.md)
+and carries no service bindings. The CNC pack `requires` it; any other
+fabrication domain (laser, vinyl, plotter) can require it without CNC.
 
 ## Types
 
@@ -12,13 +14,31 @@ and carries no service bindings.
   `color` (hex string; the color-picker is render policy, not a value
   base), `weight: Quantity(mm)`, `pattern: Enum(solid|dashed|dotted)`.
   Replaceable reference values; no payload, no lifecycle beyond
-  `archivable`.
+  `archivable`. Catalog inks are not strings: the declared
+  `palette: [color]` relation (`onRemove: detach`) is the R2-legal home
+  for references into the color catalog, while `stroke.color` remains
+  the arbitrary-ink literal.
 - `layer-standard` (file class): `code` (the shadow key for org
   overrides), `category`, `group`, `kind`, `purpose`, `description`,
   `production`, `allowedGeometry`, `aliases`, `parameters`,
   `parameterSchema`, `defaultExport`, `i18n`, `source` — and the
   declared relation `defaultPen: one pen-template` (`onRemove:
   restrict`), the R2-legal home of the legacy `defaultPenId`.
+- `color` (file class): the drawing palette catalog — `code` (the
+  org-shadow key), `name`, `hex`. Seeded as §3 system instances
+  (`organizationId: null`) by
+  `server/scripts/seed-palette-colors.js`; org customization shadows by
+  `code`. The legacy material-`color` entity (catalog children with
+  texture URLs) is a different domain concern and re-declares under the
+  materials domain later, under its own id.
+- `dxf-source` (file class): the CAD drawing exchange document —
+  `application/dxf` payload (50 MB), preview mode `dxf` (renders through
+  the shared drawing canvas). Home is here, not in documents: DXF is
+  drawing vocabulary, and the nesting/cassette pipelines consume it as
+  their drawing input.
+- `svg-file` (file class): the vector drawing document —
+  `image/svg+xml` payload (10 MB), preview mode `svg`. Kept with the
+  vector-drawing family for drawing-canvas coherence.
 - `sketch` (file class): freehand annotation scenes — the draw-over-image
   document (`{ version, background: { fileId, url } | null, strokes: [...] }`,
   the scene contract owned by `utils/sketch.js`). Payload is the JSON

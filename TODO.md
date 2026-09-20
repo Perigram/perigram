@@ -2,7 +2,47 @@
 
 ## Integrations
 
-- [ ] **Documents pack: generic file types + text/csv editor surfaces.**
+- [ ] **Drawing vocabulary completes in tech-drawing: color type,
+  palette edge, DXF/SVG homes.** Fifth slice — corrects the documents
+  misfiling and gives colors/pens/layer standards their declared places
+  (framework core stays domain-free; `domain-cnc` only shrinks).
+  - `dxf-source` and `svg-file` move from the documents pack to
+    tech-drawing (drawing/CAD vocabulary, not office documents); the
+    documents pack keeps media/office types only.
+  - `color` joins tech-drawing as a file-class catalog type
+    (`code` shadow key, `name`, `hex`), seeded as §3 system instances
+    (`organizationId: null`) through `server/scripts/seed-palette-colors.js`
+    (registered in seed-all). The legacy material-`color` entity (catalog
+    children with textures) is a different concern: it re-declares under
+    the materials domain later, under its own id.
+  - `pen-template` declares the `palette: [color]` relation
+    (`onRemove: detach`) — the R2-legal home for catalog-ink references;
+    arbitrary ink stays the `stroke.color` hex string with ColorPicker
+    render policy.
+  - Deferred (tracked): generateAttachment/convertArtifact operator
+    declarations; chat/proof/capture/upload flow migration; payload
+    upload creator; artifact overload cut.
+  ### Agent Notes — 2026-09-20
+  Implemented in `agent/cts-tech-drawing-20260920`. `dxf-source` and
+  `svg-file` moved from documents to tech-drawing (documents is
+  office/media only — checked by a spec that rejects drawing ids);
+  `color` declared (code/name/hex, ColorPicker render policy on hex) with
+  pen-template gaining the `palette: [color]` relation (`onRemove:
+  detach` — catalog inks are edges, arbitrary ink stays the
+  `stroke.color` string). Seeds: `server/scripts/seed-palette-colors.js`
+  writes §3 system instances (`organizationId: null`) into `files`,
+  upserting by code, registered in seed-all. Nothing entered
+  `domain-cnc`. Direction decision recorded after challenge: framework
+  core stays domain-free (framework-flagged types are excluded from the
+  domain projection, so catalogs in core would vanish from screens;
+  org-shadowing exists only for pack system instances); tech-drawing is
+  the reusable drawing-vocabulary layer that fabrication domains
+  require — it neither merges into core nor into CNC.
+  Validation: documents/tech-drawing/generated/cts-types/instances
+  suites (114), localization, arch guard, docs guard,
+  framework:validate, SSR smoke — all pass. Status: WAITING.
+
+- [x] **Documents pack: generic file types + text/csv editor surfaces.**
   Fourth slice of the entity-category cut (SPEC §21) — payload traits
   replace the artifact kind registry for common document/media kinds.
   - New `@perigram/documents` pack declares the generic file types with

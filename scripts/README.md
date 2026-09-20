@@ -110,7 +110,10 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   migration. Rewrites legacy multi-vertex sketch fillets and normalized OCCS
   snapshots into per-corner `{ vertexId, radius }` fillet modifiers. Supports
   `--dry-run`.
-- `seed-*.js`: Local seed helpers for layer standards and tool profiles.
+- `seed-*.js`: Local seed helpers for layer standards, tool profiles, and
+  the tech-drawing palette colors (§3 system instances in the `files`
+  collection; `seed-palette-colors.js` upserts by code, `--apply` to
+  persist).
 - `test-*.js`, `debug_*.js`, `check-data.js`, `check-jobs.js`: Manual
   diagnostics for local database, auth, jobs, and data shape investigations.
 
