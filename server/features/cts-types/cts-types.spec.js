@@ -130,6 +130,37 @@ describe('cts type storage', () => {
     expect(repository.upsertByTypeId).toHaveBeenCalled();
   });
 
+  it('stores valid writes beside a broken stored declaration; refuses only errors the write introduces', async () => {
+    // The repair sequence an org in the wild hits: a broken stored type
+    // (obligation-invalid) poisons the whole-view compile, but that must
+    // not block OTHER valid writes — the write gate refuses only the
+    // errors the candidate itself introduces.
+    const broken = { id: 'yu', class: 'file', scope: 'org', organizationId: ORG, version: 1,
+      fields: { note: { base: 'string' } },
+      edges: { children: { parts: { types: ['t-child-1'] } } } };
+    repository.listByOrganization.mockResolvedValue([broken]);
+    repository.findByTypeId.mockImplementation(async (orgId, typeId) => (
+      typeId === 'yu' ? broken : null
+    ));
+
+    // A valid new type lands even though the stored view carries YU's
+    // obligation error.
+    const child = await defineType(
+      { id: 't-child-1', class: 'file', fields: { note: { base: 'string' } } },
+      { organizationId: ORG }
+    );
+    expect(child.id).toBe('t-child-1');
+    expect(repository.upsertByTypeId).toHaveBeenCalled();
+
+    // A candidate that introduces its OWN error is still refused.
+    repository.upsertByTypeId.mockClear();
+    await expect(defineType(
+      { id: 't-empty-1', class: 'file', fields: {} },
+      { organizationId: ORG }
+    )).rejects.toThrow(/file requires payload or fields/);
+    expect(repository.upsertByTypeId).not.toHaveBeenCalled();
+  });
+
   it('refuses shadowing a system type', async () => {
     await expect(defineType(
       { id: 'cassette', class: 'file', fields: { rogue: { base: 'string' } } },

@@ -80,12 +80,16 @@ export async function defineType(declaration = {}, { organizationId } = {}) {
 
   // Validate the whole org view BEFORE persisting: defineType applies the
   // refuse-on-breaking diff (SPEC §11) and bumps the version, then the
-  // compile checks class obligations and cross-type references. A write
-  // that fails either gate must never touch the stored declaration — the
+  // compile gate refuses the errors the WRITE ITSELF INTRODUCES (class
+  // obligations, cross-type references caused by the candidate). A write
+  // that fails its gate must never touch the stored declaration — the
   // previous upsert-first order replaced a valid stored type with an
-  // invalid one and wedged every later write in the org (each compiles the
-  // same broken view). The registry is in-memory here; persistence happens
-  // only after the view compiles clean.
+  // invalid one and wedged every later write in the org. Pre-existing view
+  // errors (a historically stored invalid declaration awaiting repair)
+  // block nothing but their own repair: an org with one such type can
+  // still store valid writes around it, which is what un-wedges it.
+  const baseline = registry.compile(organizationId);
+  const baselineErrors = new Set(baseline.ok ? [] : baseline.errors);
   let versioned;
   try {
     versioned = registry.defineType(orgDeclaration);
@@ -98,8 +102,9 @@ export async function defineType(declaration = {}, { organizationId } = {}) {
   } catch (error) {
     to400(error);
   }
-  if (!compiled.ok) {
-    throw createError({ statusCode: 400, message: compiled.errors.join('; ') });
+  const introduced = (compiled.errors || []).filter(error => !baselineErrors.has(error));
+  if (introduced.length) {
+    throw createError({ statusCode: 400, message: introduced.join('; ') });
   }
 
   invalidateInstanceDeclarations(String(organizationId));
