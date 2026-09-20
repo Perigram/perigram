@@ -54,6 +54,7 @@ import {
 import {
   assertCurrentProcessDefinition,
   currentProcessDefinition,
+  tryAcceptGraphProtocol,
   validateActivatableProcess
 } from './compiler-adapter.js';
 import { migrateProducerOutputIdentities } from '~/packages/processes/src/index.js';
@@ -1791,7 +1792,11 @@ function persistedRewrites(data, domain) {
   if (migration.errors.length) {
     throw createError({ statusCode: 400, message: migration.errors.join('; '), data: { errors: migration.errors } });
   }
-  currentProcessDefinition(migration.data, domain);
+  assertCurrentProcessDefinition(migration.data);
+  // Binding diagnostics stay authored at the save boundary; validate/apply
+  // own the report, so a draft with access rules on a still-unbound node
+  // remains savable.
+  tryAcceptGraphProtocol(migration.data, domain);
   return migration.data;
 }
 

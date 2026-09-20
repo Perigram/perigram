@@ -184,9 +184,38 @@ describe('current process-definition service contract', () => {
     }));
 
     const validation = await validate('process-draft', adminAuth());
-    console.log("VALIDATION ERRORS:", JSON.stringify(validation.errors));
     expect(validation.ok).toBe(true);
     expect(validation.errors || []).toEqual([]);
+  });
+
+  it('saves a v5 draft with access rules on a still-unbound node; validate reports the binding diagnostic', async () => {
+    // Save-time acceptance is binding-tolerant: access rules on a node whose
+    // field binding is not finished must not make the draft unsavable — the
+    // diagnostic belongs to validate/apply.
+    const roleId = PERSISTED_ACCEPTANCE_IDS.role;
+    const authored = {
+      schemaVersion: 1,
+      dataflowVersion: PROCESS_DATAFLOW_VERSION,
+      graph: { nodes: [{ id: 'f1', type: 'processNode', data: { refId: 'f1' } }], edges: [] },
+      roleGrants: {},
+      producerOutputs: {},
+      actions: {}, services: {}, sockets: {}, screens: {},
+      processNodes: {
+        f1: {
+          id: 'f1', kind: 'cts.field', typeId: 'facade', path: 'rogue',
+          access: { level: 'read', grants: [{ roleId, level: 'read' }] }
+        }
+      }
+    };
+    processRepository.findById.mockResolvedValue(draftRecord(structuredClone(authored)));
+    processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
+
+    const saved = await update('process-draft', { data: authored }, adminAuth());
+    expect(saved.data.processNodes.f1.access.grants).toEqual([{ roleId, level: 'read' }]);
+
+    // The binding diagnostic still surfaces at the validate boundary.
+    await expect(validate('process-draft', adminAuth()))
+      .rejects.toMatchObject({ message: expect.stringMatching(/not in the facade row/) });
   });
 
   it('persists structurally serializable drafts without compiling them', async () => {

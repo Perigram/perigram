@@ -79,6 +79,22 @@ function acceptGraphProtocol(data = {}, domain = {}) {
   return definition;
 }
 
+// Save-time acceptance is binding-tolerant: an in-progress draft stays
+// savable while its bindings are still authored — unknown types, undeclared
+// states, and fields outside the row belong to validate/apply, which keep
+// the strict seam above. Only the protocol-version gate (asserted by the
+// caller) and the structural producer-identity rewrite stay fatal at save.
+export function tryAcceptGraphProtocol(data = {}, domain = {}) {
+  try {
+    return { definition: acceptGraphProtocol(data, domain), errors: [] };
+  } catch (error) {
+    const errors = Array.isArray(error?.data?.errors) && error.data.errors.length
+      ? error.data.errors
+      : [error?.message || String(error)];
+    return { definition: data, errors };
+  }
+}
+
 // The overlaid domain is the acceptance vocabulary: lowering AND the
 // downstream validation/availability/lineage passes must resolve entity
 // types against the draft's own declarations. Validating against the raw
