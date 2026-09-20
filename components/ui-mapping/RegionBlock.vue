@@ -19,10 +19,10 @@
     <RegionDataState v-if="showState" :node="node" />
     <template v-if="showSurfaces">
       <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
-      <CollectionToolbar v-if="listLayout !== 'table'" v-model:search="search" v-model:facets="facets" :node="node" />
+      <CollectionToolbar v-model:search="search" v-model:facets="facets" :node="node" />
       <CollectionTable
         v-if="listLayout === 'table'"
-        :instances="tableInstances"
+        :instances="filteredInstances"
         :type="node.type"
         :controls="node.listControls"
         :openable="openable"
@@ -103,10 +103,10 @@
          search bar never sticks to the content below it. -->
     <div v-if="showSurfaces" :class="embeddedStack">
       <ProgressBar v-if="isReloading" mode="indeterminate" class="h-1" :aria-label="$t('uiMapping.loadingRegion')" />
-      <CollectionToolbar v-if="listLayout !== 'table'" v-model:search="search" v-model:facets="facets" :node="node" />
+      <CollectionToolbar v-model:search="search" v-model:facets="facets" :node="node" />
       <CollectionTable
         v-if="listLayout === 'table'"
-        :instances="tableInstances"
+        :instances="filteredInstances"
         :type="node.type"
         :controls="node.listControls"
         :openable="openable"
@@ -341,10 +341,6 @@ const isReloading = computed(() => state.value === 'loading' && hasInstances.val
 const showSurfaces = computed(() => state.value === 'ready' || isReloading.value);
 const showState = computed(() => !showSurfaces.value);
 const embeddedStack = computed(() => (spacing ? spacing.stackTight : LAYOUT.stackTight));
-// The table layout filters natively through the DataTable (same contract),
-// so it consumes the raw instances; every other layout consumes the
-// toolbar-filtered rows.
-const tableInstances = computed(() => (listLayout.value === 'table' ? props.node.instances : filteredInstances.value));
 const regionLabelFor = region => localizedLabel({ te, t }, typeLabelKey(region.typeId), region.type?.render?.label || region.id);
 const regionLabel = computed(() => regionLabelFor(props.node));
 const listLayout = computed(() => resolveListLayout(props.node.type, {
