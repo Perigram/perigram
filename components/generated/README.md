@@ -108,16 +108,26 @@ contract. It combines two halves:
   Process data never selects components; the surface id does.
 
 `overloads.js`, `entity-editor-action.js`, and `workspace-pages.js` derive
-their file-type rows (cassette, sheet-design, facade-design) from the pack
-editor bindings through this registry instead of hand-maintained entity-keyed
-maps. Rows key by the CTS type id — the projected entity key — so legacy
-pre-projection keys (`sheet_design`, `facade`) no longer resolve an editor
-surface (abandoned data, SPEC §19). `facade_pattern` remains a static legacy
-overload until its type is declared in a pack. Editor surfaces with
-`ownsActionSurface: true` (cassette-designer, sheet-design-editor) suppress
-the generated action surface; the sheet-design editor receives the caller's
-resolved write grant through its props adapter and degrades to view-only
-without it.
+their file-type rows (cassette, sheet-design, facade-design,
+facade-pattern, sketch) from the pack editor bindings through this
+registry instead of hand-maintained entity-keyed maps. Rows key by the
+CTS type id — the projected entity key — so legacy pre-projection keys
+(`sheet_design`, `facade`, `facade_pattern`) no longer resolve an editor
+surface (abandoned data, SPEC §19). Editor surfaces with
+`ownsActionSurface: true` (cassette-designer, sheet-design-editor,
+sketch-editor) suppress the generated action surface; the sheet-design
+editor receives the caller's resolved write grant through its props
+adapter and degrades to view-only without it.
+
+The `sketch-editor` surface mounts `SketchEditor` with an
+instance-backed persistence contract (scene load from the payload
+download URL, saves through `PUT /api/instances/sketch/:id/payload`,
+which records an immutable scene revision per save). `SketchEditor`
+itself takes only that persistence contract — `ArtifactDetail` supplies
+the artifact-backed adapter for `SKETCH`-kind artifacts, so one editor
+serves both hosts without duplicate drawing logic. The
+`facade-pattern-designer` surface mounts the pattern designer workspace
+page; persistence stays on its pack-internal feature route.
 
 ### File payload previews
 

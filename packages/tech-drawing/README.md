@@ -25,10 +25,14 @@ and carries no service bindings.
   scene (`application/json`, 25 MB limit) with preview mode `sketch`, so
   instances render through `DrawingCanvas` in generated detail previews
   (see [components/generated/README.md](../../components/generated/README.md)).
-  The type declares no editor binding yet: instance payloads are
-  immutable after construct, so an editing sketch surface needs payload
-  revisioning first (tracked in `TODO.md`). The legacy artifact-bound
-  `SketchEditor` continues to serve `SKETCH`-kind artifacts unchanged.
+  The type declares `revisions: 'scene'`, which makes the instance
+  payload replaceable: the editor surface (`sketch-editor`, `edit` mode)
+  saves scenes through `PUT /api/instances/sketch/:id/payload`, each save
+  recording an immutable scene revision. The editor starts a blank scene
+  on payload-less instances, so creation without an upload creator is
+  simply first-save. The legacy artifact-bound `SketchEditor` component
+  keeps serving `SKETCH`-kind artifacts through the same scene contract
+  with an artifact-backed persistence adapter.
 
 ## Management surfaces
 

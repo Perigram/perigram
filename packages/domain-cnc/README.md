@@ -356,10 +356,15 @@ fallbacks) and shrink as those surfaces are deleted.
 
 `cncEditors` is the canonical editor-binding contract of the pack: one
 `{ type, surface, modes }` record per file type that has an authoring
-surface. Cassette binds `cassette-designer` (create/edit), facade design
-binds `facade-designer` (create/edit), and sheet design binds
-`sheet-design-editor` (create/edit) — the editing surface receives the
-instance plus the caller's resolved write grant, exactly like the legacy
+surface. Cassette binds `cassette-designer` (create/edit), sheet design
+binds `sheet-design-editor` (create/edit), facade design binds
+`facade-designer` (create/edit), and the facade pattern graph binds
+`facade-pattern-designer` (edit) — the pattern designer keeps its
+pack-internal feature route for persistence, the cassette pattern; the
+`facade-pattern` file type itself (`name`, `graph`) serves the registry
+and generated-surface layer, and legacy `facade_patterns` records are
+abandoned data (SPEC §19). The editing surface receives the instance
+plus the caller's resolved write grant, exactly like the legacy
 sheet-design detail overload did. The bindings are served with the
 organization type view by the cts-types feature and drive the app's
 generated surface registries through
