@@ -310,7 +310,13 @@ export function useProcessDesignerNodeSync({
       node.operation ||= defaultProcessNodeOperation(node.kind);
     }
     node.type = node.type?.base ? processType(node.type.base, node.type) : processType('json');
-    node.access = node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : (node.access || 'item');
+    // Effect records carry grant objects in `access`; the Item/List/Tree
+    // socket-access string belongs to the pure value algebra only. Writing
+    // the string here first would spread it into `{"0":"i",…}` junk keys
+    // when normalizeDesignerAccess runs below.
+    if (!op.startsWith('effect.')) {
+      node.access = node.kind === 'source.literalList' ? 'list' : node.kind === 'source.literalTree' ? 'tree' : (node.access || 'item');
+    }
     node.matching = ['longest', 'shortest', 'cross'].includes(node.matching) ? node.matching : 'longest';
     node.inputTransforms ||= {};
     node.icon = iconForProcessNode(node.kind);

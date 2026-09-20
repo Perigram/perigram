@@ -129,10 +129,40 @@ function fieldReadDefinition() {
   };
 }
 
+// manual create with authored action grants — the authoring shape whose
+// lowered form must drive screen inference (role grants -> auto_* screens)
+function grantedCreateDefinition() {
+  return {
+    schemaVersion: 1,
+    dataflowVersion: PROCESS_DATAFLOW_VERSION,
+    graph: {
+      nodes: [{ id: 'create', type: 'processNode', data: { refId: 'create' } }],
+      edges: []
+    },
+    roleGrants: {},
+    producerOutputs: {
+      'create:result': {
+        id: 'create:result', producerOutputId: 'create:result', nodeId: 'create', outputSocketId: 'result',
+        entityType: 'facade', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*'], write: [], private: [] }
+      }
+    },
+    actions: {}, services: {}, sockets: {}, screens: {},
+    processNodes: {
+      create: {
+        id: 'create', kind: 'effect.createEntity', entityType: 'facade', producerOutputId: 'create:result',
+        construction: { mode: 'genericCreate' }, blocks: [], trigger: { mode: 'manual' },
+        access: { level: 'admin', grants: [{ roleId: 'role_admin', level: 'admin' }] },
+        status: { to: 'draft' }
+      }
+    }
+  };
+}
+
 const fixtures = {
   'read/modify/update with producer output': readModifyWriteDefinition,
   'construct over relations entries': relationCreateDefinition,
-  'field reads': fieldReadDefinition
+  'field reads': fieldReadDefinition,
+  'create with action grants': grantedCreateDefinition
 };
 
 // Equivalence is outcome equivalence: whether the compiler accepts the
@@ -141,6 +171,7 @@ const fixtures = {
 function compileOutcome(definition, domain) {
   try {
     const compiled = compileProcessDefinition(structuredClone(definition), domain, { roles });
+    delete compiled.activatedAt; // wall clock, not contract
     return { ok: true, compiled };
   } catch (error) {
     return { ok: false, message: error?.message || String(error) };
@@ -264,6 +295,25 @@ describe('graph protocol v5 (SPEC §20)', () => {
     const { definition, diagnostics } = resolveCtsDefinition(original, domain);
     expect(diagnostics).toEqual([]);
     expect(definition).toEqual(original);
+  });
+
+  it('lowered create grants drive inferred screens', () => {
+    // The compiled-preview contract: an authored v5 graph must lower before
+    // compiling, because screen inference reads the role grants derived from
+    // the create action's access — a raw compile ignores cts.* records
+    // entirely and reports an empty contract. The inferred screen id is
+    // role+feature-derived (the facade feature's list entity in this domain).
+    const domain = projectedDomain();
+    const original = grantedCreateDefinition();
+    const { definition: migrated } = migrateV4Definition(structuredClone(original), domain);
+    const { definition: resolved, diagnostics } = resolveCtsDefinition(migrated, domain);
+    expect(diagnostics).toEqual([]);
+    const compiled = compileProcessDefinition(structuredClone(resolved), domain, { roles });
+    const inferred = Object.values(compiled.screens).filter(screen => screen.id?.startsWith('auto_role_admin_'));
+    expect(inferred.length).toBeGreaterThan(0);
+    expect(inferred[0]).toMatchObject({ kind: 'entityList', roleIds: ['role_admin'] });
+    expect(compiled.roles.role_admin.grants).toEqual([expect.objectContaining({ level: 'admin' })]);
+    expect(compiled.roles.role_admin.actions.map(action => action.actionId)).toContain('create');
   });
 
   it('migration is idempotent', () => {

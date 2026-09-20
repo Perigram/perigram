@@ -244,9 +244,10 @@ async function collectStrandedEntityStatuses(process, auth, nextCompiled) {
 
 export async function validate(id, auth) {
   const process = await loadAuthorized(id, auth, 'write');
-  const accepted = currentProcessDefinition(process.data, getDomain());
+  const domain = await getProjectedDomain(process.lineage.organizationId);
+  const accepted = currentProcessDefinition(process.data, domain);
   assertCanonicalProcessSource(accepted);
-  const validation = validateActivatableProcess(accepted, getDomain(), await loadOrganizationRoles(process.lineage.organizationId));
+  const validation = validateActivatableProcess(accepted, domain, await loadOrganizationRoles(process.lineage.organizationId));
   const diff = await contractDiffFor(process, auth);
   let migrationPlan = null;
   if (diff?.removedEntityStatuses?.length) {
@@ -264,10 +265,11 @@ export async function validate(id, auth) {
 
 export async function activate(id, auth, payload = {}) {
   const process = await loadAuthorized(id, auth, 'admin');
-  const accepted = currentProcessDefinition(process.data, getDomain());
+  const domain = await getProjectedDomain(process.lineage.organizationId);
+  const accepted = currentProcessDefinition(process.data, domain);
   assertCanonicalProcessSource(accepted);
   const roles = await loadOrganizationRoles(process.lineage.organizationId);
-  const validation = validateActivatableProcess(accepted, getDomain(), roles);
+  const validation = validateActivatableProcess(accepted, domain, roles);
   if (!validation.ok) {
     throw createError({ statusCode: 400, message: validation.errors.join('; '), data: validation });
   }
