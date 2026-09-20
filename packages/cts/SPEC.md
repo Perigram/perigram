@@ -179,12 +179,19 @@ declare. Five, because the codebase exhibits exactly five identity laws:
 |---|---|---|---|
 | `party` | (framework types only) | be org-authored | auth principal |
 | `file` | payload or fields | lineage children, item states | content/value identity; replaceable; referenced |
-| `item` | states; serial or specs | payload* | tracked individual; never replaced |
+| `item` | states | payload* | tracked individual; never replaced |
 | `group` | lineage children | states beyond publish | identity is its membership |
 | `process` | states; input edges (provenance sources); output types | payload | identity is a run; state driven by operators, not users |
 
 *publish-style states (`draft/active/archived`) are the shared `archivable`
 facet, available to all classes.
+
+Class obligations are structural only: they constrain what a type may and
+must *declare* (lifecycle, payload, edges), never what data it must carry.
+The earlier `serial or specs` mandate for items was content opinion —
+removed; individuality is expressed through the type's own rows and
+lifecycle, and the specs slot remains the convention (not a requirement)
+for where quantity rows land.
 
 ## 6. Edges — exactly three kinds
 
@@ -302,7 +309,9 @@ hidden, as today.
 
 - Every type has `version: n`; every instance stamps `typeVersion`.
 - Changing a row/enums/edges goes through the compiler's diff (the existing
-  `contract-diff.js` becomes a compiler phase):
+  `contract-diff.js` becomes a compiler phase). Refusal applies to types
+  with **persisted instances**: a type with zero instances redefines
+  freely (a plain version bump) — there is nothing to migrate:
   - additive-nullable, added edge, added aggregate: minor bump, no migration;
   - rename/remove/retype: requires declared `migrate` steps (declarative:
     rename, add default, remove, retype via expression) run by the task

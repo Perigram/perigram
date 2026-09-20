@@ -18,7 +18,8 @@ module layout and how the code maps to the spec's build-order tiers.
 - `rows.js` — closed field rows; compiles to JSON Schema 2020-12 with
   `x-quantity`/`x-ref` custom keywords (the substrate for standard
   validators and designer form generation); total instance walker (R1).
-- `classes.js` — the five class presets and their obligations (R6), plus
+- `classes.js` — the five class presets and their structural obligations
+  (R6; classes constrain declarations, never content), plus
   `DECLARABLE_CLASSES` (party is framework-only — what org authoring and
   every class picker offer).
 - `edges.js` — children/relations/provenance declarations with
