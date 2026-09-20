@@ -66,7 +66,18 @@ id — and `formatQuantity` maps storage units to display symbols
 are sectioned by authored `render.groups` (`resolveFieldGroups`: ordered
 groups with labels, unlisted fields trailing in an unlabeled default
 group), so record views carry field-group semantics instead of one
-undifferentiated stream. The same groups order generated edit dialogs.
+undifferentiated stream. Generated create dialogs resolve their rows from
+compiled construction inputs through `resolveCreateDialogInputs(action,
+type, bundle)`: authored fields match by bare name or slot-qualified
+`data.`/`specs.` path and render through their descriptor; the identity
+`name` renders as a plain string control; `lineage.<key>` inputs render
+instance pickers over the parent types whose children edges declare that
+key for the target type (reverse containment over the bundle — parents'
+edges are the declaration home, the child carries no parent list). Inputs
+resolving to nothing stay hidden, so typed constructor inputs keep their
+editor surfaces. Construction-input labels are authored vocabulary
+resolved at the domain projection (parent render label, start-cased row
+name), never raw storage paths.
 Display presentations refine by
 data shape: percent quantities render as Knob dials, percent-valued maps
 as MeterGroup, long strings as prose, string lists as budgeted chips;
