@@ -219,7 +219,7 @@ import { mergeCollectionActionContext } from '~/components/generated/action-cont
 import { resolveGeneratedWorkspacePage, generatedWorkspacePages } from '~/components/generated/workspace-pages.js';
 import { generatedDetailScreenForEntityType } from '~/components/generated/detail-screen-actions.js';
 import { useAuthStore } from '~/stores/auth';
-import { useEntityStore } from '~/stores/entities.js';
+import { useInstancesStore } from '~/stores/instances';
 import { useSupportChatStore } from '~/stores/supportChat';
 import { useCallsStore } from '~/stores/calls';
 import { useInstancesStore } from '~/stores/instances';
@@ -255,7 +255,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
-const entityStore = useEntityStore();
+const instances = useInstancesStore();
 const instances = useInstancesStore();
 const supportChatStore = useSupportChatStore();
 const callsStore = useCallsStore();
@@ -442,7 +442,7 @@ watch(openedEntityRefs, async refs => {
       item.type === reference.entityType && entityId(item.entity) === reference.entityId
     ));
     const entity = existing?.entity
-      || await entityStore.fetchEntity(reference.entityType, reference.entityId, false, { silent: true });
+      || await instances.resolveReadableReference(instances.canonicalTypeKey(reference.entityType), reference.entityId, { silent: true });
     return entity ? workspaceEntityItem(reference.entityType, entity) : null;
   }));
   if (sequence !== openedEntityLoadSequence) return;
@@ -802,7 +802,7 @@ async function loadRelationChildren(parent) {
   let entity = parent.entity;
   if (!entity?.relations) {
     try {
-      entity = await entityStore.fetchEntity(parent.type, entityId(entity), false, { silent: true }) || entity;
+      entity = await instances.resolveReadableReference(instances.canonicalTypeKey(parent.type), entityId(entity), { silent: true }) || entity;
     } catch {
       entity = entity;
     }
@@ -814,7 +814,7 @@ async function loadRelationChildren(parent) {
     ));
     const resolved = existing?.entity
       || ref.entity
-      || await entityStore.fetchEntity(ref.entityType, ref.id, false, { silent: true }).catch(() => null);
+      || await instances.resolveReadableReference(instances.canonicalTypeKey(ref.entityType), ref.id, { silent: true }).catch(() => null);
     return resolved ? workspaceEntityItem(ref.entityType, resolved) : null;
   }));
   return loaded.filter(Boolean);

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { statusType } from '~/constants/status.constants';
-import { useEntity } from '~/composables/useEntity';
+import { useInstancesStore } from '~/stores/instances';
 
 export const useGlobalStore = defineStore('global', () => {
     const resultsList = ref([]);
@@ -24,8 +24,8 @@ export const useGlobalStore = defineStore('global', () => {
 
     async function getProjects() {
         try {
-            const { list } = useEntity('project');
-            const results = await list();
+            const instances = useInstancesStore();
+            const results = await instances.listInstances(instances.canonicalTypeKey('project'));
             projectsList.value = [...results];
         } catch (error) {
             console.error("Error fetching projects:", error);

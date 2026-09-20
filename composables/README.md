@@ -2,126 +2,20 @@
 
 ---
 
-## useEntity — Primary Entity Composable
+## Entity data access — the instances store
 
-The single entry point for all entity data fetching, updates, status transitions, and **collection listing**.
-
-```js
-const result = useEntity(type, identifier?)
-```
-
-`type` is the entity type key (see endpoint map below). `identifier` is optional — can be set later via `fetch(id)`.
-
-### Returned interface
-
-| Property / Method | Type | Description |
-|---|---|---|
-| `entity` | `Ref<object>` | Raw entity JSON from API |
-| `loading` | `Ref<boolean>` | True during any async op |
-| `error` | `Ref<string\|null>` | Last error message |
-| `isTransitioning` | `Ref<boolean>` | Status transition in progress |
-| `name` | `ComputedRef<string>` | `entity.identity.name` |
-| `slug` | `ComputedRef<string>` | `entity.identity.slug` |
-| `serial` | `ComputedRef<string>` | `entity.identity.serial` |
-| `reference` | `ComputedRef<string>` | `entity.identity.reference` |
-| `state` | `ComputedRef<string>` | `entity.status.state` |
-| `stateObject` | `ComputedRef<object>` | Structured v2 status state snapshot |
-| `statusRegions` | `ComputedRef<array>` | Active region chips derived from `entity.status.state.regions` |
-| `statusColor` | `ComputedRef<string>` | PrimeVue severity string |
-| `statusTime` | `ComputedRef<Date>` | `entity.status.timestamp` |
-| `statusMeta` | `ComputedRef<object>` | `entity.status.metadata` |
-| `statusLifecycle` | `ComputedRef<object>` | Normalized `entity.status.lifecycle` |
-| `lineage` | `ComputedRef<object>` | Full lineage block |
-| `getAncestorId(type)` | `(type) => string` | `lineage[typeId]` |
-| `specs` | `ComputedRef<object>` | Full specs block |
-| `formattedDimensions` | `ComputedRef<string>` | `"1200×2400 mm"` |
-| `formattedArea` | `ComputedRef<string>` | `"2.88 m²"` |
-| `fetch(id?, options?)` | `async () => entity` | Load single entity; pass `{ silent: true }` for fallback lookups such as inline relation refs |
-| `create(data?)` | `async (data) => entity` | POST to create entity |
-| `update(data)` | `async (data) => entity` | PATCH entity |
-| `remove(id?)` | `async () => void` | DELETE entity |
-| `changeStatus(state, metaOrContext?)` | `async () => result` | State machine transition |
-| `list(filters?, options?)` | `async (filters?, options?) => items[]` | Fetch collection; pass `{ silent: true }` for optional fallback lookups |
-| `items` | `Ref<array>` | Results from last `list()` call |
-
-Entity JSON is strict block DTO data: root `_id` plus canonical blocks only.
-`useEntity` exposes convenience computed refs for `identity`, `status`,
-`lineage`, and `specs`, but it does not rely on root aliases such as
-`entity.id`, `entity.name`, `entity.slug`, `entity.type`, or
-`entity.parameters`.
-Successful `create()`, `update()`, and `remove()` calls emit the shared
-browser-local entity sync event from `utils/entity-events.js`, using the same
-contract as status transitions. Frontend surfaces that need cache invalidation
-or dependent refreshes should listen to that contract rather than wiring
-page-local callbacks for each CRUD button.
-On the client, those same successful CRUD calls also publish a typed
-invalidation to `POST /api/entity-events`, which fans out to other authenticated
-sessions through cursor-based event polling. Server events intentionally carry ids and change metadata,
-not full DTOs; receiving surfaces refetch through their normal entity APIs.
-Generated screens treat those refetches as background synchronization, preserving
-the rendered source snapshot and ignoring stale completions (see
-[components/README.md](../components/README.md) for the reconciliation rules).
-The page-level loading state is reserved for initial screen hydration, so ordinary
-create/update/delete events do not unmount and rebuild the page.
-Action responses are applied immediately to matching source snapshots before
-that reconciliation begins. Local entity events likewise upsert or remove
-their included entity snapshot immediately; the following server fetch remains
-authoritative and corrects membership or derived fields.
-`state` is the primary lifecycle string derived from structured
-`status.state.primary`; `stateObject` and `statusRegions` expose the full v2
-machine state when a surface needs region details.
-
-### Fetching a single entity
-
-```js
-const { entity, fetch, name, state, changeStatus } = useEntity('project', slug);
-onMounted(() => fetch());
-```
-
-### Fetching a collection (replaces useEntityList)
-
-```js
-const { items, list, loading } = useEntity('queue');
-onMounted(() => list({ 'lineage.projectId': projectId }));
-// items is a ref<array> updated after each list() call
-// call list() again with new filters to refresh
-```
-
-Use `list(filters, { silent: true })` only for optional enrichment where a
-protected collection may legitimately be unavailable, such as an inline
-nesting-run popup attempting to load readable sheet-design children by
-`runId`. Ordinary collection screens should keep the default logging behavior
-so access and endpoint errors remain visible during development.
-
-### Endpoint resolution
-
-Endpoint metadata comes from the instances store (`stores/instances.js`),
-which mirrors the server's resolver: framework party/service types
-(`organization`, `user`, `artifact`, `process_definition`, `entity_revision`)
-keep their feature routes, the remaining mounted pack feature modules
-(`cassette`, `cassette_design`, `facade`, `facade_pattern`,
-`geometry_capture`, `nesting_run`, `sheet_design`, `artifact_template`) keep
-theirs, and every other type resolves through the SPEC §13 instance
-transport `/api/instances/:typeId`. The injected CutKit domain UI adapter
-and its endpoint table are deleted; `useEntity` is the delegated legacy
-composable over that store (see [stores/README.md](../stores/README.md)).
-During server-side rendering, `useEntity` and generated screen loads forward
-the incoming request cookie to internal `$fetch` calls. Generated process
-screens can therefore load authenticated entity sources during SSR without
-receiving false 401s from server API routes.
-
-Legacy surface keys (`materialPile`) and graph type ids (`cut-plan`)
-canonicalize to snake_case cache keys through the store; new code should use
-registry type ids directly.
-
-> **Note:** Queue listing for a project should use the project-scoped
-> sub-resource `/api/project/:slug/queues` when the screen is already inside a
-> project workspace. Generated process screens that need an organization-level
-> queue source use the canonical generic instance collection endpoint
-> `/api/instances/queue`; the legacy per-entity REST surface (including
-> `/api/queue` and `/api/queues`) was deleted — every type without a
-> feature-owned REST route resolves through the SPEC §13 instance
-> transport (`/api/instances/:type`).
+The `useEntity` composable and the delegated entity store were deleted:
+all entity reads, mutations, and caching live on the instances store
+(`stores/instances.js` — see [stores/README.md](../stores/README.md) for
+the canonical contract). Reads use `fetchInstance`/`listInstances`
+(`resolveReadableReference` for optional refs); direct feature CRUD uses
+`createInstance`/`updateInstance`/`removeInstance`, which carry the shared
+entity-event emission contract; process actions run through `runAction`.
+Block-computed conveniences (`name`, `state`, `specs`) became plain
+computeds over the cached wire DTO at their (few) call sites. During
+server-side rendering, `useGeneratedScreen` and page-level loaders forward
+the incoming request cookie to internal `$fetch` calls so authenticated
+sources load without false 401s.
 
 ---
 
@@ -131,7 +25,7 @@ registry type ids directly.
 import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 ```
 
-⚠️ **Restricted use**: Only imported by shared block components (`IdentityBlock.vue`, `EntityStatus.vue`, `SpecsBlock.vue`). Entity cards and pages **must not** import directly — use the block components or the computed refs from `useEntity` instead. See [components/shared/README.md](../components/shared/README.md#critical-architectural-rule-blocks-vs-composables).
+⚠️ **Restricted use**: Only imported by shared block components (`IdentityBlock.vue`, `EntityStatus.vue`, `SpecsBlock.vue`). Entity cards and pages **must not** import directly — use the block components over the cached wire DTO instead. See [components/shared/README.md](../components/shared/README.md#critical-architectural-rule-blocks-vs-composables).
 
 ---
 

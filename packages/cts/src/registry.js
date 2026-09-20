@@ -9,18 +9,20 @@ import { requireCompatible } from './diff.js';
 
 // Payload traits (SPEC §4): the payload declaration carries the accepted
 // MIME list, byte limit, and preview mode. Canonical shape is
-// { mime: string[], accept?, maxSize?, preview? }; a bare MIME string
-// (legacy persisted org docs) normalizes to the one-element list. This is
+// { mime: string[], accept?, maxSize?, preview? }; a bare MIME string and
+// a `byteLimit` key (legacy persisted org docs and pack fixtures)
+// normalize at this boundary. This is
 // the whole of today's attachment-kind authoring, as data on the type.
 function normalizePayload(payload) {
   if (!payload) return null;
   if (typeof payload === 'string') return Object.freeze({ mime: Object.freeze([payload]) });
   const mime = typeof payload.mime === 'string' ? [payload.mime] : [...(payload.mime || [])];
   if (!mime.length) throw new Error('payload requires at least one accepted MIME type');
+  const maxSize = Number.isFinite(payload.maxSize) ? payload.maxSize : payload.byteLimit;
   return Object.freeze({
     mime: Object.freeze(mime),
     ...(payload.accept?.length ? { accept: Object.freeze([...payload.accept]) } : {}),
-    ...(Number.isFinite(payload.maxSize) ? { maxSize: payload.maxSize } : {}),
+    ...(Number.isFinite(maxSize) ? { maxSize } : {}),
     ...(payload.preview ? { preview: String(payload.preview) } : {})
   });
 }

@@ -40,6 +40,7 @@ import { normalizeLegacyProcessActions } from './action-migration.js';
 import { compileActiveProcessRuntime } from './runtime.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
+import { publishOrgContractChanged } from '../entity-events/service.js';
 import { projectDomainFromView } from '~/packages/cts/src/index.js';
 import { cncPackContent } from '~/packages/domain-cnc/src/index.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
@@ -295,6 +296,7 @@ export async function activate(id, auth, payload = {}) {
   // Activation can flip the org's registry view (APPLY posts in-tree
   // declarations before activate): re-derive the instance indexes.
   await ensureInstanceIndexes((await compileRegistryForOrganization(process.lineage.organizationId)).resolveView(process.lineage.organizationId));
+  publishOrgContractChanged(String(process.lineage.organizationId), 'process', { definitionId: String(updated._id) });
   if (stranded.length) {
     // Activate, then migrate (one request): the status machine resolves the
     // active contract, so target states only exist after activation. Writes

@@ -175,7 +175,7 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import OrganizationCard from '~/components/entities/Organization/OrganizationCard.vue';
-import { useEntity } from '~/composables/useEntity';
+import { useInstancesStore } from '~/stores/instances';
 import { useBrowserNotifications } from '~/composables/useBrowserNotifications';
 import { selectOptionText } from '~/utils/selectOptions';
 
@@ -188,7 +188,7 @@ const router = useRouter();
 const route = useRoute();
 const toast = useToast();
 const { t, locale, locales, setLocale } = useI18n();
-const organizationsEntity = useEntity('organization');
+const instances = useInstancesStore();
 
 const authStore = useAuthStore();
 const { user: userRef } = storeToRefs(authStore);
@@ -247,7 +247,7 @@ const orgForm = ref({
 const createOrganization = async () => {
     submittingOrg.value = true;
     try {
-        await organizationsEntity.create(orgForm.value);
+        await instances.createInstance('organization', orgForm.value);
         toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.organizationCreated'), life: 3000 });
         showCreateOrgDialog.value = false;
         // Refresh auth state to get new organization and role

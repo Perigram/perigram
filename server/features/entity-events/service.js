@@ -18,6 +18,19 @@ export function subscribe(auth = {}, push) {
   };
 }
 
+// Contract refresh hint (registry/process epoch): published on the org
+// topic so open tabs re-hydrate. Complements auth hydration — per-user
+// access resolution stays server-side; the event carries no payload data,
+// only the kind of contract that changed.
+export function publishOrgContractChanged(organizationId, kind = 'registry', detail = {}) {
+  if (!organizationId) return null;
+  connectionsService.publish(`org:${organizationId}`, {
+    type: 'contractChanged',
+    data: { kind, ...detail, at: new Date().toISOString() }
+  });
+  return { kind, ...detail };
+}
+
 export async function publishEntityChanged(auth = {}, detail = {}) {
   const event = normalizeEvent(auth, detail);
   if (!event) return null;

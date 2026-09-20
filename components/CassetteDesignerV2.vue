@@ -749,7 +749,7 @@ import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import { useEntity } from '~/composables/useEntity.js';
+import { useInstancesStore } from '~/stores/instances';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import { buildCassetteV2FoldedPreview } from '~/utils/cassetteV2FoldedPreview.js';
@@ -790,7 +790,13 @@ const { t } = useI18n();
 const toast = useToast();
 const standardsStore = useLayerStandardsStore();
 const pensStore = usePenTemplatesStore();
-const profileTemplateEntity = useEntity('profileTemplate');
+const instances = useInstancesStore();
+const profileTemplateItems = ref([]);
+const refreshProfileTemplates = async () => {
+  profileTemplateItems.value = await instances
+    .listInstances(instances.canonicalTypeKey('profileTemplate'), profileTemplateListFilters())
+    .catch(() => profileTemplateItems.value);
+};
 const { standards } = storeToRefs(standardsStore);
 const { pens } = storeToRefs(pensStore);
 const props = defineProps({
@@ -1092,9 +1098,7 @@ const profileProcessOptions = computed(() => OCCS_PROFILE_PROCESSES.map(process 
   label: t(`cassette.v2.profileProcesses.${process}`),
   value: process
 })));
-const profileTemplateItems = computed(() => (
-  Array.isArray(profileTemplateEntity.items.value) ? profileTemplateEntity.items.value : []
-));
+
 const profileTemplateOptions = computed(() => profileTemplateItems.value.map(profile => ({
   label: entitySelectLabel(profile, t('cassette.v2.profileEditor.defaultName')),
   value: entitySelectValue(profile),
@@ -1108,7 +1112,7 @@ const editableProfileTemplateId = (profile = null) => (
 );
 const ensureProfileTemplatesLoaded = async () => {
   if (!profileTemplateItems.value.length) {
-    await profileTemplateEntity.list(profileTemplateListFilters()).catch(() => []);
+    await refreshProfileTemplates();
   }
 };
 const upsertProfileTemplateItem = (profile = null) => {
@@ -1120,7 +1124,7 @@ const upsertProfileTemplateItem = (profile = null) => {
   } else {
     nextItems.unshift(profile);
   }
-  profileTemplateEntity.items.value = nextItems;
+  profileTemplateItems.value = nextItems;
 };
 const placementModeOptions = computed(() => ['point', 'edgeArray'].map(mode => ({
   label: t(`cassette.v2.placementModes.${mode}`),
@@ -2040,7 +2044,7 @@ const openProfileDialog = async (workpieceId = '') => {
   closeInlineEditor();
   editingProfileWorkpieceId.value = workpieceId;
   if (!profileTemplateItems.value.length) {
-    await profileTemplateEntity.list(profileTemplateListFilters()).catch(() => []);
+    await refreshProfileTemplates();
   }
   const workpiece = workpieces.value.find(item => item.id === workpieceId) || null;
   if (workpiece) {
@@ -2074,13 +2078,14 @@ const saveProfileDraft = async () => {
   profileSaving.value = true;
   try {
     const payload = profileDraftPayload();
+    const typeKey = instances.canonicalTypeKey('profileTemplate');
     const saved = profileDraft.value._id
-      ? await profileTemplateEntity.update(payload, profileDraft.value._id)
-      : await profileTemplateEntity.create(payload);
+      ? await instances.updateInstance(typeKey, profileDraft.value._id, payload)
+      : await instances.createInstance(typeKey, payload);
     selectedProfileTemplateId.value = saved?._id || selectedProfileTemplateId.value;
     profileDraft.value._id = saved?._id || profileDraft.value._id;
     upsertProfileTemplateItem(saved);
-    await profileTemplateEntity.list(profileTemplateListFilters()).catch(() => []);
+    await refreshProfileTemplates();
     upsertProfileTemplateItem(saved);
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.v2.profileEditor.saved'), life: 2500 });
     return saved;

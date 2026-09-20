@@ -64,7 +64,7 @@ import EntityPage from '~/components/shared/EntityPage.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
-import { useEntity } from '~/composables/useEntity';
+import { useInstancesStore } from '~/stores/instances';
 
 const props = defineProps({
     instance: { type: Object, required: true }
@@ -80,23 +80,19 @@ const template = ref(null);
 const sheet = ref(null);
 const pile = ref(null);
 const warehouse = ref(null);
-const designEntity = useEntity('cassetteDesign');
-const templateEntity = useEntity('cassetteTemplate');
-const sheetEntity = useEntity('sheet');
-const pileEntity = useEntity('materialPile');
-const warehouseEntity = useEntity('warehouse');
+const instances = useInstancesStore();
 
 watch(designId, async (id) => {
     design.value = null;
     template.value = null;
     const normalizedId = id?.toString?.() || id;
     if (!normalizedId) return;
-    const loadedDesign = await designEntity.fetch(normalizedId, { silent: true }).catch(() => null);
+    const loadedDesign = await instances.fetchInstance(instances.canonicalTypeKey('cassetteDesign'), normalizedId).catch(() => null);
     design.value = loadedDesign;
     const templateId = loadedDesign?.lineage?.templateId || loadedDesign?.data?.templateId || null;
     const normalizedTemplateId = templateId?.toString?.() || templateId;
     if (normalizedTemplateId) {
-        template.value = await templateEntity.fetch(normalizedTemplateId, { silent: true }).catch(() => null);
+        template.value = await instances.fetchInstance(instances.canonicalTypeKey('cassetteTemplate'), normalizedTemplateId).catch(() => null);
     }
 }, { immediate: true });
 
@@ -104,20 +100,20 @@ watch(sheetId, async (id) => {
     sheet.value = null;
     const normalizedId = id?.toString?.() || id;
     if (!normalizedId) return;
-    sheet.value = await sheetEntity.fetch(normalizedId, { silent: true }).catch(() => null);
+    sheet.value = await instances.fetchInstance(instances.canonicalTypeKey('sheet'), normalizedId).catch(() => null);
 }, { immediate: true });
 
 watch(pileId, async (id) => {
     pile.value = null;
     const normalizedId = id?.toString?.() || id;
     if (!normalizedId) return;
-    pile.value = await pileEntity.fetch(normalizedId, { silent: true }).catch(() => null);
+    pile.value = await instances.fetchInstance(instances.canonicalTypeKey('materialPile'), normalizedId).catch(() => null);
 }, { immediate: true });
 
 watch(warehouseId, async (id) => {
     warehouse.value = null;
     const normalizedId = id?.toString?.() || id;
     if (!normalizedId) return;
-    warehouse.value = await warehouseEntity.fetch(normalizedId, { silent: true }).catch(() => null);
+    warehouse.value = await instances.fetchInstance(instances.canonicalTypeKey('warehouse'), normalizedId).catch(() => null);
 }, { immediate: true });
 </script>

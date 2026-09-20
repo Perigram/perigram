@@ -1,7 +1,22 @@
-import { useEntityStore } from '~/stores/entities';
+import { useAuthStore } from '~/stores/auth';
+import { useInstancesStore } from '~/stores/instances';
+import { containmentAncestors, hierarchyTypeAlias } from '~/utils/entity-hierarchy.js';
 
 export const useTraceability = () => {
-    const entityStore = useEntityStore();
+    const authStore = useAuthStore();
+    const instances = useInstancesStore();
+
+    function effectiveContainment() {
+        const bindings = authStore.lineageBindings || [];
+        if (authStore.processActive) {
+            return bindings.map(binding => ({
+                childType: binding.childEntityType,
+                parentType: binding.ancestorEntityType,
+                lineageKey: binding.lineageKey
+            }));
+        }
+        return [];
+    }
 
     /**
      * Resolves the full ancestry chain for an entity.
@@ -10,11 +25,12 @@ export const useTraceability = () => {
      * @returns {Promise<Array>} - Array of { type, id, label, slug, data }
      */
     const resolveChain = async (type, entity) => {
-        const rawAncestry = entityStore.getAncestry(type, entity);
+        const rawAncestry = containmentAncestors(entity, type, effectiveContainment())
+            .map(ref => ({ ...ref, type: hierarchyTypeAlias(ref.type) }));
         const chain = [];
 
         for (const item of rawAncestry) {
-            const data = await entityStore.fetchEntity(item.type, item.id);
+            const data = await instances.resolveReadableReference(instances.canonicalTypeKey(item.type), item.id);
             chain.push({
                 ...item,
                 data,

@@ -18,7 +18,7 @@ export const cncFileTypes = [
     payload: {
       mime: 'application/perigram+occs',
       accept: ['.occs'],
-      byteLimit: 10 * 1024 * 1024
+      maxSize: 10 * 1024 * 1024
     },
     fields: {
       name: { base: 'string' }
@@ -49,7 +49,7 @@ export const cncFileTypes = [
     payload: {
       mime: 'model/gltf-binary',
       accept: ['.glb', '.gltf'],
-      byteLimit: 100 * 1024 * 1024
+      maxSize: 100 * 1024 * 1024
     },
     fields: {
       name: { base: 'string' }

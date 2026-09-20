@@ -44,7 +44,7 @@ import { useI18n } from 'vue-i18n';
 import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
-import { useEntity } from '~/composables/useEntity';
+import { useInstancesStore } from '~/stores/instances';
 import EntityPage from '~/components/shared/EntityPage.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
@@ -59,9 +59,7 @@ const props = defineProps({
     }
 });
 
-const pileEntity = useEntity('materialPile');
-const sheetEntity = useEntity('sheet');
-const warehouseEntity = useEntity('warehouse');
+const instances = useInstancesStore();
 const specs = computed(() => props.remnant.specs || props.remnant.data?.specs || {});
 const pileId = computed(() => props.remnant.lineage?.pileId || null);
 const sheetId = computed(() => props.remnant.lineage?.sheetId || null);
@@ -81,20 +79,20 @@ watch(pileId, async (id) => {
     pile.value = null;
     const normalizedId = id?.toString?.() || id;
     if (!normalizedId) return;
-    pile.value = await pileEntity.fetch(normalizedId).catch(() => null);
+    pile.value = await instances.fetchInstance(instances.canonicalTypeKey('materialPile'), normalizedId).catch(() => null);
 }, { immediate: true });
 
 watch(sheetId, async (id) => {
     sheet.value = null;
     const normalizedId = id?.toString?.() || id;
     if (!normalizedId) return;
-    sheet.value = await sheetEntity.fetch(normalizedId).catch(() => null);
+    sheet.value = await instances.fetchInstance(instances.canonicalTypeKey('sheet'), normalizedId).catch(() => null);
 }, { immediate: true });
 
 watch(warehouseId, async (id) => {
     warehouse.value = null;
     const normalizedId = id?.toString?.() || id;
     if (!normalizedId) return;
-    warehouse.value = await warehouseEntity.fetch(normalizedId).catch(() => null);
+    warehouse.value = await instances.fetchInstance(instances.canonicalTypeKey('warehouse'), normalizedId).catch(() => null);
 }, { immediate: true });
 </script>

@@ -228,11 +228,11 @@ import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
-import { useEntity } from '~/composables/useEntity';
+import { useInstancesStore } from '~/stores/instances';
+import { useRegistryStore } from '~/stores/registry';
 import { deriveRoleAccessSummary, flattenRoleAccessSummary } from '~/shared/role-access-summary.js';
 import { discoverAssignmentBindingRequirements } from '~/packages/processes/src/index.js';
 import { previewAssignmentAccess } from '~/shared/assignment-access-preview.js';
-import { cncDomain } from '@cutkit/domain-cnc';
 
 definePageMeta({
   layout: 'app',
@@ -242,7 +242,8 @@ definePageMeta({
 const { t } = useI18n();
 const authStore = useAuthStore();
 const toast = useToast();
-const usersEntity = useEntity('user');
+const instances = useInstancesStore();
+const registry = useRegistryStore();
 
 const users = ref([]);
 const loading = ref(false);
@@ -269,7 +270,7 @@ const selectedUserAccessSummary = computed(() => flattenRoleAccessSummary(select
 const assignmentPreview = computed(() => previewAssignmentAccess({
     compiled: activeProcess.value?.data?.compiled || {},
     assignment: { userId: String(selectedUser.value?._id || ''), ...roleAssignment.value },
-    domain: cncDomain,
+    domain: registry.projectedDomain,
     contexts: assignmentContext.value.entityType ? [{
         entityType: assignmentContext.value.entityType,
         entityId: assignmentContext.value.entityId,
@@ -344,7 +345,7 @@ watch(roleOptions, (options) => {
 async function loadUsers() {
   loading.value = true;
   try {
-    const allUsers = await usersEntity.list();
+    const allUsers = await instances.listInstances('user');
     await loadActiveProcess();
     await loadOrganizationRoles();
     const organizationId = activeOrganizationId.value?.toString();
@@ -424,7 +425,7 @@ function copyToClipboard(text) {
 async function createUser() {
   submitting.value = true;
   try {
-    await usersEntity.create({
+    await instances.createInstance('user', {
         ...form.value,
         roleIds: normalizeSelectedRoleIds(form.value.roleIds, roleOptions.value),
         organizationId: activeOrganizationId.value
@@ -513,8 +514,7 @@ function requiredAssignmentBindings(roleIds = []) {
 async function confirmDelete(user) {
     if (confirm(t('auth.removeUserConfirm', { name: user.identity?.name }))) {
         try {
-            const { remove } = useEntity('user', user._id);
-            await remove();
+            \1remove();
             toast.add({ severity: 'success', summary: t('common.success'), detail: t('auth.userRemoved'), life: 3000 });
             await loadUsers();
         } catch (error) {

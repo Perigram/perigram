@@ -21,7 +21,6 @@ import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
-import { useEntity } from '~/composables/useEntity.js';
 import { useInstancesStore } from '~/stores/instances';
 import { canDeleteGeneratedEntity, uiEntityType } from '~/components/generated/delete-visibility.js';
 
@@ -61,7 +60,7 @@ function removeEntity() {
 async function performDelete() {
   loading.value = true;
   try {
-    await useEntity(normalizedType.value, entityId.value).remove(entityId.value);
+    await instances.removeInstance(normalizedType.value, entityId.value, { entityType: props.entityType, entity: props.entity });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('common.delete'), life: 2000 });
     emit('deleted');
   } catch (error) {

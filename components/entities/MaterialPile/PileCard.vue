@@ -10,7 +10,7 @@ import MaterialSummary from '~/components/entities/MaterialPile/MaterialSummary.
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { useAuthStore } from '~/stores/auth';
-import { useEntity } from '~/composables/useEntity';
+import { useInstancesStore } from '~/stores/instances';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 
 const props = defineProps({
@@ -28,13 +28,13 @@ const handleCardClick = (event) => {
 
 const catalogId = computed(() => props.pile.lineage?.catalogId || null);
 const catalog = ref(null);
-const catalogEntity = useEntity('catalog');
+const instances = useInstancesStore();
 
 watch(catalogId, async (id) => {
   catalog.value = null;
   const normalizedId = id?.toString?.() || id;
   if (!normalizedId) return;
-  catalog.value = await catalogEntity.fetch(normalizedId).catch(() => null);
+  catalog.value = await instances.fetchInstance(instances.canonicalTypeKey('catalog'), normalizedId).catch(() => null);
 }, { immediate: true });
 </script>
 

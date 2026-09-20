@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { useAuthStore } from './auth';
+import { createTypeRegistry, projectDomainFromView } from '~/packages/cts/src/index.js';
 
 // The compiled CTS client bundle as first-class client state. The bundle is
 // per-user access projection data: it rides auth hydration
@@ -61,6 +62,22 @@ export const useRegistryStore = defineStore('registry', () => {
     return Object.values(operatorsOf(typeId)).some(operator => operator?.species === 'construct');
   }
 
+  // The compiler-domain projection over the bundle (the same projection the
+  // server compiles with): client access previews consume it so the
+  // resolver behaves exactly like auth hydration. Best-effort per type —
+  // a malformed declaration is skipped, not thrown.
+  const projectedDomain = computed(() => {
+    const registry = createTypeRegistry({ id: 'client-view' });
+    for (const type of bundle.value.types || []) {
+      try {
+        registry.defineType(type);
+      } catch {
+        continue;
+      }
+    }
+    return projectDomainFromView(registry, authStore.user?.organizationId || null, {});
+  });
+
   async function refresh() {
     await authStore.setUser();
   }
@@ -71,6 +88,7 @@ export const useRegistryStore = defineStore('registry', () => {
     typesById,
     containment,
     typeRecord,
+    projectedDomain,
     statesOf,
     operatorsOf,
     renderOf,
