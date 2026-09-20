@@ -386,7 +386,11 @@ Derived relation actions normalize their embedded creator from that same
 current construction contract. Generated Link dialogs therefore cannot revive
 removed constructor fields from the creator action's persisted input-policy or
 construction snapshots. Canonical block composition suppresses separate typed
-inputs only for `genericCreate`; a typed constructor may also accept canonical
+inputs only for `genericCreate`, and only when block data actually arrives
+from the graph — a composer wired into one of the create's block sockets.
+The `blocks` list itself is the designer's presentation of the type's
+canonical blocks (persisted on every construct node) and never implies
+composition; a typed constructor may also accept canonical
 blocks, but its domain-declared service inputs remain present in the compiled
 creator and generated form.
 Compiled creators always carry attachment kinds as the expanded
