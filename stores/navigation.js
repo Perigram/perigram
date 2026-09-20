@@ -7,7 +7,6 @@ import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions';
 import { processOperationalScreens, resolveVisibleNavigation, resolveVisibleScreens } from '~/utils/process-navigation';
 import { generatedScreenLabel } from '~/utils/generated-labels.js';
 import { useInstancesStore } from './instances';
-import { useInstancesStore } from './instances';
 import { useRegistryStore } from './registry';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { entityUiFor } from '~/utils/status-engine.js';
@@ -17,7 +16,6 @@ import { organizationBreadcrumbEntries } from '~/utils/navigation-breadcrumbs.js
 export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
     const globalStore = useGlobalStore();
-    const instances = useInstancesStore();
     const instances = useInstancesStore();
     const registry = useRegistryStore();
     const { t, te } = useI18n();
