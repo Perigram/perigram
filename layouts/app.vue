@@ -275,24 +275,11 @@
         })
     }
 
-    // Sync protected project context with SSR cookies when route changes.
-    watch([() => route.params.slug, () => authStore.userIsSet], async ([newSlug, isSet]) => {
-        if (isSet) {
-            await navStore.fetchProjectContext(newSlug, ssrFetchOptions)
-        } else {
-            navStore.currentProject = null
-        }
-    }, { immediate: true })
-
     watch([() => route.fullPath, () => authStore.userIsSet], async ([, isSet]) => {
         if (isSet) await navStore.fetchRouteHierarchy(route.path, route.query, ssrFetchOptions)
     }, { immediate: true })
 
-    // Fetch projects list once for breadcrumb siblings
     onMounted(async () => {
-        if (authStore.userIsSet && globalStore.projectsList.length === 0) {
-            await globalStore.getProjects()
-        }
         loadMobileShortcuts()
         window.addEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeMobileTransientSurfaces)
     })
@@ -607,11 +594,6 @@
         // Auth and data initialization
         if (!authStore.userIsSet) {
             await authStore.setUser();
-        }
-        if (authStore.userIsSet) {
-            if (globalStore.projectsList.length === 0) {
-                await globalStore.getProjects()
-            }
         }
     })
 </script>

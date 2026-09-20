@@ -255,9 +255,9 @@ actions from domain registries or the global action manifest, and it must not
 invent upload/link controls outside compiled process actions.
 Child files resolve their own detail-screen actions from the same effective
 user screen manifest used by normal generated detail routes. Registered
-operational bodies may consume those actions—for example queue nesting and
-cassette-design producer actions—while the tab body keeps the remaining
-applicable commands. Operational bodies receive only this compiled action set;
+operational bodies may consume those actions—for example cassette-design
+producer actions—while the tab body keeps the remaining applicable
+commands. Operational bodies receive only this compiled action set;
 main/screen and child-region actions are delivered as separate channels so
 child operations can reach an editor without reappearing in its surrounding
 header. Operational bodies never supplement this set by scanning the global
@@ -496,7 +496,7 @@ process actions that output `cassette_design` remain distinct source menu
 items. Construction producers remain in the operational editor. Existing-entity
 linking stays on the generic generated-action surface: a compiler-generated Link
 action for any declared relation renders as **Add {target entity}**, uses the
-shared scoped option/creator dialog, and never enters QueueEditor as a producer.
+shared scoped option/creator dialog.
 Process-mode producer actions are accepted only when their current
 compiled action contract exposes a `cassette_design` output through
 `contracts.outputs`.
@@ -805,56 +805,6 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   parameter counts; generated cassette-design surfaces render exact
   materialized values from `data.parameters` with
   `provenance.derivedFrom.parameters` only as a display fallback.
-- `QueueEditor` keeps a UI-only `_key` for rendered rows while persisting only
-  canonical `{ type: "cassette_design", id }` references in
-  `queue.relations.cassettes`. Delete actions use `_key` without leaking it into
-  the relationship. Queue relation rows
-  render the already-hydrated cassette-design identity or a typed id chip in
-  the row header; they must not nest a full relation card/popover inside the
-  queue item panel. Rows that cannot be resolved to a loaded cassette design
-  are rejected before ordinary queue saves so the nesting command never
-  receives an unresolvable job item.
-- `QueueEditor` is a production workspace: desktop layout uses a left queue
-  lane rendered newest-first as compact queue entity rows, a center lane for nesting settings and wide
-  cassette entry cards, and a right runs lane through `WorkspaceLanes`. The
-  project queue route is rendered inside the app shell's bounded workspace frame
-  and each lane owns its own vertical scrolling, while the center lane delegates
-  scrolling to its `ScrollablePanel` sections. Nesting settings are queue-local
-  state persisted as `queue.data.nestingSettings`; the header owns material
-  source selection (`Virtual` plus warehouse options), tool selection, and the
-  run action. Virtual mode renders the virtual sheet dimensions as the active
-  material abstraction; warehouse mode adds a selected source immediately from
-  the source dropdown and renders selected material sources as compact
-  `QueueSourceCard` preview tiles in a horizontally scrolled row. Queue
-  settings keep `Run nesting` as the only primary action; section utility,
-  add, upload, and view controls use compact secondary buttons. Queue
-  status/actions, including destructive queue removal, live on the selected
-  queue card;
-  the cassette panel header owns view switching and add/upload actions. The
-  runs lane receives queue-level sheet designs once, selects one active run, and lets
-  `NestingRunCard` filter designs by run before rendering preview tiles. Run
-  material sources render on `NestingRunCard` through entity references; queue
-  cards summarize queue work, not available stock.
-- In warehouse material mode, `QueueEditor` loads selected warehouse piles,
-  sheets, and remnants, filters unavailable piles, blocks mixed sheet sizes for
-  the current one-bin nesting worker, and persists selected stock as
-  `queue.data.job.materialPool` with dimensions, available counts, and remnant
-  `sheetPolygon`/`geometryData` when present. Selected warehouse sources render
-  remnant geometry when present and rectangular stock dimensions otherwise. For remnants, `sheetPolygon`
-  preserves both `outer` and `inner` rings so holes remain fixed non-placeable
-  zones in the nesting bin. The backend resolves worker sheet size/count and
-  irregular remnant sheet polygon from that material pool.
-  Starting nesting first saves the queue; the nesting API then derives command
-  parameters from saved `queue.data.nestingSettings` and
-  `queue.data.job.materialPool`. If queue saving fails, nesting must not start
-  with stale material context. Choosing a
-  completed run is the production acceptance action: the backend consumes
-  selected pile stock, records `queue.data.materialConsumption`, creates
-  physical outputs, transitions the queue to `READY`, and returns the updated
-  queue. Solver completion alone leaves the queue in `NESTING` so the operator
-  still has to choose the accepted run. Those outputs are cassette instances
-  plus remnant geometry; already cut source sheets are not displayed as
-  warehouse sheet inventory.
 - `CassetteDesignerV2` is the persisted cassette-template designer used by the
   production app cassette surface. The admin workbench no longer exposes it as a
   separate section; the legacy non-persisted `CassetteDesigner` remains only for

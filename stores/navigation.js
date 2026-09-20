@@ -9,8 +9,7 @@ import { generatedScreenLabel } from '~/utils/generated-labels.js';
 import { useInstancesStore } from './instances';
 import { useRegistryStore } from './registry';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
-import { entityUiFor } from '~/utils/status-engine.js';
-import { containmentAncestors, entityHierarchyId, hierarchyTypeAlias, normalizeHierarchyType, projectHierarchyRoute, rootContainmentFilter, siblingContainmentScope } from '~/utils/entity-hierarchy.js';
+import { containmentAncestors, entityHierarchyId, normalizeHierarchyType, rootContainmentFilter, siblingContainmentScope } from '~/utils/entity-hierarchy.js';
 import { organizationBreadcrumbEntries } from '~/utils/navigation-breadcrumbs.js';
 
 export const useNavigationStore = defineStore('navigation', () => {
@@ -33,7 +32,6 @@ export const useNavigationStore = defineStore('navigation', () => {
     }
 
     // Store-managed state for project context
-    const currentProject = ref(null);
     const currentHierarchy = ref([]);
     const currentHierarchyPath = ref('');
     const currentHierarchySiblings = ref([]);
@@ -42,32 +40,6 @@ export const useNavigationStore = defineStore('navigation', () => {
         name: entitySelectLabel({ name }, id),
         id
     });
-
-    const projectSiblingOption = (project) => {
-        const slug = entitySelectLabel({ name: project?.identity?.slug || project?.slug }, entitySelectValue(project));
-        if (!slug) return null;
-
-        return {
-            name: entitySelectLabel(project, slug),
-            id: `/project/${slug}/queues`
-        };
-    };
-
-    async function fetchProjectContext(slug, fetchOptions = {}) {
-        if (!slug || slug === 'undefined' || !authStore.userIsSet) {
-            currentProject.value = null;
-            return;
-        }
-        try {
-            currentProject.value = await $fetch(`/api/project/${slug}`, fetchOptions);
-        } catch (e) {
-            if (e.status === 401 || e.statusCode === 401 || e.status === 403 || e.statusCode === 403) {
-                currentProject.value = null;
-                return;
-            }
-            console.error('Failed to fetch project context:', e);
-        }
-    }
 
     async function fetchRouteHierarchy(path, query = {}, fetchOptions = {}) {
         currentHierarchy.value = [];
@@ -94,8 +66,6 @@ export const useNavigationStore = defineStore('navigation', () => {
             if (screen?.template !== 'entityDetail') return null;
             return { entityType: screen.entityType, id: query.entityId || query[`${screen.entityType}Id`] };
         }
-        if (parts[0] === 'project' && parts[2] === 'queue' && parts[3]) return { entityType: 'queue', id: parts[3] };
-        if (parts[0] === 'project' && parts[2] === 'sheet-design' && parts[3]) return { entityType: 'sheet_design', id: parts[3] };
         return null;
     }
 
@@ -115,18 +85,13 @@ export const useNavigationStore = defineStore('navigation', () => {
         }
     }
 
+    // Hierarchy rows route only through the compiled screen manifest —
+    // the hardcoded legacy per-entity route tables are gone.
     function hierarchyRoute(item = {}) {
         if (authStore.processActive) {
             return detailRouteForEntity({ entity: item.entity, entityType: item.type, manifest: authStore.screenManifest });
         }
-        const project = currentHierarchy.value.find(candidate => normalizeHierarchyType(candidate.type) === 'project')?.entity
-            || currentProject.value;
-        const scopedRoute = projectHierarchyRoute({ ...item, project });
-        if (scopedRoute) return scopedRoute;
-        const config = entityUiFor(item.type);
-        return typeof config?.route === 'function'
-            ? config.route(item.id, project?.identity?.slug || project?.identity?.uid || project?.slug)
-            : null;
+        return null;
     }
 
     // --- HUB DEFINITIONS (Level 1) ---
@@ -267,8 +232,6 @@ export const useNavigationStore = defineStore('navigation', () => {
 
     return {
         hubs,
-        currentProject,
-        fetchProjectContext,
         fetchRouteHierarchy,
         resolveBreadcrumbs,
         processAllowsRoute

@@ -23,20 +23,13 @@
           </span>
           <div class="ml-auto flex items-center gap-2">
             <span class="text-supporting text-muted">{{ $t('processDesigner.applyMigrationTarget') }}</span>
-            <Select
+            <SelectButton
               :model-value="targets[`${row.entityType}|${removed.state}`]"
               :options="row.targets"
-              :placeholder="$t('processDesigner.applyMigrationTargetPlaceholder')"
-              class="w-48"
+              size="small"
+              :aria-label="$t('processDesigner.applyMigrationTargetPlaceholder')"
               @update:model-value="value => setTarget(row.entityType, removed.state, value)"
-            >
-              <template #option="{ option }">
-                <span class="text-technical">{{ option }}</span>
-              </template>
-              <template #value="{ value }">
-                <span class="text-technical">{{ value }}</span>
-              </template>
-            </Select>
+            />
           </div>
         </div>
         <Message v-if="!row.targets.length" severity="error">
@@ -66,7 +59,7 @@
 import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Message from 'primevue/message';
-import Select from 'primevue/select';
+import SelectButton from 'primevue/selectbutton';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 
 // The Apply migration decision surface: one row per removed workflow state

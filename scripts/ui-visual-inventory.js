@@ -4,7 +4,6 @@ import { fileURLToPath } from 'url';
 import { cncDesignSystemPrimitives } from '../packages/domain-cnc/src/ui.js';
 
 export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
-  'components/QueueEditor.vue': 'layout',
   'components/ChatSupport.vue': 'layout',
   'components/calls/CallPanel.vue': 'layout',
   'components/calls/CallWorkspacePage.vue': 'layout',
@@ -59,7 +58,6 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
     ':style="{ left: `${inlineEditor.x}px`, top: `${inlineEditor.y}px` }"',
     ':style="workpieceAccentStyle(row.id)"'
   ]],
-  'components/QueueEditor.vue': ['layout', ['style="width: var(--ck-table-action-column-width)"']],
   'components/ChatSupport.vue': ['data-driven', [
     ':style="{ opacity: swipeIconOpacity(messageItem) }"',
     ':style="swipeStyle(messageItem)"'

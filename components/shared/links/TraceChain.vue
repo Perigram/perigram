@@ -53,8 +53,7 @@ import { useLineage } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
-import { entityUiFor } from '~/utils/status-engine';
-import { containmentAncestors, normalizeHierarchyType, projectHierarchyRoute, traceContextExclusions, visibleTraceAncestors } from '~/utils/entity-hierarchy.js';
+import { containmentAncestors, normalizeHierarchyType, traceContextExclusions, visibleTraceAncestors } from '~/utils/entity-hierarchy.js';
 
 const props = defineProps({
     entity: { type: Object, default: null },
@@ -135,11 +134,8 @@ const routeForItem = (item) => {
             manifest: authStore.screenManifest
         });
     }
-    const projectItem = items.value.find(candidate => normalizeHierarchyType(candidate.type) === 'project');
-    const project = projectItem ? resolvedEntities.value[labelKey(projectItem)] : null;
-    const scopedRoute = projectHierarchyRoute({ type: item.type, id: item.id, entity: resolvedEntity, project });
-    if (scopedRoute) return scopedRoute;
-    const config = entityUiFor(item.type);
+    // Non-process orgs render plain labels: routing is manifest-derived
+    // only — the hardcoded legacy per-entity route tables are gone.
     return null;
 };
 

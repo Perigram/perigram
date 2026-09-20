@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   containmentAncestors,
-  projectHierarchyRoute,
   rootContainmentFilter,
   routeContextTraceExclusions,
   siblingContainmentScope,
@@ -77,15 +76,5 @@ describe('entity containment hierarchy', () => {
     expect(visibleTraceAncestors(ancestors, exclusions)).toEqual([
       { type: 'queue', id: 'queue-1', lineageKey: 'queueId' }
     ]);
-  });
-
-  it('builds project-scoped routes from the resolved project identity', () => {
-    const project = { identity: { uid: 'facade-a' } };
-    expect(projectHierarchyRoute({ type: 'project', id: 'project-id', entity: project }))
-      .toBe('/project/facade-a/queues');
-    expect(projectHierarchyRoute({ type: 'queue', id: 'queue-id', project }))
-      .toBe('/project/facade-a/queue/queue-id');
-    expect(projectHierarchyRoute({ type: 'sheet_design', id: 'design-id', project }))
-      .toBe('/project/facade-a/sheet-design/design-id');
   });
 });
