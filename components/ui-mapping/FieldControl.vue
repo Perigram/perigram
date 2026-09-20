@@ -62,6 +62,10 @@
   </div>
 
   <InputText v-else-if="outcome.component === 'InputText'" v-model="model" :size="editorSize" class="w-full" />
+  <div v-else-if="outcome.component === 'ColorPicker'" :class="LAYOUT.row" class="w-full">
+    <ColorPicker v-model="model" :aria-label="label" />
+    <InputText v-model="model" :size="editorSize" class="flex-1" />
+  </div>
   <div v-else-if="outcome.component === 'Slider'" :class="LAYOUT.row" class="w-full">
     <Slider
       :model-value="sliderValue"
@@ -158,6 +162,7 @@
 <script setup>
 import { computed, inject } from 'vue';
 import InputText from 'primevue/inputtext';
+import ColorPicker from 'primevue/colorpicker';
 import Textarea from 'primevue/textarea';
 import InputNumber from 'primevue/inputnumber';
 import ToggleSwitch from 'primevue/toggleswitch';

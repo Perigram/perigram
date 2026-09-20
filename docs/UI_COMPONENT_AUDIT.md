@@ -144,7 +144,6 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-config-bot-configbotdraftpreview-vue` | `components/config-bot/ConfigBotDraftPreview.vue` | derived usage | centralize:layout (1); replace:chrome (12) |
 | `ui-components-config-bot-configbotgeneratedpreview-vue` | `components/config-bot/ConfigBotGeneratedPreview.vue` | derived usage | replace:chrome (8) |
 | `ui-components-config-bot-configbotvalidationpanel-vue` | `components/config-bot/ConfigBotValidationPanel.vue` | derived usage | replace:chrome (4) |
-| `ui-components-drawing-strokepreview-vue` | `components/drawing/StrokePreview.vue` | derived usage | compliant |
 | `ui-components-entities-artifact-artifactcard-vue` | `components/entities/Artifact/ArtifactCard.vue` | derived usage | compliant |
 | `ui-components-entities-artifact-artifactdetail-vue` | `components/entities/Artifact/ArtifactDetail.vue` | derived usage | centralize:layout (1) |
 | `ui-components-entities-artifacttemplate-artifacttemplatecard-vue` | `components/entities/ArtifactTemplate/ArtifactTemplateCard.vue` | derived usage | compliant |
@@ -325,9 +324,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-pages-index-vue` | `pages/index.vue` | derived usage | centralize:layout (5); replace:chrome (4) |
 | `ui-pages-invitation-token-vue` | `pages/invitation/[token].vue` | derived usage | replace:chrome (3) |
 | `ui-pages-organization-billing-vue` | `pages/organization/billing.vue` | derived usage | compliant |
-| `ui-pages-organization-drawing-vue` | `pages/organization/drawing.vue` | derived usage | replace:chrome (2); replace:inline-visual (1) |
 | `ui-pages-organization-index-vue` | `pages/organization/index.vue` | derived usage | compliant |
-| `ui-pages-organization-packs-vue` | `pages/organization/packs.vue` | derived usage | compliant |
 | `ui-pages-organization-process-vue` | `pages/organization/process.vue` | derived usage | centralize:layout (2); replace:chrome (13); remove:state (1); remove:important-override (14); replace:inline-visual (1) |
 | `ui-pages-organization-types-vue` | `pages/organization/types.vue` | derived usage | replace:chrome (4) |
 | `ui-pages-organization-users-vue` | `pages/organization/users.vue` | derived usage | compliant |

@@ -14,7 +14,7 @@ const penTemplate = Object.freeze({
     stroke: {
       base: 'record',
       fields: {
-        color: { base: 'string' },
+        color: { base: 'string', render: { control: 'ColorPicker' } },
         weight: { base: 'quantity', unit: 'mm' },
         pattern: { base: 'enum', values: PEN_PATTERNS }
       }
