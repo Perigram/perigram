@@ -26,6 +26,11 @@ record access, roles, screens, and dock/panel state:
 - `useProcessDesignerTypes` — the CTS registry generation, the projected
   designer contract, and the live tree overlay (one registry per overlay
   signature; APPLY persists declarations through `persistTreeDeclarations`).
+  `compileTreeDeclarations` emits declarations in dependency order — a type
+  referenced by another declaration's children edge or ref-field accepts
+  comes first — so one apply introduces a parent and its child together;
+  the registry compiles cross-references only against stored and
+  already-posted types.
 - `useProcessDesignerNodeSync` — the record-derivation family
   (`syncProcessNode`, construction contracts, port resolution, labels,
   option lists). Mutations flow back through the page's single sync entry
