@@ -7,7 +7,8 @@ import {
   evaluate, checkMatch,
   normalizeOperator,
   renderPolicyFor, compileClientBundle,
-  cncTypePack, partyTypes, nestingOperators, packFixtures
+  cncTypePack, partyTypes, nestingOperators, packFixtures,
+  classMayDeclareChildren
 } from './index.js';
 
 function packRegistry() {
@@ -87,6 +88,14 @@ describe('class obligations (R6)', () => {
     expect(registry.compile().errors).toContainEqual(expect.stringMatching(/bad-file: file may not declare lineage children/));
     registry.defineType({ id: 'bad-party', class: 'party', scope: 'org', organizationId: 'org-1', fields: {} });
     expect(registry.compile('org-1').errors).toContainEqual(expect.stringMatching(/party types are framework-only/));
+  });
+
+  it('exposes the containment predicate the authoring surfaces gate on', () => {
+    expect(classMayDeclareChildren('file')).toBe(false);
+    expect(classMayDeclareChildren('party')).toBe(false);
+    expect(classMayDeclareChildren('item')).toBe(true);
+    expect(classMayDeclareChildren('group')).toBe(true);
+    expect(classMayDeclareChildren('process')).toBe(true);
   });
 });
 

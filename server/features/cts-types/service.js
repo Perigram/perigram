@@ -78,23 +78,20 @@ export async function defineType(declaration = {}, { organizationId } = {}) {
   }
   const registry = await compileRegistryForOrganization(organizationId, { emptyTypeIds });
 
-  let stored;
+  // Validate the whole org view BEFORE persisting: defineType applies the
+  // refuse-on-breaking diff (SPEC §11) and bumps the version, then the
+  // compile checks class obligations and cross-type references. A write
+  // that fails either gate must never touch the stored declaration — the
+  // previous upsert-first order replaced a valid stored type with an
+  // invalid one and wedged every later write in the org (each compiles the
+  // same broken view). The registry is in-memory here; persistence happens
+  // only after the view compiles clean.
+  let versioned;
   try {
-    // Redefinition path: the registry applies the refuse-on-breaking diff
-    // (SPEC §11) and bumps the version on compatible changes.
-    const versioned = registry.defineType(orgDeclaration);
-    invalidateInstanceDeclarations(String(organizationId));
-    stored = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
-      ...versioned,
-      scope: 'org',
-      organizationId: String(organizationId)
-    });
+    versioned = registry.defineType(orgDeclaration);
   } catch (error) {
     to400(error);
   }
-
-  // Compile the whole org view before answering: shadowing and cross-type
-  // breakage (R2 targets) must fail the write, not the next read.
   let compiled;
   try {
     compiled = registry.compile(organizationId);
@@ -102,9 +99,15 @@ export async function defineType(declaration = {}, { organizationId } = {}) {
     to400(error);
   }
   if (!compiled.ok) {
-    if (!existing) await repository.deleteByTypeId(organizationId, orgDeclaration.id);
     throw createError({ statusCode: 400, message: compiled.errors.join('; ') });
   }
+
+  invalidateInstanceDeclarations(String(organizationId));
+  const stored = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
+    ...versioned,
+    scope: 'org',
+    organizationId: String(organizationId)
+  });
   // Declaration writes can change the derived index set (SPEC §13).
   await ensureInstanceIndexes(registry.resolveView(organizationId));
   publishOrgContractChanged(String(organizationId), 'registry', { typeId: orgDeclaration.id });

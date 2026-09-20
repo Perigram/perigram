@@ -480,6 +480,36 @@ describe('tree declaration compilation', () => {
     expect(diagnostics[0]).toContain('broken');
   });
 
+  it('diagnostics name the authored class name, not only the registry id', () => {
+    const widget = classNode('widget', { name: 'Widget' });
+    const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'done')];
+    const edges = [declares(nodes[1], widget, 'state'), declares(nodes[2], widget, 'state')];
+    const { diagnostics } = compileTreeDeclarations(nodes, edges);
+    expect(diagnostics.some(message => message.startsWith('class Widget:'))).toBe(true);
+  });
+
+  it('diagnostics children wires on file classes instead of emitting the edge', () => {
+    const invoice = classNode('t-invoice-1', { class: 'file', name: 'Invoice' });
+    const part = classNode('t-part-1', { class: 'item' });
+    const { declarations, diagnostics } = compileTreeDeclarations(
+      [invoice, part],
+      [{ id: 'c1', source: invoice.id, target: part.id, role: 'type', label: 'children', data: { key: 'parts' } }]
+    );
+    expect(diagnostics.some(message => (
+      message.includes('Invoice') && message.includes('may not declare lineage children')
+    ))).toBe(true);
+    expect(declarations.find(declaration => declaration.id === 't-invoice-1').edges).toBeUndefined();
+    // The same wire on a membership-bearing class still compiles.
+    const bin = classNode('t-bin-1', { class: 'group', name: 'Bin' });
+    const kept = compileTreeDeclarations(
+      [bin, part],
+      [{ id: 'c2', source: bin.id, target: part.id, role: 'type', label: 'children', data: { key: 'parts' } }]
+    );
+    expect(kept.diagnostics).toEqual([]);
+    expect(kept.declarations.find(declaration => declaration.id === 't-bin-1').edges)
+      .toEqual({ children: { parts: { types: ['t-part-1'], onRemove: 'restrict' } } });
+  });
+
   it('transitions across types are diagnostics', () => {
     const a = stateNode('widget', 'raw');
     const b = stateNode('gadget', 'new');

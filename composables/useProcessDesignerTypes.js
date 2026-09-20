@@ -188,6 +188,30 @@ export function useProcessDesignerTypes({
   // refresh, canvas nodes re-sync so constructs bound to just-authored types
   // immediately gain their typed row-field sockets. This runs on APPLY, not
   // on save: saving persists the tree with the draft; applying compiles it.
+  //
+  // Every surfaced failure names classes, never raw registry ids: tree
+  // class nodes and the org type view supply an id -> authored-label map
+  // that rewrites both the failure prefix and the ids embedded in the
+  // server's compile messages.
+  function classNameMap() {
+    const labels = new Map();
+    for (const node of nodes.value || []) {
+      if (node.type !== 'ctsClass' || !node.data?.typeId) continue;
+      const name = String(node.data.name || '').trim();
+      if (name) labels.set(node.data.typeId, name);
+    }
+    for (const type of ctsTypeView()) {
+      if (!labels.has(type.id) && type.label) labels.set(type.id, type.label);
+    }
+    return labels;
+  }
+
+  function namedDeclarationFailures(message = '', labels = new Map()) {
+    return message.replace(/\b[a-z][a-z0-9]*(?:-[a-z0-9]+)+\b/g, token => (
+      labels.has(token) ? `${labels.get(token)} (${token})` : token
+    ));
+  }
+
   async function persistTreeDeclarations() {
     const hasClasses = nodes.value.some(node => node.type === 'ctsClass');
     if (!hasClasses) return { failures: [] };
@@ -195,12 +219,14 @@ export function useProcessDesignerTypes({
     if (diagnostics.length) {
       toast.add({ severity: 'error', summary: t('processDesigner.declarationErrors'), detail: diagnostics.join('; '), life: 8000 });
     }
+    const labels = classNameMap();
     const failures = [];
     for (const declaration of declarations) {
       try {
         await $fetch('/api/admin/cts/types', { method: 'POST', body: declaration });
       } catch (error) {
-        failures.push(`${declaration.id}: ${error?.data?.message || error?.message}`);
+        const name = labels.get(declaration.id) || declaration.id;
+        failures.push(`${name}: ${namedDeclarationFailures(error?.data?.message || error?.message || '', labels)}`);
       }
     }
     if (failures.length) {

@@ -85,6 +85,30 @@ describe('cts type storage', () => {
       .rejects.toThrow(/Organization context required/);
   });
 
+  it('never persists a declaration whose full-view compile fails', async () => {
+    // Regression: the write used to upsert before compiling, so a failing
+    // redefinition replaced the valid stored declaration and wedged every
+    // later write in the org (each compiles the same broken view).
+    const { countInstancesOfType } = await import('../instances/count.js');
+    countInstancesOfType.mockResolvedValueOnce(0);
+    const storedGadget = { id: 'gadget', class: 'file', scope: 'org', organizationId: ORG, version: 2,
+      fields: { code: { base: 'string' } } };
+    repository.findByTypeId.mockResolvedValue(storedGadget);
+    repository.listByOrganization.mockResolvedValue([storedGadget]);
+    await expect(defineType(
+      { id: 'gadget', class: 'file', fields: {} },
+      { organizationId: ORG }
+    )).rejects.toThrow(/file requires payload or fields/);
+    expect(repository.upsertByTypeId).not.toHaveBeenCalled();
+
+    countInstancesOfType.mockResolvedValueOnce(0);
+    await expect(defineType(
+      { id: 'gadget', class: 'file', fields: { code: { base: 'string' } }, edges: { children: { parts: { types: ['missing-child'] } } } },
+      { organizationId: ORG }
+    )).rejects.toThrow(/may not declare lineage children/);
+    expect(repository.upsertByTypeId).not.toHaveBeenCalled();
+  });
+
   it('refuses shadowing a system type', async () => {
     await expect(defineType(
       { id: 'cassette', class: 'file', fields: { rogue: { base: 'string' } } },
