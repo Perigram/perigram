@@ -112,17 +112,16 @@ identifier (`utils/processDesignerIdentity.js`, kebab-safe, minted at
 node creation): never derived from the name, never shown, never edited.
 Renaming is always a pure label change; persisted instances, posted org
 types, producer outputs, and relation references keep resolving.
-The class inspector carries a lifecycle panel authored as a machine:
-states are names (with severity and icon render overrides), transitions
-(including loops) come with intents and an add-transition row, and the
-ENTRY is a wire — a state wired into a Create node's status input
-authors both the machine entry and the creation state (the same wire
-into a status-mutating effect targets its transition). End states are
-never flagged: they derive from the graph (states with no outgoing
-transition). The panel edits the SAME ctsState nodes and wires the
-canvas renders (`classLifecycleOf` derives it; one data model, two
-views). Declared severities/icons compile into `render.states`, which
-`renderPolicyFor` consumes for state chips and action tones.
+The class inspector owns NO lifecycle editor: a class is a name, a
+class preset, and declaration diagnostics. States are first-class
+palette canvas nodes authored in their own inspector (name, severity,
+free-form icon — no hardcoded icon lists); they declare on a class by
+wire, author the machine entry by wiring into a Create node's status
+input, and target transitions by wiring into status-mutating effects.
+The machine comes from the process graph; end states derive (states
+with no outgoing transition). Declared severities/icons compile into
+`render.states`, which `renderPolicyFor` consumes for state chips and
+action tones.
 Class card labels derive from the authored name. Field mutability is
 authored on the descriptor (Writable / Constructible toggles in the
 shared descriptor editor): writable governs mutate leaf sockets and
