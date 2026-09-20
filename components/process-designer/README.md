@@ -106,11 +106,14 @@ registry's kebab-case type id (an invalid id is why a class silently
 drops out of the overlay and bound sockets stop regenerating) and shows
 `compileTreeDeclarations` plus `normalizeType` diagnostics while
 authoring — what SAVE/APPLY would reject is visible immediately, not
-after a frozen canvas. Class identity is the authored name — the kebab registry id is an
-invisible implementation detail, always derived from the name and
-deduplicated against the registry and the tree; the author never sees
-or types it, so an invalid or stale id cannot be hand-authored at all.
-Bindings follow wires and name-derived ids, never typed ids.
+after a frozen canvas. Class identity is the authored name — a mutable label. The kebab
+registry id is an invisible, STABLE identifier: derived once from the
+first non-empty name (`utils/processDesignerIdentity.js`, deduplicated
+against the registry and the tree) and frozen after that, so renaming
+relabels the class without re-keying anything — persisted instances,
+posted org types, producer outputs, and relation references keep
+resolving. The author never sees or types the id, so invalid or stale
+ids cannot be hand-authored at all.
 The class inspector carries a lifecycle panel — states (value, initial,
 terminal with plain-language hints), transitions with intents, loops
 (self-transitions) included, and an add-transition row — that edits the
