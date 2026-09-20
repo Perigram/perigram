@@ -106,20 +106,20 @@ registry's kebab-case type id (an invalid id is why a class silently
 drops out of the overlay and bound sockets stop regenerating) and shows
 `compileTreeDeclarations` plus `normalizeType` diagnostics while
 authoring — what SAVE/APPLY would reject is visible immediately, not
-after a frozen canvas. Class identity is the authored name — a mutable label. The kebab
-registry id is an invisible, STABLE identifier: derived once from the
-first non-empty name (`utils/processDesignerIdentity.js`, deduplicated
-against the registry and the tree) and frozen after that, so renaming
-relabels the class without re-keying anything — persisted instances,
-posted org types, producer outputs, and relation references keep
-resolving. The author never sees or types the id, so invalid or stale
-ids cannot be hand-authored at all.
-The class inspector carries a lifecycle panel — states (value, initial,
-terminal with plain-language hints), transitions with intents, loops
-(self-transitions) included, and an add-transition row — that edits the
-SAME ctsState nodes and state-to-state wires the canvas renders
-(`classLifecycleOf` derives it; the panel is a view over one data
-model, not a second editor).
+after a frozen canvas. Class identity is the authored name — a mutable label with zero
+coupling to identity. The registry id is an opaque, randomly generated
+identifier (`utils/processDesignerIdentity.js`, kebab-safe, minted at
+node creation): never derived from the name, never shown, never edited.
+Renaming is always a pure label change; persisted instances, posted org
+types, producer outputs, and relation references keep resolving.
+The class inspector carries a lifecycle panel authored as a machine:
+states are names, transitions (including loops) come with intents and an
+add-transition row, and ONE authored choice — "Starts at" — names the
+entry state. End states are never flagged: they derive from the graph
+(states with no outgoing transition; `compileTreeDeclarations` emits
+them as sinks). The panel edits the SAME ctsState nodes and
+state-to-state wires the canvas renders (`classLifecycleOf` derives
+it; one data model, two views).
 Class card labels derive from the authored name. Field mutability is
 authored on the descriptor (Writable / Constructible toggles in the
 shared descriptor editor): writable governs mutate leaf sockets and

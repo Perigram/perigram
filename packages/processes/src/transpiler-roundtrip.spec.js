@@ -60,6 +60,7 @@ describe('declaration wire labels round-trip', () => {
     const widget = declarations.find(declaration => declaration.id === 'widget');
     expect(widget.fields).toMatchObject({ name: { base: 'string' } });
     expect(widget.states.main.values).toContain('ready');
+    expect(widget.states.main.terminal).toEqual(['done']); // derived: 'done' has no outgoing transition
     expect(widget.transitions).toEqual([{ from: 'ready', to: 'done', intent: 'finish' }]);
     expect(widget.edges.children.gadgets).toMatchObject({ types: ['gadget'], onRemove: 'restrict' });
   });

@@ -457,7 +457,8 @@ describe('tree declaration compilation', () => {
     const nodes = [widget, stateNode('widget', 'raw')];
     const { declarations, diagnostics } = compileTreeDeclarations(nodes, [declares(nodes[1], widget, 'state')]);
     expect(diagnostics).toEqual([]);
-    expect(declarations[0].states.main).toEqual({ initial: 'raw', values: ['raw'], terminal: [] });
+    // sole state, no transitions: it is the derived sink too
+    expect(declarations[0].states.main).toEqual({ initial: 'raw', values: ['raw'], terminal: ['raw'] });
   });
 
   it('invalid field descriptors surface as diagnostics naming the type and field', () => {

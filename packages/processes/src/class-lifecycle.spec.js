@@ -19,7 +19,8 @@ describe('classLifecycleOf', () => {
     ];
     const lifecycle = classLifecycleOf(nodes, edges, 'cls');
     expect(lifecycle.states).toEqual([
-      { nodeId: 's1', value: 'draft', initial: true, terminal: false },
+      // no transitions wired: every state is a derived sink
+      { nodeId: 's1', value: 'draft', initial: true, terminal: true },
       { nodeId: 's2', value: 'done', initial: false, terminal: true }
     ]);
     expect(lifecycle.transitions).toEqual([]);

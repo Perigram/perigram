@@ -576,7 +576,7 @@ import MotionDock from '~/components/shared/MotionDock.vue';
 import { normalizeProcessDisplayName, processDisplayEntity } from '~/utils/processDesignerDisplay.js';
 import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
-import { derivedTypeId } from '~/utils/processDesignerIdentity.js';
+import { generateTypeId } from '~/utils/processDesignerIdentity.js';
 import { normalizeDesignerAccess } from '~/utils/processDesignerAccess.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
 import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
@@ -1116,6 +1116,12 @@ function updateClassState({ nodeId, changes = {} }) {
   const node = nodes.value.find(candidate => candidate.id === nodeId);
   if (!node || node.type !== 'ctsState') return;
   Object.assign(node.data, changes);
+  // "Starts at" is exclusive: marking one state initial clears the others.
+  if (changes.initial === true) {
+    for (const other of nodes.value) {
+      if (other.type === 'ctsState' && other.id !== nodeId) other.data.initial = false;
+    }
+  }
   syncNodeData();
 }
 function removeClassState(nodeId) {
@@ -1579,11 +1585,13 @@ function designerSignature() {
 
 // A fresh declaration in the tree gets a suggested kebab id unique among
 // registry types and in-tree declarations.
+// Fresh classes get an opaque random id at creation; it never changes
+// after that (rename is a label change only).
 function suggestTreeTypeId() {
   const taken = new Set([...ctsTypeView().map(entry => entry.id), ...nodes.value.filter(node => node.type === 'ctsClass').map(node => node.data.typeId)]);
-  let index = 1;
-  while (taken.has(`type-${index}`)) index += 1;
-  return `type-${index}`;
+  let id = generateTypeId();
+  while (taken.has(id)) id = generateTypeId();
+  return id;
 }
 
 // A name authors identity; the registry id is derived from it. The id only
@@ -1592,17 +1600,6 @@ function suggestTreeTypeId() {
 function updateClassName(node, name) {
   if (!node || node.type !== 'ctsClass') return;
   node.data.name = String(name || '');
-  // The id is derived ONCE from the first non-empty name and frozen:
-  // renaming is a label change and must never re-key the registry id
-  // (persisted instances, producer outputs, and relations reference it).
-  node.data.typeId = derivedTypeId({
-    name: node.data.name,
-    currentId: node.data.typeId,
-    taken: [
-      ...ctsTypeView().map(entry => entry.id),
-      ...nodes.value.filter(candidate => candidate.type === 'ctsClass').map(candidate => candidate.data.typeId)
-    ]
-  });
   syncNodeData();
 }
 
