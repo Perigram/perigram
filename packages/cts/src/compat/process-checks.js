@@ -10,7 +10,9 @@
 //     attachments) belong to their own facets and are not row-checked;
 //     `data.value` is the reserved generic payload slot.
 // Best-effort by design (v1): unknown record shapes pass silently; tighten
-// by teaching the walker new record kinds, never by loosening checks.
+// by teaching the walker new record kinds, never by loosening checks. Type
+// bindings are positional (entityType/typeId/species-kind `type`), so
+// process-vocabulary descriptor strings are never misread as references.
 import { slotFor } from './field-schema-rows.js';
 
 const RESERVED_GENERIC_SLOT = 'data.value';
@@ -45,10 +47,16 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
 
   walk(semantic, (node, path) => {
     if (!node || typeof node !== 'object') return;
-    // v5 records carry `type` (CTS id); v4 records carry storage entity ids.
-    // Both normalize to the view's kebab ids.
+    // Type bindings are positional: v4 records bind through `entityType`,
+    // v5 species records through `typeId` (current) or the legacy bare
+    // `type` string. A bare `type` string anywhere else is a
+    // process-vocabulary descriptor ('string', 'default', …) — never a
+    // type reference — so it is only read on species records, mirroring
+    // the kind branch in `setTypeBinding`.
+    const kind = typeof node.kind === 'string' ? node.kind : '';
     const entityType = typeof node.entityType === 'string' ? node.entityType.replace(/_/g, '-')
-      : typeof node.type === 'string' ? node.type.replace(/_/g, '-') : null;
+      : typeof node.typeId === 'string' && node.typeId ? node.typeId.replace(/_/g, '-')
+      : typeof node.type === 'string' && kind.startsWith('cts.') ? node.type.replace(/_/g, '-') : null;
     if (entityType && !view.has(entityType) && !path.startsWith('producerOutputs') && !path.startsWith('sockets')) {
       errors.push(`${path} references unknown type ${entityType}`);
     }

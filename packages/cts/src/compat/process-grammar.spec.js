@@ -143,4 +143,25 @@ describe('declaration-check phase', () => {
     }, registry, 'org-1');
     expect(errors).toEqual([]);
   });
+
+  it('reads type bindings positionally: process descriptor strings are not references', () => {
+    const registry = registryWithOrgType();
+    // construction inputs carry process-vocabulary descriptors ('string'),
+    // species records bind through typeId, legacy species records through
+    // the bare `type` string.
+    const errors = checkDeclarationsAgainstCts({
+      data: {
+        processNodes: {
+          ctor: {
+            id: 'ctor', kind: 'cts.construct', typeId: 'widget', via: 'genericCreate',
+            construction: { mode: 'genericCreate', inputs: [{ id: 'name', type: 'string', required: true }] }
+          },
+          legacy: { id: 'legacy', kind: 'cts.mutate', type: 'ghost-type' },
+          unbound: { id: 'unbound', kind: 'cts.construct', typeId: '', via: 'genericCreate' }
+        }
+      }
+    }, registry, 'org-1');
+    expect(errors).not.toContainEqual(expect.stringMatching(/unknown type string/));
+    expect(errors).toContain('definition.processNodes.legacy references unknown type ghost-type');
+  });
 });
