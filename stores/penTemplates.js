@@ -1,104 +1,92 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
+import { useInstancesStore } from '~/stores/instances';
 
-const ownerId = (pen) => pen?.lineage?.userId || pen?.ownerId || null;
+// Pen-template catalog accessor over the generic instance transport
+// (SPEC §21 tech-drawing pack). The public API is the legacy editor
+// contract: pens as wire DTOs with `data.stroke`, system/user grouping by
+// tenancy (system rows are the null-org catalog; user grouping degrades to
+// created-in-org pens — org visibility replaces personal pens).
+const TYPE_KEY = 'pen-template';
 
 export const usePenTemplatesStore = defineStore('penTemplates', () => {
     const authStore = useAuthStore();
-    const pens = ref([]);
+    const instances = useInstancesStore();
     const loading = ref(false);
     const error = ref(null);
-    const pendingFetches = new Map();
-    let loadedScope = null;
+    let pending = null;
+    let loadedOrg = null;
 
-    const currentScope = () => {
-        const user = authStore.userData || {};
-        const userId = user.userId || user.id || 'anonymous';
-        const organizationId = user.organizationId || authStore.organizationData?._id || 'none';
-        return `${userId}:${organizationId}`;
-    };
+    const pens = computed(() => Object.values(instances.records[TYPE_KEY] || {})
+        .map(entry => entry.dto)
+        .filter(Boolean)
+        .sort((a, b) => String(a.identity?.name || '').localeCompare(String(b.identity?.name || ''))));
 
-    const systemPens = computed(() => pens.value.filter(p => !ownerId(p)));
-    const userPens = computed(() => pens.value.filter(p => ownerId(p)));
+    const systemPens = computed(() => pens.value.filter(pen => pen.lineage?.organizationId == null));
+    const userPens = computed(() => pens.value.filter(pen => pen.lineage?.organizationId != null));
 
-    async function fetchPens() {
-        const scope = currentScope();
-        if (pendingFetches.has(scope)) return pendingFetches.get(scope);
-
+    async function fetchPens({ force = false } = {}) {
+        if (pending) return pending;
         loading.value = true;
         error.value = null;
-        const request = (async () => {
-            try {
-                const data = await $fetch('/api/templates/pens');
-                if (currentScope() === scope) {
-                    pens.value = data || [];
-                    loadedScope = scope;
-                }
-                return data || [];
-            } catch (err) {
-                if (currentScope() === scope) {
-                    error.value = err.message;
-                    pens.value = [];
-                    loadedScope = null;
-                }
-                console.error('Failed to fetch pen templates:', err);
-            } finally {
-                pendingFetches.delete(scope);
-                loading.value = pendingFetches.size > 0;
-            }
-        })();
-
-        pendingFetches.set(scope, request);
-        return request;
+        pending = instances.listInstances(TYPE_KEY, {}, { force, silent: true })
+            .catch(err => {
+                error.value = err?.data?.message || err?.message || String(err);
+                return [];
+            })
+            .finally(() => {
+                pending = null;
+                loading.value = false;
+            });
+        return pending;
     }
 
+    // The instance cache is not org-scoped: an org switch starts a fresh
+    // bucket so per-org pens never mix (system rows ride every view).
     async function ensurePens() {
-        const scope = currentScope();
-        if (loadedScope === scope) return pens.value;
-        if (loadedScope !== null) pens.value = [];
+        const org = authStore.user?.organizationId || null;
+        if (loadedOrg !== org) {
+            instances.records[TYPE_KEY] = {};
+            loadedOrg = org;
+            return fetchPens({ force: true });
+        }
+        if (pens.value.length) return pens.value;
         return fetchPens();
+    }
+
+    // Editor form shape ({name, stroke}) maps onto the §3 row through the
+    // wire block vocabulary.
+    function toWire(penData = {}) {
+        return {
+            ...(penData.name != null ? { identity: { name: penData.name } } : {}),
+            ...(penData.stroke != null ? { data: { stroke: penData.stroke } } : {})
+        };
     }
 
     async function createPen(penData) {
         try {
-            const pen = await $fetch('/api/templates/pens', {
-                method: 'POST',
-                body: penData
-            });
-            pens.value.push(pen);
-            return pen;
+            return await instances.createInstance(TYPE_KEY, toWire(penData), { entityType: TYPE_KEY });
         } catch (err) {
-            error.value = err.message;
+            error.value = err?.data?.message || err?.message || String(err);
             throw err;
         }
     }
 
     async function updatePen(id, updates) {
         try {
-            const pen = await $fetch(`/api/templates/pens/${id}`, {
-                method: 'PUT',
-                body: updates
-            });
-            const index = pens.value.findIndex(p => p._id === id);
-            if (index !== -1) {
-                pens.value[index] = pen;
-            }
-            return pen;
+            return await instances.updateInstance(TYPE_KEY, id, toWire(updates), { entityType: TYPE_KEY });
         } catch (err) {
-            error.value = err.message;
+            error.value = err?.data?.message || err?.message || String(err);
             throw err;
         }
     }
 
     async function deletePen(id) {
         try {
-            await $fetch(`/api/templates/pens/${id}`, {
-                method: 'DELETE'
-            });
-            pens.value = pens.value.filter(p => p._id !== id);
+            await instances.removeInstance(TYPE_KEY, id, { entityType: TYPE_KEY });
         } catch (err) {
-            error.value = err.message;
+            error.value = err?.data?.message || err?.message || String(err);
             throw err;
         }
     }

@@ -21,6 +21,8 @@ node server/scripts/migrate-artifact-file-revisions.js # Dry-run artifact curren
 node server/scripts/migrate-artifact-file-revisions.js --apply # Persist retained file revisions and scoped pointers
 node server/scripts/migrate-instance-tenancy.js # Dry-run SPEC §3 tenancy slot backfill (lineage.organizationId -> organizationId)
 node server/scripts/migrate-instance-tenancy.js --apply # Persist the tenancy slot and strip the legacy lineage key
+node server/scripts/migrate-tech-drawing-instances.js # Dry-run pens/layer standards -> §3 pack instances (ids preserved)
+node server/scripts/migrate-tech-drawing-instances.js --apply # Persist tech-drawing instances with the defaultPen relation
 node server/scripts/migrate-public-system-data.js # Mark system materials/layers/pens/tools public-read
 node server/scripts/migrate-process-action-access-grants.js # Move process action role grants from trigger records to access records
 node server/scripts/migrate-process-screens-to-generated-ui.js # Normalize stored screens into generated UI contracts

@@ -60,7 +60,16 @@ describe('drawing catalogue stores', () => {
         await store.ensurePens();
         expect(request).toHaveBeenCalledTimes(1);
 
+        // Same org, different user: pens are org-scoped now (personal pens
+        // became org pens), so no refetch and the catalogue is stable.
         authStore.user = { userId: 'user-2', organizationId: 'org-1' };
+        await store.ensurePens();
+
+        expect(request).toHaveBeenCalledTimes(1);
+        expect(store.pens).toEqual([expect.objectContaining({ _id: 'pen-1' })]);
+
+        // Org switch starts a fresh bucket.
+        authStore.user = { userId: 'user-2', organizationId: 'org-2' };
         request.mockResolvedValueOnce([{ _id: 'pen-2', data: { stroke: { color: '#ffffff' } } }]);
         await store.ensurePens();
 
@@ -74,7 +83,7 @@ describe('drawing catalogue stores', () => {
         vi.spyOn(console, 'error').mockImplementation(() => {});
         const request = vi.fn()
             .mockRejectedValueOnce(new Error('standards unavailable'))
-            .mockResolvedValueOnce([{ _id: 'standard-1' }])
+            .mockResolvedValueOnce([{ _id: 'standard-1', data: { code: 'cut.outer' } }])
             .mockRejectedValueOnce(new Error('pens unavailable'))
             .mockResolvedValueOnce([{ _id: 'pen-1' }]);
         vi.stubGlobal('$fetch', request);

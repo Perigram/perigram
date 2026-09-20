@@ -8,10 +8,22 @@ domain content). The framework registry (`server/runtime/app-registry.js`)
 imports packs only; removing a pack removes its content from the running
 app.
 
+Pack composition (`declarations.js`) is declaration-only: the ordered
+mounted-pack list with `requires` metadata, topologically sorted with
+loud errors for missing requirements and inter-pack id collisions.
+`cts-types` and the instance services compose the system view through it;
+service bindings stay in the mount modules.
+
+- `tech-drawing/` — mounted purely by composition (no service bindings):
+  the `pen-template` and `layer-standard` reference types and their
+  system-catalog instances ride the generic instance machinery.
+  Declaration data lives in `packages/tech-drawing/src/index.js`.
 - `cnc/` — the CNC pack: cassette (OCCS file + cassette-designer editor),
   sheet design, facade design file types, the nesting solver service, and
   the transitional legacy entity services pending deletion. Declaration
-  data lives in `packages/domain-cnc/src/pack.js`.
+  data lives in `packages/domain-cnc/src/pack.js`; the pack requires
+  `tech-drawing` (pen/layer references resolve through the composed
+  view, never by importing it).
 
 ## Related
 

@@ -67,17 +67,18 @@ process vocabulary; none may gain new consumers.
 
 ## Core Stores
 
-- `layerStandards.js`: Loads the canonical layer-standard catalogue. Lookups use
-  `standard.data.code` / `standard.data.category` with root-field fallbacks only
-  for migration compatibility, and pen overrides update `data.orgPenId`.
-  Preview consumers call `ensureStandards()`, which shares an in-flight request
-  and reuses the completed catalogue for the active user and organization;
-  management surfaces retain `fetchStandards()` for an explicit refresh.
-- `penTemplates.js`: Loads system and user pen DTOs. System/user grouping is
-  based on `pen.lineage.userId`; stroke rendering data lives under
-  `pen.data.stroke`. `ensurePens()` follows the same authenticated-scope cache
-  contract as layer standards, while `fetchPens()` remains the explicit refresh
-  operation.
+- `layerStandards.js`: Layer-standard catalog accessor over the generic
+  instance transport (tech-drawing pack): system rows
+  (`organizationId: null`) merge with org rows shadow-by-`code`, the
+  effective default pen projects from the declared `defaultPen` relation,
+  and pen overrides create/update the org shadow — system rows are never
+  mutated. Lookups keep the editor contract (`data.code`/`data.category`,
+  `getByCode`/`getByCategory`, `ensureStandards()`).
+- `penTemplates.js`: Pen-template catalog accessor over the generic
+  instance transport (tech-drawing pack): system/org grouping by tenancy
+  (personal pens become org pens), stroke data under `pen.data.stroke`,
+  and editor form payloads map onto the wire row in
+  `createPen`/`updatePen`.
 - `artifacts.js`: Batch artifacts fetching and cache.
 - `supportChat.js`: Chats drawer conversation snapshot state, unread totals,
   and read acknowledgement for the app-shell chat badge and drawer inbox. The

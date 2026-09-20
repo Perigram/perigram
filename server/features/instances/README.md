@@ -13,7 +13,10 @@ hand-written services.
   `type`, `typeVersion`, `name`, flat `fields`, `states.main`, `lineage`
   (pure tree edges), `relations`, the top-level `organizationId` tenancy
   slot, `payload` (iff the type declares payload traits), and `provenance`
-  (set by the construct boundary, never patched). Tenancy never lives
+  (set by the construct boundary, never patched).
+  `organizationId: null` marks a system instance (pack-seeded reference
+  catalogs): read-admitted beside org rows in every organization's list,
+  written only by seeding/admin paths. Tenancy never lives
   inside `lineage` (SPEC §3): the wire DTO still projects it as
   `lineage.organizationId` for the legacy block vocabulary, and that
   projection is owned by this service boundary (`toDto`/`create`) and

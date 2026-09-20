@@ -119,6 +119,11 @@ map: `lineage` holds pure tree edges (a stored `lineage.organizationId` is
 the same drift class R2 forbids). The wire DTO still projects tenancy as
 `lineage.organizationId` for the legacy block vocabulary — that projection
 belongs to the instance service boundary (§13), storage speaks §3.
+`organizationId: null` marks a **system instance**: pack-seeded reference
+data (catalogs like pens or layer standards) that is read-admitted in
+every organization's view and written only by seeding/admin paths. Org
+customization of a system instance is an org-authored instance shadowing
+it by declared key (e.g. `code`), never a mutation of the system row.
 
 The ten canonical blocks reduce to slots: `data`/`specs` -> fields (specs
 become `Quantity` fields), `identity/origin/status` -> id/states/history,
@@ -687,6 +692,15 @@ into declarations, never alongside.
 Domain content is optional plug-ins. The framework (registry, runtime,
 designer) imports nothing domain-shaped; a pack mounts through one module
 and provides:
+
+**Requirements and composition:** a pack may declare `requires: [packIds]`.
+The registry composes the system view as framework types plus every
+mounted pack's types in dependency order; a missing requirement or a
+duplicate system type id across packs is a mount-time error (packs never
+shadow each other — the org-over-system overlay rule stays the only
+shadowing). Cross-pack references are by type id only: a pack's
+declarations and code never import another pack's modules, they resolve
+through the composed view.
 
 - **Types**: declarations (file/item/group/process). Pack types are
   `scope: 'system'` in every org view. Party types are framework-owned,

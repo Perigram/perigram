@@ -6,7 +6,8 @@
 import { createError } from 'h3';
 import * as repository from './repository.js';
 import { createTypeRegistry, compileClientBundle, frameworkTypes } from '~/packages/cts/src/index.js';
-import { cncPackContent, cncPackAttachmentKinds } from '~/packages/domain-cnc/src/index.js';
+import { cncPackAttachmentKinds } from '~/packages/domain-cnc/src/index.js';
+import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import { invalidateInstanceDeclarations } from '../instances/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../entity-events/service.js';
@@ -20,9 +21,10 @@ function to400(error) {
 // declarations overlaying. Shadowing a system id throws here (R6/§4).
 export async function compileRegistryForOrganization(organizationId) {
   const registry = createTypeRegistry({ id: `cts-types:${organizationId || 'system'}` });
-  // System types are the framework's party declarations plus mounted pack
-  // types (SPEC §21) — no converted legacy entity tables.
-  for (const declaration of [...frameworkTypes, ...cncPackContent.types]) {
+  // System types are the framework's party declarations plus every
+  // mounted pack's types in dependency order (SPEC §21 requirements) —
+  // no converted legacy entity tables.
+  for (const declaration of [...frameworkTypes, ...composeSystemDeclarations()]) {
     registry.defineType(declaration);
   }
   if (organizationId) {

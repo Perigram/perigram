@@ -1,64 +1,85 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
+import { useInstancesStore } from '~/stores/instances';
+
+// Layer-standard catalog accessor over the generic instance transport
+// (SPEC §21 tech-drawing pack). Public API is the legacy editor contract:
+// standards as wire DTOs (`data.code/category/...`), `getByCode`/
+// `getByCategory` lookups, and org pen overrides. Resolution is
+// shadow-by-code (SPEC §3 system instances): an org-authored standard with
+// the same code shadows the system row; the effective default pen is the
+// shadow's `defaultPen` relation, else the system row's. Overrides
+// create/update the org shadow — system rows are never mutated.
+const TYPE_KEY = 'layer-standard';
 
 const standardCode = (standard) => standard?.data?.code || standard?.code || null;
 const standardCategory = (standard) => standard?.data?.category || standard?.category || null;
 
+const withProjectedPen = (dto) => ({
+    ...dto,
+    data: {
+        ...(dto.data || {}),
+        defaultPenId: dto.relations?.defaultPen?.id || null,
+        orgPenId: dto.relations?.defaultPen?.id || null
+    },
+    orgPenId: dto.relations?.defaultPen?.id || null
+});
+
 export const useLayerStandardsStore = defineStore('layerStandards', () => {
     const authStore = useAuthStore();
-    const standards = ref([]);
+    const instances = useInstancesStore();
     const loading = ref(false);
     const error = ref(null);
-    const pendingFetches = new Map();
-    let loadedScope = null;
+    let pending = null;
+    let loadedOrg = null;
 
-    const currentScope = () => {
-        const user = authStore.userData || {};
-        const userId = user.userId || user.id || 'anonymous';
-        const organizationId = user.organizationId || authStore.organizationData?._id || 'none';
-        return `${userId}:${organizationId}`;
-    };
+    const rawStandards = computed(() => Object.values(instances.records[TYPE_KEY] || {})
+        .map(entry => entry.dto)
+        .filter(Boolean));
 
-    async function fetchStandards(category = null) {
-        const scope = currentScope();
-        const requestKey = `${scope}:${category || 'all'}`;
-        if (pendingFetches.has(requestKey)) return pendingFetches.get(requestKey);
+    // Shadow-by-code: org rows win over system rows with the same code.
+    const standards = computed(() => {
+        const byCode = new Map();
+        for (const dto of rawStandards.value) {
+            const code = standardCode(dto);
+            if (!code) continue;
+            const isOrg = dto.lineage?.organizationId != null;
+            const existing = byCode.get(code);
+            if (!existing || (isOrg && existing.lineage?.organizationId == null)) {
+                byCode.set(code, dto);
+            }
+        }
+        return [...byCode.values()].map(withProjectedPen);
+    });
 
+    async function fetchStandards({ force = false } = {}) {
+        if (pending) return pending;
         loading.value = true;
         error.value = null;
-        const request = (async () => {
-            try {
-                const url = category
-                    ? `/api/layer-standards?category=${category}`
-                    : '/api/layer-standards';
-
-                const data = await $fetch(url);
-                if (currentScope() === scope) {
-                    standards.value = data || [];
-                    if (!category) loadedScope = scope;
-                }
-                return data || [];
-            } catch (err) {
-                if (currentScope() === scope) {
-                    error.value = err.message;
-                    if (!category) loadedScope = null;
-                }
-                console.error('Failed to fetch layer standards:', err);
-            } finally {
-                pendingFetches.delete(requestKey);
-                loading.value = pendingFetches.size > 0;
-            }
-        })();
-
-        pendingFetches.set(requestKey, request);
-        return request;
+        pending = instances.listInstances(TYPE_KEY, {}, { force, silent: true })
+            .then(items => items || [])
+            .catch(err => {
+                error.value = err?.data?.message || err?.message || String(err);
+                return [];
+            })
+            .finally(() => {
+                pending = null;
+                loading.value = false;
+            });
+        return pending;
     }
 
+    // Org switch starts a fresh bucket: shadow resolution must never mix
+    // two orgs' rows (system rows ride every view).
     async function ensureStandards() {
-        const scope = currentScope();
-        if (loadedScope === scope) return standards.value;
-        if (loadedScope !== null) standards.value = [];
+        const org = authStore.user?.organizationId || null;
+        if (loadedOrg !== org) {
+            instances.records[TYPE_KEY] = {};
+            loadedOrg = org;
+            return fetchStandards({ force: true });
+        }
+        if (rawStandards.value.length) return standards.value;
         return fetchStandards();
     }
 
@@ -70,25 +91,36 @@ export const useLayerStandardsStore = defineStore('layerStandards', () => {
         return standards.value.find(s => standardCode(s) === code);
     }
 
+    function orgShadowFor(standardId) {
+        const base = rawStandards.value.find(dto => String(dto._id) === String(standardId));
+        if (!base) return null;
+        const code = standardCode(base);
+        if (!code) return null;
+        if (base.lineage?.organizationId != null) return base;
+        return rawStandards.value.find(dto => (
+            dto.lineage?.organizationId != null && standardCode(dto) === code
+        )) || null;
+    }
+
     async function setOrgPenOverride(standardId, penId) {
-        await $fetch(`/api/layer-standards/${standardId}/pen`, {
-            method: 'PATCH',
-            body: { penId }
-        });
-        const std = standards.value.find(s => s._id === standardId);
-        if (std) {
-            std.orgPenId = penId;
-            std.data = { ...(std.data || {}), orgPenId: penId };
+        const base = rawStandards.value.find(dto => String(dto._id) === String(standardId));
+        if (!base) throw new Error('Unknown layer standard');
+        const shadow = orgShadowFor(standardId);
+        const relation = { relations: { defaultPen: penId ? { type: 'pen-template', id: penId } : null } };
+        if (shadow) {
+            await instances.updateInstance(TYPE_KEY, shadow._id, relation, { entityType: TYPE_KEY });
+            return;
         }
+        // Seed the org shadow from the system row's row data.
+        await instances.createInstance(TYPE_KEY, {
+            identity: { name: base.identity?.name || standardCode(base) },
+            data: { ...(base.data || {}) },
+            ...relation
+        }, { entityType: TYPE_KEY });
     }
 
     async function removeOrgPenOverride(standardId) {
-        await $fetch(`/api/layer-standards/${standardId}/pen`, { method: 'DELETE' });
-        const std = standards.value.find(s => s._id === standardId);
-        if (std) {
-            std.orgPenId = null;
-            std.data = { ...(std.data || {}), orgPenId: null };
-        }
+        await setOrgPenOverride(standardId, null);
     }
 
     return {

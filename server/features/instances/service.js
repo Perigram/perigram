@@ -11,11 +11,14 @@ import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { frameworkTypes } from '~/packages/cts/src/index.js';
-import { cncPackContent } from '~/packages/domain-cnc/src/index.js';
+import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import * as typeStore from '../cts-types/repository.js';
 import * as repository from './repository.js';
 
-const staticTypes = new Map([...frameworkTypes, ...cncPackContent.types].map(type => [type.id, type]));
+// The composed system view (framework + mounted packs in dependency
+// order): every pack type is executable through the generic instance
+// service.
+const staticTypes = new Map([...frameworkTypes, ...composeSystemDeclarations()].map(type => [type.id, type]));
 const declarationCache = new Map();
 
 async function declarationFor(typeId, organizationId = null) {
