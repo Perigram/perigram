@@ -18,6 +18,29 @@
       <span class="text-supporting text-muted">{{ $t('typesPane.nullable') }}</span>
     </div>
 
+    <!-- Field policy: mutability is declared on the descriptor. Writable
+         governs mutate leaf sockets and update paths; constructible governs
+         construct sockets and creation forms. Visibility (read/write/admin
+         per role) lives on the producer output's field policy. -->
+    <div class="flex flex-wrap items-center gap-4">
+      <label class="flex items-center gap-2">
+        <Checkbox
+          :model-value="modelValue.writable !== false"
+          :binary="true"
+          @update:model-value="value => patch({ writable: value === false ? false : undefined })"
+        />
+        <span class="text-supporting text-muted">{{ $t('typesPane.writable') }}</span>
+      </label>
+      <label class="flex items-center gap-2">
+        <Checkbox
+          :model-value="modelValue.constructible !== false"
+          :binary="true"
+          @update:model-value="value => patch({ constructible: value === false ? false : undefined })"
+        />
+        <span class="text-supporting text-muted">{{ $t('typesPane.constructible') }}</span>
+      </label>
+    </div>
+
     <div v-if="modelValue.base === 'quantity'" class="flex flex-col gap-1">
       <label>{{ $t('typeCanvas.unit') }}</label>
       <Select :model-value="modelValue.unit" :options="units" size="small" @update:model-value="value => patch({ unit: value })" />

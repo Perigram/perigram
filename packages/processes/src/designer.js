@@ -389,6 +389,37 @@ export function declarationNodePorts(node = {}, types = []) {
 // unknown entity types, sockets that never materialize, wires filtered at
 // save). Pure over the canvas arrays: returns only the mutations that
 // differ from current state, so an unchanged graph evaluates to no writes.
+// Lifecycle summary of one class's declaration tree: its declared states
+// (value, initial, terminal) and the state-to-state transition wires among
+// them (with intents). Pure over the canvas arrays — the class inspector
+// renders this and edits through the same nodes/edges, so panel authoring
+// and tree authoring are one data model.
+export function classLifecycleOf(nodes = [], edges = [], classNodeId = '') {
+  const nodeById = new Map(nodes.map(node => [node.id, node]));
+  const stateNodes = new Map();
+  for (const edge of edges) {
+    if (edge.role !== 'type' || edge.target !== classNodeId) continue;
+    const source = nodeById.get(edge.source);
+    if (source?.type === 'ctsState') stateNodes.set(source.id, source);
+  }
+  const states = [...stateNodes.values()].map(node => ({
+    nodeId: node.id,
+    value: String(node.data?.value || ''),
+    initial: node.data?.initial === true,
+    terminal: node.data?.terminal === true
+  }));
+  const stateIds = new Set(stateNodes.keys());
+  const transitions = edges
+    .filter(edge => edge.role === 'type' && stateIds.has(edge.source) && stateIds.has(edge.target) && edge.source !== edge.target)
+    .map(edge => ({
+      edgeId: edge.id,
+      from: String(nodeById.get(edge.source)?.data?.value || ''),
+      to: String(nodeById.get(edge.target)?.data?.value || ''),
+      intent: String(edge.data?.intent || '')
+    }));
+  return { states, transitions };
+}
+
 export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, previousBindings = {}, resolvers = {}, knownTypeIds = []) {
   const mutations = [];
   const bindings = {};

@@ -25,12 +25,68 @@
           <InputText
             :model-value="node.data.typeId"
             :invalid="!typeIdValid"
-            @update:model-value="value => $emit('update-type-id', String(value || ''))"
+            @update:model-value="value => $emit('update-type-id', slugTypeId(value))"
           />
           <Message v-if="!typeIdValid" severity="error" size="small" :closable="false">
             {{ $t('typesPane.typeIdHint') }}
           </Message>
         </div>
+
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <label>{{ $t('processDesigner.lifecycle') }}</label>
+            <Button :label="$t('typesPane.addState')" icon="pi pi-plus" text size="small" @click="emit('add-state', suggestedStateValue)" />
+          </div>
+          <Message v-if="!lifecycle.states.length" severity="secondary" size="small" :closable="false">
+            {{ $t('processDesigner.lifecycleEmptyHint') }}
+          </Message>
+          <div
+            v-for="state in lifecycle.states"
+            :key="state.nodeId"
+            class="flex items-center gap-2 rounded-ui border border-content-border p-1.5"
+          >
+            <InputText
+              :model-value="state.value"
+              size="small"
+              class="min-w-0 flex-1"
+              :placeholder="$t('typeCanvas.stateName')"
+              @update:model-value="value => emit('update-state', { nodeId: state.nodeId, changes: { value: String(value || '') } })"
+            />
+            <Checkbox
+              :model-value="state.initial"
+              binary
+              :aria-label="$t('typesPane.initial')"
+              @update:model-value="value => emit('update-state', { nodeId: state.nodeId, changes: { initial: value === true } })"
+            />
+            <Checkbox
+              :model-value="state.terminal"
+              binary
+              :aria-label="$t('typesPane.terminal')"
+              @update:model-value="value => emit('update-state', { nodeId: state.nodeId, changes: { terminal: value === true } })"
+            />
+            <Button icon="pi pi-times" text severity="danger" size="small" :aria-label="$t('common.delete')" @click="emit('remove-state', state.nodeId)" />
+          </div>
+          <small class="text-muted">{{ $t('typesPane.initial') }} / {{ $t('typesPane.terminal') }}</small>
+          <div v-if="lifecycle.transitions.length" class="flex flex-col gap-1">
+            <label>{{ $t('typesPane.transitions') }}</label>
+            <div
+              v-for="transition in lifecycle.transitions"
+              :key="transition.edgeId"
+              class="flex items-center gap-2 rounded-ui border border-content-border p-1.5"
+            >
+              <span class="shrink-0 text-supporting text-muted">{{ transition.from }} → {{ transition.to }}</span>
+              <InputText
+                :model-value="transition.intent"
+                size="small"
+                class="min-w-0 flex-1"
+                :placeholder="$t('typesPane.intent')"
+                @update:model-value="value => emit('update-transition', { edgeId: transition.edgeId, intent: String(value || '') })"
+              />
+              <Button icon="pi pi-times" text severity="danger" size="small" :aria-label="$t('common.delete')" @click="emit('remove-transition', transition.edgeId)" />
+            </div>
+          </div>
+        </div>
+
         <Message
           v-for="diagnostic in diagnostics"
           :key="diagnostic"
@@ -114,12 +170,33 @@ const props = defineProps({
   typeIdValid: { type: Boolean, default: true },
   diagnostics: { type: Array, default: () => [] },
   typeOptions: { type: Array, default: () => [] },
-  typeAnchorOptions: { type: Array, default: () => [] }
+  typeAnchorOptions: { type: Array, default: () => [] },
+  // Lifecycle of THIS class, derived from the declaration tree
+  // (classLifecycleOf): panel edits go through the same state nodes and
+  // transition wires the canvas renders.
+  lifecycle: { type: Object, default: () => ({ states: [], transitions: [] }) }
 });
 
-const emit = defineEmits(['sync', 'update-name', 'update-type-id']);
+const emit = defineEmits(['sync', 'update-name', 'update-type-id', 'add-state', 'update-state', 'remove-state', 'update-transition', 'remove-transition']);
 
 const classOptions = DECLARABLE_CLASSES.map(classOf => ({ label: classOf, value: classOf }));
+
+// The registry speaks kebab only; the id field sanitizes as you type so an
+// invalid id can never persist and poison the graph downstream.
+function slugTypeId(value = '') {
+  return String(value)
+    .toLowerCase()
+    .replace(/['’]/g, '')
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+const suggestedStateValue = computed(() => {
+  const taken = new Set(props.lifecycle.states.map(state => state.value));
+  let index = 1;
+  while (taken.has(`state-${index}`)) index += 1;
+  return `state-${index}`;
+});
 
 
 </script>

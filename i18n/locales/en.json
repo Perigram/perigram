@@ -2517,7 +2517,10 @@
     "addTrigger": "Add trigger",
     "values": "values",
     "preview": "preview",
-    "typeIdHint": "Type id must be kebab-case (lowercase letters, digits, dashes) — the registry rejects anything else."
+    "typeIdHint": "Type id must be kebab-case (lowercase letters, digits, dashes) — the registry rejects anything else.",
+    "writable": "Writable",
+    "constructible": "Constructible",
+    "addState": "Add state"
   },
   "processDesigner": {
     "classNamePlaceholder": "Widget name",
@@ -3160,7 +3163,9 @@
     "applyMigrationTarget": "Migrate to",
     "applyMigrationTargetPlaceholder": "Select target…",
     "applyMigrationNoTargets": "{entityType} has no retained states to migrate to — keep the state or redeclare it before applying.",
-    "applyMigrationConfirm": "Migrate and apply"
+    "applyMigrationConfirm": "Migrate and apply",
+    "lifecycle": "Lifecycle",
+    "lifecycleEmptyHint": "No states yet — add one to start the lifecycle."
   },
   "generatedScreen": {
     "home": "Home",

@@ -2517,7 +2517,10 @@
     "addTrigger": "Добавить триггер",
     "values": "значения",
     "preview": "предпросмотр",
-    "typeIdHint": "Идентификатор типа — kebab-case (строчные буквы, цифры, дефисы), иначе реестр его отклоняет."
+    "typeIdHint": "Идентификатор типа — kebab-case (строчные буквы, цифры, дефисы), иначе реестр его отклоняет.",
+    "writable": "Редактируемое",
+    "constructible": "Создаваемое",
+    "addState": "Добавить состояние"
   },
   "processDesigner": {
     "classNamePlaceholder": "Название типа",
@@ -3160,7 +3163,9 @@
     "applyMigrationTarget": "Перенести в",
     "applyMigrationTargetPlaceholder": "Выберите состояние…",
     "applyMigrationNoTargets": "У {entityType} нет сохранённых состояний для переноса — оставьте состояние или объявите его заново перед применением.",
-    "applyMigrationConfirm": "Перенести и применить"
+    "applyMigrationConfirm": "Перенести и применить",
+    "lifecycle": "Жизненный цикл",
+    "lifecycleEmptyHint": "Состояний нет — добавьте первое."
   },
   "generatedScreen": {
     "home": "Главная",
