@@ -168,15 +168,21 @@ async function requireDeclaration(typeId, organizationId) {
 }
 
 function instanceService(typeId) {
-  // Static-declaration creation protocols (SPEC §4): pack types declare
-  // their protocols synchronously, so the capability literal reflects
-  // them exactly; org-authored payload types keep the unconditional
-  // handlers and gain their modes through the authoritative projection
-  // (domain construction ∩ service handlers).
-  const staticProtocols = (() => {
-    const declaration = staticTypes.get(typeId);
-    if (!declaration?.payload) return [];
-    return [...new Set([].concat(declaration.payload.creation || ['upload']).map(String))];
+  // Static-declaration construct modes (SPEC §4): payload types offer
+  // only their creation protocols, payload-less types offer
+  // genericCreate, derived types offer none — the projection is the
+  // authoritative mirror. Handlers stay unconditional (generic
+  // machinery). Org-authored declarations live in the async type store,
+  // so unknown types keep the payload-less literal (genericCreate); the
+  // projection governs their executable modes.
+  const staticDeclaration = staticTypes.get(typeId);
+  const staticCreateModes = (() => {
+    if (!staticDeclaration) return ['genericCreate'];
+    if (staticDeclaration.derived) return [];
+    if (staticDeclaration.payload) {
+      return [...new Set([].concat(staticDeclaration.payload.creation || ['upload']).map(String))];
+    }
+    return ['genericCreate'];
   })();
   // Shared construct body: the §3 document build common to every
   // construction mode.
@@ -369,8 +375,8 @@ function instanceService(typeId) {
     },
     processDelete: (id, auth) => instanceService(typeId).remove(id),
     processCapabilities: {
-      create: true,
-      createModes: ['genericCreate', ...staticProtocols],
+      create: staticCreateModes.length > 0,
+      createModes: staticCreateModes,
       processUpdate: true,
       delete: true,
       archive: false

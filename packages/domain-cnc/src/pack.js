@@ -18,7 +18,11 @@ export const cncFileTypes = [
     payload: {
       mime: 'application/perigram+occs',
       accept: ['.occs'],
-      maxSize: 10 * 1024 * 1024
+      maxSize: 10 * 1024 * 1024,
+      // The designer is the main entry: blank-create opens the cassette
+      // designer (the legacy invariant — created templates open with the
+      // default OCCS document).
+      creation: ['editor']
     },
     fields: {
       name: { base: 'string' }
@@ -30,10 +34,14 @@ export const cncFileTypes = [
     }
   },
   {
+    // Derived: sheet designs are produced by nesting runs (and refined
+    // in the editor from cassette refs) — the legacy construction
+    // exclusion, now declared. No construct modes; editor edits.
     id: 'sheet-design',
     class: 'file',
     scope: 'system',
     version: 1,
+    derived: true,
     fields: {
       geometry: { base: 'json' },
       parts: { base: 'list', itemType: { base: 'ref', accepts: ['cassette'] }, nullable: true }
@@ -80,7 +88,7 @@ export const cncFileTypes = [
 // components/generated/file-surfaces.js.
 export const cncEditors = [
   { type: 'cassette', surface: 'cassette-designer', modes: ['create', 'edit'] },
-  { type: 'sheet-design', surface: 'sheet-design-editor', modes: ['create', 'edit'] },
+  { type: 'sheet-design', surface: 'sheet-design-editor', modes: ['edit'] },
   { type: 'facade-design', surface: 'facade-designer', modes: ['create', 'edit'] },
   { type: 'facade-pattern', surface: 'facade-pattern-designer', modes: ['edit'] }
 ];

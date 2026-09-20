@@ -234,10 +234,13 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     }
   }
 
-  // construction: genericCreate from declared rows (the composer-less
-  // construct) plus declared construct operators and payload creation
-  // protocols (SPEC §4) as `via` modes. Protocol modes carry
-  // signature-derived mode inputs — upload/capture add the typed `file`
+  // construction: payload-bearing types offer ONLY their declared
+  // creation protocols (the editor protocol is the blank-create);
+  // payload-less types offer genericCreate from declared rows (the
+  // composer-less construct) plus declared construct operators as `via`
+  // modes; derived types (operator/service-produced, SPEC §4) synthesize
+  // no construction at all — they enter graphs as outputs. Protocol
+  // modes carry mode inputs — upload/capture add the typed `file`
   // payload input; editor constructs blank. Lineage keys and declared
   // relation edges are construct-addressable (SPEC §6): the schemas were
   // built in the fieldSchemas pass above and are re-derived here per
@@ -284,12 +287,15 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     return { lineage, relations };
   }
   for (const type of types) {
+    // Derived types synthesize no construction: operator-produced
+    // outputs are not constructible from a dialog.
+    if (type.derived) continue;
     const constructOperators = Object.values(type.operators || {}).filter(operator => operator.species === 'construct');
     const labelByType = new Map(entities.map(entity => [entity.type, entity.label]));
     const protocols = type.payload ? payloadProtocolModes(type) : [];
     construction[type.id] = {
-      modes: ['genericCreate', ...protocols, ...constructOperators.map(operator => operator.id)],
-      defaultMode: 'genericCreate',
+      modes: [...protocols, ...(!type.payload ? ['genericCreate'] : []), ...constructOperators.map(operator => operator.id)],
+      defaultMode: type.payload ? protocols[0] : 'genericCreate',
       inputs: [
         { id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true },
         // lineage and relation edges are construct-addressable: a child

@@ -40,7 +40,7 @@ describe('cts type storage', () => {
     const described = await describeOrganizationTypes(ORG);
     const byType = new Map((described.editors || []).map(editor => [editor.type, editor]));
     expect(byType.get('cassette')).toMatchObject({ surface: 'cassette-designer', modes: ['create', 'edit'] });
-    expect(byType.get('sheet-design')).toMatchObject({ surface: 'sheet-design-editor', modes: ['create', 'edit'] });
+    expect(byType.get('sheet-design')).toMatchObject({ surface: 'sheet-design-editor', modes: ['edit'] });
     expect(byType.get('facade-design')).toMatchObject({ surface: 'facade-designer', modes: ['create', 'edit'] });
   });
 

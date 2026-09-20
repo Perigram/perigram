@@ -50,9 +50,19 @@ const orgDoc = {
 
 function orgRegistry() {
   const reg = registry();
-  for (const declaration of [orgPanel, orgBin, orgDoc]) reg.defineType(declaration);
+  for (const declaration of [orgPanel, orgBin, orgDoc, orgDerivedPlan]) reg.defineType(declaration);
   return reg;
 }
+
+const orgDerivedPlan = {
+  id: 'derived-plan',
+  class: 'file',
+  scope: 'org',
+  organizationId: 'org-1',
+  version: 1,
+  derived: true,
+  fields: { geometry: { base: 'json', nullable: true } }
+};
 
 const legacyBase = {
   entities: [{ type: 'oldqueue', collection: 'oldqueues', meta: false }],
@@ -156,16 +166,23 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     const projected = projectDomainFromView(orgRegistry(), 'org-1');
     const occs = projected.construction.occs;
     // Default protocol: payload without an explicit creation list is
-    // upload-backed.
-    expect(occs.modes).toEqual(['genericCreate', 'upload']);
+    // upload-backed — and protocols are the ONLY construct modes of a
+    // payload type (the editor protocol is its blank-create).
+    expect(occs.modes).toEqual(['upload']);
+    expect(occs.defaultMode).toBe('upload');
     expect(occs.modeInputs.upload.find(input => input.id === 'payload')).toMatchObject({
       type: 'file',
       required: true,
       prompt: true
     });
     expect(occs.modeInputs.upload.map(input => input.id)).toEqual(['name', 'payload']);
-    // Payload-less types gain no protocol modes.
+    // Payload-less types keep genericCreate.
     expect(projected.construction.panel.modes).toEqual(['genericCreate']);
+    expect(projected.construction.panel.defaultMode).toBe('genericCreate');
+    // Derived types synthesize no construction: operator outputs are
+    // never constructible from a dialog.
+    expect(projected.construction['derived-plan']).toBeUndefined();
+    expect(projected.entities.some(entity => entity.type === 'derived-plan')).toBe(true);
   });
 
   it('projects declared relation edges from view types', () => {

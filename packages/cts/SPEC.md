@@ -159,8 +159,11 @@ protocols — a list of `upload | capture | editor` stating how instances
 of the type come into being (`upload`: file picker on the payload
 traits; `capture`: camera capture; `editor`: blank instance whose first
 editor save fills the payload). Protocols project as construct `via`
-modes. This is the whole of today's `attachment-kinds.js`, as data on
-the type.
+modes and are the ONLY construct modes of a payload-bearing type (the
+editor protocol is its blank-create). A type marked `derived: true`
+synthesizes no construction at all — operator/service-produced types
+enter graphs as outputs, never as constructs. This is the whole of
+today's `attachment-kinds.js`, as data on the type.
 
 "Not in the row" means "does not exist": selectable field lists, predicate
 paths, patch paths, and card fields are all derived from the row. No list is
