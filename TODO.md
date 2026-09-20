@@ -2,7 +2,22 @@
 
 ## Integrations
 
-- [ ] **Load-time construction-mode re-bind for persisted graphs.**
+- [ ] **Creation-protocol picker in the designer palette.** Ninth slice —
+  makes the protocols reachable.
+  - The type catalog lists one construct variant per construction mode:
+    the default mode keeps the plain type label, additional modes get
+    `· mode` suffixes (`image`, `image · capture`) — the same variant
+    pattern declared construct operators already use. This palette IS
+    the artifact-era protocol picker.
+  - The bare `construct` palette item drops unbound (no hardcoded
+    `via: 'genericCreate'` preset — SPEC §20's no-pre-bound-drops rule);
+    compile defaults a missing mode to the type's `defaultMode`.
+  - Deferred (tracked): an inspector via-control for re-binding an
+    existing construct node's mode; generateAttachment/convertArtifact
+    operator declarations; artifact flow migration off artifact; artifact
+    overload cut.
+
+- [x] **Load-time construction-mode re-bind for persisted graphs.**
   Eighth slice — migrates existing definitions over the construct-mode
   hygiene change instead of failing them.
   - `resolveCtsDefinition`'s node lowering silently re-binds a persisted
