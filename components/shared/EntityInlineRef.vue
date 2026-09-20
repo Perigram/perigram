@@ -426,7 +426,7 @@ function tonePalette(role) {
             :fields="fields"
           />
           <span v-else class="min-w-0 flex-1 truncate text-label">
-            {{ normalizedId || $t('common.notAvailable') }}
+            {{ compactTypeLabel || $t('common.notAvailable') }}
           </span>
         </span>
         <span class="entity-inline-compact-status-row">

@@ -17,7 +17,11 @@ const props = defineProps({
 const { name, slug, serial, reference } = useIdentity(toRef(props, 'entity'));
 const { t } = useI18n();
 const uid = computed(() => props.entity?.identity?.uid || '');
-const primary = computed(() => name.value || slug.value || uid.value || t('common.unnamed'));
+// Instance ids are private: the primary label is the name, then the
+// slug, then the type's class label (provided by inline-card context),
+// and only then the localized unnamed placeholder — never the raw id.
+const inlineTypeLabel = inject('entityInlineTypeLabel', ref(null));
+const primary = computed(() => name.value || slug.value || inlineTypeLabel.value || t('common.unnamed'));
 
 const fieldValueMap = computed(() => ({
   uid: uid.value,

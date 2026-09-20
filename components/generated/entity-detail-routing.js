@@ -28,12 +28,15 @@ function isEntityDetailScreen(screen = {}, screenKey = '', entityType = '') {
   return screen.screenKey === screenKey && screen.template === 'entityDetail' && hasSingleEntitySource(screen, entityType);
 }
 
+// Screens arrive in either vocabulary: the CTS-projected manifest keys
+// sources by `typeId`; legacy-adapter screens use `entityType`. Both name
+// the same target and route resolution accepts either.
 function hasEntitySource(screen = {}, entityType = '') {
-  return (screen.sources || []).some(source => source.entityType === entityType);
+  return (screen.sources || []).some(source => (source.entityType || source.typeId) === entityType);
 }
 
 function hasSingleEntitySource(screen = {}, entityType = '') {
-  return (screen.sources || []).some(source => source.entityType === entityType && source.mode === 'single');
+  return (screen.sources || []).some(source => (source.entityType || source.typeId) === entityType && source.mode === 'single');
 }
 
 function entityRoute(path = '', entityType = '', identifier = '') {

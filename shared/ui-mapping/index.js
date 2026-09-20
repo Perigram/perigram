@@ -405,7 +405,9 @@ export function instanceIdentity(type, instance) {
     && !(descriptor.multiline === true || (descriptor.max || 0) >= 120)
     && typeof fields[name] === 'string'
     && fields[name]);
-  return firstShortString ? fields[firstShortString[0]] : instance.id;
+  // Identity fallback is the class label — raw instance ids are private
+  // and never render in user-facing labels.
+  return firstShortString ? fields[firstShortString[0]] : (type?.render?.label || '?');
 }
 
 const isFilled = value => !(value === null || value === undefined || value === ''
