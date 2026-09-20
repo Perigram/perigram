@@ -277,7 +277,6 @@ Used by `<TraceChain>` component.
 | Store | Contents |
 |---|---|
 | `auth.js` | Session, user profile, global organization context |
-| `queues.js` | Nesting jobs state |
 | `cassettes.js` | User templates and designs |
 | `global.js` | Layout, notifications, shared lookup lists |
 | `outbox.js` | Offline mutation queue, connectivity state, replay |
