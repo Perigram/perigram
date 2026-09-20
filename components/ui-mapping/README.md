@@ -52,8 +52,11 @@ concerns:
 - `CollectionToolbar.vue` — the one filtering surface for every list
   layout: it materializes the composed `listControls` contract above the
   region (a search input over the resolved `searchKeys` plus one clearable
-  select per enum facet over the values actually present). It appears only
-  past the `SEARCH_AT` budget, its gaps come from the system spacing scale
+  select per enum facet over the values actually present). It appears on
+  every large list past the `SEARCH_AT` budget — identity search always
+  functions, so it is never gated on the descriptor vocabulary — and on
+  small lists through multi-value enum facets. Its gaps come from the
+  system spacing scale
   (`spacing.toolbar`) and its control sizes from `editorSize`, and it owns
   no per-type logic — the region tree carries every decision. RegionBlock
   stacks it on the system rhythm (`spacing.stackTight`) ahead of every

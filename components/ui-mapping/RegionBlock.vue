@@ -287,8 +287,8 @@ import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import {
-  LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, SEARCH_AT, resolveListLayout,
-  localizedLabel, typeLabelKey
+  LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout,
+  localizedLabel, typeLabelKey, instanceMatchesToolbar
 } from '#shared/ui-mapping/index.js';
 import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
@@ -368,19 +368,7 @@ const filteredInstances = computed(() => {
   const query = search.value.trim().toLowerCase();
   const activeFacets = Object.entries(facets).filter(([, value]) => value);
   if (!query && !activeFacets.length) return props.node.instances;
-  return props.node.instances.filter(instance => {
-    if (query) {
-      const haystack = controls.searchKeys
-        .map(key => instance.fields?.[key])
-        .filter(value => typeof value === 'string')
-        .join(' ')
-        .toLowerCase();
-      if (haystack && !haystack.includes(query)) return false;
-    }
-    for (const [name, expected] of activeFacets) {
-      if (String(instance.fields?.[name] ?? '') !== String(expected)) return false;
-    }
-    return true;
-  });
+  return props.node.instances.filter(instance =>
+    instanceMatchesToolbar(props.node.type, controls, instance, query, Object.fromEntries(activeFacets)));
 });
 </script>
