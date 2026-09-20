@@ -1,13 +1,13 @@
 import GeneratedHomeWorkspace from '~/components/generated/GeneratedHomeWorkspace.vue';
 import GeneratedProjectWorkspace from '~/components/generated/GeneratedProjectWorkspace.vue';
-import GeneratedFacadePatternDesignerWorkspacePage from '~/components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue';
 import ArtifactDetail from '~/components/entities/Artifact/ArtifactDetail.vue';
 import { fileDetailOverloads } from '~/components/generated/file-surfaces.js';
 
-// File-type detail bodies (cassette, sheet-design, facade-design) derive
-// from the pack editor bindings through the file-surface registry — the
-// type id is the projected entity key. Static rows remain only for
-// surfaces whose type is not yet declared in a pack.
+// File-type detail bodies (cassette, sheet-design, facade-design,
+// facade-pattern, sketch) derive from the pack editor bindings through
+// the file-surface registry — the type id is the projected entity key.
+// The artifact row stays static: artifacts are the framework file
+// service (SPEC §13), not a pack type.
 export const generatedScreenOverloads = [
   {
     template: 'home',
@@ -26,12 +26,7 @@ export const generatedEntityDetailOverloads = [
     component: ArtifactDetail,
     props: ({ entity }) => ({ artifact: entity })
   },
-  ...fileDetailOverloads(),
-  {
-    entityType: 'facade_pattern',
-    component: GeneratedFacadePatternDesignerWorkspacePage,
-    props: ({ entity }) => ({ facadePattern: entity })
-  }
+  ...fileDetailOverloads()
 ];
 
 export function resolveGeneratedScreenOverload(screen = {}) {

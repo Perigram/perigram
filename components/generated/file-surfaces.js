@@ -1,8 +1,11 @@
 import GeneratedCassetteDesignerWorkspacePage from '~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import GeneratedFacadeDesignerWorkspacePage from '~/components/generated/GeneratedFacadeDesignerWorkspacePage.vue';
+import GeneratedFacadePatternDesignerWorkspacePage from '~/components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
+import SketchEditor from '~/components/artifacts/SketchEditor.vue';
 import { cncEditors } from '@cutkit/domain-cnc';
+import { techDrawingEditors } from '~/packages/tech-drawing/src/index.js';
 
 /**
  * File surfaces: the single app-side home of the CTS file-type editor
@@ -48,12 +51,50 @@ export const fileSurfaceRegistry = {
       component: GeneratedFacadeDesignerWorkspacePage,
       props: ({ entity }) => ({ facade: entity })
     }
+  },
+  'facade-pattern-designer': {
+    detail: {
+      component: GeneratedFacadePatternDesignerWorkspacePage,
+      props: ({ entity }) => ({ facadePattern: entity })
+    }
+  },
+  'sketch-editor': {
+    detail: {
+      component: SketchEditor,
+      ownsActionSurface: true,
+      props: ({ entity }) => ({ persistence: sketchInstancePersistence(entity) })
+    },
+    forcesIdentity: true
   }
 };
 
-// The mounted pack's editor bindings — the same records the cts-types
-// feature serves with the organization type view.
-export const packEditorBindings = cncEditors;
+/**
+ * Instance-backed persistence contract for the sketch editor: scenes load
+ * from the payload download URL and save through the revisioned instance
+ * payload transport. Sketch-scoped by nature — the surface exists only
+ * for the `sketch` file type.
+ */
+export function sketchInstancePersistence(entity = {}) {
+  const payloadUrl = instancePayloadFileUrl(entity.attachments?.primary);
+  return {
+    title: entity.identity?.name || '',
+    loadScene: async () => {
+      if (!payloadUrl) return '';
+      const response = await fetch(payloadUrl);
+      if (!response.ok) return '';
+      return await response.text();
+    },
+    saveScene: async (sceneText, filename) => {
+      const form = new FormData();
+      form.append('file', new File([sceneText], filename, { type: 'application/json' }));
+      return await $fetch(`/api/instances/sketch/${encodeURIComponent(String(entity._id))}/payload`, { method: 'PUT', body: form });
+    }
+  };
+}
+
+// The mounted packs' editor bindings in composition order — the same
+// records the cts-types feature serves with the organization type view.
+export const packEditorBindings = [...techDrawingEditors, ...cncEditors];
 
 /**
  * Resolve one file type's surface record from editor bindings. Returns

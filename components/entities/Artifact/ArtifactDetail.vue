@@ -13,7 +13,7 @@
       </div>
       <template v-if="canEdit && layoutDraft && editor.mode === 'layout'"><ArtifactLayoutEditor v-model="layoutDraft" /></template>
       <ArtifactTextEditor v-else-if="canEdit && ['text', 'csv'].includes(editor.mode)" :artifact="artifact" @saved="$emit('saved', $event)" />
-      <SketchEditor v-else-if="canEdit && editor.mode === 'sketch'" :artifact="artifact" @saved="$emit('saved', $event)" />
+      <SketchEditor v-else-if="canEdit && editor.mode === 'sketch'" :persistence="sketchPersistence" @saved="$emit('saved', $event)" />
       <ArtifactViewer v-else :artifact="artifact" :revision="revision" />
     </div>
   </EntityPage>
@@ -41,6 +41,26 @@ const selectedRevisionId = ref('');
 const layoutDraft = ref(null);
 const replacementInput = ref(null);
 const canEdit = computed(() => hasPermissionGrant({ permissions: authStore.activePermissions, feature: 'artifacts', level: 'write', entity: props.artifact, entityType: 'artifact' }));
+// Artifact-backed persistence for the shared sketch editor: scene bytes
+// through the artifact file-revision transport, origin through metadata.
+const sketchPersistence = computed(() => ({
+  title: props.artifact.identity?.name || '',
+  loadScene: () => fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}`).then(response => response.text()),
+  saveScene: async (sceneText, filename, { origin } = {}) => {
+    const form = new FormData();
+    form.append('file', new File([sceneText], filename, { type: 'application/json' }));
+    const savedArtifact = await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}/file`, { method: 'PUT', body: form });
+    if (origin !== undefined && (origin || props.artifact.data?.metadata?.origin)) {
+      const metadata = {
+        ...(props.artifact.data?.metadata || {}),
+        origin: origin || null
+      };
+      return await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}`, { method: 'PUT', body: { metadata } });
+    }
+    return savedArtifact;
+  },
+  origin: { value: props.artifact.data?.metadata?.origin || null }
+}));
 const editing = computed(() => resolveArtifactEditingContract({ artifact: props.artifact, canEdit: canEdit.value }));
 const creation = computed(() => editing.value.creation);
 const editor = computed(() => editing.value.editor);

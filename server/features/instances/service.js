@@ -10,10 +10,13 @@
 import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { frameworkTypes } from '~/packages/cts/src/index.js';
+import { frameworkTypes, CLASS_COLLECTIONS } from '~/packages/cts/src/index.js';
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import * as typeStore from '../cts-types/repository.js';
 import * as repository from './repository.js';
+import * as filesService from '../files/service.js';
+import * as entityRevisionsService from '../entity-revisions/service.js';
+import { hasEntityAccess } from '../../core/access/service.js';
 
 // The composed system view (framework + mounted packs in dependency
 // order): every pack type is executable through the generic instance
@@ -126,6 +129,10 @@ function mimeMatches(actual = '', accepted = '') {
   if (accepted.endsWith('/*')) return actual.split('/')[0] === accepted.slice(0, -2) && actual.includes('/');
   return false;
 }
+
+// Instance payload blobs live in the `files` GridFS bucket (SPEC §3 Blob
+// home); the wire payload reference carries no bucket by design.
+const PAYLOAD_BUCKET = 'files';
 
 function typeIdOf(declaration = {}) {
   return declaration.id || '';
@@ -250,6 +257,76 @@ function instanceService(typeId) {
       const declaration = await declarationFor(typeId, null);
       const collection = repository.collectionForClass(declaration?.class);
       return await repository.deleteInstance(collection, id);
+    },
+
+    // Payload replacement — the editor concern SPEC §3 names. Requires a
+    // declared payload and revision scope; every save is revisioned so no
+    // payload bytes are ever lost to a silent overwrite. Gated by the
+    // shared access engine on the class-collection feature (the feature
+    // grants compile against) with the type id as entity-type filter.
+    async replacePayload(id, { buffer, filename, mimeType } = {}, { userId, organizationId, auth } = {}) {
+      const declaration = await requireDeclaration(typeId, organizationId);
+      if (!declaration.payload) {
+        throw createError({ statusCode: 400, message: `Type ${typeId} declares no payload` });
+      }
+      if (!declaration.revisions) {
+        throw createError({ statusCode: 400, message: `Type ${typeId} declares no revision scope; payload replacement requires revisions` });
+      }
+      if (!buffer?.length) {
+        throw createError({ statusCode: 400, message: 'Payload file is required' });
+      }
+      const collection = repository.collectionForClass(declaration.class);
+      const doc = await repository.findInstance(collection, id, typeId);
+      if (!doc) {
+        throw createError({ statusCode: 404, message: `${typeId} ${id} not found` });
+      }
+      const current = toDto(doc, declaration);
+      const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
+      if (!hasEntityAccess({ entity: current, entityType: typeId, feature, level: 'write', auth: auth || null })) {
+        throw createError({ statusCode: 403, message: 'Permission denied' });
+      }
+      const stored = await filesService.uploadFile(buffer, filename || 'payload', {
+        userId,
+        organizationId,
+        type: typeId
+      }, PAYLOAD_BUCKET);
+      try {
+        const payload = payloadFromWire({
+          payload: {
+            fileId: stored.id,
+            mime: mimeType || null,
+            size: buffer.length,
+            name: filename || 'payload'
+          }
+        }, declaration);
+        await entityRevisionsService.ensureForEntitySnapshot({
+          entityType: typeId,
+          entity: current,
+          scope: declaration.revisions,
+          content: { fileId: payload.fileId, mime: payload.mime || null, size: payload.size ?? null, name: payload.name || null },
+          snapshot: { identity: current.identity || null, data: { payload } },
+          attachments: {
+            primary: {
+              fileId: payload.fileId,
+              name: payload.name || 'payload',
+              metadata: { mimeType: payload.mime || 'application/octet-stream', bucketName: PAYLOAD_BUCKET }
+            }
+          },
+          userId,
+          reason: 'payload-replaced'
+        });
+        const updated = await repository.updateInstanceFields(collection, id, {
+          payload,
+          updatedAt: new Date().toISOString()
+        });
+        if (!updated) {
+          throw createError({ statusCode: 409, message: `${typeId} ${id} changed before its payload was saved` });
+        }
+        return toDto(updated, declaration);
+      } catch (error) {
+        await filesService.deleteFile(stored.id, PAYLOAD_BUCKET).catch(() => {});
+        throw error;
+      }
     },
 
     // -- process bindings --
