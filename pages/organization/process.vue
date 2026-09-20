@@ -549,6 +549,7 @@ import {
   declarationWireLegality,
   definitionToCanvas,
   migrateProcessDefinition,
+  prepareAuthoredDefinition,
   processSocketsCompatible,
   PROCESS_DATAFLOW_VERSION
 } from '~/packages/processes/src/index.js';
@@ -1667,11 +1668,19 @@ function recomputeProcessPreview(shouldApply = () => true) {
     return;
   }
   try {
-    const compiled = compileProcessDefinition(
-      processDefinitionSnapshot(),
-      projectDomainFromView(ctsRegistry(), activeOrganizationId(), cncDomain),
-      { roles: organizationRoles.value }
-    );
+    // Preview parity with server acceptance: an authored v5 snapshot must
+    // lower through prepareAuthoredDefinition before compiling — a raw
+    // compile silently ignores cts.* species records, so the preview would
+    // show an empty contract (no actions, no grants, no inferred screens)
+    // for graphs the server compiles fine.
+    const projectedDomain = projectDomainFromView(ctsRegistry(), activeOrganizationId(), cncDomain);
+    const { definition: lowered, errors: acceptErrors } = prepareAuthoredDefinition(processDefinitionSnapshot(), projectedDomain);
+    if (acceptErrors.length) {
+      compiledPreview.value = null;
+      compiledPreviewError.value = acceptErrors.join('; ');
+      return;
+    }
+    const compiled = compileProcessDefinition(lowered, projectedDomain, { roles: organizationRoles.value });
     compiled.bundle = compileClientBundle(ctsRegistry(), activeOrganizationId());
     compiledPreview.value = compiled;
     compiledPreviewError.value = '';

@@ -208,6 +208,11 @@ draft records) re-runs `interpretDeclarationEdges`
 ([`@cutkit/processes`](../packages/processes/README.md)) and the page's sync
 pass on every change, so declaration wires re-bind descendants live while
 position drags and selection churn never re-evaluate.
+`useProcessDesignerNodeSync` keeps the record-level access shapes disjoint:
+effect and `cts.*` records always carry the grant object (`{ level,
+roleIds, grants }`) that compiles into action access, while the Item/List/Tree
+socket-access string is written only onto pure value-algebra records
+(`useProcessDesignerNodeSync.spec.js` pins both).
 `useProcessDesignerScreens` mutates complete semantic screen sources, regions,
 lineage rows, and typed binding/filter maps, then normalizes through the
 [`@cutkit/processes` screen contract](../packages/processes/README.md). Source

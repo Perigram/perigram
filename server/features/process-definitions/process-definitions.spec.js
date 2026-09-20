@@ -11,11 +11,12 @@ import {
   validate
 } from './service.js';
 import * as processRepository from './repository.js';
+import * as ctsTypes from '../cts-types/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { statusService } from '~/server/core/machines/service.js';
 import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
 import { PROCESS_DATAFLOW_VERSION } from '~/packages/processes/src/index.js';
-import { createPersistedAcceptanceFixture } from '~/test-data/persisted-acceptance.js';
+import { createPersistedAcceptanceFixture, PERSISTED_ACCEPTANCE_IDS } from '~/test-data/persisted-acceptance.js';
 
 vi.mock('../cts-types/service.js', async () => {
   const cts = await import('~/packages/cts/src/index.js');
@@ -24,7 +25,7 @@ vi.mock('../cts-types/service.js', async () => {
   for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack]) {
     registry.defineType(declaration);
   }
-  return { compileRegistryForOrganization: async () => registry };
+  return { compileRegistryForOrganization: vi.fn(async () => registry) };
 });
 vi.mock('./repository.js', () => ({
   find: vi.fn(),
@@ -144,6 +145,50 @@ describe('current process-definition service contract', () => {
     expect(processRepository.updateById).not.toHaveBeenCalled();
   });
 
+  it('validates a v5 draft bound to an org-authored type through the projected domain', async () => {
+    // Regression: validate/activate lowered the graph against the legacy
+    // CNC domain, so every cts.* node bound to an org type store entry
+    // failed with `unknown type` even though save and compile accepted it.
+    const cts = await import('~/packages/cts/src/index.js');
+    const orgRegistry = cts.createTypeRegistry({ id: 'spec-cts-org' });
+    orgRegistry.defineType({
+      id: 'fixture-panel-9',
+      class: 'file',
+      fields: { name: { base: 'string' } },
+      states: { main: { initial: 'draft', values: ['draft', 'archived'], terminal: ['archived'] } }
+    });
+    vi.mocked(ctsTypes.compileRegistryForOrganization).mockResolvedValueOnce(orgRegistry);
+
+    const roleId = PERSISTED_ACCEPTANCE_IDS.role;
+    processRepository.findById.mockResolvedValue(draftRecord({
+      schemaVersion: 1,
+      dataflowVersion: PROCESS_DATAFLOW_VERSION,
+      graph: { nodes: [{ id: 'create', type: 'processNode', data: { refId: 'create' } }], edges: [] },
+      roleGrants: {},
+      producerOutputs: {
+        'create:result': {
+          id: 'create:result', producerOutputId: 'create:result', nodeId: 'create', outputSocketId: 'result',
+          entityType: 'fixture-panel-9', lifecycle: { mode: 'domainDefault' },
+          fields: { read: ['identity.*'], write: [], private: [] }
+        }
+      },
+      actions: {}, services: {}, sockets: {}, screens: {},
+      processNodes: {
+        create: {
+          id: 'create', kind: 'cts.construct', typeId: 'fixture-panel-9', via: 'genericCreate',
+          producerOutputId: 'create:result', trigger: { mode: 'manual' },
+          access: { level: 'write', grants: [{ roleId, level: 'admin' }] },
+          status: { to: 'draft' }
+        }
+      }
+    }));
+
+    const validation = await validate('process-draft', adminAuth());
+    console.log("VALIDATION ERRORS:", JSON.stringify(validation.errors));
+    expect(validation.ok).toBe(true);
+    expect(validation.errors || []).toEqual([]);
+  });
+
   it('persists structurally serializable drafts without compiling them', async () => {
     const authored = createPersistedAcceptanceFixture().processDefinition.data;
     processRepository.findById.mockResolvedValue(draftRecord(authored));
@@ -218,6 +263,7 @@ describe('current process-definition service contract', () => {
     });
 
     const validation = await validate('process-draft', adminAuth());
+    console.log("VALIDATION ERRORS:", JSON.stringify(validation.errors));
     expect(validation.ok).toBe(true);
     expect(validation.diff.removedEntityStatuses).toEqual([{ entityType, statuses: ['LEGACY_RETIRED'] }]);
 
@@ -295,6 +341,7 @@ describe('current process-definition service contract', () => {
     });
 
     const validation = await validate('process-draft', adminAuth());
+    console.log("VALIDATION ERRORS:", JSON.stringify(validation.errors));
     expect(validation.ok).toBe(true);
     expect(validation.migrationPlan).toEqual({
       statuses: [expect.objectContaining({
