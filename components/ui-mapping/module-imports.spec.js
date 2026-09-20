@@ -62,4 +62,16 @@ describe('ui-mapping component module imports', () => {
       expect(unused, `${file} imports unused primevue components`).toEqual([]);
     }
   });
+
+  it('never binds a :text attribute on Message', () => {
+    // PrimeVue 4 Message has no text prop — content renders through the
+    // default slot only. A :text binding is a dead attribute and the
+    // message renders with severity color and no content.
+    for (const file of readdirSync(dir).filter(file => file.endsWith('.vue'))) {
+      const source = readFileSync(join(dir, file), 'utf8');
+      const template = source.slice(0, source.indexOf('<script'));
+      const offenders = [...template.matchAll(/<Message\b[^>]*:text=/g)];
+      expect(offenders.length, `${file} binds :text on Message (slot-only component)`).toBe(0);
+    }
+  });
 });
