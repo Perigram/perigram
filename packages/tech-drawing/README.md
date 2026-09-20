@@ -20,6 +20,16 @@ and carries no service bindings.
   declared relation `defaultPen: one pen-template` (`onRemove:
   restrict`), the R2-legal home of the legacy `defaultPenId`.
 
+## Management surfaces
+
+There are no bespoke pack pages. Instance management is declaration-
+composed: a `typeList` screen over `pen-template` / `layer-standard`
+with generic create/update actions, authored in the process designer
+and rendered by the generator. The pen color field carries
+`render.control: 'ColorPicker'`, which pins the generator's color
+control (edit variants); pattern stays on the enum contract
+(`EnumSelect`), display variants stay shape-derived.
+
 ## Instances
 
 System pens/standards are seeded as §3 docs with `organizationId: null`
