@@ -43,7 +43,7 @@
 /**
  * TraceChain - v24 Standardized
  * Visualizes the ancestry tree for any entity.
- * Names are resolved async via useEntityStore (cached, no duplicate fetches).
+ * Names are resolved async via the instances store (cached, no duplicate fetches).
  */
 import { ref, computed, inject, toRef, unref, watchEffect } from 'vue';
 import TraceLink from './TraceLink.vue';
@@ -51,7 +51,7 @@ import Button from 'primevue/button';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { useLineage } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
-import { useEntityStore } from '~/stores/entities';
+import { useInstancesStore } from '~/stores/instances';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { entityUiFor } from '~/utils/status-engine';
 import { containmentAncestors, normalizeHierarchyType, projectHierarchyRoute, traceContextExclusions, visibleTraceAncestors } from '~/utils/entity-hierarchy.js';
@@ -65,7 +65,7 @@ const props = defineProps({
     exclude: { type: Array, default: () => [] }
 });
 
-const entityStore = useEntityStore();
+const instances = useInstancesStore();
 const authStore = useAuthStore();
 const effectiveContainment = useEffectiveContainment();
 const entityContext = inject('entityContext', null);
@@ -153,7 +153,7 @@ watchEffect(async () => {
         const key = labelKey(item);
         if (labels.value[key]) continue;
         const contextEntity = findContextEntity(item.type, item.id);
-        const entity = contextEntity || await entityStore.fetchEntity(item.type, item.id, false, { silent: true });
+        const entity = contextEntity || await instances.resolveReadableReference(instances.canonicalTypeKey(item.type), item.id, { silent: true });
         const label = entityLabel(entity);
         if (entity) {
             resolvedEntities.value[key] = entity;

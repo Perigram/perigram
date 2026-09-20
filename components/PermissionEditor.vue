@@ -160,7 +160,7 @@ import Select from '~/components/shared/EntitySelect.vue';
 import Tag from 'primevue/tag';
 import Listbox from 'primevue/listbox';
 import Message from 'primevue/message';
-import { useEntity } from '~/composables/useEntity';
+import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import {
     cncEntityFieldGroups,
@@ -190,9 +190,13 @@ const selectedGrantIndex = ref(0);
 const entityOptionsLoading = ref(false);
 const entityOptionLists = ref({});
 const selectedRuleTree = ref(null);
+const instances = useInstancesStore();
 const entityLoaders = Object.fromEntries(cncDomain.entities.map(entity => [
     entity.type,
-    useEntity(entity.surfaceKey)
+    {
+        list: (filters = {}) => instances.listInstances(instances.canonicalTypeKey(entity.surfaceKey), filters),
+        create: body => instances.createInstance(instances.canonicalTypeKey(entity.surfaceKey), body, { entityType: entity.type })
+    }
 ]));
 
 const PERMISSION_LEVELS = computed(() => [

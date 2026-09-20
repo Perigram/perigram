@@ -6,7 +6,7 @@ import { useI18n } from 'vue-i18n';
 import { entitySelectLabel, entitySelectValue } from '~/utils/selectOptions';
 import { processOperationalScreens, resolveVisibleNavigation, resolveVisibleScreens } from '~/utils/process-navigation';
 import { generatedScreenLabel } from '~/utils/generated-labels.js';
-import { useEntityStore } from './entities.js';
+import { useInstancesStore } from './instances';
 import { useInstancesStore } from './instances';
 import { useRegistryStore } from './registry';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
@@ -17,7 +17,7 @@ import { organizationBreadcrumbEntries } from '~/utils/navigation-breadcrumbs.js
 export const useNavigationStore = defineStore('navigation', () => {
     const authStore = useAuthStore();
     const globalStore = useGlobalStore();
-    const entityStore = useEntityStore();
+    const instances = useInstancesStore();
     const instances = useInstancesStore();
     const registry = useRegistryStore();
     const { t, te } = useI18n();
@@ -77,12 +77,12 @@ export const useNavigationStore = defineStore('navigation', () => {
         currentHierarchyPath.value = path;
         const target = routeEntityTarget(path, query);
         if (!target?.entityType || !target?.id) return;
-        const current = await entityStore.fetchEntity(hierarchyTypeAlias(target.entityType), target.id, false, { ...fetchOptions, silent: true });
+        const current = await instances.resolveReadableReference(instances.canonicalTypeKey(target.entityType), target.id, { silent: true, fetchOptions });
         if (!current) return;
         const ancestorRefs = containmentAncestors(current, target.entityType, effectiveContainment());
         const ancestors = [];
         for (const ref of ancestorRefs) {
-            const entity = await entityStore.fetchEntity(hierarchyTypeAlias(ref.type), ref.id, false, { ...fetchOptions, silent: true });
+            const entity = await instances.resolveReadableReference(instances.canonicalTypeKey(ref.type), ref.id, { silent: true, fetchOptions });
             if (entity) ancestors.push({ ...ref, entity });
         }
         currentHierarchy.value = [...ancestors, { type: normalizeHierarchyType(target.entityType), id: entityHierarchyId(current), entity: current, current: true }];

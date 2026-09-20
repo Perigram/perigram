@@ -2,6 +2,16 @@
 
 Authenticated in-memory entity change bus for app-session synchronization.
 
+## Contract refresh hint
+
+`publishOrgContractChanged(organizationId, kind, detail)` fans a
+`contractChanged` marker onto the connections org topic when the
+organization's registry view (`kind: 'registry'`, from cts-type writes) or
+active process (`kind: 'process'`, from activation) changes. The event
+carries no contract data — open tabs respond with one debounced auth
+re-hydration (`stores/entityEvents.js`), keeping per-user access
+resolution server-side.
+
 ## Contract
 
 Entity events are invalidation signals, not data replication payloads:

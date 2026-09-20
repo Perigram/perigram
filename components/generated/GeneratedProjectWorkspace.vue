@@ -157,7 +157,7 @@ import { mergeCollectionActionContext } from '~/components/generated/action-cont
 import { projectContextActionEntries } from '~/components/generated/project-context-actions.js';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 import { useAuthStore } from '~/stores/auth';
-import { useEntityStore } from '~/stores/entities.js';
+import { useInstancesStore } from '~/stores/instances';
 import { useInstancesStore } from '~/stores/instances';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
@@ -187,7 +187,7 @@ const props = defineProps({
 
 const emit = defineEmits(['refresh', 'execute-action']);
 const authStore = useAuthStore();
-const entityStore = useEntityStore();
+const instances = useInstancesStore();
 const instances = useInstancesStore();
 const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
@@ -414,7 +414,7 @@ watch(linkedRefs, async refs => {
       item.type === ref.entityType && entityId(item.entity) === ref.id
     ));
     const entity = existing?.entity || ref.entity
-      || await entityStore.fetchEntity(ref.entityType, ref.id, false, { silent: true });
+      || await instances.resolveReadableReference(instances.canonicalTypeKey(ref.entityType), ref.id, { silent: true });
     return entity ? {
       key: entityKey(ref.entityType, entity),
       kind: 'entity',
@@ -449,7 +449,7 @@ watch(openedEntityRefs, async refs => {
       item.type === reference.entityType && entityId(item.entity) === reference.entityId
     ));
     const entity = existing?.entity
-      || await entityStore.fetchEntity(reference.entityType, reference.entityId, false, { silent: true });
+      || await instances.resolveReadableReference(instances.canonicalTypeKey(reference.entityType), reference.entityId, { silent: true });
     return entity ? workspaceEntityItem(reference.entityType, entity) : null;
   }));
   if (sequence !== openedEntityLoadSequence) return;

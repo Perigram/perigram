@@ -19,9 +19,7 @@ import { openEntityChat } from '~/utils/entity-chat.js';
 import { openEntityInWorkspace } from '~/utils/entity-workspace-open.js';
 import { useInstancesStore } from '~/stores/instances';
 import { normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
-import { useEntity } from '~/composables/useEntity';
 import { useAuthStore } from '~/stores/auth';
-import { useEntityStore } from '~/stores/entities';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
@@ -74,10 +72,8 @@ const props = defineProps({
 const loaded = ref(null);
 const compactOp = ref();
 const authStore = useAuthStore();
-const entityStore = useEntityStore();
 const instances = useInstancesStore();
 const { t } = useI18n();
-const sheetDesignApi = useEntity('sheetDesign');
 const entityContext = inject('entityContext', null);
 const generatedExecuteAction = inject('generatedExecuteAction', null);
 const normalizedId = computed(() => props.id?.toString?.() || props.id || '');
@@ -197,13 +193,13 @@ watch(
 
     const provided = props.entity || contextEntity.value;
     if (!provided) {
-      loaded.value = await entityStore.fetchEntity(props.type, relationFetchId.value, false, { silent: true });
+      loaded.value = await instances.resolveReadableReference(instances.canonicalTypeKey(props.type), relationFetchId.value, { silent: true });
       await hydrateNestingRunOutputs(loaded.value);
       return;
     }
 
     if (needsNestingRunHydration(provided)) {
-      hydrated.value = await entityStore.fetchEntity(props.type, relationFetchId.value, false, { silent: true });
+      hydrated.value = await instances.resolveReadableReference(instances.canonicalTypeKey(props.type), relationFetchId.value, { silent: true });
     }
     await hydrateNestingRunOutputs(hydrated.value || provided);
   },
@@ -229,8 +225,8 @@ async function hydrateNestingRunOutputs(entity) {
   if (generatedEntityType.value !== 'nesting_run' || !entity) return;
   const runId = entityId(entity) || relationFetchId.value;
   if (!runId) return;
-  relationSheetDesigns.value = await sheetDesignApi
-    .list({ runId }, { silent: true })
+  relationSheetDesigns.value = await instances
+    .listInstances(instances.canonicalTypeKey('sheetDesign'), { runId }, { silent: true })
     .catch(() => []);
 }
 

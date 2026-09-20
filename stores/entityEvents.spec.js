@@ -2,6 +2,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useEntityEventsStore } from './entityEvents.js';
 
+// The connections composable is stubbed with a capturable handler registry
+// so the contract-refresh subscription is directly invokable in tests.
+const orgTopicHandlers = new Map();
+vi.mock('~/composables/useConnections.js', () => ({
+    useConnections: () => ({
+        subscribe: (topic, handler) => {
+            if (!orgTopicHandlers.has(topic)) orgTopicHandlers.set(topic, new Set());
+            orgTopicHandlers.get(topic).add(handler);
+            return () => orgTopicHandlers.get(topic)?.delete(handler);
+        }
+    })
+}));
+
 describe('entity events store', () => {
     beforeEach(() => {
         setActivePinia(createPinia());
@@ -71,5 +84,48 @@ describe('entity events store', () => {
         document.dispatchEvent(new Event('visibilitychange'));
         await vi.advanceTimersByTimeAsync(0);
         expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe('contract refresh hint', () => {
+    beforeEach(() => {
+        setActivePinia(createPinia());
+        vi.useFakeTimers();
+        vi.stubGlobal('window', new EventTarget());
+        vi.stubGlobal('document', Object.assign(new EventTarget(), { visibilityState: 'visible' }));
+        orgTopicHandlers.clear();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+    });
+
+    it('re-hydrates auth once (debounced) when the org topic publishes contractChanged', async () => {
+        const { useAuthStore } = await import('./auth.js');
+        useAuthStore().user = { userId: 'u-1', organizationId: 'org-1' };
+
+        const fetchMock = vi.fn()
+            .mockResolvedValue({ cursor: 1, events: [] })
+            .mockResolvedValueOnce({ userId: 'u-1', organizationId: 'org-1' });
+        vi.stubGlobal('$fetch', fetchMock);
+
+        const store = useEntityEventsStore();
+        store.connect();
+        await vi.advanceTimersByTimeAsync(0);
+
+        const handlers = orgTopicHandlers.get('org:org-1');
+        expect(handlers?.size).toBe(1);
+        for (const handler of handlers) handler({ type: 'contractChanged', data: { kind: 'registry' } });
+        for (const handler of handlers) handler({ type: 'contractChanged', data: { kind: 'process' } });
+        await vi.advanceTimersByTimeAsync(2_000);
+
+        const authCalls = fetchMock.mock.calls.filter(call => String(call[0]).includes('/api/auth/me'));
+        expect(authCalls).toHaveLength(1);
+
+        // Non-contract org payloads never re-hydrate.
+        for (const handler of handlers) handler({ type: 'entityChanged', data: {} });
+        await vi.advanceTimersByTimeAsync(2_000);
+        expect(fetchMock.mock.calls.filter(call => String(call[0]).includes('/api/auth/me'))).toHaveLength(1);
     });
 });

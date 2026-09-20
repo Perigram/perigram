@@ -30,35 +30,40 @@ Three cells; every surface derives from them, nothing else caches:
 - `registry.js` — the compiled CTS client bundle as first-class state,
   projected from auth hydration (`processPayload.bundle`) with `refresh()`
   re-hydrating through the auth store. Owns `typesById`, `typeRecord`,
-  `statesOf`, `operatorsOf`, `renderOf`, `iconFor`, `constructible`, and the
-  row-slot field projection the instance conversion consumes. The process
-  designer reads the same bundle from its own overlay; this store is the
-  runtime/client consumption contract.
+  `statesOf`, `operatorsOf`, `renderOf`, `iconFor`, `constructible`, the
+  containment triples derived from declared children edges, and
+  `projectedDomain` — the compiler-domain projection over the bundle (the
+  same projection the server compiles with) consumed by client access
+  previews so the resolver behaves exactly like auth hydration. The
+  process designer reads the same bundle from its own overlay; this store
+  is the runtime/client consumption contract.
 - `auth.js` — identity, memberships, and the compiled per-user access
   contract (`effectivePermissions`, screens, navigation, action manifest,
   field policies, workflows, lineage bindings, process bundle). The sole
   hydration boundary; see its entry below.
 
-`entities.js` is the delegated legacy contract: `fetchEntity` resolves
-optional references through the instances store and projects the cached DTO
-(the wire shape its callers — trace, inline refs, workspaces, navigation —
-still consume). It owns no fetching, no registry seeding, and no endpoint
-table. `useEntity` (composables) delegates to the same path. Both are the
-next deletion wave once the handwritten card/detail/editor surfaces render
-from instances directly; they must gain no new callers.
+Direct feature CRUD lives on the instances store too:
+`createInstance`/`updateInstance`/`removeInstance` wrap `mutateDirect`
+with the shared entity-event emission contract (browser-local event plus
+the typed invalidation other sessions poll). `dtoRegistry` is the wire-DTO
+projection for the remaining handwritten card/detail surfaces.
+
+**Legacy seams (load-bearing, removal tied to their features):** the
+delegated `useEntity` composable and entity store are deleted; five client
+imports of `@cutkit/domain-cnc` remain because their concerns are still
+owned by legacy server contracts, not by declarations —
+`utils/status-engine.js` (status labels/severity for feature-served
+types whose compiled workflows supplement the table),
+`utils/entity-display-contract.js` (the legacy card surface registry),
+`components/QueueEditor.vue` and `components/PermissionEditor.vue` (the
+queue relation/construction contracts and the membership feature-key
+vocabulary that membership grants are written against), and the designer
+inspector's palette-surface metadata. Each dies when its feature
+re-authors on declarations (queues) or when membership grants move to the
+process vocabulary; none may gain new consumers.
 
 ## Core Stores
 
-- `entities.js`: Delegated legacy contract for the handwritten surfaces.
-  `fetchEntity(type, id, force?, options?)` is the optional-reference
-  resolver used by trace, relation, and persisted-workspace hydration. It
-  resolves through the instances store (single-endpoint read with
-  list-and-find fallback) and projects the cached wire DTO; only an exact
-  readable match is cached, concurrent lookups coalesce in the store, and an
-  unreadable, stale, or deleted reference resolves to `null`.
-  `options.silent` still suppresses genuine collection-boundary errors.
-  Event reconciliation happens once in the instances store, so every legacy
-  caller sees mutations without its own subscription. Gains no new callers.
 - `layerStandards.js`: Loads the canonical layer-standard catalogue. Lookups use
   `standard.data.code` / `standard.data.category` with root-field fallbacks only
   for migration compatibility, and pen overrides update `data.orgPenId`.
@@ -94,7 +99,12 @@ from instances directly; they must gain no new callers.
   the snapshot and drives the sidebar rows and chat ongoing-call banner
   through `activeRoomForConversation`, which mirrors the server's derived
   room-name contract via `utils/call-rooms.js`.
-- `entityEvents.js`: Browser-local entity synchronization helpers. Successful
+- `entityEvents.js`: Browser-local entity synchronization and the contract
+  refresh hint: polls `/api/entity-events` by cursor and bridges returned
+  changes into the browser-local event bus, and (via the connections org
+  topic) re-hydrates auth once, debounced, when the server publishes a
+  registry/process `contractChanged` marker. Browser-local
+  entity mutation snapshots publish through the same store. Successful
   mutations publish a complete entity snapshot to the browser-local
   `utils/entity-events.js` contract used by shared stores and generated screens.
 - `cassettes.js`, `toolProfiles.js`, etc.: Related feature stores.

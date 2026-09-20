@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, reactive, ref } from 'vue';
-import { onEntityChanged } from '~/utils/entity-events.js';
+import { emitEntityCreated, emitEntityDeleted, emitEntityUpdated, onEntityChanged } from '~/utils/entity-events.js';
 import { entityDtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useRegistryStore } from './registry';
 import { useOutboxStore } from './outbox';
@@ -271,6 +271,45 @@ export const useInstancesStore = defineStore('instances', () => {
     });
   }
 
+  // The delegated CRUD emission contract (previously useEntity's): direct
+  // feature mutations emit the shared browser-local entity event and
+  // publish the typed invalidation for other sessions. Process actions
+  // (runAction) reconcile through the server-published events instead.
+  function publishMutation(detail = {}) {
+    if (import.meta.server || !detail.type || !detail.id) return;
+    $fetch('/api/entity-events', { method: 'POST', body: detail }).catch(() => null);
+  }
+
+  async function createInstance(typeKey = '', body = {}, { entityType = typeKey } = {}) {
+    const data = await mutateDirect(typeKey, 'POST', {
+      body,
+      meta: { kind: 'entity', entityType, change: 'created', reason: 'create' }
+    });
+    emitEntityCreated({ type: entityType, id: data?._id, entity: data });
+    publishMutation({ type: entityType, id: data?._id, change: 'created', reason: 'create' });
+    return data;
+  }
+
+  async function updateInstance(typeKey = '', id = '', body = {}, { entityType = typeKey } = {}) {
+    const data = await mutateDirect(typeKey, 'PATCH', {
+      id,
+      body,
+      meta: { kind: 'entity', entityType, entityId: id, change: 'updated', reason: 'update' }
+    });
+    emitEntityUpdated({ type: entityType, id: data?._id || id, entity: data });
+    publishMutation({ type: entityType, id: data?._id || id, change: 'updated', reason: 'update' });
+    return data;
+  }
+
+  async function removeInstance(typeKey = '', id = '', { entityType = typeKey, entity = null } = {}) {
+    await mutateDirect(typeKey, 'DELETE', {
+      id,
+      meta: { kind: 'entity', entityType, entityId: id, change: 'deleted', reason: 'delete' }
+    });
+    emitEntityDeleted({ type: entityType, id, entity });
+    publishMutation({ type: entityType, id, change: 'deleted', reason: 'delete' });
+  }
+
   // -- reconciliation ------------------------------------------------------
 
   // One listener per store instance (one per Pinia): reconciliation is
@@ -324,6 +363,9 @@ export const useInstancesStore = defineStore('instances', () => {
     resolveReadableReference,
     runAction,
     mutateDirect,
+    createInstance,
+    updateInstance,
+    removeInstance,
     iconFor,
     constructible
   };

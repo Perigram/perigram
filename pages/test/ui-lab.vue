@@ -322,7 +322,7 @@ import {
   createMockSheet,
   createMockSheetDesign
 } from '~/test-data/factories.js';
-import { useEntityStore } from '~/stores/entities';
+import { useInstancesStore } from '~/stores/instances';
 
 const groups = DESIGN_SYSTEM_GROUPS;
 const variants = DESIGN_SYSTEM_VARIANTS;
@@ -362,7 +362,7 @@ const primitiveRows = DESIGN_SYSTEM_PRIMITIVES.map((primitive) => ({
 }));
 const rows = createDesignSystemDemoRows();
 const manifestIssues = validateDesignSystemManifest();
-const entityStore = useEntityStore();
+const instances = useInstancesStore();
 
 const activeSection = ref(groups[0]?.id || 'contract');
 const contractMetrics = computed(() => [
@@ -436,11 +436,10 @@ function seedDemoTraceEntities() {
   ];
 
   for (const item of demoEntities) {
-    if (!entityStore.registry[item.type]) entityStore.registry[item.type] = {};
-    entityStore.registry[item.type][item.id] = {
+    instances.upsertRecord(item.type, {
       _id: item.id,
       identity: { uid: item.id, name: item.name, slug: item.slug }
-    };
+    });
   }
 }
 </script>

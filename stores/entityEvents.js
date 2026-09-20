@@ -1,9 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { emitEntityChanged } from '~/utils/entity-events.js';
+import { useConnections } from '~/composables/useConnections.js';
+import { useAuthStore } from './auth';
 
 const POLL_INTERVAL_MS = 15_000;
 const RETRY_INTERVAL_MS = 5_000;
+const CONTRACT_REFRESH_DEBOUNCE_MS = 2_000;
 
 export const useEntityEventsStore = defineStore('entityEvents', () => {
     const connected = ref(false);
@@ -13,6 +16,37 @@ export const useEntityEventsStore = defineStore('entityEvents', () => {
     let runId = 0;
     let running = false;
     let onVisibilityChange = null;
+    let contractTopic = null;
+    let unsubscribeContract = null;
+    let contractTimer = null;
+
+    // Contract refresh hint: registry/process changes published on the org
+    // topic trigger one debounced re-hydration. The hint never carries
+    // contract data — auth hydration remains the sole resolution point.
+    function handleContractChanged() {
+        if (contractTimer) clearTimeout(contractTimer);
+        contractTimer = setTimeout(async () => {
+            contractTimer = null;
+            try {
+                await useAuthStore().setUser();
+            } catch {
+                // The next poll cycle or route change re-hydrates.
+            }
+        }, CONTRACT_REFRESH_DEBOUNCE_MS);
+    }
+
+    function syncContractSubscription() {
+        const organizationId = useAuthStore().user?.organizationId;
+        const topic = organizationId ? `org:${organizationId}` : null;
+        if (topic === contractTopic) return;
+        if (unsubscribeContract) unsubscribeContract();
+        contractTopic = topic;
+        unsubscribeContract = topic
+            ? useConnections().subscribe(topic, payload => {
+                if (payload?.type === 'contractChanged') handleContractChanged();
+            })
+            : null;
+    }
 
     async function poll(activeRunId) {
         if (activeRunId !== runId || !isDocumentVisible()) return;
@@ -50,6 +84,7 @@ export const useEntityEventsStore = defineStore('entityEvents', () => {
             poll(activeRunId);
         };
         document.addEventListener('visibilitychange', onVisibilityChange);
+        syncContractSubscription();
         poll(activeRunId);
     }
 
@@ -60,6 +95,11 @@ export const useEntityEventsStore = defineStore('entityEvents', () => {
         timer = null;
         if (onVisibilityChange) document.removeEventListener('visibilitychange', onVisibilityChange);
         onVisibilityChange = null;
+        if (contractTimer) clearTimeout(contractTimer);
+        contractTimer = null;
+        if (unsubscribeContract) unsubscribeContract();
+        unsubscribeContract = null;
+        contractTopic = null;
         cursor = null;
         connected.value = false;
         error.value = null;
