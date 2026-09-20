@@ -51,6 +51,18 @@ hand-written services.
   construction handler). Wire patches map to §3 writes; wire
   `lineage.organizationId` is ignored on update (tenancy is immutable
   after construct).
+- Payload replacement (`replacePayload`, the editor concern SPEC §3
+  names): multipart file in, validated against the declared payload
+  traits through the same construct-time checks, stored in the `files`
+  bucket, recorded as an immutable `entity_revision` under the type's
+  declared `revisions` scope (revision attachment metadata carries the
+  bucket), then swapped into the payload slot. Refused when the type
+  declares no payload or no revision scope. `PUT
+  /api/instances/:type/:id/payload` is the transport; it gates through
+  the shared access engine on the class-collection feature (the same
+  feature `resolveEntityFeature` compiles grants against) with the type
+  id as the entity-type filter, so a write requires a compiled process
+  grant — fail-closed.
 - Registration: the core registry's entity-service resolver consults
   `instanceServiceResolver`; explicit feature services always win.
 

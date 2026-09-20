@@ -1,6 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('~/server/db/mongo', () => ({ connectDB: vi.fn() }));
+vi.mock('../files/service.js', () => ({
+  uploadFile: vi.fn(async (buffer, filename) => ({ id: `stored-${filename}`, filename, url: '#' })),
+  deleteFile: vi.fn(async () => {})
+}));
+vi.mock('../entity-revisions/service.js', () => ({
+  ensureForEntitySnapshot: vi.fn(async () => ({ _id: 'rev-1', data: { number: 1, contentHash: 'sha256:x' } }))
+}));
+vi.mock('../../core/access/service.js', () => ({
+  hasEntityAccess: vi.fn(() => true)
+}));
 vi.mock('../cts-types/repository.js', () => ({
   findByTypeId: vi.fn(async (organizationId, typeId) => (
     typeId === 'panel'
@@ -209,5 +219,105 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(stored.organizationId).toBe('org-1');
     expect(stored.lineage).toEqual({ projectId: 'p-1' });
     expect(dto.lineage).toEqual({ projectId: 'p-1', organizationId: 'org-1' });
+  });
+});
+
+describe('payload replacement (the editor concern, SPEC §3)', () => {
+  const SKETCH_ID = '507f1f77bcf86cd799439011';
+
+  function stubSketchDoc(coll, overrides = {}) {
+    coll.findOne.mockResolvedValue({
+      _id: SKETCH_ID,
+      type: 'sketch',
+      typeVersion: 1,
+      organizationId: 'org-1',
+      name: 'Field sketch',
+      fields: { name: 'Field sketch' },
+      states: { main: 'CREATED' },
+      lineage: {},
+      ...overrides
+    });
+    coll.findOneAndUpdate.mockResolvedValue({
+      _id: SKETCH_ID,
+      type: 'sketch',
+      typeVersion: 1,
+      organizationId: 'org-1',
+      fields: { name: 'Field sketch' },
+      payload: { fileId: 'stored-scene.json', mime: 'application/json' },
+      lineage: {}
+    });
+  }
+
+  it('stores, revisions, and swaps the payload for a revisioned type', async () => {
+    const coll = stubCollection();
+    stubSketchDoc(coll);
+    const service = instanceServiceResolver('sketch');
+
+    const dto = await service.replacePayload(SKETCH_ID, {
+      buffer: Buffer.from('{"version":1,"strokes":[]}'),
+      filename: 'scene.json',
+      mimeType: 'application/json'
+    }, { userId: 'user-1', organizationId: 'org-1', auth: { userId: 'user-1', organizationId: 'org-1' } });
+
+    const { uploadFile } = await import('../files/service.js');
+    const { ensureForEntitySnapshot } = await import('../entity-revisions/service.js');
+    expect(uploadFile).toHaveBeenCalledWith(expect.any(Buffer), 'scene.json', expect.objectContaining({ type: 'sketch' }), 'files');
+    expect(ensureForEntitySnapshot).toHaveBeenCalledWith(expect.objectContaining({
+      entityType: 'sketch',
+      scope: 'scene',
+      reason: 'payload-replaced'
+    }));
+    const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
+    expect(set.payload).toMatchObject({ fileId: 'stored-scene.json', mime: 'application/json' });
+    expect(dto.attachments.primary.fileId).toBe('stored-scene.json');
+  });
+
+  it('refuses types without a revision scope or payload traits', async () => {
+    stubCollection();
+    const facadeDesign = instanceServiceResolver('facade-design'); // payload, no revisions
+    await expect(facadeDesign.replacePayload(SKETCH_ID, { buffer: Buffer.from('x'), filename: 'm.glb' }, {}))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('revision scope') });
+
+    const pattern = instanceServiceResolver('facade-pattern'); // revisions absent, no payload
+    await expect(pattern.replacePayload(SKETCH_ID, { buffer: Buffer.from('x'), filename: 'g.json' }, {}))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('declares no payload') });
+  });
+
+  it('enforces declared mime traits and the access gate', async () => {
+    const coll = stubCollection();
+    stubSketchDoc(coll);
+    const service = instanceServiceResolver('sketch');
+
+    await expect(service.replacePayload(SKETCH_ID, {
+      buffer: Buffer.from('x'),
+      filename: 'scene.png',
+      mimeType: 'image/png'
+    }, { userId: 'user-1', organizationId: 'org-1', auth: {} }))
+      .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('not accepted') });
+
+    const { hasEntityAccess } = await import('../../core/access/service.js');
+    hasEntityAccess.mockReturnValueOnce(false);
+    await expect(service.replacePayload(SKETCH_ID, {
+      buffer: Buffer.from('{}'),
+      filename: 'scene.json',
+      mimeType: 'application/json'
+    }, { userId: 'user-1', organizationId: 'org-1', auth: {} }))
+      .rejects.toMatchObject({ statusCode: 403 });
+  });
+
+  it('cleans up the stored blob when the swap fails', async () => {
+    const coll = stubCollection();
+    stubSketchDoc(coll);
+    coll.findOneAndUpdate.mockResolvedValue(null); // swap fails
+    const service = instanceServiceResolver('sketch');
+
+    await expect(service.replacePayload(SKETCH_ID, {
+      buffer: Buffer.from('{}'),
+      filename: 'scene.json',
+      mimeType: 'application/json'
+    }, { userId: 'user-1', organizationId: 'org-1', auth: {} }))
+      .rejects.toThrow();
+    const { deleteFile } = await import('../files/service.js');
+    expect(deleteFile).toHaveBeenCalledWith('stored-scene.json', 'files');
   });
 });

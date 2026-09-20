@@ -55,6 +55,20 @@ export const cncFileTypes = [
       name: { base: 'string' }
     },
     render: { label: 'Facade design', icon: 'pi pi-building' }
+  },
+  {
+    // The typed visual pattern graph. Persistence stays on the pattern
+    // designer's pack-internal feature route (the cassette pattern); this
+    // declaration serves the registry and generated-surface layer.
+    id: 'facade-pattern',
+    class: 'file',
+    scope: 'system',
+    version: 1,
+    fields: {
+      name: { base: 'string' },
+      graph: { base: 'json', nullable: true }
+    },
+    render: { label: 'Facade pattern', icon: 'pi pi-objects-column' }
   }
 ];
 
@@ -67,7 +81,8 @@ export const cncFileTypes = [
 export const cncEditors = [
   { type: 'cassette', surface: 'cassette-designer', modes: ['create', 'edit'] },
   { type: 'sheet-design', surface: 'sheet-design-editor', modes: ['create', 'edit'] },
-  { type: 'facade-design', surface: 'facade-designer', modes: ['create', 'edit'] }
+  { type: 'facade-design', surface: 'facade-designer', modes: ['create', 'edit'] },
+  { type: 'facade-pattern', surface: 'facade-pattern-designer', modes: ['edit'] }
 ];
 
 // Registered services (SPEC §8 s species): the nesting solver is a pure

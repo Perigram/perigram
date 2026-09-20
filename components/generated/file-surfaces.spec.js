@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedCassetteDesignerWorkspacePage' } }));
 vi.mock('~/components/generated/GeneratedCassetteDesignerAction.vue', () => ({ default: { name: 'GeneratedCassetteDesignerAction' } }));
 vi.mock('~/components/generated/GeneratedFacadeDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedFacadeDesignerWorkspacePage' } }));
+vi.mock('~/components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedFacadePatternDesignerWorkspacePage' } }));
 vi.mock('~/components/SheetDesignEditor.vue', () => ({ default: { name: 'SheetDesignEditor' } }));
+vi.mock('~/components/artifacts/SketchEditor.vue', () => ({ default: { name: 'SketchEditor' } }));
 
 import {
   fileDetailOverloads,
@@ -13,7 +15,8 @@ import {
   instancePayloadFileUrl,
   packEditorBindings,
   resolveFilePreview,
-  resolveFileSurface
+  resolveFileSurface,
+  sketchInstancePersistence
 } from './file-surfaces.js';
 
 describe('file surface registry', () => {
@@ -54,14 +57,33 @@ describe('file surface registry', () => {
     expect(actions.get('cassette').component).toBeTruthy();
     expect(actions.get('sheet-design')).toMatchObject({ component: null, forceIdentity: true });
     expect(actions.get('facade-design')).toMatchObject({ component: null, forceIdentity: false });
+    expect(actions.get('facade-pattern')).toMatchObject({ component: null, forceIdentity: false });
+    expect(actions.get('sketch')).toMatchObject({ component: null, forceIdentity: true });
   });
 
   it('derives detail and workspace page rows only for surfaces with presentations', () => {
     const detailTypes = fileDetailOverloads().map(overload => overload.entityType).sort();
-    expect(detailTypes).toEqual(['cassette', 'facade-design', 'sheet-design']);
+    expect(detailTypes).toEqual(['cassette', 'facade-design', 'facade-pattern', 'sheet-design', 'sketch']);
     const pageIds = fileWorkspacePages().map(page => page.id);
     expect(pageIds).toEqual(['cassette-designer']);
     expect(fileWorkspacePages()[0].entityType).toBe('cassette');
+  });
+
+  it('binds the sketch editor with an instance-backed persistence contract', () => {
+    const surface = resolveFileSurface(packEditorBindings, 'sketch');
+    expect(surface.detail.ownsActionSurface).toBe(true);
+    expect(surface.forcesIdentity).toBe(true);
+    const { persistence } = surface.detail.props({ entity: { _id: 's-1', identity: { name: 'Marks' }, attachments: { primary: { fileId: 'f-9' } } } });
+    expect(persistence.title).toBe('Marks');
+    expect(persistence.origin).toBeUndefined();
+    expect(persistence.loadScene).toBeInstanceOf(Function);
+    expect(persistence.saveScene).toBeInstanceOf(Function);
+  });
+
+  it('builds the sketch persistence save against the instance payload route', async () => {
+    const persistence = sketchInstancePersistence({ _id: 's-1', identity: { name: 'Marks' } });
+    expect(persistence.title).toBe('Marks');
+    await expect(persistence.loadScene()).resolves.toBe('');
   });
 
   it('accepts served editor records in place of the pack import', () => {
@@ -76,7 +98,7 @@ describe('file surface registry', () => {
     expect(resolveFileSurface(packEditorBindings, 'queue')).toBeNull();
     expect(resolveFileSurface([{ type: 'x', surface: 'no-such-surface', modes: ['edit'] }], 'x')).toBeNull();
     expect(resolveFileSurface(packEditorBindings, '')).toBeNull();
-    expect(Object.keys(fileSurfaceRegistry)).toEqual(expect.arrayContaining(['cassette-designer', 'sheet-design-editor', 'facade-designer']));
+    expect(Object.keys(fileSurfaceRegistry)).toEqual(expect.arrayContaining(['cassette-designer', 'sheet-design-editor', 'facade-designer', 'facade-pattern-designer', 'sketch-editor']));
   });
 
   it('builds payload download URLs against the files bucket', () => {

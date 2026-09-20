@@ -1,6 +1,6 @@
 <template>
     <div class="flex min-h-0 flex-1 flex-col gap-3">
-        <ActionToolbar :title="artifact.identity?.name || $t('sketch.editorTitle')" :level="2">
+        <ActionToolbar :title="editorTitle" :level="2">
             <template #actions>
                 <SelectButton
                     :model-value="tool"
@@ -48,7 +48,8 @@
                 text
                 @click="removeBackground"
             />
-            <template v-if="originEntity">
+            <template v-if="persistence.origin">
+                <span class="text-muted text-supporting">{{ $t('sketch.originEntity') }}:</span>
                 <span class="text-muted text-supporting">{{ $t('sketch.originEntity') }}:</span>
                 <EntityInlineRef :type="originEntity.entityType" :id="originEntity.entityId" :fetch="false" />
                 <Button icon="pi pi-times" severity="secondary" text rounded size="small" :aria-label="$t('sketch.clearOrigin')" @click="clearOrigin" />
@@ -146,7 +147,13 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import { artifactSurfaces } from '~/utils/artifact-ui.js';
 import { SKETCH_TOOLS, SKETCH_VIEWBOX, parseScene, strokeToSvgPath, strokesAtPoint } from '~/utils/sketch.js';
 
-const props = defineProps({ artifact: { type: Object, required: true } });
+const props = defineProps({
+  // Persistence contract, host-supplied: `title`, `loadScene()` returning
+  // raw scene JSON text, `saveScene(sceneText, filename, { origin })`, and
+  // an optional `origin` ref capability (`{ value }`). One editor serves
+  // artifact-backed and instance-backed hosts.
+  persistence: { type: Object, required: true }
+});
 const emit = defineEmits(['saved']);
 const { t } = useI18n();
 
@@ -160,8 +167,9 @@ const size = ref(4);
 const liveStroke = ref(null);
 const svgEl = ref(null);
 const backgroundInput = ref(null);
-const originEntity = ref(null);
+const originEntity = ref(props.persistence.origin?.value || null);
 const originDraft = ref({ entityType: '', entityId: '' });
+const editorTitle = computed(() => props.persistence.title || t('sketch.editorTitle'));
 const undoStack = [];
 const redoStack = [];
 
@@ -310,24 +318,12 @@ const redo = () => {
 const save = async () => {
     saving.value = true;
     try {
-        const mimeType = props.artifact.attachments?.primary?.metadata?.mimeType || 'application/json';
-        const form = new FormData();
-        form.append('file', new File([JSON.stringify({ ...scene })], `${props.artifact.identity?.name || 'sketch'}.json`, { type: mimeType }));
-        const savedArtifact = await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}/file`, { method: 'PUT', body: form });
-        const metadata = {
-            ...(props.artifact.data?.metadata || {}),
-            ...(originEntity.value
-                ? { origin: originEntity.value }
-                : { origin: null })
-        };
-        if (originEntity.value || props.artifact.data?.metadata?.origin) {
-            await $fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}`, {
-                method: 'PUT',
-                body: { metadata }
-            });
-        }
+        const filename = `${props.persistence.title || 'sketch'}.json`;
+        const saved = await props.persistence.saveScene(JSON.stringify({ ...scene }), filename, {
+            origin: originEntity.value
+        });
         dirty.value = false;
-        emit('saved', savedArtifact);
+        emit('saved', saved);
     } catch (error) {
         console.error('Failed to save sketch:', error);
     } finally {
@@ -337,12 +333,9 @@ const save = async () => {
 
 onMounted(async () => {
     try {
-        const raw = await (await fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}`)).text();
-        const restored = parseScene(raw);
+        const restored = parseScene(await props.persistence.loadScene());
         scene.background = restored.background;
         scene.strokes = restored.strokes;
-        const origin = props.artifact.data?.metadata?.origin;
-        if (origin?.entityType && origin?.entityId) originEntity.value = origin;
     } catch (error) {
         console.error('Failed to load sketch:', error);
     } finally {

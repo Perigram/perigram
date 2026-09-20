@@ -54,8 +54,9 @@ const layerStandard = Object.freeze({
 
 // The freehand annotation scene (draw-over-image document): the JSON
 // scene contract owned by utils/sketch.js. Preview mode `sketch` renders
-// through DrawingCanvas; the editor binding is deferred until instance
-// payload revisioning exists (payloads are immutable after construct).
+// through DrawingCanvas; `revisions: 'scene'` makes the payload
+// replaceable through the instance editor concern (each save records an
+// immutable scene revision).
 const sketch = Object.freeze({
   id: 'sketch',
   class: 'file',
@@ -66,6 +67,7 @@ const sketch = Object.freeze({
     maxSize: 25 * 1024 * 1024,
     preview: 'sketch'
   },
+  revisions: 'scene',
   fields: {
     name: { base: 'string' }
   },
@@ -74,9 +76,17 @@ const sketch = Object.freeze({
 
 export const techDrawingTypes = Object.freeze([penTemplate, layerStandard, sketch]);
 
+// Editor bindings (SPEC §21): the sketch surface edits existing scenes —
+// creation is first-save on a payload-less instance, so no create mode
+// until the payload upload creator exists.
+export const techDrawingEditors = Object.freeze([
+  { type: 'sketch', surface: 'sketch-editor', modes: ['edit'] }
+]);
+
 export const techDrawingPack = Object.freeze({
   id: 'tech-drawing',
   label: 'Technical drawing',
   requires: [],
-  types: techDrawingTypes
+  types: techDrawingTypes,
+  editors: techDrawingEditors
 });

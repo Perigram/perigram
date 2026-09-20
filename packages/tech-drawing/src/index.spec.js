@@ -51,17 +51,23 @@ describe('tech-drawing pack declarations', () => {
   });
 
   it('declares the sketch scene file type with a sketch preview payload', () => {
-    const sketch = techDrawingTypes.find(type => type.id === 'sketch');
+    const registry = createTypeRegistry({ id: 'spec-tech-drawing-sketch' });
+    for (const declaration of techDrawingTypes) registry.defineType(declaration);
+    const sketch = registry.getType('sketch');
     expect(sketch).toMatchObject({
       class: 'file',
       scope: 'system',
       payload: {
         mime: ['application/json'],
         preview: 'sketch'
-      }
+      },
+      revisions: 'scene'
     });
-    // The editor binding is deferred until instance payload revisioning
-    // exists: the pack declares no editors for the sketch type.
-    expect(techDrawingPack.editors || []).toEqual([]);
+  });
+
+  it('binds the sketch editor surface for scene editing', () => {
+    expect(techDrawingPack.editors).toEqual([
+      { type: 'sketch', surface: 'sketch-editor', modes: ['edit'] }
+    ]);
   });
 });

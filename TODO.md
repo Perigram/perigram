@@ -2,7 +2,58 @@
 
 ## Integrations
 
-- [ ] **File payload previews in generated surfaces + sketch file type.**
+- [ ] **Revisioned instance payload replacement + sketch/facade-pattern editor
+  surfaces.** Third slice of the entity-category cut (SPEC §21).
+  - Instance service gains `replacePayload` (editor concern, SPEC §3): the
+    route accepts a multipart file, validates it against the type's payload
+    traits, stores the blob in the `files` bucket, records an immutable
+    `entity_revision` under the type's declared revision scope, and swaps
+    the payload slot. Requires the type to declare both payload traits and
+    a revision scope; gated by `hasEntityAccess` on the class-collection
+    feature with the type id as entity-type filter (fail-closed without a
+    compiled grant).
+  - The sketch editor surface binds the `sketch` file type (`edit` mode;
+    the sketch type declares `revisions: 'scene'`). `SketchEditor` takes
+    an explicit persistence contract; `ArtifactDetail` supplies the
+    artifact-backed adapter, the file surface the instance-backed one.
+    Create mode and the payload upload creator stay deferred; origin refs
+    stay artifact-path-only.
+  - `facade-pattern` joins the CNC pack file types with the
+    `facade-pattern-designer` editor binding; the legacy static
+    `facade_pattern` overload row is deleted (derived rows key by type
+    id). The designer keeps its pack-internal feature route (cassette
+    pattern); legacy `facade_patterns` data is abandoned (SPEC §19).
+  - Deferred (tracked): model3d GLB preview (needs a viewer host for
+    prepared Three scenes); artifact overload cut (framework file service
+    stays).
+  ### Agent Notes — 2026-09-20
+  Implemented in `agent/cts-sketch-editors-20260920`. `replacePayload` on
+  the generic instance service uploads to the `files` bucket, reuses the
+  construct-time trait validation, records an `entity_revision` under the
+  declared scope (revision attachment metadata carries the bucket), and
+  swaps the slot — 409 on racing updates, blob cleanup on failure.
+  Transport: `PUT /api/instances/:type/:id/payload`, gated by
+  `hasEntityAccess` on the class-collection feature with the type id as
+  entity-type filter (fail-closed). The sketch type declares
+  `revisions: 'scene'` and binds the `sketch-editor` surface (`edit`
+  mode); `SketchEditor` now takes a host-supplied persistence contract —
+  `ArtifactDetail` passes the artifact-backed adapter (feature parity
+  unchanged there), the file surface passes the instance-backed one
+  (origin refs stay artifact-only). `facade-pattern` joined the CNC pack
+  (`name`, `graph`) with the `facade-pattern-designer` binding; the
+  static `facade_pattern` overload row is deleted (legacy key now null).
+  Client-side pack editor bindings compose tech-drawing + cnc in mount
+  order, mirroring the server composition.
+  Validation: instances service spec (4 new replacePayload cases),
+  file-surfaces/overloads/tech-drawing/cts-types specs, localization,
+  arch guard, docs guard, SSR smoke, framework:validate — all pass.
+  Pre-existing on `local` (verified on the primary checkout):
+  `shared/design-system.spec.js` audit drift for files changed by other
+  sessions (`GeneratedHomeWorkspace.vue` important-override counts,
+  users.vue color-utility row) — those sessions did not regenerate
+  `docs/UI_COMPONENT_AUDIT.md`. Status: WAITING.
+
+- [x] **File payload previews in generated surfaces + sketch file type.**
   Second slice of the entity-category cut (SPEC §21): files used in
   process definitions get previews in the app, driven by declared payload
   traits.

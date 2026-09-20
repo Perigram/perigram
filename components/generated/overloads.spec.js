@@ -7,6 +7,7 @@ vi.mock('~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue', () 
 vi.mock('~/components/generated/GeneratedCassetteDesignerAction.vue', () => ({ default: { name: 'GeneratedCassetteDesignerAction' } }));
 vi.mock('~/components/generated/GeneratedFacadeDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedFacadeDesignerWorkspacePage' } }));
 vi.mock('~/components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedFacadePatternDesignerWorkspacePage' } }));
+vi.mock('~/components/artifacts/SketchEditor.vue', () => ({ default: { name: 'SketchEditor' } }));
 vi.mock('~/components/entities/Artifact/ArtifactDetail.vue', () => ({ default: { name: 'ArtifactDetail' } }));
 
 import {
@@ -52,9 +53,10 @@ describe('generated overload registry', () => {
     expect(resolveGeneratedEntityDetailOverload('artifact')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('cassette')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('facade-design')?.component).toBeTruthy();
-    expect(resolveGeneratedEntityDetailOverload('facade_pattern')?.component).toBeTruthy();
+    expect(resolveGeneratedEntityDetailOverload('facade-pattern')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('queue')).toBeNull();
     expect(resolveGeneratedEntityDetailOverload('sheet-design')?.component).toBeTruthy();
+    expect(resolveGeneratedEntityDetailOverload('sketch')?.component).toBeTruthy();
     expect(resolveGeneratedEntityDetailOverload('project')).toBeNull();
   });
 
@@ -63,6 +65,7 @@ describe('generated overload registry', () => {
     // keys no longer resolve an editor surface (abandoned data, SPEC §19).
     expect(resolveGeneratedEntityDetailOverload('sheet_design')).toBeNull();
     expect(resolveGeneratedEntityDetailOverload('facade')).toBeNull();
+    expect(resolveGeneratedEntityDetailOverload('facade_pattern')).toBeNull();
 
     const cassette = resolveGeneratedEntityDetailOverload('cassette');
     expect(cassette.ownsActionSurface).toBe(true);
