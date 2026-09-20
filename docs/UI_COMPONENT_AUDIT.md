@@ -307,7 +307,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-quantityinput-vue` | `components/ui-mapping/QuantityInput.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-regionblock-vue` | `components/ui-mapping/RegionBlock.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-regiondatastate-vue` | `components/ui-mapping/RegionDataState.vue` | derived usage | compliant |
-| `ui-components-ui-mapping-statestrip-vue` | `components/ui-mapping/StateStrip.vue` | derived usage | compliant |
+| `ui-components-ui-mapping-statestrip-vue` | `components/ui-mapping/StateStrip.vue` | derived usage | compliant:scoped-layout |
 | `ui-components-ui-mapping-statgrid-vue` | `components/ui-mapping/StatGrid.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-surfacebody-vue` | `components/ui-mapping/SurfaceBody.vue` | derived usage | compliant |
 | `ui-components-ui-mapping-surfacedetailbody-vue` | `components/ui-mapping/SurfaceDetailBody.vue` | derived usage | replace:chrome (1); remove:state (1) |

@@ -15,6 +15,7 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/shared/EntitySurfaceContent.vue': 'layout',
   'components/shared/EntityWorkspace.vue': 'layout',
   'components/shared/ResponsiveGrid.vue': 'layout',
+  'components/ui-mapping/StateStrip.vue': 'layout',
   'components/ui-mapping/SurfaceHeader.vue': 'layout',
   'components/shared/blocks/DataBlock.vue': 'layout',
   'components/shared/blocks/SpecsBlock.vue': 'layout'
