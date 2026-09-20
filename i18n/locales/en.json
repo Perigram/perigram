@@ -3169,12 +3169,15 @@
     "applyMigrationConfirm": "Migrate and apply",
     "lifecycle": "Lifecycle",
     "lifecycleEmptyHint": "No states yet — add one to start the lifecycle.",
-    "lifecycleHint": "States are the lifecycle values instances move through; mark where instances start and which are end states.",
+    "lifecycleHint": "States and transitions form the machine. Pick where instances start; end states follow automatically (no outgoing transitions).",
     "stateInitialHint": "Initial: new instances of this type start in this state (exactly one).",
     "stateTerminalHint": "Terminal: an end state — transitions out of it are not expected.",
     "transitionLoopHint": "Loop: the state transitions back to itself.",
     "transitionFrom": "From state",
-    "transitionTo": "To state"
+    "transitionTo": "To state",
+    "startsAt": "Starts at",
+    "endState": "end state",
+    "stateNodeHint": "States are names in the class lifecycle. The entry point is chosen on the class; end states derive from the transitions."
   },
   "generatedScreen": {
     "home": "Home",

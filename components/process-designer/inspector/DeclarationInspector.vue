@@ -29,11 +29,22 @@
             {{ $t('processDesigner.lifecycleEmptyHint') }}
           </Message>
           <small class="text-muted">{{ $t('processDesigner.lifecycleHint') }}</small>
+          <div v-if="lifecycle.states.length" class="flex flex-col gap-1">
+            <label>{{ $t('processDesigner.startsAt') }}</label>
+            <Select
+              :model-value="lifecycle.states.find(state => state.initial)?.nodeId || null"
+              :options="lifecycle.states.map(state => ({ label: state.value || '…', value: state.nodeId }))"
+              option-label="label"
+              option-value="value"
+              size="small"
+              class="w-full"
+              @update:model-value="value => emit('update-state', { nodeId: value, changes: { initial: true } })"
+            />
+          </div>
           <div
             v-for="state in lifecycle.states"
             :key="state.nodeId"
             class="flex items-center gap-2 rounded-ui border border-content-border p-1.5"
-            :title="state.initial ? $t('processDesigner.stateInitialHint') : state.terminal ? $t('processDesigner.stateTerminalHint') : ''"
           >
             <InputText
               :model-value="state.value"
@@ -42,21 +53,9 @@
               :placeholder="$t('typeCanvas.stateName')"
               @update:model-value="value => emit('update-state', { nodeId: state.nodeId, changes: { value: String(value || '') } })"
             />
-            <Checkbox
-              :model-value="state.initial"
-              binary
-              :aria-label="$t('typesPane.initial')"
-              @update:model-value="value => emit('update-state', { nodeId: state.nodeId, changes: { initial: value === true } })"
-            />
-            <Checkbox
-              :model-value="state.terminal"
-              binary
-              :aria-label="$t('typesPane.terminal')"
-              @update:model-value="value => emit('update-state', { nodeId: state.nodeId, changes: { terminal: value === true } })"
-            />
+            <Tag v-if="state.terminal" :value="$t('processDesigner.endState')" severity="secondary" size="small" />
             <Button icon="pi pi-times" text severity="danger" size="small" :aria-label="$t('common.delete')" @click="emit('remove-state', state.nodeId)" />
           </div>
-          <small class="text-muted">{{ $t('typesPane.initial') }} / {{ $t('typesPane.terminal') }}</small>
           <div class="flex flex-col gap-1">
             <label>{{ $t('typesPane.transitions') }}</label>
             <div v-if="lifecycle.states.length > 1" class="flex items-center gap-2 rounded-ui border border-dashed border-content-border p-1.5">
@@ -139,14 +138,7 @@
           <label>{{ $t('typeCanvas.stateName') }}</label>
           <InputText v-model="node.data.value" @update:model-value="$emit('sync')" />
         </div>
-        <div class="flex items-center gap-2">
-          <Checkbox v-model="node.data.initial" :binary="true" />
-          <label>{{ $t('typesPane.initial') }}</label>
-        </div>
-        <div class="flex items-center gap-2">
-          <Checkbox v-model="node.data.terminal" :binary="true" />
-          <label>{{ $t('typesPane.terminal') }}</label>
-        </div>
+        <Message severity="info" size="small" :closable="false">{{ $t('processDesigner.stateNodeHint') }}</Message>
       </div>
     </template>
 
@@ -179,9 +171,9 @@
 // re-derives records, ports, and the tree overlay from it.
 import { computed, ref } from 'vue';
 import Button from 'primevue/button';
-import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
+import Tag from 'primevue/tag';
 import Select from '~/components/shared/EntitySelect.vue';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
 import { DECLARABLE_CLASSES } from '~/packages/cts/src/index.js';

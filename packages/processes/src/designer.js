@@ -223,7 +223,7 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
       const map = statesByType.get(target.data.typeId) || new Map();
       const value = String(source.data.value || '').trim();
       if (value) {
-        map.set(value, { initial: source.data.initial === true, terminal: source.data.terminal === true });
+        map.set(value, { initial: source.data.initial === true });
       }
       statesByType.set(target.data.typeId, map);
     }
@@ -276,14 +276,19 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
         declaration.states = {
           main: {
             initial: initial[0] || [...states.keys()][0],
-            values: [...states.keys()],
-            terminal: [...states.entries()].filter(([, flags]) => flags.terminal).map(([value]) => value)
+            values: [...states.keys()]
           }
         };
         const declared = new Set(states.keys());
         declaration.transitions = (transitionsByType.get(typeId) || [])
           .filter(transition => declared.has(transition.from) && declared.has(transition.to))
           .map(({ from, to, intent }) => (intent ? { from, to, intent } : { from, to }));
+        // Terminal states are graph sinks — states with no outgoing
+        // transition. Never hand-flagged: the transition graph IS the
+        // machine, and its endpoints follow from it.
+        const hasOutgoing = new Set(declaration.transitions.map(transition => transition.from));
+        declaration.states.main.terminal = [...states.keys()].filter(value => !hasOutgoing.has(value));
+        declaration.states.main = Object.freeze(declaration.states.main);
       }
     }
     const children = childrenByType.get(typeId);
@@ -402,12 +407,6 @@ export function classLifecycleOf(nodes = [], edges = [], classNodeId = '') {
     const source = nodeById.get(edge.source);
     if (source?.type === 'ctsState') stateNodes.set(source.id, source);
   }
-  const states = [...stateNodes.values()].map(node => ({
-    nodeId: node.id,
-    value: String(node.data?.value || ''),
-    initial: node.data?.initial === true,
-    terminal: node.data?.terminal === true
-  }));
   const stateIds = new Set(stateNodes.keys());
   const transitions = edges
     .filter(edge => edge.role === 'type' && stateIds.has(edge.source) && stateIds.has(edge.target))
@@ -417,6 +416,15 @@ export function classLifecycleOf(nodes = [], edges = [], classNodeId = '') {
       to: String(nodeById.get(edge.target)?.data?.value || ''),
       intent: String(edge.data?.intent || '')
     }));
+  // End states are derived: a state with no outgoing transition. Only the
+  // entry point ("starts at") is authored.
+  const hasOutgoing = new Set(transitions.map(transition => transition.from));
+  const states = [...stateNodes.values()].map(node => ({
+    nodeId: node.id,
+    value: String(node.data?.value || ''),
+    initial: node.data?.initial === true,
+    terminal: !hasOutgoing.has(node.id)
+  }));
   return { states, transitions };
 }
 

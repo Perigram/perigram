@@ -122,7 +122,7 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
         operators: Array.isArray(data.operators) ? data.operators : []
       } : {}),
       ...(kind === 'field' ? { name: data.name || '', descriptor: { ...(data.descriptor || { base: 'string' }) } } : {}),
-      ...(kind === 'state' ? { value: data.value || '', initial: data.initial === true, terminal: data.terminal === true } : {})
+      ...(kind === 'state' ? { value: data.value || '', initial: data.initial === true } : {})
     };
   }
 
@@ -234,7 +234,7 @@ function projectDeclarationRecords(records = {}, x) {
           operators: record.operators || []
         } : {}),
         ...(record.kind === 'field' ? { typeId: record.typeId || null, name: record.name || '', descriptor: { ...(record.descriptor || { base: 'string' }) } } : {}),
-        ...(record.kind === 'state' ? { typeId: record.typeId || null, value: record.value || '', initial: record.initial === true, terminal: record.terminal === true } : {}),
+        ...(record.kind === 'state' ? { typeId: record.typeId || null, value: record.value || '', initial: record.initial === true } : {}),
         ...(record.kind === 'type' ? { typeId: record.typeId || '' } : {})
       }
     };
