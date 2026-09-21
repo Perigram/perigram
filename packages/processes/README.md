@@ -270,12 +270,15 @@ contract, and the command runtime debits the active organization's billing
 account after successful command execution. Token package prices stay outside
 process definitions in runtime billing configuration.
 At runtime this resolved view is the organization's active access source.
-The per-user action manifest entries are the projected UI-contract records
-(`id`, `actionKind`, `typeId`, thin `construction`/`fields`) with the rich
-exposure fields — `actionId`, `entityType`, parent context, prompt
-`inputPolicy`, relation mutation — riding along under their legacy keys; the
-projected keys stay authoritative, so one record serves the generator, the
-legacy renderer surfaces, and the server manifest consumers.
+The per-user manifest speaks exactly one vocabulary: hydration projects
+every screen and action record (`projectUiScreen` /
+`projectManifestAction` in `ui-contract-projection.js`) — `id`, `actionKind`,
+`typeId`, `parentTypeId`, projected templates (`typeList`/`instanceDetail`),
+and the rich execution fields (`inputPolicy`, `relationMutation`, status
+window, `contracts`, exposure `inputs`) under their own names. No
+`entityType`/`actionId` key crosses hydration; the compiled execution
+channel keeps its internal field names server-side only, and the
+lineage-binding payload hydrates with `childTypeId`/`parentTypeId`.
 When an assignment contains multiple role ids, generated and authored screens
 from every selected role are merged into that user's screen manifest. Explicit
 screen records that name several roles still compile to one shared screen key;

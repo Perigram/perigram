@@ -265,6 +265,25 @@ expectations at the generated-screens IA — not a pass/fail run.
   and v4-kind authoring traces in the catalog/palette (execution twins
   stay).
 
+##### Agent Notes — 2026-09-21 manifest vocabulary hard cutover (typeId only)
+
+User directive: "what the fuck is even entityType" — the documented interim
+decision to let manifest action records serve both vocabularies
+(`typeId` authoritative with `actionId`/`entityType` riding along) was the
+leak. Reversed on `agent/typeid-cutover-20260921`: hydration projects every
+screen and manifest action (`projectUiScreen`/`projectManifestAction`) and
+the lineage-binding payload (`childTypeId`/`parentTypeId`) — one vocabulary
+crosses the wire. The whole client reads it: the view adapter in
+`[screenKey].vue` is deleted, the generated family, shared entity/chat
+surfaces, navigation/label/root-source utils, and workspace state records
+(`typeId` keys; storage versions bumped so stale pane state is discarded)
+speak `typeId`/`id`. Remaining `entityType` names client-side are
+descriptor-level compiler prompt-form fields (inputPolicy/construction
+input/attachment creator) plus other contracts (entity-events, design-system
+entity table, support-conversation DTO) — they rename with the
+compiler-plane cut. The compiled execution channel keeps its internal names
+server-side only.
+
 ##### Agent Notes — 2026-09-21 home workspace restored; DTO seams fixed
 
 User directive correction: the home workspace (panes, chats, calls) STAYS —
