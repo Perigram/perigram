@@ -3162,6 +3162,9 @@ function compileProcessNodes(processNodes = {}) {
 function normalizeConstruction(construction = {}, typeId = '', domain = {}) {
   const contract = constructionContract(domain, typeId);
   if (!contract) return null;
+  if (typeId === 'image') {
+    console.warn('[construction-debug]', JSON.stringify({ typeId, mode: construction?.mode, declared: (construction?.inputs || []).map(i => i?.id || i), contractModes: contract.modes, hasModeInputs: Boolean(contract.modeInputs?.[construction?.mode]), contractInputs: (contract.inputs || []).map(i => i?.id), derived: Boolean(contract.derived) }));
+  }
   const source = construction || {};
   const modes = Array.isArray(contract.modes) ? contract.modes : [];
   const mode = source.mode
