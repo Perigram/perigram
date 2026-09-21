@@ -354,7 +354,7 @@
         if (authStore.processActive) {
             const home = processOperationalScreens.value.find(screen => screen.template === 'home' && screen.route)
             if (home?.route) return home.route
-            const hub = processOperationalScreens.value.find(screen => screen.route && screen.template !== 'entityDetail' && (screen.placement || 'hub') === 'hub')
+            const hub = processOperationalScreens.value.find(screen => screen.route && screen.template !== 'instanceDetail' && (screen.placement || 'hub') === 'hub')
             if (hub?.route) return hub.route
             return '/screens'
         }
@@ -362,7 +362,7 @@
     })
     const availableMobileGeneratedScreens = computed(() => processOperationalScreens.value
         .filter(screen => screen.route && screen.template !== 'home')
-        .filter(screen => screen.template !== 'entityDetail')
+        .filter(screen => screen.template !== 'instanceDetail')
         .map(screen => ({
             screenKey: screen.screenKey || screen.id || screen.route,
             to: screen.route,
@@ -552,7 +552,7 @@
     const screenIcon = (screen = {}) => {
         if (screen.icon) return screen.icon
         if (screen.template === 'home') return 'pi pi-home'
-        return registry.iconFor(screen.entityType)
+        return registry.iconFor(screen.typeId)
     }
 
     watch(mobileShortcutStorageKey, loadMobileShortcuts)
