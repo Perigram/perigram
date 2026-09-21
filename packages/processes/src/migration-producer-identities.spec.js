@@ -188,8 +188,28 @@ describe('persisted producer output identity migration', () => {
     expect(result.data.processNodes.processNode_1785860422855).not.toHaveProperty('producerOutputId');
   });
 
-  it('still refuses a missing foreign selection', () => {
-    // A selection naming another node's output that does not exist can
+  it('assigns producer identity to designer-bypassed cts records through the twin', () => {
+    // API-authored drafts never see live designer sync: the persisted
+    // rewrite must bind cts origins itself, or execution cannot resolve
+    // the producer workflow (status init, lineage) for the created type.
+    const data = persistedCreate();
+    const node = data.processNodes.processNode_1785860422855;
+    node.kind = 'cts.construct';
+    node.via = 'genericCreate';
+
+    const result = migrateProducerOutputIdentities(data);
+
+    expect(result.errors).toEqual([]);
+    expect(result.data.processNodes.processNode_1785860422855.producerOutputId)
+      .toBe('processNode_1785860422855:result');
+    expect(result.data.producerOutputs['processNode_1785860422855:result']).toMatchObject({
+      nodeId: 'processNode_1785860422855',
+      outputSocketId: 'result',
+      typeId: 'work_item'
+    });
+  });
+
+  it('still refuses a missing foreign selection', () => {    // A selection naming another node's output that does not exist can
     // mask cross-node corruption — that refusal stays fatal.
     const data = persistedCreate();
     data.processNodes.processNode_1785860422855.kind = 'effect.runCommand';

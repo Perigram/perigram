@@ -1,4 +1,5 @@
 import { CONSUMER_EFFECT_KINDS, resolveCatalogNodePorts } from './node-catalog.js';
+import { operationKindOf } from '../../cts/src/index.js';
 
 const ACTION_EFFECT_KINDS = new Set([
   'effect.createEntity',
@@ -24,13 +25,21 @@ export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
   let changed = false;
 
   for (const [recordId, node] of Object.entries(data.processNodes || {})) {
-    if (!node?.kind?.startsWith('effect.')) continue;
+    if (!node?.kind?.startsWith('effect.') && !String(node?.kind || '').startsWith('cts.')) continue;
 
     const nodeId = String(node.id || recordId);
+    // Kind matching runs through the operation-kind twin: designer-bypassed
+    // (API-authored) cts records get the same identity rewrite live
+    // designer sync applies, so both authoring paths persist bindings.
+    const opKind = operationKindOf(node) || node.kind;
+    // Only effects participate in producer identity: joins, reads, and
+    // value-algebra records never mint producer outputs (the join routes
+    // under its selected source by contract).
+    if (!ACTION_EFFECT_KINDS.has(opKind) && !CONSUMER_EFFECT_KINDS.includes(opKind)) continue;
     // Consumer effects own no producer output: drop records minted by
     // pre-protocol definitions and their node identity; the derived action
     // rebinds to the upstream producer of the entity input wire.
-    if (CONSUMER_EFFECT_KINDS.includes(node.kind)) {
+    if (CONSUMER_EFFECT_KINDS.includes(opKind)) {
       for (const [producerOutputId, output] of Object.entries(producerOutputs)) {
         if (String(output?.nodeId) === nodeId) {
           delete producerOutputs[producerOutputId];
@@ -68,7 +77,7 @@ export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
 
     const actionId = String(node.entryTriggerId || node.id || recordId);
     const action = actions[actionId];
-    const requiresActionIdentity = ACTION_EFFECT_KINDS.has(node.kind)
+    const requiresActionIdentity = ACTION_EFFECT_KINDS.has(opKind)
       && Boolean(node.typeId || action?.typeId);
     const selectedId = node.producerOutputId || action?.producerOutputId || '';
 
@@ -93,7 +102,7 @@ export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
           errors.push(`Process node ${nodeId} selects missing producer output ${selectedId}`);
           continue;
         }
-        const ownsProducedEntity = ['effect.createEntity', 'effect.runProducer'].includes(node.kind);
+        const ownsProducedEntity = ['effect.createEntity', 'effect.runProducer'].includes(opKind);
         if (ownsProducedEntity && String(selected.nodeId) !== nodeId) {
           errors.push(`Process node ${nodeId} selects producer output ${selectedId} owned by node ${selected.nodeId || '(missing)'}`);
           continue;
