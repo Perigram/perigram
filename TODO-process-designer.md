@@ -249,6 +249,28 @@ untouched code paths. The e2e item is therefore a suite rewrite — seed the
 org with a real species process via the draft/activate API and retarget
 expectations at the generated-screens IA — not a pass/fail run.
 
+##### Agent Notes — 2026-09-21 producer self-binding refusal hardened
+
+User report (`Process node X selects missing producer output X:result`
+×4, live draft): root-caused against live org data. The stored
+`cts.construct` nodes carry snapshot `outputs` with a `result` entity
+socket (the twin-port contract) plus matching `producerOutputId`
+self-bindings; the newest draft versions lost the producer-output
+records while keeping the bindings, and `migrateProducerOutputIdentities`
+on the lowered twin shape refused with a 400 that bricks save/validate.
+Verified on current code the twin ports re-derive the records (the draft
+heals on next pass), but the refusal class was real: any twin/port drift
+re-bricks drafts with no in-UI repair. Fixed in
+`agent/producer-selfbind-20260921-113000`: a missing self-selection is
+dropped and re-derived (it names no foreign identity), missing foreign
+selections stay fatal, and a type absent from the supplied vocabulary is
+left to validation's anchored unknown-type report (SPEC §19
+abandoned-data policy made mechanical). Pinned by four new specs in
+`migration-producer-identities.spec.js` (live twin-lowered shape,
+underivable self-bind, withdrawn type, foreign refusal) — the two
+heal-path specs fail on the old code. The ACTIVE definition was never
+affected.
+
 ## P4 — Runtime and designer cutover to the UI generator
 
 ##### Agent Notes — 2026-09-21 queue-flow regression found and fixed (hooks + queue service mount)

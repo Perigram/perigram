@@ -173,8 +173,15 @@ rewrite for v4 records created before that identity was stored. It derives
 entity sockets from the registered node/command catalog, writes the stable
 node-and-socket key onto the producer and its derived action, and moves a
 detached entity profile only when exactly one producer owns that entity
-contract. Missing or ambiguous ownership returns graph-addressable diagnostics;
-the migration never selects the first same-type producer.
+contract. A stale self-binding (the node selects its own output key but the
+record no longer resolves — renamed socket, healed snapshot, withdrawn
+type) is dropped and re-derived instead of refused: it names no foreign
+identity, so it cannot mask cross-node corruption, and validation owns
+whatever stays unbound. Missing foreign selections and genuinely ambiguous
+same-type ownership return graph-addressable diagnostics; the migration
+never selects the first same-type producer. A type the supplied vocabulary
+does not know is left to validation's anchored unknown-type report rather
+than refused here — without a supplied vocabulary the strict rewrite stays.
 
 Compiler entry points are separated by responsibility. `normalization.js`,
 `validation.js`, `action-compilation.js`, `screen-compilation.js`,
