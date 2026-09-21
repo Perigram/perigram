@@ -317,7 +317,7 @@ describe('Framework package contracts', () => {
     expect(domainUi.getDownloadEndpoint('artifact', 'a-1')).toBe('/api/artifacts/a-1');
     await expect(handlers.list_entities()).resolves.toContainEqual(expect.objectContaining({ type: 'project' }));
     await expect(handlers.get_entity_schema({ type: 'queue' })).resolves.toMatchObject({ collection: 'queues' });
-    await expect(handlers.list_routes()).resolves.toContainEqual(expect.objectContaining({ type: 'project', single: '/api/project/:id' }));
+    await expect(handlers.list_routes()).resolves.toContainEqual(expect.objectContaining({ type: 'project', single: '/api/instances/project/:id' }));
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'solveNesting' }));
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'saveCassetteTemplate' }));
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'generateAttachment' }));
@@ -338,10 +338,15 @@ describe('Framework package contracts', () => {
     const source = readFileSync('server/core/commands/service.js', 'utf8');
     expect(source).not.toContain('@cutkit/domain-cnc');
     expect(source).not.toMatch(/features\/.*\/operations/);
+    // The runtime registry imports no domain directly; every domain mounts
+    // as a pack (SPEC §21) and the pack owns its domain content and handlers.
     const composition = readFileSync('server/runtime/app-registry.js', 'utf8');
-    expect(composition).toContain('cncDomain');
-    expect(composition).toContain('saveCassetteTemplate');
+    expect(composition).not.toContain('cncDomain');
+    expect(composition).toContain('cncPack');
     expect(composition).toContain('generateConfigBotDraft');
+    const cncPackMount = readFileSync('server/packs/cnc/index.js', 'utf8');
+    expect(cncPackMount).toContain('cncDomain');
+    expect(cncPackMount).toContain('saveCassetteTemplate');
   });
 
   it('keeps the committed framework manifest synchronized with source metadata', () => {

@@ -57,6 +57,10 @@ function registryCapabilities(registry, domain) {
 }
 
 const FRAMEWORK_SERVICE_TYPES = ['organization', 'user', 'artifact', 'process_definition', 'entity_revision'];
+// Transitional legacy entity services the cnc pack mounts explicitly for
+// its queue production flow (hooks/effects target the registry); deleted
+// with that flow's legacy cut.
+const PACK_LEGACY_SERVICE_TYPES = ['queue'];
 
 function createEffectDefinition(typeId, mode) {
   return {
@@ -99,7 +103,7 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     resetAppRegistryForTests();
     const registry = getAppRegistry();
     const explicit = new Map(registry.listEntityServices().map(binding => [binding.type, binding.service]));
-    expect([...explicit.keys()].sort()).toEqual([...FRAMEWORK_SERVICE_TYPES].sort());
+    expect([...explicit.keys()].sort()).toEqual([...FRAMEWORK_SERVICE_TYPES, ...PACK_LEGACY_SERVICE_TYPES].sort());
 
     // Pack types resolve through the generic instance services with full
     // process boundaries.
@@ -181,8 +185,10 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     expect(insert).toHaveBeenCalledTimes(1);
     // per-class collection (SPEC §13) with the type id as discriminator
     expect(insert.mock.calls[0][0]).toBe('files');
-    expect(insert.mock.calls[0][0]).toBe('files');
-    expect(insert.mock.calls[0][1]).toMatchObject({ type: 'cassette', lineage: { organizationId: 'org-1' } });
+    // §3 stored shape: tenancy lives in the top-level organizationId slot;
+    // lineage holds pure tree edges only (organizationId is stripped).
+    expect(insert.mock.calls[0][1]).toMatchObject({ type: 'cassette', organizationId: 'org-1' });
+    expect(insert.mock.calls[0][1].lineage).not.toHaveProperty('organizationId');
     expect(publish).toHaveBeenCalledWith(auth, {
       type: 'cassette',
       id: result._id,

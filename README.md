@@ -5,22 +5,29 @@ a Nuxt/Nitro modular monolith backed by MongoDB and worker services.
 
 ## Architecture
 
+Domain vocabulary is authored, not hardcoded: packs and organizations
+declare CTS types, the process compiler turns process graphs into runtime
+contracts, and generic per-class instance services execute every declared
+type (see [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md)).
+
 ```mermaid
 flowchart LR
-  Core["@cutkit/core<br/>contracts and registries"]
-  Domain["@cutkit/domain-cnc<br/>CNC entities/workflows/commands/tasks"]
-  Runtime["server/runtime/app-registry<br/>explicit app bindings"]
+  Cts["@perigram/cts<br/>type declarations + registry + projection"]
+  Packs["server/packs/*<br/>documents → tech-drawing → cnc"]
+  Compiler["@cutkit/processes<br/>process compiler + UI contract"]
+  Runtime["server/runtime/app-registry<br/>pack mounts + instance-service resolver"]
   Commands["server/core/commands<br/>command_runs"]
   Tasks["server/core/tasks<br/>task_runs"]
-  Features["server/features/*<br/>entity services + command handlers"]
+  Features["server/features/*<br/>framework features + pack-internal modules"]
   API["server/api/*<br/>Nuxt/Nitro routes"]
-  UI["Vue app<br/>pages/components/composables"]
+  UI["Vue app<br/>designer, generated screens, home workspace"]
   Workers["workers/*<br/>task executors"]
   Mongo[(MongoDB + GridFS)]
 
-  Domain --> Core
-  Runtime --> Domain
-  Runtime --> Features
+  Packs --> Cts
+  Cts --> Compiler
+  Cts --> Runtime
+  Compiler --> Runtime
   API --> Commands
   API --> Tasks
   Commands --> Runtime
@@ -175,6 +182,7 @@ builds only).
 | Commands | [server/core/commands/README.md](./server/core/commands/README.md) |
 | Tasks | [server/core/tasks/README.md](./server/core/tasks/README.md) |
 | Domain package | [packages/domain-cnc/README.md](./packages/domain-cnc/README.md) |
+| Type system (CTS) | [packages/cts/README.md](./packages/cts/README.md) |
 | Process compiler | [packages/processes/README.md](./packages/processes/README.md) |
 | Core package | [packages/core/README.md](./packages/core/README.md) |
 | Pages and public entry | [pages/README.md](./pages/README.md) |

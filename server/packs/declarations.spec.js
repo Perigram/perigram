@@ -16,14 +16,15 @@ describe('pack composition', () => {
   });
 
   it('fails loudly on a missing requirement', () => {
-    const original = mountedPackDeclarations.splice(0, 1);
+    // Remove the tech-drawing pack itself (by id, not position — the
+    // mounted order changes as packs are added): the requiring cnc pack
+    // is now unsatisfied.
+    const index = mountedPackDeclarations.findIndex(pack => pack.id === 'tech-drawing');
+    const removed = mountedPackDeclarations.splice(index, 1);
     try {
-      mountedPackDeclarations.push({ id: 'orphan', requires: ['tech-drawing'], types: [] });
-      // tech-drawing removed, cnc now unsatisfied
       expect(() => composeSystemDeclarations()).toThrow(/requires unmounted pack tech-drawing/);
     } finally {
-      mountedPackDeclarations.pop();
-      mountedPackDeclarations.unshift(...original);
+      mountedPackDeclarations.splice(index, 0, ...removed);
     }
   });
 

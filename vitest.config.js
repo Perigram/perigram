@@ -23,6 +23,21 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    // Nested agent-session worktrees contain stale duplicate specs that
+    // otherwise match path filters and fail runs (the same tree the Nuxt
+    // dev watcher ignores); run-repository.spec.js is a node:test file
+    // with its own `npm run test:durable` runner, not a vitest suite.
+    // The first five entries are vitest's defaults, restated because
+    // setting `exclude` replaces them.
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/cypress/**',
+      '**/.{idea,git,cache,output,temp}/**',
+      '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build,eslint,prettier}.config.*',
+      '**/.agent-worktrees/**',
+      'server/features/process-definitions/run-repository.spec.js'
+    ],
     alias: {
       '~': path.resolve(__dirname, './'),
       '@': path.resolve(__dirname, './'),

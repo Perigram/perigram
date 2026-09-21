@@ -24,7 +24,10 @@ vi.mock('./jobs.js', () => ({
 
 vi.mock('../nesting-runs/service.js', () => ({
   getNextRunNumber: vi.fn(),
-  create: vi.fn()
+  create: vi.fn(),
+  // The cnc pack spreads the transition-hook handlers from this module;
+  // the mock must expose the key.
+  hooks: {}
 }));
 
 vi.mock('../../core/tasks/service.js', () => ({

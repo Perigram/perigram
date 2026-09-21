@@ -89,7 +89,16 @@ export async function ensureIndexes() {
 }
 
 async function ensureIndex(collection, key, options = {}) {
-  const existing = await collection.indexes();
+  // On a fresh database the collection (namespace) does not exist yet and
+  // listIndexes fails with NamespaceNotFound (code 26) — that means no
+  // indexes exist, not an error.
+  let existing;
+  try {
+    existing = await collection.indexes();
+  } catch (error) {
+    if (error?.code !== 26 && !/ns does not exist/.test(error?.message || '')) throw error;
+    existing = [];
+  }
   const current = existing.find(index => index.name === options.name);
   if (current && !sameIndexKey(current.key, key)) {
     await collection.dropIndex(options.name);

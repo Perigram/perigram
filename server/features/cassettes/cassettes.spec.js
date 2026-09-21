@@ -8,6 +8,7 @@ const { mockedConnectDB } = vi.hoisted(() => ({
 vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
 
 import * as cassetteService from './service';
+import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templates.js';
 
 vi.mock('h3', () => ({
   createError: vi.fn((err) => {
@@ -127,10 +128,15 @@ describe('Cassette Management & Ownership', () => {
     expect(updated.data.occs).toBeUndefined();
   });
 
-  it('rejects design construction from incomplete parametric templates', async () => {
+  it('rejects design construction from templates without an OCCS graph tree', async () => {
+    // Incomplete legacy parametric templates no longer exist: every create
+    // falls back to a complete default OCCS document. The remaining
+    // non-evaluatable class is an OCCS document lacking the cutkit graph
+    // tree (the designer's evaluated surface).
     const cassette = await cassetteService.create({
-      name: 'Incomplete Template',
-      type: 'PARAMETRIC'
+      name: 'Graphless Template',
+      type: 'PARAMETRIC',
+      definition: { occs: '0.4-draft', documentType: 'template', parameters: {} }
     }, user1.userId, user1.organizationId, null, user1.permissions);
 
     await expect(cassetteService.createDesignFromTemplate(
@@ -140,7 +146,7 @@ describe('Cassette Management & Ownership', () => {
       user1.organizationId,
       null,
       user1.permissions
-    )).rejects.toThrow(/no construction definition/);
+    )).rejects.toThrow(/no OCCS graph tree/);
   });
 
   it('should deny access to cassettes owned by other users', async () => {
@@ -311,14 +317,14 @@ describe('Cassette Management & Ownership', () => {
       summary: { cassetteCount: 0 }
     });
 
+    const previewDefinition = createDefaultOccsCassetteTemplateDefinition();
+    previewDefinition.parameters = { A: '100', B: '200' };
+
     const cassette = await cassetteService.create({
       name: 'Preview Cassette',
       libraryId,
       type: 'PARAMETRIC',
-      definition: {
-        params: { A: 100, B: 200 },
-        extrusions: [{ id: 'face-1', width: 100, height: 200 }]
-      },
+      definition: previewDefinition,
       parameters: ['A', 'B']
     }, user1.userId, user1.organizationId, null, user1.permissions);
 
@@ -346,7 +352,8 @@ describe('Cassette Management & Ownership', () => {
     expect(previews[libraryId.toString()][0].data).toMatchObject({
       type: 'PARAMETRIC',
       definition: {
-        params: { A: 100, B: 200 }
+        documentType: 'template',
+        parameters: { A: '100', B: '200' }
       },
       geometry: {
         preview: { viewBox: [0, 0, 100, 200], layers: [] }
