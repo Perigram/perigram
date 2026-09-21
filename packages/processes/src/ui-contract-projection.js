@@ -128,6 +128,9 @@ export function projectUiAction(action = {}, { typeLabels = new Map() } = {}) {
   if (action.commandId) projected.commandId = action.commandId;
   if (action.status?.to) projected.status = { to: action.status.to };
   if (action.construction?.mode) {
+    if (action.typeId === 'image') {
+      console.warn('[uiaction-debug]', JSON.stringify({ id: action.id || action.actionId, inputs: action.construction.inputs }));
+    }
     projected.construction = {
       mode: action.construction.mode,
       inputs: (action.construction.inputs || []).map(input => input.id || input.name).filter(Boolean)
