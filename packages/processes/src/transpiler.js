@@ -113,7 +113,10 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
       ...(process.ctsTypes[refId] || {}),
       id: refId,
       kind,
-      typeId: data.typeId ?? null,
+      // Binding normalizes one way everywhere: a non-empty string or null.
+      // The projection below writes the same shape, so `''` never survives
+      // one half of the round trip only to fail compareSemanticRecords.
+      typeId: data.typeId || null,
       ...(kind === 'class' ? {
         class: data.class || 'file',
         name: data.name || '',
@@ -122,7 +125,15 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
         operators: Array.isArray(data.operators) ? data.operators : []
       } : {}),
       ...(kind === 'field' ? { name: data.name || '', descriptor: { ...(data.descriptor || { base: 'string' }) } } : {}),
-      ...(kind === 'state' ? { value: data.value || '', initial: data.initial === true } : {})
+      // State authoring keys round-trip symmetrically with the projection
+      // in projectDeclarationRecords: initial/terminal are explicit
+      // booleans on authored records (a false must not become an absent
+      // key, or compareSemanticRecords rejects activation).
+      ...(kind === 'state' ? {
+        value: data.value || '',
+        initial: data.initial === true,
+        terminal: data.terminal === true
+      } : {})
     };
   }
 
@@ -226,7 +237,7 @@ function projectDeclarationRecords(records = {}, x) {
         refId,
         semanticId: `${type}:${refId}`,
         ...(record.kind === 'class' ? {
-          typeId: record.typeId || '',
+          typeId: record.typeId || null,
           name: record.name || '',
           idCustom: record.idCustom === true,
           class: record.class || 'file',
@@ -234,8 +245,17 @@ function projectDeclarationRecords(records = {}, x) {
           operators: record.operators || []
         } : {}),
         ...(record.kind === 'field' ? { typeId: record.typeId || null, name: record.name || '', descriptor: { ...(record.descriptor || { base: 'string' }) } } : {}),
-        ...(record.kind === 'state' ? { typeId: record.typeId || null, value: record.value || '', severity: record.severity || null, icon: record.icon || null } : {}),
-        ...(record.kind === 'type' ? { typeId: record.typeId || '' } : {})
+        ...(record.kind === 'state' ? {
+          typeId: record.typeId || null,
+          value: record.value || '',
+          severity: record.severity || null,
+          icon: record.icon || null,
+          // Authored booleans project so the rebuild (which writes them
+          // explicitly from node data) reproduces the record exactly.
+          initial: record.initial === true,
+          terminal: record.terminal === true
+        } : {}),
+        ...(record.kind === 'type' ? { typeId: record.typeId || null } : {})
       }
     };
   });

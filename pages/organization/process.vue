@@ -2006,7 +2006,18 @@ function stripRuntimeNodeData(node) {
   delete runtimeFreeNode.dragging;
   delete runtimeFreeNode.resizing;
   const data = { ...(node.data || {}) };
+  // Declaration nodes carry authored state in keys the runtime list also
+  // uses for process nodes (typeId/version/scope/fields/states). Stripping
+  // them here erased the class/type binding at save: canvasToDefinition
+  // rebuilt the ctsTypes records from the stripped node data, nulled the
+  // binding, and the live interpretation unbound every construct wired to
+  // the class (ports collapsed, wires dropped). For declaration nodes
+  // these keys ARE the authoring state and must persist.
+  const authoredDeclarationKeys = DECLARATION_NODE_TYPES.includes(node.type)
+    ? new Set(['typeId', 'version', 'scope', 'fields', 'states'])
+    : null;
   for (const key of RUNTIME_NODE_DATA_KEYS) {
+    if (authoredDeclarationKeys?.has(key)) continue;
     delete data[key];
   }
   return { ...runtimeFreeNode, data };
