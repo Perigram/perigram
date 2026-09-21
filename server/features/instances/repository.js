@@ -1,4 +1,3 @@
-import { ObjectId } from 'mongodb';
 import { connectDB } from '~/server/db/mongo';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { CLASS_COLLECTIONS } from '~/packages/cts/src/index.js';
@@ -38,7 +37,7 @@ export async function listInstances(collection, typeId, organizationId, limit = 
 
 export async function findInstance(collection, id, typeId = null) {
   const db = await connectDB();
-  const filter = { _id: new ObjectId(String(id)) };
+  const filter = { _id: toFlexibleId(id) };
   if (typeId) filter.type = typeId;
   return await db.collection(collection).findOne(filter);
 }
@@ -46,7 +45,7 @@ export async function findInstance(collection, id, typeId = null) {
 export async function findInstanceAnywhere(id, typeId) {
   const db = await connectDB();
   for (const collection of Object.values(CLASS_COLLECTIONS)) {
-    const doc = await db.collection(collection).findOne({ _id: new ObjectId(String(id)), type: typeId });
+    const doc = await findInstance(collection, id, typeId);
     if (doc) return doc;
   }
   return null;
@@ -55,7 +54,7 @@ export async function findInstanceAnywhere(id, typeId) {
 export async function updateInstanceFields(collection, id, set) {
   const db = await connectDB();
   return await db.collection(collection).findOneAndUpdate(
-    { _id: new ObjectId(String(id)) },
+    { _id: toFlexibleId(id) },
     { $set: { ...set, updatedAt: new Date().toISOString() } },
     { returnDocument: 'after' }
   );
@@ -63,6 +62,6 @@ export async function updateInstanceFields(collection, id, set) {
 
 export async function deleteInstance(collection, id) {
   const db = await connectDB();
-  const result = await db.collection(collection).deleteOne({ _id: new ObjectId(String(id)) });
+  const result = await db.collection(collection).deleteOne({ _id: toFlexibleId(id) });
   return result.deletedCount > 0;
 }
