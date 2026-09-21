@@ -17,6 +17,7 @@ import {
 import { assertTransitionAccess, hasEntityAccess } from '../access/service.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
 import { getEntityCollection, getEntityDefinition, normalizeTypeId } from '~/server/runtime/entities.js';
+import { CLASS_COLLECTIONS } from '~/packages/cts/src/index.js';
 import { processEffects } from '../effects/service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 
@@ -84,7 +85,7 @@ export const statusService = {
         message: `State ${targetState} is not defined for ${normalizedTypeId}`
       });
     }
-    const { collection, flexId } = await loadEntityForWorkflow(normalizedTypeId, targetId);
+    const { collection, flexId, instanceDoc } = await loadEntityForWorkflow(normalizedTypeId, targetId);
     const actorId = typeof actor === 'object' ? actor.userId : actor;
     const eventId = new ObjectId();
     const statusMetadata = mergeStatusDisplayMetadata(persistableStatusMetadata(metadata), region.states[targetState]);
@@ -111,7 +112,9 @@ export const statusService = {
     });
     await db.collection(collection).updateOne(
       { _id: flexId },
-      { $set: { status: statusData } }
+      instanceDoc
+        ? { $set: { 'states.main': targetState, updatedAt: new Date().toISOString() } }
+        : { $set: { status: statusData } }
     );
     return statusData;
   },
@@ -356,7 +359,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
     const auth = normalizeAuthContext(userId, userRole, transitionContext.metadata);
     const actorId = auth.userId || userId || 'SYSTEM';
     const db = await connectDB();
-    const { entity, machine, collection, flexId } = await loadEntityForWorkflow(normalizedTypeId, targetId, { producerOutputId: transitionContext.producerOutputId });
+    const { entity, machine, collection, flexId, instanceDoc } = await loadEntityForWorkflow(normalizedTypeId, targetId, { producerOutputId: transitionContext.producerOutputId });
 
     const normalizedMachine = normalizeWorkflow(machine);
     const transitionScope = normalizeTransitionScope(transitionContext);
@@ -463,11 +466,13 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       timestamp: new Date()
     };
     
-    const entitySet = {
-      status: statusData,
-      ...evidence.entityAttachmentSet,
-      ...(options.entityPatch || {})
-    };
+    const entitySet = instanceDoc
+      ? { 'states.main': targetState, updatedAt: new Date().toISOString() }
+      : {
+        status: statusData,
+        ...evidence.entityAttachmentSet,
+        ...(options.entityPatch || {})
+      };
     await writeStatusEventAndEntitySnapshot({
       db,
       collection,
@@ -910,25 +915,46 @@ async function loadEntityForWorkflow(typeId, targetId, options = {}) {
   const { requireMachine = true, producerOutputId = null } = options;
   const normalizedTypeId = normalizeTypeId(typeId);
   const collection = getEntityCollection(normalizedTypeId);
-  if (!collection) {
-    throw createError({
-      statusCode: 400,
-      message: `No entity collection defined for entity type: ${normalizedTypeId}`
-    });
-  }
 
   const db = await connectDB();
-  const flexId = toFlexibleId(targetId);
-  const entity = await db.collection(collection).findOne({ _id: flexId });
+  if (collection) {
+    const flexId = toFlexibleId(targetId);
+    const entity = await db.collection(collection).findOne({ _id: flexId });
 
-  if (!entity) {
+    if (!entity) {
+      throw createError({
+        statusCode: 404,
+        message: `${normalizedTypeId} not found (ID: ${targetId}, Collection: ${collection})`
+      });
+    }
+
+    const organizationId = entity.lineage?.organizationId || entity.origin?.organizationId || entity.organizationId;
+    const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: normalizedTypeId, organizationId, producerOutputId });
+
+    if (!machine && requireMachine) {
+      throw createError({
+        statusCode: 400,
+        message: `No state machine defined for entity type: ${normalizedTypeId}`
+      });
+    }
+
+    return { entity, machine, collection, flexId };
+  }
+
+  // CTS-native instances live in per-class collections resolved per call
+  // (org-authored types never enter the static registry). Search them the
+  // same way the instance boundary does; the status engine reads and
+  // writes those documents through the §3 shape (states.main), never the
+  // legacy status block.
+  const found = await findInstanceDocument(db, targetId, normalizedTypeId);
+  if (!found) {
     throw createError({
       statusCode: 404,
-      message: `${normalizedTypeId} not found (ID: ${targetId}, Collection: ${collection})`
+      message: `${normalizedTypeId} not found (ID: ${targetId})`
     });
   }
 
-  const organizationId = entity.lineage?.organizationId || entity.origin?.organizationId || entity.organizationId;
+  const organizationId = found.doc.lineage?.organizationId || found.doc.origin?.organizationId || found.doc.organizationId;
   const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: normalizedTypeId, organizationId, producerOutputId });
 
   if (!machine && requireMachine) {
@@ -938,5 +964,33 @@ async function loadEntityForWorkflow(typeId, targetId, options = {}) {
     });
   }
 
-  return { entity, machine, collection, flexId };
+  return { entity: instanceStatusView(found.doc), machine, collection: found.collection, flexId: found.doc._id, instanceDoc: found.doc };
+}
+
+// The §3 stored shape keeps lifecycle in states.main; project the status
+// block the engine reads so transitions, guards, and hooks see the live
+// state instead of the initial default.
+function instanceStatusView(doc = {}) {
+  if (doc && typeof doc === 'object' && !doc.status && doc.states && typeof doc.states.main === 'string') {
+    return {
+      ...doc,
+      status: { state: { primary: doc.states.main, active: { main: doc.states.main } } }
+    };
+  }
+  return doc;
+}
+
+async function findInstanceDocument(db, targetId, typeId) {
+  const ids = [];
+  try {
+    ids.push(new ObjectId(String(targetId)));
+  } catch {}
+  if (!ids.length || String(ids[0]) !== String(targetId)) ids.push(String(targetId));
+  for (const collection of Object.values(CLASS_COLLECTIONS)) {
+    for (const id of ids) {
+      const doc = await db.collection(collection).findOne({ _id: id, type: typeId });
+      if (doc) return { doc, collection };
+    }
+  }
+  return null;
 }
