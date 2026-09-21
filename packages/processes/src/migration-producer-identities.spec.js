@@ -133,4 +133,74 @@ describe('persisted producer output identity migration', () => {
       'Process node processNode_1785860422855 requires one work_item producer output; candidates: processNode_1785860422855:result (work_item), processNode_1785860422855:secondary (work_item)'
     ]);
   });
+
+  it('re-derives a twin-lowered self-binding instead of refusing it', () => {
+    // Live shape (2026-09-21): a cts.construct lowered to its
+    // effect.createEntity twin keeps the authored `X:result` binding while
+    // the producer output record is absent — the twin ports re-derive it.
+    const data = persistedCreate();
+    data.processNodes.processNode_1785860422855.producerOutputId = 'processNode_1785860422855:result';
+
+    const result = migrateProducerOutputIdentities(data);
+
+    expect(result.errors).toEqual([]);
+    expect(result.data.processNodes.processNode_1785860422855.producerOutputId)
+      .toBe('processNode_1785860422855:result');
+    expect(result.data.producerOutputs['processNode_1785860422855:result']).toMatchObject({
+      nodeId: 'processNode_1785860422855',
+      outputSocketId: 'result',
+      typeId: 'work_item'
+    });
+  });
+
+  it('drops a stale self-binding the catalog cannot re-derive', () => {
+    // The selected socket is gone (renamed port, withdrawn command
+    // output): the binding names no foreign identity, so it is dropped
+    // and validation owns the unbound node — never a rewrite refusal.
+    const data = persistedCreate();
+    delete data.processNodes.processNode_1785860422855.outputs;
+    data.processNodes.processNode_1785860422855.kind = 'effect.runCommand';
+    data.processNodes.processNode_1785860422855.commandId = 'unknown.command';
+    data.processNodes.processNode_1785860422855.producerOutputId = 'processNode_1785860422855:result';
+    data.processNodes.processNode_1785860422855.typeId = '';
+
+    const result = migrateProducerOutputIdentities(data);
+
+    expect(result.errors).toEqual([]);
+    expect(result.data.processNodes.processNode_1785860422855).not.toHaveProperty('producerOutputId');
+  });
+
+  it('leaves a withdrawn type to validation instead of refusing the rewrite', () => {
+    // SPEC §19 abandoned data: the org deleted the type the node was
+    // bound to. The rewrite drops the dead binding silently when the
+    // caller supplies a vocabulary; unknown-type diagnostics (with node
+    // anchors) belong to validation, not to this rewrite.
+    const data = persistedCreate();
+    delete data.processNodes.processNode_1785860422855.outputs;
+    data.processNodes.processNode_1785860422855.kind = 'effect.runCommand';
+    data.processNodes.processNode_1785860422855.commandId = 'unknown.command';
+    data.processNodes.processNode_1785860422855.typeId = 'deleted-type';
+    data.processNodes.processNode_1785860422855.producerOutputId = 'processNode_1785860422855:result';
+
+    const result = migrateProducerOutputIdentities(data, { entities: [{ type: 'other-type' }] });
+
+    expect(result.errors).toEqual([]);
+    expect(result.data.processNodes.processNode_1785860422855).not.toHaveProperty('producerOutputId');
+  });
+
+  it('still refuses a missing foreign selection', () => {
+    // A selection naming another node's output that does not exist can
+    // mask cross-node corruption — that refusal stays fatal.
+    const data = persistedCreate();
+    data.processNodes.processNode_1785860422855.kind = 'effect.runCommand';
+    data.processNodes.processNode_1785860422855.commandId = 'known.command';
+    data.processNodes.processNode_1785860422855.typeId = '';
+    data.processNodes.processNode_1785860422855.producerOutputId = 'someone-else:entity';
+
+    const result = migrateProducerOutputIdentities(data);
+
+    expect(result.errors).toEqual([
+      'Process node processNode_1785860422855 selects missing producer output someone-else:entity'
+    ]);
+  });
 });

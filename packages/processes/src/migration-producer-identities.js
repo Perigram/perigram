@@ -74,30 +74,54 @@ export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
 
     if (selectedId) {
       const selected = producerOutputs[selectedId];
-      if (!selected) {
-        errors.push(`Process node ${nodeId} selects missing producer output ${selectedId}`);
+      if (!selected && String(selectedId).startsWith(`${nodeId}:`)) {
+        // Stale self-binding: the node's own output no longer resolves
+        // (renamed socket, healed snapshot, withdrawn type). It names no
+        // foreign identity, so dropping it cannot mask cross-node
+        // corruption — fall through and re-derive below; validation owns
+        // whatever stays unbound.
+        if (String(node.producerOutputId || '').startsWith(`${nodeId}:`)) {
+          delete node.producerOutputId;
+          changed = true;
+        }
+        if (action && String(action.producerOutputId || '').startsWith(`${nodeId}:`)) {
+          delete action.producerOutputId;
+          changed = true;
+        }
+      } else {
+        if (!selected) {
+          errors.push(`Process node ${nodeId} selects missing producer output ${selectedId}`);
+          continue;
+        }
+        const ownsProducedEntity = ['effect.createEntity', 'effect.runProducer'].includes(node.kind);
+        if (ownsProducedEntity && String(selected.nodeId) !== nodeId) {
+          errors.push(`Process node ${nodeId} selects producer output ${selectedId} owned by node ${selected.nodeId || '(missing)'}`);
+          continue;
+        }
+        if (!node.producerOutputId) {
+          node.producerOutputId = selectedId;
+          changed = true;
+        }
+        if (action && !action.producerOutputId) {
+          action.producerOutputId = selectedId;
+          changed = true;
+        }
         continue;
       }
-      const ownsProducedEntity = ['effect.createEntity', 'effect.runProducer'].includes(node.kind);
-      if (ownsProducedEntity && String(selected.nodeId) !== nodeId) {
-        errors.push(`Process node ${nodeId} selects producer output ${selectedId} owned by node ${selected.nodeId || '(missing)'}`);
-        continue;
-      }
-      if (!node.producerOutputId) {
-        node.producerOutputId = selectedId;
-        changed = true;
-      }
-      if (action && !action.producerOutputId) {
-        action.producerOutputId = selectedId;
-        changed = true;
-      }
-      continue;
     }
 
     if (!requiresActionIdentity) continue;
     const typeId = node.typeId || action?.typeId || '';
     const compatible = candidates.filter(candidate => !typeId || candidate.typeId === typeId);
     if (compatible.length !== 1) {
+      // A type the supplied vocabulary does not know is validation's
+      // report (unknown-type diagnostics carry node anchors there), not a
+      // rewrite refusal: without this, deleting a type bricks every draft
+      // that ever bound it. Applies only when the caller supplies a
+      // vocabulary — without one, every type is unknown and the strict
+      // rewrite stays.
+      const vocabulary = (domain.entities || []).map(entity => entity?.type).filter(Boolean);
+      if (typeId && vocabulary.length && !vocabulary.includes(typeId)) continue;
       errors.push(producerIdentityDiagnostic(nodeId, typeId, candidates));
       continue;
     }
