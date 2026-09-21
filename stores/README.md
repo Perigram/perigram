@@ -31,7 +31,9 @@ Three cells; every surface derives from them, nothing else caches:
   projected from auth hydration (`processPayload.bundle`) with `refresh()`
   re-hydrating through the auth store. Owns `typesById`, `typeRecord`,
   `statesOf`, `operatorsOf`, `renderOf`, `iconFor`, `constructible`, the
-  containment triples derived from declared children edges, and
+  containment triples derived from declared children edges (keyed by the
+  edge's declared `lineageKey` per CTS SPEC §6 — the value instances
+  store, never the edge's authoring map key), and
   `projectedDomain` — the compiler-domain projection over the bundle (the
   same projection the server compiles with) consumed by client access
   previews so the resolver behaves exactly like auth hydration. The

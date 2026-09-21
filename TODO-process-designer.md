@@ -265,6 +265,31 @@ expectations at the generated-screens IA — not a pass/fail run.
   and v4-kind authoring traces in the catalog/palette (execution twins
   stay).
 
+##### Agent Notes — 2026-09-21 home workspace restored; DTO seams fixed
+
+User directive correction: the home workspace (panes, chats, calls) STAYS —
+the goal is that every surface speaks the compiled DTO/contract vocabulary,
+not deletion. The cutover commits were reverted and the actual seams behind
+the reported breakage fixed:
+
+1. **`buildInstancePool` crash ("group is not iterable")** — the instances
+   store's keyed pool (`{ type -> { id -> instance }}`, from the
+   client-state model commit) was passed straight into the generator's
+   grouped-array instances prop. The page now maps keyed → groups at the
+   composition boundary; the SSR smoke pre-loads a row and pins the render
+   (it crashed before on any screen with loaded data).
+2. **Flat home hierarchy** — two children-edge consumers still matched by
+   the authoring map key: the registry store's containment triples
+   (explorer nesting never matched stored `lineage.<lineageKey>`) and
+   `HierarchyTree.vue`. Both now read the declared `lineageKey` /
+   `childrenOfParent` matcher. With the create-dialog parent picker from
+   the wiring session, newly created children actually carry lineage, so
+   the explorer nests parent/child again.
+
+Remaining known-legacy consumers of `components/generated/*` (project
+workspace editor overloads, org system screens, EntityCard/chats) still
+stand as the P4 retirement list.
+
 ##### Agent Notes — 2026-09-21 generated-surface wiring defects fixed
 
 User report ("created type instances are shallow; listbox items follow no

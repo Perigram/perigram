@@ -40,7 +40,10 @@ instances store (`stores/instances.js`) loads the referenced collections
 (row-slot mapping, lineage/reference normalization, per-source data states
 loading/ready/empty/denied/error that `composeScreen` folds into the region
 tree), and action runs dispatch to the process run API through the same
-store. Collection identities are link buttons: `onOpen` routes to the
+store. The page is the shape boundary between the store's keyed pool
+(`{ type -> { id -> instance }}`) and the generator's grouped-array
+instances prop (`buildInstancePool` re-keys it). Collection identities are
+link buttons: `onOpen` routes to the
 compiler-paired detail screen (`auto_<type>_detail`) with the instance id
 in the route scope, silently staying put when the user manifest carries no
 paired detail screen; when the manifest carries the list screen but not its
