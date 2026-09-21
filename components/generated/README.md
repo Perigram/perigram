@@ -233,9 +233,14 @@ Discord-style operational shell:
   `ephemeral: true` are runtime-parameterized like this and never appear in
   add-tab lists.
 - Entity navigation is a PrimeVue `Tree` explorer at Aura defaults in a
-  self-scrolling wrapper. Home entity-list sections render as non-selectable
-  folder nodes (type-id icon and `generatedRegionLabel` label owned by
-  the tree itself) and section folders expand/collapse. The tree
+  self-scrolling wrapper. The tree renders the TYPE hierarchy from the
+  render contracts: registry containment (declared children edges) nests
+  types under their parents, manifest-backed types plus their ancestors
+  render as nodes (registry render label + icon), and a type's home-section
+  instances hang beneath it. Root types — authored classes and groups —
+  are selectable: clicking any type node opens its compiled `typeList`
+  screen as a pane tab (`GeneratedScreenPane`, below), never a separate
+  route. Type folders expand/collapse. The tree
   passthroughs are layout-only: nested rows indent inside the row content so
   hover/selection keep the full row width, and the node label owns the
   remaining width so trailing row controls align to the row end.
@@ -294,7 +299,7 @@ Discord-style operational shell:
   action strip; collection creation belongs to sidebar sections and entity
   operations belong to the opened file tabs.
 - Tab creation is explicit: new tabs come only from the tab strip's add
-  control and from live call stages (calls stay in their own tab so workspace
+  control, sidebar type screens, and live call stages (calls stay in their own tab so workspace
   navigation never unmounts an active call). Every other navigation —
   explorer rows, nested entity links, workspace pages — reuses the pane's
   selected tab in place (replacing an empty placeholder like any content), and
@@ -384,6 +389,11 @@ bounded IDE-style Explorer and file workspace:
   the active pane, while editing a nested cassette opens the registered designer
   page in that pane. Project screen source data is not a substitute for the
   selected entity's own detail-screen contract.
+- `GeneratedScreenPane` is the pane adapter for opened type screens: it
+  resolves the manifest record by screen key (the same lookup the routed
+  surface performs) and mounts `GeneratedScreen`, which owns its action
+  execution and dialogs; opened screen refs persist with the pane state
+  (`openedScreenRefs`, same normalization contract as page refs).
 - `GeneratedWorkspacePage` resolves a page id through the fixed app-owned
   `workspace-pages.js` registry. Process data never selects a Vue component,
   and workspace-level actions are not represented as a registered page or
