@@ -1326,7 +1326,28 @@ function normalizeActionRecord(action = {}) {
 
 function compileLifecycle(profile = {}, domain = {}) {
   const lifecycle = profile.lifecycle || {};
-  if (lifecycle.mode === 'defaultCreated' || !lifecycle.mode) return createDefaultCreatedWorkflow(profile.label || profile.typeId);
+  if (lifecycle.mode === 'defaultCreated' || !lifecycle.mode) {
+    // Producers mint into CREATED, but a type with a declared lifecycle
+    // keeps governing from there: its declared states and transitions
+    // join the minted machine so instances can actually traverse them.
+    // (Without this, org-authored lifecycles were unreachable — creation
+    // succeeded while every declared transition failed as invalid.)
+    const declared = domain.workflows?.[profile.typeId];
+    const region = declared?.regions?.[declared.primaryRegion || 'main'] || declared;
+    if (!region?.states) return createDefaultCreatedWorkflow(profile.label || profile.typeId);
+    return normalizeWorkflow({
+      schemaVersion: 2,
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          label: profile.label || profile.typeId,
+          initial: region.initial || 'CREATED',
+          states: { CREATED: { canUpdateMeta: true }, ...(region.states || {}) },
+          transitions: [...(region.transitions || [])]
+        }
+      }
+    });
+  }
   if (lifecycle.mode === 'domainDefault') {
     const workflow = domain.workflows?.[profile.typeId];
     if (!workflow) return createDefaultCreatedWorkflow(profile.label || profile.typeId);
