@@ -700,4 +700,52 @@ describe('status service lifecycle payloads', () => {
       lifecycle: { attachments: { invoice: { fileId: 'invoice-file' } } }
     })).rejects.toThrow(/Invalid lifecycle payload/);
   });
+
+  it('reads and writes lifecycle state on CTS-native instance documents', async () => {
+    // Org-authored types never enter the static registry: the status
+    // engine resolves their per-class collection per call and moves
+    // states.main — never a legacy status block.
+    const id = new ObjectId();
+    await db.collection('items').insertOne({
+      _id: id,
+      type: 'e2e-note',
+      typeVersion: 1,
+      organizationId: 'org-1',
+      name: 'Note',
+      fields: { name: 'Note' },
+      states: { main: 'new' },
+      lineage: { organizationId: 'org-1' }
+    });
+    const machine = {
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'new',
+          states: { new: {}, active: {} },
+          transitions: [{ from: 'new', to: 'active' }]
+        }
+      }
+    };
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue(machine);
+
+    await statusService.setInitialStateForOrganization('e2e-note', id.toString(), 'new', 'org-1', 'admin-1', {});
+    let entity = await db.collection('items').findOne({ _id: id });
+    expect(entity.states.main).toBe('new');
+    expect(entity).not.toHaveProperty('status');
+    expect(await db.collection('status_events').countDocuments({ targetId: id })).toBe(1);
+
+    await statusService.transition('e2e-note', id.toString(), 'active', 'admin-1', {
+      userId: 'admin-1',
+      memberships: [{ organizationId: 'org-1', permissions: {} }]
+    });
+    entity = await db.collection('items').findOne({ _id: id });
+    expect(entity.states.main).toBe('active');
+    expect(await db.collection('status_events').countDocuments({ targetId: id })).toBe(2);
+
+    // The read path sees the written state: active -> new is invalid.
+    await expect(statusService.transition('e2e-note', id.toString(), 'new', 'admin-1', {
+      userId: 'admin-1',
+      memberships: [{ organizationId: 'org-1', permissions: {} }]
+    })).rejects.toThrow(/Invalid transition from active to new/);
+  });
 });

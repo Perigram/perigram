@@ -749,12 +749,6 @@
                     @select="selectAttachment"
                     @create-action="runCreateAction"
                 />
-                <GeneratedArtifactCreator
-                    v-if="pendingCreator"
-                    v-model="creatorVisible"
-                    :creator="pendingCreator"
-                    @created="selectCreatedArtifact"
-                />
             </section>
         </div>
         <StandardDialog
@@ -877,6 +871,26 @@
                         v-else-if="field.type === 'boolean'"
                         v-model="createPromptValues[field.id]"
                     />
+                    <div v-else-if="field.type === 'file'" class="flex items-center gap-2">
+                        <input
+                            :ref="el => setPayloadInputEl(field.id, el)"
+                            class="hidden"
+                            type="file"
+                            :accept="field.accept || undefined"
+                            :capture="field.capture || undefined"
+                            @change="event => uploadPayloadFile(field, event)"
+                        >
+                        <Button
+                            icon="pi pi-upload"
+                            :label="$t('common.upload')"
+                            size="small"
+                            severity="secondary"
+                            outlined
+                            :loading="uploadingPayloadField === field.id"
+                            @click="payloadInputEl(field.id)?.click()"
+                        />
+                        <span v-if="createPromptValues[field.id]?.name" class="text-muted text-supporting truncate">{{ createPromptValues[field.id].name }}</span>
+                    </div>
                     <DatePicker
                         v-else-if="field.type === 'date' || field.type === 'dateTime'"
                         v-model="createPromptValues[field.id]"
@@ -923,13 +937,13 @@ import SupportMessageContent from '~/components/shared/SupportMessageContent.vue
 import StateBlock from '~/components/shared/StateBlock.vue'
 import StandardDialog from '~/components/shared/StandardDialog.vue'
 import ChatAttachmentPicker from '~/components/shared/ChatAttachmentPicker.vue'
-import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCreator.vue'
 import CallPanel from '~/components/calls/CallPanel.vue'
-import { artifactCreatorForAction, collectActionInputFields, initialPromptValue, promptData, promptedFields } from '~/components/generated/action-inputs.js'
+import { collectActionInputFields, initialPromptValue, promptData, promptedFields } from '~/components/generated/action-inputs.js'
 import { isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js'
 import { generatedActionLabel } from '~/utils/generated-labels.js'
 import { useSupportChatTarget, useSupportDialog } from '~/composables/useModalState'
 import { useConnections } from '~/composables/useConnections.js'
+import { usePayloadUpload } from '~/composables/usePayloadUpload.js'
 import { useInstancesStore } from '~/stores/instances'
 import { useRegistryStore } from '~/stores/registry'
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js'
@@ -980,12 +994,16 @@ let unsubscribeConversation = null
 let conversationLoadToken = 0
 const entityRefs = ref([])
 const attachmentPicker = ref(null)
-const creatorVisible = ref(false)
-const pendingCreator = ref(null)
 const pendingCreateAction = ref(null)
 const createPromptVisible = ref(false)
 const createPromptValues = reactive({})
 const createPromptOptions = reactive({})
+// File creators ride the generic prompt: the `file` control uploads to
+// the files bucket and the construct path mints a file instance.
+const { uploadingPayloadField, setPayloadInputEl, payloadInputEl, uploadPayloadFile } = usePayloadUpload(
+  createPromptValues,
+  { onError: error => toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message, life: 8000 }) }
+)
 const executingCreate = ref(false)
 const activeConversation = ref(null)
 // Entity thread state: the children toggle switches between messages linked
@@ -2116,13 +2134,9 @@ const createPromptFields = computed(() => (pendingCreateAction.value
 
 const runCreateAction = async (action) => {
     if (!action?.id) return
-    const creator = artifactCreatorForAction(action)
-    if (creator) {
-        pendingCreateAction.value = action
-        pendingCreator.value = creator
-        creatorVisible.value = true
-        return
-    }
+    // File creators ride the generic prompt dialog: the `file` control
+    // uploads to the files bucket and the construct path mints a file
+    // instance — chat never mints artifact entities.
     if (promptedFields(action).length) {
         await openCreatePromptDialog(action)
         return
@@ -2206,15 +2220,6 @@ const attachCreatedEntity = (action, result) => {
             entity
         })
     }
-}
-
-const selectCreatedArtifact = (artifact) => {
-    attachCreatedEntity(
-        { typeId: 'artifact', relationMutation: null },
-        { created: artifact }
-    )
-    pendingCreator.value = null
-    pendingCreateAction.value = null
 }
 
 const hydrateEntityRefs = async (refs = []) => {

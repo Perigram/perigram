@@ -306,6 +306,7 @@ import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCr
 import GeneratedObjectInput from '~/components/generated/GeneratedObjectInput.vue';
 import { entityIdentifier, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
+import { usePayloadUpload } from '~/composables/usePayloadUpload.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { actionAppliesToEntity, isCreateAction, isDeleteAction, isUpdateAction } from '~/components/generated/action-visibility.js';
@@ -349,32 +350,13 @@ const relationCreatorValues = reactive({});
 const relationCreatorOptions = reactive({});
 
 // Payload creation protocol (SPEC §4): the `file` prompt control uploads
-// to the files bucket and submits the payload reference.
-const uploadingPayloadField = ref('');
-const payloadInputEls = new Map();
-function setPayloadInputEl(fieldId, el) {
-  if (el) payloadInputEls.set(fieldId, el);
-  else payloadInputEls.delete(fieldId);
-}
-function payloadInputEl(fieldId) {
-  return payloadInputEls.get(fieldId) || null;
-}
-async function uploadPayloadFile(field, event) {
-  const file = event.target.files?.[0];
-  event.target.value = '';
-  if (!file) return;
-  uploadingPayloadField.value = field.id;
-  try {
-    const form = new FormData();
-    form.append('file', file);
-    const stored = await $fetch('/api/files/upload?bucket=files', { method: 'POST', body: form });
-    promptValues[field.id] = { fileId: stored.id, mime: file.type || null, size: file.size, name: file.name };
-  } catch (error) {
-    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message, life: 8000 });
-  } finally {
-    uploadingPayloadField.value = '';
-  }
-}
+// to the files bucket and submits the payload reference — shared with
+// ChatSupport through usePayloadUpload so both create file instances
+// through the same control.
+const { uploadingPayloadField, setPayloadInputEl, payloadInputEl, uploadPayloadFile } = usePayloadUpload(
+  promptValues,
+  { onError: error => toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message, life: 8000 }) }
+);
 
 const regionBySlot = computed(() => Object.fromEntries(
   screen.value.regions.map(region => [region.slot || 'main', region])

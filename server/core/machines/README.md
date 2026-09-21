@@ -34,7 +34,11 @@ The system consists of three main parts: the transition engine, the dynamic hook
   returned from the status action API; no-op current-state buttons belong in
   neither generated process actions nor `EntityStatus`.
 - **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and
-  resolves collections through the runtime/domain entity registry.
+  resolves collections through the runtime/domain entity registry, falling
+  back to the per-class instance collections for CTS-native types that never
+  enter the static registry. Instance documents are read through a status
+  view projected from `states.main` and written back to `states.main` —
+  the legacy `status` block is never written onto them.
 
 The reusable workflow API is being extracted to
 [`@cutkit/workflows`](../../../packages/workflows/README.md). The current
