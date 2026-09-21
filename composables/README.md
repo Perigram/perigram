@@ -288,6 +288,19 @@ The cache never serves another organization's view after an org switch.
 
 ---
 
+## usePayloadUpload
+
+Payload upload contract (CTS SPEC §4): the `file` prompt control uploads
+to the `files` bucket and stores the payload reference the construct path
+submits (`{ fileId, mime, size, name }`). `usePayloadUpload(values,
+{ onError })` binds to the caller's prompt-values object and returns the
+uploading flag, the hidden-input element registry, and `uploadPayloadFile`
+— `GeneratedScreen` and `ChatSupport` render the same control through it,
+so every file-instance create flows through one upload implementation and
+no surface mints artifact entities.
+
+---
+
 ## State Management (Pinia) — stores/
 
 | Store | Contents |
