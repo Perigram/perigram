@@ -2,7 +2,27 @@
 
 ## Integrations
 
-- [ ] **Creation-protocol picker in the designer palette.** Ninth slice —
+- [x] **Editor-protocol creates open the editor (created-entity open
+  chain).** Follow-up to the picker: submitting an editor-protocol create
+  showed only the Name dialog and then went silent — the instance was
+  created but nothing navigated (no compiled detail screen for the type)
+  and nothing opened the editor.
+  - `created-entity-open.js` resolves the open target: compiled detail
+    route first; editor-protocol creates without a route open the home
+    workspace (pane body mounts the editor through the file-surface
+    overload); every other routeless create gets a success toast with the
+    created name. Creates are never silent.
+  ### Agent Notes — 2026-09-21
+  Implemented in `agent/cts-editor-open-20260921`. Verified against the
+  live DB first: the "missing" cassette (`name='1'`) existed — creation
+  worked; the failures were silent navigation (manifest without cassette
+  screens) and the unimplemented editor-open contract. Focused spec (6
+  cases: route preference, workspace for editor protocol incl. v5 via
+    binding, toast fallback, null guards, mapped-mutation unwrap);
+  generated suites, SSR smoke, localization, arch, docs — all pass.
+  Status: WAITING.
+
+- [x] **Creation-protocol picker in the designer palette.** Ninth slice —
   makes the protocols reachable.
   - The type catalog lists one construct variant per construction mode:
     the default mode keeps the plain type label, additional modes get

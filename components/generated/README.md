@@ -62,7 +62,14 @@ apply every `entities` output. A created entity enters a list source only when
 it satisfies that source's resolved filters, so a successful procedural action
 is visible without a page reload; the shared entity sync event remains the
 backstop for changes made outside this screen. Successful `createEntity`
-actions additionally navigate to the created entity's detail route. A mapped
+actions additionally navigate to the created entity's detail route
+(resolved through `created-entity-open.js`: a compiled detail screen
+first; when the manifest has no route for the type and the create ran
+the `editor` protocol, the blank instance opens as a home-workspace
+tab, whose pane body mounts the type's editor surface through the
+file-surface overload — the editor contract guarantees the editor is
+reachable; every other routeless create shows a success toast with the
+created name, so a create is never silent). A mapped
 mutation response is either a bare shape-preserving data tree (zero failures)
 or a failure-carrying `{ result, failures, completedMutations }` envelope;
 every completed item is applied to matching source state, while failed slots
