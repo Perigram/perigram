@@ -174,7 +174,11 @@ function entityOutputCandidates(nodeId, node, producerOutputs, domain) {
   const candidates = new Map();
   let declaredOutputs = [];
   try {
+    // The twin-aware ports resolve type ids against the domain view:
+    // without it, kebab org ids fall back to the legacy snake form and
+    // never match the node's own binding.
     declaredOutputs = resolveCatalogNodePorts(node, {
+      domain,
       blockComposition: domain.blockComposition?.[node.block] || null,
       command: domain.commands?.[node.commandId] || null
     }).outputs;
