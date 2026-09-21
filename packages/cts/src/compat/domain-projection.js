@@ -10,6 +10,7 @@
 // This is the single translator between the declaration layer and the
 // process grammar — the designer and the compiler consume only this.
 import { rowToFieldSchemas, slotFor } from './field-schema-rows.js';
+import { lineageKeyForParent } from '../edges.js';
 import { renderPolicyFor } from '../render.js';
 
 // Per-class instance collections (SPEC §13): the single home of the
@@ -20,10 +21,6 @@ export const CLASS_COLLECTIONS = Object.freeze({
   group: 'groups',
   process: 'processes'
 });
-
-function camel(kebab = '') {
-  return kebab.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
-}
 
 // Create-dialog labels are authored vocabulary: a lineage input is named by
 // its parent type's render label, a row input by the start-cased row name;
@@ -224,7 +221,8 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
         containment.push({
           parentType: parent.id,
           childType,
-          lineageKey: declaration.lineageKey || `${camel(parent.id)}Id`,
+          // The declared storage key: stamped at edge normalize (SPEC §6).
+          lineageKey: declaration.lineageKey || lineageKeyForParent(parent.id),
           // Org-authored children edges are the organization's own
           // hierarchy declaration; system pack containment is framework
           // opinion and stays non-authoritative for process placement.
@@ -404,7 +402,7 @@ function orgLineageFields(type, view, visited = new Set()) {
   for (const parent of view.values()) {
     for (const [key, declaration] of Object.entries(parent.edges?.children || {})) {
       if (!(declaration.types || []).includes(type.id)) continue;
-      const lineageKey = declaration.lineageKey || `${camel(parent.id)}Id`;
+      const lineageKey = declaration.lineageKey || lineageKeyForParent(parent.id);
       fields.push({
         path: `lineage.${lineageKey}`,
         block: 'lineage',

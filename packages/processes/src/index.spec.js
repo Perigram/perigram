@@ -2975,6 +2975,37 @@ describe('@cutkit/processes compiler', () => {
     });
   });
 
+  it('derives generic-label create action captions from the domain entity label on the actions channel', () => {
+    // The actions channel (compiled.actions — what projectUiAction feeds
+    // to the manifest) previously dropped the domain from its label
+    // derivation, so a generic 'cts.construct' node captioned with the
+    // raw type id instead of the authored render label.
+    const compiled = compileProcessDefinition({
+      roles: {
+        role_operator: { id: 'role_operator' }
+      },
+      producerOutputs: producerOutputRecords([['worksite_entity', 'worksite']]),
+      actions: {
+        create_worksite: {
+          id: 'create_worksite',
+          label: 'cts.construct',
+          actionKind: 'createEntity',
+          entityType: 'worksite',
+          producerOutputId: 'worksite_entity:entity',
+          status: { to: INITIAL_STATE },
+          trigger: { mode: 'manual' },
+          access: { level: 'write', roleIds: ['role_operator'] }
+        }
+      }
+    }, {
+      ...domain,
+      entities: [...domain.entities, { type: 'worksite', label: 'Worksite' }],
+      construction: { ...domain.construction, worksite: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [] } }
+    });
+
+    expect(compiled.actions.create_worksite.label).toBe('Create Worksite INITIAL_STATE');
+  });
+
   it('rejects generic creation for derived construction contracts', () => {
     const validation = validateProcessDefinition({
       producerOutputs: producerOutputRecords([['create_design', 'cassette_design']]),

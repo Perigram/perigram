@@ -3,7 +3,18 @@
 export const EDGE_KINDS = Object.freeze(['children', 'relations', 'provenance']);
 export const ON_REMOVE = Object.freeze(['restrict', 'cascade', 'detach']);
 
-export function normalizeEdges(edges = {}) {
+// The single lineage-key derivation: the storage key a parent's children
+// declaration names on the child (`lineage.<lineageKey>`). Authored value
+// wins; the fallback is the camel-cased declaring type id plus `Id`
+// (`t-3ccnopv0ti` -> `t3ccnopv0tiId`). The domain projection, derived
+// indexes, and the UI generator consume the declared key — never the
+// children entry's map key.
+export function lineageKeyForParent(typeId = '') {
+  const camel = String(typeId).replace(/-([a-z0-9])/g, (_, character) => character.toUpperCase());
+  return camel ? `${camel}Id` : '';
+}
+
+export function normalizeEdges(edges = {}, declaringTypeId = '') {
   const normalized = {};
   for (const kind of EDGE_KINDS) {
     const declarations = edges[kind];
@@ -18,6 +29,10 @@ export function normalizeEdges(edges = {}) {
       normalizedEntry.onRemove = declaration.onRemove || 'restrict';
       if (!ON_REMOVE.includes(normalizedEntry.onRemove)) {
         throw new Error(`edge ${kind}.${key}: onRemove must be one of ${ON_REMOVE.join(' | ')}`);
+      }
+      if (kind === 'children') {
+        const authored = String(declaration.lineageKey || '').trim();
+        normalizedEntry.lineageKey = authored || lineageKeyForParent(declaringTypeId);
       }
       entries[key] = Object.freeze(normalizedEntry);
     }

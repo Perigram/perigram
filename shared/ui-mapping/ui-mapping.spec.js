@@ -35,7 +35,9 @@ import {
   fieldLabelKey,
   actionLabelKey,
   localizedLabel,
-  resolveCreateDialogInputs
+  resolveCreateDialogInputs,
+  planActionLaunch,
+  childrenOfParent
 } from './index.js';
 
 describe('field control resolution', () => {
@@ -263,6 +265,60 @@ describe('action button resolution', () => {
     expect(resolveActionButton({ actionKind: 'updateInstance', status: { to: 'DONE' } }, { render }))
       .toMatchObject({ severity: 'success' });
     expect(resolveActionButton({ actionKind: 'updateInstance' }, { render }).tone).toBe('secondary');
+  });
+});
+
+describe('action launch plan', () => {
+  it('opens the create dialog whenever the action carries construction inputs', () => {
+    expect(planActionLaunch({ actionKind: 'createInstance', construction: { inputs: ['name'] } })).toBe('dialog');
+  });
+
+  it('never replaces a create form with a bare confirm because of the grant level', () => {
+    // The reported defect: admin-granted creates ran behind a
+    // confirmation with an empty draft — grant level is an access signal,
+    // not a presentation one.
+    expect(planActionLaunch({
+      actionKind: 'createInstance',
+      access: { level: 'admin' },
+      construction: { inputs: ['name'] }
+    })).toBe('dialog');
+  });
+
+  it('confirms only the destructive kinds, links open their picker, others run', () => {
+    expect(planActionLaunch({ actionKind: 'deleteInstance', access: { level: 'admin' } })).toBe('confirm');
+    expect(planActionLaunch({ actionKind: 'link' })).toBe('link');
+    expect(planActionLaunch({ actionKind: 'updateInstance' })).toBe('run');
+    expect(planActionLaunch({ actionKind: 'updateInstance', access: { level: 'admin' }, status: { to: 'DONE' } })).toBe('run');
+    expect(planActionLaunch({ actionKind: 'runCommand' })).toBe('run');
+  });
+});
+
+describe('hierarchy materialization', () => {
+  it('matches children through the declared lineageKey, never the edge map key', () => {
+    const type = { edges: { children: { 't-part-1s': { types: ['t-part-1'], lineageKey: 'tBin1Id' } } } };
+    const pool = {
+      't-part-1': {
+        nested: { id: 'nested', type: 't-part-1', lineage: { tBin1Id: { id: 'bin' } } },
+        stray: { id: 'stray', type: 't-part-1', lineage: { 't-part-1s': { id: 'bin' } } },
+        loose: { id: 'loose', type: 't-part-1', lineage: {} }
+      }
+    };
+    const children = childrenOfParent(type, pool, 'bin');
+    expect(children.map(child => child.id)).toEqual(['nested']);
+  });
+
+  it('contributes every declared child type of every children edge', () => {
+    const type = { edges: { children: {
+      parts: { types: ['t-part-1'], lineageKey: 'binId' },
+      docs: { types: ['t-doc'], lineageKey: 'binId' }
+    } } };
+    const pool = {
+      't-part-1': { p: { id: 'p', type: 't-part-1', lineage: { binId: { id: 'bin' } } } },
+      't-doc': { d: { id: 'd', type: 't-doc', lineage: { binId: { id: 'bin' } } } }
+    };
+    expect(childrenOfParent(type, pool, 'bin').map(child => child.id)).toEqual(['p', 'd']);
+    expect(childrenOfParent(type, pool, 'other')).toEqual([]);
+    expect(childrenOfParent(null, pool, 'bin')).toEqual([]);
   });
 });
 
@@ -644,6 +700,30 @@ describe('create dialog input resolution', () => {
       label: 'Bin',
       lineage: { key: 'tPart1Id', accepts: ['t-bin-1'] }
     });
+  });
+
+  it('matches reverse containment by the declared lineageKey, not the edge map key', () => {
+    // Designer-authored children edges are keyed by authoring identity
+    // (`t-part-1s`) and declare their storage key (`tBin1Id`) — the
+    // picker must resolve through the declaration, or the lineage row
+    // silently disappears and children never get a parent.
+    const authoredBundle = {
+      types: [
+        {
+          id: 't-bin-1',
+          render: { label: 'Bin' },
+          edges: { children: { 't-part-1s': { types: ['t-part-1'], lineageKey: 'tBin1Id' } } }
+        },
+        type
+      ]
+    };
+    const rows = resolveCreateDialogInputs(
+      { construction: { inputs: ['lineage.tBin1Id'] } },
+      type,
+      authoredBundle
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ lineage: { key: 'tBin1Id', accepts: ['t-bin-1'] } });
   });
 
   it('keeps inputs that resolve to nothing hidden', () => {

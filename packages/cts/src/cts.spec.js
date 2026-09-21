@@ -8,7 +8,7 @@ import {
   normalizeOperator,
   renderPolicyFor, compileClientBundle,
   cncTypePack, partyTypes, nestingOperators, packFixtures,
-  classMayDeclareChildren
+  classMayDeclareChildren, lineageKeyForParent
 } from './index.js';
 
 function packRegistry() {
@@ -69,6 +69,26 @@ describe('typed edges (R2)', () => {
     registry.defineType({ id: 'a', class: 'group', edges: { children: { c: { types: ['b'] } } } });
     registry.defineType({ id: 'b', class: 'group', edges: { children: { c: { types: ['a'] } } } });
     expect(registry.compile().errors).toContainEqual(expect.stringMatching(/lineage cycle/));
+  });
+
+  it('stamps every children edge with its declared storage lineageKey (SPEC §6)', () => {
+    const registry = packRegistry();
+    registry.defineType({
+      id: 't-parent', class: 'group',
+      edges: {
+        children: {
+          // Map key is authoring identity; the storage key derives from
+          // the declaring type id when nothing is authored.
+          kids: { types: ['part'] },
+          crates: { types: ['part'], lineageKey: 'crateId' }
+        }
+      }
+    });
+    const edges = registry.getType('t-parent').edges.children;
+    expect(edges.kids.lineageKey).toBe('tParentId');
+    expect(edges.crates.lineageKey).toBe('crateId');
+    // The helper is the single derivation home other layers import.
+    expect(lineageKeyForParent('t-parent')).toBe('tParentId');
   });
 });
 

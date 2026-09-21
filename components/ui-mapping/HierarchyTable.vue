@@ -48,7 +48,7 @@ import TreeTable from 'primevue/treetable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import { LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, SCALAR_BASES, tableColumnCount, applyBudget, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
+import { LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, SCALAR_BASES, tableColumnCount, applyBudget, SEVERITY_MAP, instanceIdentity, childrenOfParent } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
@@ -88,10 +88,11 @@ const buildNode = (instance, seen = new Set()) => {
   if (seen.has(instance.id)) return null;
   const nextSeen = new Set([...seen, instance.id]);
   const type = typesById.value[instance.type];
-  const children = Object.entries(type?.edges?.children || {}).flatMap(([edgeKey, edge]) => {
-    const byId = props.pool[edge.types?.[0]] || {};
-    return Object.values(byId).filter(candidate => !nextSeen.has(candidate.id) && candidate.lineage?.[edgeKey]?.id === instance.id);
-  });
+  // Children resolve through the shared hierarchy matcher: every children
+  // edge contributes instances whose lineage carries the edge's DECLARED
+  // lineageKey pointing here — never the edge's map key.
+  const children = childrenOfParent(type, props.pool, instance.id)
+    .filter(child => !nextSeen.has(child.id));
   return {
     key: instance.id,
     data: {

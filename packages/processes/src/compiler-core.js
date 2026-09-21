@@ -2987,7 +2987,9 @@ export function compileActions(actions = {}, process = {}, domain = {}, lineageB
     const outputs = action.outputs || [];
     return [id, {
       id: action.id || id,
-      label: displayActionLabel(action, id, process),
+      // The domain resolves the target entity's authored render label —
+      // raw type ids never reach button captions on this channel either.
+      label: displayActionLabel(action, id, process, domain),
       actionKind: action.actionKind || 'createEntity',
       producerOutputId: action.producerOutputId || null,
       entityType: resolvedEntityType,
