@@ -85,7 +85,14 @@ export const statusService = {
         message: `State ${targetState} is not defined for ${normalizedTypeId}`
       });
     }
-    const { collection, flexId, instanceDoc } = await loadEntityForWorkflow(normalizedTypeId, targetId);
+    const { collection, flexId, instanceDoc } = await loadEntityForWorkflow(normalizedTypeId, targetId, {
+      // The machine is already resolved above; the load only needs the
+      // document and its collection. Requiring a machine here would fail
+      // CTS-native types, whose workflows resolve exclusively through the
+      // producer output passed above.
+      requireMachine: false,
+      producerOutputId: metadata.producerOutputId
+    });
     const actorId = typeof actor === 'object' ? actor.userId : actor;
     const eventId = new ObjectId();
     const statusMetadata = mergeStatusDisplayMetadata(persistableStatusMetadata(metadata), region.states[targetState]);
