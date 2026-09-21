@@ -307,33 +307,6 @@ Validation: cts 51, processes 441, shared/composables/instances 245
 (4 known pre-existing manifest failures unchanged), SSR page smokes,
 `check-arch`, `check-docs`, `framework:validate` all pass.
 
-##### Agent Notes — 2026-09-21 home workspace cutover
-
-User rejected the interim state outright ("GeneratedHomeWorkspace.vue is
-literally dirty legacy"): home — the surface users actually land on — still
-rendered through the legacy Discord-style workspace shell behind the P3
-overload restore. Landed on `agent/home-gen-cutover-20260921`:
-
-- `home` renders through the generator like every other compiled template
-  (`[screenKey].vue` includes it in `isGeneratedScreen`); the app layout
-  owns the shell chrome (navbar unhidden, chats tab, call surfaces).
-- Deleted: `GeneratedHomeWorkspace.vue`, `GeneratedHomeScreen.vue`,
-  `home-workspace-state.js`, `home-workspace.spec.js`, the home overload
-  entry, and the audit rows. The overload registry now serves only the
-  project workspace + file-surface detail editors.
-- `openEntityInWorkspace` routes to the entity's compiled detail screen
-  (both vocabularies, home fallback); `openChatInWorkspaceTab` routes to
-  `/chats`. Inline refs, chat attachments, and legacy collection rows
-  keep their contracts.
-
-Validation: SSR smokes (incl. a new home-through-generator case),
-components/pages/composables 139, utils/shared 378 with only the known
-pre-existing manifest failures, `check-arch`, `check-docs`,
-`framework:validate` pass. Remaining legacy surfaces: the project
-workspace + file-surface editor overloads, org billing/index system
-screens, EntityCard/chat consumers of the legacy family — the P4
-retirement list stands.
-
 ##### Agent Notes — 2026-09-19 plan recorded
 
 Archived the completed procedural-CRUD plan to
