@@ -309,7 +309,8 @@ import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { actionAppliesToEntity, isCreateAction, isDeleteAction, isUpdateAction } from '~/components/generated/action-visibility.js';
-import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
+import { resolveCreatedEntityOpen } from '~/components/generated/created-entity-open.js';
+import { openEntityInWorkspace } from '~/utils/entity-workspace-open.js';
 import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
 import { occsQueueParameters } from '~/utils/occs/parameters.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
@@ -605,19 +606,26 @@ function mappedMutationItems(result) {
 }
 
 async function openCreatedEntity(action = {}, result = null) {
-  if (!isCreateAction(action) || !result || typeof result !== 'object') return;
-  const mapped = mappedMutationItems(result);
-  const entity = mapped
-    ? (mapped.length === 1 ? mapped[0] : null)
-    : result.created || (!result.owner ? (result.entity || result) : null);
-  const entityType = action.relationMutation?.targetType || action.entityType;
-  const route = detailRouteForEntity({
-    entity,
-    entityType,
+  if (!isCreateAction(action)) return;
+  const target = resolveCreatedEntityOpen({
+    action,
+    result,
     screenKey: screen.value.screenKey || screen.value.id,
     manifest: authStore.screenManifest
   });
-  if (route) await navigateTo(route);
+  if (!target) return;
+  if (target.kind === 'route') {
+    await navigateTo(target.route);
+    return;
+  }
+  // Editor protocol without a compiled route: the blank instance opens
+  // in the home workspace, whose pane body mounts the type's editor
+  // surface. A create is never silent — the toast carries the name even
+  // when the workspace opens the editor.
+  toast.add({ severity: 'success', summary: t('common.created'), detail: target.name || target.entityType, life: 4000 });
+  if (target.kind === 'workspace') {
+    openEntityInWorkspace({ entityType: target.entityType, entityId: target.entityId });
+  }
 }
 
 function actionEntities(action = {}, entity = null, context = {}) {
