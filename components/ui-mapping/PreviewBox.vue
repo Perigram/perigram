@@ -2,7 +2,7 @@
   <ArtifactViewer
     v-if="hasRenderablePayload"
     :source="{ mode: preview.mode, fileUrl, attachment: payload }"
-    :interactive="false"
+    :variant="'card'"
     class="h-28 w-full"
   />
   <div v-else-if="preview.component === 'ImagePreview'" class="w-full">

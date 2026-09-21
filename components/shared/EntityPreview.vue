@@ -2,7 +2,7 @@
   <ArtifactViewer
     v-if="payloadPreview.hasPayload && payloadPreview.renderable"
     :source="{ mode: payloadPreview.mode, fileUrl: payloadPreview.fileUrl, attachment: entity.attachments?.primary }"
-    :interactive="false"
+    :variant="'card'"
     class="h-32 w-full"
   />
   <template v-else-if="mode !== 'none'">
