@@ -107,7 +107,8 @@ concerns:
   budget — a field no loaded instance fills never becomes a column),
   identity/status/scalar columns are sortable (quantity values sort by
   their numeric value), the declared `render.sortKey` is the default
-  sort, and the paginate/virtualize thresholds are the shared
+  sort, the user's last sort persists per type through
+  `utils/ui-sort-preference.js`, and the paginate/virtualize thresholds are the shared
   `TABLE_*` budgets from the mapping contract, never literals. Filtering
   belongs to the region toolbar above the table, not to a per-column
   filter row.
@@ -154,8 +155,10 @@ concerns:
   and the instance pool's lineage, shown on group surfaces.
 - `SurfaceHeader.vue` — the record-page header bar: lineage Breadcrumb
   (when nested), Avatar identity with title and a `type · id` muted
-  subtitle, status, placed actions, the Edit toggle, and the lifecycle
-  Stepper for stateful types. The bar is its own layout container: the
+  subtitle, placed actions, the Edit toggle, and exactly one status
+  surface — the lifecycle Stepper for stateful types, the status Tag for
+  stateless ones (the detail body renders neither; a second strip there
+  tripled the state display). The bar is its own layout container: the
   identity/actions row engages from the header container width through
   the scoped CSS block (never the viewport — headers render inside panels
   and detail side columns): the identity block stays one
@@ -180,7 +183,9 @@ concerns:
   height-bounded. An instance payload reference with a renderable declared
   mode (the pool's `instance.payload`, projected from the wire
   `attachments.primary`) renders through the shared viewer
-  (`ArtifactViewer`, same contract as generated detail previews);
+  (`ArtifactViewer` with `interactive: false` — the non-interactive
+  aspect-fit canvas with no pan/zoom/layer controls; same contract as
+  generated detail previews, which keep the interactive viewer);
   payload-less instances keep the deterministic per-instance inline SVG
   (seeded hue) built
   entirely from theme tokens — `--ck-subtle-background` bases with

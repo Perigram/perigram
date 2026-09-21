@@ -24,7 +24,10 @@ Three cells; every surface derives from them, nothing else caches:
   `server/api` routes), and every declared type without an explicit service
   resolves to the generic instance transport `/api/instances/:typeId`.
   Icons and constructibility resolve from the registry bundle (render
-  policy, declared construct operators); event type keys canonicalize to
+  policy, declared construct operators) — the render-policy icon is the
+  single icon source for every generated/shared surface (cards, pages,
+  collections, trace links); the legacy `entityUiFor` icon table remains
+  only inside true legacy surfaces. Event type keys canonicalize to
   cache keys through the registry when the bundle knows them, else through
   the mechanical case normalization in `utils/generated-screen-source.js`.
 - `registry.js` — the compiled CTS client bundle as first-class state,
