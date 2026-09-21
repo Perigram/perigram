@@ -218,6 +218,14 @@ Every edge declaration carries integrity semantics:
 onRemove ::= restrict | cascade | detach
 ```
 
+A children declaration also names its storage key: `lineageKey` is the
+property children store under `lineage.<lineageKey>`. Normalization stamps
+it on every children entry — the authored value wins, else the derived
+`camel(declaringTypeId) + "Id"` fallback (`edges.js` owns the single
+derivation). The map key of the children entry is authoring identity only;
+field schemas, containment, derived indexes, and UI hierarchy matching all
+read the declared `lineageKey`.
+
 This is the type-level home of what `propagateToChildren` and the delete
 grant matrix currently improvise in code.
 

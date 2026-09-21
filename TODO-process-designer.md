@@ -265,6 +265,48 @@ expectations at the generated-screens IA — not a pass/fail run.
   and v4-kind authoring traces in the catalog/palette (execution twins
   stay).
 
+##### Agent Notes — 2026-09-21 generated-surface wiring defects fixed
+
+User report ("created type instances are shallow; listbox items follow no
+types hierarchy"), root-caused against live org data and fixed on
+`agent/cts-render-wiring-20260921`:
+
+1. **Admin-level creates skipped the construction dialog.**
+   `GeneratedMappingScreen` confirmed any `access.level === 'admin'`
+   action instead of opening its form, so admin-granted creates executed
+   empty drafts (stored proof: instances with `name: null, fields: {}`,
+   empty provenance parameters). Launch behavior now follows
+   `planActionLaunch` in `#shared/ui-mapping` (shared launch contract):
+   construction inputs always open the dialog; confirmation comes from
+   the action-kind table (delete), never the grant level.
+2. **Designer-authored containment never rendered or authored.** Children
+   edges were keyed by authoring identity (`<child-type>s`) while every
+   other home derived the storage key as `camel(parentId)Id` — the create
+   dialog's lineage row silently dropped (no parent picker, so lineage
+   never stored), HierarchyTable/InstancePicker matched by the map key
+   (flat trees), and derived instance indexes targeted `lineage.<mapKey>`.
+   `edges.js` now stamps every children entry's `lineageKey` at normalize
+   (authored wins, else `camel(declaringTypeId)+"Id"` — one derivation
+   home); the dialog resolver, both tree components (through the new
+   `childrenOfParent` matcher), and `deriveInstanceIndexes` read the
+   declared key. Stored declarations need no migration: the stamp applies
+   at registry read.
+3. **Raw type ids in compiled action captions.** `compileActions` dropped
+   the domain from `displayActionLabel`, so generic `cts.construct` labels
+   rendered "Create t-3ccnopv0ti LOL"; now the authored render label
+   ("Create YU LOL").
+4. **Legacy access junk keys heal.** `normalizeDesignerAccess` spread the
+   source object, keeping pre-fix `{ "0": "i", … }` residue alive in every
+   draft; it now returns the whitelisted `{ level, roleIds, grants }`
+   shape, so a re-sync strips stored junk.
+   The "?????" field values reported alongside were literal test input
+   (execution-run payloads carry them verbatim; Cyrillic persists fine
+   elsewhere) — not a code defect.
+
+Validation: cts 51, processes 441, shared/composables/instances 245
+(4 known pre-existing manifest failures unchanged), SSR page smokes,
+`check-arch`, `check-docs`, `framework:validate` all pass.
+
 ##### Agent Notes — 2026-09-19 plan recorded
 
 Archived the completed procedural-CRUD plan to

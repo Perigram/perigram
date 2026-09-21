@@ -80,7 +80,8 @@ idempotently (`createIndex`):
 - per class collection in use: `{ type, organizationId, createdAt }`
   (list ordering) and `{ type, organizationId, 'states.main' }`;
 - per declared children edge, on each child type's class collection:
-  `{ type, organizationId, 'lineage.<key>' }`;
+  `{ type, organizationId, 'lineage.<lineageKey>' }` — the edge's declared
+  storage key (see `packages/cts/SPEC.md` §6), not the entry's map key;
 - per declared relation edge, on the owner's class collection:
   `{ type, organizationId, 'relations.<key>' }`.
 

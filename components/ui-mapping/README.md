@@ -80,7 +80,10 @@ concerns:
 
 - `GeneratedMappingScreen.vue` — engine: composes and renders a compiled
   screen; owns the generated create dialog, ConfirmDialog for destructive
-  actions, and Toast feedback on runs. The screen hosts its own
+  actions, and Toast feedback on runs. Launch behavior follows
+  `planActionLaunch` (see the shared README's Actions section): a create
+  with construction inputs always opens the dialog — grant level never
+  replaces the form with a bare confirmation. The screen hosts its own
   `<Toast />` and `<ConfirmDialog group="uiMappingConfirm" />` elements —
   without them in the tree the toast/confirm services fire into nothing
   (the module-imports spec also fails on imported-but-unrendered

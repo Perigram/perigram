@@ -72,8 +72,10 @@ type, bundle)`: authored fields match by bare name or slot-qualified
 `data.`/`specs.` path and render through their descriptor; the identity
 `name` renders as a plain string control; `lineage.<key>` inputs render
 instance pickers over the parent types whose children edges declare that
-key for the target type (reverse containment over the bundle — parents'
-edges are the declaration home, the child carries no parent list). Inputs
+lineage key for the target type (reverse containment over the bundle —
+parents' edges are the declaration home, the child carries no parent list;
+an edge matches by its declared `lineageKey`, the entry's map key is
+authoring identity). Inputs
 resolving to nothing stay hidden, so typed constructor inputs keep their
 editor surfaces. Construction-input labels are authored vocabulary
 resolved at the domain projection (parent render label, start-cased row
@@ -95,7 +97,11 @@ chronological (timeline), percent/quantity-dominant types are statlike
 (StatGrid cards with the `text-metric` role), media types get card grids,
 lineage-holding collections get tree tables, handful-sized sets render as
 a bare stacked list, and the default is the generated columnar table — no
-hand-picked type ids anywhere. An authored `render.listLayout` naming a
+hand-picked type ids anywhere. Tree materialization (HierarchyTable,
+InstancePicker's hierarchical mode) matches children through
+`childrenOfParent(type, pool, parentId)`: every children edge contributes
+the pool instances of its declared child types whose `lineage[edge.lineageKey]`
+points at the parent — the declared storage key, never the edge's map key. An authored `render.listLayout` naming a
 known layout (`LIST_LAYOUT_VALUES`) wins over shape matching, the same
 declared-data precedence the preview mode uses. Presentation budgets
 scale with type richness (`TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE`: wide
@@ -186,6 +192,15 @@ confirm, hidden }` from a fixed table: `createInstance` → primary,
 `deleteInstance` → danger + confirmation, relation link/unlink → text/icon
 presentations, event-triggered actions → hidden. Status-transition actions
 carry the target state's render severity as their tone.
+
+`planActionLaunch(action)` is the launch contract the screen engine
+consumes: `'link'` for relation link (its picker dialog), `'dialog'` when
+the action carries construction inputs (the generated create dialog —
+regardless of grant level), `'confirm'` when the resolved action button
+declares confirmation (the destructive kinds), else `'run'`. Grant level is
+an access signal, never a presentation one: an admin-level create still
+opens its construction dialog, so no create executes with an empty draft
+merely because it was granted at admin.
 
 `resolveInstanceActions(actions, typeId)` selects the per-instance quick
 actions a collection surface may offer without a form context: manual

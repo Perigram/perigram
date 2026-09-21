@@ -26,7 +26,10 @@ module layout and how the code maps to the spec's build-order tiers.
   `DECLARABLE_CLASSES` (party is framework-only — what org authoring and
   every class picker offer).
 - `edges.js` — children/relations/provenance declarations with
-  `onRemove` integrity; lineage acyclicity (R2).
+  `onRemove` integrity; children entries carry their storage `lineageKey`
+  (authored, else the derived `camel(declaringTypeId)+"Id"` fallback — one
+  derivation home, consumed by the domain projection, derived indexes, and
+  the UI generator); lineage acyclicity (R2).
 - `states.js` — single-axis states, guarded transitions, unique intents,
   terminal reachability (R4).
 - `operators.js` — the six species with typed signatures, event/schedule
