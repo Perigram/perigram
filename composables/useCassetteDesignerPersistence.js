@@ -1,6 +1,6 @@
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
-import { instancePayloadFileUrl } from '~/components/generated/file-preview.js';
+import { instancePayloadFileUrl } from '~/components/generated/file-preview-contract.js';
 import { isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
 
 // Cassette designer persistence over the unified instance contract: the

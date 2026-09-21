@@ -31,7 +31,7 @@ import { computed } from 'vue';
 import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
-import { resolveFilePreview } from '~/components/generated/file-preview.js';
+import { resolveFilePreview } from '~/components/generated/file-preview-contract.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 
 const props = defineProps({

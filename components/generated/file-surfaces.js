@@ -8,7 +8,7 @@ import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
 import { cncEditors } from '@cutkit/domain-cnc';
 import { techDrawingEditors } from '~/packages/tech-drawing/src/index.js';
 import { documentsEditors } from '~/packages/documents/src/index.js';
-import { instancePayloadFileUrl } from './file-preview.js';
+import { instancePayloadFileUrl } from './file-preview-contract.js';
 
 /**
  * File surfaces: the single app-side home of the CTS file-type editor
@@ -229,4 +229,4 @@ export function fileEditorActions(editors = packEditorBindings) {
 // The pure payload-preview decision helpers live in the component-free
 // `file-preview.js` leaf (same contract home); re-exported here for the
 // editor-surface consumers that already import from this module.
-export { instancePayloadFileUrl, resolveFilePreview } from './file-preview.js';
+export { instancePayloadFileUrl, resolveFilePreview } from './file-preview-contract.js';
