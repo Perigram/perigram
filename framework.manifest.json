@@ -341,14 +341,14 @@
           "components/entities/Facade/README.md",
           "server/features/facades/README.md"
         ],
-        "entityType": "facade",
         "fieldPaths": [],
         "group": "production",
         "key": "facade",
         "labelKey": "entities.facade",
         "propName": "facade",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "facade"
       },
       {
         "componentPath": null,
@@ -356,14 +356,14 @@
           "components/entities/FacadePattern/README.md",
           "server/features/facade-patterns/README.md"
         ],
-        "entityType": "facade_pattern",
         "fieldPaths": [],
         "group": "master",
         "key": "facadePattern",
         "labelKey": "entities.facadePattern",
         "propName": "facadePattern",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "facade_pattern"
       },
       {
         "componentPath": "components/entities/Project/ProjectCard.vue",
@@ -371,7 +371,6 @@
           "components/entities/Project/README.md",
           "server/features/projects/README.md"
         ],
-        "entityType": "project",
         "fieldPaths": [
           "summary.queueCount",
           "summary.totalArea"
@@ -381,14 +380,14 @@
         "labelKey": "entities.project",
         "propName": "project",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "project"
       },
       {
         "componentPath": "components/entities/Queue/QueueCard.vue",
         "docs": [
           "server/features/queues/README.md"
         ],
-        "entityType": "queue",
         "fieldPaths": [
           "data.queueNumber",
           "summary.runCount",
@@ -400,14 +399,14 @@
         "labelKey": "entities.queue",
         "propName": "queue",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "queue"
       },
       {
         "componentPath": "components/entities/NestingRun/NestingRunCard.vue",
         "docs": [
           "server/features/nesting-runs/README.md"
         ],
-        "entityType": "nesting_run",
         "fieldPaths": [
           "data.results.efficiency",
           "data.results.remnantArea",
@@ -418,14 +417,14 @@
         "labelKey": "entities.nestingRun",
         "propName": "run",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "nesting_run"
       },
       {
         "componentPath": "components/entities/SheetDesign/SheetDesignCard.vue",
         "docs": [
           "server/features/sheet-designs/README.md"
         ],
-        "entityType": "sheet_design",
         "fieldPaths": [
           "specs.cuttingLength",
           "specs.estimatedTime",
@@ -437,7 +436,8 @@
         "labelKey": "entities.sheetDesign",
         "propName": "design",
         "status": "hidden",
-        "trace": true
+        "trace": true,
+        "typeId": "sheet_design"
       },
       {
         "componentPath": "components/entities/Cassette/CassetteCard.vue",
@@ -445,21 +445,20 @@
           "components/entities/Cassette/README.md",
           "server/features/cassettes/README.md"
         ],
-        "entityType": "cassette",
         "fieldPaths": [],
         "group": "production",
         "key": "cassette",
         "labelKey": "entities.cassette",
         "propName": "cassette",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "cassette"
       },
       {
         "componentPath": "components/entities/CassetteDesign/CassetteDesignCard.vue",
         "docs": [
           "server/features/cassette-designs/README.md"
         ],
-        "entityType": "cassette_design",
         "fieldPaths": [
           "data.parameters"
         ],
@@ -468,7 +467,8 @@
         "labelKey": "entities.cassetteDesign",
         "propName": "design",
         "status": "hidden",
-        "trace": true
+        "trace": true,
+        "typeId": "cassette_design"
       },
       {
         "componentPath": "components/entities/CassetteTemplate/CassetteTemplateCard.vue",
@@ -476,21 +476,20 @@
           "components/entities/CassetteTemplate/README.md",
           "server/features/cassettes/README.md"
         ],
-        "entityType": "cassette_template",
         "fieldPaths": [],
         "group": "production",
         "key": "cassetteTemplate",
         "labelKey": "entities.cassetteTemplate",
         "propName": "template",
         "status": "hidden",
-        "trace": true
+        "trace": true,
+        "typeId": "cassette_template"
       },
       {
         "componentPath": "components/entities/CassetteInstance/CassetteInstanceCard.vue",
         "docs": [
           "server/features/cassette-instances/README.md"
         ],
-        "entityType": "cassette_instance",
         "fieldPaths": [
           "identity.reference"
         ],
@@ -499,14 +498,14 @@
         "labelKey": "entities.cassetteInstance",
         "propName": "instance",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "cassette_instance"
       },
       {
         "componentPath": "components/entities/Requisition/RequisitionCard.vue",
         "docs": [
           "server/features/requisitions/README.md"
         ],
-        "entityType": "requisition",
         "fieldPaths": [
           "data.items.length",
           "data.totalPrice"
@@ -516,7 +515,8 @@
         "labelKey": "entities.requisition",
         "propName": "requisition",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "requisition"
       },
       {
         "componentPath": null,
@@ -524,14 +524,14 @@
           "components/entities/Library/README.md",
           "server/features/libraries/README.md"
         ],
-        "entityType": "library",
         "fieldPaths": [],
         "group": "master",
         "key": "library",
         "labelKey": "entities.library",
         "propName": "library",
         "status": "hidden",
-        "trace": true
+        "trace": true,
+        "typeId": "library"
       },
       {
         "componentPath": "components/entities/Material/MaterialCard.vue",
@@ -539,7 +539,6 @@
           "components/entities/Material/README.md",
           "server/DATA_MODEL.md"
         ],
-        "entityType": "material",
         "fieldPaths": [
           "data.code",
           "data.description"
@@ -549,7 +548,8 @@
         "labelKey": "entities.material",
         "propName": "material",
         "status": "hidden",
-        "trace": false
+        "trace": false,
+        "typeId": "material"
       },
       {
         "componentPath": "components/entities/MaterialPile/PileCard.vue",
@@ -557,7 +557,6 @@
           "components/entities/MaterialPile/README.md",
           "server/features/material-piles/README.md"
         ],
-        "entityType": "material_pile",
         "fieldPaths": [
           "data.stock.total",
           "data.stock.used"
@@ -567,7 +566,8 @@
         "labelKey": "entities.materialPile",
         "propName": "pile",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "material_pile"
       },
       {
         "componentPath": "components/entities/BatchPile/BatchPileCard.vue",
@@ -575,7 +575,6 @@
           "components/entities/BatchPile/README.md",
           "server/features/material-piles/README.md"
         ],
-        "entityType": "material_pile",
         "fieldPaths": [
           "data.serial",
           "data.stock.total",
@@ -586,14 +585,14 @@
         "labelKey": "entities.batchPile",
         "propName": "pile",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "material_pile"
       },
       {
         "componentPath": "components/entities/Sheet/SheetCard.vue",
         "docs": [
           "server/features/sheets/README.md"
         ],
-        "entityType": "sheet",
         "fieldPaths": [
           "specs.area",
           "specs.color",
@@ -606,14 +605,14 @@
         "labelKey": "entities.sheet",
         "propName": "sheet",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "sheet"
       },
       {
         "componentPath": "components/entities/Remnant/RemnantCard.vue",
         "docs": [
           "server/features/remnants/README.md"
         ],
-        "entityType": "remnant",
         "fieldPaths": [
           "specs.area"
         ],
@@ -622,14 +621,14 @@
         "labelKey": "entities.remnant",
         "propName": "remnant",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "remnant"
       },
       {
         "componentPath": "components/entities/Catalog/CatalogCard.vue",
         "docs": [
           "server/features/catalogs/README.md"
         ],
-        "entityType": "catalog",
         "fieldPaths": [
           "data.options.foilThicknesses",
           "data.options.sheetThicknesses",
@@ -641,14 +640,14 @@
         "labelKey": "entities.catalog",
         "propName": "catalog",
         "status": "hidden",
-        "trace": true
+        "trace": true,
+        "typeId": "catalog"
       },
       {
         "componentPath": "components/entities/Color/ColorCard.vue",
         "docs": [
           "server/features/colors/README.md"
         ],
-        "entityType": "color",
         "fieldPaths": [
           "data.code",
           "data.visuals.hexCode"
@@ -658,7 +657,8 @@
         "labelKey": "entities.color",
         "propName": "color",
         "status": "hidden",
-        "trace": true
+        "trace": true,
+        "typeId": "color"
       },
       {
         "componentPath": null,
@@ -666,14 +666,14 @@
           "components/entities/EntityRevision/README.md",
           "server/features/entity-revisions/README.md"
         ],
-        "entityType": "entity_revision",
         "fieldPaths": [],
         "group": "system",
         "key": "entityRevision",
         "labelKey": "entities.entityRevision",
         "propName": "revision",
         "status": "hidden",
-        "trace": true
+        "trace": true,
+        "typeId": "entity_revision"
       },
       {
         "componentPath": null,
@@ -681,35 +681,34 @@
           "components/entities/GeometryCapture/README.md",
           "server/features/geometry-captures/README.md"
         ],
-        "entityType": "geometry_capture",
         "fieldPaths": [],
         "group": "production",
         "key": "geometryCapture",
         "labelKey": "entities.geometryCapture",
         "propName": "capture",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "geometry_capture"
       },
       {
         "componentPath": null,
         "docs": [
           "server/features/profile-templates/README.md"
         ],
-        "entityType": "profile_template",
         "fieldPaths": [],
         "group": "master",
         "key": "profileTemplate",
         "labelKey": "entities.profileTemplate",
         "propName": "profile",
         "status": "hidden",
-        "trace": false
+        "trace": false,
+        "typeId": "profile_template"
       },
       {
         "componentPath": "components/entities/Warehouse/WarehouseCard.vue",
         "docs": [
           "server/features/warehouses/README.md"
         ],
-        "entityType": "warehouse",
         "fieldPaths": [
           "data.address",
           "data.contactPerson",
@@ -722,14 +721,14 @@
         "labelKey": "entities.warehouse",
         "propName": "warehouse",
         "status": "hidden",
-        "trace": true
+        "trace": true,
+        "typeId": "warehouse"
       },
       {
         "componentPath": "components/entities/ToolProfile/ToolProfileCard.vue",
         "docs": [
           "server/features/tool-profiles/README.md"
         ],
-        "entityType": "tool_profile",
         "fieldPaths": [
           "data.angle",
           "data.diameter",
@@ -740,28 +739,28 @@
         "labelKey": "entities.toolProfile",
         "propName": "tool",
         "status": "hidden",
-        "trace": false
+        "trace": false,
+        "typeId": "tool_profile"
       },
       {
         "componentPath": null,
         "docs": [
           "server/features/machines/README.md"
         ],
-        "entityType": "machine",
         "fieldPaths": [],
         "group": "master",
         "key": "machine",
         "labelKey": "entities.machine",
         "propName": "machine",
         "status": "hidden",
-        "trace": false
+        "trace": false,
+        "typeId": "machine"
       },
       {
         "componentPath": "components/entities/PenTemplate/PenTemplateCard.vue",
         "docs": [
           "server/features/pen-templates/README.md"
         ],
-        "entityType": "pen_template",
         "fieldPaths": [
           "data.stroke.color",
           "data.stroke.pattern",
@@ -772,14 +771,14 @@
         "labelKey": "entities.penTemplate",
         "propName": "pen",
         "status": "hidden",
-        "trace": false
+        "trace": false,
+        "typeId": "pen_template"
       },
       {
         "componentPath": "components/entities/LayerStandard/LayerStandardCard.vue",
         "docs": [
           "server/features/layer-standards/README.md"
         ],
-        "entityType": "layer_standard",
         "fieldPaths": [
           "data.category",
           "data.code"
@@ -789,14 +788,14 @@
         "labelKey": "entities.layerStandard",
         "propName": "standard",
         "status": "hidden",
-        "trace": false
+        "trace": false,
+        "typeId": "layer_standard"
       },
       {
         "componentPath": "components/entities/User/UserCard.vue",
         "docs": [
           "server/features/users/README.md"
         ],
-        "entityType": "user",
         "fieldPaths": [
           "data.email",
           "identity.reference"
@@ -806,14 +805,14 @@
         "labelKey": "entities.user",
         "propName": "user",
         "status": "hidden",
-        "trace": false
+        "trace": false,
+        "typeId": "user"
       },
       {
         "componentPath": "components/entities/Organization/OrganizationCard.vue",
         "docs": [
           "server/features/organizations/README.md"
         ],
-        "entityType": "organization",
         "fieldPaths": [
           "data.email",
           "data.phone",
@@ -824,14 +823,14 @@
         "labelKey": "entities.organization",
         "propName": "organization",
         "status": "hidden",
-        "trace": false
+        "trace": false,
+        "typeId": "organization"
       },
       {
         "componentPath": "components/entities/Artifact/ArtifactCard.vue",
         "docs": [
           "server/features/artifacts/README.md"
         ],
-        "entityType": "artifact",
         "fieldPaths": [
           "attachments.primary.name",
           "data.type"
@@ -841,21 +840,22 @@
         "labelKey": "entities.artifact",
         "propName": "artifact",
         "status": "interactive",
-        "trace": true
+        "trace": true,
+        "typeId": "artifact"
       },
       {
         "componentPath": null,
         "docs": [
           "server/features/artifact-templates/README.md"
         ],
-        "entityType": "artifact_template",
         "fieldPaths": [],
         "group": "master",
         "key": "artifactTemplate",
         "labelKey": "entities.artifactTemplate",
         "propName": "artifactTemplate",
         "status": "hidden",
-        "trace": false
+        "trace": false,
+        "typeId": "artifact_template"
       }
     ],
     "groups": [
@@ -1359,6 +1359,7 @@
             "output": "var(--ck-entity-tone-output)",
             "system": "var(--ck-entity-tone-system)"
           },
+          "muted": "var(--p-text-muted-color)",
           "page": "var(--ck-page-background)",
           "primary": {
             "50": "var(--p-primary-50)",
@@ -1413,8 +1414,7 @@
             "800": "var(--p-surface-800)",
             "900": "var(--p-surface-900)",
             "950": "var(--p-surface-950)"
-          },
-          "text-muted": "var(--p-text-muted-color)"
+          }
         },
         "fontFamily": {
           "mono": "var(--ck-font-mono)",
@@ -1983,12 +1983,6 @@
     {
       "kind": "lineage",
       "source": "organization",
-      "target": "supportMessage",
-      "via": "lineage.organizationId"
-    },
-    {
-      "kind": "lineage",
-      "source": "organization",
       "target": "user",
       "via": "lineage.organizationId"
     },
@@ -2092,20 +2086,20 @@
     },
     {
       "collection": "cassette-instances",
-      "list": "/api/cassette-instances",
-      "single": "/api/cassette-instances/:id",
+      "list": "/api/instances/cassette-instance",
+      "single": "/api/instances/cassette-instance/:id",
       "type": "cassetteInstance"
     },
     {
       "collection": "catalogs",
-      "list": "/api/catalogs",
-      "single": "/api/catalogs/:id",
+      "list": "/api/instances/catalog",
+      "single": "/api/instances/catalog/:id",
       "type": "catalog"
     },
     {
       "collection": "colors",
-      "list": "/api/colors",
-      "single": "/api/colors/:id",
+      "list": "/api/instances/color",
+      "single": "/api/instances/color/:id",
       "type": "color"
     },
     {
@@ -2134,32 +2128,32 @@
     },
     {
       "collection": "layer-standards",
-      "list": "/api/layer-standards",
-      "single": "/api/layer-standards/:id",
+      "list": "/api/instances/layer-standard",
+      "single": "/api/instances/layer-standard/:id",
       "type": "layerStandard"
     },
     {
       "collection": "libraries",
-      "list": "/api/libraries",
-      "single": "/api/libraries/:id",
+      "list": "/api/instances/library",
+      "single": "/api/instances/library/:id",
       "type": "library"
     },
     {
       "collection": "machines",
-      "list": "/api/machines",
-      "single": "/api/machines/:id",
+      "list": "/api/instances/machine",
+      "single": "/api/instances/machine/:id",
       "type": "machine"
     },
     {
       "collection": "materials",
-      "list": "/api/materials",
-      "single": "/api/materials/:id",
+      "list": "/api/instances/material",
+      "single": "/api/instances/material/:id",
       "type": "material"
     },
     {
       "collection": "material-piles",
-      "list": "/api/material-piles",
-      "single": "/api/material-piles/:id",
+      "list": "/api/instances/material-pile",
+      "single": "/api/instances/material-pile/:id",
       "type": "materialPile"
     },
     {
@@ -2176,8 +2170,8 @@
     },
     {
       "collection": "pen-templates",
-      "list": "/api/templates/pens",
-      "single": "/api/templates/pens/:id",
+      "list": "/api/instances/pen-template",
+      "single": "/api/instances/pen-template/:id",
       "type": "penTemplate"
     },
     {
@@ -2188,38 +2182,38 @@
     },
     {
       "collection": "profile-templates",
-      "list": "/api/profile-templates",
-      "single": "/api/profile-templates/:id",
+      "list": "/api/instances/profile-template",
+      "single": "/api/instances/profile-template/:id",
       "type": "profileTemplate"
     },
     {
       "collection": "projects",
-      "list": "/api/project",
-      "single": "/api/project/:id",
+      "list": "/api/instances/project",
+      "single": "/api/instances/project/:id",
       "type": "project"
     },
     {
       "collection": "queues",
-      "list": "/api/queue",
-      "single": "/api/queue/:id",
+      "list": "/api/instances/queue",
+      "single": "/api/instances/queue/:id",
       "type": "queue"
     },
     {
       "collection": "remnants",
-      "list": "/api/remnants",
-      "single": "/api/remnants/:id",
+      "list": "/api/instances/remnant",
+      "single": "/api/instances/remnant/:id",
       "type": "remnant"
     },
     {
       "collection": "requisitions",
-      "list": "/api/requisitions",
-      "single": "/api/requisitions/:id",
+      "list": "/api/instances/requisition",
+      "single": "/api/instances/requisition/:id",
       "type": "requisition"
     },
     {
       "collection": "sheets",
-      "list": "/api/sheets",
-      "single": "/api/sheets/:id",
+      "list": "/api/instances/sheet",
+      "single": "/api/instances/sheet/:id",
       "type": "sheet"
     },
     {
@@ -2230,8 +2224,8 @@
     },
     {
       "collection": "tool-profiles",
-      "list": "/api/templates/tools",
-      "single": "/api/templates/tools/:id",
+      "list": "/api/instances/tool-profile",
+      "single": "/api/instances/tool-profile/:id",
       "type": "toolProfile"
     },
     {
@@ -2242,8 +2236,8 @@
     },
     {
       "collection": "warehouses",
-      "list": "/api/warehouses",
-      "single": "/api/warehouses/:id",
+      "list": "/api/instances/warehouse",
+      "single": "/api/instances/warehouse/:id",
       "type": "warehouse"
     }
   ],
@@ -2251,63 +2245,63 @@
   "summaries": [
     {
       "countField": "cassetteCount",
-      "entityType": "cassette",
       "parentIdKey": "libraryId",
       "parentType": "library",
-      "sumFields": {}
+      "sumFields": {},
+      "typeId": "cassette"
     },
     {
       "countField": "queueCount",
-      "entityType": "queue",
       "parentIdKey": "projectId",
       "parentType": "project",
-      "sumFields": {}
+      "sumFields": {},
+      "typeId": "queue"
     },
     {
       "countField": "runCount",
-      "entityType": "nesting_run",
       "parentIdKey": "queueId",
       "parentType": "queue",
-      "sumFields": {}
+      "sumFields": {},
+      "typeId": "nesting_run"
     },
     {
       "countField": "sheetDesignCount",
-      "entityType": "sheet_design",
       "parentIdKey": "runId",
       "parentType": "nesting_run",
-      "sumFields": {}
+      "sumFields": {},
+      "typeId": "sheet_design"
     },
     {
       "countField": "sheetCount",
-      "entityType": "sheet",
       "parentIdKey": "sheetDesignId",
       "parentType": "sheet_design",
       "sumFields": {
         "area": "totalArea"
-      }
+      },
+      "typeId": "sheet"
     },
     {
       "countField": "instanceCount",
-      "entityType": "cassette_instance",
       "parentIdKey": "sheetId",
       "parentType": "sheet",
-      "sumFields": {}
+      "sumFields": {},
+      "typeId": "cassette_instance"
     },
     {
       "countField": "colorCount",
-      "entityType": "color",
       "parentIdKey": "catalogId",
       "parentType": "catalog",
-      "sumFields": {}
+      "sumFields": {},
+      "typeId": "color"
     },
     {
       "countField": "sheetCount",
-      "entityType": "sheet",
       "parentIdKey": "pileId",
       "parentType": "material_pile",
       "sumFields": {
         "area": "totalArea"
-      }
+      },
+      "typeId": "sheet"
     }
   ],
   "tasks": [
