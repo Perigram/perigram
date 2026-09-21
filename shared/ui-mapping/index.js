@@ -656,9 +656,20 @@ export function localizedLabel(translator, key, fallback) {
 // editor surfaces keep their owners.
 export function resolveCreateDialogInputs(action = {}, type = null, bundle = null) {
   const fields = type?.fields || {};
+  const policyById = new Map((action.inputPolicy?.fields || []).map(field => [field?.id || field?.path, field]));
   const rows = [];
   for (const inputId of action.construction?.inputs || []) {
-    const id = String(inputId);
+    const id = typeof inputId === 'string' ? inputId : String(inputId?.id || inputId?.path || '');
+    if (!id) continue;
+    const policy = policyById.get(id) || (typeof inputId === 'object' && inputId ? inputId : null);
+    // SPEC §4 payload path: file inputs are protocol inputs, not row
+    // fields — they ride the FileUpload control (accept policy comes
+    // from the type's payload traits at render) instead of resolving
+    // against declared fields.
+    if (policy?.type === 'file' || policy?.base === 'blob' || policy?.base === 'file') {
+      rows.push({ id, label: policy.label || fieldLabel(id), descriptor: { base: 'blob' }, span: 'full' });
+      continue;
+    }
     const fieldName = Object.hasOwn(fields, id)
       ? id
       : Object.keys(fields).find(name => id === `data.${name}` || id === `specs.${name}`);
