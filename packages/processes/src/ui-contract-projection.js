@@ -151,6 +151,12 @@ export function projectUiAction(action = {}, { typeLabels = new Map() } = {}) {
       .map(field => typeof field === 'string' ? field : (field.id || field.path || field.name))
       .filter(Boolean);
   }
+  // The create dialog resolves file inputs against the prompt policy:
+  // without it, upload-protocol creates render a name-only form even
+  // though the manifest action carries the file field.
+  if (action.inputPolicy) {
+    projected.inputPolicy = action.inputPolicy;
+  }
   return projected;
 }
 
