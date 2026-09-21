@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="project" entity-type="project">
+    <EntityPage :entity="project" type-id="project">
         <template #info>
             <small>{{ $t('common.created') }}: {{ project.origin?.timestamp ? new Date(project.origin.timestamp).toLocaleDateString() : '—' }}</small>
         </template>
@@ -11,7 +11,7 @@
         <template #sidebar>
             <MetricPanel :metrics="overviewMetrics" />
             <Panel :header="$t('project.lifecycle')">
-                <StatusHistory :entity="project" entity-type="project" />
+                <StatusHistory :entity="project" type-id="project" />
             </Panel>
         </template>
 

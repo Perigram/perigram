@@ -17,7 +17,7 @@ Messages have a deterministic `conversationKey`:
 | User to support | `support:<userId>` | The customer user id |
 | User to user | `direct:<sorted-user-id-a>:<sorted-user-id-b>` | Both user ids, sorted |
 | Group chat | `group:<chatGroupId>` | The persisted group's member ids |
-| Entity chat | `entity:<entityType>:<entityId>` | The sender (org-scoped read) |
+| Entity chat | `entity:<typeId>:<entityId>` | The sender (org-scoped read) |
 
 Legacy support messages without `conversationKey` remain readable through the
 support-channel match for the same `userId`. New writes always persist
@@ -102,7 +102,7 @@ entities only in `entityRefs`; it does not inject attachment tokens into the
 message body.
 
 Entity ref types come from readable generated screen sources in the current
-`auth.screens` process manifest. `GET /api/support/entity-types` is therefore a
+`auth.screens` process manifest. `GET /api/support/type-ids` is therefore a
 generated-scope endpoint, not a hardcoded chat allowlist, and includes any
 non-`single` source whose requirement is satisfied at read level or stronger.
 The support service resolves the sender through the active process runtime
@@ -115,7 +115,7 @@ Concrete picker options are resolved separately through
 that expose a scoped list API. Chat option lists use those generated source
 filters when they are concrete. Because the current endpoint is keyed by
 `type` rather than `sourceId`, each attachment type uses the first readable
-generated source exposed by `entity-types`; support does not union multiple
+generated source exposed by `type-ids`; support does not union multiple
 generated sources of the same entity type behind one picker row. For
 detail-child list sources that still depend
 on `$screen.entityId` /
@@ -152,7 +152,7 @@ action manifest contains an artifact creation action (`createEntity` with an
 `upload`/`capture`/`editor` attachment-kind creator — the same detection the
 generated screens use). Detection reads the compiler's canonical expanded
 attachment-kind arrays and scores no creator credit for unexpanded shapes
-rather than throwing, so a malformed manifest cannot take down entity-types,
+rather than throwing, so a malformed manifest cannot take down type-ids,
 entity-options, or message sends. This is what lets the chat attachment picker
 offer "create artifact" and reference the freshly created artifact, without
 widening artifact reads past the process windows: option loading still goes
@@ -232,7 +232,7 @@ can render a voice-message chip.
 | `DELETE /api/support/groups/:id` | Deletes a group chat (creator or admin). |
 | `POST /api/support/read` | Marks an authorized conversation read for the current user. |
 | `POST /api/support/prefs` | Saves per-user conversation preferences (`{ conversationKey, pinned?, archived? }`); returns the saved `{ pinned, archived }`. |
-| `GET /api/support/entity-types` | Returns generated-screen entity source types readable by the current user. |
+| `GET /api/support/type-ids` | Returns generated-screen entity source types readable by the current user. |
 | `GET /api/support/entity-options?type=<type>&q=<query>&recipientUserId=<id>` | Returns readable entity options for chat attachment refs and flags recipient chat-only visibility for direct chats. |
 | `POST /api/support/typing` | Ephemeral typing signal; authorized like a read, published to the conversation topic, never persisted. |
 | `GET /api/support/messages` | REST snapshot of the current user's support conversation; changes arrive over the connections stream. |
@@ -249,7 +249,7 @@ Concrete chat option loaders are registered for current domain list services
 such as projects, queues, cassettes, cassette designs, nesting runs, sheet
 designs, libraries, warehouses, catalogs, material piles, remnants,
 requisitions, sheets, materials, and users. Types without a concrete loader can
-still appear in `entity-types` when generated scope grants read access, but
+still appear in `type-ids` when generated scope grants read access, but
 their option list is empty until a scoped feature list service exists.
 
 ## Related

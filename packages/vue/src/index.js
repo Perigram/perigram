@@ -19,7 +19,7 @@ export function createEndpointMap(definitions = []) {
 
 export function createEndpointKeys(definition = {}) {
   return uniqueKeys([
-    definition.entityType,
+    definition.typeId,
     definition.surfaceKey,
     definition.type
   ]);
@@ -69,7 +69,7 @@ export function createSurfaceMap(surfaces = []) {
 export function createSurfaceKeys(surface = {}) {
   return uniqueKeys([
     surface.key,
-    surface.entityType
+    surface.typeId
   ]);
 }
 

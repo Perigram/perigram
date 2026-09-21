@@ -1,6 +1,6 @@
 import { getCutkitRegistry } from './cutkit-registry.js';
 
-export function normalizeEntityType(type) {
+export function normalizeTypeId(type) {
   const key = String(type || '');
   if (!key) return '';
   // Registry definitions canonicalize legacy aliases; unknown ids pass
@@ -10,7 +10,7 @@ export function normalizeEntityType(type) {
 }
 
 export function getEntityDefinition(type) {
-  const normalized = normalizeEntityType(type);
+  const normalized = normalizeTypeId(type);
   return getCutkitRegistry().getEntityDefinition(normalized);
 }
 

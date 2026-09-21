@@ -22,7 +22,7 @@ describe('ConfigBot draft generation', () => {
   it('selects entities from the prompt and context without preset-name branching', () => {
     const manifest = createConfigBotManifest();
     const entities = selectEntitiesForPrompt('Create a queue nesting run review page', manifest, {
-      entityType: 'sheet_design'
+      typeId: 'sheet_design'
     });
 
     expect(entities.map(entity => entity.type)).toEqual(expect.arrayContaining([
@@ -35,7 +35,7 @@ describe('ConfigBot draft generation', () => {
   it('builds an admin micro-app draft package with repo writes disabled', () => {
     const draftPackage = createConfigBotDraftPackage({
       prompt: 'Create queue nesting workflow page',
-      context: { target: 'admin-micro-app', entityType: 'queue' },
+      context: { target: 'admin-micro-app', typeId: 'queue' },
       knowledgeChunks: [{ source: 'app', path: 'README.md', title: 'System', content: 'CutKit documentation' }],
       now: new Date('2026-05-27T00:00:00.000Z'),
       generatedBy: 'user-test'

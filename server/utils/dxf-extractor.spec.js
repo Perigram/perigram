@@ -90,7 +90,7 @@ describe('DXF extraction', () => {
 
     expect(curves).toMatchObject([{
       coordinates: [[0, 25], [100, 25]],
-      entityType: 'LINE'
+      typeId: 'LINE'
     }]);
   });
 

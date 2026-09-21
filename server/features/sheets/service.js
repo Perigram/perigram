@@ -211,7 +211,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 
   if (updates.status) {
     await statusService.transitionWithResult({
-      entityType: 'sheet',
+      typeId: 'sheet',
       targetId: sheet._id,
       targetState: updates.status,
       auth: createTransitionAuth(userId, userRole, userPermissions),
@@ -254,7 +254,7 @@ export async function finishMilling(uid, cassetteInstanceIds = [], remnantIds = 
     remnantIds
   };
   await statusService.transitionWithResult({
-    entityType: 'sheet',
+    typeId: 'sheet',
     targetId: uid,
     intent: 'completeMilling',
     auth: createTransitionAuth(user.userId || 'SYSTEM', user.role, user),
@@ -296,7 +296,7 @@ function statusTimestamp(entity = {}) {
 function sheetPreview(sheet = {}, userPermissions = null) {
   const preview = {
     _id: sheet._id?.toString?.() || sheet._id,
-    entityType: 'sheet',
+    typeId: 'sheet',
     identity: {
       ...(sheet.identity || {}),
       name: sheet.identity?.name || sheet.identity?.serial || sheet.identity?.uid || 'Sheet'
@@ -314,7 +314,7 @@ function sheetPreview(sheet = {}, userPermissions = null) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'sheet',
+  typeId: 'sheet',
   repository,
   Model: Sheet
 });

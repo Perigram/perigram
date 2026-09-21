@@ -69,7 +69,7 @@ export function listEntityChanges(auth = {}, { after = null } = {}) {
 }
 
 function normalizeEvent(auth = {}, detail = {}) {
-  const type = detail.type || detail.entityType;
+  const type = detail.type || detail.typeId;
   const id = detail.id?.toString?.() || detail.id || detail.entity?._id?.toString?.() || detail.entity?._id;
   if (!type || !id) return null;
 

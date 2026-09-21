@@ -1,6 +1,6 @@
 <template>
   <div class="h-full">
-    <EntityCard :entity="library" entity-type="library" :variant="variant" :show-trace="false" :show-status="false">
+    <EntityCard :entity="library" type-id="library" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-book"></i>
       </template>
@@ -20,7 +20,7 @@
         </div>
       </template>
       <Divider />
-      <DataBlock entity-type="library" :entity="library" :fields="DATA_FIELDS" />
+      <DataBlock type-id="library" :entity="library" :fields="DATA_FIELDS" />
       <EntityRelationsBlock
         v-if="hasCassettePreview"
         class="mt-3"
@@ -48,7 +48,7 @@ const props = defineProps({
   variant: { type: String, default: 'card' }
 });
 
-const FIELDS = resolveEntityDisplayFields({ entityType: 'library', surface: 'card' });
+const FIELDS = resolveEntityDisplayFields({ typeId: 'library', surface: 'card' });
 const RELATION_FIELDS = FIELDS.filter(field => field.display === 'entityRef' || field.display === 'entityRefList');
 const relationCountReplacements = computed(() => new Set(RELATION_FIELDS
   .filter(field => field.replacesCountPath)

@@ -6,14 +6,14 @@ export function resolveRelationOptionScope(creator = null) {
   ];
   return {
     scoped: true,
-    sourceInput: fields.find(field => field.type === 'entity' && field.entityType) || null
+    sourceInput: fields.find(field => field.type === 'entity' && field.typeId) || null
   };
 }
 
 export function resolveRelationOptionPath({ ownerType, sourceType, lineageBindings = [], actions = {} } = {}) {
   const bindings = lineageBindings.map(binding => ({
-    parentType: binding.ancestorEntityType,
-    childType: binding.childEntityType,
+    parentType: binding.parentTypeId,
+    childType: binding.childTypeId,
     lineageKey: binding.lineageKey
   }));
   const ownerParents = bindings.filter(item => item.childType === ownerType && item.lineageKey);
@@ -23,7 +23,7 @@ export function resolveRelationOptionPath({ ownerType, sourceType, lineageBindin
   const ownerParent = ownerParents[0];
   const sourceParent = sourceParents[0];
   const bridgeActions = Object.values(actions).filter(action => (
-    action.entityType === ownerParent.parentType
+    action.typeId === ownerParent.parentType
     && action.relationMutation?.operation === 'link'
     && action.relationMutation.targetType === sourceParent.parentType
   ));

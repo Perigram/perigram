@@ -13,9 +13,9 @@
         >
           <EntityInlineRef
             v-for="item in relation.previewItems"
-            :key="`${relation.path}:${item.entityType}:${item.id}`"
+            :key="`${relation.path}:${item.typeId}:${item.id}`"
             :class="itemClass"
-            :type="item.entityType"
+            :type="item.typeId"
             :id="item.id"
             :entity="item.entity || null"
             :variant="itemVariant"
@@ -48,9 +48,9 @@
       <div class="flex max-w-[min(22rem,calc(100vw-3rem))] flex-wrap gap-2 p-2">
         <EntityInlineRef
           v-for="item in overflowItems"
-          :key="`overflow:${item.entityType}:${item.id}`"
+          :key="`overflow:${item.typeId}:${item.id}`"
           class="max-w-[12rem]"
-          :type="item.entityType"
+          :type="item.typeId"
           :id="item.id"
           :entity="item.entity || null"
           :variant="itemVariant"
@@ -124,7 +124,7 @@ function unlinkEntries(relation = {}, item = {}) {
       action.typeId === props.typeId
       && action.relationMutation?.operation === 'unlink'
       && action.relationMutation?.key === key
-      && action.relationMutation?.targetType === item.entityType
+      && action.relationMutation?.targetType === item.typeId
     ))
     .map(action => ({
       actionId: action.id,
@@ -132,7 +132,7 @@ function unlinkEntries(relation = {}, item = {}) {
       context: {
         data: {
           relations: {
-            [key]: { type: item.entityType, id: item.id }
+            [key]: { type: item.typeId, id: item.id }
           }
         }
       }

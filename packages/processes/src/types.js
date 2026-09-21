@@ -46,7 +46,7 @@ export function mapDomainInputType(kind = 'json', metadata = {}) {
   if (clean.endsWith('_list')) {
     clean = clean.slice(0, -5);
   }
-  if (clean === 'entityList') {
+  if (clean === 'typeList') {
     clean = 'entity';
   }
   const base = ({
@@ -58,11 +58,11 @@ export function mapDomainInputType(kind = 'json', metadata = {}) {
     task: 'taskRef'
   })[clean] || clean;
   const supported = PROCESS_BASE_TYPES.includes(base) ? base : 'opaque';
-  const supportsEntityType = ['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status'].includes(supported);
+  const supportsTypeId = ['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status'].includes(supported);
   return normalizeProcessType({
     base: supported,
     nullable: Boolean(metadata.optional),
-    entityType: supportsEntityType ? metadata.entityType : undefined,
+    typeId: supportsTypeId ? metadata.typeId : undefined,
     block: supported === 'block' ? metadata.block : undefined,
     capability: metadata.capability,
     accepts: metadata.accepts,
@@ -78,7 +78,7 @@ const ENTITY_TYPE_BASES = new Set(['entity', 'entityRef', 'revisionRef', 'predic
 
 /**
  * Sanitizes a stored process type by dropping qualifiers that the base type
- * cannot legally carry (for example `entityType` on a `json` base). Stored
+ * cannot legally carry (for example `typeId` on a `json` base). Stored
  * process definitions compiled by older compiler versions may carry redundant
  * qualifiers; sanitizing keeps recompilation idempotent without weakening
  * strict validation of freshly authored types.
@@ -86,7 +86,7 @@ const ENTITY_TYPE_BASES = new Set(['entity', 'entityRef', 'revisionRef', 'predic
 export function sanitizeProcessType(type = {}) {
   if (!type || typeof type !== 'object' || Array.isArray(type) || !type.base) return type;
   const clean = { ...type };
-  if (clean.entityType && !ENTITY_TYPE_BASES.has(clean.base)) delete clean.entityType;
+  if (clean.typeId && !ENTITY_TYPE_BASES.has(clean.base)) delete clean.typeId;
   if (clean.accepts && !ENTITY_TYPE_BASES.has(clean.base)) delete clean.accepts;
   if (clean.block && clean.base !== 'block') delete clean.block;
   return clean;
@@ -104,7 +104,7 @@ export function normalizeProcessType(type = {}) {
   };
   for (const key of [
     'schema',
-    'entityType',
+    'typeId',
     'block',
     'unit',
     'enumId',
@@ -159,7 +159,7 @@ export function processTypesCompatible(sourceType, targetType) {
   if (source.base === 'integer' && target.base === 'number') {
     return { ok: true, implicit: true, source, target, coercion: 'integerToNumber' };
   }
-  if (source.base === 'entity' && target.base === 'entityRef' && sameEntityType(source, target)) {
+  if (source.base === 'entity' && target.base === 'entityRef' && sameTypeId(source, target)) {
     return { ok: true, implicit: true, source, target, coercion: 'entityToReference' };
   }
   if (source.base === 'date' && target.base === 'dateTime') {
@@ -205,7 +205,7 @@ export function processSocketsCompatible(sourceSocket, targetSocket) {
 
 export function formatProcessType(type = {}) {
   const normalized = normalizeProcessType(type);
-  const qualifier = normalized.entityType
+  const qualifier = normalized.typeId
     || normalized.block
     || normalized.schema
     || normalized.enumId
@@ -226,7 +226,7 @@ function sameQualifiedType(source, target) {
     if (target[qualifier] && source[qualifier] !== target[qualifier]) return false;
   }
   if (['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status'].includes(source.base)) {
-    if (!sameEntityType(source, target)) return false;
+    if (!sameTypeId(source, target)) return false;
   }
   if (source.base === 'array') return nestedTypeMatches(source.itemType, target.itemType);
   if (source.base === 'map') {
@@ -244,8 +244,8 @@ function nestedTypeMatches(source, target) {
 
 function validateTypeQualifiers(type) {
   const entityBases = new Set(['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status']);
-  if (type.entityType && !entityBases.has(type.base)) {
-    throw new Error(`Process type ${type.base} cannot carry entityType`);
+  if (type.typeId && !entityBases.has(type.base)) {
+    throw new Error(`Process type ${type.base} cannot carry typeId`);
   }
   if (type.block && type.base !== 'block') {
     throw new Error(`Process type ${type.base} cannot carry block`);
@@ -258,13 +258,13 @@ function validateTypeQualifiers(type) {
   }
 }
 
-function sameEntityType(source, target) {
+function sameTypeId(source, target) {
   if (target.accepts?.length) {
-    return !source.entityType
-      || target.accepts.includes(source.entityType)
+    return !source.typeId
+      || target.accepts.includes(source.typeId)
       || (source.capability && target.accepts.includes(source.capability));
   }
-  return !source.entityType || !target.entityType || source.entityType === target.entityType;
+  return !source.typeId || !target.typeId || source.typeId === target.typeId;
 }
 
 function convertible(nodeKind, reason, source, target) {

@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <EntityCard :entity="pen" entity-type="pen_template" :variant="variant" :show-trace="false" :show-status="false">
+    <EntityCard :entity="pen" type-id="pen_template" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <div class="h-8 w-16 shrink-0 rounded-ui border border-content-border flex items-center px-2">
           <span class="block w-full" :style="lineStyle" />
@@ -14,7 +14,7 @@
         </div>
       </template>
       <Divider />
-      <DataBlock entity-type="penTemplate" :entity="pen" :fields="FIELDS" />
+      <DataBlock type-id="penTemplate" :entity="pen" :fields="FIELDS" />
       <template #footer>
         <slot name="footer" />
       </template>
@@ -33,7 +33,7 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const FIELDS = resolveEntityDisplayFields({ entityType: 'penTemplate', surface: 'card' });
+const FIELDS = resolveEntityDisplayFields({ typeId: 'penTemplate', surface: 'card' });
 
 const props = defineProps({
   pen: { type: Object, required: true },

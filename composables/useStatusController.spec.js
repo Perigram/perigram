@@ -24,7 +24,7 @@ describe('useStatusController endpoint resolution', () => {
     await controller.transition('queue', 'queue-1', 'READY', { producerOutputId: 'solve:queue' });
 
     expect(fetch).toHaveBeenNthCalledWith(1, STATUS_ACTIONS_ENDPOINT, {
-      query: { entityType: 'queue', id: 'queue-1', producerOutputId: 'solve:queue' }
+      query: { typeId: 'queue', id: 'queue-1', producerOutputId: 'solve:queue' }
     });
     expect(fetch).toHaveBeenNthCalledWith(2, STATUS_TRANSITION_ENDPOINT, expect.objectContaining({
       body: expect.objectContaining({ producerOutputId: 'solve:queue' })

@@ -13,7 +13,7 @@ export const CANONICAL_BLOCKS = [
   'summary'
 ];
 
-export const TYPED_FIELD_TYPES = new Set(['string', 'number', 'boolean', 'enum', 'entityId', 'entityType', 'workflowState', 'array', 'object']);
+export const TYPED_FIELD_TYPES = new Set(['string', 'number', 'boolean', 'enum', 'entityId', 'typeId', 'workflowState', 'array', 'object']);
 
 export const ENTITY_OUTPUT_OWNERS = new Set(['commandOwned', 'graphOwned']);
 export const ENTITY_OUTPUT_TIMINGS = new Set(['immediate', 'completion']);
@@ -39,16 +39,16 @@ export function validateDomainDraft(draft = {}) {
   const commands = draft.commands && typeof draft.commands === 'object' ? draft.commands : {};
   const hookContracts = draft.hookContracts && typeof draft.hookContracts === 'object' ? draft.hookContracts : {};
   const workflows = draft.workflows && typeof draft.workflows === 'object' ? draft.workflows : {};
-  const entityTypes = new Set();
+  const typeIds = new Set();
   const collections = new Set();
   const blockSet = new Set(CANONICAL_BLOCKS);
 
   for (const [index, entity] of entities.entries()) {
     if (!entity?.type) issues.push({ area: 'entities', severity: 'error', message: `Entity #${index + 1} is missing type` });
     if (!entity?.collection) issues.push({ area: 'entities', severity: 'error', message: `${entity?.type || `Entity #${index + 1}`} is missing collection` });
-    if (entity?.type && entityTypes.has(entity.type)) issues.push({ area: 'entities', severity: 'error', message: `Duplicate entity type: ${entity.type}` });
+    if (entity?.type && typeIds.has(entity.type)) issues.push({ area: 'entities', severity: 'error', message: `Duplicate entity type: ${entity.type}` });
     if (entity?.collection && collections.has(entity.collection)) issues.push({ area: 'entities', severity: 'error', message: `Duplicate collection: ${entity.collection}` });
-    if (entity?.type) entityTypes.add(entity.type);
+    if (entity?.type) typeIds.add(entity.type);
     if (entity?.collection) collections.add(entity.collection);
 
     if (!entity?.routes?.single || !entity?.routes?.list) {
@@ -61,7 +61,7 @@ export function validateDomainDraft(draft = {}) {
   }
 
   for (const [type, workflow] of Object.entries(workflows)) {
-    if (!entityTypes.has(type)) issues.push({ area: 'workflows', severity: 'error', message: `Workflow references unknown entity type: ${type}` });
+    if (!typeIds.has(type)) issues.push({ area: 'workflows', severity: 'error', message: `Workflow references unknown entity type: ${type}` });
     const regions = workflowRegions(workflow);
     if (Object.keys(regions).length === 0) issues.push({ area: 'workflows', severity: 'error', message: `${type} workflow has no regions` });
 
@@ -122,8 +122,8 @@ export function validateDomainDraft(draft = {}) {
 
   for (const [index, summary] of summaries.entries()) {
     const label = `Summary #${index + 1}`;
-    if (!entityTypes.has(summary.entityType)) issues.push({ area: 'summaries', severity: 'error', message: `${label} has unknown entity type: ${summary.entityType}` });
-    if (!entityTypes.has(summary.parentType)) issues.push({ area: 'summaries', severity: 'error', message: `${label} has unknown parent type: ${summary.parentType}` });
+    if (!typeIds.has(summary.typeId)) issues.push({ area: 'summaries', severity: 'error', message: `${label} has unknown entity type: ${summary.typeId}` });
+    if (!typeIds.has(summary.parentType)) issues.push({ area: 'summaries', severity: 'error', message: `${label} has unknown parent type: ${summary.parentType}` });
     if (!summary.parentIdKey) issues.push({ area: 'summaries', severity: 'error', message: `${label} is missing parentIdKey` });
     if (!summary.countField) issues.push({ area: 'summaries', severity: 'error', message: `${label} is missing countField` });
     if (summary.sumFields && (typeof summary.sumFields !== 'object' || Array.isArray(summary.sumFields))) {
@@ -143,10 +143,10 @@ export function validateDomainDraft(draft = {}) {
     if (!action.action) issues.push({ area: 'commands', severity: 'error', message: `${id} must define action` });
     if (action.service && !serviceContracts[action.service]) issues.push({ area: 'commands', severity: 'error', message: `${id} references unknown service: ${action.service}` });
     for (const input of action.input?.entities || []) {
-      if (!entityTypes.has(input.type)) issues.push({ area: 'commands', severity: 'error', message: `${id} input references unknown entity type: ${input.type}` });
+      if (!typeIds.has(input.type)) issues.push({ area: 'commands', severity: 'error', message: `${id} input references unknown entity type: ${input.type}` });
     }
     for (const output of action.output?.entities || []) {
-      if (!output?.type || !entityTypes.has(output.type)) {
+      if (!output?.type || !typeIds.has(output.type)) {
         issues.push({ area: 'commands', severity: 'error', message: `${id} output references unknown entity type: ${output?.type || '<missing>'}` });
       } else if (!ENTITY_OUTPUT_OWNERS.has(output.persistenceOwner) || !ENTITY_OUTPUT_TIMINGS.has(output.timing)) {
         issues.push({ area: 'commands', severity: 'error', message: `${id} output ${output.type} must declare persistenceOwner ('commandOwned'|'graphOwned') and timing ('immediate'|'completion')` });
@@ -173,7 +173,7 @@ export function validateDomainDraft(draft = {}) {
     });
   }
 
-  for (const type of entityTypes) {
+  for (const type of typeIds) {
     if (!workflows[type]) warnings.push({ area: 'workflows', severity: 'warning', message: `${type} has no workflow` });
   }
 

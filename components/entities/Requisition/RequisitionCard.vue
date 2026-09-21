@@ -14,7 +14,7 @@ import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const REQUISITION_FIELDS = resolveEntityDisplayFields({ entityType: 'requisition', surface: 'card' })
+const REQUISITION_FIELDS = resolveEntityDisplayFields({ typeId: 'requisition', surface: 'card' })
   .filter(field => field.display !== 'entityRef');
 
 const props = defineProps({
@@ -40,7 +40,7 @@ const manufacturerId = computed(() => props.requisition.lineage?.manufacturerId 
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <EntityCard :entity="requisition" entity-type="requisition" :variant="variant">
+    <EntityCard :entity="requisition" type-id="requisition" :variant="variant">
       <template #before-identity>
         <i class="pi pi-send"></i>
       </template>
@@ -53,7 +53,7 @@ const manufacturerId = computed(() => props.requisition.lineage?.manufacturerId 
       </template>
       <div class="flex flex-col gap-3">
         <Divider />
-        <DataBlock entity-type="requisition" :entity="requisition" :fields="REQUISITION_FIELDS" />
+        <DataBlock type-id="requisition" :entity="requisition" :fields="REQUISITION_FIELDS" />
         <div v-if="manufacturerId" class="flex items-center justify-between gap-4">
           <small class="text-muted">{{ $t('requisition.manufacturer') }}</small>
           <EntityInlineRef type="organization" :id="manufacturerId" />

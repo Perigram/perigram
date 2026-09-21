@@ -77,13 +77,13 @@ export const cncCommands = {
       entities: [{ name: 'queue', type: 'queue', required: true }],
       parameters: [
         { name: 'materialMode', label: 'Material mode', type: 'enum', options: ['VIRTUAL', 'WAREHOUSE'], default: 'VIRTUAL' },
-        { name: 'machineId', label: 'Machine', type: 'entityId', entityType: 'machine', required: true },
+        { name: 'machineId', label: 'Machine', type: 'entityId', typeId: 'machine', required: true },
         { name: 'virtualWidth', label: 'Virtual sheet width', type: 'number', min: 1, unit: 'mm', display: 'hidden' },
         { name: 'virtualLength', label: 'Virtual sheet length', type: 'number', min: 1, unit: 'mm', display: 'hidden' },
         { name: 'virtualThickness', label: 'Virtual sheet thickness', type: 'number', min: 0.01, unit: 'mm', display: 'hidden' },
         { name: 'inventoryItems', label: 'Inventory items', type: 'array', default: [], display: 'hidden', source: 'scenario.inventorySource.items' },
         { name: 'materialPool', label: 'Material pool', type: 'array', display: 'hidden', source: 'scenario.inventorySource.materialPool' },
-        { name: 'toolProfileId', label: 'Tool profile', type: 'entityId', entityType: 'tool_profile', required: true }
+        { name: 'toolProfileId', label: 'Tool profile', type: 'entityId', typeId: 'tool_profile', required: true }
       ]
     },
     triggers: [{ event: 'queue.nestingRequested' }],

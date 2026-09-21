@@ -87,7 +87,7 @@ legacy callers that update an existing sheet design in place. New nesting runs
 create composition-grouped sheet designs directly through `createFromRun()`.
 
 Every generated or manually saved layout resolves an immutable
-`entity_revision` with `entityType: "sheet_design"` and `scope: "geometry"`.
+`entity_revision` with `typeId: "sheet_design"` and `scope: "geometry"`.
 The sheet design stores the current pointer under
 `data.revisions.geometry`. `PUT /api/sheet-designs/:id` accepts nesting source
 `items` plus the first sheet's `placedItems`, requires a concrete

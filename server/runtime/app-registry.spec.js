@@ -58,7 +58,7 @@ function registryCapabilities(registry, domain) {
 
 const FRAMEWORK_SERVICE_TYPES = ['organization', 'user', 'artifact', 'process_definition', 'entity_revision'];
 
-function createEffectDefinition(entityType, mode) {
+function createEffectDefinition(typeId, mode) {
   return {
     dataflowVersion: 4,
     roles: { admin: { id: 'admin', label: 'Admin' } },
@@ -68,7 +68,7 @@ function createEffectDefinition(entityType, mode) {
         producerOutputId: 'create:entity',
         nodeId: 'create',
         outputSocketId: 'entity',
-        entityType,
+        typeId,
         lifecycle: { mode: 'defaultCreated' },
         fields: { read: [], write: [], private: [] }
       }
@@ -77,7 +77,7 @@ function createEffectDefinition(entityType, mode) {
       create: {
         id: 'create',
         kind: 'effect.createEntity',
-        entityType,
+        typeId,
         producerOutputId: 'create:entity',
         construction: { mode },
         trigger: { mode: 'manual' },
@@ -167,7 +167,7 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
       kind: 'effect.createEntity',
       record: {
         id: 'n1',
-        entityType: 'cassette',
+        typeId: 'cassette',
         construction: { mode: 'genericCreate' },
         blocks: [],
         inputs: [],

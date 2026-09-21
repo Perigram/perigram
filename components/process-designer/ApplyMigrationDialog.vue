@@ -10,11 +10,11 @@
     </template>
     <div class="flex flex-col gap-3">
       <p class="text-supporting text-muted">{{ $t('processDesigner.applyMigrationIntro') }}</p>
-      <div v-for="row in plan.statuses" :key="row.entityType" class="flex flex-col gap-2">
-        <div class="text-label">{{ row.entityType }}</div>
+      <div v-for="row in plan.statuses" :key="row.typeId" class="flex flex-col gap-2">
+        <div class="text-label">{{ row.typeId }}</div>
         <div
           v-for="removed in row.removed"
-          :key="`${row.entityType}|${removed.state}`"
+          :key="`${row.typeId}|${removed.state}`"
           class="flex flex-wrap items-center gap-3 rounded-ui border border-content-border px-3 py-2"
         >
           <span class="text-technical">{{ removed.state }}</span>
@@ -24,16 +24,16 @@
           <div class="ml-auto flex items-center gap-2">
             <span class="text-supporting text-muted">{{ $t('processDesigner.applyMigrationTarget') }}</span>
             <SelectButton
-              :model-value="targets[`${row.entityType}|${removed.state}`]"
+              :model-value="targets[`${row.typeId}|${removed.state}`]"
               :options="row.targets"
               size="small"
               :aria-label="$t('processDesigner.applyMigrationTargetPlaceholder')"
-              @update:model-value="value => setTarget(row.entityType, removed.state, value)"
+              @update:model-value="value => setTarget(row.typeId, removed.state, value)"
             />
           </div>
         </div>
         <Message v-if="!row.targets.length" severity="error">
-          {{ $t('processDesigner.applyMigrationNoTargets', { entityType: row.entityType }) }}
+          {{ $t('processDesigner.applyMigrationNoTargets', { typeId: row.typeId }) }}
         </Message>
       </div>
     </div>
@@ -83,27 +83,27 @@ watch(() => props.plan, plan => {
     // Pre-select the sole retained target when there is no real choice.
     if (row.targets?.length === 1) {
       for (const removed of row.removed) {
-        targets.value[`${row.entityType}|${removed.state}`] = row.targets[0];
+        targets.value[`${row.typeId}|${removed.state}`] = row.targets[0];
       }
     }
   }
 });
 
-function setTarget(entityType, state, value) {
-  targets.value[`${entityType}|${state}`] = value;
+function setTarget(typeId, state, value) {
+  targets.value[`${typeId}|${state}`] = value;
 }
 
 const complete = computed(() => {
   const rows = props.plan?.statuses || [];
-  return rows.length > 0 && rows.every(row => row.removed.every(({ state }) => targets.value[`${row.entityType}|${state}`]));
+  return rows.length > 0 && rows.every(row => row.removed.every(({ state }) => targets.value[`${row.typeId}|${state}`]));
 });
 
 function confirm() {
   const mappings = [];
   for (const row of props.plan.statuses) {
     for (const { state } of row.removed) {
-      const to = targets.value[`${row.entityType}|${state}`];
-      if (to) mappings.push({ entityType: row.entityType, from: state, to });
+      const to = targets.value[`${row.typeId}|${state}`];
+      if (to) mappings.push({ typeId: row.typeId, from: state, to });
     }
   }
   emit('confirm', mappings);

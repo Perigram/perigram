@@ -15,11 +15,11 @@ import { getPrimaryState, normalizeStatusState } from '~/server/core/blocks/inde
  * In V24, we log to status_events.
  */
 export async function addStatus(collection, entityId, status, userId, note = '', metadata = {}) {
-  const entityType = collection.replace(/s$/, ''); // simple plural to singular
+  const typeId = collection.replace(/s$/, ''); // simple plural to singular
   
   const statusEntry = await repository.create({
     targetId: new ObjectId(entityId),
-    targetType: entityType,
+    targetType: typeId,
     status: {
         state: normalizeStatusState(status),
         userId,
@@ -35,8 +35,8 @@ export async function addStatus(collection, entityId, status, userId, note = '',
  * Initialize status for a new entity
  */
 export async function initializeStatus(collection, entityId, userId, note = 'Created') {
-  const entityType = collection.replace(/s$/, '');
-  const defaultStatus = getDefaultStatus(entityType);
+  const typeId = collection.replace(/s$/, '');
+  const defaultStatus = getDefaultStatus(typeId);
   return await addStatus(collection, entityId, defaultStatus, userId, note, { initialized: true });
 }
 
@@ -44,16 +44,16 @@ export async function initializeStatus(collection, entityId, userId, note = 'Cre
  * Get the latest status record for an entity
  */
 export async function findLatest(collection, entityId) {
-  const entityType = collection.replace(/s$/, '');
-  return await repository.findLatestByEntity(entityId, entityType);
+  const typeId = collection.replace(/s$/, '');
+  return await repository.findLatestByEntity(entityId, typeId);
 }
 
 /**
  * Get status history for an entity from the central collection
  */
 export async function getStatusHistory(collection, entityId) {
-  const entityType = collection.replace(/s$/, '');
-  const history = await getHistoryByTarget(entityType, entityId);
+  const typeId = collection.replace(/s$/, '');
+  const history = await getHistoryByTarget(typeId, entityId);
   const latest = history.length > 0 ? history[0] : null;
   
   return {
@@ -62,8 +62,8 @@ export async function getStatusHistory(collection, entityId) {
   };
 }
 
-export async function getHistoryByTarget(entityType, entityId) {
-  const history = await repository.findByEntity(entityId, entityType);
+export async function getHistoryByTarget(typeId, entityId) {
+  const history = await repository.findByEntity(entityId, typeId);
   return await enrichHistoryActors(history);
 }
 

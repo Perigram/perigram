@@ -16,7 +16,7 @@ export async function convertArtifact({ artifact, conversionId, name, layerMappi
   if (conversion.target.kind === 'artifact') {
     return await convertToArtifact(artifact, conversion, name, auth);
   }
-  if (conversion.target.kind === 'entity' && conversion.target.entityType === 'cassette_design') {
+  if (conversion.target.kind === 'entity' && conversion.target.typeId === 'cassette_design') {
     const imported = await cassettesService.importFromArtifact(
       artifact._id,
       name,

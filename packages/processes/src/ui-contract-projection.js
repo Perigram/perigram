@@ -32,7 +32,7 @@ const ACTION_KIND_BY_LEGACY = Object.freeze({
 const RUNTIME_ONLY_ACTION_KINDS = new Set(['sendToOrganization']);
 
 function typeIdOfRecord(record = {}) {
-  return record.typeId || record.entityType || null;
+  return record.typeId || null;
 }
 
 export function projectUiScreen(screen = {}) {
@@ -163,8 +163,8 @@ export function projectUiContractChannels(compiled = {}) {
 // execution fields the action surfaces consume (prompt policy, relation
 // mutation, status window, parent context, permission feature) — under
 // the projected vocabulary. There is exactly one key per concept: `id`
-// (never `actionId`), `typeId` (never `entityType`), `parentTypeId`
-// (never `parentEntityType`). The compiled execution channel keeps its
+// (never `actionId`), `typeId` (never `typeId`), `parentTypeId`
+// (never `parentTypeId`). The compiled execution channel keeps its
 // internal names; everything the browser reads comes through here.
 export function projectManifestAction(action = {}, { typeLabels = new Map() } = {}) {
   const projected = projectUiAction(action, { typeLabels });
@@ -180,7 +180,7 @@ export function projectManifestAction(action = {}, { typeLabels = new Map() } = 
     // their descriptors keep the compiler prompt-form field vocabulary.
     inputs: action.inputs || [],
     ...(action.status ? { status: { ...action.status } } : {}),
-    ...(action.parentEntityType ? { parentTypeId: action.parentEntityType } : {}),
+    ...(action.parentTypeId ? { parentTypeId: action.parentTypeId } : {}),
     ...(action.parentRevision ? { parentRevision: action.parentRevision } : {})
   };
 }

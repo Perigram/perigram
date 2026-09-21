@@ -267,9 +267,9 @@ expectations at the generated-screens IA — not a pass/fail run.
 
 ##### Agent Notes — 2026-09-21 manifest vocabulary hard cutover (typeId only)
 
-User directive: "what the fuck is even entityType" — the documented interim
+User directive: "what the fuck is even typeId" — the documented interim
 decision to let manifest action records serve both vocabularies
-(`typeId` authoritative with `actionId`/`entityType` riding along) was the
+(`typeId` authoritative with `actionId`/`typeId` riding along) was the
 leak. Reversed on `agent/typeid-cutover-20260921`: hydration projects every
 screen and manifest action (`projectUiScreen`/`projectManifestAction`) and
 the lineage-binding payload (`childTypeId`/`parentTypeId`) — one vocabulary
@@ -277,7 +277,7 @@ crosses the wire. The whole client reads it: the view adapter in
 `[screenKey].vue` is deleted, the generated family, shared entity/chat
 surfaces, navigation/label/root-source utils, and workspace state records
 (`typeId` keys; storage versions bumped so stale pane state is discarded)
-speak `typeId`/`id`. Remaining `entityType` names client-side are
+speak `typeId`/`id`. Remaining `typeId` names client-side are
 descriptor-level compiler prompt-form fields (inputPolicy/construction
 input/attachment creator) plus other contracts (entity-events, design-system
 entity table, support-conversation DTO) — they rename with the
@@ -422,3 +422,28 @@ the full literal <-> bound-construct matrix through the REAL sync pipeline
 (row sockets exposed, same-base wiring, adoptsUnit, cross-unit and
 cross-type ref rejection). The user's meta-point is accepted and answered
 with a contract test at the seam rather than per-node patches.
+
+##### Agent Notes — 2026-09-21 `entityType` eliminated repo-wide
+
+Final directive: NO legacy vocabulary remains. The repo-wide rename landed
+on `agent/kill-entitytype-20260921` (380+ files): `entityType` → `typeId`
+(records, props, params, i18n keys, audit selectors),
+`childEntityType`/`ancestorEntityType`/`parentEntityType` →
+`childTypeId`/`parentTypeId`, screen templates unified to
+`typeList`/`instanceDetail`, the `workflow-overrides/[entityType]` route
+files renamed to `[typeId]`, the `uiEntityType` back-compat export
+deleted, and the DATA_MODEL validator keys renamed
+(`framework-inspect.js`). The v4↔v5 dual-key lowering sites in
+`graph-protocol.js` were rewritten as single-key normalizations (typeId
+resolve + kebab, no cross-key deletes); `typeIdOf` reads one key.
+
+Also fixed the previous session's missed rename sites (the live
+`parentBoundCreateAppliesToEntityType` import crash in
+GeneratedEntityCollection/GeneratedHomeScreen — rename sweeps must grep
+importers, not just definitions).
+
+Validation: packages 551, client 381+shared, SSR smokes, server/shared
+with ZERO new failures vs the local baseline (25 pre-existing
+mongo-mock/manifest failures unchanged, one design-system check fixed by
+the sweep), check-arch, check-docs, framework:validate all pass. Global
+grep for the legacy vocabulary: 0 hits.

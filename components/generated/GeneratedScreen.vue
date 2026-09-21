@@ -88,7 +88,7 @@
            workspace. -->
       <EntityChatPanel
         v-if="detailEntity"
-        :type="detailEntityType"
+        :type="detailTypeId"
         :id="detailEntityId"
       />
     </GeneratedRegion>
@@ -204,7 +204,7 @@
               :options="promptOptions[field.id] || []"
               option-label="label"
               option-value="value"
-              :type-id="field.entityType || field.accepts?.[0] || ''"
+              :type-id="field.typeId || field.accepts?.[0] || ''"
               class="w-full"
             />
             <Button
@@ -236,7 +236,7 @@
                   :options="relationCreatorOptions[creatorField.id] || []"
                   option-label="label"
                   option-value="value"
-                  :type-id="creatorField.entityType || ''"
+                  :type-id="creatorField.typeId || ''"
                   @update:model-value="syncRelationCreatorParameters"
                 />
                 <div v-else-if="creatorField.type === 'cassetteParameters'" class="grid grid-cols-2 gap-2">
@@ -260,7 +260,7 @@
             :options="promptOptions[field.id] || []"
             option-label="label"
             option-value="value"
-            :type-id="field.entityType || field.accepts?.[0] || ''"
+            :type-id="field.typeId || field.accepts?.[0] || ''"
             display="chip"
             class="w-full"
           />
@@ -395,8 +395,8 @@ const detailTraceExclusions = computed(() => {
     state?.entity || {},
     state?.source?.typeId || '',
     (authStore.lineageBindings || []).map(binding => ({
-      parentType: binding.ancestorEntityType,
-      childType: binding.childEntityType,
+      parentType: binding.parentTypeId,
+      childType: binding.childTypeId,
       lineageKey: binding.lineageKey
     })),
     route.query
@@ -489,7 +489,7 @@ const artifactCreatorLineage = computed(() => {
   const ownerId = entityIdentifier(owner);
   return {
     ...(owner.lineage || {}),
-    ...(ownerType && ownerId ? { [`${camelEntityType(ownerType)}Id`]: ownerId } : {})
+    ...(ownerType && ownerId ? { [`${camelTypeId(ownerType)}Id`]: ownerId } : {})
   };
 });
 
@@ -497,7 +497,7 @@ function selectCreatedArtifact(artifact = {}) {
   const field = artifactCreatorField.value;
   const id = entityIdentifier(artifact);
   if (!field || !id) return;
-  if (pendingAction.value?.typeId && pendingAction.value.typeId === field.creator?.entityType) {
+  if (pendingAction.value?.typeId && pendingAction.value.typeId === field.creator?.typeId) {
     artifactCreatorField.value = null;
     pendingAction.value = null;
     pendingEntity.value = null;
@@ -507,8 +507,8 @@ function selectCreatedArtifact(artifact = {}) {
   promptValues[field.id] = id;
 }
 
-function camelEntityType(entityType = '') {
-  return String(entityType).replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
+function camelTypeId(typeId = '') {
+  return String(typeId).replace(/_([a-z0-9])/g, (_, character) => character.toUpperCase());
 }
 
 async function submitPromptedAction() {
@@ -558,7 +558,7 @@ async function postAction(action, entity = null, data = {}, context = {}) {
   }
 }
 
-async function actionOffline({ url, entityType, entityId, body }) {
+async function actionOffline({ url, typeId, entityId, body }) {
   if (typeof window === 'undefined') {
     return $fetch(url, { method: 'POST', body });
   }
@@ -567,7 +567,7 @@ async function actionOffline({ url, entityType, entityId, body }) {
     url,
     method: 'POST',
     body,
-    meta: { kind: 'action', entityType, entityId, reason: 'process-action' }
+    meta: { kind: 'action', typeId, entityId, reason: 'process-action' }
   });
 }
 
@@ -640,10 +640,10 @@ function selectedTemplateIdForField(field = {}) {
 function selectedTemplateForField(field = {}) {
   const templateId = selectedTemplateIdForField(field);
   const pending = pendingEntity.value?.entity;
-  const templateEntityType = field.templateEntityType || field.entityType || '';
-  if (pending && templateEntityType && (
-    pending.origin?.type === templateEntityType
-    || pendingEntity.value?.context?.typeId === templateEntityType
+  const templateTypeId = field.templateTypeId || field.typeId || '';
+  if (pending && templateTypeId && (
+    pending.origin?.type === templateTypeId
+    || pendingEntity.value?.context?.typeId === templateTypeId
   )) {
     const pendingId = entityIdentifier(pending);
     if (!templateId || pendingId?.toString() === templateId?.toString()) return pending;
@@ -727,28 +727,28 @@ async function loadPromptOptions(fields = []) {
   await Promise.all(fields
     .filter(field => ['entity', 'typeList'].includes(field.type))
     .map(async (field) => {
-      const options = await entityOptions(field.entityType || field.accepts?.[0], field).catch(() => []);
+      const options = await entityOptions(field.typeId || field.accepts?.[0], field).catch(() => []);
       promptOptions[field.id] = options;
     }));
 }
 
-async function entityOptions(entityType, field = {}) {
+async function entityOptions(typeId, field = {}) {
   if (field.relationKey && pendingAction.value?.relationMutation?.operation === 'link') {
     const actionId = pendingAction.value.actionId || pendingAction.value.id;
     const ownerId = entityIdentifier(pendingEntity.value?.entity);
     const items = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/options`, {
       query: { entityId: ownerId }
     });
-    return (items || []).map(entity => entityOption(entity, entityType));
+    return (items || []).map(entity => entityOption(entity, typeId));
   }
-  if (!entityType) return [];
-  const typeKey = instances.canonicalTypeKey(entityType);
+  if (!typeId) return [];
+  const typeKey = instances.canonicalTypeKey(typeId);
   const items = await instances.listInstances(typeKey);
   const constructable = instances.constructible(typeKey);
   return (Array.isArray(items) ? items : items.items || items.data || [])
     .filter(constructable || (entity => true))
     .filter(entity => !field.attachmentKinds?.length || field.attachmentKinds.includes(entity.data?.type))
-    .map(entity => entityOption(entity, entityType));
+    .map(entity => entityOption(entity, typeId));
 }
 
 async function toggleRelationCreator(field = {}) {
@@ -763,7 +763,7 @@ async function toggleRelationCreator(field = {}) {
     const items = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/options`, {
       query: { entityId: ownerId, source: 'creator' }
     });
-    relationCreatorOptions[creatorField.id] = (items || []).map(entity => entityOption(entity, creatorField.entityType));
+    relationCreatorOptions[creatorField.id] = (items || []).map(entity => entityOption(entity, creatorField.typeId));
   }
   syncRelationCreatorParameters();
 }
@@ -794,11 +794,11 @@ function showActionError(err) {
   });
 }
 
-function entityOption(entity = {}, entityType = '') {
+function entityOption(entity = {}, typeId = '') {
   return {
     label: entity.identity?.name || entity.identity?.uid || entity._id,
     value: entity._id || entity.identity?.uid,
-    entityType,
+    typeId,
     entity
   };
 }

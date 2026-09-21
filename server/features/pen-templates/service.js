@@ -97,7 +97,7 @@ export async function remove(id, userId) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'pen_template',
+  typeId: 'pen_template',
   repository,
   Model: PenTemplate
 });

@@ -20,9 +20,9 @@ const PUBLIC_READ_FEATURES = new Set([
   'machines'
 ]);
 
-export function isPublicReadEntity({ entity = null, entityType = '', feature = '' } = {}) {
+export function isPublicReadEntity({ entity = null, typeId = '', feature = '' } = {}) {
   if (!entity) return false;
-  if (!PUBLIC_READ_ENTITY_TYPES.has(entityType) && !PUBLIC_READ_FEATURES.has(feature)) return false;
+  if (!PUBLIC_READ_ENTITY_TYPES.has(typeId) && !PUBLIC_READ_FEATURES.has(feature)) return false;
   if (entity.data?.visibility?.public === true || entity.lineage?.public === true) return true;
   return entity.lineage?.scope === 'system';
 }

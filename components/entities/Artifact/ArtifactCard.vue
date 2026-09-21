@@ -28,7 +28,7 @@ const icon = computed(() => {
   return 'pi-file';
 });
 
-const ARTIFACT_FIELDS = resolveEntityDisplayFields({ entityType: 'artifact', surface: 'card' })
+const ARTIFACT_FIELDS = resolveEntityDisplayFields({ typeId: 'artifact', surface: 'card' })
   .filter(field => field.display !== 'entityRef');
 
 const isChildControl = (event) => {
@@ -60,13 +60,13 @@ const onPreviewKeydown = (event) => {
     @click.stop="emitPreview"
     @keydown="onPreviewKeydown"
   >
-    <EntityCard :entity="artifact" entity-type="artifact" :variant="variant" :show-status="false" :expandable="false">
+    <EntityCard :entity="artifact" type-id="artifact" :variant="variant" :show-status="false" :expandable="false">
       <template #before-identity>
         <i :class="['pi', icon]"></i>
       </template>
       <Divider />
       <div class="flex flex-col gap-3">
-        <DataBlock entity-type="artifact" :entity="artifact" :fields="ARTIFACT_FIELDS" />
+        <DataBlock type-id="artifact" :entity="artifact" :fields="ARTIFACT_FIELDS" />
         <div v-if="runId" class="flex items-center justify-between gap-4">
           <small class="text-muted">{{ $t('entities.nestingRun') }}</small>
           <EntityInlineRef type="nestingRun" :id="runId" />

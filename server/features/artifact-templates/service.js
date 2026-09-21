@@ -27,7 +27,7 @@ function revisionPointer(revision) {
 
 async function ensureLayoutRevision(template, userId, reason) {
   return await entityRevisionsService.ensureForEntitySnapshot({
-    entityType: 'artifact_template',
+    typeId: 'artifact_template',
     entity: template,
     scope: REVISION_SCOPE,
     content: { layout: template.data?.layout || null },
@@ -45,12 +45,12 @@ export async function createUploaded({ buffer, filename, mimeType, name } = {}, 
   if (!auth.organizationId) throw createError({ statusCode: 403, message: 'Organization membership is required' });
   const format = templateFormatFor(filename, mimeType);
   const lineage = { organizationId: auth.organizationId };
-  assertEntityAccess({ entity: { lineage }, entityType: 'artifact_template', feature: 'artifact_templates', level: 'write', action: 'create', auth });
+  assertEntityAccess({ entity: { lineage }, typeId: 'artifact_template', feature: 'artifact_templates', level: 'write', action: 'create', auth });
   const layout = await parseTemplate(buffer, { filename, mimeType });
   const stored = await filesService.uploadFile(buffer, filename || `template.${format.toLowerCase()}`, {
     userId: auth.userId,
     organizationId: auth.organizationId,
-    entityType: 'artifact_template',
+    typeId: 'artifact_template',
     format
   }, BUCKET);
   const status = await statusService.initialStatusForOrganization(
@@ -93,7 +93,7 @@ export async function createUploaded({ buffer, filename, mimeType, name } = {}, 
 export async function getById(id, userId = null, userOrg = null, userRole = null, auth = null) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Artifact template not found' });
-  if (auth && !hasEntityAccess({ entity: raw, entityType: 'artifact_template', feature: 'artifact_templates', level: 'read', auth })) {
+  if (auth && !hasEntityAccess({ entity: raw, typeId: 'artifact_template', feature: 'artifact_templates', level: 'read', auth })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return toDTO(raw);
@@ -103,13 +103,13 @@ export async function list(filter = {}, userId = null, userOrg = null, userRole 
   const finalFilter = auth?.memberships ? { ...getLineageFilter(auth), ...filter } : filter;
   const raws = await repository.find(finalFilter);
   return raws
-    .filter(raw => !auth || hasEntityAccess({ entity: raw, entityType: 'artifact_template', feature: 'artifact_templates', level: 'read', auth }))
+    .filter(raw => !auth || hasEntityAccess({ entity: raw, typeId: 'artifact_template', feature: 'artifact_templates', level: 'read', auth }))
     .map(toDTO);
 }
 
 export async function replaceLayout(id, layout, auth = {}) {
   const current = await getById(id, auth.userId, auth.organizationId, auth.role, auth);
-  assertEntityAccess({ entity: current, entityType: 'artifact_template', feature: 'artifact_templates', level: 'write', action: 'update', auth });
+  assertEntityAccess({ entity: current, typeId: 'artifact_template', feature: 'artifact_templates', level: 'write', action: 'update', auth });
   const normalized = normalizeTemplateLayout(layout, current.data?.format);
   const candidate = {
     ...current,
@@ -167,7 +167,7 @@ export async function sourceFile(id, auth = {}) {
 
 export async function remove(id, userId = null, userOrg = null, userRole = null, auth = null) {
   const template = await getById(id, userId, userOrg, userRole, auth);
-  if (auth) assertEntityAccess({ entity: template, entityType: 'artifact_template', feature: 'artifact_templates', level: 'admin', action: 'delete', auth });
+  if (auth) assertEntityAccess({ entity: template, typeId: 'artifact_template', feature: 'artifact_templates', level: 'admin', action: 'delete', auth });
   const source = template.attachments?.source;
   const result = await repository.deleteById(id);
   if (!result?.deletedCount) throw createError({ statusCode: 409, message: 'Artifact template was not deleted' });
@@ -176,7 +176,7 @@ export async function remove(id, userId = null, userOrg = null, userRole = null,
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'artifact_template',
+  typeId: 'artifact_template',
   repository,
   Model: ArtifactTemplate
 });

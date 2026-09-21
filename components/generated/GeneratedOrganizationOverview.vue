@@ -2,7 +2,7 @@
   <EntityPage
     v-if="organization"
     :entity="organization"
-    entity-type="organization"
+    type-id="organization"
     :show-status="false"
     :show-trace="false"
     actions-display="inline"
@@ -19,7 +19,7 @@
     </template>
 
     <DataBlock
-      entity-type="organization"
+      type-id="organization"
       :entity="organization"
       :fields="organizationFields"
     />
@@ -46,7 +46,7 @@ const { t, te } = useI18n();
 
 const organization = computed(() => authStore.organizationData);
 const systemScreens = computed(() => (props.screen.systemScreens || []).filter(item => item.route));
-const organizationFields = resolveEntityDisplayFields({ entityType: 'organization', surface: 'detail' });
+const organizationFields = resolveEntityDisplayFields({ typeId: 'organization', surface: 'detail' });
 
 function systemLabel(key = '', fallback = '') {
   return key && te(key) ? t(key) : fallback || key;

@@ -251,7 +251,7 @@ function projectRecords(records = {}, type, x) {
       data: {
         refId,
         semanticId: `${type}:${refId}`,
-        label: record.label || record.entityType || record.commandId || refId
+        label: record.label || record.typeId || record.commandId || refId
       }
     };
   });

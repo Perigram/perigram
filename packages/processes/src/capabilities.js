@@ -12,14 +12,14 @@ function workflowArchiveIntent(workflow = null) {
   return null;
 }
 
-function entityFieldSchemas(domain = {}, entityType = '') {
-  const key = String(entityType || '');
+function entityFieldSchemas(domain = {}, typeId = '') {
+  const key = String(typeId || '');
   const camel = key.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
   return domain.fieldSchemas?.[key] || domain.fieldSchemas?.[camel] || [];
 }
 
-function entityConstruction(domain = {}, entityType = '') {
-  const key = String(entityType || '');
+function entityConstruction(domain = {}, typeId = '') {
+  const key = String(typeId || '');
   const camel = key.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
   return domain.construction?.[key] || domain.construction?.[camel] || null;
 }

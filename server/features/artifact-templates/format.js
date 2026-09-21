@@ -155,7 +155,7 @@ export async function parsePdfTemplate(buffer) {
         .map((item, index) => ({
           id: `page-${pageNumber}-text-${index + 1}`,
           kind: 'text',
-          entityType: 'TEXT',
+          typeId: 'TEXT',
           text: item.str,
           x: finiteNumber(item.transform?.[4], 0),
           y: finiteNumber(item.transform?.[5], 0),
@@ -224,7 +224,7 @@ function normalizeLayoutItem(item = {}) {
   return {
     id,
     kind,
-    entityType: String(item.entityType || (kind === 'text' ? 'TEXT' : 'ENTITY')),
+    typeId: String(item.typeId || (kind === 'text' ? 'TEXT' : 'ENTITY')),
     layer: String(item.layer || ''),
     x: finiteNumber(item.x, 0),
     y: finiteNumber(item.y, 0),
@@ -300,7 +300,7 @@ function dxfRecordToItem(record) {
   return {
     id: record.id,
     kind,
-    entityType: record.type,
+    typeId: record.type,
     layer: record.pairs.find(pair => pair.code === 8)?.value?.trim() || '0',
     x: minX,
     y: minY,

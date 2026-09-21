@@ -234,10 +234,10 @@ const ENTITY_ALIASES = {
   layer_standard: 'layerStandard'
 };
 
-export function normalizeFieldAccessEntityType(entityType = '') {
-  return ENTITY_ALIASES[entityType] || entityType;
+export function normalizeFieldAccessTypeId(typeId = '') {
+  return ENTITY_ALIASES[typeId] || typeId;
 }
 
-export function getEntityFieldAccessPolicy(entityType) {
-  return cncEntityFieldAccess[normalizeFieldAccessEntityType(entityType)] || null;
+export function getEntityFieldAccessPolicy(typeId) {
+  return cncEntityFieldAccess[normalizeFieldAccessTypeId(typeId)] || null;
 }

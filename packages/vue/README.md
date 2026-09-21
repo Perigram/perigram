@@ -28,7 +28,7 @@ chips and route links do not fall back to generic icons when a caller uses the
 backend entity type.
 
 Endpoint maps register each route under keys derived from endpoint metadata:
-the declared type, optional `entityType`, camel/snake variants, and the
+the declared type, optional `typeId`, camel/snake variants, and the
 singular collection name. This keeps runtime components able to pass canonical
 entity names such as `cassette_instance` while route ownership remains in the
 domain endpoint definitions.

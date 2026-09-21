@@ -7,12 +7,12 @@ describe('process designer producer-output inspector', () => {
     const draft = ref({
       data: {
         producerOutputs: {
-          'create:entity': { producerOutputId: 'create:entity', entityType: 'project', nodeId: 'create' },
-          'import:entity': { producerOutputId: 'import:entity', entityType: 'project', nodeId: 'import' }
+          'create:entity': { producerOutputId: 'create:entity', typeId: 'project', nodeId: 'create' },
+          'import:entity': { producerOutputId: 'import:entity', typeId: 'project', nodeId: 'import' }
         },
         processNodes: {
-          create: { id: 'create', kind: 'effect.createEntity', entityType: 'project', producerOutputId: 'create:entity' },
-          import: { id: 'import', kind: 'effect.createEntity', entityType: 'project', producerOutputId: 'import:entity' }
+          create: { id: 'create', kind: 'effect.createEntity', typeId: 'project', producerOutputId: 'create:entity' },
+          import: { id: 'import', kind: 'effect.createEntity', typeId: 'project', producerOutputId: 'import:entity' }
         }
       }
     });
@@ -35,10 +35,10 @@ describe('process designer producer-output inspector', () => {
     const draft = ref({
       data: {
         producerOutputs: {
-          'create_project:entity': { producerOutputId: 'create_project:entity', entityType: 'project', lifecycle: { mode: 'defaultCreated' } }
+          'create_project:entity': { producerOutputId: 'create_project:entity', typeId: 'project', lifecycle: { mode: 'defaultCreated' } }
         },
         processNodes: {
-          create_project: { id: 'create_project', kind: 'effect.createEntity', entityType: 'project', producerOutputId: 'create_project:entity' }
+          create_project: { id: 'create_project', kind: 'effect.createEntity', typeId: 'project', producerOutputId: 'create_project:entity' }
         }
       }
     });
@@ -51,7 +51,7 @@ describe('process designer producer-output inspector', () => {
 
     expect(inspector.selectedEntity.value).toMatchObject({
       producerOutputId: 'create_project:entity',
-      entityType: 'project'
+      typeId: 'project'
     });
 
     selectedNode.value = { id: 'literal', type: 'processNode', data: { refId: 'literal' } };
@@ -62,10 +62,10 @@ describe('process designer producer-output inspector', () => {
     const draft = ref({
       data: {
         producerOutputs: {
-          'create_queue:entity': { producerOutputId: 'create_queue:entity', entityType: 'queue' }
+          'create_queue:entity': { producerOutputId: 'create_queue:entity', typeId: 'queue' }
         },
         processNodes: {
-          create_queue: { id: 'create_queue', kind: 'effect.createEntity', entityType: 'queue', producerOutputId: 'create_queue:entity' }
+          create_queue: { id: 'create_queue', kind: 'effect.createEntity', typeId: 'queue', producerOutputId: 'create_queue:entity' }
         }
       }
     });

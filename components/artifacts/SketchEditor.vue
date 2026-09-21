@@ -51,13 +51,13 @@
             <template v-if="persistence.origin">
                 <span class="text-muted text-supporting">{{ $t('sketch.originEntity') }}:</span>
                 <span class="text-muted text-supporting">{{ $t('sketch.originEntity') }}:</span>
-                <EntityInlineRef :type="originEntity.entityType" :id="originEntity.entityId" :fetch="false" />
+                <EntityInlineRef :type="originEntity.typeId" :id="originEntity.entityId" :fetch="false" />
                 <Button icon="pi pi-times" severity="secondary" text rounded size="small" :aria-label="$t('sketch.clearOrigin')" @click="clearOrigin" />
             </template>
             <template v-else>
                 <Select
-                    v-model="originDraft.entityType"
-                    :options="entityTypeOptions"
+                    v-model="originDraft.typeId"
+                    :options="typeIdOptions"
                     option-label="label"
                     option-value="value"
                     size="small"
@@ -78,7 +78,7 @@
                     size="small"
                     severity="secondary"
                     outlined
-                    :disabled="!originDraft.entityType || !originDraft.entityId.trim()"
+                    :disabled="!originDraft.typeId || !originDraft.entityId.trim()"
                     @click="setOrigin"
                 />
             </template>
@@ -168,7 +168,7 @@ const liveStroke = ref(null);
 const svgEl = ref(null);
 const backgroundInput = ref(null);
 const originEntity = ref(props.persistence.origin?.value || null);
-const originDraft = ref({ entityType: '', entityId: '' });
+const originDraft = ref({ typeId: '', entityId: '' });
 const editorTitle = computed(() => props.persistence.title || t('sketch.editorTitle'));
 const undoStack = [];
 const redoStack = [];
@@ -179,7 +179,7 @@ const sizeOptions = computed(() => [
     { label: t('sketch.sizes.medium'), value: 4 },
     { label: t('sketch.sizes.thick'), value: 8 }
 ]);
-const entityTypeOptions = computed(() => artifactSurfaces
+const typeIdOptions = computed(() => artifactSurfaces
     .map(surface => ({ label: t(`entities.${surface.key}`), value: surface.key }))
     .filter(option => option.label !== `entities.${option.value}`));
 
@@ -290,11 +290,11 @@ const clearScene = () => {
 };
 
 const setOrigin = () => {
-    const entityType = originDraft.value.entityType;
+    const typeId = originDraft.value.typeId;
     const entityId = originDraft.value.entityId.trim();
-    if (!entityType || !entityId) return;
-    originEntity.value = { entityType, entityId };
-    originDraft.value = { entityType: '', entityId: '' };
+    if (!typeId || !entityId) return;
+    originEntity.value = { typeId, entityId };
+    originDraft.value = { typeId: '', entityId: '' };
     dirty.value = true;
 };
 

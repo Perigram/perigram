@@ -1,6 +1,6 @@
 import { CANONICAL_BLOCK_COMPOSITION, CANONICAL_BLOCK_SCHEMAS } from '../../core/src/index.js';
 import { cncEntities } from './entities.js';
-import { cncEntityFieldAccess, normalizeFieldAccessEntityType } from './field-access.js';
+import { cncEntityFieldAccess, normalizeFieldAccessTypeId } from './field-access.js';
 import { cncEntityFieldGroups } from './ui-fields.js';
 import { cncContainment } from './relationships.js';
 
@@ -23,7 +23,7 @@ const CORE_FIELDS = [
   field('status.metadata', 'json', { constructible: false }),
   field('status.eventId', 'string', { writable: false, constructible: false }),
   field('status.lifecycle', 'json', { writable: false, constructible: false }),
-  field('lineage.organizationId', 'entityRef', { entityType: 'organization', constructible: false }),
+  field('lineage.organizationId', 'entityRef', { typeId: 'organization', constructible: false }),
   field('relations.value', 'json'),
   field('provenance.source', 'entityRef', { constructible: false }),
   field('specs.width', 'number', { unit: 'mm' }),
@@ -37,10 +37,10 @@ const CORE_FIELDS = [
 ];
 
 const rawEntityFieldSchemas = Object.fromEntries(cncEntities.map(entity => {
-  const entityType = entity.type;
-  const access = fieldAccessFor(entityType);
-  const lineageFields = lineageFieldsFor(entityType);
-  const descriptorFields = descriptorsFor(entityType).map(descriptor => descriptorField(descriptor));
+  const typeId = entity.type;
+  const access = fieldAccessFor(typeId);
+  const lineageFields = lineageFieldsFor(typeId);
+  const descriptorFields = descriptorsFor(typeId).map(descriptor => descriptorField(descriptor));
   const exactAccessFields = ['read', 'write', 'admin']
     .flatMap(level => access[level] || [])
     .filter(path => !String(path).includes('*'))
@@ -53,32 +53,32 @@ const rawEntityFieldSchemas = Object.fromEntries(cncEntities.map(entity => {
       readable: hasAccess(access, schema.path, 'read'),
       writable: schema.writable !== false && hasAccess(access, schema.path, 'write'),
       constructible: schema.constructible !== false
-        && !(entityType === 'cassette_design' && schema.block === 'identity')
+        && !(typeId === 'cassette_design' && schema.block === 'identity')
     }));
-  return [entityType, Object.freeze(fields)];
+  return [typeId, Object.freeze(fields)];
 }));
 
 export const cncBlockFieldSchemas = CANONICAL_BLOCK_SCHEMAS;
 export const cncBlockComposition = CANONICAL_BLOCK_COMPOSITION;
 
 export const cncEntityFieldSchemas = Object.freeze(Object.fromEntries(
-  Object.entries(rawEntityFieldSchemas).map(([entityType, schemas]) => [
-    entityType,
+  Object.entries(rawEntityFieldSchemas).map(([typeId, schemas]) => [
+    typeId,
     Object.freeze(schemas.map(schema => Object.freeze({ ...schema })))
   ])
 ));
 
-export function getEntityFieldSchemas(entityType = '', options = {}) {
-  const normalized = normalizeFieldAccessEntityType(entityType);
-  const fields = cncEntityFieldSchemas[normalized] || cncEntityFieldSchemas[entityType] || [];
+export function getEntityFieldSchemas(typeId = '', options = {}) {
+  const normalized = normalizeFieldAccessTypeId(typeId);
+  const fields = cncEntityFieldSchemas[normalized] || cncEntityFieldSchemas[typeId] || [];
   return fields.filter(schema => (
     (!options.block || schema.block === options.block)
     && (!options.access || schema[options.access] !== false)
   ));
 }
 
-export function getEntityFieldSchema(entityType = '', path = '') {
-  return getEntityFieldSchemas(entityType).find(schema => schema.path === path) || null;
+export function getEntityFieldSchema(typeId = '', path = '') {
+  return getEntityFieldSchemas(typeId).find(schema => schema.path === path) || null;
 }
 
 export function getBlockFieldSchemas(block = '') {
@@ -103,7 +103,7 @@ function field(path, base, qualifiers = {}) {
       base,
       shape: typeQualifiers.shape || 'item',
       nullable: true,
-      ...(typeQualifiers.entityType ? { entityType: typeQualifiers.entityType } : {}),
+      ...(typeQualifiers.typeId ? { typeId: typeQualifiers.typeId } : {}),
       ...(typeQualifiers.unit ? { unit: typeQualifiers.unit } : {}),
       ...(typeQualifiers.itemType ? { itemType: typeQualifiers.itemType } : {})
     },
@@ -112,14 +112,14 @@ function field(path, base, qualifiers = {}) {
   };
 }
 
-function lineageFieldsFor(entityType, visited = new Set()) {
-  if (!entityType || visited.has(entityType)) return [];
-  const nextVisited = new Set(visited).add(entityType);
+function lineageFieldsFor(typeId, visited = new Set()) {
+  if (!typeId || visited.has(typeId)) return [];
+  const nextVisited = new Set(visited).add(typeId);
   return cncContainment
-    .filter(relation => relation.childType === entityType)
+    .filter(relation => relation.childType === typeId)
     .flatMap(relation => [
       field(`lineage.${relation.lineageKey}`, 'entityRef', {
-        entityType: relation.parentType,
+        typeId: relation.parentType,
         writable: false,
         constructible: true
       }),
@@ -132,7 +132,7 @@ function descriptorField(descriptor = {}) {
   return {
     ...field(descriptor.path, base, {
       shape,
-      entityType: base === 'entityRef' ? canonicalEntityType(descriptor.entityType) : '',
+      typeId: base === 'entityRef' ? canonicalTypeId(descriptor.typeId) : '',
       itemType,
       unit: descriptorUnit(descriptor)
     }),
@@ -143,9 +143,9 @@ function descriptorField(descriptor = {}) {
   };
 }
 
-function canonicalEntityType(entityType = '') {
-  const normalized = normalizeFieldAccessEntityType(entityType);
-  return cncEntities.find(entity => normalizeFieldAccessEntityType(entity.type) === normalized)?.type || entityType;
+function canonicalTypeId(typeId = '') {
+  const normalized = normalizeFieldAccessTypeId(typeId);
+  return cncEntities.find(entity => normalizeFieldAccessTypeId(entity.type) === normalized)?.type || typeId;
 }
 
 function descriptorType(descriptor = {}) {
@@ -157,7 +157,7 @@ function descriptorType(descriptor = {}) {
       base: 'entityRef',
       shape: 'item',
       nullable: false,
-      ...(descriptor.entityType ? { entityType: descriptor.entityType } : {})
+      ...(descriptor.typeId ? { typeId: descriptor.typeId } : {})
     }
   };
   if (['count', 'area', 'percent', 'dimension', 'duration', 'money', 'number', 'angle'].includes(descriptor.display)) {
@@ -178,9 +178,9 @@ function descriptorUnit(descriptor = {}) {
   return '';
 }
 
-function descriptorsFor(entityType) {
-  const groups = cncEntityFieldGroups[normalizeFieldAccessEntityType(entityType)]
-    || cncEntityFieldGroups[entityType]
+function descriptorsFor(typeId) {
+  const groups = cncEntityFieldGroups[normalizeFieldAccessTypeId(typeId)]
+    || cncEntityFieldGroups[typeId]
     || {};
   return Object.values(groups)
     .flatMap(group => Array.isArray(group) ? group : [])
@@ -191,9 +191,9 @@ function descriptorsFor(entityType) {
     .filter(descriptor => descriptor.path);
 }
 
-function fieldAccessFor(entityType) {
-  const normalized = normalizeFieldAccessEntityType(entityType);
-  return cncEntityFieldAccess[normalized] || cncEntityFieldAccess[entityType] || {};
+function fieldAccessFor(typeId) {
+  const normalized = normalizeFieldAccessTypeId(typeId);
+  return cncEntityFieldAccess[normalized] || cncEntityFieldAccess[typeId] || {};
 }
 
 function hasAccess(access, path, level) {

@@ -69,7 +69,7 @@ function literalOutput(base, qualifiers = {}) {
     kind: 'source.literalItem',
     // entityRef literals carry the authored entity type on the record; the
     // sync derives the socket qualifier from it.
-    ...(qualifiers.entityType ? { entityType: qualifiers.entityType } : {}),
+    ...(qualifiers.typeId ? { typeId: qualifiers.typeId } : {}),
     type: processType(base, qualifiers),
     value: ''
   };
@@ -97,7 +97,7 @@ describe('literal -> construct field sockets', () => {
     expect(processSocketsCompatible(literalOutput('boolean'), input(ports, 'data.flag')).ok).toBe(true);
     expect(processSocketsCompatible(literalOutput('date'), input(ports, 'data.madeAt')).ok).toBe(true);
     expect(processSocketsCompatible(literalOutput('dateTime'), input(ports, 'data.madeAt')).ok).toBe(true);
-    expect(processSocketsCompatible(literalOutput('entityRef', { entityType: 'keeper' }), input(ports, 'data.owner')).ok).toBe(true);
+    expect(processSocketsCompatible(literalOutput('entityRef', { typeId: 'keeper' }), input(ports, 'data.owner')).ok).toBe(true);
   });
 
   it('a unit-less number adopts the quantity field unit; cross-unit stays explicit', () => {
@@ -117,6 +117,6 @@ describe('literal -> construct field sockets', () => {
   });
 
   it('refs typecheck against the declared target type', () => {
-    expect(processSocketsCompatible(literalOutput('entityRef', { entityType: 'widget' }), input(ports, 'data.owner')).ok).toBe(false);
+    expect(processSocketsCompatible(literalOutput('entityRef', { typeId: 'widget' }), input(ports, 'data.owner')).ok).toBe(false);
   });
 });

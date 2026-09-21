@@ -5,7 +5,7 @@ const processData = {
   data: {
     entityProfiles: {
       sheetProfile: {
-        entityType: 'sheets',
+        typeId: 'sheets',
         label: 'Sheet',
         allowedRoles: { read: ['viewer', 'cutter'], write: ['cutter'], admin: [] }
       }
@@ -27,13 +27,13 @@ const processData = {
       millSheet: {
         id: 'millSheet',
         actionKind: 'updateEntity',
-        entityType: 'sheets',
+        typeId: 'sheets',
         access: { roleIds: ['cutter'], level: 'write', statusFrom: 'CREATED', statusTo: 'MILLED' }
       },
       archiveSheet: {
         id: 'archiveSheet',
         actionKind: 'updateEntity',
-        entityType: 'sheets',
+        typeId: 'sheets',
         access: { roleIds: ['cutter'] }
       },
       orphanUpdate: {
@@ -102,7 +102,7 @@ describe('deriveRoleAccessSummary', () => {
       data: {
         entityProfiles: {
           queueProfile: {
-            entityType: 'queues',
+            typeId: 'queues',
             lifecycle: {
               mode: 'custom',
               workflow: {

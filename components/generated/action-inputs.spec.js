@@ -34,13 +34,13 @@ describe('generated action inputs', () => {
       construction: {
         mode: 'bakeCassetteDesignFromTemplate',
         inputs: [
-          { id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette', prompt: true, required: true },
+          { id: 'templateId', path: 'templateId', type: 'entity', typeId: 'cassette', prompt: true, required: true },
           { id: 'parameters', path: 'parameters', type: 'cassetteParameters', prompt: true }
         ]
       }
     };
     const uploadCreator = {
-      entityType: 'artifact',
+      typeId: 'artifact',
       attachmentKinds: [{ kind: 'DXF_SOURCE', creation: { mode: 'upload' } }]
     };
     const upload = {
@@ -50,7 +50,7 @@ describe('generated action inputs', () => {
     };
 
     expect(promptedFields(typed)).toMatchObject([
-      { id: 'templateId', type: 'entity', entityType: 'cassette', required: true },
+      { id: 'templateId', type: 'entity', typeId: 'cassette', required: true },
       { id: 'parameters', type: 'cassetteParameters' }
     ]);
     expect(promptData(collectActionInputFields(typed), {

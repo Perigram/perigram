@@ -52,10 +52,10 @@ export function useProcessDesignerPreview({
         change.added?.length ? `+${change.added.join(', ')}` : '',
         change.removed?.length ? `−${change.removed.join(', ')}` : ''
       ].filter(Boolean).join(' · ');
-      if (parts) lines.push(`${t('processDesigner.applyDiffCapabilities')} — ${change.entityType}: ${parts}`);
+      if (parts) lines.push(`${t('processDesigner.applyDiffCapabilities')} — ${change.typeId}: ${parts}`);
     }
     for (const item of diff.removedEntityStatuses || []) {
-      lines.push(t('processDesigner.applyDiffRemovedStatuses', { entityType: item.entityType, statuses: item.statuses.join(', ') }));
+      lines.push(t('processDesigner.applyDiffRemovedStatuses', { typeId: item.typeId, statuses: item.statuses.join(', ') }));
     }
     return lines;
   });

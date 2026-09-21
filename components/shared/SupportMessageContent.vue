@@ -31,13 +31,13 @@ const parts = computed(() => {
     if (match.index > lastIndex) {
       result.push({ type: 'text', value: text.slice(lastIndex, match.index) });
     }
-    const entityType = match[1];
+    const typeId = match[1];
     const id = match[2];
     result.push({
       type: 'entity',
-      entityType,
+      typeId,
       id,
-      ref: refsByKey.value.get(`${entityType}:${id}`) || { type: entityType, id }
+      ref: refsByKey.value.get(`${typeId}:${id}`) || { type: typeId, id }
     });
     lastIndex = match.index + match[0].length;
   }
@@ -127,7 +127,7 @@ const canFetchRef = (ref = {}) => {
       >{{ part.value }}</span>
       <EntityInlineRef
         v-else
-        :type="part.entityType"
+        :type="part.typeId"
         :id="part.id"
         :entity="part.ref.entity || null"
         :fetch="canFetchRef(part.ref)"

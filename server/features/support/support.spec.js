@@ -270,19 +270,19 @@ describe('support communication service', () => {
         screenKey: 'queue_screen',
         sources: [{
           id: 'queue',
-          entityType: 'queue',
+          typeId: 'queue',
           label: 'My Queues',
           mode: 'list',
           required: { feature: 'queues', level: 'read' }
         }, {
           id: 'project',
-          entityType: 'project',
+          typeId: 'project',
           label: 'Blocked Projects',
           mode: 'list',
           required: { feature: 'projects', level: 'read' }
         }, {
           id: 'external_record',
-          entityType: 'external_record',
+          typeId: 'external_record',
           label: 'Readable External Records',
           mode: 'list',
           required: { feature: 'queues', level: 'read' }
@@ -308,7 +308,7 @@ describe('support communication service', () => {
         screenKey: 'nesting_run_list',
         sources: [{
           id: 'nesting_run',
-          entityType: 'nesting_run',
+          typeId: 'nesting_run',
           mode: 'list',
           label: 'Process Runs',
           required: {
@@ -354,7 +354,7 @@ describe('support communication service', () => {
         id: 'design_screen',
         sources: [{
           id: 'cassette_design',
-          entityType: 'cassette_design',
+          typeId: 'cassette_design',
           label: 'Cassette Designs',
           required: { feature: 'cassette_designs', level: 'read' }
         }]
@@ -393,19 +393,19 @@ describe('support communication service', () => {
       },
       screens: [{
         id: 'queue_list',
-        entityType: 'queue',
+        typeId: 'queue',
         sources: [{
           id: 'queue',
-          entityType: 'queue',
+          typeId: 'queue',
           required: { feature: 'queues', level: 'read' },
           filters: { primaryStatus: 'READY' }
         }]
       }, {
         id: 'queue_detail',
-        entityType: 'queue',
+        typeId: 'queue',
         sources: [{
           id: 'nesting_run_children',
-          entityType: 'nesting_run',
+          typeId: 'nesting_run',
           required: { feature: 'nesting_runs', level: 'read' },
           filters: { queueId: '$screen.scope.entityId' }
         }]
@@ -452,27 +452,27 @@ describe('support communication service', () => {
       },
       screens: [{
         id: 'queue_list',
-        entityType: 'queue',
+        typeId: 'queue',
         sources: [{
           id: 'queue',
-          entityType: 'queue',
+          typeId: 'queue',
           required: { feature: 'queues', level: 'read' }
         }]
       }, {
         id: 'queue_detail',
-        entityType: 'queue',
+        typeId: 'queue',
         sources: [{
           id: 'nesting_run_children',
-          entityType: 'nesting_run',
+          typeId: 'nesting_run',
           required: { feature: 'nesting_runs', level: 'read' },
           filters: { queueId: '$screen.scope.entityId' }
         }]
       }, {
         id: 'nesting_run_list',
-        entityType: 'nesting_run',
+        typeId: 'nesting_run',
         sources: [{
           id: 'nesting_run',
-          entityType: 'nesting_run',
+          typeId: 'nesting_run',
           required: {
             feature: 'nesting_runs',
             level: 'read',
@@ -511,10 +511,10 @@ describe('support communication service', () => {
       },
       screens: [{
         id: 'nesting_run_list',
-        entityType: 'nesting_run',
+        typeId: 'nesting_run',
         sources: [{
           id: 'nesting_run',
-          entityType: 'nesting_run',
+          typeId: 'nesting_run',
           mode: 'list',
           required: {
             feature: 'nesting_runs',
@@ -524,10 +524,10 @@ describe('support communication service', () => {
         }]
       }, {
         id: 'nesting_run_detail',
-        entityType: 'nesting_run',
+        typeId: 'nesting_run',
         sources: [{
           id: 'nesting_run',
-          entityType: 'nesting_run',
+          typeId: 'nesting_run',
           mode: 'single',
           required: { feature: 'nesting_runs', level: 'read' }
         }]
@@ -782,7 +782,7 @@ describe('support communication service', () => {
           construction: {
             inputs: [{
               creator: {
-                entityType: 'artifact',
+                typeId: 'artifact',
                 attachmentKinds: [{ kind: 'CAPTURE_PHOTO', creation: { mode: 'capture' } }]
               }
             }]
@@ -840,9 +840,9 @@ describe('support communication service', () => {
       roleAssignments: {
         actions: [{
           actionKind: 'createEntity',
-          entityType: 'artifact',
+          typeId: 'artifact',
           construction: {
-            inputs: [{ id: 'artifact', creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' } }]
+            inputs: [{ id: 'artifact', creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' } }]
           }
         }]
       }
@@ -854,7 +854,7 @@ describe('support communication service', () => {
 
     // Regression: a manifest whose creator kinds were not expanded by the
     // compiler must degrade to "no creator credit", not throw a 500 that
-    // takes down entity-types, entity-options, and every message send.
+    // takes down type-ids, entity-options, and every message send.
     await expect(supportService.listEntityOptionTypes(auth)).resolves.toEqual([]);
     await expect(supportService.sendUserMessage(auth, {
       recipientUserId: 'user-b',
@@ -873,7 +873,7 @@ describe('support communication service', () => {
     expect(context).toMatchObject({
       kind: 'entity',
       conversationKey: 'entity:project:project-1',
-      entityType: 'project',
+      typeId: 'project',
       entityName: 'Facade Alpha',
       organizationId: 'org-1'
     });
@@ -900,7 +900,7 @@ describe('support communication service', () => {
       process: { active: true, lineageBindings: [] },
       screens: [{
         id: 'library_detail',
-        sources: [{ id: 'cassette', entityType: 'cassette', mode: 'list' }]
+        sources: [{ id: 'cassette', typeId: 'cassette', mode: 'list' }]
       }],
       effectivePermissions: {}
     }, 'entity:cassette:cassette-1');
@@ -914,7 +914,7 @@ describe('support communication service', () => {
 
   it('composes aggregated entity views through the entity path', () => {
     const context = {
-      entityType: 'organization',
+      typeId: 'organization',
       entityId: 'org-1',
       match: { conversationKey: 'entity:organization:org-1' }
     };
@@ -942,7 +942,7 @@ describe('support communication service', () => {
     const entityAuth = {
       ...auth,
       process: { active: true, lineageBindings: [
-        { childEntityType: 'queue', ancestorEntityType: 'project', lineageKey: 'projectId' }
+        { childTypeId: 'queue', parentTypeId: 'project', lineageKey: 'projectId' }
       ] }
     };
 
@@ -1067,7 +1067,7 @@ describe('support communication service', () => {
     mocks.repository.findReadStates.mockResolvedValue([]);
 
     const conversations = await supportService.listUserConversations({ ...auth, process: { active: true, lineageBindings: [
-      { childEntityType: 'queue', ancestorEntityType: 'project', lineageKey: 'projectId' }
+      { childTypeId: 'queue', parentTypeId: 'project', lineageKey: 'projectId' }
     ] } });
 
     // The queue message climbs its live lineage to the project (top-level
@@ -1083,7 +1083,7 @@ describe('support communication service', () => {
       }),
       expect.objectContaining({
         conversationKey: 'entity:project:project-1',
-        entityType: 'project',
+        typeId: 'project',
         entityName: 'P1',
         unreadCount: 1
       }),

@@ -242,7 +242,7 @@ const projectItem = computed(() => project.value ? {
   region: mainRegion.value
 } : null);
 const projectActionContext = computed(() => ({
-  parentEntityType: 'project',
+  parentTypeId: 'project',
   parentEntity: project.value,
   parentEntityId: entityId(project.value)
 }));
@@ -306,7 +306,7 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
     kind: 'page',
     pageId: reference.pageId,
     entity: entityItem.entity,
-    entityType: reference.typeId,
+    typeId: reference.typeId,
     cassettes: cassetteItems.value.map(item => item.entity)
   };
 }).filter(Boolean));
@@ -428,8 +428,8 @@ watch(linkedChildSources, async sources => {
   const sequence = ++linkedChildLoadSequence;
   const loaded = await Promise.all(sources.map(async source => {
     try {
-      const entities = await instances.listInstances(instances.canonicalTypeKey(source.entityType), source.filters);
-      return (Array.isArray(entities) ? entities : []).map(entity => workspaceEntityItem(source.entityType, entity));
+      const entities = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters);
+      return (Array.isArray(entities) ? entities : []).map(entity => workspaceEntityItem(source.typeId, entity));
     } catch {
       return [];
     }
@@ -555,7 +555,7 @@ function closePane(paneId) {
 }
 
 function openWorkspaceEntity(request = {}) {
-  const item = rememberWorkspaceEntity(request.entityType, request.entity);
+  const item = rememberWorkspaceEntity(request.typeId, request.entity);
   if (!item) return;
   selectByKey(item.key);
 }
@@ -563,16 +563,16 @@ function openWorkspaceEntity(request = {}) {
 function openWorkspacePage(request = {}) {
   const definition = resolveGeneratedWorkspacePage(request.pageId);
   if (!definition) return;
-  if (!definition.entityType) {
+  if (!definition.typeId) {
     selectByKey(`page:${definition.id}`);
     return;
   }
-  if (definition.entityType !== request.entityType) return;
+  if (definition.typeId !== request.typeId) return;
 
-  rememberWorkspaceEntity(request.entityType, request.entity);
+  rememberWorkspaceEntity(request.typeId, request.entity);
 
   const entityItem = workspaceEntityItems.value.find(item => (
-    item.type === definition.entityType
+    item.type === definition.typeId
     && entityId(item.entity) === entityId(request.entity)
   ));
   if (!entityItem || !activePane.value) return;
@@ -582,7 +582,7 @@ function openWorkspacePage(request = {}) {
     openedPageRefs.value = [...openedPageRefs.value, {
       key,
       pageId: definition.id,
-      entityType: definition.entityType,
+      typeId: definition.typeId,
       entityId: entityId(entityItem.entity)
     }];
   }
@@ -595,19 +595,19 @@ function openWorkspacePage(request = {}) {
   syncActiveSelection();
 }
 
-function rememberWorkspaceEntity(entityType, entity) {
+function rememberWorkspaceEntity(typeId, entity) {
   const id = entityId(entity);
-  if (!entityType || !id) return null;
-  const key = entityKey(entityType, entity);
+  if (!typeId || !id) return null;
+  const key = entityKey(typeId, entity);
   const existing = workspaceEntityItems.value.find(item => item.key === key);
   if (existing) return existing;
 
-  const item = workspaceEntityItem(entityType, entity);
+  const item = workspaceEntityItem(typeId, entity);
   openedEntityItems.value = [...openedEntityItems.value, item];
   if (!openedEntityRefs.value.some(reference => reference.key === key)) {
     openedEntityRefs.value = [...openedEntityRefs.value, {
       key,
-      entityType,
+      typeId,
       entityId: id
     }];
   }
@@ -663,7 +663,7 @@ function sectionForItem(item) {
     || {
       region: item.region,
       source: sourceStateForRegion(item.region || {}).source,
-      entityType: item.type,
+      typeId: item.type,
       items: []
     };
 }
@@ -673,7 +673,7 @@ function sectionActionContext(section) {
     incoming: projectActionContext.value,
     region: section.region,
     source: section.source,
-    entityType: section.entityType,
+    typeId: section.typeId,
     items: section.items || []
   });
 }
@@ -681,7 +681,7 @@ function sectionActionContext(section) {
 function openedPagesForEntity(item) {
   if (!item?.entity) return [];
   return openedPageItems.value.filter(page => (
-    page.entityType === item.type
+    page.typeId === item.type
     && entityId(page.entity) === entityId(item.entity)
   ));
 }

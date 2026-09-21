@@ -1,6 +1,6 @@
 <template>
-  <EntityCard :entity="facade" entity-type="facade" :variant="variant">
-    <EntitySurfaceContent :entity="facade" entity-type="facade" :surface="variant" />
+  <EntityCard :entity="facade" type-id="facade" :variant="variant">
+    <EntitySurfaceContent :entity="facade" type-id="facade" :surface="variant" />
   </EntityCard>
 </template>
 <script setup>

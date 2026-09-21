@@ -317,10 +317,10 @@ function loadDataModelFields(path) {
     const field = line.match(/^\|\s+`([^`]+)`\s+\|/);
     if (!field || !collection) continue;
 
-    const entityType = collectionToEntity.get(collection) || singularizeCollection(collection);
-    fields.push({ entityType, collection, name: field[1] });
-    if (entityType === 'cassette') {
-      fields.push({ entityType: 'cassette_template', collection, name: field[1] });
+    const typeId = collectionToEntity.get(collection) || singularizeCollection(collection);
+    fields.push({ typeId, collection, name: field[1] });
+    if (typeId === 'cassette') {
+      fields.push({ typeId: 'cassette_template', collection, name: field[1] });
     }
   }
 

@@ -23,7 +23,7 @@ describe('generated overload registry', () => {
       regions: []
     });
 
-    expect(overload?.entityType).toBeUndefined();
+    expect(overload?.typeId).toBeUndefined();
     expect(overload?.component).toBeTruthy();
   });
 
@@ -39,12 +39,12 @@ describe('generated overload registry', () => {
 
   it('does not overload unrelated generated screens', () => {
     expect(resolveGeneratedScreenOverload({
-      template: 'entityList',
-      entityType: 'project'
+      template: 'typeList',
+      typeId: 'project'
     })).toBeNull();
     expect(resolveGeneratedScreenOverload({
-      template: 'entityDetail',
-      entityType: 'queue'
+      template: 'instanceDetail',
+      typeId: 'queue'
     })).toBeNull();
     expect(resolveGeneratedScreenOverload(null)).toBeNull();
     expect(resolveGeneratedScreenOverload([])).toBeNull();

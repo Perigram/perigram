@@ -52,7 +52,7 @@ describe('process v4 validation', () => {
   it('accepts a status-only entity update through its dedicated lifecycle input', () => {
     const result = validateProcessDefinition(definition({
       kind: 'effect.updateEntity',
-      entityType: 'project',
+      typeId: 'project',
       fields: [],
       trigger: { mode: 'manual' },
       statusRef: 'ready',
@@ -75,7 +75,7 @@ describe('process v4 validation', () => {
         create: {
           id: 'create',
           kind: 'effect.createEntity',
-          entityType: 'project',
+          typeId: 'project',
           blocks: ['data'],
           trigger: { mode: 'manual' }
         }
@@ -117,21 +117,21 @@ describe('process v4 validation', () => {
       kind: 'record.composeBlock',
       block: 'lineage',
       compositionMode: 'ancestors',
-      entries: [{ id: 'organization', key: 'organizationId', entityType: 'organization' }],
+      entries: [{ id: 'organization', key: 'organizationId', typeId: 'organization' }],
       inputDefaults: { 'entry:organization': { type: 'organization', id: 'org-1' } }
     }), lineageDomain);
     const generic = validateProcessDefinition(definition({
       kind: 'record.composeBlock',
       block: 'lineage',
       compositionMode: 'ancestors',
-      entries: [{ id: 'invented', key: 'madeUpId', entityType: 'project' }],
+      entries: [{ id: 'invented', key: 'madeUpId', typeId: 'project' }],
       inputDefaults: { 'entry:invented': { type: 'project', id: 'project-1' } }
     }), lineageDomain);
     const invalid = validateProcessDefinition(definition({
       kind: 'record.composeBlock',
       block: 'lineage',
       compositionMode: 'ancestors',
-      entries: [{ id: 'missing', key: '', entityType: 'project' }],
+      entries: [{ id: 'missing', key: '', typeId: 'project' }],
       inputDefaults: { 'entry:missing': { type: 'project', id: 'project-1' } }
     }), lineageDomain);
 
@@ -155,7 +155,7 @@ describe('process v4 validation', () => {
         create: {
           id: 'create',
           kind: 'effect.createEntity',
-          entityType: 'project',
+          typeId: 'project',
           blocks: ['data'],
           trigger: { mode: 'manual' }
         }
@@ -192,7 +192,7 @@ describe('process v4 validation', () => {
         queue: [{
           path: 'lineage.projectId',
           block: 'lineage',
-          type: { base: 'entityRef', shape: 'item', nullable: false, entityType: 'project' },
+          type: { base: 'entityRef', shape: 'item', nullable: false, typeId: 'project' },
           constructible: true,
           writable: true
         }]
@@ -220,7 +220,7 @@ describe('process v4 validation', () => {
         queue: [{
           path: 'lineage.projectId',
           block: 'lineage',
-          type: { base: 'entityRef', shape: 'item', nullable: false, entityType: 'project' },
+          type: { base: 'entityRef', shape: 'item', nullable: false, typeId: 'project' },
           constructible: true,
           writable: true
         }]
@@ -233,14 +233,14 @@ describe('process v4 validation', () => {
     };
     const process = entityBlockProcess('project');
     process.processNodes.compose.entries[0].key = 'projectId';
-    process.processNodes.compose.entries[0].entityType = 'project';
+    process.processNodes.compose.entries[0].typeId = 'project';
 
     const normalized = normalizeProcessDefinition(process, queueDomain);
     const result = validateProcessDefinition(process, queueDomain);
 
     expect(normalized.processNodes.compose.entries[0]).toMatchObject({
       key: 'projectId',
-      entityType: 'project'
+      typeId: 'project'
     });
     expect(result.errors).not.toContain('Process node compose has a missing or duplicate entry key');
     expect(result.errors).not.toContain('Edge compose-create cannot send lineage. to queue: field is not constructible');
@@ -255,7 +255,7 @@ describe('process v4 validation', () => {
         artifact: [{
           path: 'lineage.organizationId',
           block: 'lineage',
-          type: { base: 'entityRef', nullable: false, entityType: 'organization' },
+          type: { base: 'entityRef', nullable: false, typeId: 'organization' },
           constructible: false,
           writable: false
         }]
@@ -268,7 +268,7 @@ describe('process v4 validation', () => {
     };
     const process = entityBlockProcess('nesting_run');
     process.processNodes.compose.entries[0].key = 'nestingRunId';
-    process.processNodes.create.entityType = 'artifact';
+    process.processNodes.create.typeId = 'artifact';
 
     const normalized = normalizeProcessDefinition(process, artifactDomain);
     const result = validateProcessDefinition(process, artifactDomain);
@@ -285,12 +285,12 @@ describe('process v4 validation', () => {
     process.processNodes.compose.entries[0] = {
       id: 'entry_parent',
       key: '',
-      entityType: ''
+      typeId: ''
     };
     process.processNodes.parent = {
       id: 'parent',
       kind: 'effect.createEntity',
-      entityType: 'project',
+      typeId: 'project',
       construction: { mode: 'genericCreate', inputs: [] },
       blocks: ['identity'],
       trigger: { mode: 'manual' }
@@ -309,7 +309,7 @@ describe('process v4 validation', () => {
     expect(normalized.processNodes.compose.entries).toEqual([{
       id: 'entry_parent',
       key: 'projectId',
-      entityType: 'project'
+      typeId: 'project'
     }]);
   });
 
@@ -322,7 +322,7 @@ describe('process v4 validation', () => {
         queue: [{
           path: 'lineage.projectId',
           block: 'lineage',
-          type: { base: 'entityRef', shape: 'item', nullable: false, entityType: 'project' },
+          type: { base: 'entityRef', shape: 'item', nullable: false, typeId: 'project' },
           constructible: true,
           writable: true
         }]
@@ -341,7 +341,7 @@ describe('process v4 validation', () => {
 
     expect(normalized.processNodes.compose.entries[0]).toMatchObject({
       key: 'projectId',
-      entityType: 'project'
+      typeId: 'project'
     });
   });
 
@@ -374,7 +374,7 @@ describe('process v4 validation', () => {
         library: {
           id: 'library',
           kind: 'effect.createEntity',
-          entityType: 'library',
+          typeId: 'library',
           blocks: ['identity'],
           construction: { mode: 'genericCreate' },
           status: { to: 'NEW' },
@@ -385,12 +385,12 @@ describe('process v4 validation', () => {
           kind: 'record.composeBlock',
           block: 'relations',
           compositionMode: 'relations',
-          entries: [{ id: 'library', key: 'library', entityType: 'library' }]
+          entries: [{ id: 'library', key: 'library', typeId: 'library' }]
         },
         create: {
           id: 'create',
           kind: 'effect.createEntity',
-          entityType: 'project',
+          typeId: 'project',
           blocks: ['relations'],
           construction: { mode: 'genericCreate' },
           status: { to: 'NEW' },
@@ -410,8 +410,8 @@ describe('process v4 validation', () => {
 
     expect(result.definition.processNodes.compose.entries[0]).toMatchObject({
       key: 'library',
-      entityType: 'library',
-      entityType: 'library'
+      typeId: 'library',
+      typeId: 'library'
     });
     expect(result.errors).not.toContain(
       'Edge compose-create cannot send relations.library to project: composed entry type does not match the entity field'
@@ -439,7 +439,7 @@ describe('process v4 validation', () => {
           kind: 'record.modifyBlock',
           block: 'relations',
           compositionMode: 'relations',
-          entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one', operation: 'mergeMaybe' }]
+          entries: [{ id: 'library', key: 'library', typeId: 'library', cardinality: 'one', operation: 'mergeMaybe' }]
         }
       },
       graph: { nodes: [{ id: 'modify', type: 'processNode', data: { refId: 'modify' } }], edges: [] }
@@ -449,7 +449,7 @@ describe('process v4 validation', () => {
     expect(result.definition.processNodes.modify.entries[0]).toEqual({
       id: 'library',
       key: 'library',
-      entityType: 'library'
+      typeId: 'library'
     });
     expect(result.errors.some(error => error.includes('relation mutation'))).toBe(false);
   });
@@ -463,7 +463,7 @@ describe('process v4 validation', () => {
         queue: [{
           path: 'lineage.projectId',
           block: 'lineage',
-          type: { base: 'entityRef', shape: 'item', entityType: 'project' },
+          type: { base: 'entityRef', shape: 'item', typeId: 'project' },
           constructible: true
         }]
       },
@@ -474,7 +474,7 @@ describe('process v4 validation', () => {
     process.processNodes.source = {
       id: 'source',
       kind: 'source.literalItem',
-      type: { base: 'entityRef', shape: 'item', entityType: 'project' },
+      type: { base: 'entityRef', shape: 'item', typeId: 'project' },
       value: { type: 'project', id: 'project-1' }
     };
     process.graph.nodes.push({ id: 'source', type: 'processNode', data: { refId: 'source' } });
@@ -486,12 +486,12 @@ describe('process v4 validation', () => {
       targetHandle: 'data:entry:project',
       role: 'data'
     });
-    process.processNodes.compose.entries[0] = { id: 'project', key: 'projectId', entityType: 'project' };
+    process.processNodes.compose.entries[0] = { id: 'project', key: 'projectId', typeId: 'project' };
     delete process.processNodes.compose.inputDefaults;
 
     expect(() => normalizeProcessDefinition(process, queueDomain)).not.toThrow();
     expect(normalizeProcessDefinition(process, queueDomain).processNodes.compose.entries[0])
-      .toMatchObject({ key: 'projectId', entityType: 'project' });
+      .toMatchObject({ key: 'projectId', typeId: 'project' });
   });
 
   it('rejects service-owned identity uid in block authoring', () => {
@@ -538,7 +538,7 @@ describe('process v4 validation', () => {
     };
     const process = definition({
       kind: 'effect.createEntity',
-      entityType: 'cassette_design',
+      typeId: 'cassette_design',
       blocks: ['identity', 'data'],
       construction: { mode: 'bakeCassetteDesignFromTemplate' },
       inputDefaults: { 'identity.name': 'Old design name', 'data.value': { A: 10 } },
@@ -558,7 +558,7 @@ describe('process v4 validation', () => {
   it('rejects create effects when the construction mode has no registered handler', () => {
     const result = validateProcessDefinition(definition({
       kind: 'effect.createEntity',
-      entityType: 'project',
+      typeId: 'project',
       construction: { mode: 'genericCreate' },
       trigger: { mode: 'manual' }
     }), domain, { capabilities: { project: { create: false, createModes: [], processUpdate: true, delete: true, archive: false } } });
@@ -569,7 +569,7 @@ describe('process v4 validation', () => {
   it('rejects update effects when the entity service lacks processUpdate support', () => {
     const result = validateProcessDefinition(definition({
       kind: 'effect.updateEntity',
-      entityType: 'project',
+      typeId: 'project',
       trigger: { mode: 'manual' },
       statusRef: 'ready',
       inputDefaults: { 'status.state.primary': 'READY' }
@@ -581,7 +581,7 @@ describe('process v4 validation', () => {
   it('rejects change status effects when the entity has no status workflow', () => {
     const result = validateProcessDefinition(definition({
       kind: 'effect.changeStatus',
-      entityType: 'project',
+      typeId: 'project',
       trigger: { mode: 'manual' },
       inputDefaults: { 'status.state.primary': 'READY' }
     }), domain, { capabilities: { project: { create: true, processUpdate: true, delete: true, archive: false } } });
@@ -595,7 +595,7 @@ describe('process v4 validation', () => {
   ])('rejects %s when the canonical runtime capability is denied', (kind, verb) => {
     const result = validateProcessDefinition(definition({
       kind,
-      entityType: 'project',
+      typeId: 'project',
       trigger: { mode: 'manual' },
       access: { level: kind === 'effect.deleteEntity' ? 'admin' : 'write', grants: [] }
     }), domain, { capabilities: { project: { [verb]: false } } });
@@ -606,7 +606,7 @@ describe('process v4 validation', () => {
   it('derives hard deletion as an admin-only manual compiled action', () => {
     const deleteDefinition = definition({
       kind: 'effect.deleteEntity',
-      entityType: 'project',
+      typeId: 'project',
       trigger: { mode: 'manual' },
       access: { level: 'admin', grants: [] }
     });
@@ -617,13 +617,13 @@ describe('process v4 validation', () => {
 
     expect(normalized.actions.node).toMatchObject({
       actionKind: 'deleteEntity',
-      entityType: 'project',
+      typeId: 'project',
       trigger: { mode: 'manual' },
       access: { level: 'admin' }
     });
     const denied = validateProcessDefinition(definition({
       kind: 'effect.deleteEntity',
-      entityType: 'project',
+      typeId: 'project',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
     }), domain);
@@ -631,7 +631,7 @@ describe('process v4 validation', () => {
 
     const automatic = validateProcessDefinition(definition({
       kind: 'effect.deleteEntity',
-      entityType: 'project',
+      typeId: 'project',
       trigger: { mode: 'automatic' },
       access: { level: 'admin', grants: [] }
     }), domain);
@@ -641,7 +641,7 @@ describe('process v4 validation', () => {
   it('compiles status scope and the domain archive intent into mutation records', () => {
     const scopedStatus = normalizeProcessDefinition(definition({
       kind: 'effect.changeStatus',
-      entityType: 'project',
+      typeId: 'project',
       region: 'quality',
       path: ['review', 'approved'],
       trigger: { mode: 'manual' },
@@ -651,7 +651,7 @@ describe('process v4 validation', () => {
 
     const archived = normalizeProcessDefinition(definition({
       kind: 'effect.archiveEntity',
-      entityType: 'project',
+      typeId: 'project',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] }
     }), {
@@ -673,7 +673,7 @@ describe('process v4 validation', () => {
   it('does not enforce capabilities when none are supplied', () => {
     const result = validateProcessDefinition(definition({
       kind: 'effect.createEntity',
-      entityType: 'project',
+      typeId: 'project',
       producerOutputId: 'node:entity',
       construction: { mode: 'genericCreate' },
       status: { to: 'NEW' },
@@ -685,7 +685,7 @@ describe('process v4 validation', () => {
           producerOutputId: 'node:entity',
           nodeId: 'node',
           outputSocketId: 'entity',
-          entityType: 'project',
+          typeId: 'project',
           lifecycle: { mode: 'defaultCreated' },
           fields: { read: [], write: [], private: [] }
         }
@@ -735,7 +735,7 @@ describe('process v4 validation', () => {
       dataflowVersion: 4,
       processNodes: {
         source: { id: 'source', kind: 'source.literalItem', type: { base: 'string' }, value: 'a' },
-        list: { id: 'list', kind: 'collection.makeList', type: { base: 'entityRef', entityType: 'queue' } }
+        list: { id: 'list', kind: 'collection.makeList', type: { base: 'entityRef', typeId: 'queue' } }
       },
       graph: {
         nodes: ['source', 'list'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
@@ -754,7 +754,7 @@ describe('process v4 validation', () => {
   });
 });
 
-function entityBlockProcess(entityType) {
+function entityBlockProcess(typeId) {
   return {
     dataflowVersion: 4,
     processNodes: {
@@ -763,13 +763,13 @@ function entityBlockProcess(entityType) {
         kind: 'record.composeBlock',
         block: 'lineage',
         compositionMode: 'ancestors',
-        entries: [{ id: 'project', key: 'projectId', entityType }],
-        inputDefaults: { 'entry:project': { type: entityType, id: 'parent-1' } }
+        entries: [{ id: 'project', key: 'projectId', typeId }],
+        inputDefaults: { 'entry:project': { type: typeId, id: 'parent-1' } }
       },
       create: {
         id: 'create',
         kind: 'effect.createEntity',
-        entityType: 'queue',
+        typeId: 'queue',
         blocks: ['lineage'],
         trigger: { mode: 'manual' }
       }

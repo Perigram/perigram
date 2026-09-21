@@ -25,7 +25,7 @@ describe('queue nesting contract migration', () => {
       requestedArtifacts: []
     });
     expect(result.queue.data.nestingSettings).not.toHaveProperty('spacing');
-    expect(result.queue.data.job.items).toEqual([{ type: 'STATIC', entityType: 'cassette_design', id: 'd1', quantity: 2, parameters: { A: 10 } }]);
+    expect(result.queue.data.job.items).toEqual([{ type: 'STATIC', typeId: 'cassette_design', id: 'd1', quantity: 2, parameters: { A: 10 } }]);
   });
 
   it('refuses to rewrite a queue when a legacy source cannot be resolved', async () => {
@@ -38,7 +38,7 @@ describe('queue nesting contract migration', () => {
 
   it('rejects fractional quantities instead of silently changing demand', async () => {
     const queue = {
-      data: { job: { items: [{ entityType: 'cassette_design', id: 'design-1', quantity: 1.5 }] } }
+      data: { job: { items: [{ typeId: 'cassette_design', id: 'design-1', quantity: 1.5 }] } }
     };
     const result = await migrateLegacyQueue(queue, { resolveDesignId: async () => 'design-1' });
 

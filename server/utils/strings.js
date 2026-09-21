@@ -50,15 +50,15 @@ export async function streamToString(readable) {
   return result;
 }
 
-export function pluralize(entityType) {
-  if (!entityType) return '';
-  if (entityType === 'nesting_run') return 'nesting_runs';
-  if (entityType === 'cassette_instance') return 'cassette_instances';
-  if (entityType === 'sheet_design') return 'sheet_designs';
-  if (entityType === 'cassette_design') return 'cassette_designs';
-  if (entityType === 'layer_standard') return 'layer_standards';
-  if (entityType === 'pen_template') return 'pen_templates';
-  if (entityType === 'material_pile') return 'material_piles';
-  if (entityType === 'material_option') return 'material_options';
-  return `${entityType}s`;
+export function pluralize(typeId) {
+  if (!typeId) return '';
+  if (typeId === 'nesting_run') return 'nesting_runs';
+  if (typeId === 'cassette_instance') return 'cassette_instances';
+  if (typeId === 'sheet_design') return 'sheet_designs';
+  if (typeId === 'cassette_design') return 'cassette_designs';
+  if (typeId === 'layer_standard') return 'layer_standards';
+  if (typeId === 'pen_template') return 'pen_templates';
+  if (typeId === 'material_pile') return 'material_piles';
+  if (typeId === 'material_option') return 'material_options';
+  return `${typeId}s`;
 }

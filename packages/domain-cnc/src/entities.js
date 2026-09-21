@@ -72,7 +72,7 @@ export const cncEntities = [
   { type: 'warehouse', collection: 'warehouses', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'] }
 ].map(withReferenceBlocks).map(withRoutes).map(withIdentityProjection);
 
-export function canonicalEntityType(value = '') {
+export function canonicalTypeId(value = '') {
   const candidate = String(value || '');
   const normalizedRouteType = candidate.replace(/-/g, '_');
   return cncEntities.find(entity => (
@@ -83,6 +83,6 @@ export function canonicalEntityType(value = '') {
 }
 
 export function entitySurfaceKey(value = '') {
-  const canonical = canonicalEntityType(value);
+  const canonical = canonicalTypeId(value);
   return cncEntities.find(entity => entity.type === canonical)?.surfaceKey || '';
 }

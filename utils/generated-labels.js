@@ -3,7 +3,7 @@ import { useRegistryStore } from '~/stores/registry';
 import { isCreateAction, isRelationLinkAction, isUpdateAction } from '~/components/generated/action-visibility.js';
 
 const ENTITY_CONTRACTS_BY_TYPE = new Map(DESIGN_SYSTEM_ENTITY_CONTRACTS.flatMap(entry => [
-  [entry.entityType, entry],
+  [entry.typeId, entry],
   [entry.key, entry]
 ]));
 
@@ -11,19 +11,19 @@ const ENTITY_CONTRACTS_BY_TYPE = new Map(DESIGN_SYSTEM_ENTITY_CONTRACTS.flatMap(
 // hydration (the registry store is the runtime consumption contract).
 // Guarded: contexts without an active Pinia (specs, pure utils) keep the
 // deterministic fallbacks below.
-function authoredTypeLabel(entityType = '') {
-  if (!entityType) return '';
+function authoredTypeLabel(typeId = '') {
+  if (!typeId) return '';
   try {
-    return useRegistryStore().renderOf(entityType).label || '';
+    return useRegistryStore().renderOf(typeId).label || '';
   } catch {
     return '';
   }
 }
 
-export function generatedEntityLabel(entityType = '', { t, te } = {}) {
-  const key = ENTITY_CONTRACTS_BY_TYPE.get(entityType)?.labelKey;
+export function generatedEntityLabel(typeId = '', { t, te } = {}) {
+  const key = ENTITY_CONTRACTS_BY_TYPE.get(typeId)?.labelKey;
   if (key && canTranslate(te, key)) return t(key);
-  return authoredTypeLabel(entityType) || humanize(entityType);
+  return authoredTypeLabel(typeId) || humanize(typeId);
 }
 
 export function generatedScreenLabel(screen = {}, { t, te } = {}) {

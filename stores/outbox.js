@@ -26,12 +26,12 @@ export const useOutboxStore = defineStore('outbox', () => {
         const meta = operation.meta || {}
         const hasSnapshot = Boolean(!duplicate && data)
         if (meta.kind === 'transition') {
-            emitStatusTransitionResult({ entityType: meta.entityType, targetId: meta.entityId, response: hasSnapshot ? data : null })
+            emitStatusTransitionResult({ typeId: meta.typeId, targetId: meta.entityId, response: hasSnapshot ? data : null })
             return
         }
         const change = meta.kind === 'action' ? 'updated' : (meta.change || 'updated')
         emitEntityMutation({
-            type: meta.entityType,
+            type: meta.typeId,
             id: hasSnapshot ? (data?.entity?._id || data?._id) : meta.entityId,
             entity: hasSnapshot ? (meta.kind === 'entity' ? data : (data?.entity || null)) : null,
             change,

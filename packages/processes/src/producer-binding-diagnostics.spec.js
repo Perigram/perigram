@@ -27,14 +27,14 @@ const domain = {
 };
 
 function producerOutputRecords(entries) {
-  return Object.fromEntries(entries.map(([nodeId, entityType]) => {
+  return Object.fromEntries(entries.map(([nodeId, typeId]) => {
     const producerOutputId = `${nodeId}:entity`;
     return [producerOutputId, {
       id: producerOutputId,
       producerOutputId,
       nodeId,
       outputSocketId: 'entity',
-      entityType,
+      typeId,
       lifecycle: { mode: 'defaultCreated' },
       fields: { read: [], write: [], private: [] }
     }];
@@ -50,7 +50,7 @@ function lineageFixture() {
       project_source: {
         id: 'project_source',
         kind: 'effect.createEntity',
-        entityType: 'project',
+        typeId: 'project',
         producerOutputId: 'project_source:entity',
         label: 'Create project',
         trigger: { mode: 'manual' },
@@ -67,7 +67,7 @@ function lineageFixture() {
       create_queue: {
         id: 'create_queue',
         kind: 'effect.createEntity',
-        entityType: 'queue',
+        typeId: 'queue',
         producerOutputId: 'create_queue:entity',
         label: 'Create queue',
         trigger: { mode: 'manual' },
@@ -139,8 +139,8 @@ describe('producer-scoped binding diagnostics', () => {
 
   it('rejects organization as a lineage ancestor with the edge and entry', () => {
     const definition = lineageFixture();
-    definition.processNodes.project_source.entityType = 'organization';
-    definition.producerOutputs['project_source:entity'].entityType = 'organization';
+    definition.processNodes.project_source.typeId = 'organization';
+    definition.producerOutputs['project_source:entity'].typeId = 'organization';
 
     const errors = validateLineageBindingResolution(definition, domain).map(diagnostic => diagnostic.message);
     expect(errors).toHaveLength(1);
@@ -175,7 +175,7 @@ describe('producer-scoped binding diagnostics', () => {
   it('resolves the authored socket alias when the catalog port id differs', () => {
     const bindings = compileLineageBindings(normalizeProcessDefinition(lineageFixture(), domain), domain);
     const binding = bindings.find(item => (
-      item.childEntityType === 'queue' && item.ancestorEntityType === 'project'
+      item.childTypeId === 'queue' && item.parentTypeId === 'project'
     ));
     expect(binding).toBeDefined();
     expect(binding.sourceProducerOutputId).toBe('project_source:entity');
@@ -190,7 +190,7 @@ describe('producer-scoped binding diagnostics', () => {
       construction: {
         mode: 'typedQueue',
         inputs: [
-          { id: 'sourceRef', path: 'sourceRef', type: 'entity', entityType: 'project', required: true, prompt: true }
+          { id: 'sourceRef', path: 'sourceRef', type: 'entity', typeId: 'project', required: true, prompt: true }
         ]
       }
     };

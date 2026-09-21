@@ -17,7 +17,7 @@ const op = (overrides = {}) => ({
     url: '/api/materials',
     method: 'POST',
     body: { name: 'Steel' },
-    meta: { kind: 'entity', entityType: 'material', change: 'created', reason: 'create' },
+    meta: { kind: 'entity', typeId: 'material', change: 'created', reason: 'create' },
     createdAt: new Date().toISOString(),
     attempts: 0,
     ...overrides

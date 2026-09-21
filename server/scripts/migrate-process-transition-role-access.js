@@ -49,9 +49,9 @@ function stripTransitionList(transitions = []) {
 function migrateCompiled(compiled = {}) {
   let changed = false;
   const workflows = {};
-  for (const [entityType, workflow] of Object.entries(compiled.workflows || {})) {
+  for (const [typeId, workflow] of Object.entries(compiled.workflows || {})) {
     const result = stripProcessTransitionAccess(workflow);
-    workflows[entityType] = result.workflow;
+    workflows[typeId] = result.workflow;
     changed ||= result.changed;
   }
 

@@ -135,7 +135,7 @@ describe('Geometry captures service', () => {
     const confirmed = await geometryCaptureService.confirm(capture._id, auth.userId, auth.organizationId, auth.role, auth);
 
     expect(confirmed.status.state.primary).toBe('COMPLETE');
-    expect(confirmed.data.output.entityType).toBe('remnant');
+    expect(confirmed.data.output.typeId).toBe('remnant');
     const remnant = await db.collection('remnants').findOne({});
     expect(remnant.data.source.geometryCaptureId).toBe(capture._id.toString());
     expect(remnant.data.geometry.data.polygon.inner).toHaveLength(1);

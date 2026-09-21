@@ -82,7 +82,7 @@ describe('process programming node ports', () => {
           kind: 'effect.createEntity',
           inputs: [{
             id: 'status.state.primary',
-            type: { base: 'status', shape: 'item', entityType: 'project' },
+            type: { base: 'status', shape: 'item', typeId: 'project' },
             role: 'data'
           }]
         }
@@ -103,7 +103,7 @@ describe('process programming node ports', () => {
     };
 
     expect(resolveNodePort(process, process.graph.nodes[1], 'data:status.state.primary', 'input'))
-      .toMatchObject({ kind: 'status', entityType: 'project' });
+      .toMatchObject({ kind: 'status', typeId: 'project' });
     expect(validateProcessEdges(process)).toEqual([]);
   });
 
@@ -113,13 +113,13 @@ describe('process programming node ports', () => {
         library: {
           id: 'library',
           kind: 'effect.createEntity',
-          entityType: 'library'
+          typeId: 'library'
         },
         relations: {
           id: 'relations',
           kind: 'record.composeBlock',
           compositionMode: 'relations',
-          entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one' }]
+          entries: [{ id: 'library', key: 'library', typeId: 'library', cardinality: 'one' }]
         }
       },
       graph: {
@@ -135,7 +135,7 @@ describe('process programming node ports', () => {
 
     expect(inferProcessDataflowContracts(process).processNodes.relations.entries[0]).toMatchObject({
       key: 'library',
-      entityType: 'library',
+      typeId: 'library',
       cardinality: 'one'
     });
   });
@@ -146,7 +146,7 @@ describe('process programming node ports', () => {
         effect: {
           id: 'effect',
           kind: 'effect.createEntity',
-          outputs: [{ id: 'result', type: { base: 'entity', shape: 'item', entityType: 'library' }, role: 'data' }]
+          outputs: [{ id: 'result', type: { base: 'entity', shape: 'item', typeId: 'library' }, role: 'data' }]
         }
       }
     };
@@ -156,15 +156,15 @@ describe('process programming node ports', () => {
       data: { refId: 'effect' }
     }, 'data:result', 'output');
 
-    expect(output).toMatchObject({ kind: 'entity', entityType: 'library' });
+    expect(output).toMatchObject({ kind: 'entity', typeId: 'library' });
   });
 
   it('preserves list structure through entity projection, predicates, and filtering', () => {
-    expect(resolveProcessNodePorts({ kind: 'entityQuery', entityType: 'queue' }).outputs)
-      .toEqual([expect.objectContaining({ id: 'entities', kind: 'entity_list', entityType: 'queue' })]);
+    expect(resolveProcessNodePorts({ kind: 'entityQuery', typeId: 'queue' }).outputs)
+      .toEqual([expect.objectContaining({ id: 'entities', kind: 'entity_list', typeId: 'queue' })]);
     expect(resolveProcessNodePorts({
       kind: 'entityField',
-      entityType: 'queue',
+      typeId: 'queue',
       path: 'status.state.primary',
       valueType: 'string',
       structure: 'list'
@@ -172,35 +172,35 @@ describe('process programming node ports', () => {
       inputs: [expect.objectContaining({ id: 'entity', kind: 'entity_list' })],
       outputs: [expect.objectContaining({ id: 'value', kind: 'string_list' })]
     });
-    expect(resolveProcessNodePorts({ kind: 'entityFilter', entityType: 'queue' }).inputs)
+    expect(resolveProcessNodePorts({ kind: 'entityFilter', typeId: 'queue' }).inputs)
       .toEqual([
         expect.objectContaining({ id: 'entities', kind: 'entity_list' }),
-        expect.objectContaining({ id: 'predicate', kind: 'predicate', entityType: 'queue' })
+        expect.objectContaining({ id: 'predicate', kind: 'predicate', typeId: 'queue' })
       ]);
   });
 
   it('models entity filtering as typed predicates instead of parallel masks', () => {
     expect(resolveProcessNodePorts({
       kind: 'entityCondition',
-      entityType: 'queue',
+      typeId: 'queue',
       path: 'status.state.primary',
       operation: 'eq',
       valueType: 'string'
     })).toEqual({
       inputs: [expect.objectContaining({ id: 'value', kind: 'string' })],
-      outputs: [expect.objectContaining({ id: 'predicate', kind: 'predicate', entityType: 'queue' })]
+      outputs: [expect.objectContaining({ id: 'predicate', kind: 'predicate', typeId: 'queue' })]
     });
     expect(resolveProcessNodePorts({
       kind: 'predicateLogic',
-      entityType: 'queue',
+      typeId: 'queue',
       operation: 'and'
     }).inputs).toEqual([
-      expect.objectContaining({ id: 'left', kind: 'predicate', entityType: 'queue' }),
-      expect.objectContaining({ id: 'right', kind: 'predicate', entityType: 'queue' })
+      expect.objectContaining({ id: 'left', kind: 'predicate', typeId: 'queue' }),
+      expect.objectContaining({ id: 'right', kind: 'predicate', typeId: 'queue' })
     ]);
     expect(portSpecsCompatible(
-      { kind: 'predicate', entityType: 'queue' },
-      { kind: 'predicate', entityType: 'project' }
+      { kind: 'predicate', typeId: 'queue' },
+      { kind: 'predicate', typeId: 'project' }
     ).ok).toBe(false);
   });
 
@@ -208,8 +208,8 @@ describe('process programming node ports', () => {
     const process = inferProcessDataflowContracts({
       valueInputs: {},
       processNodes: {
-        query: { id: 'query', kind: 'entityQuery', entityType: 'queue' },
-        field: { id: 'field', kind: 'entityField', entityType: 'queue', path: 'summary.totalArea', valueType: 'number', structure: 'item' },
+        query: { id: 'query', kind: 'entityQuery', typeId: 'queue' },
+        field: { id: 'field', kind: 'entityField', typeId: 'queue', path: 'summary.totalArea', valueType: 'number', structure: 'item' },
         compare: { id: 'compare', kind: 'compare', operation: 'gte', valueType: 'string', structure: 'item' },
         cast: { id: 'cast', kind: 'cast', valueType: 'string', structure: 'item' }
       },

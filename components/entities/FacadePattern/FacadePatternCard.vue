@@ -1,6 +1,6 @@
 <template>
-  <EntityCard :entity="facadePattern" entity-type="facadePattern" :variant="variant">
-    <EntitySurfaceContent :entity="facadePattern" entity-type="facadePattern" :surface="variant" />
+  <EntityCard :entity="facadePattern" type-id="facadePattern" :variant="variant">
+    <EntitySurfaceContent :entity="facadePattern" type-id="facadePattern" :surface="variant" />
   </EntityCard>
 </template>
 <script setup>

@@ -17,7 +17,7 @@
 
     <section v-if="activeGroup" class="flex flex-col gap-10">
       <article v-for="row in activeRowsWithModels" :key="row.key" class="flex flex-col gap-4">
-        <ActionToolbar :title="$t(row.labelKey)" :subtitle="`${row.entityType} · ${row.propName}`" :level="2">
+        <ActionToolbar :title="$t(row.labelKey)" :subtitle="`${row.typeId} · ${row.propName}`" :level="2">
             <template #actions>
                 <Tag :value="$t(`uiLab.statusPolicy.${row.status}`)" severity="secondary" />
                 <Tag :value="row.trace ? $t('uiLab.tracePolicy.enabled') : $t('uiLab.tracePolicy.hidden')" severity="secondary" />
@@ -60,8 +60,8 @@
             <small class="text-muted">{{ primitive.purpose }}</small>
 
             <template v-if="primitive.key === 'EntityCard'">
-              <EntityCard :entity="primitiveEntity" entity-type="queue">
-                <DataBlock entity-type="queue" :entity="primitiveEntity" :fields="queueFields" />
+              <EntityCard :entity="primitiveEntity" type-id="queue">
+                <DataBlock type-id="queue" :entity="primitiveEntity" :fields="queueFields" />
                 <template #footer>
                   <Button :label="$t('common.open')" icon="pi pi-external-link" text size="small" />
                 </template>
@@ -69,7 +69,7 @@
             </template>
 
             <template v-else-if="primitive.key === 'EntityPage'">
-              <EntityPage :entity="primitiveEntity" entity-type="queue">
+              <EntityPage :entity="primitiveEntity" type-id="queue">
                 <template #info>
                   <small>{{ primitiveEntity.queueNumber }}</small>
                 </template>
@@ -86,7 +86,7 @@
                 :options="primitiveQueueOptions"
                 option-label="label"
                 option-value="value"
-                entity-type="queue"
+                type-id="queue"
                 class="w-full"
               />
             </template>
@@ -97,7 +97,7 @@
                 :options="primitiveQueueOptions"
                 option-label="label"
                 option-value="value"
-                entity-type="queue"
+                type-id="queue"
                 class="w-full"
               />
             </template>
@@ -109,11 +109,11 @@
             </template>
 
             <template v-else-if="primitive.key === 'DataBlock'">
-              <DataBlock entity-type="materialPile" :entity="pileEntity" :fields="pileFields" />
+              <DataBlock type-id="materialPile" :entity="pileEntity" :fields="pileFields" />
             </template>
 
             <template v-else-if="primitive.key === 'SpecsBlock'">
-              <SpecsBlock entity-type="sheet" :entity="sheetEntity" />
+              <SpecsBlock type-id="sheet" :entity="sheetEntity" />
             </template>
 
             <template v-else-if="primitive.key === 'StatusBadge'">
@@ -125,8 +125,8 @@
             </template>
 
             <template v-else-if="primitive.key === 'EntityStatus'">
-            <EntityStatus :entity="primitiveEntity" entity-type="queue" variant="inline" />
-            <EntityStatus :entity="primitiveEntity" entity-type="queue" variant="full" :show-actions="false" />
+            <EntityStatus :entity="primitiveEntity" type-id="queue" variant="inline" />
+            <EntityStatus :entity="primitiveEntity" type-id="queue" variant="full" :show-actions="false" />
             </template>
 
             <template v-else-if="primitive.key === 'StatusLocation'">
@@ -134,7 +134,7 @@
             </template>
 
             <template v-else-if="primitive.key === 'StatusHistory'">
-              <StatusHistory entity-type="queue" :entity="primitiveEntity" :mock-events="mockHistory" />
+              <StatusHistory type-id="queue" :entity="primitiveEntity" :mock-events="mockHistory" />
             </template>
 
             <template v-else-if="primitive.key === 'GeometryPreview'">
@@ -168,7 +168,7 @@
             </template>
 
             <template v-else-if="primitive.key === 'TraceChain'">
-              <TraceChain :entity="primitiveEntity" entity-type="queue" />
+              <TraceChain :entity="primitiveEntity" type-id="queue" />
             </template>
 
             <template v-else-if="primitive.key === 'ActionToolbar'">
@@ -210,7 +210,7 @@
                 @cancel="dialogVisible = false"
                 @save="dialogVisible = false"
               >
-                <DataBlock entity-type="materialPile" :entity="pileEntity" :fields="pileFields" />
+                <DataBlock type-id="materialPile" :entity="pileEntity" :fields="pileFields" />
               </StandardDialog>
             </template>
 
@@ -242,7 +242,7 @@
 
       <DataTable :value="contractRows" size="small">
         <Column field="label" :header="$t('uiLab.contract.entity')" />
-        <Column field="entityType" :header="$t('uiLab.contract.entityType')" />
+        <Column field="typeId" :header="$t('uiLab.contract.typeId')" />
         <Column field="propName" :header="$t('uiLab.contract.prop')" />
         <Column field="status" :header="$t('uiLab.contract.status')" />
         <Column field="trace" :header="$t('uiLab.contract.trace')" />
@@ -418,7 +418,7 @@ const queueFields = [
 const contractRows = computed(() =>
   rows.map((row) => ({
     label: row.key,
-    entityType: row.entityType,
+    typeId: row.typeId,
     propName: row.propName,
     status: row.status,
     trace: row.trace ? 'yes' : 'no',

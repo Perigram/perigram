@@ -21,7 +21,7 @@ function definition() {
         producerOutputId: 'create:entity',
         nodeId: 'create',
         outputSocketId: 'entity',
-        entityType: 'project',
+        typeId: 'project',
         fields: { read: [], write: [], private: [] }
       }
     }
@@ -45,7 +45,7 @@ describe('producer output process contract', () => {
       producerOutputId: 'create:entity',
       nodeId: 'create',
       outputSocketId: 'entity',
-      entityType: 'project'
+      typeId: 'project'
     });
     expect(compiled.producerOutputs['create:entity'].workflow).toBeTruthy();
     expect(compiled.producerOutputs['create:entity'].fieldPolicy).toBeTruthy();
@@ -60,13 +60,13 @@ describe('producer output process contract', () => {
 
   it('requires entity actions to carry their producer output context', () => {
     const process = normalizeProcessDefinition(definition(), domain);
-    const action = { id: 'rename', actionKind: 'updateEntity', entityType: 'project' };
+    const action = { id: 'rename', actionKind: 'updateEntity', typeId: 'project' };
 
     expect(() => compileActions({ rename: action }, process, domain)).toThrow('requires producerOutputId');
     expect(compileActions({
       rename: { ...action, producerOutputId: 'create:entity' }
     }, process, domain).rename).toMatchObject({
-      entityType: 'project',
+      typeId: 'project',
       producerOutputId: 'create:entity'
     });
   });
@@ -77,7 +77,7 @@ describe('producer output process contract', () => {
       create: {
         id: 'create',
         kind: 'effect.createEntity',
-        entityType: 'project',
+        typeId: 'project',
         producerOutputId: 'create:entity',
         construction: { mode: 'genericCreate', inputs: [] },
         status: { to: 'CREATED' },
@@ -88,7 +88,7 @@ describe('producer output process contract', () => {
     source.graph.nodes = [{ id: 'create', type: 'processNode', data: { refId: 'create' } }];
 
     expect(compileProcessDefinition(source, domain).actions.create)
-      .toMatchObject({ id: 'create', producerOutputId: 'create:entity', entityType: 'project' });
+      .toMatchObject({ id: 'create', producerOutputId: 'create:entity', typeId: 'project' });
   });
 });
 
@@ -134,15 +134,15 @@ describe('producer output entry-state and binding diagnostics', () => {
   it('binds consumer effects to the upstream producer instead of minting own outputs', () => {
     const source = definition();
     source.processNodes = {
-      create: { id: 'create', kind: 'effect.createEntity', entityType: 'project', producerOutputId: 'create:entity', construction: { mode: 'genericCreate', inputs: [] }, status: { to: 'CREATED' } },
-      rename: { id: 'rename', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'manual' }, status: { to: 'ACTIVE' } },
-      stale: { id: 'stale', kind: 'effect.changeStatus', entityType: 'project', trigger: { mode: 'manual' }, status: { to: 'ACTIVE' }, producerOutputId: 'stale:result' }
+      create: { id: 'create', kind: 'effect.createEntity', typeId: 'project', producerOutputId: 'create:entity', construction: { mode: 'genericCreate', inputs: [] }, status: { to: 'CREATED' } },
+      rename: { id: 'rename', kind: 'effect.updateEntity', typeId: 'project', trigger: { mode: 'manual' }, status: { to: 'ACTIVE' } },
+      stale: { id: 'stale', kind: 'effect.changeStatus', typeId: 'project', trigger: { mode: 'manual' }, status: { to: 'ACTIVE' }, producerOutputId: 'stale:result' }
     };
     source.producerOutputs['stale:result'] = {
       producerOutputId: 'stale:result',
       nodeId: 'stale',
       outputSocketId: 'result',
-      entityType: 'project',
+      typeId: 'project',
       fields: { read: [], write: [], private: [] }
     };
     source.graph = {
@@ -199,7 +199,7 @@ describe('producer output entry-state and binding diagnostics', () => {
 
   it('rejects an entity action without a producer binding at validation time', () => {
     const invalid = definition();
-    invalid.actions = { rename: { id: 'rename', actionKind: 'updateEntity', entityType: 'project' } };
+    invalid.actions = { rename: { id: 'rename', actionKind: 'updateEntity', typeId: 'project' } };
 
     const validation = validateProcessDefinition(invalid, domain);
     expect(validation.ok).toBe(false);
@@ -209,7 +209,7 @@ describe('producer output entry-state and binding diagnostics', () => {
 
   it('rejects an action bound to an unknown or mistyped producer output', () => {
     const unknown = definition();
-    unknown.actions = { rename: { id: 'rename', actionKind: 'updateEntity', entityType: 'project', producerOutputId: 'ghost:entity' } };
+    unknown.actions = { rename: { id: 'rename', actionKind: 'updateEntity', typeId: 'project', producerOutputId: 'ghost:entity' } };
     expect(validateProcessDefinition(unknown, domain).errors.join('\n'))
       .toContain('Action rename uses unknown producerOutputId ghost:entity');
 
@@ -218,9 +218,9 @@ describe('producer output entry-state and binding diagnostics', () => {
       ...mistyped.producerOutputs['create:entity'],
       producerOutputId: 'other:entity',
       nodeId: 'other',
-      entityType: 'queue'
+      typeId: 'queue'
     };
-    mistyped.actions = { rename: { id: 'rename', actionKind: 'updateEntity', entityType: 'project', producerOutputId: 'other:entity' } };
+    mistyped.actions = { rename: { id: 'rename', actionKind: 'updateEntity', typeId: 'project', producerOutputId: 'other:entity' } };
     expect(validateProcessDefinition(mistyped, domain).errors.join('\n'))
       .toContain('Action rename producerOutputId emits queue, not project');
   });

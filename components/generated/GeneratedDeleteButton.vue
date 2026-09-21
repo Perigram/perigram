@@ -22,11 +22,11 @@ import { useConfirm } from 'primevue/useconfirm';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
-import { canDeleteGeneratedEntity, uiEntityType } from '~/components/generated/delete-visibility.js';
+import { canDeleteGeneratedEntity } from '~/components/generated/delete-visibility.js';
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  entityType: { type: String, required: true },
+  typeId: { type: String, required: true },
   menuItem: { type: Boolean, default: false }
 });
 
@@ -39,11 +39,11 @@ const confirm = useConfirm();
 const { t } = useI18n();
 const loading = ref(false);
 
-const normalizedType = computed(() => instances.canonicalTypeKey(props.entityType));
+const normalizedType = computed(() => instances.canonicalTypeKey(props.typeId));
 const visible = computed(() => canDeleteGeneratedEntity({
   authStore,
   entity: props.entity,
-  entityType: props.entityType
+  typeId: props.typeId
 }));
 const entityId = computed(() => props.entity?._id || props.entity?.identity?.uid || '');
 
@@ -60,7 +60,7 @@ function removeEntity() {
 async function performDelete() {
   loading.value = true;
   try {
-    await instances.removeInstance(normalizedType.value, entityId.value, { entityType: props.entityType, entity: props.entity });
+    await instances.removeInstance(normalizedType.value, entityId.value, { typeId: props.typeId, entity: props.entity });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('common.delete'), life: 2000 });
     emit('deleted');
   } catch (error) {

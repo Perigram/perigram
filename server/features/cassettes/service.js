@@ -43,7 +43,7 @@ function buildMappedLayerData(fileBuffer, layerMapping = {}) {
       sourceLayer,
       coordinates: part.coordinates,
       handles: part.handles || [],
-      entityType: part.entityType,
+      typeId: part.typeId,
       sourceId: `${sourceLayer}:${part.handles?.[0] || index}`
     }));
   });
@@ -78,7 +78,7 @@ function geometryRevisionPointer(revision) {
 
 async function ensureGeometryRevision(cassette, userId, reason = 'content-change') {
   const revision = await entityRevisionsService.ensureForEntitySnapshot({
-    entityType: 'cassette',
+    typeId: 'cassette',
     entity: cassette,
     scope: GEOMETRY_REVISION_SCOPE,
     content: geometryRevisionContent(cassette),
@@ -348,7 +348,7 @@ function statusTimestamp(entity = {}) {
 function cassettePreview(cassette = {}, userPermissions = null) {
   const preview = {
     _id: cassette._id?.toString?.() || cassette._id,
-    entityType: 'cassette',
+    typeId: 'cassette',
     identity: {
       ...(cassette.identity || {}),
       name: cassette.identity?.name || cassette.identity?.slug || cassette.identity?.uid || 'Cassette'
@@ -519,7 +519,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
   if (updates.status && typeof updates.status === 'string') {
     await statusService.transitionWithResult({
-      entityType: 'cassette',
+      typeId: 'cassette',
       targetId: cassette._id,
       targetState: updates.status,
       auth: createTransitionAuth(userId, userRole, userPermissions),
@@ -604,7 +604,7 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'cassette',
+  typeId: 'cassette',
   repository,
   Model: Cassette
 });

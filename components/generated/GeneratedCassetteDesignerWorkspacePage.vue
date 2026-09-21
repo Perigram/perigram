@@ -40,7 +40,7 @@ function openTemplate(cassetteIdValue) {
   emit('open-page', {
     pageId: 'cassette-designer',
     entity: cassette,
-    entityType: 'cassette'
+    typeId: 'cassette'
   });
 }
 

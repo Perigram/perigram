@@ -25,7 +25,7 @@ export function openEntityInWorkspace({ typeId = '', entityId = '' } = {}) {
   }));
   if (handled) return true;
   const pending = usePendingWorkspaceEntity();
-  pending.value = { entityType, entityId };
+  pending.value = { typeId, entityId };
   navigateTo(homeWorkspaceRoute() || '/');
   return true;
 }

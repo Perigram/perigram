@@ -26,14 +26,14 @@ const domain = {
 };
 
 function producerOutputRecords(entries) {
-  return Object.fromEntries(entries.map(([nodeId, entityType]) => {
+  return Object.fromEntries(entries.map(([nodeId, typeId]) => {
     const producerOutputId = `${nodeId}:entity`;
     return [producerOutputId, {
       id: producerOutputId,
       producerOutputId,
       nodeId,
       outputSocketId: 'entity',
-      entityType,
+      typeId,
       lifecycle: { mode: 'defaultCreated' },
       fields: { read: [], write: [], private: [] }
     }];
@@ -44,7 +44,7 @@ function createProjectRecord(id, label) {
   return {
     id,
     kind: 'effect.createEntity',
-    entityType: 'project',
+    typeId: 'project',
     producerOutputId: `${id}:entity`,
     label,
     trigger: { mode: 'manual' },
@@ -63,13 +63,13 @@ function joinedFixture({ selectedProducerOutputId = 'project_a:entity' } = {}) {
       join_paths: {
         id: 'join_paths',
         kind: 'producer.join',
-        entityType: 'project',
+        typeId: 'project',
         selectedProducerOutputId
       },
       consumer: {
         id: 'consumer',
         kind: 'collection.count',
-        type: { base: 'entity', entityType: 'project' }
+        type: { base: 'entity', typeId: 'project' }
       }
     },
     graph: {
@@ -95,7 +95,7 @@ describe('explicit producer join contract', () => {
     definition.processNodes.consumer = {
       id: 'consumer',
       kind: 'collection.makeList',
-      type: { base: 'entity', entityType: 'project' }
+      type: { base: 'entity', typeId: 'project' }
     };
     definition.graph.nodes = definition.graph.nodes.filter(node => node.id !== 'join_paths');
     definition.graph.edges = [
@@ -147,9 +147,9 @@ describe('explicit producer join contract', () => {
     const ids = syncProcessNodeProducerOutputs(data, {
       id: 'join_paths',
       kind: 'producer.join',
-      entityType: 'project',
+      typeId: 'project',
       selectedProducerOutputId: 'project_a:entity',
-      outputs: [{ id: 'result', type: { base: 'entity', entityType: 'project' } }]
+      outputs: [{ id: 'result', type: { base: 'entity', typeId: 'project' } }]
     });
     expect(ids).toEqual([]);
     expect(Object.keys(data.producerOutputs)).toEqual(['project_a:entity']);
@@ -162,12 +162,12 @@ describe('explicit producer join contract', () => {
       kind: 'record.composeBlock',
       block: 'lineage',
       compositionMode: 'ancestors',
-      entries: [{ id: 'project', key: 'projectId', entityType: 'project' }]
+      entries: [{ id: 'project', key: 'projectId', typeId: 'project' }]
     };
     definition.processNodes.create_queue = {
       id: 'create_queue',
       kind: 'effect.createEntity',
-      entityType: 'queue',
+      typeId: 'queue',
       producerOutputId: 'create_queue:entity',
       label: 'Create queue',
       trigger: { mode: 'manual' },
@@ -186,7 +186,7 @@ describe('explicit producer join contract', () => {
     );
 
     const bindings = compileLineageBindings(normalizeProcessDefinition(definition, domain), domain);
-    const binding = bindings.find(item => item.childEntityType === 'queue' && item.ancestorEntityType === 'project');
+    const binding = bindings.find(item => item.childTypeId === 'queue' && item.parentTypeId === 'project');
     expect(binding).toBeDefined();
     expect(binding.sourceProducerOutputId).toBe('project_b:entity');
   });
@@ -195,7 +195,7 @@ describe('explicit producer join contract', () => {
     const result = await executeProcessDataNode({
       id: 'join_paths',
       kind: 'producer.join',
-      entityType: 'project',
+      typeId: 'project',
       selectedProducerOutputId: 'project_a:entity'
     }, {
       primary: createDataPacket([{ id: 'a1' }, { id: 'a2' }], 'list'),

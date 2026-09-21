@@ -14,7 +14,7 @@ import { entityUiFor } from '~/utils/status-engine';
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  entityType: { type: String, required: true },
+  typeId: { type: String, required: true },
   title: { type: String, default: null },
   loading: { type: Boolean, default: false },
   showTrace: { type: Boolean, default: false },
@@ -31,24 +31,24 @@ const emit = defineEmits(['refresh']);
 const { t, te } = useI18n();
 const effectiveTitle = computed(() => props.title || '');
 const typeLabel = computed(() => {
-  const contract = DESIGN_SYSTEM_ENTITY_CONTRACTS.find(entry => entry.key === props.entityType || entry.entityType === props.entityType);
+  const contract = DESIGN_SYSTEM_ENTITY_CONTRACTS.find(entry => entry.key === props.typeId || entry.typeId === props.typeId);
   const key = contract?.labelKey;
   if (!key || !te?.(key)) return '';
   const label = t(key);
   return typeof label === 'string' ? label : '';
 });
-const entityIcon = computed(() => entityUiFor(props.entityType).icon);
+const entityIcon = computed(() => entityUiFor(props.typeId).icon);
 const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
 provide('displayedEntityContexts', computed(() => [
   ...(unref(parentDisplayedEntityContexts) || []),
-  { type: props.entityType, entity: props.entity }
+  { type: props.typeId, entity: props.entity }
 ]));
 </script>
 
 <template>
   <div class="entity-page flex w-full min-w-0 flex-col gap-6">
     <div v-if="showHeader" class="flex flex-col gap-3 border-b border-content-border pb-5" data-entity-page-header>
-      <TraceChain v-if="showTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" />
+      <TraceChain v-if="showTrace" :entity="entity" :type-id="typeId" :exclude="traceExclusions" />
 
       <div class="entity-page-header-content flex flex-col gap-3">
         <div class="flex min-w-0 flex-col gap-1">
@@ -63,7 +63,7 @@ provide('displayedEntityContexts', computed(() => [
             <EntityStatus
               v-if="showStatus"
               :entity="entity"
-              :entity-type="entityType"
+              :type-id="typeId"
               variant="inline"
               :actions="statusActions"
               @refresh="$emit('refresh')"

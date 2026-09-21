@@ -41,15 +41,15 @@
       <div class="flex flex-col gap-3">
         <div class="flex min-w-0 items-center justify-between gap-2">
           <div class="flex min-w-0 items-center gap-2">
-            <i :class="entityIconFor(producer.entityType)" />
-            <strong class="truncate">{{ entityTypeLabelFor(producer.entityType) }}</strong>
+            <i :class="entityIconFor(producer.typeId)" />
+            <strong class="truncate">{{ typeIdLabelFor(producer.typeId) }}</strong>
           </div>
           <Tag :value="$t('processDesigner.producerOutputTag')" severity="secondary" size="small" />
         </div>
         <code class="text-supporting text-muted break-all">{{ producer.producerOutputId }}</code>
         <div class="flex flex-col gap-1">
           <label>{{ $t('processDesigner.relations') }}</label>
-          <MultiSelect v-model="producer.relations" :options="relationOptionsFor(producer.entityType)" option-label="label" option-value="value" display="chip" class="w-full" @change="$emit('sync')" />
+          <MultiSelect v-model="producer.relations" :options="relationOptionsFor(producer.typeId)" option-label="label" option-value="value" display="chip" class="w-full" @change="$emit('sync')" />
         </div>
         <small class="text-muted">{{ $t('processDesigner.producerWorkflowHint') }}</small>
       </div>
@@ -140,10 +140,10 @@
       </div>
     </Panel>
     <div v-if="op === 'producer.join'" class="flex flex-col gap-1">
-      <label>{{ $t('processDesigner.entityType') }}</label>
+      <label>{{ $t('processDesigner.typeId') }}</label>
       <Select
-        :model-value="entityType"
-        :options="entityTypeOptions"
+        :model-value="typeId"
+        :options="typeIdOptions"
         option-label="label"
         option-value="value"
         @update:model-value="value => $emit('update-join-entity', value)"
@@ -157,7 +157,7 @@
         @update:model-value="value => $emit('update-join-producer', value)"
       />
     </div>
-    <div v-if="op === 'effect.createEntity' && entityType && constructionModes.length" class="flex flex-col gap-1">
+    <div v-if="op === 'effect.createEntity' && typeId && constructionModes.length" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.constructionMode') }}</label>
       <Select
         :model-value="record.construction?.mode ?? record.via"
@@ -167,7 +167,7 @@
         @update:model-value="mode => $emit('update-construction-mode', mode)"
       />
     </div>
-    <div v-if="op === 'effect.createEntity' && entityType === 'artifact'" class="flex flex-col gap-1">
+    <div v-if="op === 'effect.createEntity' && typeId === 'artifact'" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.allowedArtifactCreation') }}</label>
       <MultiSelect
         :model-value="artifactKinds"
@@ -190,7 +190,7 @@
     </div>
     <div v-if="op === 'read.related'" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.relation') }}</label>
-      <Select v-model="record.relationKey" :options="relationOptionsFor(entityType)" option-label="label" option-value="value" filter @change="$emit('sync')" />
+      <Select v-model="record.relationKey" :options="relationOptionsFor(typeId)" option-label="label" option-value="value" filter @change="$emit('sync')" />
     </div>
   </div>
 </template>
@@ -223,7 +223,7 @@ const props = defineProps({
   // policy lists on the producer output select among them.
   fieldPolicyOptions: { type: Array, default: () => [] },
   relationOptionsFor: { type: Function, default: () => [] },
-  entityTypeOptions: { type: Array, default: () => [] },
+  typeIdOptions: { type: Array, default: () => [] },
   roleOptions: { type: Array, default: () => [] },
   commandOptions: { type: Array, default: () => [] },
   commandService: { type: Object, default: null },
@@ -260,7 +260,7 @@ defineEmits([
 const { t } = useI18n();
 const op = computed(() => operationKindOf(props.record || {}));
 const isEffect = computed(() => op.value.startsWith('effect.'));
-const entityType = computed(() => typeIdOf(props.record || {}));
+const typeId = computed(() => typeIdOf(props.record || {}));
 const dataInputs = computed(() => props.inputs.filter(item => item.role === 'data'));
 const accessLevelOptions = computed(() => [
   { label: t('processDesigner.accessRead'), value: 'read' },
@@ -273,10 +273,10 @@ const serviceBillingModeOptions = computed(() => [
   { label: t('processDesigner.serviceBillingPrepaidTokens'), value: 'prepaidTokens' }
 ]);
 
-function entityTypeLabelFor(entityType) {
-  return props.entityTypeOptions.find(option => option.value === entityType)?.label || entityType || '';
+function typeIdLabelFor(typeId) {
+  return props.typeIdOptions.find(option => option.value === typeId)?.label || typeId || '';
 }
-function entityIconFor(entityType) {
-  return cncUiSurfaces.find(surface => surface.entityType === entityType)?.icon || 'pi pi-box';
+function entityIconFor(typeId) {
+  return cncUiSurfaces.find(surface => surface.typeId === typeId)?.icon || 'pi pi-box';
 }
 </script>

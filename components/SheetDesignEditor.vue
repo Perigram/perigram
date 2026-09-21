@@ -118,7 +118,7 @@
         :options="cassetteOptions"
         option-label="label"
         option-value="value"
-        entity-type="cassetteDesign"
+        type-id="cassetteDesign"
         class="w-full"
         :placeholder="$t('sheetDesign.selectCassette')"
       />

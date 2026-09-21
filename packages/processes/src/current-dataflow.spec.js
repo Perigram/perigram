@@ -16,7 +16,7 @@ const SYNTHETIC_TEMPLATES = [
     entities: {
       widget: {
         id: 'widget',
-        entityType: 'widget',
+        typeId: 'widget',
         label: 'Widget',
         lifecycle: { mode: 'domainDefault', workflow: null },
         fields: { read: ['identity.*'], write: [], private: [] },
@@ -84,7 +84,7 @@ describe('current process dataflow contract', () => {
         create: { id: 'create', actionKind: 'createEntity', label: 'Create entity' }
       },
       processNodes: {
-        create: { id: 'create', kind: 'effect.createEntity', entityType: 'project' }
+        create: { id: 'create', kind: 'effect.createEntity', typeId: 'project' }
       },
       graph: {
         nodes: [{ id: 'create', type: 'processNode', data: { refId: 'create' } }],

@@ -65,7 +65,7 @@ Standardized display for entity dimensional specs (width, length, area, sheetThi
 | `default` | Dimension-first grid with the main width/length span separated from area and thickness metrics |
 | `compact` | Inline dimensions, thickness, foil, and area facts for embedded card rows |
 
-Props: `entity-type` (required), `:entity` (required), `:access-entity` (optional parent entity for scoped permission checks), `variant`.
+Props: `type-id` (required), `:entity` (required), `:access-entity` (optional parent entity for scoped permission checks), `variant`.
 
 `SpecsBlock` is access-aware. It renders only spec paths allowed by the shared
 field policy in `@cutkit/domain-cnc` and the active auth-store permission
@@ -81,10 +81,10 @@ Standardized label/value display for entity-specific data fields (anything not c
 const FIELDS = [
     { path: 'data.diameter', i18n: 'toolProfile.diameter', suffix: ' mm' },
 ]
-<DataBlock entity-type="toolProfile" :entity="tool" :fields="FIELDS" />
+<DataBlock type-id="toolProfile" :entity="tool" :fields="FIELDS" />
 ```
 
-Props: `entity-type` (required), `:entity` (required), `:access-entity` (optional parent entity for scoped permission checks), `:fields` (required — inline array of field descriptors), `variant` (`default` definition grid or `compact` inline facts).
+Props: `type-id` (required), `:entity` (required), `:access-entity` (optional parent entity for scoped permission checks), `:fields` (required — inline array of field descriptors), `variant` (`default` definition grid or `compact` inline facts).
 
 **Field schema:** `{ path, i18n, suffix?, prefix? }` — `path` is dot-notation into entity object, `i18n` is the translation key for the label. Rows with null/undefined values are hidden automatically.
 Values are formatted through `utils/data-display.js`: scalar arrays render as comma-separated text, arrays of objects render as counts, objects render only when they expose a stable identifier (`name`, `label`, `code`, `serial`, `reference`, `uid`, or `_id`), and non-displayable nested objects are hidden. Fields with `display: 'parameterMap'` render scalar object entries as exact named parameters such as `A=1200, B=400`; use this for materialized cassette design values, not symbolic template parameter lists.
@@ -102,7 +102,7 @@ local constants. Constructor descriptors can also declare `fallbackPaths` and
 `priority`; `DataBlock` uses the first non-empty allowed path and hides rows
 that resolve to empty values.
 Rows are filtered through `shared/entity-field-access.js`. A descriptor path
-must match the domain field policy for `entity-type`, and the current auth
+must match the domain field policy for `type-id`, and the current auth
 grant must satisfy that policy level. When the active organization process
 provides field policies, `DataBlock` applies those process policies before the
 domain defaults. Do not render sensitive or entity-specific facts beside
@@ -202,7 +202,7 @@ status names render as data, not as missing translation keys.
 ### `EntityStatus.vue`
 Interactive status component for display + state-machine transitions. Status-changing action buttons must live here (not in parent layouts).
 
-Props: `:entity`, `entity-type`, `variant` (`icon` | `inline` | `full`), `:actions` (optional lifecycle override set for workflow-driven surfaces), `:expanded` (optional override).
+Props: `:entity`, `type-id`, `variant` (`icon` | `inline` | `full`), `:actions` (optional lifecycle override set for workflow-driven surfaces), `:expanded` (optional override).
 `variant="icon"` renders the primary status as an accessible icon-only badge
 while retaining the normal interactive popover, transitions, location, and
 history. Icon mode is a bare semantic status dot with no Tag fill or border. In
@@ -222,7 +222,7 @@ Status transition results and failures are surfaced through PrimeVue toast
 messages. Failed transitions also refresh server actions and emit `refresh`, so
 stale popover actions are corrected after backend preflight rejects an action.
 The root exposes stable E2E hooks through `data-entity-status`,
-`data-entity-type`, and `data-entity-id`; menu triggers and transition buttons
+`data-type-id`, and `data-entity-id`; menu triggers and transition buttons
 use `data-status-menu-trigger` and `data-status-action`.
 
 **Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@cutkit/domain-cnc` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `EntityStatus`, hides it, or renders read-only status.
@@ -269,7 +269,7 @@ schema, not from page-local loaded data.
 ### `StatusHistory.vue`
 Fetches and displays the audit log (`status_events`) for any entity.
 
-Props: `:entity`, `entity-type`, `target-id`, `mock-events`, `compact`.
+Props: `:entity`, `type-id`, `target-id`, `mock-events`, `compact`.
 Events render as a single-column audit list so the component fits cards,
 popovers, sidebars, and other narrow surfaces. The event header contains the
 status badge, actor display name, and timestamp in a wrapping row; timestamps
@@ -421,7 +421,7 @@ feature routes. Cassette, cassette-design, and sheet-design compact refs
 suppress dimension annotation layers in their micro preview so annotation text
 does not overpower the gallery thumbnail. Inline-ref popovers also force the shared `TraceChain` even
 when the base card surface normally hides trace in compact contexts, and show a
-small localized entity-type label above the identity row so the operator can
+small localized type-id label above the identity row so the operator can
 see both lineage context and exact entity kind without adding extra chrome to
 the collapsed chip or compact micro card itself. Their expanded body uses the
 card surface contract with compact data display, suppressed child counts, and
@@ -484,7 +484,7 @@ parts parse http(s) URLs into safe anchors (`noopener`, inherit-colored so
 both bubble sides stay readable); trailing punctuation peels off the link and
 stays text. Chat
 composers must source supported ref types from the support
-entity-types endpoint, which derives choices from readable generated screen
+type-ids endpoint, which derives choices from readable generated screen
 sources, and concrete refs from the support entity-options endpoint instead of
 manual ids. Chat message refs may also carry compact entity snapshots plus
 chat-only recipient metadata; `SupportMessageContent` passes those snapshots
@@ -583,7 +583,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   propagation chain for registered full-screen workspaces.
 - **`TypedSettingsForm.vue`**: Contract-driven form for simple typed field
   descriptors (`string`, `number`, `boolean`, `enum`, `entityId`,
-  `entityType`, `workflowState`, `array`, `object`). Used by admin operation
+  `typeId`, `workflowState`, `array`, `object`). Used by admin operation
   parameters and lifecycle hook settings so those surfaces do not fall back to
   raw JSON editors. Entity type helper text is shown only for `entityId`
   selectors, not workflow-state selectors.
@@ -615,7 +615,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   around PrimeVue Select/MultiSelect. Ordinary scalar, enum, role, and process
   record options preserve PrimeVue rendering and caller slots unchanged. When
   options contain either canonical entity DTOs or
-  `{ label, value, entity }` records and an explicit `entity-type`, option rows
+  `{ label, value, entity }` records and an explicit `type-id`, option rows
   render through `EntityInlineRef variant="compact"`. Once a value is selected,
   the selected entity card or card list renders outside the PrimeVue
   value/chip area and the PrimeVue control becomes a compact change trigger.
@@ -628,7 +628,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   from `data.type` or lifecycle state.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
 - **`EntityPage.vue`**: Root layout for all entity detail views. The header
-  composes a small-caps localized entity-type label, the identity, the inline
+  composes a small-caps localized type-id label, the identity, the inline
   status beside it, an `info` slot for summary data below, and an `actions`
   slot that renders inline by default (`actionsDisplay: 'menu'` collapses it
   into the ellipsis popover for dense action sets). The header block closes
@@ -650,7 +650,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   Full-card footer actions render inline by default (`footer-display`);
   the ellipsis menu stays available for deliberately dense footers.
   Inline and compact variants share one expansion surface defined once in
-  `EntityCard`: a header row with the localized entity-type label and the
+  `EntityCard`: a header row with the localized type-id label and the
   inline status, the identity, lineage context when forced, the same
   canonical body the full card uses, and a trailing inline action row
   (generated commands, the cassette-designer action, and a labeled

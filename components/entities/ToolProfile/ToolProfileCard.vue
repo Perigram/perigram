@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <EntityCard :entity="tool" entity-type="tool_profile" :variant="variant" :show-trace="false" :show-status="false">
+    <EntityCard :entity="tool" type-id="tool_profile" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-wrench"></i>
       </template>
@@ -18,7 +18,7 @@
         </div>
       </template>
       <Divider />
-      <DataBlock entity-type="toolProfile" :entity="tool" :fields="FIELDS" />
+      <DataBlock type-id="toolProfile" :entity="tool" :fields="FIELDS" />
     </EntityCard>
   </div>
 </template>
@@ -34,7 +34,7 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const FIELDS = resolveEntityDisplayFields({ entityType: 'toolProfile', surface: 'card' });
+const FIELDS = resolveEntityDisplayFields({ typeId: 'toolProfile', surface: 'card' });
 
 const props = defineProps({
   tool: { type: Object, required: true },

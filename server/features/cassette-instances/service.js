@@ -162,7 +162,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
   // Status updates must go through statusService
   if (updates.status) {
     await statusService.transitionWithResult({
-      entityType: 'cassette_instance',
+      typeId: 'cassette_instance',
       targetId: instance._id,
       targetState: updates.status,
       auth: createTransitionAuth(userId, userRole, userPermissions),
@@ -191,7 +191,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 export async function updateStatus(id, state, note, user) {
   const instance = await getById(id, user.userId, user.organizationId, user.role, user);
   const result = await statusService.transitionWithResult({
-    entityType: 'cassette_instance',
+    typeId: 'cassette_instance',
     targetId: instance._id || instance.id,
     targetState: state,
     auth: createTransitionAuth(user.userId, user),
@@ -211,7 +211,7 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'cassette_instance',
+  typeId: 'cassette_instance',
   repository,
   Model: CassetteInstance
 });

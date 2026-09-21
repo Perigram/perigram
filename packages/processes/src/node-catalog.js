@@ -254,7 +254,7 @@ function cts(kind, label, family, level) {
       const species = String(record.kind || '');
       if (carriesTypePin(record)) {
         const pin = socket('type', processType('entityRef', typeIdOf(record)
-          ? { entityType: typeIdOf(record) }
+          ? { typeId: typeIdOf(record) }
           : undefined), DATA, false);
         if (!typeIdOf(record)) return { inputs: [pin], outputs: [] };
         const ports = catalogPorts(resolveCtsRecord(record, context.domain || {}), context);
@@ -316,7 +316,7 @@ function cts(kind, label, family, level) {
             || (context.fieldSchema ? [context.fieldSchema] : []).find(schema => schema.path === record.path);
           const output = socket('value', field?.type || processType('json', { nullable: true }));
           return {
-            inputs: [socket('entity', processType('entity', { entityType: typeIdOf(record) }), DATA, true)],
+            inputs: [socket('entity', processType('entity', { typeId: typeIdOf(record) }), DATA, true)],
             outputs: [output]
           };
         }
@@ -372,17 +372,17 @@ function catalogPorts(record = {}, context = {}) {
   const configured = processTypeFrom(record.type, processType(configuredBase, {
     nullable: record.nullable,
     ...(['entity', 'entityRef', 'revisionRef', 'predicate', 'patch', 'status'].includes(configuredBase)
-      && record.entityType ? { entityType: record.entityType } : {}),
+      && record.typeId ? { typeId: record.typeId } : {}),
     ...(configuredBase === 'block' && record.block ? { block: record.block } : {}),
     unit: record.unit,
     enumId: record.enumId
   }));
   const sameShape = base => processType(base);
-  const entity = processType('entity', { entityType: record.entityType });
-  const entityList = processType('entity', { entityType: record.entityType });
-  const entityRef = processType('entityRef', { entityType: record.entityType });
-  const predicate = processType('predicate', { entityType: record.entityType });
-  const patch = processType('patch', { entityType: record.entityType });
+  const entity = processType('entity', { typeId: record.typeId });
+  const entityList = processType('entity', { typeId: record.typeId });
+  const entityRef = processType('entityRef', { typeId: record.typeId });
+  const predicate = processType('predicate', { typeId: record.typeId });
+  const patch = processType('patch', { typeId: record.typeId });
   const event = processType('event');
   const controlInput = [{ ...socket('in', event, CONTROL, true), multiple: true }];
   const completed = socket('completed', event, CONTROL);
@@ -684,7 +684,7 @@ function catalogPorts(record = {}, context = {}) {
     };
   }
   if (kind.endsWith('Trigger')) {
-    const payload = record.entityType ? entity : processType('json');
+    const payload = record.typeId ? entity : processType('json');
     return { inputs: [], outputs: [socket('start', event, CONTROL), socket('payload', payload)] };
   }
   if (kind === 'control.if') return {
@@ -728,7 +728,7 @@ function openBlockEntries(record = {}, composition = null) {
 function openBlockEntryType(entry = {}, composition = {}) {
   if (composition?.mode === 'ancestors' || composition?.mode === 'relations') {
     if (entry.type?.base) return processType(entry.type.base, entry.type);
-    return processType('entityRef', { entityType: entry.entityType || undefined });
+    return processType('entityRef', { typeId: entry.typeId || undefined });
   }
   if (composition?.mode === 'attachments') {
     return processType('attachmentRef', { attachmentKind: entry.attachmentKind || undefined });
@@ -738,7 +738,7 @@ function openBlockEntryType(entry = {}, composition = {}) {
 }
 
 function entryLabel(entry = {}, composition = {}) {
-  if (composition?.mode === 'ancestors') return entry.key || entry.entityType || 'ancestor';
+  if (composition?.mode === 'ancestors') return entry.key || entry.typeId || 'ancestor';
   return entry.key || entry.id;
 }
 
@@ -757,7 +757,7 @@ function processTypeFrom(value, fallback) {
   if (!value || typeof value !== 'object' || !value.base) return fallback;
   const qualifiers = {};
   if (ENTITY_TYPE_BASES.has(value.base)) {
-    if (value.entityType) qualifiers.entityType = value.entityType;
+    if (value.typeId) qualifiers.typeId = value.typeId;
     if (value.accepts) qualifiers.accepts = value.accepts;
   } else if (value.base === 'block' && value.block) {
     qualifiers.block = value.block;
@@ -790,8 +790,8 @@ function dynamicFields(record, context) {
   });
 }
 
-export function getFieldPolicy(fieldAccess, entityType) {
-  const key = String(entityType || '');
+export function getFieldPolicy(fieldAccess, typeId) {
+  const key = String(typeId || '');
   const camel = key.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
   const snake = key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
   return fieldAccess[key] || fieldAccess[camel] || fieldAccess[snake] || null;
@@ -800,9 +800,9 @@ export function getFieldPolicy(fieldAccess, entityType) {
 // Declared blocks of one entity contract: the entity's own blocks list plus
 // the block prefixes its field-access policy grants. Used by compile-time
 // validation and by the evaluator so both reject the same undeclared blocks.
-export function entityBlocks(domain = {}, entityType = '') {
-  const entity = (domain.entities || []).find(item => item.type === entityType);
-  const policy = getFieldPolicy(domain.fieldAccess || {}, entityType) || {};
+export function entityBlocks(domain = {}, typeId = '') {
+  const entity = (domain.entities || []).find(item => item.type === typeId);
+  const policy = getFieldPolicy(domain.fieldAccess || {}, typeId) || {};
   const policyBlocks = ['read', 'write', 'admin']
     .flatMap(access => policy[access] || [])
     .map(path => String(path).split('.')[0])
@@ -839,7 +839,7 @@ function effectInputs(kind, types) {
         label: input.label || input.id
       })),
       ...types.blocks.map(block => socket(block, processType('block', { block }), DATA, false, 'list')),
-      socket('status.state.primary', processType('status', { entityType: types.entity.entityType }), DATA, false, 'list')
+      socket('status.state.primary', processType('status', { typeId: types.entity.typeId }), DATA, false, 'list')
     ];
   }
   if (kind === 'effect.createEntity') return [
@@ -853,18 +853,18 @@ function effectInputs(kind, types) {
     ...types.blocks.map(block => socket(block, processType('block', {
       block
     }), DATA, block === 'identity', 'list')),
-    socket('status.state.primary', processType('status', { entityType: types.entity.entityType }), DATA, false, 'list')
+    socket('status.state.primary', processType('status', { typeId: types.entity.typeId }), DATA, false, 'list')
   ];
   if (kind === 'effect.updateEntity') return [
     socket('entity', types.entityRef, DATA, true, 'list'),
     ...types.blocks.map(block => socket(block, processType('block', {
       block
     }), DATA, false, 'list')),
-    socket('status.state.primary', processType('status', { entityType: types.entity.entityType }), DATA, false, 'list')
+    socket('status.state.primary', processType('status', { typeId: types.entity.typeId }), DATA, false, 'list')
   ];
   if (kind === 'effect.changeStatus') return [
     socket('entity', types.entityRef, DATA, true, 'list'),
-    socket('status', processType('status', { entityType: types.entity.entityType }), DATA, true, 'list'),
+    socket('status', processType('status', { typeId: types.entity.typeId }), DATA, true, 'list'),
     socket('changes', types.patch, DATA, false, 'list'),
     socket('note', processType('string'), DATA, false, 'list')
   ];
@@ -885,8 +885,8 @@ function commandInputSockets(command = {}) {
     ...abstractInputs.map(input => socket(
       input.name || input.type || input.capability,
       input.multiple
-        ? processType('array', { itemType: processType('entityRef', { entityType: input.type || undefined, accepts: input.accepts || [] }) })
-        : processType('entityRef', { entityType: input.type || undefined, accepts: input.accepts || [] }),
+        ? processType('array', { itemType: processType('entityRef', { typeId: input.type || undefined, accepts: input.accepts || [] }) })
+        : processType('entityRef', { typeId: input.type || undefined, accepts: input.accepts || [] }),
       DATA,
       Boolean(input.required)
     )),
@@ -895,8 +895,8 @@ function commandInputSockets(command = {}) {
       .map(input => socket(
         input.name || input.type,
         input.multiple
-          ? processType('array', { itemType: processType('entityRef', { entityType: input.type }) })
-          : processType('entityRef', { entityType: input.type }),
+          ? processType('array', { itemType: processType('entityRef', { typeId: input.type }) })
+          : processType('entityRef', { typeId: input.type }),
         DATA,
         Boolean(input.required)
       )),
@@ -916,7 +916,7 @@ function commandOutputSockets(command = {}) {
   const outputs = [
     ...(command.output?.entities || []).map(entry => socket(
       entry?.type,
-      processType('entity', { entityType: entry?.type }),
+      processType('entity', { typeId: entry?.type }),
       DATA,
       false,
       'list'
@@ -943,7 +943,7 @@ function commandInputLabel(command = {}, id = '') {
 }
 
 function commandParameterType(input = {}) {
-  if (input.entityType) return processType('entityRef', { entityType: input.entityType });
+  if (input.typeId) return processType('entityRef', { typeId: input.typeId });
   const base = input.type === 'object' ? 'json'
     : input.type === 'array' ? 'array'
       : input.type || 'string';
@@ -957,11 +957,11 @@ function commandParameterType(input = {}) {
 
 function constructionInputs(record = {}) {
   return (record.construction?.inputs || []).map(input => {
-    const multiple = input.type === 'entityList';
+    const multiple = input.type === 'typeList';
     const type = input.type === 'entity' || multiple
       ? multiple
-        ? processType('array', { itemType: processType('entityRef', { entityType: input.entityType, accepts: input.accepts }) })
-        : processType('entityRef', { entityType: input.entityType, accepts: input.accepts })
+        ? processType('array', { itemType: processType('entityRef', { typeId: input.typeId, accepts: input.accepts }) })
+        : processType('entityRef', { typeId: input.typeId, accepts: input.accepts })
       : mapDomainInputType(input.type || 'json', { ...input, optional: undefined });
     // The projected construction input may carry a unit qualifier for
     // quantity fields; the socket must keep it (unit -> different-unit
@@ -975,7 +975,7 @@ function constructionInputs(record = {}) {
 
 function effectResultType(kind, record) {
   if (['effect.createEntity', 'effect.runProducer', 'effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity'].includes(kind)) {
-    return processType('entity', { entityType: record.entityType, nullable: false });
+    return processType('entity', { typeId: record.typeId, nullable: false });
   }
   if (kind === 'effect.generateAttachment') {
     return processType('attachmentRef', { attachmentKind: record.attachmentKind });

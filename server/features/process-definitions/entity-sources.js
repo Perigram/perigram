@@ -1,28 +1,28 @@
 import { normalizeEntityRef } from '~/packages/core/src/index.js';
 
-export async function processParentEntity(containment = [], resolveEntity, entity, entityType) {
-  const relation = containment.find(item => sameEntityType(item.childType, entityType));
+export async function processParentEntity(containment = [], resolveEntity, entity, typeId) {
+  const relation = containment.find(item => sameTypeId(item.childType, typeId));
   if (!relation) return null;
   const lineageId = entityLineageId(entity, relation.lineageKey);
   if (!lineageId) return null;
   return resolveEntity(relation.parentType, lineageId);
 }
 
-export async function processChildEntities(containment = [], queryEntities, entity, entityType) {
+export async function processChildEntities(containment = [], queryEntities, entity, typeId) {
   const entityId = entityInputId(entity);
   if (!entityId) return [];
-  const relations = containment.filter(item => sameEntityType(item.parentType, entityType));
+  const relations = containment.filter(item => sameTypeId(item.parentType, typeId));
   const children = await Promise.all(relations.map(relation => (
     queryEntities(relation.childType, { [relation.lineageKey]: String(entityId) })
   )));
   return children.flat();
 }
 
-export async function processRelatedEntities(relations = [], resolveEntity, entity, relationKey, entityType) {
+export async function processRelatedEntities(relations = [], resolveEntity, entity, relationKey, typeId) {
   const relation = relations.find(item => (
-    sameEntityType(item.ownerType, entityType) && item.key === relationKey
+    sameTypeId(item.ownerType, typeId) && item.key === relationKey
   ));
-  if (!relation) throw new Error(`${entityType}.${relationKey || ''} is not a declared relation`);
+  if (!relation) throw new Error(`${typeId}.${relationKey || ''} is not a declared relation`);
   const stored = entity?.relations?.[relation.key];
   const refs = Array.isArray(stored) ? stored : stored ? [stored] : [];
   const resolved = await Promise.all(refs.map(ref => {
@@ -32,7 +32,7 @@ export async function processRelatedEntities(relations = [], resolveEntity, enti
   return resolved.filter(Boolean);
 }
 
-function sameEntityType(left, right) {
+function sameTypeId(left, right) {
   return normalizeTypeKey(left) === normalizeTypeKey(right);
 }
 

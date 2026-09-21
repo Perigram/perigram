@@ -11,7 +11,7 @@ describe('@cutkit/vue endpoint map', () => {
     const endpointMap = createEndpointMap([
       {
         type: 'cassetteInstance',
-        entityType: 'cassette_instance',
+        typeId: 'cassette_instance',
         surfaceKey: 'cassetteInstance',
         collection: 'cassette-instances',
         routes: {
@@ -29,7 +29,7 @@ describe('@cutkit/vue endpoint map', () => {
     const endpointMap = createEndpointMap([
       {
         type: 'layerStandard',
-        entityType: 'layer_standard',
+        typeId: 'layer_standard',
         surfaceKey: 'layerStandard',
         collection: 'layer-standards',
         routes: {
@@ -47,7 +47,7 @@ describe('@cutkit/vue endpoint map', () => {
     const endpointMap = createEndpointMap([
       {
         type: 'cassette',
-        entityType: 'cassette',
+        typeId: 'cassette',
         surfaceKey: 'cassette',
         collection: 'cassettes',
         routes: {
@@ -57,7 +57,7 @@ describe('@cutkit/vue endpoint map', () => {
       },
       {
         type: 'cassetteDesign',
-        entityType: 'cassette_design',
+        typeId: 'cassette_design',
         surfaceKey: 'cassetteDesign',
         collection: 'cassette-designs',
         routes: {
@@ -93,7 +93,7 @@ describe('@cutkit/vue endpoint map', () => {
         surfaces: [
           {
             key: 'materialPile',
-            entityType: 'material_pile',
+            typeId: 'material_pile',
             icon: 'pi pi-database'
           }
         ]

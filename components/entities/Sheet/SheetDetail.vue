@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="sheet" entity-type="sheet">
+    <EntityPage :entity="sheet" type-id="sheet">
         <template #actions>
             <Button icon="pi pi-qrcode" text :aria-label="$t('common.printTag')" />
         </template>
@@ -23,7 +23,7 @@
             </Panel>
 
             <Panel :header="$t('common.history')">
-                <StatusHistory :entity="sheet" entity-type="sheet" />
+                <StatusHistory :entity="sheet" type-id="sheet" />
             </Panel>
         </template>
 
@@ -41,7 +41,7 @@
                         </div>
                     </div>
                     <div class="min-w-0 flex-1">
-                        <SpecsBlock entity-type="sheet" :entity="sheet" />
+                        <SpecsBlock type-id="sheet" :entity="sheet" />
                     </div>
                 </div>
             </Panel>

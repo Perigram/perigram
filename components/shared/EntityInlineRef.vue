@@ -78,9 +78,9 @@ const entityContext = inject('entityContext', null);
 const generatedExecuteAction = inject('generatedExecuteAction', null);
 const normalizedId = computed(() => props.id?.toString?.() || props.id || '');
 const contract = computed(() =>
-  DESIGN_SYSTEM_ENTITY_CONTRACTS.find(entry => entry.key === props.type || entry.entityType === props.type) || null
+  DESIGN_SYSTEM_ENTITY_CONTRACTS.find(entry => entry.key === props.type || entry.typeId === props.type) || null
 );
-const generatedEntityType = computed(() => contract.value?.entityType || generatedEntityTypeFor(props.type));
+const generatedTypeId = computed(() => contract.value?.typeId || generatedTypeIdFor(props.type));
 const contextEntity = computed(() => {
   if (!normalizedId.value) return null;
   const context = unref(entityContext);
@@ -120,7 +120,7 @@ const detailRoute = computed(() => {
   if (!props.allowDetailRoute || !authStore.processActive || !resolvedId.value) return null;
   return detailRouteForEntity({
     entity: resolved.value || { _id: resolvedId.value },
-    entityType: generatedEntityType.value,
+    typeId: generatedTypeId.value,
     manifest: authStore.screenManifest
   });
 });
@@ -129,12 +129,12 @@ provide('entityInlineForceTrace', true);
 provide('entityInlineTypeLabel', computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type));
 provide('entityInlineActionIds', computed(() => popupActionIds.value));
 provide('entityInlineActionEntity', resolved);
-provide('entityInlineActionEntityType', generatedEntityType);
+provide('entityInlineActionTypeId', generatedTypeId);
 provide('entityInlineShowCassetteDesigner', computed(() => popupShowCassetteDesigner.value));
 provide('entityInlineExecuteAction', executePopupAction);
 const toneStyle = computed(() => entityToneStyle(props.type));
 const compactDisplay = computed(() => resolveEntityDisplayContract({
-  entityType: generatedEntityType.value,
+  typeId: generatedTypeId.value,
   surface: 'compact'
 }));
 const compactDataFields = computed(() => compactDisplay.value.fields.filter(field =>
@@ -145,10 +145,10 @@ const compactDataFields = computed(() => compactDisplay.value.fields.filter(fiel
 const compactHasPreview = computed(() => compactDisplay.value.surfaceContract.preview !== 'none');
 const compactTypeLabel = computed(() => contract.value?.labelKey ? t(contract.value.labelKey) : props.type);
 const compactPreviewHideDimensionLayer = computed(() =>
-  ['cassette', 'cassette_design', 'sheet_design'].includes(generatedEntityType.value)
+  ['cassette', 'cassette_design', 'sheet_design'].includes(generatedTypeId.value)
 );
 const compactStatusState = computed(() => {
-  if (!hasMeaningfulWorkflowStatus(generatedEntityType.value, authStore.statusWorkflows || undefined)) return '';
+  if (!hasMeaningfulWorkflowStatus(generatedTypeId.value, authStore.statusWorkflows || undefined)) return '';
   const state = resolved.value?.status?.state;
   if (typeof state === 'string') return state;
   return state?.primary || state?.active?.main || '';
@@ -156,7 +156,7 @@ const compactStatusState = computed(() => {
 const compactStatusDisplay = computed(() => resolved.value?.status?.metadata?.display || null);
 const popupDetailActionIds = computed(() => generatedDetailActionIds({
   screens: authStore.screenManifest,
-  entityType: generatedEntityType.value,
+  typeId: generatedTypeId.value,
   preferredRoute: typeof detailRoute.value === 'string' ? detailRoute.value : detailRoute.value?.path
 }));
 const hasGeneratedActionExecutor = computed(() => typeof unref(generatedExecuteAction) === 'function');
@@ -166,7 +166,7 @@ const popupActions = computed(() => {
     actionIds: popupDetailActionIds.value,
     actionManifest: authStore.actionManifest,
     entity: resolved.value,
-    entityType: generatedEntityType.value
+    typeId: generatedTypeId.value
   })
     .filter(isGeneratedSurfaceAction)
     .filter(action => !isConsumedDetailAction(action));
@@ -177,7 +177,7 @@ const popupActions = computed(() => {
     .map(action => [action.id, action])).values());
 });
 const popupActionIds = computed(() => popupActions.value.map(action => action.id));
-const popupShowCassetteDesigner = computed(() => generatedEntityType.value === 'cassette');
+const popupShowCassetteDesigner = computed(() => generatedTypeId.value === 'cassette');
 const popupHasActions = computed(() => (
   popupShowCassetteDesigner.value
   || popupActionIds.value.length
@@ -218,11 +218,11 @@ function hasNestingRunOutputRefs(entity) {
 }
 
 function needsNestingRunHydration(entity) {
-  return generatedEntityType.value === 'nesting_run' && !hasNestingRunOutputRefs(entity);
+  return generatedTypeId.value === 'nesting_run' && !hasNestingRunOutputRefs(entity);
 }
 
 async function hydrateNestingRunOutputs(entity) {
-  if (generatedEntityType.value !== 'nesting_run' || !entity) return;
+  if (generatedTypeId.value !== 'nesting_run' || !entity) return;
   const runId = entityId(entity) || relationFetchId.value;
   if (!runId) return;
   relationSheetDesigns.value = await instances
@@ -231,7 +231,7 @@ async function hydrateNestingRunOutputs(entity) {
 }
 
 function withNestingRunOutputRefs(entity) {
-  if (generatedEntityType.value !== 'nesting_run' || !entity || !relationSheetDesigns.value.length) return entity;
+  if (generatedTypeId.value !== 'nesting_run' || !entity || !relationSheetDesigns.value.length) return entity;
   return {
     ...entity,
     data: {
@@ -245,12 +245,12 @@ function contextTypeCandidates(type) {
   return Array.from(new Set([type, normalizeHierarchyType(type)].filter(Boolean)));
 }
 
-function generatedEntityTypeFor(type) {
+function generatedTypeIdFor(type) {
   return normalizeHierarchyType(type);
 }
 
 function isConsumedDetailAction(action = {}) {
-  return generatedEntityType.value === 'queue'
+  return generatedTypeId.value === 'queue'
     && action.actionKind === 'runCommand'
     && action.commandId === 'solveNesting';
 }
@@ -278,7 +278,7 @@ function openDetail(event) {
     return;
   }
   if (openEntityInWorkspace({
-    typeId: generatedEntityType.value || props.type,
+    typeId: generatedTypeId.value || props.type,
     entityId: resolvedId.value
   })) return;
   navigateTo(detailRoute.value);
@@ -289,7 +289,7 @@ function openEntityChatFromRef(event) {
   requestCloseMobileTransientSurfaces();
   compactOp.value?.hide?.();
   openEntityChat({
-    type: generatedEntityType.value || props.type,
+    type: generatedTypeId.value || props.type,
     id: resolvedId.value,
     name: resolved.value?.identity?.name || ''
   });
@@ -410,7 +410,7 @@ function tonePalette(role) {
       >
         <EntityPreview
           :entity="resolved"
-          :type-id="generatedEntityType"
+          :type-id="generatedTypeId"
           :mode="compactDisplay.surfaceContract.preview"
           :hide-dimension-layer="compactPreviewHideDimensionLayer"
         />
@@ -440,7 +440,7 @@ function tonePalette(role) {
         <span class="entity-inline-compact-facts">
           <DataBlock
             v-if="resolved && compactDataFields.length"
-            :type-id="generatedEntityType"
+            :type-id="generatedTypeId"
             :entity="resolved"
             :fields="compactDataFields"
             variant="compact"
@@ -461,7 +461,7 @@ function tonePalette(role) {
             <EntityStatus
               v-if="resolved.status"
               :entity="resolved"
-              :type-id="generatedEntityType"
+              :type-id="generatedTypeId"
               variant="inline"
             />
           </div>
@@ -469,7 +469,7 @@ function tonePalette(role) {
             <EntitySurfaceContent
               v-if="resolved"
               :entity="resolved"
-              :type-id="generatedEntityType"
+              :type-id="generatedTypeId"
               surface="card"
               suppress-child-summaries
               relation-variant="compact"

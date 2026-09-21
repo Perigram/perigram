@@ -18,8 +18,8 @@ const domain = {
   }
 };
 
-function constructNode(entityType, mode) {
-  return { kind: 'cts.construct', typeId: entityType, via: mode };
+function constructNode(typeId, mode) {
+  return { kind: 'cts.construct', typeId: typeId, via: mode };
 }
 
 function resolvedModes(definition) {
@@ -80,7 +80,7 @@ describe('persisted genericCreate constructs validate against the real domain', 
     };
     const { definition: accepted, errors } = prepareAuthoredDefinition(definition, projected);
     expect(errors).toEqual([]);
-    const modes = Object.values(accepted.processNodes || {}).map(node => `${node.entityType}:${node.construction?.mode}`);
+    const modes = Object.values(accepted.processNodes || {}).map(node => `${node.typeId}:${node.construction?.mode}`);
     expect(modes).toEqual(['cassette:editor', 'sketch:editor']);
     const validation = validateProcessDefinition(accepted, projected, {});
     expect((validation.errors || []).filter(error => error.includes('construction mode'))).toEqual([]);
@@ -94,12 +94,12 @@ describe('persisted genericCreate constructs validate against the real domain', 
       roleGrants: { role_admin: [] },
       producerOutputs: {}, actions: {}, services: {}, sockets: {}, screens: {}, statusDefinitions: {}, valueInputs: {},
       processNodes: {
-        n1: { id: 'n1', kind: 'effect.createEntity', entityType: 'cassette', construction: { mode: 'genericCreate' }, label: 'Make cassette' }
+        n1: { id: 'n1', kind: 'effect.createEntity', typeId: 'cassette', construction: { mode: 'genericCreate' }, label: 'Make cassette' }
       }
     };
     const { definition: accepted, errors } = prepareAuthoredDefinition(definition, projected);
     expect(errors).toEqual([]);
-    const modes = Object.values(accepted.processNodes || {}).map(node => `${node.entityType}:${node.construction?.mode}`);
+    const modes = Object.values(accepted.processNodes || {}).map(node => `${node.typeId}:${node.construction?.mode}`);
     expect(modes).toEqual(['cassette:editor']);
   });
 });

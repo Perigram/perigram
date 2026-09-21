@@ -231,7 +231,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   
   if (updates.status) {
     await statusService.transitionWithResult({
-      entityType: 'queue',
+      typeId: 'queue',
       targetId: queue._id,
       targetState: updates.status,
       auth: createTransitionAuth(userId, userRole, userPermissions),
@@ -260,7 +260,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'queue',
+  typeId: 'queue',
   repository,
   Model: Queue
 });
@@ -358,7 +358,7 @@ function queuePreview(queue = {}) {
   const materialPool = queue.data?.job?.materialPool || [];
   const preview = {
     _id: queue._id?.toString?.() || queue._id,
-    entityType: 'queue',
+    typeId: 'queue',
     identity: {
       ...(queue.identity || {}),
       name: queue.identity?.name || queue.identity?.slug || queue.identity?.uid || 'Queue'

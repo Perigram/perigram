@@ -6,9 +6,9 @@ import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
  * package directly.
  */
 export const stateMachines = new Proxy({}, {
-  get(_target, entityType) {
+  get(_target, typeId) {
     const domain = getCutkitRegistry().getDomain('cnc');
-    return domain?.workflows?.[entityType] || null;
+    return domain?.workflows?.[typeId] || null;
   },
   ownKeys() {
     const domain = getCutkitRegistry().getDomain('cnc');

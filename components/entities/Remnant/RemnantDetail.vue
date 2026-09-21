@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="remnant" entity-type="remnant">
+    <EntityPage :entity="remnant" type-id="remnant">
         <template #actions>
             <Button icon="pi pi-qrcode" text :aria-label="$t('common.printTag')" />
         </template>
@@ -24,7 +24,7 @@
             </Panel>
 
             <Panel :header="$t('requisition.lifecycleTimeline')">
-                <StatusHistory :entity="remnant" entity-type="remnant" />
+                <StatusHistory :entity="remnant" type-id="remnant" />
             </Panel>
         </template>
 

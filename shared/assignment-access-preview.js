@@ -14,36 +14,36 @@ export function previewAssignmentAccess({ compiled = {}, assignment = {}, domain
     ? { ...access.permissions, ...OWNER_RECOVERY_PERMISSIONS }
     : access.permissions;
   const entityContexts = Array.isArray(contexts) ? contexts : [];
-  const features = [...new Set([...(domain.entities || []).map(entity => featureForEntityType(domain, entity.type)), ...Object.keys(permissions)])];
+  const features = [...new Set([...(domain.entities || []).map(entity => featureForTypeId(domain, entity.type)), ...Object.keys(permissions)])];
   const entities = features.map(feature => {
     const value = permissions[feature];
     const grants = normalizePermissionGrants(value);
-    const entityType = entityTypeForFeature(domain, feature);
-    const context = entityContexts.find(item => item.entityType === entityType || item.feature === feature) || null;
+    const typeId = typeIdForFeature(domain, feature);
+    const context = entityContexts.find(item => item.typeId === typeId || item.feature === feature) || null;
     const conditional = grants.some(grant => grant.scope || grant.rule || grant.transitions || grant.actions);
     const allowed = context
-      ? hasPermissionGrant({ permissions, feature, level: 'read', ...evaluationContext(context, entityType) })
-      : conditional ? null : hasPermissionGrant({ permissions, feature, level: 'read', entityType });
+      ? hasPermissionGrant({ permissions, feature, level: 'read', ...evaluationContext(context, typeId) })
+      : conditional ? null : hasPermissionGrant({ permissions, feature, level: 'read', typeId });
     return {
       key: `entity:${feature}`,
       feature,
-      entityType,
+      typeId,
       allowed,
       explanation: decisionExplanation(allowed, conditional, context),
-      fields: entityType ? fieldPreview({ entityType, context, permissions, fieldPolicies: compiled.fieldPolicies || {} }) : []
+      fields: typeId ? fieldPreview({ typeId, context, permissions, fieldPolicies: compiled.fieldPolicies || {} }) : []
     };
   });
-  const transitions = Object.entries(compiled.workflows || {}).flatMap(([entityType, workflow]) =>
+  const transitions = Object.entries(compiled.workflows || {}).flatMap(([typeId, workflow]) =>
     Object.values(workflow.regions || {}).flatMap(region => (region.transitions || []).map(transition => {
-      const feature = featureForEntityType(domain, entityType);
-      const context = entityContexts.find(item => item.entityType === entityType || item.feature === feature) || null;
+      const feature = featureForTypeId(domain, typeId);
+      const context = entityContexts.find(item => item.typeId === typeId || item.feature === feature) || null;
       const selected = (transition.processRoleIds || transition.access?.processRoleIds || []).some(roleId => access.roleIds.includes(roleId));
       const allowed = selected && context
-        ? hasPermissionGrant({ permissions, feature, level: 'write', transition, ...evaluationContext(context, entityType) })
+        ? hasPermissionGrant({ permissions, feature, level: 'write', transition, ...evaluationContext(context, typeId) })
         : selected ? null : false;
       return {
-        key: `transition:${entityType}:${transition.from}->${transition.to}`,
-        entityType,
+        key: `transition:${typeId}:${transition.from}->${transition.to}`,
+        typeId,
         transition: `${transition.from}->${transition.to}`,
         allowed,
         explanation: selected ? decisionExplanation(allowed, true, context) : 'Denied because none of the selected roles authorizes this transition.'
@@ -54,14 +54,14 @@ export function previewAssignmentAccess({ compiled = {}, assignment = {}, domain
   const allActions = new Map(Object.values(compiled.roles || {}).flatMap(role => role.actions || []).map(action => [action.actionId, action]));
   const actions = [...allActions.values()].map(candidate => {
     const selectedEntry = selectedActions.get(candidate.actionId);
-    const action = selectedEntry ? { ...candidate, ...selectedEntry, feature: candidate.feature, entityType: candidate.entityType, status: candidate.status } : candidate;
-    const feature = action.feature || featureForEntityType(domain, action.entityType);
-    const context = entityContexts.find(item => item.entityType === action.entityType || item.feature === feature) || null;
+    const action = selectedEntry ? { ...candidate, ...selectedEntry, feature: candidate.feature, typeId: candidate.typeId, status: candidate.status } : candidate;
+    const feature = action.feature || featureForTypeId(domain, action.typeId);
+    const context = entityContexts.find(item => item.typeId === action.typeId || item.feature === feature) || null;
     const actionName = accessActionName(action.actionKind);
     const conditional = normalizePermissionGrants(permissions[feature]).some(grant => grant.scope || grant.rule || grant.transitions || grant.actions);
     const selected = selectedActions.has(candidate.actionId);
     const allowed = !selected ? false : context
-      ? hasPermissionGrant({ permissions, feature, level: 'write', action: actionName, transition: action.status, ...evaluationContext(context, action.entityType) })
+      ? hasPermissionGrant({ permissions, feature, level: 'write', action: actionName, transition: action.status, ...evaluationContext(context, action.typeId) })
       : conditional ? null : true;
     return { ...action, key: `action:${action.actionId}`, allowed, explanation: selected ? decisionExplanation(allowed, conditional, context) : 'Denied because none of the selected roles exposes this action.' };
   });
@@ -74,12 +74,12 @@ export function previewAssignmentAccess({ compiled = {}, assignment = {}, domain
     }
     const requirements = [allowedScreen.required, ...(allowedScreen.sources || []).map(source => source.required)].filter(required => required?.feature);
     const decisions = requirements.map(required => {
-      const entityType = entityTypeForFeature(domain, required.feature);
-      const context = entityContexts.find(item => item.entityType === entityType || item.feature === required.feature) || null;
+      const typeId = typeIdForFeature(domain, required.feature);
+      const context = entityContexts.find(item => item.typeId === typeId || item.feature === required.feature) || null;
       const conditional = normalizePermissionGrants(permissions[required.feature]).some(grant => grant.scope || grant.rule || grant.transitions || grant.actions);
       const actions = Object.entries(required.actions || {}).filter(([, enabled]) => enabled === true).map(([action]) => action);
       if (conditional && !context) return null;
-      const args = { permissions, feature: required.feature, level: required.level || 'read', ...(context ? evaluationContext(context, entityType) : { entityType }) };
+      const args = { permissions, feature: required.feature, level: required.level || 'read', ...(context ? evaluationContext(context, typeId) : { typeId }) };
       return actions.length ? actions.every(action => hasPermissionGrant({ ...args, action })) : hasPermissionGrant(args);
     });
     const allowed = decisions.includes(false) ? false : decisions.includes(null) ? null : true;
@@ -99,11 +99,11 @@ export function previewAssignmentAccess({ compiled = {}, assignment = {}, domain
   };
 }
 
-function fieldPreview({ entityType, context, permissions, fieldPolicies }) {
-  const entity = context?.entity || (context ? contextEntity(context, entityType) : null);
+function fieldPreview({ typeId, context, permissions, fieldPolicies }) {
+  const entity = context?.entity || (context ? contextEntity(context, typeId) : null);
   const auth = { effectivePermissions: permissions, fieldPolicies };
-  return getActiveEntityFieldPolicyEntries(entityType, auth).map(field => {
-    const allowed = context ? canDisplayEntityField({ auth, entity, entityType, field }) : null;
+  return getActiveEntityFieldPolicyEntries(typeId, auth).map(field => {
+    const allowed = context ? canDisplayEntityField({ auth, entity, typeId, field }) : null;
     return {
       ...field,
       allowed,
@@ -116,18 +116,18 @@ function fieldPreview({ entityType, context, permissions, fieldPolicies }) {
   });
 }
 
-function evaluationContext(context = {}, entityType = '') {
+function evaluationContext(context = {}, typeId = '') {
   return {
-    entity: context.entity || contextEntity(context, entityType),
-    entityType,
+    entity: context.entity || contextEntity(context, typeId),
+    typeId,
     context: { ...(context.context || {}), lineageEntities: context.lineageEntities || {} }
   };
 }
 
-function contextEntity(context = {}, entityType = '') {
+function contextEntity(context = {}, typeId = '') {
   return {
     _id: context.entityId,
-    entityType,
+    typeId,
     lineage: context.lineage || {},
     status: context.status ? { state: { primary: context.status } } : undefined,
     ...(context.fields || {})
@@ -148,11 +148,11 @@ function accessActionName(actionKind = '') {
   return 'run';
 }
 
-function entityTypeForFeature(domain = {}, feature = '') {
-  return (domain.entities || []).find(entity => featureForEntityType(domain, entity.type) === feature)?.type || '';
+function typeIdForFeature(domain = {}, feature = '') {
+  return (domain.entities || []).find(entity => featureForTypeId(domain, entity.type) === feature)?.type || '';
 }
 
-function featureForEntityType(domain = {}, entityType = '') {
-  const entity = (domain.entities || []).find(item => item.type === entityType);
-  return entity?.collection || domain.fieldAccess?.[entityType]?.feature || entityType;
+function featureForTypeId(domain = {}, typeId = '') {
+  const entity = (domain.entities || []).find(item => item.type === typeId);
+  return entity?.collection || domain.fieldAccess?.[typeId]?.feature || typeId;
 }

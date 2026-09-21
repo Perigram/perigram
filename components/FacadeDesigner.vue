@@ -4,7 +4,7 @@
     <template #palette>
       <div class="flex min-h-0 flex-1 flex-col gap-3 p-3">
         <Button :label="$t('facade.save')" icon="pi pi-save" size="small" :loading="saving" :disabled="!facade?._id" @click="save" />
-        <Select v-model="selectedPatternId" :options="patternOptions" option-label="label" option-value="value" entity-type="facadePattern" :placeholder="$t('facade.patterns')" />
+        <Select v-model="selectedPatternId" :options="patternOptions" option-label="label" option-value="value" type-id="facadePattern" :placeholder="$t('facade.patterns')" />
       </div>
     </template>
 
@@ -15,7 +15,7 @@
         <IdentityBlock v-if="selectedPart" :entity="{ identity: { name: selectedPart.label } }" variant="compact" />
         <StateBlock v-else :message="$t('facade.parts')" icon="pi pi-objects-column" />
         <div v-if="selectedPart" class="flex flex-col gap-2">
-          <Select v-model="selectedPatternId" :options="patternOptions" option-label="label" option-value="value" entity-type="facadePattern" :placeholder="$t('facade.patterns')" />
+          <Select v-model="selectedPatternId" :options="patternOptions" option-label="label" option-value="value" type-id="facadePattern" :placeholder="$t('facade.patterns')" />
           <Button :label="$t('common.apply')" size="small" severity="secondary" :disabled="!selectedPatternId" @click="assignPattern" />
         </div>
       </div>

@@ -22,24 +22,24 @@ export function shouldRenderHomeSection({ items = [], rawItems = [], source = {}
 function accessibleEntityIds(sourceStates = {}) {
   const result = new Map();
   for (const state of Object.values(sourceStates || {})) {
-    const entityType = normalizeType(state?.source?.typeId);
-    if (!entityType) continue;
+    const typeId = normalizeType(state?.source?.typeId);
+    if (!typeId) continue;
     const entities = state.source.mode === 'single' ? [state.entity] : state.items;
     for (const entity of entities || []) {
       const id = entity?._id?.toString?.() || entity?.identity?.uid?.toString?.() || entity?.id?.toString?.();
       if (!id) continue;
-      if (!result.has(entityType)) result.set(entityType, new Set());
-      result.get(entityType).add(String(id));
+      if (!result.has(typeId)) result.set(typeId, new Set());
+      result.get(typeId).add(String(id));
     }
   }
   return result;
 }
 
-function ancestorRefs(entity = {}, entityType = '', lineageBindings = []) {
+function ancestorRefs(entity = {}, typeId = '', lineageBindings = []) {
   const lineage = entity?.lineage || {};
   const refs = [];
-  const visitedTypes = new Set([normalizeType(entityType)]);
-  const pendingTypes = [normalizeType(entityType)];
+  const visitedTypes = new Set([normalizeType(typeId)]);
+  const pendingTypes = [normalizeType(typeId)];
   while (pendingTypes.length) {
     const childType = pendingTypes.shift();
     for (const binding of lineageBindings || []) {

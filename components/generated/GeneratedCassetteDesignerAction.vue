@@ -54,7 +54,7 @@ const canEdit = computed(() => hasPermissionGrant({
   feature: 'cassettes',
   level: 'write',
   entity: props.entity,
-  entityType: 'cassette'
+  typeId: 'cassette'
 }));
 const templateOptions = computed(() => {
   const source = cassettes.value.length ? cassettes.value : [entity.value].filter(Boolean);
@@ -71,7 +71,7 @@ async function openDesigner() {
     emit('open-page', {
       pageId: 'cassette-designer',
       entity: props.entity,
-      entityType: 'cassette'
+      typeId: 'cassette'
     });
     return;
   }

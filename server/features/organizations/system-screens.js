@@ -28,7 +28,7 @@ export function resolveOrganizationSystemScreens(auth = {}) {
     placement: 'hub',
     route: '/organization',
     sourceRoute: '/organization',
-    entityType: 'organization',
+    typeId: 'organization',
     icon: 'pi pi-building',
     scope: organizationScope,
     systemScreens: []
@@ -46,7 +46,7 @@ export function resolveOrganizationSystemScreens(auth = {}) {
       placement: 'hub',
       route: '/organization/billing',
       sourceRoute: '/organization/billing',
-      entityType: 'organization',
+      typeId: 'organization',
       icon: 'pi pi-credit-card',
       scope: organizationScope,
       required: { feature: 'organizations', level: 'read' },
@@ -76,7 +76,7 @@ export function resolveOrganizationSystemScreens(auth = {}) {
       placement: 'hub',
       route: '/organization/users',
       sourceRoute: '/organization/users',
-      entityType: 'organization',
+      typeId: 'organization',
       icon: 'pi pi-users',
       scope: organizationScope,
       required: { feature: 'users', level: 'admin' }
@@ -94,7 +94,7 @@ export function resolveOrganizationSystemScreens(auth = {}) {
       placement: 'hub',
       route: '/organization/process',
       sourceRoute: '/organization/process',
-      entityType: 'organization',
+      typeId: 'organization',
       icon: 'pi pi-sitemap',
       scope: organizationScope,
       required: { feature: 'organizations', level: 'admin' }

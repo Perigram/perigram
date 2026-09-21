@@ -33,13 +33,13 @@ describe('persisted architecture acceptance fixture', () => {
     const fixture = createPersistedAcceptanceFixture();
     const compiled = compileProcessDefinition(fixture.processDefinition.data, cncDomain, { roles: fixture.roles });
     const access = resolveRoleAssignmentAccess({ compiled, assignment: fixture.assignment, domain: cncDomain });
-    const binding = compiled.lineageBindings.find(item => item.childEntityType === 'artifact');
+    const binding = compiled.lineageBindings.find(item => item.childTypeId === 'artifact');
     const home = access.screens.find(screen => screen.template === 'home');
-    const artifactSource = home.sources.find(source => source.entityType === 'artifact');
+    const artifactSource = home.sources.find(source => source.typeId === 'artifact');
 
     expect(binding).toMatchObject({
-      ancestorEntityType: 'project',
-      childEntityType: 'artifact',
+      parentTypeId: 'project',
+      childTypeId: 'artifact',
       lineageKey: 'projectId',
       sourceNode: 'project_source',
       sourceSocket: 'data:result',
@@ -51,14 +51,14 @@ describe('persisted architecture acceptance fixture', () => {
       [fixture.hierarchy.artifact],
       artifactSource,
       {
-        projects: { source: { entityType: 'project', mode: 'list' }, items: [fixture.hierarchy.project] },
+        projects: { source: { typeId: 'project', mode: 'list' }, items: [fixture.hierarchy.project] },
         artifacts: { source: artifactSource, items: [fixture.hierarchy.artifact] }
       }
     )).toEqual([]);
 
-    const projectDetail = access.screens.find(screen => screen.template === 'entityDetail' && screen.entityType === 'project');
+    const projectDetail = access.screens.find(screen => screen.template === 'instanceDetail' && screen.typeId === 'project');
     expect(projectDetail.sources).toContainEqual(expect.objectContaining({
-      entityType: 'artifact',
+      typeId: 'artifact',
       filters: { projectId: '$screen.scope.entityId' }
     }));
   });
@@ -80,14 +80,14 @@ describe('persisted architecture acceptance fixture', () => {
     const fixture = createPersistedAcceptanceFixture();
     const compiled = compileProcessDefinition(fixture.processDefinition.data, cncDomain, { roles: fixture.roles });
     const access = resolveRoleAssignmentAccess({ compiled, assignment: fixture.assignment, domain: cncDomain });
-    const projectDetail = access.screens.find(screen => screen.template === 'entityDetail' && screen.entityType === 'project');
+    const projectDetail = access.screens.find(screen => screen.template === 'instanceDetail' && screen.typeId === 'project');
     const artifactRegion = projectDetail.regions.find(region => region.sourceId === 'artifact_children');
-    const artifactDetail = access.screens.find(screen => screen.template === 'entityDetail' && screen.entityType === 'artifact');
+    const artifactDetail = access.screens.find(screen => screen.template === 'instanceDetail' && screen.typeId === 'artifact');
 
     expect(compiled.actions.create_artifact).toEqual(expect.objectContaining({
       actionKind: 'createEntity',
-      entityType: 'artifact',
-      parentEntityType: 'project',
+      typeId: 'artifact',
+      parentTypeId: 'project',
       access: expect.objectContaining({ roleIds: [fixture.assignment.roleIds[0]] })
     }));
     expect(artifactRegion.actions).toContain('create_artifact');
@@ -96,14 +96,14 @@ describe('persisted architecture acceptance fixture', () => {
       actionIds: artifactRegion.actions,
       actionManifest: access.actions,
       entity: fixture.hierarchy.project,
-      entityType: 'project'
+      typeId: 'project'
     }).map(action => action.actionId || action.id)).toContain('create_artifact');
   });
 
   it('drives selectors, status, and artifact viewing from the persisted DTO and canonical projections', () => {
     const fixture = createPersistedAcceptanceFixture();
     const options = [
-      { label: fixture.hierarchy.project.identity.name, value: fixture.hierarchy.project._id, entity: fixture.hierarchy.project, entityType: 'project' }
+      { label: fixture.hierarchy.project.identity.name, value: fixture.hierarchy.project._id, entity: fixture.hierarchy.project, typeId: 'project' }
     ];
     const selected = selectOptionForValue(options, fixture.hierarchy.project._id, 'value');
     const domainUi = {

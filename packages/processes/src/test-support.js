@@ -32,7 +32,7 @@ export function createTemplate({ id, label, adminLabel, grants, entities, servic
         id: output.nodeId,
         type: 'entity',
         position: { x: 360, y: 80 + index * 120 },
-        data: { refId: output.producerOutputId, label: output.label, entityType: output.entityType }
+        data: { refId: output.producerOutputId, label: output.label, typeId: output.typeId }
       })),
       ...Object.keys(services).map((serviceId, index) => ({
         id: serviceId,

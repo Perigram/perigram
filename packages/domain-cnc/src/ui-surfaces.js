@@ -56,7 +56,7 @@ export function createEntitySurfaceContracts(entityContracts = []) {
     const compactGroups = defaultFieldGroupsFor(key);
     return [key, {
       key,
-      entityType: entry.entityType,
+      typeId: entry.typeId,
       status: entry.status,
       trace: entry.trace,
       surfaces: {

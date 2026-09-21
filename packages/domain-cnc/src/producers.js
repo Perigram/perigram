@@ -5,8 +5,8 @@ export const cncEntityProducers = [
     labelKey: 'queues.producers.libraryCassette',
     kind: 'construction',
     constructionMode: 'bakeCassetteDesignFromTemplate',
-    source: { entityType: 'cassette', access: 'read' },
-    output: { entityType: 'cassette_design' }
+    source: { typeId: 'cassette', access: 'read' },
+    output: { typeId: 'cassette_design' }
   },
   {
     id: 'importCassetteDesignFromArtifact',
@@ -14,7 +14,7 @@ export const cncEntityProducers = [
     labelKey: 'queues.producers.uploadDxf',
     kind: 'construction',
     constructionMode: 'importCassetteDesignFromArtifact',
-    source: { entityType: 'artifact', access: 'write' },
-    output: { entityType: 'cassette_design' }
+    source: { typeId: 'artifact', access: 'write' },
+    output: { typeId: 'cassette_design' }
   }
 ];

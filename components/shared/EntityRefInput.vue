@@ -6,7 +6,7 @@
       :options="options"
       option-label="label"
       option-value="value"
-      :entity-type="entityType"
+      :type-id="typeId"
       class="w-full"
       @update:model-value="value => emit('update:modelValue', value)"
     />
@@ -26,7 +26,7 @@ import Select from '~/components/shared/EntitySelect.vue';
 
 const props = defineProps({
   modelValue: { type: [String, Number], default: '' },
-  entityType: { type: String, default: '' },
+  typeId: { type: String, default: '' },
   context: { type: Object, default: () => ({}) }
 });
 
@@ -34,7 +34,7 @@ const emit = defineEmits(['update:modelValue']);
 
 const options = computed(() => {
   const byType = props.context.entityOptions || props.context.entitiesByType || {};
-  return (byType[props.entityType] || []).map(option => ({
+  return (byType[props.typeId] || []).map(option => ({
     label: option.label || option.entity?.identity?.name || option.value,
     value: option.value || option.entity?._id,
     entity: option.entity

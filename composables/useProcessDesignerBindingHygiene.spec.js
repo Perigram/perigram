@@ -103,7 +103,7 @@ describe('useProcessDesignerGraphEditing: owned records die with their node', ()
       data: {
         processNodes: { c1: construct('c1', 'widget') },
         producerOutputs: {
-          'c1:result': { producerOutputId: 'c1:result', nodeId: 'c1', entityType: 'widget' }
+          'c1:result': { producerOutputId: 'c1:result', nodeId: 'c1', typeId: 'widget' }
         }
       }
     });

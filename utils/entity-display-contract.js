@@ -13,27 +13,27 @@ export const DEFAULT_ENTITY_SURFACE = 'card';
 
 const ENTITY_KEY_BY_TYPE = Object.fromEntries(cncDesignSystemEntityContracts.flatMap(entry => [
   [entry.key, entry.key],
-  [entry.entityType, entry.key]
+  [entry.typeId, entry.key]
 ]));
 
 export function normalizeEntitySurface(surface, fallback = DEFAULT_ENTITY_SURFACE) {
   return CNC_SURFACES.includes(surface) ? surface : fallback;
 }
 
-export function entityKeyForDisplay(entityType) {
-  return ENTITY_KEY_BY_TYPE[entityType] || entityType;
+export function entityKeyForDisplay(typeId) {
+  return ENTITY_KEY_BY_TYPE[typeId] || typeId;
 }
 
-export function getCoreFieldGroups(entityType) {
-  return cncEntityFieldGroups[entityKeyForDisplay(entityType)] || {};
+export function getCoreFieldGroups(typeId) {
+  return cncEntityFieldGroups[entityKeyForDisplay(typeId)] || {};
 }
 
-export function getCoreSurfaceContract(entityType) {
-  return cncEntitySurfaceContracts[entityKeyForDisplay(entityType)] || null;
+export function getCoreSurfaceContract(typeId) {
+  return cncEntitySurfaceContracts[entityKeyForDisplay(typeId)] || null;
 }
 
 export function resolveEntityDisplayContract({
-  entityType,
+  typeId,
   surface = DEFAULT_ENTITY_SURFACE,
   variant = null,
   fieldGroups = null,
@@ -41,9 +41,9 @@ export function resolveEntityDisplayContract({
   extensions = null,
   overrides = null
 } = {}) {
-  const key = entityKeyForDisplay(entityType);
+  const key = entityKeyForDisplay(typeId);
   const requestedSurface = normalizeEntitySurface(surface || variant);
-  const coreContract = cncEntitySurfaceContracts[key] || { key, entityType, surfaces: {} };
+  const coreContract = cncEntitySurfaceContracts[key] || { key, typeId, surfaces: {} };
   const extensionContract = extensions?.surfaces?.[key] || extensions?.[key] || {};
   const surfacePatch = surfaces?.[requestedSurface] || {};
 
@@ -68,7 +68,7 @@ export function resolveEntityDisplayContract({
 
   return {
     key,
-    entityType: coreContract.entityType || entityType,
+    typeId: coreContract.typeId || typeId,
     surface: requestedSurface,
     fieldGroups: mergedGroups,
     surfaceContract: normalizeSurfaceContract(resolvedSurface),
@@ -107,7 +107,7 @@ export function validateEntityDisplayContracts({
         for (const field of fieldGroups[key][groupName] || []) {
           const paths = [field.path, ...(field.fallbackPaths || [])].filter(Boolean);
           for (const path of paths) {
-            if (!fieldPolicyResolver(contract.entityType || key, path, field)) {
+            if (!fieldPolicyResolver(contract.typeId || key, path, field)) {
               issues.push({ key, surface, group: groupName, path, issue: 'field path missing access policy' });
             }
           }

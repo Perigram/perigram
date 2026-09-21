@@ -78,7 +78,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
  */
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
   const result = await statusService.transitionWithResult({
-    entityType: 'feature_name',
+    typeId: 'feature_name',
     targetId: id,
     targetState: newState,
     auth: createTransitionAuth(userId, userRole),

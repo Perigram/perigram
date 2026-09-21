@@ -3,8 +3,8 @@ export function useProcessDesignerScreens({
   selectedScreenId,
   createScreen,
   normalizeScreenContract,
-  defaultEntityType,
-  featureForEntityType
+  defaultTypeId,
+  featureForTypeId
 }) {
   function add() {
     const id = `screen_${Date.now()}`;
@@ -24,18 +24,18 @@ export function useProcessDesignerScreens({
 
   function sync(screen) {
     if (!screen) return;
-    screen.required ||= { feature: featureForEntityType(defaultEntityType()), level: 'read' };
+    screen.required ||= { feature: featureForTypeId(defaultTypeId()), level: 'read' };
     screen.roleIds ||= [];
     screen.bindings ||= {};
     screen.actions ||= [];
-    if (['entityDetail', 'formAction'].includes(screen.template) && screen.sources?.[0]) {
+    if (['instanceDetail', 'formAction'].includes(screen.template) && screen.sources?.[0]) {
       screen.sources[0].mode = 'single';
       screen.sources[0].identifier ||= '$assignment.entityId';
     }
     Object.assign(screen, normalizeScreenContract(screen), { kind: 'route' });
     const source = ensureSource(screen);
     const region = ensureRegion(screen);
-    for (const item of screen.sources) item.required ||= { feature: featureForEntityType(item.entityType), level: screen.required.level || 'read' };
+    for (const item of screen.sources) item.required ||= { feature: featureForTypeId(item.typeId), level: screen.required.level || 'read' };
     for (const item of screen.regions) {
       if (!screen.sources.some(candidate => candidate.id === item.sourceId)) item.sourceId = source.id;
       item.actions ||= [];
@@ -46,9 +46,9 @@ export function useProcessDesignerScreens({
   function ensureSource(screen) {
     screen.sources ||= [];
     if (!screen.sources.length) {
-      const entityType = screen.entityType || defaultEntityType();
-      const mode = screen.template === 'entityDetail' || screen.template === 'formAction' ? 'single' : 'list';
-      screen.sources.push(createSource(screen, entityType || 'source', entityType, mode));
+      const typeId = screen.typeId || defaultTypeId();
+      const mode = screen.template === 'instanceDetail' || screen.template === 'formAction' ? 'single' : 'list';
+      screen.sources.push(createSource(screen, typeId || 'source', typeId, mode));
     }
     return screen.sources[0];
   }
@@ -63,10 +63,10 @@ export function useProcessDesignerScreens({
   function addSource(screen) {
     if (!screen) return;
     screen.sources ||= [];
-    const entityType = screen.entityType || defaultEntityType();
+    const typeId = screen.typeId || defaultTypeId();
     const id = uniqueId('source', screen.sources);
-    const mode = screen.template === 'entityDetail' || screen.template === 'formAction' ? 'single' : 'list';
-    const source = createSource(screen, id, entityType, mode);
+    const mode = screen.template === 'instanceDetail' || screen.template === 'formAction' ? 'single' : 'list';
+    const source = createSource(screen, id, typeId, mode);
     screen.sources.push(source);
     return source;
   }
@@ -88,9 +88,9 @@ export function useProcessDesignerScreens({
     }
   }
 
-  function setSourceEntityType(screen, source, entityType) {
-    source.entityType = entityType;
-    source.required = { ...(source.required || {}), feature: featureForEntityType(entityType) };
+  function setSourceTypeId(screen, source, typeId) {
+    source.typeId = typeId;
+    source.required = { ...(source.required || {}), feature: featureForTypeId(typeId) };
     sync(screen);
   }
 
@@ -118,8 +118,8 @@ export function useProcessDesignerScreens({
   function addLineageBinding(source) {
     source.lineageBindings ||= [];
     const binding = {
-      childEntityType: source.entityType || '',
-      ancestorEntityType: '',
+      childTypeId: source.typeId || '',
+      parentTypeId: '',
       lineageKey: '',
       sourceNode: '',
       sourceSocket: '',
@@ -178,17 +178,17 @@ export function useProcessDesignerScreens({
     renameSource,
     scalarRows,
     setScalarType,
-    setSourceEntityType,
+    setSourceTypeId,
     setSourceMode,
     sync
   };
 }
 
-function createSource(screen, id, entityType, mode) {
+function createSource(screen, id, typeId, mode) {
   return {
     id,
     label: '',
-    entityType,
+    typeId,
     mode,
     required: { feature: screen.required?.feature || '', level: screen.required?.level || 'read' },
     identifier: mode === 'single' ? '$assignment.entityId' : null,
@@ -203,7 +203,7 @@ function createRegion(screen, id, sourceId) {
     label: '',
     slot: screen.template === 'workspaceLanes' ? (id === 'main' ? 'center' : 'right') : 'main',
     sourceId,
-    surface: screen.template === 'entityDetail' ? 'detail' : 'card',
+    surface: screen.template === 'instanceDetail' ? 'detail' : 'card',
     actions: []
   };
 }

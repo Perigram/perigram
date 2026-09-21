@@ -120,9 +120,9 @@ watch([sourceParameters, parameterNames], ([values, names]) => {
   }
 }, { immediate: true });
 const sourceTypeLabel = computed(() => {
-  if (props.entry.entityType === 'cassette') return t('entities.cassette');
-  if (props.entry.entityType === 'cassette_design') return t('entities.cassetteDesign');
-  return props.entry.entityType || t('entities.cassetteDesign');
+  if (props.entry.typeId === 'cassette') return t('entities.cassette');
+  if (props.entry.typeId === 'cassette_design') return t('entities.cassetteDesign');
+  return props.entry.typeId || t('entities.cassetteDesign');
 });
 const sourceLabel = computed(() => `${sourceTypeLabel.value}: ${sourceId.value || t('common.unknown')}`);
 </script>

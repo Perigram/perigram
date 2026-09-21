@@ -32,7 +32,7 @@ function projectActionKind(kind) {
 
 function projectScreen(screen, actionsBySourceId) {
   const sources = (screen.sources || []).map((source) => {
-    const projected = { id: source.id, typeId: source.entityType, mode: source.mode || 'list' };
+    const projected = { id: source.id, typeId: source.typeId, mode: source.mode || 'list' };
     if (source.required) projected.required = source.required;
     if (source.identifier) projected.identifier = source.identifier;
     // Compiler detail filters ({ lineageKey: '$screen.scope.entityId' })
@@ -54,15 +54,15 @@ function projectScreen(screen, actionsBySourceId) {
   }));
   const projected = {
     ...screen,
-    template: screen.template === 'entityList' ? 'typeList'
-      : screen.template === 'entityDetail' ? 'instanceDetail' : screen.template,
-    typeId: screen.entityType ?? null,
+    template: screen.template === 'typeList' ? 'typeList'
+      : screen.template === 'instanceDetail' ? 'instanceDetail' : screen.template,
+    typeId: screen.typeId ?? null,
     scope: screen.scope ? { instanceId: screen.scope.entityId ?? null } : {},
     sources,
     regions,
     actions: (screen.actions || [])
   };
-  delete projected.entityType;
+  delete projected.typeId;
   return projected;
 }
 
@@ -126,7 +126,7 @@ export function createRealUiMappingWorld() {
     actions[action.id] = {
       ...action,
       actionKind: projectActionKind(action.actionKind),
-      typeId: action.entityType,
+      typeId: action.typeId,
       trigger: action.trigger || { mode: 'manual' }
     };
   }

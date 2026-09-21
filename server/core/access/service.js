@@ -3,9 +3,9 @@ import { toFlexibleId } from '../../utils/objectid.js';
 import { actionToLevel, hasPermissionGrant } from '#shared/access-control.js';
 import { isPublicReadEntity } from '#shared/public-entities.js';
 
-export function assertEntityAccess({ entity, entityType, feature = entityType, level = 'read', action = null, auth }) {
+export function assertEntityAccess({ entity, typeId, feature = typeId, level = 'read', action = null, auth }) {
   if (!auth) throw createError({ statusCode: 401, message: 'Authentication required' });
-  if (!hasEntityAccess({ entity, feature, level, action, auth, entityType })) {
+  if (!hasEntityAccess({ entity, feature, level, action, auth, typeId })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return true;
@@ -24,7 +24,7 @@ export function assertCommandAccess({ command, action = command, entities = {}, 
       feature: requirement.feature,
       level: requirement.level || 'read',
       auth,
-      entityType: requirement.entityType,
+      typeId: requirement.typeId,
       context: { lineageEntities: entities }
     })) {
       throw createError({ statusCode: 403, message: `Permission denied for ${requirement.feature}:${requirement.level || 'read'}` });
@@ -54,7 +54,7 @@ export function assertTransitionAccess({ transition, entity, auth }) {
       feature: requirement.feature,
       level: requirement.level || 'read',
       auth,
-      entityType: requirement.entityType,
+      typeId: requirement.typeId,
       transition
     })) {
       throw createError({ statusCode: 403, message: `Permission denied for ${requirement.feature}:${requirement.level || 'read'}` });
@@ -73,10 +73,10 @@ export function createLineageFilter(auth) {
   return orgIds.length ? { 'lineage.organizationId': { $in: orgIds } } : { 'lineage.organizationId': { $in: [] } };
 }
 
-export function hasEntityAccess({ entity, feature, level = 'read', action = null, auth, entityType = null, transition = null, context = {} }) {
+export function hasEntityAccess({ entity, feature, level = 'read', action = null, auth, typeId = null, transition = null, context = {} }) {
   if (!feature) return false;
   const requiredLevel = action ? actionToLevel(action, level) : level;
-  if (requiredLevel === 'read' && isPublicReadEntity({ entity, entityType, feature })) return true;
+  if (requiredLevel === 'read' && isPublicReadEntity({ entity, typeId, feature })) return true;
   if (!auth) return false;
 
   const orgId = entity?.lineage?.organizationId?.toString();
@@ -86,7 +86,7 @@ export function hasEntityAccess({ entity, feature, level = 'read', action = null
     ? (auth.memberships || []).find(item => item.organizationId?.toString() === orgId)
     : (auth.memberships || [])[0];
   const permissions = getEffectivePermissions(auth, membership);
-  return hasPermissionGrant({ permissions, feature, level, action, entity, entityType, transition, context });
+  return hasPermissionGrant({ permissions, feature, level, action, entity, typeId, transition, context });
 }
 
 export function getEffectivePermissions(auth = {}, membership = null) {

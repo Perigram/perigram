@@ -29,14 +29,14 @@ function serialize(model, userPermissions = null) {
   return dto;
 }
 
-export function createProcessUpdateHandler({ entityType, repository, Model, toDTO = serialize }) {
-  if (!entityType || !repository?.findById || !repository?.updateById || !Model) {
-    throw new Error('Process update handler requires entityType, repository, and Model');
+export function createProcessUpdateHandler({ typeId, repository, Model, toDTO = serialize }) {
+  if (!typeId || !repository?.findById || !repository?.updateById || !Model) {
+    throw new Error('Process update handler requires typeId, repository, and Model');
   }
 
   return async function processUpdate(id, patch = {}, auth = {}) {
     const raw = await repository.findById(toFlexibleId(id));
-    if (!raw) throw createError({ statusCode: 404, message: `${entityType} not found` });
+    if (!raw) throw createError({ statusCode: 404, message: `${typeId} not found` });
 
     const entity = new Model(raw);
     const document = clone(entity.toJSON());

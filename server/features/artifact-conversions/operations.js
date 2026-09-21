@@ -17,6 +17,6 @@ export async function convertArtifact({ entities = {}, parameters = {}, auth }) 
       entities: [{ type: converted.type, id }],
       data: { conversion: parameters.conversion }
     }],
-    data: { conversion: parameters.conversion, entityType: converted.type, entityId: id }
+    data: { conversion: parameters.conversion, typeId: converted.type, entityId: id }
   };
 }

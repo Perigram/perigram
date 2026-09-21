@@ -16,7 +16,7 @@ import {
 } from '~/packages/workflows/src/index.js';
 import { assertTransitionAccess, hasEntityAccess } from '../access/service.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
-import { getEntityCollection, getEntityDefinition, normalizeEntityType } from '~/server/runtime/entities.js';
+import { getEntityCollection, getEntityDefinition, normalizeTypeId } from '~/server/runtime/entities.js';
 import { processEffects } from '../effects/service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 
@@ -28,51 +28,51 @@ import * as workflowOverridesService from '~/server/features/workflow-overrides/
 export const statusService = {
   /**
    * Change status of an entity
-   * @param {string} entityType - e.g., 'project', 'queue'
+   * @param {string} typeId - e.g., 'project', 'queue'
    * @param {string|ObjectId} targetId - ID of the entity
    * @param {string} targetState - The desired state code
    * @param {string} userId - Current user ID
    * @param {string} userRole - Current user role for validation
    * @param {Object} metadata - Optional notes/attachments
    */
-  async transition(entityType, targetId, targetState, userId, userRole, metadata = {}) {
-    const { status } = await performTransition(entityType, targetId, targetState, userId, userRole, metadata);
+  async transition(typeId, targetId, targetState, userId, userRole, metadata = {}) {
+    const { status } = await performTransition(typeId, targetId, targetState, userId, userRole, metadata);
     return status;
   },
 
-  initialStatus(entityType, actor = 'SYSTEM', metadata = {}) {
-    const normalizedEntityType = normalizeEntityType(entityType);
-    const machine = workflowOverridesService.resolveDefaultWorkflow(normalizedEntityType);
+  initialStatus(typeId, actor = 'SYSTEM', metadata = {}) {
+    const normalizedTypeId = normalizeTypeId(typeId);
+    const machine = workflowOverridesService.resolveDefaultWorkflow(normalizedTypeId);
     if (!machine) {
       throw createError({
         statusCode: 400,
-        message: `No state machine defined for entity type: ${normalizedEntityType}`
+        message: `No state machine defined for entity type: ${normalizedTypeId}`
       });
     }
     const actorId = typeof actor === 'object' ? actor.userId : actor;
     return createStatus(createWorkflowState(machine), actorId || 'SYSTEM', metadata);
   },
 
-  async initialStatusForOrganization(entityType, organizationId, actor = 'SYSTEM', metadata = {}) {
-    const normalizedEntityType = normalizeEntityType(entityType);
-    const machine = await workflowOverridesService.resolveActiveWorkflow({ entityType: normalizedEntityType, organizationId, producerOutputId: metadata.producerOutputId });
+  async initialStatusForOrganization(typeId, organizationId, actor = 'SYSTEM', metadata = {}) {
+    const normalizedTypeId = normalizeTypeId(typeId);
+    const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: normalizedTypeId, organizationId, producerOutputId: metadata.producerOutputId });
     if (!machine) {
       throw createError({
         statusCode: 400,
-        message: `No state machine defined for entity type: ${normalizedEntityType}`
+        message: `No state machine defined for entity type: ${normalizedTypeId}`
       });
     }
     const actorId = typeof actor === 'object' ? actor.userId : actor;
     return createStatus(createWorkflowState(machine), actorId || 'SYSTEM', persistableStatusMetadata(metadata));
   },
 
-  async setInitialStateForOrganization(entityType, targetId, targetState, organizationId, actor = 'SYSTEM', metadata = {}) {
-    const normalizedEntityType = normalizeEntityType(entityType);
-    const machine = await workflowOverridesService.resolveActiveWorkflow({ entityType: normalizedEntityType, organizationId, producerOutputId: metadata.producerOutputId });
+  async setInitialStateForOrganization(typeId, targetId, targetState, organizationId, actor = 'SYSTEM', metadata = {}) {
+    const normalizedTypeId = normalizeTypeId(typeId);
+    const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: normalizedTypeId, organizationId, producerOutputId: metadata.producerOutputId });
     if (!machine) {
       throw createError({
         statusCode: 400,
-        message: `No state machine defined for entity type: ${normalizedEntityType}`
+        message: `No state machine defined for entity type: ${normalizedTypeId}`
       });
     }
     const normalizedMachine = normalizeWorkflow(machine);
@@ -81,10 +81,10 @@ export const statusService = {
     if (!region?.states?.[targetState]) {
       throw createError({
         statusCode: 400,
-        message: `State ${targetState} is not defined for ${normalizedEntityType}`
+        message: `State ${targetState} is not defined for ${normalizedTypeId}`
       });
     }
-    const { collection, flexId } = await loadEntityForWorkflow(normalizedEntityType, targetId);
+    const { collection, flexId } = await loadEntityForWorkflow(normalizedTypeId, targetId);
     const actorId = typeof actor === 'object' ? actor.userId : actor;
     const eventId = new ObjectId();
     const statusMetadata = mergeStatusDisplayMetadata(persistableStatusMetadata(metadata), region.states[targetState]);
@@ -100,7 +100,7 @@ export const statusService = {
     await db.collection('status_events').insertOne({
       _id: eventId,
       targetId: flexId,
-      targetType: normalizedEntityType,
+      targetType: normalizedTypeId,
       fromState: null,
       toState: targetState,
       fromStatePrimary: null,
@@ -116,9 +116,9 @@ export const statusService = {
     return statusData;
   },
 
-  async applyIntent(entityType, targetId, intent, authContext = {}, metadata = {}, transitionContext = {}) {
+  async applyIntent(typeId, targetId, intent, authContext = {}, metadata = {}, transitionContext = {}) {
     const resolved = await resolveIntentTransition({
-      entityType,
+      typeId,
       targetId,
       intent,
       authContext,
@@ -126,7 +126,7 @@ export const statusService = {
     });
 
     return await performTransition(
-      resolved.entityType,
+      resolved.typeId,
       targetId,
       resolved.transition.to,
       authContext?.userId,
@@ -139,9 +139,9 @@ export const statusService = {
     );
   },
 
-  async assertIntentAvailable(entityType, targetId, intent, authContext = {}, transitionContext = {}) {
+  async assertIntentAvailable(typeId, targetId, intent, authContext = {}, transitionContext = {}) {
     const resolved = await resolveIntentTransition({
-      entityType,
+      typeId,
       targetId,
       intent,
       authContext,
@@ -149,7 +149,7 @@ export const statusService = {
       preflight: true
     });
     return {
-      entityType: resolved.entityType,
+      typeId: resolved.typeId,
       targetId,
       intent,
       region: resolved.regionId,
@@ -158,22 +158,22 @@ export const statusService = {
     };
   },
 
-  async getActions(entityType, targetId, authContext) {
-    const normalizedEntityType = normalizeEntityType(entityType);
+  async getActions(typeId, targetId, authContext) {
+    const normalizedTypeId = normalizeTypeId(typeId);
     const auth = normalizeAuthContext(authContext?.userId, authContext, {});
-    const defaultMachine = workflowOverridesService.resolveDefaultWorkflow(normalizedEntityType);
+    const defaultMachine = workflowOverridesService.resolveDefaultWorkflow(normalizedTypeId);
     let loaded;
     try {
-      loaded = await loadEntityForWorkflow(normalizedEntityType, targetId, { requireMachine: false, producerOutputId: authContext?.producerOutputId });
+      loaded = await loadEntityForWorkflow(normalizedTypeId, targetId, { requireMachine: false, producerOutputId: authContext?.producerOutputId });
     } catch (error) {
       if (!defaultMachine && Number(error?.statusCode) === 404) {
-        return { entityType: normalizedEntityType, targetId, state: null, actions: [] };
+        return { typeId: normalizedTypeId, targetId, state: null, actions: [] };
       }
       throw error;
     }
     const { entity, machine: loadedMachine } = loaded;
     if (!loadedMachine) {
-      return { entityType: normalizedEntityType, targetId, state: entity.status?.state || null, actions: [] };
+      return { typeId: normalizedTypeId, targetId, state: entity.status?.state || null, actions: [] };
     }
     const normalizedMachine = normalizeWorkflow(loadedMachine);
     const primaryState = getPrimaryState(entity.status, normalizedMachine.initial);
@@ -205,7 +205,7 @@ export const statusService = {
           transition,
           entity,
           targetId,
-          targetType: normalizedEntityType,
+          targetType: normalizedTypeId,
           currentState,
           auth
         });
@@ -229,20 +229,20 @@ export const statusService = {
 
     appendProcessStatusActions(actions, {
       auth,
-      entityType: normalizedEntityType,
+      typeId: normalizedTypeId,
       primaryState
     });
 
-    return { entityType: normalizedEntityType, targetId, state: entity.status?.state || createWorkflowState(normalizedMachine), primaryState, actions };
+    return { typeId: normalizedTypeId, targetId, state: entity.status?.state || createWorkflowState(normalizedMachine), primaryState, actions };
   },
 
-  async transitionWithResult({ entityType, targetId, targetState, intent = null, auth, context = {}, patch = null }) {
-    const normalizedEntityType = normalizeEntityType(entityType);
+  async transitionWithResult({ typeId, targetId, targetState, intent = null, auth, context = {}, patch = null }) {
+    const normalizedTypeId = normalizeTypeId(typeId);
     let transitionTarget = targetState;
     let transitionContext = context;
     if (intent) {
       const resolved = await resolveIntentTransition({
-        entityType: normalizedEntityType,
+        typeId: normalizedTypeId,
         targetId,
         intent,
         authContext: auth,
@@ -252,7 +252,7 @@ export const statusService = {
       transitionContext = { ...context, region: resolved.regionId };
     }
     const { status, effects } = await performTransition(
-      normalizedEntityType,
+      normalizedTypeId,
       targetId,
       transitionTarget,
       auth?.userId,
@@ -261,8 +261,8 @@ export const statusService = {
       { entityPatch: patch }
     );
     const producerOutputId = transitionContext?.producerOutputId || null;
-    const { entity } = await loadEntityForWorkflow(normalizedEntityType, targetId, { producerOutputId });
-    const actions = await this.getActions(normalizedEntityType, targetId, {
+    const { entity } = await loadEntityForWorkflow(normalizedTypeId, targetId, { producerOutputId });
+    const actions = await this.getActions(normalizedTypeId, targetId, {
       ...auth,
       ...(producerOutputId ? { producerOutputId } : {})
     });
@@ -271,16 +271,16 @@ export const statusService = {
 };
 
 async function resolveIntentTransition({
-  entityType,
+  typeId,
   targetId,
   intent,
   authContext = {},
   transitionContext = {},
   preflight = false
 }) {
-  const normalizedEntityType = normalizeEntityType(entityType);
+  const normalizedTypeId = normalizeTypeId(typeId);
   const auth = normalizeAuthContext(authContext?.userId, authContext, {});
-  const { entity, machine } = await loadEntityForWorkflow(normalizedEntityType, targetId, { producerOutputId: transitionContext.producerOutputId });
+  const { entity, machine } = await loadEntityForWorkflow(normalizedTypeId, targetId, { producerOutputId: transitionContext.producerOutputId });
   const normalizedMachine = normalizeWorkflow(machine);
   const transitionScope = normalizeTransitionScope(transitionContext);
   const regionId = transitionScope.region || normalizedMachine.primaryRegion || 'main';
@@ -290,7 +290,7 @@ async function resolveIntentTransition({
   if (!transition) {
     throw createError({
       statusCode: 400,
-      message: `No transition intent "${intent}" defined for ${normalizedEntityType} from ${currentState}`
+      message: `No transition intent "${intent}" defined for ${normalizedTypeId} from ${currentState}`
     });
   }
 
@@ -314,22 +314,22 @@ async function resolveIntentTransition({
       transition,
       entity,
       targetId,
-      targetType: normalizedEntityType,
+      targetType: normalizedTypeId,
       currentState,
       auth
     });
   }
-  return { entityType: normalizedEntityType, entity, transition, regionId, currentState };
+  return { typeId: normalizedTypeId, entity, transition, regionId, currentState };
 }
 
-function appendProcessStatusActions(actions = [], { auth = {}, entityType = '', primaryState = '' } = {}) {
+function appendProcessStatusActions(actions = [], { auth = {}, typeId = '', primaryState = '' } = {}) {
   const existingTargets = new Set(actions.map(action => `${action.from || ''}->${action.to || ''}`));
   for (const action of auth.roleAssignments?.actions || []) {
     // The assignment manifest carries the projected UI-contract kinds
     // (`updateInstance`) beside the legacy exposure fields.
     if ((action.actionKind !== 'updateEntity' && action.actionKind !== 'updateInstance') || !(action.status?.to || action.access?.statusTo)) continue;
     if ((action.mutation?.fields || []).length || (action.inputPolicy?.fields || []).length) continue;
-    if (normalizeEntityType(action.entityType || action.typeId) !== entityType) continue;
+    if (normalizeTypeId(action.typeId || action.typeId) !== typeId) continue;
     const from = action.status?.from || action.access?.statusFrom || '';
     const to = action.status?.to || action.access?.statusTo || '';
     if (!to) continue;
@@ -350,13 +350,13 @@ function appendProcessStatusActions(actions = [], { auth = {}, entityType = '', 
   }
 }
 
-async function performTransition(entityType, targetId, targetState, userId, userRole, metadata = {}, options = {}) {
-    const normalizedEntityType = normalizeEntityType(entityType);
+async function performTransition(typeId, targetId, targetState, userId, userRole, metadata = {}, options = {}) {
+    const normalizedTypeId = normalizeTypeId(typeId);
     const transitionContext = normalizeTransitionContext(metadata);
     const auth = normalizeAuthContext(userId, userRole, transitionContext.metadata);
     const actorId = auth.userId || userId || 'SYSTEM';
     const db = await connectDB();
-    const { entity, machine, collection, flexId } = await loadEntityForWorkflow(normalizedEntityType, targetId, { producerOutputId: transitionContext.producerOutputId });
+    const { entity, machine, collection, flexId } = await loadEntityForWorkflow(normalizedTypeId, targetId, { producerOutputId: transitionContext.producerOutputId });
 
     const normalizedMachine = normalizeWorkflow(machine);
     const transitionScope = normalizeTransitionScope(transitionContext);
@@ -376,7 +376,7 @@ async function performTransition(entityType, targetId, targetState, userId, user
     const evidence = await prepareStatusEvidence({
       db,
       entity,
-      entityType: normalizedEntityType,
+      typeId: normalizedTypeId,
       auth,
       eventId,
       lifecycle: targetLifecycleSchema ? lifecycleForValidation : normalizeLifecycle(),
@@ -403,21 +403,21 @@ async function performTransition(entityType, targetId, targetState, userId, user
     if (!validation.ok && validation.reason === 'invalid_transition') {
       throw createError({ 
         statusCode: 400, 
-        message: `Invalid transition from ${currentState} to ${targetState} for ${normalizedEntityType}` 
+        message: `Invalid transition from ${currentState} to ${targetState} for ${normalizedTypeId}` 
       });
     }
     
     if (!validation.ok && (validation.reason === 'actor_denied' || validation.reason === 'capability_denied')) {
       throw createError({
         statusCode: 403,
-        message: `Unauthorized lifecycle actor for transition ${currentState} -> ${targetState} for ${normalizedEntityType}`
+        message: `Unauthorized lifecycle actor for transition ${currentState} -> ${targetState} for ${normalizedTypeId}`
       });
     }
 
     if (!validation.ok) {
       throw createError({
         statusCode: 400,
-        message: `Invalid lifecycle payload for ${normalizedEntityType} status ${targetState}: ${validation.reason}`
+        message: `Invalid lifecycle payload for ${normalizedTypeId} status ${targetState}: ${validation.reason}`
       });
     }
 
@@ -426,7 +426,7 @@ async function performTransition(entityType, targetId, targetState, userId, user
 
     const hookContext = {
       targetId: flexId,
-      targetType: normalizedEntityType,
+      targetType: normalizedTypeId,
       fromState: currentState,
       toState: targetState,
       region: regionId,
@@ -453,7 +453,7 @@ async function performTransition(entityType, targetId, targetState, userId, user
     const eventRecord = {
       _id: eventId,
       targetId: flexId,
-      targetType: normalizedEntityType,
+      targetType: normalizedTypeId,
       fromState: currentState,
       toState: targetState,
       fromStatePrimary: getPrimaryState(entity.status, normalizedMachine.initial),
@@ -485,14 +485,14 @@ async function performTransition(entityType, targetId, targetState, userId, user
     const processedEffects = await processEffects(afterEffects, {
       auth,
       entity,
-      entityType: normalizedEntityType,
+      typeId: normalizedTypeId,
       targetId: flexId,
       targetState,
       scopedState: targetState,
       region: regionId,
       transition,
       status: statusData,
-      event: { source: { type: normalizedEntityType, id: flexId.toString() } },
+      event: { source: { type: normalizedTypeId, id: flexId.toString() } },
       registry: getCutkitRegistry()
     });
     return {
@@ -617,7 +617,7 @@ function normalizeAuthContext(userId, userRole, metadata = {}) {
   return createTransitionAuth(userId, userRole, metadata);
 }
 
-async function prepareStatusEvidence({ db, entity, entityType, auth, eventId, lifecycle = {}, schema = null }) {
+async function prepareStatusEvidence({ db, entity, typeId, auth, eventId, lifecycle = {}, schema = null }) {
   const normalized = normalizeLifecycle(lifecycle);
   if (!schema) return { lifecycle: normalized, entityAttachmentSet: {} };
 
@@ -629,7 +629,7 @@ async function prepareStatusEvidence({ db, entity, entityType, auth, eventId, li
   const snapshots = await captureLifecycleSnapshots({
     db,
     entity,
-    entityType,
+    typeId,
     auth,
     snapshotSchema: schema.snapshots || {}
   });
@@ -734,14 +734,14 @@ function mongoSafeAttachmentKeyPart(value) {
   return String(value || '').replace(/[^a-zA-Z0-9_-]+/g, '_');
 }
 
-async function captureLifecycleSnapshots({ db, entity, entityType, auth, snapshotSchema = {} }) {
+async function captureLifecycleSnapshots({ db, entity, typeId, auth, snapshotSchema = {} }) {
   const snapshots = {};
   for (const [key, definition] of Object.entries(snapshotSchema || {})) {
-    if (!definition?.entityType) continue;
-    const targetEntityType = normalizeEntityType(definition.entityType);
-    const collection = getEntityCollection(targetEntityType);
+    if (!definition?.typeId) continue;
+    const targetTypeId = normalizeTypeId(definition.typeId);
+    const collection = getEntityCollection(targetTypeId);
     if (!collection) continue;
-    const lineageKey = definition.lineageKey || `${entityType}Id`;
+    const lineageKey = definition.lineageKey || `${typeId}Id`;
     const entityId = entity?._id || entity?.identity?.uid;
     const candidates = [entityId, entityId?.toString?.()].filter(Boolean);
     const filter = {
@@ -749,18 +749,18 @@ async function captureLifecycleSnapshots({ db, entity, entityType, auth, snapsho
     };
     const limit = Math.max(1, Math.min(Number(definition.limit || 50), 100));
     const docs = await db.collection(collection).find(filter).limit(limit).toArray();
-    const entityDefinition = getEntityDefinition(targetEntityType);
-    const feature = entityDefinition?.feature || entityDefinition?.collection || targetEntityType;
+    const entityDefinition = getEntityDefinition(targetTypeId);
+    const feature = entityDefinition?.feature || entityDefinition?.collection || targetTypeId;
     const readable = docs.filter(doc => hasEntityAccess({
       entity: doc,
       feature,
       level: 'read',
       auth,
-      entityType: targetEntityType
+      typeId: targetTypeId
     }));
     snapshots[key] = {
       capturedAt: new Date(),
-      entityType: targetEntityType,
+      typeId: targetTypeId,
       lineageKey,
       count: readable.length,
       refs: readable.map(snapshotEntityRef)
@@ -875,11 +875,11 @@ async function runTransitionHooks(transition, phase, context, options = {}) {
   return effects;
 }
 
-function resolveHookHandler(registry, entityType, handler) {
+function resolveHookHandler(registry, typeId, handler) {
   const hookFn = registry.getHookHandler(handler) || hooks[handler];
   if (hookFn) return hookFn;
 
-  const service = registry.getEntityService(entityType);
+  const service = registry.getEntityService(typeId);
   return service?.hooks?.[handler] || null;
 }
 
@@ -906,14 +906,14 @@ function appendHookEffects(effects, result) {
   }
 }
 
-async function loadEntityForWorkflow(entityType, targetId, options = {}) {
+async function loadEntityForWorkflow(typeId, targetId, options = {}) {
   const { requireMachine = true, producerOutputId = null } = options;
-  const normalizedEntityType = normalizeEntityType(entityType);
-  const collection = getEntityCollection(normalizedEntityType);
+  const normalizedTypeId = normalizeTypeId(typeId);
+  const collection = getEntityCollection(normalizedTypeId);
   if (!collection) {
     throw createError({
       statusCode: 400,
-      message: `No entity collection defined for entity type: ${normalizedEntityType}`
+      message: `No entity collection defined for entity type: ${normalizedTypeId}`
     });
   }
 
@@ -924,17 +924,17 @@ async function loadEntityForWorkflow(entityType, targetId, options = {}) {
   if (!entity) {
     throw createError({
       statusCode: 404,
-      message: `${normalizedEntityType} not found (ID: ${targetId}, Collection: ${collection})`
+      message: `${normalizedTypeId} not found (ID: ${targetId}, Collection: ${collection})`
     });
   }
 
   const organizationId = entity.lineage?.organizationId || entity.origin?.organizationId || entity.organizationId;
-  const machine = await workflowOverridesService.resolveActiveWorkflow({ entityType: normalizedEntityType, organizationId, producerOutputId });
+  const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: normalizedTypeId, organizationId, producerOutputId });
 
   if (!machine && requireMachine) {
     throw createError({
       statusCode: 400,
-      message: `No state machine defined for entity type: ${normalizedEntityType}`
+      message: `No state machine defined for entity type: ${normalizedTypeId}`
     });
   }
 

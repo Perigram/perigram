@@ -183,7 +183,7 @@ export function extractCurvesFromDXFLayer(dxfBuffer, layerName) {
         return {
           coordinates,
           handles: entity.handle ? [entity.handle] : [],
-          entityType: entity.type
+          typeId: entity.type
         };
       })
       .filter(Boolean);

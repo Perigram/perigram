@@ -29,14 +29,14 @@ const material = computed(() => props.catalog.data?.material || '');
 const sheetOptionCount = computed(() => props.catalog.data?.options?.sheetThicknesses?.length || 0);
 const foilOptionCount = computed(() => props.catalog.data?.options?.foilThicknesses?.length || 0);
 
-const CATALOG_FIELDS = resolveEntityDisplayFields({ entityType: 'catalog', surface: 'card' })
+const CATALOG_FIELDS = resolveEntityDisplayFields({ typeId: 'catalog', surface: 'card' })
   .filter(field => field.display !== 'entityRef');
 
 </script>
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <EntityCard :entity="catalog" entity-type="catalog" :variant="variant" :show-trace="false" :show-status="false">
+    <EntityCard :entity="catalog" type-id="catalog" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-book"></i>
       </template>
@@ -57,7 +57,7 @@ const CATALOG_FIELDS = resolveEntityDisplayFields({ entityType: 'catalog', surfa
         <small class="text-muted">{{ $t('requisition.manufacturer') }}</small>
         <EntityInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
       </div>
-      <DataBlock entity-type="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />
+      <DataBlock type-id="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />
       <template #footer>
         <div class="flex justify-end gap-2" @click.stop>
           <Button v-if="authStore.can('catalogs', 'edit')" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="$emit('edit', catalog)" />

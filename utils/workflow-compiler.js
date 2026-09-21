@@ -18,10 +18,10 @@ export function compileWorkflowDraft({ entities = cncEntities, workflows = {}, h
   const machineIssues = [];
   const machines = {};
 
-  for (const [entityType, workflow] of Object.entries(workflows || {})) {
+  for (const [typeId, workflow] of Object.entries(workflows || {})) {
     const normalized = normalizeWorkflowSafe(workflow);
     if (!normalized) continue;
-    machines[entityType] = toPlainObject(normalized);
+    machines[typeId] = toPlainObject(normalized);
     const initialValidation = validateTransition({
       workflow: normalized,
       currentState: normalized.initial,
@@ -31,7 +31,7 @@ export function compileWorkflowDraft({ entities = cncEntities, workflows = {}, h
       machineIssues.push({
         area: 'workflows',
         severity: 'warning',
-        message: `${entityType} initial state ${normalized.initial} has no self-loop metadata transition`
+        message: `${typeId} initial state ${normalized.initial} has no self-loop metadata transition`
       });
     }
   }
@@ -48,13 +48,13 @@ export function compileWorkflowDraft({ entities = cncEntities, workflows = {}, h
   };
 }
 
-export function workflowInitialState(workflows = {}, entityType, fallback = 'DRAFT') {
-  return normalizeWorkflowSafe(workflows?.[entityType])?.initial || fallback;
+export function workflowInitialState(workflows = {}, typeId, fallback = 'DRAFT') {
+  return normalizeWorkflowSafe(workflows?.[typeId])?.initial || fallback;
 }
 
-export function workflowStateExists(workflows = {}, entityType, state) {
+export function workflowStateExists(workflows = {}, typeId, state) {
   if (!state) return false;
-  return workflowStateNames(workflows?.[entityType]).includes(state);
+  return workflowStateNames(workflows?.[typeId]).includes(state);
 }
 
 export function collectWorkflowAccess(workflows = {}) {

@@ -21,7 +21,7 @@ import { onEntityChanged } from '~/utils/entity-events.js';
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  entityType: { type: String, required: true }, // e.g. 'project', 'queue'
+  typeId: { type: String, required: true }, // e.g. 'project', 'queue'
   variant: { type: String, default: 'inline' }, // icon, inline, full
   showActions: { type: Boolean, default: true },
   actions: { type: Array, default: () => [] }, // preferred action API
@@ -51,10 +51,10 @@ const toggle = (event) => {
 const entityId = computed(() => props.entity?._id || props.entity?.identity?.uid || props.entity?.identity?.slug);
 const localWorkflows = computed(() => props.workflows || unref(providedWorkflows) || null);
 const displaysLifecycleStatus = computed(() => hasMeaningfulWorkflowStatus(
-    props.entityType,
+    props.typeId,
     localWorkflows.value || undefined
 ) || (props.variant === 'icon' && Boolean(props.entity?.status?.state)));
-const hasRegisteredWorkflow = computed(() => hasWorkflow(props.entityType, localWorkflows.value || undefined));
+const hasRegisteredWorkflow = computed(() => hasWorkflow(props.typeId, localWorkflows.value || undefined));
 const useServerActions = computed(() => props.showActions && !localWorkflows.value && hasRegisteredWorkflow.value);
 const useLocalTransition = computed(() => Boolean(localWorkflows.value && localTransitionHandler));
 
@@ -63,7 +63,7 @@ const handleTransition = async (targetState, action = {}, evidence = {}) => {
     try {
         const result = useLocalTransition.value
             ? await localTransitionHandler({
-                entityType: props.entityType,
+                typeId: props.typeId,
                 targetId: entityId.value,
                 targetState,
                 intent: action.intent || null,
@@ -72,7 +72,7 @@ const handleTransition = async (targetState, action = {}, evidence = {}) => {
                 entity: props.entity,
                 ...evidence
             })
-            : await transition(props.entityType, entityId.value, targetState, {
+            : await transition(props.typeId, entityId.value, targetState, {
                 ...evidence,
                 ...(action.intent ? { intent: action.intent } : {}),
                 region: action.region || 'main',
@@ -106,14 +106,14 @@ const refreshServerActions = async () => {
     }
 
     try {
-        serverActions.value = await fetchActions(props.entityType, entityId.value);
+        serverActions.value = await fetchActions(props.typeId, entityId.value);
     } catch {
         serverActions.value = [];
     }
 };
 
 watch(
-    [() => props.entityType, entityId, state, useServerActions],
+    [() => props.typeId, entityId, state, useServerActions],
     () => refreshServerActions(),
     { immediate: true }
 );
@@ -145,7 +145,7 @@ const defaultTransitions = computed(() => {
     }
 
     return getWorkflowStatusActions({
-        entityType: props.entityType,
+        typeId: props.typeId,
         state: state.value,
         workflows: localWorkflows.value || undefined,
         t
@@ -254,7 +254,7 @@ function normalizeLabel(value = '') {
 }
 
 function matchesEntityChange({ type, id, entity } = {}) {
-    if (normalizeEventType(type) !== normalizeEventType(props.entityType)) return false;
+    if (normalizeEventType(type) !== normalizeEventType(props.typeId)) return false;
 
     const changedId = id || entity?._id || entity?.identity?.uid || entity?.identity?.slug;
     if (!changedId || !entityId.value) return false;
@@ -273,7 +273,7 @@ function normalizeEventType(type) {
     class="entity-status inline-flex min-w-0 max-w-full justify-end"
     data-entity-card-interactive="true"
     data-entity-status="true"
-    :data-entity-type="entityType"
+    :data-type-id="typeId"
     :data-entity-id="entityId"
     @click.stop
   >
@@ -336,7 +336,7 @@ function normalizeEventType(type) {
 
               <template v-if="showHistory">
                 <Divider v-if="hasLocation" />
-                <StatusHistory :entity="entity" :entity-type="entityType" compact />
+                <StatusHistory :entity="entity" :type-id="typeId" compact />
               </template>
 
               <slot name="extra"></slot>
@@ -360,7 +360,7 @@ function normalizeEventType(type) {
 
             <StatusLocation v-if="hasLocation" :entity="entity" />
 
-            <StatusHistory v-if="showHistory" :entity="entity" :entity-type="entityType" compact />
+            <StatusHistory v-if="showHistory" :entity="entity" :type-id="typeId" compact />
 
             <div v-if="hasActions" class="flex flex-wrap gap-2">
                 <Button

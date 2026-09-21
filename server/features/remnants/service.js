@@ -123,7 +123,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
   if (updates.status) {
     await statusService.transitionWithResult({
-      entityType: 'remnant',
+      typeId: 'remnant',
       targetId: remnant._id,
       targetState: updates.status,
       auth: createTransitionAuth(userId, userRole, userPermissions),
@@ -216,7 +216,7 @@ export async function markAsUsed(id, queueId, user) {
     isReusable: false
   };
   await statusService.transitionWithResult({
-    entityType: 'remnant',
+    typeId: 'remnant',
     targetId: id,
     intent: 'consumeRemnant',
     auth: createTransitionAuth(user?.userId || 'SYSTEM', user?.role, user),
@@ -234,7 +234,7 @@ export async function markAsUsed(id, queueId, user) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'remnant',
+  typeId: 'remnant',
   repository,
   Model: Remnant
 });

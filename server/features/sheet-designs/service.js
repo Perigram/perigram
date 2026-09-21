@@ -50,7 +50,7 @@ function geometryRevisionPointer(revision) {
 
 async function ensureGeometryRevision(design, userId = 'SYSTEM', reason = 'layout-updated') {
   const revision = await entityRevisionsService.ensureForEntitySnapshot({
-    entityType: 'sheet_design',
+    typeId: 'sheet_design',
     entity: design,
     scope: GEOMETRY_REVISION_SCOPE,
     content: geometryRevisionContent(design),
@@ -658,7 +658,7 @@ export async function listForRunOutput(queueId, runId, sheetDesignIds = []) {
 
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
   const result = await statusService.transitionWithResult({
-    entityType: 'sheet_design',
+    typeId: 'sheet_design',
     targetId: id,
     targetState: newState,
     auth: createTransitionAuth(userId, userRole),
@@ -668,7 +668,7 @@ export async function updateStatus(id, newState, userId, userRole, metadata = {}
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'sheet_design',
+  typeId: 'sheet_design',
   repository,
   Model: SheetDesign
 });

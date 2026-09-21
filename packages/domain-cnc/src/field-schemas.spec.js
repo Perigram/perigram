@@ -14,7 +14,7 @@ describe('CNC entity field schemas', () => {
     expect(getEntityFieldSchema('project', 'summary.queuePreview')?.type).toMatchObject({
       base: 'array',
       shape: 'item',
-      itemType: { base: 'entityRef', entityType: 'queue', shape: 'item' }
+      itemType: { base: 'entityRef', typeId: 'queue', shape: 'item' }
     });
     expect(getEntityFieldSchema('project', 'summary.totalArea')?.type).toMatchObject({
       base: 'number',
@@ -49,17 +49,17 @@ describe('CNC entity field schemas', () => {
 
   it('declares cumulative lineage slots from containment relationships', () => {
     expect(getEntityFieldSchema('nesting_run', 'lineage.queueId')).toMatchObject({
-      type: { base: 'entityRef', entityType: 'queue' },
+      type: { base: 'entityRef', typeId: 'queue' },
       constructible: true,
       writable: false
     });
     expect(getEntityFieldSchema('nesting_run', 'lineage.projectId')?.type).toMatchObject({
       base: 'entityRef',
-      entityType: 'project'
+      typeId: 'project'
     });
     expect(getEntityFieldSchema('artifact', 'lineage.nestingRunId')?.type).toMatchObject({
       base: 'entityRef',
-      entityType: 'nesting_run'
+      typeId: 'nesting_run'
     });
   });
 

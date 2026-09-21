@@ -17,20 +17,20 @@ defineProps({
 
 <template>
   <div class="h-full">
-    <EntityCard :entity="remnant" entity-type="remnant" :variant="variant">
+    <EntityCard :entity="remnant" type-id="remnant" :variant="variant">
       <template #before-identity>
         <i class="ck-entity-icon ck-entity-icon-remnant"></i>
       </template>
       <template #compact-content>
         <div class="mt-3 flex flex-col gap-3">
           <GeometryPreview :entity="remnant" />
-          <SpecsBlock entity-type="remnant" :entity="remnant" variant="compact" />
+          <SpecsBlock type-id="remnant" :entity="remnant" variant="compact" />
         </div>
       </template>
       <div class="flex flex-col gap-3">
         <GeometryPreview :entity="remnant" />
         <Divider />
-        <SpecsBlock entity-type="remnant" :entity="remnant" />
+        <SpecsBlock type-id="remnant" :entity="remnant" />
       </div>
     </EntityCard>
   </div>

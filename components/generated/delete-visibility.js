@@ -39,11 +39,6 @@ export function featureKey(typeId = '') {
   return 'cts-types';
 }
 
-// Back-compat signature kept for the two-argument call sites; the adapter
-// argument is ignored — canonicalization lives in the instances store.
-export function uiEntityType(_domainUi, typeId = '') {
-  return useInstancesStore().canonicalTypeKey(typeId);
-}
 
 function typeSupportsClientDelete(typeKey = '', registry = {}, instances = {}) {
   // Registry-known types are executable through the generic instance

@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="queue" entity-type="queue">
+    <EntityPage :entity="queue" type-id="queue">
         <template #actions>
             <Button :label="$t('queue.nestingConfig')" icon="pi pi-sliders-h" severity="secondary" outlined />
             <Button
@@ -14,7 +14,7 @@
 
         <template #sidebar>
             <Panel :header="$t('requisition.lifecycleTimeline')">
-                <StatusHistory :entity="queue" entity-type="queue" />
+                <StatusHistory :entity="queue" type-id="queue" />
             </Panel>
 
             <Panel v-if="materialConsumption.length" :header="$t('queue.materialConsumption')">
@@ -24,7 +24,7 @@
                         :key="`${item.type}-${item.id}`"
                         class="flex items-center justify-between gap-3"
                     >
-                        <EntityInlineRef v-if="item.entityType" :type="item.entityType" :id="item.id" />
+                        <EntityInlineRef v-if="item.typeId" :type="item.typeId" :id="item.id" />
                         <span v-else>{{ item.id }}</span>
                         <Tag :value="item.count" severity="warn" size="small" />
                     </div>
@@ -87,14 +87,14 @@ const { t } = useI18n();
 const materialConsumption = computed(() => (props.queue.data?.materialConsumption?.sources || [])
     .map(source => ({
         ...source,
-        entityType: materialSourceEntityType(source)
+        typeId: materialSourceTypeId(source)
     })));
 
 const overviewMetrics = computed(() => [
     { key: 'runs', label: t('queue.runs'), value: props.queue.summary?.runCount || 0 }
 ]);
 
-function materialSourceEntityType(source = {}) {
+function materialSourceTypeId(source = {}) {
     if (source.type === 'PILE') return 'materialPile';
     if (source.type === 'SHEET') return 'sheet';
     if (source.type === 'REMNANT') return 'remnant';

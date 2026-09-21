@@ -7,11 +7,11 @@ describe('relation option scope', () => {
       actionId: 'create-design',
       inputPolicy: { fields: [] },
       construction: {
-        inputs: [{ id: 'templateId', type: 'entity', entityType: 'cassette' }]
+        inputs: [{ id: 'templateId', type: 'entity', typeId: 'cassette' }]
       }
     })).toEqual({
       scoped: true,
-      sourceInput: { id: 'templateId', type: 'entity', entityType: 'cassette' }
+      sourceInput: { id: 'templateId', type: 'entity', typeId: 'cassette' }
     });
   });
 
@@ -25,12 +25,12 @@ describe('relation option scope', () => {
 
 describe('relation option path', () => {
   const lineageBindings = [
-    { ancestorEntityType: 'project', childEntityType: 'queue', lineageKey: 'projectId' },
-    { ancestorEntityType: 'library', childEntityType: 'cassette', lineageKey: 'libraryId' }
+    { parentTypeId: 'project', childTypeId: 'queue', lineageKey: 'projectId' },
+    { parentTypeId: 'library', childTypeId: 'cassette', lineageKey: 'libraryId' }
   ];
   const actions = {
     linkLibrary: {
-      entityType: 'project',
+      typeId: 'project',
       relationMutation: { operation: 'link', key: 'library', targetType: 'library' }
     }
   };

@@ -7,7 +7,7 @@ export class EntityRevision extends BaseEntity {
   constructor(raw = {}) {
     super(raw);
     const source = raw.data?.source || {
-      type: raw.data?.entityType,
+      type: raw.data?.typeId,
       id: raw.data?.entityId
     };
 

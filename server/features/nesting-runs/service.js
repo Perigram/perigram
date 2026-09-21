@@ -92,7 +92,7 @@ export async function getById(uid, userId, userOrg, userRole, userPermissions) {
 
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
   const result = await statusService.transitionWithResult({
-    entityType: 'nesting_run',
+    typeId: 'nesting_run',
     targetId: id,
     targetState: newState,
     auth: createTransitionAuth(userId, userRole),
@@ -247,8 +247,8 @@ async function applyChosenNestingRun({ targetId, userId, userRole, auth }) {
   };
 }
 
-async function primaryStateForIntent(entityType, organizationId, intent, edge = 'to') {
-  const workflow = await workflowOverridesService.resolveActiveWorkflow({ entityType, organizationId });
+async function primaryStateForIntent(typeId, organizationId, intent, edge = 'to') {
+  const workflow = await workflowOverridesService.resolveActiveWorkflow({ typeId, organizationId });
   const region = workflow?.regions?.[workflow.primaryRegion || 'main'];
   return region?.transitions?.find(transition => transition.intent === intent)?.[edge] || '';
 }
@@ -286,7 +286,7 @@ function statusTimestamp(entity = {}) {
 function nestingRunPreview(run = {}, userPermissions = null) {
   const preview = {
     _id: run._id?.toString?.() || run._id,
-    entityType: 'nestingRun',
+    typeId: 'nestingRun',
     identity: {
       ...(run.identity || {}),
       name: run.identity?.name || run.identity?.uid || `Run ${String(run._id || '').slice(-6)}`
@@ -303,7 +303,7 @@ function nestingRunPreview(run = {}, userPermissions = null) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'nesting_run',
+  typeId: 'nesting_run',
   repository,
   Model: NestingRun
 });

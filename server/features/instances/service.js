@@ -300,7 +300,7 @@ function instanceService(typeId) {
     // declared payload and revision scope; every save is revisioned so no
     // payload bytes are ever lost to a silent overwrite. Gated by the
     // shared access engine on the class-collection feature (the feature
-    // grants compile against) with the type id as entity-type filter.
+    // grants compile against) with the type id as type-id filter.
     async replacePayload(id, { buffer, filename, mimeType } = {}, { userId, organizationId, auth } = {}) {
       const declaration = await requireDeclaration(typeId, organizationId);
       if (!declaration.payload) {
@@ -319,7 +319,7 @@ function instanceService(typeId) {
       }
       const current = toDto(doc, declaration);
       const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
-      if (!hasEntityAccess({ entity: current, entityType: typeId, feature, level: 'write', auth: auth || null })) {
+      if (!hasEntityAccess({ entity: current, typeId: typeId, feature, level: 'write', auth: auth || null })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
       const stored = await filesService.uploadFile(buffer, filename || 'payload', {
@@ -337,7 +337,7 @@ function instanceService(typeId) {
           }
         }, declaration);
         await entityRevisionsService.ensureForEntitySnapshot({
-          entityType: typeId,
+          typeId: typeId,
           entity: current,
           scope: declaration.revisions,
           content: { fileId: payload.fileId, mime: payload.mime || null, size: payload.size ?? null, name: payload.name || null },

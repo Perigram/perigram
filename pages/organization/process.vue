@@ -149,7 +149,7 @@
             :options="processOptions"
             option-label="label"
             option-value="value"
-            entity-type="processDefinition"
+            type-id="processDefinition"
             class="w-full"
             size="small"
             :aria-label="$t('processDesigner.title')"
@@ -197,13 +197,13 @@
                   :producer-available="selectedEntityAvailable"
                   :relation-options-for="relationOptionsForEntity"
                   :field-policy-options="producerFieldPolicyOptions"
-                  :entity-type-options="entityTypeOptions"
+                  :type-id-options="typeIdOptions"
                   :role-options="roleOptions"
                   :command-options="commandOptions"
                   :command-service="selectedCommandService"
                   :service-principal-options="servicePrincipalOptions"
                   :join-producer-options="joinProducerOptions"
-                  :construction-modes="constructionModeOptions(nodeEntityType(selectedProcessNode))"
+                  :construction-modes="constructionModeOptions(nodeTypeId(selectedProcessNode))"
                   :artifact-kinds="artifactCreationKinds(selectedProcessNode)"
                   :artifact-kind-options="artifactUploadKindOptions"
                   :designer="designer"
@@ -223,7 +223,7 @@
                   @sync="syncNodeData"
                   @update-grant-roles="updateSelectedProcessNodeGrantRoles"
                   @update-grant-level="({ index, level }) => updateSelectedProcessNodeGrantLevel(index, level)"
-                  @update-join-entity="value => updateJoinEntityType(selectedProcessNode, value)"
+                  @update-join-entity="value => updateJoinTypeId(selectedProcessNode, value)"
                   @update-join-producer="value => updateJoinSelectedProducer(selectedProcessNode, value)"
                   @update-construction-mode="mode => updateProcessNodeConstructionMode(selectedProcessNode, mode)"
                   @update-artifact-kinds="value => { updateArtifactCreationKinds(selectedProcessNode, value); syncNodeData(); }"
@@ -285,8 +285,8 @@
                         <Select v-model="selectedSocketRecord.direction" :options="socketDirections" option-label="label" option-value="value" />
                       </div>
                       <div class="flex flex-col gap-1">
-                        <label>{{ $t('processDesigner.entityType') }}</label>
-                        <Select v-model="selectedSocketRecord.entityType" :options="entityTypeOptions" option-label="label" option-value="value" />
+                        <label>{{ $t('processDesigner.typeId') }}</label>
+                        <Select v-model="selectedSocketRecord.typeId" :options="typeIdOptions" option-label="label" option-value="value" />
                       </div>
                       <div class="flex flex-col gap-1">
                         <label>{{ $t('processDesigner.projectedFields') }}</label>
@@ -379,8 +379,8 @@
                   </div>
                   <div class="grid grid-cols-2 gap-2">
                     <div class="flex flex-col gap-1">
-                      <label>{{ $t('processDesigner.entityType') }}</label>
-                      <Select v-model="selectedScreenRecord.entityType" :options="optionalEntityTypeOptions" option-label="label" option-value="value" @change="syncSelectedScreenUi" />
+                      <label>{{ $t('processDesigner.typeId') }}</label>
+                      <Select v-model="selectedScreenRecord.typeId" :options="optionalTypeIdOptions" option-label="label" option-value="value" @change="syncSelectedScreenUi" />
                     </div>
                     <div class="flex flex-col gap-1">
                       <label>{{ $t('processDesigner.roleIds') }}</label>
@@ -396,7 +396,7 @@
                       <div class="grid grid-cols-2 gap-2">
                         <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceId') }}</label><InputText :model-value="source.id" size="small" @update:model-value="value => screenEditing.renameSource(selectedScreenRecord, source, value)" /></div>
                         <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceLabel') }}</label><InputText v-model="source.label" size="small" /></div>
-                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.entityType') }}</label><Select :model-value="source.entityType" :options="entityTypeOptions" option-label="label" option-value="value" size="small" @update:model-value="value => screenEditing.setSourceEntityType(selectedScreenRecord, source, value)" /></div>
+                        <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.typeId') }}</label><Select :model-value="source.typeId" :options="typeIdOptions" option-label="label" option-value="value" size="small" @update:model-value="value => screenEditing.setSourceTypeId(selectedScreenRecord, source, value)" /></div>
                         <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.sourceMode') }}</label><Select :model-value="source.mode" :options="screenSourceModeOptions" option-label="label" option-value="value" size="small" @update:model-value="value => screenEditing.setSourceMode(selectedScreenRecord, source, value)" /></div>
                         <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.requiredFeature') }}</label><Select v-model="source.required.feature" :options="screenFeatureOptions" option-label="label" option-value="value" size="small" /></div>
                         <div class="flex flex-col gap-1"><label>{{ $t('processDesigner.requiredLevel') }}</label><Select v-model="source.required.level" :options="accessLevelOptions" option-label="label" option-value="value" size="small" /></div>
@@ -677,8 +677,8 @@ const nodeRecords = useProcessDesignerNodeRecords({
 const {
   artifactUploadKindOptions,
   isOpKind,
-  nodeEntityType,
-  setNodeEntityType,
+  nodeTypeId,
+  setNodeTypeId,
   sameTypeId,
   catalogPorts,
   catalogContext,
@@ -696,7 +696,7 @@ const {
   processNodeOperationOptions,
   processNodeFieldOptions,
   processStatusOptionsFor,
-  processEntityTypeOptions,
+  processTypeIdOptions,
   processNodeSummary,
   processNodeDisplayLabel,
   processNodeDescription,
@@ -744,7 +744,7 @@ const {
   createService,
   createSocket,
   createProcessNode,
-  defaultEntityType
+  defaultTypeId
 } = nodeRecords;
 
 const {
@@ -817,7 +817,7 @@ const {
   syncNow: () => syncNodeData()
 });
 
-const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen, normalizeScreenContract, defaultEntityType, featureForEntityType });
+const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen, normalizeScreenContract, defaultTypeId, featureForTypeId });
 
 const {
   deleteGraphSelection,
@@ -1012,7 +1012,7 @@ const selectedRoleRecord = computed(() => selectedRoleId.value ? roles.value[sel
 const selectedScreenRecord = computed(() => selectedScreenId.value ? screens.value[selectedScreenId.value] : null);
 const roleOptions = computed(() => roleList.value.map(role => ({ label: role.label || role.id, value: role.id })));
 const servicePrincipalOptions = computed(() => servicePrincipalList.value.map(principal => ({ label: principal.label || principal.id, value: principal.id })));
-const entityTypeOptions = computed(() => designer.entityOptions);
+const typeIdOptions = computed(() => designer.entityOptions);
 const joinProducerOptions = computed(() => {
   const node = selectedProcessNode.value;
   if (!isOpKind(node, 'producer.join')) return [];
@@ -1030,14 +1030,14 @@ const joinProducerOptions = computed(() => {
       continue;
     }
     for (const output of Object.values(producerOutputs)) {
-      if (output.nodeId === record.id && sameTypeId(output.type || output.entityType, nodeEntityType(node))) options.push(output);
+      if (output.nodeId === record.id && sameTypeId(output.type || output.typeId, nodeTypeId(node))) options.push(output);
     }
   }
   return [...new Map(options.filter(Boolean).map(output => [output.producerOutputId, output])).values()]
-    .map(output => ({ label: `${output.producerOutputId} (${output.entityType})`, value: output.producerOutputId }));
+    .map(output => ({ label: `${output.producerOutputId} (${output.typeId})`, value: output.producerOutputId }));
 });
-function updateJoinEntityType(node, entityType) {
-  setNodeEntityType(node, entityType);
+function updateJoinTypeId(node, typeId) {
+  setNodeTypeId(node, typeId);
   node.selectedProducerOutputId = '';
   syncNodeData();
 }
@@ -1077,33 +1077,33 @@ const typeAnchorOptions = computed(() => ctsTypeView().map(entry => ({
   label: `${entry.label} · ${entry.class}`,
   value: entry.id
 })));
-const optionalEntityTypeOptions = computed(() => [{ label: 'None', value: '' }, ...entityTypeOptions.value]);
+const optionalTypeIdOptions = computed(() => [{ label: 'None', value: '' }, ...typeIdOptions.value]);
 const commandOptions = computed(() => designer.commandOptions);
 const screenActionOptions = computed(() => Object.values(draft.value?.data?.actions || {}).map(action => ({
   label: action.label || action.id,
   value: action.id
 })));
 const selectedScreenSourceOptions = computed(() => (selectedScreenRecord.value?.sources || []).map(source => ({
-  label: source.id || source.entityType,
+  label: source.id || source.typeId,
   value: source.id
 })));
 const screenFeatureOptions = computed(() => (designer.domain.entities || []).map(entity => ({
   label: entity.label || entity.type,
-  value: featureForEntityType(entity.type)
+  value: featureForTypeId(entity.type)
 })));
 const permissionFeatureOptions = computed(() => screenFeatureOptions.value.map(option => ({
   key: option.value,
   label: option.label,
   actions: ['view', 'create', 'update', 'delete', 'run', 'send', 'approve', 'reject', 'fulfill']
 })));
-const fieldOptionsForSelectedSocket = computed(() => designer.fieldsForEntity(selectedSocketRecord.value?.entityType));
+const fieldOptionsForSelectedSocket = computed(() => designer.fieldsForEntity(selectedSocketRecord.value?.typeId));
 const serviceList = computed(() => Object.values(draft.value?.data?.services || {}));
 const socketList = computed(() => Object.values(draft.value?.data?.sockets || {}));
 const selectedSocketId = ref('');
 const selectedSocketRecord = computed(() => draft.value?.data?.sockets?.[selectedSocketId.value] || socketList.value[0] || null);
 const selectedEntityAvailable = computed(() => Boolean(selectedEntity.value?.producerOutputId));
 const producerFieldPolicyOptions = computed(() => {
-  const typeId = nodeEntityType(selectedProcessNode.value) || selectedEntity.value?.entityType || '';
+  const typeId = nodeTypeId(selectedProcessNode.value) || selectedEntity.value?.typeId || '';
   if (!typeId) return [];
   return designer.fieldsForEntity(typeId).map(field => ({ label: field.i18n ? t(field.i18n) : (field.label || field.value), value: field.value }));
 });
@@ -1160,8 +1160,8 @@ const selectedProcessNodeAccessDetail = computed(() => {
 });
 const selectedProcessNodeEffectiveAccess = computed(() => {
   const node = selectedProcessNode.value;
-  const entityType = nodeEntityType(node) || node?.targetEntityType || '';
-  if (!isOpKind(node, 'effect.') || !entityType) return [];
+  const typeId = nodeTypeId(node) || node?.targetTypeId || '';
+  if (!isOpKind(node, 'effect.') || !typeId) return [];
   const byRole = new Map();
   const record = (roleId, level, inherited) => {
     const current = byRole.get(roleId);
@@ -1172,7 +1172,7 @@ const selectedProcessNodeEffectiveAccess = computed(() => {
     if (grant.roleId) record(grant.roleId, grant.level || node.access?.level || 'write', false);
   }
   for (const output of Object.values(draft.value?.data?.producerOutputs || {})) {
-    if (output.entityType !== entityType) continue;
+    if (output.typeId !== typeId) continue;
     for (const level of ['read', 'write', 'admin']) {
       for (const roleId of output.allowedRoles?.[level] || []) record(roleId, level, true);
     }
@@ -1291,11 +1291,11 @@ function resolveEntityInputType(recordId) {
     : null;
   if (sourceRecord) {
     const port = portForHandle(catalogPorts(sourceRecord).outputs, edge.sourceHandle, 'output');
-    const entityType = port?.type?.entityType || port?.type?.itemType?.entityType;
-    if (entityType) return entityType;
-    return nodeEntityType(sourceRecord) || '';
+    const typeId = port?.type?.typeId || port?.type?.itemType?.typeId;
+    if (typeId) return typeId;
+    return nodeTypeId(sourceRecord) || '';
   }
-  return source.data?.entityType || '';
+  return source.data?.typeId || '';
 }
 
 function applyGraphInterpretation(mutations) {
@@ -1311,7 +1311,7 @@ function applyGraphInterpretation(mutations) {
       record.status = { ...(record.status || {}), to: mutation.value };
       continue;
     }
-    setNodeEntityType(record, mutation.value);
+    setNodeTypeId(record, mutation.value);
   }
   syncNodeData();
   // No live edge pruning here: sockets legitimately vanish and return
@@ -1724,11 +1724,11 @@ function enrichNodeData(node) {
     // Declaration node labels derive from the declaration itself; a
     // renamed class card shows the current name, not the drop-time one.
     label: declarationNodeLabel(node, record),
-    entityType: nodeEntityType(record),
+    typeId: nodeTypeId(record),
     commandId: record.commandId,
     processNodeRecord: isProcessNode ? record : null,
     onProcessNodeUpdate: isProcessNode ? updates => updateProcessNodeRecord(record.id || data.refId, updates) : null,
-    processEntityTypeOptions: isProcessNode ? processEntityTypeOptions(record) : [],
+    processTypeIdOptions: isProcessNode ? processTypeIdOptions(record) : [],
     processOperationOptions: isProcessNode ? processNodeOperationOptions(record) : [],
     processFieldOptions: isProcessNode ? processNodeFieldOptions(record) : [],
     processStatusOptions: isProcessNode ? processStatusOptionsFor(record) : [],
@@ -1767,7 +1767,7 @@ function declarationNodeLabel(node, record) {
   if (node.type === 'ctsField') return node.data?.name || '';
   if (node.type === 'ctsState') return node.data?.value || '';
   if (node.type === 'ctsType') return node.data?.typeId || 'type';
-  return record.label || record.entityType || record.commandId || node.data?.label || '';
+  return record.label || record.typeId || record.commandId || node.data?.label || '';
 }
 
 function clonePalettePreset(preset = {}) {
@@ -1821,23 +1821,23 @@ function addScreen() {
 }
 
 function createScreen(id) {
-  const entityType = defaultEntityType();
-  const feature = featureForEntityType(entityType);
+  const typeId = defaultTypeId();
+  const feature = featureForTypeId(typeId);
   return {
     id,
     label: id,
     kind: 'route',
-    template: 'entityList',
+    template: 'typeList',
     route: `/screens/${id}`,
     placement: 'hub',
-    entityType,
+    typeId,
     roleIds: selectedRoleId.value ? [selectedRoleId.value] : [],
     required: { feature, level: 'read' },
     bindings: {},
     sources: [{
-      id: entityType || id,
+      id: typeId || id,
       label: '',
-      entityType,
+      typeId,
       mode: 'list',
       required: { feature, level: 'read' },
       filters: {},
@@ -1847,7 +1847,7 @@ function createScreen(id) {
       id: 'main',
       label: '',
       slot: 'main',
-      sourceId: entityType || id,
+      sourceId: typeId || id,
       surface: 'card',
       actions: []
     }],
@@ -1879,9 +1879,9 @@ function removeSelectedScreenRegion(index) {
   screenEditing.removeRegion(selectedScreenRecord.value, index);
 }
 
-function featureForEntityType(entityType) {
-  const entity = (designer.domain.entities || []).find(item => item.type === entityType);
-  return entity?.collection || `${entityType}s`;
+function featureForTypeId(typeId) {
+  const entity = (designer.domain.entities || []).find(item => item.type === typeId);
+  return entity?.collection || `${typeId}s`;
 }
 
 // Declaration authoring state persists in `ctsTypes` records with the
@@ -1913,15 +1913,15 @@ function syncDeclarationRecord(record = {}, node = {}) {
 function updateProcessNodeRecord(nodeId, updates = {}) {
   const node = draft.value?.data?.processNodes?.[nodeId];
   if (!node) return;
-  if (updates.entityType && updates.entityType !== nodeEntityType(node)) {
+  if (updates.typeId && updates.typeId !== nodeTypeId(node)) {
     node.path = '';
     node.relationKey = '';
   }
   // Inspector updates arrive in working keys; they land on the record in the
   // record's own vocabulary.
-  const { entityType, ...rest } = updates;
+  const { typeId, ...rest } = updates;
   Object.assign(node, rest);
-  if (entityType !== undefined) setNodeEntityType(node, entityType);
+  if (typeId !== undefined) setNodeTypeId(node, typeId);
   if (updates.trigger?.mode === 'manual') {
     const graphNodeId = nodes.value.find(item => item.type === 'processNode' && item.data?.refId === nodeId)?.id;
     edges.value = edges.value.filter(edge => !(
@@ -1978,7 +1978,7 @@ function updateInputTransform(node, inputId, transform, enabled) {
 // persisted with the draft.
 const RUNTIME_NODE_DATA_KEYS = [
   'label',
-  'entityType',
+  'typeId',
   'commandId',
   'type',
   'version',
@@ -1987,7 +1987,7 @@ const RUNTIME_NODE_DATA_KEYS = [
   'states',
   'processNodeRecord',
   'onProcessNodeUpdate',
-  'processEntityTypeOptions',
+  'processTypeIdOptions',
   'processOperationOptions',
   'processFieldOptions',
   'processStatusOptions',
@@ -2288,11 +2288,11 @@ function inferIncomingEntityContract(nodeId) {
   if (!sourceRecord) return {};
   const sourcePorts = catalogPorts(sourceRecord).outputs;
   const port = portForHandle(sourcePorts, edge.sourceHandle, 'output')
-    || sourcePorts.find(candidate => candidate.type?.entityType || candidate.type?.itemType?.entityType)
+    || sourcePorts.find(candidate => candidate.type?.typeId || candidate.type?.itemType?.typeId)
     || null;
-  const entityType = port?.type?.entityType || port?.type?.itemType?.entityType || nodeEntityType(sourceRecord) || '';
+  const typeId = port?.type?.typeId || port?.type?.itemType?.typeId || nodeTypeId(sourceRecord) || '';
   return {
-    entityType,
+    typeId,
     status: typeof port?.status === 'string' ? port.status : (sourceRecord.status?.to || ''),
     access: sourceRecord.access ? normalizeDesignerAccess(sourceRecord.access) : null
   };

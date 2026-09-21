@@ -274,7 +274,7 @@ export async function update(id, updates, userId, userRole, userPermissions) {
 
   if (updates.status) {
     await statusService.transitionWithResult({
-      entityType: 'cassette_design',
+      typeId: 'cassette_design',
       targetId: design._id,
       targetState: updates.status,
       auth: createTransitionAuth(userId, userRole, userPermissions),
@@ -323,7 +323,7 @@ export async function remove(id, userId, userRole, userPermissions) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'cassette_design',
+  typeId: 'cassette_design',
   repository,
   Model: CassetteDesign
 });

@@ -148,7 +148,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 
     if (updates.status) {
         await statusService.transitionWithResult({
-            entityType: 'requisition',
+            typeId: 'requisition',
             targetId: requisition._id,
             targetState: updates.status,
             auth: createTransitionAuth(userId, userRole, userPermissions),
@@ -175,7 +175,7 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
 export async function transition(id, targetState, metadata, userId, userOrg, userRole, userPermissions) {
     const requisition = await getById(id, userId, userOrg, userRole, userPermissions);
     const result = await statusService.transitionWithResult({
-        entityType: 'requisition',
+        typeId: 'requisition',
         targetId: requisition._id,
         targetState,
         auth: createTransitionAuth(userId, userRole, {
@@ -238,7 +238,7 @@ export async function remove(id, userId, userOrg, userRole, userPermissions) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'requisition',
+  typeId: 'requisition',
   repository,
   Model: Requisition
 });

@@ -71,10 +71,10 @@ describe('workflow overrides service', () => {
 
     expect(repository.archiveActive).toHaveBeenCalledWith({
       organizationId: auth.memberships[0].organizationId,
-      entityType: 'project',
+      typeId: 'project',
       updatedBy: 'user-1'
     });
-    expect(result.entityType).toBe('project');
+    expect(result.typeId).toBe('project');
     expect(result.status).toBe('ACTIVE');
     expect(result.workflow.schemaVersion).toBe(2);
     expect(result.workflow.primaryRegion).toBe('main');
@@ -90,7 +90,7 @@ describe('workflow overrides service', () => {
     });
 
     const workflow = await service.resolveActiveWorkflow({
-      entityType: 'project',
+      typeId: 'project',
       organizationId: auth.memberships[0].organizationId
     });
 
@@ -101,7 +101,7 @@ describe('workflow overrides service', () => {
     repository.findActiveByEntity.mockResolvedValue(null);
 
     const workflow = await service.resolveActiveWorkflow({
-      entityType: 'project',
+      typeId: 'project',
       organizationId: auth.memberships[0].organizationId
     });
 
@@ -117,7 +117,7 @@ describe('workflow overrides service', () => {
     });
 
     const workflow = await service.resolveActiveWorkflow({
-      entityType: 'project',
+      typeId: 'project',
       organizationId: auth.memberships[0].organizationId,
       producerOutputId: 'create_project:result'
     });
@@ -125,7 +125,7 @@ describe('workflow overrides service', () => {
     expect(resolveProcessWorkflow).toHaveBeenCalledWith({
       organizationId: auth.memberships[0].organizationId,
       producerOutputId: 'create_project:result',
-      entityType: 'project',
+      typeId: 'project',
       fallbackWorkflow: null
     });
     expect(workflow.initial).toBe('PROCESS');
@@ -139,7 +139,7 @@ describe('workflow overrides service', () => {
     });
     repository.findActiveByEntity.mockResolvedValue(null);
     const workflow = await service.resolveActiveWorkflow({
-      entityType: 'artifact',
+      typeId: 'artifact',
       organizationId: auth.memberships[0].organizationId,
       producerOutputId: 'generate_artifact:result'
     });

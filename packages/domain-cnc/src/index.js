@@ -1,4 +1,4 @@
-export { canonicalEntityType, cncEntities, entitySurfaceKey } from './entities.js';
+export { canonicalTypeId, cncEntities, entitySurfaceKey } from './entities.js';
 export { cncPackContent, cncFileTypes, cncEditors, cncServices, cncAttachmentKinds as cncPackAttachmentKinds } from './pack.js';
 export { cncWorkflows } from './workflows.js';
 export { cncEvents } from './events.js';
@@ -15,7 +15,7 @@ export { cncEntityConstruction, getEntityConstruction } from './entity-construct
 export {
   cncEntityFieldAccess,
   getEntityFieldAccessPolicy,
-  normalizeFieldAccessEntityType
+  normalizeFieldAccessTypeId
 } from './field-access.js';
 export {
   cncStatusUi,
@@ -68,7 +68,7 @@ import { cncBlockComposition, cncBlockFieldSchemas, cncEntityFieldSchemas } from
 
 const entityEndpoints = cncEntities.map(entity => ({
   type: entity.surfaceKey,
-  entityType: entity.type,
+  typeId: entity.type,
   surfaceKey: entity.surfaceKey,
   collection: String(entity.collection || '').replace(/_/g, '-'),
   routes: entity.routes || {}

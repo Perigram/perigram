@@ -105,7 +105,7 @@ describe('artifact template service', () => {
       data: expect.objectContaining({ format: 'PDF', activeRevisionId: null })
     }));
     expect(mocks.ensureRevision).toHaveBeenCalledWith(expect.objectContaining({
-      entityType: 'artifact_template',
+      typeId: 'artifact_template',
       scope: 'layout',
       userId: 'user-1'
     }));

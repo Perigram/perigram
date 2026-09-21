@@ -41,11 +41,11 @@ export function hashRevisionContent(content = {}) {
     .digest('hex')}`;
 }
 
-export function revisionIdentity(entityType, entityId, scope, number) {
+export function revisionIdentity(typeId, entityId, scope, number) {
   const sourceId = toFlexibleId(entityId).toString();
   return new Identity(
-    `revision:${entityType}:${sourceId}:${scope}:${number}`,
-    `${entityType} ${scope} v${number}`
+    `revision:${typeId}:${sourceId}:${scope}:${number}`,
+    `${typeId} ${scope} v${number}`
   );
 }
 
@@ -64,7 +64,7 @@ function canReadRevision(userPermissions, revision) {
 export function derivedFromRevision(revision, parameters = {}) {
   const data = revision?.data || revision || {};
   const source = data.source || {
-    type: data.entityType,
+    type: data.typeId,
     id: data.entityId
   };
   return createProvenance(
@@ -80,7 +80,7 @@ export function derivedFromRevision(revision, parameters = {}) {
 }
 
 export async function ensureForEntitySnapshot({
-  entityType,
+  typeId,
   entity,
   scope = DEFAULT_SCOPE,
   content,
@@ -89,7 +89,7 @@ export async function ensureForEntitySnapshot({
   userId = 'SYSTEM',
   reason = 'content-change'
 } = {}) {
-  if (!entityType) throw createError({ statusCode: 400, message: 'Revision entityType is required' });
+  if (!typeId) throw createError({ statusCode: 400, message: 'Revision typeId is required' });
   if (!entity?._id) throw createError({ statusCode: 400, message: 'Revision entity is required' });
   if (!content) throw createError({ statusCode: 400, message: 'Revision content is required' });
 
@@ -97,10 +97,10 @@ export async function ensureForEntitySnapshot({
 
   const entityId = toFlexibleId(entity._id);
   const contentHash = hashRevisionContent(content);
-  const existing = await repository.findByHash(entityType, entityId, scope, contentHash);
+  const existing = await repository.findByHash(typeId, entityId, scope, contentHash);
   if (existing) return toDTO(existing);
 
-  const latest = await repository.findLatest(entityType, entityId, scope);
+  const latest = await repository.findLatest(typeId, entityId, scope);
   const number = Number(latest?.data?.number || 0) + 1;
   const origin = await statusService.initialStatusForOrganization(
     'entity_revision',
@@ -110,16 +110,16 @@ export async function ensureForEntitySnapshot({
   );
 
   const doc = {
-    identity: revisionIdentity(entityType, entityId, scope, number),
+    identity: revisionIdentity(typeId, entityId, scope, number),
     origin,
     status: origin,
     lineage: {
       ...(entity.lineage || {}),
-      [`${entityType}Id`]: entityId
+      [`${typeId}Id`]: entityId
     },
     attachments,
     data: createData({
-      source: createEntityRef(entityType, entityId),
+      source: createEntityRef(typeId, entityId),
       scope,
       number,
       contentHash,
@@ -136,15 +136,15 @@ export async function ensureForEntitySnapshot({
     return toDTO(await repository.create(doc));
   } catch (error) {
     if (error?.code === 11000) {
-      const concurrent = await repository.findByHash(entityType, entityId, scope, contentHash);
+      const concurrent = await repository.findByHash(typeId, entityId, scope, contentHash);
       if (concurrent) return toDTO(concurrent);
     }
     throw error;
   }
 }
 
-export async function getCurrentForEntity(entityType, entityId, scope = DEFAULT_SCOPE) {
-  return toDTO(await repository.findLatest(entityType, toFlexibleId(entityId), scope));
+export async function getCurrentForEntity(typeId, entityId, scope = DEFAULT_SCOPE) {
+  return toDTO(await repository.findLatest(typeId, toFlexibleId(entityId), scope));
 }
 
 export async function getById(id, userId, userRole, userPermissions) {
@@ -165,9 +165,9 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
     processed['data.source.id'] = toFlexibleId(processed.entityId).toString();
     delete processed.entityId;
   }
-  if (processed.entityType) {
-    processed['data.source.type'] = processed.entityType;
-    delete processed.entityType;
+  if (processed.typeId) {
+    processed['data.source.type'] = processed.typeId;
+    delete processed.typeId;
   }
   if (processed.scope) {
     processed['data.scope'] = processed.scope;
@@ -178,6 +178,6 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
   return revisions.filter(revision => canReadRevision(userPermissions, revision)).map(toDTO);
 }
 
-export async function removeForEntity(entityType, entityId) {
-  return await repository.deleteForSource(entityType, entityId);
+export async function removeForEntity(typeId, entityId) {
+  return await repository.deleteForSource(typeId, entityId);
 }

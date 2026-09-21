@@ -237,7 +237,7 @@ function assertUniqueRoleLabel(roles, label, exceptRoleId = null) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'organization',
+  typeId: 'organization',
   repository,
   Model: Organization
 });

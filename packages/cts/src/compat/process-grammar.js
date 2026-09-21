@@ -23,7 +23,7 @@ export function ctsFieldToProcessType(descriptor = {}) {
     case 'quantity': return { base: 'number', unit: descriptor.unit };
     case 'ref': {
       const type = { base: 'entityRef' };
-      if (descriptor.accepts?.length === 1) type.entityType = descriptor.accepts[0];
+      if (descriptor.accepts?.length === 1) type.typeId = descriptor.accepts[0];
       else if (descriptor.accepts?.length) type.accepts = [...descriptor.accepts];
       return type;
     }
@@ -57,7 +57,7 @@ export function processTypeToCtsField(type = {}) {
     case 'attachmentRef': return { base: 'blob' };
     case 'enum': return { base: 'enum' };
     case 'entityRef': case 'entity': {
-      if (type.entityType) return { base: 'ref', accepts: [type.entityType] };
+      if (type.typeId) return { base: 'ref', accepts: [type.typeId] };
       if (type.accepts?.length) return { base: 'ref', accepts: [...type.accepts] };
       return { base: 'ref', accepts: [] };
     }

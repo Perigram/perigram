@@ -213,10 +213,10 @@ async function processUpdateEntityEffect(effect = {}, context = {}) {
   throw createError({ statusCode: 500, message: `Entity service ${entity?.type || 'unknown'} cannot be updated` });
 }
 
-function resolveEntityService(entityType, context) {
-  if (!entityType) return null;
+function resolveEntityService(typeId, context) {
+  if (!typeId) return null;
   const registry = context.registry || getAppRegistry();
-  return registry.getEntityService(entityType);
+  return registry.getEntityService(typeId);
 }
 
 function resolveEntityRef(entity = {}, context = {}) {
@@ -243,11 +243,11 @@ function resolveEntityRef(entity = {}, context = {}) {
   return null;
 }
 
-function normalizeEntityResult(entityType, result) {
+function normalizeEntityResult(typeId, result) {
   if (!result) return null;
   const id = result._id || result.id;
   if (!id) return null;
-  return normalizeRef(entityType, id);
+  return normalizeRef(typeId, id);
 }
 
 function normalizeRef(type, id) {

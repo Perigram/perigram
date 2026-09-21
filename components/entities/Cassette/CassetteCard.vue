@@ -1,13 +1,13 @@
 <template>
   <div class="h-full">
-    <EntityCard :entity="cassette" entity-type="cassette" :variant="variant">
+    <EntityCard :entity="cassette" type-id="cassette" :variant="variant">
       <template #before-identity>
         <i class="pi pi-clone"></i>
       </template>
       <Divider />
       <div class="grid grid-cols-1 gap-4">
         <CassetteThumbnail :cassette="cassette" />
-        <DataBlock entity-type="cassette" :entity="cassetteForDisplay" :fields="FIELDS" />
+        <DataBlock type-id="cassette" :entity="cassetteForDisplay" :fields="FIELDS" />
         <div v-if="geometryRevisionId" class="flex items-center justify-between gap-4">
           <small class="text-muted">{{ $t('revision.currentGeometry') }}</small>
           <EntityInlineRef type="entityRevision" :id="geometryRevisionId" />
@@ -26,7 +26,7 @@ import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const FIELDS = resolveEntityDisplayFields({ entityType: 'cassette', surface: 'card' })
+const FIELDS = resolveEntityDisplayFields({ typeId: 'cassette', surface: 'card' })
   .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource');
 
 const props = defineProps({

@@ -114,7 +114,7 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import { entityEditorActionFor, entityHasEditorAction } from '~/components/generated/entity-editor-action.js';
 import { useAuthStore } from '~/stores/auth';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
-import { actionAppliesToEntity, isCreateAction, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, isCreateAction, isGeneratedSurfaceAction, parentBoundCreateAppliesToTypeId } from '~/components/generated/action-visibility.js';
 import { generatedRegionLabel } from '~/utils/generated-labels.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 
@@ -153,7 +153,7 @@ function collectionActions(region = {}) {
 function entityActionsFor(section = {}, entity = {}) {
   return resolvedRegionActions(section.region).filter(action => (
     isGeneratedSurfaceAction(action) &&
-    !parentBoundCreateAppliesToEntityType(action, section.source.typeId)
+    !parentBoundCreateAppliesToTypeId(action, section.source.typeId)
     && actionAppliesToEntity(action, entity, section.source.typeId)
   ));
 }
@@ -169,7 +169,7 @@ function actionContext(section = {}) {
   return {
     region: section.region,
     source: section.source,
-    entityType: section.source.typeId,
+    typeId: section.source.typeId,
     parentTypeId: section.source.typeId,
     parentOptions: section.items.map(entity => ({
       label: entity.identity?.name || entity.identity?.uid || entity._id,
@@ -181,14 +181,14 @@ function actionContext(section = {}) {
 
 function sectionRoute(section = {}) {
   if (section.region.route) return section.region.route;
-  const entityType = section.source.typeId;
+  const typeId = section.source.typeId;
   const screen = authStore.screenManifest.find(item => (
     item.template === 'typeList'
-    && item.entityType === entityType
+    && item.typeId === typeId
     && (item.screenKey || item.id) === section.region.screenKey
   )) || authStore.screenManifest.find(item => (
     item.template === 'typeList'
-    && item.entityType === entityType
+    && item.typeId === typeId
     && item.placement === 'hub'
   ));
   return screen?.route || '';
@@ -206,7 +206,7 @@ function openEntity(section, entity) {
 function detailRouteFor(section = {}, entity = {}) {
   return detailRouteForEntity({
     entity,
-    entityType: section.source.typeId,
+    typeId: section.source.typeId,
     screenKey: section.region.screenKey || props.screen.screenKey || props.screen.id,
     manifest: authStore.screenManifest
   });

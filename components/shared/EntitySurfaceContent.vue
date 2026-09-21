@@ -6,7 +6,7 @@
     <EntityPreview
       v-if="showPreview"
       :entity="entity"
-      :entity-type="entityType"
+      :type-id="typeId"
       :mode="display.surfaceContract.preview"
     />
     <div :class="detailSplit ? 'entity-surface-facts flex min-w-0 flex-col gap-5' : 'flex min-w-0 flex-col gap-3'">
@@ -19,7 +19,7 @@
           {{ sectionLabel(section.name) }}
         </small>
         <DataBlock
-          :entity-type="display.entityType"
+          :type-id="display.typeId"
           :entity="entity"
           :access-entity="accessEntity"
           :fields="section.fields"
@@ -28,7 +28,7 @@
       </section>
       <DataBlock
         v-if="!sectioned && dataFields.length"
-        :entity-type="display.entityType"
+        :type-id="display.typeId"
         :entity="entity"
         :access-entity="accessEntity"
         :fields="dataFields"
@@ -37,7 +37,7 @@
       <EntityRelationsBlock
         v-if="relationFields.length"
         :entity="entity"
-        :entity-type="entityType"
+        :type-id="typeId"
         :fields="relationFields"
         :item-variant="relationVariant"
       />
@@ -55,7 +55,7 @@ import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  entityType: { type: String, default: '' },
+  typeId: { type: String, default: '' },
   surface: { type: String, default: 'card' },
   accessEntity: { type: Object, default: null },
   suppressChildSummaries: { type: Boolean, default: false },
@@ -67,7 +67,7 @@ const props = defineProps({
 const { t, te } = useI18n();
 
 const display = computed(() => resolveEntityDisplayContract({
-  entityType: props.entityType,
+  typeId: props.typeId,
   surface: props.surface,
   extensions: props.displayExtensions,
   overrides: props.displayOverrides

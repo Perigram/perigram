@@ -78,7 +78,7 @@
     <template v-else-if="node.type === 'ctsType'">
       <div class="flex flex-col gap-3">
         <div class="flex flex-col gap-1">
-          <label>{{ $t('processDesigner.entityType') }}</label>
+          <label>{{ $t('processDesigner.typeId') }}</label>
           <Select
             :model-value="node.data?.typeId || ''"
             :options="typeAnchorOptions"

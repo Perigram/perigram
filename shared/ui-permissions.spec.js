@@ -76,14 +76,14 @@ describe('UI Permission Matrix', () => {
                 permissions,
                 feature: 'projects',
                 level: 'write',
-                entityType: 'project',
+                typeId: 'project',
                 entity: { lineage: { projectId: 'project-a' }, status: { state: { primary: 'ACTIVE' } } }
             })).toBe(true);
             expect(hasPermissionGrant({
                 permissions,
                 feature: 'projects',
                 level: 'write',
-                entityType: 'project',
+                typeId: 'project',
                 entity: { lineage: { projectId: 'project-b' }, status: { state: { primary: 'ACTIVE' } } }
             })).toBe(false);
         });
@@ -122,7 +122,7 @@ describe('UI Permission Matrix', () => {
                 permissions,
                 feature: 'queues',
                 level: 'write',
-                entityType: 'queue',
+                typeId: 'queue',
                 entity: queue,
                 context: { lineageEntities: { project: { _id: 'project-a', data: { type: 'production' }, status: { state: { primary: 'ACTIVE' } } } } }
             })).toBe(true);
@@ -130,7 +130,7 @@ describe('UI Permission Matrix', () => {
                 permissions,
                 feature: 'queues',
                 level: 'write',
-                entityType: 'queue',
+                typeId: 'queue',
                 entity: queue,
                 context: { lineageEntities: { project: { _id: 'project-a', data: { type: 'production' }, status: { state: { primary: 'CLOSED' } } } } }
             })).toBe(false);

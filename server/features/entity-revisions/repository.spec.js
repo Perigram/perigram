@@ -27,7 +27,7 @@ describe('entity revisions repository indexes', () => {
         {
           name: 'entity_revision_content_hash',
           key: {
-            'data.entityType': 1,
+            'data.typeId': 1,
             'data.entityId': 1,
             'data.scope': 1,
             'data.contentHash': 1
@@ -85,7 +85,7 @@ describe('entity revisions repository indexes', () => {
     expect(collection.findOne).toHaveBeenCalledWith({
       $or: [
         { 'data.source.type': 'cassette', 'data.source.id': 'cassette-1' },
-        { 'data.entityType': 'cassette', 'data.entityId': 'cassette-1' }
+        { 'data.typeId': 'cassette', 'data.entityId': 'cassette-1' }
       ],
       'data.scope': 'geometry',
       'data.contentHash': 'sha256:abc'

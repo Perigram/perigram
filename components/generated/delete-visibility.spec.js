@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
-import { canDeleteGeneratedEntity, featureKey, uiEntityType } from './delete-visibility.js';
+import { canDeleteGeneratedEntity, featureKey } from './delete-visibility.js';
+import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 
@@ -24,8 +25,8 @@ describe('generated delete visibility', () => {
   it('normalizes access feature keys from the endpoint resolver', () => {
     expect(featureKey('queue')).toBe('cts-types');
     expect(featureKey('cassette_design')).toBe('cassette_designs');
-    expect(uiEntityType(null, 'cassetteDesign')).toBe('cassette_design');
-    expect(uiEntityType(null, 'cut-plan')).toBe('cut_plan');
+    expect(useInstancesStore().canonicalTypeKey('cassetteDesign')).toBe('cassette_design');
+    expect(useInstancesStore().canonicalTypeKey('cut-plan')).toBe('cut_plan');
   });
 
   it('requires admin delete access for the exact generated entity', () => {

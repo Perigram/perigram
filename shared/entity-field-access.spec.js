@@ -40,7 +40,7 @@ describe('entity field access', () => {
     expect(canDisplayEntityField({
       permissions: { projects: 'admin' },
       entity: project,
-      entityType: 'project',
+      typeId: 'project',
       path: 'billing.internalCost'
     })).toBe(false);
   });
@@ -57,7 +57,7 @@ describe('entity field access', () => {
       fields,
       permissions: { projects: 'read' },
       entity: project,
-      entityType: 'project'
+      typeId: 'project'
     }).map(field => field.path)).toEqual([
       'summary.queueCount',
       'data.address'
@@ -67,7 +67,7 @@ describe('entity field access', () => {
       fields,
       permissions: { projects: 'write' },
       entity: project,
-      entityType: 'project'
+      typeId: 'project'
     }).map(field => field.path)).toEqual([
       'summary.queueCount',
       'data.address',
@@ -98,14 +98,14 @@ describe('entity field access', () => {
     expect(canDisplayEntityField({
       permissions,
       entity: project,
-      entityType: 'project',
+      typeId: 'project',
       path: 'summary.queueCount'
     })).toBe(true);
 
     expect(canDisplayEntityField({
       permissions,
       entity: { ...project, lineage: { ...project.lineage, projectId: 'project-2' } },
-      entityType: 'project',
+      typeId: 'project',
       path: 'summary.queueCount'
     })).toBe(false);
   });

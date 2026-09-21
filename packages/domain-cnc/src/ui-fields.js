@@ -3,8 +3,8 @@ export const cncEntityFieldGroups = {
     summary: [
       { path: 'data.parts.length', i18n: 'facade.parts', display: 'count', priority: 10 },
       { path: 'data.partAssignments.length', i18n: 'facade.assignments', display: 'count', priority: 20 },
-      { path: 'relations.sourceModel', i18n: 'facade.sourceModel', display: 'entityRef', entityType: 'artifact', priority: 30 },
-      { path: 'relations.patterns', i18n: 'facade.patterns', display: 'entityRefList', entityType: 'facadePattern', priority: 40 }
+      { path: 'relations.sourceModel', i18n: 'facade.sourceModel', display: 'entityRef', typeId: 'artifact', priority: 30 },
+      { path: 'relations.patterns', i18n: 'facade.patterns', display: 'entityRefList', typeId: 'facadePattern', priority: 40 }
     ]
   },
   facadePattern: {
@@ -15,7 +15,7 @@ export const cncEntityFieldGroups = {
   project: {
     summary: [
       { path: 'summary.queueCount', i18n: 'project.queues', display: 'count', role: 'childCount', priority: 10 },
-      { path: 'summary.queuePreview', i18n: 'project.queues', display: 'entityRefList', entityType: 'queue', replacesCountPath: 'summary.queueCount', priority: 15 },
+      { path: 'summary.queuePreview', i18n: 'project.queues', display: 'entityRefList', typeId: 'queue', replacesCountPath: 'summary.queueCount', priority: 15 },
       { path: 'summary.totalArea', i18n: 'project.totalArea', suffix: ' m²', display: 'area', priority: 20 }
     ]
   },
@@ -24,11 +24,11 @@ export const cncEntityFieldGroups = {
       { path: 'data.queueNumber', i18n: 'queue.name', display: 'text', priority: 10 }
     ],
     summary: [
-      { path: 'relations.cassettes', i18n: 'queue.jobItems', display: 'entityRefList', entityType: 'cassetteDesign', priority: 10 },
+      { path: 'relations.cassettes', i18n: 'queue.jobItems', display: 'entityRefList', typeId: 'cassetteDesign', priority: 10 },
       { path: 'summary.runCount', i18n: 'queue.nestingRuns', display: 'count', role: 'childCount', priority: 20 },
-      { path: 'summary.runPreview', i18n: 'queue.nestingRuns', display: 'entityRefList', entityType: 'nestingRun', replacesCountPath: 'summary.runCount', priority: 25 },
+      { path: 'summary.runPreview', i18n: 'queue.nestingRuns', display: 'entityRefList', typeId: 'nestingRun', replacesCountPath: 'summary.runCount', priority: 25 },
       { path: 'summary.sheetCount', i18n: 'results.sheets', display: 'count', role: 'childCount', priority: 30 },
-      { path: 'summary.sheetPreview', i18n: 'results.sheets', display: 'entityRefList', entityType: 'sheet', replacesCountPath: 'summary.sheetCount', priority: 35 },
+      { path: 'summary.sheetPreview', i18n: 'results.sheets', display: 'entityRefList', typeId: 'sheet', replacesCountPath: 'summary.sheetCount', priority: 35 },
       { path: 'summary.totalArea', i18n: 'common.area', suffix: ' m²', display: 'area', priority: 40 }
     ],
     production: [
@@ -44,7 +44,7 @@ export const cncEntityFieldGroups = {
     ],
     production: [
       { path: 'data.materialPool', i18n: 'queue.materialConsumption', display: 'entityRefList', priority: 40 },
-      { path: 'data.sheetDesignIds', i18n: 'entities.sheetDesign', display: 'entityRefList', entityType: 'sheetDesign', priority: 50 }
+      { path: 'data.sheetDesignIds', i18n: 'entities.sheetDesign', display: 'entityRefList', typeId: 'sheetDesign', priority: 50 }
     ]
   },
   sheetDesign: {
@@ -63,7 +63,7 @@ export const cncEntityFieldGroups = {
       { path: 'data.geometry.preview', i18n: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
     ],
     provenance: [
-      { path: 'data.geometryRevisionId', i18n: 'revision.currentGeometry', display: 'entityRef', entityType: 'entityRevision', priority: 30 }
+      { path: 'data.geometryRevisionId', i18n: 'revision.currentGeometry', display: 'entityRef', typeId: 'entityRevision', priority: 30 }
     ]
   },
   cassetteTemplate: {
@@ -71,7 +71,7 @@ export const cncEntityFieldGroups = {
       { path: 'data.geometry.preview', i18n: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
     ],
     provenance: [
-      { path: 'data.geometryRevisionId', i18n: 'revision.currentGeometry', display: 'entityRef', entityType: 'entityRevision', priority: 30 }
+      { path: 'data.geometryRevisionId', i18n: 'revision.currentGeometry', display: 'entityRef', typeId: 'entityRevision', priority: 30 }
     ]
   },
   cassetteDesign: {
@@ -96,7 +96,7 @@ export const cncEntityFieldGroups = {
       { path: 'identity.reference', i18n: 'common.reference', display: 'text', priority: 10 }
     ],
     relations: [
-      { path: 'data.cassetteDesignId', i18n: 'entities.cassetteDesign', display: 'entityRef', entityType: 'cassetteDesign', priority: 20 }
+      { path: 'data.cassetteDesignId', i18n: 'entities.cassetteDesign', display: 'entityRef', typeId: 'cassetteDesign', priority: 20 }
     ]
   },
   requisition: {
@@ -105,8 +105,8 @@ export const cncEntityFieldGroups = {
       { path: 'data.totalPrice', i18n: 'common.subtotal', prefix: '$', display: 'money', priority: 20 }
     ],
     relations: [
-      { path: 'data.manufacturerId', i18n: 'entities.organization', display: 'entityRef', entityType: 'organization', priority: 30 },
-      { path: 'data.projectId', i18n: 'entities.project', display: 'entityRef', entityType: 'project', priority: 40 }
+      { path: 'data.manufacturerId', i18n: 'entities.organization', display: 'entityRef', typeId: 'organization', priority: 30 },
+      { path: 'data.projectId', i18n: 'entities.project', display: 'entityRef', typeId: 'project', priority: 40 }
     ]
   },
   material: {
@@ -118,7 +118,7 @@ export const cncEntityFieldGroups = {
   library: {
     summary: [
       { path: 'summary.cassetteCount', i18n: 'entities.cassette', display: 'count', role: 'childCount', priority: 10 },
-      { path: 'summary.cassettePreview', i18n: 'entities.cassette', display: 'entityRefList', entityType: 'cassette', replacesCountPath: 'summary.cassetteCount', priority: 15 },
+      { path: 'summary.cassettePreview', i18n: 'entities.cassette', display: 'entityRefList', typeId: 'cassette', replacesCountPath: 'summary.cassetteCount', priority: 15 },
       { path: 'data.material', i18n: 'entities.material', display: 'objectSummary', priority: 20 },
       { path: 'data.description', i18n: 'common.description', display: 'text', priority: 30 }
     ]
@@ -129,7 +129,7 @@ export const cncEntityFieldGroups = {
       { path: 'data.stock.used', i18n: 'piles.stockUsed', display: 'count', priority: 20 }
     ],
     relations: [
-      { path: 'data.catalog', i18n: 'entities.catalog', display: 'entityRef', entityType: 'catalog', priority: 30 }
+      { path: 'data.catalog', i18n: 'entities.catalog', display: 'entityRef', typeId: 'catalog', priority: 30 }
     ]
   },
   batchPile: {
@@ -139,7 +139,7 @@ export const cncEntityFieldGroups = {
       { path: 'data.stock.used', i18n: 'piles.stockUsed', display: 'count', priority: 30 }
     ],
     relations: [
-      { path: 'lineage.requisitionId', i18n: 'entities.requisition', display: 'entityRef', entityType: 'requisition', priority: 40 }
+      { path: 'lineage.requisitionId', i18n: 'entities.requisition', display: 'entityRef', typeId: 'requisition', priority: 40 }
     ]
   },
   sheet: {
@@ -161,19 +161,19 @@ export const cncEntityFieldGroups = {
       { path: 'specs.area', i18n: 'results.area', suffix: ' m²', display: 'area', priority: 15 }
     ],
     relations: [
-      { path: 'data.source.sheetId', i18n: 'entities.sheet', display: 'entityRef', entityType: 'sheet', priority: 20 }
+      { path: 'data.source.sheetId', i18n: 'entities.sheet', display: 'entityRef', typeId: 'sheet', priority: 20 }
     ]
   },
   catalog: {
     summary: [
       { path: 'summary.colorCount', i18n: 'catalog.colorsAvailable', display: 'count', role: 'childCount', priority: 10 },
-      { path: 'summary.colorPreview', i18n: 'catalog.colorsAvailable', display: 'entityRefList', entityType: 'color', replacesCountPath: 'summary.colorCount', priority: 15 },
+      { path: 'summary.colorPreview', i18n: 'catalog.colorsAvailable', display: 'entityRefList', typeId: 'color', replacesCountPath: 'summary.colorCount', priority: 15 },
       { path: 'data.options.sheetThicknesses', i18n: 'catalog.sheetThicknessOptions', suffix: ' mm', display: 'list', priority: 20 },
       { path: 'data.options.foilThicknesses', i18n: 'catalog.foilThicknessOptions', suffix: ' mm', display: 'list', priority: 30 },
       { path: 'data.pricing.pricePerSqm', i18n: 'catalog.pricePerSqm', prefix: '$', display: 'money', priority: 40 }
     ],
     relations: [
-      { path: 'lineage.manufacturerId', i18n: 'entities.organization', display: 'entityRef', entityType: 'organization', priority: 50 }
+      { path: 'lineage.manufacturerId', i18n: 'entities.organization', display: 'entityRef', typeId: 'organization', priority: 50 }
     ]
   },
   color: {
@@ -182,7 +182,7 @@ export const cncEntityFieldGroups = {
       { path: 'data.code', i18n: 'common.code', display: 'text', priority: 20 }
     ],
     relations: [
-      { path: 'lineage.catalogId', i18n: 'entities.catalog', display: 'entityRef', entityType: 'catalog', priority: 10 }
+      { path: 'lineage.catalogId', i18n: 'entities.catalog', display: 'entityRef', typeId: 'catalog', priority: 10 }
     ]
   },
   entityRevision: {
@@ -208,8 +208,8 @@ export const cncEntityFieldGroups = {
       { path: 'data.geometry.preview', i18n: 'common.details', role: 'previewSource', display: 'geometry', priority: 10 }
     ],
     relations: [
-      { path: 'data.output.warehouseId', i18n: 'entities.warehouse', display: 'entityRef', entityType: 'warehouse', priority: 70 },
-      { path: 'data.output.projectId', i18n: 'entities.project', display: 'entityRef', entityType: 'project', priority: 80 }
+      { path: 'data.output.warehouseId', i18n: 'entities.warehouse', display: 'entityRef', typeId: 'warehouse', priority: 70 },
+      { path: 'data.output.projectId', i18n: 'entities.project', display: 'entityRef', typeId: 'project', priority: 80 }
     ]
   },
   profileTemplate: {
@@ -254,8 +254,8 @@ export const cncEntityFieldGroups = {
       { path: 'data.category', i18n: 'common.type', display: 'text', priority: 20 }
     ],
     relations: [
-      { path: 'data.defaultPenId', i18n: 'entities.penTemplate', display: 'entityRef', entityType: 'penTemplate', priority: 30 },
-      { path: 'data.orgPenId', i18n: 'entities.penTemplate', display: 'entityRef', entityType: 'penTemplate', priority: 40 }
+      { path: 'data.defaultPenId', i18n: 'entities.penTemplate', display: 'entityRef', typeId: 'penTemplate', priority: 30 },
+      { path: 'data.orgPenId', i18n: 'entities.penTemplate', display: 'entityRef', typeId: 'penTemplate', priority: 40 }
     ]
   },
   user: {
@@ -277,7 +277,7 @@ export const cncEntityFieldGroups = {
       { path: 'attachments.primary.name', fallbackPaths: ['data.filename'], i18n: 'file.name', display: 'text', priority: 20 }
     ],
     relations: [
-      { path: 'lineage.nestingRunId', i18n: 'entities.nestingRun', display: 'entityRef', entityType: 'nestingRun', priority: 40 }
+      { path: 'lineage.nestingRunId', i18n: 'entities.nestingRun', display: 'entityRef', typeId: 'nestingRun', priority: 40 }
     ]
   },
   artifactTemplate: {
@@ -286,7 +286,7 @@ export const cncEntityFieldGroups = {
       { path: 'data.variables.length', i18n: 'artifactTemplates.variables', display: 'count', priority: 20 }
     ],
     provenance: [
-      { path: 'data.activeRevisionId', i18n: 'revision.currentGeometry', display: 'entityRef', entityType: 'entityRevision', priority: 30 }
+      { path: 'data.activeRevisionId', i18n: 'revision.currentGeometry', display: 'entityRef', typeId: 'entityRevision', priority: 30 }
     ]
   }
 };

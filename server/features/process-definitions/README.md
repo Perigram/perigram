@@ -23,7 +23,7 @@ organization's current active definition. Both sides are recompiled from their
 canonical authored records (never the inspection-only stored `compiled`
 snapshot) and compared through `diffProcessContracts`
 (`packages/processes/src/contract-diff.js`): added/removed/changed actions,
-screens, and role grants; per-entity-type CRUD capability changes; per-producer
+screens, and role grants; per-type-id CRUD capability changes; per-producer
 workflow state/transition/entry changes; field-policy section changes; and the
 entity statuses the next contract removes. The validate response carries the
 diff for the designer's Apply summary. Activation is a migration gate for the
@@ -42,7 +42,7 @@ migration. `migration-plan.js` owns the contract:
 
 - **Plan** (`migrationPlan` on the validate response and on the 409 data):
   one row per entity type with live instances in removed primary states —
-  `{ statuses: [{ entityType, removed: [{ state, count }], targets }] }`,
+  `{ statuses: [{ typeId, removed: [{ state, count }], targets }] }`,
   where `targets` are the entity type's retained primary states in the next
   compiled contract (recomputed from both sides, never trusted from the
   client). The plan is the whole database impact statement for instance
@@ -54,7 +54,7 @@ migration. `migration-plan.js` owns the contract:
   migrations (CTS SPEC §11 deferred tier) will land in this same plan when
   that tier is built.
 - **Decision** — `POST …/activate` accepts `{ migration: { statuses:
-  [{ entityType, from, to }] } }`. Every removed state with a live count
+  [{ typeId, from, to }] } }`. Every removed state with a live count
   must carry exactly one mapping whose `to` is a retained target for that
   entity type; invalid or partial mappings are HTTP 400 with the plan
   attached. Without a payload the boundary keeps the historical 409.
@@ -441,7 +441,7 @@ each stored relation reference through `processGetById` by its declared target
 type. They receive the full auth context and never fall back to an unfiltered
 repository read. A missing or denied parent/relation target fails clearly;
 root entities and empty relation values return null or an empty list.
-Returned models are serialized before entity-typed field predicates are evaluated in memory. Predicate
+Returned models are serialized before type-idd field predicates are evaluated in memory. Predicate
 conditions and gates remain process algebra values; they are not translated
 into database filters. The runtime does not infer service signatures, read
 feature collections directly, or turn a designer predicate into an unchecked

@@ -20,7 +20,7 @@ const compiled = {
     },
     operator: {
       grants: [{ feature: 'queues', level: 'write', scope: { projectId: '$assignment.projectId' }, transitions: ['OPEN->DONE'] }],
-      actions: [{ actionId: 'finish', label: 'Finish', actionKind: 'updateEntity', feature: 'queues', entityType: 'queue', status: { from: 'OPEN', to: 'DONE' } }]
+      actions: [{ actionId: 'finish', label: 'Finish', actionKind: 'updateEntity', feature: 'queues', typeId: 'queue', status: { from: 'OPEN', to: 'DONE' } }]
     }
   },
   screens: {
@@ -42,7 +42,7 @@ describe('previewAssignmentAccess', () => {
 
     const denied = previewAssignmentAccess({
       compiled, assignment: { roleIds: ['viewer'], bindings: {} }, domain,
-      contexts: [{ entityType: 'project', status: 'DRAFT' }]
+      contexts: [{ typeId: 'project', status: 'DRAFT' }]
     });
     expect(denied.entities.find(item => item.feature === 'projects')).toMatchObject({ allowed: false });
     expect(denied.entities.find(item => item.feature === 'queues')).toMatchObject({ allowed: false });
@@ -58,8 +58,8 @@ describe('previewAssignmentAccess', () => {
       assignment: { roleIds: ['viewer', 'operator'], bindings: { projectId: 'project-1', queueId: 'queue-1' } },
       domain,
       contexts: [
-        { entityType: 'project', entityId: 'project-1', status: 'READY' },
-        { entityType: 'queue', entityId: 'queue-1', status: 'OPEN', lineage: { projectId: 'project-1' } }
+        { typeId: 'project', entityId: 'project-1', status: 'READY' },
+        { typeId: 'queue', entityId: 'queue-1', status: 'OPEN', lineage: { projectId: 'project-1' } }
       ]
     });
     expect(preview.entities).toEqual(expect.arrayContaining([

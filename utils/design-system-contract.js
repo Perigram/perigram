@@ -23,7 +23,7 @@ export function validateDesignSystemContracts(entries = DESIGN_SYSTEM_ENTITY_CON
   return entries.flatMap((entry) => {
     const issues = [];
     if (!entry.key) issues.push('missing key');
-    if (!entry.entityType) issues.push('missing entity type');
+    if (!entry.typeId) issues.push('missing entity type');
     if (!entry.group) issues.push('missing group');
     if (!entry.labelKey) issues.push('missing label key');
     if (!entry.propName) issues.push('missing prop name');
@@ -63,7 +63,7 @@ export function validateDesignSystemDisplayContracts(entries = DESIGN_SYSTEM_ENT
         for (const field of fields) {
           const paths = [field.path, ...(field.fallbackPaths || [])].filter(Boolean);
           for (const path of paths) {
-            if (!findEntityFieldPolicy(entry.entityType, path)) {
+            if (!findEntityFieldPolicy(entry.typeId, path)) {
               issues.push({ surface, group: groupName, path, issue: 'field path missing access policy' });
             }
           }

@@ -136,7 +136,7 @@ function statusTimestamp(entity = {}) {
 function colorPreview(color = {}, userPermissions = null) {
   const preview = {
     _id: color._id?.toString?.() || color._id,
-    entityType: 'color',
+    typeId: 'color',
     identity: {
       ...(color.identity || {}),
       name: color.identity?.name || color.data?.code || color.identity?.uid || 'Color'
@@ -154,7 +154,7 @@ function colorPreview(color = {}, userPermissions = null) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'color',
+  typeId: 'color',
   repository,
   Model: Color
 });

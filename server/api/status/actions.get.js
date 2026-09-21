@@ -5,14 +5,14 @@ import { requireAuth } from '~/server/utils/permissions.js';
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const query = getQuery(event);
-  const entityType = query.entityType || query.type;
+  const typeId = query.typeId || query.type;
   const targetId = query.id || query.targetId;
 
-  if (!entityType || !targetId) {
-    throw createError({ statusCode: 400, message: 'entityType and id are required' });
+  if (!typeId || !targetId) {
+    throw createError({ statusCode: 400, message: 'typeId and id are required' });
   }
 
-  return await statusService.getActions(entityType, targetId, {
+  return await statusService.getActions(typeId, targetId, {
     ...auth,
     ...(query.producerOutputId ? { producerOutputId: query.producerOutputId } : {})
   });

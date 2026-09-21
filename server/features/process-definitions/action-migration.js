@@ -1,9 +1,9 @@
 export function migrateStatusAction(action = {}) {
   if (action.actionKind !== 'changeStatus') return { ...action };
-  const entityType = action.entityType || action.inputs?.find(input => input.entityType)?.entityType || '';
+  const typeId = action.typeId || action.inputs?.find(input => input.typeId)?.typeId || '';
   const inputs = [...(action.inputs || [])];
   if (!inputs.some(input => input.id === 'entity')) {
-    inputs.unshift({ id: 'entity', kind: 'entity', entityType, required: true });
+    inputs.unshift({ id: 'entity', kind: 'entity', typeId, required: true });
   }
   if (!inputs.some(input => input.id === 'status')) {
     inputs.push({
@@ -17,7 +17,7 @@ export function migrateStatusAction(action = {}) {
   return {
     ...action,
     actionKind: 'updateEntity',
-    entityType,
+    typeId,
     inputs,
     mutation: action.mutation || { fields: [] },
     access: {

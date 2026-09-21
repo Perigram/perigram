@@ -108,8 +108,8 @@ const sections = computed(() => {
       const source = (home.sources || []).find(candidate => candidate.id === region.sourceId) || {}
       if (!source.typeId || source.mode === 'single') return null
       const parentBound = (source.lineageBindings || [])
-        .some(binding => binding.childEntityType === source.typeId
-          && binding.ancestorEntityType !== 'organization')
+        .some(binding => binding.childTypeId === source.typeId
+          && binding.parentTypeId !== 'organization')
       if (parentBound) return null
       return { region, source, label: generatedRegionLabel(region, source, { t, te }) }
     })
@@ -126,16 +126,16 @@ function createActionsFor(actionIds = []) {
 // Child-type create entries for an entity: the createEntity actions of the
 // list regions on its type's compiled detail screen (the sidebar's
 // child-create derivation).
-function childCreateActions(entityType = '') {
+function childCreateActions(typeId = '') {
   const detailScreen = generatedDetailScreenForTypeId({
     screens: authStore.screenManifest,
-    entityType
+    typeId
   })
   if (!detailScreen) return []
   const actions = []
   for (const region of detailScreen.regions || []) {
     const source = (detailScreen.sources || []).find(candidate => candidate.id === region.sourceId)
-    if (!source || source.mode !== 'list' || source.typeId === entityType) continue
+    if (!source || source.mode !== 'list' || source.typeId === typeId) continue
     actions.push(...createActionsFor(region.actions))
   }
   return actions.filter((action, index, list) => (
@@ -240,21 +240,21 @@ function onNodeExpand(node) {
   if (node.data?.item) loadChildren(node.data.item)
 }
 
-async function loadSectionOptions(entityType, sectionKey) {
+async function loadSectionOptions(typeId, sectionKey) {
   if (loadedKeys.value.has(sectionKey) || loadingKeys.value.has(sectionKey)) return
   loadingKeys.value = new Set([...loadingKeys.value, sectionKey])
   try {
     const loaded = await $fetch('/api/support/entity-options', {
       query: {
-        type: entityType,
+        type: typeId,
         ...(props.recipientUserId ? { recipientUserId: props.recipientUserId } : {})
       }
     })
     const items = (loaded || [])
       .filter(option => option?.value)
       .map(option => ({
-        key: `${entityType}:${option.value}`,
-        type: entityType,
+        key: `${typeId}:${option.value}`,
+        type: typeId,
         entity: option.entity || null,
         name: option.label,
         option

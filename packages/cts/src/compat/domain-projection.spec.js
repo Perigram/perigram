@@ -151,8 +151,8 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
       ['name', 'lineage.binId', 'relations.placed-on', 'data.serial', 'specs.width']
     );
     expect(construction.inputs.find(input => input.id === 'relations.placed-on')).toMatchObject({
-      type: 'entityList',
-      entityType: 'sheet'
+      type: 'typeList',
+      typeId: 'sheet'
     });
     // Create-dialog labels are authored vocabulary: the lineage input is
     // named by its parent type's render label, row inputs by the

@@ -93,16 +93,16 @@
                                             :model-value="ruleTreeForGrant(index)"
                                             :gate-options="gateOptions"
                                             :subject-options="subjectOptionsForFeature"
-                                            :entity-type-options="relatedEntityTypeOptions"
+                                            :type-id-options="relatedTypeIdOptions"
                                             :condition-operator-options="conditionOperatorOptions"
                                             :entity-options-loading="entityOptionsLoading"
                                             :trait-options-for-condition="traitOptionsForCondition"
                                             :condition-subject="conditionSubject"
-                                            :condition-entity-type="conditionEntityType"
-                                            :condition-entity-type-label="conditionEntityTypeLabel"
+                                            :condition-type-id="conditionTypeId"
+                                            :condition-type-id-label="conditionTypeIdLabel"
                                             :condition-trait="conditionTrait"
                                             :patch-condition-subject="patchConditionSubject"
-                                            :patch-condition-entity-type="patchConditionEntityType"
+                                            :patch-condition-type-id="patchConditionTypeId"
                                             :patch-condition-trait="patchConditionTrait"
                                             :uses-option-value-picker="usesOptionValuePicker"
                                             :value-options-for-clause="valueOptionsForClause"
@@ -195,7 +195,7 @@ const entityLoaders = Object.fromEntries(cncDomain.entities.map(entity => [
     entity.type,
     {
         list: (filters = {}) => instances.listInstances(instances.canonicalTypeKey(entity.surfaceKey), filters),
-        create: body => instances.createInstance(instances.canonicalTypeKey(entity.surfaceKey), body, { entityType: entity.type })
+        create: body => instances.createInstance(instances.canonicalTypeKey(entity.surfaceKey), body, { typeId: entity.type })
     }
 ]));
 
@@ -230,7 +230,7 @@ const scopeFields = computed(() => [
     { key: 'queueId', label: t('auth.scope.queueId') },
     { key: 'warehouseId', label: t('auth.scope.warehouseId') },
     { key: 'entityId', label: t('auth.scope.entityId') },
-    { key: 'entityType', label: t('auth.scope.entityType') }
+    { key: 'typeId', label: t('auth.scope.typeId') }
 ]);
 
 const gateOptions = computed(() => [
@@ -239,30 +239,30 @@ const gateOptions = computed(() => [
 ]);
 
 const subjectOptionsForFeature = computed(() => [
-    ...(selectedFeatureHasEntity() ? [{ label: entityTypeLabel(selectedFeatureEntityType()), value: 'current' }] : []),
-    ...(relatedEntityTypeOptions.value.length ? [{ label: t('auth.permissionSubjects.related'), value: 'related' }] : []),
+    ...(selectedFeatureHasEntity() ? [{ label: typeIdLabel(selectedFeatureTypeId()), value: 'current' }] : []),
+    ...(relatedTypeIdOptions.value.length ? [{ label: t('auth.permissionSubjects.related'), value: 'related' }] : []),
     { label: t('auth.permissionSubjects.transition'), value: 'transition' },
     { label: t('auth.permissionSubjects.custom'), value: 'custom' }
 ]);
 
-const entityTypeOptions = computed(() => (
-    uniqueEntityTypes(cncDomain.entities.map(entity => entity.type)).map(type => ({
-        label: entityTypeLabel(type),
+const typeIdOptions = computed(() => (
+    uniqueTypeIds(cncDomain.entities.map(entity => entity.type)).map(type => ({
+        label: typeIdLabel(type),
         value: type
     }))
 ));
 
-const relatedEntityTypeOptions = computed(() => {
-    const currentType = selectedFeatureEntityType();
+const relatedTypeIdOptions = computed(() => {
+    const currentType = selectedFeatureTypeId();
     const lineageBindings = authStore.lineageBindings || [];
-    const relatedTypes = selectedFeatureHasEntity() ? uniqueEntityTypes([
-        ...lineageBindings.filter(binding => binding.childEntityType === currentType).map(binding => binding.ancestorEntityType),
-        ...lineageBindings.filter(binding => binding.ancestorEntityType === currentType).map(binding => binding.childEntityType),
+    const relatedTypes = selectedFeatureHasEntity() ? uniqueTypeIds([
+        ...lineageBindings.filter(binding => binding.childTypeId === currentType).map(binding => binding.parentTypeId),
+        ...lineageBindings.filter(binding => binding.parentTypeId === currentType).map(binding => binding.childTypeId),
         ...(cncDomain.relations || []).filter(relation => relation.ownerType === currentType).map(relation => relation.targetType),
         ...(cncDomain.relations || []).filter(relation => relation.targetType === currentType).map(relation => relation.ownerType)
     ]) : [];
     return relatedTypes.map(type => ({
-        label: entityTypeLabel(type),
+        label: typeIdLabel(type),
         value: type
     }));
 });
@@ -273,7 +273,7 @@ const SCOPE_FACT_BY_KEY = {
     queueId: 'lineage.queueId',
     warehouseId: 'lineage.warehouseId',
     entityId: 'entityId',
-    entityType: 'entityType'
+    typeId: 'typeId'
 };
 
 const conditionOperatorOptions = computed(() => [
@@ -450,13 +450,13 @@ function createGroupNode(patch = {}) {
 
 function createConditionNode(patch = {}) {
     const subject = selectedFeatureHasEntity() ? 'current' : 'related';
-    const entityType = subject === 'current' ? selectedFeatureEntityType() : defaultRelatedEntityType();
+    const typeId = subject === 'current' ? selectedFeatureTypeId() : defaultRelatedTypeId();
     return normalizeClause({
         id: nextRuleNodeId(),
         type: 'condition',
         subject,
-        entityType,
-        trait: defaultTraitForCondition({ subject, entityType }),
+        typeId,
+        trait: defaultTraitForCondition({ subject, typeId }),
         operator: 'equals',
         field: '',
         value: '',
@@ -568,15 +568,15 @@ function clauseToCondition(clause) {
 function normalizeClause(clause = {}) {
     const operator = clause.operator || 'equals';
     const subject = clause.subject || conditionSubject(clause);
-    const entityType = clause.entityType || conditionEntityType({ ...clause, subject });
-    const trait = clause.trait || conditionTrait({ ...clause, subject, entityType }) || defaultTraitForCondition({ subject, entityType });
-    const fact = clause.fact || factForCondition(subject, entityType, trait);
+    const typeId = clause.typeId || conditionTypeId({ ...clause, subject });
+    const trait = clause.trait || conditionTrait({ ...clause, subject, typeId }) || defaultTraitForCondition({ subject, typeId });
+    const fact = clause.fact || factForCondition(subject, typeId, trait);
     const propertyPath = propertyPathForTrait(trait);
     return {
         id: clause.id || nextRuleNodeId(),
         type: 'condition',
         subject,
-        entityType,
+        typeId,
         trait,
         fact,
         operator,
@@ -602,14 +602,14 @@ function traitOptionsForCondition(condition = {}) {
         ];
     }
 
-    const entityType = conditionEntityType(condition);
+    const typeId = conditionTypeId(condition);
     const options = [{ label: t('auth.permissionTraits.id'), value: 'id' }];
-    if (workflowStateOptions(conditionEntityType(condition)).length) {
+    if (workflowStateOptions(conditionTypeId(condition)).length) {
         options.push({ label: t('auth.permissionTraits.status'), value: 'status' });
     }
-    options.push(...propertyTraitOptions(entityType));
+    options.push(...propertyTraitOptions(typeId));
     if (conditionTrait(condition) === 'type' && !options.some(option => option.value === 'type')) {
-        options.push({ label: t('auth.permissionTraits.entityType'), value: 'type' });
+        options.push({ label: t('auth.permissionTraits.typeId'), value: 'type' });
     }
     return options;
 }
@@ -618,19 +618,19 @@ function defaultTraitForCondition(condition = {}) {
     return traitOptionsForCondition(condition)[0]?.value || 'id';
 }
 
-function factForCondition(subject, entityType, trait) {
+function factForCondition(subject, typeId, trait) {
     if (subject === 'custom') return 'field';
     if (subject === 'transition') return trait === 'from' ? 'transition.from' : 'transition.to';
     const propertyPath = propertyPathForTrait(trait);
     if (propertyPath) {
-        return subject === 'related' ? `lineage.${entityType}.${propertyPath}` : `entity.${propertyPath}`;
+        return subject === 'related' ? `lineage.${typeId}.${propertyPath}` : `entity.${propertyPath}`;
     }
     if (subject === 'related') {
-        if (trait === 'id') return `lineage.${entityType}Id`;
-        if (trait === 'type') return `lineage.${entityType}.type`;
-        if (trait === 'status') return `lineage.${entityType}.status.primary`;
+        if (trait === 'id') return `lineage.${typeId}Id`;
+        if (trait === 'type') return `lineage.${typeId}.type`;
+        if (trait === 'status') return `lineage.${typeId}.status.primary`;
     }
-    if (trait === 'type') return 'entityType';
+    if (trait === 'type') return 'typeId';
     if (trait === 'status') return 'status.primary';
     return 'entityId';
 }
@@ -645,29 +645,29 @@ function conditionSubject(clause = {}) {
     return 'current';
 }
 
-function conditionEntityType(clause = {}) {
-    if (clause.entityType) return clause.entityType;
-    if (conditionSubject(clause) === 'current') return selectedFeatureEntityType();
+function conditionTypeId(clause = {}) {
+    if (clause.typeId) return clause.typeId;
+    if (conditionSubject(clause) === 'current') return selectedFeatureTypeId();
     if (conditionSubject(clause) !== 'related') return '';
     const fact = clause.fact || '';
     const idMatch = fact.match(/^lineage\.([^.]+)Id$/);
     if (idMatch) return idMatch[1];
     const traitMatch = fact.match(/^lineage\.([^.]+)\./);
-    return traitMatch?.[1] || defaultRelatedEntityType();
+    return traitMatch?.[1] || defaultRelatedTypeId();
 }
 
-function conditionEntityTypeLabel(clause = {}) {
-    if (conditionSubject(clause) === 'current') return entityTypeLabel(selectedFeatureEntityType());
+function conditionTypeIdLabel(clause = {}) {
+    if (conditionSubject(clause) === 'current') return typeIdLabel(selectedFeatureTypeId());
     if (conditionSubject(clause) === 'transition') return t('auth.permissionSubjects.transition');
     if (conditionSubject(clause) === 'custom') return t('auth.permissionSubjects.custom');
-    return entityTypeLabel(conditionEntityType(clause));
+    return typeIdLabel(conditionTypeId(clause));
 }
 
 function conditionTrait(clause = {}) {
     if (clause.trait) return clause.trait;
     const fact = clause.fact || '';
     if (fact === 'field') return 'path';
-    if (fact === 'entityType' || fact.endsWith('.type')) return 'type';
+    if (fact === 'typeId' || fact.endsWith('.type')) return 'type';
     if (fact === 'status.primary' || fact === 'primaryStatus' || fact.endsWith('.status.primary')) return 'status';
     if (fact === 'transition.from') return 'from';
     if (fact === 'transition.to') return 'to';
@@ -678,38 +678,38 @@ function conditionTrait(clause = {}) {
 }
 
 function patchConditionSubject(clause = {}, subject) {
-    const entityType = subject === 'related' ? defaultRelatedEntityType() : selectedFeatureEntityType();
+    const typeId = subject === 'related' ? defaultRelatedTypeId() : selectedFeatureTypeId();
     const next = {
         ...clause,
         subject,
-        entityType,
-        trait: defaultTraitForCondition({ subject, entityType }),
+        typeId,
+        trait: defaultTraitForCondition({ subject, typeId }),
         field: subject === 'custom' ? clause.field || '' : '',
         value: ''
     };
-    return normalizeClause({ ...next, fact: factForCondition(next.subject, next.entityType, next.trait) });
+    return normalizeClause({ ...next, fact: factForCondition(next.subject, next.typeId, next.trait) });
 }
 
-function patchConditionEntityType(clause = {}, entityType) {
-    const trait = defaultTraitForCondition({ ...clause, subject: 'related', entityType });
+function patchConditionTypeId(clause = {}, typeId) {
+    const trait = defaultTraitForCondition({ ...clause, subject: 'related', typeId });
     return normalizeClause({
         ...clause,
         subject: 'related',
-        entityType,
+        typeId,
         trait,
-        fact: factForCondition('related', entityType, trait),
+        fact: factForCondition('related', typeId, trait),
         value: ''
     });
 }
 
 function patchConditionTrait(clause = {}, trait) {
     const subject = conditionSubject(clause);
-    const entityType = conditionEntityType(clause);
-    const fact = factForCondition(subject, entityType, trait);
+    const typeId = conditionTypeId(clause);
+    const fact = factForCondition(subject, typeId, trait);
     return normalizeClause({
         ...clause,
         subject,
-        entityType,
+        typeId,
         trait,
         fact,
         field: subject === 'custom' ? clause.field || '' : '',
@@ -718,36 +718,36 @@ function patchConditionTrait(clause = {}, trait) {
 }
 
 function usesOptionValuePicker(clause = {}) {
-    const entityType = entityTypeForClause(clause);
-    return isStatusClause(clause) || Boolean(entityType && canLoadEntityOptions(entityType));
+    const typeId = typeIdForClause(clause);
+    return isStatusClause(clause) || Boolean(typeId && canLoadEntityOptions(typeId));
 }
 
 function valueOptionsForClause(clause = {}) {
-    if (isStatusClause(clause)) return workflowStateOptions(conditionEntityType(clause));
-    const entityType = entityTypeForClause(clause);
-    return entityType ? entityOptionLists.value[entityType] || [] : [];
+    if (isStatusClause(clause)) return workflowStateOptions(conditionTypeId(clause));
+    const typeId = typeIdForClause(clause);
+    return typeId ? entityOptionLists.value[typeId] || [] : [];
 }
 
-function entityTypeForClause(clause = {}) {
+function typeIdForClause(clause = {}) {
     if (clause.operator === 'exists') return null;
     const subject = conditionSubject(clause);
     const trait = conditionTrait(clause);
     if (trait !== 'id') return null;
-    if (subject === 'current') return selectedFeatureEntityType();
-    if (subject === 'related') return conditionEntityType(clause);
+    if (subject === 'current') return selectedFeatureTypeId();
+    if (subject === 'related') return conditionTypeId(clause);
     return null;
 }
 
-function canLoadEntityOptions(entityType) {
-    return entityType === 'organization' || entityType === 'queue' || Boolean(entityLoaders[entityType]);
+function canLoadEntityOptions(typeId) {
+    return typeId === 'organization' || typeId === 'queue' || Boolean(entityLoaders[typeId]);
 }
 
 function isStatusClause(clause = {}) {
     return clause.operator !== 'exists' && conditionTrait(clause) === 'status';
 }
 
-function selectedFeatureEntityType() {
-    return featureEntityDefinition()?.type || entityTypeOptions.value[0]?.value || 'project';
+function selectedFeatureTypeId() {
+    return featureEntityDefinition()?.type || typeIdOptions.value[0]?.value || 'project';
 }
 
 function selectedFeatureHasEntity() {
@@ -761,54 +761,54 @@ function featureEntityDefinition() {
     )) || null;
 }
 
-function defaultRelatedEntityType() {
-    return relatedEntityTypeOptions.value[0]?.value || 'organization';
+function defaultRelatedTypeId() {
+    return relatedTypeIdOptions.value[0]?.value || 'organization';
 }
 
-function entityTypeLabel(type) {
-    return t(`entities.${camelizeEntityType(type)}`, t(`features.${pluralizeEntityType(type)}`, formatEntityType(type)));
+function typeIdLabel(type) {
+    return t(`entities.${camelizeTypeId(type)}`, t(`features.${pluralizeTypeId(type)}`, formatTypeId(type)));
 }
 
-function uniqueEntityTypes(types = []) {
+function uniqueTypeIds(types = []) {
     return [...new Set(types.filter(Boolean))];
 }
 
-function camelizeEntityType(type = '') {
+function camelizeTypeId(type = '') {
     return String(type).replace(/[-_]([a-z])/g, (_, char) => char.toUpperCase());
 }
 
-function pluralizeEntityType(type = '') {
-    const value = camelizeEntityType(type);
+function pluralizeTypeId(type = '') {
+    const value = camelizeTypeId(type);
     return value.endsWith('s') ? value : `${value}s`;
 }
 
-function formatEntityType(type = '') {
+function formatTypeId(type = '') {
     return String(type)
         .replace(/[-_]/g, ' ')
         .replace(/\b\w/g, char => char.toUpperCase());
 }
 
-function snakeEntityType(type = '') {
+function snakeTypeId(type = '') {
     return String(type).replace(/[A-Z]/g, char => `_${char.toLowerCase()}`).replace(/-/g, '_');
 }
 
-function workflowStateOptions(entityType) {
-    const workflow = entityType ? cncWorkflows[entityType] || cncWorkflows[snakeEntityType(entityType)] : null;
+function workflowStateOptions(typeId) {
+    const workflow = typeId ? cncWorkflows[typeId] || cncWorkflows[snakeTypeId(typeId)] : null;
     const primaryRegion = workflow?.primaryRegion || 'main';
     const states = workflow?.regions?.[primaryRegion]?.states || {};
     return Object.keys(states).map(state => ({ label: statusLabel(state), value: state }));
 }
 
-function propertyTraitOptions(entityType) {
+function propertyTraitOptions(typeId) {
     const paths = new Map();
-    for (const field of entityFieldDescriptors(entityType)) {
+    for (const field of entityFieldDescriptors(typeId)) {
         if (!field.path || isUnsupportedPredicatePath(field.path)) continue;
         paths.set(field.path, fieldLabel(field));
         for (const fallbackPath of field.fallbackPaths || []) {
             if (!isUnsupportedPredicatePath(fallbackPath)) paths.set(fallbackPath, fieldLabel({ ...field, path: fallbackPath }));
         }
     }
-    for (const path of entityAccessPaths(entityType)) {
+    for (const path of entityAccessPaths(typeId)) {
         if (!paths.has(path) && !isUnsupportedPredicatePath(path)) paths.set(path, formatPathLabel(path));
     }
     return [...paths.entries()].map(([path, label]) => ({
@@ -817,15 +817,15 @@ function propertyTraitOptions(entityType) {
     }));
 }
 
-function entityFieldDescriptors(entityType) {
-    const groups = cncEntityFieldGroups[entityType] || {};
+function entityFieldDescriptors(typeId) {
+    const groups = cncEntityFieldGroups[typeId] || {};
     return Object.values(groups).flat();
 }
 
-function entityAccessPaths(entityType) {
-    const policy = getEntityFieldAccessPolicy(entityType);
+function entityAccessPaths(typeId) {
+    const policy = getEntityFieldAccessPolicy(typeId);
     if (!policy) return [];
-    return uniqueEntityTypes(['read', 'write', 'admin'].flatMap(level => policy[level] || []))
+    return uniqueTypeIds(['read', 'write', 'admin'].flatMap(level => policy[level] || []))
         .filter(path => !path.endsWith('.*') && !path.includes('*'));
 }
 
@@ -873,9 +873,9 @@ async function loadEntityOptions() {
             ...entityOptionLists.value,
             organization: organizationOptions()
         };
-        const requiredTypes = entityTypesRequiredByRuleTree(selectedRuleTree.value);
-        const featureEntityType = featureEntityDefinition()?.type;
-        if (featureEntityType) requiredTypes.add(featureEntityType);
+        const requiredTypes = typeIdsRequiredByRuleTree(selectedRuleTree.value);
+        const featureTypeId = featureEntityDefinition()?.type;
+        if (featureTypeId) requiredTypes.add(featureTypeId);
 
         let projectEntities = [];
         if (requiredTypes.has('project')) {
@@ -898,14 +898,14 @@ async function loadEntityOptions() {
     }
 }
 
-function entityTypesRequiredByRuleTree(node, required = new Set()) {
+function typeIdsRequiredByRuleTree(node, required = new Set()) {
     if (!node) return required;
     if (node.type === 'group') {
-        for (const child of node.children || []) entityTypesRequiredByRuleTree(child, required);
+        for (const child of node.children || []) typeIdsRequiredByRuleTree(child, required);
         return required;
     }
-    const entityType = entityTypeForClause(node);
-    if (entityType && canLoadEntityOptions(entityType)) required.add(entityType);
+    const typeId = typeIdForClause(node);
+    if (typeId && canLoadEntityOptions(typeId)) required.add(typeId);
     return required;
 }
 

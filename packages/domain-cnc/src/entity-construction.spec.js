@@ -11,7 +11,7 @@ describe('CNC entity construction', () => {
     expect(contract).toMatchObject({ defaultMode: 'uploadArtifact', derived: true });
     expect(contract.modeInputs.uploadArtifact[0]).toMatchObject({
       type: 'artifactUpload',
-      creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' }
+      creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' }
     });
   });
 
@@ -26,7 +26,7 @@ describe('CNC entity construction', () => {
   it('keeps facade construction independent of its containment parent', () => {
     const contract = getEntityConstruction('facade');
 
-    expect(contract.parentEntityType).toBeUndefined();
+    expect(contract.parentTypeId).toBeUndefined();
     expect(contract.inputs).toEqual([
       expect.objectContaining({ id: 'name', prompt: true })
     ]);

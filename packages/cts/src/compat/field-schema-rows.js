@@ -19,13 +19,13 @@ function kebab(value = '') {
 
 // Legacy field type -> CTS row descriptor (leaf level). '*' is the
 // strangler wildcard for untyped entity references: legacy `entityRef`
-// without `entityType` (any entity). It appears only on extracted rows and
+// without `typeId` (any entity). It appears only on extracted rows and
 // their synthesized projections; authored rows name their targets.
 function leafDescriptor(type = {}) {
   const base = type.base;
   const nullable = type.nullable !== false ? { nullable: true } : {};
   if (base === 'entityRef') {
-    return { base: 'ref', accepts: [type.entityType ? kebab(type.entityType) : '*'], ...nullable };
+    return { base: 'ref', accepts: [type.typeId ? kebab(type.typeId) : '*'], ...nullable };
   }
   if (base === 'number' && type.unit && LEGACY_UNIT_TO_CTS[type.unit]) {
     return { base: 'quantity', unit: LEGACY_UNIT_TO_CTS[type.unit], ...nullable };
@@ -55,7 +55,7 @@ function legacyType(descriptor = {}) {
       // The socket must carry the target's registry id verbatim (kebab):
       // the projected entity world is kebab-first, and a snake-cased id
       // matches no real entity output — ref fields would never wire.
-      return { base: 'entityRef', shape, nullable, entityType: target };
+      return { base: 'entityRef', shape, nullable, typeId: target };
     }
     case 'instant':
       return { base: 'dateTime', shape, nullable };

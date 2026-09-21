@@ -30,7 +30,7 @@ export function summarizeRoutes(definitions = []) {
 
 export function summarizeSummaries(summaries = []) {
   return summaries.map(summary => ({
-    entityType: summary.entityType,
+    typeId: summary.typeId,
     parentType: summary.parentType,
     parentIdKey: summary.parentIdKey,
     countField: summary.countField || null,
@@ -90,7 +90,7 @@ export function summarizeAttachmentKinds(attachmentKinds = {}) {
 export function summarizeRelationships({ summaries = [], dataModelFields = [] } = {}) {
   const summaryRelationships = summaries.map(summary => ({
     source: summary.parentType,
-    target: summary.entityType,
+    target: summary.typeId,
     via: `lineage.${summary.parentIdKey}`,
     kind: 'summary'
   }));
@@ -99,7 +99,7 @@ export function summarizeRelationships({ summaries = [], dataModelFields = [] } 
     .filter(field => field.name?.startsWith('lineage.') && field.name.endsWith('Id'))
     .map(field => ({
       source: field.name.replace(/^lineage\./, '').replace(/Id$/, ''),
-      target: field.entityType,
+      target: field.typeId,
       via: field.name,
       kind: 'lineage'
     }));
@@ -117,7 +117,7 @@ export function summarizeRelationships({ summaries = [], dataModelFields = [] } 
 export function summarizeUiComponents(contracts = [], componentInventory = {}) {
   return contracts.map(contract => ({
     key: contract.key,
-    entityType: contract.entityType,
+    typeId: contract.typeId,
     group: contract.group,
     labelKey: contract.labelKey,
     propName: contract.propName,
@@ -140,15 +140,15 @@ export function summarizeUiPrimitives(primitives = []) {
 }
 
 export function validateUiFieldPaths({ components = [], dataModelFields = [], compatibilityAliases = {} } = {}) {
-  const canonicalFields = new Set(dataModelFields.map(field => `${field.entityType}:${field.name}`));
+  const canonicalFields = new Set(dataModelFields.map(field => `${field.typeId}:${field.name}`));
   const issues = [];
 
   for (const component of components) {
     for (const path of component.fieldPaths || []) {
-      if (isAllowedFieldPath(component.entityType, path, canonicalFields, compatibilityAliases)) continue;
+      if (isAllowedFieldPath(component.typeId, path, canonicalFields, compatibilityAliases)) continue;
       issues.push({
         key: component.key,
-        entityType: component.entityType,
+        typeId: component.typeId,
         path,
         issue: 'unknown-ui-field-path'
       });
@@ -160,12 +160,12 @@ export function validateUiFieldPaths({ components = [], dataModelFields = [], co
 
 export function validateStatusPolicies({ components = [], workflows = {} } = {}) {
   return components
-    .filter(component => component.status === 'interactive' && workflows[component.entityType])
+    .filter(component => component.status === 'interactive' && workflows[component.typeId])
     .flatMap(component => {
-      const workflow = workflows[component.entityType];
+      const workflow = workflows[component.typeId];
       const regions = workflow.regions || { main: workflow };
       if ((workflow.initial || regions[workflow.primaryRegion || 'main']?.initial) && Object.values(regions).some(region => Object.keys(region.states || {}).length > 0)) return [];
-      return [{ key: component.key, entityType: component.entityType, issue: 'invalid-workflow-status-policy' }];
+      return [{ key: component.key, typeId: component.typeId, issue: 'invalid-workflow-status-policy' }];
     });
 }
 
@@ -346,8 +346,8 @@ export function validateDefinitionSet(definitions = []) {
   return { ok: errors.length === 0, errors };
 }
 
-function isAllowedFieldPath(entityType, path, canonicalFields, compatibilityAliases) {
-  const aliases = new Set(compatibilityAliases[entityType] || []);
+function isAllowedFieldPath(typeId, path, canonicalFields, compatibilityAliases) {
+  const aliases = new Set(compatibilityAliases[typeId] || []);
   if (aliases.has(path)) return true;
 
   const [root] = path.split('.');
@@ -355,5 +355,5 @@ function isAllowedFieldPath(entityType, path, canonicalFields, compatibilityAlia
 
   if (!path.startsWith('data.')) return false;
   const dataRoot = path.split('.').slice(0, 2).join('.');
-  return canonicalFields.has(`${entityType}:${dataRoot}`) || aliases.has(dataRoot);
+  return canonicalFields.has(`${typeId}:${dataRoot}`) || aliases.has(dataRoot);
 }

@@ -11,7 +11,7 @@ export const cncArtifactConversions = [
     sourceKinds: ['DXF_SOURCE'],
     target: {
       kind: 'entity',
-      entityType: 'cassette_design',
+      typeId: 'cassette_design',
       constructionMode: 'importCassetteDesignFromArtifact'
     }
   }

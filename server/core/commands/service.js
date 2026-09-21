@@ -196,7 +196,7 @@ async function loadCommandEntities(registry, command, refs) {
 function normalizeAbstractEntityRef(ref) {
   if (!ref || typeof ref !== 'object') return {};
   return {
-    type: ref.type || ref.entityType,
+    type: ref.type || ref.typeId,
     id: ref.id || ref._id
   };
 }

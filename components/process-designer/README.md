@@ -213,7 +213,7 @@ persistent input on origin species (`cts.construct`, `cts.read`) — bound
 or not, typed once bound — so a binding wire never dangles and re-binding
 by dropping a new wire is always possible; an unbound origin offers the
 pin and nothing else, and every other socket derives from the bound type.
-Species cards carry no entity-type dropdown and no operation switch: the
+Species cards carry no type-id dropdown and no operation switch: the
 binding channel owns the type, the species owns the operation.
 
 A bound `cts.mutate` patches leaves: writable `data`/`specs` row fields

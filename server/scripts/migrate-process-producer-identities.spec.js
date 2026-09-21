@@ -9,7 +9,7 @@ const domain = {
 
 function definition(outputs = [{
   id: 'result',
-  type: { base: 'entity', entityType: 'work_item', nullable: false }
+  type: { base: 'entity', typeId: 'work_item', nullable: false }
 }]) {
   return {
     dataflowVersion: 4,
@@ -17,7 +17,7 @@ function definition(outputs = [{
       processNode_1785860422855: {
         id: 'processNode_1785860422855',
         kind: 'effect.createEntity',
-        entityType: 'work_item',
+        typeId: 'work_item',
         outputs
       }
     },
@@ -37,8 +37,8 @@ describe('process producer identity data migration', () => {
 
   it('fails the record instead of selecting one ambiguous socket', () => {
     expect(() => migratePersistedProcessProducerIdentities(definition([
-      { id: 'first', type: { base: 'entity', entityType: 'work_item' } },
-      { id: 'second', type: { base: 'entity', entityType: 'work_item' } }
+      { id: 'first', type: { base: 'entity', typeId: 'work_item' } },
+      { id: 'second', type: { base: 'entity', typeId: 'work_item' } }
     ]), domain)).toThrow(
       'Process node processNode_1785860422855 requires one work_item producer output; candidates: '
       + 'processNode_1785860422855:first (work_item), processNode_1785860422855:result (work_item), '

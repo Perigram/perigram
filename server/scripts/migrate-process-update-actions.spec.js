@@ -6,7 +6,7 @@ describe('process update action migration', () => {
     const migrated = migrateStatusAction({
       id: 'approve',
       actionKind: 'changeStatus',
-      entityType: 'project',
+      typeId: 'project',
       statusRef: 'approved',
       status: { from: 'DRAFT', to: 'APPROVED', label: 'Approve' },
       access: { grants: [{ roleId: 'approver', level: 'write' }] },
@@ -17,7 +17,7 @@ describe('process update action migration', () => {
     expect(migrated).toMatchObject({
       id: 'approve',
       actionKind: 'updateEntity',
-      entityType: 'project',
+      typeId: 'project',
       statusRef: 'approved',
       status: { from: 'DRAFT', to: 'APPROVED', label: 'Approve' },
       access: {

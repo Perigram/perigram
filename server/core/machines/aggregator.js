@@ -8,8 +8,8 @@ import { getEntityCollection } from '~/server/runtime/entities.js';
  */
 
 export const aggregator = {
-  async syncParentSummary(entityType, lineage) {
-    const config = getAggregationMap()[entityType];
+  async syncParentSummary(typeId, lineage) {
+    const config = getAggregationMap()[typeId];
     if (!config) return;
 
     const parentId = lineage[config.parentIdKey];
@@ -17,7 +17,7 @@ export const aggregator = {
 
     const db = await connectDB();
     
-    const targetCollection = getEntityCollection(entityType);
+    const targetCollection = getEntityCollection(typeId);
     const parentCollection = getEntityCollection(config.parentType);
     if (!targetCollection || !parentCollection) return;
     const flexParentId = toFlexibleId(parentId);
@@ -57,7 +57,7 @@ export const aggregator = {
 function getAggregationMap() {
   const summaries = getCutkitRegistry().getDomain('cnc')?.summaries || [];
   return Object.fromEntries(summaries.map(summary => [
-    summary.entityType,
+    summary.typeId,
     {
       parentType: summary.parentType,
       parentIdKey: summary.parentIdKey,

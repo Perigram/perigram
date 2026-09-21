@@ -47,12 +47,12 @@ Production queue card and detail surface.
   entries only; it must not add a fake in-grid Add tile. Add Entry uses
   secondary emphasis because queue composition, rather than source creation, is
   the primary surface.
-- Queue job item relation rows read `item.entityType` to distinguish
+- Queue job item relation rows read `item.typeId` to distinguish
   `cassette_design` from `cassette` template ids. When a process role can read
   the queue but not the related design/template directly, `QueueEntryCard`
   renders a typed id chip with a localized source type and skips protected
   relation fetches instead of calling the wrong endpoint. Explicit legacy
-  `entityType: cassette` queue items hydrate from readable cassette templates
+  `typeId: cassette` queue items hydrate from readable cassette templates
   and remain labeled as cassette-template entries; ids without an explicit
   entity type are not reinterpreted as templates.
 - Queue editor cassette rows never render `cassette_design.identity.name`. The
@@ -61,7 +61,7 @@ Production queue card and detail surface.
   `EntityInlineRef`, followed by quantity and remove controls. Designs without
   cassette-template provenance fall back to their typed source id. Missing
   design hydration only probes rows that may be `cassette_design`; explicit
-  legacy `entityType: cassette` rows must not be fetched from
+  legacy `typeId: cassette` rows must not be fetched from
   `/api/cassette-designs/:id`.
 - Grid-mode queue entries use the bounded repeated-item grid. Each card has a
   finite maximum inline size, and additional container width creates more

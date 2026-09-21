@@ -169,7 +169,7 @@ export function createConfigBotDraftPackage({
     components,
     workflows: selectedEntities
       .filter(entity => cncWorkflows[entity.type])
-      .map(entity => ({ entityType: entity.type, workflow: cncWorkflows[entity.type] })),
+      .map(entity => ({ typeId: entity.type, workflow: cncWorkflows[entity.type] })),
     domainDraft,
     validation,
     files,
@@ -208,8 +208,8 @@ export function createConfigBotManifest() {
 export function selectEntitiesForPrompt(prompt = '', manifest = createConfigBotManifest(), context = {}) {
   const haystack = [
     prompt,
-    context.entityType,
-    ...(Array.isArray(context.entityTypes) ? context.entityTypes : [])
+    context.typeId,
+    ...(Array.isArray(context.typeIds) ? context.typeIds : [])
   ].filter(Boolean).join(' ').toLowerCase();
   const matches = manifest.entities.filter(entity => entityMatchesText(entity, haystack));
   const selected = matches.length
@@ -237,23 +237,23 @@ function entityMatchesText(entity, haystack) {
 function selectComponents(selectedEntities, manifest) {
   const selectedTypes = new Set(selectedEntities.map(entity => entity.type));
   return manifest.designSystem.components
-    .filter(component => selectedTypes.has(component.entityType))
+    .filter(component => selectedTypes.has(component.typeId))
     .map(component => ({
       key: component.key,
-      entityType: component.entityType,
+      typeId: component.typeId,
       componentPath: component.componentPath,
       primitives: ['StandardPage', 'ActionToolbar', 'ResponsiveGrid', 'StateBlock', 'EntityCard', 'EntityStatus']
     }));
 }
 
 function createVirtualFiles({ slug, title, route, selectedEntities, components }) {
-  const entityTypes = selectedEntities.map(entity => entity.type);
+  const typeIds = selectedEntities.map(entity => entity.type);
   return [
     {
       path: `pages/admin/generated/${slug}.vue`,
       language: 'vue',
       role: 'page-preview',
-      content: createVuePageSource({ title, route, entityTypes, components })
+      content: createVuePageSource({ title, route, typeIds, components })
     },
     {
       path: `config-bot/${slug}.package.json`,
@@ -263,14 +263,14 @@ function createVirtualFiles({ slug, title, route, selectedEntities, components }
         route,
         target: 'admin-micro-app',
         writes: { mode: 'draft-only', applyEnabled: false },
-        entities: entityTypes,
+        entities: typeIds,
         components: components.map(component => component.key)
       }, null, 2)
     }
   ];
 }
 
-function createVuePageSource({ title, route, entityTypes, components }) {
+function createVuePageSource({ title, route, typeIds, components }) {
   const componentComment = components.map(component => `${component.key}:${component.componentPath}`).join(', ');
   return `<template>
   <StandardPage :title="$t('generated.${routeKey(route)}.title')" :subtitle="$t('generated.${routeKey(route)}.subtitle')">
@@ -281,10 +281,10 @@ function createVuePageSource({ title, route, entityTypes, components }) {
     <ActionToolbar :title="$t('generated.${routeKey(route)}.workspace')" :subtitle="$t('generated.${routeKey(route)}.entities')" />
     <ResponsiveGrid variant="wide">
       <StateBlock
-        v-for="entityType in entityTypes"
-        :key="entityType"
+        v-for="typeId in typeIds"
+        :key="typeId"
         icon="pi pi-box"
-        :message="entityType"
+        :message="typeId"
         :description="$t('generated.${routeKey(route)}.draftOnly')"
       />
     </ResponsiveGrid>
@@ -299,7 +299,7 @@ definePageMeta({
   middleware: ['auth']
 });
 
-const entityTypes = ${JSON.stringify(entityTypes, null, 2)};
+const typeIds = ${JSON.stringify(typeIds, null, 2)};
 // ConfigBot v0.1 draft: ${title}
 // Existing components selected as lego: ${componentComment}
 </script>

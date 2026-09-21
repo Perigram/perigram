@@ -220,7 +220,7 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
     if (source?.type !== 'ctsState' || target?.type !== 'processNode') continue;
     const value = String(source.data?.value || '').trim();
     if (!value) continue;
-    let boundType = target.data?.entityType || target.data?.typeId || '';
+    let boundType = target.data?.typeId || '';
     if (!boundType) {
       const bindWire = edges.find(candidate => (
         candidate.role === 'type'
@@ -448,7 +448,7 @@ export function declarationNodePorts(node = {}, types = []) {
     return {
       inputSpecs: [{ id: 'declare', label: 'fields · states', role: 'data', type: processType('json'), access: 'item' }],
       outputSpecs: node.data?.typeId
-        ? [{ id: 'type', label: node.data.typeId, role: 'data', type: processType('entityRef', { entityType: node.data.typeId }), access: 'item' }]
+        ? [{ id: 'type', label: node.data.typeId, role: 'data', type: processType('entityRef', { typeId: node.data.typeId }), access: 'item' }]
         : []
     };
   }
@@ -478,7 +478,7 @@ export function declarationNodePorts(node = {}, types = []) {
     return {
       inputSpecs: [],
       outputSpecs: entry
-        ? [{ id: 'type', label: entry.id, role: 'data', type: processType('entityRef', { entityType: entry.id }), access: 'item' }]
+        ? [{ id: 'type', label: entry.id, role: 'data', type: processType('entityRef', { typeId: entry.id }), access: 'item' }]
         : []
     };
   }
@@ -709,7 +709,7 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
     return [];
   }
   const outputs = (node.outputs || []).filter(output => (
-    output?.id && output.type?.base === 'entity' && output.type?.entityType
+    output?.id && output.type?.base === 'entity' && output.type?.typeId
   ));
   const producerOutputs = data.producerOutputs ||= {};
   const outputIds = new Set(outputs.map(output => `${node.id}:${output.id}`));
@@ -725,7 +725,7 @@ export function syncProcessNodeProducerOutputs(data = {}, node = {}) {
       producerOutputId,
       nodeId: node.id,
       outputSocketId: output.id,
-      entityType: output.type.entityType,
+      typeId: output.type.typeId,
       lifecycle: producerOutputs[producerOutputId]?.lifecycle || { mode: 'defaultCreated' },
       fields: producerOutputs[producerOutputId]?.fields || { read: [], write: [], private: [] }
     };
@@ -793,30 +793,30 @@ export function createProcessDesignerContract(domain = {}, capabilities = null, 
   const entities = Array.isArray(domain.entities) ? domain.entities : [];
   const entityByType = new Map(entities.map(entity => [entity.type, entity]));
 
-  function capabilityFor(entityType = '') {
-    return capabilities ? (lookupEntityContract(capabilities, entityType) || null) : null;
+  function capabilityFor(typeId = '') {
+    return capabilities ? (lookupEntityContract(capabilities, typeId) || null) : null;
   }
 
-  function createModes(entityType = '') {
+  function createModes(typeId = '') {
     if (capabilities) {
-      const capability = capabilityFor(entityType);
+      const capability = capabilityFor(typeId);
       return Array.isArray(capability?.createModes) ? [...capability.createModes] : [];
     }
-    const contract = lookupEntityContract(domain.construction, entityType);
+    const contract = lookupEntityContract(domain.construction, typeId);
     return contract && Array.isArray(contract.modes) ? [...contract.modes] : [];
   }
 
-  function fieldPolicy(entityType = '') {
-    return lookupEntityContract(domain.fieldAccess, entityType) || {};
+  function fieldPolicy(typeId = '') {
+    return lookupEntityContract(domain.fieldAccess, typeId) || {};
   }
 
-  function construction(entityType = '') {
-    return lookupEntityContract(domain.construction, entityType) || null;
+  function construction(typeId = '') {
+    return lookupEntityContract(domain.construction, typeId) || null;
   }
 
-  function blocks(entityType = '') {
-    const declared = entityByType.get(entityType)?.blocks || [];
-    const policyRoots = allFieldPaths(fieldPolicy(entityType))
+  function blocks(typeId = '') {
+    const declared = entityByType.get(typeId)?.blocks || [];
+    const policyRoots = allFieldPaths(fieldPolicy(typeId))
       .map(path => String(path).split('.')[0]);
     const available = new Set([...declared, ...policyRoots]);
     return CANONICAL_ENTITY_BLOCKS
@@ -824,8 +824,8 @@ export function createProcessDesignerContract(domain = {}, capabilities = null, 
       .map(id => ({ id, label: id, ...BLOCK_PRESENTATION[id] }));
   }
 
-  function fields(entityType = '', block = '') {
-    const schemas = lookupEntityContract(domain.fieldSchemas, entityType) || [];
+  function fields(typeId = '', block = '') {
+    const schemas = lookupEntityContract(domain.fieldSchemas, typeId) || [];
     return schemas
       .filter(schema => !block || schema.block === block)
       .map(schema => ({
@@ -868,11 +868,11 @@ export function createProcessDesignerContract(domain = {}, capabilities = null, 
   // synthesize construction and are served by the generic instance
   // services, so a missing capability entry means constructible, not dead —
   // legacy services keep their explicit capability truth.
-  const constructible = entityType => {
-    if (!capabilities) return createModes(entityType).length > 0;
-    const capability = capabilityFor(entityType);
+  const constructible = typeId => {
+    if (!capabilities) return createModes(typeId).length > 0;
+    const capability = capabilityFor(typeId);
     if (capability) return (capability.createModes?.length || 0) > 0;
-    return createModes(entityType).length > 0;
+    return createModes(typeId).length > 0;
   };
   const createEntityOptions = entities
     .filter(entity => constructible(entity.type))
@@ -919,7 +919,7 @@ export function createProcessDesignerContract(domain = {}, capabilities = null, 
     changeStatusOptions,
     deleteEntityOptions,
     archivableEntityOptions,
-    workflowOptions: Object.entries(domain.workflows || {}).map(([entityType, workflow]) => ({ label: workflow.label || entityType, value: entityType })),
+    workflowOptions: Object.entries(domain.workflows || {}).map(([typeId, workflow]) => ({ label: workflow.label || typeId, value: typeId })),
     commandOptions: definitionOptions(domain.commands),
     taskOptions: definitionOptions(domain.tasks),
     eventOptions: definitionOptions(domain.events),
@@ -931,7 +931,7 @@ export function createProcessDesignerContract(domain = {}, capabilities = null, 
       creation: definition.creation || { mode: 'workflow' },
       editor: definition.editor || { mode: 'none' }
     })),
-    entity: entityType => entityByType.get(entityType) || null,
+    entity: typeId => entityByType.get(typeId) || null,
     fieldPolicy,
     construction,
     blocksForEntity: blocks,
@@ -943,15 +943,15 @@ export function createProcessDesignerContract(domain = {}, capabilities = null, 
         base: 'json',
         nullable: true
       },
-    fieldType: (entityType, path) => fields(entityType).find(field => field.value === path)?.type || {
+    fieldType: (typeId, path) => fields(typeId).find(field => field.value === path)?.type || {
       base: 'json',
       nullable: true
     }
   };
 }
 
-function lookupEntityContract(contracts = {}, entityType = '') {
-  const key = String(entityType || '');
+function lookupEntityContract(contracts = {}, typeId = '') {
+  const key = String(typeId || '');
   const camel = key.replace(/_([a-z0-9])/g, (_, char) => char.toUpperCase());
   const snake = key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
   return contracts?.[key] || contracts?.[camel] || contracts?.[snake] || null;

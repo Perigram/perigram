@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="design" entity-type="sheet_design">
+    <EntityPage :entity="design" type-id="sheet_design">
         <template #actions>
                 <Button
                     :label="$t('sheetDesign.downloadDxf')"
@@ -18,14 +18,14 @@
             </Panel>
 
             <Panel>
-                <DataBlock entity-type="sheetDesign" :entity="design" :fields="SHEET_DESIGN_FIELDS" />
+                <DataBlock type-id="sheetDesign" :entity="design" :fields="SHEET_DESIGN_FIELDS" />
             </Panel>
         </div>
 
         <template #sidebar>
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('cassetteInstance.tracking')">
-                    <StatusHistory :entity="design" entity-type="sheet_design" />
+                    <StatusHistory :entity="design" type-id="sheet_design" />
                 </Panel>
                 <Panel :header="$t('sheetDesign.cassetteDesigns')">
                     <div v-if="cassetteDesigns.length" class="flex flex-col gap-2">
@@ -106,10 +106,10 @@ const canEdit = computed(() => hasPermissionGrant({
     feature: 'sheet_designs',
     level: 'write',
     entity: props.design,
-    entityType: 'sheet_design'
+    typeId: 'sheet_design'
 }));
 
-const SHEET_DESIGN_FIELDS = resolveEntityDisplayFields({ entityType: 'sheetDesign', surface: 'detail' })
+const SHEET_DESIGN_FIELDS = resolveEntityDisplayFields({ typeId: 'sheetDesign', surface: 'detail' })
     .filter(field => field.role !== 'previewSource');
 
 const cassetteDesigns = computed(() => cassetteDesignCountsForSheetDesign(props.design).map(item => ({

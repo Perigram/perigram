@@ -18,10 +18,10 @@ export async function seedScenario({ scenario, context, workflows = {} } = {}) {
   }
 
   const persistedEntities = {};
-  for (const [entityType, entities] of Object.entries(sourceScenario.entities)) {
-    const collection = entityCollections[entityType];
+  for (const [typeId, entities] of Object.entries(sourceScenario.entities)) {
+    const collection = entityCollections[typeId];
     if (!collection) continue;
-    persistedEntities[entityType] = toPlainObject(await repository.upsertEntities(collection, entities.map(entity => normalizeEntityStatus(entity, compiled.machines[entityType]))));
+    persistedEntities[typeId] = toPlainObject(await repository.upsertEntities(collection, entities.map(entity => normalizeEntityStatus(entity, compiled.machines[typeId]))));
   }
 
   const persistedScenario = {

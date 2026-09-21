@@ -1,9 +1,9 @@
 <template>
-    <EntityPage :entity="requisition" entity-type="requisition">
+    <EntityPage :entity="requisition" type-id="requisition">
 
         <template #sidebar>
             <Panel :header="$t('requisition.lifecycleTimeline')">
-                <StatusHistory entity-type="requisition" :entity="requisition" />
+                <StatusHistory type-id="requisition" :entity="requisition" />
             </Panel>
         </template>
 
@@ -23,7 +23,7 @@
                                 </div>
                             </template>
                             <Divider />
-                            <SpecsBlock entity-type="requisition" :entity="item" :access-entity="requisition" />
+                            <SpecsBlock type-id="requisition" :entity="item" :access-entity="requisition" />
                             <Divider />
                             <div class="flex justify-between items-center">
                                 <div class="flex flex-col">

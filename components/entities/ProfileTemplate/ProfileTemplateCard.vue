@@ -1,8 +1,8 @@
 <template>
-  <EntityCard :entity="profile" entity-type="profileTemplate" :variant="variant" :show-trace="false" :show-status="false">
+  <EntityCard :entity="profile" type-id="profileTemplate" :variant="variant" :show-trace="false" :show-status="false">
     <template v-if="variant === 'card'">
       <Divider />
-      <DataBlock entity-type="profileTemplate" :entity="profile" :fields="FIELDS" />
+      <DataBlock type-id="profileTemplate" :entity="profile" :fields="FIELDS" />
     </template>
   </EntityCard>
 </template>
@@ -24,5 +24,5 @@ defineProps({
   }
 });
 
-const FIELDS = resolveEntityDisplayFields({ entityType: 'profileTemplate', surface: 'card' });
+const FIELDS = resolveEntityDisplayFields({ typeId: 'profileTemplate', surface: 'card' });
 </script>

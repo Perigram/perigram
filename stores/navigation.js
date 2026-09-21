@@ -24,8 +24,8 @@ export const useNavigationStore = defineStore('navigation', () => {
         const bindings = authStore.lineageBindings || [];
         if (authStore.processActive) {
             return bindings.map(binding => ({
-                childType: binding.childEntityType,
-                parentType: binding.ancestorEntityType,
+                childType: binding.childTypeId,
+                parentType: binding.parentTypeId,
                 lineageKey: binding.lineageKey
             }));
         }
@@ -47,17 +47,17 @@ export const useNavigationStore = defineStore('navigation', () => {
         currentHierarchySiblings.value = [];
         currentHierarchyPath.value = path;
         const target = routeEntityTarget(path, query);
-        if (!target?.entityType || !target?.id) return;
-        const current = await instances.resolveReadableReference(instances.canonicalTypeKey(target.entityType), target.id, { silent: true, fetchOptions });
+        if (!target?.typeId || !target?.id) return;
+        const current = await instances.resolveReadableReference(instances.canonicalTypeKey(target.typeId), target.id, { silent: true, fetchOptions });
         if (!current) return;
-        const ancestorRefs = containmentAncestors(current, target.entityType, effectiveContainment());
+        const ancestorRefs = containmentAncestors(current, target.typeId, effectiveContainment());
         const ancestors = [];
         for (const ref of ancestorRefs) {
             const entity = await instances.resolveReadableReference(instances.canonicalTypeKey(ref.type), ref.id, { silent: true, fetchOptions });
             if (entity) ancestors.push({ ...ref, entity });
         }
-        currentHierarchy.value = [...ancestors, { type: normalizeHierarchyType(target.entityType), id: entityHierarchyId(current), entity: current, current: true }];
-        currentHierarchySiblings.value = await fetchHierarchySiblings(current, target.entityType, fetchOptions);
+        currentHierarchy.value = [...ancestors, { type: normalizeHierarchyType(target.typeId), id: entityHierarchyId(current), entity: current, current: true }];
+        currentHierarchySiblings.value = await fetchHierarchySiblings(current, target.typeId, fetchOptions);
     }
 
     function routeEntityTarget(path, query = {}) {
@@ -65,19 +65,19 @@ export const useNavigationStore = defineStore('navigation', () => {
         if (parts[0] === 'screens' && parts[1]) {
             const screen = visibleProcessScreens.value.find(item => (item.screenKey || item.id) === parts[1]);
             if (!isDetailScreenTemplate(screen?.template)) return null;
-            const entityType = screen.entityType || screen.typeId || '';
-            return { entityType, id: query.entityId || query[`${entityType}Id`] };
+            const typeId = screen.typeId || screen.typeId || '';
+            return { typeId, id: query.entityId || query[`${typeId}Id`] };
         }
         return null;
     }
 
-    async function fetchHierarchySiblings(entity, entityType, fetchOptions = {}) {
-        const listEndpoint = instances.endpointsFor(instances.canonicalTypeKey(entityType)).list();
+    async function fetchHierarchySiblings(entity, typeId, fetchOptions = {}) {
+        const listEndpoint = instances.endpointsFor(instances.canonicalTypeKey(typeId)).list();
         if (!listEndpoint) return [];
-        const scope = siblingContainmentScope(entity, entityType, effectiveContainment());
+        const scope = siblingContainmentScope(entity, typeId, effectiveContainment());
         try {
             const items = await $fetch(listEndpoint, { ...fetchOptions, query: scope });
-            const rootKeys = Object.keys(rootContainmentFilter(entityType, effectiveContainment())).map(key => key.replace(/^lineage\./, ''));
+            const rootKeys = Object.keys(rootContainmentFilter(typeId, effectiveContainment())).map(key => key.replace(/^lineage\./, ''));
             return (Array.isArray(items) ? items : []).filter(item => (
                 Object.entries(scope).every(([key, value]) => item.lineage?.[key]?.toString?.() === value?.toString?.())
                 && (Object.keys(scope).length || rootKeys.every(key => !item.lineage?.[key]))
@@ -91,7 +91,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     // the hardcoded legacy per-entity route tables are gone.
     function hierarchyRoute(item = {}) {
         if (authStore.processActive) {
-            return detailRouteForEntity({ entity: item.entity, entityType: item.type, manifest: authStore.screenManifest });
+            return detailRouteForEntity({ entity: item.entity, typeId: item.type, manifest: authStore.screenManifest });
         }
         return null;
     }

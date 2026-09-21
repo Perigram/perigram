@@ -39,7 +39,7 @@ describe('graph protocol v5 designer round trip', () => {
   it('catalog ports resolve cts records through the operation-kind twin', () => {
     const domain = projectedDomain();
     const context = record => ({
-      fieldSchemas: domain.fieldSchemas[record.typeId || record.entityType] || [],
+      fieldSchemas: domain.fieldSchemas[record.typeId || record.typeId] || [],
       domain
     });
     const construct = resolveCatalogNodePorts({ kind: 'cts.construct', typeId: 'project', via: 'genericCreate' }, context({ type: 'project' }));
@@ -56,8 +56,8 @@ describe('graph protocol v5 designer round trip', () => {
     // species' persistent Type pin, and cts.field's entity projection
     // (SPEC §8 p: entity in, value out — no intermediate block node).
     for (const [ctsRecord, v4Record] of [
-      [{ kind: 'cts.transition', typeId: 'queue' }, { kind: 'effect.changeStatus', entityType: 'queue' }],
-      [{ kind: 'cts.read', select: 'parent', typeId: 'sheet' }, { kind: 'read.parent', entityType: 'sheet' }]
+      [{ kind: 'cts.transition', typeId: 'queue' }, { kind: 'effect.changeStatus', typeId: 'queue' }],
+      [{ kind: 'cts.read', select: 'parent', typeId: 'sheet' }, { kind: 'read.parent', typeId: 'sheet' }]
     ]) {
       const ctsPorts = resolveCatalogNodePorts(ctsRecord, { domain, fieldSchemas: domain.fieldSchemas.sheet || [] });
       const v4Ports = resolveCatalogNodePorts(v4Record, { domain, fieldSchemas: domain.fieldSchemas.sheet || [] });
@@ -76,7 +76,7 @@ describe('graph protocol v5 designer round trip', () => {
       { domain, fieldSchemas: domain.fieldSchemas.sheet || [] }
     );
     expect(fieldProjection.inputs).toHaveLength(1);
-    expect(fieldProjection.inputs[0]).toMatchObject({ id: 'entity', type: { base: 'entity', entityType: 'sheet' } });
+    expect(fieldProjection.inputs[0]).toMatchObject({ id: 'entity', type: { base: 'entity', typeId: 'sheet' } });
     expect(fieldProjection.outputs[0]).toMatchObject({ id: 'value', type: { base: 'json' } });
   });
 
@@ -86,17 +86,17 @@ describe('graph protocol v5 designer round trip', () => {
       id: 'n1',
       kind: 'cts.construct',
       type: 'project',
-      outputs: [{ id: 'result', type: { base: 'entity', entityType: 'project' } }]
+      outputs: [{ id: 'result', type: { base: 'entity', typeId: 'project' } }]
     });
     expect(outputs).toEqual(['n1:result']);
-    expect(data.producerOutputs['n1:result']).toMatchObject({ entityType: 'project' });
+    expect(data.producerOutputs['n1:result']).toMatchObject({ typeId: 'project' });
 
     // consumer species mint no outputs
     const consumer = syncProcessNodeProducerOutputs(data, {
       id: 'n2',
       kind: 'cts.mutate',
       type: 'project',
-      outputs: [{ id: 'result', type: { base: 'entity', entityType: 'project' } }]
+      outputs: [{ id: 'result', type: { base: 'entity', typeId: 'project' } }]
     });
     expect(consumer).toEqual([]);
     expect(data.producerOutputs['n2:result']).toBeUndefined();
@@ -121,7 +121,7 @@ describe('graph protocol v5 designer round trip', () => {
       screens: {},
       processNodes: {
         update: {
-          id: 'update', kind: 'effect.updateEntity', entityType: 'cut_plan',
+          id: 'update', kind: 'effect.updateEntity', typeId: 'cut_plan',
           blocks: ['identity'], trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
         }
       }
@@ -139,7 +139,7 @@ describe('graph protocol v5 designer round trip', () => {
     const { definition: resolved, diagnostics } = resolveCtsDefinition(saved, domain);
     expect(diagnostics).toEqual([]);
     expect(resolved.processNodes.update.kind).toBe('effect.updateEntity');
-    expect(resolved.processNodes.update.entityType).toBe('cut-plan');
+    expect(resolved.processNodes.update.typeId).toBe('cut-plan');
   });
   it('type reference nodes persist through the canvas and their wires never reach validation', () => {
     const domain = projectedDomain();

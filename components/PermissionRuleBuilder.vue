@@ -39,16 +39,16 @@
                     :depth="depth + 1"
                     :gate-options="gateOptions"
                     :subject-options="subjectOptions"
-                    :entity-type-options="entityTypeOptions"
+                    :type-id-options="typeIdOptions"
                     :condition-operator-options="conditionOperatorOptions"
                     :entity-options-loading="entityOptionsLoading"
                     :trait-options-for-condition="traitOptionsForCondition"
                     :condition-subject="conditionSubject"
-                    :condition-entity-type="conditionEntityType"
-                    :condition-entity-type-label="conditionEntityTypeLabel"
+                    :condition-type-id="conditionTypeId"
+                    :condition-type-id-label="conditionTypeIdLabel"
                     :condition-trait="conditionTrait"
                     :patch-condition-subject="patchConditionSubject"
-                    :patch-condition-entity-type="patchConditionEntityType"
+                    :patch-condition-type-id="patchConditionTypeId"
                     :patch-condition-trait="patchConditionTrait"
                     :uses-option-value-picker="usesOptionValuePicker"
                     :value-options-for-clause="valueOptionsForClause"
@@ -73,14 +73,14 @@
                     />
                     <Select
                         v-if="conditionSubject(child) === 'related'"
-                        :model-value="conditionEntityType(child)"
-                        :options="entityTypeOptions"
+                        :model-value="conditionTypeId(child)"
+                        :options="typeIdOptions"
                         option-label="label"
                         option-value="value"
                         filter
                         class="min-w-40 flex-1 sm:flex-none"
                         size="small"
-                        @update:model-value="value => updateConditionEntityType(index, value)"
+                        @update:model-value="value => updateConditionTypeId(index, value)"
                     />
                     <InputText
                         v-else-if="conditionSubject(child) === 'custom'"
@@ -92,7 +92,7 @@
                     />
                     <InputText
                         v-else
-                        :model-value="conditionEntityTypeLabel(child)"
+                        :model-value="conditionTypeIdLabel(child)"
                         class="min-w-36 flex-1 sm:flex-none"
                         size="small"
                         disabled
@@ -189,16 +189,16 @@ const props = defineProps({
     depth: { type: Number, default: 0 },
     gateOptions: { type: Array, required: true },
     subjectOptions: { type: Array, required: true },
-    entityTypeOptions: { type: Array, required: true },
+    typeIdOptions: { type: Array, required: true },
     conditionOperatorOptions: { type: Array, required: true },
     entityOptionsLoading: { type: Boolean, default: false },
     traitOptionsForCondition: { type: Function, required: true },
     conditionSubject: { type: Function, required: true },
-    conditionEntityType: { type: Function, required: true },
-    conditionEntityTypeLabel: { type: Function, required: true },
+    conditionTypeId: { type: Function, required: true },
+    conditionTypeIdLabel: { type: Function, required: true },
     conditionTrait: { type: Function, required: true },
     patchConditionSubject: { type: Function, required: true },
-    patchConditionEntityType: { type: Function, required: true },
+    patchConditionTypeId: { type: Function, required: true },
     patchConditionTrait: { type: Function, required: true },
     usesOptionValuePicker: { type: Function, required: true },
     valueOptionsForClause: { type: Function, required: true },
@@ -237,8 +237,8 @@ function updateConditionSubject(index, subject) {
     updateChild(index, props.patchConditionSubject(node.value.children[index], subject));
 }
 
-function updateConditionEntityType(index, entityType) {
-    updateChild(index, props.patchConditionEntityType(node.value.children[index], entityType));
+function updateConditionTypeId(index, typeId) {
+    updateChild(index, props.patchConditionTypeId(node.value.children[index], typeId));
 }
 
 function updateConditionTrait(index, trait) {

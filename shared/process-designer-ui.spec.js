@@ -186,7 +186,7 @@ describe('process designer interaction boundaries', () => {
       id: 'operations',
       label: 'Operations',
       template: 'table',
-      entityType: 'queue',
+      typeId: 'queue',
       required: { feature: 'queues', level: 'read' },
       bindings: {},
       sources: [],
@@ -199,8 +199,8 @@ describe('process designer interaction boundaries', () => {
       selectedScreenId: ref('operations'),
       createScreen: vi.fn(),
       normalizeScreenContract,
-      defaultEntityType: () => 'queue',
-      featureForEntityType: entityType => `${entityType}s`
+      defaultTypeId: () => 'queue',
+      featureForTypeId: typeId => `${typeId}s`
     });
 
     screens.sync(screen);
@@ -212,7 +212,7 @@ describe('process designer interaction boundaries', () => {
     screens.setScalarType(source.filters, 'status', 'number');
     source.filters.status = 3;
     Object.assign(screens.addLineageBinding(source), {
-      childEntityType: 'queue', ancestorEntityType: 'project', lineageKey: 'projectId',
+      childTypeId: 'queue', parentTypeId: 'project', lineageKey: 'projectId',
       sourceNode: 'project-source', sourceSocket: 'project', consumingNode: 'queue-source', consumingSocket: 'queue'
     });
     const region = screen.regions[0];
@@ -243,11 +243,11 @@ describe('process designer interaction boundaries', () => {
     expect(errors).toEqual([]);
     expect(compiled.bindings).toEqual({ limit: 25, enabled: false, title: 'Queues', projectId: '$assignment.projectId' });
     expect(compiled.sources[0]).toMatchObject({
-      id: 'queue_source', label: 'Queue source', entityType: 'queue', mode: 'list',
+      id: 'queue_source', label: 'Queue source', typeId: 'queue', mode: 'list',
       required: { feature: 'queues', level: 'write' }, filters: { status: 3 }
     });
     expect(compiled.sources[0].lineageBindings).toEqual([{
-      childEntityType: 'queue', ancestorEntityType: 'project', lineageKey: 'projectId',
+      childTypeId: 'queue', parentTypeId: 'project', lineageKey: 'projectId',
       sourceNode: 'project-source', sourceSocket: 'project', consumingNode: 'queue-source', consumingSocket: 'queue'
     }]);
     expect(compiled.regions[0]).toEqual({
@@ -257,14 +257,14 @@ describe('process designer interaction boundaries', () => {
 
   it('switches source modes without retaining fields invalid for the canonical mode', () => {
     const screen = normalizeScreenContract({
-      id: 'detail', template: 'table', entityType: 'queue', required: { feature: 'queues', level: 'read' },
+      id: 'detail', template: 'table', typeId: 'queue', required: { feature: 'queues', level: 'read' },
       bindings: { entityId: '$assignment.queueId' },
-      sources: [{ id: 'queues', entityType: 'queue', mode: 'list', filters: { status: 'READY' }, lineageBindings: [{ lineageKey: 'projectId' }] }],
+      sources: [{ id: 'queues', typeId: 'queue', mode: 'list', filters: { status: 'READY' }, lineageBindings: [{ lineageKey: 'projectId' }] }],
       regions: [{ id: 'main', slot: 'main', sourceId: 'queues', surface: 'table', actions: [] }]
     });
     const screens = useProcessDesignerScreens({
       draft: ref({ data: { screens: { detail: screen } } }), selectedScreenId: ref('detail'), createScreen: vi.fn(),
-      normalizeScreenContract, defaultEntityType: () => 'queue', featureForEntityType: () => 'queues'
+      normalizeScreenContract, defaultTypeId: () => 'queue', featureForTypeId: () => 'queues'
     });
 
     screens.setSourceMode(screen, screen.sources[0], 'single');

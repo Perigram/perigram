@@ -1,12 +1,12 @@
-export const SCREEN_TEMPLATES = ['entityList', 'entityDetail', 'workspaceLanes', 'table', 'formAction', 'home', 'route', 'organizationOverview', 'organizationAccount'];
+export const SCREEN_TEMPLATES = ['typeList', 'instanceDetail', 'workspaceLanes', 'table', 'formAction', 'home', 'route', 'organizationOverview', 'organizationAccount'];
 export const SCREEN_SOURCE_MODES = ['list', 'single'];
 export const SCREEN_REGION_SLOTS = ['main', 'left', 'center', 'right', 'supporting'];
 // Canonical registry of region surfaces the generated screen runtime renders:
 // card/compact/table/workspace for list-mode regions, detail for single-mode.
 export const SCREEN_REGION_SURFACES = ['card', 'compact', 'detail', 'table', 'workspace'];
 export const SCREEN_LINEAGE_BINDING_FIELDS = [
-  'childEntityType',
-  'ancestorEntityType',
+  'childTypeId',
+  'parentTypeId',
   'lineageKey',
   'sourceNode',
   'sourceSocket',
@@ -37,9 +37,9 @@ export function generatedScreenRoute(screenKey) {
 export function normalizeScreenTemplate(screen = {}) {
   const source = isPlainObject(screen) ? screen : {};
   if (SCREEN_TEMPLATES.includes(source.template)) return source.template;
-  if (source.kind === 'entityDetail') return 'entityDetail';
+  if (source.kind === 'instanceDetail') return 'instanceDetail';
   if (source.kind === 'workspace') return 'workspaceLanes';
-  return source.entityType ? 'entityList' : 'formAction';
+  return source.typeId ? 'typeList' : 'formAction';
 }
 
 export function normalizeScreenContract(screen = {}) {
@@ -72,8 +72,8 @@ export function validateScreenContract(screen = {}, { screenId = isPlainObject(s
     if (source.id && sourceIds.has(source.id)) errors.push(`Screen ${screenId} has duplicate source id ${source.id}`);
     sourceIds.add(source.id);
     if (!SCREEN_SOURCE_MODES.includes(source.mode)) errors.push(`Screen ${screenId} source ${source.id} uses unknown mode ${source.mode}`);
-    if (!source.entityType) errors.push(`Screen ${screenId} source ${source.id} must define entityType`);
-    if (source.entityType && entities.size && !entities.has(source.entityType)) errors.push(`Screen ${screenId} source ${source.id} uses unknown entity type ${source.entityType}`);
+    if (!source.typeId) errors.push(`Screen ${screenId} source ${source.id} must define typeId`);
+    if (source.typeId && entities.size && !entities.has(source.typeId)) errors.push(`Screen ${screenId} source ${source.id} uses unknown entity type ${source.typeId}`);
     validateSourceIdentifier(source, normalized, screenId, errors);
     validateSourceFilters(source, normalized, screenId, errors);
   }
@@ -185,14 +185,14 @@ function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-function defaultSourcesForScreen(screen = {}, template = 'entityList') {
+function defaultSourcesForScreen(screen = {}, template = 'typeList') {
   if (['home', 'route', 'organizationOverview', 'organizationAccount'].includes(template)) return [];
-  if (!screen.entityType) return [];
-  const sourceId = screen.sourceId || screen.entityType;
+  if (!screen.typeId) return [];
+  const sourceId = screen.sourceId || screen.typeId;
   const mode = TEMPLATE_DEFAULT_MODE[template] || 'list';
   return [{
     id: sourceId,
-    entityType: screen.entityType,
+    typeId: screen.typeId,
     mode,
     required: screen.required || null,
     identifier: mode === 'single' ? defaultSingleIdentifier(screen) : null,
@@ -202,24 +202,24 @@ function defaultSourcesForScreen(screen = {}, template = 'entityList') {
 
 function defaultSingleIdentifier(screen = {}) {
   return screen.scope?.entityId
-    || screen.scope?.[`${screen.entityType}Id`]
+    || screen.scope?.[`${screen.typeId}Id`]
     || screen.bindings?.entityId
-    || screen.bindings?.[`${screen.entityType}Id`]
+    || screen.bindings?.[`${screen.typeId}Id`]
     || '';
 }
 
-function normalizeSources(sources = [], screen = {}, template = 'entityList') {
+function normalizeSources(sources = [], screen = {}, template = 'typeList') {
   const defaultMode = TEMPLATE_DEFAULT_MODE[template] || 'list';
   return sources.map((source, index) => {
-    const entityType = source.entityType || screen.entityType || '';
+    const typeId = source.typeId || screen.typeId || '';
     const mode = SCREEN_SOURCE_MODES.includes(source.mode) ? source.mode : defaultMode;
     return {
-      id: source.id || entityType || `source_${index + 1}`,
+      id: source.id || typeId || `source_${index + 1}`,
       label: source.label || '',
-      entityType,
+      typeId,
       mode,
       required: source.required || screen.required || null,
-      identifier: mode === 'single' ? (source.identifier || defaultSingleIdentifier({ ...screen, entityType })) : null,
+      identifier: mode === 'single' ? (source.identifier || defaultSingleIdentifier({ ...screen, typeId })) : null,
       filters: mode === 'list' && source.filters !== undefined && source.filters !== null ? source.filters : {},
       lineageBindings: mode === 'list' && Array.isArray(source.lineageBindings)
         ? source.lineageBindings.map(binding => ({ ...binding }))
@@ -228,7 +228,7 @@ function normalizeSources(sources = [], screen = {}, template = 'entityList') {
   });
 }
 
-function defaultRegionsForScreen(sources = [], template = 'entityList') {
+function defaultRegionsForScreen(sources = [], template = 'typeList') {
   const source = sources[0];
   if (!source) return [];
   const slot = template === 'workspaceLanes' ? 'center' : 'main';
@@ -236,7 +236,7 @@ function defaultRegionsForScreen(sources = [], template = 'entityList') {
     id: 'main',
     slot,
     sourceId: source.id,
-    surface: template === 'entityDetail' ? 'detail' : 'card',
+    surface: template === 'instanceDetail' ? 'detail' : 'card',
     actions: []
   }];
 }

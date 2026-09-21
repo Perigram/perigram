@@ -5,7 +5,7 @@ import * as entityEventService from '~/server/features/entity-events/service.js'
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const body = await readBody(event);
-  const type = body?.type || body?.entityType;
+  const type = body?.type || body?.typeId;
   const id = body?.id || body?.targetId;
 
   if (!type || !id) {

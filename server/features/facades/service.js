@@ -21,7 +21,7 @@ function normalizeAssignments(value = []) {
 }
 
 async function ensureLayoutRevision(facade, userId, reason) {
-  const revision = await entityRevisionsService.ensureForEntitySnapshot({ entityType: 'facade', entity: facade, scope: 'layout', content: { parts: facade.data?.parts || [], partAssignments: facade.data?.partAssignments || [] }, snapshot: { identity: facade.identity, data: facade.data }, userId, reason });
+  const revision = await entityRevisionsService.ensureForEntitySnapshot({ typeId: 'facade', entity: facade, scope: 'layout', content: { parts: facade.data?.parts || [], partAssignments: facade.data?.partAssignments || [] }, snapshot: { identity: facade.identity, data: facade.data }, userId, reason });
   const data = { ...facade.data, revisions: { ...(facade.data?.revisions || {}), layout: { currentId: revision._id, number: revision.data?.number || 0, contentHash: revision.data?.contentHash || '' } } };
   return await repository.updateById(facade._id, { data });
 }
@@ -77,4 +77,4 @@ export async function remove(id, userId, userOrg, userRole, auth) {
   return await repository.deleteById(id);
 }
 
-export const processUpdate = createProcessUpdateHandler({ entityType: 'facade', repository, Model: Facade });
+export const processUpdate = createProcessUpdateHandler({ typeId: 'facade', repository, Model: Facade });

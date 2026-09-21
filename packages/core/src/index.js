@@ -22,7 +22,7 @@ export function createRegistry({ id = 'app' } = {}) {
       validateDomain(domain);
       domains.set(domain.id, deepFreeze({ ...domain }));
       for (const entity of domain.entities || []) registry.defineEntity(entity);
-      for (const [entityType, workflow] of Object.entries(domain.workflows || {})) registry.defineWorkflow({ entityType, ...workflow });
+      for (const [typeId, workflow] of Object.entries(domain.workflows || {})) registry.defineWorkflow({ typeId, ...workflow });
       for (const command of Object.values(domain.commands || {})) registry.defineCommand(command);
       for (const task of Object.values(domain.tasks || {})) registry.defineTask(task);
       for (const event of Object.values(domain.events || {})) registry.defineEvent(event);
@@ -56,12 +56,12 @@ export function createRegistry({ id = 'app' } = {}) {
 
     defineWorkflow(definition) {
       validateWorkflowDefinition(definition);
-      workflowDefinitions.set(definition.entityType, deepFreeze({ ...definition }));
-      return registry.getWorkflowDefinition(definition.entityType);
+      workflowDefinitions.set(definition.typeId, deepFreeze({ ...definition }));
+      return registry.getWorkflowDefinition(definition.typeId);
     },
 
-    getWorkflowDefinition(entityType) {
-      return workflowDefinitions.get(entityType) || null;
+    getWorkflowDefinition(typeId) {
+      return workflowDefinitions.get(typeId) || null;
     },
 
     listWorkflowDefinitions() {
@@ -740,10 +740,10 @@ export function validateEntityDefinition(definition) {
 }
 
 export function validateWorkflowDefinition(definition) {
-  if (!definition?.entityType) throw new Error('Workflow definition requires entityType');
-  if (!definition?.regions && !definition?.initial) throw new Error(`Workflow ${definition.entityType} requires regions or initial state`);
-  if (definition.regions && typeof definition.regions !== 'object') throw new Error(`Workflow ${definition.entityType} regions must be an object`);
-  if (!definition.regions && (!definition?.states || typeof definition.states !== 'object')) throw new Error(`Workflow ${definition.entityType} requires states`);
+  if (!definition?.typeId) throw new Error('Workflow definition requires typeId');
+  if (!definition?.regions && !definition?.initial) throw new Error(`Workflow ${definition.typeId} requires regions or initial state`);
+  if (definition.regions && typeof definition.regions !== 'object') throw new Error(`Workflow ${definition.typeId} regions must be an object`);
+  if (!definition.regions && (!definition?.states || typeof definition.states !== 'object')) throw new Error(`Workflow ${definition.typeId} requires states`);
 }
 
 export function validateCommandDefinition(definition) {

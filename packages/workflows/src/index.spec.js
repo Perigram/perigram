@@ -122,7 +122,7 @@ describe('workflow transition validation', () => {
             ...workflow.regions.main.states,
             REVIEW: {
               lifecycle: {
-                snapshots: { children: { entityType: 'child', required: true } }
+                snapshots: { children: { typeId: 'child', required: true } }
               }
             }
           }

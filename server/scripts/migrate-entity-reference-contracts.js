@@ -1,22 +1,22 @@
 import { connectDB } from '../db/mongo.js';
-import { canonicalEntityType, cncDomain } from '../../packages/domain-cnc/src/index.js';
+import { canonicalTypeId, cncDomain } from '../../packages/domain-cnc/src/index.js';
 
 const APPLY = process.argv.includes('--apply');
 
 const ENTITY_TYPE_FIELDS = new Set([
-  'entityType',
+  'typeId',
   'ownerType',
   'targetType',
   'parentType',
   'childType',
-  'ancestorEntityType',
-  'childEntityType',
-  'sourceEntityType',
-  'outputEntityType'
+  'parentTypeId',
+  'childTypeId',
+  'sourceTypeId',
+  'outputTypeId'
 ]);
 const ENTITY_TYPE_KEYED_FIELDS = new Set(['workflows', 'fieldPolicies']);
 
-export function migrateCanonicalEntityTypes(value, { strictEntityTypeFields = true } = {}) {
+export function migrateCanonicalTypeIds(value, { strictTypeIdFields = true } = {}) {
   const unresolved = [];
   let changed = false;
 
@@ -28,7 +28,7 @@ export function migrateCanonicalEntityTypes(value, { strictEntityTypeFields = tr
     for (const [key, raw] of Object.entries(current)) {
       const nextPath = [...path, key];
       if (ENTITY_TYPE_KEYED_FIELDS.has(path.at(-1))) {
-        const canonicalKey = canonicalEntityType(key);
+        const canonicalKey = canonicalTypeId(key);
         if (!canonicalKey) unresolved.push({ path: path.join('.'), value: key });
         const targetKey = canonicalKey || key;
         if (targetKey !== key) changed = true;
@@ -36,8 +36,8 @@ export function migrateCanonicalEntityTypes(value, { strictEntityTypeFields = tr
         continue;
       }
       if (ENTITY_TYPE_FIELDS.has(key) && typeof raw === 'string' && raw) {
-        const canonical = canonicalEntityType(raw);
-        if (!canonical && (key !== 'entityType' || strictEntityTypeFields)) {
+        const canonical = canonicalTypeId(raw);
+        if (!canonical && (key !== 'typeId' || strictTypeIdFields)) {
           unresolved.push({ path: nextPath.join('.'), value: raw });
         }
         result[key] = canonical || raw;
@@ -45,7 +45,7 @@ export function migrateCanonicalEntityTypes(value, { strictEntityTypeFields = tr
         continue;
       }
       if (key === 'type' && typeof raw === 'string' && raw && (current.id || current.entityId || current.revisionId)) {
-        const canonical = canonicalEntityType(raw);
+        const canonical = canonicalTypeId(raw);
         if (canonical) {
           result[key] = canonical;
           if (canonical !== raw) changed = true;
@@ -71,13 +71,13 @@ function withoutKeys(value = {}, keys = []) {
 
 export function migrateLegacyRevisionData(data = {}) {
   if (data.source?.type && data.source?.id) return { changed: false, data };
-  const type = data.entityType || '';
+  const type = data.typeId || '';
   const id = data.entityId;
   if (!type || !id) return { changed: false, data };
   return {
     changed: true,
     data: {
-      ...withoutKeys(data, ['entityType', 'entityId']),
+      ...withoutKeys(data, ['typeId', 'entityId']),
       source: { type, id: stringId(id) }
     }
   };
@@ -88,7 +88,7 @@ export function migrateLegacyDerivedFrom(design = {}) {
   const existing = design.provenance?.derivedFrom;
   const templateId = design.lineage?.templateId;
   const legacySource = legacy?.source || {
-    type: legacy?.entityType || legacy?.type,
+    type: legacy?.typeId || legacy?.type,
     id: legacy?.entityId || legacy?.id,
     ...(legacy?.revisionId ? { revisionId: stringId(legacy.revisionId) } : {})
   };
@@ -102,7 +102,7 @@ export function migrateLegacyDerivedFrom(design = {}) {
     return { changed: false, invalid: true, design };
   }
   const derivedFrom = existing || {
-    ...withoutKeys(legacy, ['source', 'entityType', 'entityId', 'type', 'id', 'revisionId']),
+    ...withoutKeys(legacy, ['source', 'typeId', 'entityId', 'type', 'id', 'revisionId']),
     source: {
       type: source.type,
       id: stringId(source.id),
@@ -198,8 +198,8 @@ async function main() {
   for (const collection of canonicalCollections) {
     const cursor = db.collection(collection).find({});
     for await (const document of cursor) {
-      const result = migrateCanonicalEntityTypes(document, {
-        strictEntityTypeFields: collection === 'process_definitions'
+      const result = migrateCanonicalTypeIds(document, {
+        strictTypeIdFields: collection === 'process_definitions'
       });
       if (result.unresolved.length) {
         canonicalFailures.push({ collection, id: stringId(document._id), unresolved: result.unresolved });
@@ -208,7 +208,7 @@ async function main() {
       if (result.changed) canonicalUpdates.push({ collection, id: document._id, document: result.value });
     }
   }
-  summary.canonicalEntityTypes = {
+  summary.canonicalTypeIds = {
     scannedCollections: canonicalCollections.length,
     changed: canonicalUpdates.length,
     invalid: canonicalFailures.length,
@@ -224,7 +224,7 @@ async function main() {
     'entity_revisions',
     db.collection('entity_revisions').find({
       'data.source': { $exists: false },
-      'data.entityType': { $exists: true },
+      'data.typeId': { $exists: true },
       'data.entityId': { $exists: true }
     }),
     revision => {
@@ -284,7 +284,7 @@ async function main() {
     );
   }
   console.log(`${APPLY ? '[apply]' : '[dry-run]'} ${JSON.stringify(summary)}`);
-  if (summary.canonicalEntityTypes.invalid || summary.cassetteDesigns.invalid || summary.parentRevisions.invalid) process.exitCode = 1;
+  if (summary.canonicalTypeIds.invalid || summary.cassetteDesigns.invalid || summary.parentRevisions.invalid) process.exitCode = 1;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

@@ -6,8 +6,8 @@ describe('process v4 migration', () => {
     const result = migrateProcessDefinitionV4({
       dataflowVersion: 3,
       processNodes: {
-        query: { id: 'query', kind: 'read.queryEntities', type: { base: 'entity', shape: 'list', entityType: 'artifact' } },
-        compose: { id: 'compose', kind: 'record.composeBlock', block: 'relations', compositionMode: 'relations', entries: [{ id: 'artifacts', key: 'artifacts', entityType: 'artifact', cardinality: 'many', operation: 'replace' }] }
+        query: { id: 'query', kind: 'read.queryEntities', type: { base: 'entity', shape: 'list', typeId: 'artifact' } },
+        compose: { id: 'compose', kind: 'record.composeBlock', block: 'relations', compositionMode: 'relations', entries: [{ id: 'artifacts', key: 'artifacts', typeId: 'artifact', cardinality: 'many', operation: 'replace' }] }
       },
       graph: {
         nodes: [{ id: 'query', type: 'processNode', position: { x: 0, y: 0 } }, { id: 'compose', type: 'processNode', position: { x: 200, y: 0 } }],

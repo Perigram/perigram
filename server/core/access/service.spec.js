@@ -84,21 +84,21 @@ describe('access engine', () => {
 
     expect(hasEntityAccess({
       entity: material,
-      entityType: 'material',
+      typeId: 'material',
       feature: 'materials',
       level: 'read',
       auth: null
     })).toBe(true);
     expect(hasEntityAccess({
       entity: material,
-      entityType: 'material',
+      typeId: 'material',
       feature: 'materials',
       level: 'read',
       auth: ungrantedAuth
     })).toBe(true);
     expect(hasEntityAccess({
       entity: material,
-      entityType: 'material',
+      typeId: 'material',
       feature: 'materials',
       level: 'write',
       auth: ungrantedAuth

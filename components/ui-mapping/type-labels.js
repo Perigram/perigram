@@ -8,7 +8,7 @@ import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.j
 // ui-mapping materialization — components never resolve type names
 // directly from the bundle.
 const CONTRACTS_BY_TYPE = new Map(DESIGN_SYSTEM_ENTITY_CONTRACTS.flatMap(entry => [
-  [entry.entityType, entry],
+  [entry.typeId, entry],
   [entry.key, entry]
 ]));
 

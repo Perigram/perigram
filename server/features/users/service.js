@@ -271,7 +271,7 @@ export async function update(uid, updates, userId, userRole) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'user',
+  typeId: 'user',
   repository: usersRepository,
   Model: User
 });

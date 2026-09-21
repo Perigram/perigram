@@ -42,7 +42,7 @@ describe('durable process orchestration', () => {
         { id: 'values', kind: 'source.literalList', value: kind === 'effect.createEntity'
           ? [{ name: 'One' }, { name: 'Two' }]
           : [{ type: 'project', id: 'p1' }, { type: 'project', id: 'p2' }] },
-        { id: 'mutation', kind, entityType: 'project', trigger: { mode: 'manual' }, blocks: kind === 'effect.createEntity' ? ['identity'] : [] }
+        { id: 'mutation', kind, typeId: 'project', trigger: { mode: 'manual' }, blocks: kind === 'effect.createEntity' ? ['identity'] : [] }
       ], ['values', 'mutation'], [data('values', 'mutation', inputId)]);
       const executeEffect = vi.fn(async ({ inputs }) => kind === 'effect.createEntity'
         ? { type: 'project', id: inputs.identity.name }
@@ -63,7 +63,7 @@ describe('durable process orchestration', () => {
 
   it('keeps the bare effect result and idempotency key for a single mapped item', async () => {
     const definition = process([
-      { id: 'modify', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'manual' }, blocks: [] }
+      { id: 'modify', kind: 'effect.updateEntity', typeId: 'project', trigger: { mode: 'manual' }, blocks: [] }
     ], ['modify'], []);
     const updated = { type: 'project', id: 'project-1', identity: { name: 'Renamed' } };
     const executeEffect = vi.fn().mockResolvedValue(updated);
@@ -89,7 +89,7 @@ describe('durable process orchestration', () => {
         { type: 'project', id: 'p2' },
         { type: 'project', id: 'p3' }
       ] },
-      { id: 'mutation', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'manual' }, blocks: [] },
+      { id: 'mutation', kind: 'effect.updateEntity', typeId: 'project', trigger: { mode: 'manual' }, blocks: [] },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['values', 'mutation', 'stop'], [
       data('values', 'mutation', 'entity'),
@@ -129,7 +129,7 @@ describe('durable process orchestration', () => {
         { type: 'project', id: 'p3' }
       ] },
       { id: 'names', kind: 'source.literalList', value: [{ name: 'One' }, { name: 'Two' }] },
-      { id: 'mutation', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'manual' }, blocks: ['identity'] }
+      { id: 'mutation', kind: 'effect.updateEntity', typeId: 'project', trigger: { mode: 'manual' }, blocks: ['identity'] }
     ], ['entities', 'names', 'mutation'], [
       data('entities', 'mutation', 'entity'),
       data('names', 'mutation', 'identity')
@@ -150,7 +150,7 @@ describe('durable process orchestration', () => {
     const definition = process([{
       id: 'update',
       kind: 'effect.updateEntity',
-      entityType: 'project',
+      typeId: 'project',
       trigger: { mode: 'manual' },
       fields: [],
       statusRef: 'ready'
@@ -201,20 +201,20 @@ describe('durable process orchestration', () => {
       {
         id: 'create',
         kind: 'effect.createEntity',
-        entityType: 'project',
+        typeId: 'project',
         trigger: { mode: 'manual' },
         blocks: ['identity']
       },
       {
         id: 'deconstruct',
         kind: 'record.deconstruct',
-        entityType: 'project',
+        typeId: 'project',
         blocks: ['identity']
       },
       {
         id: 'update',
         kind: 'effect.updateEntity',
-        entityType: 'project',
+        typeId: 'project',
         trigger: { mode: 'event' },
         blocks: ['identity']
       }
@@ -451,8 +451,8 @@ describe('durable process orchestration', () => {
   it('hydrates declared command entity outputs before downstream entity operations', async () => {
     const definition = process([
       { id: 'service', kind: 'effect.runCommand', commandId: 'createProject', trigger: { mode: 'manual' } },
-      { id: 'loop', kind: 'control.forEach', type: { base: 'entity', entityType: 'project', shape: 'item' } },
-      { id: 'modify', kind: 'effect.updateEntity', entityType: 'project', trigger: { mode: 'event' }, blocks: [] },
+      { id: 'loop', kind: 'control.forEach', type: { base: 'entity', typeId: 'project', shape: 'item' } },
+      { id: 'modify', kind: 'effect.updateEntity', typeId: 'project', trigger: { mode: 'event' }, blocks: [] },
       { id: 'stop', kind: 'control.stopSuccess' }
     ], ['service', 'loop', 'modify', 'stop'], [
       control('service', 'completed', 'loop'),
@@ -503,7 +503,7 @@ describe('durable process orchestration', () => {
       {
         id: 'modify',
         kind: 'effect.updateEntity',
-        entityType: 'project',
+        typeId: 'project',
         trigger: { mode: 'manual' },
         blocks: ['identity']
       }
@@ -536,18 +536,18 @@ describe('durable process orchestration', () => {
 
   it('resolves a manual trigger entity edge through its declared payload output', async () => {
     const definition = process([
-      { id: 'trigger', kind: 'control.manualTrigger', entityType: 'project' },
+      { id: 'trigger', kind: 'control.manualTrigger', typeId: 'project' },
       {
         id: 'lineage',
         kind: 'record.composeBlock',
         block: 'lineage',
         compositionMode: 'ancestors',
-        entries: [{ id: 'project', key: 'projectId', entityType: 'project' }]
+        entries: [{ id: 'project', key: 'projectId', typeId: 'project' }]
       },
       {
         id: 'create',
         kind: 'effect.createEntity',
-        entityType: 'queue',
+        typeId: 'queue',
         trigger: { mode: 'event' },
         blocks: ['lineage']
       }
@@ -576,7 +576,7 @@ describe('durable process orchestration', () => {
       {
         id: 'create-project',
         kind: 'effect.createEntity',
-        entityType: 'project',
+        typeId: 'project',
         trigger: { mode: 'manual' },
         blocks: ['identity']
       },
@@ -585,12 +585,12 @@ describe('durable process orchestration', () => {
         kind: 'record.composeBlock',
         block: 'lineage',
         compositionMode: 'ancestors',
-        entries: [{ id: 'project', key: 'projectId', entityType: 'project' }]
+        entries: [{ id: 'project', key: 'projectId', typeId: 'project' }]
       },
       {
         id: 'create-queue',
         kind: 'effect.createEntity',
-        entityType: 'queue',
+        typeId: 'queue',
         trigger: { mode: 'manual' },
         blocks: ['lineage']
       }
@@ -626,7 +626,7 @@ describe('durable process orchestration', () => {
       {
         id: 'create-library',
         kind: 'effect.createEntity',
-        entityType: 'library',
+        typeId: 'library',
         trigger: { mode: 'manual' }
       },
       {
@@ -634,12 +634,12 @@ describe('durable process orchestration', () => {
         kind: 'record.composeBlock',
         block: 'relations',
         compositionMode: 'relations',
-        entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one' }]
+        entries: [{ id: 'library', key: 'library', typeId: 'library', cardinality: 'one' }]
       },
       {
         id: 'create-project',
         kind: 'effect.createEntity',
-        entityType: 'project',
+        typeId: 'project',
         trigger: { mode: 'manual' },
         blocks: ['relations']
       }
@@ -676,7 +676,7 @@ describe('durable process orchestration', () => {
       {
         id: 'create',
         kind: 'effect.createEntity',
-        entityType: 'project',
+        typeId: 'project',
         trigger: { mode: 'manual' },
         blocks: ['identity']
       }
@@ -707,7 +707,7 @@ describe('durable process orchestration', () => {
     const definition = process([{
       id: 'create',
       kind: 'effect.createEntity',
-      entityType: 'project',
+      typeId: 'project',
       trigger: { mode: 'manual' },
       blocks: ['identity']
     }], ['create'], []);
@@ -731,17 +731,17 @@ describe('durable process orchestration', () => {
       {
         id: 'create-template',
         kind: 'effect.createEntity',
-        entityType: 'cassette',
+        typeId: 'cassette',
         trigger: { mode: 'manual' }
       },
       {
         id: 'create-design',
         kind: 'effect.createEntity',
-        entityType: 'cassette_design',
+        typeId: 'cassette_design',
         trigger: { mode: 'manual' },
         construction: {
           mode: 'bakeCassetteDesignFromTemplate',
-          inputs: [{ id: 'templateId', type: 'entity', entityType: 'cassette', required: true }]
+          inputs: [{ id: 'templateId', type: 'entity', typeId: 'cassette', required: true }]
         }
       }
     ], ['create-template', 'create-design'], [{
@@ -772,9 +772,9 @@ describe('durable process orchestration', () => {
 
   it('previews pure/read data without executing effects', async () => {
     const definition = process([
-      { id: 'entities', kind: 'read.queryEntities', entityType: 'queue' },
+      { id: 'entities', kind: 'read.queryEntities', typeId: 'queue' },
       { id: 'count', kind: 'collection.count', type: { base: 'entity' } },
-      { id: 'effect', kind: 'effect.updateEntity', entityType: 'queue', trigger: { mode: 'event' } }
+      { id: 'effect', kind: 'effect.updateEntity', typeId: 'queue', trigger: { mode: 'event' } }
     ], ['entities', 'count', 'effect'], [{
       id: 'entities-count', source: 'entities', sourceHandle: 'data:entities', target: 'count', targetHandle: 'data:value', role: 'data'
     }]);
@@ -792,7 +792,7 @@ describe('durable process orchestration', () => {
   it('advances run and step statuses on a read-only graph without entering the effect boundary', async () => {
     const definition = process([
       { id: 'trigger', kind: 'control.manualTrigger' },
-      { id: 'entities', kind: 'read.queryEntities', entityType: 'queue' },
+      { id: 'entities', kind: 'read.queryEntities', typeId: 'queue' },
       { id: 'count', kind: 'collection.count', type: { base: 'entity' } }
     ], ['trigger', 'entities', 'count'], [
       { id: 'trigger-entities', source: 'trigger', sourceHandle: 'data:entity', target: 'entities', targetHandle: 'data:value', role: 'data' },

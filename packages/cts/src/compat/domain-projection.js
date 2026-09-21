@@ -25,10 +25,10 @@ export const CLASS_COLLECTIONS = Object.freeze({
 // Create-dialog labels are authored vocabulary: a lineage input is named by
 // its parent type's render label, a row input by the start-cased row name;
 // anything already carrying an authored label keeps it.
-function constructionInputLabel({ path = '', label = '', entityType = '' } = {}, labelByType = new Map()) {
+function constructionInputLabel({ path = '', label = '', typeId = '' } = {}, labelByType = new Map()) {
   const clean = String(path);
   if (clean.startsWith('lineage.')) {
-    const parent = labelByType.get(entityType);
+    const parent = labelByType.get(typeId);
     if (parent) return parent;
   }
   const [block, name] = clean.split('.');
@@ -58,7 +58,7 @@ const CORE_BLOCK_FIELDS = [
   coreField('status.metadata', 'status', 'json', { constructible: false }),
   coreField('status.eventId', 'status', 'string', { writable: false, constructible: false }),
   coreField('status.lifecycle', 'status', 'json', { writable: false, constructible: false }),
-  coreField('lineage.organizationId', 'lineage', 'entityRef', { entityType: 'organization', writable: false, constructible: false }),
+  coreField('lineage.organizationId', 'lineage', 'entityRef', { typeId: 'organization', writable: false, constructible: false }),
   // The relations slot is the graph-authored association surface: its
   // entries are compiler-validated contracts (key, target type,
   // cardinality, target access), so the slot itself is writable.
@@ -77,7 +77,7 @@ function coreField(path, block, base, flags = {}) {
     type: { base, shape: 'item', nullable: true },
     writable: flags.writable !== false,
     constructible: flags.constructible !== false,
-    ...(flags.entityType ? { type: { base, shape: 'item', nullable: true, entityType: flags.entityType } } : {})
+    ...(flags.typeId ? { type: { base, shape: 'item', nullable: true, typeId: flags.typeId } } : {})
   };
 }
 
@@ -163,7 +163,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
           path: `relations.${key}`,
           block: 'relations',
           label: `relations.${key}`,
-          type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', entityType: target } },
+          type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', typeId: target } },
           writable: true,
           constructible: true
         });
@@ -277,7 +277,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
         relations.push({
           path: `relations.${key}`,
           label: `relations.${key}`,
-          type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', entityType: target } },
+          type: { base: 'array', shape: 'item', nullable: true, itemType: { base: 'entityRef', typeId: target } },
           constructible: true
         });
       }
@@ -308,7 +308,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
             label: constructionInputLabel({
               path: schema.path,
               label: schema.label,
-              entityType: schema.type?.entityType
+              typeId: schema.type?.typeId
             }, labelByType),
             path: schema.path,
             ...constructionInputKind(schema.type),
@@ -407,7 +407,7 @@ function orgLineageFields(type, view, visited = new Set()) {
         path: `lineage.${lineageKey}`,
         block: 'lineage',
         label: `lineage.${lineageKey}`,
-        type: { base: 'entityRef', shape: 'item', nullable: true, entityType: parent.id },
+        type: { base: 'entityRef', shape: 'item', nullable: true, typeId: parent.id },
         writable: false,
         constructible: true
       });
@@ -428,10 +428,10 @@ function orgLineageFields(type, view, visited = new Set()) {
 // typed constraint, everything structural rides as an object payload.
 function constructionInputKind(type = {}) {
   if (type.base === 'array' && ['entityRef', 'entity'].includes(type.itemType?.base || '')) {
-    return { type: 'entityList', ...(type.itemType.entityType ? { entityType: type.itemType.entityType } : {}) };
+    return { type: 'typeList', ...(type.itemType.typeId ? { typeId: type.itemType.typeId } : {}) };
   }
   if (type.base === 'entityRef' || type.base === 'entity') {
-    return { type: 'entity', ...(type.entityType ? { entityType: type.entityType } : {}) };
+    return { type: 'entity', ...(type.typeId ? { typeId: type.typeId } : {}) };
   }
   if (['string', 'boolean'].includes(type.base)) return { type: type.base };
   if (type.base === 'number') return { type: 'number', ...(type.unit ? { unit: type.unit } : {}) };
@@ -450,7 +450,7 @@ function operatorModeInputs(operator = {}) {
     };
     if (descriptor.base === 'ref') {
       input.type = 'entity';
-      if (descriptor.accepts?.length === 1) input.entityType = descriptor.accepts[0];
+      if (descriptor.accepts?.length === 1) input.typeId = descriptor.accepts[0];
       else if (descriptor.accepts?.length) input.accepts = [...descriptor.accepts];
     } else if (descriptor.base === 'quantity') {
       input.type = 'number';

@@ -65,7 +65,7 @@ hand-written services.
   /api/instances/:type/:id/payload` is the transport; it gates through
   the shared access engine on the class-collection feature (the same
   feature `resolveEntityFeature` compiles grants against) with the type
-  id as the entity-type filter, so a write requires a compiled process
+  id as the type-id filter, so a write requires a compiled process
   grant — fail-closed.
 - Registration: the core registry's entity-service resolver consults
   `instanceServiceResolver`; explicit feature services always win.

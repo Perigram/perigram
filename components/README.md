@@ -83,14 +83,14 @@ All entity-related components MUST use these patterns:
 | Concern | Pattern |
 |---|---|
 | Identity display (default: name/slug) | `<IdentityBlock :entity="..." variant="..." />` |
-| Status display + transitions/actions | `<EntityStatus :entity="..." entity-type="..." :actions="..." />` |
+| Status display + transitions/actions | `<EntityStatus :entity="..." type-id="..." :actions="..." />` |
 | Read-only status display | `<StatusBadge :entity="..." />` |
 | Current lifecycle location | `status.lifecycle.data.location` rendered by `<EntityStatus>` |
 | Drawing and geometry preview | `<DrawingCanvas ... />` for layer-aware DXF/SVG/cassette canvas work; `<GeometryPreview :entity="..." />` as the entity-card wrapper |
-| Structured key/value data (specs, parameters, tool dims) | `<DataBlock entity-type="..." :entity="..." :fields="ENTITY_FIELDS" />` |
+| Structured key/value data (specs, parameters, tool dims) | `<DataBlock type-id="..." :entity="..." :fields="ENTITY_FIELDS" />` |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
-| Audit log | `<StatusHistory :entity="..." entity-type="..." />` |
-| Detail page header | `<EntityPage :entity="..." entity-type="..." />` |
+| Audit log | `<StatusHistory :entity="..." type-id="..." />` |
+| Detail page header | `<EntityPage :entity="..." type-id="..." />` |
 | CRUD + status operations | `useEntity(type, id)` |
 | Entity/container structure | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout; Aura owns generic chrome |
 | Section/page action rows | `<ActionToolbar>` |
@@ -105,7 +105,7 @@ All entity-related components MUST use these patterns:
 | Dialog container | `<StandardDialog>` |
 | Single-field rename/edit | `<NameEditPopover>` |
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
-| Entity dropdowns | `<EntitySelect>` / `<EntityMultiSelect>` with explicit `entity-type` |
+| Entity dropdowns | `<EntitySelect>` / `<EntityMultiSelect>` with explicit `type-id` |
 | Compact contextual canvas/workspace actions | Shared `MotionDock` (GSAP magnification from `composables/useMotion.js`) |
 
 workbench and organization workflow overrides page. It normalizes flat legacy
@@ -572,7 +572,7 @@ single source for the same entity type, preferring the detail screen paired
 with the current screen key (`<screenKey>_detail`) only when that paired screen
 exists for the same entity. Parent detail screens that include child collection
 sources are not valid detail targets for those child rows. The route uses
-`/screens/:screenKey` with `entityId` and `{entityType}Id` query scope. The
+`/screens/:screenKey` with `entityId` and `{typeId}Id` query scope. The
 screen page merges that query scope into the screen contract before the
 single-source loader runs. Do not hardcode generated rows to legacy feature
 routes, and do not replace the shared card title chrome just to make the name
@@ -998,7 +998,7 @@ picker; an inline create entry runs the generated create flow
 (upload-creator dialog, typed prompt dialog, or direct execution) and the
 created entity attaches to the draft like any picked ref. The paperclip
 trigger stays disabled while the home screen exposes no list sections. The composer loads attachment types from
-`/api/support/entity-types`, which derives them from the user's generated
+`/api/support/type-ids`, which derives them from the user's generated
 screen source manifest at read access rather than a fixed chat list. Concrete
 attachment choices resolve through `/api/support/entity-options` when the
 backend has a scoped list service for that entity type, and direct chats also
@@ -1093,7 +1093,7 @@ overloads, designer file modes) all carry the thread; the panel renders inside t
 detail branch of the generated screen's `v-if` chain — never as a standalone
 `v-if` sibling, which would detach the regions fallback from the shared chain
 and render a raw region dump under overload screens like the home workspace.
-- For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock entity-type="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `entity-type` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
+- For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock type-id="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `type-id` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data
   is a canonical DTO. Do not pass raw entities that only expose

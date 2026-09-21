@@ -58,7 +58,7 @@ describe('entity revision helpers', () => {
     const revision = {
       _id: 'rev-legacy',
       data: {
-        entityType: 'cassette',
+        typeId: 'cassette',
         entityId: 'cassette-legacy',
         scope: 'geometry',
         number: 2,
@@ -78,7 +78,7 @@ describe('entity revision helpers', () => {
     const revision = new EntityRevision({
       _id: 'rev-legacy',
       data: {
-        entityType: 'cassette',
+        typeId: 'cassette',
         entityId: 'cassette-legacy',
         scope: 'geometry'
       }

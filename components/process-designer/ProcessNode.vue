@@ -16,12 +16,12 @@
     <div v-if="hasInlineConfiguration" class="nodrag nowheel mt-2 flex flex-col gap-1.5" @mousedown.stop @click.stop>
       <Select
         v-if="opKind === 'source.literalItem' && record.type?.base === 'entityRef'"
-        :model-value="record.entityType || record.type.entityType"
-        :options="data.processEntityTypeOptions || []"
+        :model-value="record.typeId || record.type.typeId"
+        :options="data.processTypeIdOptions || []"
         option-label="label"
         option-value="value"
         size="small"
-        @update:model-value="value => update({ entityType: value, type: { ...record.type, entityType: value } })"
+        @update:model-value="value => update({ typeId: value, type: { ...record.type, typeId: value } })"
       />
       <div v-if="showTypeEditor">
         <Select
@@ -57,7 +57,7 @@
         :model-value="record.value?.id || ''"
         size="small"
         :placeholder="$t('common.id')"
-        @update:model-value="value => update({ value: value ? { type: record.type?.entityType || record.entityType || '', id: value } : null })"
+        @update:model-value="value => update({ value: value ? { type: record.type?.typeId || record.typeId || '', id: value } : null })"
       />
       <InputText
         v-if="opKind === 'source.literalItem' && !['entityRef', 'number', 'integer', 'boolean', 'date', 'dateTime', 'status'].includes(record.type?.base)"
@@ -323,8 +323,8 @@ function updateValueType(base) {
         : base === 'json' ? {}
           : '';
     if (base === 'entityRef') {
-      updates.entityType = record.value.entityType || record.value.type || '';
-      updates.type.entityType = updates.entityType;
+      updates.typeId = record.value.typeId || record.value.type || '';
+      updates.type.typeId = updates.typeId;
     }
   }
   update(updates);
@@ -335,7 +335,7 @@ function updateLiteral(value) {
   if (record.value.type?.base === 'integer') return update({ value: Number.parseInt(value, 10) });
   if (record.value.type?.base === 'boolean') return update({ value: value === true || value === 'true' });
   if (record.value.type?.base === 'entityRef') {
-    return update({ value: value ? { type: record.value.entityType, id: value } : null });
+    return update({ value: value ? { type: record.value.typeId, id: value } : null });
   }
   if (record.value.access !== 'item' || record.value.type?.base === 'json') {
     try {
@@ -428,7 +428,7 @@ function serializeDateInput(input, value) {
 
 function parseInputDefault(input, value) {
   if (input.base === 'entityRef') {
-    return value ? { type: input.type?.entityType || '', id: value } : null;
+    return value ? { type: input.type?.typeId || '', id: value } : null;
   }
   if (input.base === 'json') {
     try {
@@ -442,7 +442,7 @@ function parseInputDefault(input, value) {
 
 function inputPlaceholder(input) {
   if (input.base === 'entityRef') {
-    return t('processDesigner.entityIdFallback', { entity: input.type?.entityType || t('processDesigner.entity') });
+    return t('processDesigner.entityIdFallback', { entity: input.type?.typeId || t('processDesigner.entity') });
   }
   return t('processDesigner.inlineValue');
 }

@@ -52,7 +52,7 @@ describe('process runtime auth hydration', () => {
             producerOutputId: 'construct_queue:result',
             nodeId: 'construct_queue',
             outputSocketId: 'result',
-            entityType: 'queue',
+            typeId: 'queue',
             lifecycle: { mode: 'domainDefault' },
             fields: { read: ['identity.*'], write: [], private: [] },
             allowedRoles: { read: [], write: [], admin: [] }

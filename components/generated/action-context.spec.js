@@ -46,7 +46,7 @@ describe('generated action context', () => {
       action: {
         actionKind: 'runCommand',
         commandId: 'solveNesting',
-        inputs: [{ id: 'queue', entityType: 'queue' }]
+        inputs: [{ id: 'queue', typeId: 'queue' }]
       },
       entity: { _id: 'queue-1', identity: { name: 'Queue 1' } },
       context: { typeId: 'queue' }

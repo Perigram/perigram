@@ -34,10 +34,10 @@ export function useProcessDesignerConnectionInference({ nodes, draft, resolveOut
     const sourcePort = portForHandle(resolveOutputs(sourceRecord), connection.sourceHandle, 'output');
     if (!sourcePort || sourcePort.role !== 'data') return;
     if (operationKindOf(sourceRecord) === 'control.manualTrigger'
-      && !sourceRecord.entityType
-      && targetRecord.entityType
+      && !sourceRecord.typeId
+      && targetRecord.typeId
       && ['effect.updateEntity', 'record.getField', 'record.getBlock', 'record.deconstruct'].includes(operationKindOf(targetRecord))) {
-      sourceRecord.entityType = targetRecord.entityType;
+      sourceRecord.typeId = targetRecord.typeId;
       syncProcessNode(sourceRecord);
     }
     const targetInput = String(connection.targetHandle || '').replace(/^(input|data):/, '');
@@ -52,9 +52,9 @@ export function useProcessDesignerConnectionInference({ nodes, draft, resolveOut
     }
     const entryId = targetInput.replace(/^entry:/, '');
     const entry = targetRecord.entries?.find(item => item.id === entryId);
-    const connectedEntityType = sourcePort.type?.entityType || sourcePort.type?.itemType?.entityType || sourceRecord.entityType || '';
-    if (entry && targetRecord.compositionMode === 'ancestors' && connectedEntityType) {
-      entry.entityType = connectedEntityType;
+    const connectedTypeId = sourcePort.type?.typeId || sourcePort.type?.itemType?.typeId || sourceRecord.typeId || '';
+    if (entry && targetRecord.compositionMode === 'ancestors' && connectedTypeId) {
+      entry.typeId = connectedTypeId;
       entry.key = '';
     }
     syncProcessNode(targetRecord);

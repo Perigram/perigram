@@ -74,7 +74,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 
   if (updates.status) {
     await statusService.transitionWithResult({
-      entityType: 'catalog',
+      typeId: 'catalog',
       targetId: catalog._id,
       targetState: updates.status,
       auth: createTransitionAuth(userId, userRole, userPermissions),
@@ -101,7 +101,7 @@ export async function remove(uid, userId, userOrg, userRole, userPermissions) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'catalog',
+  typeId: 'catalog',
   repository,
   Model: Catalog
 });

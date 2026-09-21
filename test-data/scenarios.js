@@ -31,7 +31,7 @@ import { createDefaultOccsCassetteTemplateDefinition } from '#utils/occs/templat
 export const CNC_DEMO_SCENARIO_ID = 'cnc-demo-production';
 
 export function createCncFixtureScenario({ workflows = cncWorkflows, commands = cncCommands } = {}) {
-  const status = (entityType, fallback) => workflowInitialState(workflows, entityType, fallback);
+  const status = (typeId, fallback) => workflowInitialState(workflows, typeId, fallback);
   const cassetteTemplateDefinition = createDefaultOccsCassetteTemplateDefinition();
   const refs = {
     organization: MOCK_IDS.organizationId,

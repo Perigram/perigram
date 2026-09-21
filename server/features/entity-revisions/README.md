@@ -22,7 +22,7 @@ Revision records are normal v24 entities with immutable revision metadata under
 - `data.source.id`: source entity id.
 - `data.scope`: versioned content scope, for example `geometry`.
 - `data.number`: monotonically increasing number within
-  `(entityType, entityId, scope)`.
+  `(typeId, entityId, scope)`.
 - `data.contentHash`: `sha256:` hash of canonicalized content for dedupe.
 - `data.snapshot`: source identity and scoped content used to reproduce the
   revision.
@@ -33,14 +33,14 @@ Revision records are normal v24 entities with immutable revision metadata under
 The unique content index is `(data.source.type, data.source.id, data.scope,
 data.contentHash)`. Re-saving identical content reuses the existing revision.
 Revision entity identity is also source-scoped:
-`revision:<entityType>:<entityId>:<scope>:<number>`. Two source entities may
+`revision:<typeId>:<entityId>:<scope>:<number>`. Two source entities may
 therefore both own revision 1 of the same scope without colliding on `_id`.
 Runtime index creation drops and recreates the named content/latest indexes
 when an older database still has the same index names on the pre-source-key
 shape, so entity revision creation is idempotent across migrated development
 databases.
 Hash/latest lookups, DTO serialization, and derived provenance also accept
-existing pre-source-key records with `data.entityType` and `data.entityId`,
+existing pre-source-key records with `data.typeId` and `data.entityId`,
 then emit current `EntityRef` provenance. New records are always written with
 `data.source`.
 Revision status is resolved through the registered `entity_revision` workflow.
@@ -64,7 +64,7 @@ process remains free to register its own active revision workflow.
 
 Revisions are read-only provenance records. They are not updated or deleted by
 standard entity APIs.
-Read access checks use the source `data.entityType` permission first, with
+Read access checks use the source `data.typeId` permission first, with
 legacy cassette/project fallbacks for existing cassette-derived records.
 
 ## Related

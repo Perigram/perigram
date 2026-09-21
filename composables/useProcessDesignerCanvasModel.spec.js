@@ -168,7 +168,7 @@ function createCanvas() {
       const record = draft.value?.data?.processNodes?.[mutation.recordId];
       if (record) {
         if (record.kind.startsWith('cts.')) record.typeId = mutation.value;
-        else record.entityType = mutation.value;
+        else record.typeId = mutation.value;
       }
     }
     canvas.syncNodeData();

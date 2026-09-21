@@ -3,10 +3,10 @@ export function entityFromSelectOption(option) {
   return isCanonicalEntity(option) ? option : null;
 }
 
-export function entityTypeFromSelectOption(option, entityType = '') {
-  return entityType
-    || option?.entityType
-    || option?.entity?.entityType
+export function typeIdFromSelectOption(option, typeId = '') {
+  return typeId
+    || option?.typeId
+    || option?.entity?.typeId
     || '';
 }
 
@@ -33,14 +33,14 @@ export function selectOptionForValue(options = [], value, optionValue = '') {
   ) || null;
 }
 
-export function entitySelectOptions(options = [], entityType = '') {
+export function entitySelectOptions(options = [], typeId = '') {
   return (Array.isArray(options) ? options : [])
     .map(option => ({
       option,
       entity: entityFromSelectOption(option),
-      entityType: entityTypeFromSelectOption(option, entityType)
+      typeId: typeIdFromSelectOption(option, typeId)
     }))
-    .filter(item => item.entity && item.entityType);
+    .filter(item => item.entity && item.typeId);
 }
 
 function isCanonicalEntity(value) {

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   entityFromSelectOption,
   entitySelectOptions,
-  entityTypeFromSelectOption,
+  typeIdFromSelectOption,
   selectOptionLabel,
   selectOptionForValue,
   selectOptionValue
@@ -23,9 +23,9 @@ describe('entity select option contract', () => {
   });
 
   it('uses explicit entity types and never infers them from entity data', () => {
-    expect(entityTypeFromSelectOption({ entityType: 'queue', entity: queue })).toBe('queue');
-    expect(entityTypeFromSelectOption({ entityType: 'queue' }, 'project')).toBe('project');
-    expect(entityTypeFromSelectOption({ entity: { ...queue, data: { type: 'queue' } } })).toBe('');
+    expect(typeIdFromSelectOption({ typeId: 'queue', entity: queue })).toBe('queue');
+    expect(typeIdFromSelectOption({ typeId: 'queue' }, 'project')).toBe('project');
+    expect(typeIdFromSelectOption({ entity: { ...queue, data: { type: 'queue' } } })).toBe('');
   });
 
   it('resolves selected options through the same optionValue path as PrimeVue', () => {
@@ -38,6 +38,6 @@ describe('entity select option contract', () => {
   it('enables entity rendering only when both DTO and entity type are available', () => {
     expect(entitySelectOptions([queue], 'queue')).toHaveLength(1);
     expect(entitySelectOptions([queue])).toEqual([]);
-    expect(entitySelectOptions([{ label: 'Queue', value: 'queue-1', entity: queue, entityType: 'queue' }])).toHaveLength(1);
+    expect(entitySelectOptions([{ label: 'Queue', value: 'queue-1', entity: queue, typeId: 'queue' }])).toHaveLength(1);
   });
 });

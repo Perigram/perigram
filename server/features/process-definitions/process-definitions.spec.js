@@ -168,7 +168,7 @@ describe('current process-definition service contract', () => {
       producerOutputs: {
         'create:result': {
           id: 'create:result', producerOutputId: 'create:result', nodeId: 'create', outputSocketId: 'result',
-          entityType: 'fixture-panel-9', lifecycle: { mode: 'domainDefault' },
+          typeId: 'fixture-panel-9', lifecycle: { mode: 'domainDefault' },
           fields: { read: ['identity.*'], write: [], private: [] }
         }
       },
@@ -249,7 +249,7 @@ describe('current process-definition service contract', () => {
       producerOutputId,
       nodeId: 'project_source',
       outputSocketId: 'result',
-      entityType: 'project'
+      typeId: 'project'
     });
     expect(saved.data).not.toHaveProperty('entityProfiles');
 
@@ -262,7 +262,7 @@ describe('current process-definition service contract', () => {
 
   it('reports the semantic apply diff and requires a migration decision for removed workflow states', async () => {
     const fixture = createPersistedAcceptanceFixture();
-    const entityType = fixture.processDefinition.data.producerOutputs['project_source:result'].entityType;
+    const typeId = fixture.processDefinition.data.producerOutputs['project_source:result'].typeId;
     const activeData = structuredClone(fixture.processDefinition.data);
     activeData.producerOutputs['project_source:result'].lifecycle = {
       mode: 'custom',
@@ -288,17 +288,17 @@ describe('current process-definition service contract', () => {
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
     const processList = vi.fn().mockResolvedValue([{ status: { state: { primary: 'LEGACY_RETIRED' } } }]);
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === entityType ? { processList } : organizationService
+      getEntityService: type => type === typeId ? { processList } : organizationService
     });
 
     const validation = await validate('process-draft', adminAuth());
     console.log("VALIDATION ERRORS:", JSON.stringify(validation.errors));
     expect(validation.ok).toBe(true);
-    expect(validation.diff.removedEntityStatuses).toEqual([{ entityType, statuses: ['LEGACY_RETIRED'] }]);
+    expect(validation.diff.removedEntityStatuses).toEqual([{ typeId, statuses: ['LEGACY_RETIRED'] }]);
 
     await expect(activate('process-draft', adminAuth())).rejects.toMatchObject({
       statusCode: 409,
-      data: { migrationRequired: true, affected: [{ entityType, statuses: ['LEGACY_RETIRED'], count: 1 }] }
+      data: { migrationRequired: true, affected: [{ typeId, statuses: ['LEGACY_RETIRED'], count: 1 }] }
     });
     expect(processList).toHaveBeenCalledWith({}, expect.objectContaining({ organizationId: 'org-acceptance' }));
     expect(processRepository.archiveActiveByOrganization).not.toHaveBeenCalled();
@@ -344,7 +344,7 @@ describe('current process-definition service contract', () => {
 
   it('activates when removed workflow states have no live entities', async () => {
     const fixture = createPersistedAcceptanceFixture();
-    const entityType = fixture.processDefinition.data.producerOutputs['project_source:result'].entityType;
+    const typeId = fixture.processDefinition.data.producerOutputs['project_source:result'].typeId;
     const activeData = structuredClone(fixture.processDefinition.data);
     activeData.producerOutputs['project_source:result'].lifecycle = {
       mode: 'custom',
@@ -369,7 +369,7 @@ describe('current process-definition service contract', () => {
     processRepository.findById.mockResolvedValue(draftRecord(fixture.processDefinition.data));
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === entityType
+      getEntityService: type => type === typeId
         ? { processList: vi.fn().mockResolvedValue([{ status: { state: { primary: 'draft' } } }]) }
         : organizationService
     });
@@ -382,7 +382,7 @@ describe('current process-definition service contract', () => {
 
   it('returns the migration plan on validate and keeps the 409 without mappings', async () => {
     const fixture = createPersistedAcceptanceFixture();
-    const entityType = fixture.processDefinition.data.producerOutputs['project_source:result'].entityType;
+    const typeId = fixture.processDefinition.data.producerOutputs['project_source:result'].typeId;
     const activeData = structuredClone(fixture.processDefinition.data);
     activeData.producerOutputs['project_source:result'].lifecycle = customLifecycle({
       draft: { canUpdateMeta: true }, LEGACY_RETIRED: {}
@@ -402,7 +402,7 @@ describe('current process-definition service contract', () => {
       { _id: 'p-2', status: { state: { primary: 'LEGACY_RETIRED' } } }
     ];
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === entityType
+      getEntityService: type => type === typeId
         ? { processList: vi.fn().mockResolvedValue(strandedEntities) }
         : organizationService
     });
@@ -412,7 +412,7 @@ describe('current process-definition service contract', () => {
     expect(validation.ok).toBe(true);
     expect(validation.migrationPlan).toEqual({
       statuses: [expect.objectContaining({
-        entityType,
+        typeId,
         removed: [{ state: 'LEGACY_RETIRED', count: 2 }],
         targets: expect.arrayContaining(['draft', 'done'])
       })]
@@ -422,7 +422,7 @@ describe('current process-definition service contract', () => {
       statusCode: 409,
       data: {
         migrationRequired: true,
-        affected: [{ entityType, statuses: ['LEGACY_RETIRED'], count: 2 }],
+        affected: [{ typeId, statuses: ['LEGACY_RETIRED'], count: 2 }],
         migrationPlan: { statuses: [expect.any(Object)] }
       }
     });
@@ -431,7 +431,7 @@ describe('current process-definition service contract', () => {
 
   it('rejects migration mappings outside the next contract states', async () => {
     const fixture = createPersistedAcceptanceFixture();
-    const entityType = fixture.processDefinition.data.producerOutputs['project_source:result'].entityType;
+    const typeId = fixture.processDefinition.data.producerOutputs['project_source:result'].typeId;
     const activeData = structuredClone(fixture.processDefinition.data);
     activeData.producerOutputs['project_source:result'].lifecycle = customLifecycle({
       draft: {}, LEGACY_RETIRED: {}
@@ -445,13 +445,13 @@ describe('current process-definition service contract', () => {
     });
     processRepository.findById.mockResolvedValue(draftRecord(draftData));
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === entityType
+      getEntityService: type => type === typeId
         ? { processList: vi.fn().mockResolvedValue([{ _id: 'p-1', status: { state: { primary: 'LEGACY_RETIRED' } } }]) }
         : organizationService
     });
 
     await expect(activate('process-draft', adminAuth(), {
-      migration: { statuses: [{ entityType, from: 'LEGACY_RETIRED', to: 'NOT_A_STATE' }] }
+      migration: { statuses: [{ typeId, from: 'LEGACY_RETIRED', to: 'NOT_A_STATE' }] }
     })).rejects.toMatchObject({
       statusCode: 400,
       data: { migrationPlan: { statuses: expect.any(Array) } }
@@ -461,7 +461,7 @@ describe('current process-definition service contract', () => {
 
   it('activates with confirmed mappings, re-targets stranded instances, and records the migration', async () => {
     const fixture = createPersistedAcceptanceFixture();
-    const entityType = fixture.processDefinition.data.producerOutputs['project_source:result'].entityType;
+    const typeId = fixture.processDefinition.data.producerOutputs['project_source:result'].typeId;
     const activeData = structuredClone(fixture.processDefinition.data);
     activeData.producerOutputs['project_source:result'].lifecycle = customLifecycle({
       draft: { canUpdateMeta: true }, LEGACY_RETIRED: {}
@@ -478,7 +478,7 @@ describe('current process-definition service contract', () => {
     processRepository.findById.mockResolvedValue(draftRecord(draftData));
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === entityType
+      getEntityService: type => type === typeId
         ? { processList: vi.fn().mockResolvedValue([
             { _id: 'p-1', status: { state: { primary: 'LEGACY_RETIRED' } } },
             { _id: 'p-2', status: { state: { primary: 'draft' } } }
@@ -488,17 +488,17 @@ describe('current process-definition service contract', () => {
     statusService.setInitialStateForOrganization.mockResolvedValue({ state: { primary: 'draft' } });
 
     const result = await activate('process-draft', adminAuth(), {
-      migration: { statuses: [{ entityType, from: 'LEGACY_RETIRED', to: 'draft' }] }
+      migration: { statuses: [{ typeId, from: 'LEGACY_RETIRED', to: 'draft' }] }
     });
 
     expect(result.status.state.primary).toBe('ACTIVE');
     expect(statusService.setInitialStateForOrganization).toHaveBeenCalledWith(
-      entityType, 'p-1', 'draft', 'org-acceptance', 'admin', expect.objectContaining({ producerOutputId: 'project_source:result' })
+      typeId, 'p-1', 'draft', 'org-acceptance', 'admin', expect.objectContaining({ producerOutputId: 'project_source:result' })
     );
     expect(result.data.migration).toEqual(expect.objectContaining({
       actor: 'admin',
-      mappings: [{ entityType, from: 'LEGACY_RETIRED', to: 'draft' }],
-      applied: { [entityType]: { 'LEGACY_RETIRED->draft': 1 } },
+      mappings: [{ typeId, from: 'LEGACY_RETIRED', to: 'draft' }],
+      applied: { [typeId]: { 'LEGACY_RETIRED->draft': 1 } },
       failures: []
     }));
     expect(organizationService.setActiveProcessDefinition).toHaveBeenCalledWith('org-acceptance', 'process-draft');
@@ -510,8 +510,8 @@ describe('current process-definition service contract', () => {
     delete authored.producerOutputs[node.producerOutputId];
     delete node.producerOutputId;
     node.outputs = [
-      { id: 'result', type: { base: 'entity', entityType: 'project' } },
-      { id: 'alternate', type: { base: 'entity', entityType: 'project' } }
+      { id: 'result', type: { base: 'entity', typeId: 'project' } },
+      { id: 'alternate', type: { base: 'entity', typeId: 'project' } }
     ];
     processRepository.findById.mockResolvedValue(draftRecord(authored));
 
@@ -533,7 +533,7 @@ describe('current process-definition service contract', () => {
 
     expect(result.status.state.primary).toBe('ACTIVE');
     expect(result.data.compiled.lineageBindings).toEqual(expect.arrayContaining([
-      expect.objectContaining({ childEntityType: 'facade', ancestorEntityType: 'project', lineageKey: 'projectId' })
+      expect.objectContaining({ childTypeId: 'facade', parentTypeId: 'project', lineageKey: 'projectId' })
     ]));
     expect(organizationService.setActiveProcessDefinition).toHaveBeenCalledWith('org-acceptance', 'process-draft');
   });
@@ -634,7 +634,7 @@ describe('current process-definition service contract', () => {
     expect(run.status).toBe('succeeded');
     expect(statusService.transitionWithResult).toHaveBeenCalledTimes(1);
     expect(statusService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
-      entityType: 'machine',
+      typeId: 'machine',
       targetId: 'machine-1',
       targetState: 'MAINTENANCE',
       patch: expect.objectContaining({
@@ -674,7 +674,7 @@ describe('current process-definition service contract', () => {
       record: {
         kind: 'effect.createEntity',
         id: 'create',
-        entityType: 'queue',
+        typeId: 'queue',
         producerOutputId: 'create:result',
         construction: { mode: 'genericCreate' },
         blocks: []
@@ -706,7 +706,7 @@ describe('current process-definition service contract', () => {
       record: {
         kind: 'effect.createEntity',
         id,
-        entityType: 'project',
+        typeId: 'project',
         producerOutputId: `${id}:result`,
         construction: { mode: 'genericCreate' },
         status: { to: statusTo },
@@ -735,7 +735,7 @@ describe('current process-definition service contract', () => {
 
     const result = await performDurableEffect({
       kind: 'effect.changeStatus',
-      record: { kind: 'effect.changeStatus', entityType: 'sheet', producerOutputId: 'sheet_source:entity' },
+      record: { kind: 'effect.changeStatus', typeId: 'sheet', producerOutputId: 'sheet_source:entity' },
       inputs: {
         entity: { type: 'sheet', id: 'sheet-1' },
         status: 'VERIFIED',
@@ -766,14 +766,14 @@ describe('current process-definition service contract', () => {
 
     await expect(performDurableEffect({
       kind: 'effect.archiveEntity',
-      record: { kind: 'effect.archiveEntity', entityType: 'queue', archiveIntent: 'archiveQueue' },
+      record: { kind: 'effect.archiveEntity', typeId: 'queue', archiveIntent: 'archiveQueue' },
       inputs: { entity: { type: 'queue', id: 'queue-1' } }
     }, adminAuth())).resolves.toMatchObject({ _id: 'queue-1' });
     expect(statusService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({ intent: 'archiveQueue' }));
 
     await expect(performDurableEffect({
       kind: 'effect.deleteEntity',
-      record: { kind: 'effect.deleteEntity', entityType: 'queue' },
+      record: { kind: 'effect.deleteEntity', typeId: 'queue' },
       inputs: { entity: { type: 'queue', id: 'queue-1' } }
     }, adminAuth())).resolves.toEqual({ success: true });
     expect(processDelete).toHaveBeenCalledWith('queue-1', adminAuth());
@@ -789,7 +789,7 @@ describe('current process-definition service contract', () => {
     for (const kind of ['effect.archiveEntity', 'effect.deleteEntity']) {
       await expect(performDurableEffect({
         kind,
-        record: { kind, entityType: 'queue' },
+        record: { kind, typeId: 'queue' },
         inputs: { entity: { type: 'queue', id: 'queue-1' } }
       }, adminAuth())).rejects.toThrow('does not support process');
     }
@@ -894,7 +894,7 @@ describe('current process-definition service contract', () => {
 
     await performDurableEffect({
       kind: 'effect.updateEntity',
-      record: { id: 'n1', kind: 'effect.updateEntity', entityType: 'sheet', blocks: [] },
+      record: { id: 'n1', kind: 'effect.updateEntity', typeId: 'sheet', blocks: [] },
       inputs: {
         entity: { type: 'sheet', id: 'sheet-1' },
         'data.serial': 'SH-42'
@@ -967,7 +967,7 @@ function relationEffectProcessData(kind, key, cardinality) {
   const effect = {
     id: 'effect',
     kind,
-    entityType: 'facade',
+    typeId: 'facade',
     blocks: ['relations'],
     construction: { mode: 'genericCreate' },
     trigger: { mode: 'manual' },
@@ -984,16 +984,16 @@ function relationEffectProcessData(kind, key, cardinality) {
     producerOutputs: {
       'facade_context:entity': {
         id: 'facade_context:entity', producerOutputId: 'facade_context:entity', nodeId: 'facade_context', outputSocketId: 'entity',
-        entityType: 'facade', lifecycle: { mode: 'domainDefault' }, fields: { read: [], write: ['relations.*'], private: [] }
+        typeId: 'facade', lifecycle: { mode: 'domainDefault' }, fields: { read: [], write: ['relations.*'], private: [] }
       }
     },
     actions: {}, services: {}, sockets: {}, screens: {},
     processNodes: {
       relations: {
         id: 'relations', kind: 'record.composeBlock', block: 'relations', compositionMode: 'relations',
-        entries: [{ id: key, key, entityType: 'material', type: cardinality === 'many'
-          ? { base: 'array', itemType: { base: 'entityRef', entityType: 'material' } }
-          : { base: 'entityRef', entityType: 'material' } }]
+        entries: [{ id: key, key, typeId: 'material', type: cardinality === 'many'
+          ? { base: 'array', itemType: { base: 'entityRef', typeId: 'material' } }
+          : { base: 'entityRef', typeId: 'material' } }]
       },
       effect
     }
@@ -1125,7 +1125,7 @@ function readModifyWriteProcessData() {
     producerOutputs: {
       'machine_context:entity': {
         id: 'machine_context:entity', producerOutputId: 'machine_context:entity', nodeId: 'machine_context', outputSocketId: 'entity',
-        entityType: 'machine', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*'], write: ['identity.*'], private: [] }
+        typeId: 'machine', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*'], write: ['identity.*'], private: [] }
       }
     },
     actions: {},
@@ -1133,7 +1133,7 @@ function readModifyWriteProcessData() {
     sockets: {},
     screens: {},
     processNodes: {
-      deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', entityType: 'machine', blocks: ['identity'] },
+      deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', typeId: 'machine', blocks: ['identity'] },
       names: { id: 'names', kind: 'source.literalList', access: 'list', value: ['Renamed machine'] },
       refs: {
         id: 'refs',
@@ -1150,7 +1150,7 @@ function readModifyWriteProcessData() {
       update: {
         id: 'update',
         kind: 'effect.updateEntity',
-        entityType: 'machine',
+        typeId: 'machine',
         producerOutputId: 'machine_context:entity',
         label: 'Update machine',
         trigger: { mode: 'manual' },

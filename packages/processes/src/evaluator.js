@@ -33,7 +33,7 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
   if (kind.startsWith('source.')) return executeSource(record, context);
   if (kind === 'value.cast' || kind === 'value.parse') return mapDataPacket(required(packets, 'value', record), value => cast(value, record.outputType?.base || record.base));
   if (kind === 'value.convertUnit') return mapDataPacket(required(packets, 'value', record), value => convertUnit(value, record.fromUnit, record.toUnit, context.units));
-  if (kind === 'value.toEntityRef') return mapDataPacket(required(packets, 'value', record), value => entityReference(value, record.entityType));
+  if (kind === 'value.toEntityRef') return mapDataPacket(required(packets, 'value', record), value => entityReference(value, record.typeId));
   if (kind === 'value.toJson') return mapDataPacket(required(packets, 'value', record), value => structuredClone(value));
   if (kind === 'value.required') return mapDataPacket(required(packets, 'value', record), value => {
     if (isMissingField(value)) throw new Error(`${record.id || kind} requires a value that is missing at ${value.path}`);
@@ -135,12 +135,12 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
         : blockLocalPath(record.block, record.path));
       if (isMissingField(fieldValue)) return missingFieldMarker(record.path);
       if (record.compositionMode === 'ancestors' && fieldValue != null) {
-        return { type: record.type?.entityType, id: fieldValue };
+        return { type: record.type?.typeId, id: fieldValue };
       }
       return fieldValue;
     });
   }
-  if (kind === 'record.fieldChange') return mapDataPacket(required(packets, 'value', record), value => ({ entityType: record.entityType, changes: [{ path: record.path, operation: record.operation || 'set', value }] }));
+  if (kind === 'record.fieldChange') return mapDataPacket(required(packets, 'value', record), value => ({ typeId: record.typeId, changes: [{ path: record.path, operation: record.operation || 'set', value }] }));
   if (kind === 'record.mergeChanges') return combineDataPackets([required(packets, 'left', record), required(packets, 'right', record)], ([left, right]) => mergePatches(left, right));
   if (kind === 'record.applyChanges') return combineDataPackets([required(packets, 'record', record), required(packets, 'changes', record)], ([value, patch]) => applyPatch(value, patch));
   if (kind === 'record.composeBlock' || kind === 'record.modifyBlock') {
@@ -197,10 +197,10 @@ export async function executeProcessDataNode(record = {}, inputs = {}, context =
     assertDeclaredBlock(context.domain, record, record.block);
     return mapDataPacket(required(packets, 'entity', record), value => structuredClone(value?.[record.block]));
   }
-  if (kind === 'predicate.field') return createDataPacket({ kind: 'field', entityType: record.entityType, path: record.path, operation: record.operation, value: packetValue(required(packets, 'value', record)) });
+  if (kind === 'predicate.field') return createDataPacket({ kind: 'field', typeId: record.typeId, path: record.path, operation: record.operation, value: packetValue(required(packets, 'value', record)) });
   if (kind === 'predicate.logic') return createDataPacket({
     kind: 'logic',
-    entityType: record.entityType,
+    typeId: record.typeId,
     operation: record.operation,
     left: packetValue(required(packets, 'left', record)),
     ...(packets.right ? { right: packetValue(packets.right) } : {})
@@ -246,7 +246,7 @@ export async function executeProcessEffectNode(record = {}, inputs = {}, invoke)
       const value = await invoke(invocation.inputs, { branchPath, itemIndex, single });
       slot.branch.items[slot.itemIndex] = value;
       singleValue = value;
-      const entityRef = mutationEntityRef(invocation.inputs.entity, value, record.entityType);
+      const entityRef = mutationEntityRef(invocation.inputs.entity, value, record.typeId);
       completedMutations.push({
         operation: record.kind,
         branchPath,
@@ -254,7 +254,7 @@ export async function executeProcessEffectNode(record = {}, inputs = {}, invoke)
         ...(entityRef ? { entityRef } : {})
       });
     } catch (error) {
-      const entityRef = mutationEntityRef(invocation.inputs.entity, null, record.entityType);
+      const entityRef = mutationEntityRef(invocation.inputs.entity, null, record.typeId);
       const failure = {
         operation: record.kind,
         branchPath,
@@ -298,10 +298,10 @@ function assertMutationInputsAlign(operation, trees) {
   }
 }
 
-function mutationEntityRef(input, output, entityType) {
+function mutationEntityRef(input, output, typeId) {
   const value = output?.entity || output || input;
   const id = value?.id || value?._id || value?.identity?.uid;
-  const type = value?.type || value?.entityType || entityType;
+  const type = value?.type || value?.typeId || typeId;
   return id && type ? { type, id: String(id) } : null;
 }
 
@@ -319,7 +319,7 @@ function writeOpenBlockEntry(block, mode, entry, value) {
   if (isMissingField(value)) return;
   if (mode === 'ancestors') {
     const id = value?.id || value?._id || value?.identity?.uid;
-    if (!entry.key || !entry.entityType || !id) throw new Error(`Lineage entry ${entry.id} requires a key and typed entity reference`);
+    if (!entry.key || !entry.typeId || !id) throw new Error(`Lineage entry ${entry.id} requires a key and typed entity reference`);
     block[entry.key] = id;
     return;
   }
@@ -371,18 +371,18 @@ async function executeSource(record, context) {
 }
 
 async function executeRead(record, packets, context) {
-  if (record.kind === 'read.currentEntity') return createDataPacket(await context.currentEntity?.(record.entityType));
-  if (record.kind === 'read.entityById') return createDataPacket(await context.entityById?.(record.entityType, packetValue(required(packets, 'id', record))));
+  if (record.kind === 'read.currentEntity') return createDataPacket(await context.currentEntity?.(record.typeId));
+  if (record.kind === 'read.entityById') return createDataPacket(await context.entityById?.(record.typeId, packetValue(required(packets, 'id', record))));
   if (record.kind === 'read.resolveEntityRef') return createDataPacket(await context.resolveEntityRef?.(packetValue(required(packets, 'value', record))));
   // v5 species records name the stream input `entity` (the consumer
   // convention); legacy v4 records keep `value`.
   const readStream = record => packetValue(required(packets, packets.entity ? 'entity' : 'value', record));
-  if (record.kind === 'read.parent') return createDataPacket(await context.parentEntity?.(readStream(record), record.entityType));
-  if (record.kind === 'read.children') return createDataPacket(await context.childEntities?.(readStream(record), record.entityType) || [], 'list');
-  if (record.kind === 'read.related') return createDataPacket(await context.relatedEntities?.(readStream(record), record.relationKey || record.relation, record.entityType) || [], 'list');
+  if (record.kind === 'read.parent') return createDataPacket(await context.parentEntity?.(readStream(record), record.typeId));
+  if (record.kind === 'read.children') return createDataPacket(await context.childEntities?.(readStream(record), record.typeId) || [], 'list');
+  if (record.kind === 'read.related') return createDataPacket(await context.relatedEntities?.(readStream(record), record.relationKey || record.relation, record.typeId) || [], 'list');
   if (record.kind === 'read.queryEntities') {
     const predicate = packets.predicate ? packetValue(packets.predicate) : null;
-    return createDataPacket(await context.queryEntities?.(record.entityType, predicate) || [], 'list');
+    return createDataPacket(await context.queryEntities?.(record.typeId, predicate) || [], 'list');
   }
   if (record.kind === 'read.filterRecords') {
     const entities = flattenDataPacket(required(packets, 'entities', record)).branches[0].items;
@@ -531,9 +531,9 @@ function required(inputs, id, record) {
 // contract is supplied, block reads reject blocks the entity does not declare
 // with the same diagnostic instead of silently yielding undefined.
 function assertDeclaredBlock(domain, record, block) {
-  if (!domain || !record.entityType || !block) return;
-  if (!entityBlocks(domain, record.entityType).includes(block)) {
-    throw new Error(`Process node ${record.id || record.kind} uses block ${block} outside ${record.entityType}`);
+  if (!domain || !record.typeId || !block) return;
+  if (!entityBlocks(domain, record.typeId).includes(block)) {
+    throw new Error(`Process node ${record.id || record.kind} uses block ${block} outside ${record.typeId}`);
   }
 }
 
@@ -620,9 +620,9 @@ function convertUnit(value, from, to, custom = {}) {
   return Number(value) * factors[from] / factors[to];
 }
 
-function entityReference(value, entityType) {
+function entityReference(value, typeId) {
   if (!value || typeof value !== 'object') throw new Error('Entity reference conversion requires an entity');
-  return { type: entityType || value.type || value.entityType, id: String(value._id || value.id || value.identity?.uid) };
+  return { type: typeId || value.type || value.typeId, id: String(value._id || value.id || value.identity?.uid) };
 }
 
 function format(record, value) {
@@ -793,10 +793,10 @@ function constructRecord(record, packets) {
 }
 
 function mergePatches(left, right) {
-  if (left?.entityType && right?.entityType && left.entityType !== right.entityType) {
-    throw new Error(`Cannot merge ${left.entityType} and ${right.entityType} patches`);
+  if (left?.typeId && right?.typeId && left.typeId !== right.typeId) {
+    throw new Error(`Cannot merge ${left.typeId} and ${right.typeId} patches`);
   }
-  return { entityType: left?.entityType || right?.entityType || '', changes: [...(left?.changes || []), ...(right?.changes || [])] };
+  return { typeId: left?.typeId || right?.typeId || '', changes: [...(left?.changes || []), ...(right?.changes || [])] };
 }
 
 function readPath(value, path = '') {

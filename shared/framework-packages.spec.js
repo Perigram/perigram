@@ -115,7 +115,7 @@ describe('Framework package contracts', () => {
       identity: { uid: 'derived-1', name: 'Derived' },
       relations: {
         library: { type: 'library', id: 'library-1' },
-        invalid: { entityType: 'library', entityId: 'legacy-library' }
+        invalid: { typeId: 'library', entityId: 'legacy-library' }
       },
       provenance: {
         derivedFrom: {
@@ -288,7 +288,7 @@ describe('Framework package contracts', () => {
     expect(cncWorkflows.queue.regions.main.transitions.every(transition => !transition.roles)).toBe(true);
     expect(cncDomain).toMatchObject({ id: 'cnc', commands: cncCommands, tasks: cncTasks, attachmentKinds: cncAttachmentKinds });
     expect(cncDomain.ui.designSystem).toBe(cncDesignSystem);
-    expect(cncDesignSystemEntityContracts).toContainEqual(expect.objectContaining({ key: 'cassette', entityType: 'cassette' }));
+    expect(cncDesignSystemEntityContracts).toContainEqual(expect.objectContaining({ key: 'cassette', typeId: 'cassette' }));
     expect(cncTasks.nestingSolve).toMatchObject({ id: 'nesting.solve', service: 'nesting' });
     expect(cncTasks.nestingSolve.output.entities).toEqual([
       { type: 'nesting_run', persistenceOwner: 'commandOwned', timing: 'completion' },

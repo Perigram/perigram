@@ -38,14 +38,14 @@ export function createStatusEventStore({ connectDB }) {
 }
 
 export function createSummarySync({ connectDB, pluralize, toFlexibleId }) {
-  return async function syncSummary(entityType, lineage, definition) {
-    const summary = definition?.summaries?.find(item => item.entityType === entityType || !item.entityType);
+  return async function syncSummary(typeId, lineage, definition) {
+    const summary = definition?.summaries?.find(item => item.typeId === typeId || !item.typeId);
     if (!summary) return null;
     const parentId = lineage?.[summary.parentIdKey];
     if (!parentId) return null;
 
     const db = await connectDB();
-    const [result] = await db.collection(pluralize(entityType)).aggregate([
+    const [result] = await db.collection(pluralize(typeId)).aggregate([
       { $match: { [`lineage.${summary.parentIdKey}`]: toFlexibleId(parentId) } },
       { $group: { _id: null, count: { $sum: 1 } } }
     ]).toArray();

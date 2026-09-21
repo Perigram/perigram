@@ -8,16 +8,16 @@ describe('Process Designer context contracts', () => {
         current: { id: 'current', kind: 'read.currentEntity' }
       },
       actions: {
-        edit: { id: 'edit', entityType: 'project' }
+        edit: { id: 'edit', typeId: 'project' }
       },
       screens: {
-        detail: { id: 'detail', entityType: 'project' }
+        detail: { id: 'detail', typeId: 'project' }
       }
     });
 
     expect(normalized.processNodes.current).toMatchObject({
-      entityType: 'project',
-      entityTypeInferred: true
+      typeId: 'project',
+      typeIdInferred: true
     });
   });
 
@@ -27,14 +27,14 @@ describe('Process Designer context contracts', () => {
         current: { id: 'current', kind: 'read.currentEntity' }
       },
       actions: {
-        edit: { id: 'edit', entityType: 'project' }
+        edit: { id: 'edit', typeId: 'project' }
       },
       screens: {
-        queue: { id: 'queue', entityType: 'queue' }
+        queue: { id: 'queue', typeId: 'queue' }
       }
     });
 
-    expect(normalized.processNodes.current.entityType).toBeUndefined();
-    expect(normalized.processNodes.current.entityTypeInferred).toBeUndefined();
+    expect(normalized.processNodes.current.typeId).toBeUndefined();
+    expect(normalized.processNodes.current.typeIdInferred).toBeUndefined();
   });
 });

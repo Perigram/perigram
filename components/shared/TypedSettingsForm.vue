@@ -21,7 +21,7 @@
         @update:model-value="value => updateField(field, value)"
       />
       <Select
-        v-else-if="field.type === 'enum' || field.type === 'entityType' || field.type === 'workflowState'"
+        v-else-if="field.type === 'enum' || field.type === 'typeId' || field.type === 'workflowState'"
         :model-value="modelValue?.[field.name]"
         :options="optionsFor(field)"
         option-label="label"
@@ -39,7 +39,7 @@
       <EntityRefInput
         v-else-if="field.type === 'entityId'"
         :model-value="modelValue?.[field.name] ?? ''"
-        :entity-type="field.entityType"
+        :type-id="field.typeId"
         :context="context"
         @update:model-value="value => updateField(field, value)"
       />
@@ -99,9 +99,9 @@ function jsonValue(field) {
 }
 
 function optionsFor(field) {
-  if (field.type === 'entityType') return (props.context.entityTypes || []).map(value => ({ label: value, value }));
+  if (field.type === 'typeId') return (props.context.typeIds || []).map(value => ({ label: value, value }));
   if (field.type === 'workflowState') {
-    const dependency = field.dependsOn ? props.modelValue?.[field.dependsOn] : field.entityType;
+    const dependency = field.dependsOn ? props.modelValue?.[field.dependsOn] : field.typeId;
     return (props.context.workflowStates?.[dependency] || []).map(value => ({ label: value, value }));
   }
   return (field.options || []).map(option => typeof option === 'object'
@@ -113,7 +113,7 @@ function fieldHelpParts(field) {
   return [
     field.unit,
     field.help,
-    field.type === 'entityId' && field.entityType ? `entity:${field.entityType}` : null
+    field.type === 'entityId' && field.typeId ? `entity:${field.typeId}` : null
   ].filter(Boolean);
 }
 </script>

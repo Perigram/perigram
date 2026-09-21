@@ -6,17 +6,17 @@ import * as entityEventService from '~/server/features/entity-events/service.js'
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const body = await readBody(event);
-  const entityType = body?.entityType || body?.type;
+  const typeId = body?.typeId || body?.type;
   const targetId = body?.id || body?.targetId;
   const targetState = body?.status || body?.state;
   const intent = body?.intent || null;
 
-  if (!entityType || !targetId || (!targetState && !intent)) {
-    throw createError({ statusCode: 400, message: 'entityType, id, and status or intent are required' });
+  if (!typeId || !targetId || (!targetState && !intent)) {
+    throw createError({ statusCode: 400, message: 'typeId, id, and status or intent are required' });
   }
 
   const result = await statusService.transitionWithResult({
-    entityType,
+    typeId,
     targetId,
     targetState,
     intent,
@@ -26,13 +26,13 @@ export default defineEventHandler(async (event) => {
       ...(body.producerOutputId ? { producerOutputId: body.producerOutputId } : {})
     }
   });
-  await publishTransitionEvents(auth, entityType, targetId, result);
+  await publishTransitionEvents(auth, typeId, targetId, result);
   return result;
 });
 
-async function publishTransitionEvents(auth, entityType, targetId, result = {}) {
+async function publishTransitionEvents(auth, typeId, targetId, result = {}) {
   await entityEventService.publishEntityChanged(auth, {
-    type: entityType,
+    type: typeId,
     id: result.entity?._id || targetId,
     change: 'updated',
     reason: 'status-transition'

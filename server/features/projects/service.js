@@ -97,7 +97,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
   
   if (updates.status) {
     await statusService.transitionWithResult({
-      entityType: 'project',
+      typeId: 'project',
       targetId: project._id,
       targetState: updates.status,
       auth: createTransitionAuth(userId, userRole, userPermissions),
@@ -128,7 +128,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'project',
+  typeId: 'project',
   repository,
   Model: Project
 });

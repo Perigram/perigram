@@ -370,7 +370,7 @@ function runContextPacket(value, access = 'item') {
 
 function processRunInput(inputs = {}, record = {}, portId = '', environment = {}) {
   if (portId === 'entity') {
-    return inputs.entity ?? inputs.entities?.[record.entityType];
+    return inputs.entity ?? inputs.entities?.[record.typeId];
   }
   if (Object.hasOwn(inputs.data || {}, portId)) return inputs.data[portId];
   if (portId.startsWith('entry:') && Array.isArray(record.entries)) {
@@ -384,7 +384,7 @@ function processRunInput(inputs = {}, record = {}, portId = '', environment = {}
   if (nested !== undefined) return nested;
   const field = (environment.catalogContext?.(record)?.fieldSchemas || [])
     .find(schema => schema.path === portId);
-  const relatedType = field?.type?.entityType;
+  const relatedType = field?.type?.typeId;
   if (relatedType && Object.hasOwn(inputs.entities || {}, relatedType)) {
     return inputs.entities[relatedType];
   }
@@ -474,12 +474,12 @@ async function evaluateNodeOutput(process, nodeId, outputId, run, environment, t
 
 async function resolveContextualEntityOutput(port = {}, inputs = {}, environment = {}) {
   const type = port.type || {};
-  if (!['entity', 'entityRef'].includes(type.base) || port.access !== 'item' || !type.entityType) return null;
-  const candidate = inputs.entities?.[type.entityType] ?? inputs.entity;
+  if (!['entity', 'entityRef'].includes(type.base) || port.access !== 'item' || !type.typeId) return null;
+  const candidate = inputs.entities?.[type.typeId] ?? inputs.entity;
   if (candidate == null || candidate === '') return null;
   const reference = typeof candidate === 'object'
-    ? { type: candidate.type || type.entityType, id: candidate.id || candidate._id || candidate.identity?.uid }
-    : { type: type.entityType, id: candidate };
+    ? { type: candidate.type || type.typeId, id: candidate.id || candidate._id || candidate.identity?.uid }
+    : { type: type.typeId, id: candidate };
   if (!reference.id) return null;
   if (type.base === 'entityRef') return createDataPacket(reference);
   if (typeof candidate === 'object' && (candidate._id || candidate.identity)) return createDataPacket(candidate);
@@ -516,7 +516,7 @@ function findTriggerNode(process, trigger) {
       const record = process.processNodes[recordId(node)];
       if (trigger.kind && record.kind !== trigger.kind) return false;
       if (trigger.eventId && record.eventId !== trigger.eventId) return false;
-      if (trigger.entityType && record.entityType !== trigger.entityType) return false;
+      if (trigger.typeId && record.typeId !== trigger.typeId) return false;
       if (trigger.mode && record.trigger?.mode !== trigger.mode) return false;
       return true;
     });

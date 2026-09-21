@@ -188,12 +188,12 @@ function closeRing(ring = []) {
 
 resetEditor();
 
-const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surface: 'detail' })
+const FIELDS = resolveEntityDisplayFields({ typeId: 'geometryCapture', surface: 'detail' })
   .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource');
 </script>
 
 <template>
-  <EntityPage :entity="capture" entity-type="geometry_capture">
+  <EntityPage :entity="capture" type-id="geometry_capture">
     <template #actions>
       <Button
         v-if="state === 'READY'"
@@ -354,7 +354,7 @@ const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surfa
                 @click="emit('recalculate', { capture, preset: selectedPreset })"
               />
             </div>
-            <DataBlock entity-type="geometryCapture" :entity="capture" :fields="FIELDS" />
+            <DataBlock type-id="geometryCapture" :entity="capture" :fields="FIELDS" />
           </div>
         </Panel>
 
@@ -370,7 +370,7 @@ const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surfa
             </div>
             <div v-if="output?.entityId" class="flex items-center justify-between gap-4">
               <small class="text-muted">{{ $t('geometryCapture.createdEntity') }}</small>
-              <EntityInlineRef :type="output.entityType" :id="output.entityId" />
+              <EntityInlineRef :type="output.typeId" :id="output.entityId" />
             </div>
           </div>
         </Panel>
@@ -388,7 +388,7 @@ const FIELDS = resolveEntityDisplayFields({ entityType: 'geometryCapture', surfa
         </Panel>
 
         <Panel :header="$t('common.history')">
-          <StatusHistory :entity="capture" entity-type="geometry_capture" compact />
+          <StatusHistory :entity="capture" type-id="geometry_capture" compact />
         </Panel>
       </div>
     </template>

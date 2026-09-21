@@ -9,9 +9,9 @@ The manifest vocabulary is the projected UI contract, everywhere: screens and
 actions key their target by `typeId`, actions by `id` (with `parentTypeId`
 for parent context), templates are `typeList`/`instanceDetail`/`home`, and
 workspace-open events carry `{ typeId, entityId }`. The remaining
-`entityType` names inside this family are descriptor-level fields of the
+`typeId` names inside this family are descriptor-level fields of the
 compiler prompt-form contract (`inputPolicy` field descriptors, construction
-input `entityType` constraints, attachment `creator.entityType`) — those
+input `typeId` constraints, attachment `creator.typeId`) — those
 rename with the compiler-plane cut, not the wire cut.
 
 Relation Link dialogs load their options through the active action contract.
@@ -217,7 +217,7 @@ Discord-style operational shell:
   add-tab lists.
 - Entity navigation is a PrimeVue `Tree` explorer at Aura defaults in a
   self-scrolling wrapper. Home entity-list sections render as non-selectable
-  folder nodes (entity-type icon and `generatedRegionLabel` label owned by
+  folder nodes (type-id icon and `generatedRegionLabel` label owned by
   the tree itself) and section folders expand/collapse. The tree
   passthroughs are layout-only: nested rows indent inside the row content so
   hover/selection keep the full row width, and the node label owns the
@@ -232,7 +232,7 @@ Discord-style operational shell:
   ellipsis menu per row: section folders expose the region's compiled create
   actions, and each entity row resolves the create actions of its entity
   type's compiled detail-screen child collection regions
-  (`generatedDetailScreenForEntityType`) with the row entity bound as the
+  (`generatedDetailScreenForTypeId`) with the row entity bound as the
   opened parent through `mergeCollectionActionContext`, plus the compiled
   relation Link actions of the detail screen's main region, which execute
   against the row entity itself. Action records are resolved from the
@@ -323,7 +323,7 @@ bounded IDE-style Explorer and file workspace:
   horizontal scrolling. Below the narrow Explorer breakpoint, semantic nesting
   remains intact while additional visual indentation is removed so deep trees
   do not consume the row's usable width. Collection headings do not append
-  decorative child counts. Every loaded list region retains its entity-type
+  decorative child counts. Every loaded list region retains its type-id
   folder (for example, Queues); containment nests the region's root entities
   inside that folder instead of promoting them directly beneath the project.
 - `GeneratedProjectActionPalette` renders directly in that top strip, outside

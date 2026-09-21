@@ -36,7 +36,7 @@ describe('entity sync event helpers', () => {
     window.addEventListener(ENTITY_CHANGED_EVENT, event => received.push(event.detail));
 
     emitStatusTransitionResult({
-      entityType: 'queue',
+      typeId: 'queue',
       targetId: 'queue-1',
       response: {
         entity: { _id: 'queue-1' },

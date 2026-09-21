@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <EntityCard :entity="organization" entity-type="organization" :variant="variant" :show-trace="false" :show-status="false">
+    <EntityCard :entity="organization" type-id="organization" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <Avatar :label="avatarLabel" shape="circle" size="large" />
       </template>
@@ -18,7 +18,7 @@
       </div>
       <Divider />
       <div class="flex flex-col gap-2">
-        <DataBlock entity-type="organization" :entity="organization" :fields="ORGANIZATION_FIELDS" />
+        <DataBlock type-id="organization" :entity="organization" :fields="ORGANIZATION_FIELDS" />
         <div v-if="createdAt" class="flex justify-between items-center">
           <small>{{ $t('common.created') }}</small>
           <span>{{ createdAt }}</span>
@@ -51,7 +51,7 @@ const props = defineProps({
 
 const avatarLabel = computed(() => (props.organization.identity?.name || '?').charAt(0));
 
-const ORGANIZATION_FIELDS = resolveEntityDisplayFields({ entityType: 'organization', surface: 'card' });
+const ORGANIZATION_FIELDS = resolveEntityDisplayFields({ typeId: 'organization', surface: 'card' });
 
 const createdAt = computed(() => {
     const ts = props.organization.lineage?.createdAt || props.organization.origin?.timestamp;

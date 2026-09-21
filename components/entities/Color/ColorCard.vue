@@ -1,6 +1,6 @@
 <template>
   <div>
-    <EntityCard :entity="color" entity-type="color" :variant="variant" :show-trace="false" :show-status="false">
+    <EntityCard :entity="color" type-id="color" :variant="variant" :show-trace="false" :show-status="false">
       <template #header>
         <div class="h-32 w-full" :style="swatchStyle"></div>
       </template>

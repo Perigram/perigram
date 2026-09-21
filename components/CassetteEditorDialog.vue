@@ -91,7 +91,7 @@
                   :options="layerStandards"
                   optionLabel="label"
                   optionValue="value"
-                  entity-type="layerStandard"
+                  type-id="layerStandard"
                   :placeholder="$t('cassette.selectLayerType')"
                   class="w-full"
                   size="small"

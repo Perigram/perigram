@@ -259,7 +259,7 @@
     `entity_revision` under the type's declared revision scope, and swaps
     the payload slot. Requires the type to declare both payload traits and
     a revision scope; gated by `hasEntityAccess` on the class-collection
-    feature with the type id as entity-type filter (fail-closed without a
+    feature with the type id as type-id filter (fail-closed without a
     compiled grant).
   - The sketch editor surface binds the `sketch` file type (`edit` mode;
     the sketch type declares `revisions: 'scene'`). `SketchEditor` takes
@@ -283,7 +283,7 @@
   swaps the slot — 409 on racing updates, blob cleanup on failure.
   Transport: `PUT /api/instances/:type/:id/payload`, gated by
   `hasEntityAccess` on the class-collection feature with the type id as
-  entity-type filter (fail-closed). The sketch type declares
+  type-id filter (fail-closed). The sketch type declares
   `revisions: 'scene'` and binds the `sketch-editor` surface (`edit`
   mode); `SketchEditor` now takes a host-supplied persistence contract —
   `ArtifactDetail` passes the artifact-backed adapter (feature parity

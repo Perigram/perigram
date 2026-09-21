@@ -28,7 +28,7 @@ const props = defineProps({
 const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
 const { t } = useI18n();
-const queueSummaryFields = computed(() => resolveEntityDisplayFields({ entityType: 'queue', surface: 'card' })
+const queueSummaryFields = computed(() => resolveEntityDisplayFields({ typeId: 'queue', surface: 'card' })
     .filter(field => field.display !== 'entityRefList'));
 
 const FORM_CONTROL_SELECTOR = 'a[href],button,input,select,textarea,[contenteditable="true"]';
@@ -50,14 +50,14 @@ const canEditQueue = computed(() => hasPermissionGrant({
     feature: 'queues',
     level: 'write',
     entity: props.queue,
-    entityType: 'queue'
+    typeId: 'queue'
 }));
 const canDeleteQueue = computed(() => hasPermissionGrant({
     permissions: authStore.activePermissions,
     feature: 'queues',
     action: 'delete',
     entity: props.queue,
-    entityType: 'queue'
+    typeId: 'queue'
 }));
 const commandActions = computed(() => [
     ...props.commandActions,
@@ -74,7 +74,7 @@ const commandActions = computed(() => [
   <div class="cursor-pointer" @click="handleCardClick">
     <EntityCard
         :entity="queue"
-        entity-type="queue"
+        type-id="queue"
         :variant="variant"
         :expandable="expandable"
         :density="density"
@@ -109,7 +109,7 @@ const commandActions = computed(() => [
 
         <div class="flex flex-col gap-3">
             <Divider />
-            <DataBlock entity-type="queue" :entity="queue" :fields="queueSummaryFields" />
+            <DataBlock type-id="queue" :entity="queue" :fields="queueSummaryFields" />
         </div>
 
         <!-- Card footer -->

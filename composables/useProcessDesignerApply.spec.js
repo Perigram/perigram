@@ -41,7 +41,7 @@ describe('useProcessDesignerApply migration pause', () => {
     const { apply, persistence } = mountApply();
     persistence.validateDraft.mockResolvedValue({
       ...validResult,
-      migrationPlan: { statuses: [{ entityType: 'project', removed: [{ state: 'OLD', count: 1 }], targets: ['draft'] }] }
+      migrationPlan: { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 1 }], targets: ['draft'] }] }
     });
 
     await apply.applyProcess();
@@ -66,15 +66,15 @@ describe('useProcessDesignerApply migration pause', () => {
     const { apply, persistence } = mountApply();
     persistence.validateDraft.mockResolvedValue({
       ...validResult,
-      migrationPlan: { statuses: [{ entityType: 'project', removed: [{ state: 'OLD', count: 2 }], targets: ['draft', 'done'] }] }
+      migrationPlan: { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 2 }], targets: ['draft', 'done'] }] }
     });
     await apply.applyProcess();
 
     persistence.activateDraft.mockResolvedValue({ _id: 'draft-1', data: { compiled: { warnings: [] } } });
-    await apply.confirmApplyMigration([{ entityType: 'project', from: 'OLD', to: 'draft' }]);
+    await apply.confirmApplyMigration([{ typeId: 'project', from: 'OLD', to: 'draft' }]);
 
     expect(persistence.activateDraft).toHaveBeenCalledWith('draft-1', {
-      statuses: [{ entityType: 'project', from: 'OLD', to: 'draft' }]
+      statuses: [{ typeId: 'project', from: 'OLD', to: 'draft' }]
     });
     expect(apply.pendingMigration.value).toBeNull();
   });
@@ -83,15 +83,15 @@ describe('useProcessDesignerApply migration pause', () => {
     const { apply, persistence } = mountApply();
     persistence.validateDraft.mockResolvedValue({
       ...validResult,
-      migrationPlan: { statuses: [{ entityType: 'project', removed: [{ state: 'OLD', count: 1 }], targets: ['draft'] }] }
+      migrationPlan: { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 1 }], targets: ['draft'] }] }
     });
     await apply.applyProcess();
 
-    const driftedPlan = { statuses: [{ entityType: 'project', removed: [{ state: 'OLD', count: 5 }], targets: ['draft'] }] };
+    const driftedPlan = { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 5 }], targets: ['draft'] }] };
     const drifted = new Error('Removed workflow states still used by active entities require a migration decision');
     drifted.data = { migrationRequired: true, migrationPlan: driftedPlan };
     persistence.activateDraft.mockRejectedValue(drifted);
-    await apply.confirmApplyMigration([{ entityType: 'project', from: 'OLD', to: 'draft' }]);
+    await apply.confirmApplyMigration([{ typeId: 'project', from: 'OLD', to: 'draft' }]);
 
     // The reactive ref wraps the plan, so assert the drifted content.
     expect(apply.pendingMigration.value.statuses[0].removed[0].count).toBe(5);
@@ -101,14 +101,14 @@ describe('useProcessDesignerApply migration pause', () => {
     const { apply, persistence } = mountApply();
     persistence.validateDraft.mockResolvedValue({
       ...validResult,
-      migrationPlan: { statuses: [{ entityType: 'project', removed: [{ state: 'OLD', count: 3 }], targets: ['draft'] }] }
+      migrationPlan: { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 3 }], targets: ['draft'] }] }
     });
     await apply.applyProcess();
 
     const incomplete = new Error('Migration incomplete');
     incomplete.data = { migrationIncomplete: true, migration: { failures: [{ id: 'p-2' }] } };
     persistence.activateDraft.mockRejectedValue(incomplete);
-    await apply.confirmApplyMigration([{ entityType: 'project', from: 'OLD', to: 'draft' }]);
+    await apply.confirmApplyMigration([{ typeId: 'project', from: 'OLD', to: 'draft' }]);
 
     expect(apply.pendingMigration.value).not.toBeNull();
   });
@@ -117,7 +117,7 @@ describe('useProcessDesignerApply migration pause', () => {
     const { apply, persistence } = mountApply();
     persistence.validateDraft.mockResolvedValue({
       ...validResult,
-      migrationPlan: { statuses: [{ entityType: 'project', removed: [{ state: 'OLD', count: 1 }], targets: ['draft'] }] }
+      migrationPlan: { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 1 }], targets: ['draft'] }] }
     });
     await apply.applyProcess();
 

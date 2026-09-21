@@ -5,7 +5,7 @@ import { applyPatch, evaluateEntityPredicate, executeProcessDataNode, executePro
 describe('process v4 data execution', () => {
   it.each(['effect.updateEntity', 'effect.changeStatus', 'effect.archiveEntity', 'effect.deleteEntity'])(
     'maps %s over item, list, and branched-tree inputs', async kind => {
-    const record = { kind, entityType: 'project' };
+    const record = { kind, typeId: 'project' };
     const invoke = vi.fn(async inputs => ({ ...inputs.entity, identity: inputs.identity }));
 
     const item = await executeProcessEffectNode(record, {
@@ -51,12 +51,12 @@ describe('process v4 data execution', () => {
     const identity = createDataPacket([{ name: 'One' }, { name: 'Two' }], 'list');
 
     await expect(executeProcessEffectNode(
-      { kind: 'effect.updateEntity', entityType: 'project' },
+      { kind: 'effect.updateEntity', typeId: 'project' },
       { entity, identity },
       invoke
     )).rejects.toThrow('items must be scalar or aligned');
     await expect(executeProcessEffectNode(
-      { kind: 'effect.updateEntity', entityType: 'project', matching: 'cross' },
+      { kind: 'effect.updateEntity', typeId: 'project', matching: 'cross' },
       { entity, identity },
       invoke
     )).rejects.toThrow('cannot use Cross matching');
@@ -69,7 +69,7 @@ describe('process v4 data execution', () => {
       return { ...inputs.entity, identity: inputs.identity };
     });
     const result = await executeProcessEffectNode(
-      { kind: 'effect.changeStatus', entityType: 'project' },
+      { kind: 'effect.changeStatus', typeId: 'project' },
       {
         entity: createDataPacket([
           { type: 'project', id: 'p1' },
@@ -105,7 +105,7 @@ describe('process v4 data execution', () => {
       throw new Error('write denied');
     });
     const result = await executeProcessEffectNode(
-      { kind: 'effect.updateEntity', entityType: 'project' },
+      { kind: 'effect.updateEntity', typeId: 'project' },
       { entity: createDataPacket({ type: 'project', id: 'p1' }) },
       invoke
     );
@@ -138,11 +138,11 @@ describe('process v4 data execution', () => {
   });
 
   it('keeps entity predicates declarative and filters in read context', async () => {
-    const predicate = { kind: 'field', entityType: 'sheet', path: 'specs.width', operation: 'gte', value: 100 };
+    const predicate = { kind: 'field', typeId: 'sheet', path: 'specs.width', operation: 'gte', value: 100 };
     expect(evaluateEntityPredicate(predicate, { specs: { width: 120 } })).toBe(true);
     const queryEntities = vi.fn().mockResolvedValue([{ id: 'wide' }]);
     const result = await executeProcessDataNode(
-      { kind: 'read.queryEntities', entityType: 'sheet' },
+      { kind: 'read.queryEntities', typeId: 'sheet' },
       { predicate: createDataPacket(predicate) },
       { queryEntities }
     );
@@ -152,7 +152,7 @@ describe('process v4 data execution', () => {
 
   it('builds composable field patches without mutating the source record', async () => {
     const patch = await executeProcessDataNode(
-      { kind: 'record.fieldChange', entityType: 'project', path: 'identity.name' },
+      { kind: 'record.fieldChange', typeId: 'project', path: 'identity.name' },
       { value: createDataPacket('Cutting room') }
     );
     const source = { identity: { name: 'Old' } };
@@ -274,7 +274,7 @@ describe('process v4 data execution', () => {
         kind: 'record.composeBlock',
         block: 'relations',
         compositionMode: 'relations',
-        entries: [{ id: 'library', key: 'library', entityType: 'library' }]
+        entries: [{ id: 'library', key: 'library', typeId: 'library' }]
       },
       { 'entry:library': createDataPacket([{ type: 'library', id: 'a' }, { type: 'library', id: 'b' }], 'list') }
     );
@@ -290,7 +290,7 @@ describe('process v4 data execution', () => {
       kind: 'record.modifyBlock',
       block: 'relations',
       compositionMode: 'relations',
-      entries: [{ id: 'library', key: 'library', entityType: 'library' }]
+      entries: [{ id: 'library', key: 'library', typeId: 'library' }]
     }, {
       block: createDataPacket({ library: { type: 'library', id: 'a' } }),
       'entry:library': createDataPacket({ type: 'library', id: 'b' })
@@ -474,8 +474,8 @@ describe('process v4 data execution', () => {
         block: 'lineage',
         compositionMode: 'ancestors',
         entries: [
-          { id: 'organization', key: 'organizationId', entityType: 'organization' },
-          { id: 'nesting-run', key: 'runId', entityType: 'nesting_run' }
+          { id: 'organization', key: 'organizationId', typeId: 'organization' },
+          { id: 'nesting-run', key: 'runId', typeId: 'nesting_run' }
         ]
       },
       {
@@ -494,7 +494,7 @@ describe('process v4 data execution', () => {
       kind: 'record.composeBlock',
       block: 'relations',
       compositionMode: 'relations',
-      entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one' }]
+      entries: [{ id: 'library', key: 'library', typeId: 'library', cardinality: 'one' }]
     }, {
       'entry:library': createDataPacket({ type: 'library', id: 'library-1' })
     });
@@ -510,7 +510,7 @@ describe('process v4 data execution', () => {
         block: 'lineage',
         path: 'lineage.queueId',
         compositionMode: 'ancestors',
-        type: { base: 'entityRef', shape: 'item', entityType: 'queue' }
+        type: { base: 'entityRef', shape: 'item', typeId: 'queue' }
       },
       { block: createDataPacket({ queueId: 'queue-1' }) }
     );
@@ -522,12 +522,12 @@ describe('process v4 data execution', () => {
     const entity = createDataPacket({ identity: { name: 'One' } });
 
     await expect(executeProcessDataNode(
-      { kind: 'record.getBlock', entityType: 'project', block: 'summary' },
+      { kind: 'record.getBlock', typeId: 'project', block: 'summary' },
       { entity },
       { domain }
     )).rejects.toThrow('uses block summary outside project');
     await expect(executeProcessDataNode(
-      { kind: 'record.deconstruct', entityType: 'project', blocks: ['identity', 'relations'] },
+      { kind: 'record.deconstruct', typeId: 'project', blocks: ['identity', 'relations'] },
       { entity },
       { domain }
     )).rejects.toThrow('uses block relations outside project');
@@ -539,14 +539,14 @@ describe('process v4 data execution', () => {
     const entity = createDataPacket({ identity: { name: 'One' }, attachments });
 
     const block = await executeProcessDataNode(
-      { kind: 'record.getBlock', entityType: 'project', block: 'attachments' },
+      { kind: 'record.getBlock', typeId: 'project', block: 'attachments' },
       { entity },
       { domain }
     );
     expect(block.branches[0].items).toEqual([attachments]);
 
     const deconstructed = await executeProcessDataNode(
-      { kind: 'record.deconstruct', entityType: 'project', blocks: ['identity', 'attachments'] },
+      { kind: 'record.deconstruct', typeId: 'project', blocks: ['identity', 'attachments'] },
       { entity },
       { domain }
     );
@@ -580,7 +580,7 @@ describe('process v4 data execution', () => {
     const first = fullFamilyEntity('One', 'NEW');
     const second = fullFamilyEntity('Two', 'DONE');
     const third = fullFamilyEntity('Three', 'NEW');
-    const deconstruct = { kind: 'record.deconstruct', entityType: 'sheet', blocks: fullFamilyBlocks };
+    const deconstruct = { kind: 'record.deconstruct', typeId: 'sheet', blocks: fullFamilyBlocks };
 
     const item = await executeProcessDataNode(
       deconstruct,
@@ -615,7 +615,7 @@ describe('process v4 data execution', () => {
     // with the same topology.
     for (const block of fullFamilyBlocks) {
       const read = await executeProcessDataNode(
-        { kind: 'record.getBlock', entityType: 'sheet', block },
+        { kind: 'record.getBlock', typeId: 'sheet', block },
         { entity: treeInput },
         { domain: fullFamilyDomain }
       );
@@ -629,7 +629,7 @@ describe('process v4 data execution', () => {
     const names = await executeProcessDataNode(
       { kind: 'record.getField', block: 'identity', path: 'identity.name' },
       { block: await executeProcessDataNode(
-        { kind: 'record.getBlock', entityType: 'sheet', block: 'identity' },
+        { kind: 'record.getBlock', typeId: 'sheet', block: 'identity' },
         { entity: treeInput },
         { domain: fullFamilyDomain }
       ) }
@@ -681,7 +681,7 @@ describe('process v4 data execution', () => {
     const entity = createDataPacket(entityValue);
 
     const deconstructed = await executeProcessDataNode(
-      { id: 'deconstruct', kind: 'record.deconstruct', entityType: 'sheet', blocks: ['identity', 'attachments'] },
+      { id: 'deconstruct', kind: 'record.deconstruct', typeId: 'sheet', blocks: ['identity', 'attachments'] },
       { entity },
       { domain: fullFamilyDomain, outputId: 'attachments' }
     );
@@ -692,7 +692,7 @@ describe('process v4 data execution', () => {
     expect(entryList.branches[0].items).toEqual([[{ kind: 'drawing', id: 'att-1' }, { kind: 'drawing', id: 'att-2' }]]);
 
     const block = await executeProcessDataNode(
-      { kind: 'record.getBlock', entityType: 'sheet', block: 'attachments' },
+      { kind: 'record.getBlock', typeId: 'sheet', block: 'attachments' },
       { entity },
       { domain: fullFamilyDomain }
     );
@@ -729,7 +729,7 @@ describe('process v4 data execution', () => {
       { identity: { name: 'Gamma' } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', entityType: 'project' },
+      { kind: 'read.queryEntities', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -759,7 +759,7 @@ describe('process v4 data execution', () => {
       { identity: { name: 'Beta' }, status: { state: { primary: 'NEW' } } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', entityType: 'project' },
+      { kind: 'read.queryEntities', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -788,7 +788,7 @@ describe('process v4 data execution', () => {
       { identity: { name: 'Gamma' }, status: { state: { primary: 'DONE' } } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', entityType: 'project' },
+      { kind: 'read.queryEntities', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -818,7 +818,7 @@ describe('process v4 data execution', () => {
       { relations: { library: { type: 'library', id: 'lib-b' } } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', entityType: 'project' },
+      { kind: 'read.queryEntities', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -844,7 +844,7 @@ describe('process v4 data execution', () => {
   it('returns an empty result when no entity matches the mask', async () => {
     const entities = [{ identity: { name: 'Alpha' } }];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', entityType: 'project' },
+      { kind: 'read.queryEntities', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -875,7 +875,7 @@ describe('process v4 data execution', () => {
     ];
     const authorized = [all[0], all[2]];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', entityType: 'project' },
+      { kind: 'read.queryEntities', typeId: 'project' },
       {},
       { queryEntities: async () => authorized }
     );
@@ -985,7 +985,7 @@ describe('process v4 data execution', () => {
       data: { updatedAt: `2026-08-${String(11 - index).padStart(2, '0')}T00:00:00.000Z` }
     }));
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', entityType: 'job' },
+      { kind: 'read.queryEntities', typeId: 'job' },
       {},
       { queryEntities: async () => entities }
     );
@@ -1019,7 +1019,7 @@ describe('process v4 data execution', () => {
       { relations: { library: { type: 'library', id: 'lib-a' } } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', entityType: 'project' },
+      { kind: 'read.queryEntities', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -1056,7 +1056,7 @@ describe('process v4 data execution', () => {
       { status: { state: { primary: 'NEW' } }, identity: { name: 'c' } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', entityType: 'project' },
+      { kind: 'read.queryEntities', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -1139,7 +1139,7 @@ describe('process v4 data execution', () => {
       { identity: { name: 'Gamma' }, status: { state: { primary: 'DONE' } } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', entityType: 'project' },
+      { kind: 'read.queryEntities', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );

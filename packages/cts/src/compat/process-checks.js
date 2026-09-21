@@ -2,7 +2,7 @@
 // compiler's own graph validation. The compiler checks the graph (sockets,
 // availability, lineage); this phase checks the DECLARATIONS the graph
 // touches against a CTS registry view:
-//   - every referenced entityType exists in the org view
+//   - every referenced typeId exists in the org view
 //   - status transitions target declared states of that type
 //   - data/specs field paths land inside real rows (slot-aware: node paths
 //     are block paths, row names are slot-stripped). Managed blocks
@@ -11,7 +11,7 @@
 //     `data.value` is the reserved generic payload slot.
 // Best-effort by design (v1): unknown record shapes pass silently; tighten
 // by teaching the walker new record kinds, never by loosening checks. Type
-// bindings are positional (entityType/typeId/species-kind `type`), so
+// bindings are positional (typeId/typeId/species-kind `type`), so
 // process-vocabulary descriptor strings are never misread as references.
 import { slotFor } from './field-schema-rows.js';
 
@@ -34,47 +34,47 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
   const { graph: _presentation, ...semantic } = data;
 
   for (const [producerOutputId, output] of Object.entries(data.producerOutputs || {})) {
-    if (output?.entityType && !view.has(output.entityType)) {
-      errors.push(`Producer output ${producerOutputId} references unknown type ${output.entityType}`);
+    if (output?.typeId && !view.has(output.typeId)) {
+      errors.push(`Producer output ${producerOutputId} references unknown type ${output.typeId}`);
     }
   }
   for (const [socketId, socket] of Object.entries(data.sockets || {})) {
-    const entityType = socket?.type?.entityType || socket?.entityType;
-    if (entityType && !view.has(entityType)) {
-      errors.push(`Socket ${socketId} references unknown type ${entityType}`);
+    const typeId = socket?.type?.typeId || socket?.typeId;
+    if (typeId && !view.has(typeId)) {
+      errors.push(`Socket ${socketId} references unknown type ${typeId}`);
     }
   }
 
   walk(semantic, (node, path) => {
     if (!node || typeof node !== 'object') return;
-    // Type bindings are positional: v4 records bind through `entityType`,
+    // Type bindings are positional: v4 records bind through `typeId`,
     // v5 species records through `typeId` (current) or the legacy bare
     // `type` string. A bare `type` string anywhere else is a
     // process-vocabulary descriptor ('string', 'default', …) — never a
     // type reference — so it is only read on species records, mirroring
     // the kind branch in `setTypeBinding`.
     const kind = typeof node.kind === 'string' ? node.kind : '';
-    const entityType = typeof node.entityType === 'string' ? node.entityType.replace(/_/g, '-')
+    const typeId = typeof node.typeId === 'string' ? node.typeId.replace(/_/g, '-')
       : typeof node.typeId === 'string' && node.typeId ? node.typeId.replace(/_/g, '-')
       : typeof node.type === 'string' && kind.startsWith('cts.') ? node.type.replace(/_/g, '-') : null;
-    if (entityType && !view.has(entityType) && !path.startsWith('producerOutputs') && !path.startsWith('sockets')) {
-      errors.push(`${path} references unknown type ${entityType}`);
+    if (typeId && !view.has(typeId) && !path.startsWith('producerOutputs') && !path.startsWith('sockets')) {
+      errors.push(`${path} references unknown type ${typeId}`);
     }
-    if (!entityType || !statesByType.has(entityType)) return;
-    const states = statesByType.get(entityType);
+    if (!typeId || !statesByType.has(typeId)) return;
+    const states = statesByType.get(typeId);
     for (const key of ['status', 'targetStatus', 'statusTo', 'toState', 'to']) {
       const value = node[key];
       if (typeof value === 'string' && value && !states.has(value)) {
-        errors.push(`${path} moves ${entityType} to undeclared state ${value}`);
+        errors.push(`${path} moves ${typeId} to undeclared state ${value}`);
       }
     }
-    const rowRoots = rowRootsByType.get(entityType);
+    const rowRoots = rowRootsByType.get(typeId);
     if (rowRoots) {
       for (const key of ['field', 'fieldPath']) {
         const fieldPath = node[key];
         const root = fieldRoot(String(fieldPath || ''));
         if (root && !rowRoots.has(root)) {
-          errors.push(`${path} uses field ${fieldPath} outside the ${entityType} row`);
+          errors.push(`${path} uses field ${fieldPath} outside the ${typeId} row`);
         }
       }
     }

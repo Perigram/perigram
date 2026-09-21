@@ -7,8 +7,8 @@ test.describe('home and entity UI', () => {
     await app.createQueue(project);
     await app.page.goto('/');
     await app.page.waitForLoadState('load');
-    await expect(app.page.locator('[data-home-entity-type="project"] [data-entity-id]').filter({ hasText: project.identity?.name || project.name })).toBeVisible();
-    await expect(app.page.locator('[data-home-entity-type="queue"]')).toHaveCount(0);
+    await expect(app.page.locator('[data-home-type-id="project"] [data-entity-id]').filter({ hasText: project.identity?.name || project.name })).toBeVisible();
+    await expect(app.page.locator('[data-home-type-id="queue"]')).toHaveCount(0);
     await app.expectCleanRuntime();
   });
 
@@ -18,7 +18,7 @@ test.describe('home and entity UI', () => {
     const queue = await app.createQueue(project);
     const auth = await app.request.get('/api/auth/me');
     const context = await auth.json();
-    const detail = (context.screens || []).find(screen => screen.template === 'entityDetail' && screen.entityType === 'queue');
+    const detail = (context.screens || []).find(screen => screen.template === 'instanceDetail' && screen.typeId === 'queue');
     test.skip(!detail?.route, 'Active process has no generated queue detail screen');
     await app.page.goto(`${detail.route}?entityId=${encodeURIComponent(queue._id)}&queueId=${encodeURIComponent(queue._id)}&projectId=${encodeURIComponent(project._id)}`);
     await app.page.waitForLoadState('load');

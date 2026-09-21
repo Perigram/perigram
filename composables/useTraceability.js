@@ -10,8 +10,8 @@ export const useTraceability = () => {
         const bindings = authStore.lineageBindings || [];
         if (authStore.processActive) {
             return bindings.map(binding => ({
-                childType: binding.childEntityType,
-                parentType: binding.ancestorEntityType,
+                childType: binding.childTypeId,
+                parentType: binding.parentTypeId,
                 lineageKey: binding.lineageKey
             }));
         }

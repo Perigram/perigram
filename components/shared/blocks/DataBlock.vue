@@ -32,7 +32,7 @@
  *
  * Usage:
  *   import { PEN_TEMPLATE_FIELDS } from '~/constants/entityFields'
- *   <DataBlock entity-type="penTemplate" :entity="pen" :fields="PEN_TEMPLATE_FIELDS" />
+ *   <DataBlock type-id="penTemplate" :entity="pen" :fields="PEN_TEMPLATE_FIELDS" />
  *
  * Fields schema: Array of { path, i18n, suffix?, prefix? }
  * - path: dot-notation path into entity (e.g. 'stroke.color')
@@ -46,7 +46,7 @@ import { filterEntityFields } from '~/shared/entity-field-access.js';
 import { decorateDataValue, resolveDataPath } from '~/utils/data-display.js';
 
 const props = defineProps({
-    entityType: { type: String, required: true },
+    typeId: { type: String, required: true },
     entity: { type: Object, required: true },
     accessEntity: { type: Object, default: null },
     fields: { type: Array, required: true },
@@ -61,7 +61,7 @@ const policyFields = computed(() => filterEntityFields({
     fields: props.fields,
     auth: { permissions: authStore.activePermissions, fieldPolicies: authStore.fieldPolicies },
     entity: props.accessEntity || props.entity,
-    entityType: props.entityType
+    typeId: props.typeId
 }));
 
 const visibleRows = computed(() =>

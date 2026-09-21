@@ -215,9 +215,9 @@ describe('Design system manifest', () => {
       { type: 'sheet', id: 'sheet-1' },
       { type: 'remnant', id: 'remnant-1' }
     ])).toEqual([
-      { entityType: 'material_pile', id: 'pile-1', entity: null },
-      { entityType: 'sheet', id: 'sheet-1', entity: null },
-      { entityType: 'remnant', id: 'remnant-1', entity: null }
+      { typeId: 'material_pile', id: 'pile-1', entity: null },
+      { typeId: 'sheet', id: 'sheet-1', entity: null },
+      { typeId: 'remnant', id: 'remnant-1', entity: null }
     ]);
 
     expect(resolveEntityRelationRefs({
@@ -233,9 +233,9 @@ describe('Design system manifest', () => {
       id: 'design-1',
       revisionId: 'revision-7'
     })).toEqual([{
-      entityType: 'entity_revision',
+      typeId: 'entity_revision',
       id: 'revision-7',
-      source: { entityType: 'sheet_design', id: 'design-1' },
+      source: { typeId: 'sheet_design', id: 'design-1' },
       entity: null
     }]);
   });
@@ -255,8 +255,8 @@ describe('Design system manifest', () => {
   it('uses real workflow definitions as the only interactive status source', () => {
     for (const entry of DESIGN_SYSTEM_ENTITY_CONTRACTS) {
       if (entry.status === 'interactive') {
-        expect(cncWorkflows[entry.entityType], `${entry.key} is interactive without a workflow`).toBeTruthy();
-      } else if (!cncWorkflows[entry.entityType]) {
+        expect(cncWorkflows[entry.typeId], `${entry.key} is interactive without a workflow`).toBeTruthy();
+      } else if (!cncWorkflows[entry.typeId]) {
         expect(entry.status, `${entry.key} without workflow must not be interactive`).not.toBe('interactive');
       }
     }
@@ -264,7 +264,7 @@ describe('Design system manifest', () => {
 
   it('allows status actions to use a live workflow override', () => {
     const actions = getWorkflowStatusActions({
-      entityType: 'queue',
+      typeId: 'queue',
       state: 'DRAFT',
       workflows: {
         queue: {
@@ -280,7 +280,7 @@ describe('Design system manifest', () => {
 
   it('passes target lifecycle evidence schema through status actions', () => {
     const actions = getWorkflowStatusActions({
-      entityType: 'queue',
+      typeId: 'queue',
       state: 'DRAFT',
       workflows: {
         queue: {
@@ -748,7 +748,7 @@ describe('Design system manifest', () => {
     const nestingRunService = fs.readFileSync(path.join(REPO_ROOT, 'server/features/nesting-runs/service.js'), 'utf8');
 
     expect(nestingRunCard).toContain('EntityRelationsBlock');
-    expect(nestingRunCard).toContain("entityType: 'sheetDesign'");
+    expect(nestingRunCard).toContain("typeId: 'sheetDesign'");
     expect(nestingRunCard).toContain("field.path === 'data.sheetDesignIds'");
     expect(nestingRunCard).toContain('item-variant="compact"');
     expect(nestingRunCard).not.toContain('item-variant="inline"');
@@ -774,7 +774,7 @@ describe('Design system manifest', () => {
     expect(editor).toContain('majorGridSize');
     expect(editor).toContain('selectedSnapPoint');
     expect(generatedDetail).toContain(':show-identity="showIdentity || forceIdentityForEditor"');
-    expect(generatedDetail).toContain('entityEditorForcesIdentity(props.entityType)');
+    expect(generatedDetail).toContain('entityEditorForcesIdentity(props.typeId)');
     expect(relationBlock).toContain(':variant="itemVariant"');
   });
 
@@ -877,17 +877,17 @@ describe('Design system manifest', () => {
   it('derives status actions from workflow definitions instead of hardcoded fallbacks', async () => {
     const { getWorkflowStatusActions } = await import('../utils/status-actions.js');
 
-    expect(getWorkflowStatusActions({ entityType: 'queue', state: 'DRAFT', t: key => key })).toContainEqual(expect.objectContaining({
+    expect(getWorkflowStatusActions({ typeId: 'queue', state: 'DRAFT', t: key => key })).toContainEqual(expect.objectContaining({
       to: 'NESTING'
     }));
-    expect(getWorkflowStatusActions({ entityType: 'queue', state: 'DRAFT', t: key => key })).not.toContainEqual(expect.objectContaining({
+    expect(getWorkflowStatusActions({ typeId: 'queue', state: 'DRAFT', t: key => key })).not.toContainEqual(expect.objectContaining({
       to: 'READY'
     }));
-    expect(getWorkflowStatusActions({ entityType: 'sheet', state: 'AVAILABLE', t: key => key })).toEqual(expect.arrayContaining([
+    expect(getWorkflowStatusActions({ typeId: 'sheet', state: 'AVAILABLE', t: key => key })).toEqual(expect.arrayContaining([
       expect.objectContaining({ to: 'IN-CUTTING', display: 'inline' }),
       expect.objectContaining({ to: 'SCRAP', display: 'menu' })
     ]));
-    expect(getWorkflowStatusActions({ entityType: 'project', state: 'DRAFT', t: key => key })).not.toContainEqual(expect.objectContaining({
+    expect(getWorkflowStatusActions({ typeId: 'project', state: 'DRAFT', t: key => key })).not.toContainEqual(expect.objectContaining({
       to: 'DRAFT'
     }));
   });
@@ -934,7 +934,7 @@ describe('Design system manifest', () => {
 
   it('keeps factory demo states and badge mappings aligned with workflow definitions', () => {
     for (const entry of DESIGN_SYSTEM_ENTITY_CONTRACTS) {
-      const workflow = cncWorkflows[entry.entityType];
+      const workflow = cncWorkflows[entry.typeId];
       if (!workflow) continue;
       const normalizedWorkflow = normalizeWorkflow(workflow);
       const workflowStates = Object.values(normalizedWorkflow.regions || {})
@@ -943,18 +943,18 @@ describe('Design system manifest', () => {
       const entity = factories[entry.factoryName]();
       expect(
         workflowStates,
-        `${entry.key} factory state ${entity.status.state} must exist in workflow ${entry.entityType}`
+        `${entry.key} factory state ${entity.status.state} must exist in workflow ${entry.typeId}`
       ).toContain(entity.status.state);
     }
 
-    for (const [entityType, workflow] of Object.entries(cncWorkflows)) {
+    for (const [typeId, workflow] of Object.entries(cncWorkflows)) {
       const normalizedWorkflow = normalizeWorkflow(workflow);
       const workflowStates = Object.values(normalizedWorkflow.regions || {})
         .flatMap(region => Object.keys(region.states || {}));
       for (const state of workflowStates) {
         expect(
           STATUS_MAPPINGS[state] || STATUS_MAPPINGS[state.toLowerCase()],
-          `${entityType}.${state} missing status badge mapping`
+          `${typeId}.${state} missing status badge mapping`
         ).toBeTruthy();
       }
     }

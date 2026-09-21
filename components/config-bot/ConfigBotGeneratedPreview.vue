@@ -34,11 +34,11 @@
       <strong>{{ $t('admin.configBot.preview.workflows') }}</strong>
       <div
         v-for="workflow in workflowSummaries"
-        :key="workflow.entityType"
+        :key="workflow.typeId"
         class="flex flex-col gap-3 rounded-ui border border-content-border p-3"
       >
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <strong>{{ workflow.entityType }}</strong>
+          <strong>{{ workflow.typeId }}</strong>
           <Tag :value="$t('admin.configBot.preview.transitionCount', { count: workflow.transitions.length })" severity="secondary" size="small" />
         </div>
         <div class="flex flex-wrap gap-2">
@@ -76,8 +76,8 @@ const props = defineProps({
 const { t } = useI18n();
 
 const componentItems = computed(() => (props.draftPackage.components || []).map((component) => {
-  const label = component.key || component.entityType || t('admin.configBot.preview.component');
-  const detail = component.componentPath || component.entityType || component.primitives?.join(', ');
+  const label = component.key || component.typeId || t('admin.configBot.preview.component');
+  const detail = component.componentPath || component.typeId || component.primitives?.join(', ');
   return {
     key: `${label}:${detail || 'draft'}`,
     label,
@@ -86,8 +86,8 @@ const componentItems = computed(() => (props.draftPackage.components || []).map(
 }));
 
 const workflowSummaries = computed(() => (props.draftPackage.workflows || []).map((entry) => ({
-  entityType: entry.entityType,
+  typeId: entry.typeId,
   states: Object.keys(entry.workflow?.states || {}),
   transitions: entry.workflow?.transitions || []
-})).filter(workflow => workflow.entityType));
+})).filter(workflow => workflow.typeId));
 </script>

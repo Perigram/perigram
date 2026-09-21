@@ -15,7 +15,7 @@ export const cncEntityConstruction = {
           type: 'artifactUpload',
           required: true,
           prompt: true,
-          creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' }
+          creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' }
         }
       ]
     },
@@ -33,7 +33,7 @@ export const cncEntityConstruction = {
     defaultMode: 'genericCreate',
     inputs: [
       { id: 'name', label: 'Queue name', path: 'name', type: 'string', required: true, prompt: true },
-      { id: 'materialPool', label: 'Material pool', path: 'job.materialPool', type: 'entityList', accepts: ['material_pile', 'sheet', 'remnant'], required: false },
+      { id: 'materialPool', label: 'Material pool', path: 'job.materialPool', type: 'typeList', accepts: ['material_pile', 'sheet', 'remnant'], required: false },
       { id: 'nestingSettings', label: 'Nesting settings', path: 'nestingSettings', type: 'object', required: false }
     ]
   },
@@ -64,11 +64,11 @@ export const cncEntityConstruction = {
     derived: true,
     modeInputs: {
       bakeCassetteDesignFromTemplate: [
-        { id: 'templateId', label: 'Cassette template', path: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true },
+        { id: 'templateId', label: 'Cassette template', path: 'templateId', type: 'entity', typeId: 'cassette', required: true, prompt: true },
         { id: 'parameters', label: 'Parameters', path: 'parameters', type: 'cassetteParameters', templateFieldId: 'templateId', required: false, prompt: true }
       ],
       importCassetteDesignFromArtifact: [
-        { id: 'artifactId', label: 'DXF artifact', path: 'artifactId', type: 'entity', entityType: 'artifact', attachmentKinds: ['DXF_SOURCE'], required: true, prompt: true },
+        { id: 'artifactId', label: 'DXF artifact', path: 'artifactId', type: 'entity', typeId: 'artifact', attachmentKinds: ['DXF_SOURCE'], required: true, prompt: true },
         { id: 'layerMapping', label: 'Layer mapping', path: 'layerMapping', type: 'object', required: false, prompt: true },
         { id: 'parameters', label: 'Parameters', path: 'parameters', type: 'object', required: false, prompt: true }
       ]
@@ -126,6 +126,6 @@ export const cncEntityConstruction = {
   }
 };
 
-export function getEntityConstruction(entityType) {
-  return cncEntityConstruction[entityType] || null;
+export function getEntityConstruction(typeId) {
+  return cncEntityConstruction[typeId] || null;
 }

@@ -15,7 +15,7 @@ import { getPrimaryState } from '~/packages/core/src/index.js';
 
 const props = defineProps({
   entity: { type: Object, default: null },
-  entityType: { type: String, required: true },
+  typeId: { type: String, required: true },
   targetId: { type: String, default: null },
   mockEvents: { type: Array, default: null },
   compact: { type: Boolean, default: false }
@@ -26,7 +26,7 @@ const resolvedTargetId = computed(
 );
 
 const { t } = useI18n();
-const { events, isLoading, fetchHistory } = useStatusHistory(props.entityType, resolvedTargetId.value);
+const { events, isLoading, fetchHistory } = useStatusHistory(props.typeId, resolvedTargetId.value);
 const supportDialog = useSupportDialog();
 const supportChatTarget = useSupportChatTarget();
 const displayEvents = computed(() => {
@@ -122,7 +122,7 @@ const openActorChat = (event) => {
     name: actorName(event),
     draftEntityRefs: resolvedTargetId.value
       ? [{
-          type: props.entityType,
+          type: props.typeId,
           id: resolvedTargetId.value,
           label: props.entity?.identity?.name || props.entity?.identity?.serial || resolvedTargetId.value,
           entity: props.entity || null

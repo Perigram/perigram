@@ -268,7 +268,7 @@ export async function getEntityConversationContext(auth, entityKey = '') {
         // EVERY generated source of the type, so parent-scoped child lists
         // count too.
         const sources = scopedEntityOptionSources(scopedAuth)
-            .filter(source => source.entityType === parsed.type);
+            .filter(source => source.typeId === parsed.type);
         const loader = ENTITY_OPTION_LOADERS[parsed.type] || null;
         const scoped = sources.length
             ? await loadEntityOptionsForSources(scopedAuth, parsed.type, sources).catch(() => [])
@@ -307,7 +307,7 @@ export async function getEntityConversationContext(auth, entityKey = '') {
     return {
         kind: 'entity',
         conversationKey: entityConversationKey(parsed.type, parsed.id),
-        entityType: parsed.type,
+        typeId: parsed.type,
         entityId: parsed.id,
         entityName: entityName(dto, parsed.type),
         entity: dto,
@@ -329,19 +329,19 @@ async function buildEntityPath(scopedAuth, type, entity) {
     let currentType = type;
     let currentDto = dto;
     while (currentDto) {
-        const binding = bindings.find(item => item.childEntityType === currentType);
+        const binding = bindings.find(item => item.childTypeId === currentType);
         const parentId = binding ? String(currentDto?.lineage?.[binding.lineageKey] || '') : '';
         if (!binding || !parentId) break;
-        if (path.some(entry => entry.type === binding.ancestorEntityType && entry.id === parentId)) break;
-        const parent = await fetchLinkedEntity(scopedAuth, binding.ancestorEntityType, parentId);
+        if (path.some(entry => entry.type === binding.parentTypeId && entry.id === parentId)) break;
+        const parent = await fetchLinkedEntity(scopedAuth, binding.parentTypeId, parentId);
         if (!parent) break;
         const parentDto = entityDto(parent);
         path.unshift({
-            type: binding.ancestorEntityType,
+            type: binding.parentTypeId,
             id: parentId,
-            name: entityName(parentDto, binding.ancestorEntityType)
+            name: entityName(parentDto, binding.parentTypeId)
         });
-        currentType = binding.ancestorEntityType;
+        currentType = binding.parentTypeId;
         currentDto = parentDto;
     }
     const organizationId = organizationIdOf(dto, scopedAuth);
@@ -364,7 +364,7 @@ async function buildEntityPath(scopedAuth, type, entity) {
 export function entityConversationMatch(context, includeChildren = true) {
     if (!includeChildren) return context.match;
     return {
-        entityPath: { $elemMatch: { type: context.entityType, id: context.entityId } }
+        entityPath: { $elemMatch: { type: context.typeId, id: context.entityId } }
     };
 }
 
@@ -452,8 +452,8 @@ async function entityConversationSummaries(messages, auth) {
 async function topLevelEntityFor(scopedAuth, message, cache) {
     const bindings = scopedAuth.process?.lineageBindings || [];
     const parentBindingFor = (type) => bindings.find(binding => (
-        binding.childEntityType === type
-        && binding.ancestorEntityType !== 'organization'
+        binding.childTypeId === type
+        && binding.parentTypeId !== 'organization'
         && binding.lineageKey
     ));
     const cachedEntity = async (type, id) => {
@@ -477,13 +477,13 @@ async function topLevelEntityFor(scopedAuth, message, cache) {
             : '';
 
         if (!parentId) break;
-        const parentKey = `${binding.ancestorEntityType}:${parentId}`;
+        const parentKey = `${binding.parentTypeId}:${parentId}`;
         if (seen.has(parentKey)) break;
-        const parent = await cachedEntity(binding.ancestorEntityType, parentId);
+        const parent = await cachedEntity(binding.parentTypeId, parentId);
         if (!parent) break;
         const parentDto = entityDto(parent);
         seen.add(parentKey);
-        type = binding.ancestorEntityType;
+        type = binding.parentTypeId;
         id = parentId;
         name = parentDto?.identity?.name || name;
     }
@@ -494,7 +494,7 @@ function entitySummaryRow(entry, message, flags = {}) {
     return {
         conversationKey: entityConversationKey(entry.type, entry.id),
         conversationKind: 'entity',
-        entityType: entry.type,
+        typeId: entry.type,
         entityId: entry.id,
         entityName: entry.name || entry.id,
         lastMessage: message.message,
@@ -592,8 +592,8 @@ export async function listEntityOptions(auth, type, query = '', recipientUserId 
 export async function listEntityOptionTypes(auth = {}) {
     const scopedAuth = await resolveEntityOptionAuth(auth);
     return scopedEntityOptionTypes(scopedAuth).map(source => ({
-        value: source.entityType,
-        label: source.label || source.entityType,
+        value: source.typeId,
+        label: source.label || source.typeId,
         labelKey: source.labelKey || null,
         sourceId: source.id || null,
         screenKey: source.screenKey || null
@@ -710,7 +710,7 @@ function messageSnippet(message = {}) {
 
 async function resolveEntityMessageFields(auth, context) {
     const scopedAuth = await resolveEntityOptionAuth(auth);
-    const entityPath = await buildEntityPath(scopedAuth, context.entityType, context.entity);
+    const entityPath = await buildEntityPath(scopedAuth, context.typeId, context.entity);
     return {
         entityLink: entityPath[entityPath.length - 1],
         entityPath,
@@ -809,7 +809,7 @@ function normalizeAttachment(attachment) {
 async function normalizeEntityRefs(entityRefs = [], auth = {}, options = {}) {
     if (!Array.isArray(entityRefs)) return [];
     const scopedAuth = await resolveEntityOptionAuth(auth);
-    const allowedTypes = new Set(scopedEntityOptionTypes(scopedAuth).map(source => source.entityType));
+    const allowedTypes = new Set(scopedEntityOptionTypes(scopedAuth).map(source => source.typeId));
     const normalized = entityRefs
         .map(ref => ({
             type: normalizeEntityOptionType(ref?.type),
@@ -1056,7 +1056,7 @@ async function loadEntityOptions(auth, type) {
     if (!loader) return [];
 
     if (auth.process?.active && type !== 'user') {
-        const sources = scopedEntityOptionTypes(auth).filter(source => source.entityType === type);
+        const sources = scopedEntityOptionTypes(auth).filter(source => source.typeId === type);
         if (sources.length) return await loadEntityOptionsForSources(auth, type, sources);
     }
 
@@ -1119,7 +1119,7 @@ function normalizeEntityOptionType(type) {
 function isEntityOptionTypeAllowed(auth = {}, type) {
     if (!type) return false;
     if (type === 'user') return true;
-    return scopedEntityOptionSources(auth).some(source => source.entityType === type);
+    return scopedEntityOptionSources(auth).some(source => source.typeId === type);
 }
 
 function scopedEntityOptionTypes(auth = {}) {
@@ -1131,13 +1131,13 @@ function scopedEntityOptionSources(auth = {}) {
         const sources = [];
         for (const screen of auth.screens || []) {
             for (const source of screen.sources || []) {
-                if (!source?.entityType) continue;
+                if (!source?.typeId) continue;
                 if (source.mode === 'single') continue;
                 if (!sourceRequirementAllowed(auth, source.required || screen.required || {})) continue;
                 sources.push({
                     ...source,
                     screenKey: screen.screenKey || screen.id || null,
-                    screenEntityType: screen.entityType || null,
+                    screenTypeId: screen.typeId || null,
                     screenScope: screen.scope || null
                 });
             }
@@ -1146,15 +1146,15 @@ function scopedEntityOptionSources(auth = {}) {
         // refs even without a readable artifact list source: the chat
         // attachment picker offers the org process's artifact creator and
         // must be able to reference what it just created.
-        if (hasArtifactCreatorAction(auth) && !sources.some(source => source.entityType === 'artifact')) {
-            sources.push({ entityType: 'artifact', label: 'artifact', creatorOnly: true });
+        if (hasArtifactCreatorAction(auth) && !sources.some(source => source.typeId === 'artifact')) {
+            sources.push({ typeId: 'artifact', label: 'artifact', creatorOnly: true });
         }
         return sources;
     }
 
     return Object.keys(ENTITY_OPTION_LOADERS)
-        .filter(entityType => entityType !== 'user')
-        .map(entityType => ({ entityType, label: entityType }));
+        .filter(typeId => typeId !== 'user')
+        .map(typeId => ({ typeId, label: typeId }));
 }
 
 /**
@@ -1170,7 +1170,7 @@ function hasArtifactCreatorAction(auth = {}) {
         // legacy exposure fields; both identify creates.
         ['createEntity', 'createInstance'].includes(action?.actionKind)
         && [...(action.inputPolicy?.fields || []), ...(action.construction?.inputs || [])]
-            .some(field => field?.creator?.entityType && userCreatableAttachmentKinds(field.creator.attachmentKinds))
+            .some(field => field?.creator?.typeId && userCreatableAttachmentKinds(field.creator.attachmentKinds))
     ));
 }
 
@@ -1214,7 +1214,7 @@ function firstTransition(requirement = {}) {
 function dedupeSources(sources = []) {
     const byType = new Map();
     for (const source of sources) {
-        if (!byType.has(source.entityType)) byType.set(source.entityType, source);
+        if (!byType.has(source.typeId)) byType.set(source.typeId, source);
     }
     return [...byType.values()];
 }
@@ -1250,10 +1250,10 @@ function resolveFilterPlaceholders(value, scope = {}) {
 }
 
 async function expandParentScopedFilters(auth, filters = {}, source = {}) {
-    const parentType = source.screenEntityType;
+    const parentType = source.screenTypeId;
     if (!parentType) return [];
 
-    const parentSources = scopedEntityOptionSources(auth).filter(item => item.entityType === parentType);
+    const parentSources = scopedEntityOptionSources(auth).filter(item => item.typeId === parentType);
     if (!parentSources.length) return [];
 
     const parentEntities = await loadEntityOptionsForSources(auth, parentType, parentSources).catch(() => []);

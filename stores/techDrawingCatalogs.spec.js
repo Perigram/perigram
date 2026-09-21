@@ -50,7 +50,7 @@ describe('pen templates catalog', () => {
     expect(createInstance).toHaveBeenCalledWith('pen-template', {
       identity: { name: 'New' },
       data: { stroke: { color: '#111', weight: 0.4, pattern: 'DOTTED' } }
-    }, { entityType: 'pen-template' });
+    }, { typeId: 'pen-template' });
   });
 });
 
@@ -91,7 +91,7 @@ describe('layer standards catalog', () => {
     await store.setOrgPenOverride('std-sys', 'pen-org');
     expect(createInstance).toHaveBeenCalledWith('layer-standard', expect.objectContaining({
       relations: { defaultPen: { type: 'pen-template', id: 'pen-org' } }
-    }), { entityType: 'layer-standard' });
+    }), { typeId: 'layer-standard' });
     expect(updateInstance).not.toHaveBeenCalled();
 
     // A second override updates the existing shadow.
@@ -104,7 +104,7 @@ describe('layer standards catalog', () => {
     await store.setOrgPenOverride('std-sys', 'pen-other');
     expect(updateInstance).toHaveBeenCalledWith('layer-standard', 'std-shadow', {
       relations: { defaultPen: { type: 'pen-template', id: 'pen-other' } }
-    }, { entityType: 'layer-standard' });
+    }, { typeId: 'layer-standard' });
     expect(createInstance).not.toHaveBeenCalled();
   });
 });

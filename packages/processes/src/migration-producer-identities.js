@@ -60,7 +60,7 @@ export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
         producerOutputId: candidate.producerOutputId,
         nodeId,
         outputSocketId: candidate.outputSocketId,
-        entityType: candidate.entityType,
+        typeId: candidate.typeId,
         fields: { read: [], write: [], private: [] }
       };
       changed = true;
@@ -69,7 +69,7 @@ export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
     const actionId = String(node.entryTriggerId || node.id || recordId);
     const action = actions[actionId];
     const requiresActionIdentity = ACTION_EFFECT_KINDS.has(node.kind)
-      && Boolean(node.entityType || action?.entityType);
+      && Boolean(node.typeId || action?.typeId);
     const selectedId = node.producerOutputId || action?.producerOutputId || '';
 
     if (selectedId) {
@@ -95,10 +95,10 @@ export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
     }
 
     if (!requiresActionIdentity) continue;
-    const entityType = node.entityType || action?.entityType || '';
-    const compatible = candidates.filter(candidate => !entityType || candidate.entityType === entityType);
+    const typeId = node.typeId || action?.typeId || '';
+    const compatible = candidates.filter(candidate => !typeId || candidate.typeId === typeId);
     if (compatible.length !== 1) {
-      errors.push(producerIdentityDiagnostic(nodeId, entityType, candidates));
+      errors.push(producerIdentityDiagnostic(nodeId, typeId, candidates));
       continue;
     }
 
@@ -108,25 +108,25 @@ export function migrateProducerOutputIdentities(definition = {}, domain = {}) {
   }
 
   for (const [profileId, profile] of Object.entries(data.entityProfiles || {})) {
-    const entityType = profile?.entityType || profileId;
+    const typeId = profile?.typeId || profileId;
     const candidates = Object.values(producerOutputs)
-      .filter(output => output?.entityType === entityType)
+      .filter(output => output?.typeId === typeId)
       .sort((left, right) => left.producerOutputId.localeCompare(right.producerOutputId));
     if (candidates.length !== 1) {
-      errors.push(`Entity profile ${profileId} requires one ${entityType} producer output; candidates: ${describeOutputs(candidates)}`);
+      errors.push(`Entity profile ${profileId} requires one ${typeId} producer output; candidates: ${describeOutputs(candidates)}`);
       continue;
     }
     const output = candidates[0];
     const profileContract = { ...profile };
     delete profileContract.id;
-    delete profileContract.entityType;
+    delete profileContract.typeId;
     producerOutputs[output.producerOutputId] = {
       ...output,
       ...profileContract,
       producerOutputId: output.producerOutputId,
       nodeId: output.nodeId,
       outputSocketId: output.outputSocketId,
-      entityType: output.entityType
+      typeId: output.typeId
     };
     delete data.entityProfiles[profileId];
     changed = true;
@@ -149,35 +149,35 @@ function entityOutputCandidates(nodeId, node, producerOutputs, domain) {
     declaredOutputs = [];
   }
   for (const output of [...declaredOutputs, ...(node.outputs || [])]) {
-    const entityType = output?.type?.base === 'entity'
-      ? output.type.entityType
-      : output?.kind === 'entity' ? output.entityType : '';
-    if (!output?.id || !entityType) continue;
+    const typeId = output?.type?.base === 'entity'
+      ? output.type.typeId
+      : output?.kind === 'entity' ? output.typeId : '';
+    if (!output?.id || !typeId) continue;
     const producerOutputId = `${nodeId}:${output.id}`;
     candidates.set(producerOutputId, {
       producerOutputId,
       outputSocketId: String(output.id),
-      entityType: String(entityType)
+      typeId: String(typeId)
     });
   }
   for (const [producerOutputId, output] of Object.entries(producerOutputs || {})) {
-    if (String(output?.nodeId) !== nodeId || !output?.outputSocketId || !output?.entityType) continue;
+    if (String(output?.nodeId) !== nodeId || !output?.outputSocketId || !output?.typeId) continue;
     candidates.set(producerOutputId, {
       producerOutputId,
       outputSocketId: String(output.outputSocketId),
-      entityType: String(output.entityType)
+      typeId: String(output.typeId)
     });
   }
   return [...candidates.values()].sort((left, right) => left.producerOutputId.localeCompare(right.producerOutputId));
 }
 
-function producerIdentityDiagnostic(nodeId, entityType, candidates) {
+function producerIdentityDiagnostic(nodeId, typeId, candidates) {
   const described = describeOutputs(candidates);
-  return `Process node ${nodeId} requires one ${entityType || 'entity'} producer output; candidates: ${described}`;
+  return `Process node ${nodeId} requires one ${typeId || 'entity'} producer output; candidates: ${described}`;
 }
 
 function describeOutputs(candidates) {
   return candidates.length
-    ? candidates.map(candidate => `${candidate.producerOutputId} (${candidate.entityType})`).join(', ')
+    ? candidates.map(candidate => `${candidate.producerOutputId} (${candidate.typeId})`).join(', ')
     : 'none';
 }

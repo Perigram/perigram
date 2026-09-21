@@ -74,7 +74,7 @@ describe('missing vs present-nullable field in the evaluator', () => {
         block: 'lineage',
         path: 'lineage.queueId',
         compositionMode: 'ancestors',
-        type: { base: 'entityRef', shape: 'item', entityType: 'queue' }
+        type: { base: 'entityRef', shape: 'item', typeId: 'queue' }
       },
       { block: createDataPacket({}) }
     );
@@ -148,12 +148,12 @@ describe('missing vs present-nullable field in the evaluator', () => {
 
   it('appends and removes on a missing patch path as if it were absent', () => {
     const appended = applyPatch({ identity: {} }, {
-      entityType: 'machine',
+      typeId: 'machine',
       changes: [{ path: 'data.tags', operation: 'append', value: 'a' }]
     });
     expect(appended.data.tags).toEqual(['a']);
     const removed = applyPatch({ identity: {} }, {
-      entityType: 'machine',
+      typeId: 'machine',
       changes: [{ path: 'data.tags', operation: 'remove', value: 'a' }]
     });
     expect(removed.data.tags).toEqual([]);

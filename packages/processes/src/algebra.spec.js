@@ -55,13 +55,13 @@ describe('process programming algebra', () => {
           producerOutputId: 'queue:entity',
           nodeId: 'queue',
           outputSocketId: 'entity',
-          entityType: 'queue',
+          typeId: 'queue',
           lifecycle: { mode: 'defaultCreated' },
           fields: { read: [], write: [], private: [] }
         }
       },
       processNodes: {
-        decompose: { id: 'decompose', kind: 'entityDecompose', entityType: 'queue' },
+        decompose: { id: 'decompose', kind: 'entityDecompose', typeId: 'queue' },
         read: { id: 'read', kind: 'blockRead', block: 'identity', path: 'identity.name', valueType: 'string' },
         template: { id: 'template', kind: 'stringOp', operation: 'template', template: 'Queue: {value}' }
       },
@@ -141,8 +141,8 @@ describe('process programming algebra', () => {
   it('leaves action-to-action runtime values in the submitted execution context', async () => {
     const process = {
       actions: {
-        previous: { id: 'previous', outputs: [{ id: 'entity', entityType: 'queue' }] },
-        next: { id: 'next', inputs: [{ id: 'entity', entityType: 'queue' }] }
+        previous: { id: 'previous', outputs: [{ id: 'entity', typeId: 'queue' }] },
+        next: { id: 'next', inputs: [{ id: 'entity', typeId: 'queue' }] }
       },
       graph: {
         nodes: [
@@ -170,17 +170,17 @@ describe('process programming algebra', () => {
         command: {
           id: 'command',
           actionKind: 'runCommand',
-          inputs: [{ id: 'queue', kind: 'entity', entityType: 'queue' }]
+          inputs: [{ id: 'queue', kind: 'entity', typeId: 'queue' }]
         }
       },
       valueInputs: {
         target: { id: 'target', valueType: 'string', structure: 'item', value: 'READY' }
       },
       processNodes: {
-        query: { id: 'query', kind: 'entityQuery', entityType: 'queue' },
-        ready: { id: 'ready', kind: 'entityCondition', entityType: 'queue', path: 'status.state.primary', operation: 'eq', valueType: 'string' },
-        filter: { id: 'filter', kind: 'entityFilter', entityType: 'queue' },
-        first: { id: 'first', kind: 'entitySelect', entityType: 'queue', operation: 'first' }
+        query: { id: 'query', kind: 'entityQuery', typeId: 'queue' },
+        ready: { id: 'ready', kind: 'entityCondition', typeId: 'queue', path: 'status.state.primary', operation: 'eq', valueType: 'string' },
+        filter: { id: 'filter', kind: 'entityFilter', typeId: 'queue' },
+        first: { id: 'first', kind: 'entitySelect', typeId: 'queue', operation: 'first' }
       },
       graph: {
         nodes: [
@@ -211,19 +211,19 @@ describe('process programming algebra', () => {
   it('combines field predicates before filtering instead of aligning Boolean arrays', async () => {
     const process = {
       actions: {
-        command: { id: 'command', actionKind: 'runCommand', inputs: [{ id: 'queue', kind: 'entity', entityType: 'queue' }] }
+        command: { id: 'command', actionKind: 'runCommand', inputs: [{ id: 'queue', kind: 'entity', typeId: 'queue' }] }
       },
       valueInputs: {
         readyValue: { id: 'readyValue', valueType: 'string', value: 'READY' },
         minimumArea: { id: 'minimumArea', valueType: 'number', value: 10 }
       },
       processNodes: {
-        query: { id: 'query', kind: 'entityQuery', entityType: 'queue' },
-        ready: { id: 'ready', kind: 'entityCondition', entityType: 'queue', path: 'status.state.primary', operation: 'eq', valueType: 'string' },
-        large: { id: 'large', kind: 'entityCondition', entityType: 'queue', path: 'summary.totalArea', operation: 'gte', valueType: 'number' },
-        both: { id: 'both', kind: 'predicateLogic', entityType: 'queue', operation: 'and' },
-        filter: { id: 'filter', kind: 'entityFilter', entityType: 'queue' },
-        first: { id: 'first', kind: 'entitySelect', entityType: 'queue', operation: 'first' }
+        query: { id: 'query', kind: 'entityQuery', typeId: 'queue' },
+        ready: { id: 'ready', kind: 'entityCondition', typeId: 'queue', path: 'status.state.primary', operation: 'eq', valueType: 'string' },
+        large: { id: 'large', kind: 'entityCondition', typeId: 'queue', path: 'summary.totalArea', operation: 'gte', valueType: 'number' },
+        both: { id: 'both', kind: 'predicateLogic', typeId: 'queue', operation: 'and' },
+        filter: { id: 'filter', kind: 'entityFilter', typeId: 'queue' },
+        first: { id: 'first', kind: 'entitySelect', typeId: 'queue', operation: 'first' }
       },
       graph: {
         nodes: [

@@ -28,7 +28,7 @@ export function hasPermissionGrant({
   level = 'read',
   action = null,
   entity = null,
-  entityType = null,
+  typeId = null,
   transition = null,
   context = {}
 } = {}) {
@@ -40,7 +40,7 @@ export function hasPermissionGrant({
     requiredLevel,
     action,
     entity,
-    entityType,
+    typeId,
     transition,
     context
   }));
@@ -85,10 +85,10 @@ export function evaluateAccessRule({ rule, context = {} } = {}) {
   return false;
 }
 
-function grantAllows({ grant, feature, requiredLevel, action, entity, entityType, transition, context = {} }) {
+function grantAllows({ grant, feature, requiredLevel, action, entity, typeId, transition, context = {} }) {
   if (!grant || !levelAtLeast(grant.level, requiredLevel)) return false;
   if (action && grant.actions && grant.actions[action] !== true) return false;
-  if (!scopeMatches(grant.scope || grant, entity, entityType)) return false;
+  if (!scopeMatches(grant.scope || grant, entity, typeId)) return false;
   if (!transitionMatches(grant, transition)) return false;
   if (grant.rule && !evaluateAccessRule({
     rule: grant.rule,
@@ -99,16 +99,16 @@ function grantAllows({ grant, feature, requiredLevel, action, entity, entityType
       requiredLevel,
       action,
       entity,
-      entityType,
+      typeId,
       transition
     }
   })) return false;
   return true;
 }
 
-function scopeMatches(scope = {}, entity = null, entityType = null) {
-  if (scope.entityType && entityType && scope.entityType !== entityType) return false;
-  if (scope.entityTypes && entityType && !scope.entityTypes.includes(entityType)) return false;
+function scopeMatches(scope = {}, entity = null, typeId = null) {
+  if (scope.typeId && typeId && scope.typeId !== typeId) return false;
+  if (scope.typeIds && typeId && !scope.typeIds.includes(typeId)) return false;
 
   const lineage = entity?.lineage || {};
   const entityId = entity?._id || entity?.identity?.uid;
@@ -146,7 +146,7 @@ function resolveRuleFact(rule, context) {
   if (fact === 'level') return context.grant?.level;
   if (fact === 'requiredLevel') return context.requiredLevel;
   if (fact === 'action') return context.action;
-  if (fact === 'entityType') return context.entityType;
+  if (fact === 'typeId') return context.typeId;
   if (fact === 'entityId') return context.entity?._id || context.entity?.identity?.uid;
   if (fact === 'primaryStatus' || fact === 'status.primary') return getPrimaryStatus(context.entity?.status);
   if (fact === 'transition.from') return context.transition?.from;
@@ -170,7 +170,7 @@ function resolveLineageFact(path, context) {
   const traitPath = rest.join('.');
 
   if (traitPath === 'id') return lineageEntity?._id || lineageEntity?.identity?.uid || context.entity?.lineage?.[`${type}Id`];
-  if (traitPath === 'type') return lineageEntity?.type || lineageEntity?.entityType || lineageEntity?.origin?.type || lineageEntity?.data?.type;
+  if (traitPath === 'type') return lineageEntity?.type || lineageEntity?.typeId || lineageEntity?.origin?.type || lineageEntity?.data?.type;
   if (traitPath === 'status.primary') return getPrimaryStatus(lineageEntity?.status);
   return getByPath(lineageEntity, traitPath);
 }

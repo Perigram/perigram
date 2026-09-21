@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <EntityCard :entity="warehouse" entity-type="warehouse" :variant="variant" :show-trace="false" :show-status="false">
+    <EntityCard :entity="warehouse" type-id="warehouse" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-building"></i>
       </template>
@@ -17,7 +17,7 @@
         </div>
       </template>
       <Divider />
-      <DataBlock entity-type="warehouse" :entity="warehouse" :fields="FIELDS" />
+      <DataBlock type-id="warehouse" :entity="warehouse" :fields="FIELDS" />
     </EntityCard>
   </div>
 </template>
@@ -33,7 +33,7 @@ import EntityCard from '~/components/shared/EntityCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const FIELDS = resolveEntityDisplayFields({ entityType: 'warehouse', surface: 'card' });
+const FIELDS = resolveEntityDisplayFields({ typeId: 'warehouse', surface: 'card' });
 
 const props = defineProps({
   warehouse: { type: Object, required: true },

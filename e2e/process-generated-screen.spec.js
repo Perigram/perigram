@@ -3,18 +3,18 @@ import { test, expect } from './fixtures.js';
 // Browser evidence for TODO-process-designer.md "P1 — complete generated
 // interface construction", checkboxes 6 (post-action refresh) and 7
 // (template-matrix browser tests). The matrix is derived from the canonical
-// screen contract dimensions (entityType x source mode x binding shapes x
+// screen contract dimensions (typeId x source mode x binding shapes x
 // region action scoping) using the active compiled process of the assigned
 // organization; entity endpoints are mocked so every variant is hermetic.
 
 const LIST_VARIANTS = [
-  { screenKey: 'auto_project', entityType: 'project', listBase: '/api/project', name: 'Matrix Project One', statusFiltered: true, createLabel: 'Project', canDelete: true },
-  { screenKey: 'auto_queue', entityType: 'queue', listBase: '/api/queue', name: 'Matrix Queue One', statusFiltered: true, createLabel: 'Queue', canDelete: true },
-  { screenKey: 'auto_library', entityType: 'library', listBase: '/api/libraries', name: 'Matrix Library One', statusFiltered: true, createLabel: 'Library', canDelete: true },
-  { screenKey: 'auto_cassette', entityType: 'cassette', listBase: '/api/cassettes', name: 'Matrix Cassette One', statusFiltered: true, createLabel: 'Cassette', canDelete: true },
-  { screenKey: 'auto_artifact', entityType: 'artifact', listBase: '/api/artifacts', name: 'Matrix Artifact One', statusFiltered: true, createLabel: 'Artifact', canDelete: true },
-  { screenKey: 'auto_facade', entityType: 'facade', listBase: '/api/facades', name: 'Matrix Facade One', statusFiltered: true, createLabel: 'Facade', canDelete: true },
-  { screenKey: 'auto_cassette_design', entityType: 'cassette_design', listBase: '/api/cassette-designs', name: 'Matrix Design One', statusFiltered: false, createLabel: null, canDelete: false }
+  { screenKey: 'auto_project', typeId: 'project', listBase: '/api/project', name: 'Matrix Project One', statusFiltered: true, createLabel: 'Project', canDelete: true },
+  { screenKey: 'auto_queue', typeId: 'queue', listBase: '/api/queue', name: 'Matrix Queue One', statusFiltered: true, createLabel: 'Queue', canDelete: true },
+  { screenKey: 'auto_library', typeId: 'library', listBase: '/api/libraries', name: 'Matrix Library One', statusFiltered: true, createLabel: 'Library', canDelete: true },
+  { screenKey: 'auto_cassette', typeId: 'cassette', listBase: '/api/cassettes', name: 'Matrix Cassette One', statusFiltered: true, createLabel: 'Cassette', canDelete: true },
+  { screenKey: 'auto_artifact', typeId: 'artifact', listBase: '/api/artifacts', name: 'Matrix Artifact One', statusFiltered: true, createLabel: 'Artifact', canDelete: true },
+  { screenKey: 'auto_facade', typeId: 'facade', listBase: '/api/facades', name: 'Matrix Facade One', statusFiltered: true, createLabel: 'Facade', canDelete: true },
+  { screenKey: 'auto_cassette_design', typeId: 'cassette_design', listBase: '/api/cassette-designs', name: 'Matrix Design One', statusFiltered: false, createLabel: null, canDelete: false }
 ];
 
 test.describe('process generated screens', () => {
@@ -35,7 +35,7 @@ test.describe('process generated screens', () => {
         `Expected a compiled screen with key ${variant.screenKey}`
       ).toBeTruthy();
 
-      const item = entity(`${variant.entityType}-m1`, variant.name, {
+      const item = entity(`${variant.typeId}-m1`, variant.name, {
         status: lifecycleStatus('NEW')
       });
       const requested = [];
@@ -153,16 +153,16 @@ test.describe('process generated screens', () => {
     expect(home?.route, 'Expected a compiled home screen').toBeTruthy();
 
     const sections = [
-      { entityType: 'project', listBase: '/api/project', name: 'Home Project One' },
-      { entityType: 'queue', listBase: '/api/queue', name: 'Home Queue One' },
-      { entityType: 'library', listBase: '/api/libraries', name: 'Home Library One' },
-      { entityType: 'cassette', listBase: '/api/cassettes', name: 'Home Cassette One' },
-      { entityType: 'artifact', listBase: '/api/artifacts', name: 'Home Artifact One' },
-      { entityType: 'facade', listBase: '/api/facades', name: 'Home Facade One' },
-      { entityType: 'cassette_design', listBase: '/api/cassette-designs', name: 'Home Design One' }
+      { typeId: 'project', listBase: '/api/project', name: 'Home Project One' },
+      { typeId: 'queue', listBase: '/api/queue', name: 'Home Queue One' },
+      { typeId: 'library', listBase: '/api/libraries', name: 'Home Library One' },
+      { typeId: 'cassette', listBase: '/api/cassettes', name: 'Home Cassette One' },
+      { typeId: 'artifact', listBase: '/api/artifacts', name: 'Home Artifact One' },
+      { typeId: 'facade', listBase: '/api/facades', name: 'Home Facade One' },
+      { typeId: 'cassette_design', listBase: '/api/cassette-designs', name: 'Home Design One' }
     ];
     for (const section of sections) {
-      const item = entity(`${section.entityType}-h1`, section.name, {
+      const item = entity(`${section.typeId}-h1`, section.name, {
         status: lifecycleStatus('NEW')
       });
       await fulfillJson(app.page, `**${section.listBase}`, [item]);
@@ -172,7 +172,7 @@ test.describe('process generated screens', () => {
 
     await app.page.goto(home.route);
     for (const section of sections) {
-      const region = app.page.locator(`[data-home-entity-type="${section.entityType}"]`);
+      const region = app.page.locator(`[data-home-type-id="${section.typeId}"]`);
       await expect(region.getByText(section.name).first()).toBeVisible();
     }
 
@@ -210,7 +210,7 @@ test.describe('process generated screens', () => {
           owner: {
             ...project,
             identity: { ...project.identity, name: 'Refresh Project Linked' },
-            relations: { library: { entityType: 'library', id: 'library-r1' } }
+            relations: { library: { typeId: 'library', id: 'library-r1' } }
           }
         }
       });

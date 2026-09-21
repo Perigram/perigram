@@ -22,7 +22,7 @@ import { defaultProcessNodeOperation, humanizeNodeLabel, iconForProcessNode } fr
 // The vocabulary seam is @perigram/cts: `operationKindOf` maps species kinds
 // to their operation twins (one seam, no duplicated vocabulary) and
 // `typeIdOf`/`setTypeBinding` own the type binding (`typeId` for species
-// records, `entityType` for pure-algebra kinds).
+// records, `typeId` for pure-algebra kinds).
 
 const MANAGED_PROCESS_BLOCKS = new Set(['origin', 'status', 'provenance', 'summary']);
 
@@ -40,7 +40,7 @@ export function useProcessDesignerNodeSync({
   const {
     processNodeOperations,
     processNodeOperationLabels,
-    defaultEntityType
+    defaultTypeId
   } = nodeRecords;
 
   const artifactUploadKindOptions = computed(() => designer.attachmentKindOptions
@@ -51,9 +51,9 @@ export function useProcessDesignerNodeSync({
     const kind = opKind(node);
     return kindOrPrefix.endsWith('.') ? kind.startsWith(kindOrPrefix) : kind === kindOrPrefix;
   }
-  const nodeEntityType = node => typeIdOf(node || {});
-  function setNodeEntityType(node, entityType) {
-    setTypeBinding(node, entityType);
+  const nodeTypeId = node => typeIdOf(node || {});
+  function setNodeTypeId(node, typeId) {
+    setTypeBinding(node, typeId);
   }
   const sameTypeId = (a, b) => String(a || '').replace(/_/g, '-') === String(b || '').replace(/_/g, '-');
 
@@ -67,42 +67,42 @@ export function useProcessDesignerNodeSync({
     else node.blocks = blocks;
   }
 
-  function relationOptionsForEntity(entityType = '') {
+  function relationOptionsForEntity(typeId = '') {
     return (designer.domain.relations || [])
-      .filter(relation => relation.ownerType === entityType)
+      .filter(relation => relation.ownerType === typeId)
       .map(relation => ({
         label: `${relation.key} · ${relation.targetType} · ${relation.cardinality}`,
         value: relation.key
       }));
   }
 
-  function initialStatusForEntity(entityType) {
-    const workflow = designer.domain.workflows?.[entityType];
+  function initialStatusForEntity(typeId) {
+    const workflow = designer.domain.workflows?.[typeId];
     if (!workflow) return '';
     const region = workflow.regions?.[workflow.primaryRegion] || Object.values(workflow.regions || {})[0];
     return region?.initial || '';
   }
 
-  function constructionContractForEntity(entityType) {
-    return designer.construction(entityType) || {};
+  function constructionContractForEntity(typeId) {
+    return designer.construction(typeId) || {};
   }
 
   function constructionInputsForMode(contract = {}, mode = '') {
     return contract.modeInputs?.[mode] || contract.inputs || [];
   }
 
-  function constructionModeOptions(entityType = '') {
-    return designer.createModes(entityType).map(value => ({ label: value, value }));
+  function constructionModeOptions(typeId = '') {
+    return designer.createModes(typeId).map(value => ({ label: value, value }));
   }
 
   // The construct's accepted canonical blocks (record data consumed by
   // compilation; the cts construct surface itself exposes row-field sockets).
-  function constructibleEntityBlocks(entityType = '') {
-    const fieldBlocks = designer.fieldsForEntity(entityType)
+  function constructibleEntityBlocks(typeId = '') {
+    const fieldBlocks = designer.fieldsForEntity(typeId)
       .filter(field => field.constructible !== false)
       .map(field => field.block)
       .filter(block => block && !MANAGED_PROCESS_BLOCKS.has(block));
-    const openBlocks = designer.blocksForEntity(entityType)
+    const openBlocks = designer.blocksForEntity(typeId)
       .map(block => block.id)
       .filter(block => designer.blockComposition(block) && !MANAGED_PROCESS_BLOCKS.has(block));
     return [...new Set([...fieldBlocks, ...openBlocks])];
@@ -119,7 +119,7 @@ export function useProcessDesignerNodeSync({
   function catalogContext(node = {}) {
     // cts.field resolves its field against the bound type; everything else
     // resolves entity fields by its own binding when present.
-    const bound = nodeEntityType(node);
+    const bound = nodeTypeId(node);
     const fields = node.kind === 'cts.field' || bound
       ? designer.fieldsForEntity(bound)
       : [];
@@ -148,7 +148,7 @@ export function useProcessDesignerNodeSync({
   }
 
   function processPortLabel(node = {}, port = {}) {
-    const field = designer.fieldsForEntity(nodeEntityType(node)).find(candidate => candidate.value === port.id);
+    const field = designer.fieldsForEntity(nodeTypeId(node)).find(candidate => candidate.value === port.id);
     if (field) return field.i18n ? t(field.i18n) : field.label;
     if (port.role === 'data' && port.id === 'start') return t('processDesigner.socketLabels.startPosition');
     return processSocketLabel(port.label || port.id);
@@ -179,7 +179,7 @@ export function useProcessDesignerNodeSync({
   // Unbound, a cts.field offers no paths (only its entity input).
   function processNodeFieldOptions(node = {}) {
     if (node.kind !== 'cts.field') return [];
-    const bound = nodeEntityType(node);
+    const bound = nodeTypeId(node);
     if (!bound) return [];
     return designer.fieldsForEntity(bound)
       .filter(field => field.readable !== false)
@@ -194,9 +194,9 @@ export function useProcessDesignerNodeSync({
   // type's declared top-level states (the domain lifecycle the compiler and
   // the status engine resolve against).
   function processStatusOptionsFor(node = {}) {
-    const entityType = nodeEntityType(node);
-    if (!entityType) return [];
-    const workflow = designer.domain.workflows?.[entityType];
+    const typeId = nodeTypeId(node);
+    if (!typeId) return [];
+    const workflow = designer.domain.workflows?.[typeId];
     const region = workflow?.regions?.[workflow.primaryRegion] || Object.values(workflow?.regions || {})[0];
     if (!region) return [];
     return Object.entries(region.states || {})
@@ -204,7 +204,7 @@ export function useProcessDesignerNodeSync({
       .map(([key, state]) => ({ label: state.label || key, value: key }));
   }
 
-  function processEntityTypeOptions(node = {}) {
+  function processTypeIdOptions(node = {}) {
     const kind = opKind(node);
     if (kind === 'effect.createEntity' || kind === 'effect.runProducer') return designer.createEntityOptions;
     if (kind === 'effect.updateEntity') return designer.updateEntityOptions;
@@ -222,7 +222,7 @@ export function useProcessDesignerNodeSync({
       || node.kind?.startsWith('collection.')
       || node.kind?.startsWith('tree.');
     return [
-      nodeEntityType(node),
+      nodeTypeId(node),
       node.path,
       showsType && node.type ? formatProcessType(node.type) : '',
       isOpKind(node, 'collection.sort') ? node.direction : node.operation
@@ -234,7 +234,7 @@ export function useProcessDesignerNodeSync({
     // The bound type decides the catalog item: a bare species record must
     // not borrow the first catalog entry's label (the type catalog leads
     // the palette, so items[0] is always a pre-bound variant).
-    const boundType = node.typeId || node.entityType || '';
+    const boundType = node.typeId || node.typeId || '';
     const items = designer.paletteGroups.flatMap(group => group.items)
       .filter(candidate => candidate.kind === node.kind)
       .filter(candidate => !candidate.preset?.typeId || candidate.preset.typeId === boundType);
@@ -253,7 +253,7 @@ export function useProcessDesignerNodeSync({
   }
 
   function artifactCreationKinds(record = {}) {
-    const creator = (record.construction?.inputs || []).find(input => input.creator?.entityType === 'artifact')?.creator;
+    const creator = (record.construction?.inputs || []).find(input => input.creator?.typeId === 'artifact')?.creator;
     if (creator?.attachmentKinds === 'userCreatable' || !Array.isArray(creator?.attachmentKinds)) {
       return artifactUploadKindOptions.value.map(option => option.value);
     }
@@ -262,8 +262,8 @@ export function useProcessDesignerNodeSync({
 
   function updateArtifactCreationKinds(record = {}, kinds = []) {
     record.construction ||= {};
-    const contractInput = constructionInputsForMode(constructionContractForEntity(nodeEntityType(record)), record.construction.mode)
-      .find(input => input.creator?.entityType === 'artifact');
+    const contractInput = constructionInputsForMode(constructionContractForEntity(nodeTypeId(record)), record.construction.mode)
+      .find(input => input.creator?.typeId === 'artifact');
     if (!contractInput) return;
     const index = (record.construction.inputs || []).findIndex(input => input.id === contractInput.id);
     const attachmentKinds = (kinds || []).map(kind => {
@@ -279,7 +279,7 @@ export function useProcessDesignerNodeSync({
   }
 
   function syncProcessNodeConstruction(node = {}) {
-    const contract = constructionContractForEntity(nodeEntityType(node));
+    const contract = constructionContractForEntity(nodeTypeId(node));
     const modes = contract.modes?.length ? contract.modes : ['genericCreate'];
     node.construction ||= {};
     // a v5 record via field (palette preset or binding) names the authored mode
@@ -299,7 +299,7 @@ export function useProcessDesignerNodeSync({
     node.kind ||= 'source.literalItem';
     const op = opKind(node);
     if (node.kind === 'cts.field') {
-      delete node.entityType;
+      delete node.typeId;
       delete node.fieldSchema;
       delete node.fieldSchemas;
     }
@@ -321,9 +321,9 @@ export function useProcessDesignerNodeSync({
     node.inputTransforms ||= {};
     node.icon = iconForProcessNode(node.kind);
     if (op === 'source.literalItem' && node.type?.base === 'entityRef') {
-      node.entityType ||= defaultEntityType();
-      node.type.entityType = node.entityType;
-      if (node.value?.id) node.value = { ...node.value, type: node.entityType };
+      node.typeId ||= defaultTypeId();
+      node.type.typeId = node.typeId;
+      if (node.value?.id) node.value = { ...node.value, type: node.typeId };
     }
     delete node.retry;
     if (op.startsWith('effect.')) {
@@ -335,12 +335,12 @@ export function useProcessDesignerNodeSync({
     if (['effect.createEntity', 'effect.runProducer'].includes(op)) {
       syncProcessNodeConstruction(node);
       node.status ||= {};
-      node.status.to ||= initialStatusForEntity(nodeEntityType(node));
+      node.status.to ||= initialStatusForEntity(nodeTypeId(node));
     }
     if (node.kind === 'cts.field') {
       // The projection gate: an unbound record offers only its entity input;
       // a bound one defaults its path to the type's first readable field.
-      const bound = nodeEntityType(node);
+      const bound = nodeTypeId(node);
       const available = bound
         ? designer.fieldsForEntity(bound).filter(field => field.readable !== false)
         : [];
@@ -350,11 +350,11 @@ export function useProcessDesignerNodeSync({
     }
     delete node.fieldSchema;
     if (isOpKind(node, 'read.related')) {
-      const relations = relationOptionsForEntity(nodeEntityType(node));
+      const relations = relationOptionsForEntity(nodeTypeId(node));
       if (!relations.some(relation => relation.value === node.relationKey)) node.relationKey = relations[0]?.value || '';
     }
     if (op === 'effect.createEntity') {
-      setNodeBlocks(node, constructibleEntityBlocks(nodeEntityType(node)));
+      setNodeBlocks(node, constructibleEntityBlocks(nodeTypeId(node)));
       node.fields = [];
     }
     node.label = node.kind;
@@ -379,7 +379,7 @@ export function useProcessDesignerNodeSync({
     const abstractPorts = abstractInputs.map(input => ({
       id: input.name || input.type || input.capability,
       label: input.label,
-      entityType: input.type,
+      typeId: input.type,
       capability: input.capability,
       accepts: input.accepts || [],
       required: Boolean(input.required),
@@ -392,7 +392,7 @@ export function useProcessDesignerNodeSync({
       .map(input => ({
         id: input.name || input.type,
         label: input.label || input.name || input.type,
-        entityType: input.type,
+        typeId: input.type,
         kind: 'entity',
         required: Boolean(input.required),
         prompt: true,
@@ -409,7 +409,7 @@ export function useProcessDesignerNodeSync({
       prompt: input.display !== 'hidden',
       path: `parameters.${input.name}`,
       dataPath: `parameters.${input.name}`,
-      entityType: input.entityType || '',
+      typeId: input.typeId || '',
       editor: input.editor || '',
       templateFieldId: input.templateFieldId || ''
     }));
@@ -418,9 +418,9 @@ export function useProcessDesignerNodeSync({
 
   function commandOutputs(command = {}) {
     return [
-      ...(command?.output?.entities || []).map(entityType => ({
-        id: entityType,
-        entityType,
+      ...(command?.output?.entities || []).map(typeId => ({
+        id: typeId,
+        typeId,
         multiple: true
       })),
       ...(command?.output?.attachments || []).map(kind => ({
@@ -453,8 +453,8 @@ export function useProcessDesignerNodeSync({
     artifactUploadKindOptions,
     opKind,
     isOpKind,
-    nodeEntityType,
-    setNodeEntityType,
+    nodeTypeId,
+    setNodeTypeId,
     sameTypeId,
     v5Record,
     catalogPorts,
@@ -475,7 +475,7 @@ export function useProcessDesignerNodeSync({
     processNodeOperationOptions,
     processNodeFieldOptions,
     processStatusOptionsFor,
-    processEntityTypeOptions,
+    processTypeIdOptions,
     processNodeSummary,
     processNodeDisplayLabel,
     processNodeDescription,

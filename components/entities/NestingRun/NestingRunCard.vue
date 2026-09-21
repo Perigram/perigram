@@ -33,7 +33,7 @@ const canDeleteRun = computed(() => hasPermissionGrant({
     feature: 'nesting_runs',
     action: 'delete',
     entity: props.run,
-    entityType: 'nesting_run'
+    typeId: 'nesting_run'
 }));
 const results = computed(() => props.run.data?.results || {});
 const hasResultData = computed(() => Object.values(results.value || {}).some(value => Number(value) > 0));
@@ -42,10 +42,10 @@ const runId = computed(() => props.run._id?.toString());
 const materialSources = computed(() => (props.run.data?.materialPool || [])
     .map(source => ({
         ...source,
-        entityType: materialSourceEntityType(source),
+        typeId: materialSourceTypeId(source),
         count: Number(source.available || source.availableCount || source.quantity || source.count || 1)
     }))
-    .filter(source => source.entityType && source.id));
+    .filter(source => source.typeId && source.id));
 const runSheetDesignIds = computed(() => (props.run.data?.sheetDesignIds || []).map(String));
 const relatedSheetDesigns = computed(() => uniqueById([
     ...props.sheetDesigns.filter(design => isRunSheetDesign(design, runId.value, runSheetDesignIds.value)),
@@ -54,18 +54,18 @@ const relatedSheetDesigns = computed(() => uniqueById([
 const hasCompletedOutput = computed(() =>
     hasResultData.value || sheetDesignRelationItems.value.length > 0
 );
-const NESTING_RUN_CARD_FIELDS = resolveEntityDisplayFields({ entityType: 'nestingRun', surface: 'card' });
+const NESTING_RUN_CARD_FIELDS = resolveEntityDisplayFields({ typeId: 'nestingRun', surface: 'card' });
 const RUN_FIELDS = NESTING_RUN_CARD_FIELDS.filter(field => field.display !== 'entityRefList');
 const sheetDesignRelationFields = computed(() => NESTING_RUN_CARD_FIELDS
     .filter(field => field.display === 'entityRefList' && field.path === 'data.sheetDesignIds')
     .map(field => ({ ...field, items: sheetDesignRelationItems.value })));
 const sheetDesignRelationItems = computed(() => {
     const loadedItems = relatedSheetDesigns.value.map(design => ({
-            entityType: 'sheetDesign',
+            typeId: 'sheetDesign',
             id: design._id,
             entity: design
     }));
-    const idItems = runSheetDesignIds.value.map(id => ({ entityType: 'sheetDesign', id }));
+    const idItems = runSheetDesignIds.value.map(id => ({ typeId: 'sheetDesign', id }));
     return Array.from(new Map([...idItems, ...loadedItems]
         .filter(item => item.id)
         .map(item => [item.id.toString(), item])
@@ -88,7 +88,7 @@ function isRunSheetDesign(design, runId, runSheetDesignIds = []) {
         (designId && runSheetDesignIds.includes(designId));
 }
 
-function materialSourceEntityType(source = {}) {
+function materialSourceTypeId(source = {}) {
     if (source.type === 'PILE') return 'materialPile';
     if (source.type === 'SHEET') return 'sheet';
     if (source.type === 'REMNANT') return 'remnant';
@@ -106,7 +106,7 @@ function selectRun(event) {
   <div class="cursor-pointer" @click="selectRun">
     <EntityCard
       :entity="run"
-      entity-type="nesting_run"
+      type-id="nesting_run"
       :variant="variant"
       :show-trace="false"
       @refresh="emit('refresh')"
@@ -133,7 +133,7 @@ function selectRun(event) {
       <Divider />
       <div class="flex flex-col gap-4">
         <div v-if="hasCompletedOutput" class="flex flex-col gap-2">
-          <DataBlock entity-type="nestingRun" :entity="run" :fields="RUN_FIELDS" />
+          <DataBlock type-id="nestingRun" :entity="run" :fields="RUN_FIELDS" />
         </div>
         <div v-if="materialSources.length" class="flex flex-col gap-2">
           <small class="text-muted">{{ $t('nesting.inventorySources') }}</small>
@@ -143,7 +143,7 @@ function selectRun(event) {
               :key="`${source.type}-${source.id}`"
               class="flex min-w-0 items-center justify-between gap-2"
             >
-              <EntityInlineRef :type="source.entityType" :id="source.id" />
+              <EntityInlineRef :type="source.typeId" :id="source.id" />
               <Tag v-if="source.count" :value="source.count" severity="secondary" size="small" />
             </div>
           </div>

@@ -48,7 +48,7 @@ export function migrateProcessDefinitionV4(definition = {}) {
       processNodes[collectId] = {
         id: collectId,
         kind: 'collection.packArray',
-        type: { base: 'entityRef', nullable: false, ...(entry.entityType ? { entityType: entry.entityType } : {}) },
+        type: { base: 'entityRef', nullable: false, ...(entry.typeId ? { typeId: entry.typeId } : {}) },
         matching: 'longest',
         inputTransforms: {}
       };

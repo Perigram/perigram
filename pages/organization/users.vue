@@ -157,7 +157,7 @@
             </div>
             <Panel :header="$t('organization.evaluationContext')" toggleable collapsed>
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <InputText v-model="assignmentContext.entityType" :placeholder="$t('organization.entityType')" />
+                    <InputText v-model="assignmentContext.typeId" :placeholder="$t('organization.typeId')" />
                     <InputText v-model="assignmentContext.entityId" :placeholder="$t('organization.entityId')" />
                     <InputText v-model="assignmentContext.status" :placeholder="$t('organization.primaryStatus')" />
                     <InputText v-model="assignmentContext.projectId" :placeholder="$t('organization.projectId')" />
@@ -188,7 +188,7 @@
                         <div class="mt-1 flex flex-col gap-1">
                             <span v-for="item in group.items" :key="item.key || item.screenKey || item.id" class="text-supporting">
                                 <Tag :value="item.allowed === null ? $t('organization.unresolved') : (item.allowed ? $t('organization.allowed') : $t('organization.denied'))" :severity="item.allowed === null ? 'warn' : (item.allowed ? 'success' : 'danger')" size="small" />
-                                {{ item.label || item.entityType || item.feature || item.transition || item.actionId || item.route }} · {{ item.explanation }}
+                                {{ item.label || item.typeId || item.feature || item.transition || item.actionId || item.route }} · {{ item.explanation }}
                             </span>
                         </div>
                     </div>
@@ -261,7 +261,7 @@ const activeProcess = ref(null);
 const organizationRoles = ref({});
 const organizationRoleAssignments = ref({});
 const roleAssignment = ref({ roleIds: [], bindings: {} });
-const assignmentContext = ref({ entityType: '', entityId: '', status: '', projectId: '', queueId: '', warehouseId: '' });
+const assignmentContext = ref({ typeId: '', entityId: '', status: '', projectId: '', queueId: '', warehouseId: '' });
 const selectedRoleDerivedAccessSummary = computed(() => deriveRoleAccessSummary({
     process: activeProcess.value,
     roleIds: roleAssignment.value.roleIds
@@ -271,8 +271,8 @@ const assignmentPreview = computed(() => previewAssignmentAccess({
     compiled: activeProcess.value?.data?.compiled || {},
     assignment: { userId: String(selectedUser.value?._id || ''), ...roleAssignment.value },
     domain: registry.projectedDomain,
-    contexts: assignmentContext.value.entityType ? [{
-        entityType: assignmentContext.value.entityType,
+    contexts: assignmentContext.value.typeId ? [{
+        typeId: assignmentContext.value.typeId,
         entityId: assignmentContext.value.entityId,
         status: assignmentContext.value.status,
         lineage: {
@@ -287,7 +287,7 @@ const selectedUserScreens = computed(() => assignmentPreview.value.screens);
 const selectedUserIncompleteBindings = computed(() => assignmentPreview.value.incompleteBindings);
 const assignmentBindingFields = computed(() => requiredAssignmentBindings(roleAssignment.value.roleIds));
 const assignmentPreviewGroups = computed(() => [
-    { key: 'entities', label: t('organization.entities'), items: assignmentPreview.value.entities.flatMap(entity => [entity, ...entity.fields.map(field => ({ ...field, key: `field:${entity.feature}:${field.path}`, label: `${entity.entityType}.${field.path}` }))]) },
+    { key: 'entities', label: t('organization.entities'), items: assignmentPreview.value.entities.flatMap(entity => [entity, ...entity.fields.map(field => ({ ...field, key: `field:${entity.feature}:${field.path}`, label: `${entity.typeId}.${field.path}` }))]) },
     { key: 'transitions', label: t('organization.transitions'), items: assignmentPreview.value.transitions },
     { key: 'actions', label: t('common.actions.title'), items: assignmentPreview.value.actions },
     { key: 'screens', label: t('organization.screens'), items: assignmentPreview.value.screens }

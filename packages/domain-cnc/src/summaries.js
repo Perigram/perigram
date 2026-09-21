@@ -44,7 +44,7 @@ export const cncSummaries = cncContainment
   .filter(relation => SUMMARY_CHILD_TYPES.has(relation.childType)
     && relation.parentType && relation.lineageKey)
   .map(relation => ({
-    entityType: relation.childType,
+    typeId: relation.childType,
     parentType: relation.parentType,
     parentIdKey: relation.lineageKey,
     countField: COUNT_FIELD_BY_CHILD[relation.childType]

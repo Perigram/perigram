@@ -6,11 +6,11 @@ import { cncDomain } from '../../packages/domain-cnc/src/index.js';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
-const collectionByEntityType = new Map(
+const collectionByTypeId = new Map(
   (cncDomain.entities || []).map(entity => [entity.type, entity.collection])
 );
 
-function normalizeEntityType(type = '') {
+function normalizeTypeId(type = '') {
   return String(type || '').replace(/-/g, '_');
 }
 
@@ -51,14 +51,14 @@ function commandOutputStatusMappings(processData = {}) {
       const targetActionId = nodeIdToActionId.get(String(edge.target)) || String(edge.target);
       const targetAction = processData.actions?.[targetActionId];
       if (targetAction?.actionKind !== 'updateEntity') continue;
-      const entityType = normalizeEntityType(
-        targetAction.entityType
-        || targetAction.inputs?.find(input => input.entityType)?.entityType
+      const typeId = normalizeTypeId(
+        targetAction.typeId
+        || targetAction.inputs?.find(input => input.typeId)?.typeId
         || String(edge.sourceHandle || '').replace(/^output:/, '')
       );
       const targetState = targetAction.status?.to || targetAction.access?.statusTo;
-      if (!entityType || !targetState) continue;
-      mappings.push({ actionId, entityType, targetState, producerOutputId: targetAction.producerOutputId || '', targetAction });
+      if (!typeId || !targetState) continue;
+      mappings.push({ actionId, typeId, targetState, producerOutputId: targetAction.producerOutputId || '', targetAction });
     }
   }
   return mappings;
@@ -100,12 +100,12 @@ function createProcessStatus({ workflow, targetState, actorId, eventId }) {
 }
 
 async function migrateMapping({ db, process, organizationId, mapping }) {
-  const collection = collectionByEntityType.get(mapping.entityType);
+  const collection = collectionByTypeId.get(mapping.typeId);
   const producerOutput = process.data?.compiled?.producerOutputs?.[mapping.producerOutputId];
   const workflow = producerOutput?.workflow;
   if (!collection) return { scanned: 0, updated: 0, skipped: 0 };
   if (!workflow) {
-    console.warn(`[skip] Process ${process._id} action ${mapping.actionId} has no compiled producer output ${mapping.producerOutputId || '(unset)'} for ${mapping.entityType}; re-apply the producer identity migration first.`);
+    console.warn(`[skip] Process ${process._id} action ${mapping.actionId} has no compiled producer output ${mapping.producerOutputId || '(unset)'} for ${mapping.typeId}; re-apply the producer identity migration first.`);
     return { scanned: 0, updated: 0, skipped: 0 };
   }
 
@@ -137,7 +137,7 @@ async function migrateMapping({ db, process, organizationId, mapping }) {
       await db.collection('status_events').insertOne({
         _id: eventId,
         targetId: entity._id,
-        targetType: mapping.entityType,
+        targetType: mapping.typeId,
         fromState: null,
         toState: mapping.targetState,
         fromStatePrimary: currentState || null,

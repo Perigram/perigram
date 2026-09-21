@@ -56,10 +56,10 @@ function regionEntries(workflow = {}) {
 // Retained primary-region states for one entity type across its producers.
 // Shared by the contract diff (removedEntityStatuses) and the Apply
 // migration plan (target choices), so both speak the same state set.
-export function primaryStates(producerOutputs = {}, entityType = '') {
+export function primaryStates(producerOutputs = {}, typeId = '') {
   const states = new Set();
   for (const output of Object.values(producerOutputs || {})) {
-    if (output.entityType !== entityType) continue;
+    if (output.typeId !== typeId) continue;
     const region = output.workflow?.regions?.[output.workflow?.primaryRegion] || {};
     for (const stateId of Object.keys(region.states || {})) states.add(stateId);
   }
@@ -84,7 +84,7 @@ function diffWorkflows(previousProducers = {}, nextProducers = {}) {
     const entryChanged = !setsEqual(regionEntries(previousWorkflow), regionEntries(nextWorkflow));
     const entry = {
       producerOutputId,
-      entityType: nextOutput.entityType || previousOutput.entityType || '',
+      typeId: nextOutput.typeId || previousOutput.typeId || '',
       addedStates: [...nextStates].filter(state => !previousStates.has(state)),
       removedStates: [...previousStates].filter(state => !nextStates.has(state)),
       addedTransitions: [...nextTransitions].filter(transition => !previousTransitions.has(transition)),
@@ -110,7 +110,7 @@ function diffFieldPolicies(previousProducers = {}, nextProducers = {}) {
     if (!nextOutput) continue;
     const entry = {
       producerOutputId,
-      entityType: nextOutput.entityType || previousOutput.entityType || '',
+      typeId: nextOutput.typeId || previousOutput.typeId || '',
       added: {},
       removed: {}
     };
@@ -128,39 +128,39 @@ function diffFieldPolicies(previousProducers = {}, nextProducers = {}) {
 }
 
 function diffCapabilities(previousActions = {}, nextActions = {}) {
-  const previousByType = capabilitiesByEntityType(previousActions);
-  const nextByType = capabilitiesByEntityType(nextActions);
+  const previousByType = capabilitiesByTypeId(previousActions);
+  const nextByType = capabilitiesByTypeId(nextActions);
   const changed = [];
-  for (const entityType of new Set([...Object.keys(previousByType), ...Object.keys(nextByType)])) {
-    const previousKinds = previousByType[entityType] || new Set();
-    const nextKinds = nextByType[entityType] || new Set();
+  for (const typeId of new Set([...Object.keys(previousByType), ...Object.keys(nextByType)])) {
+    const previousKinds = previousByType[typeId] || new Set();
+    const nextKinds = nextByType[typeId] || new Set();
     const added = [...nextKinds].filter(kind => !previousKinds.has(kind));
     const removed = [...previousKinds].filter(kind => !nextKinds.has(kind));
-    if (added.length || removed.length) changed.push({ entityType, added, removed });
+    if (added.length || removed.length) changed.push({ typeId, added, removed });
   }
   return { changed };
 }
 
-function capabilitiesByEntityType(actions = {}) {
+function capabilitiesByTypeId(actions = {}) {
   const byType = {};
   for (const action of Object.values(actions)) {
-    if (!action.entityType || !action.actionKind) continue;
-    (byType[action.entityType] ||= new Set()).add(action.actionKind);
+    if (!action.typeId || !action.actionKind) continue;
+    (byType[action.typeId] ||= new Set()).add(action.actionKind);
   }
   return byType;
 }
 
 function removedEntityStatuses(previousProducers = {}, nextProducers = {}) {
-  const entityTypes = new Set([
-    ...Object.values(previousProducers || {}).map(output => output.entityType),
-    ...Object.values(nextProducers || {}).map(output => output.entityType)
+  const typeIds = new Set([
+    ...Object.values(previousProducers || {}).map(output => output.typeId),
+    ...Object.values(nextProducers || {}).map(output => output.typeId)
   ].filter(Boolean));
   const removed = [];
-  for (const entityType of entityTypes) {
-    const previousStatuses = primaryStates(previousProducers, entityType);
-    const nextStatuses = primaryStates(nextProducers, entityType);
+  for (const typeId of typeIds) {
+    const previousStatuses = primaryStates(previousProducers, typeId);
+    const nextStatuses = primaryStates(nextProducers, typeId);
     const statuses = [...previousStatuses].filter(state => !nextStatuses.has(state));
-    if (statuses.length) removed.push({ entityType, statuses });
+    if (statuses.length) removed.push({ typeId, statuses });
   }
   return removed;
 }
@@ -180,7 +180,7 @@ export function diffProcessContracts(previous = {}, next = {}) {
     // vocabulary; `compiled.actions` stays the execution contract, so its
     // diff keeps the execution fields.
     actions: diffKeyedRecords(previous.actions, next.actions, [
-      'actionKind', 'entityType', 'producerOutputId', 'commandId', 'trigger.mode', 'access.level', 'inputPolicy.prompt', 'construction.mode'
+      'actionKind', 'typeId', 'producerOutputId', 'commandId', 'trigger.mode', 'access.level', 'inputPolicy.prompt', 'construction.mode'
     ]),
     screens: diffKeyedRecords(previous.screens, next.screens, [
       'route', 'template', 'typeId', 'roleIds', 'required.access', 'sources', 'regions'

@@ -35,7 +35,7 @@ material data and cassette child counts from the domain field groups.
   direct route navigation is intended, not for entity relation summaries. Do not
   render raw nested objects or rebuild identity/status rows locally.
 - Entity facts are access-aware. `DataBlock` and `SpecsBlock` require an
-  `entity-type` prop and filter paths through `shared/entity-field-access.js`
+  `type-id` prop and filter paths through `shared/entity-field-access.js`
   using the field policies exported by `@cutkit/domain-cnc`. If a field is not
   declared in the policy, cards must not display it.
 - Relation refs should pass design-system UI keys (`materialPile`,

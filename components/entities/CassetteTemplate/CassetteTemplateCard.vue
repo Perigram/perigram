@@ -1,13 +1,13 @@
 <template>
   <div>
-    <EntityCard :entity="template" entity-type="cassette_template" :variant="variant" :show-trace="false" :show-status="false">
+    <EntityCard :entity="template" type-id="cassette_template" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-clone"></i>
       </template>
       <Divider />
       <div class="grid grid-cols-1 gap-4">
         <CassetteThumbnail :cassette="template" />
-        <DataBlock entity-type="cassetteTemplate" :entity="templateForDisplay" :fields="TEMPLATE_FIELDS" />
+        <DataBlock type-id="cassetteTemplate" :entity="templateForDisplay" :fields="TEMPLATE_FIELDS" />
         <div v-if="geometryRevisionId" class="flex items-center justify-between gap-4">
           <small class="text-muted">{{ $t('revision.currentGeometry') }}</small>
           <EntityInlineRef type="entityRevision" :id="geometryRevisionId" />
@@ -36,7 +36,7 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const TEMPLATE_FIELDS = resolveEntityDisplayFields({ entityType: 'cassetteTemplate', surface: 'card' })
+const TEMPLATE_FIELDS = resolveEntityDisplayFields({ typeId: 'cassetteTemplate', surface: 'card' })
     .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource');
 
 const props = defineProps({

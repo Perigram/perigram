@@ -35,22 +35,22 @@ export const STATUS_TYPES = {
 /**
  * Get valid statuses for an entity type
  */
-export function getValidStatuses(entityType) {
-  return STATUS_TYPES[entityType] || [];
+export function getValidStatuses(typeId) {
+  return STATUS_TYPES[typeId] || [];
 }
 
 /**
  * Validate if a status is valid for an entity type
  */
-export function isValidStatus(entityType, status) {
-  const validStatuses = getValidStatuses(entityType);
+export function isValidStatus(typeId, status) {
+  const validStatuses = getValidStatuses(typeId);
   return validStatuses.includes(status);
 }
 
 /**
  * Get default initial status for an entity type
  */
-export function getDefaultStatus(entityType) {
-  const statuses = getValidStatuses(entityType);
+export function getDefaultStatus(typeId) {
+  const statuses = getValidStatuses(typeId);
   return statuses[0] || 'draft';
 }

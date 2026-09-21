@@ -9,7 +9,7 @@ import { statusService } from '~/server/core/machines/service.js';
 import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
 import * as entityEventService from '~/server/features/entity-events/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { normalizeEntityType } from '~/server/runtime/entities.js';
+import { normalizeTypeId } from '~/server/runtime/entities.js';
 import {
   compileProcessDefinition,
   diffProcessContracts,
@@ -125,7 +125,7 @@ export async function getActiveRelationOptions({ actionId, entityId, source = fa
     throw createError({ statusCode: 400, message: 'Action does not provide relation options' });
   }
   assertCompiledActionAvailable(actionId, auth);
-  const owner = await resolveProcessGraphEntity(action.entityType, entityId, { auth });
+  const owner = await resolveProcessGraphEntity(action.typeId, entityId, { auth });
   return resolveCompiledRelationOptions({
     action,
     compiled,
@@ -134,7 +134,7 @@ export async function getActiveRelationOptions({ actionId, entityId, source = fa
     auth,
     registry: getAppRegistry(),
     createExecutionAuth: createActionExecutionAuth,
-    resolveEntity: (entityType, id, executionAuth) => resolveProcessGraphEntity(entityType, id, { auth: executionAuth })
+    resolveEntity: (typeId, id, executionAuth) => resolveProcessGraphEntity(typeId, id, { auth: executionAuth })
   });
 }
 
@@ -224,10 +224,10 @@ async function collectStrandedEntityStatuses(process, auth, nextCompiled) {
   if (!baseline) return [];
   const removed = diffProcessContracts(baseline, nextCompiled).removedEntityStatuses;
   const stranded = [];
-  for (const { entityType, statuses } of removed) {
+  for (const { typeId, statuses } of removed) {
     let entities = [];
     try {
-      entities = await queryProcessGraphEntities(entityType, {}, auth);
+      entities = await queryProcessGraphEntities(typeId, {}, auth);
     } catch {
       continue;
     }
@@ -238,7 +238,7 @@ async function collectStrandedEntityStatuses(process, auth, nextCompiled) {
     }
     const present = statuses.filter(state => counts[state] > 0)
       .map(state => ({ state, count: counts[state] }));
-    if (present.length) stranded.push({ entityType, statuses: present });
+    if (present.length) stranded.push({ typeId, statuses: present });
   }
   return stranded;
 }
@@ -435,8 +435,8 @@ function catalogContextFromDefinition(processData) {
   return record => {
     const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
     return {
-      fieldSchema: structural ? getBlockFieldSchema(record.path) : getEntityFieldSchema(record.entityType, record.path),
-      fieldSchemas: structural ? getBlockFieldSchemas(record.block) : getEntityFieldSchemas(record.entityType),
+      fieldSchema: structural ? getBlockFieldSchema(record.path) : getEntityFieldSchema(record.typeId, record.path),
+      fieldSchemas: structural ? getBlockFieldSchemas(record.block) : getEntityFieldSchemas(record.typeId),
       blockComposition: cncDomain.blockComposition?.[record.block] || null,
       command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null
     };
@@ -594,8 +594,8 @@ export async function preview({ definition, nodeId = '', trigger = {}, inputs = 
     catalogContext: record => {
       const structural = ['record.getField', 'record.composeBlock', 'record.modifyBlock'].includes(record.kind);
       return {
-        fieldSchema: structural ? getBlockFieldSchema(record.path) : getEntityFieldSchema(record.entityType, record.path),
-        fieldSchemas: structural ? getBlockFieldSchemas(record.block) : getEntityFieldSchemas(record.entityType),
+        fieldSchema: structural ? getBlockFieldSchema(record.path) : getEntityFieldSchema(record.typeId, record.path),
+        fieldSchemas: structural ? getBlockFieldSchemas(record.block) : getEntityFieldSchemas(record.typeId),
         blockComposition: cncDomain.blockComposition?.[record.block] || null,
         command: record.commandId ? getAppRegistry().getCommandDefinition(record.commandId) : null
       };
@@ -620,23 +620,23 @@ export async function projectEntityThroughSocket({ socketId, entityId, targetOrg
   }
 
   const registry = getCutkitRegistry();
-  const service = registry.getEntityService(socket.entityType);
-  if (!service?.processGetById) throw createError({ statusCode: 500, message: `Entity service cannot read ${socket.entityType} from a process` });
+  const service = registry.getEntityService(socket.typeId);
+  if (!service?.processGetById) throw createError({ statusCode: 500, message: `Entity service cannot read ${socket.typeId} from a process` });
   const entity = await service.processGetById(entityId, auth);
-  if (!entity) throw createError({ statusCode: 404, message: `${socket.entityType} not found` });
+  if (!entity) throw createError({ statusCode: 404, message: `${socket.typeId} not found` });
 
-  const domainEntity = (getDomain().entities || []).find(item => item.type === socket.entityType);
+  const domainEntity = (getDomain().entities || []).find(item => item.type === socket.typeId);
   assertEntityAccess({
     entity,
-    entityType: socket.entityType,
-    feature: socket.feature || domainEntity?.collection || `${socket.entityType}s`,
+    typeId: socket.typeId,
+    feature: socket.feature || domainEntity?.collection || `${socket.typeId}s`,
     level: 'read',
     auth
   });
 
   return {
     socketId,
-    entityType: socket.entityType,
+    typeId: socket.typeId,
     sourceOrganizationId: organizationId,
     targetOrganizationId: targetOrganizationId || null,
     projection: projectEntityFields(entity.toJSON ? entity.toJSON() : entity, socket.projection || {}),
@@ -661,7 +661,7 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
     if (data?.relationCreator) {
       const creatorId = action.relationMutation.creator?.actionId;
       const creatorAction = creatorId && compiled.actions?.[creatorId];
-      if (!creatorAction || creatorAction.entityType !== action.relationMutation.targetType) {
+      if (!creatorAction || creatorAction.typeId !== action.relationMutation.targetType) {
         throw createError({ statusCode: 400, message: 'Relation action has no compatible creator' });
       }
       const created = await executeDataflowActionRun({
@@ -674,13 +674,13 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
         targetOrganizationId: null
       }, createActionExecutionAuth(auth, creatorAction));
       const createdId = entityInputId(created);
-      if (!createdId) throw createError({ statusCode: 500, message: `Created ${creatorAction.entityType} has no id` });
+      if (!createdId) throw createError({ statusCode: 500, message: `Created ${creatorAction.typeId} has no id` });
       const owner = await executeCompiledRelationMutationAction({
         action,
         actionId,
         entityId,
         data: {
-          relations: { [action.relationMutation.key]: { type: creatorAction.entityType, id: createdId } },
+          relations: { [action.relationMutation.key]: { type: creatorAction.typeId, id: createdId } },
           ...(data.relationReplaces ? { relationReplaces: data.relationReplaces } : {})
         },
         entities
@@ -702,26 +702,26 @@ export async function executeActiveProcessAction({ actionId, entityId, data = {}
 }
 
 async function executeCompiledRelationMutationAction({ action, actionId, entityId, data = {}, entities = {} } = {}, auth = {}) {
-  const targetValue = entityId || entities?.entity || entities?.[action.entityType];
+  const targetValue = entityId || entities?.entity || entities?.[action.typeId];
   const targetId = normalizeEntityRef(targetValue)?.id || targetValue;
   if (!targetId) throw createError({ statusCode: 400, message: 'Entity id is required' });
-  const entityType = resolveActionEntityType(action);
+  const typeId = resolveActionTypeId(action);
   const executionAuth = createActionExecutionAuth(auth, action);
   const selectedMutation = pickMutationData(data, action, entities);
   if (data.relationReplaces) selectedMutation.relationReplaces = data.relationReplaces;
   const mutation = await resolveManualRelationMutation(
-    entityType,
+    typeId,
     targetId,
     selectedMutation,
     action,
     executionAuth
   );
-  const updated = await persistProcessEntityPatch(entityType, targetId, flattenMutationPatch(mutation), executionAuth);
-  await publishActionEntityEvent(auth, entityType, updated || { _id: targetId }, 'updated', 'process-relation-update');
+  const updated = await persistProcessEntityPatch(typeId, targetId, flattenMutationPatch(mutation), executionAuth);
+  await publishActionEntityEvent(auth, typeId, updated || { _id: targetId }, 'updated', 'process-relation-update');
   return updated;
 }
 
-async function resolveManualRelationMutation(entityType, targetId, mutation = {}, action = {}, auth = {}) {
+async function resolveManualRelationMutation(typeId, targetId, mutation = {}, action = {}, auth = {}) {
   const contract = action.relationMutation;
   const key = contract?.key;
   const targetValue = getByPath(mutation, `relations.${key}`);
@@ -731,9 +731,9 @@ async function resolveManualRelationMutation(entityType, targetId, mutation = {}
     ? normalizeRelationRef(mutation.relationReplaces, contract?.targetType)
     : null;
 
-  const service = getAppRegistry().getEntityService(entityType);
+  const service = getAppRegistry().getEntityService(typeId);
   const currentRecord = await service?.processGetById?.(targetId, auth);
-  if (!currentRecord) throw createError({ statusCode: 404, message: `${entityType} not found` });
+  if (!currentRecord) throw createError({ statusCode: 404, message: `${typeId} not found` });
   const current = currentRecord?.toJSON ? currentRecord.toJSON() : currentRecord;
   const currentValue = current.relations?.[key];
 
@@ -784,7 +784,7 @@ async function resolveManualRelationMutation(entityType, targetId, mutation = {}
             ...(contract.association.defaults || {}),
             ...(replacementAssociation || {}),
             type: targetRef.type,
-            entityType: targetRef.type,
+            typeId: targetRef.type,
             id: targetRef.id
           }
         ];
@@ -819,18 +819,18 @@ async function executeDataflowActionRun({ process, actionId, entityId, data, par
   return effectStep?.output ?? run.result;
 }
 
-export async function resolveProcessGraphEntity(entityType, candidate, { entityId = null, entities = {}, auth = {} } = {}) {
+export async function resolveProcessGraphEntity(typeId, candidate, { entityId = null, entities = {}, auth = {} } = {}) {
   if (candidate && typeof candidate === 'object' && !Array.isArray(candidate) && !normalizeEntityRef(candidate)) {
     return candidate;
   }
-  const supplied = candidate ?? entities?.[entityType] ?? entities?.entity ?? entityId;
+  const supplied = candidate ?? entities?.[typeId] ?? entities?.entity ?? entityId;
   const ref = normalizeEntityRef(supplied);
   const id = ref?.id || (typeof supplied === 'string' ? supplied : null);
-  if (!id) throw new Error(`No ${entityType} entity was supplied to the process graph`);
-  const service = getAppRegistry().getEntityService(entityType);
-  if (!service?.processGetById) throw new Error(`Entity service cannot read ${entityType} from a process`);
+  if (!id) throw new Error(`No ${typeId} entity was supplied to the process graph`);
+  const service = getAppRegistry().getEntityService(typeId);
+  if (!service?.processGetById) throw new Error(`Entity service cannot read ${typeId} from a process`);
   const entity = await service.processGetById(id, auth);
-  if (!entity) throw new Error(`${entityType} ${id} was not found`);
+  if (!entity) throw new Error(`${typeId} ${id} was not found`);
   return entity?.toJSON ? entity.toJSON() : entity;
 }
 
@@ -848,9 +848,9 @@ export async function executeProcessQuery(processList, predicate, auth) {
   return predicate ? values.filter(entity => evaluateEntityPredicate(predicate, entity)) : values;
 }
 
-async function queryProcessGraphEntities(entityType, filters = {}, auth = {}) {
-  const service = getAppRegistry().getEntityService(entityType);
-  if (!service?.processList) throw new Error(`Entity service cannot query ${entityType} from a process`);
+async function queryProcessGraphEntities(typeId, filters = {}, auth = {}) {
+  const service = getAppRegistry().getEntityService(typeId);
+  if (!service?.processList) throw new Error(`Entity service cannot query ${typeId} from a process`);
   const entities = await service.processList(filters, auth);
   return (entities || []).map(entity => entity?.toJSON ? entity.toJSON() : entity);
 }
@@ -858,12 +858,12 @@ async function queryProcessGraphEntities(entityType, filters = {}, auth = {}) {
 async function linkCreatedEntityToContextRelation({ action = {}, data = {}, entities = {}, created = null, auth = {} } = {}) {
   const link = data?.linkCreatedTo;
   if (!link || typeof link !== 'object') return null;
-  const ownerType = normalizeEntityType(link.ownerType || '');
-  const targetType = resolveActionEntityType(action);
+  const ownerType = normalizeTypeId(link.ownerType || '');
+  const targetType = resolveActionTypeId(action);
   const relation = (getDomain().relations || []).find(item => (
-    normalizeEntityType(item.ownerType) === ownerType
+    normalizeTypeId(item.ownerType) === ownerType
     && item.key === link.relationKey
-    && normalizeEntityType(item.targetType) === targetType
+    && normalizeTypeId(item.targetType) === targetType
     && item.cardinality === 'many'
   ));
   if (!relation) throw createError({ statusCode: 400, message: `${ownerType}.${link.relationKey || ''} is not a declared ${targetType} relation` });
@@ -892,7 +892,7 @@ async function linkCreatedEntityToContextRelation({ action = {}, data = {}, enti
         {
           ...(relation.association.defaults || {}),
           type: targetType,
-          entityType: targetType,
+          typeId: targetType,
           id: createdId
         }
       ];
@@ -915,32 +915,32 @@ function entityInputId(value) {
 }
 
 async function applyProcessOutputStatuses({ actionId, result = {}, processData = {}, organizationId, auth = {} } = {}) {
-  const statusesByEntityType = commandOutputStatusMap(actionId, processData);
-  if (!statusesByEntityType.size) return;
+  const statusesByTypeId = commandOutputStatusMap(actionId, processData);
+  if (!statusesByTypeId.size) return;
   for (const entityRef of result.entities || []) {
-    const entityType = normalizeEntityType(entityRef.type || entityRef.entityType || '');
-    const statusTargets = statusesByEntityType.get(entityType) || [];
+    const typeId = normalizeTypeId(entityRef.type || entityRef.typeId || '');
+    const statusTargets = statusesByTypeId.get(typeId) || [];
     if (statusTargets.length > 1) {
-      throw new Error(`Process command action ${actionId} has ambiguous status outputs for ${entityType}`);
+      throw new Error(`Process command action ${actionId} has ambiguous status outputs for ${typeId}`);
     }
     const statusTarget = statusTargets[0];
     const targetState = statusTarget?.targetState;
     const targetId = entityRef.id || entityRef._id;
-    if (!entityType || !targetState || !targetId) continue;
+    if (!typeId || !targetState || !targetId) continue;
     await statusService.setInitialStateForOrganization(
-      entityType,
+      typeId,
       targetId,
       targetState,
       organizationId,
       auth.userId,
       processStatusMetadata({
-        entityType,
+        typeId,
         producerOutputId: statusTarget.producerOutputId,
         status: { to: targetState }
       }, `Created by process command action ${actionId}`, processData)
     );
     await entityEventService.publishEntityChanged(auth, {
-      type: entityType,
+      type: typeId,
       id: targetId,
       change: 'updated',
       reason: 'process-command-output-status'
@@ -948,9 +948,9 @@ async function applyProcessOutputStatuses({ actionId, result = {}, processData =
   }
 }
 
-async function publishStatusResultEvents(auth, entityType, targetId, result = {}, reason = 'process-status-action') {
+async function publishStatusResultEvents(auth, typeId, targetId, result = {}, reason = 'process-status-action') {
   await entityEventService.publishEntityChanged(auth, {
-    type: entityType,
+    type: typeId,
     id: result.entity?._id || targetId,
     change: 'updated',
     reason
@@ -965,9 +965,9 @@ async function publishStatusResultEvents(auth, entityType, targetId, result = {}
   }
 }
 
-async function publishActionEntityEvent(auth, entityType, entity, change, reason) {
+async function publishActionEntityEvent(auth, typeId, entity, change, reason) {
   await entityEventService.publishEntityChanged(auth, {
-    type: entityType,
+    type: typeId,
     id: entityId(entity),
     change,
     reason
@@ -1007,16 +1007,16 @@ function commandOutputStatusMap(actionId, processData = {}) {
     const targetActionId = actionIdByNodeId.get(String(edge.target)) || String(edge.target);
     const targetAction = targetActionId ? processData.actions?.[targetActionId] : null;
     if (targetAction?.actionKind !== 'updateEntity' || !(targetAction.status?.to || targetAction.access?.statusTo)) continue;
-    const entityType = normalizeEntityType(
-      targetAction.entityType
-      || targetAction.inputs?.find(input => input.entityType)?.entityType
+    const typeId = normalizeTypeId(
+      targetAction.typeId
+      || targetAction.inputs?.find(input => input.typeId)?.typeId
       || String(edge.sourceHandle || '').replace(/^output:/, '')
     );
     const targetState = targetAction.status?.to || targetAction.access?.statusTo;
-    if (entityType && targetState) {
-      const targets = map.get(entityType) || [];
+    if (typeId && targetState) {
+      const targets = map.get(typeId) || [];
       targets.push({ targetState, producerOutputId: targetAction.producerOutputId || null });
-      map.set(entityType, targets);
+      map.set(typeId, targets);
     }
   }
   return map;
@@ -1095,15 +1095,15 @@ function assertCompiledActionAvailable(actionId, auth = {}) {
   }
 }
 
-function resolveActionEntityType(action = {}) {
-  return normalizeEntityType(action.entityType || action.inputs?.find(input => input.entityType)?.entityType || '');
+function resolveActionTypeId(action = {}) {
+  return normalizeTypeId(action.typeId || action.inputs?.find(input => input.typeId)?.typeId || '');
 }
 
 function getEntityServiceForAction(action = {}) {
-  const entityType = resolveActionEntityType(action);
-  if (!entityType) throw createError({ statusCode: 400, message: `Action ${action.id} has no entity type` });
-  const service = getAppRegistry().getEntityService(entityType);
-  if (!service) throw createError({ statusCode: 500, message: `Entity service missing for ${entityType}` });
+  const typeId = resolveActionTypeId(action);
+  if (!typeId) throw createError({ statusCode: 400, message: `Action ${action.id} has no entity type` });
+  const service = getAppRegistry().getEntityService(typeId);
+  if (!service) throw createError({ statusCode: 500, message: `Entity service missing for ${typeId}` });
   return service;
 }
 
@@ -1177,27 +1177,27 @@ function appendExecutionGrant(permissions, feature, grant) {
 
 function constructionSourceGrants(action = {}) {
   const sources = [];
-  if (action.parentEntityType) {
-    sources.push({ entityType: action.parentEntityType, level: 'read', actions: { view: true } });
+  if (action.parentTypeId) {
+    sources.push({ typeId: action.parentTypeId, level: 'read', actions: { view: true } });
   }
   if (action.construction?.mode === 'bakeCassetteDesignFromTemplate') {
-    sources.push({ entityType: 'cassette', level: 'read', actions: { view: true } });
+    sources.push({ typeId: 'cassette', level: 'read', actions: { view: true } });
   }
   if (action.construction?.mode === 'importCassetteDesignFromArtifact') {
-    sources.push({ entityType: 'artifact', level: 'read', actions: { view: true } });
+    sources.push({ typeId: 'artifact', level: 'read', actions: { view: true } });
   }
   for (const field of [
     ...(action.construction?.inputs || []),
     ...(action.inputPolicy?.fields || []),
     ...(action.inputs || [])
   ]) {
-    if (field?.entityType && (field.type === 'entity' || field.kind === 'entity' || field.relationKey || field.id === 'parent')) {
-      sources.push({ entityType: field.entityType, level: field.access?.level || 'read', actions: { view: true } });
+    if (field?.typeId && (field.type === 'entity' || field.kind === 'entity' || field.relationKey || field.id === 'parent')) {
+      sources.push({ typeId: field.typeId, level: field.access?.level || 'read', actions: { view: true } });
     }
   }
   const seen = new Set();
   return sources.flatMap(source => {
-    const feature = resolveEntityFeature(source.entityType);
+    const feature = resolveEntityFeature(source.typeId);
     const key = `${feature}:${source.level}`;
     if (!feature || seen.has(key)) return [];
     seen.add(key);
@@ -1206,18 +1206,18 @@ function constructionSourceGrants(action = {}) {
 }
 
 function resolveActionFeature(action = {}) {
-  return resolveEntityFeature(resolveActionEntityType(action));
+  return resolveEntityFeature(resolveActionTypeId(action));
 }
 
-function resolveEntityFeature(entityType = '') {
-  entityType = normalizeEntityType(entityType);
+function resolveEntityFeature(typeId = '') {
+  typeId = normalizeTypeId(typeId);
   const domain = getDomain();
-  const entity = (domain?.entities || []).find(item => item.type === entityType);
-  const fieldPolicy = getEntityFieldAccessPolicy(entityType) || domain?.fieldAccess?.[entityType];
+  const entity = (domain?.entities || []).find(item => item.type === typeId);
+  const fieldPolicy = getEntityFieldAccessPolicy(typeId) || domain?.fieldAccess?.[typeId];
   if (fieldPolicy?.feature) return fieldPolicy.feature;
   if (entity?.feature) return entity.feature;
   if (entity?.collection) return entity.collection;
-  return entityType;
+  return typeId;
 }
 
 function pickMutationData(data = {}, action = {}, entities = {}) {
@@ -1233,15 +1233,15 @@ function pickMutationData(data = {}, action = {}, entities = {}) {
   return picked;
 }
 
-async function normalizeProcessMutation(entityType, mutation = {}, relationContracts = [], auth = {}) {
+async function normalizeProcessMutation(typeId, mutation = {}, relationContracts = [], auth = {}) {
   if (!mutation.relations) return mutation;
   const normalizedRelations = {};
   for (const [key, value] of Object.entries(mutation.relations)) {
     const relation = relationContracts.find(item => (
-      normalizeEntityType(item.ownerType) === normalizeEntityType(entityType) && item.key === key
+      normalizeTypeId(item.ownerType) === normalizeTypeId(typeId) && item.key === key
     ));
     if (!relation) {
-      throw createError({ statusCode: 400, message: `Action cannot write undeclared relation ${entityType}.${key}` });
+      throw createError({ statusCode: 400, message: `Action cannot write undeclared relation ${typeId}.${key}` });
     }
     const values = Array.isArray(value) ? value : [value];
     const refs = [];
@@ -1251,7 +1251,7 @@ async function normalizeProcessMutation(entityType, mutation = {}, relationContr
       refs.push(ref);
     }
     if (relation.cardinality === 'one' && refs.length !== 1) {
-      throw createError({ statusCode: 400, message: `Relation ${entityType}.${key} accepts exactly one entity` });
+      throw createError({ statusCode: 400, message: `Relation ${typeId}.${key} accepts exactly one entity` });
     }
     normalizedRelations[key] = relation.cardinality === 'many'
       ? Array.from(new Map(refs.map(ref => [`${ref.type}:${ref.id}`, ref])).values())
@@ -1272,14 +1272,14 @@ function declaredRelationValues(value, contracts = []) {
     .map(contract => [contract.key, value[contract.key]]));
 }
 
-async function normalizeProcessPatchRelations(entityType, patch = {}, contracts = [], auth = {}) {
+async function normalizeProcessPatchRelations(typeId, patch = {}, contracts = [], auth = {}) {
   const relations = Object.fromEntries(contracts.flatMap(contract => (
     Object.hasOwn(patch, `relations.${contract.key}`)
       ? [[contract.key, patch[`relations.${contract.key}`]]]
       : []
   )));
   if (!Object.keys(relations).length) return patch;
-  const normalized = await normalizeProcessMutation(entityType, { relations }, contracts, auth);
+  const normalized = await normalizeProcessMutation(typeId, { relations }, contracts, auth);
   return {
     ...patch,
     ...Object.fromEntries(Object.entries(normalized.relations).map(([key, value]) => [`relations.${key}`, value]))
@@ -1291,10 +1291,10 @@ async function assertRelationTargetAvailable(ref, relation = {}, auth = {}) {
   const target = await service?.processGetById?.(ref.id, auth);
   if (!target) throw createError({ statusCode: 404, message: `${relation.targetType} relation target not found` });
   const entity = target?.toJSON ? target.toJSON() : target;
-  const definition = (getDomain().entities || []).find(item => normalizeEntityType(item.type) === normalizeEntityType(relation.targetType));
+  const definition = (getDomain().entities || []).find(item => normalizeTypeId(item.type) === normalizeTypeId(relation.targetType));
   assertEntityAccess({
     entity,
-    entityType: relation.targetType,
+    typeId: relation.targetType,
     feature: resolveEntityFeature(definition?.type || relation.targetType),
     level: 'read',
     action: 'view',
@@ -1303,31 +1303,31 @@ async function assertRelationTargetAvailable(ref, relation = {}, auth = {}) {
   if (!ref.revisionId) return;
   const revision = await entityRevisionsService.getById(ref.revisionId, auth.userId, auth.role, auth);
   const source = revision?.data?.source;
-  if (normalizeEntityType(source?.type) !== normalizeEntityType(relation.targetType) || String(source?.id) !== String(ref.id)) {
+  if (normalizeTypeId(source?.type) !== normalizeTypeId(relation.targetType) || String(source?.id) !== String(ref.id)) {
     throw createError({ statusCode: 400, message: `Pinned revision does not belong to ${relation.targetType} ${ref.id}` });
   }
 }
 
 function normalizeRelationRef(value, targetType) {
   const ref = normalizeEntityRef(typeof value === 'object' ? value : { type: targetType, id: value });
-  if (!ref || normalizeEntityType(ref.type) !== normalizeEntityType(targetType)) {
+  if (!ref || normalizeTypeId(ref.type) !== normalizeTypeId(targetType)) {
     throw createError({ statusCode: 400, message: `Relation target must be ${targetType}` });
   }
   return { ...ref, type: targetType };
 }
 
-async function persistProcessEntityPatch(entityType, targetId, patch, auth) {
-  const service = getAppRegistry().getEntityService(entityType);
+async function persistProcessEntityPatch(typeId, targetId, patch, auth) {
+  const service = getAppRegistry().getEntityService(typeId);
   if (!service?.processGetById || !service?.processUpdate) {
-    throw createError({ statusCode: 500, message: `Entity service cannot persist process updates for ${entityType}` });
+    throw createError({ statusCode: 500, message: `Entity service cannot persist process updates for ${typeId}` });
   }
   const entityResult = await service.processGetById(targetId, auth);
   const entity = entityResult?.toJSON ? entityResult.toJSON() : entityResult;
-  if (!entity) throw createError({ statusCode: 404, message: `${entityType} not found` });
+  if (!entity) throw createError({ statusCode: 404, message: `${typeId} not found` });
   assertEntityAccess({
     entity,
-    entityType,
-    feature: resolveEntityFeature(entityType),
+    typeId,
+    feature: resolveEntityFeature(typeId),
     level: 'write',
     action: 'update',
     auth
@@ -1366,21 +1366,21 @@ function setByPath(target, path, value) {
 
 function processDataEnvironment(auth, run) {
   const domain = getDomain();
-  const resolveEntity = (entityType, idOrRef) => resolveProcessGraphEntity(entityType, idOrRef, { auth });
-  const queryEntities = (entityType, filters) => queryProcessGraphEntities(entityType, filters, auth);
+  const resolveEntity = (typeId, idOrRef) => resolveProcessGraphEntity(typeId, idOrRef, { auth });
+  const queryEntities = (typeId, filters) => queryProcessGraphEntities(typeId, filters, auth);
   return {
-    currentEntity: async entityType => {
-      const candidate = run.context?.inputs?.entities?.[entityType] || run.context?.inputs?.entity;
-      return candidate ? resolveProcessGraphEntity(entityType, candidate, { auth }) : null;
+    currentEntity: async typeId => {
+      const candidate = run.context?.inputs?.entities?.[typeId] || run.context?.inputs?.entity;
+      return candidate ? resolveProcessGraphEntity(typeId, candidate, { auth }) : null;
     },
-    entityById: (entityType, id) => resolveProcessGraphEntity(entityType, id, { auth }),
+    entityById: (typeId, id) => resolveProcessGraphEntity(typeId, id, { auth }),
     resolveEntityRef: ref => resolveProcessGraphEntity(ref.type, ref, { auth }),
-    parentEntity: (entity, entityType) => processParentEntity(domain.containment, resolveEntity, entity, entityType),
-    childEntities: (entity, entityType) => processChildEntities(domain.containment, queryEntities, entity, entityType),
-    relatedEntities: (entity, relationKey, entityType) => processRelatedEntities(domain.relations, resolveEntity, entity, relationKey, entityType),
-    queryEntities: async (entityType, predicate) => {
-      const service = getAppRegistry().getEntityService(entityType);
-      if (!service?.processList) throw new Error(`Entity service cannot query ${entityType} from a process`);
+    parentEntity: (entity, typeId) => processParentEntity(domain.containment, resolveEntity, entity, typeId),
+    childEntities: (entity, typeId) => processChildEntities(domain.containment, queryEntities, entity, typeId),
+    relatedEntities: (entity, relationKey, typeId) => processRelatedEntities(domain.relations, resolveEntity, entity, relationKey, typeId),
+    queryEntities: async (typeId, predicate) => {
+      const service = getAppRegistry().getEntityService(typeId);
+      if (!service?.processList) throw new Error(`Entity service cannot query ${typeId} from a process`);
       return executeProcessQuery(service.processList, predicate, auth);
     }
   };
@@ -1395,19 +1395,19 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     if (!record.commandId) throw new Error('Command effect requires commandId');
     return await executeCommand(record.commandId, commandEffectPayload(record.commandId, inputs), auth);
   }
-  const entityType = normalizeEntityType(record.entityType || inputs.entity?.type || '');
-  if (!entityType) throw new Error(`${kind} requires entityType`);
-  const service = getAppRegistry().getEntityService(entityType);
-  if (!service) throw new Error(`Entity service missing for ${entityType}`);
+  const typeId = normalizeTypeId(record.typeId || inputs.entity?.type || '');
+  if (!typeId) throw new Error(`${kind} requires typeId`);
+  const service = getAppRegistry().getEntityService(typeId);
+  if (!service) throw new Error(`Entity service missing for ${typeId}`);
   const requiredCapability = {
     'effect.archiveEntity': 'archive',
     'effect.deleteEntity': 'delete'
   }[kind];
   if (requiredCapability && service.processCapabilities?.[requiredCapability] !== true) {
-    throw new Error(`${entityType} does not support process ${requiredCapability}`);
+    throw new Error(`${typeId} does not support process ${requiredCapability}`);
   }
-  if (kind === 'effect.deleteEntity' && !getDomain().entities?.find(entity => entity.type === entityType)?.operations?.delete) {
-    throw new Error(`${entityType} does not declare hard deletion`);
+  if (kind === 'effect.deleteEntity' && !getDomain().entities?.find(entity => entity.type === typeId)?.operations?.delete) {
+    throw new Error(`${typeId} does not declare hard deletion`);
   }
   const relationContracts = ['effect.createEntity', 'effect.updateEntity'].includes(kind)
     ? processRelationContracts(record, processData)
@@ -1418,7 +1418,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     const relationValues = declaredRelationValues(inputs.relations, relationContracts);
     if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
     const executionAuth = createActionExecutionAuth(auth, record);
-    blockDraft = await normalizeProcessMutation(entityType, blockDraft, relationContracts, executionAuth);
+    blockDraft = await normalizeProcessMutation(typeId, blockDraft, relationContracts, executionAuth);
     const targetState = inputs['status.state.primary'] || record.status?.to;
     const draft = {
       ...blockDraft,
@@ -1437,7 +1437,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     const mode = record.construction?.mode || '';
     const handler = service.constructionHandlers?.[mode];
     if (typeof handler !== 'function') {
-      throw new Error(`No registered handler for construction mode ${mode || '(none)'} on ${entityType}`);
+      throw new Error(`No registered handler for construction mode ${mode || '(none)'} on ${typeId}`);
     }
     const organizationId = resolveOrganizationId(auth);
     const created = await handler(draft, {
@@ -1453,7 +1453,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       ? {
           ...dto,
           status: await statusService.setInitialStateForOrganization(
-            entityType,
+            typeId,
             targetId,
             targetState,
             organizationId,
@@ -1465,7 +1465,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
           )
         }
       : dto;
-    await publishActionEntityEvent(auth, entityType, result, 'created', 'process-create');
+    await publishActionEntityEvent(auth, typeId, result, 'created', 'process-create');
     return result;
   }
   const target = normalizeEntityRef(inputs.entity);
@@ -1475,8 +1475,8 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     // types live there; legacy types not in the view keep the legacy
     // tables until their surfaces are deleted.
     const projectedFieldSchemas = (await getProjectedDomain(resolveOrganizationId(auth)))
-      .fieldSchemas?.[entityType];
-    const schemas = projectedFieldSchemas || getEntityFieldSchemas(record.entityType);
+      .fieldSchemas?.[typeId];
+    const schemas = projectedFieldSchemas || getEntityFieldSchemas(record.typeId);
     const persistedChanges = processBlockInputChanges(record, inputs, schemas);
     const statusValue = inputs['status.state.primary'];
     const statusChange = statusValue == null ? null : {
@@ -1491,9 +1491,9 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       }));
       Object.assign(patch, Object.fromEntries(Object.entries(declaredRelationValues(inputs.relations, relationContracts))
         .map(([key, value]) => [`relations.${key}`, value])));
-      patch = await normalizeProcessPatchRelations(entityType, patch, relationContracts, auth);
+      patch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, auth);
       const result = await statusService.transitionWithResult({
-        entityType,
+        typeId,
         targetId: target.id,
         targetState: typeof statusChange.value === 'string' ? statusChange.value : statusChange.value?.id,
         auth,
@@ -1506,8 +1506,8 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     if (persistedChanges.every(change => (change.operation || 'set') === 'set')) {
       patch = Object.fromEntries(persistedChanges.map(change => [change.path, change.value]));
     } else {
-      const current = await resolveProcessGraphEntity(entityType, target, { auth });
-      const changeSet = { entityType, changes: persistedChanges };
+      const current = await resolveProcessGraphEntity(typeId, target, { auth });
+      const changeSet = { typeId, changes: persistedChanges };
       const updated = applyPatch(current, changeSet);
       patch = Object.fromEntries(persistedChanges.map(change => {
         const value = getByPath(updated, change.path);
@@ -1517,8 +1517,8 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     }
     Object.assign(patch, Object.fromEntries(Object.entries(declaredRelationValues(inputs.relations, relationContracts))
       .map(([key, value]) => [`relations.${key}`, value])));
-    patch = await normalizeProcessPatchRelations(entityType, patch, relationContracts, auth);
-    if (!service.processUpdate) throw new Error(`Entity service cannot update ${entityType}`);
+    patch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, auth);
+    if (!service.processUpdate) throw new Error(`Entity service cannot update ${typeId}`);
     return await service.processUpdate(target.id, patch, auth);
   }
   if (kind === 'effect.changeStatus') {
@@ -1527,7 +1527,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       return [change.path, change.value];
     }));
     const result = await statusService.transitionWithResult({
-      entityType,
+      typeId,
       targetId: target.id,
       targetState: typeof inputs.status === 'string' ? inputs.status : inputs.status?.id,
       auth,
@@ -1538,7 +1538,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   }
   if (kind === 'effect.archiveEntity') {
     const result = await statusService.transitionWithResult({
-      entityType,
+      typeId,
       targetId: target.id,
       ...(record.archiveIntent ? { intent: record.archiveIntent } : { targetState: 'ARCHIVED' }),
       auth,
@@ -1547,7 +1547,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     return result.entity;
   }
   if (kind === 'effect.deleteEntity') {
-    if (!service.processDelete) throw new Error(`Entity service cannot delete ${entityType}`);
+    if (!service.processDelete) throw new Error(`Entity service cannot delete ${typeId}`);
     return await service.processDelete(target.id, auth);
   }
   if (kind === 'effect.sendEntity') {
@@ -1560,7 +1560,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   if (kind === 'effect.generateAttachment') {
     if (!record.commandId) throw new Error('Attachment effect requires commandId');
     return await executeCommand(record.commandId, {
-      entities: { [entityType]: target },
+      entities: { [typeId]: target },
       parameters: inputs.parameters || {}
     }, auth);
   }
@@ -1578,9 +1578,9 @@ function effectTransitionContext(record = {}, inputs = {}) {
 
 async function applyTypedConstructionBlocks(record = {}, blockDraft = {}, created = null, service = null, auth = {}) {
   if (!created || !Object.keys(blockDraft).length) return created;
-  if (!service?.processUpdate) throw new Error(`Entity service cannot apply constructed blocks to ${record.entityType}`);
+  if (!service?.processUpdate) throw new Error(`Entity service cannot apply constructed blocks to ${record.typeId}`);
   const targetId = created._id || created.identity?.uid;
-  if (!targetId) throw new Error(`Created ${record.entityType} has no id`);
+  if (!targetId) throw new Error(`Created ${record.typeId} has no id`);
   const patch = Object.fromEntries(Object.entries(blockDraft).map(([block, value]) => [
     block,
     { ...(created[block] || {}), ...(value || {}) }
@@ -1615,7 +1615,7 @@ function commandEffectPayload(commandId, inputs = {}) {
 
 function processBlockInputRecord(record = {}, inputs = {}) {
   const result = {};
-  const schemas = getEntityFieldSchemas(record.entityType);
+  const schemas = getEntityFieldSchemas(record.typeId);
   for (const block of record.blocks || []) {
     if (!Object.hasOwn(inputs, block)) continue;
     result[block] = {};
@@ -1646,14 +1646,14 @@ export function constructProvenance(record = {}, constructionDraft = {}, targetS
     sources.push({ ...(type ? { type } : {}), id: String(id) });
   };
   for (const input of record.construction?.inputs || []) {
-    if (input.type !== 'entity' && input.type !== 'entityList') continue;
+    if (input.type !== 'entity' && input.type !== 'typeList') continue;
     const supplied = Object.hasOwn(inputs, input.id || input.path) ? inputs[input.id || input.path] : input.default;
-    const values = input.type === 'entityList'
+    const values = input.type === 'typeList'
       ? (Array.isArray(supplied) ? supplied : [supplied])
       : [supplied];
     for (const value of values) {
-      const ref = normalizeEntityRef(value) || (value?.id || value?._id ? { type: input.entityType, id: value.id || value._id } : null);
-      if (ref) addSource(ref.type || input.entityType, ref.id);
+      const ref = normalizeEntityRef(value) || (value?.id || value?._id ? { type: input.typeId, id: value.id || value._id } : null);
+      if (ref) addSource(ref.type || input.typeId, ref.id);
     }
   }
   const contextRef = normalizeEntityRef(inputs.entity || null);
@@ -1679,7 +1679,7 @@ export function processConstructionInputRecord(record = {}, inputs = {}) {
     if (supplied === undefined) continue;
     const value = input.type === 'entity'
       ? entityInputId(supplied)
-      : input.type === 'entityList'
+      : input.type === 'typeList'
         ? (Array.isArray(supplied) ? supplied : [supplied]).map(entityInputId).filter(Boolean)
         : supplied;
     // The identity 'name' construction input writes the wire identity
@@ -1696,7 +1696,7 @@ export function processConstructionInputRecord(record = {}, inputs = {}) {
 }
 
 function processBlockInputChanges(record = {}, inputs = {}, schemas = null) {
-  const fieldSchemas = schemas || getEntityFieldSchemas(record.entityType);
+  const fieldSchemas = schemas || getEntityFieldSchemas(record.typeId);
   const changes = [];
   // v5 leaf field inputs arrive keyed by their full schema path (the
   // cts.mutate field sockets): a wired or prompted leaf writes exactly
@@ -1749,7 +1749,7 @@ async function assertOrgAccess(auth, organizationId, level) {
   try {
     assertEntityAccess({
       entity: { lineage: { organizationId } },
-      entityType: 'organization',
+      typeId: 'organization',
       feature: 'organizations',
       level,
       auth

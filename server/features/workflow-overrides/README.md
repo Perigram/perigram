@@ -22,12 +22,12 @@ Organization-scoped lifecycle override storage for entity status machines.
 ## Data Contract
 
 - `organizationId`: tenant that owns the override.
-- `entityType`: normalized entity type such as `project` or `queue`.
+- `typeId`: normalized entity type such as `project` or `queue`.
 - `workflow`: normalized v2 workflow definition.
 - `status`: `ACTIVE`, `DRAFT`, or `ARCHIVED`; runtime uses only `ACTIVE`.
 - `createdBy` / `updatedBy`: authenticated user ids.
 
-Only one active override should exist for `{ organizationId, entityType}`.
+Only one active override should exist for `{ organizationId, typeId}`.
 Activation archives previous active records before inserting the new active
 definition.
 

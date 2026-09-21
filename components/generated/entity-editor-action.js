@@ -10,14 +10,14 @@ import { fileEditorActions } from '~/components/generated/file-surfaces.js';
  */
 const entityEditorActions = new Map(fileEditorActions());
 
-export function entityEditorActionFor(entityType = '') {
-  return entityEditorActions.get(entityType)?.component || null;
+export function entityEditorActionFor(typeId = '') {
+  return entityEditorActions.get(typeId)?.component || null;
 }
 
-export function entityHasEditorAction(entityType = '') {
-  return Boolean(entityEditorActions.get(entityType)?.component);
+export function entityHasEditorAction(typeId = '') {
+  return Boolean(entityEditorActions.get(typeId)?.component);
 }
 
-export function entityEditorForcesIdentity(entityType = '') {
-  return Boolean(entityEditorActions.get(entityType)?.forceIdentity);
+export function entityEditorForcesIdentity(typeId = '') {
+  return Boolean(entityEditorActions.get(typeId)?.forceIdentity);
 }

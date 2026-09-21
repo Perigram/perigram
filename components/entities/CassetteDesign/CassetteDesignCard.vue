@@ -1,6 +1,6 @@
 <template>
   <div>
-    <EntityCard :entity="design" entity-type="cassette_design" :variant="variant" :show-status="false">
+    <EntityCard :entity="design" type-id="cassette_design" :variant="variant" :show-status="false">
       <template #before-identity>
         <EntityInlineRef
           v-if="templateId"

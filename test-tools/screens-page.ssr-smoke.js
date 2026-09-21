@@ -72,8 +72,8 @@ const projectedAction = {
   construction: { mode: 'genericCreate', inputs: ['name', 'data.note'] },
   fields: ['name', 'data.note', 'field:identity.name'],
   actionId: 'ctor',
-  entityType: 't-k3x9fj2mqa',
-  parentEntityType: null,
+  typeId: 't-k3x9fj2mqa',
+  parentTypeId: null,
   inputPolicy: { prompt: true, fields: [{ id: 'name', type: 'string', prompt: true, required: true }] }
 };
 
@@ -95,7 +95,7 @@ const screens = [
     id: 'auto_role_op_t-k3x9fj2mqa',
     screenKey: 'auto_t-k3x9fj2mqa',
     label: 'Job Ticket',
-    kind: 'entityList',
+    kind: 'typeList',
     template: 'typeList',
     placement: 'hub',
     typeId: 't-k3x9fj2mqa',
@@ -109,7 +109,7 @@ const screens = [
     id: 'auto_role_op_t-k3x9fj2mqa_detail',
     screenKey: 'auto_t-k3x9fj2mqa_detail',
     label: 'Job Ticket',
-    kind: 'entityDetail',
+    kind: 'instanceDetail',
     template: 'instanceDetail',
     placement: 'detail',
     typeId: 't-k3x9fj2mqa',

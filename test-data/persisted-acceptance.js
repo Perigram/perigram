@@ -58,7 +58,7 @@ export function createPersistedAcceptanceFixture() {
         producerOutputId: 'project_source:result',
         nodeId: 'project_source',
         outputSocketId: 'result',
-        entityType: 'project',
+        typeId: 'project',
         lifecycle: { mode: 'domainDefault' },
         fields: { read: ['identity.*', 'status.*', 'lineage.*'], write: [], private: [] },
         allowedRoles: { read: [ids.role], write: [ids.role], admin: [] }
@@ -68,7 +68,7 @@ export function createPersistedAcceptanceFixture() {
         producerOutputId: 'create_facade:result',
         nodeId: 'create_facade',
         outputSocketId: 'result',
-        entityType: 'facade',
+        typeId: 'facade',
         lifecycle: { mode: 'domainDefault' },
         fields: { read: ['identity.*', 'status.*', 'lineage.*'], write: [], private: [] },
         allowedRoles: { read: [ids.role], write: [ids.role], admin: [] }
@@ -84,7 +84,7 @@ export function createPersistedAcceptanceFixture() {
       project_source: {
         id: 'project_source',
         kind: 'effect.createEntity',
-        entityType: 'project',
+        typeId: 'project',
         producerOutputId: 'project_source:result',
         label: 'Create project',
         construction: { mode: 'genericCreate' },
@@ -98,13 +98,13 @@ export function createPersistedAcceptanceFixture() {
         kind: 'record.composeBlock',
         block: 'lineage',
         compositionMode: 'ancestors',
-        targetEntityType: 'facade',
+        targetTypeId: 'facade',
         entries: [{ id: 'project' }]
       },
       create_facade: {
         id: 'create_facade',
         kind: 'effect.createEntity',
-        entityType: 'facade',
+        typeId: 'facade',
         producerOutputId: 'create_facade:result',
         label: 'Create facade',
         construction: { mode: 'genericCreate' },

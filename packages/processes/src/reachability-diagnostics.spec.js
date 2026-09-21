@@ -26,7 +26,7 @@ function definition(processNodes, edges) {
         producerOutputId: `${id}:entity`,
         nodeId: id,
         outputSocketId: 'entity',
-        entityType: record.entityType,
+        typeId: record.typeId,
         lifecycle: { mode: 'defaultCreated' },
         fields: { read: [], write: ['identity.name'], private: [] }
       }])),
@@ -69,7 +69,7 @@ describe('unreachable node diagnostics', () => {
       update: {
         id: 'update',
         kind: 'effect.updateEntity',
-        entityType: 'project',
+        typeId: 'project',
         producerOutputId: 'update:entity',
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
@@ -87,7 +87,7 @@ describe('unreachable node diagnostics', () => {
       update: {
         id: 'update',
         kind: 'effect.updateEntity',
-        entityType: 'project',
+        typeId: 'project',
         producerOutputId: 'update:entity',
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
@@ -107,7 +107,7 @@ describe('unreachable node diagnostics', () => {
       update: {
         id: 'update',
         kind: 'effect.updateEntity',
-        entityType: 'project',
+        typeId: 'project',
         producerOutputId: 'update:entity',
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },

@@ -106,7 +106,7 @@ Defines a specific nesting job, bridging the digital production intent with phys
   status: StatusBlock,
   lineage: { organizationId, projectId? },
   job: {
-    items: Array<{ id, entityType: 'cassette_design', type, quantity, parameters }>,
+    items: Array<{ id, typeId: 'cassette_design', type, quantity, parameters }>,
     materialPool: Array<{ type, id, label, specs, dimensions, available, sheetPolygon? }>
   },
   nestingSettings: {

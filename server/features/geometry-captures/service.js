@@ -404,12 +404,12 @@ export async function confirm(id, userId, userOrg, userRole, userPermissions) {
         sourcePhoto: raw.relations?.sourcePhoto || null
       }
     }, userId, userOrg, userRole, userPermissions);
-    output = { entityType: 'remnant', entityId: remnant._id?.toString?.() || remnant._id || remnant.id };
+    output = { typeId: 'remnant', entityId: remnant._id?.toString?.() || remnant._id || remnant.id };
     if (raw.lineage?.warehouseId) {
       await warehousesService.updateInventoryCounts(raw.lineage.warehouseId, { totalRemnants: 1 });
     }
   } else if (mode === 'FACADE') {
-    output = { entityType: 'facadeDraft', entityId: null };
+    output = { typeId: 'facadeDraft', entityId: null };
   }
 
   await repository.updateById(id, {
@@ -728,7 +728,7 @@ function defaultNameForMode(mode) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'geometry_capture',
+  typeId: 'geometry_capture',
   repository,
   Model: GeometryCapture
 });

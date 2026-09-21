@@ -102,7 +102,7 @@ describe('CNC fixture scenarios', () => {
     });
 
     expect(queueFields.find(field => field.name === 'projectId')?.type).toBe('entityId');
-    expect(queueFields.find(field => field.name === 'cassetteId')?.entityType).toBe('cassette');
+    expect(queueFields.find(field => field.name === 'cassetteId')?.typeId).toBe('cassette');
     expect(projectFields).not.toContain('address');
     expect(projectDraft.organizationId).toBeUndefined();
     expect(queue.lineage.projectId).toBe(context.refs.project);

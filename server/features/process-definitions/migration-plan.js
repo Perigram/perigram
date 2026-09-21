@@ -11,23 +11,23 @@ import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { statusService } from '~/server/core/machines/service.js';
 import * as entityEventService from '../entity-events/service.js';
 
-// stranded: [{ entityType, statuses: [{ state, count }] }] from the live
+// stranded: [{ typeId, statuses: [{ state, count }] }] from the live
 // count pass; nextCompiled: the compiled contract about to be applied.
 export function buildStatusMigrationPlan(stranded = [], nextCompiled = {}) {
   const producerOutputs = nextCompiled?.producerOutputs || {};
   return {
-    statuses: stranded.map(({ entityType, statuses }) => ({
-      entityType,
+    statuses: stranded.map(({ typeId, statuses }) => ({
+      typeId,
       removed: statuses,
-      targets: [...primaryStates(producerOutputs, entityType)].sort()
+      targets: [...primaryStates(producerOutputs, typeId)].sort()
     }))
   };
 }
 
 // Historical 409 shape kept for callers that render `affected` lines.
 export function strandedAsAffected(stranded = []) {
-  return stranded.map(({ entityType, statuses }) => ({
-    entityType,
+  return stranded.map(({ typeId, statuses }) => ({
+    typeId,
     statuses: statuses.map(({ state }) => state),
     count: statuses.reduce((total, { count }) => total + count, 0)
   }));
@@ -37,13 +37,13 @@ export function normalizeStatusMappings(mappings = []) {
   if (!Array.isArray(mappings)) return [];
   const seen = new Set();
   return mappings.flatMap(mapping => {
-    const entityType = String(mapping?.entityType || '');
+    const typeId = String(mapping?.typeId || '');
     const from = String(mapping?.from || '');
     const to = String(mapping?.to || '');
-    const key = `${entityType}|${from}`;
-    if (!entityType || !from || !to || seen.has(key)) return [];
+    const key = `${typeId}|${from}`;
+    if (!typeId || !from || !to || seen.has(key)) return [];
     seen.add(key);
-    return [{ entityType, from, to }];
+    return [{ typeId, from, to }];
   });
 }
 
@@ -52,34 +52,34 @@ export function validateStatusMappings(plan = {}, mappings = []) {
   const requiredByKey = new Map();
   for (const row of plan.statuses || []) {
     for (const { state } of row.removed || []) {
-      requiredByKey.set(`${row.entityType}|${state}`, {
-        entityType: row.entityType,
+      requiredByKey.set(`${row.typeId}|${state}`, {
+        typeId: row.typeId,
         state,
         targets: row.targets || []
       });
     }
   }
-  for (const { entityType, from } of mappings) {
-    if (!requiredByKey.has(`${entityType}|${from}`)) {
-      errors.push(`No removed state ${from} on ${entityType} requires a mapping`);
+  for (const { typeId, from } of mappings) {
+    if (!requiredByKey.has(`${typeId}|${from}`)) {
+      errors.push(`No removed state ${from} on ${typeId} requires a mapping`);
     }
   }
-  for (const { entityType, state, targets } of requiredByKey.values()) {
-    const mapping = mappings.find(item => item.entityType === entityType && item.from === state);
+  for (const { typeId, state, targets } of requiredByKey.values()) {
+    const mapping = mappings.find(item => item.typeId === typeId && item.from === state);
     if (!mapping) {
-      errors.push(`${entityType} state ${state} has no migration target`);
+      errors.push(`${typeId} state ${state} has no migration target`);
       continue;
     }
     if (!targets.includes(mapping.to)) {
-      errors.push(`${mapping.to} is not a retained state of ${entityType}`);
+      errors.push(`${mapping.to} is not a retained state of ${typeId}`);
     }
   }
   return errors;
 }
 
-function producerOutputIdForState(compiled = {}, entityType = '', targetState = '') {
+function producerOutputIdForState(compiled = {}, typeId = '', targetState = '') {
   for (const [producerOutputId, output] of Object.entries(compiled.producerOutputs || {})) {
-    if (output.entityType !== entityType) continue;
+    if (output.typeId !== typeId) continue;
     const workflow = output.workflow || {};
     const region = workflow.regions?.[workflow.primaryRegion] || {};
     if (Object.hasOwn(region.states || {}, targetState)) return producerOutputId;
@@ -90,18 +90,18 @@ function producerOutputIdForState(compiled = {}, entityType = '', targetState = 
 // Idempotent: instances no longer holding the removed state are skipped,
 // so re-running with the same mappings completes an interrupted migration.
 export async function applyStatusMigrations({ mappings = [], auth = {}, organizationId = null, compiled = {} } = {}) {
-  const byEntityType = new Map();
+  const byTypeId = new Map();
   for (const mapping of mappings) {
-    if (!byEntityType.has(mapping.entityType)) byEntityType.set(mapping.entityType, []);
-    byEntityType.get(mapping.entityType).push(mapping);
+    if (!byTypeId.has(mapping.typeId)) byTypeId.set(mapping.typeId, []);
+    byTypeId.get(mapping.typeId).push(mapping);
   }
   const applied = {};
   const failures = [];
-  for (const [entityType, typeMappings] of byEntityType) {
-    const service = getAppRegistry().getEntityService(entityType);
+  for (const [typeId, typeMappings] of byTypeId) {
+    const service = getAppRegistry().getEntityService(typeId);
     if (!service?.processList) {
       for (const mapping of typeMappings) {
-        failures.push({ entityType, id: null, from: mapping.from, to: mapping.to, error: `Entity service cannot query ${entityType} from a process` });
+        failures.push({ typeId, id: null, from: mapping.from, to: mapping.to, error: `Entity service cannot query ${typeId} from a process` });
       }
       continue;
     }
@@ -110,7 +110,7 @@ export async function applyStatusMigrations({ mappings = [], auth = {}, organiza
       entities = await service.processList({}, auth);
     } catch (error) {
       for (const mapping of typeMappings) {
-        failures.push({ entityType, id: null, from: mapping.from, to: mapping.to, error: error?.message || String(error) });
+        failures.push({ typeId, id: null, from: mapping.from, to: mapping.to, error: error?.message || String(error) });
       }
       continue;
     }
@@ -123,27 +123,27 @@ export async function applyStatusMigrations({ mappings = [], auth = {}, organiza
       if (!id) continue;
       try {
         await statusService.setInitialStateForOrganization(
-          entityType,
+          typeId,
           id,
           mapping.to,
           organizationId,
           auth.userId,
           {
             note: 'Process apply migration',
-            producerOutputId: producerOutputIdForState(compiled, entityType, mapping.to) || undefined
+            producerOutputId: producerOutputIdForState(compiled, typeId, mapping.to) || undefined
           }
         );
         await entityEventService.publishEntityChanged(auth, {
-          type: entityType,
+          type: typeId,
           id,
           change: 'updated',
           reason: 'process-apply-migration'
         });
         const key = `${mapping.from}->${mapping.to}`;
-        applied[entityType] = applied[entityType] || {};
-        applied[entityType][key] = (applied[entityType][key] || 0) + 1;
+        applied[typeId] = applied[typeId] || {};
+        applied[typeId][key] = (applied[typeId][key] || 0) + 1;
       } catch (error) {
-        failures.push({ entityType, id: String(id), from: mapping.from, to: mapping.to, error: error?.message || String(error) });
+        failures.push({ typeId, id: String(id), from: mapping.from, to: mapping.to, error: error?.message || String(error) });
       }
     }
   }
@@ -152,7 +152,7 @@ export async function applyStatusMigrations({ mappings = [], auth = {}, organiza
 
 export function throwMigrationRequired(stranded, plan) {
   const detail = strandedAsAffected(stranded)
-    .map(item => `${item.entityType} ${item.statuses.join(', ')} (${item.count})`)
+    .map(item => `${item.typeId} ${item.statuses.join(', ')} (${item.count})`)
     .join('; ');
   throw createError({
     statusCode: 409,

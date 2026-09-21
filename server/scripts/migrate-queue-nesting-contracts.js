@@ -18,7 +18,7 @@ function canonicalQueueItem(item = {}, designId) {
   const parameters = { ...(item.parameters || item.dimensions || {}) };
   return {
     type: item.type === 'PARAMETRIC' || Object.prototype.hasOwnProperty.call(parameters, 'T') ? 'PARAMETRIC' : 'STATIC',
-    entityType: 'cassette_design',
+    typeId: 'cassette_design',
     id: stringId(designId),
     quantity: Number(item.quantity ?? item.count ?? 1),
     parameters

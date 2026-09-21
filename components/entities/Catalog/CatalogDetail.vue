@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="catalog" entity-type="catalog" :show-status="false">
+    <EntityPage :entity="catalog" type-id="catalog" :show-status="false">
         <template #actions>
             <div class="flex flex-wrap gap-2" v-if="authStore.can('catalogs', 'edit')">
                 <Button icon="pi pi-pencil" severity="secondary" text :aria-label="$t('common.edit')" @click="$emit('edit', catalog)" />
@@ -40,7 +40,7 @@
             <Panel>
                 <div class="flex flex-col gap-4">
                     <p v-if="catalog.data?.description" class="m-0">{{ catalog.data.description }}</p>
-                    <DataBlock entity-type="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />
+                    <DataBlock type-id="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />
                     <div v-if="catalog.lineage?.manufacturerId" class="flex items-center justify-between gap-4">
                         <small class="text-muted">{{ $t('requisition.manufacturer') }}</small>
                         <EntityInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
@@ -90,6 +90,6 @@ const foilThicknessOptions = computed(() => props.catalog.data?.options?.foilThi
 const sheetThicknessOptions = computed(() => props.catalog.data?.options?.sheetThicknesses || []);
 const widthOptions = computed(() => props.catalog.data?.options?.widths || []);
 
-const CATALOG_FIELDS = resolveEntityDisplayFields({ entityType: 'catalog', surface: 'detail' })
+const CATALOG_FIELDS = resolveEntityDisplayFields({ typeId: 'catalog', surface: 'detail' })
     .filter(field => field.display !== 'entityRef');
 </script>

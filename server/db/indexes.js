@@ -121,8 +121,8 @@ const INDEXES = {
 
   // Workflow Overrides Collection
   workflow_overrides: [
-    { keys: { organizationId: 1, entityType: 1, status: 1 }, options: { name: 'org_entity_status_idx' } },
-    { keys: { organizationId: 1, entityType: 1 }, options: { name: 'org_entity_idx' } }
+    { keys: { organizationId: 1, typeId: 1, status: 1 }, options: { name: 'org_entity_status_idx' } },
+    { keys: { organizationId: 1, typeId: 1 }, options: { name: 'org_entity_idx' } }
   ],
 
   // Memberships Collection

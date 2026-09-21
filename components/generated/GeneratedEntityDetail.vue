@@ -8,7 +8,7 @@
   >
     <GeneratedEntityDetailBody
       :entity="entity"
-      :type-id="entityType"
+      :type-id="typeId"
       :surface="surface"
       :screen-key="screenKey"
       :actions="resolvedBodyActions"
@@ -19,13 +19,13 @@
     <!-- Composed entity chat rides the canonical detail chrome so every
          surface that renders an entity detail body — abstract pages and
          bounded implementation panes alike — carries the thread. -->
-    <EntityChatPanel :type="entityType" :id="entityIdValue" :name="entityNameValue" />
+    <EntityChatPanel :type="typeId" :id="entityIdValue" :name="entityNameValue" />
     <slot />
   </div>
   <EntityPage
     v-else-if="entity"
     :entity="entity"
-    :type-id="entityType"
+    :type-id="typeId"
     :show-trace="!embedded"
     :show-header="!embedded"
     :show-identity="showIdentity || forceIdentityForEditor"
@@ -34,7 +34,7 @@
   >
     <GeneratedEntityDetailBody
       :entity="entity"
-      :type-id="entityType"
+      :type-id="typeId"
       :surface="surface"
       :screen-key="screenKey"
       :actions="resolvedBodyActions"
@@ -42,7 +42,7 @@
       @refresh="$emit('refresh')"
     />
     <slot />
-    <EntityChatPanel :type="entityType" :id="entityIdValue" :name="entityNameValue" />
+    <EntityChatPanel :type="typeId" :id="entityIdValue" :name="entityNameValue" />
     <template v-if="editorActionComponent || headerActionIds.length" #actions>
       <component
         :is="editorActionComponent"

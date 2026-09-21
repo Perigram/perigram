@@ -25,7 +25,7 @@ function commandInputs(command = {}) {
     ...abstractInputs.map(input => ({
       id: input.name || input.type || input.capability,
       label: input.label || input.name,
-      entityType: input.type || '',
+      typeId: input.type || '',
       capability: input.capability || '',
       accepts: input.accepts || [],
       required: Boolean(input.required),
@@ -38,7 +38,7 @@ function commandInputs(command = {}) {
       .map(input => ({
         id: input.name || input.type,
         label: input.label || input.name || input.type,
-        entityType: input.type,
+        typeId: input.type,
         kind: 'entity',
         required: Boolean(input.required),
         prompt: true,
@@ -55,7 +55,7 @@ function commandInputs(command = {}) {
       prompt: input.display !== 'hidden',
       path: `parameters.${input.name}`,
       dataPath: `parameters.${input.name}`,
-      entityType: input.entityType || '',
+      typeId: input.typeId || '',
       editor: input.editor || '',
       templateFieldId: input.templateFieldId || ''
     }))

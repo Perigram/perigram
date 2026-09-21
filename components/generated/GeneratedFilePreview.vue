@@ -33,9 +33,9 @@ import { useFileTypeView } from '~/composables/useFileTypeView.js';
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  entityType: { type: String, required: true }
+  typeId: { type: String, required: true }
 });
 
 const { typeById } = useFileTypeView();
-const preview = computed(() => resolveFilePreview(props.entity, typeById(props.entityType)));
+const preview = computed(() => resolveFilePreview(props.entity, typeById(props.typeId)));
 </script>

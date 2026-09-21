@@ -49,12 +49,12 @@ function profileAccessLines(data = {}, roleIds = []) {
     for (const level of VALID_LEVELS) {
       if (!(profile.allowedRoles?.[level] || []).some(roleId => roleIds.includes(roleId))) continue;
       lines.push({
-        key: `profile:${profile.entityType}:${level}`,
-        text: `${profile.entityType}:${level}`,
+        key: `profile:${profile.typeId}:${level}`,
+        text: `${profile.typeId}:${level}`,
         contributor: {
           kind: 'authored-grant',
           ref: `entityProfiles.${profileId}.allowedRoles.${level}`,
-          label: `entity profile ${profile.label || profile.entityType || profileId}`
+          label: `entity profile ${profile.label || profile.typeId || profileId}`
         }
       });
     }
@@ -91,13 +91,13 @@ function actionAccessLines(data = {}, roleIds = []) {
   const lines = [];
   for (const [actionId, action] of Object.entries(data.actions || {})) {
     if (!actionRoleIds(action.access).some(roleId => roleIds.includes(roleId))) continue;
-    const entityType = actionEntityType(action);
-    if (action.actionKind === 'updateEntity' && !entityType) continue;
+    const typeId = actionTypeId(action);
+    if (action.actionKind === 'updateEntity' && !typeId) continue;
     const name = action.label || action.id || actionId;
     const authoredLevel = action.access?.level;
     const level = VALID_LEVELS.includes(authoredLevel) ? authoredLevel : 'write';
     const status = actionTargetStatus(action);
-    const subject = entityType || name || action.actionKind;
+    const subject = typeId || name || action.actionKind;
     const matchingGrant = (action.access?.grants || []).find(grant => roleIds.includes(grant?.roleId));
     const text = [
       grantText(subject, { ...action.access, ...matchingGrant, level: matchingGrant?.level || level }),
@@ -140,29 +140,29 @@ function grantText(subject, grant = {}) {
 
 function transitionAccessLines(data = {}, roleIds = []) {
   const lines = [];
-  for (const [entityType, workflow] of Object.entries(data.compiled?.workflows || {})) {
-    collectWorkflowTransitionLines(lines, entityType, workflow, roleIds, `compiled.workflows.${entityType}`);
+  for (const [typeId, workflow] of Object.entries(data.compiled?.workflows || {})) {
+    collectWorkflowTransitionLines(lines, typeId, workflow, roleIds, `compiled.workflows.${typeId}`);
   }
   for (const [profileId, profile] of Object.entries(data.entityProfiles || {})) {
     const workflow = profile.lifecycle?.mode === 'custom' ? profile.lifecycle?.workflow : null;
     if (!workflow) continue;
-    collectWorkflowTransitionLines(lines, profile.entityType, workflow, roleIds, `entityProfiles.${profileId}.lifecycle.workflow`);
+    collectWorkflowTransitionLines(lines, profile.typeId, workflow, roleIds, `entityProfiles.${profileId}.lifecycle.workflow`);
   }
   return dedupeLines(lines);
 }
 
-function collectWorkflowTransitionLines(lines, entityType, workflow = {}, roleIds = [], refBase = '') {
+function collectWorkflowTransitionLines(lines, typeId, workflow = {}, roleIds = [], refBase = '') {
   for (const [regionId, region] of Object.entries(workflow.regions || {})) {
     for (const transition of region.transitions || []) {
       const accessRoleIds = transition.processRoleIds || transition.access?.processRoleIds || [];
       if (!accessRoleIds.some(roleId => roleIds.includes(roleId))) continue;
       lines.push({
-        key: `transition:${entityType}:${transition.from}->${transition.to}`,
-        text: `${entityType}:${transition.from}->${transition.to}`,
+        key: `transition:${typeId}:${transition.from}->${transition.to}`,
+        text: `${typeId}:${transition.from}->${transition.to}`,
         contributor: {
           kind: 'authored-grant',
           ref: `${refBase}.regions.${regionId}.transitions`,
-          label: `workflow transition ${entityType} ${transition.from}->${transition.to} role access`
+          label: `workflow transition ${typeId} ${transition.from}->${transition.to} role access`
         }
       });
     }
@@ -176,10 +176,10 @@ function actionRoleIds(access = {}) {
   ])];
 }
 
-function actionEntityType(action = {}) {
-  return action.entityType
-    || action.outputs?.find(output => output.entityType)?.entityType
-    || action.inputs?.find(input => input.entityType)?.entityType
+function actionTypeId(action = {}) {
+  return action.typeId
+    || action.outputs?.find(output => output.typeId)?.typeId
+    || action.inputs?.find(input => input.typeId)?.typeId
     || '';
 }
 

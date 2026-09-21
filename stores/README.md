@@ -132,7 +132,7 @@ process vocabulary; none may gain new consumers.
   protected lookups use the same session cookie as auth middleware.
   Detail-screen detection accepts both template vocabularies
   (`entityDetail` and the projected `instanceDetail`) and reads the screen
-  type from `entityType` or `typeId`, so compiled process manifests keep
+  type from `typeId` or `typeId`, so compiled process manifests keep
   detail screens out of hub siblings and breadcrumbs after the UI-contract
   cutover. Breadcrumb sibling options normalize canonical DTO labels before passing
   them to PrimeVue Select.

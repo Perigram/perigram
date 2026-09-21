@@ -99,7 +99,7 @@ export async function updateInventoryCounts(uid, increments = {}) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'warehouse',
+  typeId: 'warehouse',
   repository,
   Model: Warehouse
 });

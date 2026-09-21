@@ -4,7 +4,7 @@ import { ref } from 'vue';
  * Status History Composable
  * Fetches and manages the audit log for an entity
  */
-export const useStatusHistory = (entityType, targetId) => {
+export const useStatusHistory = (typeId, targetId) => {
   const events = ref([]);
   const isLoading = ref(false);
   const error = ref(null);
@@ -17,7 +17,7 @@ export const useStatusHistory = (entityType, targetId) => {
     
     try {
       const data = await $fetch(`/api/status/history`, {
-        query: { targetId, targetType: entityType }
+        query: { targetId, targetType: typeId }
       });
       events.value = data;
     } catch (err) {

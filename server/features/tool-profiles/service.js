@@ -98,7 +98,7 @@ export async function remove(id, userId) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'tool_profile',
+  typeId: 'tool_profile',
   repository,
   Model: ToolProfile
 });

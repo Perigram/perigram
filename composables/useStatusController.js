@@ -16,7 +16,7 @@ export const useStatusController = () => {
   const isTransitioning = ref(false);
   const transitionError = ref(null);
 
-  const transition = async (entityType, targetId, newState, context = {}) => {
+  const transition = async (typeId, targetId, newState, context = {}) => {
     isTransitioning.value = true;
     transitionError.value = null;
     const statusMeta = context && typeof context === 'object' && ('metadata' in context || 'lifecycle' in context)
@@ -29,10 +29,10 @@ export const useStatusController = () => {
     
     try {
       const response = await transitionOffline({
-        entityType,
+        typeId,
         targetId,
         body: {
-          entityType,
+          typeId,
           id: targetId,
           status: newState,
           intent,
@@ -44,7 +44,7 @@ export const useStatusController = () => {
           }
         }
       });
-      emitStatusTransitionResult({ entityType, targetId, response });
+      emitStatusTransitionResult({ typeId, targetId, response });
       return response;
     } catch (err) {
       transitionError.value = isOfflineQueuedError(err)
@@ -56,7 +56,7 @@ export const useStatusController = () => {
     }
   };
 
-  async function transitionOffline({ entityType, targetId, body }) {
+  async function transitionOffline({ typeId, targetId, body }) {
     if (typeof window === 'undefined') {
       return $fetch(getStatusEndpoint(), { method: 'POST', body });
     }
@@ -65,16 +65,16 @@ export const useStatusController = () => {
       url: getStatusEndpoint(),
       method: 'POST',
       body,
-      meta: { kind: 'transition', entityType, entityId: targetId, reason: 'status-transition' }
+      meta: { kind: 'transition', typeId, entityId: targetId, reason: 'status-transition' }
     });
   }
 
-  const fetchActions = async (entityType, targetId, context = {}) => {
-    if (!entityType || !targetId) return [];
+  const fetchActions = async (typeId, targetId, context = {}) => {
+    if (!typeId || !targetId) return [];
 
     const response = await $fetch(STATUS_ACTIONS_ENDPOINT, {
       query: {
-        entityType,
+        typeId,
         id: targetId,
         ...(context.producerOutputId ? { producerOutputId: context.producerOutputId } : {})
       }

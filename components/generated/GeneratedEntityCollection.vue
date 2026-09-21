@@ -62,7 +62,7 @@
       v-for="entity in visibleItems"
       :key="entity._id || entity.id || entity.identity?.uid"
       :entity="entity"
-      :type-id="entityType"
+      :type-id="typeId"
       :surface="surface"
       variant="card"
       :context-entity="actionContext.parentEntity"
@@ -71,7 +71,7 @@
     >
       <template v-if="detailRouteFor(entity)" #title>
         <div class="flex min-w-0 flex-col gap-2">
-          <TraceChain :entity="entity" :type-id="entityType" :exclude="traceExclusions" variant="compact" expandable />
+          <TraceChain :entity="entity" :type-id="typeId" :exclude="traceExclusions" variant="compact" expandable />
           <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <div class="flex min-w-0 flex-1 items-center">
               <Button
@@ -86,7 +86,7 @@
             <div v-if="entity.status" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
               <EntityStatus
                 :entity="entity"
-                :type-id="entityType"
+                :type-id="typeId"
                 variant="inline"
                 @refresh="$emit('refresh')"
                 @transitioned="$emit('refresh')"
@@ -97,7 +97,7 @@
       </template>
       <EntitySurfaceContent
         :entity="entity"
-        :type-id="entityType"
+        :type-id="typeId"
         :surface="surface"
         suppress-child-summaries
         relation-variant="compact"
@@ -155,7 +155,7 @@ import { entityEditorActionFor, entityHasEditorAction } from '~/components/gener
 import { useAuthStore } from '~/stores/auth';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 import { entityHierarchyIds } from '~/utils/entity-hierarchy.js';
-import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToEntityType } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToTypeId } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { entityUiFor } from '~/utils/status-engine';
@@ -243,7 +243,7 @@ function entityActionsFor(entity) {
   return resolvedActions.value.filter(action => (
     isGeneratedSurfaceAction(action) &&
     generatedActionRendersAt(action, ['entity', 'relation']) &&
-    !parentBoundCreateAppliesToEntityType(action, props.typeId)
+    !parentBoundCreateAppliesToTypeId(action, props.typeId)
     && actionAppliesToEntity(action, entity, props.typeId)
   ));
 }

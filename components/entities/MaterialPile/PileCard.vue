@@ -40,7 +40,7 @@ watch(catalogId, async (id) => {
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <EntityCard :entity="pile" entity-type="material_pile" :variant="variant">
+    <EntityCard :entity="pile" type-id="material_pile" :variant="variant">
       <template #before-identity>
         <i class="pi pi-database"></i>
       </template>
@@ -50,7 +50,7 @@ watch(catalogId, async (id) => {
       <div class="flex flex-col gap-3">
         <Divider />
         <MaterialSummary :pile="pile" />
-        <SpecsBlock entity-type="materialPile" :entity="pile" />
+        <SpecsBlock type-id="materialPile" :entity="pile" />
         <div v-if="catalog" class="flex items-center justify-between gap-4">
           <small class="text-muted">{{ $t('entities.catalog') }}</small>
           <EntityInlineRef type="catalog" :entity="catalog" />

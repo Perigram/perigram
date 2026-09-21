@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="warehouse" entity-type="warehouse">
+    <EntityPage :entity="warehouse" type-id="warehouse">
         <template #actions>
             <div class="flex gap-2" v-if="authStore.can('warehouses', 'edit')">
                 <Button icon="pi pi-pencil" severity="secondary" text :aria-label="$t('common.edit')" @click="$emit('edit', warehouse)" />

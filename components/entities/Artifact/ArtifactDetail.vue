@@ -1,5 +1,5 @@
 <template>
-  <EntityPage :entity="artifact" entity-type="artifact">
+  <EntityPage :entity="artifact" type-id="artifact">
     <template #actions>
       <Button icon="pi pi-download" :label="$t('common.download')" size="small" severity="secondary" outlined @click="download" />
       <Button v-if="canEdit && revision" icon="pi pi-history" :label="$t('artifacts.restoreRevision')" size="small" severity="secondary" outlined @click="restore" />
@@ -40,7 +40,7 @@ const revisions = ref([]);
 const selectedRevisionId = ref('');
 const layoutDraft = ref(null);
 const replacementInput = ref(null);
-const canEdit = computed(() => hasPermissionGrant({ permissions: authStore.activePermissions, feature: 'artifacts', level: 'write', entity: props.artifact, entityType: 'artifact' }));
+const canEdit = computed(() => hasPermissionGrant({ permissions: authStore.activePermissions, feature: 'artifacts', level: 'write', entity: props.artifact, typeId: 'artifact' }));
 // Artifact-backed persistence for the shared sketch editor: scene bytes
 // through the artifact file-revision transport, origin through metadata.
 const sketchPersistence = computed(() => ({
@@ -82,7 +82,7 @@ const revision = computed(() => revisions.value.find(item => String(item._id) ==
 const revisionOptions = computed(() => artifactRevisionOptions(revisions.value));
 
 async function loadRevisions() {
-  revisions.value = await $fetch(`/api/entity-revisions?entityType=artifact&entityId=${encodeURIComponent(props.artifact._id)}&scope=file`);
+  revisions.value = await $fetch(`/api/entity-revisions?typeId=artifact&entityId=${encodeURIComponent(props.artifact._id)}&scope=file`);
   selectedRevisionId.value = '';
 }
 onMounted(loadRevisions);

@@ -98,7 +98,7 @@ describe('Production Queues & Nesting Status', () => {
     const data = { 
       name: 'Morning Shift Run',
       projectId,
-      job: { items: [{ entryId: 'E1', id: new ObjectId().toString(), entityType: 'cassette_design', quantity: 10 }] }
+      job: { items: [{ entryId: 'E1', id: new ObjectId().toString(), typeId: 'cassette_design', quantity: 10 }] }
     };
     const result = await queueService.create(data, mockUser.userId, mockUser.organizationId, null, mockUser.permissions);
 
@@ -349,7 +349,7 @@ describe('Production Queues & Nesting Status', () => {
     });
 
     const result = await statusService.transitionWithResult({
-      entityType: 'nesting_run',
+      typeId: 'nesting_run',
       targetId: 'run-status-choice',
       targetState: 'CHOSEN',
       auth: createTransitionAuth(mockUser.userId, null, mockUser.permissions),

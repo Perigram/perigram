@@ -98,16 +98,16 @@ export function isCtsGraphDefinition(data = {}) {
 }
 
 // The record vocabulary seam (SPEC §20): v5 species records bind a type
-// through `typeId`; v4 records through `entityType`. One accessor pair so
+// through `typeId`. One accessor pair so
 // the designer surfaces and the catalog never re-derive the branch.
 export function typeIdOf(record = {}) {
-  return record?.typeId || record?.entityType || '';
+  return record?.typeId || '';
 }
 
 export function setTypeBinding(record = {}, typeId = '') {
   if (!record) return;
   if (String(record.kind || '').startsWith('cts.')) record.typeId = typeId;
-  else record.entityType = typeId;
+  else record.typeId = typeId;
 }
 
 // The operation kind of any record: v4 kinds are themselves; cts records map
@@ -126,7 +126,7 @@ export function operationKindOf(node = {}) {
 // collection, exposed for callers that hold one record (the designer's
 // port/context resolution).
 export function resolveCtsRecord(node = {}, domain = {}) {
-  return resolveNode(node, domain, entityTypeResolver(domain), [], '');
+  return resolveNode(node, domain, typeIdResolver(domain), [], '');
 }
 
 function kebab(value = '') {
@@ -140,13 +140,13 @@ function snake(value = '') {
 // Type ids resolve against the projected entity list first (org types carry
 // their kebab id as the storage id), falling back to the legacy snake form
 // for system types.
-function entityTypeResolver(domain = {}) {
-  const entityTypes = new Set((domain.entities || []).map(entity => entity.type));
+function typeIdResolver(domain = {}) {
+  const typeIds = new Set((domain.entities || []).map(entity => entity.type));
   return typeId => {
     if (!typeId) return null;
-    if (entityTypes.has(typeId)) return typeId;
+    if (typeIds.has(typeId)) return typeId;
     const snaked = snake(typeId);
-    return entityTypes.has(snaked) ? snaked : null;
+    return typeIds.has(snaked) ? snaked : null;
   };
 }
 
@@ -157,30 +157,30 @@ const RESERVED_GENERIC = 'data.value';
 // is verified against the projected field schemas: a data/specs path the
 // type does not declare (e.g. specs on a type without specs rows) stays
 // slot-qualified so the round trip loses nothing.
-function toRowPath(slotPath = '', entityType = '', domain = {}) {
+function toRowPath(slotPath = '', typeId = '', domain = {}) {
   const path = String(slotPath);
   if (path === RESERVED_GENERIC || path.endsWith('*')) return null;
   const [block, ...rest] = path.split('.');
   if (!ROW_BLOCKS.includes(block) || !rest.length) return null;
   const rowPath = rest.join('.');
-  return toSlotPath(rowPath, entityType, domain) === `${block}.${rowPath}` ? rowPath : null;
+  return toSlotPath(rowPath, typeId, domain) === `${block}.${rowPath}` ? rowPath : null;
 }
 
 // v5 row path -> v4 slot path via the projected field schemas of one type.
 // Returns null when the path is not a declared row field (managed slot).
-function toSlotPath(rowPath = '', entityType = '', domain = {}) {
+function toSlotPath(rowPath = '', typeId = '', domain = {}) {
   const path = String(rowPath);
   const [block] = path.split('.');
   if (ROW_BLOCKS.includes(block)) return null; // already slot-qualified
-  const schemas = schemasFor(domain, entityType);
+  const schemas = schemasFor(domain, typeId);
   for (const slot of ROW_BLOCKS) {
     if (schemas.some(schema => schema.path === `${slot}.${path}`)) return `${slot}.${path}`;
   }
   return null;
 }
 
-function schemasFor(domain = {}, entityType = '') {
-  const key = String(entityType || '');
+function schemasFor(domain = {}, typeId = '') {
+  const key = String(typeId || '');
   const camel = key.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
   return domain.fieldSchemas?.[key] || domain.fieldSchemas?.[camel] || [];
 }
@@ -198,22 +198,20 @@ export function migrateV4Definition(definition = {}, domain = {}) {
   }));
   const producerOutputs = mapRecords(data.producerOutputs, (output, id) => {
     const migrated = { ...output };
-    if (migrated.entityType) {
-      migrated.typeId = kebab(migrated.entityType);
-      delete migrated.entityType;
+    if (migrated.typeId) {
+      migrated.typeId = kebab(migrated.typeId);
     }
     if (migrated.fields) {
       migrated.fields = Object.fromEntries(Object.entries(migrated.fields).map(([level, paths]) => [
-        level, (paths || []).map(path => toRowPath(path, output.entityType, domain) ?? path)
+        level, (paths || []).map(path => toRowPath(path, output.typeId, domain) ?? path)
       ]));
     }
     return migrated;
   });
   const actions = mapRecords(data.actions, action => {
     const migrated = { ...action };
-    if (migrated.entityType) {
-      migrated.typeId = kebab(migrated.entityType);
-      delete migrated.entityType;
+    if (migrated.typeId) {
+      migrated.typeId = kebab(migrated.typeId);
     }
     if (migrated.targetStatus !== undefined) {
       migrated.target = migrated.targetStatus;
@@ -230,7 +228,7 @@ export function migrateV4Definition(definition = {}, domain = {}) {
   const screens = mapRecords(data.screens, screen => ({
     ...screen,
     ...(Array.isArray(screen?.sources)
-      ? { sources: screen.sources.map(source => ({ ...source, ...(source.entityType ? { typeId: kebab(source.entityType), entityType: undefined } : {}) })) }
+      ? { sources: screen.sources.map(source => ({ ...source, ...(source.typeId ? { typeId: kebab(source.typeId) } : {}) })) }
       : {})
   }));
 
@@ -269,9 +267,8 @@ function migrateNode(node, domain, diagnostics, at) {
     if (mapping[flag]) migrated[flag] = true;
   }
   if (mapping.mode) migrated.mode = mapping.mode;
-  if (migrated.entityType) {
-    migrated.typeId = kebab(migrated.entityType);
-    delete migrated.entityType;
+  if (migrated.typeId) {
+    migrated.typeId = kebab(migrated.typeId);
   }
   if (migrated.blocks) {
     migrated.slots = [...migrated.blocks];
@@ -295,16 +292,16 @@ function migrateNode(node, domain, diagnostics, at) {
       delete migrated.status.to;
     }
   }
-  if (migrated.path) migrated.path = toRowPath(migrated.path, node.entityType, domain) ?? migrated.path;
-  if (migrated.fieldPath) migrated.fieldPath = toRowPath(migrated.fieldPath, node.entityType, domain) ?? migrated.fieldPath;
+  if (migrated.path) migrated.path = toRowPath(migrated.path, node.typeId, domain) ?? migrated.path;
+  if (migrated.fieldPath) migrated.fieldPath = toRowPath(migrated.fieldPath, node.typeId, domain) ?? migrated.fieldPath;
   if (Array.isArray(migrated.entries)) {
     migrated.entries = migrated.entries.map(entry => ({
       ...rewriteDescriptorRecord(entry),
-      ...(entry?.entityType ? { target: kebab(entry.entityType), entityType: undefined } : {})
+      ...(entry?.typeId ? { target: kebab(entry.typeId) } : {})
     }));
   }
   if (Array.isArray(migrated.fields)) {
-    migrated.fields = migrated.fields.map(path => toRowPath(path, node.entityType, domain) ?? path);
+    migrated.fields = migrated.fields.map(path => toRowPath(path, node.typeId, domain) ?? path);
   }
   return migrated;
 }
@@ -317,7 +314,7 @@ function rewriteDescriptorRecord(record = {}) {
     ...record,
     type: {
       ...record.type,
-      ...(record.type.entityType ? { entityType: kebab(record.type.entityType) } : {}),
+      ...(record.type.typeId ? { typeId: kebab(record.type.typeId) } : {}),
       ...(Array.isArray(record.type.accepts) ? { accepts: record.type.accepts.map(kebab) } : {})
     }
   };
@@ -332,21 +329,20 @@ export function resolveCtsDefinition(definition = {}, domain = {}) {
     return { definition: wrapper?.data ? wrapper : data, diagnostics: [] };
   }
   const diagnostics = [];
-  const entityTypeFor = entityTypeResolver(domain);
+  const typeIdFor = typeIdResolver(domain);
 
   const processNodes = Object.fromEntries(Object.entries(data.processNodes || {}).map(([id, node]) => {
-    const resolved = resolveNode(node, domain, entityTypeFor, diagnostics, `processNodes.${id}`);
+    const resolved = resolveNode(node, domain, typeIdFor, diagnostics, `processNodes.${id}`);
     return [id, resolved];
   }));
   const producerOutputs = mapRecords(data.producerOutputs, output => {
     const resolved = { ...output };
     if (resolved.typeId) {
-      resolved.entityType = entityTypeFor(resolved.typeId) ?? snake(resolved.typeId);
-      delete resolved.typeId;
+      resolved.typeId = typeIdFor(resolved.typeId) ?? snake(resolved.typeId);
     }
     if (resolved.fields) {
       resolved.fields = Object.fromEntries(Object.entries(resolved.fields).map(([level, paths]) => [
-        level, (paths || []).map(path => slotOrDefault(path, resolved.entityType, domain))
+        level, (paths || []).map(path => slotOrDefault(path, resolved.typeId, domain))
       ]));
     }
     return resolved;
@@ -354,8 +350,7 @@ export function resolveCtsDefinition(definition = {}, domain = {}) {
   const actions = mapRecords(data.actions, action => {
     const resolved = { ...action };
     if (resolved.typeId) {
-      resolved.entityType = resolved.typeId;
-      delete resolved.typeId;
+      resolved.typeId = typeIdFor(resolved.typeId) ?? snake(resolved.typeId);
     }
     if (resolved.target !== undefined) {
       resolved.status = { ...(resolved.status || {}), to: resolved.target };
@@ -367,7 +362,7 @@ export function resolveCtsDefinition(definition = {}, domain = {}) {
   const screens = mapRecords(data.screens, screen => ({
     ...screen,
     ...(Array.isArray(screen?.sources)
-      ? { sources: screen.sources.map(source => (source.typeId && !source.entityType ? { ...source, entityType: source.typeId, typeId: undefined } : { ...source })) }
+      ? { sources: screen.sources.map(source => ({ ...source, typeId: source.typeId || '' })) }
       : {})
   }));
 
@@ -386,12 +381,12 @@ export function resolveCtsDefinition(definition = {}, domain = {}) {
   };
 }
 
-function slotOrDefault(path, entityType, domain) {
-  const slot = toSlotPath(path, entityType, domain);
+function slotOrDefault(path, typeId, domain) {
+  const slot = toSlotPath(path, typeId, domain);
   return slot ?? path;
 }
 
-function resolveNode(node, domain, entityTypeFor, diagnostics, at) {
+function resolveNode(node, domain, typeIdFor, diagnostics, at) {
   if (!node || typeof node !== 'object') return node;
   if (node.kind === CTS_SERVICE_KIND) {
     // A service node binds a registered operator (SPEC §8 s species); the
@@ -421,8 +416,7 @@ function resolveNode(node, domain, entityTypeFor, diagnostics, at) {
     delete resolved[flag];
   }
   if (resolved.typeId) {
-    resolved.entityType = entityTypeFor(resolved.typeId) ?? snake(resolved.typeId);
-    delete resolved.typeId;
+    resolved.typeId = typeIdFor(resolved.typeId) ?? snake(resolved.typeId);
   }
   if (resolved.slots) {
     resolved.blocks = [...resolved.slots];
@@ -436,16 +430,16 @@ function resolveNode(node, domain, entityTypeFor, diagnostics, at) {
     resolved.status = { ...(resolved.status || {}), to: resolved.target };
     delete resolved.target;
   }
-  if (resolved.path) resolved.path = slotOrDefault(resolved.path, resolved.entityType, domain);
-  if (resolved.fieldPath) resolved.fieldPath = slotOrDefault(resolved.fieldPath, resolved.entityType, domain);
+  if (resolved.path) resolved.path = slotOrDefault(resolved.path, resolved.typeId, domain);
+  if (resolved.fieldPath) resolved.fieldPath = slotOrDefault(resolved.fieldPath, resolved.typeId, domain);
   if (Array.isArray(resolved.entries)) {
     resolved.entries = resolved.entries.map(entry => ({
       ...resolveDescriptorRecord(entry),
-      ...(entry?.target && !entry.entityType ? { entityType: entityTypeFor(entry.target) ?? snake(entry.target), target: undefined } : {})
+      ...(entry?.target && !entry.typeId ? { typeId: typeIdFor(entry.target) ?? snake(entry.target), target: undefined } : {})
     }));
   }
   if (Array.isArray(resolved.fields)) {
-    resolved.fields = resolved.fields.map(path => slotOrDefault(path, resolved.entityType, domain));
+    resolved.fields = resolved.fields.map(path => slotOrDefault(path, resolved.typeId, domain));
   }
   if (resolved.construction?.mode === undefined && node.via) {
     resolved.construction = { ...(resolved.construction || {}), mode: node.via };
@@ -457,7 +451,7 @@ function resolveNode(node, domain, entityTypeFor, diagnostics, at) {
   // types have no contract, so their create nodes keep failing
   // validation with the clear authoring message.
   if (resolved.construction?.mode) {
-    const contract = domain.construction?.[resolved.entityType] || null;
+    const contract = domain.construction?.[resolved.typeId] || null;
     if (contract?.modes?.length && contract.defaultMode && !contract.modes.includes(resolved.construction.mode)) {
       resolved.construction = { ...resolved.construction, mode: contract.defaultMode };
     }
@@ -483,7 +477,7 @@ function resolveDescriptorRecord(record = {}) {
     ...record,
     type: {
       ...record.type,
-      ...(record.type.entityType ? { entityType: snake(record.type.entityType) } : {}),
+      ...(record.type.typeId ? { typeId: snake(record.type.typeId) } : {}),
       ...(Array.isArray(record.type.accepts) ? { accepts: record.type.accepts.map(snake) } : {})
     }
   };
@@ -550,26 +544,26 @@ export function declarationsFromCtsRecords(records = {}) {
 export function checkCtsGraphBindings(definition = {}, domain = {}) {
   const data = definition?.data || definition;
   const errors = [];
-  const entityTypeFor = entityTypeResolver(domain);
+  const typeIdFor = typeIdResolver(domain);
 
   for (const [id, node] of Object.entries(data.processNodes || {})) {
     if (!String(node?.kind || '').startsWith('cts.')) continue;
     const typeId = node?.typeId;
-    const entityType = typeId ? entityTypeFor(typeId) : node?.entityType || null;
-    if (typeId && !entityType) {
+    const resolvedTypeId = typeId ? typeIdFor(typeId) : null;
+    if (typeId && !resolvedTypeId) {
       errors.push(`processNodes.${id}: unknown type ${typeId}`);
       continue;
     }
     if (node.kind === CTS_KIND.transition && node.target) {
-      const workflow = domain.workflows?.[entityType];
+      const workflow = domain.workflows?.[typeId];
       const states = workflow?.regions?.[workflow?.primaryRegion || 'main']?.states || {};
-      if (entityType && Object.keys(states).length && !(node.target in states)) {
-        errors.push(`processNodes.${id}: target state ${node.target} is not declared for ${entityType}`);
+      if (typeId && Object.keys(states).length && !(node.target in states)) {
+        errors.push(`processNodes.${id}: target state ${node.target} is not declared for ${typeId}`);
       }
     }
     if ((node.kind === CTS_KIND.field || node.kind === CTS_KIND.compose) && node.path) {
-      if (toSlotPath(node.path, entityType, domain) === null && !managedPath(node.path)) {
-        errors.push(`processNodes.${id}: field ${node.path} is not in the ${entityType} row`);
+      if (toSlotPath(node.path, typeId, domain) === null && !managedPath(node.path)) {
+        errors.push(`processNodes.${id}: field ${node.path} is not in the ${typeId} row`);
       }
     }
   }

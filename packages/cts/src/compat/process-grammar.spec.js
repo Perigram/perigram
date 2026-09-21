@@ -28,7 +28,7 @@ describe('grammar adapter (CTS <-> PROCESS_BASE_TYPES)', () => {
       [{ base: 'string' }, { base: 'string' }],
       [{ base: 'quantity', unit: 'mm' }, { base: 'number', unit: 'mm' }],
       [{ base: 'instant' }, { base: 'dateTime' }],
-      [{ base: 'ref', accepts: ['queue'] }, { base: 'entityRef', entityType: 'queue' }],
+      [{ base: 'ref', accepts: ['queue'] }, { base: 'entityRef', typeId: 'queue' }],
       [{ base: 'ref', accepts: ['occs', 'cut-plan'] }, { base: 'entityRef', accepts: ['occs', 'cut-plan'] }],
       [{ base: 'list', itemType: { base: 'number' } }, { base: 'array', itemType: { base: 'number' } }],
       [{ base: 'map', itemType: { base: 'string' } }, { base: 'map', keyType: { base: 'string' }, valueType: { base: 'string' } }],
@@ -44,7 +44,7 @@ describe('grammar adapter (CTS <-> PROCESS_BASE_TYPES)', () => {
 
   it('reports runtime-only bases as unmappable instead of guessing', () => {
     expect(isProcessOnlyBase('entity')).toBe(true);
-    expect(processTypeToCtsField({ base: 'status', entityType: 'queue' })).toBeNull();
+    expect(processTypeToCtsField({ base: 'status', typeId: 'queue' })).toBeNull();
     expect(processTypeToCtsField({ base: 'duration' })).toBeNull();
     expect(ctsFieldToProcessType({ base: 'variant', tags: ['a'] }).lossy).toBeTruthy();
   });
@@ -69,8 +69,8 @@ describe('declaration-check phase', () => {
     const registry = registryWithOrgType();
     const errors = checkDeclarationsAgainstCts({
       data: {
-        producerOutputs: { out1: { entityType: 'queue' } },
-        sockets: { s1: { type: { base: 'entityRef', entityType: 'widget' } } }
+        producerOutputs: { out1: { typeId: 'queue' } },
+        sockets: { s1: { type: { base: 'entityRef', typeId: 'widget' } } }
       }
     }, registry, 'org-1');
     expect(errors).toEqual([]);
@@ -80,8 +80,8 @@ describe('declaration-check phase', () => {
     const registry = registryWithOrgType();
     const errors = checkDeclarationsAgainstCts({
       data: {
-        producerOutputs: { out1: { entityType: 'nope' } },
-        sockets: { s1: { type: { base: 'entityRef', entityType: 'ghost' } } }
+        producerOutputs: { out1: { typeId: 'nope' } },
+        sockets: { s1: { type: { base: 'entityRef', typeId: 'ghost' } } }
       }
     }, registry, 'org-1');
     expect(errors).toContain('Producer output out1 references unknown type nope');
@@ -92,17 +92,17 @@ describe('declaration-check phase', () => {
     const registry = registryWithOrgType();
     const errors = checkDeclarationsAgainstCts({
       data: {
-        producerOutputs: { w: { entityType: 'widget' }, q: { entityType: 'queue' } },
+        producerOutputs: { w: { typeId: 'widget' }, q: { typeId: 'queue' } },
         actions: {
-          bad: { actionKind: 'changeStatus', entityType: 'widget', targetStatus: 'FLYING' },
-          good: { actionKind: 'changeStatus', entityType: 'widget', targetStatus: 'done' }
+          bad: { actionKind: 'changeStatus', typeId: 'widget', targetStatus: 'FLYING' },
+          good: { actionKind: 'changeStatus', typeId: 'widget', targetStatus: 'done' }
         },
         processNodes: {
-          n1: { kind: 'record.getField', entityType: 'widget', field: 'data.name' },
-          n2: { kind: 'record.getField', entityType: 'widget', field: 'data.rogue' },
-          n3: { kind: 'record.getField', entityType: 'queue', field: 'data.job' },
-          n4: { kind: 'record.getField', entityType: 'queue', field: 'data.rogue' },
-          n5: { kind: 'record.getField', entityType: 'queue', field: 'identity.name' }
+          n1: { kind: 'record.getField', typeId: 'widget', field: 'data.name' },
+          n2: { kind: 'record.getField', typeId: 'widget', field: 'data.rogue' },
+          n3: { kind: 'record.getField', typeId: 'queue', field: 'data.job' },
+          n4: { kind: 'record.getField', typeId: 'queue', field: 'data.rogue' },
+          n5: { kind: 'record.getField', typeId: 'queue', field: 'identity.name' }
         }
       }
     }, registry, 'org-1');
@@ -118,7 +118,7 @@ describe('declaration-check phase', () => {
   it('org overlay is the view: other orgs see system types only', () => {
     const registry = registryWithOrgType();
     const errors = checkDeclarationsAgainstCts({
-      data: { producerOutputs: { out1: { entityType: 'widget' } } }
+      data: { producerOutputs: { out1: { typeId: 'widget' } } }
     }, registry, 'org-2');
     expect(errors).toContain('Producer output out1 references unknown type widget');
   });

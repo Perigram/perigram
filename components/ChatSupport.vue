@@ -595,8 +595,8 @@
                                 :class="stripRootSelected
                                     ? 'bg-primary text-primary-contrast'
                                     : 'bg-subtle text-muted hover:opacity-80'"
-                                :title="activeConversation.entityName || localizedEntityTypeLabel(activeConversation.entityType)"
-                                :aria-label="activeConversation.entityName || localizedEntityTypeLabel(activeConversation.entityType)"
+                                :title="activeConversation.entityName || localizedTypeIdLabel(activeConversation.typeId)"
+                                :aria-label="activeConversation.entityName || localizedTypeIdLabel(activeConversation.typeId)"
                                 :aria-current="stripRootSelected ? 'true' : undefined"
                                 @click="resetStripTrail()"
                             >
@@ -610,8 +610,8 @@
                                     :class="isTrailEntrySelected(crumb)
                                         ? 'bg-primary text-primary-contrast'
                                         : 'bg-subtle text-muted hover:opacity-80'"
-                                    :title="crumb.name || localizedEntityTypeLabel(crumb.type)"
-                                    :aria-label="crumb.name || localizedEntityTypeLabel(crumb.type)"
+                                    :title="crumb.name || localizedTypeIdLabel(crumb.type)"
+                                    :aria-label="crumb.name || localizedTypeIdLabel(crumb.type)"
                                     :aria-current="isTrailEntrySelected(crumb) ? 'true' : undefined"
                                     @click="truncateStripTrail(index)"
                                 >
@@ -633,7 +633,7 @@
                                     @click="drillStripTo(chip)"
                                 >
                                     <i :class="instances.iconFor(chip.type)" class="shrink-0" aria-hidden="true"></i>
-                                    <span class="max-w-32 truncate">{{ chip.name || localizedEntityTypeLabel(chip.type) }}</span>
+                                    <span class="max-w-32 truncate">{{ chip.name || localizedTypeIdLabel(chip.type) }}</span>
                                 </button>
                             </template>
                         </div>
@@ -853,7 +853,7 @@
                         :options="createPromptOptions[field.id] || []"
                         option-label="label"
                         option-value="value"
-                        :type-id="field.entityType || field.accepts?.[0] || ''"
+                        :type-id="field.typeId || field.accepts?.[0] || ''"
                         filter
                         class="w-full"
                     />
@@ -863,7 +863,7 @@
                         :options="createPromptOptions[field.id] || []"
                         option-label="label"
                         option-value="value"
-                        :type-id="field.entityType || field.accepts?.[0] || ''"
+                        :type-id="field.typeId || field.accepts?.[0] || ''"
                         filter
                         class="w-full"
                     />
@@ -1082,9 +1082,9 @@ const draftPreviewMessage = computed(() => ({
 }))
 const activeRecipientUserId = computed(() => activeConversation.value?.conversationKind === 'direct' ? participantUserId(activeConversation.value) : '')
 const recipientLimitedRefs = computed(() => entityRefs.value.filter(ref => ref.recipientHasAccess === false))
-const localizedEntityTypeLabel = (type) => {
+const localizedTypeIdLabel = (type) => {
     const candidates = [
-        `support.entityTypeLabels.${type}`,
+        `support.typeIdLabels.${type}`,
         `entities.${type}`,
         `common.${type}`
     ]
@@ -1133,7 +1133,7 @@ const conversationSections = computed(() => [...displayConversations.value].sort
 const isActiveConversation = (conversation) => activeConversation.value?.conversationKey === conversation.conversationKey
 
 const entityConversationIcon = (conversation) => (
-    instances.iconFor(conversation?.entityType)
+    instances.iconFor(conversation?.typeId)
 )
 
 // The entity thread title links into the entity surface: the generated
@@ -1143,7 +1143,7 @@ const activeEntityDetailRoute = computed(() => {
     if (conversation?.conversationKind !== 'entity' || !conversation.entityId) return null
     return detailRouteForEntity({
         entity: { _id: conversation.entityId },
-        entityType: conversation.entityType,
+        typeId: conversation.typeId,
         screenKey: '',
         manifest: authStore.screenManifest
     }) || null
@@ -1153,13 +1153,13 @@ const activeEntityDetailRoute = computed(() => {
 // route.
 const openEntityFromThread = () => {
     const conversation = activeConversation.value
-    if (!conversation?.entityType || !conversation.entityId) return
+    if (!conversation?.typeId || !conversation.entityId) return
     if (typeof window !== 'undefined'
         && window.matchMedia?.('(max-width: 767px)')?.matches) {
         if (activeEntityDetailRoute.value) navigateTo(activeEntityDetailRoute.value)
         return
     }
-    if (openEntityInWorkspace({ typeId: conversation.entityType, entityId: String(conversation.entityId) })) return
+    if (openEntityInWorkspace({ typeId: conversation.typeId, entityId: String(conversation.entityId) })) return
     if (activeEntityDetailRoute.value) navigateTo(activeEntityDetailRoute.value)
 }
 
@@ -1173,7 +1173,7 @@ const conversationSubtitle = computed(() => {
     if (conversation.conversationKind === 'entity') {
         return includeChildren.value
             ? t('support.includesChildren')
-            : localizedEntityTypeLabel(conversation.entityType)
+            : localizedTypeIdLabel(conversation.typeId)
     }
     if (conversation.conversationKind === 'group') {
         return t('support.membersCount', { count: (conversation.participants || []).length })
@@ -1242,7 +1242,7 @@ const sendMessage = async () => {
                 conversationKey: activeConversation.value.conversationKind === 'group' ? activeConversation.value.conversationKey : null,
                 entity: activeConversation.value.conversationKind === 'entity'
                     ? (composerEntity.value || {
-                        type: activeConversation.value.entityType,
+                        type: activeConversation.value.typeId,
                         id: activeConversation.value.entityId
                     })
                     : null,
@@ -1362,7 +1362,7 @@ const stopAndSendVoiceRecording = () => {
                     conversationKey: activeConversation.value?.conversationKind === 'group' ? activeConversation.value.conversationKey : null,
                     entity: activeConversation.value?.conversationKind === 'entity'
                         ? (composerEntity.value || {
-                            type: activeConversation.value.entityType,
+                            type: activeConversation.value.typeId,
                             id: activeConversation.value.entityId
                         })
                         : null,
@@ -1406,7 +1406,7 @@ const conversationQuery = (extra = {}) => {
     if (conversation.conversationKind === 'entity') {
         return {
             ...extra,
-            entity: `${conversation.entityType}:${conversation.entityId}`,
+            entity: `${conversation.typeId}:${conversation.entityId}`,
             includeChildren: includeChildren.value ? 1 : 0
         }
     }
@@ -1437,7 +1437,7 @@ const loadConversation = async () => {
             conversation.conversationKey = snapshot.conversation.conversationKey || conversation.conversationKey
             conversation.conversationKind = snapshot.conversation.kind
             if (snapshot.conversation.kind === 'entity') {
-                conversation.entityType = snapshot.conversation.entityType || conversation.entityType
+                conversation.typeId = snapshot.conversation.typeId || conversation.typeId
                 conversation.entityId = snapshot.conversation.entityId || conversation.entityId
                 conversation.entityName = snapshot.conversation.name || conversation.entityName
             }
@@ -1516,7 +1516,7 @@ const stripTargetKey = computed(() => {
     const conversation = activeConversation.value
     if (conversation?.conversationKind !== 'entity') return ''
     const deepest = stripTrail.value[stripTrail.value.length - 1]
-    return deepest?.key || `${conversation.entityType}:${conversation.entityId}`
+    return deepest?.key || `${conversation.typeId}:${conversation.entityId}`
 })
 
 // The composed entity is the target whenever no child is drilled; the root
@@ -1540,7 +1540,7 @@ const stripChildren = computed(() => {
     const conversation = activeConversation.value
     if (conversation?.conversationKind !== 'entity') return loaded
     const pathIndex = (path) => path.findIndex(entry => (
-        entry.type === conversation.entityType && String(entry.id) === String(conversation.entityId)
+        entry.type === conversation.typeId && String(entry.id) === String(conversation.entityId)
     ))
     for (const messageItem of messages.value) {
         const path = messageItem.entityPath || []
@@ -1628,8 +1628,8 @@ function effectiveContainmentForStrip() {
     const bindings = authStore.lineageBindings || []
     const edges = authStore.processActive
         ? bindings.map(binding => ({
-            childType: binding.childEntityType,
-            parentType: binding.ancestorEntityType,
+            childType: binding.childTypeId,
+            parentType: binding.parentTypeId,
             lineageKey: binding.lineageKey
         }))
         : [...registry.containment]
@@ -1660,15 +1660,15 @@ const stripEntityId = (entity = null) => {
     return value ? String(value) : ''
 }
 
-watch([activeConversationKey, () => activeConversation.value?.entityType, () => activeConversation.value?.entityId], ([key]) => {
+watch([activeConversationKey, () => activeConversation.value?.typeId, () => activeConversation.value?.entityId], ([key]) => {
     if (!key || activeConversation.value?.conversationKind !== 'entity') return
     stripTrail.value = []
     stripChildrenByKey.value = new Map()
     composerEntity.value = null
     composerEntityTouched = false
     loadStripChildren(
-        `${activeConversation.value.entityType}:${activeConversation.value.entityId}`,
-        activeConversation.value.entityType,
+        `${activeConversation.value.typeId}:${activeConversation.value.entityId}`,
+        activeConversation.value.typeId,
         { _id: activeConversation.value.entityId }
     )
 }, { immediate: true })
@@ -1785,7 +1785,7 @@ const openReply = (messageItem) => {
 const lowerEntityChip = (messageItem) => {
     const conversation = activeConversation.value
     if (conversation?.conversationKind !== 'entity' || !messageItem.entityLink?.id) return false
-    return !(messageItem.entityLink.type === conversation.entityType
+    return !(messageItem.entityLink.type === conversation.typeId
         && String(messageItem.entityLink.id) === String(conversation.entityId))
 }
 
@@ -2139,7 +2139,7 @@ const openCreatePromptDialog = async (action) => {
     }
     createPromptVisible.value = true
     for (const field of createPromptFields.value) {
-        const type = field.entityType || field.accepts?.[0]
+        const type = field.typeId || field.accepts?.[0]
         if (field.type === 'entity' || field.type === 'typeList') {
             if (!type) continue
             try {
@@ -2210,7 +2210,7 @@ const attachCreatedEntity = (action, result) => {
 
 const selectCreatedArtifact = (artifact) => {
     attachCreatedEntity(
-        { entityType: 'artifact', relationMutation: null },
+        { typeId: 'artifact', relationMutation: null },
         { created: artifact }
     )
     pendingCreator.value = null
@@ -2347,11 +2347,11 @@ function openConversationByKey(key) {
         return
     }
     if (key.startsWith('entity:')) {
-        const [, entityType, entityId] = key.split(':')
+        const [, typeId, entityId] = key.split(':')
         activeConversation.value = {
             conversationKey: key,
             conversationKind: 'entity',
-            entityType,
+            typeId,
             entityId,
             entityName: props.entityName || '',
             lastMessage: ''
@@ -2467,7 +2467,7 @@ const openDirectTarget = async () => {
 
 const conversationLabel = (conversation) => {
     if (conversation?.conversationKind === 'entity') {
-        return conversation?.entityName || localizedEntityTypeLabel(conversation?.entityType)
+        return conversation?.entityName || localizedTypeIdLabel(conversation?.typeId)
     }
     if (conversation?.conversationKind === 'group') {
         return conversation?.groupName || t('support.sectionGroups')

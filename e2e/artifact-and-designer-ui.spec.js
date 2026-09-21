@@ -19,7 +19,7 @@ test.describe('artifact and designer UI', () => {
     app.trackCleanup(() => app.request.delete(`/api/artifacts/${artifact._id}`, { failOnStatusCode: false }));
 
     const auth = await (await app.request.get('/api/auth/me')).json();
-    const detail = (auth.screens || []).find(screen => screen.template === 'entityDetail' && screen.entityType === 'artifact');
+    const detail = (auth.screens || []).find(screen => screen.template === 'instanceDetail' && screen.typeId === 'artifact');
     test.skip(!detail?.route, 'Active process has no generated artifact detail screen');
     await app.page.goto(`${detail.route}?entityId=${encodeURIComponent(artifact._id)}&artifactId=${encodeURIComponent(artifact._id)}&projectId=${encodeURIComponent(project._id)}`);
     await expect(app.page.locator('[data-artifact-viewer][data-viewer-mode="dxf"]')).toBeVisible();
@@ -28,7 +28,7 @@ test.describe('artifact and designer UI', () => {
       multipart: { file: { name: 'replacement.dxf', mimeType: 'application/dxf', buffer: Buffer.from('0\nSECTION\n2\nENTITIES\n999\nEOF') } }
     });
     expect(replacement.ok(), await replacement.text()).toBeTruthy();
-    const revisions = await app.request.get(`/api/entity-revisions?entityType=artifact&entityId=${artifact._id}&scope=file`);
+    const revisions = await app.request.get(`/api/entity-revisions?typeId=artifact&entityId=${artifact._id}&scope=file`);
     expect(revisions.ok(), await revisions.text()).toBeTruthy();
     expect((await revisions.json()).length).toBeGreaterThanOrEqual(2);
 

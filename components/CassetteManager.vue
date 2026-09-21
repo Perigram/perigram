@@ -23,7 +23,7 @@
         v-for="cassette in cassettes"
         :key="cassette._id"
         :entity="cassette"
-        entity-type="cassette_template"
+        type-id="cassette_template"
         :show-trace="false"
         :show-status="false"
       >

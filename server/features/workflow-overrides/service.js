@@ -1,33 +1,33 @@
 import { createError } from 'h3';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
-import { normalizeEntityType } from '~/server/runtime/entities.js';
+import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { assertEntityAccess } from '~/server/core/access/service.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
 import { resolveProcessWorkflow } from '~/server/features/process-definitions/runtime.js';
 import * as repository from './repository.js';
 
-export async function getByEntity(entityType, auth) {
+export async function getByEntity(typeId, auth) {
   const organizationId = resolveOrganizationId(auth);
-  const normalizedEntityType = assertKnownEntityType(entityType);
-  assertWorkflowAdmin({ entityType: normalizedEntityType, organizationId, auth });
-  const override = await repository.findLatestByEntity({ organizationId, entityType: normalizedEntityType });
+  const normalizedTypeId = assertKnownTypeId(typeId);
+  assertWorkflowAdmin({ typeId: normalizedTypeId, organizationId, auth });
+  const override = await repository.findLatestByEntity({ organizationId, typeId: normalizedTypeId });
   return serializeOverride(override);
 }
 
-export async function activate(entityType, payload = {}, auth) {
+export async function activate(typeId, payload = {}, auth) {
   const organizationId = resolveOrganizationId(auth);
-  const normalizedEntityType = assertKnownEntityType(entityType);
-  assertWorkflowAdmin({ entityType: normalizedEntityType, organizationId, auth });
+  const normalizedTypeId = assertKnownTypeId(typeId);
+  assertWorkflowAdmin({ typeId: normalizedTypeId, organizationId, auth });
 
   const workflow = normalizeWorkflowPayload(payload.workflow || payload);
   await repository.archiveActive({
     organizationId,
-    entityType: normalizedEntityType,
+    typeId: normalizedTypeId,
     updatedBy: auth.userId
   });
   const created = await repository.create({
     organizationId,
-    entityType: normalizedEntityType,
+    typeId: normalizedTypeId,
     workflow,
     status: 'ACTIVE',
     createdBy: auth.userId,
@@ -36,15 +36,15 @@ export async function activate(entityType, payload = {}, auth) {
   return serializeOverride(created);
 }
 
-export async function resolveActiveWorkflow({ entityType, organizationId, producerOutputId }) {
-  const normalizedEntityType = normalizeEntityType(entityType);
-  const defaultWorkflow = getDefaultWorkflow(normalizedEntityType);
+export async function resolveActiveWorkflow({ typeId, organizationId, producerOutputId }) {
+  const normalizedTypeId = normalizeTypeId(typeId);
+  const defaultWorkflow = getDefaultWorkflow(normalizedTypeId);
   if (!organizationId) return defaultWorkflow;
 
   const processWorkflow = producerOutputId ? await resolveProcessWorkflow({
     organizationId,
     producerOutputId,
-    entityType: normalizedEntityType,
+    typeId: normalizedTypeId,
     fallbackWorkflow: null
   }) : null;
   if (processWorkflow) {
@@ -54,17 +54,17 @@ export async function resolveActiveWorkflow({ entityType, organizationId, produc
     });
   }
 
-  const override = await repository.findActiveByEntity({ organizationId, entityType: normalizedEntityType });
+  const override = await repository.findActiveByEntity({ organizationId, typeId: normalizedTypeId });
   return override?.workflow ? normalizeWorkflowPayload(override.workflow) : defaultWorkflow;
 }
 
-export function resolveDefaultWorkflow(entityType) {
-  return getDefaultWorkflow(normalizeEntityType(entityType));
+export function resolveDefaultWorkflow(typeId) {
+  return getDefaultWorkflow(normalizeTypeId(typeId));
 }
 
-function getDefaultWorkflow(entityType) {
+function getDefaultWorkflow(typeId) {
   const domain = getCutkitRegistry().getDomain('cnc');
-  return domain?.workflows?.[entityType] || null;
+  return domain?.workflows?.[typeId] || null;
 }
 
 function normalizeWorkflowPayload(workflow) {
@@ -126,31 +126,31 @@ function isSystemTransition(transition = {}) {
   return Boolean(transition.intent && transition.access?.system);
 }
 
-function assertKnownEntityType(entityType) {
-  const normalized = normalizeEntityType(entityType);
+function assertKnownTypeId(typeId) {
+  const normalized = normalizeTypeId(typeId);
   if (!getCutkitRegistry().getEntityDefinition(normalized)) {
-    throw createError({ statusCode: 400, message: `Unknown entity type: ${entityType}` });
+    throw createError({ statusCode: 400, message: `Unknown entity type: ${typeId}` });
   }
   return normalized;
 }
 
-function assertWorkflowAdmin({ entityType, organizationId, auth }) {
+function assertWorkflowAdmin({ typeId, organizationId, auth }) {
   assertEntityAccess({
     entity: { lineage: { organizationId } },
-    entityType,
-    feature: entityTypeToFeature(entityType),
+    typeId,
+    feature: typeIdToFeature(typeId),
     level: 'admin',
     auth
   });
 }
 
-function entityTypeToFeature(entityType) {
-  if (entityType === 'project') return 'projects';
-  if (entityType === 'queue') return 'queues';
-  if (['material', 'material_pile', 'sheet', 'remnant', 'geometry_capture'].includes(entityType)) return 'materials';
-  if (entityType === 'requisition') return 'requisitions';
-  if (entityType.includes('cassette')) return 'projects';
-  return entityType.replace(/_/g, '-');
+function typeIdToFeature(typeId) {
+  if (typeId === 'project') return 'projects';
+  if (typeId === 'queue') return 'queues';
+  if (['material', 'material_pile', 'sheet', 'remnant', 'geometry_capture'].includes(typeId)) return 'materials';
+  if (typeId === 'requisition') return 'requisitions';
+  if (typeId.includes('cassette')) return 'projects';
+  return typeId.replace(/_/g, '-');
 }
 
 function resolveOrganizationId(auth = {}) {
@@ -166,7 +166,7 @@ function serializeOverride(override) {
   return {
     _id: override._id,
     organizationId: override.organizationId,
-    entityType: override.entityType,
+    typeId: override.typeId,
     workflow: override.workflow,
     status: override.status,
     createdBy: override.createdBy,

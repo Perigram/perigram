@@ -16,7 +16,7 @@ Every API route has `event.context.auth` populated by the auth middleware after 
     {
       organizationId: ObjectId,
       role: string,
-      permissions: {      // Per-entity-type access levels
+      permissions: {      // Per-type-id access levels
         projects: 'read' | 'write' | 'admin' | 'none',
         queues:   'read' | 'write' | 'admin' | 'none',
         // ... other entity types
@@ -42,18 +42,18 @@ Throws 401 if not authenticated. Returns `event.context.auth`.
 const user = requireAuth(event);
 ```
 
-### `hasLineagePermission(user, lineage, entityType, level, options?)` → `boolean`
+### `hasLineagePermission(user, lineage, typeId, level, options?)` → `boolean`
 Checks if user has the required access level for an entity based on its `lineage.organizationId`.
 
 ```js
-// entityType: 'projects' | 'queues' | 'sheets' | 'material-piles' | ...
+// typeId: 'projects' | 'queues' | 'sheets' | 'material-piles' | ...
 // level: 'read' | 'write' | 'admin'
 if (!hasLineagePermission(user, entity.lineage, 'queues', 'write')) { ... }
 if (!hasLineagePermission(user, entity, 'projects', 'write', { action: 'create' })) { ... }
 ```
 Levels are ordered: `none < read < write < admin`.
 
-### `requireLineagePermission(event, lineage, entityType, level)` → `authContext`
+### `requireLineagePermission(event, lineage, typeId, level)` → `authContext`
 Combines requireAuth + hasLineagePermission. Throws 401/403. Returns user.
 
 ```js
@@ -74,7 +74,7 @@ Users without memberships get an empty `$in` filter; users with memberships get
 
 ## entity-redaction.js
 
-### `serializeForAccess(entityType, entity, auth)` / `serializeManyForAccess(...)`
+### `serializeForAccess(typeId, entity, auth)` / `serializeManyForAccess(...)`
 Serializes model instances or DTOs and applies shared field-level redaction
 from `shared/entity-field-access.js` when an auth context is provided. Internal
 service calls can omit `auth` to keep full domain objects for workflows, hooks,
@@ -102,7 +102,7 @@ JWT signing/verification (15min expiry). Tokens carry only `userId` — permissi
 Checks explicit `user.permissions[entity]`. Different from lineage-based — use
 for non-entity system resources.
 
-### `canAccessEntity(user, entityType, entityId)` → `boolean`
+### `canAccessEntity(user, typeId, entityId)` → `boolean`
 Checks `user.restrictedTo` whitelist. Returns `true` if no restrictions.
 
 ---

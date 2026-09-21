@@ -12,7 +12,7 @@ export async function generateAttachment({ entities, parameters = {}, auth }) {
 
   const kind = parameters.kind || parameters.type;
   const sourceId = toFlexibleId(source._id);
-  const sourceType = source.type || source.entityType || source.origin?.type || source.data?.type;
+  const sourceType = source.type || source.typeId || source.origin?.type || source.data?.type;
   const isSheetDesign = Boolean(entities.sheetDesign || sourceType === 'sheet_design');
   const isNestingRun = Boolean(entities.nestingRun || sourceType === 'nesting_run');
   const lineage = {

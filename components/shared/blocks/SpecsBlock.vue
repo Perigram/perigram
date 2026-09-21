@@ -9,7 +9,7 @@ import { useAuthStore } from '~/stores/auth';
 import { canDisplayEntityField } from '~/shared/entity-field-access.js';
 
 const props = defineProps({
-  entityType: { type: String, required: true },
+  typeId: { type: String, required: true },
   entity: { type: Object, required: true },
   accessEntity: { type: Object, default: null },
   variant: { type: String, default: 'default' } // default, compact
@@ -21,7 +21,7 @@ const { specs, formattedDimensions, formattedArea } = useSpecs(toRef(props, 'ent
 const canDisplayPath = (path) => canDisplayEntityField({
   auth: { permissions: authStore.activePermissions, fieldPolicies: authStore.fieldPolicies },
   entity: props.accessEntity || props.entity,
-  entityType: props.entityType,
+  typeId: props.typeId,
   path
 });
 

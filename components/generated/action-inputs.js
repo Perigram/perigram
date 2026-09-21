@@ -1,14 +1,14 @@
 import { isCreateAction } from '~/components/generated/action-visibility.js';
 
 export function hasUploadCreator(field = {}) {
-  return Boolean(field.creator?.entityType)
+  return Boolean(field.creator?.typeId)
     && field.creator.attachmentKinds?.some(item => ['upload', 'capture', 'editor'].includes(item.creation?.mode));
 }
 
 export function artifactCreatorForAction(action = {}) {
   if (!isCreateAction(action) || !(action.typeId)) return null;
   const field = [...(action.construction?.inputs || []), ...(action.inputPolicy?.fields || [])]
-    .find(input => input.creator?.entityType);
+    .find(input => input.creator?.typeId);
   return hasUploadCreator(field) ? field.creator : null;
 }
 
@@ -18,8 +18,8 @@ export function collectActionInputFields(action = {}) {
       .filter(field => field.prompt !== false)
       .map(field => ({
         ...field,
-        type: field.entityType ? 'entity' : (field.type || (field.kind === 'json' ? 'object' : field.kind) || 'string'),
-        path: field.path || (field.entityType ? `entities.${field.id}` : `parameters.${field.id}`)
+        type: field.typeId ? 'entity' : (field.type || (field.kind === 'json' ? 'object' : field.kind) || 'string'),
+        path: field.path || (field.typeId ? `entities.${field.id}` : `parameters.${field.id}`)
       }));
   }
   const policyFields = action.inputPolicy?.fields || [];
@@ -60,10 +60,10 @@ export function initialPromptValue(field = {}) {
 
 function promptFieldHidden(field = {}, action = {}) {
   const parentType = action.parentTypeId || '';
-  const templateEntityType = field.templateEntityType || field.entityType || '';
+  const templateTypeId = field.templateTypeId || field.typeId || '';
   return isCreateAction(action)
-    && templateEntityType
-    && parentType === templateEntityType
+    && templateTypeId
+    && parentType === templateTypeId
     && field.id === (field.templateFieldId || 'templateId');
 }
 
@@ -110,7 +110,7 @@ function normalizeEntityListValue(field = {}, value = []) {
     return ids.map((id, index) => ({
       entryId: `${field.id || 'entry'}_${index + 1}`,
       id,
-      entityType: 'cassette_design',
+      typeId: 'cassette_design',
       quantity: 1
     }));
   }

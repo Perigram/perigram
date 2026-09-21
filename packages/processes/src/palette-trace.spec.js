@@ -119,7 +119,7 @@ describe('palette trace', () => {
       { id: 't', kind: 'cts.mutate', typeId: 'sheet' },
       { domain, fieldSchemas: domain.fieldSchemas.sheet }
     );
-    expect(adapted.inputs[0]).toMatchObject({ id: 'entity', type: { entityType: 'sheet' } });
+    expect(adapted.inputs[0]).toMatchObject({ id: 'entity', type: { typeId: 'sheet' } });
     expect(adapted.inputs.some(port => port.id === 'data.serial')).toBe(true);
   });
 

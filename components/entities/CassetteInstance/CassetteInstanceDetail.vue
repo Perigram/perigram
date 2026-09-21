@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="instance" entity-type="cassette_instance">
+    <EntityPage :entity="instance" type-id="cassette_instance">
         <template #actions>
                 <Button :label="$t('cassetteInstance.printLabel')" icon="pi pi-print" text />
         </template>
@@ -47,7 +47,7 @@
             <div class="flex flex-col gap-4">
                 <ActionToolbar :title="$t('cassetteInstance.tracking')" :level="2" />
                 <Panel>
-                    <StatusHistory :entity="instance" entity-type="cassette_instance" />
+                    <StatusHistory :entity="instance" type-id="cassette_instance" />
                 </Panel>
             </div>
         </div>

@@ -4,7 +4,7 @@
       v-if="isCassetteLike"
       :cassette="entity"
       :cassette-id="cassetteId"
-      :prefer-geometry="entityType === 'cassette_design'"
+      :prefer-geometry="typeId === 'cassette_design'"
       :hide-dimension-layer="hideDimensionLayer"
     />
     <img
@@ -28,13 +28,13 @@ import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  entityType: { type: String, required: true },
+  typeId: { type: String, required: true },
   mode: { type: String, default: 'none' },
   hideDimensionLayer: { type: Boolean, default: false }
 });
 
 const isCassetteLike = computed(() =>
-  ['cassette', 'cassette_template', 'cassette_design', 'cassette_instance'].includes(props.entityType)
+  ['cassette', 'cassette_template', 'cassette_design', 'cassette_instance'].includes(props.typeId)
 );
 const cassetteId = computed(() => props.entity?.data?.cassetteDesignId || props.entity?._id);
 const thumbnailUrl = computed(() =>

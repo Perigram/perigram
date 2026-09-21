@@ -20,8 +20,8 @@ export async function resolveCompiledRelationOptions({
   if (!sourceInput) return [];
 
   const optionPath = resolveRelationOptionPath({
-    ownerType: action.entityType,
-    sourceType: sourceInput.entityType,
+    ownerType: action.typeId,
+    sourceType: sourceInput.typeId,
     lineageBindings: compiled.lineageBindings || [],
     actions: compiled.actions || {}
   });
@@ -40,7 +40,7 @@ export async function resolveCompiledRelationOptions({
   const optionAuth = createExecutionAuth(auth, creatorAction);
   const sources = (await Promise.all(parentIds.map(id => queryEntities(
     registry,
-    sourceInput.entityType,
+    sourceInput.typeId,
     { [sourceParent.lineageKey]: String(id) },
     optionAuth
   )))).flat();
@@ -55,8 +55,8 @@ export async function resolveCompiledRelationOptions({
   return Array.from(new Map(targets.map(item => [String(entityId(item)), toPlain(item)])).values());
 }
 
-async function queryEntities(registry, entityType, filters, auth) {
-  return registry.getEntityService(entityType).processList(filters, auth);
+async function queryEntities(registry, typeId, filters, auth) {
+  return registry.getEntityService(typeId).processList(filters, auth);
 }
 
 function entityId(entity = {}) {

@@ -53,7 +53,7 @@ describe('process designer domain contract', () => {
       kind: 'effect.createEntity',
       outputs: [{
         id: 'result',
-        type: { base: 'entity', entityType: 'work_item', nullable: false }
+        type: { base: 'entity', typeId: 'work_item', nullable: false }
       }]
     };
 
@@ -63,7 +63,7 @@ describe('process designer domain contract', () => {
       producerOutputId: 'processNode_1785860422855:result',
       nodeId: 'processNode_1785860422855',
       outputSocketId: 'result',
-      entityType: 'work_item',
+      typeId: 'work_item',
       lifecycle: { mode: 'defaultCreated' },
       fields: { read: [], write: [], private: [] }
     });
@@ -329,7 +329,7 @@ describe('process designer domain contract', () => {
         label: 'Build result',
         kind: 'construction',
         constructionMode: 'buildResult',
-        output: { entityType: 'result' }
+        output: { typeId: 'result' }
       }],
       construction: {
         ...domain.construction,
@@ -337,7 +337,7 @@ describe('process designer domain contract', () => {
           modes: ['buildResult'],
           defaultMode: 'buildResult',
           derived: true,
-          inputs: [{ id: 'source', path: 'source', type: 'entity', entityType: 'work_item', required: true }]
+          inputs: [{ id: 'source', path: 'source', type: 'entity', typeId: 'work_item', required: true }]
         }
       }
     });
@@ -408,7 +408,7 @@ describe('tree declaration compilation', () => {
   it('compiles wired fields, states, transitions, and children edges', () => {
     const widget = classNode('widget');
     const gadget = classNode('gadget');
-    const construct = { id: 'mk', type: 'processNode', data: { refId: 'mk', entityType: 'widget' } };
+    const construct = { id: 'mk', type: 'processNode', data: { refId: 'mk', typeId: 'widget' } };
     const nodes = [
       widget,
       gadget,
@@ -452,8 +452,8 @@ describe('tree declaration compilation', () => {
     expect(noEntry.declarations[0].states).toBeUndefined();
 
     // two constructs wired to different states: the entries disagree
-    const constructA = { id: 'ca', type: 'processNode', data: { refId: 'ca', entityType: 'widget' } };
-    const constructB = { id: 'cb', type: 'processNode', data: { refId: 'cb', entityType: 'widget' } };
+    const constructA = { id: 'ca', type: 'processNode', data: { refId: 'ca', typeId: 'widget' } };
+    const constructB = { id: 'cb', type: 'processNode', data: { refId: 'cb', typeId: 'widget' } };
     const disagree = compileTreeDeclarations(
       [...nodes, constructA, constructB],
       [...edges,
@@ -602,7 +602,7 @@ describe('declaration node ports', () => {
   it('gives every declaration handle a typed spec', () => {
     const classPorts = declarationNodePorts({ type: 'ctsClass', data: { typeId: 'panel' } });
     expect(classPorts.inputSpecs[0]).toMatchObject({ id: 'declare', role: 'data' });
-    expect(classPorts.outputSpecs[0]).toMatchObject({ id: 'type', type: { base: 'entityRef', entityType: 'panel' } });
+    expect(classPorts.outputSpecs[0]).toMatchObject({ id: 'type', type: { base: 'entityRef', typeId: 'panel' } });
 
     const fieldPorts = declarationNodePorts({ type: 'ctsField', data: { name: 'width', descriptor: { base: 'quantity', unit: 'mm' } } });
     expect(fieldPorts.outputSpecs[0]).toMatchObject({ id: 'field', label: 'width' });
@@ -613,7 +613,7 @@ describe('declaration node ports', () => {
     expect(statePorts.outputSpecs[0]).toMatchObject({ id: 'state', type: { base: 'status' } });
 
     const typePorts = declarationNodePorts({ type: 'ctsType', data: { typeId: 'sheet' } }, [{ id: 'sheet' }]);
-    expect(typePorts.outputSpecs[0]).toMatchObject({ id: 'type', type: { base: 'entityRef', entityType: 'sheet' } });
+    expect(typePorts.outputSpecs[0]).toMatchObject({ id: 'type', type: { base: 'entityRef', typeId: 'sheet' } });
     expect(declarationNodePorts({ type: 'ctsType', data: { typeId: '' } }, [{ id: 'sheet' }]).outputSpecs).toEqual([]);
   });
 });

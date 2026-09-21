@@ -67,7 +67,7 @@ function queueState(queue) {
   <div class="min-w-0 cursor-pointer" @click="handleCardClick">
     <EntityCard
       :entity="cardProject"
-      entity-type="project"
+      type-id="project"
       surface="workspace"
       variant="card"
       :display-extensions="appEntityDisplayExtensions"
@@ -82,7 +82,7 @@ function queueState(queue) {
             <EntityPreview
               v-if="cardProject.data?.thumbnailUrl"
               :entity="cardProject"
-              entity-type="project"
+              type-id="project"
               mode="thumbnail"
             />
             <div v-else class="flex aspect-[16/9] items-center justify-center">
@@ -91,7 +91,7 @@ function queueState(queue) {
           </div>
           <EntitySurfaceContent
             :entity="cardProject"
-            entity-type="project"
+            type-id="project"
             surface="workspace"
             :display-extensions="appEntityDisplayExtensions"
           />

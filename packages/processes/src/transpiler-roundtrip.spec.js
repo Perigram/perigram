@@ -24,7 +24,7 @@ function declarationCanvas() {
       { id: 'name-field', type: 'ctsField', position: { x: 0, y: 120 }, data: { refId: 'name-field', typeId: 'widget', name: 'name', descriptor: { base: 'string' } } },
       { id: 'ready-state', type: 'ctsState', position: { x: 0, y: 240 }, data: { refId: 'ready-state', typeId: 'widget', value: 'ready', severity: 'info', icon: 'pi pi-play-circle' } },
       { id: 'done-state', type: 'ctsState', position: { x: 0, y: 360 }, data: { refId: 'done-state', typeId: 'widget', value: 'done', severity: 'success', icon: 'pi pi-check-circle' } },
-      { id: 'make-widget', type: 'processNode', position: { x: 240, y: 120 }, data: { refId: 'make-widget', entityType: 'widget' } }
+      { id: 'make-widget', type: 'processNode', position: { x: 240, y: 120 }, data: { refId: 'make-widget', typeId: 'widget' } }
     ],
     edges: [
       { id: 'declares:name-field-widget-class', source: 'name-field', target: 'widget-class', targetHandle: 'input:declare', sourceHandle: 'output:field', type: 'default', role: 'type', label: 'field' },

@@ -263,7 +263,7 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
     const { ensureForEntitySnapshot } = await import('../entity-revisions/service.js');
     expect(uploadFile).toHaveBeenCalledWith(expect.any(Buffer), 'scene.json', expect.objectContaining({ type: 'sketch' }), 'files');
     expect(ensureForEntitySnapshot).toHaveBeenCalledWith(expect.objectContaining({
-      entityType: 'sketch',
+      typeId: 'sketch',
       scope: 'scene',
       reason: 'payload-replaced'
     }));

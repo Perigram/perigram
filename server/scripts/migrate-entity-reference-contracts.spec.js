@@ -3,18 +3,18 @@ import {
   migrateLegacyDerivedFrom,
   migrateLegacyParentRevision,
   migrateLegacyRevisionData,
-  migrateCanonicalEntityTypes
+  migrateCanonicalTypeIds
 } from './migrate-entity-reference-contracts.js';
 
 describe('entity reference contract migration', () => {
   it('moves revision source metadata to one canonical EntityRef', () => {
-    const result = migrateLegacyRevisionData({ entityType: 'cassette', entityId: 42, scope: 'geometry' });
+    const result = migrateLegacyRevisionData({ typeId: 'cassette', entityId: 42, scope: 'geometry' });
     expect(result.data).toEqual({ source: { type: 'cassette', id: '42' }, scope: 'geometry' });
   });
 
   it('moves design derivation to provenance and removes the old data shape', () => {
     const result = migrateLegacyDerivedFrom({
-      data: { derivedFrom: { entityType: 'cassette', entityId: 'c1', revisionId: 'r1', contentHash: 'hash' } }
+      data: { derivedFrom: { typeId: 'cassette', entityId: 'c1', revisionId: 'r1', contentHash: 'hash' } }
     });
     expect(result.design.data).not.toHaveProperty('derivedFrom');
     expect(result.design.provenance.derivedFrom).toEqual({
@@ -40,7 +40,7 @@ describe('entity reference contract migration', () => {
   it('uses the stored template lineage when legacy derivation fields are empty', () => {
     const result = migrateLegacyDerivedFrom({
       lineage: { organizationId: 'org-1', templateId: 'template-1' },
-      data: { derivedFrom: { entityType: null, entityId: null, parameters: { A: 100 } } }
+      data: { derivedFrom: { typeId: null, entityId: null, parameters: { A: 100 } } }
     });
 
     expect(result.invalid).toBe(false);
@@ -81,11 +81,11 @@ describe('entity reference contract migration', () => {
     expect(result.changed).toBe(false);
   });
 
-  it('canonicalizes known persisted entity-type fields and keyed compiled policies', () => {
-    const result = migrateCanonicalEntityTypes({
+  it('canonicalizes known persisted type-id fields and keyed compiled policies', () => {
+    const result = migrateCanonicalTypeIds({
       data: {
-        entityType: 'sheetDesign',
-        lineageBindings: [{ childEntityType: 'cassetteDesign', ancestorEntityType: 'project' }],
+        typeId: 'sheetDesign',
+        lineageBindings: [{ childTypeId: 'cassetteDesign', parentTypeId: 'project' }],
         compiled: { fieldPolicies: { cassetteDesign: { read: ['identity.*'] } } }
       },
       relations: { source: { type: 'entityRevision', id: 'revision-1' } }
@@ -94,8 +94,8 @@ describe('entity reference contract migration', () => {
     expect(result.unresolved).toEqual([]);
     expect(result.value).toMatchObject({
       data: {
-        entityType: 'sheet_design',
-        lineageBindings: [{ childEntityType: 'cassette_design', ancestorEntityType: 'project' }],
+        typeId: 'sheet_design',
+        lineageBindings: [{ childTypeId: 'cassette_design', parentTypeId: 'project' }],
         compiled: { fieldPolicies: { cassette_design: { read: ['identity.*'] } } }
       },
       relations: { source: { type: 'entity_revision', id: 'revision-1' } }
@@ -103,17 +103,17 @@ describe('entity reference contract migration', () => {
   });
 
   it('fails closed for unresolved authored entity types', () => {
-    const result = migrateCanonicalEntityTypes({ data: { entityType: 'unknownWidget' } });
+    const result = migrateCanonicalTypeIds({ data: { typeId: 'unknownWidget' } });
     expect(result.changed).toBe(false);
-    expect(result.unresolved).toEqual([{ path: 'data.entityType', value: 'unknownWidget' }]);
+    expect(result.unresolved).toEqual([{ path: 'data.typeId', value: 'unknownWidget' }]);
   });
 
-  it('preserves non-reference entityType metadata in entity payloads', () => {
-    const result = migrateCanonicalEntityTypes({
-      data: { layerData: [{ entityType: 'LWPOLYLINE', layer: 'cut.outer' }] }
-    }, { strictEntityTypeFields: false });
+  it('preserves non-reference typeId metadata in entity payloads', () => {
+    const result = migrateCanonicalTypeIds({
+      data: { layerData: [{ typeId: 'LWPOLYLINE', layer: 'cut.outer' }] }
+    }, { strictTypeIdFields: false });
 
     expect(result.unresolved).toEqual([]);
-    expect(result.value.data.layerData[0].entityType).toBe('LWPOLYLINE');
+    expect(result.value.data.layerData[0].typeId).toBe('LWPOLYLINE');
   });
 });

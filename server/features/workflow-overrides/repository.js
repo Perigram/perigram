@@ -4,19 +4,19 @@ import { toFlexibleId } from '~/server/utils/objectid.js';
 
 const COLLECTION = 'workflow_overrides';
 
-export async function findActiveByEntity({ organizationId, entityType }) {
+export async function findActiveByEntity({ organizationId, typeId }) {
   const db = await connectDB();
   return await db.collection(COLLECTION).findOne({
     organizationId: toFlexibleId(organizationId),
-    entityType,
+    typeId,
     status: 'ACTIVE'
   });
 }
 
-export async function findLatestByEntity({ organizationId, entityType }) {
+export async function findLatestByEntity({ organizationId, typeId }) {
   const db = await connectDB();
   return await db.collection(COLLECTION)
-    .find({ organizationId: toFlexibleId(organizationId), entityType })
+    .find({ organizationId: toFlexibleId(organizationId), typeId })
     .sort({ updatedAt: -1, createdAt: -1 })
     .limit(1)
     .next();
@@ -36,12 +36,12 @@ export async function create(data) {
   return doc;
 }
 
-export async function archiveActive({ organizationId, entityType, updatedBy }) {
+export async function archiveActive({ organizationId, typeId, updatedBy }) {
   const db = await connectDB();
   const result = await db.collection(COLLECTION).updateMany(
     {
       organizationId: toFlexibleId(organizationId),
-      entityType,
+      typeId,
       status: 'ACTIVE'
     },
     {

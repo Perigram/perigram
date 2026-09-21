@@ -74,7 +74,7 @@ import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import {
   entityFromSelectOption,
   entitySelectOptions,
-  entityTypeFromSelectOption,
+  typeIdFromSelectOption,
   selectOptionForValue,
   selectOptionLabel,
   selectOptionValue
@@ -87,12 +87,12 @@ const props = defineProps({
   options: { type: Array, default: () => [] },
   optionLabel: { type: [String, Function], default: null },
   optionValue: { type: [String, Function], default: null },
-  entityType: { type: String, default: '' }
+  typeId: { type: String, default: '' }
 });
 const emit = defineEmits(['update:modelValue']);
 const slots = useSlots();
 const attrs = useAttrs();
-const entityMode = computed(() => entitySelectOptions(props.options, props.entityType).length > 0);
+const entityMode = computed(() => entitySelectOptions(props.options, props.typeId).length > 0);
 const slotNames = computed(() => Object.keys(slots));
 const forwardedSlotNames = computed(() => slotNames.value.filter(name => !['option', 'value', 'chip'].includes(name)));
 const selectedOptionRefs = computed(() => selectedOptions(props.modelValue));
@@ -113,7 +113,7 @@ function entityFor(option) {
 }
 
 function typeFor(option) {
-  return entityTypeFromSelectOption(option, props.entityType);
+  return typeIdFromSelectOption(option, props.typeId);
 }
 
 function optionKey(option) {

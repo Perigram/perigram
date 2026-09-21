@@ -43,7 +43,7 @@
                 <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
                     <EntityStatus
                         :entity="entity"
-                        :entity-type="entityType"
+                        :type-id="typeId"
                         variant="inline"
                         :actions="statusActions"
                         @refresh="$emit('refresh')"
@@ -72,7 +72,7 @@
                     <slot name="title" />
                 </template>
                 <template v-else>
-                    <TraceChain v-if="effectiveShowTrace" :entity="entity" :entity-type="entityType" :exclude="traceExclusions" variant="compact" expandable class="mb-2" />
+                    <TraceChain v-if="effectiveShowTrace" :entity="entity" :type-id="typeId" :exclude="traceExclusions" variant="compact" expandable class="mb-2" />
                     <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
                         <div class="flex min-w-0 flex-1 items-center gap-2">
                             <slot name="before-identity" />
@@ -81,7 +81,7 @@
                         <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
                             <EntityStatus
                                 :entity="entity"
-                                :entity-type="entityType"
+                                :type-id="typeId"
                                 variant="inline"
                                 :actions="statusActions"
                                 @refresh="$emit('refresh')"
@@ -132,7 +132,7 @@
                     <EntityStatus
                         v-if="effectiveShowStatus"
                         :entity="entity"
-                        :entity-type="entityType"
+                        :type-id="typeId"
                         variant="inline"
                         :actions="statusActions"
                         @refresh="$emit('refresh')"
@@ -143,7 +143,7 @@
                 <TraceChain
                     v-if="effectivePopupShowTrace"
                     :entity="entity"
-                    :entity-type="entityType"
+                    :type-id="typeId"
                     :exclude="traceExclusions"
                 />
                 <div class="entity-card-popup-content flex flex-col gap-3">
@@ -226,7 +226,7 @@ import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfa
 
 const props = defineProps({
     entity: { type: Object, required: true },
-    entityType: { type: String, required: true },
+    typeId: { type: String, required: true },
     variant: { type: String, default: 'card' },
     surface: { type: String, default: null },
     showStatus: { type: Boolean, default: null },
@@ -237,7 +237,7 @@ const props = defineProps({
     displayExtensions: { type: Object, default: null },
     displayOverrides: { type: Object, default: null },
     contextEntity: { type: Object, default: null },
-    contextEntityType: { type: String, default: '' },
+    contextTypeId: { type: String, default: '' },
     footerDisplay: { type: String, default: 'inline', validator: value => ['menu', 'inline'].includes(value) }
 });
 
@@ -251,7 +251,7 @@ const cardEntityId = computed(() => {
 function openCardChat() {
     op.value?.hide?.();
     openEntityChat({
-        type: props.entityType,
+        type: props.typeId,
         id: cardEntityId.value,
         name: props.entity?.identity?.name || ''
     });
@@ -261,21 +261,21 @@ const inlineForceTraceRef = inject('entityInlineForceTrace', false);
 const inlineTypeLabelRef = inject('entityInlineTypeLabel', '');
 const inlineActionIdsRef = inject('entityInlineActionIds', []);
 const inlineActionEntityRef = inject('entityInlineActionEntity', null);
-const inlineActionEntityTypeRef = inject('entityInlineActionEntityType', '');
+const inlineActionTypeIdRef = inject('entityInlineActionTypeId', '');
 const inlineShowCassetteDesignerRef = inject('entityInlineShowCassetteDesigner', false);
 const inlineExecuteActionRef = inject('entityInlineExecuteAction', null);
 const statusWorkflowsRef = inject('statusWorkflows', null);
 
-const entityConfig = computed(() => entityUiFor(props.entityType));
+const entityConfig = computed(() => entityUiFor(props.typeId));
 const displayPlan = computed(() => resolveEntityDisplayContract({
-    entityType: props.entityType,
+    typeId: props.typeId,
     surface: props.surface || props.variant,
     variant: props.variant,
     extensions: props.displayExtensions,
     overrides: props.displayOverrides
 }));
 const effectiveShowStatus = computed(() => {
-    if (!hasMeaningfulWorkflowStatus(props.entityType, unref(statusWorkflowsRef) || undefined)) return false;
+    if (!hasMeaningfulWorkflowStatus(props.typeId, unref(statusWorkflowsRef) || undefined)) return false;
     if (props.showStatus !== null) return props.showStatus;
     return displayPlan.value.surfaceContract.status === 'interactive'
         || displayPlan.value.surfaceContract.status === 'readonly';
@@ -286,9 +286,9 @@ const effectiveShowTrace = computed(() => {
 });
 const effectivePopupShowTrace = computed(() => effectiveShowTrace.value || Boolean(unref(inlineForceTraceRef)));
 const traceExclusions = computed(() => {
-    if (!props.contextEntity || !props.contextEntityType) return [];
+    if (!props.contextEntity || !props.contextTypeId) return [];
     return entityHierarchyIds(props.contextEntity).map(id => ({
-        type: props.contextEntityType,
+        type: props.contextTypeId,
         id
     }));
 });

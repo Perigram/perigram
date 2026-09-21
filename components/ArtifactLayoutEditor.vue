@@ -134,7 +134,7 @@ const visibleItems = computed(() => (activePage.value?.items || []).filter(item 
 const selectedItem = computed(() => (activePage.value?.items || []).find(item => item.id === selectedItemId.value) || null);
 const pageOptions = computed(() => pages.value.map(page => ({ label: t('artifactTemplates.page', { number: page.number }), value: page.number })));
 const itemOptions = computed(() => (activePage.value?.items || []).map(item => ({
-  label: item.kind === 'text' ? (item.text || item.id) : `${item.entityType} · ${item.id}`,
+  label: item.kind === 'text' ? (item.text || item.id) : `${item.typeId} · ${item.id}`,
   value: item.id
 })));
 const variableTypes = computed(() => [

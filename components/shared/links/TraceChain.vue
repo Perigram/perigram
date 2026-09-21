@@ -57,7 +57,7 @@ import { containmentAncestors, normalizeHierarchyType, traceContextExclusions, v
 
 const props = defineProps({
     entity: { type: Object, default: null },
-    entityType: { type: String, default: '' },
+    typeId: { type: String, default: '' },
     lineage: { type: Object, default: null },
     expandable: { type: Boolean, default: false },
     variant: { type: String, default: 'full' },
@@ -93,7 +93,7 @@ const effectiveExclusions = computed(() => traceContextExclusions({
 const items = computed(() => visibleTraceAncestors(
     containmentAncestors(
         { ...(props.entity || {}), lineage: activeLineage.value || {} },
-        props.entityType || props.entity?.entityType || '',
+        props.typeId || props.entity?.typeId || '',
         effectiveContainment()
     ),
     effectiveExclusions.value
@@ -130,7 +130,7 @@ const routeForItem = (item) => {
     if (authStore.processActive) {
         return detailRouteForEntity({
             entity: resolvedEntity || { _id: item.id },
-            entityType: generatedEntityType(item.type),
+            typeId: generatedTypeId(item.type),
             manifest: authStore.screenManifest
         });
     }
@@ -139,7 +139,7 @@ const routeForItem = (item) => {
     return null;
 };
 
-const generatedEntityType = (type) => {
+const generatedTypeId = (type) => {
     return normalizeHierarchyType(type);
 };
 

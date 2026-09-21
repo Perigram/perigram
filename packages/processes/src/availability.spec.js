@@ -16,7 +16,7 @@ const domain = {
       derived: true,
       modeInputs: {
         bakeCassetteDesignFromTemplate: [
-          { id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true },
+          { id: 'templateId', path: 'templateId', type: 'entity', typeId: 'cassette', required: true, prompt: true },
           { id: 'parameters', path: 'parameters', type: 'object', required: false, prompt: true }
         ]
       }
@@ -32,7 +32,7 @@ const domain = {
       derived: true,
       modeInputs: {
         buildNest: [
-          { id: 'items', path: 'items', type: 'entityList', accepts: ['cassette_design'], required: true },
+          { id: 'items', path: 'items', type: 'typeList', accepts: ['cassette_design'], required: true },
           { id: 'mode', path: 'mode', type: 'enum', options: ['A', 'B'], required: true, default: 'A' }
         ]
       }
@@ -43,7 +43,7 @@ const domain = {
       derived: true,
       modeInputs: {
         uploadArtifact: [
-          { id: 'artifact', type: 'artifactUpload', required: true, prompt: true, creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' } }
+          { id: 'artifact', type: 'artifactUpload', required: true, prompt: true, creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' } }
         ]
       }
     }
@@ -52,7 +52,7 @@ const domain = {
     solve: {
       input: {
         parameters: [
-          { name: 'machineId', type: 'entityId', entityType: 'machine', required: true },
+          { name: 'machineId', type: 'entityId', typeId: 'machine', required: true },
           { name: 'secret', type: 'string', required: true, display: 'hidden' }
         ]
       }
@@ -93,11 +93,11 @@ function typedCreate(overrides = {}) {
     id: 'n',
     label: 'design',
     kind: 'effect.createEntity',
-    entityType: 'cassette_design',
+    typeId: 'cassette_design',
     construction: {
       mode: 'bakeCassetteDesignFromTemplate',
       inputs: [
-        { id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true }
+        { id: 'templateId', path: 'templateId', type: 'entity', typeId: 'cassette', required: true, prompt: true }
       ]
     },
     ...overrides
@@ -137,7 +137,7 @@ describe('required input availability', () => {
       id: 'n',
       label: 'design',
       kind: 'effect.createEntity',
-      entityType: 'cassette_design',
+      typeId: 'cassette_design',
       construction: {
         mode: 'bakeCassetteDesignFromTemplate',
         inputs: [{ id: 'label', path: 'label', type: 'string', required: true }]
@@ -158,10 +158,10 @@ describe('required input availability', () => {
       id: 'n',
       label: 'nest',
       kind: 'effect.createEntity',
-      entityType: 'nest',
+      typeId: 'nest',
       construction: {
         mode: 'buildNest',
-        inputs: [{ id: 'items', path: 'items', type: 'entityList', accepts: ['cassette_design'], required: true }]
+        inputs: [{ id: 'items', path: 'items', type: 'typeList', accepts: ['cassette_design'], required: true }]
       },
       trigger: { mode: 'event' }
     };
@@ -174,7 +174,7 @@ describe('required input availability', () => {
       id: 'n',
       label: 'nest',
       kind: 'effect.createEntity',
-      entityType: 'nest',
+      typeId: 'nest',
       construction: {
         mode: 'buildNest',
         inputs: [{ id: 'mode', path: 'mode', type: 'enum', options: ['A', 'B'], required: true, default: 'A' }]
@@ -189,7 +189,7 @@ describe('required input availability', () => {
       id: 'n',
       label: 'nest',
       kind: 'effect.createEntity',
-      entityType: 'nest',
+      typeId: 'nest',
       construction: {
         mode: 'buildNest',
         inputs: [{ id: 'mode', path: 'mode', type: 'enum', options: ['A', 'B'], required: true }]
@@ -205,7 +205,7 @@ describe('required input availability', () => {
       id: 'n',
       label: 'project',
       kind: 'effect.createEntity',
-      entityType: 'project',
+      typeId: 'project',
       construction: { mode: 'genericCreate', inputs: [] },
       blocks: ['identity']
     };
@@ -218,7 +218,7 @@ describe('required input availability', () => {
       id: 'n',
       label: 'project',
       kind: 'effect.createEntity',
-      entityType: 'project',
+      typeId: 'project',
       construction: { mode: 'genericCreate', inputs: [] },
       blocks: ['identity'],
       trigger: { mode: 'event' }
@@ -233,10 +233,10 @@ describe('required input availability', () => {
       id: 'n',
       label: 'artifact',
       kind: 'effect.createEntity',
-      entityType: 'artifact',
+      typeId: 'artifact',
       construction: {
         mode: 'uploadArtifact',
-        inputs: [{ id: 'artifact', type: 'artifactUpload', required: true, prompt: true, creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' } }]
+        inputs: [{ id: 'artifact', type: 'artifactUpload', required: true, prompt: true, creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' } }]
       },
       trigger: { mode: 'event' }
     };
@@ -249,7 +249,7 @@ describe('required input availability', () => {
       id: 'n',
       label: 'move',
       kind: 'effect.changeStatus',
-      entityType: 'project'
+      typeId: 'project'
     };
     expect(check({ ...node, trigger: { mode: 'manual' } })).toEqual([]);
     expect(check({ ...node, trigger: { mode: 'event' } }).length).toBeGreaterThan(0);

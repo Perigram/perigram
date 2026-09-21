@@ -14,12 +14,12 @@ describe('node spec tooltip', () => {
   });
 
   it('v4 records resolve to species descriptions through the operation-kind seam', () => {
-    expect(nodeSpecSummary({ kind: 'effect.changeStatus', entityType: 'queue' }, formatProcessType)).toMatch(/state machine/i);
+    expect(nodeSpecSummary({ kind: 'effect.changeStatus', typeId: 'queue' }, formatProcessType)).toMatch(/state machine/i);
     expect(nodeSpecSummary({ kind: 'read.currentEntity' }, formatProcessType)).toMatch(/context/i);
   });
 
   it('socket lines carry type, access, and optionality', () => {
-    expect(socketSpecLine({ id: 'entity', label: 'entity', type: { base: 'entityRef', entityType: 'cassette' }, required: true }, formatProcessType))
+    expect(socketSpecLine({ id: 'entity', label: 'entity', type: { base: 'entityRef', typeId: 'cassette' }, required: true }, formatProcessType))
       .toBe('entity — entityRef<cassette>');
     expect(socketSpecLine({ id: 'items', type: { base: 'entity' }, access: 'list', required: false }, formatProcessType))
       .toBe('items — entity · list · optional');

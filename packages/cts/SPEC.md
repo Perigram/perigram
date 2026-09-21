@@ -635,7 +635,7 @@ Effect nodes take the species names of §8 (the canonical table is
 
 ### References
 
-- **Types**: `entityType: 'cassette_design'` becomes `typeId: 'cassette-design'`
+- **Types**: `typeId: 'cassette_design'` becomes `typeId: 'cassette-design'`
   (the CTS id) in every record collection — `processNodes`, `producerOutputs`
   (`fields` path lists included), `actions`, `sockets` (descriptors via the
   grammar adapter), `screens` sources. The binding key is `typeId`, never

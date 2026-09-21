@@ -21,9 +21,9 @@ describe('real pipeline hydration', () => {
     expect(templates).toContain('typeList');
     expect(templates).toContain('instanceDetail');
     for (const screen of Object.values(world.contract.screens)) {
-      expect(screen.entityType).toBeUndefined();
+      expect(screen.typeId).toBeUndefined();
       for (const source of screen.sources || []) {
-        expect(source.entityType).toBeUndefined();
+        expect(source.typeId).toBeUndefined();
         expect(source.typeId).toBeTruthy();
       }
     }

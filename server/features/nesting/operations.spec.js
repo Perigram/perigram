@@ -329,7 +329,7 @@ describe('nesting operation worker payloads', () => {
         job: {
           items: [{
             type: 'PARAMETRIC',
-            entityType: 'cassette',
+            typeId: 'cassette',
             id: 'template-1',
             quantity: 3,
             parameters: { A: 420, B: 260 }

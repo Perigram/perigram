@@ -37,13 +37,13 @@ describe('ui-contract projection', () => {
   it('maps legacy action kinds onto the UI contract vocabulary', () => {
     const projected = projectUiContractChannels({
       actions: {
-        create: { id: 'create', actionKind: 'createEntity', entityType: 'project', label: 'Create' },
-        update: { id: 'update', actionKind: 'updateEntity', entityType: 'project', status: { to: 'DONE' } },
-        remove: { id: 'remove', actionKind: 'deleteEntity', entityType: 'project' },
-        link: { id: 'link', actionKind: 'updateEntity', entityType: 'queue', relationMutation: { key: 'items', targetType: 'cassette_design', cardinality: 'array', operation: 'link' } },
-        unlink: { id: 'unlink', actionKind: 'updateEntity', entityType: 'queue', relationMutation: { key: 'items', targetType: 'cassette_design', operation: 'unlink' } },
-        run: { id: 'run', actionKind: 'runCommand', entityType: 'queue', commandId: 'nesting.solve' },
-        send: { id: 'send', actionKind: 'sendToOrganization', entityType: 'project' }
+        create: { id: 'create', actionKind: 'createEntity', typeId: 'project', label: 'Create' },
+        update: { id: 'update', actionKind: 'updateEntity', typeId: 'project', status: { to: 'DONE' } },
+        remove: { id: 'remove', actionKind: 'deleteEntity', typeId: 'project' },
+        link: { id: 'link', actionKind: 'updateEntity', typeId: 'queue', relationMutation: { key: 'items', targetType: 'cassette_design', cardinality: 'array', operation: 'link' } },
+        unlink: { id: 'unlink', actionKind: 'updateEntity', typeId: 'queue', relationMutation: { key: 'items', targetType: 'cassette_design', operation: 'unlink' } },
+        run: { id: 'run', actionKind: 'runCommand', typeId: 'queue', commandId: 'nesting.solve' },
+        send: { id: 'send', actionKind: 'sendToOrganization', typeId: 'project' }
       },
       screens: {}
     });
@@ -60,14 +60,14 @@ describe('ui-contract projection', () => {
     const projected = projectUiContractChannels({
       actions: {},
       screens: {
-        list: { id: 'list', template: 'entityList', entityType: 'queue', roleIds: ['op'] },
+        list: { id: 'list', template: 'typeList', typeId: 'queue', roleIds: ['op'] },
         detail: {
           id: 'detail',
-          template: 'entityDetail',
-          entityType: 'queue',
+          template: 'instanceDetail',
+          typeId: 'queue',
           sources: [
-            { id: 'queue', entityType: 'queue', mode: 'single', identifier: '$screen.scope.entityId' },
-            { id: 'runs_children', entityType: 'nesting_run', mode: 'list', filters: { queueId: '$screen.scope.entityId' } }
+            { id: 'queue', typeId: 'queue', mode: 'single', identifier: '$screen.scope.entityId' },
+            { id: 'runs_children', typeId: 'nesting_run', mode: 'list', filters: { queueId: '$screen.scope.entityId' } }
           ],
           regions: [{ id: 'runs_region', slot: 'main', sourceId: 'runs_children', surface: 'card', actions: [] }]
         }

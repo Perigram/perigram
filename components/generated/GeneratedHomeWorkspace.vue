@@ -322,7 +322,7 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
     kind: 'page',
     pageId: reference.pageId,
     entity: entityItem.entity,
-    entityType: reference.typeId,
+    typeId: reference.typeId,
     cassettes: cassetteItems.value.map(item => item.entity)
   };
 }).filter(Boolean));
@@ -905,7 +905,7 @@ function closePane(paneId) {
 }
 
 function openWorkspaceEntity(typeId, entity) {
-  const item = rememberWorkspaceEntity(entityType, entity);
+  const item = rememberWorkspaceEntity(typeId, entity);
   if (!item || !activePane.value) return;
   selectPaneTab(activePane.value.id, item.key);
 }
@@ -913,16 +913,16 @@ function openWorkspaceEntity(typeId, entity) {
 function openWorkspacePage(request = {}) {
   const definition = resolveGeneratedWorkspacePage(request.pageId);
   if (!definition) return;
-  if (!definition.entityType) {
+  if (!definition.typeId) {
     if (activePane.value) selectPaneTab(activePane.value.id, `page:${definition.id}`);
     return;
   }
-  if (definition.entityType !== request.entityType) return;
+  if (definition.typeId !== request.typeId) return;
 
-  rememberWorkspaceEntity(request.entityType, request.entity);
+  rememberWorkspaceEntity(request.typeId, request.entity);
 
   const entityItem = workspaceEntityItems.value.find(item => (
-    item.type === definition.entityType
+    item.type === definition.typeId
     && entityId(item.entity) === entityId(request.entity)
   ));
   if (!entityItem || !activePane.value) return;
@@ -932,26 +932,26 @@ function openWorkspacePage(request = {}) {
     openedPageRefs.value = [...openedPageRefs.value, {
       key,
       pageId: definition.id,
-      entityType: definition.entityType,
+      typeId: definition.typeId,
       entityId: entityId(entityItem.entity)
     }];
   }
   selectPaneTab(activePane.value.id, key);
 }
 
-function rememberWorkspaceEntity(entityType, entity) {
+function rememberWorkspaceEntity(typeId, entity) {
   const id = entityId(entity);
-  if (!entityType || !id) return null;
-  const key = entityKey(entityType, entity);
+  if (!typeId || !id) return null;
+  const key = entityKey(typeId, entity);
   const existing = workspaceEntityItems.value.find(item => item.key === key);
   if (existing) return existing;
 
-  const item = workspaceEntityItem(entityType, entity);
+  const item = workspaceEntityItem(typeId, entity);
   openedEntityItems.value = [...openedEntityItems.value, item];
   if (!openedEntityRefs.value.some(reference => reference.key === key)) {
     openedEntityRefs.value = [...openedEntityRefs.value, {
       key,
-      entityType,
+      typeId,
       entityId: id
     }];
   }
@@ -990,7 +990,7 @@ function entityActionEntries(actionIds, item, context = {}) {
 
 function contextForItem(item = null) {
   return {
-    entityType: item?.type || '',
+    typeId: item?.type || '',
     parentTypeId: item?.type || ''
   };
 }

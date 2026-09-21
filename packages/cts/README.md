@@ -83,7 +83,7 @@ module layout and how the code maps to the spec's build-order tiers.
   descriptor typing, nested-path grouping.
 - `compat/process-checks.js` — declaration checks against a registry view,
   run before the process compiler's graph validation. It reads semantic
-  records only, and type bindings positionally (`entityType`, species
+  records only, and type bindings positionally (`typeId`, species
   `typeId`, legacy species `type`): process-vocabulary descriptor strings
   and canvas card kinds are never misread as type references.
 - `compat/domain-projection.js` — the single CTS → compiler-domain

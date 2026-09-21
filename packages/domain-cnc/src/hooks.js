@@ -8,7 +8,7 @@ export const cncHookContracts = {
     id: 'propagateToChildren',
     label: 'Propagate status to child entities',
     parameters: [
-      { name: 'childType', label: 'Child type', type: 'entityType', required: true },
+      { name: 'childType', label: 'Child type', type: 'typeId', required: true },
       { name: 'childState', label: 'Child state', type: 'workflowState', required: true, dependsOn: 'childType' }
     ]
   },

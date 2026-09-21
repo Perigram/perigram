@@ -100,7 +100,7 @@ export async function resolveProcessAuth(auth = {}) {
   // browser reads is projected here (typeId, id, typeList/instanceDetail/
   // home, lineage bindings keyed childTypeId/parentTypeId). The compiled
   // execution channel keeps its internal names server-side; nothing with
-  // `entityType`/`actionId` keys crosses hydration.
+  // `typeId`/`actionId` keys crosses hydration.
   const typeLabels = new Map((compiled.bundle?.types || []).map(type => [type.id, type.render?.label || type.id]));
   const manifestActions = (assignmentAccess.actions || [])
     .map(action => projectManifestAction(action, { typeLabels }))
@@ -111,10 +111,10 @@ export async function resolveProcessAuth(auth = {}) {
       active: true,
       schemaVersion: compiled.schemaVersion,
       producerOutputs: compiled.producerOutputs || {},
-      lineageBindings: (compiled.lineageBindings || []).map(({ childEntityType, ancestorEntityType, ...binding }) => ({
+      lineageBindings: (compiled.lineageBindings || []).map(({ childTypeId, parentTypeId, ...binding }) => ({
         ...binding,
-        childTypeId: childEntityType,
-        parentTypeId: ancestorEntityType
+        childTypeId: childTypeId,
+        parentTypeId: parentTypeId
       })),
       // The UI generator's inputs ride with the hydration payload: the CTS
       // client bundle and the projected action contract, so the screens
@@ -130,18 +130,18 @@ export async function resolveProcessAuth(auth = {}) {
   };
 }
 
-export async function resolveProcessWorkflow({ organizationId, producerOutputId, entityType, fallbackWorkflow = null } = {}) {
+export async function resolveProcessWorkflow({ organizationId, producerOutputId, typeId, fallbackWorkflow = null } = {}) {
   const compiled = await getActiveCompiledProcess(organizationId);
-  return resolveCompiledProducerOutputWorkflow({ compiled, producerOutputId, entityType, fallbackWorkflow });
+  return resolveCompiledProducerOutputWorkflow({ compiled, producerOutputId, typeId, fallbackWorkflow });
 }
 
-export function resolveCompiledProducerOutputWorkflow({ compiled, producerOutputId, entityType, fallbackWorkflow = null } = {}) {
+export function resolveCompiledProducerOutputWorkflow({ compiled, producerOutputId, typeId, fallbackWorkflow = null } = {}) {
   if (!compiled || !Object.keys(compiled.producerOutputs || {}).length) return fallbackWorkflow;
   if (!producerOutputId) throw new Error('producerOutputId is required to resolve a process workflow');
   const output = compiled.producerOutputs?.[producerOutputId];
   if (!output) throw new Error(`Unknown producerOutputId ${producerOutputId}`);
-  if (entityType && output.entityType !== entityType) {
-    throw new Error(`producerOutputId ${producerOutputId} emits ${output.entityType}, not ${entityType}`);
+  if (typeId && output.typeId !== typeId) {
+    throw new Error(`producerOutputId ${producerOutputId} emits ${output.typeId}, not ${typeId}`);
   }
   return output.workflow || fallbackWorkflow;
 }

@@ -22,7 +22,7 @@ const colorLabel = computed(() => colorName.value || materialName.value);
 
 <template>
   <div class="h-full">
-    <EntityCard :entity="sheet" entity-type="sheet" :variant="variant">
+    <EntityCard :entity="sheet" type-id="sheet" :variant="variant">
       <template #before-identity>
         <i class="ck-entity-icon ck-entity-icon-sheet-instance"></i>
       </template>
@@ -32,7 +32,7 @@ const colorLabel = computed(() => colorName.value || materialName.value);
             <span class="h-4 w-4 shrink-0 rounded-ui" :style="{ backgroundColor: colorHex }" :aria-label="colorName" />
             <span class="truncate text-body">{{ colorLabel || sheet.identity?.name }}</span>
           </div>
-          <SpecsBlock entity-type="sheet" :entity="sheet" variant="compact" />
+          <SpecsBlock type-id="sheet" :entity="sheet" variant="compact" />
         </div>
       </template>
       <div class="flex flex-col gap-3">
@@ -44,7 +44,7 @@ const colorLabel = computed(() => colorName.value || materialName.value);
           <small v-if="materialName && colorName" class="shrink-0 text-muted">{{ materialName }}</small>
         </div>
         <Divider />
-        <SpecsBlock entity-type="sheet" :entity="sheet" />
+        <SpecsBlock type-id="sheet" :entity="sheet" />
       </div>
     </EntityCard>
   </div>

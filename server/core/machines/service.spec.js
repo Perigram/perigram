@@ -127,7 +127,7 @@ describe('status service lifecycle payloads', () => {
     });
 
     await statusService.transitionWithResult({
-      entityType: 'queue',
+      typeId: 'queue',
       targetId: 'queue-intent-patch',
       intent: 'completeNestingProduction',
       auth: { userId: 'SYSTEM', role: 'SYSTEM', system: true },
@@ -161,7 +161,7 @@ describe('status service lifecycle payloads', () => {
     mockedConnectDB.mockReturnValue(standaloneDb);
 
     await expect(statusService.transitionWithResult({
-      entityType: 'queue',
+      typeId: 'queue',
       targetId: 'queue-standalone-patch',
       intent: 'completeNestingProduction',
       auth: { userId: 'SYSTEM', role: 'SYSTEM', system: true },
@@ -224,7 +224,7 @@ describe('status service lifecycle payloads', () => {
           actionId: 'move_old',
           label: 'Move project OLD',
           actionKind: 'updateEntity',
-          entityType: 'project',
+          typeId: 'project',
           status: { from: 'NEWS', to: 'OLD' }
         }]
       }
@@ -262,7 +262,7 @@ describe('status service lifecycle payloads', () => {
           actionId: 'mark_cut',
           label: 'Mark cut',
           actionKind: 'updateEntity',
-          entityType: 'project',
+          typeId: 'project',
           status: { to: 'CUT' }
         }]
       }
@@ -304,7 +304,7 @@ describe('status service lifecycle payloads', () => {
                     to: 'Отправлено',
                     processRoleIds: ['role_cutter'],
                     access: {
-                      permissions: [{ feature: 'queues', entityType: 'queue', level: 'write' }]
+                      permissions: [{ feature: 'queues', typeId: 'queue', level: 'write' }]
                     }
                   }]
                 }
@@ -353,7 +353,7 @@ describe('status service lifecycle payloads', () => {
     ]));
 
     await expect(statusService.transitionWithResult({
-      entityType: 'queue',
+      typeId: 'queue',
       targetId: 'queue-process-transition-1',
       targetState: 'Отправлено',
       auth
@@ -434,7 +434,7 @@ describe('status service lifecycle payloads', () => {
     });
 
     expect(actions).toEqual({
-      entityType: 'warehouse',
+      typeId: 'warehouse',
       targetId: 'warehouse-1',
       state: null,
       actions: []
@@ -592,7 +592,7 @@ describe('status service lifecycle payloads', () => {
                   proof: { required: true, multiple: false, kind: 'mounting-proof' }
                 },
                 snapshots: {
-                  designs: { entityType: 'cassette_design', lineageKey: 'queueId', required: true }
+                  designs: { typeId: 'cassette_design', lineageKey: 'queueId', required: true }
                 }
               }
             }
@@ -644,7 +644,7 @@ describe('status service lifecycle payloads', () => {
     expect(proof.attachmentKey).toMatch(/^status_proof_/);
     expect(entity.attachments[proof.attachmentKey].kind).toBe('mounting-proof');
     expect(entity.status.lifecycle.data.snapshots.designs).toMatchObject({
-      entityType: 'cassette_design',
+      typeId: 'cassette_design',
       lineageKey: 'queueId',
       count: 1,
       refs: [{ id: 'design-1', label: 'Design 1', status: 'READY' }]

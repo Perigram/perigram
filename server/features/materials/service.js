@@ -85,7 +85,7 @@ export async function remove(id) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'material',
+  typeId: 'material',
   repository,
   Model: Material
 });

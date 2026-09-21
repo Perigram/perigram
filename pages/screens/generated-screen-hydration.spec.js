@@ -13,7 +13,7 @@ function synthesizedDetailScreen(authStore, key = '') {
     if (!String(key).endsWith('_detail')) return null;
     const baseKey = String(key).slice(0, -'_detail'.length);
     const base = authStore.screenManifest.find(item => item.screenKey === baseKey);
-    const typeId = base?.entityType || base?.typeId;
+    const typeId = base?.typeId;
     if (!base || !typeId) return null;
     const sourceId = base.sources?.[0]?.id || typeId;
     const required = base.required || base.sources?.[0]?.required || null;

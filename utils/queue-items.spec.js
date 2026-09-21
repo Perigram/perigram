@@ -22,14 +22,14 @@ describe('queue item helpers', () => {
 
     const item = {
       id: 'design-200x400',
-      entityType: 'cassette_design',
+      typeId: 'cassette_design',
       parameters: { B: 400, R: 20, A: 200 }
     };
 
     expect(resolveQueueItemEntity({ ...item }, { cassetteDesigns })?._id).toBe('design-200x400');
     expect(canonicalQueueItem({ ...item }, { cassetteDesigns })).toMatchObject({
       id: 'design-200x400',
-      entityType: 'cassette_design'
+      typeId: 'cassette_design'
     });
   });
 
@@ -41,18 +41,18 @@ describe('queue item helpers', () => {
 
   it('resolves explicit legacy cassette-template queue items', () => {
     const cassettes = [{ _id: 'template-1', data: { parameters: ['A'] } }];
-    const item = { id: 'template-1', entityType: 'cassette', type: 'PARAMETRIC' };
+    const item = { id: 'template-1', typeId: 'cassette', type: 'PARAMETRIC' };
 
     expect(resolveQueueItemEntity(item, { cassettes })?._id).toBe('template-1');
     expect(canonicalQueueItem(item, { cassettes })).toMatchObject({
       id: 'template-1',
-      entityType: 'cassette'
+      typeId: 'cassette'
     });
   });
 
   it('resolves the source cassette template from design provenance', () => {
     expect(queueItemTemplateId(
-      { id: 'design-1', entityType: 'cassette_design' },
+      { id: 'design-1', typeId: 'cassette_design' },
       {
         provenance: {
           derivedFrom: {
@@ -62,7 +62,7 @@ describe('queue item helpers', () => {
       }
     )).toBe('template-1');
     expect(queueItemTemplateId(
-      { id: 'design-1', entityType: 'cassette_design' },
+      { id: 'design-1', typeId: 'cassette_design' },
       { provenance: { derivedFrom: { source: { type: 'artifact', id: 'file-1' } } } }
     )).toBe('');
   });

@@ -66,7 +66,7 @@ export const usePenTemplatesStore = defineStore('penTemplates', () => {
 
     async function createPen(penData) {
         try {
-            return await instances.createInstance(TYPE_KEY, toWire(penData), { entityType: TYPE_KEY });
+            return await instances.createInstance(TYPE_KEY, toWire(penData), { typeId: TYPE_KEY });
         } catch (err) {
             error.value = err?.data?.message || err?.message || String(err);
             throw err;
@@ -75,7 +75,7 @@ export const usePenTemplatesStore = defineStore('penTemplates', () => {
 
     async function updatePen(id, updates) {
         try {
-            return await instances.updateInstance(TYPE_KEY, id, toWire(updates), { entityType: TYPE_KEY });
+            return await instances.updateInstance(TYPE_KEY, id, toWire(updates), { typeId: TYPE_KEY });
         } catch (err) {
             error.value = err?.data?.message || err?.message || String(err);
             throw err;
@@ -84,7 +84,7 @@ export const usePenTemplatesStore = defineStore('penTemplates', () => {
 
     async function deletePen(id) {
         try {
-            await instances.removeInstance(TYPE_KEY, id, { entityType: TYPE_KEY });
+            await instances.removeInstance(TYPE_KEY, id, { typeId: TYPE_KEY });
         } catch (err) {
             error.value = err?.data?.message || err?.message || String(err);
             throw err;

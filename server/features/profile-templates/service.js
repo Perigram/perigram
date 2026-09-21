@@ -201,7 +201,7 @@ export async function remove(id, auth = {}) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'profile_template',
+  typeId: 'profile_template',
   repository,
   Model: ProfileTemplate
 });

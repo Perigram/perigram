@@ -33,12 +33,12 @@ const openDesign = () => {
 
 <template>
   <div>
-    <EntityCard :entity="design" entity-type="sheet_design" :variant="variant" :show-status="false">
+    <EntityCard :entity="design" type-id="sheet_design" :variant="variant" :show-status="false">
       <template #before-identity>
         <i class="ck-entity-icon ck-entity-icon-sheet-design"></i>
       </template>
       <template #compact-content>
-        <SpecsBlock entity-type="sheetDesign" :entity="design" variant="compact" />
+        <SpecsBlock type-id="sheetDesign" :entity="design" variant="compact" />
       </template>
       <Divider />
       <div class="grid grid-cols-1 gap-4">
@@ -51,7 +51,7 @@ const openDesign = () => {
           <small>{{ $t('sheetDesign.materialSources') }}</small>
           <Tag :value="materialSourceCount" severity="success" size="small" />
         </div>
-        <SpecsBlock entity-type="sheetDesign" :entity="design" />
+        <SpecsBlock type-id="sheetDesign" :entity="design" />
       </div>
       <template #footer>
         <div v-if="canOpen" class="flex justify-end" @click.stop>

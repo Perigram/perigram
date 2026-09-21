@@ -1,6 +1,6 @@
 <template>
   <div>
-    <EntityCard :entity="instance" entity-type="cassette_instance" :variant="variant">
+    <EntityCard :entity="instance" type-id="cassette_instance" :variant="variant">
       <template #before-identity>
         <i class="pi pi-qrcode"></i>
       </template>
@@ -12,7 +12,7 @@
       <div class="flex flex-col gap-3">
         <CassetteThumbnail v-if="designIdValue" :cassette-id="designIdValue" />
         <Divider />
-        <DataBlock entity-type="cassetteInstance" :entity="instance" :fields="INSTANCE_FIELDS" />
+        <DataBlock type-id="cassetteInstance" :entity="instance" :fields="INSTANCE_FIELDS" />
       </div>
     </EntityCard>
   </div>
@@ -40,6 +40,6 @@ const props = defineProps({
 const designId = computed(() => props.instance.lineage?.cassetteDesignId || props.instance.lineage?.designId || null);
 const designIdValue = computed(() => designId.value?.toString?.() || designId.value || '');
 
-const INSTANCE_FIELDS = resolveEntityDisplayFields({ entityType: 'cassetteInstance', surface: 'card' })
+const INSTANCE_FIELDS = resolveEntityDisplayFields({ typeId: 'cassetteInstance', surface: 'card' })
   .filter(field => field.display !== 'entityRef');
 </script>

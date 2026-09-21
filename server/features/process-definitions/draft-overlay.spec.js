@@ -35,7 +35,7 @@ function draftWithTypeClass() {
       producerOutputs: {
         'c1:result': {
           id: 'c1:result', producerOutputId: 'c1:result', nodeId: 'c1', outputSocketId: 'result',
-          entityType: typeId, lifecycle: { mode: 'defaultCreated' },
+          typeId: typeId, lifecycle: { mode: 'defaultCreated' },
           fields: { read: [], write: [], private: [] }, allowedRoles: { read: [], write: [], admin: [] }
         }
       },

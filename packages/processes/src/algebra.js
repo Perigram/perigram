@@ -56,8 +56,8 @@ export async function resolveProcessActionInputContext(definition = {}, actionId
       if (node.type === 'valueInput') {
         value = parseValue(record.value, record.valueType, record.structure);
       } else if (node.type === 'entity') {
-        value = await options.resolveEntity?.(record.entityType, result.entities?.[record.entityType]);
-        if (value == null) throw new Error(`Entity node ${record.id || node.id} could not resolve ${record.entityType}`);
+        value = await options.resolveEntity?.(record.typeId, result.entities?.[record.typeId]);
+        if (value == null) throw new Error(`Entity node ${record.id || node.id} could not resolve ${record.typeId}`);
       } else if (node.type === 'processNode') {
         value = await evaluateProcessNode(node, record, outputId);
       } else {
@@ -91,7 +91,7 @@ export async function resolveProcessActionInputContext(definition = {}, actionId
 async function executeNode(record, inputs, outputId, options) {
   if (record.kind === 'entityQuery') {
     if (!options.queryEntities) throw new Error(`Process node ${record.id} requires entity query support`);
-    return await options.queryEntities(record.entityType);
+    return await options.queryEntities(record.typeId);
   }
   if (record.kind === 'entityDecompose') return mapStructured(inputs.entity, entity => readPath(entity, outputId));
   if (record.kind === 'entityField') return mapStructured(inputs.entity, entity => readPath(entity, record.path));
@@ -157,7 +157,7 @@ async function executeNode(record, inputs, outputId, options) {
   if (record.kind === 'entityCondition') {
     return {
       kind: 'comparison',
-      entityType: record.entityType,
+      typeId: record.typeId,
       path: record.path,
       operation: record.operation,
       value: inputs.value
@@ -166,7 +166,7 @@ async function executeNode(record, inputs, outputId, options) {
   if (record.kind === 'predicateLogic') {
     return {
       kind: 'logic',
-      entityType: record.entityType,
+      typeId: record.typeId,
       operation: record.operation,
       left: inputs.left,
       right: inputs.right
@@ -178,8 +178,8 @@ async function executeNode(record, inputs, outputId, options) {
   }
   if (record.kind === 'entityRef') {
     if (record.mode === 'current') {
-      const entity = await options.resolveEntity?.(record.entityType);
-      if (entity == null) throw new Error(`Process node ${record.id} could not resolve ${record.entityType}`);
+      const entity = await options.resolveEntity?.(record.typeId);
+      if (entity == null) throw new Error(`Process node ${record.id} could not resolve ${record.typeId}`);
       return entity;
     }
     if (!options.resolveEntityReference) throw new Error(`Process node ${record.id} requires entity traversal support`);
@@ -189,9 +189,9 @@ async function executeNode(record, inputs, outputId, options) {
 }
 
 function bindActionInput(result, action, input, value) {
-  if (input.kind === 'entity' || input.entityType) {
-    const bound = entityReference(value, input.entityType);
-    result.entities[input.entityType || input.id] = bound;
+  if (input.kind === 'entity' || input.typeId) {
+    const bound = entityReference(value, input.typeId);
+    result.entities[input.typeId || input.id] = bound;
     if (input.id === 'entity' || input.id === 'parent') result.entities[input.id] = bound;
     return;
   }
@@ -212,7 +212,7 @@ function entityReference(value, fallbackType = '') {
   if (!value || typeof value !== 'object') return value;
   if (value.type && value.id) return { ...value };
   const id = value.identity?.uid || value._id || value.id;
-  return id ? { type: fallbackType || value.type || value.entityType || '', id: String(id) } : value;
+  return id ? { type: fallbackType || value.type || value.typeId || '', id: String(id) } : value;
 }
 
 function outputPorts(node, record) {

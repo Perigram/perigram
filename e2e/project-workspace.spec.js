@@ -4,16 +4,16 @@ test.describe('generated project workspace', () => {
   test('opens a linked library child cassette in its editor tab and restores it', async ({ app }) => {
     const auth = await app.switchToAssignedOrganization();
     const projectScreen = (auth.screens || []).find(screen => (
-      screen.template === 'entityDetail' && screen.entityType === 'project'
+      screen.template === 'instanceDetail' && screen.typeId === 'project'
     ));
     expect(projectScreen?.route).toBeTruthy();
     const project = entity('project-1', 'Project One', {
       lineage: { organizationId: auth.organizationId },
-      relations: { library: { entityType: 'library', id: 'library-1' } }
+      relations: { library: { typeId: 'library', id: 'library-1' } }
     });
     const library = entity('library-1', 'Library One', {
       lineage: { organizationId: auth.organizationId },
-      summary: { cassetteCount: 2, cassettePreview: [{ entityType: 'cassette', id: 'cassette-1' }] },
+      summary: { cassetteCount: 2, cassettePreview: [{ typeId: 'cassette', id: 'cassette-1' }] },
       data: { description: 'Library summary marker' }
     });
     const queue = entity('queue-1', 'Queue One', {

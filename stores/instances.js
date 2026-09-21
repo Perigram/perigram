@@ -280,34 +280,34 @@ export const useInstancesStore = defineStore('instances', () => {
     $fetch('/api/entity-events', { method: 'POST', body: detail }).catch(() => null);
   }
 
-  async function createInstance(typeKey = '', body = {}, { entityType = typeKey } = {}) {
+  async function createInstance(typeKey = '', body = {}, { typeId = typeKey } = {}) {
     const data = await mutateDirect(typeKey, 'POST', {
       body,
-      meta: { kind: 'entity', entityType, change: 'created', reason: 'create' }
+      meta: { kind: 'entity', typeId, change: 'created', reason: 'create' }
     });
-    emitEntityCreated({ type: entityType, id: data?._id, entity: data });
-    publishMutation({ type: entityType, id: data?._id, change: 'created', reason: 'create' });
+    emitEntityCreated({ type: typeId, id: data?._id, entity: data });
+    publishMutation({ type: typeId, id: data?._id, change: 'created', reason: 'create' });
     return data;
   }
 
-  async function updateInstance(typeKey = '', id = '', body = {}, { entityType = typeKey } = {}) {
+  async function updateInstance(typeKey = '', id = '', body = {}, { typeId = typeKey } = {}) {
     const data = await mutateDirect(typeKey, 'PATCH', {
       id,
       body,
-      meta: { kind: 'entity', entityType, entityId: id, change: 'updated', reason: 'update' }
+      meta: { kind: 'entity', typeId, entityId: id, change: 'updated', reason: 'update' }
     });
-    emitEntityUpdated({ type: entityType, id: data?._id || id, entity: data });
-    publishMutation({ type: entityType, id: data?._id || id, change: 'updated', reason: 'update' });
+    emitEntityUpdated({ type: typeId, id: data?._id || id, entity: data });
+    publishMutation({ type: typeId, id: data?._id || id, change: 'updated', reason: 'update' });
     return data;
   }
 
-  async function removeInstance(typeKey = '', id = '', { entityType = typeKey, entity = null } = {}) {
+  async function removeInstance(typeKey = '', id = '', { typeId = typeKey, entity = null } = {}) {
     await mutateDirect(typeKey, 'DELETE', {
       id,
-      meta: { kind: 'entity', entityType, entityId: id, change: 'deleted', reason: 'delete' }
+      meta: { kind: 'entity', typeId, entityId: id, change: 'deleted', reason: 'delete' }
     });
-    emitEntityDeleted({ type: entityType, id, entity });
-    publishMutation({ type: entityType, id, change: 'deleted', reason: 'delete' });
+    emitEntityDeleted({ type: typeId, id, entity });
+    publishMutation({ type: typeId, id, change: 'deleted', reason: 'delete' });
   }
 
   // -- reconciliation ------------------------------------------------------

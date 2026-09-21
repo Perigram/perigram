@@ -108,7 +108,7 @@ export const useLayerStandardsStore = defineStore('layerStandards', () => {
         const shadow = orgShadowFor(standardId);
         const relation = { relations: { defaultPen: penId ? { type: 'pen-template', id: penId } : null } };
         if (shadow) {
-            await instances.updateInstance(TYPE_KEY, shadow._id, relation, { entityType: TYPE_KEY });
+            await instances.updateInstance(TYPE_KEY, shadow._id, relation, { typeId: TYPE_KEY });
             return;
         }
         // Seed the org shadow from the system row's row data.
@@ -116,7 +116,7 @@ export const useLayerStandardsStore = defineStore('layerStandards', () => {
             identity: { name: base.identity?.name || standardCode(base) },
             data: { ...(base.data || {}) },
             ...relation
-        }, { entityType: TYPE_KEY });
+        }, { typeId: TYPE_KEY });
     }
 
     async function removeOrgPenOverride(standardId) {

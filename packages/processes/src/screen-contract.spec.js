@@ -27,12 +27,12 @@ function validate(screen, options = {}) {
 function validListScreen() {
   return {
     id: 'projects',
-    template: 'entityList',
-    entityType: 'project',
+    template: 'typeList',
+    typeId: 'project',
     bindings: { projectId: '$assignment.projectId' },
     sources: [{
       id: 'projects',
-      entityType: 'project',
+      typeId: 'project',
       mode: 'list',
       filters: { projectId: '$assignment.projectId', status: 'active', open: true, limit: 10 }
     }],
@@ -72,7 +72,7 @@ describe('validateScreenContract', () => {
 
   it('rejects duplicate source ids', () => {
     const screen = validListScreen();
-    screen.sources.push({ id: 'projects', entityType: 'project', mode: 'list' });
+    screen.sources.push({ id: 'projects', typeId: 'project', mode: 'list' });
 
     expect(validate(screen)).toContain('Screen projects has duplicate source id projects');
   });
@@ -87,9 +87,9 @@ describe('validateScreenContract', () => {
   it('requires an identifier for single-mode sources', () => {
     const errors = validate({
       id: 'detail',
-      template: 'entityDetail',
-      entityType: 'project',
-      sources: [{ id: 'project', entityType: 'project', mode: 'single' }]
+      template: 'instanceDetail',
+      typeId: 'project',
+      sources: [{ id: 'project', typeId: 'project', mode: 'single' }]
     });
 
     expect(errors).toContain('Screen detail source project is single-mode and must define an identifier');
@@ -98,19 +98,19 @@ describe('validateScreenContract', () => {
   it('accepts single-mode identifiers derived from screen scope or bindings', () => {
     expect(validate({
       id: 'detail',
-      template: 'entityDetail',
-      entityType: 'project',
+      template: 'instanceDetail',
+      typeId: 'project',
       bindings: { projectId: '$assignment.projectId' },
-      sources: [{ id: 'project', entityType: 'project', mode: 'single' }]
+      sources: [{ id: 'project', typeId: 'project', mode: 'single' }]
     })).toEqual([]);
   });
 
   it('rejects non-scalar single-mode identifiers', () => {
     const errors = validate({
       id: 'detail',
-      template: 'entityDetail',
-      entityType: 'project',
-      sources: [{ id: 'project', entityType: 'project', mode: 'single', identifier: { id: 'x' } }]
+      template: 'instanceDetail',
+      typeId: 'project',
+      sources: [{ id: 'project', typeId: 'project', mode: 'single', identifier: { id: 'x' } }]
     });
 
     expect(errors).toContain('Screen detail source project identifier must be a scalar or $screen/$assignment placeholder');
@@ -119,10 +119,10 @@ describe('validateScreenContract', () => {
   it('resolves $screen.bindings identifiers against declared bindings', () => {
     const screen = {
       id: 'detail',
-      template: 'entityDetail',
-      entityType: 'project',
+      template: 'instanceDetail',
+      typeId: 'project',
       bindings: { projectId: '$assignment.projectId' },
-      sources: [{ id: 'project', entityType: 'project', mode: 'single', identifier: '$screen.bindings.projectId' }]
+      sources: [{ id: 'project', typeId: 'project', mode: 'single', identifier: '$screen.bindings.projectId' }]
     };
     expect(validate(screen)).toEqual([]);
 
@@ -188,8 +188,8 @@ describe('validateScreenContract', () => {
     const errors = validate({
       id: 'lanes',
       template: 'workspaceLanes',
-      entityType: 'project',
-      sources: [{ id: 'projects', entityType: 'project', mode: 'list' }],
+      typeId: 'project',
+      sources: [{ id: 'projects', typeId: 'project', mode: 'list' }],
       regions: [{ id: 'side', slot: 'supporting', sourceId: 'projects', surface: 'card' }]
     });
 
@@ -200,8 +200,8 @@ describe('validateScreenContract', () => {
     const errors = validate({
       id: 'lanes',
       template: 'workspaceLanes',
-      entityType: 'project',
-      sources: [{ id: 'projects', entityType: 'project', mode: 'list' }],
+      typeId: 'project',
+      sources: [{ id: 'projects', typeId: 'project', mode: 'list' }],
       regions: [
         { id: 'first', slot: 'left', sourceId: 'projects', surface: 'card' },
         { id: 'second', slot: 'left', sourceId: 'projects', surface: 'compact' }
@@ -215,8 +215,8 @@ describe('validateScreenContract', () => {
     expect(validate({
       id: 'lanes',
       template: 'workspaceLanes',
-      entityType: 'project',
-      sources: [{ id: 'projects', entityType: 'project', mode: 'list' }],
+      typeId: 'project',
+      sources: [{ id: 'projects', typeId: 'project', mode: 'list' }],
       regions: [
         { id: 'first', slot: 'left', sourceId: 'projects', surface: 'card' },
         { id: 'second', slot: 'right', sourceId: 'projects', surface: 'table' }
@@ -260,12 +260,12 @@ describe('activation enforcement', () => {
           id: 'broken',
           route: '/broken',
           template: 'workspaceLanes',
-          entityType: 'project',
+          typeId: 'project',
           bindings: { nested: { nope: true } },
           sources: [
-            { id: 'projects', entityType: 'project', mode: 'list', filters: { status: { nested: true } } },
-            { id: 'projects', entityType: 'project', mode: 'list' },
-            { id: 'project', entityType: 'project', mode: 'single' }
+            { id: 'projects', typeId: 'project', mode: 'list', filters: { status: { nested: true } } },
+            { id: 'projects', typeId: 'project', mode: 'list' },
+            { id: 'project', typeId: 'project', mode: 'single' }
           ],
           regions: [
             { id: 'lane', slot: 'supporting', sourceId: 'projects', surface: 'grid', actions: ['missing_action'] },
@@ -295,9 +295,9 @@ describe('activation enforcement', () => {
         broken: {
           id: 'broken',
           route: '/broken',
-          template: 'entityDetail',
-          entityType: 'project',
-          sources: [{ id: 'project', entityType: 'project', mode: 'single' }]
+          template: 'instanceDetail',
+          typeId: 'project',
+          sources: [{ id: 'project', typeId: 'project', mode: 'single' }]
         }
       }
     }, domain)).toThrow(/must define an identifier/);

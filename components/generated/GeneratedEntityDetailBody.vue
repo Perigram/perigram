@@ -8,10 +8,10 @@
       @saved="$emit('refresh')"
     />
     <template v-else>
-      <GeneratedFilePreview :entity="entity" :type-id="entityType" />
+      <GeneratedFilePreview :entity="entity" :type-id="typeId" />
       <EntitySurfaceContent
         :entity="entity"
-        :type-id="entityType"
+        :type-id="typeId"
         :surface="surface"
         :display-overrides="displayOverrides"
         :relation-variant="relationVariant"
@@ -51,7 +51,7 @@ const canEditSheetDesign = computed(() => hasPermissionGrant({
   feature: 'sheet_designs',
   level: 'write',
   entity: props.entity,
-  entityType: 'sheet_design'
+  typeId: 'sheet_design'
 }));
 const detailOverloadProps = computed(() => detailOverload.value?.props?.({
   entity: props.entity,

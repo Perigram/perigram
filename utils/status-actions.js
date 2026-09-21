@@ -3,13 +3,13 @@ import { cncWorkflows } from '~/packages/domain-cnc/src/index.js';
 import { getPrimaryState, getWorkflowRegions, normalizeWorkflow } from '~/packages/workflows/src/index.js';
 
 export function getWorkflowStatusActions({
-  entityType,
+  typeId,
   state,
   workflows = cncWorkflows,
   mappings = STATUS_MAPPINGS,
   t = value => value
 } = {}) {
-  const workflow = workflowForEntityType(entityType, workflows);
+  const workflow = workflowForTypeId(typeId, workflows);
   if (!workflow || !state) return [];
   const normalized = normalizeWorkflow(workflow);
   const currentPrimary = getPrimaryState(state, state);
@@ -27,30 +27,30 @@ export function getWorkflowStatusActions({
     .map(transition => createStatusAction(transition, mappings, t));
 }
 
-export function hasWorkflow(entityType, workflows = cncWorkflows) {
-  return Boolean(workflowForEntityType(entityType, workflows));
+export function hasWorkflow(typeId, workflows = cncWorkflows) {
+  return Boolean(workflowForTypeId(typeId, workflows));
 }
 
-export function workflowStateCount(entityType, workflows = cncWorkflows) {
-  const workflow = workflowForEntityType(entityType, workflows);
+export function workflowStateCount(typeId, workflows = cncWorkflows) {
+  const workflow = workflowForTypeId(typeId, workflows);
   if (!workflow) return 0;
   const states = Object.values(getWorkflowRegions(normalizeWorkflow(workflow)))
     .flatMap(region => Object.keys(region.states || {}));
   return new Set(states).size;
 }
 
-export function hasMeaningfulWorkflowStatus(entityType, workflows = cncWorkflows) {
-  return workflowStateCount(entityType, workflows) !== 1;
+export function hasMeaningfulWorkflowStatus(typeId, workflows = cncWorkflows) {
+  return workflowStateCount(typeId, workflows) !== 1;
 }
 
-function workflowForEntityType(entityType, workflows = {}) {
-  if (workflows?.[entityType]) return workflows[entityType];
-  const normalizedType = normalizeEntityType(entityType);
-  const key = Object.keys(workflows || {}).find(candidate => normalizeEntityType(candidate) === normalizedType);
+function workflowForTypeId(typeId, workflows = {}) {
+  if (workflows?.[typeId]) return workflows[typeId];
+  const normalizedType = normalizeTypeId(typeId);
+  const key = Object.keys(workflows || {}).find(candidate => normalizeTypeId(candidate) === normalizedType);
   return key ? workflows[key] : null;
 }
 
-function normalizeEntityType(value) {
+function normalizeTypeId(value) {
   return String(value || '').replace(/[_-]/g, '').toLowerCase();
 }
 

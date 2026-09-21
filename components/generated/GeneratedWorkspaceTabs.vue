@@ -19,7 +19,7 @@
           <EntityStatus
             v-if="tab.kind === 'entity' && tab.entity?.status?.state"
             :entity="tab.entity"
-            :entity-type="tab.type"
+            :type-id="tab.type"
             variant="icon"
             @click.stop
             @refresh="$emit('refresh', tab)"

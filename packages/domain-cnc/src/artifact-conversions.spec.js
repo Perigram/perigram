@@ -10,7 +10,7 @@ describe('artifact conversion contract', () => {
     });
     expect(getArtifactConversion('dxfSourceToCassetteDesign')).toMatchObject({
       sourceKinds: ['DXF_SOURCE'],
-      target: { kind: 'entity', entityType: 'cassette_design' }
+      target: { kind: 'entity', typeId: 'cassette_design' }
     });
     expect(cncCommands.convertArtifact).toMatchObject({
       input: { entities: [expect.objectContaining({ name: 'artifact', prompt: false })] },

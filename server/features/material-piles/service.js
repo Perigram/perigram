@@ -108,7 +108,7 @@ export async function update(uid, updates, userId, userOrg, userRole, userPermis
 
   if (updates.status) {
     await statusService.transitionWithResult({
-      entityType: 'material_pile',
+      typeId: 'material_pile',
       targetId: pile._id,
       targetState: updates.status,
       auth: createTransitionAuth(userId, userRole, userPermissions),
@@ -179,7 +179,7 @@ export async function updateStatus(id, state, note, user, additionalData = {}) {
   }
 
   const result = await statusService.transitionWithResult({
-    entityType: 'material_pile',
+    typeId: 'material_pile',
     targetId: pile._id,
     targetState: state,
     auth: createTransitionAuth(user.userId, user),
@@ -235,7 +235,7 @@ export async function allocate(uid, count, userId, userRole, meta = {}) {
   const depleted = pile.data.stock.used >= pile.data.stock.total;
   if (depleted) {
     await statusService.transitionWithResult({
-      entityType: 'material_pile',
+      typeId: 'material_pile',
       targetId: uid,
       intent: 'depleteMaterialPile',
       auth: createTransitionAuth('SYSTEM', 'SYSTEM'),
@@ -283,7 +283,7 @@ function cleanMovementEntry(entry = {}) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'material_pile',
+  typeId: 'material_pile',
   repository,
   Model: MaterialPile
 });

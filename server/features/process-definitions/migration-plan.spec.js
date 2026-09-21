@@ -30,14 +30,14 @@ vi.mock('../entity-events/service.js', () => ({
 const compiled = {
   producerOutputs: {
     'project_source:result': {
-      entityType: 'project',
+      typeId: 'project',
       workflow: {
         primaryRegion: 'main',
         regions: { main: { states: { draft: {}, done: {} } } }
       }
     },
     'facade_source:result': {
-      entityType: 'facade',
+      typeId: 'facade',
       workflow: {
         primaryRegion: 'main',
         regions: { main: { states: { draft: {} } } }
@@ -47,52 +47,52 @@ const compiled = {
 };
 
 const stranded = [
-  { entityType: 'project', statuses: [{ state: 'LEGACY_RETIRED', count: 2 }, { state: 'OLD_DRAFT', count: 1 }] },
-  { entityType: 'facade', statuses: [{ state: 'GONE', count: 3 }] }
+  { typeId: 'project', statuses: [{ state: 'LEGACY_RETIRED', count: 2 }, { state: 'OLD_DRAFT', count: 1 }] },
+  { typeId: 'facade', statuses: [{ state: 'GONE', count: 3 }] }
 ];
 
 describe('apply migration plan builders', () => {
   it('builds plan rows with retained targets from the next contract', () => {
     const plan = buildStatusMigrationPlan(stranded, compiled);
     expect(plan.statuses).toHaveLength(2);
-    const project = plan.statuses.find(row => row.entityType === 'project');
+    const project = plan.statuses.find(row => row.typeId === 'project');
     expect(project.removed).toEqual([{ state: 'LEGACY_RETIRED', count: 2 }, { state: 'OLD_DRAFT', count: 1 }]);
     expect(project.targets).toEqual(['done', 'draft']);
-    expect(plan.statuses.find(row => row.entityType === 'facade').targets).toEqual(['draft']);
+    expect(plan.statuses.find(row => row.typeId === 'facade').targets).toEqual(['draft']);
   });
 
   it('projects the historical affected shape', () => {
     expect(strandedAsAffected(stranded)).toEqual([
-      { entityType: 'project', statuses: ['LEGACY_RETIRED', 'OLD_DRAFT'], count: 3 },
-      { entityType: 'facade', statuses: ['GONE'], count: 3 }
+      { typeId: 'project', statuses: ['LEGACY_RETIRED', 'OLD_DRAFT'], count: 3 },
+      { typeId: 'facade', statuses: ['GONE'], count: 3 }
     ]);
   });
 
   it('normalizes mappings and drops duplicates or malformed rows', () => {
     expect(normalizeStatusMappings([
-      { entityType: 'project', from: 'LEGACY_RETIRED', to: 'draft' },
-      { entityType: 'project', from: 'LEGACY_RETIRED', to: 'done' },
-      { entityType: '', from: 'x', to: 'y' },
+      { typeId: 'project', from: 'LEGACY_RETIRED', to: 'draft' },
+      { typeId: 'project', from: 'LEGACY_RETIRED', to: 'done' },
+      { typeId: '', from: 'x', to: 'y' },
       null
-    ])).toEqual([{ entityType: 'project', from: 'LEGACY_RETIRED', to: 'draft' }]);
+    ])).toEqual([{ typeId: 'project', from: 'LEGACY_RETIRED', to: 'draft' }]);
   });
 
   it('rejects missing, unknown, and off-target mappings', () => {
     const plan = buildStatusMigrationPlan(stranded, compiled);
     expect(validateStatusMappings(plan, [
-      { entityType: 'project', from: 'LEGACY_RETIRED', to: 'draft' },
-      { entityType: 'project', from: 'OLD_DRAFT', to: 'done' },
-      { entityType: 'facade', from: 'GONE', to: 'draft' },
-      { entityType: 'facade', from: 'NOT_REMOVED', to: 'draft' }
+      { typeId: 'project', from: 'LEGACY_RETIRED', to: 'draft' },
+      { typeId: 'project', from: 'OLD_DRAFT', to: 'done' },
+      { typeId: 'facade', from: 'GONE', to: 'draft' },
+      { typeId: 'facade', from: 'NOT_REMOVED', to: 'draft' }
     ])).toEqual(['No removed state NOT_REMOVED on facade requires a mapping']);
     expect(validateStatusMappings(plan, [
-      { entityType: 'project', from: 'LEGACY_RETIRED', to: 'draft' },
-      { entityType: 'project', from: 'OLD_DRAFT', to: 'done' }
+      { typeId: 'project', from: 'LEGACY_RETIRED', to: 'draft' },
+      { typeId: 'project', from: 'OLD_DRAFT', to: 'done' }
     ])).toEqual(['facade state GONE has no migration target']);
     expect(validateStatusMappings(plan, [
-      { entityType: 'project', from: 'LEGACY_RETIRED', to: 'draft' },
-      { entityType: 'project', from: 'OLD_DRAFT', to: 'done' },
-      { entityType: 'facade', from: 'GONE', to: 'NOT_A_TARGET' }
+      { typeId: 'project', from: 'LEGACY_RETIRED', to: 'draft' },
+      { typeId: 'project', from: 'OLD_DRAFT', to: 'done' },
+      { typeId: 'facade', from: 'GONE', to: 'NOT_A_TARGET' }
     ])).toEqual(['NOT_A_TARGET is not a retained state of facade']);
   });
 });
@@ -120,8 +120,8 @@ describe('apply migration executor', () => {
 
     const result = await applyStatusMigrations({
       mappings: [
-        { entityType: 'project', from: 'LEGACY_RETIRED', to: 'done' },
-        { entityType: 'project', from: 'OLD_DRAFT', to: 'draft' }
+        { typeId: 'project', from: 'LEGACY_RETIRED', to: 'done' },
+        { typeId: 'project', from: 'OLD_DRAFT', to: 'draft' }
       ],
       auth,
       organizationId: 'org-1',
@@ -151,7 +151,7 @@ describe('apply migration executor', () => {
     });
 
     const result = await applyStatusMigrations({
-      mappings: [{ entityType: 'project', from: 'LEGACY_RETIRED', to: 'done' }],
+      mappings: [{ typeId: 'project', from: 'LEGACY_RETIRED', to: 'done' }],
       auth,
       organizationId: 'org-1',
       compiled
@@ -171,8 +171,8 @@ describe('apply migration executor', () => {
 
     const result = await applyStatusMigrations({
       mappings: [
-        { entityType: 'project', from: 'LEGACY_RETIRED', to: 'done' },
-        { entityType: 'facade', from: 'GONE', to: 'draft' }
+        { typeId: 'project', from: 'LEGACY_RETIRED', to: 'done' },
+        { typeId: 'facade', from: 'GONE', to: 'draft' }
       ],
       auth,
       organizationId: 'org-1',
@@ -181,8 +181,8 @@ describe('apply migration executor', () => {
 
     expect(result.applied).toEqual({});
     expect(result.failures).toEqual([
-      expect.objectContaining({ entityType: 'project', id: 'p-1', from: 'LEGACY_RETIRED', to: 'done' }),
-      expect.objectContaining({ entityType: 'facade', id: null, from: 'GONE', to: 'draft' })
+      expect.objectContaining({ typeId: 'project', id: 'p-1', from: 'LEGACY_RETIRED', to: 'done' }),
+      expect.objectContaining({ typeId: 'facade', id: null, from: 'GONE', to: 'draft' })
     ]);
   });
 });
@@ -196,7 +196,7 @@ describe('construct provenance stamp', () => {
       construction: {
         mode: 'bakeFromTemplate',
         inputs: [
-          { id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette' },
+          { id: 'templateId', path: 'templateId', type: 'entity', typeId: 'cassette' },
           { id: 'qty', path: 'qty', type: 'number' }
         ]
       }

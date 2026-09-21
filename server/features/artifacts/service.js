@@ -32,7 +32,7 @@ export async function create(data, userId = 'SYSTEM', userOrg = null, userRole =
   const origin = await statusService.initialStatusForOrganization('artifact', lineage.organizationId, userId, { note: 'Artifact record created' });
   if (auth) assertEntityAccess({
     entity: { lineage, status: origin },
-    entityType: 'artifact',
+    typeId: 'artifact',
     feature: 'artifacts',
     level: 'write',
     action: 'create',
@@ -150,7 +150,7 @@ export async function createRendered({ buffer, filename, mimeType, type, lineage
 
 export async function updateDetails(id, { name, metadata } = {}, auth = {}) {
   const artifact = await getById(id, auth.userId, auth.organizationId, auth.role, auth);
-  assertEntityAccess({ entity: artifact, entityType: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
+  assertEntityAccess({ entity: artifact, typeId: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
   const patch = { 'identity.name': String(name || artifact.identity?.name || '').trim() };
   if (metadata !== undefined) {
     patch['data.metadata'] = metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? metadata : {};
@@ -161,7 +161,7 @@ export async function updateDetails(id, { name, metadata } = {}, auth = {}) {
 export async function replaceUploadedFile(id, { buffer, filename, mimeType } = {}, auth = {}) {
   if (!buffer?.length) throw createError({ statusCode: 400, message: 'Artifact file is required' });
   const artifact = await getById(id, auth.userId, auth.organizationId, auth.role, auth);
-  assertEntityAccess({ entity: artifact, entityType: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
+  assertEntityAccess({ entity: artifact, typeId: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
   const type = artifact.data?.type;
   if (type === 'FACADE_MODEL_SOURCE') throw createError({ statusCode: 409, message: 'Facade model source artifacts are immutable' });
   const bucketName = bucketNameForType(type);
@@ -191,7 +191,7 @@ export async function replaceUploadedFile(id, { buffer, filename, mimeType } = {
 
 export async function restoreFileRevision(id, revisionId, auth = {}) {
   const artifact = await getById(id, auth.userId, auth.organizationId, auth.role, auth);
-  assertEntityAccess({ entity: artifact, entityType: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
+  assertEntityAccess({ entity: artifact, typeId: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
   const revision = await entityRevisionsService.getById(revisionId, auth.userId, auth.role, auth);
   if (revision.data?.source?.type !== 'artifact' || String(revision.data?.source?.id) !== String(artifact._id)) {
     throw createError({ statusCode: 404, message: 'Artifact revision not found' });
@@ -226,7 +226,7 @@ export async function restoreFileRevision(id, revisionId, auth = {}) {
 
 export async function replaceLayout(id, layout, values = {}, auth = {}) {
   const artifact = await getById(id, auth.userId, auth.organizationId, auth.role, auth);
-  assertEntityAccess({ entity: artifact, entityType: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
+  assertEntityAccess({ entity: artifact, typeId: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
   const templateSource = artifact.provenance?.template?.source;
   if (!templateSource?.id) throw createError({ statusCode: 409, message: 'Artifact has no editable template provenance' });
   const rendered = await artifactTemplatesService.render(templateSource.id, {
@@ -275,7 +275,7 @@ export async function replaceLayout(id, layout, values = {}, auth = {}) {
 export async function getById(id, userId = null, userOrg = null, userRole = null, auth = null) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Artifact not found' });
-  if (auth && !hasEntityAccess({ entity: raw, entityType: 'artifact', feature: 'artifacts', level: 'read', auth })) {
+  if (auth && !hasEntityAccess({ entity: raw, typeId: 'artifact', feature: 'artifacts', level: 'read', auth })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return new Artifact(raw).toJSON();
@@ -289,13 +289,13 @@ export async function list(filter = {}, userId = null, userOrg = null, userRole 
   const finalFilter = auth?.memberships ? { ...getLineageFilter(auth), ...filter } : filter;
   const raws = await repository.find(finalFilter);
   return raws
-    .filter(raw => !auth || hasEntityAccess({ entity: raw, entityType: 'artifact', feature: 'artifacts', level: 'read', auth }))
+    .filter(raw => !auth || hasEntityAccess({ entity: raw, typeId: 'artifact', feature: 'artifacts', level: 'read', auth }))
     .map(raw => new Artifact(raw).toJSON());
 }
 
 export async function remove(id, userId = null, userOrg = null, userRole = null, auth = null) {
   const artifact = await getById(id, userId, userOrg, userRole, auth);
-  if (auth) assertEntityAccess({ entity: artifact, entityType: 'artifact', feature: 'artifacts', level: 'admin', auth });
+  if (auth) assertEntityAccess({ entity: artifact, typeId: 'artifact', feature: 'artifacts', level: 'admin', auth });
   const revisions = await entityRevisionsService.removeForEntity('artifact', artifact._id);
   const files = [artifact.attachments?.primary, ...revisions.map(revision => revision.attachments?.primary)]
     .filter(attachment => attachment?.fileId);
@@ -376,7 +376,7 @@ async function ensureFileRevision(artifact, userId, reason) {
   const primary = artifact.attachments?.primary;
   if (!primary?.fileId) throw createError({ statusCode: 409, message: 'Artifact file is required for revisioning' });
   return await entityRevisionsService.ensureForEntitySnapshot({
-    entityType: 'artifact',
+    typeId: 'artifact',
     entity: artifact,
     scope: 'file',
     content: { fileId: String(primary.fileId), attachment: primary },
@@ -392,7 +392,7 @@ async function ensureFileRevision(artifact, userId, reason) {
 
 async function ensureLayoutRevision(artifact, userId, reason) {
   return await entityRevisionsService.ensureForEntitySnapshot({
-    entityType: 'artifact',
+    typeId: 'artifact',
     entity: artifact,
     scope: 'layout',
     content: { layout: artifact.data?.layout || null, values: artifact.data?.values || {} },
@@ -406,7 +406,7 @@ async function ensureLayoutRevision(artifact, userId, reason) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'artifact',
+  typeId: 'artifact',
   repository,
   Model: Artifact
 });

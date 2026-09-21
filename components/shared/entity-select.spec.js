@@ -44,7 +44,7 @@ vi.mock('~/components/shared/EntityInlineRef.vue', async () => {
       setup(props) {
         return () => render('article', {
           'data-entity-id': props.entity?._id,
-          'data-entity-type': props.type,
+          'data-type-id': props.type,
           'data-variant': props.variant,
           'data-interactive': String(props.interactive)
         });
@@ -81,7 +81,7 @@ describe('entity Select wrappers', () => {
       options,
       optionLabel: 'label',
       optionValue: 'value',
-      entityType: 'queue'
+      typeId: 'queue'
     });
 
     expect(html).toContain('data-entity-id="queue-2"');
@@ -100,7 +100,7 @@ describe('entity Select wrappers', () => {
       options,
       optionLabel: 'label',
       optionValue: 'value',
-      entityType: 'queue'
+      typeId: 'queue'
     });
 
     expect(html).toMatch(/data-prime-value[^>]*><span>Choose<\/span><\/div>/);
@@ -114,7 +114,7 @@ describe('entity Select wrappers', () => {
       options,
       optionLabel: 'label',
       optionValue: 'value',
-      entityType: 'queue',
+      typeId: 'queue',
       display: 'chip'
     });
 

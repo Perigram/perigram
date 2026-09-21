@@ -56,14 +56,14 @@ function resolveScreens({ compiled, userId } = {}) {
 }
 
 function producerOutputRecords(entries) {
-  return Object.fromEntries(entries.map(([nodeId, entityType, extras = {}]) => {
+  return Object.fromEntries(entries.map(([nodeId, typeId, extras = {}]) => {
     const producerOutputId = `${nodeId}:entity`;
     return [producerOutputId, {
       id: producerOutputId,
       producerOutputId,
       nodeId,
       outputSocketId: 'entity',
-      entityType,
+      typeId,
       lifecycle: { mode: 'defaultCreated' },
       fields: { read: [], write: [], private: [] },
       ...extras
@@ -96,10 +96,10 @@ const domain = {
     }
   },
   summaries: [
-    { entityType: 'queue', parentType: 'project', parentIdKey: 'projectId' },
-    { entityType: 'nesting_run', parentType: 'queue', parentIdKey: 'queueId' },
-    { entityType: 'sheet_design', parentType: 'queue', parentIdKey: 'queueId' },
-    { entityType: 'cassette', parentType: 'library', parentIdKey: 'libraryId' }
+    { typeId: 'queue', parentType: 'project', parentIdKey: 'projectId' },
+    { typeId: 'nesting_run', parentType: 'queue', parentIdKey: 'queueId' },
+    { typeId: 'sheet_design', parentType: 'queue', parentIdKey: 'queueId' },
+    { typeId: 'cassette', parentType: 'library', parentIdKey: 'libraryId' }
   ],
   containment: [
     { childType: 'queue', parentType: 'project', lineageKey: 'projectId' },
@@ -167,7 +167,7 @@ const domain = {
       {
         path: 'lineage.projectId',
         block: 'lineage',
-        type: { base: 'entityRef', shape: 'item', nullable: true, entityType: 'project' },
+        type: { base: 'entityRef', shape: 'item', nullable: true, typeId: 'project' },
         readable: true,
         writable: false,
         constructible: true
@@ -183,7 +183,7 @@ const domain = {
     lineage: [{
       path: 'lineage.projectId',
       block: 'lineage',
-      type: { base: 'entityRef', shape: 'item', nullable: true, entityType: 'project' }
+      type: { base: 'entityRef', shape: 'item', nullable: true, typeId: 'project' }
     }]
   },
   construction: {
@@ -206,8 +206,8 @@ const domain = {
       defaultMode: 'genericCreate',
       inputs: [
         { id: 'name', path: 'name', type: 'string', required: true, prompt: true },
-        { id: 'jobItems', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: false },
-        { id: 'materialPool', path: 'job.materialPool', type: 'entityList', accepts: ['material_pile', 'sheet', 'remnant'], required: false }
+        { id: 'jobItems', path: 'job.items', type: 'typeList', accepts: ['cassette_design'], required: false },
+        { id: 'materialPool', path: 'job.materialPool', type: 'typeList', accepts: ['material_pile', 'sheet', 'remnant'], required: false }
       ]
     },
     cassette: {
@@ -220,7 +220,7 @@ const domain = {
       defaultMode: 'bakeCassetteDesignFromTemplate',
       derived: true,
       inputs: [
-        { id: 'templateId', path: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true },
+        { id: 'templateId', path: 'templateId', type: 'entity', typeId: 'cassette', required: true, prompt: true },
         { id: 'parameters', path: 'parameters', type: 'cassetteParameters', templateFieldId: 'templateId', required: false, prompt: true }
       ]
     }
@@ -246,14 +246,14 @@ describe('@cutkit/processes compiler', () => {
           kind: 'record.composeBlock',
           block: 'lineage',
           compositionMode: 'ancestors',
-          entries: [{ id: 'project', key: 'projectId', entityType: 'project' }],
+          entries: [{ id: 'project', key: 'projectId', typeId: 'project' }],
           inputDefaults: { 'entry:project': { type: 'project', id: 'project-1' } }
         },
         create_queue: {
           id: 'create_queue',
           kind: 'effect.createEntity',
           label: 'Create queue',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_queue:entity',
           construction: domain.construction.queue,
           trigger: { mode: 'manual' },
@@ -298,8 +298,8 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.actions.create_queue).toMatchObject({
       id: 'create_queue',
       actionKind: 'createEntity',
-      entityType: 'queue',
-      parentEntityType: null,
+      typeId: 'queue',
+      parentTypeId: null,
       trigger: { mode: 'manual' }
     });
     expect(compiled.actions.create_queue.inputPolicy.fields).toContainEqual(expect.objectContaining({
@@ -319,7 +319,7 @@ describe('@cutkit/processes compiler', () => {
         create_project: {
           id: 'create_project',
           kind: 'effect.createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_project:entity',
           trigger: { mode: 'manual' },
           construction: domain.construction.queue,
@@ -349,7 +349,7 @@ describe('@cutkit/processes compiler', () => {
         create_facade: {
           id: 'create_facade',
           kind: 'effect.createEntity',
-          entityType: 'facade',
+          typeId: 'facade',
           producerOutputId: 'create_facade:entity',
           trigger: { mode: 'manual' },
           construction: { mode: 'genericCreate' },
@@ -401,7 +401,7 @@ describe('@cutkit/processes compiler', () => {
         create_facade: {
           id: 'create_facade',
           kind: 'effect.createEntity',
-          entityType: 'facade',
+          typeId: 'facade',
           producerOutputId: 'create_facade:entity',
           trigger: { mode: 'manual' },
           construction: { mode: 'genericCreate' },
@@ -452,14 +452,14 @@ describe('@cutkit/processes compiler', () => {
         library: {
           id: 'library',
           kind: 'source.literalItem',
-          type: { base: 'entityRef', entityType: 'library' }
+          type: { base: 'entityRef', typeId: 'library' }
         },
         relations: {
           id: 'relations',
           kind: 'record.composeBlock',
           block: 'relations',
           compositionMode: 'relations',
-          entries: [{ id: 'library', key: 'library', entityType: 'project' }]
+          entries: [{ id: 'library', key: 'library', typeId: 'project' }]
         }
       },
       graph: {
@@ -476,7 +476,7 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     expect(definition.processNodes.relations.entries[0]).toMatchObject({
-      entityType: 'project',
+      typeId: 'project',
       key: 'library'
     });
   });
@@ -520,7 +520,7 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.actions.generate.inputs.map(input => input.id)).toEqual(['source', 'template', 'kind', 'values']);
     expect(compiled.actions.generate.inputs.find(input => input.id === 'template')).toMatchObject({
-      entityType: 'artifact_template',
+      typeId: 'artifact_template',
       path: 'entities.template',
       prompt: true
     });
@@ -540,7 +540,7 @@ describe('@cutkit/processes compiler', () => {
         send_queue: {
           id: 'send_queue',
           actionKind: 'changeStatus',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'queue:entity',
           status: { from: 'DRAFT', to: 'SENT' },
           access: { roleIds: ['operator'], level: 'write' }
@@ -554,7 +554,7 @@ describe('@cutkit/processes compiler', () => {
       statusTo: 'SENT'
     });
     expect(compiled.actions.send_queue.contracts.outputs).toContainEqual(expect.objectContaining({
-      entityType: 'queue'
+      typeId: 'queue'
     }));
   });
 
@@ -632,8 +632,8 @@ describe('@cutkit/processes compiler', () => {
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_operator'], statusFrom: SOURCE_STATE, statusTo: TARGET_STATE },
-          inputs: [{ id: 'entity', entityType: 'project', status: SOURCE_STATE }],
-          outputs: [{ id: 'entity', entityType: 'project', status: TARGET_STATE }]
+          inputs: [{ id: 'entity', typeId: 'project', status: SOURCE_STATE }],
+          outputs: [{ id: 'entity', typeId: 'project', status: TARGET_STATE }]
         }
       }
     }, domain);
@@ -671,16 +671,16 @@ describe('@cutkit/processes compiler', () => {
 
   it('checks typed port compatibility for core process values', () => {
     expect(portSpecsCompatible(
-      { id: 'created', kind: 'entity', entityType: 'project' },
-      { id: 'entity', kind: 'entity', entityType: 'project' }
+      { id: 'created', kind: 'entity', typeId: 'project' },
+      { id: 'entity', kind: 'entity', typeId: 'project' }
     ).ok).toBe(true);
     expect(portSpecsCompatible(
-      { id: 'created', kind: 'entity', entityType: 'project' },
-      { id: 'entity', kind: 'entity', entityType: 'queue' }
+      { id: 'created', kind: 'entity', typeId: 'project' },
+      { id: 'entity', kind: 'entity', typeId: 'queue' }
     ).ok).toBe(false);
     expect(portSpecsCompatible(
-      { id: 'created', kind: 'entity', entityType: 'project' },
-      { id: 'items', kind: 'entity_list', entityType: 'project' }
+      { id: 'created', kind: 'entity', typeId: 'project' },
+      { id: 'items', kind: 'entity_list', typeId: 'project' }
     ).ok).toBe(false);
     expect(portSpecsCompatible(
       { id: 'completed', kind: 'event' },
@@ -688,7 +688,7 @@ describe('@cutkit/processes compiler', () => {
     ).ok).toBe(true);
     expect(portSpecsCompatible(
       { id: 'completed', kind: 'event' },
-      { id: 'entity', kind: 'entity', entityType: 'project' }
+      { id: 'entity', kind: 'entity', typeId: 'project' }
     ).ok).toBe(false);
     expect(portSpecsCompatible(
       { id: 'status', kind: 'status' },
@@ -725,19 +725,19 @@ describe('@cutkit/processes compiler', () => {
         create_project: {
           id: 'create_project',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'create_project:entity',
           status: { to: SOURCE_STATE },
           access: { roleIds: ['role_admin'], level: 'write' },
           inputs: [{ id: 'status', kind: 'status' }],
-          outputs: [{ id: 'created', entityType: 'project', status: SOURCE_STATE }]
+          outputs: [{ id: 'created', typeId: 'project', status: SOURCE_STATE }]
         },
         update_queue: {
           id: 'update_queue',
           actionKind: 'updateEntity',
           access: { roleIds: ['role_admin'], level: 'write' },
-          inputs: [{ id: 'entity', entityType: 'queue' }],
-          outputs: [{ id: 'entity', entityType: 'queue' }],
+          inputs: [{ id: 'entity', typeId: 'queue' }],
+          outputs: [{ id: 'entity', typeId: 'queue' }],
           mutation: { fields: [] }
         }
       }
@@ -755,11 +755,11 @@ describe('@cutkit/processes compiler', () => {
       entityProfiles: {
         library_profile: {
           id: 'library_profile',
-          entityType: 'library',
+          typeId: 'library',
           lifecycle: { mode: 'defaultCreated' },
           fields: { read: ['identity.*'], write: [], private: [] },
           allowedRoles: { read: ['role_operator'] },
-          outputs: [{ id: 'entity', entityType: 'library' }]
+          outputs: [{ id: 'entity', typeId: 'library' }]
         }
       },
       graph: {
@@ -783,33 +783,33 @@ describe('@cutkit/processes compiler', () => {
         create_queue: {
           id: 'create_queue',
           actionKind: 'createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_queue:entity',
           status: { to: SOURCE_STATE },
           access: { roleIds: ['role_operator'], level: 'write' },
-          outputs: [{ id: 'created', entityType: 'queue' }]
+          outputs: [{ id: 'created', typeId: 'queue' }]
         },
         create_cassette: {
           id: 'create_cassette',
           actionKind: 'createEntity',
-          entityType: 'cassette',
+          typeId: 'cassette',
           producerOutputId: 'create_cassette:entity',
-          parentEntityType: 'library',
+          parentTypeId: 'library',
           parentRevision: { enabled: true, scope: 'content' },
           status: { to: SOURCE_STATE },
           access: { roleIds: ['role_operator'], level: 'write' },
-          inputs: [{ id: 'parent', entityType: 'library' }],
-          outputs: [{ id: 'created', entityType: 'cassette' }]
+          inputs: [{ id: 'parent', typeId: 'library' }],
+          outputs: [{ id: 'created', typeId: 'cassette' }]
         },
         solve_nesting: {
           id: 'solve_nesting',
           actionKind: 'runCommand',
           commandId: 'solveNesting',
           access: { roleIds: ['role_operator'], level: 'write' },
-          inputs: [{ id: 'queue', entityType: 'queue' }],
+          inputs: [{ id: 'queue', typeId: 'queue' }],
           outputs: [
-            { id: 'nesting_run', entityType: 'nesting_run', multiple: true },
-            { id: 'sheet_design', entityType: 'sheet_design', multiple: true }
+            { id: 'nesting_run', typeId: 'nesting_run', multiple: true },
+            { id: 'sheet_design', typeId: 'sheet_design', multiple: true }
           ]
         },
         mark_run_cut: {
@@ -817,16 +817,16 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'updateEntity',
           status: { to: 'CUT' },
           access: { roleIds: ['role_operator'], level: 'write' },
-          inputs: [{ id: 'entity', entityType: 'nesting_run' }],
-          outputs: [{ id: 'entity', entityType: 'nesting_run' }]
+          inputs: [{ id: 'entity', typeId: 'nesting_run' }],
+          outputs: [{ id: 'entity', typeId: 'nesting_run' }]
         },
         mark_sheet_cut: {
           id: 'mark_sheet_cut',
           actionKind: 'updateEntity',
           status: { to: 'CUT' },
           access: { roleIds: ['role_operator'], level: 'write' },
-          inputs: [{ id: 'entity', entityType: 'sheet_design' }],
-          outputs: [{ id: 'entity', entityType: 'sheet_design' }]
+          inputs: [{ id: 'entity', typeId: 'sheet_design' }],
+          outputs: [{ id: 'entity', typeId: 'sheet_design' }]
         }
       }
     }, domain);
@@ -861,8 +861,8 @@ describe('@cutkit/processes compiler', () => {
       entityProfiles: {
         library_profile: {
           id: 'library_profile',
-          entityType: 'library',
-          outputs: [{ id: 'entity', entityType: 'library' }]
+          typeId: 'library',
+          outputs: [{ id: 'entity', typeId: 'library' }]
         }
       },
       producerOutputs: producerOutputRecords([['create_queue', 'queue'], ['create_cassette', 'cassette']]),
@@ -870,18 +870,18 @@ describe('@cutkit/processes compiler', () => {
         create_queue: {
           id: 'create_queue',
           actionKind: 'createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_queue:entity',
-          outputs: [{ id: 'created', entityType: 'queue' }]
+          outputs: [{ id: 'created', typeId: 'queue' }]
         },
         create_cassette: {
           id: 'create_cassette',
           actionKind: 'createEntity',
-          entityType: 'cassette',
+          typeId: 'cassette',
           producerOutputId: 'create_cassette:entity',
-          parentEntityType: 'cassette',
-          inputs: [{ id: 'parent', label: 'cassette', entityType: 'cassette', required: false }],
-          outputs: [{ id: 'created', entityType: 'cassette' }]
+          parentTypeId: 'cassette',
+          inputs: [{ id: 'parent', label: 'cassette', typeId: 'cassette', required: false }],
+          outputs: [{ id: 'created', typeId: 'cassette' }]
         }
       }
     }, domain);
@@ -920,21 +920,21 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'runCommand',
           commandId: 'solveNesting',
           outputs: [
-            { id: 'nesting_run', label: 'nesting_run', entityType: 'nesting_run', multiple: true },
-            { id: 'sheet_design', label: 'sheet_design', entityType: 'sheet_design', multiple: true }
+            { id: 'nesting_run', label: 'nesting_run', typeId: 'nesting_run', multiple: true },
+            { id: 'sheet_design', label: 'sheet_design', typeId: 'sheet_design', multiple: true }
           ]
         },
         mark_run_cut: {
           id: 'mark_run_cut',
           actionKind: 'updateEntity',
-          inputs: [{ id: 'entity', label: 'nesting_run', entityType: 'nesting_run', multiple: true }],
-          outputs: [{ id: 'entity', entityType: 'nesting_run' }]
+          inputs: [{ id: 'entity', label: 'nesting_run', typeId: 'nesting_run', multiple: true }],
+          outputs: [{ id: 'entity', typeId: 'nesting_run' }]
         },
         mark_sheet_cut: {
           id: 'mark_sheet_cut',
           actionKind: 'updateEntity',
-          inputs: [{ id: 'entity', label: 'sheet_design', entityType: 'sheet_design', multiple: true }],
-          outputs: [{ id: 'entity', entityType: 'sheet_design' }]
+          inputs: [{ id: 'entity', label: 'sheet_design', typeId: 'sheet_design', multiple: true }],
+          outputs: [{ id: 'entity', typeId: 'sheet_design' }]
         }
       }
     }, domain);
@@ -961,24 +961,24 @@ describe('@cutkit/processes compiler', () => {
       entityProfiles: {
         queue_profile: {
           id: 'queue_profile',
-          entityType: 'queue',
+          typeId: 'queue',
           lifecycle: { mode: 'defaultCreated' },
           fields: { read: ['identity.*'], write: [], private: [] },
-          outputs: [{ id: 'entity', entityType: 'queue' }]
+          outputs: [{ id: 'entity', typeId: 'queue' }]
         }
       },
       processNodes: {
         decompose_queue: {
           id: 'decompose_queue',
           kind: 'entityDecompose',
-          entityType: 'queue',
-          inputs: [{ id: 'entity', kind: 'entity', entityType: 'queue' }],
+          typeId: 'queue',
+          inputs: [{ id: 'entity', kind: 'entity', typeId: 'queue' }],
           outputs: [{ id: 'identity', kind: 'block', block: 'identity' }]
         },
         read_name: {
           id: 'read_name',
           kind: 'blockRead',
-          entityType: 'queue',
+          typeId: 'queue',
           block: 'identity',
           path: 'identity.name',
           valueType: 'string',
@@ -1012,7 +1012,7 @@ describe('@cutkit/processes compiler', () => {
         invalid_block: {
           id: 'invalid_block',
           kind: 'entityModify',
-          entityType: 'project',
+          typeId: 'project',
           block: 'summary'
         }
       }
@@ -1027,13 +1027,13 @@ describe('@cutkit/processes compiler', () => {
         get_block: {
           id: 'get_block',
           kind: 'record.getBlock',
-          entityType: 'project',
+          typeId: 'project',
           block: 'summary'
         },
         deconstruct: {
           id: 'deconstruct',
           kind: 'record.deconstruct',
-          entityType: 'project',
+          typeId: 'project',
           blocks: ['identity', 'relations']
         }
       }
@@ -1049,13 +1049,13 @@ describe('@cutkit/processes compiler', () => {
         get_block: {
           id: 'get_block',
           kind: 'record.getBlock',
-          entityType: 'queue',
+          typeId: 'queue',
           block: 'attachments'
         },
         deconstruct: {
           id: 'deconstruct',
           kind: 'record.deconstruct',
-          entityType: 'queue',
+          typeId: 'queue',
           blocks: ['identity', 'attachments']
         }
       }
@@ -1085,8 +1085,8 @@ describe('@cutkit/processes compiler', () => {
           actionKind: 'updateEntity',
           mutation: { fields: ['data.internal'] },
           access: { level: 'write', roleIds: ['role_editor'] },
-          inputs: [{ id: 'entity', entityType: 'project' }],
-          outputs: [{ id: 'entity', entityType: 'project' }]
+          inputs: [{ id: 'entity', typeId: 'project' }],
+          outputs: [{ id: 'entity', typeId: 'project' }]
         }
       }
     }, domain);
@@ -1112,8 +1112,8 @@ describe('@cutkit/processes compiler', () => {
               { roleId: 'role_editor', level: 'write' }
             ]
           },
-          inputs: [{ id: 'entity', entityType: 'project' }],
-          outputs: [{ id: 'entity', entityType: 'project' }]
+          inputs: [{ id: 'entity', typeId: 'project' }],
+          outputs: [{ id: 'entity', typeId: 'project' }]
         }
       }
     }, domain);
@@ -1176,7 +1176,7 @@ describe('@cutkit/processes compiler', () => {
       producerOutputs: producerOutputRecords([['project_entity', 'project']]),
       actions: {
         create_project: {
-          id: 'create_project', actionKind: 'createEntity', entityType: 'project', producerOutputId: 'project_entity:entity', status: { to: 'READY' },
+          id: 'create_project', actionKind: 'createEntity', typeId: 'project', producerOutputId: 'project_entity:entity', status: { to: 'READY' },
           access: { grants: [{
             roleId: 'operator', level: 'write', actions: { create: true },
             scope: { entityId: '$assignment.projectId' }, transitions: ['DRAFT->READY'],
@@ -1204,7 +1204,7 @@ describe('@cutkit/processes compiler', () => {
           id: 'action_accept',
           label: 'Accept',
           actionKind: 'updateEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'queue_profile:entity',
           status: { to: 'NEXT_STATUS' },
           access: { roleIds: ['role_operator'], level: 'write' }
@@ -1326,7 +1326,7 @@ describe('@cutkit/processes compiler', () => {
       entityProfiles: {
         queue_profile: {
           id: 'queue_profile',
-          entityType: 'queue',
+          typeId: 'queue',
           allowedRoles: { read: ['role_queue'] }
         }
       },
@@ -1337,7 +1337,7 @@ describe('@cutkit/processes compiler', () => {
           template: 'typeList',
           placement: 'hub',
           route: '/queue-home',
-          entityType: 'queue',
+          typeId: 'queue',
           roleIds: ['role_queue']
         }
       },
@@ -1381,7 +1381,7 @@ describe('@cutkit/processes compiler', () => {
         ...producerOutputRecords([['queue_source', 'queue']]),
         'project_source:result': {
           id: 'project_source:result', producerOutputId: 'project_source:result',
-          nodeId: 'project_source', outputSocketId: 'result', entityType: 'project',
+          nodeId: 'project_source', outputSocketId: 'result', typeId: 'project',
           lifecycle: { mode: 'domainDefault' },
           fields: { read: ['identity.*'], write: [], private: [] },
           allowedRoles: { read: ['role_op'], write: ['role_op'], admin: [] }
@@ -1437,7 +1437,7 @@ describe('@cutkit/processes compiler', () => {
         create_project_created: {
           id: 'create_project_created',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'project_entity:entity',
           status: { to: 'CREATED' },
           access: { level: 'write', roleIds: ['role_project'] }
@@ -1445,7 +1445,7 @@ describe('@cutkit/processes compiler', () => {
         create_project_new: {
           id: 'create_project_new',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'project_entity:entity',
           status: { to: 'NEW' },
           access: { level: 'admin', roleIds: ['role_project'] }
@@ -1499,7 +1499,7 @@ describe('@cutkit/processes compiler', () => {
         create_project_created: {
           id: 'create_project_created',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'project_entity:entity',
           status: { to: 'CREATED' },
           access: { level: 'read', roleIds: ['role_reader'] }
@@ -1507,7 +1507,7 @@ describe('@cutkit/processes compiler', () => {
         create_project_active: {
           id: 'create_project_active',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'project_entity:entity',
           status: { to: 'ACTIVE' },
           access: { level: 'admin', roleIds: ['role_admin'] }
@@ -1566,12 +1566,12 @@ describe('@cutkit/processes compiler', () => {
         create_cassette: {
           id: 'create_cassette',
           actionKind: 'createEntity',
-          entityType: 'cassette',
+          typeId: 'cassette',
           producerOutputId: 'cassette_entity:entity',
-          parentEntityType: 'cassette',
+          parentTypeId: 'cassette',
           status: { to: 'CREATED' },
           access: { level: 'write', roleIds: ['role_cassette'] },
-          inputs: [{ id: 'parent', label: 'cassette', entityType: 'cassette', required: false }]
+          inputs: [{ id: 'parent', label: 'cassette', typeId: 'cassette', required: false }]
         }
       },
       assignments: {
@@ -1584,11 +1584,11 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_cassette.parentEntityType).toBeNull();
+    expect(compiled.actions.create_cassette.parentTypeId).toBeNull();
     expect(compiled.roles.role_cassette.actions[0]).toMatchObject({
       actionId: 'create_cassette',
-      parentEntityType: null,
-      inputs: [expect.objectContaining({ id: 'parent', entityType: '' })]
+      parentTypeId: null,
+      inputs: [expect.objectContaining({ id: 'parent', typeId: '' })]
     });
     expect(compiled.screens.auto_role_cassette_cassette.actions).toContain('create_cassette');
     expect(compiled.screens.auto_role_cassette_cassette_detail.actions).not.toContain('create_cassette');
@@ -1604,12 +1604,12 @@ describe('@cutkit/processes compiler', () => {
         create_queue: {
           id: 'create_queue',
           actionKind: 'createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'queue_entity:entity',
-          parentEntityType: 'cassette',
+          parentTypeId: 'cassette',
           status: { to: 'CREATED' },
           access: { level: 'write', roleIds: ['role_queue'] },
-          inputs: [{ id: 'parent', label: 'cassette', entityType: 'cassette', required: false }]
+          inputs: [{ id: 'parent', label: 'cassette', typeId: 'cassette', required: false }]
         }
       },
       assignments: {
@@ -1622,13 +1622,13 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_queue.parentEntityType).toBeNull();
+    expect(compiled.actions.create_queue.parentTypeId).toBeNull();
     expect(compiled.actions.create_queue.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'parent', entityType: '', required: false })
+      expect.objectContaining({ id: 'parent', typeId: '', required: false })
     ]));
     expect(compiled.roles.role_queue.actions[0]).toMatchObject({
       actionId: 'create_queue',
-      parentEntityType: null
+      parentTypeId: null
     });
     expect(compiled.screens.auto_role_queue_queue.actions).toContain('create_queue');
     expect(compiled.screens.auto_role_queue_cassette).toBeUndefined();
@@ -1645,7 +1645,7 @@ describe('@cutkit/processes compiler', () => {
         create_cassette: {
           id: 'create_cassette',
           actionKind: 'createEntity',
-          entityType: 'cassette',
+          typeId: 'cassette',
           producerOutputId: 'cassette_entity:entity',
           status: { to: 'CREATED' },
           access: {
@@ -1678,7 +1678,7 @@ describe('@cutkit/processes compiler', () => {
         create_project: {
           id: 'create_project',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'project_entity:entity',
           status: { to: 'NEW' },
           access: { level: 'admin', roleIds: ['role_project'] }
@@ -1686,7 +1686,7 @@ describe('@cutkit/processes compiler', () => {
         approve_project: {
           id: 'approve_project',
           actionKind: 'updateEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'project_entity:entity',
           status: { to: 'APPROVED' },
           access: { level: 'admin', roleIds: [] }
@@ -1731,7 +1731,7 @@ describe('@cutkit/processes compiler', () => {
         create_design: {
           id: 'create_design',
           actionKind: 'createEntity',
-          entityType: 'cassette_design',
+          typeId: 'cassette_design',
           producerOutputId: 'design_entity:entity',
           status: { to: 'RECEIVED' },
           access: { level: 'write', roleIds: ['role_designer'] }
@@ -1815,10 +1815,10 @@ describe('@cutkit/processes compiler', () => {
         assigned_project: {
           id: 'assigned_project',
           label: 'Assigned project',
-          kind: 'entityDetail',
+          kind: 'instanceDetail',
           route: '/project/$assignment.projectSlug/details',
           placement: 'hub',
-          entityType: 'project',
+          typeId: 'project',
           required: { feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } },
           roleIds: ['role_operator', 'role_supervisor'],
           bindings: { projectId: '$assignment.projectId' },
@@ -1916,8 +1916,8 @@ describe('@cutkit/processes compiler', () => {
           route: '/projects',
           roleIds: ['role_operator'],
           template: 'workspaceLanes',
-          entityType: 'missingEntity',
-          sources: [{ id: 'missing', entityType: 'missingEntity', mode: 'list' }],
+          typeId: 'missingEntity',
+          sources: [{ id: 'missing', typeId: 'missingEntity', mode: 'list' }],
           regions: [{ id: 'main', slot: 'center', sourceId: 'missing', surface: 'card' }],
           actions: ['missing_action']
         }
@@ -1940,7 +1940,7 @@ describe('@cutkit/processes compiler', () => {
           id: 'create_project',
           label: 'Create project',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'project_entity:entity',
           status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
@@ -1954,9 +1954,9 @@ describe('@cutkit/processes compiler', () => {
           route: '/projects',
           roleIds: ['role_operator'],
           template: 'typeList',
-          entityType: 'project',
+          typeId: 'project',
           bindings: { projectId: '$assignment.projectId' },
-          sources: [{ id: 'project', entityType: 'project', mode: 'list', filters: { projectId: '$assignment.projectId' } }],
+          sources: [{ id: 'project', typeId: 'project', mode: 'list', filters: { projectId: '$assignment.projectId' } }],
           regions: [{ id: 'main', slot: 'main', sourceId: 'project', surface: 'card', actions: ['create_project'] }],
           actions: ['create_project']
         }
@@ -1994,20 +1994,20 @@ describe('@cutkit/processes compiler', () => {
           id: 'create_project',
           label: 'Create project',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'project_entity:entity',
           status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_admin'] },
           inputs: [],
-          outputs: [{ id: 'created', entityType: 'project', status: INITIAL_STATE }]
+          outputs: [{ id: 'created', typeId: 'project', status: INITIAL_STATE }]
         }
       }
     }, domain);
 
     expect(compiled.actions.create_project).toMatchObject({
       actionKind: 'createEntity',
-      entityType: 'project',
+      typeId: 'project',
       trigger: { mode: 'manual' },
       access: { level: 'write', roleIds: ['role_admin'] }
     });
@@ -2025,8 +2025,8 @@ describe('@cutkit/processes compiler', () => {
           status: { to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: [] },
-          inputs: [{ id: 'entity', label: 'Incoming entity', entityType: 'project' }],
-          outputs: [{ id: 'entity', label: 'Same entity', entityType: 'project', status: TARGET_STATE }],
+          inputs: [{ id: 'entity', label: 'Incoming entity', typeId: 'project' }],
+          outputs: [{ id: 'entity', label: 'Same entity', typeId: 'project', status: TARGET_STATE }],
           events: [{ id: 'completed', label: 'Activate incoming completed', kind: 'event' }]
         }
       }
@@ -2034,7 +2034,7 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.actions.activate_incoming).toMatchObject({
       actionKind: 'updateEntity',
-      entityType: 'project',
+      typeId: 'project',
       status: { to: TARGET_STATE },
       trigger: { mode: 'manual' },
       events: [{ id: 'completed', kind: 'event' }]
@@ -2053,7 +2053,7 @@ describe('@cutkit/processes compiler', () => {
         project: [{
           path: 'relations.library',
           block: 'relations',
-          type: { base: 'entityRef', shape: 'item', nullable: true, entityType: 'library' },
+          type: { base: 'entityRef', shape: 'item', nullable: true, typeId: 'library' },
           readable: true,
           writable: true
         }]
@@ -2071,12 +2071,12 @@ describe('@cutkit/processes compiler', () => {
       },
       producerOutputs: producerOutputRecords([['project_entity', 'project']]),
       processNodes: {
-        current: { id: 'current', kind: 'read.currentEntity', entityType: 'project' },
-        deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', entityType: 'project', blocks: ['relations'] },
+        current: { id: 'current', kind: 'read.currentEntity', typeId: 'project' },
+        deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', typeId: 'project', blocks: ['relations'] },
         library: {
           id: 'library',
           kind: 'source.literalItem',
-          type: { base: 'entityRef', shape: 'item', entityType: 'library' },
+          type: { base: 'entityRef', shape: 'item', typeId: 'library' },
           value: { type: 'library', id: 'library-1' }
         },
         modify: {
@@ -2084,22 +2084,22 @@ describe('@cutkit/processes compiler', () => {
           kind: 'record.modifyBlock',
           block: 'relations',
           compositionMode: 'relations',
-          entries: [{ id: 'library', key: 'library', entityType: 'library', cardinality: 'one', operation: 'append' }]
+          entries: [{ id: 'library', key: 'library', typeId: 'library', cardinality: 'one', operation: 'append' }]
         },
         update_relations: {
           id: 'update_relations',
           kind: 'effect.updateEntity',
           label: 'Link library',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'project_entity:entity',
           blocks: ['relations'],
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] },
           inputs: [
-            { id: 'entity', entityType: 'project', required: true },
+            { id: 'entity', typeId: 'project', required: true },
             { id: 'relations', block: 'relations' }
           ],
-          outputs: [{ id: 'result', entityType: 'project' }]
+          outputs: [{ id: 'result', typeId: 'project' }]
         }
       },
       graph: {
@@ -2117,7 +2117,7 @@ describe('@cutkit/processes compiler', () => {
 
     expect(compiled.actions.update_relations).toMatchObject({
       actionKind: 'updateEntity',
-      entityType: 'project',
+      typeId: 'project',
       mutation: { blocks: ['relations'] }
     });
     expect(compiled.screens.auto_role_admin_project_detail.regions
@@ -2141,7 +2141,7 @@ describe('@cutkit/processes compiler', () => {
           modeInputs: {
             uploadArtifact: [{
               id: 'artifact',
-              creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' }
+              creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' }
             }]
           }
         }
@@ -2155,7 +2155,7 @@ describe('@cutkit/processes compiler', () => {
         project: [{
           path: 'relations.library',
           block: 'relations',
-          type: { base: 'entityRef', shape: 'item', nullable: true, entityType: 'library' },
+          type: { base: 'entityRef', shape: 'item', nullable: true, typeId: 'library' },
           readable: true,
           writable: true,
           constructible: true
@@ -2178,21 +2178,21 @@ describe('@cutkit/processes compiler', () => {
         library: {
           id: 'library',
           kind: 'effect.createEntity',
-          entityType: 'library',
+          typeId: 'library',
           producerOutputId: 'library:entity',
           construction: {
             mode: 'genericCreate',
             inputs: [{ id: 'name', path: 'name', label: 'Library name', type: 'string', required: true, prompt: true }]
           },
           status: { to: INITIAL_STATE },
-          outputs: [{ id: 'result', role: 'data', type: { base: 'entity', shape: 'item', entityType: 'library' } }],
+          outputs: [{ id: 'result', role: 'data', type: { base: 'entity', shape: 'item', typeId: 'library' } }],
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
         },
         artifact: {
           id: 'artifact',
           kind: 'source.literalItem',
-          type: { base: 'entityRef', shape: 'item', entityType: 'artifact' },
+          type: { base: 'entityRef', shape: 'item', typeId: 'artifact' },
           value: { type: 'artifact', id: 'artifact-1' }
         },
         relations: {
@@ -2201,11 +2201,11 @@ describe('@cutkit/processes compiler', () => {
           block: 'relations',
           compositionMode: 'relations',
           entries: [
-            { id: 'library', key: 'libraries', entityType: 'library', cardinality: 'one' },
+            { id: 'library', key: 'libraries', typeId: 'library', cardinality: 'one' },
             {
               id: 'artifact',
               key: 'artifact',
-              entityType: 'artifact',
+              typeId: 'artifact',
               cardinality: 'one',
               attachmentKinds: []
             }
@@ -2215,7 +2215,7 @@ describe('@cutkit/processes compiler', () => {
           id: 'create',
           kind: 'effect.createEntity',
           label: 'Create project',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'create:entity',
           blocks: ['relations'],
           status: { to: INITIAL_STATE },
@@ -2236,13 +2236,13 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.actions['create:link:libraries']).toMatchObject({
       label: 'Link library',
       actionKind: 'updateEntity',
-      entityType: 'project',
+      typeId: 'project',
       relationMutation: {
         key: 'libraries',
         targetType: 'library',
         cardinality: 'many',
         operation: 'link',
-        creator: expect.objectContaining({ actionId: 'library', entityType: 'library' })
+        creator: expect.objectContaining({ actionId: 'library', typeId: 'library' })
       }
     });
     expect(compiled.roles.role_admin.actions.find(action => action.actionId === 'create:link:libraries')?.construction).toBeNull();
@@ -2254,7 +2254,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.actions['create:link:artifact']).toMatchObject({
       relationMutation: {
         creator: {
-          entityType: 'artifact',
+          typeId: 'artifact',
           attachmentKinds: [
             { kind: 'DXF_SOURCE', creation: { mode: 'upload' } },
             { kind: 'CAPTURE_PHOTO', creation: { mode: 'upload' } }
@@ -2263,8 +2263,8 @@ describe('@cutkit/processes compiler', () => {
       },
       inputPolicy: {
         fields: [expect.objectContaining({
-          entityType: 'artifact',
-          creator: expect.objectContaining({ entityType: 'artifact' })
+          typeId: 'artifact',
+          creator: expect.objectContaining({ typeId: 'artifact' })
         })]
       }
     });
@@ -2296,7 +2296,7 @@ describe('@cutkit/processes compiler', () => {
               type: 'artifactUpload',
               required: true,
               prompt: true,
-              creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' }
+              creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' }
             }]
           }
         }
@@ -2310,7 +2310,7 @@ describe('@cutkit/processes compiler', () => {
         upload: {
           id: 'upload',
           kind: 'effect.createEntity',
-          entityType: 'artifact',
+          typeId: 'artifact',
           producerOutputId: 'upload:entity',
           construction: {
             mode: 'uploadArtifact',
@@ -2321,11 +2321,11 @@ describe('@cutkit/processes compiler', () => {
               type: 'artifactUpload',
               required: true,
               prompt: true,
-              creator: { entityType: 'artifact', attachmentKinds: 'userCreatable' }
+              creator: { typeId: 'artifact', attachmentKinds: 'userCreatable' }
             }]
           },
           status: { to: INITIAL_STATE },
-          outputs: [{ id: 'result', role: 'data', type: { base: 'entity', shape: 'item', entityType: 'artifact' } }],
+          outputs: [{ id: 'result', role: 'data', type: { base: 'entity', shape: 'item', typeId: 'artifact' } }],
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }
         }
@@ -2355,19 +2355,19 @@ describe('@cutkit/processes compiler', () => {
         collect: {
           id: 'collect',
           kind: 'collection.packArray',
-          type: { base: 'entityRef', shape: 'item', entityType: 'library' }
+          type: { base: 'entityRef', shape: 'item', typeId: 'library' }
         },
         relations: {
           id: 'relations',
           kind: 'record.composeBlock',
           block: 'relations',
           compositionMode: 'relations',
-          entries: [{ id: 'reviews', key: 'reviewLibraries', entityType: 'library' }]
+          entries: [{ id: 'reviews', key: 'reviewLibraries', typeId: 'library' }]
         },
         update: {
           id: 'update',
           kind: 'effect.updateEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'update:entity',
           blocks: ['relations'],
           trigger: { mode: 'manual' }
@@ -2400,27 +2400,27 @@ describe('@cutkit/processes compiler', () => {
         create_design: {
           id: 'create_design',
           actionKind: 'createEntity',
-          entityType: 'cassette_design',
+          typeId: 'cassette_design',
           producerOutputId: 'create_design:entity',
           construction: {
             mode: 'bakeCassetteDesignFromTemplate',
             blockComposed: true,
             inputs: [
               { id: 'name', type: 'string', required: true, prompt: true },
-              { id: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true }
+              { id: 'templateId', type: 'entity', typeId: 'cassette', required: true, prompt: true }
             ]
           },
           inputPolicy: {
             fields: [
               { id: 'name', type: 'string', required: true, prompt: true },
-              { id: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true }
+              { id: 'templateId', type: 'entity', typeId: 'cassette', required: true, prompt: true }
             ]
           }
         },
         update_queue: {
           id: 'update_queue',
           actionKind: 'updateEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'update_queue:entity',
           mutation: {
             relationContracts: [{
@@ -2439,7 +2439,7 @@ describe('@cutkit/processes compiler', () => {
           modes: ['bakeCassetteDesignFromTemplate'],
           defaultMode: 'bakeCassetteDesignFromTemplate',
           derived: true,
-          inputs: [{ id: 'templateId', type: 'entity', entityType: 'cassette', required: true, prompt: true }]
+          inputs: [{ id: 'templateId', type: 'entity', typeId: 'cassette', required: true, prompt: true }]
         }
       }
     });
@@ -2457,19 +2457,19 @@ describe('@cutkit/processes compiler', () => {
         create_queue: {
           id: 'create_queue',
           actionKind: 'createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_queue:entity',
-          parentEntityType: 'project',
+          parentTypeId: 'project',
           status: { to: INITIAL_STATE },
           trigger: { mode: 'event' },
           access: { level: 'write', roleIds: [] },
-          inputs: [{ id: 'parent', entityType: 'project' }],
-          outputs: [{ id: 'created', entityType: 'queue', status: INITIAL_STATE }]
+          inputs: [{ id: 'parent', typeId: 'project' }],
+          outputs: [{ id: 'created', typeId: 'queue', status: INITIAL_STATE }]
         }
       }
     }, domain);
 
-    expect(compiled.actions.create_queue.parentEntityType).toBeNull();
+    expect(compiled.actions.create_queue.parentTypeId).toBeNull();
   });
 
   it('does not place parent metadata without a compiled Lineage binding', () => {
@@ -2482,24 +2482,24 @@ describe('@cutkit/processes compiler', () => {
         create_project: {
           id: 'create_project',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'create_project:entity',
           status: { to: SOURCE_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'admin', roleIds: ['role_admin'] },
-          outputs: [{ id: 'created', entityType: 'project', status: SOURCE_STATE }]
+          outputs: [{ id: 'created', typeId: 'project', status: SOURCE_STATE }]
         },
         create_queue: {
           id: 'create_queue',
           actionKind: 'createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_queue:entity',
-          parentEntityType: 'project',
+          parentTypeId: 'project',
           status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_admin'] },
-          inputs: [{ id: 'parent', entityType: 'project' }],
-          outputs: [{ id: 'created', entityType: 'queue', status: INITIAL_STATE }]
+          inputs: [{ id: 'parent', typeId: 'project' }],
+          outputs: [{ id: 'created', typeId: 'queue', status: INITIAL_STATE }]
         }
       },
       assignments: {
@@ -2543,11 +2543,11 @@ describe('@cutkit/processes compiler', () => {
           label: 'Project designs',
           route: '/project-designs',
           template: 'typeList',
-          entityType: 'sheet_design',
+          typeId: 'sheet_design',
           roleIds: ['role_reader'],
           sources: [{
             id: 'sheet_designs',
-            entityType: 'sheet_design',
+            typeId: 'sheet_design',
             mode: 'list',
             filters: { projectId: '$assignment.projectId' }
           }]
@@ -2579,24 +2579,24 @@ describe('@cutkit/processes compiler', () => {
         create_library: {
           id: 'create_library',
           actionKind: 'createEntity',
-          entityType: 'library',
+          typeId: 'library',
           producerOutputId: 'create_library:entity',
           status: { to: SOURCE_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'admin', roleIds: ['role_admin'] },
-          outputs: [{ id: 'created', entityType: 'library', status: SOURCE_STATE }]
+          outputs: [{ id: 'created', typeId: 'library', status: SOURCE_STATE }]
         },
         create_cassette: {
           id: 'create_cassette',
           actionKind: 'createEntity',
-          entityType: 'cassette',
+          typeId: 'cassette',
           producerOutputId: 'create_cassette:entity',
-          parentEntityType: 'cassette',
+          parentTypeId: 'cassette',
           status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_admin'] },
-          inputs: [{ id: 'parent', entityType: 'cassette' }],
-          outputs: [{ id: 'created', entityType: 'cassette', status: INITIAL_STATE }]
+          inputs: [{ id: 'parent', typeId: 'cassette' }],
+          outputs: [{ id: 'created', typeId: 'cassette', status: INITIAL_STATE }]
         }
       },
       graph: {
@@ -2619,7 +2619,7 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_cassette.parentEntityType).toBeNull();
+    expect(compiled.actions.create_cassette.parentTypeId).toBeNull();
     expect(compiled.screens.auto_role_admin_library_detail.sources).not.toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 'cassette_children' })
     ]));
@@ -2635,24 +2635,24 @@ describe('@cutkit/processes compiler', () => {
         create_library: {
           id: 'create_library',
           actionKind: 'createEntity',
-          entityType: 'library',
+          typeId: 'library',
           producerOutputId: 'create_library:entity',
           status: { to: SOURCE_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'read', roleIds: ['role_reader'] },
-          outputs: [{ id: 'created', entityType: 'library', status: SOURCE_STATE }]
+          outputs: [{ id: 'created', typeId: 'library', status: SOURCE_STATE }]
         },
         create_cassette: {
           id: 'create_cassette',
           actionKind: 'createEntity',
-          entityType: 'cassette',
+          typeId: 'cassette',
           producerOutputId: 'create_cassette:entity',
-          parentEntityType: 'library',
+          parentTypeId: 'library',
           status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'read', roleIds: ['role_reader'] },
-          inputs: [{ id: 'parent', entityType: 'library' }],
-          outputs: [{ id: 'created', entityType: 'cassette', status: INITIAL_STATE }]
+          inputs: [{ id: 'parent', typeId: 'library' }],
+          outputs: [{ id: 'created', typeId: 'cassette', status: INITIAL_STATE }]
         }
       },
       assignments: {
@@ -2677,24 +2677,24 @@ describe('@cutkit/processes compiler', () => {
         create_project: {
           id: 'create_project',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'create_project:entity',
           status: { to: SOURCE_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'admin', roleIds: ['role_admin'] },
-          outputs: [{ id: 'created', entityType: 'project', status: SOURCE_STATE }]
+          outputs: [{ id: 'created', typeId: 'project', status: SOURCE_STATE }]
         },
         create_cassette: {
           id: 'create_cassette',
           actionKind: 'createEntity',
-          entityType: 'cassette',
+          typeId: 'cassette',
           producerOutputId: 'create_cassette:entity',
-          parentEntityType: 'project',
+          parentTypeId: 'project',
           status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_admin'] },
-          inputs: [{ id: 'parent', entityType: 'project' }],
-          outputs: [{ id: 'created', entityType: 'cassette', status: INITIAL_STATE }]
+          inputs: [{ id: 'parent', typeId: 'project' }],
+          outputs: [{ id: 'created', typeId: 'cassette', status: INITIAL_STATE }]
         }
       },
       assignments: {
@@ -2702,7 +2702,7 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.screens.auto_role_admin_project_detail.sources.map(source => source.entityType)).not.toContain('cassette');
+    expect(compiled.screens.auto_role_admin_project_detail.sources.map(source => source.typeId)).not.toContain('cassette');
   });
 
   it('does not treat construction entity inputs as parent-bound create actions', () => {
@@ -2715,24 +2715,24 @@ describe('@cutkit/processes compiler', () => {
         create_cassette: {
           id: 'create_cassette',
           actionKind: 'createEntity',
-          entityType: 'cassette',
+          typeId: 'cassette',
           producerOutputId: 'create_cassette:entity',
           status: { to: SOURCE_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'admin', roleIds: ['role_admin'] },
-          outputs: [{ id: 'created', entityType: 'cassette', status: SOURCE_STATE }]
+          outputs: [{ id: 'created', typeId: 'cassette', status: SOURCE_STATE }]
         },
         create_design: {
           id: 'create_design',
           actionKind: 'createEntity',
-          entityType: 'cassette_design',
+          typeId: 'cassette_design',
           producerOutputId: 'create_design:entity',
-          parentEntityType: 'cassette',
+          parentTypeId: 'cassette',
           status: { to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_admin'] },
-          inputs: [{ id: 'parent', entityType: 'cassette', status: SOURCE_STATE }],
-          outputs: [{ id: 'created', entityType: 'cassette_design', status: TARGET_STATE }]
+          inputs: [{ id: 'parent', typeId: 'cassette', status: SOURCE_STATE }],
+          outputs: [{ id: 'created', typeId: 'cassette_design', status: TARGET_STATE }]
         }
       },
       assignments: {
@@ -2740,10 +2740,10 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_design.parentEntityType).toBeNull();
+    expect(compiled.actions.create_design.parentTypeId).toBeNull();
     expect(compiled.actions.create_design.inputs[0]).toMatchObject({
       id: 'parent',
-      entityType: '',
+      typeId: '',
       required: false
     });
     const detail = compiled.screens.auto_role_admin_cassette_detail;
@@ -2761,7 +2761,7 @@ describe('@cutkit/processes compiler', () => {
       entityProfiles: {
         cassette_profile: {
           id: 'cassette_profile',
-          entityType: 'cassette',
+          typeId: 'cassette',
           allowedRoles: { read: ['role_installer'] }
         }
       },
@@ -2785,24 +2785,24 @@ describe('@cutkit/processes compiler', () => {
         create_queue: {
           id: 'create_queue',
           actionKind: 'createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_queue:entity',
           status: { to: SOURCE_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_installer'] },
-          outputs: [{ id: 'created', entityType: 'queue', status: SOURCE_STATE }]
+          outputs: [{ id: 'created', typeId: 'queue', status: SOURCE_STATE }]
         },
         create_design: {
           id: 'create_design',
           actionKind: 'createEntity',
-          entityType: 'cassette_design',
+          typeId: 'cassette_design',
           producerOutputId: 'create_design:entity',
-          parentEntityType: 'cassette',
+          parentTypeId: 'cassette',
           status: { to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'admin', roleIds: ['role_installer'] },
-          inputs: [{ id: 'parent', entityType: 'cassette' }],
-          outputs: [{ id: 'created', entityType: 'cassette_design', status: TARGET_STATE }]
+          inputs: [{ id: 'parent', typeId: 'cassette' }],
+          outputs: [{ id: 'created', typeId: 'cassette_design', status: TARGET_STATE }]
         }
       },
       assignments: {
@@ -2810,10 +2810,10 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.actions.create_design.parentEntityType).toBeNull();
+    expect(compiled.actions.create_design.parentTypeId).toBeNull();
     expect(compiled.actions.create_design.inputs[0]).toMatchObject({
       id: 'parent',
-      entityType: '',
+      typeId: '',
       required: false
     });
     expect(compiled.userAccess.user_installer.actions.find(action => action.id === 'create_design')).toMatchObject({
@@ -2841,7 +2841,7 @@ describe('@cutkit/processes compiler', () => {
               proof: { kind: 'photo', required: true }
             },
             snapshots: {
-              designs: { entityType: 'cassette_design', lineageKey: 'queueId', required: true }
+              designs: { typeId: 'cassette_design', lineageKey: 'queueId', required: true }
             }
           }
         }
@@ -2861,7 +2861,7 @@ describe('@cutkit/processes compiler', () => {
         create_design: {
           id: 'create_design',
           actionKind: 'createEntity',
-          entityType: 'cassette_design',
+          typeId: 'cassette_design',
           producerOutputId: 'create_design:entity',
           statusRef: 'status_review',
           construction: {
@@ -2880,7 +2880,7 @@ describe('@cutkit/processes compiler', () => {
           },
           trigger: { mode: 'manual' },
           access: { level: 'admin', roleIds: ['role_admin'] },
-          outputs: [{ id: 'created', entityType: 'cassette_design' }]
+          outputs: [{ id: 'created', typeId: 'cassette_design' }]
         }
       }
     }, domain);
@@ -2905,7 +2905,7 @@ describe('@cutkit/processes compiler', () => {
           proof: { kind: 'photo', required: true }
         },
         snapshots: {
-          designs: { entityType: 'cassette_design', lineageKey: 'queueId', required: true }
+          designs: { typeId: 'cassette_design', lineageKey: 'queueId', required: true }
         }
       }
     });
@@ -2924,7 +2924,7 @@ describe('@cutkit/processes compiler', () => {
           proof: { kind: 'photo', required: true }
         },
         snapshots: {
-          designs: { entityType: 'cassette_design', lineageKey: 'queueId', required: true }
+          designs: { typeId: 'cassette_design', lineageKey: 'queueId', required: true }
         }
       }
     });
@@ -2954,8 +2954,8 @@ describe('@cutkit/processes compiler', () => {
           statusRef: 'status_deleted',
           status: { from: 'CREATED' },
           access: { level: 'admin', roleIds: ['role_admin'] },
-          inputs: [{ id: 'entity', entityType: 'queue', status: 'CREATED' }],
-          outputs: [{ id: 'entity', entityType: 'queue', status: 'DELETED' }]
+          inputs: [{ id: 'entity', typeId: 'queue', status: 'CREATED' }],
+          outputs: [{ id: 'entity', typeId: 'queue', status: 'DELETED' }]
         }
       }
     }, domain);
@@ -2990,7 +2990,7 @@ describe('@cutkit/processes compiler', () => {
           id: 'create_worksite',
           label: 'cts.construct',
           actionKind: 'createEntity',
-          entityType: 'worksite',
+          typeId: 'worksite',
           producerOutputId: 'worksite_entity:entity',
           status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
@@ -3013,13 +3013,13 @@ describe('@cutkit/processes compiler', () => {
         create_design: {
           id: 'create_design',
           actionKind: 'createEntity',
-          entityType: 'cassette_design',
+          typeId: 'cassette_design',
           producerOutputId: 'create_design:entity',
           status: { to: 'CREATED' },
           construction: { mode: 'genericCreate', inputs: [] },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: [] },
-          outputs: [{ id: 'created', entityType: 'cassette_design', status: 'CREATED' }]
+          outputs: [{ id: 'created', typeId: 'cassette_design', status: 'CREATED' }]
         }
       }
     }, domain);
@@ -3038,12 +3038,12 @@ describe('@cutkit/processes compiler', () => {
         create_design: {
           id: 'create_design',
           actionKind: 'createEntity',
-          entityType: 'cassette_design',
+          typeId: 'cassette_design',
           producerOutputId: 'create_design:entity',
           status: { to: 'CREATED' },
           trigger: { mode: 'manual' },
           access: { level: 'admin', roleIds: ['role_admin'] },
-          outputs: [{ id: 'created', entityType: 'cassette_design', status: 'CREATED' }]
+          outputs: [{ id: 'created', typeId: 'cassette_design', status: 'CREATED' }]
         }
       },
       assignments: {
@@ -3076,27 +3076,27 @@ describe('@cutkit/processes compiler', () => {
         create_queue: {
           id: 'create_queue',
           actionKind: 'createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_queue:entity',
-          parentEntityType: 'cassette',
+          parentTypeId: 'cassette',
           status: { to: 'DRAFT' },
           construction: {
             inputs: [
-              { id: 'jobItems', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: true }
+              { id: 'jobItems', path: 'job.items', type: 'typeList', accepts: ['cassette_design'], required: true }
             ]
           },
           inputPolicy: {
             fields: [
-              { id: 'jobItems', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: true }
+              { id: 'jobItems', path: 'job.items', type: 'typeList', accepts: ['cassette_design'], required: true }
             ]
           },
           inputs: [
-            { id: 'parent', label: 'cassette', entityType: 'cassette', required: false },
-            { id: 'data:jobItems', path: 'job.items', type: 'entityList', accepts: ['cassette_design'], required: true, constructionInputId: 'jobItems' }
+            { id: 'parent', label: 'cassette', typeId: 'cassette', required: false },
+            { id: 'data:jobItems', path: 'job.items', type: 'typeList', accepts: ['cassette_design'], required: true, constructionInputId: 'jobItems' }
           ],
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_admin'] },
-          outputs: [{ id: 'created', entityType: 'queue', status: 'DRAFT' }]
+          outputs: [{ id: 'created', typeId: 'queue', status: 'DRAFT' }]
         }
       },
       assignments: {
@@ -3113,9 +3113,9 @@ describe('@cutkit/processes compiler', () => {
       'jobItems',
       'materialPool'
     ]));
-    expect(compiled.actions.create_queue.parentEntityType).toBeNull();
+    expect(compiled.actions.create_queue.parentTypeId).toBeNull();
     expect(compiled.actions.create_queue.inputs).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'parent', entityType: '', required: false }),
+      expect.objectContaining({ id: 'parent', typeId: '', required: false }),
       expect.objectContaining({ id: 'data:jobItems', required: true })
     ]));
     const exposedQueueAction = compiled.userAccess.user_admin.actions[0];
@@ -3136,13 +3136,13 @@ describe('@cutkit/processes compiler', () => {
         create_template: {
           id: 'create_template',
           actionKind: 'createEntity',
-          entityType: 'cassette',
+          typeId: 'cassette',
           producerOutputId: 'create_template:entity',
           status: { to: 'ACTIVE' },
           construction: { mode: 'bakeCassetteDesignFromTemplate' },
           trigger: { mode: 'manual' },
           access: { level: 'admin', roleIds: ['role_admin'] },
-          outputs: [{ id: 'created', entityType: 'cassette', status: 'ACTIVE' }]
+          outputs: [{ id: 'created', typeId: 'cassette', status: 'ACTIVE' }]
         }
       },
       assignments: {
@@ -3173,10 +3173,10 @@ describe('@cutkit/processes compiler', () => {
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_editor'] },
           inputs: [
-            { id: 'entity', entityType: 'project' },
+            { id: 'entity', typeId: 'project' },
             { id: 'field:data.metadata', dataPath: 'data.metadata', kind: 'data' }
           ],
-          outputs: [{ id: 'entity', entityType: 'project' }]
+          outputs: [{ id: 'entity', typeId: 'project' }]
         }
       },
       assignments: {
@@ -3192,7 +3192,7 @@ describe('@cutkit/processes compiler', () => {
       actionKind: 'updateEntity',
       mutation: { fields: ['data.metadata'] },
       inputs: [
-        { id: 'entity', entityType: 'project' },
+        { id: 'entity', typeId: 'project' },
         { id: 'field:data.metadata', dataPath: 'data.metadata' }
       ]
     });
@@ -3206,13 +3206,13 @@ describe('@cutkit/processes compiler', () => {
         send_project: {
           id: 'send_project',
           actionKind: 'sendToOrganization',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'send_project:entity',
           projection: { fields: ['identity.*'], excludeFields: [] },
           trigger: { mode: 'event' },
           access: { level: 'write', roleIds: [] },
-          inputs: [{ id: 'entity', entityType: 'project' }],
-          outputs: [{ id: 'projection', entityType: 'project', projection: true }]
+          inputs: [{ id: 'entity', typeId: 'project' }],
+          outputs: [{ id: 'projection', typeId: 'project', projection: true }]
         }
       }
     }, domain);
@@ -3229,7 +3229,7 @@ describe('@cutkit/processes compiler', () => {
         receive_project: {
           id: 'receive_project',
           direction: 'inbound',
-          entityType: 'project',
+          typeId: 'project',
           projection: { fields: ['identity.*'], excludeFields: [] },
           receiverLifecycle: { mode: 'defaultCreated', workflow: null },
           access: { receiveRoles: [] }
@@ -3240,7 +3240,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.sockets.receive_project).toMatchObject({
       direction: 'inbound',
       inputs: [],
-      outputs: [{ id: 'received', entityType: 'project' }]
+      outputs: [{ id: 'received', typeId: 'project' }]
     });
   });
 
@@ -3295,11 +3295,11 @@ describe('@cutkit/processes compiler', () => {
           id: 'solve_queue',
           actionKind: 'runCommand',
           commandId: 'solveNesting',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'solve_queue:entity',
           trigger: { mode: 'manual' },
           access: { grants: [{ roleId: 'role_operator', level: 'write' }] },
-          inputs: [{ id: 'queue', entityType: 'queue' }]
+          inputs: [{ id: 'queue', typeId: 'queue' }]
         }
       },
       assignments: {
@@ -3372,7 +3372,7 @@ describe('@cutkit/processes compiler', () => {
       actions: {
         activate_project: {
           actionKind: 'updateEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'activate_project:entity',
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
@@ -3395,13 +3395,13 @@ describe('@cutkit/processes compiler', () => {
         create_project: {
           id: 'create_project',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'create_project:entity',
           status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_creator'] },
           inputs: [],
-          outputs: [{ id: 'created', entityType: 'project', status: INITIAL_STATE }]
+          outputs: [{ id: 'created', typeId: 'project', status: INITIAL_STATE }]
         }
       },
       assignments: {
@@ -3445,13 +3445,13 @@ describe('@cutkit/processes compiler', () => {
         make_project: {
           id: 'make_project',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'make_project:entity',
           status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: [], grants: [] },
           inputs: [],
-          outputs: [{ id: 'created', entityType: 'project', status: INITIAL_STATE }]
+          outputs: [{ id: 'created', typeId: 'project', status: INITIAL_STATE }]
         }
       },
       assignments: {
@@ -3472,7 +3472,7 @@ describe('@cutkit/processes compiler', () => {
       typeId: 'project',
       label: `Create Production Order ${INITIAL_STATE}`
     });
-    expect(compiled.userAccess.user_maker.actions.find(action => action.id === 'make_project').entityType).toBe('project');
+    expect(compiled.userAccess.user_maker.actions.find(action => action.id === 'make_project').typeId).toBe('project');
     expect(compiled.userAccess.user_maker.actions.find(action => action.id === 'make_project').inputPolicy).toBeTruthy();
     expect(compiled.screens.auto_role_maker_project.regions[0].actions).toContain('make_project');
     const home = compiled.userAccess.user_maker.screens.find(screen => screen.template === 'home');
@@ -3490,7 +3490,7 @@ describe('@cutkit/processes compiler', () => {
         create_project: {
           id: 'create_project',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'create_project:entity',
           status: { to: INITIAL_STATE },
           trigger: { mode: 'manual' },
@@ -3501,7 +3501,7 @@ describe('@cutkit/processes compiler', () => {
             ]
           },
           inputs: [],
-          outputs: [{ id: 'created', entityType: 'project', status: INITIAL_STATE }]
+          outputs: [{ id: 'created', typeId: 'project', status: INITIAL_STATE }]
         }
       },
       assignments: {
@@ -3534,8 +3534,8 @@ describe('@cutkit/processes compiler', () => {
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_operator'], statusFrom: SOURCE_STATE, statusTo: TARGET_STATE },
-          inputs: [{ id: 'entity', entityType: 'project', status: SOURCE_STATE }],
-          outputs: [{ id: 'entity', entityType: 'project', status: TARGET_STATE }]
+          inputs: [{ id: 'entity', typeId: 'project', status: SOURCE_STATE }],
+          outputs: [{ id: 'entity', typeId: 'project', status: TARGET_STATE }]
         }
       },
       assignments: {
@@ -3585,11 +3585,11 @@ describe('@cutkit/processes compiler', () => {
         create_project: {
           id: 'create_project',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'create_project:entity',
           status: { to: SOURCE_STATE },
           access: { level: 'admin', roleIds: ['role_source'] },
-          outputs: [{ id: 'created', entityType: 'project', status: SOURCE_STATE }]
+          outputs: [{ id: 'created', typeId: 'project', status: SOURCE_STATE }]
         },
         activate_project: {
           id: 'activate_project',
@@ -3603,8 +3603,8 @@ describe('@cutkit/processes compiler', () => {
             statusFrom: SOURCE_STATE,
             statusTo: TARGET_STATE
           },
-          inputs: [{ id: 'entity', entityType: 'project', status: SOURCE_STATE }],
-          outputs: [{ id: 'entity', entityType: 'project', status: TARGET_STATE }]
+          inputs: [{ id: 'entity', typeId: 'project', status: SOURCE_STATE }],
+          outputs: [{ id: 'entity', typeId: 'project', status: TARGET_STATE }]
         }
       },
       assignments: {
@@ -3655,7 +3655,7 @@ describe('@cutkit/processes compiler', () => {
         create_project: {
           id: 'create_project',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'create_project:entity',
           status: { to: SOURCE_STATE },
           access: {
@@ -3663,17 +3663,17 @@ describe('@cutkit/processes compiler', () => {
             roleIds: ['role_project'],
             scope: { entityId: '$assignment.projectId' }
           },
-          outputs: [{ id: 'created', entityType: 'project', status: SOURCE_STATE }]
+          outputs: [{ id: 'created', typeId: 'project', status: SOURCE_STATE }]
         },
         create_queue: {
           id: 'create_queue',
           actionKind: 'createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_queue:entity',
           status: { to: INITIAL_STATE },
           access: { level: 'write', roleIds: ['role_queue'] },
-          inputs: [{ id: 'parent', entityType: 'project' }],
-          outputs: [{ id: 'created', entityType: 'queue', status: INITIAL_STATE }]
+          inputs: [{ id: 'parent', typeId: 'project' }],
+          outputs: [{ id: 'created', typeId: 'queue', status: INITIAL_STATE }]
         }
       },
       assignments: {
@@ -3720,12 +3720,12 @@ describe('@cutkit/processes compiler', () => {
         create_queue: {
           id: 'create_queue',
           actionKind: 'createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_queue:entity',
           status: { to: SOURCE_STATE },
           trigger: { mode: 'manual' },
           access: { grants: [{ roleId: 'role_operator', level: 'write' }] },
-          outputs: [{ id: 'created', entityType: 'queue', status: SOURCE_STATE }]
+          outputs: [{ id: 'created', typeId: 'queue', status: SOURCE_STATE }]
         },
         solve_nesting: {
           id: 'solve_nesting',
@@ -3733,7 +3733,7 @@ describe('@cutkit/processes compiler', () => {
           commandId: 'solveNesting',
           producerOutputId: 'create_queue:entity',
           trigger: { mode: 'event' },
-          inputs: [{ id: 'queue', entityType: 'queue', status: SOURCE_STATE }]
+          inputs: [{ id: 'queue', typeId: 'queue', status: SOURCE_STATE }]
         }
       },
       assignments: {
@@ -3775,17 +3775,17 @@ describe('@cutkit/processes compiler', () => {
         create_queue: {
           id: 'create_queue',
           actionKind: 'createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_queue:entity',
           status: { to: SOURCE_STATE },
           trigger: { mode: 'manual' },
           access: { grants: [{ roleId: 'role_operator', level: 'write' }] },
-          outputs: [{ id: 'created', entityType: 'queue', status: SOURCE_STATE }]
+          outputs: [{ id: 'created', typeId: 'queue', status: SOURCE_STATE }]
         },
         send_queue: {
           id: 'send_queue',
           actionKind: 'updateEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'send_queue:entity',
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
@@ -3798,16 +3798,16 @@ describe('@cutkit/processes compiler', () => {
           producerOutputId: 'send_queue:entity',
           trigger: { mode: 'manual' },
           access: { grants: [{ roleId: 'role_operator', level: 'admin' }], modified: true },
-          inputs: [{ id: 'queue', entityType: 'queue' }],
+          inputs: [{ id: 'queue', typeId: 'queue' }],
           outputs: [
-            { id: 'nesting_run', entityType: 'nesting_run', multiple: true },
-            { id: 'sheet_design', entityType: 'sheet_design', multiple: true }
+            { id: 'nesting_run', typeId: 'nesting_run', multiple: true },
+            { id: 'sheet_design', typeId: 'sheet_design', multiple: true }
           ]
         },
         mark_run_cut: {
           id: 'mark_run_cut',
           actionKind: 'updateEntity',
-          entityType: 'nesting_run',
+          typeId: 'nesting_run',
           producerOutputId: 'mark_run_cut:entity',
           status: { to: 'CUT' },
           trigger: { mode: 'manual' },
@@ -3816,7 +3816,7 @@ describe('@cutkit/processes compiler', () => {
         reject_queue: {
           id: 'reject_queue',
           actionKind: 'updateEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'reject_queue:entity',
           status: { from: TARGET_STATE, to: 'REJECTED' },
           trigger: { mode: 'manual' },
@@ -3854,17 +3854,17 @@ describe('@cutkit/processes compiler', () => {
         create_queue: {
           id: 'create_queue',
           actionKind: 'createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_queue:entity',
           status: { to: SOURCE_STATE },
           trigger: { mode: 'manual' },
           access: { grants: [{ roleId: 'role_operator', level: 'write' }] },
-          outputs: [{ id: 'created', entityType: 'queue', status: SOURCE_STATE }]
+          outputs: [{ id: 'created', typeId: 'queue', status: SOURCE_STATE }]
         },
         send_queue: {
           id: 'send_queue',
           actionKind: 'updateEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'send_queue:entity',
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
@@ -3876,10 +3876,10 @@ describe('@cutkit/processes compiler', () => {
           commandId: 'solveNesting',
           producerOutputId: 'send_queue:entity',
           trigger: { mode: 'manual' },
-          inputs: [{ id: 'queue', entityType: 'queue' }],
+          inputs: [{ id: 'queue', typeId: 'queue' }],
           outputs: [
-            { id: 'nesting_run', entityType: 'nesting_run', multiple: true },
-            { id: 'sheet_design', entityType: 'sheet_design', multiple: true }
+            { id: 'nesting_run', typeId: 'nesting_run', multiple: true },
+            { id: 'sheet_design', typeId: 'sheet_design', multiple: true }
           ]
         }
       },
@@ -3913,12 +3913,12 @@ describe('@cutkit/processes compiler', () => {
         create_project: {
           id: 'create_project',
           actionKind: 'createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'create_project:entity',
           status: { to: SOURCE_STATE },
           trigger: { mode: 'event' },
           access: { level: 'write', roleIds: ['role_operator'] },
-          outputs: [{ id: 'created', entityType: 'project', status: SOURCE_STATE }]
+          outputs: [{ id: 'created', typeId: 'project', status: SOURCE_STATE }]
         },
         activate_project: {
           id: 'activate_project',
@@ -3927,8 +3927,8 @@ describe('@cutkit/processes compiler', () => {
           status: { from: SOURCE_STATE, to: TARGET_STATE },
           trigger: { mode: 'manual' },
           access: { level: 'write', roleIds: ['role_operator'], statusFrom: SOURCE_STATE, statusTo: TARGET_STATE },
-          inputs: [{ id: 'entity', entityType: 'project', status: SOURCE_STATE }],
-          outputs: [{ id: 'entity', entityType: 'project', status: TARGET_STATE }]
+          inputs: [{ id: 'entity', typeId: 'project', status: SOURCE_STATE }],
+          outputs: [{ id: 'entity', typeId: 'project', status: TARGET_STATE }]
         }
       }
     }, domain);
@@ -3985,11 +3985,11 @@ describe('@cutkit/processes compiler', () => {
         create_queue: {
           id: 'create_queue',
           actionKind: 'createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_queue:entity',
           status: { to: INITIAL_STATE },
           access: { level: 'write', roleIds: ['role_operator'] },
-          outputs: [{ id: 'created', entityType: 'queue', status: INITIAL_STATE }]
+          outputs: [{ id: 'created', typeId: 'queue', status: INITIAL_STATE }]
         },
         send_queue: {
           id: 'send_queue',
@@ -3997,8 +3997,8 @@ describe('@cutkit/processes compiler', () => {
           producerOutputId: 'create_queue:entity',
           status: { from: INITIAL_STATE, to: TARGET_STATE },
           access: { level: 'write', roleIds: ['role_operator'], statusFrom: INITIAL_STATE, statusTo: TARGET_STATE },
-          inputs: [{ id: 'entity', entityType: 'queue', status: INITIAL_STATE }],
-          outputs: [{ id: 'entity', entityType: 'queue', status: TARGET_STATE }]
+          inputs: [{ id: 'entity', typeId: 'queue', status: INITIAL_STATE }],
+          outputs: [{ id: 'entity', typeId: 'queue', status: TARGET_STATE }]
         },
         reject_queue: {
           id: 'reject_queue',
@@ -4006,8 +4006,8 @@ describe('@cutkit/processes compiler', () => {
           producerOutputId: 'create_queue:entity',
           status: { from: TARGET_STATE, to: NEXT_STATE },
           access: { level: 'write', roleIds: ['role_operator'], statusFrom: TARGET_STATE, statusTo: NEXT_STATE },
-          inputs: [{ id: 'entity', entityType: 'queue', status: TARGET_STATE }],
-          outputs: [{ id: 'entity', entityType: 'queue', status: NEXT_STATE }]
+          inputs: [{ id: 'entity', typeId: 'queue', status: TARGET_STATE }],
+          outputs: [{ id: 'entity', typeId: 'queue', status: NEXT_STATE }]
         }
       }
     }, domain);
@@ -4034,7 +4034,7 @@ describe('@cutkit/processes compiler', () => {
       entities: {
         library: {
           id: 'library',
-          entityType: 'library',
+          typeId: 'library',
           label: 'Library',
           lifecycle: { mode: 'domainDefault', workflow: null },
           fields: { read: ['identity.*'], write: [], private: [] },
@@ -4067,7 +4067,7 @@ describe('@cutkit/processes compiler', () => {
         project_source: {
           id: 'project_source',
           kind: 'effect.createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'project_source:entity',
           label: 'Create project',
           trigger: { mode: 'manual' },
@@ -4084,7 +4084,7 @@ describe('@cutkit/processes compiler', () => {
         create_queue: {
           id: 'create_queue',
           kind: 'effect.createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'create_queue:entity',
           label: 'Create queue',
           trigger: { mode: 'manual' },
@@ -4126,8 +4126,8 @@ describe('@cutkit/processes compiler', () => {
     });
 
     const binding = compiled.lineageBindings.find(item => (
-      item.childEntityType === 'queue'
-      && item.ancestorEntityType === 'project'
+      item.childTypeId === 'queue'
+      && item.parentTypeId === 'project'
     ));
     expect(binding).toBeDefined();
     expect(binding.lineageKey).toBe('projectId');
@@ -4164,7 +4164,7 @@ describe('@cutkit/processes compiler', () => {
         mark_cut: {
           id: 'mark_cut',
           actionKind: 'updateEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'projectMain:entity',
           status: { to: 'PRODUCTION.cut' },
           trigger: { mode: 'manual' },
@@ -4216,7 +4216,7 @@ describe('@cutkit/processes compiler', () => {
         project_a: {
           id: 'project_a',
           kind: 'effect.createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'project_a:entity',
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
@@ -4225,7 +4225,7 @@ describe('@cutkit/processes compiler', () => {
         project_b: {
           id: 'project_b',
           kind: 'effect.createEntity',
-          entityType: 'project',
+          typeId: 'project',
           producerOutputId: 'project_b:entity',
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
@@ -4248,7 +4248,7 @@ describe('@cutkit/processes compiler', () => {
         queue_a: {
           id: 'queue_a',
           kind: 'effect.createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'queue_a:entity',
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
@@ -4258,7 +4258,7 @@ describe('@cutkit/processes compiler', () => {
         queue_b: {
           id: 'queue_b',
           kind: 'effect.createEntity',
-          entityType: 'queue',
+          typeId: 'queue',
           producerOutputId: 'queue_b:entity',
           trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
@@ -4286,7 +4286,7 @@ describe('@cutkit/processes compiler', () => {
     });
 
     const bindings = compiled.lineageBindings.filter(item => (
-      item.childEntityType === 'queue' && item.ancestorEntityType === 'project'
+      item.childTypeId === 'queue' && item.parentTypeId === 'project'
     ));
     expect(bindings).toHaveLength(2);
     expect(new Set(bindings.map(item => item.producerOutputId))).toEqual(new Set(['queue_a:entity', 'queue_b:entity']));

@@ -33,7 +33,7 @@
             text
             @click.stop="downloadArtifact(artifact)" 
           />
-          <GeneratedDeleteButton entity-type="artifact" :entity="artifact" @deleted="refreshArtifacts" />
+          <GeneratedDeleteButton type-id="artifact" :entity="artifact" @deleted="refreshArtifacts" />
         </div>
       </div>
     </div>
@@ -125,7 +125,7 @@ const editableLayout = computed(() => Boolean(
         feature: 'artifacts',
         action: 'update',
         entity: previewArtifactData.value,
-        entityType: 'artifact'
+        typeId: 'artifact'
     })
 ));
 const editingLayout = ref(false);

@@ -42,12 +42,12 @@ const ENTITY_ID_FIELD_TYPES = {
 
 const OPTIONAL_LINEAGE_FIELDS = new Set(['manufacturerId', 'requisitionId', 'runId', 'sheetDesignId']);
 
-export function manualEntityContextType(entityType) {
-  return entityType === 'cassette_template' ? 'cassette' : entityType;
+export function manualEntityContextType(typeId) {
+  return typeId === 'cassette_template' ? 'cassette' : typeId;
 }
 
-export function manualEntityPreviewType(entityType) {
-  return entityType === 'cassette' ? 'cassette_template' : entityType;
+export function manualEntityPreviewType(typeId) {
+  return typeId === 'cassette' ? 'cassette_template' : typeId;
 }
 
 export function manualFieldsForEntity(type, workflowCompile = {}) {
@@ -56,7 +56,7 @@ export function manualFieldsForEntity(type, workflowCompile = {}) {
   const stateNames = workflowCompile.states?.[type] || [];
   return [
     { name: 'name', type: 'string', required: true },
-    ...(stateNames.length ? [{ name: 'state', type: 'workflowState', entityType: type, default: workflow?.initial || stateNames[0] }] : []),
+    ...(stateNames.length ? [{ name: 'state', type: 'workflowState', typeId: type, default: workflow?.initial || stateNames[0] }] : []),
     ...lineageFieldsFor(type),
     ...dataFieldsFor(type)
   ];
@@ -96,7 +96,7 @@ function lineageFieldsFor(type) {
   return (LINEAGE_FIELDS[type] || []).map(name => ({
     name,
     type: 'entityId',
-    entityType: ENTITY_ID_FIELD_TYPES[name],
+    typeId: ENTITY_ID_FIELD_TYPES[name],
     required: !OPTIONAL_LINEAGE_FIELDS.has(name)
   }));
 }
@@ -104,9 +104,9 @@ function lineageFieldsFor(type) {
 function dataFieldsFor(type) {
   if (type !== 'queue') return [];
   return [
-    { name: 'cassetteId', type: 'entityId', entityType: 'cassette', required: true },
+    { name: 'cassetteId', type: 'entityId', typeId: 'cassette', required: true },
     { name: 'quantity', type: 'number', min: 1, required: true },
-    { name: 'materialPileId', type: 'entityId', entityType: 'material_pile' }
+    { name: 'materialPileId', type: 'entityId', typeId: 'material_pile' }
   ];
 }
 

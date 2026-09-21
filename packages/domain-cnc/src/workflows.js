@@ -224,5 +224,5 @@ const workflowDefinitions = {
 };
 
 export const cncWorkflows = Object.fromEntries(
-  Object.entries(workflowDefinitions).map(([entityType, workflow]) => [entityType, mainWorkflow(workflow)])
+  Object.entries(workflowDefinitions).map(([typeId, workflow]) => [typeId, mainWorkflow(workflow)])
 );

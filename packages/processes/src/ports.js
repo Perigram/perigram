@@ -11,13 +11,13 @@ export function normalizePortSpec(io = {}, fallback = {}) {
   const typed = structuredPortType(source.type);
   const normalizedSource = { ...typed, ...source };
   const kind = normalizePortKind(source.kind || typed.kind, normalizedSource, fallback);
-  const entityType = source.entityType || typed.entityType || fallback.entityType || '';
+  const typeId = source.typeId || typed.typeId || fallback.typeId || '';
   const multiple = Boolean(source.multiple || typed.multiple || kind === 'entity_list');
   return {
     id: String(source.id || fallback.id || ''),
-    label: source.label || source.entityType || source.kind || fallback.label || source.id || fallback.id || '',
+    label: source.label || source.typeId || source.kind || fallback.label || source.id || fallback.id || '',
     kind: multiple && kind === 'entity' ? 'entity_list' : kind,
-    entityType,
+    typeId,
     block: source.block || typed.block || fallback.block || '',
     dataPath: source.dataPath || source.path || fallback.dataPath || '',
     capability: source.capability || fallback.capability || '',
@@ -34,16 +34,16 @@ function structuredPortType(type) {
   if (type.base === 'array') {
     const item = type.itemType || {};
     if (['entity', 'entityRef'].includes(item.base)) {
-      return { kind: 'entity_list', entityType: item.entityType || '', multiple: true };
+      return { kind: 'entity_list', typeId: item.typeId || '', multiple: true };
     }
     return { kind: 'list', multiple: true };
   }
   if (['entity', 'entityRef'].includes(type.base)) {
-    return { kind: 'entity', entityType: type.entityType || '', multiple: false };
+    return { kind: 'entity', typeId: type.typeId || '', multiple: false };
   }
   if (type.base === 'block') return { kind: 'block', block: type.block || '', multiple: false };
   if (['status', 'predicate', 'event'].includes(type.base)) {
-    return { kind: type.base, entityType: type.entityType || '' };
+    return { kind: type.base, typeId: type.typeId || '' };
   }
   if (type.base === 'attachmentRef') return { kind: 'attachment' };
   if (type.base === 'taskRef') return { kind: 'task' };
@@ -76,7 +76,7 @@ export function portSpecsCompatible(source = {}, target = {}) {
   }
   if (sourceSpec.kind === 'predicate' || targetSpec.kind === 'predicate') {
     return sourceSpec.kind === 'predicate' && targetSpec.kind === 'predicate'
-      ? entityTypeCompatible(sourceSpec, targetSpec)
+      ? typeIdCompatible(sourceSpec, targetSpec)
       : incompatible(sourceSpec, targetSpec);
   }
   if (['block', 'block_list'].includes(sourceSpec.kind) || ['block', 'block_list'].includes(targetSpec.kind)) {
@@ -158,7 +158,7 @@ function incomingContracts(process, targetNodeId, graphNodes) {
           id: normalizeHandleId(edge.sourceHandle, 'output') || 'value',
           label: sourceRecord.label || sourceRecord.id || 'value',
           kind: sourceType.base,
-          entityType: sourceType.entityType,
+          typeId: sourceType.typeId,
           multiple: false
         })
       : resolveNodePort(process, sourceNode, edge.sourceHandle, 'output');
@@ -207,10 +207,10 @@ function inferRecordContract(record, incoming) {
     if (valueType) next.valueType = valueType;
   }
   if (['entityDecompose', 'entityField', 'entityFilter', 'entitySelect', 'entityModify'].includes(record.kind)
-    && primary.entityType) {
-    next.entityType = primary.entityType;
+    && primary.typeId) {
+    next.typeId = primary.typeId;
   }
-  if (record.kind === 'predicateLogic' && primary.entityType) next.entityType = primary.entityType;
+  if (record.kind === 'predicateLogic' && primary.typeId) next.typeId = primary.typeId;
   if (record.kind === 'blockRead' && primary.block) next.block = primary.block;
   return next;
 }
@@ -229,7 +229,7 @@ export function resolveNodePort(process = {}, node = {}, handle = '', direction 
     return normalizePortSpec({ id: 'parent', label: 'Parent entity', kind: 'entity', optional: true });
   }
   if (node.type === 'action' && direction === 'input' && record.actionKind === 'updateEntity' && handleId === 'entity') {
-    const entityInput = (record.inputs || []).find(port => port.id === 'entity' || port.entityType);
+    const entityInput = (record.inputs || []).find(port => port.id === 'entity' || port.typeId);
     return normalizePortSpec(entityInput || { id: 'entity', kind: 'entity' });
   }
   if (node.type === 'statusDefinition' && direction === 'output') {
@@ -262,7 +262,7 @@ function inputPortsForRecord(type, record = {}) {
   }
   if (type === 'action' && record.actionKind === 'createEntity') {
     return [
-      normalizePortSpec({ id: 'parent', kind: 'entity', entityType: record.parentEntityType || '', optional: true }),
+      normalizePortSpec({ id: 'parent', kind: 'entity', typeId: record.parentTypeId || '', optional: true }),
       normalizePortSpec({ id: 'status', kind: 'status' })
     ];
   }
@@ -281,53 +281,53 @@ function outputPortsForRecord(type, record = {}) {
   }
   if (type === 'entity') {
     return [
-      normalizePortSpec({ id: 'entity', kind: 'entity', entityType: record.entityType || '' }),
+      normalizePortSpec({ id: 'entity', kind: 'entity', typeId: record.typeId || '' }),
       normalizePortSpec({ id: 'data', kind: 'data' }),
       normalizePortSpec({ id: 'block', kind: 'block' })
     ];
   }
   if (type === 'socket' && record.direction === 'inbound') {
-    return [normalizePortSpec({ id: 'received', kind: 'entity', entityType: record.entityType || '' })];
+    return [normalizePortSpec({ id: 'received', kind: 'entity', typeId: record.typeId || '' })];
   }
   if (type === 'socket') {
-    return [normalizePortSpec({ id: 'projection', kind: 'projection', entityType: record.entityType || '', projection: true })];
+    return [normalizePortSpec({ id: 'projection', kind: 'projection', typeId: record.typeId || '', projection: true })];
   }
   return [];
 }
 
 function processNodeInputPorts(record = {}) {
   if (record.kind === 'entityRef' && ['parent', 'children', 'related'].includes(record.mode)) {
-    return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '', required: true })];
+    return [normalizePortSpec({ id: 'entity', label: record.typeId || 'entity', kind: 'entity', typeId: record.typeId || '', required: true })];
   }
   if (record.kind === 'entityDecompose' || record.kind === 'entityField') {
     return [normalizePortSpec({
       id: 'entity',
-      label: record.entityType || 'entity',
+      label: record.typeId || 'entity',
       kind: structureKind('entity', record.structure),
-      entityType: record.entityType || '',
+      typeId: record.typeId || '',
       required: true
     })];
   }
   if (record.kind === 'entityFilter') {
     return [
-      normalizePortSpec({ id: 'entities', label: record.entityType || 'entities', kind: 'entity_list', entityType: record.entityType || '', required: true }),
-      normalizePortSpec({ id: 'predicate', label: 'where', kind: 'predicate', entityType: record.entityType || '', required: true })
+      normalizePortSpec({ id: 'entities', label: record.typeId || 'entities', kind: 'entity_list', typeId: record.typeId || '', required: true }),
+      normalizePortSpec({ id: 'predicate', label: 'where', kind: 'predicate', typeId: record.typeId || '', required: true })
     ];
   }
   if (record.kind === 'entitySelect') {
     return [
-      normalizePortSpec({ id: 'entities', label: record.entityType || 'entities', kind: 'entity_list', entityType: record.entityType || '', required: true }),
+      normalizePortSpec({ id: 'entities', label: record.typeId || 'entities', kind: 'entity_list', typeId: record.typeId || '', required: true }),
       ...(record.operation === 'index' ? [normalizePortSpec({ id: 'index', label: 'index', kind: 'number', required: true })] : [])
     ];
   }
   if (record.kind === 'entityCompose') {
     const declaredBlocks = (record.inputs || []).filter(port => ['block', 'block_list'].includes(port.kind) && port.block);
     if (declaredBlocks.length) return declaredBlocks.map(port => normalizePortSpec({ ...port, required: false }));
-    return processBlockPorts(record.entityType, 'item').map(port => normalizePortSpec({ ...port, required: false }));
+    return processBlockPorts(record.typeId, 'item').map(port => normalizePortSpec({ ...port, required: false }));
   }
   if (record.kind === 'entityModify') {
     return [
-      normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '', required: true }),
+      normalizePortSpec({ id: 'entity', label: record.typeId || 'entity', kind: 'entity', typeId: record.typeId || '', required: true }),
       normalizePortSpec({ id: 'block', label: record.block || 'block', kind: 'block', block: record.block || '', required: true })
     ];
   }
@@ -398,11 +398,11 @@ function processNodeInputPorts(record = {}) {
   }
   if (record.kind === 'predicateLogic') {
     if (record.operation === 'not') {
-      return [normalizePortSpec({ id: 'left', label: 'predicate', kind: 'predicate', entityType: record.entityType || '', required: true })];
+      return [normalizePortSpec({ id: 'left', label: 'predicate', kind: 'predicate', typeId: record.typeId || '', required: true })];
     }
     return [
-      normalizePortSpec({ id: 'left', label: 'left', kind: 'predicate', entityType: record.entityType || '', required: true }),
-      normalizePortSpec({ id: 'right', label: 'right', kind: 'predicate', entityType: record.entityType || '', required: true })
+      normalizePortSpec({ id: 'left', label: 'left', kind: 'predicate', typeId: record.typeId || '', required: true }),
+      normalizePortSpec({ id: 'right', label: 'right', kind: 'predicate', typeId: record.typeId || '', required: true })
     ];
   }
   if (record.kind === 'listLength') {
@@ -413,32 +413,32 @@ function processNodeInputPorts(record = {}) {
 
 function processNodeOutputPorts(record = {}) {
   if (record.kind === 'entityQuery') {
-    return [normalizePortSpec({ id: 'entities', label: record.entityType || 'entities', kind: 'entity_list', entityType: record.entityType || '' })];
+    return [normalizePortSpec({ id: 'entities', label: record.typeId || 'entities', kind: 'entity_list', typeId: record.typeId || '' })];
   }
   if (record.kind === 'entityRef') {
     const outputType = ['children', 'related'].includes(record.mode) ? 'entity_list' : 'entity';
-    const entityType = record.relationEntityType || record.entityType || '';
-    return [normalizePortSpec({ id: 'entity', label: entityType || outputType, kind: outputType, entityType })];
+    const typeId = record.relationTypeId || record.typeId || '';
+    return [normalizePortSpec({ id: 'entity', label: typeId || outputType, kind: outputType, typeId })];
   }
   if (record.kind === 'entityDecompose') {
     const declaredBlocks = (record.outputs || []).filter(port => ['block', 'block_list'].includes(port.kind) && port.block);
     if (declaredBlocks.length) return declaredBlocks.map(port => normalizePortSpec(port));
-    return processBlockPorts(record.entityType, record.structure);
+    return processBlockPorts(record.typeId, record.structure);
   }
   if (record.kind === 'entityField') {
     return [normalizePortSpec({ id: 'value', label: record.path || 'value', kind: structureKind(scalarValueKind(record), record.structure), dataPath: record.path || '' })];
   }
   if (record.kind === 'entityFilter') {
-    return [normalizePortSpec({ id: 'entities', label: record.entityType || 'entities', kind: 'entity_list', entityType: record.entityType || '' })];
+    return [normalizePortSpec({ id: 'entities', label: record.typeId || 'entities', kind: 'entity_list', typeId: record.typeId || '' })];
   }
   if (record.kind === 'entityCondition' || record.kind === 'predicateLogic') {
-    return [normalizePortSpec({ id: 'predicate', label: 'predicate', kind: 'predicate', entityType: record.entityType || '' })];
+    return [normalizePortSpec({ id: 'predicate', label: 'predicate', kind: 'predicate', typeId: record.typeId || '' })];
   }
   if (record.kind === 'entitySelect') {
-    return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
+    return [normalizePortSpec({ id: 'entity', label: record.typeId || 'entity', kind: 'entity', typeId: record.typeId || '' })];
   }
   if (record.kind === 'entityCompose' || record.kind === 'entityModify') {
-    return [normalizePortSpec({ id: 'entity', label: record.entityType || 'entity', kind: 'entity', entityType: record.entityType || '' })];
+    return [normalizePortSpec({ id: 'entity', label: record.typeId || 'entity', kind: 'entity', typeId: record.typeId || '' })];
   }
   if (record.kind === 'blockRead') {
     return [normalizePortSpec({ id: 'value', label: record.path || 'value', kind: structureKind(scalarValueKind(record), record.structure), block: record.block || '', dataPath: record.path || '' })];
@@ -464,9 +464,9 @@ function processNodeOutputPorts(record = {}) {
   return [];
 }
 
-function processBlockPorts(entityType = '', structure = 'item') {
+function processBlockPorts(typeId = '', structure = 'item') {
   return CANONICAL_ENTITY_BLOCKS
-    .map(block => normalizePortSpec({ id: block, label: block, kind: structureKind('block', structure), block, entityType }));
+    .map(block => normalizePortSpec({ id: block, label: block, kind: structureKind('block', structure), block, typeId }));
 }
 
 function findPortForHandle(ports = [], handle = '', direction = 'output') {
@@ -507,7 +507,7 @@ function normalizePortKind(kind = '', io = {}, fallback = {}) {
   if (['entity_list', 'entity', 'block', 'block_list', 'data', 'list', 'predicate', 'status', 'event', 'projection', 'attachment', 'task', ...PROCESS_SCALAR_KINDS, ...PROCESS_SCALAR_KINDS.map(value => `${value}_list`)].includes(kind)) return kind;
   if (io.projection) return 'projection';
   if (io.block) return 'block';
-  if (io.entityType) return io.multiple ? 'entity_list' : 'entity';
+  if (io.typeId) return io.multiple ? 'entity_list' : 'entity';
   if (kind === 'object') return 'data';
   if (io.dataPath || io.path) return 'data';
   if (fallback.kind) return fallback.kind;
@@ -561,19 +561,19 @@ function blockCompatible(source, target) {
 function entityLikeCompatible(source, target) {
   if (target.id === 'parent') return { ok: true };
   if (source.kind === 'entity_list' && target.kind === 'entity') {
-    return entityTypeCompatible(source, target);
+    return typeIdCompatible(source, target);
   }
   if (source.kind !== target.kind) return incompatible(source, target);
-  return entityTypeCompatible(source, target);
+  return typeIdCompatible(source, target);
 }
 
-function entityTypeCompatible(source, target) {
+function typeIdCompatible(source, target) {
   if (target.accepts.length) {
-    if (!source.entityType || target.accepts.includes(source.entityType) || target.accepts.includes(source.capability)) return { ok: true };
+    if (!source.typeId || target.accepts.includes(source.typeId) || target.accepts.includes(source.capability)) return { ok: true };
     return incompatible(source, target);
   }
   if (target.capability && source.capability && target.capability !== source.capability) return incompatible(source, target);
-  if (!source.entityType || !target.entityType || source.entityType === target.entityType) return { ok: true };
+  if (!source.typeId || !target.typeId || source.typeId === target.typeId) return { ok: true };
   return incompatible(source, target);
 }
 
@@ -582,5 +582,5 @@ function incompatible(source, target) {
 }
 
 function portLabel(port = {}) {
-  return port.label || [port.kind, port.entityType || port.block || port.dataPath || port.id].filter(Boolean).join(':') || 'port';
+  return port.label || [port.kind, port.typeId || port.block || port.dataPath || port.id].filter(Boolean).join(':') || 'port';
 }

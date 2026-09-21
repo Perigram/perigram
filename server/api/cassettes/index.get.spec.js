@@ -11,7 +11,7 @@ vi.mock('../../features/cassettes/service.js', () => ({
 }));
 
 vi.mock('../../utils/entity-redaction.js', () => ({
-  serializeManyForAccess: vi.fn((entityType, items) => items)
+  serializeManyForAccess: vi.fn((typeId, items) => items)
 }));
 
 import handler from './index.get.js';

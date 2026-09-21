@@ -14,11 +14,11 @@ function persistedCreate() {
       processNode_1785860422855: {
         id: 'processNode_1785860422855',
         kind: 'effect.createEntity',
-        entityType: 'work_item',
+        typeId: 'work_item',
         outputs: [{
           id: 'result',
           role: 'data',
-          type: { base: 'entity', entityType: 'work_item', nullable: false }
+          type: { base: 'entity', typeId: 'work_item', nullable: false }
         }]
       }
     },
@@ -38,7 +38,7 @@ describe('persisted producer output identity migration', () => {
       producerOutputId: 'processNode_1785860422855:result',
       nodeId: 'processNode_1785860422855',
       outputSocketId: 'result',
-      entityType: 'work_item',
+      typeId: 'work_item',
       fields: { read: [], write: [], private: [] }
     });
     expect(result.data.compiled).toBeNull();
@@ -66,7 +66,7 @@ describe('persisted producer output identity migration', () => {
     data.entityProfiles = {
       work_item: {
         id: 'work_item',
-        entityType: 'work_item',
+        typeId: 'work_item',
         lifecycle: { mode: 'domainDefault' },
         fields: { read: ['identity.*'], write: [], private: [] }
       }
@@ -87,7 +87,7 @@ describe('persisted producer output identity migration', () => {
     data.actions.processNode_1785860422855 = {
       id: 'processNode_1785860422855',
       actionKind: 'createEntity',
-      entityType: 'work_item'
+      typeId: 'work_item'
     };
 
     const result = migrateProducerOutputIdentities(data);
@@ -102,13 +102,13 @@ describe('persisted producer output identity migration', () => {
       producerOutputId: 'source:entity',
       nodeId: 'source',
       outputSocketId: 'entity',
-      entityType: 'work_item',
+      typeId: 'work_item',
       fields: { read: [], write: [], private: [] }
     };
     data.processNodes.update = {
       id: 'update',
       kind: 'effect.updateEntity',
-      entityType: 'work_item',
+      typeId: 'work_item',
       producerOutputId: 'source:entity'
     };
 
@@ -123,7 +123,7 @@ describe('persisted producer output identity migration', () => {
     data.processNodes.processNode_1785860422855.outputs.push({
       id: 'secondary',
       role: 'data',
-      type: { base: 'entity', entityType: 'work_item', nullable: false }
+      type: { base: 'entity', typeId: 'work_item', nullable: false }
     });
 
     const result = migrateProducerOutputIdentities(data);

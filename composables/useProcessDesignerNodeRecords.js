@@ -1,7 +1,7 @@
 import { operationKindOf, typeIdOf } from '~/packages/cts/src/index.js';
 
 // Node-record factories for the process designer. The page remains the
-// composition root: domain-derived option lists, entity-type resolution, and
+// composition root: domain-derived option lists, type-id resolution, and
 // the post-creation sync hook are injected so this module owns only record
 // shapes and defaults.
 const processNodeOperations = {
@@ -115,7 +115,7 @@ export function useProcessDesignerNodeRecords({
     endOfDay: translate('processDesigner.operationLabels.endOfDay')
   };
 
-  function defaultEntityType() {
+  function defaultTypeId() {
     return designer.entityOptions[0]?.value || '';
   }
 
@@ -137,7 +137,7 @@ export function useProcessDesignerNodeRecords({
       id,
       label: id,
       direction,
-      entityType: '',
+      typeId: '',
       projection: { fields: [], excludeFields: [], lifecycle: { exposedRegions: ['main'], stateMap: {} } },
       receiverLifecycle: { mode: 'defaultCreated', workflow: null },
       access: { sendRoles: [], receiveRoles: [] }
@@ -153,7 +153,7 @@ export function useProcessDesignerNodeRecords({
       id,
       kind,
       label: '',
-      ...(v5 ? { typeId: '' } : { entityType: '' }),
+      ...(v5 ? { typeId: '' } : { typeId: '' }),
       construction: { mode: 'genericCreate', inputs: [] },
       status: null,
       matching: 'item',
@@ -185,6 +185,6 @@ export function useProcessDesignerNodeRecords({
     createService,
     createSocket,
     createProcessNode,
-    defaultEntityType
+    defaultTypeId
   };
 }

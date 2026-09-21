@@ -36,7 +36,7 @@ const totalArea = computed(() => props.project.summary?.totalArea || 0);
   <div class="h-full cursor-pointer" @click="handleCardClick">
     <EntityCard
       :entity="project"
-      entity-type="project"
+      type-id="project"
       :surface="variant === 'card' ? 'workspace' : variant"
       :variant="variant"
       :display-extensions="appEntityDisplayExtensions"
@@ -57,7 +57,7 @@ const totalArea = computed(() => props.project.summary?.totalArea || 0);
         <Divider />
         <EntitySurfaceContent
           :entity="project"
-          entity-type="project"
+          type-id="project"
           surface="workspace"
           :display-extensions="appEntityDisplayExtensions"
         />

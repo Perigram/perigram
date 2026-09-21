@@ -8,7 +8,7 @@ test.describe('entity action buttons', () => {
 
     await app.page.goto(`/project/${projectSlug}/details`);
     const statusControl = app.page.locator(
-      `[data-entity-status="true"][data-entity-type="project"][data-entity-id="${project._id}"]`
+      `[data-entity-status="true"][data-type-id="project"][data-entity-id="${project._id}"]`
     );
     await expect(statusControl).toBeVisible();
     await expect(statusControl.locator('[data-status-menu-trigger="true"]')).toBeVisible();

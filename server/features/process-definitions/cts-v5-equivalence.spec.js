@@ -48,7 +48,7 @@ function readModifyWriteDefinition() {
     producerOutputs: {
       'machine_context:entity': {
         id: 'machine_context:entity', producerOutputId: 'machine_context:entity', nodeId: 'machine_context', outputSocketId: 'entity',
-        entityType: 'sheet', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*'], write: ['identity.*'], private: [] }
+        typeId: 'sheet', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*'], write: ['identity.*'], private: [] }
       }
     },
     actions: {},
@@ -56,12 +56,12 @@ function readModifyWriteDefinition() {
     sockets: {},
     screens: {},
     processNodes: {
-      deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', entityType: 'sheet', blocks: ['identity'] },
+      deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', typeId: 'sheet', blocks: ['identity'] },
       names: { id: 'names', kind: 'source.literalList', access: 'list', value: ['Renamed sheet'] },
       refs: { id: 'refs', kind: 'source.literalTree', access: 'tree', value: { branches: [{ path: [], items: [{ code: 'M-01', location: 'Hall A' }] }] } },
       modify: { id: 'modify', kind: 'record.modifyBlock', block: 'identity', fields: ['identity.name', 'identity.reference'] },
       update: {
-        id: 'update', kind: 'effect.updateEntity', entityType: 'sheet',
+        id: 'update', kind: 'effect.updateEntity', typeId: 'sheet',
         producerOutputId: 'machine_context:entity', label: 'Update sheet',
         trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }, blocks: ['identity']
       }
@@ -83,7 +83,7 @@ function relationCreateDefinition() {
     producerOutputs: {
       'facade_context:entity': {
         id: 'facade_context:entity', producerOutputId: 'facade_context:entity', nodeId: 'facade_context', outputSocketId: 'entity',
-        entityType: 'facade', lifecycle: { mode: 'domainDefault' }, fields: { read: [], write: ['relations.*'], private: [] }
+        typeId: 'facade', lifecycle: { mode: 'domainDefault' }, fields: { read: [], write: ['relations.*'], private: [] }
       }
     },
     actions: {},
@@ -93,10 +93,10 @@ function relationCreateDefinition() {
     processNodes: {
       relations: {
         id: 'relations', kind: 'record.composeBlock', block: 'relations', compositionMode: 'relations',
-        entries: [{ id: 'sourceMaterial', key: 'sourceMaterial', entityType: 'material', type: { base: 'entityRef', entityType: 'material' } }]
+        entries: [{ id: 'sourceMaterial', key: 'sourceMaterial', typeId: 'material', type: { base: 'entityRef', typeId: 'material' } }]
       },
       effect: {
-        id: 'effect', kind: 'effect.createEntity', entityType: 'facade',
+        id: 'effect', kind: 'effect.createEntity', typeId: 'facade',
         blocks: ['relations'], construction: { mode: 'genericCreate' },
         trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
       }
@@ -143,13 +143,13 @@ function grantedCreateDefinition() {
     producerOutputs: {
       'create:result': {
         id: 'create:result', producerOutputId: 'create:result', nodeId: 'create', outputSocketId: 'result',
-        entityType: 'facade', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*'], write: [], private: [] }
+        typeId: 'facade', lifecycle: { mode: 'domainDefault' }, fields: { read: ['identity.*'], write: [], private: [] }
       }
     },
     actions: {}, services: {}, sockets: {}, screens: {},
     processNodes: {
       create: {
-        id: 'create', kind: 'effect.createEntity', entityType: 'facade', producerOutputId: 'create:result',
+        id: 'create', kind: 'effect.createEntity', typeId: 'facade', producerOutputId: 'create:result',
         construction: { mode: 'genericCreate' }, blocks: [], trigger: { mode: 'manual' },
         access: { level: 'admin', grants: [{ roleId: 'role_admin', level: 'admin' }] },
         status: { to: 'draft' }
@@ -221,7 +221,7 @@ describe('graph protocol v5 (SPEC §20)', () => {
     expect(created.processNodes.effect.kind).toBe('cts.construct');
     expect(created.processNodes.effect.via).toBe('genericCreate');
     expect(created.processNodes.relations.entries[0].target).toBe('material');
-    expect(created.processNodes.relations.entries[0].type).toEqual({ base: 'entityRef', entityType: 'material' });
+    expect(created.processNodes.relations.entries[0].type).toEqual({ base: 'entityRef', typeId: 'material' });
 
     const fields = migrateV4Definition(fieldReadDefinition(), projectedDomain()).definition.processNodes.present;
     expect(fields.kind).toBe('cts.field');
@@ -250,22 +250,22 @@ describe('graph protocol v5 (SPEC §20)', () => {
       { graphProtocol: 5, processNodes: {}, producerOutputs: { 'q:entity': queueOutput } },
       domain
     ).definition;
-    expect(resolved.producerOutputs['q:entity'].entityType).toBe('queue');
+    expect(resolved.producerOutputs['q:entity'].typeId).toBe('queue');
     expect(resolved.producerOutputs['q:entity'].fields.read).toEqual(['identity.*', 'data.job', 'data.value']);
   });
 
   it('kebab/snake round trips through kebab-only type ids', () => {
     const domain = projectedDomain();
     const original = relationCreateDefinition();
-    original.processNodes.effect.entityType = 'solve_run';
-    original.producerOutputs['facade_context:entity'].entityType = 'solve_run';
+    original.processNodes.effect.typeId = 'solve_run';
+    original.producerOutputs['facade_context:entity'].typeId = 'solve_run';
     const { definition: migrated } = migrateV4Definition(original, domain);
     expect(migrated.processNodes.effect.typeId).toBe('solve-run');
     expect(migrated.producerOutputs['facade_context:entity'].typeId).toBe('solve-run');
     const { definition: resolved } = resolveCtsDefinition(migrated, domain);
     // After the cut, storage entity ids are the kebab type ids themselves
-    expect(resolved.processNodes.effect.entityType).toBe('solve-run');
-    expect(resolved.producerOutputs['facade_context:entity'].entityType).toBe('solve-run');
+    expect(resolved.processNodes.effect.typeId).toBe('solve-run');
+    expect(resolved.producerOutputs['facade_context:entity'].typeId).toBe('solve-run');
   });
 
   it('binding checks reject unknown types, undeclared states, and fields outside the row', () => {
@@ -310,9 +310,9 @@ describe('graph protocol v5 (SPEC §20)', () => {
     const compiled = compileProcessDefinition(structuredClone(resolved), domain, { roles });
     // The inferred screen is for the action's OWN entity type — feature
     // resolution must never substitute an arbitrary sibling type.
-    expect(compiled.screens['auto_role_admin_facade']).toMatchObject({ kind: 'entityList', typeId: 'facade', roleIds: ['role_admin'] });
+    expect(compiled.screens['auto_role_admin_facade']).toMatchObject({ kind: 'typeList', typeId: 'facade', roleIds: ['role_admin'] });
     expect(Object.keys(compiled.screens).every(id => !id.includes('project'))).toBe(true);
-    expect(compiled.roles.role_admin.grants).toEqual([expect.objectContaining({ feature: 'groups', level: 'admin', entityType: 'facade' })]);
+    expect(compiled.roles.role_admin.grants).toEqual([expect.objectContaining({ feature: 'groups', level: 'admin', typeId: 'facade' })]);
     expect(compiled.roles.role_admin.actions.map(action => action.actionId)).toContain('create');
   });
 
@@ -332,13 +332,13 @@ describe('graph protocol v5 (SPEC §20)', () => {
       graph: { nodes: [], edges: [] },
       roleGrants: {},
       producerOutputs: {
-        'a:result': { id: 'a:result', producerOutputId: 'a:result', nodeId: 'a', outputSocketId: 'result', entityType: 'panel-a', lifecycle: { mode: 'domainDefault' }, fields: { read: [], write: [], private: [] } },
-        'b:result': { id: 'b:result', producerOutputId: 'b:result', nodeId: 'b', outputSocketId: 'result', entityType: 'panel-b', lifecycle: { mode: 'domainDefault' }, fields: { read: [], write: [], private: [] } }
+        'a:result': { id: 'a:result', producerOutputId: 'a:result', nodeId: 'a', outputSocketId: 'result', typeId: 'panel-a', lifecycle: { mode: 'domainDefault' }, fields: { read: [], write: [], private: [] } },
+        'b:result': { id: 'b:result', producerOutputId: 'b:result', nodeId: 'b', outputSocketId: 'result', typeId: 'panel-b', lifecycle: { mode: 'domainDefault' }, fields: { read: [], write: [], private: [] } }
       },
       actions: {}, services: {}, sockets: {}, screens: {},
       processNodes: {
-        a: { id: 'a', kind: 'effect.createEntity', entityType: 'panel-a', producerOutputId: 'a:result', construction: { mode: 'genericCreate' }, blocks: [], trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }, status: { to: 'draft' } },
-        b: { id: 'b', kind: 'effect.createEntity', entityType: 'panel-b', producerOutputId: 'b:result', construction: { mode: 'genericCreate' }, blocks: [], trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }, status: { to: 'draft' } }
+        a: { id: 'a', kind: 'effect.createEntity', typeId: 'panel-a', producerOutputId: 'a:result', construction: { mode: 'genericCreate' }, blocks: [], trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }, status: { to: 'draft' } },
+        b: { id: 'b', kind: 'effect.createEntity', typeId: 'panel-b', producerOutputId: 'b:result', construction: { mode: 'genericCreate' }, blocks: [], trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }, status: { to: 'draft' } }
       }
     };
     const compiled = compileProcessDefinition(definition, domain, { roles });

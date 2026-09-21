@@ -30,13 +30,13 @@ export function resolveGeneratedActionEntities({ action = {}, entity = null, con
   const entities = {};
   const entityId = entityIdentifier(entity);
   const parentType = action.parentTypeId || '';
-  const entityType = actionInputEntityType(action)
+  const typeId = actionInputTypeId(action)
     || entity?.origin?.type
     || entity?.type
     || resolvedContext?.typeId
     || parentType
     || '';
-  if (entityId && entityType) entities[entityType] = entityId;
+  if (entityId && typeId) entities[typeId] = entityId;
 
   const contextParentId = parentType && resolvedContext.parentTypeId === parentType
     ? entityIdentifier(resolvedContext.parentEntity) || resolvedContext.parentEntityId
@@ -62,10 +62,10 @@ export function entityIdentifier(entity = null) {
   return entity?._id || entity?.identity?.uid || entity?.id || '';
 }
 
-function actionInputEntityType(action = {}) {
+function actionInputTypeId(action = {}) {
   if (action.actionKind === 'createInstance') return '';
   return action.typeId
-    || action.inputs?.find(input => input.id === 'entity' || (input.required && input.prompt !== true && input.entityType))?.entityType
+    || action.inputs?.find(input => input.id === 'entity' || (input.required && input.prompt !== true && input.typeId))?.typeId
     || '';
 }
 

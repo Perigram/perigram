@@ -1,6 +1,6 @@
 <template>
   <div>
-    <EntityCard :entity="pile" entity-type="material_pile" :variant="variant" :show-status="false">
+    <EntityCard :entity="pile" type-id="material_pile" :variant="variant" :show-status="false">
       <template #before-identity>
         <i class="pi pi-box"></i>
       </template>
@@ -16,8 +16,8 @@
       <Divider />
       <div class="flex flex-col gap-4">
         <BatchPileSummary :pile="pile" />
-        <SpecsBlock entity-type="batchPile" :entity="pile" />
-        <DataBlock entity-type="batchPile" :entity="pile" :fields="BATCH_PILE_FIELDS" />
+        <SpecsBlock type-id="batchPile" :entity="pile" />
+        <DataBlock type-id="batchPile" :entity="pile" :fields="BATCH_PILE_FIELDS" />
         <div v-if="requisitionId" class="flex flex-col gap-1 text-body">
           <small class="text-muted">{{ $t('entities.requisition') }}</small>
           <EntityInlineRef type="requisition" :id="requisitionId" />
@@ -38,7 +38,7 @@ import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
 import BatchPileSummary from '~/components/entities/BatchPile/BatchPileSummary.vue';
 import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
 
-const BATCH_PILE_FIELDS = resolveEntityDisplayFields({ entityType: 'batchPile', surface: 'card' })
+const BATCH_PILE_FIELDS = resolveEntityDisplayFields({ typeId: 'batchPile', surface: 'card' })
   .filter(field => field.display !== 'entityRef');
 
 const props = defineProps({

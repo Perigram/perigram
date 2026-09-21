@@ -70,7 +70,7 @@ export async function update(id, updates = {}, userId, userOrg, userRole, userPe
 
   if (updates.status && typeof updates.status === 'string') {
     await statusService.transitionWithResult({
-      entityType: 'library',
+      typeId: 'library',
       targetId: current._id,
       targetState: updates.status,
       auth: createTransitionAuth(userId, userRole, userPermissions),
@@ -107,7 +107,7 @@ function normalizePrimaryStatuses(value) {
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'library',
+  typeId: 'library',
   repository,
   Model: Library
 });

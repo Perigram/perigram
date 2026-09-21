@@ -91,7 +91,7 @@ services, and sockets.
 An entity-emitting socket is identified by
 `producerOutputId = nodeId:outputSocketId`. Compilation emits
 `producerOutputs[producerOutputId]`, which owns that output's workflow, field
-policy, and lineage bindings. `entityTypeIndex` lists matching output ids for
+policy, and lineage bindings. `typeIdIndex` lists matching output ids for
 schema discovery only; runtime workflow selection always requires the exact
 producer output id.
 
@@ -186,7 +186,7 @@ state.
 `contract-diff.js` owns the semantic Apply diff between two compiled
 contracts: `diffProcessContracts(previous, next)` reports added/removed/changed
 actions (with the changed semantic fields), screens, and role grants;
-per-entity-type CRUD capability changes; per-producer workflow changes (states
+per-type-id CRUD capability changes; per-producer workflow changes (states
 with region prefixes, `from->to` transitions, entry states); field-policy
 section changes; and `removedEntityStatuses` — primary-region statuses whose
 removal strands live entities, computed per entity type as the union of that
@@ -276,7 +276,7 @@ every screen and action record (`projectUiScreen` /
 `typeId`, `parentTypeId`, projected templates (`typeList`/`instanceDetail`),
 and the rich execution fields (`inputPolicy`, `relationMutation`, status
 window, `contracts`, exposure `inputs`) under their own names. No
-`entityType`/`actionId` key crosses hydration; the compiled execution
+`typeId`/`actionId` key crosses hydration; the compiled execution
 channel keeps its internal field names server-side only, and the
 lineage-binding payload hydrates with `childTypeId`/`parentTypeId`.
 When an assignment contains multiple role ids, generated and authored screens
@@ -352,7 +352,7 @@ id key from the connected entity output (`project` becomes `projectId`);
 definition normalization repeats that inference so a saved graph never depends
 on inspector state. Parentage remains a field of a composed Lineage block, not
 an extra Create socket. The compiler emits `lineageBindings` from those graph
-edges: each binding carries `{ childEntityType, ancestorEntityType, lineageKey,
+edges: each binding carries `{ childTypeId, parentTypeId, lineageKey,
 producerOutputId, sourceProducerOutputId, sourceNode, sourceSocket,
 consumingNode, consumingSocket }`. `producerOutputId` is the consuming
 Create/Run Producer output and `sourceProducerOutputId` the entity-emitting
@@ -424,7 +424,7 @@ kind/entity mismatches while keeping generic authoring sockets, such as
 create-action parent inputs, available for later compiler lineage validation.
 The resolver treats the `input:parent` handle as a generic parent socket even
 when a saved action record still contains stale concrete parent metadata, so old
-`label: cassette` or `parentEntityType: cassette` values do not make every
+`label: cassette` or `parentTypeId: cassette` values do not make every
 parent wire validate as cassette-only. Command outputs that produce an entity
 collection may feed same-entity row actions through `input:entity`; the entity
 type still has to match.
@@ -434,7 +434,7 @@ validation or compilation. This preserves old wires such as
 `...-output:nesting_run-...-input:entity-...` and prevents them from falling
 back to stale generic record ports.
 When a graph edge connects an action output to another action's `parent` input,
-that edge is authoritative over stale stored `parentEntityType` or parent input
+that edge is authoritative over stale stored `parentTypeId` or parent input
 metadata. This keeps detail-screen child regions aligned with the visual graph
 after entity types are changed on existing nodes.
 Root create actions may still carry a generic optional parent socket for canvas
@@ -734,7 +734,7 @@ block. Deconstruct Entity and Get Block select only blocks declared by the
 incoming entity contract (the entity's `blocks` list plus its field-access
 policy block prefixes, including the framework-owned `attachments` open block).
 Compilation rejects any other selected block with the same
-`uses block <block> outside <entityType>` diagnostic used by the legacy block
+`uses block <block> outside <typeId>` diagnostic used by the legacy block
 kinds, and the evaluator enforces the identical check whenever the domain
 contract is supplied to the run or preview environment, so an undeclared block
 fails instead of silently reading `undefined`. All three reads evaluate through
@@ -817,7 +817,7 @@ Status-mutating update action labels are also derived from that target status
 definition label, or the target state id when no label exists, whenever the
 authored label is only a generic palette placeholder such as `Action`, `status`,
 or the raw action kind.
-Their access grants are entity-type grants conditioned by the resulting state:
+Their access grants are type-id grants conditioned by the resulting state:
 the designer derives the entity type and source status from the incoming graph
 socket, carries the type to the output socket, and stores
 `action.access.statusFrom` / `action.access.statusTo` from that graph context

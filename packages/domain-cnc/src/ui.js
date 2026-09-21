@@ -71,7 +71,7 @@ export const cncDesignSystemPrimitives = [
   { key: 'StandardPage', kind: 'layout', componentPath: 'components/shared/StandardPage.vue', purpose: 'Standard page shell with header and breadcrumbs.', docs: ['components/shared/README.md'] }
 ];
 
-const workflowStatus = (entityType) => cncWorkflows[entityType] ? 'interactive' : 'hidden';
+const workflowStatus = (typeId) => cncWorkflows[typeId] ? 'interactive' : 'hidden';
 
 export const cncDesignSystemEntityContracts = [
   ['facade', 'facade', 'production', 'entities.facade', 'facade', 'createMockFacade', workflowStatus('facade'), true, ['components/entities/Facade/README.md', 'server/features/facades/README.md']],
@@ -105,9 +105,9 @@ export const cncDesignSystemEntityContracts = [
   ['organization', 'organization', 'system', 'entities.organization', 'organization', 'createMockOrganization', 'hidden', false, ['server/features/organizations/README.md']],
   ['artifact', 'artifact', 'system', 'entities.artifact', 'artifact', 'createMockArtifact', workflowStatus('artifact'), true, ['server/features/artifacts/README.md']],
   ['artifactTemplate', 'artifact_template', 'master', 'entities.artifactTemplate', 'artifactTemplate', 'createMockArtifactTemplate', 'hidden', false, ['server/features/artifact-templates/README.md']]
-].map(([key, entityType, group, labelKey, propName, factoryName, status, trace, docs]) => ({
+].map(([key, typeId, group, labelKey, propName, factoryName, status, trace, docs]) => ({
   key,
-  entityType,
+  typeId,
   group,
   labelKey,
   propName,
@@ -130,7 +130,7 @@ export const cncDesignSystem = {
 
 export const cncUiSurfaces = cncEntities.map(definition => ({
   key: definition.surfaceKey,
-  entityType: definition.type,
+  typeId: definition.type,
   routes: definition.routes,
   icon: iconForType(definition.surfaceKey),
   display: {

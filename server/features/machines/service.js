@@ -48,7 +48,7 @@ export async function seedSystemDefault() {
 export async function getById(id, userId = null, userOrg = null, userRole = null, auth = null) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Machine not found' });
-  if (!hasEntityAccess({ entity: raw, entityType: 'machine', feature: 'machines', level: 'read', auth })) {
+  if (!hasEntityAccess({ entity: raw, typeId: 'machine', feature: 'machines', level: 'read', auth })) {
     throw createError({ statusCode: auth ? 403 : 401, message: auth ? 'Permission denied' : 'Authentication required' });
   }
   return toDTO(raw);
@@ -67,14 +67,14 @@ export async function list(userId = null, userOrg = null, userRole = null, auth 
     ]
   });
   return raws
-    .filter(raw => hasEntityAccess({ entity: raw, entityType: 'machine', feature: 'machines', level: 'read', auth }))
+    .filter(raw => hasEntityAccess({ entity: raw, typeId: 'machine', feature: 'machines', level: 'read', auth }))
     .map(toDTO);
 }
 
 export async function create(data, userId, userOrg, userRole, auth) {
   if (!userOrg) throw createError({ statusCode: 400, message: 'Organization context required' });
   const lineage = { organizationId: toFlexibleId(userOrg) };
-  assertEntityAccess({ entity: { lineage }, entityType: 'machine', feature: 'machines', level: 'write', auth });
+  assertEntityAccess({ entity: { lineage }, typeId: 'machine', feature: 'machines', level: 'write', auth });
   const machine = new Machine({
     identity: createIdentity(data.name || 'Machine', `machine-${new ObjectId().toString().slice(-12)}`),
     lineage,
@@ -87,7 +87,7 @@ export async function update(id, updates, userId, userOrg, userRole, auth) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Machine not found' });
   if (raw.lineage?.scope === 'system') throw createError({ statusCode: 403, message: 'System machines cannot be modified' });
-  assertEntityAccess({ entity: raw, entityType: 'machine', feature: 'machines', level: 'write', auth });
+  assertEntityAccess({ entity: raw, typeId: 'machine', feature: 'machines', level: 'write', auth });
   const data = validateMachineData({ ...raw.data, ...(updates.data || updates) });
   const identity = { ...raw.identity, ...(updates.name ? { name: updates.name } : {}) };
   return toDTO(await repository.updateById(id, { identity, data }));
@@ -97,13 +97,13 @@ export async function remove(id, userId, userOrg, userRole, auth) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Machine not found' });
   if (raw.lineage?.scope === 'system') throw createError({ statusCode: 403, message: 'System machines cannot be deleted' });
-  assertEntityAccess({ entity: raw, entityType: 'machine', feature: 'machines', level: 'admin', auth });
+  assertEntityAccess({ entity: raw, typeId: 'machine', feature: 'machines', level: 'admin', auth });
   await repository.deleteById(id);
   return { success: true };
 }
 
 export const processUpdate = createProcessUpdateHandler({
-  entityType: 'machine',
+  typeId: 'machine',
   repository,
   Model: Machine
 });
