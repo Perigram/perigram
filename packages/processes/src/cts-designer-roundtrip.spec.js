@@ -5,7 +5,7 @@
 // species kinds, kebab type ids — without losing records through the
 // canvas round trip.
 import { describe, it, expect } from 'vitest';
-import { PROCESS_DESIGNER_PALETTE_GROUPS, createProcessDesignerContract, syncProcessNodeProducerOutputs } from './designer.js';
+import { PROCESS_DESIGNER_PALETTE_GROUPS, createProcessDesignerContract, syncProcessNodeProducerOutputs, migrateProcessDefinition } from './designer.js';
 import { resolveCatalogNodePorts, getProcessNodeDefinition } from './node-catalog.js';
 import { definitionToCanvas, canvasToDefinition, validateRoundTrip } from './transpiler.js';
 import { servicesPaletteGroups } from './designer.js';
@@ -100,6 +100,35 @@ describe('graph protocol v5 designer round trip', () => {
     });
     expect(consumer).toEqual([]);
     expect(data.producerOutputs['n2:result']).toBeUndefined();
+  });
+
+  it('definitions persisted under the legacy entityType vocabulary load and compile as typeId', () => {
+    const domain = projectedDomain();
+    const legacy = {
+      schemaVersion: 1,
+      dataflowVersion: 4,
+      graph: { nodes: [{ id: 'update', type: 'processNode', data: { refId: 'update' } }], edges: [] },
+      roleGrants: {},
+      producerOutputs: {},
+      actions: {},
+      services: {},
+      sockets: {},
+      statusDefinitions: {},
+      valueInputs: {},
+      screens: { list: { id: 'list', label: 'List', template: 'entityList', roleIds: [], sources: [{ id: 'sheet', entityType: 'sheet', mode: 'list', filters: {} }], regions: [{ id: 'main', slot: 'main', sourceId: 'sheet', surface: 'card', actions: [] }] } },
+      processNodes: {
+        update: {
+          id: 'update', kind: 'effect.updateEntity', entityType: 'cut_plan',
+          blocks: ['identity'], trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
+        }
+      }
+    };
+
+    const { definition: migrated } = migrateProcessDefinition(legacy, domain);
+    expect(migrated.processNodes.update.kind).toBe('cts.mutate');
+    expect(migrated.processNodes.update.typeId).toBe('cut-plan');
+    expect(migrated.screens.list.template).toBe('typeList');
+    expect(migrated.screens.list.sources[0].typeId).toBe('sheet');
   });
 
   it('a v4 definition loads onto the canvas and round-trips as v5', () => {

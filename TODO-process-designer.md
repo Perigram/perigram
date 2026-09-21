@@ -447,3 +447,18 @@ with ZERO new failures vs the local baseline (25 pre-existing
 mongo-mock/manifest failures unchanged, one design-system check fixed by
 the sweep), check-arch, check-docs, framework:validate all pass. Global
 grep for the legacy vocabulary: 0 hits.
+
+##### Agent Notes — 2026-09-21 persisted-data typeId migration
+
+The rename broke stored drafts: process definitions authored under the
+legacy keys compiled with `unknown entity type undefined`. Fixed on
+`agent/typeid-migration-20260921` with the contract-and-data rule done
+properly: `renameLegacyTypeKeys` (graph-protocol) rewrites legacy
+`entityType`/`childEntityType`/`ancestorEntityType`/`parentEntityType`
+keys and `entityList`/`entityDetail` templates at the one-way load seam
+every validate/activate/hydrate/save flows through, and
+`server/scripts/migrate-process-definitions-typeid.js` persists the same
+rewrite (applied to the live db: 38 documents, idempotent). Spec pins a
+legacy-vocabulary fixture loading as typeId. Verified against the live
+active process through the real seam: acceptance clean, identity
+migration clean, 4 actions / 8 compiled / 9 manifest screens.

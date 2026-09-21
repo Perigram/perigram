@@ -64,6 +64,14 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   `changeStatus` process actions into canonical `updateEntity` actions with a
   status mutation input and recompiles active runtime contracts. Run before
   relying on the unified process action protocol.
+- `server/scripts/migrate-process-definitions-typeid.js`: One-shot rewrite of
+  persisted process definitions authored before the typeId unification —
+  legacy `entityType`/`childEntityType`/`ancestorEntityType`/
+  `parentEntityType` keys and `entityList`/`entityDetail` templates become
+  their `typeId`-vocabulary equivalents. The graph-protocol load seam
+  (`renameLegacyTypeKeys`) applies the same rewrite on every load, so the
+  script persists what hydration already normalizes; dry-run by default,
+  `APPLY=1` writes.
 - `server/scripts/migrate-process-command-output-statuses.js`: Active-process
   data migration for command outputs. It reads graph edges from `runCommand`
   action nodes into downstream status-mutating `updateEntity` nodes, builds

@@ -187,8 +187,40 @@ function schemasFor(domain = {}, typeId = '') {
 
 // -- migration: v4 -> v5 (syntactic, one-way, persisted) --
 
+// One-way vocabulary rewrite for definitions persisted before the typeId
+// unification: records, port descriptors, prompt fields, lineage
+// bindings, and screen templates authored under the legacy keys load as
+// their typeId-vocabulary equivalents. Pure and total — applied at this
+// seam because every load (validate, activate, hydrate, designer save)
+// flows through it; the stored document self-heals on its next save.
+const LEGACY_TYPE_KEYS = Object.freeze({
+  entityType: 'typeId',
+  childEntityType: 'childTypeId',
+  ancestorEntityType: 'parentTypeId',
+  parentEntityType: 'parentTypeId'
+});
+const LEGACY_TEMPLATES = Object.freeze({ entityList: 'typeList', entityDetail: 'instanceDetail' });
+
+export function renameLegacyTypeKeys(value) {
+  if (Array.isArray(value)) return value.map(renameLegacyTypeKeys);
+  if (!value || typeof value !== 'object' || value instanceof Date) return value;
+  const renamed = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (Object.hasOwn(LEGACY_TYPE_KEYS, key)) {
+      renamed[LEGACY_TYPE_KEYS[key]] = renameLegacyTypeKeys(entry);
+      continue;
+    }
+    if (key === 'template' && Object.hasOwn(LEGACY_TEMPLATES, entry)) {
+      renamed.template = LEGACY_TEMPLATES[entry];
+      continue;
+    }
+    renamed[key] = renameLegacyTypeKeys(entry);
+  }
+  return renamed;
+}
+
 export function migrateV4Definition(definition = {}, domain = {}) {
-  const wrapper = definition?.data ? { ...definition, data: { ...definition.data } } : { ...definition };
+  const wrapper = renameLegacyTypeKeys(definition?.data ? { ...definition, data: definition.data } : definition);
   const data = wrapper?.data || wrapper;
   const diagnostics = [];
 
