@@ -1723,6 +1723,9 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
   for (const [actionId, action] of Object.entries(process.actions || {})) {
     const access = normalizeActionAccess(action.access);
     const actionWindow = actionWindows.get(actionId);
+    if (action.typeId === 'image') {
+      console.warn('[roles-debug]', JSON.stringify({ actionId, construction: action.construction, hasContract: Boolean((domain.construction || {})[action.typeId]) }));
+    }
     const actionTypeId = action.typeId || action.inputs?.find(input => input.typeId)?.typeId || actionWindow?.outputs?.[0]?.typeId || '';
     for (const grant of actionWindow?.grants || []) {
       for (const roleId of grant.roleIds || []) {
