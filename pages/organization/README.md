@@ -79,6 +79,12 @@ ids and constructors, and stored v4 graphs are migrated one-way on load —
 canvas vocabulary is the type system's. The server accepts both
 vocabularies at one boundary (`compiler-adapter.js` lowers v5 for
 compile/validate/preview/runs; saves persist the authored vocabulary).
+Serialization strips the runtime keys `enrichNodeData` derives from
+process-node data before saving — except on declaration nodes, where
+`typeId`/`version`/`scope`/`fields`/`states` are authored state, not
+derived chrome: stripping them erased the class/type binding at save,
+which unbound every construct wired to the class and failed activation's
+round-trip guard.
 
 The designer consumes exactly one domain source: the organization's CTS
 registry view projected through `projectDomainFromView` (see

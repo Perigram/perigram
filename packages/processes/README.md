@@ -237,6 +237,12 @@ reference. When a derived action and its executable effect share an id, the
 saved executable node keeps its graph id and the missing definition-plane node
 receives a namespaced canvas id. Both retain the same `data.refId`, so neither
 record shadows or deletes the other during round-trip validation.
+Declaration records (`ctsTypes`) project with their full authoring key set —
+a class/type binding normalizes to a non-empty string or `null` on both the
+projection and the rebuild, and state `initial`/`terminal` booleans project
+explicitly — so an authored record survives the canvas cycle byte-identical
+(an explicit `false` must not become an absent key, and a `null` binding must
+not become `''`).
 
 Process lifecycle profiles and action nodes compile directly to normalized
 `@cutkit/workflows` v2 state machines. Entity profiles may provide a full
