@@ -183,7 +183,11 @@ status-forward detail); the class obligations in
 are fillable. Unknown classes fall back to the generic record surface.
 `resolvePreview(typeRecord)` keys on the declared payload `preview` mode
 (`image`, `geometry`, `attachment`, `none`) — preview behavior is declared
-data, never guessed from MIME or extension.
+data, never guessed from MIME or extension. `RENDERABLE_PREVIEW_MODES`
+(table export) lists the modes the app's shared viewer modules render
+(`dxf`, `svg`, `sketch`, `occs`, `image`, `pdf`, `docx`, `table`,
+`workbook`, `text`); app-side materializations import it instead of
+restating the list, and every other mode degrades to a payload download.
 
 ### Actions
 

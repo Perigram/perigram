@@ -344,10 +344,16 @@ templates remain responsible for placing those management surfaces.
 ## Pack direction (SPEC §21)
 
 This package is the CNC plug-in. Its type-system content is
-`src/pack.js`: the cassette (OCCS payload, cassette-designer editor),
-sheet design, and facade design file types, the nesting solver service
-registration, and the OCCS attachment kind — browser-safe data mounted by
-`server/packs/cnc`. The legacy entity/workflow/construction tables are
+`src/pack.js`: the cassette (OCCS payload with preview mode `occs`,
+cassette-designer editor), sheet design, and facade design file types,
+the nesting solver service registration, and the OCCS attachment kind —
+browser-safe data mounted by `server/packs/cnc`. Generated surfaces
+serve cassettes through the generic instance transport: the OCCS
+document is the instance payload (previewed and edited through the
+unified file contracts in
+[components/generated/README.md](../../components/generated/README.md)),
+and only the legacy UI surfaces keep the cassette feature routes. The
+legacy entity/workflow/construction tables are
 not part of the process path: the CTS projection does not read them, the
 designer palette does not offer them, and the runtime serves none of
 them. They remain as pack-internal content for the non-process surfaces

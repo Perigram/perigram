@@ -153,15 +153,20 @@ pack-internal feature route.
 
 ### File payload previews
 
-`resolveFilePreview` (in `file-surfaces.js`) is the pure decision helper:
-given a file instance's wire `attachments.primary` and its served type
-record, it returns the preview mode from the type's compiled render policy
-(`render.preview`, derived from payload traits) plus the payload download
-URL (instance payload blobs live in the `files` GridFS bucket). Modes that
-the shared viewer modules render (`dxf`, `svg`, `sketch`, `image`, `pdf`,
-`docx`, `table`, `workbook`, `text`) are delegated to `ArtifactViewer`
-through its explicit-source override; `attachment`/`download`/unknown modes
-degrade to a download action instead of an empty preview pane.
+`resolveFilePreview` (in `file-preview.js`, the component-free leaf of the
+file-surface contract) is the pure decision helper: given a file instance's
+wire `attachments.primary` and its served type record, it returns the
+preview mode from the type's compiled render policy (`render.preview`,
+derived from payload traits) plus the payload download URL (instance
+payload blobs live in the `files` GridFS bucket). Modes that the shared
+viewer modules render (`dxf`, `svg`, `sketch`, `occs`, `image`, `pdf`,
+`docx`, `table`, `workbook`, `text` — single-homed as
+`RENDERABLE_PREVIEW_MODES` in the pure ui-mapping contract) are delegated
+to `ArtifactViewer` through its explicit-source override; `attachment`/
+`download`/unknown modes degrade to a download action instead of an empty
+preview pane. The `occs` mode renders the cassette OCCS payload through
+`DrawingCanvas`'s graph-tree path. `file-surfaces.js` re-exports the
+helpers for its editor-surface consumers.
 `GeneratedFilePreview.vue` mounts that contract inside
 `GeneratedEntityDetailBody`'s non-overload branch, so every file-typed
 instance opened through generated screens and project panes shows its
@@ -170,6 +175,18 @@ payload preview without a hand-written surface. The type records come from
 the organization-scoped cached read of the served type view. Editor
 overloads keep owning their surfaces — the preview panel renders only when
 no editor overload is present.
+
+The cassette designer surfaces (`GeneratedCassetteDesignerAction`,
+`GeneratedCassetteDesignerWorkspacePage`) run `CassetteDesignerV2` with
+`persist: false` and own persistence through
+`composables/useCassetteDesignerPersistence.js`: the OCCS document is the
+instance payload (each save swaps it through the revisioned
+`PUT /api/instances/cassette/:id/payload` transport), template lists and
+reads go through the instances store, and a designer Save As runs the
+compiled `createInstance` action for `cassette` before writing the
+payload. The opened template's OCCS document hydrates from its payload
+URL before the designer mounts; payload-less instances start the blank
+designer tree.
 
 ## Home Workspace
 

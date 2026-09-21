@@ -121,11 +121,13 @@ chunks by field group (identity, overview, specs, stock, production) under
 small localized `entityGroups.*` headings, so detail pages read as separate
 concerns instead of one flat grid. `DataBlock` renders
 `display: 'swatch'` fields as a color dot beside the value for declared
-hex-color facts. `EntityPreview` dispatches to existing preview
-components such as
-`GeometryPreview` and `CassetteThumbnail`, and renders ordinary DTO thumbnails
-from `data.thumbnailUrl` or thumbnail attachment metadata for non-cassette
-entities. `EntityRelationsBlock` renders relation descriptors through
+hex-color facts. `EntityPreview` resolves the unified payload preview
+first: a file instance with a stored payload renders through the type's
+declared preview policy (`file-preview.js` → `ArtifactViewer`, the same
+contract generated detail bodies use); legacy DTOs without payload bytes
+fall through to `CassetteThumbnail` or `GeometryPreview`, and ordinary DTO
+thumbnails render from `data.thumbnailUrl` or thumbnail attachment
+metadata for non-cassette entities. `EntityRelationsBlock` renders relation descriptors through
 `EntityInlineRef`. Single refs render as inline chips; relation lists can also
 render compact micro cards in a bounded responsive grid with preview on the
 left, identity/status/facts on the right, and at most two visible refs before

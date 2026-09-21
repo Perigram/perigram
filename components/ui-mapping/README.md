@@ -177,8 +177,12 @@ concerns:
   budgeted relation chips with show-more toggles for relations not already
   covered by a child region, and the hierarchy tree for groups.
 - `PreviewBox.vue` — preview materialization keyed on the declared payload,
-  height-bounded
-  preview mode: deterministic per-instance inline SVG (seeded hue) built
+  height-bounded. An instance payload reference with a renderable declared
+  mode (the pool's `instance.payload`, projected from the wire
+  `attachments.primary`) renders through the shared viewer
+  (`ArtifactViewer`, same contract as generated detail previews);
+  payload-less instances keep the deterministic per-instance inline SVG
+  (seeded hue) built
   entirely from theme tokens — `--ck-subtle-background` bases with
   translucent hsl accents — so generated art adapts to light/dark and owns
   no hardcoded colors; `image` renders a seeded gradient sky, `geometry` a
