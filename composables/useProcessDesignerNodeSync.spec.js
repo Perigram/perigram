@@ -76,6 +76,24 @@ describe('effect record access stays a grant object', () => {
     expect(Object.keys(record.access).some(key => /^\d$/.test(key))).toBe(false);
   });
 
+  it('legacy junk keys in a stored access object heal on sync', () => {
+    // Drafts written before the spread-string fix carry residue like
+    // { "0": "i", "1": "t", … } — the whitelist shape must not keep it
+    // alive through re-syncs.
+    freshDraft();
+    const record = nodeRecords.createProcessNode('create', 'cts.construct');
+    Object.assign(record, {
+      via: 'genericCreate',
+      access: { '0': 'i', '1': 't', '2': 'e', '3': 'm', level: 'admin', roleIds: ['role-1'], grants: [{ roleId: 'role-1', level: 'admin' }] }
+    });
+    sync.syncProcessNode(record);
+    expect(record.access).toEqual({
+      level: 'admin',
+      roleIds: ['role-1'],
+      grants: [{ roleId: 'role-1', level: 'admin' }]
+    });
+  });
+
   it('pure value algebra records keep their socket access string', () => {
     freshDraft();
     const literalList = nodeRecords.createProcessNode('list', 'source.literalList');

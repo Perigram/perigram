@@ -28,7 +28,7 @@
 import { computed, ref } from 'vue';
 import AutoComplete from 'primevue/autocomplete';
 import TreeSelect from 'primevue/treeselect';
-import { instanceIdentity } from '#shared/ui-mapping/index.js';
+import { instanceIdentity, childrenOfParent } from '#shared/ui-mapping/index.js';
 import { useLocalizedTypeLabel } from './type-labels.js';
 
 const props = defineProps({
@@ -54,10 +54,10 @@ const buildNode = (instance, seen = new Set()) => {
   if (seen.has(instance.id)) return null;
   const nextSeen = new Set([...seen, instance.id]);
   const type = (props.bundle?.types || []).find(candidate => candidate.id === instance.type);
-  const children = Object.entries(type?.edges?.children || {}).flatMap(([edgeKey, edge]) => {
-    const byId = props.pool[edge.types?.[0]] || {};
-    return Object.values(byId).filter(child => !nextSeen.has(child.id) && child.lineage?.[edgeKey]?.id === instance.id);
-  });
+  // Children resolve through the shared hierarchy matcher (declared
+  // lineageKey, never the edge's map key) — same matcher as HierarchyTable.
+  const children = childrenOfParent(type, props.pool, instance.id)
+    .filter(child => !nextSeen.has(child.id));
   return {
     key: instance.id,
     label: instanceIdentity(type, instance),

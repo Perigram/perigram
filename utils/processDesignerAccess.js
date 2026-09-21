@@ -19,8 +19,11 @@ export function normalizeDesignerAccess(access = {}) {
   const normalizedLevel = grants.reduce((current, grant) => (
     ACCESS_LEVEL_RANK[grant.level] > ACCESS_LEVEL_RANK[current] ? grant.level : current
   ), level);
+  // Whitelisted shape only: the grant vocabulary is { level, roleIds,
+  // grants }. Spreading the source object would keep junk keys (the
+  // pre-fix spread-string residue like { "0": "i", … }) alive in every
+  // stored draft instead of healing on the next sync.
   return {
-    ...(access || {}),
     level: normalizedLevel,
     roleIds: [...new Set(grants.map(grant => grant.roleId))],
     grants

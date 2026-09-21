@@ -55,7 +55,7 @@ export function normalizeType(declaration = {}) {
     // Derived types (SPEC §4): operator/service-produced — they enter
     // graphs as outputs, never as constructs.
     ...(declaration.derived === true ? { derived: true } : {}),
-    edges: normalizeEdges(declaration.edges || {}),
+    edges: normalizeEdges(declaration.edges || {}, declaration.id),
     states: normalizeStates(declaration.states || {}),
     revisions: declaration.revisions || null,
     render: declaration.render || {},

@@ -510,6 +510,19 @@ export function resolveInstanceActions(actions = {}, typeId = null) {
     && (action?.actionKind !== 'updateInstance' || action?.status?.to));
 }
 
+// planActionLaunch(action): how a screen launches one manual action —
+// 'link' (the relation picker dialog), 'dialog' (the generated create
+// dialog for any action carrying construction inputs), 'confirm' (the
+// resolved action button's confirmation, i.e. the destructive kinds),
+// else 'run'. The construction dialog wins over confirmation, and grant
+// level is never a presentation signal: an admin-level create still opens
+// its form instead of executing an empty draft behind a bare confirm.
+export function planActionLaunch(action = {}) {
+  if (action.actionKind === 'link') return 'link';
+  if (action.construction?.inputs?.length) return 'dialog';
+  return defaultMapping.resolveActionButton(action).confirm ? 'confirm' : 'run';
+}
+
 const VALUE_FALLBACK = '—';
 
 export function formatValue(descriptor = {}, value) {
@@ -679,16 +692,51 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
   return Object.freeze(rows.map(row => Object.freeze(row)));
 }
 
+// The declared storage key of one children edge: the `lineageKey` the
+// declaration carries (stamped at CTS edge normalize, SPEC §6), with the
+// entry's map key as the raw-declaration fallback. Children instances
+// store their parent under this key — matching by the map key alone reads
+// an authoring identity no instance ever carries.
+function lineageKeyOfEdge(edge = {}, mapKey = '') {
+  return String(edge?.lineageKey || mapKey || '').trim();
+}
+
 // Reverse containment: the parent types whose children edges store
 // `lineage.<key>` on `typeId`. The child's own declaration carries no
-// parent list — the parents' edges are the declaration home.
+// parent list — the parents' edges are the declaration home; an edge
+// matches when its DECLARED lineage key is the requested key.
 function parentTypesForChildrenKey(bundle = null, typeId = '', key = '') {
   const parents = [];
   for (const candidate of bundle?.types || []) {
-    const declaration = candidate?.edges?.children?.[key];
-    if ((declaration?.types || []).includes(typeId)) parents.push(candidate.id);
+    for (const [mapKey, declaration] of Object.entries(candidate?.edges?.children || {})) {
+      if (lineageKeyOfEdge(declaration, mapKey) !== key) continue;
+      if ((declaration?.types || []).includes(typeId)) {
+        parents.push(candidate.id);
+        break;
+      }
+    }
   }
   return parents;
+}
+
+// Hierarchy materialization: the pool instances that are children of one
+// parent instance through the type's declared children edges. Every edge
+// contributes the instances of its declared child types whose
+// `lineage[lineageKey]` resolves to the parent id. Pure over the bundle
+// type record and pool — HierarchyTable and InstancePicker's hierarchical
+// mode consume this one matcher so trees and pickers never disagree.
+export function childrenOfParent(type = null, pool = {}, parentId = null) {
+  const children = [];
+  for (const declaration of Object.values(type?.edges?.children || {})) {
+    for (const childTypeId of declaration?.types || []) {
+      for (const instance of Object.values(pool[childTypeId] || {})) {
+        if (instance.lineage?.[lineageKeyOfEdge(declaration)]?.id === parentId) {
+          children.push(instance);
+        }
+      }
+    }
+  }
+  return children;
 }
 
 export const defaultMapping = createUiMapping();

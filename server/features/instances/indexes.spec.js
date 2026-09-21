@@ -39,6 +39,19 @@ describe('derived instance indexes (SPEC §13)', () => {
     expect(keySet(indexes, 'groups')).toContain(JSON.stringify({ type: 1, organizationId: 1, 'relations.linked': 1 }));
   });
 
+  it('keys the children index by the edge\'s declared lineageKey, not its map key', () => {
+    // Registry-normalized views stamp lineageKey (SPEC §6); the stored
+    // key is the declaration's, never the authoring map key.
+    const stamped = new Map(view);
+    stamped.set('project', {
+      ...view.get('project'),
+      edges: { children: { members: { types: ['queue'], onRemove: 'restrict', lineageKey: 'projectId' } } }
+    });
+    const indexes = deriveInstanceIndexes(stamped);
+    expect(keySet(indexes, 'processes')).toContain(JSON.stringify({ type: 1, organizationId: 1, 'lineage.projectId': 1 }));
+    expect(keySet(indexes, 'processes')).not.toContain(JSON.stringify({ type: 1, organizationId: 1, 'lineage.members': 1 }));
+  });
+
   it('applies every definition idempotently through createIndex', async () => {
     const createIndex = vi.fn();
     (await connectDB).mockResolvedValue({ collection: () => ({ createIndex }) });

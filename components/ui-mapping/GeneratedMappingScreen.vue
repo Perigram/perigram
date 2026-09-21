@@ -115,7 +115,7 @@ import Tab from 'primevue/tab';
 import TabPanels from 'primevue/tabpanels';
 import TabPanel from 'primevue/tabpanel';
 import Tag from 'primevue/tag';
-import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveCreateDialogInputs, typeLabelKey, localizedLabel, resolveInstanceActions } from '#shared/ui-mapping/index.js';
+import { LAYOUT, spacingClasses, composeScreen, buildInstancePool, resolveCreateDialogInputs, typeLabelKey, localizedLabel, resolveInstanceActions, planActionLaunch } from '#shared/ui-mapping/index.js';
 import RegionBlock from './RegionBlock.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
 import InstancePicker from './InstancePicker.vue';
@@ -221,26 +221,32 @@ const submitLink = () => {
 // `context` carries the instance an instance-scoped quick action was
 // launched from (cards, rows); it travels beside the action through
 // confirmation and dialogs so the executor receives it either way.
+// Launch behavior follows planActionLaunch (the shared launch contract):
+// relation link opens its picker, a create with construction inputs opens
+// the form — grant level never replaces the form with a bare confirm —
+// and confirmation comes from the resolved action button (destructive
+// kinds), never from the grant level.
 const openAction = (action, context = {}) => {
-  if (action.actionKind === 'link') {
+  const launch = planActionLaunch(action);
+  if (launch === 'link') {
     linkAction.value = action;
     linkTargetId.value = null;
     linkDialogVisible.value = true;
     return;
   }
-  if (action.access?.level === 'admin' || action.actionKind === 'deleteInstance') {
+  if (launch === 'dialog') {
+    dialogAction.value = action;
+    for (const key of Object.keys(dialogDraft)) delete dialogDraft[key];
+    dialogVisible.value = true;
+    return;
+  }
+  if (launch === 'confirm') {
     confirm.require({
       group: 'uiMappingConfirm',
       header: action.label,
       message: [action.actionKind, action.typeId].filter(Boolean).join(' '),
       accept: () => runAction(action, {}, context)
     });
-    return;
-  }
-  if (action.construction?.inputs?.length) {
-    dialogAction.value = action;
-    for (const key of Object.keys(dialogDraft)) delete dialogDraft[key];
-    dialogVisible.value = true;
     return;
   }
   runAction(action, {}, context);

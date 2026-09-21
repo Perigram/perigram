@@ -24,14 +24,17 @@ export function deriveInstanceIndexes(view = new Map()) {
     }
 
     // Declared children edges: the parent declares the key, the child
-    // stores it — the index lands on each child type's class collection.
+    // stores it — the index lands on each child type's class collection,
+    // keyed by the edge's DECLARED lineageKey (SPEC §6), never the
+    // entry's map key.
     for (const [key, edge] of Object.entries(type.edges?.children || {})) {
+      const lineageKey = edge?.lineageKey || key;
       for (const childTypeId of edge?.types || []) {
         const childType = view.get(childTypeId);
         const childCollection = childType ? CLASS_COLLECTIONS[childType.class] : collection;
         if (!childCollection) continue;
         collectionsInUse.add(childCollection);
-        indexes.push(indexEntry(childCollection, { type: 1, organizationId: 1, [`lineage.${key}`]: 1 }));
+        indexes.push(indexEntry(childCollection, { type: 1, organizationId: 1, [`lineage.${lineageKey}`]: 1 }));
       }
     }
   }
