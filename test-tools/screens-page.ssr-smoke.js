@@ -25,13 +25,15 @@ globalThis.definePageMeta = () => {};
 globalThis.navigateTo = () => {};
 globalThis.useAuthStore = () => useAuthStore();
 globalThis.useRoute = undefined;
-const router = createRouter({
-  history: createMemoryHistory(),
-  routes: [{ path: '/screens/:screenKey', component: { render: () => null } }]
-});
-router.push('/screens/auto_t-k3x9fj2mqa');
-await router.isReady();
-globalThis.useRouter = () => ({ push: () => {} });
+async function routerAt(path) {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/screens/:screenKey', component: { render: () => null } }]
+  });
+  router.push(path);
+  await router.isReady();
+  return router;
+}
 
 const bundle = {
   ok: true,
@@ -131,27 +133,32 @@ function hydrationUser() {
   };
 }
 
+async function renderScreensPage(path) {
+  const router = await routerAt(path);
+  globalThis.useRouter = () => ({ push: () => {} });
+  const app = createSSRApp({ render: () => h(ScreensPage) });
+  const i18n = createI18n({
+    legacy: false,
+    missingWarn: false,
+    fallbackWarn: false,
+    messages: { en: {} }
+  });
+  app.use(i18n);
+  app.use(router);
+  app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
+  app.use(ToastService);
+  app.use(ConfirmService);
+  app.directive('tooltip', { getSSRProps: () => ({}) });
+  return renderToString(app);
+}
+
 describe('generated screens page with projected vocabulary', () => {
   it('renders the typeList screen through the generator with its create action', async () => {
     setActivePinia(createPinia());
     const authStore = useAuthStore();
     await authStore.setUser();
 
-    const i18n = createI18n({
-      legacy: false,
-      missingWarn: false,
-      fallbackWarn: false,
-      messages: { en: {} }
-    });
-    const app = createSSRApp({ render: () => h(ScreensPage) });
-    app.use(i18n);
-    app.use(router);
-    app.use(PrimeVue, { theme: { preset: Re_L, options: { darkModeSelector: '.dark-mode' } } });
-    app.use(ToastService);
-    app.use(ConfirmService);
-    app.directive('tooltip', { getSSRProps: () => ({}) });
-
-    const html = await renderToString(app);
+    const html = await renderScreensPage('/screens/auto_t-k3x9fj2mqa');
     // The generator owns the route (ui-mapping Panel chrome, not the legacy
     // GeneratedScreen shell) and the class-level create action renders with
     // the authored class label.
@@ -159,5 +166,19 @@ describe('generated screens page with projected vocabulary', () => {
     expect(html).toContain('p-panel');
     expect(html).toContain('Create Job Ticket new');
     expect(html).not.toContain('t-k3x9fj2mqa');
+  });
+
+  it('renders the home screen through the generator — the legacy home workspace overload is gone', async () => {
+    setActivePinia(createPinia());
+    const authStore = useAuthStore();
+    await authStore.setUser();
+
+    const html = await renderScreensPage('/screens/home_user_a');
+    // Home composes through the same generator (Panel chrome, region
+    // label, class-level create action) — no Discord-style workspace
+    // shell, no sidebar chrome.
+    expect(html).toContain('Job Ticket');
+    expect(html).toContain('Create Job Ticket new');
+    expect(html).not.toContain('data-home-workspace');
   });
 });

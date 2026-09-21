@@ -5,7 +5,7 @@
             isBoundedWorkspaceRoute ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
         ]"
     >
-    <header v-if="!isGeneratedHomeRoute" class="chrome-signal-rule sticky top-0 z-50 hidden shrink-0 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur-md md:block">
+    <header class="chrome-signal-rule sticky top-0 z-50 hidden shrink-0 border-b [border-color:var(--ck-chrome-border)] bg-chrome text-[var(--ck-chrome-foreground)] backdrop-blur-md md:block">
             <nav class="max-w-[var(--ck-page-max-width)] mx-auto px-4 h-14 flex items-center justify-between gap-2 ">
                 <!-- Left: Logo & Breadcrumbs -->
                 <div class="flex items-center h-full min-w-0 flex-1">
@@ -186,7 +186,7 @@
              and wins the cascade, which made this desktop launcher render as a
              floating chats bubble on mobile. The plain wrapper owns the
              responsive visibility instead. -->
-        <div v-if="!supportDialog && !isChatsRoute && !isGeneratedHomeRoute" class="hidden md:block">
+        <div v-if="!supportDialog && !isChatsRoute" class="hidden md:block">
             <Button
                 data-testid="desktop-chat-launcher"
                 icon="pi pi-comment"
@@ -327,10 +327,6 @@
     const isGeneratedWorkspaceRoute = computed(() => Boolean(
         resolveGeneratedScreenOverload(activeGeneratedScreen.value)
     ))
-    // The generated home workspace owns the full desktop viewport: its sidebar
-    // carries brand, navigation, and the user controls that the desktop
-    // navbar provides on other routes.
-    const isGeneratedHomeRoute = computed(() => activeGeneratedScreen.value?.template === 'home')
     const isStandaloneDesignerRoute = computed(() => route.path === '/organization/process')
     const isChatsRoute = computed(() => route.path === '/chats' || route.path.startsWith('/chats/'))
     const isBoundedWorkspaceRoute = computed(() => (

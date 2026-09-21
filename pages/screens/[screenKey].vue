@@ -64,10 +64,11 @@ const screenKey = computed(() => Array.isArray(route.params.screenKey)
 
 // Process screens arrive in the compiled UI contract vocabulary
 // (typeList/instanceDetail/home + typeId) and render through the generator.
-// Workspace overloads (the home shell and editor-backed detail types:
-// project/cassette/facade/queue/artifact...) stay on the legacy renderer,
-// which owns their data loader and action surface, until the generator
-// grows workspace equivalents.
+// Home renders through the generator like every other template — the former
+// Discord-style workspace overload is deleted. Workspace overloads (the
+// editor-backed detail types: project/cassette/facade/queue/artifact...) stay
+// on the legacy renderer, which owns their data loader and action surface,
+// until the generator grows workspace equivalents.
 const detailOverload = computed(() => (
   screen.value?.template === 'instanceDetail' && screen.value?.typeId
     ? resolveGeneratedEntityDetailOverload(screen.value.typeId)
@@ -75,6 +76,7 @@ const detailOverload = computed(() => (
 ));
 const isGeneratedScreen = computed(() => (
   screen.value?.template === 'typeList'
+  || screen.value?.template === 'home'
   || (screen.value?.template === 'instanceDetail' && !detailOverload.value)
 ));
 // View adapter for the not-yet-migrated workspace overloads: the legacy
