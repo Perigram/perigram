@@ -46,3 +46,4 @@ async function upload(event = {}) {
     uploading.value = false;
   }
 }
+</script>
