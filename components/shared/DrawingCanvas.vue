@@ -225,6 +225,7 @@ const resolveDrawing = async () => {
   const usesLayerContract = (
     ['dxf-text', 'dxf-url'].includes(props.sourceType) ||
     props.sourceType === 'occs-cassette' ||
+    props.sourceType === 'occs' ||
     Object.keys(props.layerMapping).length > 0 ||
     (props.sourceType === 'geometry-preview' && sourceHasStandardCodes(props.source))
   );
@@ -273,6 +274,17 @@ const resolveDrawing = async () => {
 
   if (props.sourceType === 'occs-cassette') {
     const graphTree = props.source?.extensions?.cutkit?.graphTree || props.source?.graphTree || null;
+    if (!graphTree) return null;
+    return applyLayerPens(await renderCassetteV2TreeToDrawing(graphTree), penOptions);
+  }
+
+  if (props.sourceType === 'occs') {
+    // OCCS payload URL: the stored document of the file instance, parsed
+    // then rendered through the same graph-tree path as the object form.
+    const document = typeof props.source === 'string'
+      ? JSON.parse(await fetchText(props.source))
+      : props.source;
+    const graphTree = document?.extensions?.cutkit?.graphTree || document?.graphTree || null;
     if (!graphTree) return null;
     return applyLayerPens(await renderCassetteV2TreeToDrawing(graphTree), penOptions);
   }

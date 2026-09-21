@@ -1,5 +1,10 @@
 <template>
-  <div v-if="preview.component === 'ImagePreview'" class="w-full">
+  <ArtifactViewer
+    v-if="hasRenderablePayload"
+    :source="{ mode: preview.mode, fileUrl, attachment: payload }"
+    class="h-28 w-full"
+  />
+  <div v-else-if="preview.component === 'ImagePreview'" class="w-full">
     <svg viewBox="0 0 240 96" width="100%" class="h-28 w-full" preserveAspectRatio="xMidYMid slice" role="img">
       <defs>
         <linearGradient :id="gradientId" x1="0" y1="0" x2="1" y2="1">
@@ -29,7 +34,8 @@
 
 <script setup>
 import { computed } from 'vue';
-import { LAYOUT, resolvePreview } from '#shared/ui-mapping/index.js';
+import { LAYOUT, RENDERABLE_PREVIEW_MODES, resolvePreview } from '#shared/ui-mapping/index.js';
+import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
 
 const props = defineProps({
   type: { type: Object, default: null },
@@ -38,6 +44,16 @@ const props = defineProps({
 });
 
 const preview = computed(() => resolvePreview(props.type || {}));
+// Real payload preview (unified contract): an instance payload reference
+// with a renderable declared mode renders through the shared viewer; the
+// placeholder art stays for payload-less instances.
+const hasRenderablePayload = computed(() => Boolean(
+  props.payload?.fileId
+  && RENDERABLE_PREVIEW_MODES.includes(preview.value.mode)
+));
+const fileUrl = computed(() => (props.payload?.fileId
+  ? `/api/files/download/${encodeURIComponent(String(props.payload.fileId))}?bucket=files`
+  : ''));
 const mime = computed(() => props.payload?.mime || preview.value.mime[0] || preview.value.mode);
 const sizeLabel = computed(() => (props.payload?.size
   ? `${(props.payload.size / 1024).toFixed(0)} KB · ${mime.value}`

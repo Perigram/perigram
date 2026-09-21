@@ -19,6 +19,9 @@ export const cncFileTypes = [
       mime: 'application/perigram+occs',
       accept: ['.occs'],
       maxSize: 10 * 1024 * 1024,
+      // The OCCS document renders through the shared drawing canvas
+      // (graph-tree geometry), like every declared preview mode.
+      preview: 'occs',
       // The designer is the main entry: blank-create opens the cassette
       // designer (the legacy invariant — created templates open with the
       // default OCCS document).

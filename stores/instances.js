@@ -29,7 +29,6 @@ const FRAMEWORK_ROUTES = {
 // type (declared or legacy) resolves through `/api/instances/:type`.
 const FEATURE_ROUTES = {
   artifact_template: '/api/artifact-templates',
-  cassette: '/api/cassettes',
   cassette_design: '/api/cassette-designs',
   facade: '/api/facades',
   facade_pattern: '/api/facade-patterns',

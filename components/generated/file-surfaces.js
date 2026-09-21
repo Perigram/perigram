@@ -8,6 +8,7 @@ import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
 import { cncEditors } from '@cutkit/domain-cnc';
 import { techDrawingEditors } from '~/packages/tech-drawing/src/index.js';
 import { documentsEditors } from '~/packages/documents/src/index.js';
+import { instancePayloadFileUrl } from './file-preview.js';
 
 /**
  * File surfaces: the single app-side home of the CTS file-type editor
@@ -225,41 +226,7 @@ export function fileEditorActions(editors = packEditorBindings) {
     .filter(Boolean);
 }
 
-// Instance payload blobs live in the `files` GridFS bucket (SPEC §3 Blob
-// home); the wire payload reference carries no bucket by design.
-const PAYLOAD_BUCKET = 'files';
-
-/**
- * Download URL for a file instance's payload reference.
- */
-export function instancePayloadFileUrl(attachment = {}) {
-  if (!attachment?.fileId) return '';
-  return `/api/files/download/${encodeURIComponent(String(attachment.fileId))}?bucket=${PAYLOAD_BUCKET}`;
-}
-
-// Preview modes the shared viewer modules render (ArtifactViewer
-// branches). Everything else degrades to a payload download.
-const RENDERABLE_PREVIEW_MODES = Object.freeze([
-  'dxf', 'svg', 'sketch', 'image', 'pdf', 'docx', 'table', 'workbook', 'text'
-]);
-
-/**
- * Pure preview decision for a file instance: the type's compiled render
- * policy supplies the mode (`render.preview`, derived from payload
- * traits), the wire `attachments.primary` supplies the payload
- * reference. Returns `{ mode, fileUrl, renderable, hasPayload }`; a null
- * type or a type without payload policy resolves mode `'none'`.
- */
-export function resolveFilePreview(entity = {}, type = null) {
-  const attachment = entity?.attachments?.primary || null;
-  const hasPayload = Boolean(attachment?.fileId);
-  const declared = type?.render?.preview
-    || (type?.payload ? 'attachment' : 'none');
-  const mode = declared === 'attachment' && !hasPayload ? 'none' : declared;
-  return {
-    mode,
-    fileUrl: hasPayload ? instancePayloadFileUrl(attachment) : '',
-    renderable: RENDERABLE_PREVIEW_MODES.includes(mode),
-    hasPayload
-  };
-}
+// The pure payload-preview decision helpers live in the component-free
+// `file-preview.js` leaf (same contract home); re-exported here for the
+// editor-surface consumers that already import from this module.
+export { instancePayloadFileUrl, resolveFilePreview } from './file-preview.js';

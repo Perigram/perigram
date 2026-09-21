@@ -20,6 +20,7 @@
       :template="entity"
       :template-options="templateOptions"
       :persisted-template-ids="persistedTemplateIds"
+      :persist="false"
       @load-template="loadTemplate"
       @save-template="handleSaved"
     />
@@ -27,12 +28,15 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
+import { useToast } from 'primevue/toast';
 import Button from 'primevue/button';
 import CassetteDesignerV2 from '~/components/CassetteDesignerV2.vue';
 import DesignerDialog from '~/components/shared/DesignerDialog.vue';
 import { useAuthStore } from '~/stores/auth';
+import { useCassetteDesignerPersistence } from '~/composables/useCassetteDesignerPersistence.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
@@ -45,6 +49,9 @@ const emit = defineEmits(['open-page', 'refresh']);
 
 const authStore = useAuthStore();
 const { activePermissions } = storeToRefs(authStore);
+const { t } = useI18n();
+const toast = useToast();
+const { hydrateDefinition, listTemplates, loadTemplate: fetchTemplate, save } = useCassetteDesignerPersistence();
 const visible = ref(false);
 const cassettes = ref([]);
 const currentTemplate = ref(null);
@@ -66,6 +73,16 @@ const templateOptions = computed(() => {
 });
 const persistedTemplateIds = computed(() => templateOptions.value.map(item => item.value).filter(Boolean));
 
+// The opened entity's OCCS document loads from its payload before the
+// designer mounts; payload-less instances keep the blank designer tree.
+watch(
+  () => props.entity?._id,
+  async id => {
+    currentTemplate.value = id ? await hydrateDefinition(props.entity) : null;
+  },
+  { immediate: true }
+);
+
 async function openDesigner() {
   if (props.openInWorkspace) {
     emit('open-page', {
@@ -77,7 +94,7 @@ async function openDesigner() {
   }
   visible.value = true;
   if (!cassettes.value.length) {
-    cassettes.value = await $fetch('/api/cassettes').catch(() => [props.entity]);
+    cassettes.value = await listTemplates().catch(() => [props.entity]);
   }
 }
 
@@ -85,11 +102,16 @@ async function loadTemplate(cassetteId) {
   const id = cassetteId?.toString?.() || cassetteId;
   if (!id) return;
   currentTemplate.value = cassettes.value.find(cassette => cassette._id?.toString() === id)
-    || await $fetch(`/api/cassettes/${encodeURIComponent(id)}`).catch(() => null);
+    || await fetchTemplate(id).catch(() => null);
 }
 
-function handleSaved(payload = {}) {
-  currentTemplate.value = payload.savedEntity || currentTemplate.value;
-  emit('refresh');
+async function handleSaved(payload = {}) {
+  try {
+    const saved = await save(payload);
+    currentTemplate.value = await fetchTemplate(saved._id).catch(() => currentTemplate.value);
+    emit('refresh');
+  } catch (error) {
+    toast.add({ severity: 'error', summary: t('common.error'), detail: error?.data?.message || error?.message || t('cassette.errors.saveFailed'), life: 5000 });
+  }
 }
 </script>

@@ -40,7 +40,8 @@ describe('instances store type keys and endpoints', () => {
     expect(instances.endpointsFor('queue').list()).toBe('/api/instances/queue');
     expect(instances.endpointsFor('queue').single('q-1')).toBe('/api/instances/queue/q-1');
     expect(instances.endpointsFor('pen_template').list()).toBe('/api/instances/pen-template');
-    expect(instances.endpointsFor('cassette').list()).toBe('/api/cassettes');
+    expect(instances.endpointsFor('cassette').list()).toBe('/api/instances/cassette');
+    expect(instances.endpointsFor('cassette').single('c-1')).toBe('/api/instances/cassette/c-1');
     expect(instances.endpointsFor('artifact').single('a-1')).toBe('/api/artifacts/a-1');
     expect(instances.endpointsFor('organization').list()).toBe('/api/organizations');
   });

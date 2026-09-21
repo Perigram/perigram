@@ -56,6 +56,8 @@ export function entityDtoToScreenInstance(dto = {}, typeRecord = {}) {
     lineage,
     relations: dto.relations || {},
     states: primary ? { main: primary } : {},
-    payload: null
+    // File payload reference (wire `attachments.primary`): kept verbatim
+    // so preview surfaces resolve the payload download URL.
+    payload: dto.attachments?.primary || null
   };
 }

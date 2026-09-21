@@ -1,5 +1,10 @@
 <template>
-  <template v-if="mode !== 'none'">
+  <ArtifactViewer
+    v-if="payloadPreview.hasPayload && payloadPreview.renderable"
+    :source="{ mode: payloadPreview.mode, fileUrl: payloadPreview.fileUrl, attachment: entity.attachments?.primary }"
+    class="h-32 w-full"
+  />
+  <template v-else-if="mode !== 'none'">
     <CassetteThumbnail
       v-if="isCassetteLike"
       :cassette="entity"
@@ -23,8 +28,11 @@
 
 <script setup>
 import { computed } from 'vue';
+import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
+import { resolveFilePreview } from '~/components/generated/file-preview.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -32,6 +40,13 @@ const props = defineProps({
   mode: { type: String, default: 'none' },
   hideDimensionLayer: { type: Boolean, default: false }
 });
+
+const { typeById } = useFileTypeView();
+// Unified payload preview: a file instance with a stored payload previews
+// through the type's declared preview policy (the same contract generated
+// detail bodies use); legacy DTOs without payload bytes keep their
+// type-specific thumbnail renderers below.
+const payloadPreview = computed(() => resolveFilePreview(props.entity, typeById(props.typeId)));
 
 const isCassetteLike = computed(() =>
   ['cassette', 'cassette_template', 'cassette_design', 'cassette_instance'].includes(props.typeId)
