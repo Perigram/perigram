@@ -18,14 +18,17 @@ export const useRegistryStore = defineStore('registry', () => {
   const typesById = computed(() => new Map((bundle.value.types || []).map(type => [type.id, type])));
 
   // Containment triples derived from declared children edges (SPEC §6):
-  // { childType, parentType, lineageKey } — the static fallback under
+  // { childType, parentType, lineageKey } — keyed by the edge's DECLARED
+  // lineageKey (stamped at CTS normalize; the map key is authoring
+  // identity), so explorer nesting matches the `lineage.<lineageKey>`
+  // values instances actually store. The static fallback under
   // compiled lineage bindings.
   const containment = computed(() => {
     const triples = [];
     for (const type of bundle.value.types || []) {
       for (const [key, edge] of Object.entries(type.edges?.children || {})) {
         for (const childType of edge?.types || []) {
-          triples.push({ childType, parentType: type.id, lineageKey: key });
+          triples.push({ childType, parentType: type.id, lineageKey: edge?.lineageKey || key });
         }
       }
     }

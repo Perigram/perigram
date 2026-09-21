@@ -14,11 +14,19 @@ import ConfirmService from 'primevue/confirmationservice';
 import Re_L from '~/assets/presets/re_l';
 import ScreensPage from '~/pages/screens/[screenKey].vue';
 import { useAuthStore } from '~/stores/auth';
+import { useInstancesStore } from '~/stores/instances';
 
 globalThis.h = h;
 globalThis.watch = watch;
 globalThis.$fetch = vi.fn(async (url) => {
   if (String(url).startsWith('/api/auth/me')) return hydrationUser();
+  // One real list row: the store's keyed pool must reach the generator as
+  // grouped instances — a keyed pool passed straight through previously
+  // crashed buildInstancePool ("group is not iterable") on every screen
+  // with loaded data.
+  if (String(url).startsWith('/api/instances/')) {
+    return [{ _id: 'i-1', type: 't-k3x9fj2mqa', identity: { uid: 'i-1', name: 'Ticket one' }, status: { state: { primary: 'new' } }, lineage: {}, relations: {} }];
+  }
   return [];
 });
 globalThis.definePageMeta = () => {};
@@ -136,6 +144,14 @@ describe('generated screens page with projected vocabulary', () => {
     setActivePinia(createPinia());
     const authStore = useAuthStore();
     await authStore.setUser();
+    // Pre-load one instance row: the store's keyed pool must reach the
+    // generator as grouped instances — a keyed pool passed straight
+    // through previously crashed buildInstancePool ("group is not
+    // iterable") on every screen with loaded data.
+    useInstancesStore().upsertRecord('t-k3x9fj2mqa', {
+      _id: 'i-1', type: 't-k3x9fj2mqa', identity: { uid: 'i-1', name: 'Ticket one' },
+      status: { state: { primary: 'new' } }, lineage: {}, relations: {}
+    });
 
     const i18n = createI18n({
       legacy: false,
@@ -158,6 +174,8 @@ describe('generated screens page with projected vocabulary', () => {
     expect(html).toContain('Job Ticket');
     expect(html).toContain('p-panel');
     expect(html).toContain('Create Job Ticket new');
+    expect(html).toContain('Ticket one');
+    expect(html).toContain('Ticket one');
     expect(html).not.toContain('t-k3x9fj2mqa');
   });
 });

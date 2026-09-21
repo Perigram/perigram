@@ -14,7 +14,7 @@
         :screen="screen"
         :contract="{ actions: processActions }"
         :bundle="processBundle"
-        :instances="pool"
+        :instances="instanceGroups"
         :source-states="poolStates"
         :on-run="runGeneratedAction"
         :on-open="openInstance"
@@ -109,8 +109,14 @@ const instances = useInstancesStore();
 // The generator's data layer stands in the instance pool projection of the
 // shared instance cache; per-source data states (loading/ready/empty/
 // denied/error) fold into composeScreen's region tree exactly as the pool
-// composable produced them.
+// composable produced them. The store exposes the keyed pool
+// ({ type -> { id -> instance }}); the generator's instances prop is the
+// grouped-array shape `buildInstancePool` normalizes — the page is the
+// composition boundary between the two.
 const pool = computed(() => instances.instancePool);
+const instanceGroups = computed(() => Object.fromEntries(
+  Object.entries(pool.value).map(([typeKey, byId]) => [typeKey, Object.values(byId)])
+));
 const poolLoading = ref(false);
 const poolError = ref('');
 const poolStates = ref({});

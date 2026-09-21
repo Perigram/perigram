@@ -24,6 +24,23 @@ describe('registry store', () => {
     ]);
   });
 
+  it('keys containment by the edge\'s declared lineageKey, not its map key', () => {
+    // Registry-normalized bundles stamp lineageKey (SPEC §6); the map key
+    // is authoring identity. Explorer nesting reads the declared key —
+    // the same value instances store under lineage.<lineageKey>.
+    useAuthStore().user = {
+      userId: 'u-1', organizationId: 'org-1',
+      process: { active: true, bundle: { types: [
+        { id: 'queue', class: 'process', fields: {} },
+        { id: 'project', class: 'group', fields: {}, edges: { children: { members: { types: ['queue'], onRemove: 'restrict', lineageKey: 'projectId' } } } }
+      ] } }
+    };
+    const registry = useRegistryStore();
+    expect(registry.containment).toEqual([
+      { childType: 'queue', parentType: 'project', lineageKey: 'projectId' }
+    ]);
+  });
+
   it('projects the compiler domain exactly like the server seam', () => {
     const registry = useRegistryStore();
     const domain = registry.projectedDomain;

@@ -5,7 +5,7 @@
 <script setup>
 import { computed } from 'vue';
 import Tree from 'primevue/tree';
-import { instanceIdentity } from '#shared/ui-mapping/index.js';
+import { instanceIdentity, childrenOfParent } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   root: { type: Object, required: true },
@@ -17,11 +17,11 @@ const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).
 
 const instanceLabel = (instance, type) => instanceIdentity(type, instance);
 
-const childrenOf = (instance, type, seen) => Object.entries(type?.edges?.children || {}).flatMap(([edgeKey, edge]) => {
-  const byId = props.pool[edge.types?.[0]] || {};
-  return Object.values(byId)
-    .filter(candidate => !seen.has(candidate.id) && candidate.lineage?.[edgeKey]?.id === instance.id);
-});
+// Children resolve through the shared hierarchy matcher (declared
+// lineageKey, never the edge's map key) — the same matcher as
+// HierarchyTable and InstancePicker.
+const childrenOf = (instance, type, seen) => childrenOfParent(type, props.pool, instance.id)
+  .filter(candidate => !seen.has(candidate.id));
 
 const buildNodes = (instance, seen = new Set()) => {
   if (seen.has(instance.id)) return null;
