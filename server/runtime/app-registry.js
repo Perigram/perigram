@@ -122,6 +122,9 @@ function registerAppBindings(registry) {
     for (const [id, executor] of Object.entries(pack.taskExecutors || {})) {
       registry.registerTaskExecutor(id, executor);
     }
+    for (const [id, handler] of Object.entries(pack.hookHandlers || {})) {
+      registry.registerHookHandler(id, handler);
+    }
   }
 
   for (const [id, handler] of Object.entries(frameworkCommandHandlers)) {
