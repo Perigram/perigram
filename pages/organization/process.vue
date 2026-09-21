@@ -1935,8 +1935,11 @@ function updateProcessNodeRecord(nodeId, updates = {}) {
 }
 
 function updateProcessNodeConstructionMode(node = {}, mode = '') {
-  if (!node?.id || !mode || node.construction?.mode === mode) return;
+  if (!node?.id || !mode || (node.construction?.mode ?? node.via) === mode) return;
+  // v5 authored records carry the binding as `via`; the compiled
+  // construction.mode stays in sync so both vocabularies agree.
   updateProcessNodeRecord(node.id, {
+    ...(node.kind === 'cts.construct' || String(node.kind || '').startsWith('cts.') ? { via: mode } : {}),
     construction: { ...(node.construction || {}), mode }
   });
 }

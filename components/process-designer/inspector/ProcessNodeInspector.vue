@@ -157,10 +157,10 @@
         @update:model-value="value => $emit('update-join-producer', value)"
       />
     </div>
-    <div v-if="op === 'effect.createEntity' && (constructionModes.length > 1 || entityType === 'artifact')" class="flex flex-col gap-1">
+    <div v-if="op === 'effect.createEntity' && entityType && constructionModes.length" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.constructionMode') }}</label>
       <Select
-        :model-value="record.construction.mode"
+        :model-value="record.construction?.mode ?? record.via"
         :options="constructionModes"
         option-label="label"
         option-value="value"
