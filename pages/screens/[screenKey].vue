@@ -41,6 +41,8 @@ import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScre
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
+import { isCreateAction } from '~/components/generated/action-visibility.js';
+import { resolveCreatedEntityOpen } from '~/components/generated/created-entity-open.js';
 import { resolveGeneratedEntityDetailOverload } from '~/components/generated/overloads.js';
 
 definePageMeta({
@@ -147,7 +149,22 @@ async function runGeneratedAction(action, data = {}, context = {}) {
   const scope = screen.value?.scope || {};
   const entityId = context.instance?.id || scope.instanceId || scope.entityId || null;
   try {
-    await instances.runAction({ actionId: action.id, entityId, entities: {}, data, parameters: {} });
+    const result = await instances.runAction({ actionId: action.id, entityId, entities: {}, data, parameters: {} });
+    // Created entities open their destination like every other generated
+    // surface (compiled detail route first) instead of stranding the
+    // author on the list they came from.
+    if (isCreateAction(action)) {
+      const target = resolveCreatedEntityOpen({
+        action,
+        result,
+        screenKey: screenKey.value,
+        manifest: authStore.screenManifest
+      });
+      if (target?.kind === 'route') {
+        await navigateTo(target.route);
+        return;
+      }
+    }
     toast.add({ severity: 'success', summary: action.label || action.id, detail: t('generatedScreen.actionCompleted'), life: 2000 });
     await reload();
   } catch (error) {
