@@ -791,6 +791,68 @@ describe('Design system manifest', () => {
     expect(generatedCassetteAction).not.toContain('visible.value = false;\n  emit(\'refresh\')');
   });
 
+  it('keeps generated home cards as horizontal carousel items', () => {
+    const generatedHome = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedHomeScreen.vue'), 'utf8');
+    const generatedCollection = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedEntityCollection.vue'), 'utf8');
+    const relationsBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityRelationsBlock.vue'), 'utf8');
+    const surfaceContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntitySurfaceContent.vue'), 'utf8');
+    const inlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityInlineRef.vue'), 'utf8');
+    const identityBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/IdentityBlock.vue'), 'utf8');
+    const entityPreview = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityPreview.vue'), 'utf8');
+    const cassetteThumbnail = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteThumbnail.vue'), 'utf8');
+
+    expect(generatedHome).toContain('overflow-x-auto');
+    expect(generatedHome).toContain('shrink-0');
+    expect(generatedHome).toContain('suppress-child-summaries');
+    expect(generatedHome).toContain('relation-variant="compact"');
+    expect(generatedHome).toContain('entityEditorActionFor');
+    expect(generatedCollection).toContain('suppress-child-summaries');
+    expect(generatedCollection).toContain('relation-variant="compact"');
+    expect(generatedCollection).toContain('entityEditorActionFor');
+    expect(generatedHome).toContain('pi pi-external-link');
+    expect(generatedCollection).toContain('pi pi-external-link');
+    expect(relationsBlock).toContain('overflow-x-auto');
+    expect(relationsBlock).toContain('entity-relations-gallery--compact');
+    expect(relationsBlock).toContain('isCompactGallery.value ? 2 : 4');
+    expect(relationsBlock).toContain('entity-relations-overflow-tile');
+    expect(relationsBlock).toContain('openOverflow');
+    expect(relationsBlock).toContain('overflowItems');
+    expect(relationsBlock).toContain('itemVariant');
+    expect(relationsBlock).toContain("field.display === 'entityRefList'");
+    expect(surfaceContent).toContain("props.suppressChildSummaries && (field.role === 'childCount' || field.replacesCountPath)");
+    expect(surfaceContent).toContain('relationVariant');
+    expect(inlineRef).toContain('entityToneStyle');
+    expect(inlineRef).toContain('color-mix');
+    expect(inlineRef).toContain("variant === 'compact'");
+    expect(inlineRef).toContain('class="inline-flex w-full');
+    expect(inlineRef).toContain('variant="inline"');
+    expect(inlineRef).toContain('StatusBadge');
+    expect(inlineRef).toContain('compactStatusState');
+    expect(inlineRef).toContain('entity-inline-compact-status-row');
+    expect(inlineRef).toContain('compactPreviewHideDimensionLayer');
+    expect(inlineRef).toContain("'sheet_design'");
+    expect(inlineRef).toContain('needsNestingRunHydration');
+    expect(inlineRef).toContain('hydrateNestingRunOutputs');
+    expect(inlineRef).toContain(".listInstances(instances.canonicalTypeKey('sheetDesign'), { runId }, { silent: true })");
+    expect(inlineRef).toContain('relationSheetDesigns');
+    expect(inlineRef).not.toContain('entity-inline-compact-fallback');
+    expect(identityBlock).toContain('entity-inline-chip');
+    expect(entityPreview).toContain('hideDimensionLayer');
+    expect(entityPreview).toContain(':hide-dimension-layer="hideDimensionLayer"');
+    expect(entityPreview).toContain('GeometryPreview');
+    expect(fs.readFileSync(path.join(REPO_ROOT, 'components/shared/GeometryPreview.vue'), 'utf8')).toContain('isProductionPreviewLayer');
+    expect(fs.readFileSync(path.join(REPO_ROOT, 'components/shared/GeometryPreview.vue'), 'utf8')).toContain('isDimensionLayerName');
+    expect(cassetteThumbnail).toContain("name !== 'dimension.cassette'");
+    expect(generatedHome).not.toContain('min-w-64 max-w-72');
+  });
+
+  it('keeps generated Home layout sizing off variant entity-card roots', () => {
+    const generatedHome = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedHomeScreen.vue'), 'utf8');
+
+    expect(generatedHome).toContain('class="w-[18rem] min-w-[18rem] flex-none"');
+    expect(generatedHome).not.toMatch(/<EntityCard\s+class=/);
+  });
+
   it('keeps queue entity controls scoped to the concrete queue', () => {
     const queueCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Queue/QueueCard.vue'), 'utf8');
 

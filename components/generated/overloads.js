@@ -1,3 +1,4 @@
+import GeneratedHomeWorkspace from '~/components/generated/GeneratedHomeWorkspace.vue';
 import GeneratedProjectWorkspace from '~/components/generated/GeneratedProjectWorkspace.vue';
 import ArtifactDetail from '~/components/entities/Artifact/ArtifactDetail.vue';
 import { fileDetailOverloads } from '~/components/generated/file-surfaces.js';
@@ -6,9 +7,12 @@ import { fileDetailOverloads } from '~/components/generated/file-surfaces.js';
 // facade-pattern, sketch) derive from the pack editor bindings through
 // the file-surface registry — the type id is the projected entity key.
 // The artifact row stays static: artifacts are the framework file
-// service (SPEC §13), not a pack type. Home renders through the UI
-// generator (components/ui-mapping); there is no home overload.
+// service (SPEC §13), not a pack type.
 export const generatedScreenOverloads = [
+  {
+    template: 'home',
+    component: GeneratedHomeWorkspace
+  },
   {
     template: 'entityDetail',
     entityType: 'project',

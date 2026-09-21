@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('~/components/generated/GeneratedHomeWorkspace.vue', () => ({ default: { name: 'GeneratedHomeWorkspace' } }));
 vi.mock('~/components/generated/GeneratedProjectWorkspace.vue', () => ({ default: { name: 'GeneratedProjectWorkspace' } }));
 vi.mock('~/components/SheetDesignEditor.vue', () => ({ default: { name: 'SheetDesignEditor' } }));
 vi.mock('~/components/generated/GeneratedCassetteDesignerWorkspacePage.vue', () => ({ default: { name: 'GeneratedCassetteDesignerWorkspacePage' } }));
@@ -16,11 +17,14 @@ import {
 } from './overloads.js';
 
 describe('generated overload registry', () => {
-  it('resolves no home overload: home renders through the UI generator', () => {
-    expect(resolveGeneratedScreenOverload({
+  it('resolves home screens to the home workspace overload', () => {
+    const overload = resolveGeneratedScreenOverload({
       template: 'home',
       regions: []
-    })).toBeNull();
+    });
+
+    expect(overload?.entityType).toBeUndefined();
+    expect(overload?.component).toBeTruthy();
   });
 
   it('resolves project entity detail screens to the project workspace overload', () => {
