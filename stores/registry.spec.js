@@ -20,7 +20,7 @@ describe('registry store', () => {
   it('derives containment triples from declared children edges', () => {
     const registry = useRegistryStore();
     expect(registry.containment).toEqual([
-      { childType: 'queue', parentType: 'project', lineageKey: 'members' }
+      { childType: 'queue', parentType: 'project', lineageKey: 'members', declared: 'system' }
     ]);
   });
 
@@ -37,7 +37,7 @@ describe('registry store', () => {
     };
     const registry = useRegistryStore();
     expect(registry.containment).toEqual([
-      { childType: 'queue', parentType: 'project', lineageKey: 'projectId' }
+      { childType: 'queue', parentType: 'project', lineageKey: 'projectId', declared: 'system' }
     ]);
   });
 
