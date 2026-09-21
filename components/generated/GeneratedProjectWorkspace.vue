@@ -253,17 +253,17 @@ const childSections = computed(() => regions.value
     return {
       region,
       source: state.source,
-      entityType: state.source?.entityType || '',
+      typeId: state.source?.typeId || '',
       items: state.items || []
     };
   })
-  .filter(section => section.source?.mode === 'list' && section.entityType));
+  .filter(section => section.source?.mode === 'list' && section.typeId));
 const entityItems = computed(() => [
   projectItem.value,
   ...childSections.value.flatMap(section => section.items.map(entity => ({
-    key: entityKey(section.entityType, entity),
+    key: entityKey(section.typeId, entity),
     kind: 'entity',
-    type: section.entityType,
+    type: section.typeId,
     entity,
     region: section.region
   })))
@@ -297,7 +297,7 @@ const projectActions = computed(() => projectContextActionEntries({
 }));
 const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
   const entityItem = workspaceEntityItems.value.find(item => (
-    item.type === reference.entityType
+    item.type === reference.typeId
     && entityId(item.entity) === reference.entityId
   ));
   if (!entityItem) return null;
@@ -306,7 +306,7 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
     kind: 'page',
     pageId: reference.pageId,
     entity: entityItem.entity,
-    entityType: reference.entityType,
+    entityType: reference.typeId,
     cassettes: cassetteItems.value.map(item => item.entity)
   };
 }).filter(Boolean));
@@ -339,7 +339,7 @@ const explorerNodes = computed(() => {
       }] : []),
       ...childSections.value.map(section => ({
         key: `section:${section.region.id}`,
-        label: generatedEntityLabel(section.entityType, { t, te }),
+        label: generatedEntityLabel(section.typeId, { t, te }),
         data: { section },
         selectable: false,
         children: explorerSectionRootItems(section).map(item => explorerEntityNode(item))
@@ -409,14 +409,14 @@ watch(workspaceItems, () => {
 watch(linkedRefs, async refs => {
   const loaded = await Promise.all(refs.map(async ref => {
     const existing = entityItems.value.find(item => (
-      item.type === ref.entityType && entityId(item.entity) === ref.id
+      item.type === ref.typeId && entityId(item.entity) === ref.id
     ));
     const entity = existing?.entity || ref.entity
-      || await instances.resolveReadableReference(instances.canonicalTypeKey(ref.entityType), ref.id, { silent: true });
+      || await instances.resolveReadableReference(instances.canonicalTypeKey(ref.typeId), ref.id, { silent: true });
     return entity ? {
-      key: entityKey(ref.entityType, entity),
+      key: entityKey(ref.typeId, entity),
       kind: 'entity',
-      type: ref.entityType,
+      type: ref.typeId,
       entity,
       region: null
     } : null;
@@ -442,13 +442,13 @@ watch(openedEntityRefs, async refs => {
   const sequence = ++openedEntityLoadSequence;
   const loaded = await Promise.all(refs.map(async reference => {
     const existing = entityItems.value.find(item => (
-      item.type === reference.entityType && entityId(item.entity) === reference.entityId
+      item.type === reference.typeId && entityId(item.entity) === reference.entityId
     )) || linkedEntityItems.value.find(item => (
-      item.type === reference.entityType && entityId(item.entity) === reference.entityId
+      item.type === reference.typeId && entityId(item.entity) === reference.entityId
     ));
     const entity = existing?.entity
-      || await instances.resolveReadableReference(instances.canonicalTypeKey(reference.entityType), reference.entityId, { silent: true });
-    return entity ? workspaceEntityItem(reference.entityType, entity) : null;
+      || await instances.resolveReadableReference(instances.canonicalTypeKey(reference.typeId), reference.entityId, { silent: true });
+    return entity ? workspaceEntityItem(reference.typeId, entity) : null;
   }));
   if (sequence !== openedEntityLoadSequence) return;
   openedEntityItems.value = loaded.filter(Boolean);
@@ -648,7 +648,7 @@ function entityActionEntries(actionIds, item, context) {
     .filter(action => actionAppliesToEntity(action, item.entity, item.type))
     .map(action => ({
       key: `${item.key}:${action.actionId}`,
-      actionId: action.actionId,
+      actionId: action.id,
       entity: item.entity,
       context
     }));

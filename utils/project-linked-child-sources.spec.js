@@ -14,16 +14,16 @@ describe('linked project child sources', () => {
     expect(linkedExplorerChildSources({
       linkedItems: [{ key: 'library:library-1', type: 'library', entity: { _id: 'library-1' } }],
       screens: [{
-        template: 'entityDetail',
+        template: 'instanceDetail',
         sources: [
-          { id: 'library', entityType: 'library', mode: 'single' },
-          { id: 'cassettes', entityType: 'cassette', mode: 'list', filters: { libraryId: '$screen.scope.entityId' } }
+          { id: 'library', typeId: 'library', mode: 'single' },
+          { id: 'cassettes', typeId: 'cassette', mode: 'list', filters: { libraryId: '$screen.scope.entityId' } }
         ]
       }],
       containment: [{ parentType: 'library', childType: 'cassette', lineageKey: 'libraryId' }]
     })).toEqual([{
       parentKey: 'library:library-1',
-      entityType: 'cassette',
+      typeId: 'cassette',
       filters: { libraryId: 'library-1' }
     }]);
   });

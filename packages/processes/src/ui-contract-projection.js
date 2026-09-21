@@ -159,6 +159,32 @@ export function projectUiContractChannels(compiled = {}) {
   return { screens, actions };
 }
 
+// The manifest action record: the projected UI contract plus the rich
+// execution fields the action surfaces consume (prompt policy, relation
+// mutation, status window, parent context, permission feature) — under
+// the projected vocabulary. There is exactly one key per concept: `id`
+// (never `actionId`), `typeId` (never `entityType`), `parentTypeId`
+// (never `parentEntityType`). The compiled execution channel keeps its
+// internal names; everything the browser reads comes through here.
+export function projectManifestAction(action = {}, { typeLabels = new Map() } = {}) {
+  const projected = projectUiAction(action, { typeLabels });
+  if (!projected) return null;
+  return {
+    ...projected,
+    level: action.access?.level || 'write',
+    feature: action.feature || null,
+    contracts: action.contracts || null,
+    inputPolicy: action.inputPolicy || { prompt: false, fields: [] },
+    relationMutation: action.relationMutation || null,
+    // The exposure input contracts (entity inputs row binding consumes);
+    // their descriptors keep the compiler prompt-form field vocabulary.
+    inputs: action.inputs || [],
+    ...(action.status ? { status: { ...action.status } } : {}),
+    ...(action.parentEntityType ? { parentTypeId: action.parentEntityType } : {}),
+    ...(action.parentRevision ? { parentRevision: action.parentRevision } : {})
+  };
+}
+
 export const UI_CONTRACT_TEMPLATES = Object.freeze(['typeList', 'instanceDetail']);
 export const UI_CONTRACT_ACTION_KINDS = Object.freeze([
   'createInstance',

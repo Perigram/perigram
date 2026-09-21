@@ -25,8 +25,8 @@
     <div v-if="collectionActions.length" class="ml-auto flex flex-wrap items-center gap-2">
       <GeneratedActionButton
         v-for="action in collectionActions"
-        :key="action.actionId"
-        :action-id="action.actionId"
+        :key="action.id"
+        :action-id="action.id"
         @execute="selectedAction => $emit('execute-action', selectedAction, null, actionContext)"
       />
     </div>
@@ -62,16 +62,16 @@
       v-for="entity in visibleItems"
       :key="entity._id || entity.id || entity.identity?.uid"
       :entity="entity"
-      :entity-type="entityType"
+      :type-id="entityType"
       :surface="surface"
       variant="card"
       :context-entity="actionContext.parentEntity"
-      :context-entity-type="actionContext.parentEntityType"
+      :context-type-id="actionContext.parentTypeId"
       @refresh="$emit('refresh')"
     >
       <template v-if="detailRouteFor(entity)" #title>
         <div class="flex min-w-0 flex-col gap-2">
-          <TraceChain :entity="entity" :entity-type="entityType" :exclude="traceExclusions" variant="compact" expandable />
+          <TraceChain :entity="entity" :type-id="entityType" :exclude="traceExclusions" variant="compact" expandable />
           <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <div class="flex min-w-0 flex-1 items-center">
               <Button
@@ -86,7 +86,7 @@
             <div v-if="entity.status" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
               <EntityStatus
                 :entity="entity"
-                :entity-type="entityType"
+                :type-id="entityType"
                 variant="inline"
                 @refresh="$emit('refresh')"
                 @transitioned="$emit('refresh')"
@@ -97,7 +97,7 @@
       </template>
       <EntitySurfaceContent
         :entity="entity"
-        :entity-type="entityType"
+        :type-id="entityType"
         :surface="surface"
         suppress-child-summaries
         relation-variant="compact"
@@ -123,8 +123,8 @@
           />
           <GeneratedActionButton
             v-for="action in entityActionsFor(entity)"
-            :key="action.actionId"
-            :action-id="action.actionId"
+            :key="action.id"
+            :action-id="action.id"
             @execute="action => $emit('execute-action', action, entity, actionContext)"
           />
         </div>
@@ -162,10 +162,10 @@ import { entityUiFor } from '~/utils/status-engine';
 import { generatedActionRendersAt } from '~/components/generated/action-placement.js';
 
 const props = defineProps({
-  entityType: { type: String, required: true },
+  typeId: { type: String, required: true },
   items: { type: Array, default: () => [] },
   surface: { type: String, default: 'card' },
-  template: { type: String, default: 'entityList' },
+  template: { type: String, default: 'typeList' },
   actions: { type: Array, default: () => [] },
   screenKey: { type: String, default: '' },
   region: { type: Object, default: () => ({}) },
@@ -177,9 +177,9 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action', 'open-entity', 'open-page']);
 
 const authStore = useAuthStore();
-const editorActionComponent = computed(() => entityEditorActionFor(props.entityType));
-const hasEditorAction = computed(() => entityHasEditorAction(props.entityType));
-const entityIcon = computed(() => entityUiFor(props.entityType).icon);
+const editorActionComponent = computed(() => entityEditorActionFor(props.typeId));
+const hasEditorAction = computed(() => entityHasEditorAction(props.typeId));
+const entityIcon = computed(() => entityUiFor(props.typeId).icon);
 const { t } = useI18n();
 const searchQuery = ref('');
 const statusFilter = ref('');
@@ -188,7 +188,7 @@ provide('generatedExecuteAction', (action, entity, context = {}) => {
   emit('execute-action', action, entity, context);
 });
 const resolvedActions = computed(() => props.actions
-  .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
+  .map(actionId => authStore.actionManifest.find(action => action.id === actionId))
   .filter(Boolean));
 const collectionActions = computed(() => dedupeActions([
   ...resolvedActions.value.filter(action => generatedActionRendersAt(action, 'collection'))
@@ -197,19 +197,19 @@ const actionContext = computed(() => mergeCollectionActionContext({
   incoming: props.actionContext || {},
   region: props.region,
   source: props.source,
-  entityType: props.entityType,
+  typeId: props.typeId,
   items: props.items
 }));
 const traceExclusions = computed(() => {
   const entity = actionContext.value.parentEntity;
-  if (!entity || !actionContext.value.parentEntityType) return [];
+  if (!entity || !actionContext.value.parentTypeId) return [];
   return entityHierarchyIds(entity).map(id => ({
-    type: actionContext.value.parentEntityType,
+    type: actionContext.value.parentTypeId,
     id
   }));
 });
 const tableFields = computed(() => resolveEntityDisplayContract({
-  entityType: props.entityType,
+  typeId: props.typeId,
   surface: props.surface || 'table'
 }).fields.slice(0, 6));
 const statusOptions = computed(() => [
@@ -243,18 +243,18 @@ function entityActionsFor(entity) {
   return resolvedActions.value.filter(action => (
     isGeneratedSurfaceAction(action) &&
     generatedActionRendersAt(action, ['entity', 'relation']) &&
-    !parentBoundCreateAppliesToEntityType(action, props.entityType)
-    && actionAppliesToEntity(action, entity, props.entityType)
+    !parentBoundCreateAppliesToEntityType(action, props.typeId)
+    && actionAppliesToEntity(action, entity, props.typeId)
   ));
 }
 
 function dedupeActions(actions = []) {
-  return [...new Map(actions.map(action => [action.actionId || action.id, action])).values()];
+  return [...new Map(actions.map(action => [action.id, action])).values()];
 }
 
 function openEntity(entity) {
   if (props.openInWorkspace) {
-    emit('open-entity', { entity, entityType: props.entityType });
+    emit('open-entity', { entity, typeId: props.typeId });
     return;
   }
   // Desktop standalone lists open entities inside the home workspace
@@ -262,7 +262,7 @@ function openEntity(entity) {
   if (typeof window !== 'undefined'
     && !window.matchMedia?.('(max-width: 767px)')?.matches) {
     const id = entity?._id || entity?.id || entity?.identity?.uid || '';
-    if (openEntityInWorkspace({ entityType: props.entityType, entityId: String(id || '') })) return;
+    if (openEntityInWorkspace({ typeId: props.typeId, entityId: String(id || '') })) return;
   }
   const route = detailRouteFor(entity);
   if (route) navigateTo(route);
@@ -271,7 +271,7 @@ function openEntity(entity) {
 function detailRouteFor(entity) {
   return detailRouteForEntity({
     entity,
-    entityType: props.entityType,
+    typeId: props.typeId,
     screenKey: props.screenKey,
     manifest: authStore.screenManifest
   });

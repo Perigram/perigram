@@ -5,23 +5,23 @@ describe('generated entity detail routing', () => {
   it('opens child collection items with their own entity detail screen', () => {
     const route = detailRouteForEntity({
       entity: { _id: 'queue-1' },
-      entityType: 'queue',
+      typeId: 'queue',
       screenKey: 'auto_installer_project_detail',
       manifest: [
         {
           screenKey: 'auto_installer_project_detail',
-          template: 'entityDetail',
+          template: 'instanceDetail',
           route: '/screens/auto_installer_project_detail',
           sources: [
-            { entityType: 'project', mode: 'single' },
-            { entityType: 'queue', mode: 'list' }
+            { typeId: 'project', mode: 'single' },
+            { typeId: 'queue', mode: 'list' }
           ]
         },
         {
           screenKey: 'auto_installer_queue_detail',
-          template: 'entityDetail',
+          template: 'instanceDetail',
           route: '/screens/auto_installer_queue_detail',
-          sources: [{ entityType: 'queue', mode: 'single' }]
+          sources: [{ typeId: 'queue', mode: 'single' }]
         }
       ]
     });
@@ -38,14 +38,14 @@ describe('generated entity detail routing', () => {
   it('uses a paired detail screen only when that screen exists for the same entity', () => {
     const route = detailRouteForEntity({
       entity: { _id: 'project-1' },
-      entityType: 'project',
+      typeId: 'project',
       screenKey: 'auto_installer_project',
       manifest: [
         {
           screenKey: 'auto_installer_project_detail',
-          template: 'entityDetail',
+          template: 'instanceDetail',
           route: '/screens/auto_installer_project_detail',
-          sources: [{ entityType: 'project', mode: 'single' }]
+          sources: [{ typeId: 'project', mode: 'single' }]
         }
       ]
     });
@@ -56,13 +56,13 @@ describe('generated entity detail routing', () => {
   it('does not create a detail route without an accessible entity screen', () => {
     const route = detailRouteForEntity({
       entity: { _id: 'library-1' },
-      entityType: 'library',
+      typeId: 'library',
       manifest: [
         {
           screenKey: 'auto_installer_cassette',
           template: 'collection',
           route: '/screens/auto_installer_cassette',
-          sources: [{ entityType: 'cassette', mode: 'list' }]
+          sources: [{ typeId: 'cassette', mode: 'list' }]
         }
       ]
     });

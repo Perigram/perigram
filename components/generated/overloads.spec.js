@@ -29,11 +29,11 @@ describe('generated overload registry', () => {
 
   it('resolves project entity detail screens to the project workspace overload', () => {
     const overload = resolveGeneratedScreenOverload({
-      template: 'entityDetail',
-      sources: [{ id: 'project', entityType: 'project', mode: 'single' }]
+      template: 'instanceDetail',
+      sources: [{ id: 'project', typeId: 'project', mode: 'single' }]
     });
 
-    expect(overload?.entityType).toBe('project');
+    expect(overload?.typeId).toBe('project');
     expect(overload?.component).toBeTruthy();
   });
 

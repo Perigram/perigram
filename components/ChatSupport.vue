@@ -822,7 +822,7 @@
                     :options="newChatUsers"
                     option-label="label"
                     option-value="value"
-                    entity-type="user"
+                    type-id="user"
                     filter
                     :loading="newChatUsersLoading"
                     :placeholder="$t('support.selectMembers')"
@@ -853,17 +853,17 @@
                         :options="createPromptOptions[field.id] || []"
                         option-label="label"
                         option-value="value"
-                        :entity-type="field.entityType || field.accepts?.[0] || ''"
+                        :type-id="field.entityType || field.accepts?.[0] || ''"
                         filter
                         class="w-full"
                     />
                     <EntityMultiSelect
-                        v-else-if="field.type === 'entityList'"
+                        v-else-if="field.type === 'typeList'"
                         v-model="createPromptValues[field.id]"
                         :options="createPromptOptions[field.id] || []"
                         option-label="label"
                         option-value="value"
-                        :entity-type="field.entityType || field.accepts?.[0] || ''"
+                        :type-id="field.entityType || field.accepts?.[0] || ''"
                         filter
                         class="w-full"
                     />
@@ -1159,7 +1159,7 @@ const openEntityFromThread = () => {
         if (activeEntityDetailRoute.value) navigateTo(activeEntityDetailRoute.value)
         return
     }
-    if (openEntityInWorkspace({ entityType: conversation.entityType, entityId: String(conversation.entityId) })) return
+    if (openEntityInWorkspace({ typeId: conversation.entityType, entityId: String(conversation.entityId) })) return
     if (activeEntityDetailRoute.value) navigateTo(activeEntityDetailRoute.value)
 }
 
@@ -1572,15 +1572,15 @@ async function loadStripChildren(targetKey, targetType, targetEntity = null) {
         })
         const loaded = await Promise.all(sources.map(async source => {
             try {
-                const entities = await instances.listInstances(instances.canonicalTypeKey(source.entityType), source.filters)
+                const entities = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters)
                 return (Array.isArray(entities) ? entities : []).map(entity => ({
-                    key: `${source.entityType}:${stripEntityId(entity)}`,
-                    type: source.entityType,
+                    key: `${source.typeId}:${stripEntityId(entity)}`,
+                    type: source.typeId,
                     // Chips must carry the id explicitly: path-derived chips
                     // already do, and selection (plus the sent entity link)
                     // compares on it.
                     id: stripEntityId(entity),
-                    name: entity?.identity?.name || entity?.identity?.serial || stripEntityId(entity) || source.entityType,
+                    name: entity?.identity?.name || entity?.identity?.serial || stripEntityId(entity) || source.typeId,
                     entity
                 }))
             } catch {
@@ -1638,16 +1638,16 @@ function effectiveContainmentForStrip() {
     // source on a type's detail screen is a child edge, with the lineage
     // key read from the filter placeholder target.
     for (const screen of authStore.screenManifest || []) {
-        if (screen.template !== 'entityDetail' || !screen.entityType) continue
+        if (screen.template !== 'instanceDetail' || !screen.typeId) continue
         for (const source of screen.sources || []) {
-            if (source.mode !== 'list' || source.entityType === screen.entityType) continue
-            if (edges.some(edge => edge.parentType === screen.entityType && edge.childType === source.entityType)) continue
+            if (source.mode !== 'list' || source.typeId === screen.typeId) continue
+            if (edges.some(edge => edge.parentType === screen.typeId && edge.childType === source.typeId)) continue
             const filterEntry = Object.entries(source.filters || {})
                 .find(([, value]) => typeof value === 'string' && value.startsWith('$screen'))
             if (!filterEntry) continue
             edges.push({
-                childType: source.entityType,
-                parentType: screen.entityType,
+                childType: source.typeId,
+                parentType: screen.typeId,
                 lineageKey: filterEntry[0]
             })
         }
@@ -2085,7 +2085,7 @@ const scrollToBottom = async () => {
 // disabled instead of opening an empty menu.
 const attachmentPickerEmpty = computed(() => {
     const home = authStore.screenManifest.find(screen => screen.template === 'home')
-    return !(home?.sources || []).some(source => source.entityType && source.mode !== 'single')
+    return !(home?.sources || []).some(source => source.typeId && source.mode !== 'single')
 })
 
 const openAttachmentPicker = (event) => {
@@ -2115,7 +2115,7 @@ const createPromptFields = computed(() => (pendingCreateAction.value
     : []))
 
 const runCreateAction = async (action) => {
-    if (!action?.actionId) return
+    if (!action?.id) return
     const creator = artifactCreatorForAction(action)
     if (creator) {
         pendingCreateAction.value = action
@@ -2140,7 +2140,7 @@ const openCreatePromptDialog = async (action) => {
     createPromptVisible.value = true
     for (const field of createPromptFields.value) {
         const type = field.entityType || field.accepts?.[0]
-        if (field.type === 'entity' || field.type === 'entityList') {
+        if (field.type === 'entity' || field.type === 'typeList') {
             if (!type) continue
             try {
                 createPromptOptions[field.id] = await $fetch('/api/support/entity-options', {
@@ -2172,7 +2172,7 @@ const submitCreatePrompt = async () => {
 const executeCreateAction = async (action, data) => {
     executingCreate.value = true
     try {
-        const result = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(action.actionId)}/execute`, {
+        const result = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(action.id)}/execute`, {
             method: 'POST',
             body: {
                 entityId: null,
@@ -2196,7 +2196,7 @@ const attachCreatedEntity = (action, result) => {
     if (!result || typeof result !== 'object') return
     const entity = result.created || (!result.owner ? (result.entity || result) : null)
     const id = entity?._id?.toString?.() || entity?._id || entity?.id || entity?.identity?.uid || ''
-    const type = action.relationMutation?.targetType || action.entityType
+    const type = action.relationMutation?.targetType || action.typeId
     if (!id || !type) return
     if (!entityRefs.value.some(ref => ref.type === type && ref.id === id)) {
         entityRefs.value.push({

@@ -73,7 +73,7 @@ import { useAuthStore } from '~/stores/auth';
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  entityType: { type: String, required: true },
+  typeId: { type: String, required: true },
   fields: { type: Array, default: () => [] },
   itemVariant: { type: String, default: 'inline' }
 });
@@ -121,13 +121,13 @@ function unlinkEntries(relation = {}, item = {}) {
   if (!key || !item.id) return [];
   return authStore.actionManifest
     .filter(action => (
-      action.entityType === props.entityType
+      action.typeId === props.typeId
       && action.relationMutation?.operation === 'unlink'
       && action.relationMutation?.key === key
       && action.relationMutation?.targetType === item.entityType
     ))
     .map(action => ({
-      actionId: action.actionId,
+      actionId: action.id,
       entity: props.entity,
       context: {
         data: {

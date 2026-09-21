@@ -1,4 +1,4 @@
-import { generatedDetailScreenForEntityType } from '~/components/generated/detail-screen-actions.js';
+import { generatedDetailScreenForTypeId } from '~/components/generated/detail-screen-actions.js';
 import { resolveSourceFilters } from '~/composables/useGeneratedScreen.js';
 import { normalizeHierarchyType } from './entity-hierarchy.js';
 
@@ -6,7 +6,7 @@ export function linkedExplorerChildSources({ linkedItems = [], screens = [], con
   return linkedItems.flatMap(parent => {
     const parentId = entityId(parent?.entity);
     if (!parentId || !parent?.type) return [];
-    const detailScreen = generatedDetailScreenForEntityType({ screens, entityType: parent.type });
+    const detailScreen = generatedDetailScreenForTypeId({ screens, typeId: parent.type });
     if (!detailScreen) return [];
     const scopedScreen = {
       ...detailScreen,
@@ -17,10 +17,10 @@ export function linkedExplorerChildSources({ linkedItems = [], screens = [], con
       }
     };
     return (detailScreen.sources || [])
-      .filter(source => source?.mode === 'list' && containedBy(parent.type, source.entityType, containment))
+      .filter(source => source?.mode === 'list' && containedBy(parent.type, source.typeId, containment))
       .map(source => ({
         parentKey: parent.key,
-        entityType: source.entityType,
+        typeId: source.typeId,
         filters: resolveSourceFilters(source, scopedScreen)
       }));
   });

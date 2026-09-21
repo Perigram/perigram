@@ -55,8 +55,8 @@ describe('process navigation', () => {
       id: 'auto_role_reader_cassette',
       screenKey: 'auto_role_reader_cassette',
       route: '/screens/auto_role_reader_cassette',
-      template: 'entityList',
-      entityType: 'cassette',
+      template: 'typeList',
+      typeId: 'cassette',
       required: {
         feature: 'cassettes',
         level: 'read',
@@ -64,7 +64,7 @@ describe('process navigation', () => {
       },
       sources: [{
         id: 'cassette',
-        entityType: 'cassette',
+        typeId: 'cassette',
         mode: 'list',
         required: {
           feature: 'cassettes',
@@ -76,8 +76,8 @@ describe('process navigation', () => {
       id: 'auto_role_admin_cassette',
       screenKey: 'auto_role_admin_cassette',
       route: '/screens/auto_role_admin_cassette',
-      template: 'entityList',
-      entityType: 'cassette',
+      template: 'typeList',
+      typeId: 'cassette',
       required: {
         feature: 'cassettes',
         level: 'read',
@@ -85,7 +85,7 @@ describe('process navigation', () => {
       },
       sources: [{
         id: 'cassette',
-        entityType: 'cassette',
+        typeId: 'cassette',
         mode: 'list',
         required: {
           feature: 'cassettes',
@@ -133,9 +133,9 @@ describe('process navigation', () => {
         id: 'auto_cassette',
         screenKey: 'auto_cassette',
         route: '/screens/auto_cassette',
-        template: 'entityList',
+        template: 'typeList',
         placement: 'hub',
-        entityType: 'cassette'
+        typeId: 'cassette'
       }]
     })).toBe('/screens/home_user');
   });
@@ -147,9 +147,9 @@ describe('process navigation', () => {
         id: 'auto_queue',
         screenKey: 'auto_queue',
         route: '/screens/auto_queue',
-        template: 'entityList',
+        template: 'typeList',
         placement: 'hub',
-        entityType: 'queue'
+        typeId: 'queue'
       }]
     })).toBe('/screens/auto_queue');
   });
@@ -180,9 +180,9 @@ describe('process navigation', () => {
       id: 'auto_cassette',
       screenKey: 'auto_cassette',
       route: '/screens/auto_cassette',
-      template: 'entityList',
+      template: 'typeList',
       placement: 'hub',
-      entityType: 'cassette'
+      typeId: 'cassette'
     }]).map(screen => screen.screenKey)).toEqual(['auto_cassette']);
   });
 

@@ -9,8 +9,8 @@ import {
 describe('generated action inputs', () => {
   it('builds a manual generic Create form from input policy and submits canonical block paths', () => {
     const action = {
-      actionKind: 'createEntity',
-      entityType: 'project',
+      actionKind: 'createInstance',
+      typeId: 'project',
       construction: { mode: 'genericCreate', inputs: [], blockComposed: true },
       inputPolicy: {
         fields: [
@@ -29,8 +29,8 @@ describe('generated action inputs', () => {
 
   it('builds typed-reference and upload Create forms from normalized construction inputs', () => {
     const typed = {
-      actionKind: 'createEntity',
-      entityType: 'cassette_design',
+      actionKind: 'createInstance',
+      typeId: 'cassette_design',
       construction: {
         mode: 'bakeCassetteDesignFromTemplate',
         inputs: [
@@ -44,8 +44,8 @@ describe('generated action inputs', () => {
       attachmentKinds: [{ kind: 'DXF_SOURCE', creation: { mode: 'upload' } }]
     };
     const upload = {
-      actionKind: 'createEntity',
-      entityType: 'artifact',
+      actionKind: 'createInstance',
+      typeId: 'artifact',
       construction: { inputs: [{ id: 'artifact', required: true, prompt: true, creator: uploadCreator }] }
     };
 

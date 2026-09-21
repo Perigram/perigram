@@ -177,7 +177,7 @@ export function fileDetailOverloads(editors = packEditorBindings) {
       const surface = resolveFileSurface(editors, editor.type);
       return surface?.detail
         ? {
-            entityType: editor.type,
+            typeId: editor.type,
             component: surface.detail.component,
             ownsActionSurface: Boolean(surface.detail.ownsActionSurface),
             props: context => surface.detail.props({ ...context, typeId: editor.type })
@@ -199,7 +199,7 @@ export function fileWorkspacePages(editors = packEditorBindings) {
       return surface?.workspacePage
         ? {
             id: editor.surface,
-            entityType: editor.type,
+            typeId: editor.type,
             labelKey: surface.workspacePage.labelKey,
             icon: surface.workspacePage.icon,
             component: surface.workspacePage.component,

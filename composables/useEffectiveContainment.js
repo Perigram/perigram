@@ -15,8 +15,8 @@ export function useEffectiveContainment() {
   const registry = useRegistryStore();
   return () => {
     const bindings = (authStore.lineageBindings || []).map(binding => ({
-      childType: binding.childEntityType,
-      parentType: binding.ancestorEntityType,
+      childType: binding.childTypeId,
+      parentType: binding.parentTypeId,
       lineageKey: binding.lineageKey
     }));
     if (!authStore.processActive) return registry.containment;

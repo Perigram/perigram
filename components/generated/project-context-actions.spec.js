@@ -12,14 +12,14 @@ describe('project context actions', () => {
       project,
       screenActionIds: ['link_library'],
       childSections: [{
-        entityType: 'library',
+        typeId: 'library',
         region: { id: 'libraries', actions: ['link_library'] }
       }],
       actionManifest: [{
-        actionId: 'link_library',
+        id: 'link_library',
         label: 'Link library',
-        actionKind: 'updateEntity',
-        entityType: 'project'
+        actionKind: 'updateInstance',
+        typeId: 'project'
       }]
     });
 
@@ -34,15 +34,15 @@ describe('project context actions', () => {
       project,
       screenActionIds: ['create_library'],
       childSections: [{
-        entityType: 'library',
+        typeId: 'library',
         context: { parentEntityId: 'project-1' },
         region: { id: 'libraries', actions: ['create_library'] }
       }],
       actionManifest: [{
-        actionId: 'create_library',
-        actionKind: 'createEntity',
-        entityType: 'library',
-        parentEntityType: 'project'
+        id: 'create_library',
+        actionKind: 'createInstance',
+        typeId: 'library',
+        parentTypeId: 'project'
       }]
     });
 
@@ -59,16 +59,16 @@ describe('project context actions', () => {
       screenActionIds: ['create_cassette_a', 'create_cassette_b'],
       actionManifest: [
         {
-          actionId: 'create_cassette_a',
-          actionKind: 'createEntity',
-          entityType: 'cassette',
-          parentEntityType: 'project'
+          id: 'create_cassette_a',
+          actionKind: 'createInstance',
+          typeId: 'cassette',
+          parentTypeId: 'project'
         },
         {
-          actionId: 'create_cassette_b',
-          actionKind: 'createEntity',
-          entityType: 'cassette',
-          parentEntityType: 'project'
+          id: 'create_cassette_b',
+          actionKind: 'createInstance',
+          typeId: 'cassette',
+          parentTypeId: 'project'
         }
       ]
     });
@@ -82,10 +82,10 @@ describe('project context actions', () => {
       project,
       screenActionIds: ['unlink_library'],
       actionManifest: [{
-        actionId: 'unlink_library',
-        actionKind: 'updateEntity',
-        entityType: 'project',
-        relationMutation: { operation: 'unlink', key: 'library', targetType: 'library' }
+        id: 'unlink_library',
+        actionKind: 'unlink',
+        typeId: 'project',
+        relation: { key: 'library', targetType: 'library' }
       }]
     });
 

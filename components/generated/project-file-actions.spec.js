@@ -8,17 +8,17 @@ const project = {
 
 describe('project context action palette', () => {
   it('uses compiled project and child-create actions with their project contexts', () => {
-    const projectContext = { parentEntityType: 'project', parentEntity: project, parentEntityId: 'project-1' };
-    const childContext = { ...projectContext, entityType: 'queue' };
+    const projectContext = { parentTypeId: 'project', parentEntity: project, parentEntityId: 'project-1' };
+    const childContext = { ...projectContext, typeId: 'queue' };
     const entries = projectContextActionEntries({
       actionManifest: [
-        { actionId: 'rename-project', actionKind: 'updateEntity', entityType: 'project' },
-        { actionId: 'create-queue', actionKind: 'createEntity', entityType: 'queue', parentEntityType: 'project' },
-        { actionId: 'unavailable', actionKind: 'createEntity', entityType: 'cassette', parentEntityType: 'warehouse' }
+        { id: 'rename-project', actionKind: 'updateInstance', typeId: 'project' },
+        { id: 'create-queue', actionKind: 'createInstance', typeId: 'queue', parentTypeId: 'project' },
+        { id: 'unavailable', actionKind: 'createInstance', typeId: 'cassette', parentTypeId: 'warehouse' }
       ],
       screenActionIds: ['rename-project'],
       childSections: [{
-        entityType: 'queue',
+        typeId: 'queue',
         region: { id: 'queues', actions: ['create-queue'] },
         context: childContext
       }],
@@ -35,22 +35,22 @@ describe('project context action palette', () => {
     const entries = projectContextActionEntries({
       actionManifest: [
         {
-          actionId: 'ready-create',
-          actionKind: 'createEntity',
-          entityType: 'queue',
-          parentEntityType: 'project',
+          id: 'ready-create',
+          actionKind: 'createInstance',
+          typeId: 'queue',
+          parentTypeId: 'project',
           status: { from: 'READY' }
         },
         {
-          actionId: 'draft-create',
-          actionKind: 'createEntity',
-          entityType: 'queue',
-          parentEntityType: 'project',
+          id: 'draft-create',
+          actionKind: 'createInstance',
+          typeId: 'queue',
+          parentTypeId: 'project',
           status: { from: 'DRAFT' }
         }
       ],
       childSections: [{
-        entityType: 'queue',
+        typeId: 'queue',
         region: { id: 'queues', actions: ['ready-create', 'draft-create'] },
         context: {}
       }],
@@ -63,8 +63,8 @@ describe('project context action palette', () => {
   it('does not surface manifest actions that are absent from the compiled project screen', () => {
     const entries = projectContextActionEntries({
       actionManifest: [
-        { actionId: 'screen-action', actionKind: 'runCommand', entityType: 'project' },
-        { actionId: 'global-action', actionKind: 'runCommand', entityType: 'project' }
+        { id: 'screen-action', actionKind: 'runCommand', typeId: 'project' },
+        { id: 'global-action', actionKind: 'runCommand', typeId: 'project' }
       ],
       screenActionIds: ['screen-action'],
       project

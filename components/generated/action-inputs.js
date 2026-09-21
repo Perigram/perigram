@@ -6,7 +6,7 @@ export function hasUploadCreator(field = {}) {
 }
 
 export function artifactCreatorForAction(action = {}) {
-  if (!isCreateAction(action) || !(action.entityType || action.typeId)) return null;
+  if (!isCreateAction(action) || !(action.typeId)) return null;
   const field = [...(action.construction?.inputs || []), ...(action.inputPolicy?.fields || [])]
     .find(input => input.creator?.entityType);
   return hasUploadCreator(field) ? field.creator : null;
@@ -45,7 +45,7 @@ export function promptData(fields = [], values = {}) {
 }
 
 export function initialPromptValue(field = {}) {
-  if (field.type === 'entityList') return Array.isArray(field.default) ? field.default : [];
+  if (field.type === 'typeList') return Array.isArray(field.default) ? field.default : [];
   if (field.type === 'cassetteParameters') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
   if (field.editor === 'artifactTemplateValues') return field.default && typeof field.default === 'object' ? { ...field.default } : {};
   if (field.type === 'enum') return field.default ?? field.options?.[0] ?? '';
@@ -59,7 +59,7 @@ export function initialPromptValue(field = {}) {
 }
 
 function promptFieldHidden(field = {}, action = {}) {
-  const parentType = action.parentEntityType || action.inputs?.find(input => input.id === 'parent')?.entityType || '';
+  const parentType = action.parentTypeId || '';
   const templateEntityType = field.templateEntityType || field.entityType || '';
   return isCreateAction(action)
     && templateEntityType
@@ -69,7 +69,7 @@ function promptFieldHidden(field = {}, action = {}) {
 
 function normalizePromptValue(field = {}, value) {
   if (field.type === 'number') return value === '' ? undefined : Number(value);
-  if (field.type === 'entityList') return normalizeEntityListValue(field, value);
+  if (field.type === 'typeList') return normalizeEntityListValue(field, value);
   if (field.type === 'cassetteParameters') return normalizeCassetteParameters(value);
   if (field.type === 'boolean') {
     return value === null || value === undefined || value === '' ? undefined : Boolean(value);

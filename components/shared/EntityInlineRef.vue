@@ -171,12 +171,12 @@ const popupActions = computed(() => {
     .filter(isGeneratedSurfaceAction)
     .filter(action => !isConsumedDetailAction(action));
   const contextual = props.contextActionEntries
-    .map(entry => authStore.actionManifest.find(action => action.actionId === entry.actionId))
+    .map(entry => authStore.actionManifest.find(action => action.id === entry.id))
     .filter(Boolean);
   return Array.from(new Map([...standard, ...contextual]
-    .map(action => [action.actionId, action])).values());
+    .map(action => [action.id, action])).values());
 });
-const popupActionIds = computed(() => popupActions.value.map(action => action.actionId));
+const popupActionIds = computed(() => popupActions.value.map(action => action.id));
 const popupShowCassetteDesigner = computed(() => generatedEntityType.value === 'cassette');
 const popupHasActions = computed(() => (
   popupShowCassetteDesigner.value
@@ -278,7 +278,7 @@ function openDetail(event) {
     return;
   }
   if (openEntityInWorkspace({
-    entityType: generatedEntityType.value || props.type,
+    typeId: generatedEntityType.value || props.type,
     entityId: resolvedId.value
   })) return;
   navigateTo(detailRoute.value);
@@ -298,7 +298,7 @@ function openEntityChatFromRef(event) {
 function executePopupAction(action) {
   const executor = unref(generatedExecuteAction);
   if (typeof executor !== 'function' || !resolved.value) return;
-  const contextual = props.contextActionEntries.find(entry => entry.actionId === action.actionId);
+  const contextual = props.contextActionEntries.find(entry => entry.id === action.id);
   executor(action, contextual?.entity || resolved.value, contextual?.context || {});
 }
 
@@ -410,7 +410,7 @@ function tonePalette(role) {
       >
         <EntityPreview
           :entity="resolved"
-          :entity-type="generatedEntityType"
+          :type-id="generatedEntityType"
           :mode="compactDisplay.surfaceContract.preview"
           :hide-dimension-layer="compactPreviewHideDimensionLayer"
         />
@@ -440,7 +440,7 @@ function tonePalette(role) {
         <span class="entity-inline-compact-facts">
           <DataBlock
             v-if="resolved && compactDataFields.length"
-            :entity-type="generatedEntityType"
+            :type-id="generatedEntityType"
             :entity="resolved"
             :fields="compactDataFields"
             variant="compact"
@@ -452,7 +452,7 @@ function tonePalette(role) {
     <Popover v-if="interactive" ref="compactOp">
       <div class="w-[min(34rem,calc(100vw-3rem))]">
         <div class="flex flex-col gap-4 p-4">
-          <TraceChain v-if="resolved" :entity="resolved" :entity-type="type" />
+          <TraceChain v-if="resolved" :entity="resolved" :type-id="type" />
           <small class="uppercase text-muted text-supporting">
             {{ compactTypeLabel }}
           </small>
@@ -461,7 +461,7 @@ function tonePalette(role) {
             <EntityStatus
               v-if="resolved.status"
               :entity="resolved"
-              :entity-type="generatedEntityType"
+              :type-id="generatedEntityType"
               variant="inline"
             />
           </div>
@@ -469,7 +469,7 @@ function tonePalette(role) {
             <EntitySurfaceContent
               v-if="resolved"
               :entity="resolved"
-              :entity-type="generatedEntityType"
+              :type-id="generatedEntityType"
               surface="card"
               suppress-child-summaries
               relation-variant="compact"

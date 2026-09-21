@@ -3,7 +3,6 @@ import { storeToRefs } from 'pinia';
 import { useRequestHeaders } from '#app';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
-import { normalizeScreenContract } from '~/packages/processes/src/screen-contract.js';
 import { hasProcessRequirement } from '~/utils/process-navigation.js';
 import { onEntityChanged } from '~/utils/entity-events.js';
 import { filterRootSourceItems } from '~/utils/generated-screen-source.js';
@@ -18,12 +17,14 @@ export function useGeneratedScreen(screenRef) {
   let loadSequence = 0;
   let refreshTimer = null;
 
-  const screen = computed(() => normalizeScreenContract(unrefScreen(screenRef) || {}));
+  // Hydration ships projected screens (typeId vocabulary, normalized
+  // server-side); the client reads them as-is — no second normalizer.
+  const screen = computed(() => unrefScreen(screenRef) || {});
 
   const visibleSources = computed(() => screen.value.sources.filter(source => canReadSource(source, activePermissions.value)));
 
   function sourceTypeKey(source = {}) {
-    return instances.canonicalTypeKey(source.typeId || source.entityType || '');
+    return instances.canonicalTypeKey(source.typeId || '');
   }
 
   async function load({ initial = false } = {}) {
@@ -104,11 +105,11 @@ export function useGeneratedScreen(screenRef) {
     };
   }
 
-  function applyEntitySnapshot(entityType, entity = null) {
+  function applyEntitySnapshot(typeId, entity = null) {
     const id = entity?._id?.toString?.() || entity?._id || entity?.identity?.uid?.toString?.() || entity?.identity?.uid;
-    if (!entityType || !id || !entity) return;
+    if (!typeId || !id || !entity) return;
     sourceStates.value = Object.fromEntries(Object.entries(sourceStates.value).map(([sourceId, state]) => {
-      if (state.source?.entityType !== entityType) return [sourceId, state];
+      if (state.source?.typeId !== typeId) return [sourceId, state];
       if (state.source.mode === 'single') {
         const sourceIdValue = resolveSourceIdentifier(state.source, screen.value);
         return String(sourceIdValue) === String(id) ? [sourceId, { ...state, entity }] : [sourceId, state];
@@ -125,10 +126,10 @@ export function useGeneratedScreen(screenRef) {
     }));
   }
 
-  function removeEntitySnapshot(entityType, id) {
-    if (!entityType || !id) return;
+  function removeEntitySnapshot(typeId, id) {
+    if (!typeId || !id) return;
     sourceStates.value = Object.fromEntries(Object.entries(sourceStates.value).map(([sourceId, state]) => {
-      if (state.source?.entityType !== entityType || state.source.mode === 'single') return [sourceId, state];
+      if (state.source?.typeId !== typeId || state.source.mode === 'single') return [sourceId, state];
       return [sourceId, {
         ...state,
         items: (state.items || []).filter(item => String(item?._id || item?.identity?.uid) !== String(id))
@@ -162,7 +163,7 @@ function entityMatchesSource(entity = {}, source = {}, screen = {}) {
 function entityChangeAffectsSources(change = {}, sources = [], screen = {}) {
   if (!change.type) return false;
   return sources.some(source => {
-    if (source.entityType !== change.type) return false;
+    if (source.typeId !== change.type) return false;
     if (source.mode !== 'single' || !change.id) return true;
     return String(resolveSourceIdentifier(source, screen)) === String(change.id);
   });
@@ -185,7 +186,7 @@ function emptyState(source = {}) {
 function resolveSourceIdentifier(source = {}, screen = {}) {
   return resolveValue(source.identifier, screen)
     || screen.scope?.entityId
-    || screen.scope?.[`${source.entityType}Id`]
+    || screen.scope?.[`${source.typeId}Id`]
     || '';
 }
 

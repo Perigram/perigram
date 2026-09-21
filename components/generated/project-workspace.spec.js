@@ -30,8 +30,8 @@ describe('generated project workspace behavior', () => {
   });
 
   it('keeps entity actions in the entity/detail body according to one ownership rule', () => {
-    expect(generatedEntityDetailConsumesAction('queue', { actionKind: 'updateEntity', entityType: 'queue' })).toBe(true);
-    expect(generatedEntityDetailConsumesAction('artifact', { actionKind: 'updateEntity', entityType: 'artifact' })).toBe(false);
-    expect(generatedEntityDetailConsumesAction('project', { actionKind: 'createEntity', entityType: 'artifact', parentEntityType: 'project' })).toBe(false);
+    expect(generatedEntityDetailConsumesAction('queue', { actionKind: 'updateInstance', typeId: 'queue' })).toBe(true);
+    expect(generatedEntityDetailConsumesAction('artifact', { actionKind: 'updateInstance', typeId: 'artifact' })).toBe(false);
+    expect(generatedEntityDetailConsumesAction('project', { actionKind: 'createInstance', typeId: 'artifact', parentTypeId: 'project' })).toBe(false);
   });
 });

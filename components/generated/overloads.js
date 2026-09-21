@@ -14,15 +14,15 @@ export const generatedScreenOverloads = [
     component: GeneratedHomeWorkspace
   },
   {
-    template: 'entityDetail',
-    entityType: 'project',
+    template: 'instanceDetail',
+    typeId: 'project',
     component: GeneratedProjectWorkspace
   }
 ];
 
 export const generatedEntityDetailOverloads = [
   {
-    entityType: 'artifact',
+    typeId: 'artifact',
     component: ArtifactDetail,
     props: ({ entity }) => ({ artifact: entity })
   },
@@ -33,17 +33,17 @@ export function resolveGeneratedScreenOverload(screen = {}) {
   if (!screen || typeof screen !== 'object' || Array.isArray(screen)) return null;
   return generatedScreenOverloads.find(overload => (
     overload.template === screen.template
-    && (overload.entityType == null || overload.entityType === detailEntityType(screen))
+    && (overload.typeId == null || overload.typeId === detailScreenTypeId(screen))
   )) || null;
 }
 
-export function resolveGeneratedEntityDetailOverload(entityType = '') {
-  return generatedEntityDetailOverloads.find(overload => overload.entityType === entityType) || null;
+export function resolveGeneratedEntityDetailOverload(typeId = '') {
+  return generatedEntityDetailOverloads.find(overload => overload.typeId === typeId) || null;
 }
 
-function detailEntityType(screen = {}) {
+function detailScreenTypeId(screen = {}) {
   if (!screen || typeof screen !== 'object' || Array.isArray(screen)) return '';
-  if (screen.entityType) return screen.entityType;
+  if (screen.typeId) return screen.typeId;
   const singleSource = (screen.sources || []).find(source => source.mode === 'single');
-  return singleSource?.entityType || '';
+  return singleSource?.typeId || '';
 }

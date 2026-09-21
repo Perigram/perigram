@@ -3,12 +3,12 @@ import { generatedActionRendersAt, generatedActionSurface } from './action-place
 
 describe('generated action placement', () => {
   it('assigns one presentation owner by operation concern', () => {
-    expect(generatedActionSurface({ actionKind: 'createEntity' })).toBe('collection');
+    expect(generatedActionSurface({ actionKind: 'createInstance' })).toBe('collection');
     expect(generatedActionSurface({ actionKind: 'runCommand' })).toBe('entity');
     expect(generatedActionSurface({
-      actionKind: 'updateEntity',
+      actionKind: 'updateInstance',
       relationMutation: { operation: 'link', key: 'items', targetType: 'item' }
     })).toBe('relation');
-    expect(generatedActionRendersAt({ actionKind: 'createEntity' }, ['entity', 'relation'])).toBe(false);
+    expect(generatedActionRendersAt({ actionKind: 'createInstance' }, ['entity', 'relation'])).toBe(false);
   });
 });

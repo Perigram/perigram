@@ -14,10 +14,10 @@ describe('generated detail action ownership', () => {
       commandId: 'solveNesting'
     })).toBe(true);
     expect(generatedEntityDetailConsumesAction('cassette', {
-      actionKind: 'updateEntity'
+      actionKind: 'updateInstance'
     })).toBe(true);
     expect(generatedEntityDetailConsumesAction('sheet_design', {
-      actionKind: 'updateEntity'
+      actionKind: 'updateInstance'
     })).toBe(true);
   });
 
@@ -30,7 +30,7 @@ describe('generated detail action ownership', () => {
 
   it('leaves generated relation mutations on the generic action surface', () => {
     expect(generatedEntityDetailConsumesAction('queue', {
-      actionKind: 'updateEntity',
+      actionKind: 'updateInstance',
       relationMutation: {
         key: 'cassettes',
         targetType: 'cassette_design',
@@ -38,7 +38,7 @@ describe('generated detail action ownership', () => {
       }
     })).toBe(false);
     expect(generatedEntityDetailConsumesAction('cassette', {
-      actionKind: 'updateEntity',
+      actionKind: 'updateInstance',
       relationMutation: {
         key: 'library',
         targetType: 'library',

@@ -9,7 +9,7 @@ import {
 import { cncDomain, cncPackContent } from '~/packages/domain-cnc/src/index.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { compileClientBundle, projectDomainFromView } from '~/packages/cts/src/index.js';
-import { projectUiAction } from '~/packages/processes/src/ui-contract-projection.js';
+import { projectManifestAction, projectUiAction, projectUiScreen } from '~/packages/processes/src/ui-contract-projection.js';
 import * as repository from './repository.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { resolveOrganizationSystemScreens } from '../organizations/system-screens.js';
@@ -96,26 +96,37 @@ export async function resolveProcessAuth(auth = {}) {
   const system = resolveOrganizationSystemScreens(ownerAuth);
   const processScreens = resolveScreens({ access: assignmentAccess });
   const processNavigation = resolveNavigation({ access: assignmentAccess });
+  // The wire speaks ONE vocabulary: every screen and manifest action the
+  // browser reads is projected here (typeId, id, typeList/instanceDetail/
+  // home, lineage bindings keyed childTypeId/parentTypeId). The compiled
+  // execution channel keeps its internal names server-side; nothing with
+  // `entityType`/`actionId` keys crosses hydration.
+  const typeLabels = new Map((compiled.bundle?.types || []).map(type => [type.id, type.render?.label || type.id]));
+  const manifestActions = (assignmentAccess.actions || [])
+    .map(action => projectManifestAction(action, { typeLabels }))
+    .filter(Boolean);
   return {
     ...ownerAuth,
     process: {
       active: true,
       schemaVersion: compiled.schemaVersion,
       producerOutputs: compiled.producerOutputs || {},
-      lineageBindings: compiled.lineageBindings || [],
+      lineageBindings: (compiled.lineageBindings || []).map(({ childEntityType, ancestorEntityType, ...binding }) => ({
+        ...binding,
+        childTypeId: childEntityType,
+        parentTypeId: ancestorEntityType
+      })),
       // The UI generator's inputs ride with the hydration payload: the CTS
       // client bundle and the projected action contract, so the screens
       // renderer never consults the registry or the execution channel.
       bundle: compiled.bundle || { types: [] },
       actions: Object.fromEntries(Object.values(compiled.actions || {})
-        .map(action => [action.id, projectUiAction(action, {
-          typeLabels: new Map((compiled.bundle?.types || []).map(type => [type.id, type.render?.label || type.id]))
-        })])
+        .map(action => [action.id, projectUiAction(action, { typeLabels })])
         .filter(([, projected]) => projected))
     },
     navigation: [...system.navigation, ...processNavigation],
-    screens: [...system.screens, ...processScreens],
-    roleAssignments: assignmentAccess
+    screens: [...system.screens, ...processScreens].map(screen => projectUiScreen(screen)),
+    roleAssignments: { ...assignmentAccess, actions: manifestActions }
   };
 }
 

@@ -8,10 +8,10 @@
       @saved="$emit('refresh')"
     />
     <template v-else>
-      <GeneratedFilePreview :entity="entity" :entity-type="entityType" />
+      <GeneratedFilePreview :entity="entity" :type-id="entityType" />
       <EntitySurfaceContent
         :entity="entity"
-        :entity-type="entityType"
+        :type-id="entityType"
         :surface="surface"
         :display-overrides="displayOverrides"
         :relation-variant="relationVariant"
@@ -31,7 +31,7 @@ import { resolveGeneratedEntityDetailOverload } from '~/components/generated/ove
 
 const props = defineProps({
   entity: { type: Object, required: true },
-  entityType: { type: String, required: true },
+  typeId: { type: String, required: true },
   surface: { type: String, default: 'detail' },
   screenKey: { type: String, default: '' },
   actions: { type: Array, default: () => [] },
@@ -44,7 +44,7 @@ const props = defineProps({
 defineEmits(['refresh']);
 
 const authStore = useAuthStore();
-const detailOverload = computed(() => resolveGeneratedEntityDetailOverload(props.entityType));
+const detailOverload = computed(() => resolveGeneratedEntityDetailOverload(props.typeId));
 const detailActions = computed(() => uniqueActions(props.actions));
 const canEditSheetDesign = computed(() => hasPermissionGrant({
   permissions: authStore.activePermissions,
@@ -69,7 +69,7 @@ const bodyClass = computed(() => {
 function uniqueActions(actions = []) {
   return Array.from(new Map(actions
     .filter(Boolean)
-    .map(action => [action.actionId || action.id, action])
+    .map(action => [action.id, action])
   ).values());
 }
 </script>

@@ -6,8 +6,8 @@ import { resolveGeneratedEntityActions } from './action-visibility.js';
 describe('project file operations', () => {
   const project = { _id: 'project-1', identity: { uid: 'project-1' }, status: { state: { primary: 'ACTIVE' } } };
   const actions = [
-    { actionId: 'create-artifact', actionKind: 'createEntity', entityType: 'artifact', parentEntityType: 'project', access: { roleIds: ['operator'] } },
-    { actionId: 'rename-project', actionKind: 'updateEntity', entityType: 'project', access: { roleIds: ['operator'] } }
+    { id: 'create-artifact', actionKind: 'createInstance', typeId: 'artifact', parentTypeId: 'project', access: { roleIds: ['operator'] } },
+    { id: 'rename-project', actionKind: 'updateInstance', typeId: 'project', access: { roleIds: ['operator'] } }
   ];
 
   it('places parent-bound creation in collection/project context and entity mutation in detail context', () => {
@@ -21,18 +21,18 @@ describe('project file operations', () => {
     const entries = projectContextActionEntries({
       project,
       actionManifest: actions,
-      projectContext: { parentEntityType: 'project' },
-      childSections: [{ entityType: 'artifact', region: { id: 'artifacts', actions: ['create-artifact'] }, context: { projectId: 'project-1' } }]
+      projectContext: { parentTypeId: 'project' },
+      childSections: [{ typeId: 'artifact', region: { id: 'artifacts', actions: ['create-artifact'] }, context: { projectId: 'project-1' } }]
     });
     expect(entries.map(entry => entry.actionId)).toContain('create-artifact');
   });
 
   it('filters generated entity actions by the current entity contract', () => {
     expect(resolveGeneratedEntityActions({
-      actionIds: actions.map(action => action.actionId),
+      actionIds: actions.map(action => action.id),
       actionManifest: actions,
       entity: project,
-      entityType: 'project'
-    }).map(action => action.actionId)).toContain('rename-project');
+      typeId: 'project'
+    }).map(action => action.id)).toContain('rename-project');
   });
 });

@@ -29,18 +29,18 @@ export function generatedEntityLabel(entityType = '', { t, te } = {}) {
 export function generatedScreenLabel(screen = {}, { t, te } = {}) {
   if (screen.labelKey && canTranslate(te, screen.labelKey)) return t(screen.labelKey);
   if (screen.template === 'home') return t('generatedScreen.home');
-  if (screen.entityType || screen.typeId) return generatedEntityLabel(screen.entityType || screen.typeId, { t, te });
+  if (screen.typeId) return generatedEntityLabel(screen.typeId, { t, te });
   return meaningfulLabel(screen.label || screen.id || screen.screenKey);
 }
 
 export function generatedRegionLabel(region = {}, source = {}, { t, te } = {}) {
   if (region.labelKey && canTranslate(te, region.labelKey)) return t(region.labelKey);
-  if (source.entityType || source.typeId) return generatedEntityLabel(source.entityType || source.typeId, { t, te });
+  if (source.typeId) return generatedEntityLabel(source.typeId, { t, te });
   return meaningfulLabel(region.label || source.label || region.id || source.id);
 }
 
 function actionTypeOf(action = {}) {
-  return action.entityType || action.typeId || '';
+  return action.typeId || '';
 }
 
 function relationLinkTarget(action = {}) {

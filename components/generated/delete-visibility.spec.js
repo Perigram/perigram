@@ -32,39 +32,39 @@ describe('generated delete visibility', () => {
     const entity = { _id: 'queue-1', lineage: { organizationId: 'org-1' } };
     const authStore = {
       activePermissions: {
-        'cts-types': [{ level: 'admin', scope: { entityType: 'queue', entityId: 'queue-1' } }]
+        'cts-types': [{ level: 'admin', scope: { typeId: 'queue', entityId: 'queue-1' } }]
       }
     };
 
-    expect(canDeleteGeneratedEntity({ authStore, entity, entityType: 'queue' })).toBe(true);
+    expect(canDeleteGeneratedEntity({ authStore, entity, typeId: 'queue' })).toBe(true);
     expect(canDeleteGeneratedEntity({
-      authStore: { activePermissions: { 'cts-types': [{ level: 'write', scope: { entityType: 'queue', entityId: 'queue-1' } }] } },
+      authStore: { activePermissions: { 'cts-types': [{ level: 'write', scope: { typeId: 'queue', entityId: 'queue-1' } }] } },
       entity,
-      entityType: 'queue'
+      typeId: 'queue'
     })).toBe(false);
     expect(canDeleteGeneratedEntity({
       authStore,
       entity: { _id: 'queue-2', lineage: { organizationId: 'org-1' } },
-      entityType: 'queue'
+      typeId: 'queue'
     })).toBe(false);
   });
 
   it('requires a registry-known type or a mounted feature route to delete', () => {
     const authStore = {
       activePermissions: {
-        'cts-types': [{ level: 'admin', scope: { entityType: 'queue', entityId: 'queue-1' } }]
+        'cts-types': [{ level: 'admin', scope: { typeId: 'queue', entityId: 'queue-1' } }]
       }
     };
     const instances = useInstancesStore();
 
     // Registry-known type resolves through the generic instance service.
-    expect(canDeleteGeneratedEntity({ authStore, entity: { _id: 'queue-1' }, entityType: 'queue' })).toBe(true);
+    expect(canDeleteGeneratedEntity({ authStore, entity: { _id: 'queue-1' }, typeId: 'queue' })).toBe(true);
 
     // Feature-routed legacy type keeps its delete surface.
     expect(featureKey('artifact')).toBe('artifacts');
 
     // Unknown type on the instance transport has no executable service.
     expect(instances.endpointsFor('mystery_thing').list()).toBe('/api/instances/mystery-thing');
-    expect(canDeleteGeneratedEntity({ authStore, entity: { _id: 'm-1' }, entityType: 'mystery_thing' })).toBe(false);
+    expect(canDeleteGeneratedEntity({ authStore, entity: { _id: 'm-1' }, typeId: 'mystery_thing' })).toBe(false);
   });
 });

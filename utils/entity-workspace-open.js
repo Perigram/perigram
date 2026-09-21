@@ -17,10 +17,10 @@ function homeWorkspaceRoute() {
  * pane tab immediately. Otherwise the request is stashed as pending state
  * and the app navigates home; the workspace consumes it on mount.
  */
-export function openEntityInWorkspace({ entityType = '', entityId = '' } = {}) {
-  if (!entityType || !entityId || typeof window === 'undefined') return false;
+export function openEntityInWorkspace({ typeId = '', entityId = '' } = {}) {
+  if (!typeId || !entityId || typeof window === 'undefined') return false;
   const handled = !window.dispatchEvent(new CustomEvent(WORKSPACE_OPEN_EVENT, {
-    detail: { entityType, entityId },
+    detail: { typeId, entityId },
     cancelable: true
   }));
   if (handled) return true;

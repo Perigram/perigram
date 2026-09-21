@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   actionAppliesToEntity,
   isGeneratedSurfaceAction,
-  parentBoundCreateAppliesToEntityType,
+  parentBoundCreateAppliesToTypeId,
   resolveGeneratedEntityActions,
   resolveScopedGeneratedActions
 } from './action-visibility.js';
@@ -15,10 +15,10 @@ describe('generated action visibility', () => {
       { status: { state: { primary: 'CREATED' } } },
       'cassette'
     )).toBe(true);
-    expect(parentBoundCreateAppliesToEntityType({
+    expect(parentBoundCreateAppliesToTypeId({
       actionKind: 'createInstance',
       typeId: 'cassette_design',
-      parentEntityType: 'cassette'
+      parentTypeId: 'cassette'
     }, 'cassette')).toBe(true);
     expect(isGeneratedSurfaceAction({ actionKind: 'createInstance' })).toBe(true);
     expect(isGeneratedSurfaceAction({ actionKind: 'updateInstance' })).toBe(true);
@@ -29,14 +29,14 @@ describe('generated action visibility', () => {
       actionIds: ['run'],
       actionManifest: [{ id: 'run', actionKind: 'runCommand', typeId: 'queue' }],
       entity: {},
-      entityType: 'queue'
+      typeId: 'queue'
     })).toHaveLength(1);
   });
 
   it('shows status-bearing updates only on entities in the source status', () => {
     const action = {
-      actionKind: 'updateEntity',
-      entityType: 'cassette',
+      actionKind: 'updateInstance',
+      typeId: 'cassette',
       status: { from: 'CREATED', to: 'DELETED' }
     };
 
@@ -46,14 +46,14 @@ describe('generated action visibility', () => {
   });
 
   it('does not expose create actions on entity rows', () => {
-    expect(actionAppliesToEntity({ actionKind: 'createEntity', entityType: 'cassette' }, {}, 'cassette')).toBe(false);
+    expect(actionAppliesToEntity({ actionKind: 'createInstance', typeId: 'cassette' }, {}, 'cassette')).toBe(false);
   });
 
   it('shows parent-bound create actions on matching entity details', () => {
     const action = {
-      actionKind: 'createEntity',
-      entityType: 'cassette_design',
-      parentEntityType: 'cassette',
+      actionKind: 'createInstance',
+      typeId: 'cassette_design',
+      parentTypeId: 'cassette',
       status: { from: 'CREATED', to: 'RECEIVED' }
     };
 
@@ -63,19 +63,19 @@ describe('generated action visibility', () => {
   });
 
   it('identifies parent-bound create actions for collection rows', () => {
-    expect(parentBoundCreateAppliesToEntityType({
-      actionKind: 'createEntity',
-      entityType: 'cassette_design',
-      parentEntityType: 'cassette'
+    expect(parentBoundCreateAppliesToTypeId({
+      actionKind: 'createInstance',
+      typeId: 'cassette_design',
+      parentTypeId: 'cassette'
     }, 'cassette')).toBe(true);
-    expect(parentBoundCreateAppliesToEntityType({
-      actionKind: 'createEntity',
-      entityType: 'cassette'
+    expect(parentBoundCreateAppliesToTypeId({
+      actionKind: 'createInstance',
+      typeId: 'cassette'
     }, 'cassette')).toBe(false);
   });
 
   it('hides entity actions from other entity lists', () => {
-    expect(actionAppliesToEntity({ actionKind: 'updateEntity', entityType: 'project' }, {}, 'cassette')).toBe(false);
+    expect(actionAppliesToEntity({ actionKind: 'updateInstance', typeId: 'project' }, {}, 'cassette')).toBe(false);
   });
 
   it('resolves generated entity actions from region ids and user action manifest', () => {
@@ -84,34 +84,34 @@ describe('generated action visibility', () => {
       actionIds: ['solve', 'delete', 'missing'],
       actionManifest: [
         {
-          actionId: 'solve',
+          id: 'solve',
           actionKind: 'runCommand',
           commandId: 'solveNesting',
-          entityType: 'queue',
+          typeId: 'queue',
           status: { from: 'READY' }
         },
         {
-          actionId: 'delete',
-          actionKind: 'updateEntity',
-          entityType: 'queue',
+          id: 'delete',
+          actionKind: 'updateInstance',
+          typeId: 'queue',
           status: { from: 'ARCHIVED', to: 'DELETED' }
         }
       ],
       entity,
-      entityType: 'queue'
+      typeId: 'queue'
     });
 
-    expect(actions.map(action => action.actionId)).toEqual(['solve']);
+    expect(actions.map(action => action.id)).toEqual(['solve']);
   });
 
   it('resolves a compiler-scoped body producer without reinterpreting its output entity', () => {
     const producer = {
-      actionId: 'create-design',
-      actionKind: 'createEntity',
-      entityType: 'cassette_design',
+      id: 'create-design',
+      actionKind: 'createInstance',
+      typeId: 'cassette_design',
       contracts: {
-        inputs: [{ id: 'queue', kind: 'entity', entityType: 'queue' }],
-        outputs: [{ id: 'created', kind: 'entity', entityType: 'cassette_design' }]
+        inputs: [{ id: 'queue', kind: 'entity', typeId: 'queue' }],
+        outputs: [{ id: 'created', kind: 'entity', typeId: 'cassette_design' }]
       }
     };
 
@@ -128,9 +128,9 @@ describe('generated action visibility', () => {
   it('keeps only canonical process actions in generic action surfaces', () => {
     expect(isGeneratedSurfaceAction({ actionKind: 'obsolete' })).toBe(false);
     expect(isGeneratedSurfaceAction({ actionKind: 'runCommand' })).toBe(true);
-    expect(isGeneratedSurfaceAction({ actionKind: 'updateEntity' })).toBe(true);
-    expect(isGeneratedSurfaceAction({ actionKind: 'archiveEntity' })).toBe(true);
-    expect(isGeneratedSurfaceAction({ actionKind: 'deleteEntity' })).toBe(true);
-    expect(isGeneratedSurfaceAction({ actionKind: 'deleteEntity', trigger: { mode: 'automatic' } })).toBe(false);
+    expect(isGeneratedSurfaceAction({ actionKind: 'updateInstance' })).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'updateInstance' })).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'deleteInstance' })).toBe(true);
+    expect(isGeneratedSurfaceAction({ actionKind: 'deleteInstance', trigger: { mode: 'automatic' } })).toBe(false);
   });
 });

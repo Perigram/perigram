@@ -1,50 +1,49 @@
-import { generatedScreenRoute, normalizeScreenContract } from '~/packages/processes/src/screen-contract.js';
+import { generatedScreenRoute } from '~/packages/processes/src/screen-contract.js';
 
-export function detailRouteForEntity({ entity = null, entityType = '', screenKey = '', manifest = [] } = {}) {
+export function detailRouteForEntity({ entity = null, typeId = '', screenKey = '', manifest = [] } = {}) {
   const identifier = entityIdentifier(entity);
-  if (!identifier || !entityType) return null;
-  const screens = manifest.map(item => normalizeScreenContract(item));
+  if (!identifier || !typeId) return null;
+  const screens = manifest || [];
   const pairedScreenKey = screenKey ? `${screenKey}_detail` : '';
   const pairedScreen = pairedScreenKey
-    ? screens.find(item => isEntityDetailScreen(item, pairedScreenKey, entityType))
+    ? screens.find(item => isEntityDetailScreen(item, pairedScreenKey, typeId))
     : null;
   if (pairedScreen) {
-    return entityRoute(pairedScreen.route || generatedScreenRoute(pairedScreenKey), entityType, identifier);
+    return entityRoute(pairedScreen.route || generatedScreenRoute(pairedScreenKey), typeId, identifier);
   }
-  const screen = screens.find(item => item.template === 'entityDetail' && hasSingleEntitySource(item, entityType));
+  const screen = screens.find(item => item.template === 'instanceDetail' && hasSingleEntitySource(item, typeId));
   if (screen) {
-    return entityRoute(screen.route || generatedScreenRoute(screen.screenKey || screen.id), entityType, identifier);
+    return entityRoute(screen.route || generatedScreenRoute(screen.screenKey || screen.id), typeId, identifier);
   }
-  const baseScreen = screens.find(item => item.template !== 'entityDetail' && hasEntitySource(item, entityType));
+  const baseScreen = screens.find(item => item.template !== 'instanceDetail' && hasEntitySource(item, typeId));
   if (!baseScreen) return null;
-  return entityRoute(generatedScreenRoute(`${baseScreen.screenKey || baseScreen.id}_detail`), entityType, identifier);
+  return entityRoute(generatedScreenRoute(`${baseScreen.screenKey || baseScreen.id}_detail`), typeId, identifier);
 }
 
 export function entityIdentifier(entity) {
   return entity?._id || entity?.id || entity?.identity?.uid || '';
 }
 
-function isEntityDetailScreen(screen = {}, screenKey = '', entityType = '') {
-  return screen.screenKey === screenKey && screen.template === 'entityDetail' && hasSingleEntitySource(screen, entityType);
+function isEntityDetailScreen(screen = {}, screenKey = '', typeId = '') {
+  return screen.screenKey === screenKey && screen.template === 'instanceDetail' && hasSingleEntitySource(screen, typeId);
 }
 
-// Screens arrive in either vocabulary: the CTS-projected manifest keys
-// sources by `typeId`; legacy-adapter screens use `entityType`. Both name
-// the same target and route resolution accepts either.
-function hasEntitySource(screen = {}, entityType = '') {
-  return (screen.sources || []).some(source => (source.entityType || source.typeId) === entityType);
+// The manifest speaks the projected vocabulary: sources key their target
+// by `typeId`.
+function hasEntitySource(screen = {}, typeId = '') {
+  return (screen.sources || []).some(source => source.typeId === typeId);
 }
 
-function hasSingleEntitySource(screen = {}, entityType = '') {
-  return (screen.sources || []).some(source => (source.entityType || source.typeId) === entityType && source.mode === 'single');
+function hasSingleEntitySource(screen = {}, typeId = '') {
+  return (screen.sources || []).some(source => source.typeId === typeId && source.mode === 'single');
 }
 
-function entityRoute(path = '', entityType = '', identifier = '') {
+function entityRoute(path = '', typeId = '', identifier = '') {
   return {
     path,
     query: {
       entityId: identifier,
-      [`${entityType}Id`]: identifier
+      [`${typeId}Id`]: identifier
     }
   };
 }

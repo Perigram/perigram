@@ -55,7 +55,7 @@
       </template>
     </WorkspaceLanes>
     <GeneratedRegion
-      v-else-if="screen.template === 'entityDetail' && detailMainRegion"
+      v-else-if="screen.template === 'instanceDetail' && detailMainRegion"
       :region="detailMainRegion"
       :screen-key="screen.screenKey || screen.id"
       :source-state="sourceState(detailMainRegion.sourceId)"
@@ -204,7 +204,7 @@
               :options="promptOptions[field.id] || []"
               option-label="label"
               option-value="value"
-              :entity-type="field.entityType || field.accepts?.[0] || ''"
+              :type-id="field.entityType || field.accepts?.[0] || ''"
               class="w-full"
             />
             <Button
@@ -236,7 +236,7 @@
                   :options="relationCreatorOptions[creatorField.id] || []"
                   option-label="label"
                   option-value="value"
-                  :entity-type="creatorField.entityType || ''"
+                  :type-id="creatorField.entityType || ''"
                   @update:model-value="syncRelationCreatorParameters"
                 />
                 <div v-else-if="creatorField.type === 'cassetteParameters'" class="grid grid-cols-2 gap-2">
@@ -255,12 +255,12 @@
             :options="fieldOptions(field)"
           />
           <MultiSelect
-            v-else-if="field.type === 'entityList'"
+            v-else-if="field.type === 'typeList'"
             v-model="promptValues[field.id]"
             :options="promptOptions[field.id] || []"
             option-label="label"
             option-value="value"
-            :entity-type="field.entityType || field.accepts?.[0] || ''"
+            :type-id="field.entityType || field.accepts?.[0] || ''"
             display="chip"
             class="w-full"
           />
@@ -386,14 +386,14 @@ const detailActionContext = computed(() => {
   const state = detailMainRegion.value ? sourceState(detailMainRegion.value.sourceId) : null;
   return {
     parentEntity: state?.entity || null,
-    parentEntityType: state?.source?.entityType || ''
+    parentTypeId: state?.source?.typeId || ''
   };
 });
 const detailTraceExclusions = computed(() => {
   const state = detailMainRegion.value ? sourceState(detailMainRegion.value.sourceId) : null;
   return routeContextTraceExclusions(
     state?.entity || {},
-    state?.source?.entityType || '',
+    state?.source?.typeId || '',
     (authStore.lineageBindings || []).map(binding => ({
       parentType: binding.ancestorEntityType,
       childType: binding.childEntityType,
@@ -414,7 +414,7 @@ const errorMessage = computed(() => error.value?.data?.message || error.value?.m
 const screenTitle = computed(() => generatedScreenLabel(screen.value, { t, te }));
 // Workspace overloads (project IDE, home shell) own the whole viewport; they
 // render no outer page title.
-const pageTitle = computed(() => screenOverload.value || screen.value?.template === 'entityDetail' ? '' : screenTitle.value);
+const pageTitle = computed(() => screenOverload.value || screen.value?.template === 'instanceDetail' ? '' : screenTitle.value);
 const screenOverload = computed(() => resolveGeneratedScreenOverload(screen.value));
 const booleanOptions = computed(() => [
   { label: t('common.yes'), value: true },
@@ -423,7 +423,7 @@ const booleanOptions = computed(() => [
 
 async function executeAction(action, entity = null, context = {}) {
   actionError.value = '';
-  const actionId = action?.actionId || action?.id;
+  const actionId = action?.id || action?.id;
   if (!actionId) return;
   try {
     if (isDeleteAction(action)) {
@@ -485,7 +485,7 @@ function openArtifactCreator(field = {}) {
 
 const artifactCreatorLineage = computed(() => {
   const owner = pendingEntity.value?.entity || {};
-  const ownerType = pendingEntity.value?.context?.entityType || pendingAction.value?.entityType || '';
+  const ownerType = pendingEntity.value?.context?.typeId || pendingAction.value?.typeId || '';
   const ownerId = entityIdentifier(owner);
   return {
     ...(owner.lineage || {}),
@@ -497,7 +497,7 @@ function selectCreatedArtifact(artifact = {}) {
   const field = artifactCreatorField.value;
   const id = entityIdentifier(artifact);
   if (!field || !id) return;
-  if (pendingAction.value?.entityType && pendingAction.value.entityType === field.creator?.entityType) {
+  if (pendingAction.value?.typeId && pendingAction.value.typeId === field.creator?.entityType) {
     artifactCreatorField.value = null;
     pendingAction.value = null;
     pendingEntity.value = null;
@@ -531,12 +531,12 @@ async function submitPromptedAction() {
 }
 
 async function postAction(action, entity = null, data = {}, context = {}) {
-  const actionId = action?.actionId || action?.id;
+  const actionId = action?.id || action?.id;
   if (!actionId) return;
   try {
     const result = await actionOffline({
       url: `/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`,
-      entityType: action.entityType,
+      typeId: action.typeId,
       entityId: entity?._id || entity?.identity?.uid || null,
       body: {
         entityId: entity?._id || entity?.identity?.uid || null,
@@ -575,7 +575,7 @@ function applyActionResult(action = {}, result = null) {
   if (!result || typeof result !== 'object') return;
   const mapped = mappedMutationItems(result);
   if (mapped) {
-    for (const entity of mapped) applyEntitySnapshot(action.entityType, entity?.entity || entity);
+    for (const entity of mapped) applyEntitySnapshot(action.typeId, entity?.entity || entity);
     return;
   }
   if (action.actionKind === 'runCommand') {
@@ -584,14 +584,14 @@ function applyActionResult(action = {}, result = null) {
     }
     return;
   }
-  if (result.owner) applyEntitySnapshot(action.entityType, result.owner);
+  if (result.owner) applyEntitySnapshot(action.typeId, result.owner);
   if (result.created) {
     for (const entity of mappedMutationItems(result.created) || [result.created]) {
-      applyEntitySnapshot(action.relationMutation?.targetType || action.entityType, entity);
+      applyEntitySnapshot(action.relationMutation?.targetType || action.typeId, entity);
     }
   }
   if (!result.owner && !result.created) {
-    applyEntitySnapshot(action.entityType, result.entity || result);
+    applyEntitySnapshot(action.typeId, result.entity || result);
   }
 }
 
@@ -622,9 +622,9 @@ async function openCreatedEntity(action = {}, result = null) {
   // in the home workspace, whose pane body mounts the type's editor
   // surface. A create is never silent — the toast carries the name even
   // when the workspace opens the editor.
-  toast.add({ severity: 'success', summary: t('common.created'), detail: target.name || target.entityType, life: 4000 });
+  toast.add({ severity: 'success', summary: t('common.created'), detail: target.name || target.typeId, life: 4000 });
   if (target.kind === 'workspace') {
-    openEntityInWorkspace({ entityType: target.entityType, entityId: target.entityId });
+    openEntityInWorkspace({ typeId: target.typeId, entityId: target.entityId });
   }
 }
 
@@ -643,7 +643,7 @@ function selectedTemplateForField(field = {}) {
   const templateEntityType = field.templateEntityType || field.entityType || '';
   if (pending && templateEntityType && (
     pending.origin?.type === templateEntityType
-    || pendingEntity.value?.context?.entityType === templateEntityType
+    || pendingEntity.value?.context?.typeId === templateEntityType
   )) {
     const pendingId = entityIdentifier(pending);
     if (!templateId || pendingId?.toString() === templateId?.toString()) return pending;
@@ -725,7 +725,7 @@ function syncArtifactTemplateValues(fields = promptedFields(pendingAction.value)
 
 async function loadPromptOptions(fields = []) {
   await Promise.all(fields
-    .filter(field => ['entity', 'entityList'].includes(field.type))
+    .filter(field => ['entity', 'typeList'].includes(field.type))
     .map(async (field) => {
       const options = await entityOptions(field.entityType || field.accepts?.[0], field).catch(() => []);
       promptOptions[field.id] = options;

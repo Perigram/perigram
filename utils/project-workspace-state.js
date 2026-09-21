@@ -1,6 +1,6 @@
 import { createWorkspaceLeaf, workspaceLeaves } from './workspace-splits.js';
 
-export const PROJECT_WORKSPACE_STATE_VERSION = 3;
+export const PROJECT_WORKSPACE_STATE_VERSION = 4;
 
 export function projectWorkspaceStorageKey({ userId, organizationId, projectId }) {
   if (!userId || !organizationId || !projectId) return '';
@@ -103,12 +103,12 @@ function normalizeOpenedPageRefs(value) {
     reference
     && typeof reference.key === 'string'
     && typeof reference.pageId === 'string'
-    && typeof reference.entityType === 'string'
+    && typeof reference.typeId === 'string'
     && typeof reference.entityId === 'string'
   )).map(reference => ({
     key: reference.key,
     pageId: reference.pageId,
-    entityType: reference.entityType,
+    typeId: reference.typeId,
     entityId: reference.entityId
   }));
 }
@@ -118,11 +118,11 @@ function normalizeOpenedEntityRefs(value) {
   return value.filter(reference => (
     reference
     && typeof reference.key === 'string'
-    && typeof reference.entityType === 'string'
+    && typeof reference.typeId === 'string'
     && typeof reference.entityId === 'string'
   )).map(reference => ({
     key: reference.key,
-    entityType: reference.entityType,
+    typeId: reference.typeId,
     entityId: reference.entityId
   }));
 }

@@ -2,7 +2,7 @@
   <GeneratedEntityDetail
     v-if="sourceState.source?.mode === 'single'"
     :entity="sourceState.entity"
-    :entity-type="sourceState.source.entityType"
+    :type-id="sourceState.source.typeId"
     :surface="region.surface || 'detail'"
     :actions="effectiveActions"
     :body-actions="bodyActions"
@@ -19,7 +19,7 @@
   <GeneratedEntityCollection
     v-else
     :items="sourceState.items"
-    :entity-type="sourceState.source?.entityType || ''"
+    :type-id="sourceState.source?.typeId || ''"
     :surface="region.surface || 'card'"
     :template="template"
     :actions="effectiveActions"
@@ -43,7 +43,7 @@ import GeneratedEntityDetail from '~/components/generated/GeneratedEntityDetail.
 const props = defineProps({
   region: { type: Object, required: true },
   sourceState: { type: Object, required: true },
-  template: { type: String, default: 'entityList' },
+  template: { type: String, default: 'typeList' },
   screenActions: { type: Array, default: () => [] },
   screenKey: { type: String, default: '' },
   excludedActions: { type: Array, default: () => [] },

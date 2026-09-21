@@ -1,4 +1,4 @@
-import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
+import { actionAppliesToEntity, isCreateAction, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
 
 export function projectContextActionEntries({
   actionManifest = [],
@@ -9,12 +9,12 @@ export function projectContextActionEntries({
   projectContext = {}
 } = {}) {
   if (!project) return [];
-  const parentType = projectContext?.parentEntityType || project.entityType || 'project';
+  const parentType = projectContext?.parentTypeId || 'project';
 
   const childActionIds = new Set(childSections.flatMap(section => (
     (section.region?.actions || []).filter(actionId => {
-      const action = actionManifest.find(candidate => candidate.actionId === actionId);
-      return action?.actionKind === 'createEntity' && parentEntityType(action) === parentType;
+      const action = actionManifest.find(candidate => candidate.id === actionId);
+      return isCreateAction(action) && action?.parentTypeId === parentType;
     })
   )));
   const projectEntries = entriesForProject(
@@ -35,13 +35,13 @@ export function projectContextActionEntries({
 
 function entriesForProject(actionIds, actionManifest, project, context) {
   return [...new Set(actionIds)]
-    .map(actionId => actionManifest.find(action => action.actionId === actionId))
+    .map(actionId => actionManifest.find(action => action.id === actionId))
     .filter(Boolean)
     .filter(isGeneratedSurfaceAction)
-    .filter(action => actionAppliesToEntity(action, project, context?.parentEntityType || project.entityType || 'project'))
+    .filter(action => actionAppliesToEntity(action, project, context?.parentTypeId || 'project'))
     .map(action => ({
-      key: `project:${action.actionId}`,
-      actionId: action.actionId,
+      key: `project:${action.id}`,
+      actionId: action.id,
       entity: project,
       context
     }));
@@ -49,41 +49,31 @@ function entriesForProject(actionIds, actionManifest, project, context) {
 
 function childCreateActions({ section = {}, actionManifest = [], project = null, parentType = 'project' } = {}) {
   return [...new Set(section.region?.actions || [])]
-    .map(actionId => actionManifest.find(action => action.actionId === actionId))
+    .map(actionId => actionManifest.find(action => action.id === actionId))
     .filter(Boolean)
     .filter(isGeneratedSurfaceAction)
     .filter(action => (
-      action.actionKind === 'createEntity'
-      && action.entityType === section.entityType
-      && parentEntityType(action) === parentType
+      isCreateAction(action)
+      && action.typeId === section.typeId
+      && action.parentTypeId === parentType
       && actionAppliesToEntity(action, project, parentType)
     ))
     .map(action => ({
-      key: `collection:${section.region?.id || section.entityType}:${action.actionId}`,
-      actionId: action.actionId,
+      key: `collection:${section.region?.id || section.typeId}:${action.id}`,
+      actionId: action.id,
       entity: null,
       context: section.context || {}
     }));
 }
 
-function parentEntityType(action = {}) {
-  return action.parentEntityType
-    || action.inputs?.find(input => input.id === 'parent')?.entityType
-    || '';
-}
-
 function uniqueEntries(entries = [], actionManifest = []) {
   return [...new Map(entries.map(entry => {
-    const action = actionManifest.find(candidate => candidate.actionId === entry.actionId);
+    const action = actionManifest.find(candidate => candidate.id === entry.actionId);
     return [visibleOperationKey(action, entry), entry];
   })).values()];
 }
 
 function visibleOperationKey(action = {}, entry = {}) {
-  if (action.actionKind !== 'createEntity') return entry.actionId;
-  return [
-    'createEntity',
-    action.entityType || '',
-    parentEntityType(action)
-  ].join(':');
+  if (!isCreateAction(action)) return entry.actionId;
+  return ['createInstance', action.typeId || '', action.parentTypeId || ''].join(':');
 }

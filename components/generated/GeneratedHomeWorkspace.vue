@@ -58,7 +58,7 @@
               <span
                 v-if="node.data?.section"
                 class="group flex min-w-0 flex-1 items-center gap-2"
-                :data-home-entity-type="node.data.section.source.entityType"
+                :data-home-type-id="node.data.section.source.typeId"
               >
                 <span class="min-w-0 flex-1 truncate text-label">{{ node.label }}</span>
                 <Button
@@ -95,7 +95,7 @@
                 <EntityStatus
                   v-if="node.data?.item?.entity?.status"
                   :entity="node.data.item.entity"
-                  :entity-type="node.data.item.type"
+                  :type-id="node.data.item.type"
                   variant="icon"
                   class="shrink-0"
                   @click.stop
@@ -161,7 +161,7 @@
               :action-entries="actionEntriesForPane(pane)"
               :closeable="paneCount > 1"
               @execute-action="executeWorkspaceAction"
-              @open-entity="request => openWorkspaceEntity(request.entityType, request.entity)"
+              @open-entity="request => openWorkspaceEntity(request.typeId, request.entity)"
               @open-page="openWorkspacePage"
               @open-call="request => openCallTab(request.room, request)"
               @refresh="$emit('refresh')"
@@ -217,7 +217,7 @@ import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePan
 import { actionAppliesToEntity, isCreateAction, isGeneratedSurfaceAction, isRelationLinkAction } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { resolveGeneratedWorkspacePage, generatedWorkspacePages } from '~/components/generated/workspace-pages.js';
-import { generatedDetailScreenForEntityType } from '~/components/generated/detail-screen-actions.js';
+import { generatedDetailScreenForTypeId } from '~/components/generated/detail-screen-actions.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
@@ -272,8 +272,8 @@ const hydratedStorageKey = ref('');
 const actionsMenu = ref(null);
 const rowActionEntries = ref([]);
 const rowActionMenuItems = computed(() => rowActionEntries.value.map(entry => ({
-  actionId: entry.action.actionId,
-  label: generatedActionLabel(entry.action, entry.action.actionId, { t, te })
+  actionId: entry.action.id,
+  label: generatedActionLabel(entry.action, entry.action.id, { t, te })
 })));
 const linkedChildrenByKey = ref(new Map());
 const loadedChildKeys = ref(new Set());
@@ -303,17 +303,17 @@ const sections = computed(() => props.screen.regions
       rawItems: state.rawItems || state.items || []
     };
   })
-  .filter(section => section.source.entityType && shouldRenderHomeSection(section)));
+  .filter(section => section.source.typeId && shouldRenderHomeSection(section)));
 
 const sectionItems = computed(() => sections.value.flatMap(section => section.items
   .filter(entity => entityId(entity))
-  .map(entity => workspaceEntityItem(section.source.entityType, entity))));
+  .map(entity => workspaceEntityItem(section.source.typeId, entity))));
 const workspaceEntityItems = computed(() => [...sectionItems.value, ...openedEntityItems.value]
   .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index));
 const cassetteItems = computed(() => workspaceEntityItems.value.filter(item => item.type === 'cassette'));
 const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
   const entityItem = workspaceEntityItems.value.find(item => (
-    item.type === reference.entityType
+    item.type === reference.typeId
     && entityId(item.entity) === reference.entityId
   ));
   if (!entityItem) return null;
@@ -322,13 +322,13 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
     kind: 'page',
     pageId: reference.pageId,
     entity: entityItem.entity,
-    entityType: reference.entityType,
+    entityType: reference.typeId,
     cassettes: cassetteItems.value.map(item => item.entity)
   };
 }).filter(Boolean));
 // Registered pages without an entity binding are always openable tabs.
 const staticPageItems = computed(() => generatedWorkspacePages
-  .filter(page => !page.entityType && !page.ephemeral)
+  .filter(page => !page.typeId && !page.ephemeral)
   .map(page => ({ key: `page:${page.id}`, kind: 'page', pageId: page.id })));
 const callPageItems = computed(() => callPageRefs.value.map(call => ({
   key: call.key,
@@ -438,11 +438,11 @@ watch(openedEntityRefs, async refs => {
   const sequence = ++openedEntityLoadSequence;
   const loaded = await Promise.all(refs.map(async reference => {
     const existing = workspaceEntityItems.value.find(item => (
-      item.type === reference.entityType && entityId(item.entity) === reference.entityId
+      item.type === reference.typeId && entityId(item.entity) === reference.entityId
     ));
     const entity = existing?.entity
-      || await instances.resolveReadableReference(instances.canonicalTypeKey(reference.entityType), reference.entityId, { silent: true });
-    return entity ? workspaceEntityItem(reference.entityType, entity) : null;
+      || await instances.resolveReadableReference(instances.canonicalTypeKey(reference.typeId), reference.entityId, { silent: true });
+    return entity ? workspaceEntityItem(reference.typeId, entity) : null;
   }));
   if (sequence !== openedEntityLoadSequence) return;
   openedEntityItems.value = loaded.filter(Boolean);
@@ -474,15 +474,15 @@ watch(() => callsStore.pendingTabRoom, room => {
 // consumed on mount.
 function openRequestedWorkspaceEntity(event) {
   event?.preventDefault?.();
-  const { entityType, entityId } = event?.detail || {};
-  if (!entityType || !entityId) return;
-  openWorkspaceEntity(entityType, { _id: entityId });
+  const { typeId, entityId } = event?.detail || {};
+  if (!typeId || !entityId) return;
+  openWorkspaceEntity(typeId, { _id: entityId });
 }
 
 onMounted(() => {
   window.addEventListener(workspaceEntityOpenEvent, openRequestedWorkspaceEntity);
   const pending = consumePendingWorkspaceEntity();
-  if (pending?.entityType) openRequestedWorkspaceEntity({ detail: pending });
+  if (pending?.typeId) openRequestedWorkspaceEntity({ detail: pending });
   window.addEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
   const pendingChat = consumePendingWorkspaceChat();
   if (pendingChat) openRequestedWorkspaceChat({ detail: pendingChat });
@@ -599,7 +599,7 @@ function hideRowActions() {
 }
 
 function runRowAction(action) {
-  const entry = rowActionEntries.value.find(item => item.action.actionId === (action?.actionId || action?.id));
+  const entry = rowActionEntries.value.find(item => item.action.id === (action?.id || action?.id));
   hideRowActions();
   if (entry) emit('execute-action', action, entry.entity ?? null, entry.context);
 }
@@ -619,24 +619,24 @@ function collectionActions(region = {}) {
 
 function resolvedRegionActions(region = {}) {
   return [...new Map((region.actions || [])
-    .map(actionId => authStore.actionManifest.find(action => (action.actionId ?? action.id) === actionId))
+    .map(actionId => authStore.actionManifest.find(action => action.id === actionId))
     .filter(Boolean)
-    .map(action => [action.actionId || action.id, action])).values()];
+    .map(action => [action.id, action])).values()];
 }
 
 // Child creates for an explorer entity come from that entity type's compiled
 // detail screen: every list region below the single main source contributes
 // its createEntity actions with the row entity bound as the opened parent.
 function linkActions(item = null) {
-  const detailScreen = generatedDetailScreenForEntityType({
+  const detailScreen = generatedDetailScreenForTypeId({
     screens: authStore.screenManifest,
-    entityType: item.type
+    typeId: item.type
   });
   if (!detailScreen) return [];
   const mainRegion = (detailScreen.regions || []).find(region => (
     (detailScreen.sources || []).some(source => (
       source.id === region.sourceId
-      && source.entityType === item.type
+      && source.typeId === item.type
       && source.mode === 'single'
     ))
   ));
@@ -649,41 +649,41 @@ function linkActions(item = null) {
       entity: item.entity,
       context: {
         parentEntity: item.entity,
-        parentEntityType: item.type
+        parentTypeId: item.type
       }
     }));
 }
 
 function childCreateActions(item = null) {
   if (!item?.entity) return [];
-  const detailScreen = generatedDetailScreenForEntityType({
+  const detailScreen = generatedDetailScreenForTypeId({
     screens: authStore.screenManifest,
-    entityType: item.type
+    typeId: item.type
   });
   if (!detailScreen) return [];
   const entries = [];
   for (const region of detailScreen.regions || []) {
     const source = (detailScreen.sources || []).find(candidate => candidate.id === region.sourceId);
-    if (!source || source.mode !== 'list' || source.entityType === item.type) continue;
+    if (!source || source.mode !== 'list' || source.typeId === item.type) continue;
     for (const action of resolvedRegionActions(region).filter(isCreateAction)) {
       entries.push({
         action,
         context: mergeCollectionActionContext({
           incoming: {
-            parentEntityType: item.type,
+            parentTypeId: item.type,
             parentEntity: item.entity,
             parentEntityId: entityId(item.entity)
           },
           region,
           source,
-          entityType: source.entityType,
+          typeId: source.typeId,
           items: []
         })
       });
     }
   }
   return entries.filter((entry, index, list) => (
-    list.findIndex(candidate => candidate.action.actionId === entry.action.actionId) === index
+    list.findIndex(candidate => candidate.action.id === entry.action.id) === index
   ));
 }
 
@@ -691,8 +691,8 @@ function actionContext(section = {}) {
   return {
     region: section.region,
     source: section.source,
-    entityType: section.source.entityType,
-    parentEntityType: section.source.entityType,
+    typeId: section.source.typeId,
+    parentTypeId: section.source.typeId,
     parentOptions: section.items.map(entity => ({
       label: entity.identity?.name || entity.identity?.uid || entity._id,
       value: entity._id || entity.identity?.uid,
@@ -706,7 +706,7 @@ function sectionLabel(section = {}) {
 }
 
 function sectionIcon(section = {}) {
-  return instances.iconFor(section.source.entityType);
+  return instances.iconFor(section.source.typeId);
 }
 
 function sectionMenuKey(section = {}) {
@@ -716,7 +716,7 @@ function sectionMenuKey(section = {}) {
 function sectionItemsFor(regionId) {
   const section = sections.value.find(candidate => candidate.region.id === regionId);
   return section ? sectionItems.value.filter(item => (
-    item.type === section.source.entityType
+    item.type === section.source.typeId
     && section.items.some(entity => entityId(entity) === entityId(item.entity))
   )) : [];
 }
@@ -754,7 +754,7 @@ function selectNode(node) {
   // workspace-pane behavior (selected in the open pane, dead when none).
   const route = detailRouteForEntity({
     entity: item.entity,
-    entityType: item.type,
+    typeId: item.type,
     manifest: authStore.screenManifest
   });
   if (route) {
@@ -797,8 +797,8 @@ async function loadContainmentChildren(parent) {
   });
   const loaded = await Promise.all(sources.map(async source => {
     try {
-      const entities = await instances.listInstances(instances.canonicalTypeKey(source.entityType), source.filters);
-      return (Array.isArray(entities) ? entities : []).map(entity => workspaceEntityItem(source.entityType, entity));
+      const entities = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters);
+      return (Array.isArray(entities) ? entities : []).map(entity => workspaceEntityItem(source.typeId, entity));
     } catch {
       return [];
     }
@@ -822,12 +822,12 @@ async function loadRelationChildren(parent) {
   const refs = relationRefsFor(entity);
   const loaded = await Promise.all(refs.map(async ref => {
     const existing = workspaceEntityItems.value.find(item => (
-      item.type === ref.entityType && entityId(item.entity) === ref.id
+      item.type === ref.typeId && entityId(item.entity) === ref.id
     ));
     const resolved = existing?.entity
       || ref.entity
-      || await instances.resolveReadableReference(instances.canonicalTypeKey(ref.entityType), ref.id, { silent: true }).catch(() => null);
-    return resolved ? workspaceEntityItem(ref.entityType, resolved) : null;
+      || await instances.resolveReadableReference(instances.canonicalTypeKey(ref.typeId), ref.id, { silent: true }).catch(() => null);
+    return resolved ? workspaceEntityItem(ref.typeId, resolved) : null;
   }));
   return loaded.filter(Boolean);
 }
@@ -904,7 +904,7 @@ function closePane(paneId) {
   activePaneId.value = workspaceLeaves(paneTree.value)[0]?.id || 'pane-1';
 }
 
-function openWorkspaceEntity(entityType, entity) {
+function openWorkspaceEntity(typeId, entity) {
   const item = rememberWorkspaceEntity(entityType, entity);
   if (!item || !activePane.value) return;
   selectPaneTab(activePane.value.id, item.key);
@@ -975,13 +975,13 @@ function actionEntriesForPane(pane) {
 
 function entityActionEntries(actionIds, item, context = {}) {
   return [...new Set(actionIds)]
-    .map(actionId => authStore.actionManifest.find(action => (action.actionId ?? action.id) === actionId))
+    .map(actionId => authStore.actionManifest.find(action => action.id === actionId))
     .filter(Boolean)
     .filter(isGeneratedSurfaceAction)
     .filter(action => actionAppliesToEntity(action, item.entity, item.type))
     .map(action => ({
-      key: `${item.key}:${action.actionId || action.id}`,
-      actionId: action.actionId || action.id,
+      key: `${item.key}:${action.id}`,
+      actionId: action.id,
       entity: item.entity,
       item,
       context
@@ -991,7 +991,7 @@ function entityActionEntries(actionIds, item, context = {}) {
 function contextForItem(item = null) {
   return {
     entityType: item?.type || '',
-    parentEntityType: item?.type || ''
+    parentTypeId: item?.type || ''
   };
 }
 
@@ -1030,7 +1030,7 @@ function workspaceEntityItem(type, entity) {
 
 function sectionRegionForEntity(type, entity) {
   const section = sections.value.find(candidate => (
-    candidate.source.entityType === type
+    candidate.source.typeId === type
     && candidate.items.some(item => entityId(item) === entityId(entity))
   ));
   return section?.region || null;

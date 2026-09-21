@@ -40,7 +40,7 @@
         :key="`${item.type}:${entityId}`"
         :flush="boundedDetail"
         :entity="item.entity"
-        :entity-type="item.type"
+        :type-id="item.type"
         :screen-key="detailScreen?.screenKey || detailScreen?.id || ''"
         :actions="resolvedActionIds"
         :excluded-actions="detailChildActionIds"
@@ -91,7 +91,7 @@ import { generatedEntityDetailConsumesAction } from '~/components/generated/deta
 import { generatedActionRendersAt } from '~/components/generated/action-placement.js';
 import {
   generatedDetailActionIds,
-  generatedDetailScreenForEntityType
+  generatedDetailScreenForTypeId
 } from '~/components/generated/detail-screen-actions.js';
 import { useAuthStore } from '~/stores/auth';
 
@@ -107,9 +107,9 @@ const props = defineProps({
 const emit = defineEmits(['execute-action', 'open-entity', 'open-page', 'refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
 const authStore = useAuthStore();
 const entityId = computed(() => props.item?.entity?._id || props.item?.entity?.identity?.uid || '');
-const detailScreen = computed(() => generatedDetailScreenForEntityType({
+const detailScreen = computed(() => generatedDetailScreenForTypeId({
   screens: authStore.screenManifest,
-  entityType: props.item?.type
+  typeId: props.item?.type
 }));
 const scopedDetailScreen = computed(() => detailScreen.value ? {
   ...detailScreen.value,
@@ -140,13 +140,13 @@ const boundedDetail = computed(() => (
 const detailChildActionIds = computed(() => [...new Set(detailChildRegions.value.flatMap(region => region.actions || []))]);
 const detailActionContext = computed(() => ({
   parentEntity: props.item?.entity || null,
-  parentEntityType: props.item?.type || ''
+  parentTypeId: props.item?.type || ''
 }));
 const detailErrorMessage = computed(() => detailError.value?.data?.message || detailError.value?.message || '');
 const ownDetailActionIds = computed(() => props.showGeneratedActions
   ? generatedDetailActionIds({
       screens: authStore.screenManifest,
-      entityType: props.item?.type,
+      typeId: props.item?.type,
       preferredRoute: detailScreen.value?.route || ''
     })
   : []);
@@ -160,24 +160,24 @@ const resolvedEntries = computed(() => {
   }));
   return Array.from(new Map([...ownEntries, ...props.actionEntries]
     .filter(entry => {
-      const action = authStore.actionManifest.find(item => item.actionId === entry.actionId);
+      const action = authStore.actionManifest.find(item => item.id === entry.id);
       return action && actionAppliesToEntity(action, props.item?.entity, props.item?.type);
     })
-    .map(entry => [entry.actionId, entry])
+    .map(entry => [entry.id, entry])
   ).values());
 });
-const resolvedActionIds = computed(() => resolvedEntries.value.map(entry => entry.actionId));
+const resolvedActionIds = computed(() => resolvedEntries.value.map(entry => entry.id));
 const tabActionIds = computed(() => resolvedEntries.value
-  .map(entry => authStore.actionManifest.find(action => action.actionId === entry.actionId))
-  .filter(action => action && !detailChildActionIds.value.includes(action.actionId))
+  .map(entry => authStore.actionManifest.find(action => action.id === entry.id))
+  .filter(action => action && !detailChildActionIds.value.includes(action.id))
   .filter(isGeneratedSurfaceAction)
   .filter(action => generatedActionRendersAt(action, ['entity', 'relation']))
   .filter(action => !generatedEntityDetailConsumesAction(props.item?.type, action))
-  .map(action => action.actionId));
+  .map(action => action.id));
 
 function executeAction(action, entity = null, context = {}) {
-  const entry = resolvedEntries.value.find(item => item.actionId === action.actionId) || {
-    actionId: action.actionId,
+  const entry = resolvedEntries.value.find(item => item.id === action.id) || {
+    actionId: action.id,
     entity: entity || props.item?.entity,
     context: Object.keys(context || {}).length ? context : detailActionContext.value
   };

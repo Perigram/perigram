@@ -1,6 +1,6 @@
 <template>
   <StateBlock v-if="refreshingAuth" state="loading" :message="$t('common.loading')" />
-  <GeneratedScreen v-else-if="screen && !isGeneratedScreen" :screen="legacyViewScreen" />
+  <GeneratedScreen v-else-if="screen && !isGeneratedScreen" :screen="screen" />
   <StandardPage v-else-if="screen" workspace>
     <template #actions>
       <Button icon="pi pi-refresh" :label="$t('common.refresh')" severity="secondary" outlined size="small" :loading="poolLoading" @click="reload" />
@@ -67,7 +67,8 @@ const screenKey = computed(() => Array.isArray(route.params.screenKey)
 // Workspace overloads (the home shell and editor-backed detail types:
 // project/cassette/facade/queue/artifact...) stay on the legacy renderer,
 // which owns their data loader and action surface, until the generator
-// grows workspace equivalents.
+// grows workspace equivalents. Hydration projects every screen into the
+// typeId vocabulary — there is no view adapter re-injecting legacy keys.
 const detailOverload = computed(() => (
   screen.value?.template === 'instanceDetail' && screen.value?.typeId
     ? resolveGeneratedEntityDetailOverload(screen.value.typeId)
@@ -77,19 +78,7 @@ const isGeneratedScreen = computed(() => (
   screen.value?.template === 'typeList'
   || (screen.value?.template === 'instanceDetail' && !detailOverload.value)
 ));
-// View adapter for the not-yet-migrated workspace overloads: the legacy
-// renderer still speaks its own template/entity names. This dies with the
-// workspace migration; the compiled contract itself stays single-vocabulary.
-const legacyViewScreen = computed(() => {
-  if (isGeneratedScreen.value || !screen.value) return screen.value;
-  const view = {
-    ...screen.value,
-    template: screen.value.template === 'instanceDetail' ? 'entityDetail' : screen.value.template,
-    entityType: screen.value.typeId || screen.value.entityType || null,
-    sources: (screen.value.sources || []).map(source => ({ ...source, entityType: source.typeId || source.entityType || null }))
-  };
-  return view;
-});
+
 const screen = computed(() => {
   const base = authStore.screenManifest.find(item => item.screenKey === screenKey.value)
     || synthesizedDetailScreen(screenKey.value);
@@ -123,7 +112,7 @@ const poolStates = ref({});
 async function reload() {
   const screenValue = screen.value;
   if (!screenValue) return;
-  const sources = (screenValue.sources || []).filter(source => source.id && (source.typeId || source.entityType));
+  const sources = (screenValue.sources || []).filter(source => source.id && source.typeId);
   if (!sources.length) {
     poolStates.value = {};
     return;
@@ -133,8 +122,8 @@ async function reload() {
   poolStates.value = Object.fromEntries(sources.map(source => [source.id, 'loading']));
   try {
     for (const source of sources) {
-      await instances.listInstances(instances.canonicalTypeKey(source.typeId || source.entityType));
-      poolStates.value[source.id] = Object.keys(instances.records[instances.canonicalTypeKey(source.typeId || source.entityType)] || {}).length
+      await instances.listInstances(instances.canonicalTypeKey(source.typeId));
+      poolStates.value[source.id] = Object.keys(instances.records[instances.canonicalTypeKey(source.typeId)] || {}).length
         ? 'ready'
         : 'empty';
     }
@@ -186,7 +175,7 @@ function synthesizedDetailScreen(key = '') {
   if (!String(key).endsWith('_detail')) return null;
   const baseKey = String(key).slice(0, -'_detail'.length);
   const base = authStore.screenManifest.find(item => item.screenKey === baseKey);
-  const typeId = base?.entityType || base?.typeId;
+  const typeId = base?.typeId;
   if (!base || !typeId) return null;
   const sourceId = base.sources?.[0]?.id || typeId;
   const required = base.required || base.sources?.[0]?.required || null;

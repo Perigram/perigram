@@ -1,6 +1,6 @@
 import { normalizeProjectWorkspaceState } from './project-workspace-state.js';
 
-export const HOME_WORKSPACE_STATE_VERSION = 1;
+export const HOME_WORKSPACE_STATE_VERSION = 2;
 
 export function homeWorkspaceStorageKey({ userId, organizationId }) {
   if (!userId || !organizationId) return '';

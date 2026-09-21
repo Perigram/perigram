@@ -4,7 +4,7 @@
       v-for="section in sections"
       :key="section.region.id"
       class="flex min-w-0 flex-col gap-3"
-      :data-home-entity-type="section.source.entityType"
+      :data-home-type-id="section.source.typeId"
     >
       <div class="flex min-w-0 items-center justify-between gap-3">
         <h2 class="m-0 min-w-0 truncate text-section-heading">
@@ -13,8 +13,8 @@
         <div class="flex shrink-0 items-center gap-2">
           <GeneratedActionButton
             v-for="action in collectionActions(section.region)"
-            :key="action.actionId"
-            :action-id="action.actionId"
+            :key="action.id"
+            :action-id="action.id"
             @execute="selectedAction => $emit('execute-action', selectedAction, null, actionContext(section))"
           />
           <Button
@@ -37,7 +37,7 @@
         >
           <EntityCard
             :entity="entity"
-            :entity-type="section.source.entityType"
+            :type-id="section.source.typeId"
             :surface="section.region.surface || 'card'"
             variant="card"
             :show-trace="false"
@@ -56,7 +56,7 @@
                 <EntityStatus
                   v-if="entity.status"
                   :entity="entity"
-                  :entity-type="section.source.entityType"
+                  :type-id="section.source.typeId"
                   variant="inline"
                   @refresh="$emit('refresh')"
                   @transitioned="$emit('refresh')"
@@ -65,12 +65,12 @@
             </template>
             <EntitySurfaceContent
               :entity="entity"
-              :entity-type="section.source.entityType"
+              :type-id="section.source.typeId"
               :surface="section.region.surface || 'card'"
               suppress-child-summaries
               relation-variant="compact"
             />
-            <template v-if="hasEditorAction(section.source.entityType) || entityActionsFor(section, entity).length || detailRouteFor(section, entity)" #footer>
+            <template v-if="hasEditorAction(section.source.typeId) || entityActionsFor(section, entity).length || detailRouteFor(section, entity)" #footer>
               <div class="flex flex-wrap justify-end gap-2">
                 <Button
                   v-if="detailRouteFor(section, entity)"
@@ -82,15 +82,15 @@
                   @click.stop="openEntity(section, entity)"
                 />
                 <component
-                  :is="editorActionFor(section.source.entityType)"
-                  v-if="editorActionFor(section.source.entityType)"
+                  :is="editorActionFor(section.source.typeId)"
+                  v-if="editorActionFor(section.source.typeId)"
                   :entity="entity"
                   @refresh="$emit('refresh')"
                 />
                 <GeneratedActionButton
                   v-for="action in entityActionsFor(section, entity)"
-                  :key="action.actionId"
-                  :action-id="action.actionId"
+                  :key="action.id"
+                  :action-id="action.id"
                   @execute="selectedAction => $emit('execute-action', selectedAction, entity)"
                 />
               </div>
@@ -143,7 +143,7 @@ const sections = computed(() => props.screen.regions
       rawItems: state.rawItems || state.items || []
     };
   })
-  .filter(section => section.source.entityType && shouldRenderHomeSection(section)));
+  .filter(section => section.source.typeId && shouldRenderHomeSection(section)));
 
 function collectionActions(region = {}) {
   return resolvedRegionActions(region)
@@ -153,24 +153,24 @@ function collectionActions(region = {}) {
 function entityActionsFor(section = {}, entity = {}) {
   return resolvedRegionActions(section.region).filter(action => (
     isGeneratedSurfaceAction(action) &&
-    !parentBoundCreateAppliesToEntityType(action, section.source.entityType)
-    && actionAppliesToEntity(action, entity, section.source.entityType)
+    !parentBoundCreateAppliesToEntityType(action, section.source.typeId)
+    && actionAppliesToEntity(action, entity, section.source.typeId)
   ));
 }
 
 function resolvedRegionActions(region = {}) {
   return [...new Map((region.actions || [])
-    .map(actionId => authStore.actionManifest.find(action => (action.actionId ?? action.id) === actionId))
+    .map(actionId => authStore.actionManifest.find(action => action.id === actionId))
     .filter(Boolean)
-    .map(action => [action.actionId || action.id, action])).values()];
+    .map(action => [action.id, action])).values()];
 }
 
 function actionContext(section = {}) {
   return {
     region: section.region,
     source: section.source,
-    entityType: section.source.entityType,
-    parentEntityType: section.source.entityType,
+    entityType: section.source.typeId,
+    parentTypeId: section.source.typeId,
     parentOptions: section.items.map(entity => ({
       label: entity.identity?.name || entity.identity?.uid || entity._id,
       value: entity._id || entity.identity?.uid,
@@ -181,13 +181,13 @@ function actionContext(section = {}) {
 
 function sectionRoute(section = {}) {
   if (section.region.route) return section.region.route;
-  const entityType = section.source.entityType;
+  const entityType = section.source.typeId;
   const screen = authStore.screenManifest.find(item => (
-    item.template === 'entityList'
+    item.template === 'typeList'
     && item.entityType === entityType
     && (item.screenKey || item.id) === section.region.screenKey
   )) || authStore.screenManifest.find(item => (
-    item.template === 'entityList'
+    item.template === 'typeList'
     && item.entityType === entityType
     && item.placement === 'hub'
   ));
@@ -206,7 +206,7 @@ function openEntity(section, entity) {
 function detailRouteFor(section = {}, entity = {}) {
   return detailRouteForEntity({
     entity,
-    entityType: section.source.entityType,
+    entityType: section.source.typeId,
     screenKey: section.region.screenKey || props.screen.screenKey || props.screen.id,
     manifest: authStore.screenManifest
   });

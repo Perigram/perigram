@@ -18,7 +18,7 @@ function memoryStorage(initial = {}) {
 describe('home workspace state', () => {
   it('scopes the storage key to the user and organization', () => {
     expect(homeWorkspaceStorageKey({ userId: 'u1', organizationId: 'o1' }))
-      .toBe('cutkit:home-workspace:1:u1:o1');
+      .toBe('cutkit:home-workspace:2:u1:o1');
     expect(homeWorkspaceStorageKey({ userId: '', organizationId: 'o1' })).toBe('');
     expect(homeWorkspaceStorageKey({ userId: 'u1', organizationId: '' })).toBe('');
   });
@@ -35,8 +35,8 @@ describe('home workspace state', () => {
       paneTree,
       activePaneId: 'pane-2',
       paneSequence: 2,
-      openedEntityRefs: [{ key: 'project:p1', entityType: 'project', entityId: 'p1' }],
-      openedPageRefs: [{ key: 'page:cassette-designer:c1', pageId: 'cassette-designer', entityType: 'cassette', entityId: 'c1' }]
+      openedEntityRefs: [{ key: 'project:p1', typeId: 'project', entityId: 'p1' }],
+      openedPageRefs: [{ key: 'page:cassette-designer:c1', pageId: 'cassette-designer', typeId: 'cassette', entityId: 'c1' }]
     });
 
     const state = loadHomeWorkspaceState(storage, 'cutkit:home-workspace:1:u1:o1');
@@ -44,11 +44,11 @@ describe('home workspace state', () => {
     expect(state.paneTree.children[0].tabKeys).toEqual(['project:p1']);
     expect(state.activePaneId).toBe('pane-2');
     expect(state.paneSequence).toBe(2);
-    expect(state.openedEntityRefs).toEqual([{ key: 'project:p1', entityType: 'project', entityId: 'p1' }]);
+    expect(state.openedEntityRefs).toEqual([{ key: 'project:p1', typeId: 'project', entityId: 'p1' }]);
     expect(state.openedPageRefs).toEqual([{
       key: 'page:cassette-designer:c1',
       pageId: 'cassette-designer',
-      entityType: 'cassette',
+      typeId: 'cassette',
       entityId: 'c1'
     }]);
   });

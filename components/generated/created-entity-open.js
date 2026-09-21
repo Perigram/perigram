@@ -12,17 +12,17 @@ import { detailRouteForEntity, entityIdentifier } from '~/components/generated/e
 //    silent.
 export function resolveCreatedEntityOpen({ action = {}, result = null, screenKey = '', manifest = [] } = {}) {
   const entity = createdEntity(action, result);
-  const entityType = action.relationMutation?.targetType || action.entityType || action.typeId || '';
-  if (!entity || !entityType) return null;
+  const typeId = action.relationMutation?.targetType || action.typeId || '';
+  if (!entity || !typeId) return null;
   const identifier = entityIdentifier(entity);
   if (!identifier) return null;
-  const route = detailRouteForEntity({ entity, entityType, screenKey, manifest });
-  if (route) return { kind: 'route', route, entityType, entityId: identifier };
+  const route = detailRouteForEntity({ entity, typeId, screenKey, manifest });
+  if (route) return { kind: 'route', route, typeId, entityId: identifier };
   const mode = action.construction?.mode ?? action.via;
   if (mode === 'editor') {
-    return { kind: 'workspace', entityType, entityId: identifier, name: displayName(entity) };
+    return { kind: 'workspace', typeId, entityId: identifier, name: displayName(entity) };
   }
-  return { kind: 'toast', entityType, entityId: identifier, name: displayName(entity) };
+  return { kind: 'toast', typeId, entityId: identifier, name: displayName(entity) };
 }
 
 function createdEntity(action = {}, result = null) {

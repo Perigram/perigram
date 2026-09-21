@@ -23,26 +23,26 @@ describe('generated labels', () => {
   it('uses domain entity translations for generated screens and sections', () => {
     expect(generatedEntityLabel('cassette_design', i18n)).toBe('Cassette design');
     expect(generatedScreenLabel({ template: 'home', label: 'Home' }, i18n)).toBe('Home');
-    expect(generatedScreenLabel({ entityType: 'cassette_design', label: 'Монтажник cassette_design' }, i18n)).toBe('Cassette design');
+    expect(generatedScreenLabel({ typeId: 'cassette_design', label: 'Монтажник cassette_design' }, i18n)).toBe('Cassette design');
   });
 
   it('does not include create verbs or raw status values in generated action labels', () => {
     expect(generatedActionLabel({
-      actionKind: 'createEntity',
-      entityType: 'cassette',
+      actionKind: 'createInstance',
+      typeId: 'cassette',
       status: { to: 'NEW' },
       label: 'Create'
     }, '', i18n)).toBe('Cassette');
 
     expect(generatedActionLabel({
-      actionKind: 'createEntity',
-      entityType: 'cassette',
+      actionKind: 'createInstance',
+      typeId: 'cassette',
       label: 'Создать сущность'
     }, '', i18n)).toBe('Cassette');
 
     expect(generatedActionLabel({
-      actionKind: 'updateEntity',
-      entityType: 'cassette',
+      actionKind: 'updateInstance',
+      typeId: 'cassette',
       status: { from: 'NEW', to: 'DELETED' },
       label: 'DELETED'
     }, '', i18n)).toBe('Change');
@@ -50,12 +50,11 @@ describe('generated labels', () => {
 
   it('labels generated link actions from their target entity contract', () => {
     expect(generatedActionLabel({
-      actionKind: 'updateEntity',
-      entityType: 'queue',
-      relationMutation: {
+      actionKind: 'link',
+      typeId: 'queue',
+      relation: {
         key: 'cassettes',
-        targetType: 'cassette_design',
-        operation: 'link'
+        targetType: 'cassette_design'
       }
     }, '', i18n)).toBe('Cassette design');
   });

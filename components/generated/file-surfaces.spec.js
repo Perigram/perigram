@@ -66,15 +66,15 @@ describe('file surface registry', () => {
   });
 
   it('derives detail and workspace page rows only for surfaces with presentations', () => {
-    const detailTypes = fileDetailOverloads().map(overload => overload.entityType).sort();
+    const detailTypes = fileDetailOverloads().map(overload => overload.typeId).sort();
     expect(detailTypes).toEqual(['cassette', 'csv-table', 'facade-design', 'facade-pattern', 'sheet-design', 'sketch', 'text-document']);
     const pageIds = fileWorkspacePages().map(page => page.id);
     expect(pageIds).toEqual(['cassette-designer']);
-    expect(fileWorkspacePages()[0].entityType).toBe('cassette');
+    expect(fileWorkspacePages()[0].typeId).toBe('cassette');
   });
 
   it('passes the derived type id into detail props adapters', () => {
-    const row = fileDetailOverloads().find(overload => overload.entityType === 'text-document');
+    const row = fileDetailOverloads().find(overload => overload.typeId === 'text-document');
     const props = row.props({ entity: { _id: 't-1' } });
     expect(props.format).toBe('text');
     expect(props.persistence.title).toBe('');

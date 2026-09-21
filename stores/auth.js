@@ -179,7 +179,7 @@ export const useAuthStore = defineStore('auth', () => {
      */
     function can(feature, action, context = {}) {
         if (processActive.value && context.actionId) {
-            return actionManifest.value.some(item => item.actionId === context.actionId);
+            return actionManifest.value.some(item => item.id === context.actionId);
         }
         return resolveUiPermission(null, feature, action, {
             ...context,

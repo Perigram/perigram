@@ -9,26 +9,26 @@ describe('generated action context', () => {
   it('preserves opened parent context for child collection actions', () => {
     const library = { _id: 'library-1', identity: { name: 'Library 1' } };
     const context = mergeCollectionActionContext({
-      incoming: { parentEntityType: 'library', parentEntity: library },
-      entityType: 'cassette',
+      incoming: { parentTypeId: 'library', parentEntity: library },
+      typeId: 'cassette',
       items: [{ _id: 'cassette-1', identity: { name: 'Cassette 1' } }]
     });
 
-    expect(context.parentEntityType).toBe('library');
+    expect(context.parentTypeId).toBe('library');
     expect(context.parentEntity).toBe(library);
-    expect(context.entityType).toBe('cassette');
+    expect(context.typeId).toBe('cassette');
     expect(context.parentOptions).toEqual([]);
   });
 
   it('uses opened parent entity as the create action parent id', () => {
     const entities = resolveGeneratedActionEntities({
-      action: { actionKind: 'createEntity', entityType: 'cassette', parentEntityType: 'library' },
+      action: { actionKind: 'createInstance', typeId: 'cassette', parentTypeId: 'library' },
       context: {
-        parentEntityType: 'library',
+        parentTypeId: 'library',
         parentEntity: { _id: 'library-1' },
-        entityType: 'cassette'
+        typeId: 'cassette'
       },
-      screen: { entityType: 'library', scope: { entityId: 'library-1' } }
+      screen: { typeId: 'library', scope: { entityId: 'library-1' } }
     });
 
     expect(entities).toEqual({ library: 'library-1' });
@@ -36,8 +36,8 @@ describe('generated action context', () => {
 
   it('does not use a detail entity id as an unrelated parent id', () => {
     expect(generatedActionRequiresParent({
-      action: { actionKind: 'createEntity', entityType: 'cassette', parentEntityType: 'library' },
-      screen: { entityType: 'project', scope: { entityId: 'project-1' } }
+      action: { actionKind: 'createInstance', typeId: 'cassette', parentTypeId: 'library' },
+      screen: { typeId: 'project', scope: { entityId: 'project-1' } }
     })).toBe('library');
   });
 
@@ -49,7 +49,7 @@ describe('generated action context', () => {
         inputs: [{ id: 'queue', entityType: 'queue' }]
       },
       entity: { _id: 'queue-1', identity: { name: 'Queue 1' } },
-      context: { entityType: 'queue' }
+      context: { typeId: 'queue' }
     });
 
     expect(entities).toEqual({ queue: 'queue-1' });
@@ -62,11 +62,11 @@ describe('generated action context', () => {
         commandId: 'generateAttachment',
         inputs: [
           { id: 'source', accepts: ['sheet_design'], required: true, prompt: false },
-          { id: 'template', entityType: 'artifact_template', prompt: true }
+          { id: 'template', typeId: 'artifact_template', prompt: true }
         ]
       },
       entity: { _id: 'sheet-1', origin: { type: 'sheet_design' } },
-      context: { entityType: 'sheet_design' }
+      context: { typeId: 'sheet_design' }
     });
 
     expect(entities).toEqual({ sheet_design: 'sheet-1' });

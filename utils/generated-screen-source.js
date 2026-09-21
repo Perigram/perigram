@@ -1,13 +1,13 @@
 export function filterRootSourceItems(items = [], source = {}, sourceStates = {}) {
   const accessibleIdsByType = accessibleEntityIds(sourceStates);
-  return items.filter(entity => !ancestorRefs(entity, source.entityType, source.lineageBindings || [])
+  return items.filter(entity => !ancestorRefs(entity, source.typeId, source.lineageBindings || [])
     .some(ref => accessibleIdsByType.get(ref.type)?.has(ref.id)));
 }
 
 export function shouldRenderHomeSection({ items = [], rawItems = [], source = {} } = {}) {
   const parentLineageKeys = (source.lineageBindings || [])
-    .filter(binding => normalizeType(binding.childEntityType) === normalizeType(source.entityType))
-    .filter(binding => normalizeType(binding.ancestorEntityType) !== 'organization')
+    .filter(binding => normalizeType(binding.childTypeId) === normalizeType(source.typeId))
+    .filter(binding => normalizeType(binding.parentTypeId) !== 'organization')
     .map(binding => binding.lineageKey)
     .filter(Boolean);
   if (parentLineageKeys.length && (
@@ -22,7 +22,7 @@ export function shouldRenderHomeSection({ items = [], rawItems = [], source = {}
 function accessibleEntityIds(sourceStates = {}) {
   const result = new Map();
   for (const state of Object.values(sourceStates || {})) {
-    const entityType = normalizeType(state?.source?.entityType);
+    const entityType = normalizeType(state?.source?.typeId);
     if (!entityType) continue;
     const entities = state.source.mode === 'single' ? [state.entity] : state.items;
     for (const entity of entities || []) {
@@ -43,9 +43,9 @@ function ancestorRefs(entity = {}, entityType = '', lineageBindings = []) {
   while (pendingTypes.length) {
     const childType = pendingTypes.shift();
     for (const binding of lineageBindings || []) {
-      if (normalizeType(binding.childEntityType) !== childType) continue;
+      if (normalizeType(binding.childTypeId) !== childType) continue;
       const parentId = lineage[binding.lineageKey];
-      const parentType = normalizeType(binding.ancestorEntityType);
+      const parentType = normalizeType(binding.parentTypeId);
       if (parentType === 'organization' || parentId === undefined || parentId === null || parentId === '') continue;
       refs.push({ type: parentType, id: String(parentId) });
       if (!visitedTypes.has(parentType)) {

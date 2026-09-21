@@ -7,10 +7,10 @@ import { useRegistryStore } from '~/stores/registry';
 // key, and the delete capability from the registry view — a registry-known
 // type is deletable through its generic instance service; a legacy type
 // keeps its feature route only while that route stays mounted.
-export function canDeleteGeneratedEntity({ authStore, domainUi, entity, entityType } = {}) {
+export function canDeleteGeneratedEntity({ authStore, domainUi, entity, typeId } = {}) {
   const instances = useInstancesStore();
   const registry = useRegistryStore();
-  const typeKey = instances.canonicalTypeKey(entityType);
+  const typeKey = instances.canonicalTypeKey(typeId);
   const entityId = entity?._id || entity?.identity?.uid || '';
   return Boolean(
     entityId
@@ -20,14 +20,14 @@ export function canDeleteGeneratedEntity({ authStore, domainUi, entity, entityTy
       feature: featureKey(typeKey),
       action: 'delete',
       entity,
-      entityType
+      typeId
     })
   );
 }
 
-export function featureKey(entityType = '') {
+export function featureKey(typeId = '') {
   const instances = useInstancesStore();
-  const typeKey = instances.canonicalTypeKey(entityType);
+  const typeKey = instances.canonicalTypeKey(typeId);
   const route = instances.endpointsFor(typeKey).list();
   // Feature-routed types keep the route's collection feature; types on the
   // generic instance transport share the server's cts-types access feature
@@ -41,8 +41,8 @@ export function featureKey(entityType = '') {
 
 // Back-compat signature kept for the two-argument call sites; the adapter
 // argument is ignored — canonicalization lives in the instances store.
-export function uiEntityType(_domainUi, entityType = '') {
-  return useInstancesStore().canonicalTypeKey(entityType);
+export function uiEntityType(_domainUi, typeId = '') {
+  return useInstancesStore().canonicalTypeKey(typeId);
 }
 
 function typeSupportsClientDelete(typeKey = '', registry = {}, instances = {}) {

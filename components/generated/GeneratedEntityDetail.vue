@@ -8,7 +8,7 @@
   >
     <GeneratedEntityDetailBody
       :entity="entity"
-      :entity-type="entityType"
+      :type-id="entityType"
       :surface="surface"
       :screen-key="screenKey"
       :actions="resolvedBodyActions"
@@ -25,7 +25,7 @@
   <EntityPage
     v-else-if="entity"
     :entity="entity"
-    :entity-type="entityType"
+    :type-id="entityType"
     :show-trace="!embedded"
     :show-header="!embedded"
     :show-identity="showIdentity || forceIdentityForEditor"
@@ -34,7 +34,7 @@
   >
     <GeneratedEntityDetailBody
       :entity="entity"
-      :entity-type="entityType"
+      :type-id="entityType"
       :surface="surface"
       :screen-key="screenKey"
       :actions="resolvedBodyActions"
@@ -82,7 +82,7 @@ import {
 } from '~/components/generated/detail-action-ownership.js';
 
 const props = defineProps({
-  entityType: { type: String, required: true },
+  typeId: { type: String, required: true },
   entity: { type: Object, default: null },
   surface: { type: String, default: 'detail' },
   screenKey: { type: String, default: '' },
@@ -105,13 +105,13 @@ const entityIdValue = computed(() => {
   const id = props.entity?._id || props.entity?.id || props.entity?.identity?.uid || '';
   return id ? String(id) : '';
 });
-const editorActionComponent = computed(() => entityEditorActionFor(props.entityType));
-const forceIdentityForEditor = computed(() => entityEditorForcesIdentity(props.entityType));
+const editorActionComponent = computed(() => entityEditorActionFor(props.typeId));
+const forceIdentityForEditor = computed(() => entityEditorForcesIdentity(props.typeId));
 const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
 if (props.flush) {
   provide('displayedEntityContexts', computed(() => [
     ...(unref(parentDisplayedEntityContexts) || []),
-    { type: props.entityType, entity: props.entity }
+    { type: props.typeId, entity: props.entity }
   ]));
 }
 provide('generatedExecuteAction', (action, entity, context = {}) => {
@@ -121,22 +121,22 @@ const resolvedActions = computed(() => resolveGeneratedEntityActions({
   actionIds: props.actions,
   actionManifest: authStore.actionManifest,
   entity: props.entity,
-  entityType: props.entityType,
+  typeId: props.typeId,
   excludedActionIds: props.excludedActions
 }));
 const resolvedBodyActions = computed(() => resolveGeneratedEntityActions({
   actionIds: props.actions,
   actionManifest: authStore.actionManifest,
   entity: props.entity,
-  entityType: props.entityType
+  typeId: props.typeId
 }).concat(resolveScopedGeneratedActions({
   actionIds: props.bodyActions,
   actionManifest: authStore.actionManifest
 })).filter((action, index, actions) => (
-  actions.findIndex(candidate => candidate.actionId === action.actionId) === index
+  actions.findIndex(candidate => candidate.id === action.id) === index
 )));
 const headerActionIds = computed(() => resolvedActions.value
   .filter(isGeneratedSurfaceAction)
-  .filter(action => !generatedEntityDetailConsumesAction(props.entityType, action))
-  .map(action => action.actionId));
+  .filter(action => !generatedEntityDetailConsumesAction(props.typeId, action))
+  .map(action => action.id));
 </script>

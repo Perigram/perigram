@@ -14,7 +14,7 @@
             v-if="node.data?.kind === 'section'"
             class="flex min-w-0 flex-1 items-center gap-2"
           >
-            <i :class="iconFor(node.data.section.source.entityType)" class="shrink-0 text-muted" aria-hidden="true" />
+            <i :class="iconFor(node.data.section.source.typeId)" class="shrink-0 text-muted" aria-hidden="true" />
             <span class="min-w-0 flex-1 truncate text-label">{{ node.label }}</span>
           </span>
           <span
@@ -52,7 +52,7 @@ import Tree from 'primevue/tree'
 import { useI18n } from 'vue-i18n'
 import EntityInlineRef from '~/components/shared/EntityInlineRef.vue'
 import { isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js'
-import { generatedDetailScreenForEntityType } from '~/components/generated/detail-screen-actions.js'
+import { generatedDetailScreenForTypeId } from '~/components/generated/detail-screen-actions.js'
 import { generatedActionLabel, generatedRegionLabel } from '~/utils/generated-labels.js'
 import { useAuthStore } from '~/stores/auth'
 import { useInstancesStore } from '~/stores/instances'
@@ -106,9 +106,9 @@ const sections = computed(() => {
   return (home.regions || [])
     .map(region => {
       const source = (home.sources || []).find(candidate => candidate.id === region.sourceId) || {}
-      if (!source.entityType || source.mode === 'single') return null
+      if (!source.typeId || source.mode === 'single') return null
       const parentBound = (source.lineageBindings || [])
-        .some(binding => binding.childEntityType === source.entityType
+        .some(binding => binding.childEntityType === source.typeId
           && binding.ancestorEntityType !== 'organization')
       if (parentBound) return null
       return { region, source, label: generatedRegionLabel(region, source, { t, te }) }
@@ -118,16 +118,16 @@ const sections = computed(() => {
 
 function createActionsFor(actionIds = []) {
   return [...new Set(actionIds)]
-    .map(actionId => authStore.actionManifest.find(action => action.actionId === actionId))
+    .map(actionId => authStore.actionManifest.find(action => action.id === actionId))
     .filter(Boolean)
-    .filter(action => action.actionKind === 'createEntity' && isGeneratedSurfaceAction(action))
+    .filter(action => action.actionKind === 'createInstance' && isGeneratedSurfaceAction(action))
 }
 
 // Child-type create entries for an entity: the createEntity actions of the
 // list regions on its type's compiled detail screen (the sidebar's
 // child-create derivation).
 function childCreateActions(entityType = '') {
-  const detailScreen = generatedDetailScreenForEntityType({
+  const detailScreen = generatedDetailScreenForTypeId({
     screens: authStore.screenManifest,
     entityType
   })
@@ -135,19 +135,19 @@ function childCreateActions(entityType = '') {
   const actions = []
   for (const region of detailScreen.regions || []) {
     const source = (detailScreen.sources || []).find(candidate => candidate.id === region.sourceId)
-    if (!source || source.mode !== 'list' || source.entityType === entityType) continue
+    if (!source || source.mode !== 'list' || source.typeId === entityType) continue
     actions.push(...createActionsFor(region.actions))
   }
   return actions.filter((action, index, list) => (
-    list.findIndex(candidate => candidate.actionId === action.actionId) === index
+    list.findIndex(candidate => candidate.id === action.id) === index
   ))
 }
 
 const sectionKey = (section) => `section:${section.region.id}`
 
 const createNode = (parentKey, action) => ({
-  key: `${parentKey}:create:${action.actionId}`,
-  label: generatedActionLabel(action, action.actionId, { t, te }),
+  key: `${parentKey}:create:${action.id}`,
+  label: generatedActionLabel(action, action.id, { t, te }),
   selectable: true,
   data: { kind: 'create', action }
 })
@@ -234,7 +234,7 @@ function onNodeSelect(node) {
 // misrouted the way the old prefix-based keys were.
 function onNodeExpand(node) {
   if (node.data?.kind === 'section') {
-    loadSectionOptions(node.data.section.source.entityType, node.key)
+    loadSectionOptions(node.data.section.source.typeId, node.key)
     return
   }
   if (node.data?.item) loadChildren(node.data.item)
@@ -283,11 +283,11 @@ async function loadChildren(parent) {
     })
     const loaded = await Promise.all(sources.map(async source => {
       try {
-        const entities = await instances.listInstances(instances.canonicalTypeKey(source.entityType), source.filters)
+        const entities = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters)
         return (Array.isArray(entities) ? entities : []).map(entity => ({
-          key: `${source.entityType}:${entityId(entity)}`,
-          type: source.entityType,
-          name: entityLabel(entity, source.entityType),
+          key: `${source.typeId}:${entityId(entity)}`,
+          type: source.typeId,
+          name: entityLabel(entity, source.typeId),
           entity
         }))
       } catch {
@@ -317,7 +317,7 @@ function toggle(event) {
   loadingKeys.value = new Set()
   for (const section of sections.value) {
     expandedKeys.value = { ...expandedKeys.value, [sectionKey(section)]: true }
-    loadSectionOptions(section.source.entityType, sectionKey(section))
+    loadSectionOptions(section.source.typeId, sectionKey(section))
   }
   popover.value?.toggle(event)
 }

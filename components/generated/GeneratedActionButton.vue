@@ -38,7 +38,7 @@ defineEmits(['execute']);
 
 const authStore = useAuthStore();
 const { t, te } = useI18n();
-const action = computed(() => authStore.actionManifest.find(item => (item.actionId ?? item.id) === props.actionId));
+const action = computed(() => authStore.actionManifest.find(item => item.id === props.actionId));
 const actionLabel = computed(() => generatedActionLabel(action.value || {}, props.actionId, { t, te }));
 const actionSeverity = computed(() => isDeleteAction(action.value || {}) ? 'danger' : 'secondary');
 const actionIcon = computed(() => {
