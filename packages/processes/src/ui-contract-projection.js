@@ -24,7 +24,15 @@ const ACTION_KIND_BY_LEGACY = Object.freeze({
   updateEntity: 'updateInstance',
   changeStatus: 'updateInstance',
   deleteEntity: 'deleteInstance',
-  runCommand: 'runCommand'
+  runCommand: 'runCommand',
+  // Already-projected kinds pass through: the assignment channel emits
+  // projected records, and this seam is the single projection — running
+  // it twice must stay a no-op, never a drop.
+  createInstance: 'createInstance',
+  updateInstance: 'updateInstance',
+  deleteInstance: 'deleteInstance',
+  link: 'link',
+  unlink: 'unlink'
 });
 
 // Actions with no generated-UI surface stay runtime-only: they are never
@@ -38,20 +46,18 @@ function typeIdOfRecord(record = {}) {
 export function projectUiScreen(screen = {}) {
   const typeId = typeIdOfRecord(screen);
   const mainSourceId = screen.sources?.find(source => source.mode === 'single')?.id || typeId || screen.id;
+  // Spread-based: the projection overrides the vocabulary keys and leaves
+  // every authored/app key (labelKey, icon, systemScreens, systemActions,
+  // scope contracts…) intact. A whitelist rebuild silently dropped the
+  // system surfaces' button contracts once — this seam translates, it
+  // never amputates.
   return {
+    ...screen,
     id: screen.id,
     screenKey: screen.screenKey || screen.id,
     label: screen.label || screen.id,
-    kind: screen.kind || 'route',
     template: TEMPLATE_BY_LEGACY[screen.template] || screen.template,
-    route: screen.route || '',
-    sourceRoute: screen.sourceRoute || screen.route || '',
-    placement: screen.placement || 'hub',
     typeId,
-    required: screen.required || null,
-    roleIds: screen.roleIds || [],
-    scope: screen.scope || {},
-    bindings: screen.bindings || {},
     sources: (screen.sources || []).map(source => projectUiSource(source, mainSourceId)),
     regions: (screen.regions || []).map(region => ({ ...region })),
     actions: screen.actions || []
@@ -59,13 +65,14 @@ export function projectUiScreen(screen = {}) {
 }
 
 function projectUiSource(source = {}, mainSourceId) {
+  // Spread-based like projectUiScreen: translate the vocabulary keys,
+  // keep every authored key (lineageBindings, label, scope contracts…).
   const projected = {
-    id: source.id,
+    ...source,
     label: source.label || null,
     typeId: typeIdOfRecord(source),
     mode: source.mode === 'single' ? 'single' : 'list',
     required: source.required || null,
-    identifier: source.identifier || null,
     filters: source.filters || {}
   };
   const lineage = lineageRefOfSource(source, mainSourceId);
