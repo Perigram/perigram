@@ -183,9 +183,9 @@ concerns:
   height-bounded. An instance payload reference with a renderable declared
   mode (the pool's `instance.payload`, projected from the wire
   `attachments.primary`) renders through the shared viewer
-  (`ArtifactViewer` with `interactive: false` — the non-interactive
-  aspect-fit canvas with no pan/zoom/layer controls; same contract as
-  generated detail previews, which keep the interactive viewer);
+  (via `ArtifactViewer` variant `card` — the non-interactive
+  aspect-fit canvas with no pan/zoom/layer controls, same contract as
+  generated detail previews, which keep the pane viewer);
   payload-less instances keep the deterministic per-instance inline SVG
   (seeded hue) built
   entirely from theme tokens — `--ck-subtle-background` bases with
