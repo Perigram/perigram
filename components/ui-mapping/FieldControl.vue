@@ -130,7 +130,7 @@
     class="w-full"
     @update:model-value="value => (model = value)"
   />
-  <FileUploadControl v-else-if="outcome.component === 'FileUpload'" :payload="payload" />
+  <FileUploadControl v-else-if="outcome.component === 'FileUpload'" v-model="model" :payload="payload" />
   <JsonEditor v-else-if="outcome.component === 'JsonEditor'" v-model="model" />
   <ObjectEditor
     v-else-if="outcome.component === 'ObjectEditor'"

@@ -726,9 +726,29 @@ describe('create dialog input resolution', () => {
     expect(rows[0]).toMatchObject({ lineage: { key: 'tBin1Id', accepts: ['t-bin-1'] } });
   });
 
+  it('emits file inputs as upload rows outside the row grammar', () => {
+    // SPEC §4 payload path: the upload protocol's file input is not a
+    // declared row field — it rides the FileUpload control instead of
+    // resolving against fields or disappearing silently.
+    const rows = resolveCreateDialogInputs(
+      {
+        construction: { inputs: ['name', 'payload'] },
+        inputPolicy: {
+          fields: [
+            { id: 'name', label: 'Name', path: 'name', type: 'string' },
+            { id: 'payload', label: 'File', path: 'payload', type: 'file' }
+          ]
+        }
+      },
+      type,
+      bundle
+    );
+    expect(rows.map(row => row.id)).toEqual(['name', 'payload']);
+    expect(rows[1]).toMatchObject({ label: 'File', descriptor: { base: 'blob' }, span: 'full' });
+  });
+
   it('keeps inputs that resolve to nothing hidden', () => {
-    expect(resolveCreateDialogInputs(
-      { construction: { inputs: ['templateId'] } },
+    expect(resolveCreateDialogInputs(      { construction: { inputs: ['templateId'] } },
       type,
       bundle
     )).toEqual([]);

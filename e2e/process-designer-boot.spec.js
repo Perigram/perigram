@@ -1,9 +1,16 @@
-import { expect, test } from '@playwright/test';
+import { test } from './fixtures.js';
+import { expect } from '@playwright/test';
 
 // Boot probe: the designer page must load without client errors, create a
 // new definition from the dock, and save it. Reproduces the reported
-// "can't create new definition / can't manage the stale one".
-test('process designer boots, creates, and saves', async ({ page }) => {
+// "can't create new definition / can't manage the stale one". The org is
+// seeded with a species process first so the designer route resolves
+// instead of redirecting to the generated home.
+test('process designer boots, creates, and saves', async ({ app }) => {
+  test.setTimeout(120_000);
+  const { page } = app;
+  await app.seedSpeciesProcess({ types: ['cassette'] });
+
   const errors = [];
   page.on('pageerror', error => errors.push(`pageerror: ${error.message}`));
   page.on('console', message => {
@@ -17,7 +24,13 @@ test('process designer boots, creates, and saves', async ({ page }) => {
   });
 
   await page.goto('/organization/process');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('load');
+  // The dev stack bounces authenticated deep links through `/`
+  // server-side; continue client-side once the app boots.
+  if (!/\/organization\/process/.test(page.url())) {
+    await app.gotoClient('/organization/process');
+    await page.waitForTimeout(2000);
+  }
   await expect(page).toHaveURL(/process/);
 
   // the canvas surface renders
@@ -39,4 +52,5 @@ test('process designer boots, creates, and saves', async ({ page }) => {
   console.log('API FAILURES:', JSON.stringify(failed, null, 2));
   expect(critical, 'client errors during boot/create/save').toEqual([]);
   expect(failed, 'failed API calls during boot/create/save').toEqual([]);
+  await app.expectCleanRuntime();
 });
