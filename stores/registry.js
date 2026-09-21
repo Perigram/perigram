@@ -28,7 +28,15 @@ export const useRegistryStore = defineStore('registry', () => {
     for (const type of bundle.value.types || []) {
       for (const [key, edge] of Object.entries(type.edges?.children || {})) {
         for (const childType of edge?.types || []) {
-          triples.push({ childType, parentType: type.id, lineageKey: edge?.lineageKey || key });
+          triples.push({
+            childType,
+            parentType: type.id,
+            lineageKey: edge?.lineageKey || key,
+            // The declared stamp the process-mode containment filter reads:
+            // org-authored edges participate beside compiled lineage
+            // bindings, system pack edges stay non-authoritative.
+            declared: type.scope === 'org' ? 'org' : 'system'
+          });
         }
       }
     }
