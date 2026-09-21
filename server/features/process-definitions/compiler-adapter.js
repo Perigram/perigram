@@ -109,7 +109,20 @@ function capabilityBindings(domain = {}) {
   const capabilities = {};
   for (const entity of domain.entities || []) {
     const record = registry?.getEntityService?.(entity.type)?.processCapabilities;
-    if (record) capabilities[entity.type] = record;
+    if (!record) continue;
+    // The projected construction contract governs executable modes for
+    // org-authored types: their declarations live in the async type
+    // store, so the service's static capability mirror only knows the
+    // payload-less literal (genericCreate). Union keeps any
+    // handler-filtered pack modes intact.
+    const contractModes = domain.construction?.[entity.type]?.modes || [];
+    capabilities[entity.type] = contractModes.length
+      ? {
+          ...record,
+          createModes: [...new Set([...(record.createModes || []), ...contractModes])],
+          create: true
+        }
+      : record;
   }
   return capabilities;
 }
