@@ -301,26 +301,16 @@ actions do not have an existing entity row. Parent-bound collection actions also
 emit the source and region context so the generated screen can pass the active
 parent id from screen scope to the process action endpoint, or open a parent
 selector when the target entity list is not already scoped to that parent.
-The generated `home` template is the user's process start screen. Its desktop
-surface is the Discord-style `GeneratedHomeWorkspace` overload (see
-[components/generated/README.md](./generated/README.md)): entities live in the
-sidebar's Tree explorer grouped by home section with containment hierarchy,
-the active entity opens in the recursive tab/split pane area, generated
-create buttons render on their section folders and on entity rows through
-their compiled detail-screen child regions, the pinned communication block
-exposes chats (a registered workspace page tab with the built-in inbox rail)
-and the LiveKit channel list with create/delete, and the sidebar
-footer carries the user controls that the desktop navbar owns on other
-routes. The desktop sidebar does not link out to hub entity-list screens.
-Mobile keeps the previous stacked home sections
-(`GeneratedHomeScreen`) with section-level create buttons, entity-card action
-footers, and the open-list button resolved from the compiled entity-list
-screen. Both surfaces use the region's compiled action ids and the
-same status/entity filters as collection screens. The home template must
-reuse the same entity primitives and generated action execution path as
-collection screens; it must not invent static dashboard widgets, hardcoded
-domain routes, or per-card create buttons. Mobile must not construct list
-routes from entity names.
+The generated `home` template is the user's process start screen and
+renders through the UI generator ([components/ui-mapping](./ui-mapping/README.md))
+like every other compiled process template: `pages/screens/[screenKey].vue`
+composes the compiled home sources (the inferred `auto_*` list surfaces) into
+generated list regions with their class-level create actions, and the app
+layout owns the shell chrome. The former Discord-style home workspace
+overload and its mobile fallback are deleted
+([components/generated/README.md](./generated/README.md)); entity links and
+chat expand actions route to the compiled detail screens and the bounded
+`/chats` route instead of workspace pane tabs.
 Home root filtering is derived at runtime from the domain containment graph,
 compiled source metadata, and canonical `lineage.*Id` references. The lineage
 fallback covers active manifests whose domain containment catalog does not
@@ -331,12 +321,6 @@ empty child sections are omitted as well. Empty top-level sections remain
 available when they own a top-level create action. Record filtering still
 suppresses a descendant when any non-organization ancestor is readable, not
 only when its immediate parent is a Home section.
-Mobile home sections are true horizontal carousels: entity cards keep a stable
-non-shrinking width and overflow horizontally instead of shrinking every card
-to fit the viewport. The fixed width belongs on the carousel item wrapper, not
-on `<EntityCard>` itself, because shared entity cards have variant root
-branches and cannot be relied on to receive layout sizing through attribute
-fallthrough.
 Generated card bodies may replace aggregate child-count facts such as
 `summary.queueCount` when those cards are rendered through
 `EntitySurfaceContent`. Prefer compact `EntityInlineRef variant="compact"`

@@ -93,8 +93,9 @@ Use the registry instead of adding entity checks directly inside
 `GeneratedScreen.vue`, `GeneratedEntityDetail.vue`, or generated collections.
 The current default overloads are:
 
-- `home` screens render `GeneratedHomeWorkspace.vue`, the Discord-style
-  operational shell described below.
+- `home` screens render through the UI generator
+  ([components/ui-mapping](../ui-mapping/README.md)) like every other
+  process template — see Home below.
 - project `entityDetail` screens render `GeneratedProjectWorkspace.vue`, an
   IDE-style project workspace over the generated project source and child
   sources.
@@ -162,126 +163,25 @@ the organization-scoped cached read of the served type view. Editor
 overloads keep owning their surfaces — the preview panel renders only when
 no editor overload is present.
 
-## Home Workspace
+## Home
 
-`GeneratedHomeWorkspace.vue` renders the generated `home` template as a
-Discord-style operational shell:
+`home` screens render through the UI generator like every other compiled
+process template: `pages/screens/[screenKey].vue` composes the compiled
+home contract (the inferred `auto_*` list surfaces seeded as home sources)
+through `composeScreen` + `GeneratedMappingScreen`, with the app layout
+(`layouts/app.vue`) owning the shell chrome — navigation, user menu, the
+chats tab, and call surfaces (`IncomingCalls`, `CallFloatingWindow`).
 
-- Desktop (`md` and up) is a fixed two-column bounded workspace: a sidebar and
-  the recursive pane area. Mobile keeps the previous stacked home sections
-  (`GeneratedHomeScreen.vue`) inside a self-scrolling container, so the mobile
-  contract is unchanged.
-- The sidebar owns navigation for the whole shell. Below the brand header, a
-  pinned communication nav renders the shared `CommunicationMenu.vue`
-  (components/shared): Chats and Calls as proper PrimeVue `TieredMenu`
-  items instead of hand-written rows.
-  Chats open as the registered entity-less `chats` workspace page (see
-  `workspace-pages.js`): a tab in the main pane area rendering `ChatSupport`
-  full-page with its built-in inbox rail — chats are not a floating surface
-  on this route and the desktop floating launcher is hidden; the Chats menu
-  item carries the unread badge. The full-page chat splits into inbox rail
-  plus thread through a container query on its host wrapper at 44rem; the
-  row direction lives on the inner `.chat-page` node because a container
-  query cannot restyle its own container element. The Calls submenu lists direct/group
-  conversations from the chats store (choosing one rings the room through
-  `/api/livekit/invite`) — ongoing rooms are not menu entries.
-  Below the menu, the sidebar lists currently joinable rooms as persistent
-  rows (icon, label, participant count; clicking the row joins) sourced from
-  the shared `calls` store (`stores/calls.js`), which keeps the
-  `/api/livekit/active-rooms` snapshot fresh on `call.activity` events and
-  also drives the global `IncomingCalls` ring cards — only brand-new invites
-  float; ongoing calls stay in the sidebar and in chats.
-  Every call opens as
-  an ephemeral `call` workspace tab (`CallWorkspacePage.vue` — stage plus
-  the conversation chat rail) in the active pane, never a floating dialog;
-  the tab disappears when its `CallPanel` reports the call closed and is
-  never persisted with the pane layout. Room activity reaches the store
-  live through the LiveKit webhook fanout into `call.activity`
-  events (see
-  [server/features/livekit/README.md](../../server/features/livekit/README.md));
-  `livekit.dev.yaml` points the webhook at the compose-internal app
-  endpoint. `CallPanel` stays usable in small
-  panes: tiles keep a small minimum height, the speaker stage scrolls
-  instead of overflowing, and the wide side-strip arrangement
-  applies only from the panel's own 40rem container width. Entity-less page definitions marked
-  `ephemeral: true` are runtime-parameterized like this and never appear in
-  add-tab lists.
-- Entity navigation is a PrimeVue `Tree` explorer at Aura defaults in a
-  self-scrolling wrapper. Home entity-list sections render as non-selectable
-  folder nodes (entity-type icon and `generatedRegionLabel` label owned by
-  the tree itself) and section folders expand/collapse. The tree
-  passthroughs are layout-only: nested rows indent inside the row content so
-  hover/selection keep the full row width, and the node label owns the
-  remaining width so trailing row controls align to the row end.
-- Entity rows are inline entity entries through the shared component:
-  `EntityInlineRef variant="inline"` with `interactive: false` (non-expanding
-  inline card, no detail popup), followed by the icon-variant `EntityStatus`
-  and the separate ellipsis control at the end of the row. The tree owns
-  selection. Entity nodes carry no tree-level icon — the inline chip owns the
-  entity icon, and a tree icon would duplicate it.
-- Generated mutation buttons follow the hierarchy and live behind one
-  ellipsis menu per row: section folders expose the region's compiled create
-  actions, and each entity row resolves the create actions of its entity
-  type's compiled detail-screen child collection regions
-  (`generatedDetailScreenForEntityType`) with the row entity bound as the
-  opened parent through `mergeCollectionActionContext`, plus the compiled
-  relation Link actions of the detail screen's main region, which execute
-  against the row entity itself. Action records are resolved from the
-  user's assignment manifest through the shared kind predicates in
-  `action-visibility.js`, which accept both manifest vocabularies (the
-  projected `createInstance`/`link` + `typeId` records and the legacy
-  exposure kinds); labels come from `utils/generated-labels.js`, which
-  resolves org-authored types by their authored render label through the
-  registry bundle before humanizing. The ellipsis opens a
-  popover of menu-item `GeneratedActionButton`s and only renders when the
-  row has actions. Nothing is hardcoded per entity type; a row without
-  compiled mutations shows no ellipsis.
-- The explorer shows the full hierarchy like the project page: entities nest
-  beneath a loaded ancestor through the effective containment graph and
-  canonical `lineage.*Id` references, and declared relation links participate
-  beside containment — expanding a row resolves its relation refs
-  (`resolveEntityRelationRefs` over the canonical DTO, fetching the full
-  record when the list DTO omits relations) and nests the referenced
-  entities under the row. Section roots never nest. Entity nodes whose type
-  declares containment children or carries relation refs are expandable;
-  expanding lazily loads children through the compiled detail-screen list
-  sources (`linkedExplorerChildSources`) scoped to the parent's lineage and
-  merges them into the workspace item pool. Entities opened through nested
-  pane navigation nest the same way.
-- Selecting an explorer row opens or selects that entity in the active pane;
-   the active pane's selected key drives the tree selection. The
-   desktop sidebar does not link out to hub entity-list screens; the full
-   hierarchy is navigable in place.
-- Sidebar row chrome: entity rows render muted until opened — only the row
-   open in the active pane carries the normal text color — and the row
-   ellipsis action buttons (section create actions, entity row actions)
-   reveal on hover (`opacity-0 group-hover:opacity-100`, keyboard focus
-   included) instead of sitting permanently beside every row.
-- The sidebar footer mounts the shared `UserAccountMenu`, so on this route the
-  desktop top navbar is hidden and its user controls live in the sidebar
-  (`layouts/app.vue` resolves this from the active screen template).
-- The pane area is the same recursive `WorkspaceSplitNode` tree used by the
-  project workspace: IDE-style file tabs, wheel-scrollable tab strips, split
-  right/down, pane-local close, registered workspace pages (for example the
-  cassette designer), and `GeneratedEntityFile` bodies that scope each
-  entity's own compiled detail screen. There is no Explorer header or project
-  action strip; collection creation belongs to sidebar sections and entity
-  operations belong to the opened file tabs.
-- Tab creation is explicit: new tabs come only from the tab strip's add
-  control and from live call stages (calls stay in their own tab so workspace
-  navigation never unmounts an active call). Every other navigation —
-  explorer rows, nested entity links, workspace pages — reuses the pane's
-  selected tab in place (replacing an empty placeholder like any content), and
-  opening an item that already has a tab in the pane just selects it. Each
-  tab keeps its own selected content while switching because pane tab keys
-  and the selected key are persisted pane state.
-- Tab and pane state persists as versioned browser UI state scoped to the
-  current user and organization (`utils/home-workspace-state.js`). It stores
-  the pane tree, tab selections, opened entity references, and opened page
-  references using the same normalization contract as the project workspace,
-  minus explorer fields. Entities opened through nested detail navigation are
-  hydrated through the entity store like project workspace files; lazily
-  fetched explorer children stay session-local.
+The former Discord-style home workspace shell (`GeneratedHomeWorkspace`,
+its mobile stacked fallback, and its persisted pane/tab state) is deleted.
+Its two integration contracts survive with new destinations:
+
+- `openEntityInWorkspace` (`utils/entity-workspace-open.js`) now navigates
+  to the entity's compiled detail route (either manifest vocabulary),
+  falling back to the home route — inline refs, chat attachments, and
+  legacy collection rows keep working unchanged.
+- `openChatInWorkspaceTab` (`utils/chat-workspace-open.js`) navigates to
+  the bounded `/chats` route.
 
 ## Project Workspace
 
@@ -370,7 +270,7 @@ bounded IDE-style Explorer and file workspace:
   page-opening lookup; relation navigation does not reduce their capabilities.
   Additional app-owned pages register through the same fixed registry; pages
   without an entity binding (for example `chats`) are always-openable tabs in
-  the home workspace.
+  the project workspace.
 - PrimeVue splitters form a recursive split tree. A pane can split right or
   down, and nested horizontal/vertical splits keep independent selections and
   scrolling. Split proportions, Explorer width/visibility, active pane,
