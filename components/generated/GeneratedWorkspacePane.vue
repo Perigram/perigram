@@ -17,6 +17,19 @@
     @split="orientation => $emit('split', orientation)"
     @close="$emit('close')"
   />
+  <GeneratedScreenPane
+    v-else-if="item?.kind === 'screen'"
+    :item="item"
+    :tabs="tabs"
+    :closeable="closeable"
+    :splittable="splittable"
+    @refresh="$emit('refresh')"
+    @select-tab="$emit('select-tab', $event)"
+    @close-tab="$emit('close-tab', $event)"
+    @add-tab="$emit('add-tab', $event)"
+    @split="orientation => $emit('split', orientation)"
+    @close="$emit('close')"
+  />
   <GeneratedWorkspacePage
     v-else-if="item?.kind === 'page'"
     :page="item"
@@ -66,6 +79,7 @@
 <script setup>
 import GeneratedEntityFile from '~/components/generated/GeneratedEntityFile.vue';
 import GeneratedWorkspacePage from '~/components/generated/GeneratedWorkspacePage.vue';
+import GeneratedScreenPane from '~/components/generated/GeneratedScreenPane.vue';
 import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTabs.vue';
 import GeneratedWorkspacePaneMenu from '~/components/generated/GeneratedWorkspacePaneMenu.vue';
 

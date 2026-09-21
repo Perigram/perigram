@@ -76,6 +76,10 @@ function tabLabel(tab = {}) {
   if (tab.kind === 'entity') {
     return tab.entity?.identity?.name || tab.entity?.identity?.slug || tab.entity?.identity?.uid || tab.key;
   }
+  // Opened type screens resolve their compiled label from the manifest.
+  if (tab.kind === 'screen') {
+    return tab.label || tab.screenKey;
+  }
   // Runtime-opened pages (live calls) carry their own label.
   if (typeof tab.label === 'string' && tab.label) return tab.label;
   const definition = resolveGeneratedWorkspacePage(tab.pageId);
@@ -84,7 +88,7 @@ function tabLabel(tab = {}) {
 
 function tabIcon(tab = {}) {
   if (tab.kind === 'empty') return 'pi pi-plus';
-  if (tab.kind === 'entity') return registry.iconFor(tab.type);
+  if (tab.kind === 'entity' || tab.kind === 'screen') return registry.iconFor(tab.typeId);
   return resolveGeneratedWorkspacePage(tab.pageId)?.icon || 'pi pi-file';
 }
 </script>

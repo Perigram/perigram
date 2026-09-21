@@ -27,7 +27,8 @@ export function normalizeProjectWorkspaceState(value) {
     explorerOpen: value?.explorerOpen !== false,
     explorerSize: normalizeExplorerSize(value?.explorerSize),
     openedEntityRefs: normalizeOpenedEntityRefs(value?.openedEntityRefs),
-    openedPageRefs: normalizeOpenedPageRefs(value?.openedPageRefs)
+    openedPageRefs: normalizeOpenedPageRefs(value?.openedPageRefs),
+    openedScreenRefs: normalizeOpenedScreenRefs(value?.openedScreenRefs)
   };
 }
 
@@ -95,6 +96,19 @@ function normalizeSplitSizes(sizes) {
 function normalizeExplorerSize(value) {
   const size = Number(value);
   return Number.isFinite(size) ? Math.min(40, Math.max(10, size)) : 15;
+}
+
+function normalizeOpenedScreenRefs(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter(reference => (
+    reference
+    && typeof reference.key === 'string'
+    && typeof reference.screenKey === 'string'
+  )).map(reference => ({
+    key: reference.key,
+    screenKey: reference.screenKey,
+    ...(typeof reference.typeId === 'string' ? { typeId: reference.typeId } : {})
+  }));
 }
 
 function normalizeOpenedPageRefs(value) {

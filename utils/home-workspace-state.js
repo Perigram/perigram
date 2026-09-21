@@ -40,6 +40,7 @@ function paneState(value) {
     activePaneId: state.activePaneId,
     paneSequence: state.paneSequence,
     openedEntityRefs: state.openedEntityRefs,
-    openedPageRefs: state.openedPageRefs
+    openedPageRefs: state.openedPageRefs,
+    openedScreenRefs: state.openedScreenRefs
   };
 }

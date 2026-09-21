@@ -56,13 +56,14 @@
           >
             <template #default="{ node }">
               <span
-                v-if="node.data?.section"
+                v-if="node.data?.typeId"
                 class="group flex min-w-0 flex-1 items-center gap-2"
-                :data-home-type-id="node.data.section.source.typeId"
+                :data-home-type-id="node.data.typeId"
               >
+                <i :class="node.icon" class="shrink-0 text-muted" aria-hidden="true" />
                 <span class="min-w-0 flex-1 truncate text-label">{{ node.label }}</span>
                 <Button
-                  v-if="collectionActions(node.data.section.region).length"
+                  v-if="node.data.section && collectionActions(node.data.section.region).length"
                   icon="pi pi-ellipsis-v"
                   text
                   rounded
@@ -221,10 +222,11 @@ import { generatedDetailScreenForTypeId } from '~/components/generated/detail-sc
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
+import { useRegistryStore } from '~/stores/registry';
 import { useSupportChatStore } from '~/stores/supportChat';
 import { useCallsStore } from '~/stores/calls';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
-import { generatedActionLabel, generatedRegionLabel } from '~/utils/generated-labels.js';
+import { generatedActionLabel } from '~/utils/generated-labels.js';
 import { callRoomIcon, callRoomLabel, conversationKeyForRoom } from '~/utils/call-rooms.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
@@ -256,6 +258,7 @@ const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
 const instances = useInstancesStore();
+const registryStore = useRegistryStore();
 const supportChatStore = useSupportChatStore();
 const callsStore = useCallsStore();
 const effectiveContainment = useEffectiveContainment();
@@ -267,6 +270,7 @@ const selectionKeys = ref({});
 const expandedKeys = ref({});
 const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
+const openedScreenRefs = ref([]);
 const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
 const actionsMenu = ref(null);
@@ -326,6 +330,16 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
     cassettes: cassetteItems.value.map(item => item.entity)
   };
 }).filter(Boolean));
+// Opened type screens: sidebar type nodes opened as pane tabs. Labels and
+// icons resolve live from the manifest/registry, so a recompiled process
+// updates open tabs without persisted stale text.
+const screenItems = computed(() => openedScreenRefs.value.map(reference => ({
+  key: reference.key,
+  kind: 'screen',
+  screenKey: reference.screenKey,
+  typeId: reference.typeId || '',
+  label: screenLabelFor(reference.screenKey)
+})));
 // Registered pages without an entity binding are always openable tabs.
 const staticPageItems = computed(() => generatedWorkspacePages
   .filter(page => !page.typeId && !page.ephemeral)
@@ -347,6 +361,7 @@ const chatPageItems = computed(() => chatPageRefs.value.map(chat => ({
 })));
 const workspaceItems = computed(() => [
   ...workspaceEntityItems.value,
+  ...screenItems.value,
   ...openedPageItems.value,
   ...callPageItems.value,
   ...chatPageItems.value,
@@ -387,21 +402,109 @@ const childrenByKey = computed(() => {
 });
 const sectionRootKeys = computed(() => new Set(sectionItems.value.map(item => item.key)));
 
-const explorerNodes = computed(() => sections.value
-  .map(section => ({
-    key: sectionMenuKey(section),
-    label: sectionLabel(section),
-    icon: sectionIcon(section),
-    selectable: false,
-    data: { section },
-    children: sectionItemsFor(section.region.id).map(item => entityNode(item))
-  })));
+// The explorer tree is the TYPE hierarchy from the render contracts: the
+// registry bundle's declared containment (children edges) nests types under
+// their parents, manifest-backed types (their ancestors included for
+// structure) render as nodes, and type instances hang beneath them from
+// the home sections. Root types — authored classes and groups — are
+// selectable: their compiled typeList screen opens in the active pane.
 
-watch(sections, value => {
+const screenfulTypes = computed(() => new Set((authStore.screenManifest || [])
+  .filter(screen => screen.typeId && screen.template === 'typeList')
+  .map(screen => screen.typeId)));
+
+// Types worth rendering: every screen-backed type plus its containment
+// ancestors (structural nodes keep the hierarchy real).
+const visibleTypes = computed(() => {
+  const parentOf = new Map(effectiveContainment().map(triple => [triple.childType, triple.parentType]));
+  const visible = new Set();
+  for (const typeId of screenfulTypes.value) {
+    let cursor = typeId;
+    const guard = new Set();
+    while (cursor && !guard.has(cursor) && registryStore.typeRecord(cursor)) {
+      guard.add(cursor);
+      visible.add(cursor);
+      cursor = parentOf.get(cursor) || '';
+    }
+  }
+  return visible;
+});
+
+const explorerNodes = computed(() => {
+  const childTypes = new Map();
+  for (const triple of effectiveContainment()) {
+    if (!visibleTypes.value.has(triple.childType) || !visibleTypes.value.has(triple.parentType)) continue;
+    const list = childTypes.get(triple.parentType) || [];
+    if (!list.includes(triple.childType)) list.push(triple.childType);
+    childTypes.set(triple.parentType, list);
+  }
+  const rooted = new Set(childTypes.values().flatMap(list => list));
+  const roots = [...visibleTypes.value].filter(typeId => !rooted.has(typeId));
+  return roots
+    .map(typeId => typeNode(typeId, childTypes))
+    .sort((a, b) => a.label.localeCompare(b.label));
+});
+
+function typeNode(typeId, childTypes) {
+  const children = (childTypes.get(typeId) || [])
+    .map(child => typeNode(child, childTypes))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  const section = sections.value.find(candidate => candidate.source.typeId === typeId);
+  const entities = section ? sectionItemsFor(section.region.id) : [];
+  const screen = typeScreenFor(typeId);
+  return {
+    key: typeMenuKey(typeId),
+    label: typeLabelOf(typeId),
+    icon: instances.iconFor(typeId),
+    selectable: true,
+    data: { typeId, screen, section },
+    leaf: !children.length && !entities.length,
+    children: [...children, ...entities.map(item => entityNode(item))]
+  };
+}
+
+function typeMenuKey(typeId = '') {
+  return `type:${typeId}`;
+}
+
+function typeLabelOf(typeId = '') {
+  return registryStore.typeRecord(typeId)?.render?.label || typeId;
+}
+
+// The screen a type node opens: its compiled typeList screen.
+function typeScreenFor(typeId = '') {
+  return (authStore.screenManifest || []).find(screen => (
+    screen.typeId === typeId && screen.template === 'typeList'
+  )) || null;
+}
+
+function screenLabelFor(screenKey = '') {
+  const screen = (authStore.screenManifest || []).find(candidate => (
+    candidate.screenKey === screenKey || candidate.id === screenKey
+  ));
+  return screen?.label || screen?.typeId || screenKey;
+}
+
+// A type (or its screen) opens as a pane tab in the active pane — never a
+// separate route.
+function openTypeScreen(screen = null) {
+  if (!screen?.screenKey && !screen?.id) return;
+  const screenKey = screen.screenKey || screen.id;
+  const key = `screen:${screenKey}`;
+  if (!openedScreenRefs.value.some(reference => reference.key === key)) {
+    openedScreenRefs.value = [...openedScreenRefs.value, {
+      key,
+      screenKey,
+      typeId: screen.typeId || ''
+    }];
+  }
+  if (activePane.value) selectPaneTab(activePane.value.id, key);
+}
+
+watch(explorerNodes, value => {
   const next = { ...expandedKeys.value };
-  for (const section of value) {
-    const key = sectionMenuKey(section);
-    if (!(key in next)) next[key] = true;
+  for (const node of value) {
+    if (!(node.key in next)) next[node.key] = true;
   }
   expandedKeys.value = next;
 }, { immediate: true });
@@ -414,12 +517,13 @@ watch(workspaceStorageKey, key => {
   paneSequence.value = state.paneSequence;
   openedEntityRefs.value = state.openedEntityRefs;
   openedPageRefs.value = state.openedPageRefs;
+  openedScreenRefs.value = state.openedScreenRefs || [];
   hydratedStorageKey.value = key;
   syncActiveSelection();
 }, { immediate: true });
 
 watch(
-  [paneTree, activePaneId, paneSequence, openedEntityRefs, openedPageRefs],
+  [paneTree, activePaneId, paneSequence, openedEntityRefs, openedPageRefs, openedScreenRefs],
   () => {
     const key = workspaceStorageKey.value;
     if (!key || hydratedStorageKey.value !== key || typeof window === 'undefined') return;
@@ -428,7 +532,8 @@ watch(
       activePaneId: activePaneId.value,
       paneSequence: paneSequence.value,
       openedEntityRefs: openedEntityRefs.value,
-      openedPageRefs: openedPageRefs.value
+      openedPageRefs: openedPageRefs.value,
+      openedScreenRefs: openedScreenRefs.value
     });
   },
   { deep: true }
@@ -701,18 +806,6 @@ function actionContext(section = {}) {
   };
 }
 
-function sectionLabel(section = {}) {
-  return generatedRegionLabel(section.region, section.source, { t, te });
-}
-
-function sectionIcon(section = {}) {
-  return instances.iconFor(section.source.typeId);
-}
-
-function sectionMenuKey(section = {}) {
-  return `section:${section.region.id}`;
-}
-
 function sectionItemsFor(regionId) {
   const section = sections.value.find(candidate => candidate.region.id === regionId);
   return section ? sectionItems.value.filter(item => (
@@ -746,6 +839,10 @@ function entityNode(item) {
 }
 
 function selectNode(node) {
+  if (node.data?.typeId) {
+    openTypeScreen(node.data.screen);
+    return;
+  }
   const item = node.data?.item;
   if (!item) return;
   // Sidebar rows are contract-generated destinations: the compiled detail
@@ -880,6 +977,7 @@ function closePaneTab(paneId, key) {
   const remainingTabKeys = new Set(workspaceLeaves(nextTree).flatMap(leaf => leaf.tabKeys || []));
   if (!remainingTabKeys.has(key)) {
     openedPageRefs.value = openedPageRefs.value.filter(reference => reference.key !== key);
+    openedScreenRefs.value = openedScreenRefs.value.filter(reference => reference.key !== key);
     callPageRefs.value = callPageRefs.value.filter(call => call.key !== key);
   }
   activePaneId.value = paneId;
