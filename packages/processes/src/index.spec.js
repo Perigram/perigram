@@ -657,6 +657,36 @@ describe('@cutkit/processes compiler', () => {
     expect(workflow.regions.main.transitions).toEqual([]);
   });
 
+  it('carries declared transitions into defaultCreated producer workflows', () => {
+    // Org-authored lifecycles must stay traversable: producers mint into
+    // CREATED, but the type's declared states and transitions join the
+    // minted machine instead of being discarded with the declaration.
+    const declaredDomain = {
+      ...domain,
+      entities: [...domain.entities, { type: 'widget' }],
+      workflows: {
+        widget: {
+          primaryRegion: 'main',
+          regions: {
+            main: {
+              initial: 'new',
+              states: { new: {}, active: {} },
+              transitions: [{ from: 'new', to: 'active' }]
+            }
+          }
+        }
+      }
+    };
+    const compiled = compileProcessDefinition({
+      dataflowVersion: 4,
+      graph: { nodes: [], edges: [] },
+      producerOutputs: producerOutputRecords([['make_widget', 'widget']])
+    }, declaredDomain);
+    const workflow = compiled.producerOutputs['make_widget:entity'].workflow;
+    expect(Object.keys(workflow.regions.main.states).sort()).toEqual(['CREATED', 'active', 'new']);
+    expect(workflow.regions.main.transitions).toContainEqual(expect.objectContaining({ from: 'new', to: 'active' }));
+  });
+
   it('rejects graph refs that do not exist', () => {
     const validation = validateProcessDefinition({
       graph: {
