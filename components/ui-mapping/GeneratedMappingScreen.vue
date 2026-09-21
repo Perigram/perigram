@@ -196,10 +196,12 @@ const runAction = async (action, draft = {}, context = {}) => {
 const submitDialog = () => {
   const action = dialogAction.value;
   // Lineage pickers model `{ type, id }`; the construction path wants the
-  // bare instance id.
+  // bare instance id. File references (`{ fileId, ... }`) already are the
+  // payload the construct path validates — unwrapping them to `.id`
+  // would silently drop the upload.
   const payload = {};
   for (const [key, value] of Object.entries(dialogDraft)) {
-    payload[key] = value && typeof value === 'object' && !Array.isArray(value) ? value.id : value;
+    payload[key] = value && typeof value === 'object' && !Array.isArray(value) && !value.fileId ? value.id : value;
   }
   dialogVisible.value = false;
   if (action) runAction(action, payload);
