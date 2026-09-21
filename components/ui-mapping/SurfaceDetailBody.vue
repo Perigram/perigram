@@ -1,12 +1,5 @@
 <template>
   <div v-if="d" :class="d.stack">
-    <StateStrip
-      v-if="type.states?.main"
-      :type="type"
-      :instance="instance"
-      :actions="actions"
-      @run="$emit('run', $event)"
-    />
     <PreviewBox v-if="hasPreview" :type="type" :payload="instance.payload" :seed="instance.id" />
 
     <section v-for="group in groups" :key="group.id" :class="d.stackTight">
@@ -194,7 +187,6 @@ import FieldControl from './FieldControl.vue';
 import InstanceChip from './InstanceChip.vue';
 import PreviewBox from './PreviewBox.vue';
 import HierarchyTree from './HierarchyTree.vue';
-import StateStrip from './StateStrip.vue';
 
 const props = defineProps({
   instance: { type: Object, required: true },

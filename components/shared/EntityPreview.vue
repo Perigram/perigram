@@ -2,6 +2,7 @@
   <ArtifactViewer
     v-if="payloadPreview.hasPayload && payloadPreview.renderable"
     :source="{ mode: payloadPreview.mode, fileUrl: payloadPreview.fileUrl, attachment: entity.attachments?.primary }"
+    :interactive="false"
     class="h-32 w-full"
   />
   <template v-else-if="mode !== 'none'">
@@ -16,7 +17,7 @@
       v-else-if="mode === 'thumbnail' && thumbnailUrl"
       :src="thumbnailUrl"
       :alt="entity.identity?.name || entity.identity?.uid || ''"
-      class="h-32 w-full rounded-ui object-cover"
+      class="h-32 w-full rounded-ui bg-subtle object-contain"
     />
     <GeometryPreview
       v-else-if="mode === 'hero' || mode === 'canvas'"

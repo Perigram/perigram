@@ -217,7 +217,7 @@ import Divider from 'primevue/divider';
 import Popover from 'primevue/popover';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
-import { entityUiFor } from '~/utils/status-engine';
+import { useRegistryStore } from '~/stores/registry';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveEntityDisplayContract } from '~/utils/entity-display-contract.js';
 import { hasMeaningfulWorkflowStatus } from '~/utils/status-actions.js';
@@ -266,7 +266,10 @@ const inlineShowCassetteDesignerRef = inject('entityInlineShowCassetteDesigner',
 const inlineExecuteActionRef = inject('entityInlineExecuteAction', null);
 const statusWorkflowsRef = inject('statusWorkflows', null);
 
-const entityConfig = computed(() => entityUiFor(props.typeId));
+const registry = useRegistryStore();
+// Render-policy icons are the single icon source (stores/README.md):
+// the legacy entityUiFor table died with the per-surface icon drift.
+const entityConfig = computed(() => ({ icon: registry.iconFor(props.typeId) }));
 const displayPlan = computed(() => resolveEntityDisplayContract({
     typeId: props.typeId,
     surface: props.surface || props.variant,

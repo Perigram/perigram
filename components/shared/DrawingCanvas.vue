@@ -25,6 +25,10 @@ const props = defineProps({
   source: { type: [Object, String], default: null },
   sourceType: { type: String, default: 'geometry-preview' },
   mode: { type: String, default: 'card' },
+  // Card/thumbnail modes enlarge dimension text for tile readability; a
+  // preview that must match the interactive canvas pixel-for-pixel (the
+  // unified OCCS preview) opts out and keeps the base font size.
+  scaleDimensionText: { type: Boolean, default: true },
   layerMapping: { type: Object, default: () => ({}) },
   showLayerPanel: { type: Boolean, default: false },
   selectedDesignerFaceId: { type: String, default: null },
@@ -380,6 +384,7 @@ const previewDimensionFontSize = computed(() => {
 const textFontSize = (path, layer) => {
   const base = Number(path?.fontSize) || 12;
   if (!['thumbnail', 'card'].includes(props.mode)) return base;
+  if (!props.scaleDimensionText) return base;
   if (!isDimensionLayer(layer)) return base;
   return previewDimensionFontSize.value;
 };

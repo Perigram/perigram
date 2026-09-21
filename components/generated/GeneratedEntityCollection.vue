@@ -158,7 +158,8 @@ import { entityHierarchyIds } from '~/utils/entity-hierarchy.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToTypeId } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
-import { entityUiFor } from '~/utils/status-engine';
+import { useRegistryStore } from '~/stores/registry';
+import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
 import { generatedActionRendersAt } from '~/components/generated/action-placement.js';
 
 const props = defineProps({
@@ -179,11 +180,18 @@ const emit = defineEmits(['refresh', 'execute-action', 'open-entity', 'open-page
 const authStore = useAuthStore();
 const editorActionComponent = computed(() => entityEditorActionFor(props.typeId));
 const hasEditorAction = computed(() => entityHasEditorAction(props.typeId));
-const entityIcon = computed(() => entityUiFor(props.typeId).icon);
+const registry = useRegistryStore();
+const entityIcon = computed(() => registry.iconFor(props.typeId));
 const { t } = useI18n();
 const searchQuery = ref('');
 const statusFilter = ref('');
-const sortBy = ref('name-asc');
+// The last sort choice persists per type; the identity-ascending default
+// applies when no preference exists.
+const sortScope = computed(() => `collection:${props.typeId}`);
+const sortBy = ref(loadSortPreference(sortScope.value)?.name || 'name-asc');
+watch(sortBy, value => {
+  if (value) storeSortPreference(sortScope.value, { name: value, order: 1 });
+});
 provide('generatedExecuteAction', (action, entity, context = {}) => {
   emit('execute-action', action, entity, context);
 });

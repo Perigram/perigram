@@ -8,7 +8,10 @@
           <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
           <span class="text-supporting text-muted truncate">{{ type?.render?.label }} · {{ instance.id }}</span>
         </div>
-        <Tag v-if="status" :value="status.label" :severity="status.severity" />
+        <!-- One status surface per header: the lifecycle strip carries the
+             current state when the type declares a state axis; the badge
+             covers stateless types only. -->
+        <Tag v-if="status && !type?.states?.main" :value="status.label" :severity="status.severity" />
       </div>
       <div :class="LAYOUT.row">
         <Button

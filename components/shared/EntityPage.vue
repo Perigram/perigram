@@ -10,7 +10,7 @@ import EntityActionsPopover from './EntityActionsPopover.vue';
 import { computed, inject, provide, unref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
-import { entityUiFor } from '~/utils/status-engine';
+import { useRegistryStore } from '~/stores/registry';
 
 const props = defineProps({
   entity: { type: Object, required: true },
@@ -37,7 +37,8 @@ const typeLabel = computed(() => {
   const label = t(key);
   return typeof label === 'string' ? label : '';
 });
-const entityIcon = computed(() => entityUiFor(props.typeId).icon);
+const registry = useRegistryStore();
+const entityIcon = computed(() => registry.iconFor(props.typeId));
 const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
 provide('displayedEntityContexts', computed(() => [
   ...(unref(parentDisplayedEntityContexts) || []),

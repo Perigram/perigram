@@ -4,20 +4,21 @@
       v-if="hasFile && ['dxf', 'svg'].includes(mode)"
       :source="fileUrl"
       :source-type="`${mode}-url`"
-      mode="viewer"
-      show-layer-panel
+      :mode="interactive ? 'viewer' : 'card'"
+      :show-layer-panel="interactive"
     />
     <DrawingCanvas
       v-else-if="hasFile && mode === 'sketch'"
       :source="fileUrl"
       source-type="sketch"
-      mode="viewer"
+      :mode="interactive ? 'viewer' : 'card'"
     />
     <DrawingCanvas
       v-else-if="hasFile && mode === 'occs'"
       :source="fileUrl"
       source-type="occs"
-      mode="viewer"
+      :mode="interactive ? 'viewer' : 'card'"
+      :scale-dimension-text="false"
     />
     <img v-else-if="hasFile && mode === 'image'" :src="blobUrl || fileUrl" class="mx-auto block max-h-full max-w-full object-contain" :alt="artifact.identity?.name || ''">
     <iframe v-else-if="hasFile && mode === 'pdf'" :src="blobUrl || fileUrl" class="h-full min-h-[32rem] w-full border-0" :title="artifact.identity?.name || 'PDF'" />
@@ -48,10 +49,14 @@ import { resolveArtifactViewer } from '~/utils/artifact-viewer.js';
 // `artifact`/`revision` drive the artifact-entity path. Callers without an
 // artifact record (CTS file instances) pass an explicit `source`
 // `{ mode, fileUrl, attachment }` resolved from the type's preview policy.
+// `interactive` owns the presentation surface: full preview panes keep the
+// pan/zoom viewer canvas and its layer panel; card/gallery previews render
+// the non-interactive aspect-fit canvas with no controls.
 const props = defineProps({
   artifact: { type: Object, default: null },
   revision: { type: Object, default: null },
-  source: { type: Object, default: null }
+  source: { type: Object, default: null },
+  interactive: { type: Boolean, default: true }
 });
 const docxHost = ref(null);
 const text = ref('');

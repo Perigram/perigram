@@ -103,6 +103,7 @@ import {
   fieldLabel, fieldLabelKey, localizedLabel, resolveListControls, sortControlRows,
   resolveActionButton, actionLabelKey
 } from '#shared/ui-mapping/index.js';
+import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
 import AppSelect from '~/components/shared/EntitySelect.vue';
@@ -132,10 +133,16 @@ const { te, t } = useI18n();
 
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
 // Card ordering runs over the same sortKeys contract as the table (same
-// semantics through the shared comparator); the declared default sort is
-// the initial selection.
-const sortName = ref(resolvedControls.value.defaultSort);
-const sortOrder = ref(1);
+// semantics through the shared comparator); the initial selection is the
+// persisted sort choice for this type, falling back to the declared
+// default sort, and every change persists back.
+const scope = computed(() => `card-grid:${props.type?.id || ''}`);
+const preferred = loadSortPreference(scope.value);
+const sortName = ref(preferred?.name || resolvedControls.value.defaultSort);
+const sortOrder = ref(preferred?.order || 1);
+watch([sortName, sortOrder], () => {
+  if (sortName.value) storeSortPreference(scope.value, { name: sortName.value, order: sortOrder.value });
+});
 watch(() => resolvedControls.value.defaultSort, value => {
   if (!sortName.value) sortName.value = value;
 });

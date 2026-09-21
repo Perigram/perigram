@@ -10,8 +10,10 @@
     :virtual-scroller-options="virtual ? { itemSize: 40 } : undefined"
     :paginator="!virtual && instances.length > pagination.paginateAt"
     :rows="pagination.rows"
-    :sort-field="defaultSortField"
-    :sort-order="1"
+    :sort-field="activeSortField"
+    :sort-order="activeSortOrder"
+    removable-sort
+    @sort-change="onSortChange"
   >
       <template #empty>
         <span class="text-supporting text-muted">{{ $t('uiMapping.emptyRegion') }}</span>
@@ -70,7 +72,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -81,6 +83,7 @@ import {
   SEVERITY_MAP, instanceIdentity, resolveListControls,
   localizedLabel, fieldLabelKey
 } from '#shared/ui-mapping/index.js';
+import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
 import FieldControl from './FieldControl.vue';
 import InstanceChip from './InstanceChip.vue';
 
@@ -129,14 +132,41 @@ const scalarFields = computed(() => resolvedControls.value.sortKeys
       : item => item.fields?.[key.name] ?? null;
     return { name: key.name, descriptor, label, sortField };
   }));
-const defaultSortField = computed(() => {
-  const name = resolvedControls.value.defaultSort;
-  if (!name) return undefined;
+// Sort selection is controlled and named: each sortable column maps to a
+// stable name (identity / status / field name) so the user's choice
+// persists per type (utils/ui-sort-preference.js) and survives remounts;
+// without a preference the declared default sort applies.
+const sortFieldByName = name => {
+  if (name === 'identity') return sortByIdentity;
+  if (name === 'status') return sortByStatus;
   const descriptor = props.type?.fields?.[name] || {};
   return descriptor.base === 'quantity'
     ? item => item.fields?.[name]?.value ?? null
     : item => item.fields?.[name] ?? null;
+};
+const nameForSortField = field => {
+  if (field === sortByIdentity) return 'identity';
+  if (field === sortByStatus) return 'status';
+  const entry = scalarFields.value.find(candidate => candidate.sortField === field);
+  return entry?.name || '';
+};
+const defaultSortField = computed(() => {
+  const name = resolvedControls.value.defaultSort;
+  return name ? sortFieldByName(name) : undefined;
 });
+const sortScope = computed(() => `collection-table:${props.type?.id || ''}`);
+const preferredSort = loadSortPreference(sortScope.value);
+const activeSortField = ref(preferredSort?.name ? sortFieldByName(preferredSort.name) : defaultSortField.value);
+const activeSortOrder = ref(preferredSort?.order || 1);
+watch(defaultSortField, value => {
+  if (!activeSortField.value) activeSortField.value = value;
+});
+function onSortChange({ sortField, sortOrder }) {
+  activeSortField.value = sortField;
+  activeSortOrder.value = sortOrder || 1;
+  const name = nameForSortField(sortField);
+  if (name) storeSortPreference(sortScope.value, { name, order: activeSortOrder.value });
+}
 const relationKey = computed(() => Object.keys(props.type?.edges?.relations || {})[0] || null);
 const relationLabel = computed(() => (relationKey.value ? startCase(relationKey.value) : ''));
 const budgetedRefs = instance => {
