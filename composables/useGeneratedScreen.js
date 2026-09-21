@@ -21,7 +21,9 @@ export function useGeneratedScreen(screenRef) {
   // server-side); the client reads them as-is — no second normalizer.
   const screen = computed(() => unrefScreen(screenRef) || {});
 
-  const visibleSources = computed(() => screen.value.sources.filter(source => canReadSource(source, activePermissions.value)));
+  // Screens resolve asynchronously (route stubs, system entries without
+  // sources): a sourceless screen has nothing to load, never a throw.
+  const visibleSources = computed(() => (screen.value.sources || []).filter(source => canReadSource(source, activePermissions.value)));
 
   function sourceTypeKey(source = {}) {
     return instances.canonicalTypeKey(source.typeId || '');
