@@ -56,6 +56,31 @@ describe('ui-contract projection', () => {
     expect(projected.actions.send).toBeUndefined();
   });
 
+  it('keeps action construction inputs and fields across repeated projection', () => {
+    // The assignment manifest projects twice (assignment access, then
+    // hydration): id-string inputs must pass through instead of dropping
+    // to [], which starved every create dialog of its file/name inputs.
+    const once = projectUiContractChannels({
+      actions: {
+        create: {
+          id: 'create', actionKind: 'createEntity', typeId: 'image', label: 'Create',
+          construction: {
+            mode: 'upload',
+            inputs: [
+              { id: 'name', path: 'name', type: 'string' },
+              { id: 'payload', path: 'payload', type: 'file' }
+            ]
+          },
+          inputPolicy: { fields: [{ id: 'payload', path: 'payload', type: 'file' }] }
+        }
+      },
+      screens: {}
+    });
+    expect(once.actions.create.construction).toEqual({ mode: 'upload', inputs: ['name', 'payload'] });
+    const twice = projectUiContractChannels({ actions: once.actions, screens: {} });
+    expect(twice.actions.create.construction).toEqual({ mode: 'upload', inputs: ['name', 'payload'] });
+  });
+
   it('maps screen templates, type bindings, and lineage-scoped child sources', () => {
     const projected = projectUiContractChannels({
       actions: {},
