@@ -1,43 +1,40 @@
 # System Architecture
 
-This project is a modular monolith with explicit domain contracts and clean
-runtime bindings. The goal is a foundation that can scale by adding domains,
-features, workers, and UI surfaces without changing core vocabulary.
+Multi-tenant CNC manufacturing app built on a type-system core: domain
+vocabulary is authored as CTS type declarations (packs and org-authored),
+compiled by the process compiler into runtime contracts, and served by
+generic instance services. The app scales by adding packs and authoring
+types/processes, not by writing entity services.
 
 ```mermaid
 flowchart TB
-  subgraph Core["@cutkit/core"]
-    Contracts["Entities<br/>Workflows<br/>Commands<br/>Tasks<br/>Hooks<br/>AttachmentKinds"]
-    DTOs["BaseEntity + block DTOs"]
-    Registry["createRegistry()"]
+  subgraph Declarations["Type declarations"]
+    Cts["@perigram/cts<br/>value universe, registry, compile R1–R7,<br/>domain projection (synthesis-only)"]
+    Packs["Packs: documents → tech-drawing → cnc<br/>(server/packs, SPEC §21)"]
+    OrgTypes["Org-authored types<br/>(cts_types store)"]
   end
 
-  subgraph Domain["@cutkit/domain-cnc"]
-    Entities["entities.js"]
-    Workflows["workflows.js"]
-    Commands["commands.js"]
-    Tasks["tasks.js"]
-    Attachments["attachment-kinds.js"]
-    UiPolicy["ui.js metadata"]
-    CncDomain["cncDomain"]
+  subgraph Compiler["@cutkit/processes"]
+    Normalize["normalization / validation"]
+    Actions["action + screen + access compilation"]
+    UiContract["UI contract projection<br/>(typeId-only vocabulary)"]
   end
 
   subgraph Server["Nuxt/Nitro Server"]
-    AppRegistry["server/runtime/app-registry.js"]
-    CommandRuntime["server/core/commands<br/>command_runs"]
-    TaskRuntime["server/core/tasks<br/>task_runs"]
-    Access["server/core/access"]
-    Machines["server/core/machines"]
-    Features["server/features/*"]
-    API["server/api/*"]
+    AppRegistry["server/runtime/app-registry<br/>framework services + pack mounts +<br/>generic instance-service resolver"]
+    Commands["server/core/commands<br/>command_runs"]
+    Tasks["server/core/tasks<br/>task_runs"]
+    Effects["server/core/effects<br/>declared-effect execution"]
+    Machines["server/core/machines<br/>workflow/intent runtime"]
+    Features["server/features/*<br/>framework features + pack-internal modules"]
+    Api["server/api/*"]
     Mongo[(MongoDB + GridFS)]
   end
 
   subgraph Frontend["Vue Client"]
-    Workbench["admin/workbench<br/>API-driven"]
-    EntityUI["components/shared + entity cards"]
-    UseEntity["composables/useEntity"]
-    VueAdapter["@cutkit/vue"]
+    Designer["Process Designer<br/>(authors CTS declarations + process graphs)"]
+    Generator["ui-mapping + generated screens<br/>(compileClientBundle + compiled manifest)"]
+    Home["Home workspace<br/>panes, chats, calls"]
   end
 
   subgraph Workers["Workers"]
@@ -46,80 +43,71 @@ flowchart TB
     NestingWorker["nesting HTTP solver"]
   end
 
-  subgraph Tooling["Tooling"]
-    Manifest["framework.manifest.json"]
-    Inspector["scripts/framework-inspect.js"]
-    Tests["architecture tests"]
-  end
-
-  Contracts --> Domain
-  DTOs --> Features
-  Registry --> AppRegistry
-  Entities --> CncDomain
-  Workflows --> CncDomain
-  Commands --> CncDomain
-  Tasks --> CncDomain
-  Attachments --> CncDomain
-  UiPolicy --> CncDomain
-  CncDomain --> AppRegistry
-  AppRegistry --> CommandRuntime
-  AppRegistry --> TaskRuntime
-  AppRegistry --> Machines
-  CommandRuntime --> Access
-  CommandRuntime --> Features
-  TaskRuntime --> Mongo
+  Packs --> Cts
+  OrgTypes --> Cts
+  Cts --> AppRegistry
+  Cts --> Normalize
+  Normalize --> Actions --> UiContract
+  AppRegistry --> Commands
+  AppRegistry --> Tasks
+  AppRegistry --> Effects
+  Machines --> Effects
+  Api --> Commands
+  Api --> Tasks
+  Api --> Features
   Features --> Mongo
-  API --> CommandRuntime
-  API --> TaskRuntime
-  API --> Features
-  VueAdapter --> EntityUI
-  Workbench --> API
-  EntityUI --> UseEntity
-  UseEntity --> API
-  FileWorker --> API
-  CassetteWorker --> API
-  API --> NestingWorker
-  CncDomain --> Manifest
-  Inspector --> Manifest
-  Tests --> Manifest
+  Commands --> Mongo
+  Tasks --> Mongo
+  Designer --> Api
+  Generator --> UiContract
+  Generator --> Api
+  Home --> Api
+  FileWorker --> Api
+  CassetteWorker --> Api
+  Api --> NestingWorker
 ```
 
 ## Clean Boundaries
 
 | Layer | Owns | Must Not Own |
 |---|---|---|
-| `@cutkit/core` | Generic vocabulary, DTOs, registries, result shapes | CNC concepts, Vue, MongoDB, workers |
-| `@cutkit/domain-cnc` | CNC contracts and UI metadata | Runtime handlers, DB access, Vue components |
-| `server/runtime` | Binding domain contracts to app services/handlers | Business logic |
-| `server/core/commands` | Command execution/access/run history | Domain-specific imports |
-| `server/core/tasks` | Async queue protocol | Worker-specific IO |
-| `server/features/*` | Entity services, repositories, command handlers | Core vocabulary or global registration |
-| Workbench | Contract inspection and command/task execution UI | Direct domain package imports |
+| `@perigram/cts` | Value universe, type declarations, registry/compile, the CTS → compiler-domain projection | Vue, Nuxt, Mongo, workers |
+| `@cutkit/processes` | Process normalization, validation, compilation, UI-contract projection, durable evaluation | Concrete domain imports |
+| Packs (`server/packs/*`) | Domain declarations, services/commands/task executors/hook handlers as mountable units | Framework vocabulary |
+| `@cutkit/domain-cnc` | Pack-internal CNC content: legacy tables for the surviving non-process surfaces, shrinking with the legacy cut | Runtime handlers, DB access, Vue components |
+| `server/runtime` | Pack mounting, framework services, the instance-service resolver | Business logic |
+| `server/core/*` | Command/task/effect/workflow runtimes (domain-agnostic) | Domain-specific imports |
+| `server/features/*` | Framework entity services; pack-internal feature modules | Core vocabulary or global registration |
+| `shared/ui-mapping` | Declaration/contract → presentation resolution (pure) | Vue/Nuxt/PrimeVue imports, CNC names |
 
 ## Primary Flow
 
 ```mermaid
 sequenceDiagram
-  participant UI as Workbench/UI
-  participant API
-  participant Cmd as Command Runtime
-  participant Reg as App Registry
-  participant Task as Task Runtime
-  participant Worker
+  participant D as Process Designer
+  participant Api
+  participant PD as process-definitions feature
+  participant C as @cutkit/processes compiler
+  participant R as App registry / instance services
+  participant UI as Generated screens
 
-  UI->>API: POST /api/admin/commands/:id/run
-  API->>Cmd: executeCommand(commandId)
-  Cmd->>Reg: resolve definition, services, handler
-  Cmd->>Cmd: validate input + assert access
-  Cmd->>Task: enqueue declared async work
-  Cmd-->>UI: command result with entity/task refs
-  Worker->>API: claim/heartbeat/complete/fail task
-  API->>Task: update task_run with claim token
+  D->>Api: SAVE draft (ctsTypes records + graph)
+  Api->>PD: persist draft
+  D->>Api: APPLY/activate
+  Api->>C: compile over projected domain
+  C-->>PD: compiled contract (screens, actions, access, lineage)
+  PD->>PD: contract diff, persist active definition
+  UI->>Api: hydration (projected typeId-only manifest)
+  Api->>R: generated action dispatch
+  R-->>UI: instance DTOs (§3 ⇄ wire mapping)
 ```
 
-Commands are business intent and access boundaries. Tasks are async execution
-boundaries. Attachments are entity-linked file records; attachment kinds are
-domain-declared file contracts.
+Commands are business intent and access boundaries. Tasks are async
+execution boundaries. Entity types, construction modes, workflows, and
+field policy all derive from CTS declarations through the projection —
+legacy hardcoded tables are pack-internal and shrink as their surfaces
+are deleted (see [packages/domain-cnc/README.md](../packages/domain-cnc/README.md)
+Pack direction).
 
 ## Golden Standard Checks
 
@@ -130,9 +118,10 @@ domain-declared file contracts.
 ## Related
 
 - [Root README](../README.md)
-- [Core](../packages/core/README.md)
-- [Domain CNC](../packages/domain-cnc/README.md)
+- [CTS spec](../packages/cts/SPEC.md)
+- [Process compiler](../packages/processes/README.md)
 - [Runtime registry](../server/runtime/README.md)
+- [Packs](../server/packs/README.md)
 - [Commands](../server/core/commands/README.md)
 - [Tasks](../server/core/tasks/README.md)
 - [Workers](../workers/README.md)

@@ -22,21 +22,30 @@ should call `getAppRegistry()`.
   `processList`/`processGetById` bindings, `processCapabilities`, and
   construction handlers (`artifact` keeps the `uploadArtifact` typed
   constructor).
+- Transitional legacy entity services mounted by their pack: the cnc pack
+  registers `queue` (with process bindings, capabilities, and the
+  `genericCreate` construction handler) because its queue production flow
+  drives transition-hook effects that resolve the queue service from the
+  registry. The binding is deleted with that flow's legacy cut.
 - The generic instance-service resolver (SPEC §13 of the CTS spec): every
-  type without a framework service resolves to its per-class instance
-  service — pack types and org-authored types are executable without
-  hand-written services, resolving their declarations per call (framework
-  and pack types from static declarations, org types from the `cts_types`
-  store, cached and invalidated on type writes). Types with no declaration
-  in the registry view fail loudly (`Unknown type`) — that is the intended
-  contract: the registry view is the whole catalog. Instance documents are
-  stored in the CTS §3 shape (flat `fields`, `states.main`, `name`); the
-  service boundary owns the §3 ⇄ wire-DTO (block vocabulary) mapping for
-  screens and compiled contracts.
+  type without a framework or pack service resolves to its per-class
+  instance service — pack types and org-authored types are executable
+  without hand-written services, resolving their declarations per call
+  (framework and pack types from static declarations, org types from the
+  `cts_types` store, cached and invalidated on type writes). Types with no
+  declaration in the registry view fail loudly (`Unknown type`) — that is
+  the intended contract: the registry view is the whole catalog. Instance
+  documents are stored in the CTS §3 shape (flat `fields`, `states.main`,
+  `name`); the service boundary owns the §3 ⇄ wire-DTO (block vocabulary)
+  mapping for screens and compiled contracts.
 - Command handlers from the mounted packs (the CNC pack registers
   `saveCassetteTemplate`, `solveNestingValue`, `convertArtifact`) plus the
   framework's `generateAttachment`, `generateConfigBotDraft`,
   `reindexConfigBotKnowledge`.
+- Workflow transition hook handlers: the framework core handlers plus any
+  `hookHandlers` a pack mounts (the cnc pack mounts the nesting-run
+  accept/apply hooks; without registration those transitions succeed while
+  their side effects silently never run).
 - Task executors: `nesting.solve`, which bridges queued task runs to the
   FastAPI nesting worker. Polling workers claim other task definitions such
   as `vision.extractGeometry` through the worker protocol.

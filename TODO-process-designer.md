@@ -251,6 +251,31 @@ expectations at the generated-screens IA — not a pass/fail run.
 
 ## P4 — Runtime and designer cutover to the UI generator
 
+##### Agent Notes — 2026-09-21 queue-flow regression found and fixed (hooks + queue service mount)
+
+Full-suite triage of the red server specs root-caused the eight
+queues.spec failures to a real regression from the pack-mounting cut, not
+stale specs: (1) the nesting-run `acceptNestingRun` transition hooks
+(`preflightChosenNestingRun`/`applyChosenNestingRun`) were exported by the
+feature but registered by nothing, so choosing a production run
+transitioned COMPLETE→CHOSEN while material preflight, pile consumption,
+and queue READY side effects silently never ran; (2) the hook's
+`updateEntity` effect targets the `queue` type through the effect
+runtime, which resolves services from the registry — and no service was
+mounted for it. Fixed in `agent/arch-enforce-20260921-093000`: packs may
+mount `hookHandlers` (app-registry registers them beside command/task
+handlers), and the cnc pack mounts the transitional legacy `queue`
+entity service with process bindings, capabilities, and the genericCreate
+construction handler — the "transitional legacy entity services" the
+packs README already documented. Both bindings are deleted with the
+queue-flow legacy cut. Same session: stale golden-suite assertions
+corrected (instance routes, pack-mount seam, §3 tenancy slot), the
+committed framework manifest and UI component audit regenerated, the
+`ensureIndex` NamespaceNotFound crash on fresh databases fixed,
+`test:durable` repaired (`#packages` alias resolves under plain node),
+and vitest excludes added for `.agent-worktrees/**` duplicates and the
+node:test file.
+
 - [ ] `pages/screens/[screenKey].vue` renders through `composeScreen` +
   `components/ui-mapping/GeneratedMappingScreen.vue` with a real
   instance-pool data layer over entity collections (replacing the fixture
