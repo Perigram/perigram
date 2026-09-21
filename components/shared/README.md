@@ -123,7 +123,7 @@ concerns instead of one flat grid. `DataBlock` renders
 `display: 'swatch'` fields as a color dot beside the value for declared
 hex-color facts. `EntityPreview` resolves the unified payload preview
 first: a file instance with a stored payload renders through the type's
-declared preview policy (`file-preview.js` → `ArtifactViewer`, the same
+declared preview policy (`file-preview-contract.js` → `ArtifactViewer`, the same
 contract generated detail bodies use); legacy DTOs without payload bytes
 fall through to `CassetteThumbnail` or `GeometryPreview`, and ordinary DTO
 thumbnails render from `data.thumbnailUrl` or thumbnail attachment

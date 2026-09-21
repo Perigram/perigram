@@ -153,7 +153,7 @@ pack-internal feature route.
 
 ### File payload previews
 
-`resolveFilePreview` (in `file-preview.js`, the component-free leaf of the
+`resolveFilePreview` (in `file-preview-contract.js`, the component-free leaf of the
 file-surface contract) is the pure decision helper: given a file instance's
 wire `attachments.primary` and its served type record, it returns the
 preview mode from the type's compiled render policy (`render.preview`,
