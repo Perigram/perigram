@@ -31,7 +31,7 @@
 import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
-import { useToast } from 'primevue/toast';
+import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
 import CassetteDesignerV2 from '~/components/CassetteDesignerV2.vue';
 import DesignerDialog from '~/components/shared/DesignerDialog.vue';

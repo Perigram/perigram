@@ -12,7 +12,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useToast } from 'primevue/toast';
+import { useToast } from 'primevue/usetoast';
 import CassetteDesignerV2 from '~/components/CassetteDesignerV2.vue';
 import { useCassetteDesignerPersistence } from '~/composables/useCassetteDesignerPersistence.js';
 
