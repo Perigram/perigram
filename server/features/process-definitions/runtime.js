@@ -143,6 +143,8 @@ export function resolveCompiledProducerOutputWorkflow({ compiled, producerOutput
   if (typeId && output.typeId !== typeId) {
     throw new Error(`producerOutputId ${producerOutputId} emits ${output.typeId}, not ${typeId}`);
   }
+  // TEMP-DEBUG (remove before commit): trace execute-time workflow resolution.
+  console.warn('[process-debug] resolveWorkflow', JSON.stringify({ producerOutputId, typeId, outputTypeId: output?.typeId, hasWorkflow: Boolean(output?.workflow), poKeys: Object.keys(compiled.producerOutputs || {}) }));
   return output.workflow || fallbackWorkflow;
 }
 
