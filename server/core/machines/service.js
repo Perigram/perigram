@@ -928,24 +928,22 @@ async function loadEntityForWorkflow(typeId, targetId, options = {}) {
     const flexId = toFlexibleId(targetId);
     const entity = await db.collection(collection).findOne({ _id: flexId });
 
-    if (!entity) {
-      throw createError({
-        statusCode: 404,
-        message: `${normalizedTypeId} not found (ID: ${targetId}, Collection: ${collection})`
-      });
+    if (entity) {
+      const organizationId = entity.lineage?.organizationId || entity.origin?.organizationId || entity.organizationId;
+      const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: normalizedTypeId, organizationId, producerOutputId });
+
+      if (!machine && requireMachine) {
+        throw createError({
+          statusCode: 400,
+          message: `No state machine defined for entity type: ${normalizedTypeId}`
+        });
+      }
+
+      return { entity, machine, collection, flexId };
     }
-
-    const organizationId = entity.lineage?.organizationId || entity.origin?.organizationId || entity.organizationId;
-    const machine = await workflowOverridesService.resolveActiveWorkflow({ typeId: normalizedTypeId, organizationId, producerOutputId });
-
-    if (!machine && requireMachine) {
-      throw createError({
-        statusCode: 400,
-        message: `No state machine defined for entity type: ${normalizedTypeId}`
-      });
-    }
-
-    return { entity, machine, collection, flexId };
+    // Dual-world types (a legacy definition beside CTS instances) miss
+    // the static collection when the record was created through the
+    // instance boundary — fall through to the instance search below.
   }
 
   // CTS-native instances live in per-class collections resolved per call
