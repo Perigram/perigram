@@ -12,10 +12,31 @@
   - The bare `construct` palette item drops unbound (no hardcoded
     `via: 'genericCreate'` preset — SPEC §20's no-pre-bound-drops rule);
     compile defaults a missing mode to the type's `defaultMode`.
-  - Deferred (tracked): an inspector via-control for re-binding an
-    existing construct node's mode; generateAttachment/convertArtifact
-    operator declarations; artifact flow migration off artifact; artifact
+  - Deferred (tracked): generateAttachment/convertArtifact operator
+    declarations; artifact flow migration off artifact; artifact
     overload cut.
+  ### Agent Notes — 2026-09-21 (inspector picker)
+  The construct node inspector's mode dropdown rendered only for
+  multi-mode types — single-protocol types (cassette/sketch, editor-only)
+  showed no picker at all, which is why "the picker" was invisible on the
+  user's nodes. It now renders for every bound create node with at least
+  one declared mode, binds the effective mode
+  (`construction.mode ?? via`), and mode changes sync both vocabularies
+  on v5 records. The stale `artifact` special case in the visibility
+  condition was dead (artifact has no construction contract in the view)
+  and is gone. Validation: SSR smoke, composables, localization, designer
+  + cts suites, arch, docs — all pass.
+  ### Agent Notes — 2026-09-21 (scope correction, binding)
+  Queues/projects and the rest of the legacy CNC entity vocabulary are
+  deleted BY DESIGN — the architecture is the CTS language and the org
+  re-authors on declarations (SPEC §19 abandoned data). Legacy references
+  404ing (`/api/instances/queue`) are the expected behavior, NOT defects
+  to fix. Agents must not re-declare deleted domain types (queue, project,
+  sheet, part, solve-run, ...) to silence those 404s — that resurrects the
+  deleted domain and is out of scope for any task that did not explicitly
+  ask for it. SPEC §16's worked example illustrates the language, it is
+  not a declaration plan.
+  Status: WAITING.
 
 - [x] **Load-time construction-mode re-bind for persisted graphs.**
   Eighth slice — migrates existing definitions over the construct-mode
