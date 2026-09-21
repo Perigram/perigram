@@ -128,12 +128,14 @@ export function projectUiAction(action = {}, { typeLabels = new Map() } = {}) {
   if (action.commandId) projected.commandId = action.commandId;
   if (action.status?.to) projected.status = { to: action.status.to };
   if (action.construction?.mode) {
-    if (action.typeId === 'image') {
-      console.warn('[uiaction-debug]', JSON.stringify({ id: action.id || action.actionId, inputs: action.construction.inputs }));
-    }
     projected.construction = {
       mode: action.construction.mode,
-      inputs: (action.construction.inputs || []).map(input => input.id || input.name).filter(Boolean)
+      // Idempotent: assignment access already projects inputs to id
+      // strings, and hydration projects a second time — strings pass
+      // through instead of dropping to [].
+      inputs: (action.construction.inputs || [])
+        .map(input => typeof input === 'string' ? input : (input.id || input.name))
+        .filter(Boolean)
     };
   }
   if (action.relationMutation) {
@@ -146,7 +148,7 @@ export function projectUiAction(action = {}, { typeLabels = new Map() } = {}) {
   if (action.inputPolicy?.fields?.length) {
     projected.fields = action.inputPolicy.fields
       .filter(field => field.display !== 'hidden')
-      .map(field => field.id || field.path || field.name)
+      .map(field => typeof field === 'string' ? field : (field.id || field.path || field.name))
       .filter(Boolean);
   }
   return projected;

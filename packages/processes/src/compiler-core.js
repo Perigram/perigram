@@ -1723,9 +1723,6 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
   for (const [actionId, action] of Object.entries(process.actions || {})) {
     const access = normalizeActionAccess(action.access);
     const actionWindow = actionWindows.get(actionId);
-    if (action.typeId === 'image') {
-      console.warn('[roles-debug]', JSON.stringify({ actionId, construction: action.construction, hasContract: Boolean((domain.construction || {})[action.typeId]) }));
-    }
     const actionTypeId = action.typeId || action.inputs?.find(input => input.typeId)?.typeId || actionWindow?.outputs?.[0]?.typeId || '';
     for (const grant of actionWindow?.grants || []) {
       for (const roleId of grant.roleIds || []) {
@@ -3165,9 +3162,6 @@ function compileProcessNodes(processNodes = {}) {
 function normalizeConstruction(construction = {}, typeId = '', domain = {}) {
   const contract = constructionContract(domain, typeId);
   if (!contract) return null;
-  if (typeId === 'image') {
-    console.warn('[construction-debug]', JSON.stringify({ typeId, mode: construction?.mode, declared: (construction?.inputs || []).map(i => i?.id || i), contractModes: contract.modes, hasModeInputs: Boolean(contract.modeInputs?.[construction?.mode]), contractInputs: (contract.inputs || []).map(i => i?.id), derived: Boolean(contract.derived) }));
-  }
   const source = construction || {};
   const modes = Array.isArray(contract.modes) ? contract.modes : [];
   const mode = source.mode
