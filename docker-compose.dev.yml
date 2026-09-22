@@ -32,6 +32,7 @@ services:
       - CONFIG_BOT_EMBED_MODEL=${CONFIG_BOT_EMBED_MODEL:-bge-m3}
       - CONFIG_BOT_CORTEX_PATH=${CONFIG_BOT_CORTEX_PATH:-/opt/cutkit-cortex}
       - OPENKNOWLEDGE_INTERNAL_URL=${OPENKNOWLEDGE_INTERNAL_URL:-http://openknowledge:4310}
+      - NUXT_PUBLIC_OPENKNOWLEDGE_EDITOR_URL=${OPENKNOWLEDGE_EXTERNAL_URL:-http://localhost:4310}
     depends_on:
       - mongo
       - livekit
@@ -65,9 +66,12 @@ services:
       network: host
     container_name: cutkit_openknowledge
     environment:
-      # Must match the browser-facing app origin: OK's host admission
-      # allowlists the proxy-forwarded Host/Origin against this URL.
-      - OPENKNOWLEDGE_EXTERNAL_URL=${OPENKNOWLEDGE_EXTERNAL_URL:-http://localhost:3000}
+      # Must match the browser-facing editor origin: OK's host admission
+      # allowlists Host/Origin headers against this URL, and its collab
+      # websocket dials the origin it is served from.
+      - OPENKNOWLEDGE_EXTERNAL_URL=${OPENKNOWLEDGE_EXTERNAL_URL:-http://localhost:4310}
+    ports:
+      - "4310:4310"
     volumes:
       - openknowledge-data:/workspace
     networks:

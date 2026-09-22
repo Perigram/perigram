@@ -25,8 +25,8 @@ test.describe('knowledge service', () => {
         await entry.click();
         const editor = app.page.locator('iframe[data-knowledge-editor]');
         await expect(editor).toBeVisible();
-        expect(await editor.getAttribute('src')).toBe('/api/knowledge/proxy/');
-        const proxied = await app.request.get('/api/knowledge/proxy/');
-        expect(proxied.ok()).toBeTruthy();
+        expect(await editor.getAttribute('src')).toBe('http://localhost:4310/');
+        const editorResponse = await app.request.get('http://localhost:4310/');
+        expect(editorResponse.ok()).toBeTruthy();
     });
 });

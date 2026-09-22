@@ -1,6 +1,6 @@
 <template>
   <iframe
-    :src="src"
+    :src="editorSrc"
     :title="t('knowledge.title')"
     class="h-full w-full border-0"
     data-knowledge-editor
@@ -9,17 +9,20 @@
 
 <script setup>
 import { useI18n } from 'vue-i18n';
+import { useRuntimeConfig } from '#imports';
 
 /**
- * The org-wide OpenKnowledge editor hosted in a home-workspace tab.
- * Served same-origin through the authenticated proxy
- * (`/api/knowledge/proxy/`), so the session cookie carries admission on
- * every request the editor makes and its relative asset paths resolve
- * against the proxy prefix.
+ * The org-wide OpenKnowledge editor hosted in a home-workspace tab. The
+ * iframe targets the editor's own published origin
+ * (`runtimeConfig.public.openknowledgeEditorUrl`), never the app origin:
+ * OpenKnowledge's /collab websocket dials the origin it is served from,
+ * and the Nuxt dev server cannot survive that reconnect storm. Admission
+ * gates the menu entry server-side; the editor port itself is trusted to
+ * the deployment network in dev.
  */
-defineProps({
-  src: { type: String, default: '/api/knowledge/proxy/' }
-});
-
 const { t } = useI18n();
+const { public: publicConfig } = useRuntimeConfig();
+
+// Trailing slash matters: OpenKnowledge emits relative asset paths.
+const editorSrc = `${publicConfig.openknowledgeEditorUrl.replace(/\/+$/, '')}/`;
 </script>

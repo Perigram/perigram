@@ -18,7 +18,7 @@ WORKDIR /workspace
 # allowlists the proxy-forwarded Host/Origin against it.
 ENV PORT=4310 \
     OK_ALLOW_EXTERNAL=1 \
-    OPENKNOWLEDGE_EXTERNAL_URL=http://localhost:3000
+    OPENKNOWLEDGE_EXTERNAL_URL=http://localhost:4310
 EXPOSE 4310
 
 # `ok start` refuses uninitialized directories, so first boot scaffolds the
