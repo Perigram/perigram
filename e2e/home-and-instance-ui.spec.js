@@ -25,13 +25,14 @@ test.describe('home and entity UI', () => {
       via: { 'e2e-folder': 'genericCreate', 'e2e-note': 'genericCreate' }
     });
     // Pools are route-mocked hermetically; mock the routes the app
-    // actually reads (stores/instances.js routing: legacy routes for pack
-    // types with mounted feature modules, the instance transport for the
-    // rest). The seed proves live creates, the browser proves rendering.
+    // actually reads (stores/instances.js routing: every declared type
+    // resolves through the instance transport now — the cassette legacy
+    // route is gone). The seed proves live creates, the browser proves
+    // rendering.
     const cassette = instanceDto('cassette-1', 'cassette', 'Home Cassette One');
     const folder = instanceDto('folder-1', 'e2e-folder', 'Home Folder One');
     const note = instanceDto('note-1', 'e2e-note', 'Nested Note One', { lineage: { organizationId: 'org', e2eFolderId: 'folder-1' } });
-    await app.page.route('**/api/cassettes**', route => route.fulfill({ json: [cassette] }));
+    await app.page.route('**/api/instances/cassette**', route => route.fulfill({ json: [cassette] }));
     await app.page.route('**/api/instances/e2e-folder**', route => route.fulfill({ json: [folder] }));
     await app.page.route('**/api/instances/e2e-note**', route => route.fulfill({ json: [note] }));
     await app.page.route('**/api/status/actions**', route => route.fulfill({ json: [] }));
@@ -39,18 +40,22 @@ test.describe('home and entity UI', () => {
     const home = (manifest.screens || []).find(screen => screen.template === 'home');
     expect(home?.route, 'Expected a compiled home screen').toBeTruthy();
     const requested = [];
-    await app.page.route('**/api/cassettes**', route => {
+    await app.page.route('**/api/instances/cassette**', route => {
       requested.push(route.request().url());
       return route.fulfill({ json: [cassette] });
     });
     await app.gotoClient(home.route);
     await app.page.waitForLoadState('load');
-    // Desktop home shell: the sidebar carries one nav entry per root
-    // collection; designer-authored containment suppresses the child
-    // type's entry; each root source loads its pool from its endpoint.
+    // Desktop home shell: the sidebar tree carries one node per
+    // screen-backed type; designer-authored containment nests the child
+    // type beneath its parent (never a root entry); each root source
+    // loads its pool from its endpoint.
     await expect(app.page.locator('span[data-home-type-id="cassette"]')).toBeVisible();
     await expect(app.page.locator('span[data-home-type-id="e2e-folder"]')).toBeVisible();
-    await expect(app.page.locator('span[data-home-type-id="e2e-note"]')).toHaveCount(0);
+    await expect(
+      app.page.locator('.p-tree-node:has(> .p-tree-node-content span[data-home-type-id="e2e-folder"]) .p-tree-node-children span[data-home-type-id="e2e-note"]')
+    ).toBeVisible();
+    await expect(app.page.locator('.p-tree > .p-tree-node-list > .p-tree-node > .p-tree-node-content span[data-home-type-id="e2e-note"]')).toHaveCount(0);
     await expect.poll(() => requested.length, 'Expected the home cassette pool to load').toBeGreaterThan(0);
     await app.expectCleanRuntime();
   });
