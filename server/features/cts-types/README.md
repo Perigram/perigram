@@ -23,6 +23,21 @@ strangler layer 0 of the designer rebuild (see
   move away from it. Pre-existing view errors from a historically stored
   invalid type block only their own repair: valid writes around it still
   land, which is what un-wedges an org.
+  A breaking redefinition of a type with persisted instances passes the
+  gate when the declaration carries `migrate` steps covering every
+  breaking change (SPEC §11; the step language and coverage rules are the
+  `@perigram/cts` diff contract — see
+  [packages/cts](../../../packages/cts/README.md)). Covered steps execute
+  at this boundary, right after the new declaration persists: idempotent,
+  org-scoped instance rewrites through the executor owned by
+  [instances](../instances/README.md) (fields and `states.main` per step,
+  then the new `typeVersion` stamp), each migrated instance publishing the
+  shared typed invalidation event. The applied summary persists on the
+  stored declaration as `migrated`. An uncovered breaking change (or a
+  declared step matching nothing in the diff) is refused — the gate is a
+  compiler, not a script to remember. This boundary serves org-authored
+  declarations; system/pack type changes are deploy-time code edits whose
+  instance migrations remain deploy concerns.
   `removeType` deletes org declarations only.
 - `describeOrganizationTypes` returns the compiled client bundle (types,
   states, operators, render policy, JSON Schemas) plus attachment-kind

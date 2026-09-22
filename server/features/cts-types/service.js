@@ -5,12 +5,15 @@
 // refuse-on-breaking diff (SPEC §11).
 import { createError } from 'h3';
 import * as repository from './repository.js';
-import { createTypeRegistry, compileClientBundle, frameworkTypes } from '~/packages/cts/src/index.js';
+import {
+  createTypeRegistry, compileClientBundle, frameworkTypes, planTypeMigration
+} from '~/packages/cts/src/index.js';
 import { cncPackAttachmentKinds } from '~/packages/domain-cnc/src/index.js';
 import { composeSystemDeclarations, composePackEditors } from '~/server/packs/declarations.js';
 import { invalidateInstanceDeclarations } from '../instances/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
+import { applyTypeMigrationSteps } from '../instances/migrations.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 
 function to400(error) {
@@ -62,7 +65,7 @@ export async function describeOrganizationTypes(organizationId) {
   };
 }
 
-export async function defineType(declaration = {}, { organizationId } = {}) {
+export async function defineType(declaration = {}, { organizationId, actor = null } = {}) {
   if (!organizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
   const orgDeclaration = {
     ...declaration,
@@ -76,6 +79,13 @@ export async function defineType(declaration = {}, { organizationId } = {}) {
   if (existing && (await countInstancesOfType(orgDeclaration.id, organizationId)) === 0) {
     emptyTypeIds.add(orgDeclaration.id);
   }
+  // The declared-migration plan (SPEC §11): covered breaking changes pass
+  // the registry gate below and execute against instances after the new
+  // declaration persists. Uncovered breaking changes refuse inside
+  // registry.defineType's R7 gate.
+  const plan = existing && !emptyTypeIds.has(orgDeclaration.id)
+    ? planTypeMigration(existing, orgDeclaration)
+    : null;
   const registry = await compileRegistryForOrganization(organizationId, { emptyTypeIds });
 
   // Validate the whole org view BEFORE persisting: defineType applies the
@@ -108,11 +118,30 @@ export async function defineType(declaration = {}, { organizationId } = {}) {
   }
 
   invalidateInstanceDeclarations(String(organizationId));
-  const stored = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
+  let stored = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
     ...versioned,
     scope: 'org',
     organizationId: String(organizationId)
   });
+  // Covered breaking changes execute here: instances are behind the new
+  // version from this write until the executor stamps them, so the run is
+  // synchronous and idempotent (finished documents carry the new
+  // typeVersion and are skipped on re-post).
+  if (plan?.covered && plan.breaking.length && plan.steps.length) {
+    const migration = await applyTypeMigrationSteps({
+      declaration: versioned,
+      organizationId,
+      steps: plan.steps,
+      toVersion: versioned.version,
+      actor
+    });
+    stored = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
+      ...versioned,
+      scope: 'org',
+      organizationId: String(organizationId),
+      migrated: migration
+    });
+  }
   // Declaration writes can change the derived index set (SPEC §13).
   await ensureInstanceIndexes(registry.resolveView(organizationId));
   publishOrgContractChanged(String(organizationId), 'registry', { typeId: orgDeclaration.id });

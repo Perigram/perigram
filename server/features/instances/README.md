@@ -22,6 +22,20 @@ hand-written services.
   projection is owned by this service boundary (`toDto`/`create`) and
   nowhere else. `migrate-instance-tenancy.js` backfills the slot and
   strips the legacy lineage key one-way.
+- Type migration executor (`migrations.js`): runs a covered `migrate` step
+  set against the type's persisted instances when
+  [cts-types](../cts-types/README.md) lands a breaking redefinition.
+  Contract: total scan (no limit) of the type's per-class collection in
+  the org scope; every behind instance transforms through all steps in
+  one pass — `rename-enum-value` rewrites `states.main`, `rename-field`,
+  `remove-field`, `add-default-field`, and `retype-field` (CEL expression
+  over `{ value }`, step-budgeted) rewrite flat `fields` — then the doc
+  takes the new `typeVersion` stamp, so re-running skips finished
+  documents (idempotent resume) and each rewrite publishes the shared
+  typed invalidation event with reason `type-migration`. The whole
+  `fields` object and `states.main` are written back per document; the
+  summary (per-step counts, failures) returns to the caller for the
+  declaration's `migrated` record.
 - Payload (SPEC §3/§4): create accepts a payload reference — §3-honest
   callers pass `payload`, legacy wire callers pass
   `attachments.primary` — shaped `{ fileId, mime?, size?, name? }`. The

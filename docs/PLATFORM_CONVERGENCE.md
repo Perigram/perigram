@@ -22,25 +22,24 @@ executed as idempotent initial-state re-targets with an applied summary
 persisted beside the declarations. Canonical contract:
 [server/features/process-definitions/README.md](../server/features/process-definitions/README.md).
 
-**Remaining (type level, CTS SPEC §11):** type declarations carry `migrate`
-steps so a breaking declaration diff is a compiled migration instead of a
-registry refusal. Target contract:
+**Type level (CTS SPEC §11): landed.** Type declarations carry
+`migrate` steps so a breaking declaration diff is a compiled migration
+instead of a registry refusal:
 
-- `@perigram/cts` diff classifies changes: additive-nullable/added-edge are
-  minor bumps; rename/remove/retype are breaking and require declared steps
-  (today `diff.js` refuses breaking changes outright for types with
-  persisted instances). Classification over the row, the state enum, and
-  children edges is complete (`add-state`/`add-edge` included); rename
-  intent stays a declared step, never an inference from the diff.
-- The step language is declarative and total, per SPEC §11: rename,
-  add default, remove, retype via expression. A breaking diff without a
-  declared migration is a compile error (R7), not a script someone
-  remembers to write.
-- Execution lands in the same Apply migration plan — the plan is the single
-  database impact statement for an Apply — and runs as idempotent,
-  org-scoped work through the task runtime.
-- The ~36 one-off `server/scripts/migrate-*.js` files are this mechanism's
-  absence; each script retires when its concern becomes a declarable step.
+- The diff classification is complete (`add-state`/`add-edge` included);
+  rename intent stays a declared step, never an inference from the diff.
+- The step language is declarative and total, per SPEC §11: rename
+  (enum value, field), add default, remove, retype via CEL expression.
+  A breaking diff without a covering declaration is a compile error
+  (R7); a declared step matching nothing fails the gate as well.
+- Execution runs at the declaration boundary (`cts-types` defineType,
+  which the designer's Apply hits when it posts tree declarations):
+  idempotent, org-scoped instance rewrites through the instances
+  feature's executor, with the applied summary persisted on the
+  declaration. Offloading to the task runtime is a later execution
+  optimization, not a contract change.
+- The one-off `server/scripts/migrate-*.js` files retire concern by
+  concern as each becomes a declarable step.
 
 ## 2. Definition-plane closure — definitions are instances
 

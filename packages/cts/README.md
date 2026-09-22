@@ -37,16 +37,31 @@ module layout and how the code maps to the spec's build-order tiers.
 - `expressions.js` — CEL-semantics expression ASTs: total evaluation with a
   step budget, `map`/`filter` comprehensions, compile-checked exhaustive
   `match` (§18).
-- `diff.js` — version stamping and refuse-on-breaking-diff (R7 core tier);
-  the classification is complete over the row, the single-axis state enum,
-  and children edges: additive changes (`add-nullable-field`,
-  `loosen-field`, `add-state`, `add-edge`) are minor, while
-  `remove-field`/`retype-field`/`add-required-field`/`remove-state`/
-  `remove-edge` are breaking. Rename intent is not inferred from the diff —
-  a rename is a declared migration step, so the diff reports the underlying
-  remove/add pair and the declaration carries the mapping. Declarative
-  migration steps are deferred per SPEC §19: a breaking diff on a type
-  with persisted instances is still refused. Redefinition is
+- `diff.js` — version stamping, evolution classification, and the declared
+  migration gate (R7, SPEC §11). The classification is complete over the
+  row, the single-axis state enum, and children edges: additive changes
+  (`add-nullable-field`, `loosen-field`, `add-state`, `add-edge`) are
+  minor, while `remove-field`/`retype-field`/`add-required-field`/
+  `remove-state`/`remove-edge` are breaking. Rename intent is not inferred
+  from the diff — a rename is a declared migration step, so the diff
+  reports the underlying remove/add pair and the declaration carries the
+  mapping. The declaration's `migrate` steps are the executable half of
+  SPEC §11: `{ kind: 'rename-enum-value', axis: 'main', from, to }` (the
+  `to` value must exist in the next state enum), `{ kind: 'rename-field',
+  from, to }`, `{ kind: 'add-default-field', field, value }`,
+  `{ kind: 'remove-field', field }`, and `{ kind: 'retype-field', field,
+  via }` where `via` is a CEL expression AST evaluated per instance over
+  `{ value }`. `planTypeMigration(previous, next)` is the one planner: it
+  returns the diff, the normalized steps, and the coverage verdict —
+  every breaking change must be covered by a declared step (rename-field
+  covers its remove/add pair when the descriptors match;
+  remove-edge is coverable by nothing and stays refused), and every
+  declared step must match a breaking change, so stale steps fail the
+  gate instead of rotting on the declaration. A covered plan is what the
+  registry accepts and the server executes against instances (see
+  [cts-types](../../server/features/cts-types/README.md)); an uncovered
+  breaking change on a type with persisted instances remains the R7
+  refusal. Redefinition is
   free for empty types (instance probe reports zero rows) and for repairs:
   a stored declaration that itself violates class obligations or declares
   unresolvable children never compiled as a contract, so the diff does not

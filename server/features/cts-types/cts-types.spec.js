@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
 vi.mock('../instances/count.js', () => ({ countInstancesOfType: vi.fn(async () => 5) }));
+vi.mock('../instances/migrations.js', () => ({
+  applyTypeMigrationSteps: vi.fn(async () => ({ appliedAt: '2026-09-22T00:00:00.000Z', actor: 'SYSTEM', counts: {}, failures: [] }))
+}));
 
 vi.mock('./repository.js', () => ({
   create: vi.fn(),
@@ -76,6 +79,59 @@ describe('cts type storage', () => {
       { id: 'gadget', class: 'file', fields: { code: { base: 'string' } } },
       { organizationId: ORG }
     )).rejects.toThrow(/breaking change/);
+  });
+
+  it('executes covered migrate steps after persisting and records the summary', async () => {
+    const { applyTypeMigrationSteps } = await import('../instances/migrations.js');
+    applyTypeMigrationSteps.mockResolvedValueOnce({
+      appliedAt: '2026-09-22T00:00:00.000Z',
+      actor: 'admin',
+      counts: { 'rename-enum-value': 5 },
+      failures: []
+    });
+    const existing = {
+      id: 'widget', class: 'item', scope: 'org', organizationId: ORG, version: 3,
+      fields: { code: { base: 'string' } },
+      states: { main: { values: ['scrap', 'ready'], initial: 'scrap' } }
+    };
+    repository.findByTypeId.mockResolvedValue(existing);
+    repository.listByOrganization.mockResolvedValue([existing]);
+    const stored = await defineType(
+      {
+        id: 'widget', class: 'item',
+        fields: { code: { base: 'string' } },
+        states: { main: { values: ['recycled', 'ready'], initial: 'ready' } },
+        migrate: [{ kind: 'rename-enum-value', from: 'scrap', to: 'recycled' }]
+      },
+      { organizationId: ORG, actor: 'admin' }
+    );
+    expect(stored.version).toBe(4);
+    expect(stored.migrated).toMatchObject({ actor: 'admin', counts: { 'rename-enum-value': 5 } });
+    expect(applyTypeMigrationSteps).toHaveBeenCalledWith(expect.objectContaining({
+      toVersion: 4,
+      actor: 'admin',
+      steps: [{ kind: 'rename-enum-value', axis: 'main', from: 'scrap', to: 'recycled' }]
+    }));
+  });
+
+  it('refuses a breaking redefinition whose steps do not cover the diff', async () => {
+    const existing = {
+      id: 'widget', class: 'item', scope: 'org', organizationId: ORG, version: 3,
+      fields: { code: { base: 'string' } },
+      states: { main: { values: ['scrap', 'ready'], initial: 'scrap' } }
+    };
+    repository.findByTypeId.mockResolvedValue(existing);
+    repository.listByOrganization.mockResolvedValue([existing]);
+    await expect(defineType(
+      {
+        id: 'widget', class: 'item',
+        fields: { code: { base: 'string' } },
+        states: { main: { values: ['ready'], initial: 'ready' } }
+      },
+      { organizationId: ORG }
+    )).rejects.toThrow(/without a covering declared migration/);
+    const { applyTypeMigrationSteps } = await import('../instances/migrations.js');
+    expect(applyTypeMigrationSteps).not.toHaveBeenCalled();
   });
 
   it('refuses invalid declarations as 400s', async () => {

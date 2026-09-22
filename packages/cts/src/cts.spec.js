@@ -3,7 +3,7 @@ import {
   quantity, convert, unify,
   rowToSchema, checkFields,
   createTypeRegistry, validateInstance, schemaFor, normalizeType,
-  diffTypes, requireCompatible,
+  diffTypes, requireCompatible, normalizeMigrateSteps, planTypeMigration,
   evaluate, checkMatch,
   normalizeOperator,
   renderPolicyFor, compileClientBundle,
@@ -234,6 +234,71 @@ describe('evolution (R7, refuse-on-diff)', () => {
       { severity: 'breaking', kind: 'remove-state', state: 'scrap' },
       { severity: 'minor', kind: 'add-state', state: 'recycled' }
     ]);
+  });
+
+  it('plans declared migrations: covered breaking changes pass the R7 gate', () => {
+    const v1 = {
+      id: 'item',
+      fields: { thickness: { base: 'quantity', unit: 'mm' }, note: { base: 'string' } },
+      states: { main: { values: ['scrap', 'ready'] } }
+    };
+    // scrap -> recycled rename plus a field retype through an expression.
+    const v2 = {
+      ...v1,
+      fields: { thickness: { base: 'number' }, note: v1.fields.note },
+      states: { main: { values: ['recycled', 'ready'] } },
+      migrate: [
+        { kind: 'rename-enum-value', axis: 'main', from: 'scrap', to: 'recycled' },
+        { kind: 'retype-field', field: 'thickness', via: { op: 'var', name: 'value' } }
+      ]
+    };
+    const plan = planTypeMigration(v1, v2);
+    expect(plan.covered).toBe(true);
+    expect(plan.breaking.map(change => change.kind).sort()).toEqual(['remove-state', 'retype-field']);
+    expect(() => requireCompatible(v1, v2)).not.toThrow();
+  });
+
+  it('refuses uncovered breaking changes, stale steps, and unknown targets', () => {
+    const v1 = { id: 'item', fields: { note: { base: 'string' } }, states: { main: { values: ['scrap'] } } };
+    // No steps at all: uncovered.
+    expect(planTypeMigration(v1, { ...v1, states: { main: { values: [] } } }).errors)
+      .toEqual(['remove-state scrap requires a rename-enum-value step']);
+    // Step target not in the next enum.
+    expect(planTypeMigration(v1, {
+      ...v1, states: { main: { values: ['ready'] } },
+      migrate: [{ kind: 'rename-enum-value', from: 'scrap', to: 'missing' }]
+    }).errors).toEqual(['rename-enum-value target missing is not a state of the next declaration']);
+    // A declared step matching nothing fails the gate instead of rotting.
+    expect(planTypeMigration(v1, {
+      ...v1, migrate: [{ kind: 'remove-field', field: 'note' }]
+    }).errors).toEqual(['declared migration step remove-field note matches no breaking change']);
+    // remove-edge is coverable by nothing.
+    const parent = { id: 'parent', edges: { children: { batch: { typeId: 'batch' } } } };
+    expect(planTypeMigration(parent, { id: 'parent' }).errors)
+      .toEqual(['remove-edge children.batch is not coverable by any declared migration step']);
+    // Malformed steps refuse normalization.
+    expect(planTypeMigration(v1, { ...v1, migrate: [{ kind: 'nope' }] }).errors)
+      .toEqual(['unknown migration step kind nope']);
+    expect(() => requireCompatible(v1, { ...v1, states: { main: { values: [] } } })).toThrow(/without a covering declared migration/);
+  });
+
+  it('a rename-field step covers its remove/add pair when descriptors match', () => {
+    const v1 = { id: 'item', fields: { note: { base: 'string' } } };
+    const v2 = { id: 'item', fields: { label: { base: 'string' } }, migrate: [{ kind: 'rename-field', from: 'note', to: 'label' }] };
+    const plan = planTypeMigration(v1, v2);
+    expect(plan.covered).toBe(true);
+    expect(plan.breaking.map(change => change.kind).sort()).toEqual(['add-required-field', 'remove-field']);
+    // A required new field without a pairing rename needs add-default-field
+    // (and the removed old field still needs its own step).
+    expect(planTypeMigration(v1, { id: 'item', fields: { label: { base: 'string' } } }).errors)
+      .toEqual([
+        'remove-field note requires a remove-field or rename-field step',
+        'add-required-field label requires an add-default-field step'
+      ]);
+    expect(planTypeMigration(v1, {
+      id: 'item', fields: { note: v1.fields.note, label: { base: 'string' } },
+      migrate: [{ kind: 'add-default-field', field: 'label', value: 'unnamed' }]
+    }).covered).toBe(true);
   });
 
   it('redefining with a breaking row is refused at the registry', () => {

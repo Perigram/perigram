@@ -5,7 +5,7 @@ import { normalizeEdges, checkLineageAcyclic } from './edges.js';
 import { normalizeStates, normalizeTransitions, checkStateTotality } from './states.js';
 import { checkClassObligations } from './classes.js';
 import { normalizeOperator, OPERATOR_SPECIES_BY_LETTER } from './operators.js';
-import { requireCompatible } from './diff.js';
+import { requireCompatible, normalizeMigrateSteps } from './diff.js';
 
 // Payload traits (SPEC §4): the payload declaration carries the accepted
 // MIME list, byte limit, preview mode, and creation protocols. Canonical
@@ -57,6 +57,10 @@ export function normalizeType(declaration = {}) {
     ...(declaration.derived === true ? { derived: true } : {}),
     edges: normalizeEdges(declaration.edges || {}, declaration.id),
     states: normalizeStates(declaration.states || {}),
+    // Declared migration steps (SPEC §11) ride the declaration through to
+    // the R7 gate and the stored record; normalization validates the step
+    // language at the authoring boundary.
+    ...(declaration.migrate ? { migrate: normalizeMigrateSteps(declaration.migrate) } : {}),
     revisions: declaration.revisions || null,
     render: declaration.render || {},
     ...(declaration.framework ? { framework: true } : {})

@@ -23,7 +23,7 @@ export {
   evaluate, checkMatch, MAX_STEPS
 } from './expressions.js';
 export {
-  diffTypes, requireCompatible
+  diffTypes, requireCompatible, normalizeMigrateSteps, planTypeMigration
 } from './diff.js';
 export {
   normalizeType, createTypeRegistry, validateInstance, schemaFor
