@@ -15,15 +15,15 @@ Card surface for physical sheet inventory entries.
   storage/source ids in `lineage`.
 - Standard physical dimensions render through `SpecsBlock`.
 - Material pile and nesting run relationships render as compact clickable
-  `EntityInlineRef` rows when available. Warehouse location remains part of
+  `InstanceInlineRef` rows when available. Warehouse location remains part of
   lineage/detail traceability, not a repeated card fact.
 - `SheetDetail` follows the same relation policy as `SheetCard`: source
   warehouse, material pile, and nesting run ids from lineage render through
-  `EntityInlineRef` rows instead of text-only ids.
-- Sheet lifecycle controls are owned by `EntityStatus` and the workflow/status
+  `InstanceInlineRef` rows instead of text-only ids.
+- Sheet lifecycle controls are owned by `InstanceStatus` and the workflow/status
   API; detail pages do not synthesize local status commands.
 
 ## Related
 
-- [shared](../../shared/README.md) - `EntityCard` and `SpecsBlock`.
+- [shared](../../shared/README.md) - `InstanceCard` and `SpecsBlock`.
 - [server/features/sheets](../../../server/features/sheets/README.md) - Sheet service and DTO contract.

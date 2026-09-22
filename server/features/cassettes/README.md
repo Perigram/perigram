@@ -108,7 +108,7 @@ thumbnail-critical cassette fields that `CassetteThumbnail` consumes:
 `data.definition`, baked `data.geometry`, `data.layerData`, and
 `data.polygonParts`, in addition to identity/status metadata. Returning only an
 id plus light summary data breaks inline cassette previews inside library child
-galleries because `EntityInlineRef` intentionally reuses the provided entity
+galleries because `InstanceInlineRef` intentionally reuses the provided entity
 snapshot before issuing another fetch.
 
 ### DXF Upload
@@ -160,5 +160,5 @@ template through the cassette entity endpoint.
 
 ## Related
 - [cassette-designs](../cassette-designs/README.md) - Stores baked geometry and DXF references.
-- [entity-revisions](../entity-revisions/README.md) - Immutable source revision snapshots.
+- [instance-revisions](../instance-revisions/README.md) - Immutable source revision snapshots.
 - [parametric-cassettes](../parametric-cassettes/README.md) - Engine for evaluating parametric logic.

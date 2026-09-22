@@ -440,7 +440,7 @@ through the GSAP patterns in `composables/useMotion.js`;
 every action keyboard-reachable. There is no standalone Validate control:
 Apply saves, validates, and activates as one operation, while the result
 remains visible as feedback on the canvas. The process Folder opens a
-click-anchored Popover using the shared `EntitySelect` value event
+click-anchored Popover using the shared `InstanceSelect` value event
 directly.
 
 New Draft starts from an empty graph. Save on an active process is the
@@ -459,7 +459,7 @@ profile, or action access records. Editing a screen never creates a
 backend grant, and a gated screen is omitted until selected roles supply
 its capability.
 
-Entity selectors use the shared `EntitySelect`/`EntityMultiSelect`
+Entity selectors use the shared `InstanceSelect`/`InstanceMultiSelect`
 contract: selected entity cards render outside the input and the compact
 change chevron remains a separate trigger. Process-node field/type
 selectors use ordinary PrimeVue controls because their values are schemas,

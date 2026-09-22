@@ -11,7 +11,7 @@ Three cells; every surface derives from them, nothing else caches:
   where `dto` is the raw wire document and `instance` is the derived CTS §3
   shape (derived iff the registry knows the type's declaration). List results
   are cached observations (`{ ids, stale }` per query key), concurrent
-  lookups coalesce, and one `onEntityChanged` subscriber reconciles every
+  lookups coalesce, and one `onInstanceChanged` subscriber reconciles every
   open surface. All reads flow through it: `fetchInstance` (single endpoint
   with list-and-find fallback, so no expected 403/404 probes),
   `listInstances`, `upsertRecord`/`removeRecord` for event application.
@@ -26,7 +26,7 @@ Three cells; every surface derives from them, nothing else caches:
   Icons and constructibility resolve from the registry bundle (render
   policy, declared construct operators) — the render-policy icon is the
   single icon source for every generated/shared surface (cards, pages,
-  collections, trace links); the legacy `entityUiFor` icon table remains
+  collections, trace links); the legacy `instanceUiFor` icon table remains
   only inside true legacy surfaces. Event type keys canonicalize to
   cache keys through the registry when the bundle knows them, else through
   the mechanical case normalization in `utils/generated-screen-source.js`.
@@ -63,7 +63,7 @@ client imports of `@cutkit/domain-cnc` are owned by legacy server
 contracts, not by declarations —
 `utils/status-engine.js` (status labels/severity for feature-served
 types whose compiled workflows supplement the table),
-`utils/entity-display-contract.js` (the legacy card surface registry),
+`utils/instance-display-contract.js` (the legacy card surface registry),
 `components/PermissionEditor.vue` (the membership feature-key
 vocabulary that membership grants are written against), and the designer
 inspector's palette-surface metadata. Each dies when membership grants
@@ -107,14 +107,14 @@ process vocabulary; none may gain new consumers.
   the snapshot and drives the sidebar rows and chat ongoing-call banner
   through `activeRoomForConversation`, which mirrors the server's derived
   room-name contract via `utils/call-rooms.js`.
-- `entityEvents.js`: Browser-local entity synchronization and the contract
-  refresh hint: polls `/api/entity-events` by cursor and bridges returned
+- `instanceEvents.js`: Browser-local entity synchronization and the contract
+  refresh hint: polls `/api/instance-events` by cursor and bridges returned
   changes into the browser-local event bus, and (via the connections org
   topic) re-hydrates auth once, debounced, when the server publishes a
   registry/process `contractChanged` marker. Browser-local
   entity mutation snapshots publish through the same store. Successful
   mutations publish a complete entity snapshot to the browser-local
-  `utils/entity-events.js` contract used by shared stores and generated screens.
+  `utils/instance-events.js` contract used by shared stores and generated screens.
 - `cassettes.js`, `toolProfiles.js`, etc.: Related feature stores.
 
 ## Conventions

@@ -166,12 +166,12 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
   > in the tree save path, and extend the language tester toward expression
   > property editors (L2).
 - [~] Frontend: derive navigation/hierarchy from containment edges;
-  delete hardcoded type strings (`utils/entity-hierarchy.js`,
+  delete hardcoded type strings (`utils/instance-hierarchy.js`,
   `stores/navigation.js`, `utils/queue-items.js`)
   > Correction (2026-09-18): derivation already landed for process-active
   > organizations — containment comes from compiled `lineageBindings`
   > (containment edges via the projection), routes from the screen
-  > manifest (`detailRouteForEntity`), hubs from generated screens. The
+  > manifest (`detailRouteForInstance`), hubs from generated screens. The
   > remaining hardcoded strings are the legacy no-process fallback
   > (`projectHierarchyRoute` project-shell routes, `utils/queue-items.js`
   > queue surface), which SPEC §21 holds pack-internal until those flows

@@ -23,7 +23,7 @@ parametric/OCCS definitions.
   sources and stored DXF files. Baked dimension labels therefore render from
   the design geometry itself with measured numeric values using the persisted
   `dimension.cassette` geometry authored for that design.
-- Shared constructor previews (`EntityPreview`) apply the same
+- Shared constructor previews (`InstancePreview`) apply the same
   `preferGeometry` rule for `cassette_design`, so generated list/detail screens
   do not fall back to parent-template geometry when the design DTO in screen
   data is partial.
@@ -37,7 +37,7 @@ parametric/OCCS definitions.
   than as a trace parent.
 - Exact source geometry revision is loaded from
   `provenance.derivedFrom.source.revisionId`
-  and rendered as a compact `EntityInlineRef` when present.
+  and rendered as a compact `InstanceInlineRef` when present.
 - Cassette designs do not expose a separate user-authored design name. Their
   persisted identity is derived from the source cassette, and cards present the
   parent cassette relation instead of the derived entity identity.

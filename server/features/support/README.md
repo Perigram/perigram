@@ -17,7 +17,7 @@ Messages have a deterministic `conversationKey`:
 | User to support | `support:<userId>` | The customer user id |
 | User to user | `direct:<sorted-user-id-a>:<sorted-user-id-b>` | Both user ids, sorted |
 | Group chat | `group:<chatGroupId>` | The persisted group's member ids |
-| Entity chat | `entity:<typeId>:<entityId>` | The sender (org-scoped read) |
+| Entity chat | `entity:<typeId>:<instanceId>` | The sender (org-scoped read) |
 
 Legacy support messages without `conversationKey` remain readable through the
 support-channel match for the same `userId`. New writes always persist
@@ -96,7 +96,7 @@ Chat messages can carry structured `entityRefs`:
 ```
 
 `SupportMessageContent.vue` renders inline `{{entity:type:id}}` tokens as
-`EntityInlineRef` chips for legacy/token-authored text and also renders
+`InstanceInlineRef` chips for legacy/token-authored text and also renders
 structured refs from `message.entityRefs[]`. The chat composer stores selected
 entities only in `entityRefs`; it does not inject attachment tokens into the
 message body.
@@ -111,21 +111,21 @@ generated auth window as the rest of the app instead of the raw session auth.
 Composer UIs should localize those returned type ids on the client instead of
 showing raw backend values such as `cassette_design` or `nesting_run`.
 Concrete picker options are resolved separately through
-`GET /api/support/entity-options` using feature list services for entity types
+`GET /api/support/instance-options` using feature list services for entity types
 that expose a scoped list API. Chat option lists use those generated source
 filters when they are concrete. Because the current endpoint is keyed by
 `type` rather than `sourceId`, each attachment type uses the first readable
 generated source exposed by `type-ids`; support does not union multiple
 generated sources of the same entity type behind one picker row. For
 detail-child list sources that still depend
-on `$screen.entityId` /
-`$screen.scope.entityId`, the support service expands the child query across the
+on `$screen.instanceId` /
+`$screen.scope.instanceId`, the support service expands the child query across the
 sender's readable parent entities for that screen instead of falling back to an
 unbounded organization-wide list. Generated detail `single` sources are not
 used as attachment-option loaders, so a detail route cannot widen a picker past
 the process list windows that actually expose that entity type.
 
-For direct chats, the entity-options endpoint also evaluates the recipient's
+For direct chats, the instance-options endpoint also evaluates the recipient's
 resolved process auth and marks options that the recipient cannot read through
 their own access contract. The composer renders those as chat-only warnings.
 When such a ref is sent, the stored `entityRefs[]` entry keeps a compact entity
@@ -153,7 +153,7 @@ action manifest contains an artifact creation action (`createEntity` with an
 generated screens use). Detection reads the compiler's canonical expanded
 attachment-kind arrays and scores no creator credit for unexpanded shapes
 rather than throwing, so a malformed manifest cannot take down type-ids,
-entity-options, or message sends. This is what lets the chat attachment picker
+instance-options, or message sends. This is what lets the chat attachment picker
 offer "create artifact" and reference the freshly created artifact, without
 widening artifact reads past the process windows: option loading still goes
 through the scoped artifacts list service.
@@ -233,7 +233,7 @@ can render a voice-message chip.
 | `POST /api/support/read` | Marks an authorized conversation read for the current user. |
 | `POST /api/support/prefs` | Saves per-user conversation preferences (`{ conversationKey, pinned?, archived? }`); returns the saved `{ pinned, archived }`. |
 | `GET /api/support/type-ids` | Returns generated-screen entity source types readable by the current user. |
-| `GET /api/support/entity-options?type=<type>&q=<query>&recipientUserId=<id>` | Returns readable entity options for chat attachment refs and flags recipient chat-only visibility for direct chats. |
+| `GET /api/support/instance-options?type=<type>&q=<query>&recipientUserId=<id>` | Returns readable entity options for chat attachment refs and flags recipient chat-only visibility for direct chats. |
 | `POST /api/support/typing` | Ephemeral typing signal; authorized like a read, published to the conversation topic, never persisted. |
 | `GET /api/support/messages` | REST snapshot of the current user's support conversation; changes arrive over the connections stream. |
 | `GET /api/support/messages?recipientUserId=<id>` | REST snapshot of a direct user conversation. |

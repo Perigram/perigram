@@ -15,7 +15,7 @@ All notifications derive from the canonical
   flow next to the conversation-topic ring. The client shows a persistent
   notification with a WebAudio ring loop that stops on call activity or
   after 45 seconds.
-- Status changes — `entityChanged` events bridged from the entity-events
+- Status changes — `entityChanged` events bridged from the instance-events
   feature onto the org topic; only events whose `reason` marks a status
   transition notify, and only while the tab is hidden.
 

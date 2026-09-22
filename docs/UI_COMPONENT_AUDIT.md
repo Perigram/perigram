@@ -198,15 +198,15 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedcassettedesigneraction-vue` | `components/generated/GeneratedCassetteDesignerAction.vue` | derived usage | compliant |
 | `ui-components-generated-generatedcassettedesignerworkspacepage-vue` | `components/generated/GeneratedCassetteDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generateddeletebutton-vue` | `components/generated/GeneratedDeleteButton.vue` | derived usage | compliant |
-| `ui-components-generated-generatedentitycollection-vue` | `components/generated/GeneratedEntityCollection.vue` | derived usage | remove:important-override (2) |
-| `ui-components-generated-generatedentitydetail-vue` | `components/generated/GeneratedEntityDetail.vue` | derived usage | compliant |
-| `ui-components-generated-generatedentitydetailbody-vue` | `components/generated/GeneratedEntityDetailBody.vue` | derived usage | compliant |
-| `ui-components-generated-generatedentityfile-vue` | `components/generated/GeneratedEntityFile.vue` | derived usage | replace:chrome (6) |
 | `ui-components-generated-generatedfacadedesignerworkspacepage-vue` | `components/generated/GeneratedFacadeDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedfacadepatterndesignerworkspacepage-vue` | `components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedfilepreview-vue` | `components/generated/GeneratedFilePreview.vue` | derived usage | centralize:layout (1) |
 | `ui-components-generated-generatedhomescreen-vue` | `components/generated/GeneratedHomeScreen.vue` | derived usage | centralize:layout (2); remove:important-override (1) |
 | `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (13); remove:state (4); remove:important-override (18) |
+| `ui-components-generated-generatedinstancecollection-vue` | `components/generated/GeneratedInstanceCollection.vue` | derived usage | remove:important-override (2) |
+| `ui-components-generated-generatedinstancedetail-vue` | `components/generated/GeneratedInstanceDetail.vue` | derived usage | compliant |
+| `ui-components-generated-generatedinstancedetailbody-vue` | `components/generated/GeneratedInstanceDetailBody.vue` | derived usage | compliant |
+| `ui-components-generated-generatedinstancefile-vue` | `components/generated/GeneratedInstanceFile.vue` | derived usage | replace:chrome (6) |
 | `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | compliant |
 | `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | replace:chrome (11) |
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
@@ -243,20 +243,20 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-designersurface-vue` | `components/shared/DesignerSurface.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-designerworkspace-vue` | `components/shared/DesignerWorkspace.vue` | shared/domain primitive | centralize:layout (5); replace:chrome (24); compliant:scoped-layout |
 | `ui-components-shared-drawingcanvas-vue` | `components/shared/DrawingCanvas.vue` | shared/domain primitive | replace:chrome (10) |
-| `ui-components-shared-entityactionspopover-vue` | `components/shared/EntityActionsPopover.vue` | derived usage | compliant |
-| `ui-components-shared-entitycard-vue` | `components/shared/EntityCard.vue` | shared/domain primitive | centralize:layout (1) |
-| `ui-components-shared-entitychatpanel-vue` | `components/shared/EntityChatPanel.vue` | derived usage | replace:chrome (4) |
-| `ui-components-shared-entityinlineref-vue` | `components/shared/EntityInlineRef.vue` | derived usage | centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
-| `ui-components-shared-entitymultiselect-vue` | `components/shared/EntityMultiSelect.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-entitypage-vue` | `components/shared/EntityPage.vue` | shared/domain primitive | replace:chrome (3); compliant:scoped-layout |
-| `ui-components-shared-entitypreview-vue` | `components/shared/EntityPreview.vue` | derived usage | replace:chrome (1) |
-| `ui-components-shared-entityrefinput-vue` | `components/shared/EntityRefInput.vue` | derived usage | compliant |
-| `ui-components-shared-entityrelationsblock-vue` | `components/shared/EntityRelationsBlock.vue` | derived usage | centralize:layout (3) |
-| `ui-components-shared-entityselect-vue` | `components/shared/EntitySelect.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-entitysurfacecontent-vue` | `components/shared/EntitySurfaceContent.vue` | derived usage | compliant:scoped-layout |
-| `ui-components-shared-entityworkspace-vue` | `components/shared/EntityWorkspace.vue` | derived usage | compliant:scoped-layout |
 | `ui-components-shared-errorboundary-vue` | `components/shared/ErrorBoundary.vue` | derived usage | replace:chrome (2) |
 | `ui-components-shared-geometrypreview-vue` | `components/shared/GeometryPreview.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-instanceactionspopover-vue` | `components/shared/InstanceActionsPopover.vue` | derived usage | compliant |
+| `ui-components-shared-instancecard-vue` | `components/shared/InstanceCard.vue` | shared/domain primitive | centralize:layout (1) |
+| `ui-components-shared-instancechatpanel-vue` | `components/shared/InstanceChatPanel.vue` | derived usage | replace:chrome (4) |
+| `ui-components-shared-instanceinlineref-vue` | `components/shared/InstanceInlineRef.vue` | derived usage | centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
+| `ui-components-shared-instancemultiselect-vue` | `components/shared/InstanceMultiSelect.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-instancepage-vue` | `components/shared/InstancePage.vue` | shared/domain primitive | replace:chrome (3); compliant:scoped-layout |
+| `ui-components-shared-instancepreview-vue` | `components/shared/InstancePreview.vue` | derived usage | replace:chrome (1) |
+| `ui-components-shared-instancerefinput-vue` | `components/shared/InstanceRefInput.vue` | derived usage | compliant |
+| `ui-components-shared-instancerelationsblock-vue` | `components/shared/InstanceRelationsBlock.vue` | derived usage | centralize:layout (3) |
+| `ui-components-shared-instanceselect-vue` | `components/shared/InstanceSelect.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-instancesurfacecontent-vue` | `components/shared/InstanceSurfaceContent.vue` | derived usage | compliant:scoped-layout |
+| `ui-components-shared-instanceworkspace-vue` | `components/shared/InstanceWorkspace.vue` | derived usage | compliant:scoped-layout |
 | `ui-components-shared-links-tracechain-vue` | `components/shared/links/TraceChain.vue` | shared/domain primitive | centralize:layout (1) |
 | `ui-components-shared-links-tracelink-vue` | `components/shared/links/TraceLink.vue` | shared/domain primitive | replace:chrome (2) |
 | `ui-components-shared-metricpanel-vue` | `components/shared/MetricPanel.vue` | derived usage | replace:chrome (3) |
@@ -268,7 +268,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-standarddialog-vue` | `components/shared/StandardDialog.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-standardpage-vue` | `components/shared/StandardPage.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-stateblock-vue` | `components/shared/StateBlock.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-status-entitystatus-vue` | `components/shared/status/EntityStatus.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-status-instancestatus-vue` | `components/shared/status/InstanceStatus.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-status-statushistory-vue` | `components/shared/status/StatusHistory.vue` | shared/domain primitive | centralize:layout (1); replace:chrome (3) |
 | `ui-components-shared-status-statuslocation-vue` | `components/shared/status/StatusLocation.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-status-statustransitiondialog-vue` | `components/shared/status/StatusTransitionDialog.vue` | derived usage | compliant |

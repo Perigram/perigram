@@ -32,7 +32,7 @@ The system consists of three main parts: the transition engine, the dynamic hook
   source-state entity before the transition can run.
   Process actions that target the entity's current primary state are not
   returned from the status action API; no-op current-state buttons belong in
-  neither generated process actions nor `EntityStatus`.
+  neither generated process actions nor `InstanceStatus`.
 - **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and
   resolves collections through the runtime/domain entity registry, falling
   back to the per-class instance collections for CTS-native types that never

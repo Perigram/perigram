@@ -50,7 +50,7 @@ Primary identifier fallback: `name` → `slug` → `uid` → `'Unnamed'`.
 Props: `:entity` (required), `variant`, `icon` (class string; rendered as the
 chip icon for the inline variant and as a small muted glyph before the name
 in the compact, default, and header variants — entity cards, collection
-titles, and detail page headers pass the `entityUiFor` registry icon),
+titles, and detail page headers pass the `instanceUiFor` registry icon),
 `:fields` (optional extra fields array).
 Rendering guard: block renders only when `props.entity` is present.
 Supported extra fields: `uid`, `slug`, `serial`, `reference`. By default, no extra fields are rendered.
@@ -92,7 +92,7 @@ Default layout renders a semantic `<dl>` grid for card bodies; compact layout re
 The default `DataBlock` and `SpecsBlock` layouts use their own inline-size
 containers, so columns follow the width assigned by a page or split pane rather
 than the browser viewport.
-Inline entity popovers mark their body with `entity-card-popup-content`, and
+Inline entity popovers mark their body with `instance-card-popup-content`, and
 `DataBlock` collapses default grid rows to compact inline facts inside that
 scope. Do not add entity-local popup data layouts just to make popovers denser;
 use the shared popup scope or pass `variant="compact"` for explicit compact
@@ -101,7 +101,7 @@ Descriptors may come from the domain display constructor instead of component
 local constants. Constructor descriptors can also declare `fallbackPaths` and
 `priority`; `DataBlock` uses the first non-empty allowed path and hides rows
 that resolve to empty values.
-Rows are filtered through `shared/entity-field-access.js`. A descriptor path
+Rows are filtered through `shared/instance-field-access.js`. A descriptor path
 must match the domain field policy for `type-id`, and the current auth
 grant must satisfy that policy level. When the active organization process
 provides field policies, `DataBlock` applies those process policies before the
@@ -109,9 +109,9 @@ domain defaults. Do not render sensitive or entity-specific facts beside
 `DataBlock` unless the API DTO has already been redacted for that same field
 policy.
 
-### `EntitySurfaceContent.vue`, `EntityPreview.vue`, `EntityRelationsBlock.vue`
-Contract-driven body primitives for app constructors. `EntitySurfaceContent`
-resolves an entity type plus `surface` through `utils/entity-display-contract.js`
+### `InstanceSurfaceContent.vue`, `InstancePreview.vue`, `InstanceRelationsBlock.vue`
+Contract-driven body primitives for app constructors. `InstanceSurfaceContent`
+resolves an entity type plus `surface` through `utils/instance-display-contract.js`
 and renders preview, data facts, and relation rows with the shared primitives.
 On the `detail` surface with a visible preview it composes a real page body:
 media and the fact column sit side by side from 48rem of the surface's own
@@ -121,19 +121,19 @@ chunks by field group (identity, overview, specs, stock, production) under
 small localized `entityGroups.*` headings, so detail pages read as separate
 concerns instead of one flat grid. `DataBlock` renders
 `display: 'swatch'` fields as a color dot beside the value for declared
-hex-color facts. `EntityPreview` resolves the unified payload preview
+hex-color facts. `InstancePreview` resolves the unified payload preview
 first: a file instance with a stored payload renders through the type's
 declared preview policy (`file-preview-contract.js` → `ArtifactViewer`, the same
 contract generated detail bodies use); legacy DTOs without payload bytes
 fall through to `CassetteThumbnail` or `GeometryPreview`, and ordinary DTO
 thumbnails render from `data.thumbnailUrl` or thumbnail attachment
-metadata for non-cassette entities. `EntityRelationsBlock` renders relation descriptors through
-`EntityInlineRef`. Single refs render as inline chips; relation lists can also
+metadata for non-cassette entities. `InstanceRelationsBlock` renders relation descriptors through
+`InstanceInlineRef`. Single refs render as inline chips; relation lists can also
 render compact micro cards in a bounded responsive grid with preview on the
 left, identity/status/facts on the right, and at most two visible refs before
 an in-grid `+N` overflow control opens the hidden refs. Generated card surfaces pass
 `suppress-child-counts` plus `relationVariant="compact"` to
-`EntitySurfaceContent`; when the DTO already carries relation-backed child
+`InstanceSurfaceContent`; when the DTO already carries relation-backed child
 previews such as `summary.queuePreview`, `summary.runPreview`,
 `summary.sheetPreview`, `summary.cassettePreview`, or `summary.colorPreview`,
 those refs replace aggregate child-count fields such as `summary.queueCount`.
@@ -142,11 +142,11 @@ stays visible instead of leaving the card empty. Specialized production cards
 may still use custom slots where the workflow needs more than the default
 body.
 The overflow popover passes the requested relation variant through to every
-`EntityInlineRef`, so compact galleries remain compact after opening `+N`.
+`InstanceInlineRef`, so compact galleries remain compact after opening `+N`.
 
-### `EntityWorkspace.vue`
+### `InstanceWorkspace.vue`
 Canonical entity-detail workspace layout for operational editors embedded
-inside `EntityPage`. Use it when an entity detail needs a primary working
+inside `InstancePage`. Use it when an entity detail needs a primary working
 region plus a supporting/status/results region, such as queue composition with
 nesting runs. The layout is a CSS query container: it uses one column while its
 own allocated width is narrow and a stable 8/4 main/support split when the
@@ -201,7 +201,7 @@ status names render as data, not as missing translation keys.
 
 ## Status & History (`components/shared/status/`)
 
-### `EntityStatus.vue`
+### `InstanceStatus.vue`
 Interactive status component for display + state-machine transitions. Status-changing action buttons must live here (not in parent layouts).
 
 Props: `:entity`, `type-id`, `variant` (`icon` | `inline` | `full`), `:actions` (optional lifecycle override set for workflow-driven surfaces), `:expanded` (optional override).
@@ -215,8 +215,8 @@ pages continue to use `inline` or `full`.
 Rendering guard: component renders only when `props.entity` is present.
 Behavior: component auto-expands when lifecycle `actions` are provided; otherwise inline mode uses badge + popover. The popover is compact UI, not a labeled detail page: it renders lifecycle controls, current location, notes, and the status timeline without section headings or empty placeholder copy.
 Successful server transitions emit the `transitioned` event from
-`EntityStatus`; matching browser-local entity-change events emit `refresh`
-from the status component itself. `EntityCard` and `EntityPage` forward both as
+`InstanceStatus`; matching browser-local entity-change events emit `refresh`
+from the status component itself. `InstanceCard` and `InstancePage` forward both as
 `refresh` on their entity shells, so entity-specific cards and pages can reload
 entity-local data after lifecycle changes without wiring listeners in each
 card.
@@ -227,12 +227,12 @@ The root exposes stable E2E hooks through `data-entity-status`,
 `data-type-id`, and `data-entity-id`; menu triggers and transition buttons
 use `data-status-menu-trigger` and `data-status-action`.
 
-**Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@cutkit/domain-cnc` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `EntityStatus`, hides it, or renders read-only status.
+**Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@cutkit/domain-cnc` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `InstanceStatus`, hides it, or renders read-only status.
 Interactive status is enabled only for entity types that have a real workflow in
 `cncWorkflows`; non-workflow entities hide status chrome in cards unless a
 read-only `StatusBadge` is explicitly required. Live app transition actions are
 loaded from the canonical status API so access and preflight filtering stay
-server-side. When an action includes `intent`, `EntityStatus` posts that intent
+server-side. When an action includes `intent`, `InstanceStatus` posts that intent
 with the target state so frontend components do not infer business meaning from
 raw lifecycle state names.
 When the effective organization or domain workflow declares exactly one unique
@@ -240,29 +240,29 @@ state, shared entity surfaces hide the status chrome because it carries no
 lifecycle information. The canonical `status` block remains persisted for
 audit and DTO consistency. Visibility derives from the supplied workflow
 contract, never a hardcoded entity or status list.
-`EntityStatus` renders the primary lifecycle badge from `status.state.primary`.
+`InstanceStatus` renders the primary lifecycle badge from `status.state.primary`.
 Additional active workflow regions render as compact status chips and actions
 carry `region` / `path` metadata back to the status API so parallel machines can
 transition independently.
 When an entity status carries process-authored display metadata under
-`status.metadata.display`, `EntityStatus` passes it to `StatusBadge` so the
+`status.metadata.display`, `InstanceStatus` passes it to `StatusBadge` so the
 badge uses the process status label, severity/color, and icon instead of only
 the global raw-state mapping. Generated screens rely on this same DTO metadata;
 they must not synthesize local status labels or icons from action manifests.
 Development surfaces with custom workflow drafts derive lifecycle actions from
 workflow definitions through `utils/status-actions.js`. Card and page command
-actions must live outside `EntityStatus` in the card footer or page action
+actions must live outside `InstanceStatus` in the card footer or page action
 slots; only real lifecycle transitions belong in the status surface.
-`EntityStatus` can also receive a `workflows` prop or consume a provided
+`InstanceStatus` can also receive a `workflows` prop or consume a provided
 `statusWorkflows` value. This is used only by development surfaces such as the
 admin workbench so live draft machines can drive previews without replacing the
 committed `@cutkit/domain-cnc` runtime workflow source.
 Development surfaces that provide local workflows can also provide
-`statusTransitionHandler`; when present, `EntityStatus` applies transitions
+`statusTransitionHandler`; when present, `InstanceStatus` applies transitions
 through that handler instead of posting in-memory fixture ids to the server
 status API.
 When a target state lifecycle schema declares a description, attachment slots,
-or snapshots, `EntityStatus` opens `StatusTransitionDialog` before running the
+or snapshots, `InstanceStatus` opens `StatusTransitionDialog` before running the
 transition. The dialog uploads proof files through `/api/files/upload` and
 submits `statusMeta.metadata.note` plus `statusMeta.lifecycle.attachments` to
 the status API. Generic snapshots are captured server-side from the state
@@ -283,7 +283,7 @@ as a separate status section.
 Persisted events may include response-only `actor` data from the status API.
 `StatusHistory` prefers `actor.name` for display and falls back to `status.userId`
 only when no actor name is available.
-User actors render through `EntityInlineRef type="user"` and include an
+User actors render through `InstanceInlineRef type="user"` and include an
 icon-only chat action that opens the support chat in direct user conversation
 mode for that actor.
 Structured v2 events prefer `toStatePrimary` for the visible badge and keep
@@ -359,7 +359,7 @@ layers such as sheet/stock, cut, fold, and bend layers in compact cards while
 suppressing dimension annotation layers so in-card sheet-design previews stay
 readable.
 
-### `EntityInlineRef.vue`
+### `InstanceInlineRef.vue`
 Compact embedded entity reference for relation rows inside cards and details.
 When only an id is provided, it resolves the DTO through the entity store's
 access-filtered optional-reference lookup, resolves the matching design-system
@@ -368,9 +368,9 @@ entity card, and renders that card with
 and reuses its canonical body inside that popover; `interactive: false`
 renders the inline card non-expandable for non-interactive rows such as
 explorer entries and static summaries. In generated surfaces,
-the popover action row is access-aware: `EntityInlineRef` resolves the
+the popover action row is access-aware: `InstanceInlineRef` resolves the
 referenced entity's generated detail-screen actions, forwards them to
-`EntityCard`, and invokes the surrounding generated screen's action executor
+`InstanceCard`, and invokes the surrounding generated screen's action executor
 instead of running process actions from shared UI code. Route, preview, and
 popup-action providers share the same normalized generated entity type so
 aliases such as `sheetDesign` / `sheet_design` stay consistent. Use this for entity relation
@@ -387,7 +387,7 @@ refs visually legible in both light and dark themes without changing the
 popover card body. The collapsed inline ref remains a real text-inline chip: it
 stays on one line inside prose, truncates with ellipsis, and keeps the same
 semantic color treatment without inflating surrounding line height.
-`EntityInlineRef` maps entity families to `--ck-entity-tone-*` values only; it
+`InstanceInlineRef` maps entity families to `--ck-entity-tone-*` values only; it
 must not introduce PrimeVue primitive color assignments of its own.
 `variant="compact"` renders a horizontal micro card instead of a chip. That
 compact ref uses the compact surface contract directly: a real preview on the
@@ -409,14 +409,14 @@ therefore fall back to an id chip without producing expected 403/404 browser
 failures; direct detail navigation retains its normal authorization errors.
 Callers can pass `:fetch="false"` when the parent surface intentionally has
 only a scoped relation id and should not probe a protected entity endpoint. In
-that mode `EntityInlineRef` renders the typed id chip unless an `entity` prop or
+that mode `InstanceInlineRef` renders the typed id chip unless an `entity` prop or
 `entityContext` match is available.
-When an `entityContext` provider is present, `EntityInlineRef` resolves the
+When an `entityContext` provider is present, `InstanceInlineRef` resolves the
 entity from that context before calling the API. This keeps workbench fixture
 and project-local previews from requesting protected entities already loaded in
 the surrounding surface.
 When the active generated screen manifest exposes a detail route for the
-reference type, `EntityInlineRef` provides that route to the expanded inline
+reference type, `InstanceInlineRef` provides that route to the expanded inline
 entity-card popover. The popover footer renders an icon-only open action that
 navigates through generated `/screens/:screenKey` detail routing, not legacy
 feature routes. Cassette, cassette-design, and sheet-design compact refs
@@ -436,7 +436,7 @@ sheet-design compact gallery is based on the canonical child lineage endpoint
 rather than queue-card-local child state.
 On mobile, detail-route buttons and lineage links inside inline-ref popovers
 dispatch the shared mobile transient-surface close event before navigation.
-`EntityCard`/`EntityInlineRef` hide their popovers and the app shell closes the
+`InstanceCard`/`InstanceInlineRef` hide their popovers and the app shell closes the
 chat drawer, so the destination screen is not covered by stale overlays. Chat
 open actions also dispatch that close event before opening the drawer, which
 keeps inline popovers mutually exclusive with chat.
@@ -463,16 +463,16 @@ because option lists are recipient-scoped per conversation. The host owns
 the draft `entityRefs` and the create-action flows; the picker only emits
 `select`/`create-action`.
 
-### `EntityCard.vue` (chat entry)
-Every card variant carries the composed entity-chat entry: full cards render
+### `InstanceCard.vue` (chat entry)
+Every card variant carries the composed instance-chat entry: full cards render
 it in the footer row (before parent footer actions), and inline/compact
 variants render it in the expansion popover action row. The entry routes
-through `utils/entity-chat.js`, so the surface the card lives on decides how
+through `utils/instance-chat.js`, so the surface the card lives on decides how
 the thread opens (desktop drawer, mobile `/chats` target).
 
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies. Plain text remains text, while
-`{{entity:type:id}}` tokens render as inline `EntityInlineRef` chips. The
+`{{entity:type:id}}` tokens render as inline `InstanceInlineRef` chips. The
 component also renders structured `message.entityRefs[]` entries that were not
 embedded as tokens, so structured attachments remain visible without polluting
 the text body. Text parts wrap with `overflow-wrap: anywhere` and the whole
@@ -487,10 +487,10 @@ both bubble sides stay readable); trailing punctuation peels off the link and
 stays text. Chat
 composers must source supported ref types from the support
 type-ids endpoint, which derives choices from readable generated screen
-sources, and concrete refs from the support entity-options endpoint instead of
+sources, and concrete refs from the support instance-options endpoint instead of
 manual ids. Chat message refs may also carry compact entity snapshots plus
 chat-only recipient metadata; `SupportMessageContent` passes those snapshots
-into `EntityInlineRef` so popovers stay usable inside chat even when the
+into `InstanceInlineRef` so popovers stay usable inside chat even when the
 recipient lacks ordinary entity read access, while generated detail-route
 buttons stay hidden for that chat-only recipient view. When an older
 chat-only ref still lacks an embedded snapshot, the message renderer disables
@@ -506,9 +506,9 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
 
 - **`TraceLink.vue`**: Atomic, icon-aware navigation link for lineage/status
   location rows where direct route navigation is intended. Do not use it for
-  entity relation summaries inside cards/details; use `EntityInlineRef` so the
+  entity relation summaries inside cards/details; use `InstanceInlineRef` so the
   relation resolves through `useEntity` and the registered entity card.
-- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` and an explicit canonical entity type—never pass raw ancestry arrays or infer types from lineage key spelling. Resolves names async via `useEntityStore`; cached per session. Its `exclude` refs remove explicit ancestry, and it omits every entity in the propagated displayed-context stack, including the project already represented by a project workspace and the nearest enclosing `EntityPage`. Generated detail routes also exclude an ancestor only when the route carries that compiled Lineage key with the same entity id, preventing the app breadcrumb and entity trace from repeating the same context. In process mode the chain follows the effective compiled Lineage bindings only.
+- **`TraceChain.vue`**: Standardized lineage breadcrumb chain. Always use `:entity="entity"` and an explicit canonical entity type—never pass raw ancestry arrays or infer types from lineage key spelling. Resolves names async via `useEntityStore`; cached per session. Its `exclude` refs remove explicit ancestry, and it omits every entity in the propagated displayed-context stack, including the project already represented by a project workspace and the nearest enclosing `InstancePage`. Generated detail routes also exclude an ancestor only when the route carries that compiled Lineage key with the same entity id, preventing the app breadcrumb and entity trace from repeating the same context. In process mode the chain follows the effective compiled Lineage bindings only.
   Card title chrome uses compact trace mode: it shows the nearest parent
   lineage item and an ellipsis expander when more ancestry exists. Expanded
   popovers and detail pages render the full lineage breadcrumb chain. Supported
@@ -518,12 +518,12 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   store; raw lineage ids are link targets only and must not be shown as labels.
   Trace links must route through the represented entity surface. In active
   process mode they resolve through the user's effective generated screen
-  manifest and use the same `/screens/:screenKey?entityId=...` detail contract
+  manifest and use the same `/screens/:screenKey?instanceId=...` detail contract
   as generated collection rows; if the user has no matching detail screen, the
   breadcrumb renders as non-clickable text. Static routes are used only outside
   process mode and only for entities with real static surfaces.
   Entity card bodies must not duplicate these supported lineage parents as
-  `EntityInlineRef` rows or generated `entityRef` fields; keep body relation
+  `InstanceInlineRef` rows or generated `entityRef` fields; keep body relation
   rows for non-lineage provenance and relations that TraceChain does not own.
   Development surfaces can provide `entityContext`; `TraceChain` prefers those
   in-memory entities for labels before calling authenticated APIs, so fixture
@@ -539,7 +539,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   `{ key, label, value }` and may use the default slot for route actions. Use it
   beside reusable entity cards, hub tabs, or workflow tables; do not use it as a
   replacement for entity-specific `DataBlock`, `SpecsBlock`, or
-  `EntitySurfaceContent`. Vertical metric panels collapse to a two-column
+  `InstanceSurfaceContent`. Vertical metric panels collapse to a two-column
   compact grid below the normal desktop breakpoint and become a stacked rail at
   `lg` and wider. It delegates container chrome to PrimeVue `Panel`; callers own only metric data and layout orientation.
 - **`ResponsiveGrid.vue`**: Token-backed responsive grid for cards and
@@ -558,14 +558,14 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   IDE-style file workspaces. Split nodes select horizontal or vertical layout;
   leaf nodes expose one scoped file slot and an active-pane marker. Split-tree
   mutation remains pure state owned by the caller.
-- **`EntityActionsPopover.vue`**: Shared ellipsis trigger and compact action
+- **`InstanceActionsPopover.vue`**: Shared ellipsis trigger and compact action
   popover for entity-local commands. Disclosure is opt-in, not the default:
-  `EntityPage` action slots and full `EntityCard` footers render their
+  `InstancePage` action slots and full `InstanceCard` footers render their
   actions inline by default (`actionsDisplay` / `footerDisplay` default to
   `inline`), and only a caller with a dense action set selects `menu`.
   Inline-card popovers never nest a second ellipsis: generated actions and
   the detail-route control render directly in the popover's action row.
-  `EntityCard footer-display="inline"` remains available for a
+  `InstanceCard footer-display="inline"` remains available for a
   caller-owned primary navigation choice, such as opening or switching the
   organization represented by a profile card.
 - **`ScrollablePanel.vue`**: PrimeVue `Panel` wrapper for bounded workspace
@@ -584,10 +584,10 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   max-width and vertical gap and establishes a bounded `h-full/min-h-0`
   propagation chain for registered full-screen workspaces.
 - **`TypedSettingsForm.vue`**: Contract-driven form for simple typed field
-  descriptors (`string`, `number`, `boolean`, `enum`, `entityId`,
+  descriptors (`string`, `number`, `boolean`, `enum`, `instanceId`,
   `typeId`, `workflowState`, `array`, `object`). Used by admin operation
   parameters and lifecycle hook settings so those surfaces do not fall back to
-  raw JSON editors. Entity type helper text is shown only for `entityId`
+  raw JSON editors. Entity type helper text is shown only for `instanceId`
   selectors, not workflow-state selectors.
 - **`UserAccountMenu.vue`**: The single shared account control: a PrimeVue
   popover with organization switching, theme toggle, profile, and
@@ -609,16 +609,16 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   invites float through `components/calls/IncomingCalls.vue`. Conversations
   and unread counts come from the auth/support stores; actions are delegated
   through `open-chats`/`start-call` events.
-- **`EntityRefInput.vue`**: Typed entity reference selector used by
-  `TypedSettingsForm` for `entityId` fields. It prefers workbench/scenario
+- **`InstanceRefInput.vue`**: Typed entity reference selector used by
+  `TypedSettingsForm` for `instanceId` fields. It prefers workbench/scenario
   entity options and falls back to a manual id input only when no typed options
-  are available. Its typed picker delegates to `EntitySelect`.
-- **`EntitySelect.vue` / `EntityMultiSelect.vue`**: Application-wide wrappers
+  are available. Its typed picker delegates to `InstanceSelect`.
+- **`InstanceSelect.vue` / `InstanceMultiSelect.vue`**: Application-wide wrappers
   around PrimeVue Select/MultiSelect. Ordinary scalar, enum, role, and process
   record options preserve PrimeVue rendering and caller slots unchanged. When
   options contain either canonical entity DTOs or
   `{ label, value, entity }` records and an explicit `type-id`, option rows
-  render through `EntityInlineRef variant="compact"`. Once a value is selected,
+  render through `InstanceInlineRef variant="compact"`. Once a value is selected,
   the selected entity card or card list renders outside the PrimeVue
   value/chip area and the PrimeVue control becomes a compact change trigger.
   That keeps the selected preview, identity, status, and access-filtered facts
@@ -629,7 +629,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   Entity type comes from the picker prop or option record and is never inferred
   from `data.type` or lifecycle state.
 - **`StandardPage.vue`**: Page layout with header and breadcrumbs.
-- **`EntityPage.vue`**: Root layout for all entity detail views. The header
+- **`InstancePage.vue`**: Root layout for all entity detail views. The header
   composes a small-caps localized type-id label, the identity, the inline
   status beside it, an `info` slot for summary data below, and an `actions`
   slot that renders inline by default (`actionsDisplay: 'menu'` collapses it
@@ -647,19 +647,19 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   displayed-context stack so nested traces do not repeat any represented
   ancestor. Operational overloads compose their workspace primitives inside
   this canonical shell instead of adding overload-specific layout modes to
-  `EntityPage`.
-- **`EntityCard.vue`**: Shared entity card structure built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`) while the preset owns its border, radius, shadow, spacing, and interaction states. Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `statusActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title.
+  `InstancePage`.
+- **`InstanceCard.vue`**: Shared entity card structure built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`) while the preset owns its border, radius, shadow, spacing, and interaction states. Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `statusActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title.
   Full-card footer actions render inline by default (`footer-display`);
   the ellipsis menu stays available for deliberately dense footers.
   Inline and compact variants share one expansion surface defined once in
-  `EntityCard`: a header row with the localized type-id label and the
+  `InstanceCard`: a header row with the localized type-id label and the
   inline status, the identity, lineage context when forced, the same
   canonical body the full card uses, and a trailing inline action row
   (generated commands, the cassette-designer action, and a labeled
   open-detail control) — never a nested ellipsis inside the popover.
 - **`NameEditPopover.vue`**: Compact single-field rename control for entity names and other one-field edits. Use it near identity or action clusters instead of opening a full dialog when the only editable field is a name.
 
-`EntityStatus` action objects support `display: 'inline' | 'menu' | 'hidden'`. Workflow transitions default to inline actions, self-loop metadata transitions are hidden, and only lifecycle transitions should be passed into the status surface. Inline/card status surfaces use the badge itself as the popover trigger and do not render a second ellipsis button beside the badge; expanded/full status surfaces show up to two inline actions by default and put overflow actions, current location, metadata, and compact status history in the popover. Entity card title/status rows and status menus are allowed to wrap, and inline status rails are deliberately bounded so compact containers do not let status text or action buttons displace identity content.
+`InstanceStatus` action objects support `display: 'inline' | 'menu' | 'hidden'`. Workflow transitions default to inline actions, self-loop metadata transitions are hidden, and only lifecycle transitions should be passed into the status surface. Inline/card status surfaces use the badge itself as the popover trigger and do not render a second ellipsis button beside the badge; expanded/full status surfaces show up to two inline actions by default and put overflow actions, current location, metadata, and compact status history in the popover. Entity card title/status rows and status menus are allowed to wrap, and inline status rails are deliberately bounded so compact containers do not let status text or action buttons displace identity content.
 
 `TraceChain` omits ancestry already represented by the surrounding entity
 context. The active organization is always part of the authenticated app
@@ -667,10 +667,10 @@ context, so its lineage reference is not repeated on generated cards, entity
 pages, or inline popovers; other project and production ancestors remain
 visible unless their exact entity is also displayed by an enclosing context.
 
-`EntityCard` owns inline and compact expansion. Inline and compact variants open
+`InstanceCard` owns inline and compact expansion. Inline and compact variants open
 the shared entity popover on click/keyboard activation. Entity-specific card
-components should render one `EntityCard :variant="variant"` and pass their
-canonical body once through the default slot. `EntityCard` reuses that same
+components should render one `InstanceCard :variant="variant"` and pass their
+canonical body once through the default slot. `InstanceCard` reuses that same
 body for full card content and for inline/compact expansion; do not duplicate
 card-only bodies into per-variant `expanded` slots.
 Generated card surfaces that override `#title` must not reintroduce
@@ -685,14 +685,14 @@ control itself.
 Do not hide all meaningful body content behind `variant === 'card'`; relation
 popovers depend on the same default slot body being available in inline and
 compact cards.
-Nested interactive children such as `EntityStatus`, `TraceLink`,
+Nested interactive children such as `InstanceStatus`, `TraceLink`,
 `GeometryPreview`, `CassetteThumbnail`, buttons, and nested inline entity cards
 mark themselves as card-interactive targets. Parent card click handlers must use
 `utils/interactive-target.js` before emitting view/select actions. Cards whose
 primary action is a custom preview, such as `ArtifactCard`, can pass
-`expandable="false"` to `EntityCard` and own the click action themselves.
+`expandable="false"` to `InstanceCard` and own the click action themselves.
 
-Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `EntityCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `WorkspaceLanes`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.
+Direct `primevue/card` and `primevue/dialog` imports belong only in these shared wrappers. Used pages and feature components consume `InstanceCard`, entity-specific card components, `StandardDialog`, `ActionToolbar`, `ResponsiveGrid`, `WorkspaceLanes`, `StateBlock`, `TableFrame`, and `Panel` for non-entity sections.
 
 Shared wrappers own semantic structure and reusable layout constraints, while PrimeVue/Aura owns their generic visual chrome. New application tokens are limited to semantic typography, layout, domain signals, visualization, and motion; wrappers must not add radius, shadow, border, or interaction-state values.
 

@@ -479,7 +479,7 @@ paths through the owning feature repository/model boundary; process
 definitions do not run generic Mongo collection writes for business entities.
 Process create, update, status-mutating update, and command-output status
 mutations publish typed invalidation events through
-`server/features/entity-events` after their canonical mutation succeeds.
+`server/features/instance-events` after their canonical mutation succeeds.
 Generated screens consume those events through the shared browser-local entity
 sync contract and then reload their normal sources; process actions do not
 broadcast DTO replicas or bypass entity read access.

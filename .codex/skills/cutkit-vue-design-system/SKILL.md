@@ -27,8 +27,8 @@ of primitives, tokens, DTO paths, and validation commands.
 
 ## Working Rules
 
-- Prefer the repo's shared primitives over local markup: `EntityCard`,
-  `EntityPage`, `IdentityBlock`, `EntityStatus`, `StatusBadge`, `TraceChain`,
+- Prefer the repo's shared primitives over local markup: `InstanceCard`,
+  `InstancePage`, `IdentityBlock`, `InstanceStatus`, `StatusBadge`, `TraceChain`,
   `SpecsBlock`, `DataBlock`, `ActionToolbar`, `ResponsiveGrid`, `StateBlock`,
   `TableFrame`, `StandardDialog`, and `StandardPage`.
 - Use PrimeVue controls for UI elements and Tailwind utilities only for layout,
@@ -57,10 +57,10 @@ of primitives, tokens, DTO paths, and validation commands.
 
 ## Entity Cards
 
-Build entity-specific cards as thin wrappers around `EntityCard`.
+Build entity-specific cards as thin wrappers around `InstanceCard`.
 
 ```vue
-<EntityCard :entity="entity" entity-type="queue" :variant="variant">
+<InstanceCard :entity="entity" entity-type="queue" :variant="variant">
   <template #before-identity v-if="entity.data?.queueNumber">
     <small>#{{ entity.data.queueNumber }}</small>
   </template>
@@ -75,14 +75,14 @@ Build entity-specific cards as thin wrappers around `EntityCard`.
       <Button icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" />
     </div>
   </template>
-</EntityCard>
+</InstanceCard>
 ```
 
 Use `before-identity`, `subtitle`, default body, `compact-content`,
 `inline-extra`, and `footer` slots. Avoid overriding `#title` unless there is no
-other way, because `EntityCard` owns identity/status placement.
+other way, because `InstanceCard` owns identity/status placement.
 
-Pass custom lifecycle commands as `:status-actions` to `EntityCard`; do not
+Pass custom lifecycle commands as `:status-actions` to `InstanceCard`; do not
 rebuild status controls in the parent.
 
 Use `display: 'inline' | 'menu' | 'hidden'` on status actions. Inline/card
@@ -96,7 +96,7 @@ manifest or existing component policy intentionally hides them for that entity.
 
 ## Detail Pages
 
-Build entity detail components with `EntityPage`.
+Build entity detail components with `InstancePage`.
 
 - Put header actions in the `actions` slot.
 - Put summary metrics in the `info` slot.
@@ -127,7 +127,7 @@ Build entity detail components with `EntityPage`.
   block/status/trace primitives may consume `useIdentity`, `useStatus`,
   `useSpecs`, or `useLineage`.
 - Direct `primevue/card` and `primevue/dialog` imports belong in shared wrappers
-  (`EntityCard`, `StandardDialog`), not feature components.
+  (`InstanceCard`, `StandardDialog`), not feature components.
 
 ## Manifest And Tests
 

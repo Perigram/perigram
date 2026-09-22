@@ -1,11 +1,11 @@
 # COMPONENT: Sheet Design Entity UI
 
-`SheetDesignCard.vue` renders sheet design DTOs through `EntityCard`.
+`SheetDesignCard.vue` renders sheet design DTOs through `InstanceCard`.
 
 ## Behavior
 
 - Supports `inline`, `compact`, and `card` variants.
-- Inline and compact variants use `EntityCard`, so they expand through the
+- Inline and compact variants use `InstanceCard`, so they expand through the
   shared entity popover on click or keyboard activation.
 - The expanded inline/compact body reuses the same operational content as the
   card variant: `GeometryPreview` plus `SpecsBlock`.
@@ -34,10 +34,10 @@
   revision-backed update endpoint. Read-only users continue to receive
   `GeometryPreview`.
 - Generated sheet-design details show the sheet identity in the standard
-  `EntityPage` header in addition to lineage context.
+  `InstancePage` header in addition to lineage context.
 - Cards show a compact cassette-design summary when `data.cassetteDesigns` is
   present. The detail sidebar lists each cassette design placed on the sheet
-  with `EntityInlineRef type="cassetteDesign"` and its placement count; it must
+  with `InstanceInlineRef type="cassetteDesign"` and its placement count; it must
   not route those refs through `TraceLink` or cassette-template routes.
 - Cards and details show a compact material-source summary when
   `data.materialPool` is present on sheet designs generated from warehouse-mode

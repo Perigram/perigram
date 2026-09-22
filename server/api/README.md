@@ -25,7 +25,7 @@ Routes are grouped into sub-directories corresponding to features:
   package catalog, Stripe checkout creation, and payment sync routes. Token
   packages come from runtime config, not from user records or database price
   collections.
-- `entity-events/`: Authenticated entity invalidation channel. `GET` returns
+- `instance-events/`: Authenticated entity invalidation channel. `GET` returns
   visible recent events after an optional numeric cursor, and `POST` publishes
   successful frontend CRUD mutations after their canonical entity API call
   succeeds.
@@ -113,7 +113,7 @@ Routes are grouped into sub-directories corresponding to features:
   inline
   `entityRefs` selected from readable generated-screen entity types and
   concrete readable entity options when a scoped list service exists. The
-  entity-options route also accepts `recipientUserId` for direct-chat warning
+  instance-options route also accepts `recipientUserId` for direct-chat warning
   metadata. The shared chat message component renders both inline tokens and
   structured refs. Initial state loads over these REST routes; message, read,
   and inbox events arrive over the connections stream.

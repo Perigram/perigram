@@ -7,7 +7,7 @@
   showed only the Name dialog and then went silent — the instance was
   created but nothing navigated (no compiled detail screen for the type)
   and nothing opened the editor.
-  - `created-entity-open.js` resolves the open target: compiled detail
+  - `created-instance-open.js` resolves the open target: compiled detail
     route first; editor-protocol creates without a route open the home
     workspace (pane body mounts the editor through the file-surface
     overload); every other routeless create gets a success toast with the
@@ -258,7 +258,7 @@
     traits, stores the blob in the `files` bucket, records an immutable
     `entity_revision` under the type's declared revision scope, and swaps
     the payload slot. Requires the type to declare both payload traits and
-    a revision scope; gated by `hasEntityAccess` on the class-collection
+    a revision scope; gated by `hasInstanceAccess` on the class-collection
     feature with the type id as type-id filter (fail-closed without a
     compiled grant).
   - The sketch editor surface binds the `sketch` file type (`edit` mode;
@@ -282,7 +282,7 @@
   declared scope (revision attachment metadata carries the bucket), and
   swaps the slot — 409 on racing updates, blob cleanup on failure.
   Transport: `PUT /api/instances/:type/:id/payload`, gated by
-  `hasEntityAccess` on the class-collection feature with the type id as
+  `hasInstanceAccess` on the class-collection feature with the type id as
   type-id filter (fail-closed). The sketch type declares
   `revisions: 'scene'` and binds the `sketch-editor` surface (`edit`
   mode); `SketchEditor` now takes a host-supplied persistence contract —
@@ -332,7 +332,7 @@
   explicit `source` override so its viewer branches render CTS file
   payloads without artifact DTOs (artifact-entity path unchanged).
   `GeneratedFilePreview.vue` mounts the contract in
-  `GeneratedEntityDetailBody`'s non-overload branch — non-renderable modes
+  `GeneratedInstanceDetailBody`'s non-overload branch — non-renderable modes
   degrade to a download action, payload-less types render nothing.
   `useFileTypeView` caches the served org type view (one in-flight fetch
   per organization). The `sketch` file type joined the tech-drawing pack
@@ -377,7 +377,7 @@
   without it, exactly like the legacy overload did.
   `components/generated/file-surfaces.js` is the new single app-side
   surface registry (surface id → detail-body overload / editor action /
-  workspace page); `overloads.js`, `entity-editor-action.js`, and
+  workspace page); `overloads.js`, `instance-editor-action.js`, and
   `workspace-pages.js` derive their file-type rows from the pack editor
   bindings through it. Derived rows key by CTS type id, so the legacy
   `sheet_design`/`facade` keys no longer resolve an editor surface
@@ -530,7 +530,7 @@
 - [x] **Chat redesign in PrimeVue-native components + animations.**
   Depends on: GSAP foundation; connections architecture.
   - Rebuild `ChatSupport` / `AdminSupportChat(List)` surfaces from PrimeVue
-    primitives + shared blocks; `EntityInlineRef` message refs stay; no custom
+    primitives + shared blocks; `InstanceInlineRef` message refs stay; no custom
     chat chrome.
   - Animations through the documented GSAP patterns (message enter, drawer,
     typing indicators), reduced-motion aware.
@@ -572,7 +572,7 @@
   For each entity below, inspect real usage and design variant layouts
   (inline/compact/card/detail) that satisfy its usage flow and are
   env-friendly: mobile layouts, dataview-embeddable, container-size aware —
-  no overflow, no unneeded full-width — reusing the `EntityWorkspace` /
+  no overflow, no unneeded full-width — reusing the `InstanceWorkspace` /
   `ResponsiveGrid` container-query patterns. The generic entity component
   stays as fallback. Work one entity group per session; record progress in
   Agent Notes under this task.
@@ -591,19 +591,19 @@
   contract-driven DataBlocks) with meaningful inline/compact variants; the
   hub was already audit-clean. One genuine defect found and fixed:
   WarehouseDetail rendered its operational-stock facts as a hand-rolled
-  viewport-breakpoint grid (md:2/xl:4) inside EntityPage — a container-query
+  viewport-breakpoint grid (md:2/xl:4) inside InstancePage — a container-query
   context where viewport breakpoints mispredict inside split panes — plus a
   duplicated wrapper div. Replaced with the canonical `MetricPanel`
   aggregate-facts primitive, which owns the responsive collapse itself.
   Group verdict: done; no overflow or full-width-grab issues found.
   ### Agent Notes — 2026-09-12 (group 2/7: project, queue, nesting_run)
   Cards and QueueEditor were already healthy (QueueEditor rides
-  EntityWorkspace/WorkspaceLanes with min-w-0 flex hygiene; cards carry real
+  InstanceWorkspace/WorkspaceLanes with min-w-0 flex hygiene; cards carry real
   bodies). Both detail pages repeated the group-1 defect class: hand-rolled
-  `lg:grid-cols-4` + `col-span-3` sidebar splits inside EntityPage (viewport
+  `lg:grid-cols-4` + `col-span-3` sidebar splits inside InstancePage (viewport
   breakpoints in a container-query context) with plain card grids
   (`md:grid-cols-2/3`), custom section headers, and custom empty states.
-  Rewrote both on canonical primitives: EntityPage `#sidebar` slot (with its
+  Rewrote both on canonical primitives: InstancePage `#sidebar` slot (with its
   own 48rem container track), `MetricPanel` for overview facts,
   `ActionToolbar` section titles, `ResponsiveGrid` (`wide` queues, `bounded`
   artifact refs, both `responsive-context="container"`), `StateBlock` for the
@@ -611,7 +611,7 @@
   raw opacity headers. Group verdict: done.
   ### Agent Notes — 2026-09-12 (group 3/7: sheet_design, sheet, remnant)
   Same defect class in all three details: nested Panel-in-Panel grids with
-  `md:/lg:` viewport splits inside EntityPage. Rebuilt: SheetDetail moves
+  `md:/lg:` viewport splits inside InstancePage. Rebuilt: SheetDetail moves
   source/history to `#sidebar` and flattens the swatch+specs row into a
   responsive flex (swatch bindings kept byte-identical for the data-driven
   inline exceptions); RemnantDetail consolidates pile/sheet/warehouse refs
@@ -695,7 +695,7 @@
   visual depth), warehouse, project/organization/index cards.
   GENERIC BY DESIGN (no custom surface exists yet): facade,
   facade_pattern, artifact_template — pass-throughs rendering through
-  EntitySurfaceContent; tailor when a custom surface consumes them.
+  InstanceSurfaceContent; tailor when a custom surface consumes them.
   ### Agent Notes — 2026-09-12 (pass 1 correction: process-mode layer)
   User feedback exposed a layer miss: their organization runs in process
   mode, so static surfaces like `/warehouses` (WarehouseHub) are not part
@@ -706,12 +706,12 @@
   popovers), remnant declares `specs.area`. Per-entity Card components
   still serve custom surfaces and inline-ref popovers. Lesson recorded:
   content changes for process-mode orgs must land in
-  `cncEntityFieldGroups`, not only in card components.
+  `cncInstanceFieldGroups`, not only in card components.
   Task stays OPEN: these are code-derived flows; completion needs the
   user's real-world validation of the changed content.
   ---
   Superseded closeout (mechanics only): all 30 entities reviewed across 7
   groups; the recurring defect — viewport-breakpoint (often arbitrary)
-  two-column splits and card grids inside EntityPage/EntityWorkspace
+  two-column splits and card grids inside InstancePage/InstanceWorkspace
   container-query contexts — replaced with `#sidebar`, `ResponsiveGrid`
   container mode, `MetricPanel`, `ActionToolbar`, `StateBlock`.

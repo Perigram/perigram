@@ -9,7 +9,7 @@ Authenticated in-memory entity change bus for app-session synchronization.
 organization's registry view (`kind: 'registry'`, from cts-type writes) or
 active process (`kind: 'process'`, from activation) changes. The event
 carries no contract data — open tabs respond with one debounced auth
-re-hydration (`stores/entityEvents.js`), keeping per-user access
+re-hydration (`stores/instanceEvents.js`), keeping per-user access
 resolution server-side.
 
 ## Contract
@@ -46,18 +46,18 @@ contract.
 - `POST /api/status/transition` publishes `updated` events for the transitioned
   entity and synchronous transition effect entities.
 - `useEntity()` publishes successful frontend CRUD mutations through
-  `POST /api/entity-events` after the canonical API call succeeds.
+  `POST /api/instance-events` after the canonical API call succeeds.
 - Active process actions publish events when generated screens create, update,
   or change status on entities through the process runtime.
 
 ## Consumers
 
-The app shell polls `GET /api/entity-events` once the auth store is hydrated.
+The app shell polls `GET /api/instance-events` once the auth store is hydrated.
 The initial request establishes the current cursor without replaying stale
 history; subsequent requests pass `after=<cursor>` and return immediately with
 new visible events. Short completed requests are used deliberately because they
 work consistently through Nuxt's development worker proxy and production reverse
-proxies. Incoming events are re-emitted through `utils/entity-events.js`, which
+proxies. Incoming events are re-emitted through `utils/instance-events.js`, which
 is the browser-local contract consumed by shared stores and components.
 
 ## Related

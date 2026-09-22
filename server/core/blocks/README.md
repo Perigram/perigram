@@ -11,7 +11,7 @@ flexible-ID lineage inheritance.
 ```js
 import { BaseEntity, Identity, Status, Lineage, Relations, Provenance, Specs,
          createIdentity, createStatus, createSpecs, createData, inheritLineage,
-         createEntityRef, normalizeEntityRef, createProvenance, createAttachment
+         createInstanceRef, normalizeInstanceRef, createProvenance, createAttachment
        } from '~/server/core/blocks/index.js';
 ```
 
@@ -105,7 +105,7 @@ Typed non-owning entity references that should not grant containment access.
 Relations { linkedLibrary: { type, id, revisionId? }, relatedItems: [{ type, id, revisionId? }] }
 ```
 
-Each relation value is normalized through `normalizeEntityRef()`. Use
+Each relation value is normalized through `normalizeInstanceRef()`. Use
 `relations` for non-owning cross-links. Process Relations composers derive the
 entry key and item/list cardinality from their connected entity socket; they do
 not require a predefined owner-to-target domain relation. Do not add those
@@ -121,7 +121,7 @@ Immutable derivation or pinned-source evidence.
 Provenance { derivedFrom: { source: { type, id, revisionId? }, ...facts } }
 ```
 
-Use `createEntityRef()` and `createProvenance()` when recording source
+Use `createInstanceRef()` and `createProvenance()` when recording source
 documents, revisions, or parent snapshots that must remain reproducible. Do not
 use `provenance` for mutable workflow facts; those belong in `status.lifecycle`.
 
@@ -187,7 +187,7 @@ Features do not self-register on module load.
 
 ```js
 const registry = getAppRegistry();
-registry.getEntityService('project');
+registry.getInstanceService('project');
 ```
 
 Entity, workflow, command, task, hook, and attachment-kind contracts are defined
@@ -205,8 +205,8 @@ runtimes consume those registry definitions after access checks.
 | `createSpecs(rawObject)` | `Specs` | |
 | `createData(object)` | `object` | Shallow copy; documents intent |
 | `inheritLineage(parentEntity, type)` | `Lineage` | Copies parent.lineage + adds `${type}Id` |
-| `createEntityRef(type, id, revisionId)` | `object` | Canonical typed reference |
-| `normalizeEntityRef(value)` | `object \| null` | Validates and normalizes typed refs |
+| `createInstanceRef(type, id, revisionId)` | `object` | Canonical typed reference |
+| `normalizeInstanceRef(value)` | `object \| null` | Validates and normalizes typed refs |
 | `createProvenance(source, facts)` | `object` | Source ref plus immutable derivation facts |
 | `createAttachment(type, fileId, name, metadata)` | `object` | Standard attachment entry for `attachments` |
 

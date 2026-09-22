@@ -97,5 +97,5 @@ generated list must not show a design whose detail endpoint would deny.
 
 ## Related
 - [cassettes](../cassettes/README.md) - The source templates.
-- [entity-revisions](../entity-revisions/README.md) - Immutable revision snapshots.
+- [instance-revisions](../instance-revisions/README.md) - Immutable revision snapshots.
 - [artifacts](../artifacts/README.md) - Production output management.

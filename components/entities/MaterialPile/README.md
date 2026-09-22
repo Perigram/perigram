@@ -15,7 +15,7 @@ Cards for warehouse/manual `material_pile` inventory entries.
 - Uses `data.stock` for the manual/warehouse pile summary. Material identity
   belongs to related catalog/material context, and dimensions belong to the
   standard `specs` block instead of duplicated chips.
-- `EntityCard` owns the actual pile lifecycle status (`STOCKED` / `DEPLETED`).
+- `InstanceCard` owns the actual pile lifecycle status (`STOCKED` / `DEPLETED`).
   `MaterialSummary` does not render latest stock movement/audit events; those
   belong in a movement/history surface.
 - Catalog lineage context renders as a nested inline entity card when the
@@ -27,5 +27,5 @@ Cards for warehouse/manual `material_pile` inventory entries.
 
 ## Related
 
-- [components/shared/README.md](../../shared/README.md) - EntityCard, DataBlock, SpecsBlock
+- [components/shared/README.md](../../shared/README.md) - InstanceCard, DataBlock, SpecsBlock
 - [server/features/material-piles/README.md](../../../server/features/material-piles/README.md) - Material pile data contract

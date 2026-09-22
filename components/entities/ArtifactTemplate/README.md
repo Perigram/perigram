@@ -1,8 +1,8 @@
 # COMPONENT: Artifact Template UI
 
 `ArtifactTemplateCard.vue` is the design-system card for the
-`artifact_template` entity. It delegates identity/chrome to `EntityCard` and
-DTO-backed fields to `EntitySurfaceContent`; management actions are supplied by
+`artifact_template` entity. It delegates identity/chrome to `InstanceCard` and
+DTO-backed fields to `InstanceSurfaceContent`; management actions are supplied by
 the owning page through the footer slot.
 
 `pages/assets/templates.vue` owns the organization template workflow: list,

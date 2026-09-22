@@ -15,8 +15,8 @@ Production queue card and detail surface.
 
 - Expects a `queue` DTO with `status`, `lineage`, `data.job`, `data.materialConsumption`,
   and `summary`.
-- `EntityCard`/`EntityPage` own identity, trace, and status placement.
-- Artifact and consumed material relations render through `EntityInlineRef`.
+- `InstanceCard`/`InstancePage` own identity, trace, and status placement.
+- Artifact and consumed material relations render through `InstanceInlineRef`.
 - Available material source context is owned by nesting runs; queue cards do not
   render material availability summaries.
 - Running nesting is a queue command action surfaced through page/header
@@ -24,12 +24,12 @@ Production queue card and detail surface.
 - Queue delete commands are rendered outside the status rail. Compact queue
   cards keep command buttons in the card body, while the queue detail page
   exposes feature commands in the header actions slot. Queue lifecycle reset
-  transitions come from `EntityStatus` through the workflow/status API.
+  transitions come from `InstanceStatus` through the workflow/status API.
 - The queue editor passes command actions to `QueueCard` through the
   `commandActions` prop so lifecycle transitions and non-status commands stay
   separated by name as well as placement.
 - Selector surfaces pass `expandable=false` and `density=dense` so clicking the
-  compact card selects the queue without opening the `EntityCard` popover or
+  compact card selects the queue without opening the `InstanceCard` popover or
   using full card padding. Queue number prefixes and the full queue data block
   render only on full queue cards.
 - Queue relations remain typed design references and never carry parameter or
@@ -58,7 +58,7 @@ Production queue card and detail surface.
 - Queue editor cassette rows never render `cassette_design.identity.name`. The
   compact header renders only the canonical source cassette template from
   `provenance.derivedFrom.source` as a non-interactive inline
-  `EntityInlineRef`, followed by quantity and remove controls. Designs without
+  `InstanceInlineRef`, followed by quantity and remove controls. Designs without
   cassette-template provenance fall back to their typed source id. Missing
   design hydration only probes rows that may be `cassette_design`; explicit
   legacy `typeId: cassette` rows must not be fetched from

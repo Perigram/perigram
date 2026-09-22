@@ -14,10 +14,10 @@ sheet/foil options.
 
 - Expects a `catalog` DTO with `identity`, `lineage.manufacturerId`, `data`,
   and `summary.colorCount`.
-- Uses `DataBlock` for option/pricing facts and `EntityInlineRef` for the
+- Uses `DataBlock` for option/pricing facts and `InstanceInlineRef` for the
   manufacturer relation.
 - Catalog status is hidden; catalogs are master data, not workflow objects.
-- `CatalogDetail` uses `EntityPage` with `showStatus=false` so identity, trace,
+- `CatalogDetail` uses `InstancePage` with `showStatus=false` so identity, trace,
   and actions stay in the shared detail-page contract while avoiding workflow
   chrome for static master data.
 

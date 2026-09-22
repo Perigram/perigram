@@ -232,7 +232,7 @@ concerns:
   accessible name.
 
 Select/MultiSelect only ever come through the shared entity wrappers
-(`components/shared/EntitySelect.vue`, `EntityMultiSelect.vue`), which own
+(`components/shared/InstanceSelect.vue`, `InstanceMultiSelect.vue`), which own
 the direct PrimeVue imports.
 
 ## Related

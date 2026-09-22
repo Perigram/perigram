@@ -23,7 +23,7 @@
   real data units and code/file literals.
 - **Child Components:** When a component needs to display full child entities,
   use the child entity's dedicated card component. When it only needs compact
-  relation context inside another card/detail row, use `EntityInlineRef`
+  relation context inside another card/detail row, use `InstanceInlineRef`
   instead of nesting full card popovers.
 - **Smart Components:** Sub-components should use explicit permission grants to conditionally render actions (edit, delete, view).
 - **Permission Editing:** `PermissionEditor.vue` edits the same grant shape used
@@ -39,7 +39,7 @@
   related entity, transition, or custom path), then an entity type when the
   subject is related, then a trait, an operator, and a value. Entity traits must
   come from the real domain contracts: exact `id`, workflow `status` from
-  `cncWorkflows`, and property paths from `cncEntityFieldGroups` /
+  `cncWorkflows`, and property paths from `cncInstanceFieldGroups` /
   `cncEntityFieldAccess`. Do not expose storage terms like
   `lineage.organization` as user-facing targets; related entity types come from
   the domain frontend entity registry but must be constrained to valid lineage
@@ -83,20 +83,20 @@ All entity-related components MUST use these patterns:
 | Concern | Pattern |
 |---|---|
 | Identity display (default: name/slug) | `<IdentityBlock :entity="..." variant="..." />` |
-| Status display + transitions/actions | `<EntityStatus :entity="..." type-id="..." :actions="..." />` |
+| Status display + transitions/actions | `<InstanceStatus :entity="..." type-id="..." :actions="..." />` |
 | Read-only status display | `<StatusBadge :entity="..." />` |
-| Current lifecycle location | `status.lifecycle.data.location` rendered by `<EntityStatus>` |
+| Current lifecycle location | `status.lifecycle.data.location` rendered by `<InstanceStatus>` |
 | Drawing and geometry preview | `<DrawingCanvas ... />` for layer-aware DXF/SVG/cassette canvas work; `<GeometryPreview :entity="..." />` as the entity-card wrapper |
 | Structured key/value data (specs, parameters, tool dims) | `<DataBlock type-id="..." :entity="..." :fields="ENTITY_FIELDS" />` |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
 | Audit log | `<StatusHistory :entity="..." type-id="..." />` |
-| Detail page header | `<EntityPage :entity="..." type-id="..." />` |
+| Detail page header | `<InstancePage :entity="..." type-id="..." />` |
 | CRUD + status operations | `useEntity(type, id)` |
-| Entity/container structure | Entity cards: `<EntityCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout; Aura owns generic chrome |
+| Entity/container structure | Entity cards: `<InstanceCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout; Aura owns generic chrome |
 | Section/page action rows | `<ActionToolbar>` |
 | Route-level aggregate facts | `<MetricPanel>` |
 | Repeated card grids | `<ResponsiveGrid>` |
-| Entity-local workspaces | `<EntityWorkspace>` |
+| Entity-local workspaces | `<InstanceWorkspace>` |
 | Three-lane production workspaces | `<WorkspaceLanes>` |
 | Operational designers | `<DesignerWorkspace layout="lanes|canvas">` owns layout; feature components own state and persistence |
 | Bounded scrolling workspace sections | `<ScrollablePanel>` |
@@ -105,7 +105,7 @@ All entity-related components MUST use these patterns:
 | Dialog container | `<StandardDialog>` |
 | Single-field rename/edit | `<NameEditPopover>` |
 | Typed admin settings | `<TypedSettingsForm :fields="..." v-model="..." />` |
-| Entity dropdowns | `<EntitySelect>` / `<EntityMultiSelect>` with explicit `type-id` |
+| Entity dropdowns | `<InstanceSelect>` / `<InstanceMultiSelect>` with explicit `type-id` |
 | Compact contextual canvas/workspace actions | Shared `MotionDock` (GSAP magnification from `composables/useMotion.js`) |
 
 workbench and organization workflow overrides page. It normalizes flat legacy
@@ -147,7 +147,7 @@ contract, without fetching live entity data; the runtime data layer lives in
 the screens route (see [`TODO-process-designer.md`](../TODO-process-designer.md)).
 Generated operational screens live under `components/generated/`. They render
 compiled process screen manifests through a fixed template registry and shared
-entity primitives (`EntityCard`, `EntityPage`, `EntitySurfaceContent`,
+entity primitives (`InstanceCard`, `InstancePage`, `InstanceSurfaceContent`,
 `ResponsiveGrid`, `WorkspaceLanes`, and `TableFrame`). Process data may select
 registered templates, sources, regions, surfaces, and action ids; it must not
 select arbitrary Vue component names or inject page-local markup. App-owned
@@ -166,7 +166,7 @@ screen contract directly and must not reintroduce role-level duplicate routes.
 App default screen/body overloads are registered in
 `components/generated/overloads.js` and are resolved only after that
 user-specific manifest has been composed and loaded. Do not hardcode new
-entity-specific generated branches in `GeneratedScreen` or `GeneratedEntityDetail`;
+entity-specific generated branches in `GeneratedScreen` or `GeneratedInstanceDetail`;
 register the overload there so it receives only the sources, regions, actions,
 and scope available to the current user. Project `entityDetail` screens use
 this path to render an IDE-style operational workspace over the generated
@@ -206,7 +206,7 @@ and loads the selected entity's own compiled detail screen so child regions
 remain available inside Project. Explorer starts as a compact 15% rail;
 project mutation actions, including relation Link, remain in the strip even
 when a child region references the same compiled action. Unlink is not an owner
-strip command: each linked `EntityInlineRef` receives the matching contextual
+strip command: each linked `InstanceInlineRef` receives the matching contextual
 Unlink operation in its own actions, with both owner and target already bound.
 Only project-bound child-create actions move to collection context.
 When a generated Link input carries an artifact creator contract, its entity
@@ -262,7 +262,7 @@ main/screen and child-region actions are delivered as separate channels so
 child operations can reach an editor without reappearing in its surrounding
 header. Operational bodies never supplement this set by scanning the global
 action manifest.
-Within a queue file, `EntityWorkspace` gives the composition editor all twelve
+Within a queue file, `InstanceWorkspace` gives the composition editor all twelve
 columns when no readable nesting-run/support region exists and uses the normal
 8/4 split only while that region is present. Queue entry cards use their own
 container width to place a bounded preview beside compact quantity/parameter
@@ -334,12 +334,12 @@ only when its immediate parent is a Home section.
 Mobile home sections are true horizontal carousels: entity cards keep a stable
 non-shrinking width and overflow horizontally instead of shrinking every card
 to fit the viewport. The fixed width belongs on the carousel item wrapper, not
-on `<EntityCard>` itself, because shared entity cards have variant root
+on `<InstanceCard>` itself, because shared entity cards have variant root
 branches and cannot be relied on to receive layout sizing through attribute
 fallthrough.
 Generated card bodies may replace aggregate child-count facts such as
 `summary.queueCount` when those cards are rendered through
-`EntitySurfaceContent`. Prefer compact `EntityInlineRef variant="compact"`
+`InstanceSurfaceContent`. Prefer compact `InstanceInlineRef variant="compact"`
 micro cards when the DTO already carries relation-backed child refs, including
 `summary.*Preview` payloads such as queue runs/sheets, library cassettes, or
 catalog colors. These galleries render as a bounded grid with two visible refs
@@ -407,7 +407,7 @@ not display English verbs such as `Create` or raw target statuses such as
 and status-mutating update actions show a localized operation label without
 exposing the state id in the button text.
 Generated non-status action surfaces, including detail header buttons and card
-footers, must not render status-mutating update actions. `EntityStatus` loads
+footers, must not render status-mutating update actions. `InstanceStatus` loads
 server-filtered actions and owns the status popover/history.
 Generated entity detail headers show the entity `TraceChain` instead of a
 standalone repeated identity name, so the opened record keeps lineage context in
@@ -425,14 +425,14 @@ helpers as detail headers, consume workspace-specific actions such as queue
 nesting controls, and execute generated buttons through the surrounding
 generated screen's process action handler instead of calling process endpoints
 locally.
-Entity-detail templates render child collection regions inside the `EntityPage`
+Entity-detail templates render child collection regions inside the `InstancePage`
 body so parent-child graph flows, such as project-to-queue creation, stay in the
 opened parent context.
 Generated entity details may provide registered entity-specific bodies when
 the domain has a real operational editor contract. Queue details mount the
 queue editor workspace inside the generated detail page as an entity-local
 editor: sibling queue navigation and project-route creation controls stay
-hidden, the editor renders through `EntityWorkspace` instead of the route-level
+hidden, the editor renders through `InstanceWorkspace` instead of the route-level
 three-lane workspace, and editability comes from the active process
 `queues:write` grant on the current queue rather than hardcoded workflow states
 such as `DRAFT`. Queue-local command panels are separate from queue editing:
@@ -444,8 +444,8 @@ job/settings mutation but must not invent a command panel. Actions consumed by
 registered entity workspaces are not duplicated as generic detail-header
 buttons. Entity-local operational editors should use the canonical
 main/supporting proportions from
-`EntityWorkspace` rather than inventing local stacked or sidebar grids.
-`EntityWorkspace` and queue card grids use container breakpoints, so the
+`InstanceWorkspace` rather than inventing local stacked or sidebar grids.
+`InstanceWorkspace` and queue card grids use container breakpoints, so the
 main/supporting split and repeated cards respond to the actual editor pane
 width after a workspace split instead of the browser viewport width.
 Sheet-design details similarly mount `SheetDesignEditor` when the active user
@@ -460,7 +460,7 @@ clamps complete rotated geometry inside the usable sheet polygon when one is
 present, falls back to rectangular sheet bounds for virtual rectangle sheets,
 supports existing/uploaded cassette designs, and persists through immutable
 geometry revisions. Generated
-sheet-design details keep the sheet identity visible in `EntityPage`; read-only
+sheet-design details keep the sheet identity visible in `InstancePage`; read-only
 details keep the standard geometry display.
 The queue detail support region for nesting runs follows the same contract:
 process mode separates command controls from result viewing. The nesting
@@ -572,7 +572,7 @@ single source for the same entity type, preferring the detail screen paired
 with the current screen key (`<screenKey>_detail`) only when that paired screen
 exists for the same entity. Parent detail screens that include child collection
 sources are not valid detail targets for those child rows. The route uses
-`/screens/:screenKey` with `entityId` and `{typeId}Id` query scope. The
+`/screens/:screenKey` with `instanceId` and `{typeId}Id` query scope. The
 screen page merges that query scope into the screen contract before the
 single-source loader runs. Do not hardcode generated rows to legacy feature
 routes, and do not replace the shared card title chrome just to make the name
@@ -600,13 +600,13 @@ Child collection regions inside an entity detail must preserve the opened
 parent context when executing create actions. They may not replace that context
 with the child collection entity type, otherwise a `library -> cassette` action
 loses the concrete library id and creates unscoped children.
-`EntityStatus` must not receive locally synthesized process actions.
+`InstanceStatus` must not receive locally synthesized process actions.
 Generated action setup and execution failures must be visible in the screen:
 prompt option loading errors, missing required entity options, and execution
 errors all surface through `StateBlock` and PrimeVue toast feedback instead of
 being converted to empty controls.
 
-Lifecycle transitions belong in `EntityStatus` and should come from the
+Lifecycle transitions belong in `InstanceStatus` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,
 edit, reset helper, and feature command buttons stay outside the status surface
 in card footers or page action slots.
@@ -628,12 +628,12 @@ definitions. Cards for DTOs without workflows should set `:show-status="false"`
 or use a read-only badge only when the data model requires it; do not invent
 component-local lifecycle states.
 Entity-specific card components should use `before-identity`, `subtitle`, body, and footer slots; do not override `#title`, because that bypasses standardized identity/status layout. Subtitle slots that render entity facts must be hidden for `variant === 'card'`; the full card body is the only owner of those facts.
-Entity-specific cards should render a single `EntityCard :variant="variant"` and
+Entity-specific cards should render a single `InstanceCard :variant="variant"` and
 pass their canonical body once through the default slot (see
 [components/shared/README.md](./shared/README.md)). Inline/compact/card
 branching inside entity cards is a smell unless the entity has a genuinely
 different structural surface.
-Entity detail components should use `EntityPage` for trace, identity, status, and page actions instead of rebuilding header rows locally.
+Entity detail components should use `InstancePage` for trace, identity, status, and page actions instead of rebuilding header rows locally.
 Single-field rename/edit actions should use `NameEditPopover` near the relevant
 identity or action cluster; reserve `StandardDialog` for creation flows,
 destructive confirmation, or forms with multiple fields.
@@ -702,7 +702,7 @@ name. Files can be:
 
 - **route-active** when reached from `pages/**` or `layouts/**`;
 - **registry-active** when referenced by the design-system manifest,
-  `utils/design-system.js`, `EntityInlineRef`, or framework inspection scripts;
+  `utils/design-system.js`, `InstanceInlineRef`, or framework inspection scripts;
 - **dormant** when not currently routed but still architecturally meaningful.
 
 Dormant components are inspected and may be refactored, but are not removed by
@@ -722,7 +722,7 @@ broad whole-file CSS exceptions, and a second runtime visual layer fail.
 
 ## Composables Rule
 
-`useBlocks.js` composables (`useIdentity`, `useStatus`, `useSpecs`, `useLineage`) are **only** used inside the shared block components (`IdentityBlock`, `EntityStatus`, `SpecsBlock`). Entity cards and pages must never import from `useBlocks.js` — they compose the block components instead.
+`useBlocks.js` composables (`useIdentity`, `useStatus`, `useSpecs`, `useLineage`) are **only** used inside the shared block components (`IdentityBlock`, `InstanceStatus`, `SpecsBlock`). Entity cards and pages must never import from `useBlocks.js` — they compose the block components instead.
 
 No exceptions are currently needed in used entity pages/cards; state-only conditionals should use a local `computed` from `entity.status?.state`.
 
@@ -744,7 +744,7 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   are separate UI surfaces and must not be collapsed into one card contract.
 - `CassetteInstanceCard` renders the produced cassette geometry from the source
   cassette design and embeds source design/template/queue context through
-  compact `EntityInlineRef` rows. Queue-produced instances are already `CUT`;
+  compact `InstanceInlineRef` rows. Queue-produced instances are already `CUT`;
   lifecycle action design remains a workflow-machine concern, not a local card
   action override.
 - `CassetteDesignerV2` owns OCCS cassette-template editing. It uses
@@ -783,7 +783,7 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
 - `RemnantCard` and `RemnantDetail` render saved leftover material geometry
   through `GeometryPreview`, including polygon-with-holes queue-cut remnants.
   Source sheet, warehouse, and material pile context should be compact
-  `EntityInlineRef` rows, not trace-link-only rows or local status badges.
+  `InstanceInlineRef` rows, not trace-link-only rows or local status badges.
 - `GeometryCaptureCard` and `GeometryCaptureDetail` render photo-derived
   `geometry_capture` drafts through `GeometryPreview`. Confirmation belongs to
   the capture review API because remnant mode creates a real `remnant`, while
@@ -792,7 +792,7 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   material cards describe the base material record, material pile cards
   summarize general/manual warehouse stock, and batch pile cards show
   requisition-sourced receipt context from `lineage.requisitionId`.
-- Entity relation rows use `EntityInlineRef` with design-system surface keys
+- Entity relation rows use `InstanceInlineRef` with design-system surface keys
   (`materialPile`, `nestingRun`, `cassetteDesign`, etc.). Do not use
   `TraceLink` for relation summaries inside cards/details; reserve it for rows
   whose explicit purpose is route navigation.
@@ -961,7 +961,7 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
 Support chat uses direct `$fetch`/SSE routes and the shared
 `SupportMessageContent` renderer. Messages may target the support channel or a
 specific user selected from status history actor rows, and inline entity
-references must render through `EntityInlineRef` rather than local chips. The
+references must render through `InstanceInlineRef` rather than local chips. The
 floating Chats drawer opens to an inbox backed by `/api/support/conversations`;
 that inbox contains only conversations with persisted messages and offers a
 header user-plus action that opens a simple new-chat dialog, and a close
@@ -1000,7 +1000,7 @@ created entity attaches to the draft like any picked ref. The paperclip
 trigger stays disabled while the home screen exposes no list sections. The composer loads attachment types from
 `/api/support/type-ids`, which derives them from the user's generated
 screen source manifest at read access rather than a fixed chat list. Concrete
-attachment choices resolve through `/api/support/entity-options` when the
+attachment choices resolve through `/api/support/instance-options` when the
 backend has a scoped list service for that entity type, and direct chats also
 receive recipient-access metadata so the draft can warn when an attached entity
 will be visible only inside chat. Selected attachments stay in structured
@@ -1053,10 +1053,10 @@ title sits the children-messages toggle — default off (the entity's own
 messages), pressed/primary = the composed subtree view. The inbox carries a
 "Detailed" grouping toggle
 for entity chats (top-level nodes off, every entity chat on), and group thread headers carry their member profiles
-inline through `EntityInlineRef`. Calls start from every non-support thread
+inline through `InstanceInlineRef`. Calls start from every non-support thread
 header, entity threads included. On desktop, entity opens from chat
 surfaces and standalone lists route through
-`utils/entity-workspace-open.js` — a live pane-tab open when the home
+`utils/instance-workspace-open.js` — a live pane-tab open when the home
 workspace is mounted, a pending request consumed on mount otherwise — so
 everything stays inside the home framework. Entity threads show a children toggle that switches between the
 composed subtree view and messages linked to the entity itself, and the
@@ -1081,13 +1081,13 @@ reply bar that renders like the in-bubble quote (sender plus snippet), not
 an alert-style PrimeVue Message. The composer input is a PrimeVue InputGroup — attach
 and voice sit in addons around the textarea while send is the trailing
 primary button (a direct InputGroup child, not an addon). Generated detail pages expose the same
-composed conversation through the shared `EntityChatPanel` disclosure, and
-every entity surface carries a chat entry — the shared `EntityCard` renders
+composed conversation through the shared `InstanceChatPanel` disclosure, and
+every entity surface carries a chat entry — the shared `InstanceCard` renders
 it for all card variants (footer row and expansion popover), and
-`EntityInlineRef` popovers carry it too, all opening the entity thread through
-`utils/entity-chat.js` (the single PrimeVue Dialog popup — consumed on chat
+`InstanceInlineRef` popovers carry it too, all opening the entity thread through
+`utils/instance-chat.js` (the single PrimeVue Dialog popup — consumed on chat
 mount). The
-detail panel rides `GeneratedEntityDetail` — the canonical detail chrome —
+detail panel rides `GeneratedInstanceDetail` — the canonical detail chrome —
 so abstract detail pages and bounded implementation panes (workspace
 overloads, designer file modes) all carry the thread; the panel renders inside the
 detail branch of the generated screen's `v-if` chain — never as a standalone

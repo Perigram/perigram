@@ -13,8 +13,8 @@ Color swatch card for catalog colors.
 - Expects a `color` DTO with `identity`, `lineage.catalogId`, and
   `data.visuals.hexCode`.
 - The color swatch is real data-driven styling; other chrome remains owned by
-  `EntityCard`.
-- Catalog context renders through `EntityInlineRef` so the relation popover uses
+  `InstanceCard`.
+- Catalog context renders through `InstanceInlineRef` so the relation popover uses
   the registered catalog card.
 
 ## Related

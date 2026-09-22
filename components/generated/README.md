@@ -8,7 +8,7 @@ renderer maps those contracts to registered Vue surfaces.
 The manifest vocabulary is the projected UI contract, everywhere: screens and
 actions key their target by `typeId`, actions by `id` (with `parentTypeId`
 for parent context), templates are `typeList`/`instanceDetail`/`home`, and
-workspace-open events carry `{ typeId, entityId }`. The remaining
+workspace-open events carry `{ typeId, instanceId }`. The remaining
 `typeId` names inside this family are descriptor-level fields of the
 compiler prompt-form contract (`inputPolicy` field descriptors, construction
 input `typeId` constraints, attachment `creator.typeId`) — those
@@ -72,7 +72,7 @@ it satisfies that source's resolved filters, so a successful procedural action
 is visible without a page reload; the shared entity sync event remains the
 backstop for changes made outside this screen. Successful `createEntity`
 actions additionally navigate to the created entity's detail route
-(resolved through `created-entity-open.js`: a compiled detail screen
+(resolved through `created-instance-open.js`: a compiled detail screen
 first; when the manifest has no route for the type and the create ran
 the `editor` protocol, the blank instance opens as a home-workspace
 tab, whose pane body mounts the type's editor surface through the
@@ -99,7 +99,7 @@ route has no generated screen; the resolver treats non-object inputs as no
 overload instead of dereferencing a partial screen contract.
 
 Use the registry instead of adding entity checks directly inside
-`GeneratedScreen.vue`, `GeneratedEntityDetail.vue`, or generated collections.
+`GeneratedScreen.vue`, `GeneratedInstanceDetail.vue`, or generated collections.
 The current default overloads are:
 
 - `home` screens render `GeneratedHomeWorkspace.vue`, the Discord-style
@@ -126,7 +126,7 @@ contract. It combines two halves:
   and the workspace-page presentation (label key, icon, component, props).
   Process data never selects components; the surface id does.
 
-`overloads.js`, `entity-editor-action.js`, and `workspace-pages.js` derive
+`overloads.js`, `instance-editor-action.js`, and `workspace-pages.js` derive
 their file-type rows (cassette, sheet-design, facade-design,
 facade-pattern, sketch, text-document, csv-table) from the pack editor
 bindings through this registry instead of hand-maintained entity-keyed
@@ -168,7 +168,7 @@ preview pane. The `occs` mode renders the cassette OCCS payload through
 `DrawingCanvas`'s graph-tree path. `file-surfaces.js` re-exports the
 helpers for its editor-surface consumers.
 `GeneratedFilePreview.vue` mounts that contract inside
-`GeneratedEntityDetailBody`'s non-overload branch, so every file-typed
+`GeneratedInstanceDetailBody`'s non-overload branch, so every file-typed
 instance opened through generated screens and project panes shows its
 payload preview without a hand-written surface. The type records come from
 `useFileTypeView()` ([composables/README.md](../../composables/README.md)),
@@ -245,8 +245,8 @@ Discord-style operational shell:
   hover/selection keep the full row width, and the node label owns the
   remaining width so trailing row controls align to the row end.
 - Entity rows are inline entity entries through the shared component:
-  `EntityInlineRef variant="inline"` with `interactive: false` (non-expanding
-  inline card, no detail popup), followed by the icon-variant `EntityStatus`
+  `InstanceInlineRef variant="inline"` with `interactive: false` (non-expanding
+  inline card, no detail popup), followed by the icon-variant `InstanceStatus`
   and the separate ellipsis control at the end of the row. The tree owns
   selection. Entity nodes carry no tree-level icon — the inline chip owns the
   entity icon, and a tree icon would duplicate it.
@@ -271,7 +271,7 @@ Discord-style operational shell:
   beneath a loaded ancestor through the effective containment graph and
   canonical `lineage.*Id` references, and declared relation links participate
   beside containment — expanding a row resolves its relation refs
-  (`resolveEntityRelationRefs` over the canonical DTO, fetching the full
+  (`resolveInstanceRelationRefs` over the canonical DTO, fetching the full
   record when the list DTO omits relations) and nests the referenced
   entities under the row. Section roots never nest. Entity nodes whose type
   declares containment children or carries relation refs are expandable;
@@ -294,7 +294,7 @@ Discord-style operational shell:
 - The pane area is the same recursive `WorkspaceSplitNode` tree used by the
   project workspace: IDE-style file tabs, wheel-scrollable tab strips, split
   right/down, pane-local close, registered workspace pages (for example the
-  cassette designer), and `GeneratedEntityFile` bodies that scope each
+  cassette designer), and `GeneratedInstanceFile` bodies that scope each
   entity's own compiled detail screen. There is no Explorer header or project
   action strip; collection creation belongs to sidebar sections and entity
   operations belong to the opened file tabs.
@@ -359,7 +359,7 @@ bounded IDE-style Explorer and file workspace:
 - `GeneratedWorkspacePane` accepts both entity pages and registered workspace
   pages. Each recursive pane owns an IDE-style tab list; Explorer navigation
   opens or selects a tab in the active pane, and tab order plus selection persist
-  with that pane. `GeneratedEntityFile` is the pane adapter: each entity tab
+  with that pane. `GeneratedInstanceFile` is the pane adapter: each entity tab
   owns its DTO-backed icon-only interactive lifecycle status and close affordance;
   tabs without a persisted status state do not synthesize an `UNKNOWN` badge. The tab
   strip's add control opens a new empty tab (IDE-like) instead of a content
@@ -372,12 +372,12 @@ bounded IDE-style Explorer and file workspace:
   bounded operational overloads (the cassette/facade/queue/sheet-design
   editors) render flush: when the entity type has a detail overload and the
   detail screen declares no child regions, the body fills the pane boundary
-  without the scrolling EntityPage chrome, so the editor owns the whole file.
+  without the scrolling InstancePage chrome, so the editor owns the whole file.
   Generated entity-action buttons render inside the active
   tab body below the strip only when the operational detail overload does not
   own its action surface. Cassette, queue, and sheet-design editors own that
   surface completely, including deletion. The body mounts the canonical
-  `GeneratedEntityDetail`/`EntityPage` content for that entity with duplicate
+  `GeneratedInstanceDetail`/`InstancePage` content for that entity with duplicate
   identity, lineage, status, actions, and divider chrome suppressed. Detail
   overload bodies therefore behave identically in a
   project pane and on a regular generated entity route. The adapter also scopes
@@ -452,7 +452,7 @@ detail screen in the current user's effective screen manifest. Parent-workspace
 region actions are merged only when they also apply to the selected entity.
 This lets an embedded queue consume queue-detail commands and cassette-design
 producer actions without granting or discovering actions outside the user's
-compiled process access. `GeneratedEntityDetailBody` passes only that scoped
+compiled process access. `GeneratedInstanceDetailBody` passes only that scoped
 action set into operational overloads. Child-region action ids travel through
 the separate `bodyActions` channel so operational overload surfaces receive
 their scoped producer operations while surrounding headers continue to exclude
@@ -461,7 +461,7 @@ from the user's action manifest instead of incorrectly comparing the producer's
 output entity type to the open queue. The body never scans the global action
 manifest for additional queue producers.
 In a project pane, the screen-wide action list is only an aggregate used to
-resolve the file's available contracts. `GeneratedEntityFile` subtracts every
+resolve the file's available contracts. `GeneratedInstanceFile` subtracts every
 child-region action from the tab action row; each child action renders only in
 the region that owns it. The tab header must never duplicate a child collection
 action such as adding a cassette to an opened library.

@@ -19,14 +19,14 @@ Cards and detail views for reusable material remnants.
 - Queue-cut remnants store the material sheet as the outer polygon and placed
   cassette cut contours as holes. Those holes must remain visible in card and
   detail previews.
-- Source sheet relationships render as compact clickable `EntityInlineRef` rows
+- Source sheet relationships render as compact clickable `InstanceInlineRef` rows
   when those DTOs can be fetched from lineage ids. Warehouse location remains
   lineage/detail traceability, not a repeated card fact.
-- Actual lifecycle status is rendered by `EntityCard` / `EntityPage` from the
+- Actual lifecycle status is rendered by `InstanceCard` / `InstancePage` from the
   `remnant` workflow (`AVAILABLE` / `USED`). The reusable/waste area flag is
   material metadata and must not be rendered as a status substitute.
 
 ## Related
 
-- [shared](../../shared/README.md) - `EntityCard`, `GeometryPreview`, and drawing contract.
+- [shared](../../shared/README.md) - `InstanceCard`, `GeometryPreview`, and drawing contract.
 - [server/features/remnants](../../../server/features/remnants/README.md) - Remnant data model and production output creation.

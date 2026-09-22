@@ -25,7 +25,7 @@ sources load without false 401s.
 import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 ```
 
-⚠️ **Restricted use**: Only imported by shared block components (`IdentityBlock.vue`, `EntityStatus.vue`, `SpecsBlock.vue`). Entity cards and pages **must not** import directly — use the block components over the cached wire DTO instead. See [components/shared/README.md](../components/shared/README.md#critical-architectural-rule-blocks-vs-composables).
+⚠️ **Restricted use**: Only imported by shared block components (`IdentityBlock.vue`, `InstanceStatus.vue`, `SpecsBlock.vue`). Entity cards and pages **must not** import directly — use the block components over the cached wire DTO instead. See [components/shared/README.md](../components/shared/README.md#critical-architectural-rule-blocks-vs-composables).
 
 ---
 

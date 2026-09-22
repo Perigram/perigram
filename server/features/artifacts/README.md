@@ -40,7 +40,7 @@ inventing a generic entity-create path or choosing a frontend editor.
 - `GET /api/artifacts/:id/metadata`
 - `DELETE /api/artifacts/:id`
 - `POST /api/artifacts/:id/revisions/:revisionId/restore`
-- `GET /api/entity-revisions/:id/file`
+- `GET /api/instance-revisions/:id/file`
 
 Upload requests carry the declared kind, file, name, and parent lineage. The
 service owns file metadata such as the original filename; clients do not edit

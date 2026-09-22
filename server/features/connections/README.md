@@ -39,7 +39,7 @@ through this module when a write should reach connected clients.
   when a user-topic event finds the user with zero live tabs. The observer
   runs outside the delivery path and can never break fanout.
 - Entity change events are bridged onto `org:<organizationId>` topics as
-  `entityChanged` payloads by the entity-events feature, so connected tabs
+  `entityChanged` payloads by the instance-events feature, so connected tabs
   learn about status transitions in realtime; cursor-based polling remains
   the authoritative catch-up path.
 

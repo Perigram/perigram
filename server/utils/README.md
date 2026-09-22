@@ -76,7 +76,7 @@ Users without memberships get an empty `$in` filter; users with memberships get
 
 ### `serializeForAccess(typeId, entity, auth)` / `serializeManyForAccess(...)`
 Serializes model instances or DTOs and applies shared field-level redaction
-from `shared/entity-field-access.js` when an auth context is provided. Internal
+from `shared/instance-field-access.js` when an auth context is provided. Internal
 service calls can omit `auth` to keep full domain objects for workflows, hooks,
 and background tasks. API GET/list routes should pass `event.context.auth` so
 entity cards only receive fields allowed by the current user's membership
@@ -102,7 +102,7 @@ JWT signing/verification (15min expiry). Tokens carry only `userId` — permissi
 Checks explicit `user.permissions[entity]`. Different from lineage-based — use
 for non-entity system resources.
 
-### `canAccessEntity(user, typeId, entityId)` → `boolean`
+### `canAccessEntity(user, typeId, instanceId)` → `boolean`
 Checks `user.restrictedTo` whitelist. Returns `true` if no restrictions.
 
 ---

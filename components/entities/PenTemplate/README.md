@@ -13,7 +13,7 @@ Master-data card for drawing pen templates.
 - Expects a `pen_template` DTO with canonical identity in `identity.name` and
   stroke settings in `data.stroke`.
 - The line preview uses real pen color/weight/pattern data; entity chrome stays
-  shared through `EntityCard`.
+  shared through `InstanceCard`.
 - Status and trace are hidden because pen templates are master data.
 
 ## Related

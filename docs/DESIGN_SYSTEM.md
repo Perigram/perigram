@@ -85,11 +85,11 @@ Generated card surfaces may replace aggregate child-count facts when the card
 already has relation-backed child previews to show. Prefer explicit
 DTO-backed preview refs such as `summary.queuePreview`, `summary.runPreview`,
 `summary.sheetPreview`, `summary.cassettePreview`, and `summary.colorPreview`
-over sibling-screen inference. Use compact `EntityInlineRef` micro cards for
+over sibling-screen inference. Use compact `InstanceInlineRef` micro cards for
 those child previews instead of rendering `N children` rows in the card body.
 If no previewable child refs are loaded, keep the numeric count.
 Standard field groups live in `@cutkit/domain-cnc`; Vue cards consume resolved
-field descriptors through `utils/entity-display-contract.js`. Final apps may
+field descriptors through `utils/instance-display-contract.js`. Final apps may
 layer additional field groups and surface overrides, but access policy still
 controls whether a path can render.
 
@@ -104,7 +104,7 @@ entity type. `materialPile` is the general warehouse/manual stock surface;
 `batchPile` is a requisition-sourced received pile surface and must expose batch
 context such as `lineage.requisitionId`, receipt serial, specs, and stock.
 
-`EntityStatus` owns lifecycle actions and current lifecycle context for entity
+`InstanceStatus` owns lifecycle actions and current lifecycle context for entity
 types with real `cncWorkflows` definitions. Non-workflow cards hide status
 chrome by default instead of inventing local states. Workflow transitions may
 declare `display: 'inline' | 'menu' | 'hidden'`; self-loop metadata transitions
@@ -117,7 +117,7 @@ timestamps are part of the status timeline; when persisted events are not
 available, `StatusHistory` renders the entity's current `status`/`origin` as the
 first event. Status rows wrap deliberately in tight cards, while badges keep
 stable minimum width.
-When the target state declares lifecycle evidence requirements, `EntityStatus`
+When the target state declares lifecycle evidence requirements, `InstanceStatus`
 opens a compact `StatusTransitionDialog` to collect the operator description
 and proof attachments before submitting the transition. The dialog stays
 schema-driven; relation snapshots are captured by the status API from declared
@@ -125,15 +125,15 @@ lifecycle snapshot sources instead of reading arbitrary page state.
 
 Shared ownership:
 
-- `EntityCard` owns semantic card structure and is the only non-legacy direct
+- `InstanceCard` owns semantic card structure and is the only non-legacy direct
   owner of PrimeVue `Card`; Aura owns the rendered card chrome and states.
-- `EntitySelect` and `EntityMultiSelect` own PrimeVue Select/MultiSelect in app
-  components. Canonical entity options use compact `EntityInlineRef` cards with
+- `InstanceSelect` and `InstanceMultiSelect` own PrimeVue Select/MultiSelect in app
+  components. Canonical entity options use compact `InstanceInlineRef` cards with
   previews. Selected entity refs render outside the PrimeVue value/chip area;
   the bound PrimeVue control stays present as a compact change trigger so
   overlay, keyboard, and selection behavior remain owned by PrimeVue. Non-entity
   options delegate without changing PrimeVue slots or behavior.
-- Entity-specific cards pass custom lifecycle commands through `EntityCard` `statusActions`; they should not rebuild identity/status title rows just to customize status buttons.
+- Entity-specific cards pass custom lifecycle commands through `InstanceCard` `statusActions`; they should not rebuild identity/status title rows just to customize status buttons.
 - `StandardDialog` owns semantic dialog structure and is the only direct owner
   of PrimeVue `Dialog`; Aura owns the rendered dialog chrome and states.
 - `StandardPage` owns page shell width and spacing.
@@ -141,7 +141,7 @@ Shared ownership:
 - `ResponsiveGrid`'s `bounded` variant uses the shared bounded-item min/max
   width tokens for operational cards that must not grow indefinitely; extra
   width creates additional tracks.
-- `IdentityBlock`, `EntityStatus`, `StatusBadge`, `TraceChain`, `SpecsBlock`, and `DataBlock` own v24 block visualization.
+- `IdentityBlock`, `InstanceStatus`, `StatusBadge`, `TraceChain`, `SpecsBlock`, and `DataBlock` own v24 block visualization.
 - `StatusLocation` renders typed mutable location facts from `status.lifecycle.data.location` so cards do not hardcode warehouse ids or coordinate text as static fields.
 - `DrawingCanvas` owns layer-aware SVG canvas rendering for DXF/SVG previews, cassette thumbnails, mapping previews, and cassette designer interactions. Sources must normalize into its `{ viewBox, layers }` contract and provide layer standard metadata explicitly; the shared canvas does not invent production layer codes.
 - `GeometryPreview` wraps `DrawingCanvas` for token-backed DXF/layer/polygon previews from `data.geometry.preview` so design cards show geometry instead of file-name fields.

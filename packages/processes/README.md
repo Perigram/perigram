@@ -195,7 +195,7 @@ contracts: `diffProcessContracts(previous, next)` reports added/removed/changed
 actions (with the changed semantic fields), screens, and role grants;
 per-type-id CRUD capability changes; per-producer workflow changes (states
 with region prefixes, `from->to` transitions, entry states); field-policy
-section changes; and `removedEntityStatuses` — primary-region statuses whose
+section changes; and `removedInstanceStatuses` — primary-region statuses whose
 removal strands live entities, computed per entity type as the union of that
 type's producers. `hasProcessContractChanges` is the emptiness check. The diff
 is pure over compiled outputs; callers recompile both sides because the stored
@@ -304,7 +304,7 @@ instead of collapsing onto an arbitrary feature sibling; feature-only
 grants keep legacy feature resolution. Each inferred
 role/entity list screen also gets a paired `entityDetail` screen with the same
 required access and action set, so generated collection names can open an
-entity page through `screen.scope.entityId`. Inferred list screens carry their own list region so class-level actions
+entity page through `screen.scope.instanceId`. Inferred list screens carry their own list region so class-level actions
 (the create button) render through the same region mechanism authored
 screens use, and both inferred surfaces are labeled by the entity's
 authored render label — role names and raw type ids never reach screen
@@ -973,7 +973,7 @@ the same role can execute them. The graph input alone is not enough to create a
 child collection: it may be construction context, not lineage. For example, a
 project-to-create-queue graph compiles the project detail screen with a queue
 source filtered by the domain relation key
-`projectId: '$screen.scope.entityId'`, and the create-queue action is attached
+`projectId: '$screen.scope.instanceId'`, and the create-queue action is attached
 to that child region instead of the unscoped queue list screen. A role with
 only read access to libraries and cassettes still receives a library detail
 cassette child region filtered by `libraryId`, but no cassette create action.

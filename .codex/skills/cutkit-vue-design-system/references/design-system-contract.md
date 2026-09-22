@@ -55,13 +55,13 @@ without restarting Tailwind.
 
 | Primitive | Purpose |
 |---|---|
-| `EntityCard` | Standard entity card chrome with identity, optional trace, optional status, body, footer, and inline popover. |
-| `EntityPage` | Standard detail-page shell with trace, identity, status, info, actions, main body, and sidebar. |
+| `InstanceCard` | Standard entity card chrome with identity, optional trace, optional status, body, footer, and inline popover. |
+| `InstancePage` | Standard detail-page shell with trace, identity, status, info, actions, main body, and sidebar. |
 | `IdentityBlock` | Canonical identity rendering. Fallback: `name` -> `slug` -> `uid` -> `Unnamed`. |
 | `DataBlock` | Label/value rows for entity-specific DTO fields using `{ path, i18n, suffix?, prefix? }`. |
 | `SpecsBlock` | Standard width, length, area, sheet thickness, and foil thickness display. |
 | `StatusBadge` | Read-only status tag with shared status mapping. |
-| `EntityStatus` | Interactive status display, workflow-derived transition actions, current location, and compact history popover. |
+| `InstanceStatus` | Interactive status display, workflow-derived transition actions, current location, and compact history popover. |
 | `StatusHistory` | Status audit timeline for lifecycle events. |
 | `StatusLocation` | Typed current lifecycle location from `status.lifecycle.data.location`. |
 | `TraceLink` | Icon-aware link to a related entity. |
@@ -125,7 +125,7 @@ shapes:
 
 ## Forbidden Or Restricted Patterns
 
-- No direct `primevue/card` imports outside `EntityCard` and legacy exceptions
+- No direct `primevue/card` imports outside `InstanceCard` and legacy exceptions
   being removed.
 - No direct `primevue/dialog` imports outside `StandardDialog`.
 - No `useBlocks.js` imports in entity cards, detail pages, or feature
@@ -133,8 +133,8 @@ shapes:
 - No manual `$fetch` for standard CRUD/status; use `useEntity`.
 - No direct rendering of `entity.identity.*` in templates when `IdentityBlock`
   fits.
-- No manual status rows or transition buttons outside `EntityStatus`.
-- No custom title/status row in entity cards unless `EntityCard` slots cannot
+- No manual status rows or transition buttons outside `InstanceStatus`.
+- No custom title/status row in entity cards unless `InstanceCard` slots cannot
   express the case.
 - No page-local hardcoded colors, radii, shadows, animation durations, max
   widths, chat/dialog dimensions, or swatch sizes.

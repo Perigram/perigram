@@ -14,12 +14,12 @@ reports.
 
 - Expects an `artifact` DTO with `identity`, `lineage`, `attachments`, and
   `data.type`.
-- Uses `EntityCard` with status hidden because file lifecycle is not exposed as
+- Uses `InstanceCard` with status hidden because file lifecycle is not exposed as
   an operator workflow here.
 - Queue ancestry stays in shared trace chrome through `lineage.queueId`.
-  Nesting-run context still renders through `EntityInlineRef` because it is not
+  Nesting-run context still renders through `InstanceInlineRef` because it is not
   currently part of the compact trace contract.
-- The card may own a custom preview click action and disables `EntityCard`
+- The card may own a custom preview click action and disables `InstanceCard`
   expansion for that action.
 - Generated artifact detail files resolve through the overload registry. The
   detail uses the shared artifact viewer registry and exposes file revision
@@ -29,5 +29,5 @@ reports.
 
 ## Related
 
-- [components/shared/README.md](../../shared/README.md) - `EntityCard`, `EntityInlineRef`
+- [components/shared/README.md](../../shared/README.md) - `InstanceCard`, `InstanceInlineRef`
 - [server/features/artifacts/README.md](../../../server/features/artifacts/README.md) - artifact metadata contract

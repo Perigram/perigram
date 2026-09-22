@@ -77,7 +77,7 @@ stable enough for dark mode app chrome.
 
 Entity-heavy pages should render facts through the entity display constructor
 instead of page-local field arrays when the surface is reusable. App-specific
-surface extensions live in `utils/app-entity-surfaces.js`; current production
+surface extensions live in `utils/app-instance-surfaces.js`; current production
 uses include project workspace rows, project detail facts, and selected
 warehouse inventory context.
 
@@ -109,7 +109,7 @@ Nested project child list/workflow routes under `pages/project/[slug]/` render
 inside the project entity page shell. They use section primitives such as
 `ActionToolbar`, `StateBlock`, and `TableFrame`; they should not wrap their
 content in another `StandardPage`. Entity detail children that already own an
-`EntityPage`, such as queue and sheet-design details, render outside the project
+`InstancePage`, such as queue and sheet-design details, render outside the project
 shell to avoid nested detail headers. The project shell may redirect to
 `/projects` on a 403 project-context fetch; denied access should not surface as
 an uncaught route promise.
@@ -178,7 +178,7 @@ stream connection is not conditional on the floating-dialog state.
 
 UI cleanup classifies components by route reachability plus architectural
 registries (`utils/design-system.js`, `framework.manifest.json`,
-`EntityInlineRef`, and framework tooling). Components that are dormant but
+`InstanceInlineRef`, and framework tooling). Components that are dormant but
 architecturally meaningful are not deleted during UI refactors.
 
 ## Related

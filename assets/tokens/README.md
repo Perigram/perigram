@@ -68,7 +68,7 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   or transition durations unless the value is real data, such as a pen color or
   DXF layer color.
 - Shared and domain primitives own semantic structure and behavior, not generic
-  visual chrome. Feature components should compose `EntityCard`,
+  visual chrome. Feature components should compose `InstanceCard`,
   `StandardDialog`, `StandardPage`, PrimeVue `Panel`, and semantic layout
   classes while leaving generic visuals and interaction states to the preset.
 - Visual values driven by domain, geometry, or process data require exact-file

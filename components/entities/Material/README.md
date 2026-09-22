@@ -5,7 +5,7 @@ Cards for base `material` DTOs from the `materials` collection.
 ## Components
 
 - `MaterialCard.vue` renders inline, compact, and card variants through shared
-  `EntityCard` chrome. It displays identity plus `data.code` and
+  `InstanceCard` chrome. It displays identity plus `data.code` and
   `data.description`.
 
 ## Contract
@@ -20,4 +20,4 @@ Cards for base `material` DTOs from the `materials` collection.
 
 - [components/entities/MaterialPile/README.md](../MaterialPile/README.md) - general pile UI surface
 - [components/entities/BatchPile/README.md](../BatchPile/README.md) - batch/requisition pile UI surface
-- [components/shared/README.md](../../shared/README.md) - EntityCard, DataBlock
+- [components/shared/README.md](../../shared/README.md) - InstanceCard, DataBlock

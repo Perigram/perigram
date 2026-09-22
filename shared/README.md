@@ -17,7 +17,7 @@ imported through server modules that Nitro externalizes.
 - `permission-templates.js`: Access presets that expand into copied membership
   permission grants when a preset is assigned. Runtime checks consume the
   decomposed grants and do not branch on verbal preset labels.
-- `entity-field-access.js`: Field-level display/redaction helpers shared by
+- `instance-field-access.js`: Field-level display/redaction helpers shared by
   Nuxt cards and server API serialization. It consumes `@cutkit/domain-cnc`
   field policies plus the same grant evaluator used by UI actions and backend
   access checks.
@@ -125,7 +125,7 @@ from the preset label. Workbench `testAccess` grants use the same explicit
 permission shape.
 
 Entity field display is stricter than entity read access. Entity read access
-decides whether the record may be fetched; `entity-field-access.js` decides
+decides whether the record may be fetched; `instance-field-access.js` decides
 which DTO paths may be shown. A path must be declared in
 `cncEntityFieldAccess` and the active membership or process grant must satisfy
 the policy level. Active process field policies can narrow the domain policy

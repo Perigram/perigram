@@ -17,7 +17,7 @@ Nuxt/Nitro backend for the CutKit modular monolith.
 | Effects | `server/core/effects/` | Declared cross-entity effect execution. |
 | Runtime registry | `server/runtime/` | Explicit app registry binding domain contracts to services/handlers. |
 | Process definitions | `server/features/process-definitions/` | Organization-owned process graph drafts and compiled active runtime contracts. |
-| Entity event bus | `server/features/entity-events/` | Authenticated in-memory SSE invalidation bus for cross-device entity updates. |
+| Entity event bus | `server/features/instance-events/` | Authenticated in-memory SSE invalidation bus for cross-device entity updates. |
 
 ## Golden Path
 
@@ -60,9 +60,9 @@ configured aliases such as `#utils/...`, not relative paths that climb out of
 Entity synchronization uses a two-stage contract:
 
 1. Server-side producers publish invalidation events through
-   `server/features/entity-events/service.js`.
-2. Browser clients receive those events from `GET /api/entity-events` and
-   re-emit the shared browser-local event from `utils/entity-events.js`.
+   `server/features/instance-events/service.js`.
+2. Browser clients receive those events from `GET /api/instance-events` and
+   re-emit the shared browser-local event from `utils/instance-events.js`.
 
 Events carry `{ type, id, change, reason, source }` and are intentionally not
 full DTO replication payloads. Consumers refresh through normal entity APIs so
@@ -75,7 +75,7 @@ the durable data sources.
 
 Server access checks delegate to `shared/access-control.js`. Entity read,
 write, and admin checks must pass the loaded entity DTO/model to
-`hasLineagePermission()` or `hasEntityAccess()` whenever the entity is already
+`hasLineagePermission()` or `hasInstanceAccess()` whenever the entity is already
 available. Passing only `entity.lineage` is allowed only before the target
 entity exists or when the check intentionally supports lineage-id predicates
 only; status, entity-id, and property predicates need the full entity. Lineage
@@ -98,7 +98,7 @@ permission evaluator.
 System catalogue entities can be public-read without grants. Materials, system
 layer standards, system pens, system tools, and system machines carry
 `lineage.scope: "system"`, `lineage.public: true`, and
-`data.visibility.public: true`; `hasEntityAccess()` and field redaction allow
+`data.visibility.public: true`; `hasInstanceAccess()` and field redaction allow
 read-level access to those marked records directly. Write/admin access still
 requires explicit grants or ownership.
 Server modules that are imported by Nitro dev must import shared contracts with

@@ -7,7 +7,7 @@ No row implies acceptance, completion, or additional scope.
 
 Terms: Project workbench = `GeneratedProjectWorkspace`; pane =
 `WorkspaceSplitNode` + `GeneratedWorkspacePane`; file =
-`GeneratedEntityFile` or registered workspace page; Queue cassette card =
+`GeneratedInstanceFile` or registered workspace page; Queue cassette card =
 `QueueEntryCard` association; cassette editor = `CassetteDesignerV2` over an
 OCCS `cassette` template.
 
@@ -31,7 +31,7 @@ OCCS `cassette` template.
 
 > Give every entity view a proper entity header with type + identity + contextual actions.
 
-- [ ] Define identity ownership per generated surface: embedded pane files reuse file/pane identity; standalone `GeneratedEntityDetail` owns its header. Do not duplicate `EntityPage` chrome.
+- [ ] Define identity ownership per generated surface: embedded pane files reuse file/pane identity; standalone `GeneratedInstanceDetail` owns its header. Do not duplicate `InstancePage` chrome.
 
 > Redesign the cassette designer around **viewport + navigator/inspector**, rather than viewport followed by a long vertical form.
 

@@ -13,7 +13,7 @@ User card surface for admin and organization membership views.
 - Expects a `user` DTO with identity/contact fields and permission-related data.
 - Status and trace are hidden; permission changes are handled by admin page
   endpoints, not by the entity card.
-- The inline variant is used by `EntityInlineRef` in status-history actor rows;
+- The inline variant is used by `InstanceInlineRef` in status-history actor rows;
   keep the avatar compact in that variant so audit rows stay dense.
 - Card click behavior is owned by the wrapper where parent pages need user
   selection, and nested actions remain protected by interactive-target

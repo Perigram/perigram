@@ -16,7 +16,7 @@ material data and cassette child counts from the domain field groups.
 
 ## Card Contract
 
-- Every entity card renders a single `EntityCard :variant="variant"` and leaves
+- Every entity card renders a single `InstanceCard :variant="variant"` and leaves
   identity, trace, status, popover, and footer chrome to the shared primitive.
   See [components/shared/README.md](../shared/README.md) for the default-slot
   body contract.
@@ -30,12 +30,12 @@ material data and cassette child counts from the domain field groups.
   production entities emphasize flow and generated outputs, material entities
   emphasize physical specs and stock, catalog entities emphasize options and
   visual samples, and system entities emphasize ownership/contact/file context.
-- Use `SpecsBlock`, `DataBlock`, `GeometryPreview`, `EntityInlineRef`, and
+- Use `SpecsBlock`, `DataBlock`, `GeometryPreview`, `InstanceInlineRef`, and
   PrimeVue `Tag`/`Badge` controls for concise facts. Use `TraceLink` only where
   direct route navigation is intended, not for entity relation summaries. Do not
   render raw nested objects or rebuild identity/status rows locally.
 - Entity facts are access-aware. `DataBlock` and `SpecsBlock` require an
-  `type-id` prop and filter paths through `shared/entity-field-access.js`
+  `type-id` prop and filter paths through `shared/instance-field-access.js`
   using the field policies exported by `@cutkit/domain-cnc`. If a field is not
   declared in the policy, cards must not display it.
 - Relation refs should pass design-system UI keys (`materialPile`,

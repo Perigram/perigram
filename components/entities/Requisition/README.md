@@ -13,11 +13,11 @@ Purchasing/requisition card and detail surfaces.
 
 - Expects a `requisition` DTO with workflow status, `data.items`,
   `data.totalPrice`, and lineage to manufacturer/project where available.
-- Related manufacturer context uses `EntityInlineRef`. Project ancestry stays
+- Related manufacturer context uses `InstanceInlineRef`. Project ancestry stays
   in shared trace chrome through `lineage.projectId` and is not duplicated in
   the card body.
-- Lifecycle transitions are rendered by `EntityCard`/`EntityPage` through
-  `EntityStatus` using the workflow/status API. Non-status commands such as
+- Lifecycle transitions are rendered by `InstanceCard`/`InstancePage` through
+  `InstanceStatus` using the workflow/status API. Non-status commands such as
   delete live in the card footer or page actions.
 
 ## Related

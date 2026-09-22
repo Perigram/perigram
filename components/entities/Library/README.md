@@ -5,7 +5,7 @@ Cards for `library` DTOs from the `libraries` collection.
 ## Components
 
 - `LibraryCard.vue` renders inline, compact, and card variants through shared
-  `EntityCard` chrome. It displays the library identity, material data, and the
+  `InstanceCard` chrome. It displays the library identity, material data, and the
   cassette count summary. When `summary.cassettePreview` is present, the card
   replaces that count with the shared compact cassette relation gallery so
   library children use the same preview/popover/overflow convention as
@@ -26,5 +26,5 @@ Cards for `library` DTOs from the `libraries` collection.
 
 ## Related
 
-- [components/shared/README.md](../../shared/README.md) - EntityCard and DataBlock
+- [components/shared/README.md](../../shared/README.md) - InstanceCard and DataBlock
 - [server/features/libraries/README.md](../../../server/features/libraries/README.md) - backend feature contract

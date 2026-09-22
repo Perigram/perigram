@@ -33,7 +33,7 @@ Add the feature service to `server/runtime/app-registry.js`:
 ```javascript
 import * as featureService from '~/server/features/feature-name/service.js';
 
-const entityServices = {
+const instanceServices = {
   feature_name: featureService
 };
 ```

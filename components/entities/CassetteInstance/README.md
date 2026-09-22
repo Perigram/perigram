@@ -20,7 +20,7 @@ or other sheet processing.
   The thumbnail stays mounted while the source design DTO is loading and then
   reuses the fetched DTO.
 - Source design and parent template context render as compact clickable
-  `EntityInlineRef` rows because they are source/provenance relations. Queue
+  `InstanceInlineRef` rows because they are source/provenance relations. Queue
   ancestry stays in shared trace chrome through `lineage.queueId` and is not
   duplicated in the card body. Relation lookups are silent and tolerate stale
   ids by omitting the resolved row/falling back through shared inline-ref
@@ -30,5 +30,5 @@ or other sheet processing.
 
 ## Related
 
-- [shared](../../shared/README.md) - `EntityCard`, `EntityStatus`, and drawing canvas rules.
+- [shared](../../shared/README.md) - `InstanceCard`, `InstanceStatus`, and drawing canvas rules.
 - [server/features/cassette-instances](../../../server/features/cassette-instances/README.md) - Cassette instance service contract.

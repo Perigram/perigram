@@ -23,9 +23,9 @@ import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
 - Registry: `createRegistry()` and `createCutkitRegistry()`
 - Definitions: `defineDomain`, `defineEntity`, `defineWorkflow`,
   `defineCommand`, `defineTask`, `defineHook`, `defineAttachmentKind`
-- Runtime bindings: `registerEntityService`, `registerCommandHandler`,
+- Runtime bindings: `registerInstanceService`, `registerCommandHandler`,
   `registerTaskExecutor`, `registerHookHandler`, `registerAdapter`
-- Result refs: `createEntityRef`, `normalizeEntityRef`, `createProvenance`,
+- Result refs: `createInstanceRef`, `normalizeInstanceRef`, `createProvenance`,
   `createAttachmentRef`,
   `createCommandResult`, `createTaskResult`
 - Block helpers: `createIdentity`, `createStatus`, `createStatusState`,

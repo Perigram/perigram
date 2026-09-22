@@ -12,8 +12,8 @@ Entity card and detail surfaces for `geometry_capture` records.
 
 ## Contracts
 
-- Uses `EntityCard`, `EntityPage`, `GeometryPreview`, `DataBlock`,
-  `EntityInlineRef`, and `StatusHistory`.
+- Uses `InstanceCard`, `InstancePage`, `GeometryPreview`, `DataBlock`,
+  `InstanceInlineRef`, and `StatusHistory`.
 - Expects `data.geometry.preview` and `data.geometry.polygon.outer/inner` from
   the backend extraction workflow.
 - Warehouse/project ancestry is rendered by shared trace chrome from lineage;

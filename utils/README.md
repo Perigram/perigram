@@ -10,25 +10,25 @@ Shared frontend utility modules used by Vue pages/components.
   designer node form and source edge. It maps structured port type/role data to
   a semantic signal token so a socket and the wire it produces cannot drift
   into separate color contracts.
-- `entity-display-contract.js`: Pure resolver for the UI constructor. It merges
+- `instance-display-contract.js`: Pure resolver for the UI constructor. It merges
   core domain field groups/surfaces, optional app extensions, and per-call
   overrides, then returns the effective surface contract and ordered field
   descriptors for cards, details, workbench previews, and generated consumers.
-- `app-entity-surfaces.js`: App-owned display extensions layered on top of the
+- `app-instance-surfaces.js`: App-owned display extensions layered on top of the
   core domain constructor. Production pages use it for route-specific surfaces
   such as project workspace rows, project detail facts, and selected warehouse
   inventory context without changing the reusable core library contract.
 - `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`.
 - `status-engine.js`: Compatibility status severity/icon mapping and entity route/icon registry used by shared status and trace components. New source-of-truth UI, artifact, and route metadata belongs in `@cutkit/domain-cnc` and is adapted by `@cutkit/vue`. Entity icons are CSS class strings: PrimeIcon classes, or the `ck-entity-icon-*` classes of the generated `ck-entity-icons` icon font (see `scripts/build-entity-icons.js`) used by CNC production entities. Keep both registries in sync when changing entity icons.
-- `status-actions.js`: Converts workflow definitions into default `EntityStatus` action buttons so cards do not use hardcoded state transitions. Respects transition `display` (`inline`, `menu`, `hidden`) and hides self-loop metadata transitions by default. Callers may pass a workflow override; otherwise the utility uses the committed `@cutkit/domain-cnc` workflows. Also exposes `hasWorkflow()` so UI primitives can avoid server action lookups for workflow-less entity types without importing the domain package directly.
+- `status-actions.js`: Converts workflow definitions into default `InstanceStatus` action buttons so cards do not use hardcoded state transitions. Respects transition `display` (`inline`, `menu`, `hidden`) and hides self-loop metadata transitions by default. Callers may pass a workflow override; otherwise the utility uses the committed `@cutkit/domain-cnc` workflows. Also exposes `hasWorkflow()` so UI primitives can avoid server action lookups for workflow-less entity types without importing the domain package directly.
 - `status-location.js`: Normalizes typed current location facts from `status.lifecycle.data.location` for status surfaces. Supported UI types are `warehouse`, `coordinates`, and `address`.
-- `entity-events.js`: Browser-local entity change event helpers. Status
+- `instance-events.js`: Browser-local entity change event helpers. Status
   transitions and successful `useEntity()` CRUD mutations emit the changed
   entity through this helper so pages/stores can refresh related data without
   coupling every button to a page-specific command. The standardized event
   detail shape is `{ type, id, entity?, change, reason, source }`, and shared
   caches should subscribe here instead of inventing per-feature buses. Server
-  SSE events from `GET /api/entity-events` are bridged into this same helper,
+  SSE events from `GET /api/instance-events` are bridged into this same helper,
   so local and cross-device updates use one frontend consumption contract.
 - `mobile-transient-surfaces.js`: Browser-only helper for mobile navigation
   from temporary UI surfaces. Inline entity popovers and trace links dispatch
@@ -54,14 +54,14 @@ Shared frontend utility modules used by Vue pages/components.
 - `selectOptions.js`: Pure helpers for PrimeVue Select option arrays. Use it to
   normalize canonical DTOs (`identity.name`, `identity.slug`, `_id`) into flat
   string `name`/id values before passing them to `optionLabel="name"` controls.
-- `entity-select.js`: Pure option resolution for the shared entity Select and
+- `instance-select.js`: Pure option resolution for the shared entity Select and
   MultiSelect wrappers. Entity rendering requires a canonical DTO plus an
   explicit entity type from the control or option metadata; it never infers a
   type from mutable entity data or lifecycle status.
 - `generated-screen-source.js`: Applies exact compiled Lineage bindings to
   generated source filters and Home visibility. It never guesses arbitrary id
   keys or imports static CNC containment in active-process mode.
-- `entity-hierarchy.js`: Consumes canonical entity identity and effective
+- `instance-hierarchy.js`: Consumes canonical entity identity and effective
   compiled Lineage projections for ancestry, root/sibling scope, and trace
   context. Route trace exclusions require the route value to match both the
   compiled lineage key and the entity's actual ancestor id. Shared trace

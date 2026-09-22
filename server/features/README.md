@@ -27,8 +27,8 @@ Support capabilities are documented and classified, but do not need empty
 
 | Kind | Modules |
 |---|---|
-| Entity modules | `artifacts`, `artifact-templates`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `entity-revisions`, `geometry-captures`, `layer-standards`, `libraries`, `machines`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
-| Capability modules | `artifact-conversions`, `billing`, `config-bot`, `entity-events`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
+| Entity modules | `artifacts`, `artifact-templates`, `cassette-designs`, `cassette-instances`, `cassettes`, `catalogs`, `colors`, `instance-revisions`, `geometry-captures`, `layer-standards`, `libraries`, `machines`, `materials`, `material-piles`, `nesting-runs`, `organizations`, `pen-templates`, `process-definitions`, `profile-templates`, `projects`, `queues`, `remnants`, `requisitions`, `sheet-designs`, `sheets`, `tool-profiles`, `users`, `warehouses` |
+| Capability modules | `artifact-conversions`, `billing`, `config-bot`, `instance-events`, `files`, `invitations`, `material-options`, `nesting`, `notification`, `parametric-cassettes`, `results`, `sessions`, `statuses`, `support`, `system-settings`, `workflow-overrides` |
 
 ---
 
@@ -85,7 +85,7 @@ services must not self-register through hidden globals.
 | `sheets` | Physical sheet or digital design | `organizationId`, `projectId`, `queueId` |
 | `materials` | Base material catalog record | — |
 | `material-piles` | Inventory batch | `organizationId`, `warehouseId` |
-| `entity-revisions` | Immutable scoped content snapshots | mirrors source lineage plus source entity id |
+| `instance-revisions` | Immutable scoped content snapshots | mirrors source lineage plus source entity id |
 | `geometry-captures` | Photo-derived draft geometry captures | `organizationId`, plus `warehouseId` for remnants or `projectId` for facades |
 | `layer-standards` | Drawing layer contract | `organizationId` when overridden or scoped |
 | `libraries` | Material-scoped cassette template library | `organizationId` |
@@ -118,8 +118,8 @@ services must not self-register through hidden globals.
 - **summary**: computed aggregates (counts, totals) — always a separate field, never mixed into `data`
 - **entity synchronization**: successful mutations that should update other
   open sessions publish typed invalidation events through
-  `server/features/entity-events`; do not create per-feature polling loops when
-  the shared event bus can feed the browser-local `entity-events.js` contract.
+  `server/features/instance-events`; do not create per-feature polling loops when
+  the shared event bus can feed the browser-local `instance-events.js` contract.
 - **organization billing**: prepaid service tokens live in
   `server/features/billing` and are owned by organizations. Command-backed
   process services may declare prepaid token cost in the compiled service

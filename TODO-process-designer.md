@@ -84,7 +84,7 @@ processNode, `onGraphChange` deletion boundary). Validation:
 vitest composables/packages/shared designer suites 442 passed;
 `node scripts/check-arch.js`, `npm run framework:validate`,
 `node scripts/check-docs.js` pass. Pre-existing unrelated failures left
-as-is: `components/shared/entity-select.spec.js` (DescriptorEditor direct
+as-is: `components/shared/instance-select.spec.js` (DescriptorEditor direct
 Select import) and three `shared/framework-packages.spec.js` manifest
 checks. Not done in P1 (deferred to P2 by design): class inspector still
 duplicates type-designer editors; port-resolution unification
@@ -141,7 +141,7 @@ Validation: 498 tests green across composables, designer shared specs,
 `packages/processes`, design-system manifest (regenerated for the new
 inspector components), localization; `check-arch`, `check-docs`,
 `framework:validate` pass. Pre-existing unrelated failures unchanged
-(entity-select DescriptorEditor import, three framework-manifest checks).
+(instance-select DescriptorEditor import, three framework-manifest checks).
 
 ##### Agent Notes — 2026-09-19 P2 corrective: swallowed page block
 
@@ -232,7 +232,7 @@ drafts, delete confirm, run API dispatch, pool reload, outbox-aware), and
 auth hydration's generator payload is exposed as `authStore.processPayload`.
 System screens keep the legacy renderer until they migrate. Remaining after
 merge: retire the legacy generated surface used by shared consumers
-(EntityCard, chats, artifacts, billing/org pages), migrate link/unlink
+(InstanceCard, chats, artifacts, billing/org pages), migrate link/unlink
 dialogs to the generator, system-screen migration, and the e2e pass.
 
 Update (overload restore): the first post-merge e2e run exposed that the
@@ -326,7 +326,7 @@ surfaces, navigation/label/root-source utils, and workspace state records
 (`typeId` keys; storage versions bumped so stale pane state is discarded)
 speak `typeId`/`id`. Remaining `typeId` names client-side are
 descriptor-level compiler prompt-form fields (inputPolicy/construction
-input/attachment creator) plus other contracts (entity-events, design-system
+input/attachment creator) plus other contracts (instance-events, design-system
 entity table, support-conversation DTO) — they rename with the
 compiler-plane cut. The compiled execution channel keeps its internal names
 server-side only.
@@ -353,7 +353,7 @@ the reported breakage fixed:
    the explorer nests parent/child again.
 
 Remaining known-legacy consumers of `components/generated/*` (project
-workspace editor overloads, org system screens, EntityCard/chats) still
+workspace editor overloads, org system screens, InstanceCard/chats) still
 stand as the P4 retirement list.
 
 ##### Agent Notes — 2026-09-21 generated-surface wiring defects fixed
@@ -486,7 +486,7 @@ resolve + kebab, no cross-key deletes); `typeIdOf` reads one key.
 
 Also fixed the previous session's missed rename sites (the live
 `parentBoundCreateAppliesToEntityType` import crash in
-GeneratedEntityCollection/GeneratedHomeScreen — rename sweeps must grep
+GeneratedInstanceCollection/GeneratedHomeScreen — rename sweeps must grep
 importers, not just definitions).
 
 Validation: packages 551, client 381+shared, SSR smokes, server/shared
