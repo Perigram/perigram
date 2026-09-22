@@ -1,13 +1,14 @@
 # COMPONENT: Knowledge Workspace Page
 
 `KnowledgeWorkspacePage.vue` hosts the org-wide OpenKnowledge editor as a
-home-workspace tab: a same-origin iframe over the authenticated proxy
-(`/api/knowledge/proxy/`). The session cookie carries admission on every
-editor request, and OpenKnowledge's relative asset paths resolve against
-the proxy prefix. The editor itself — including its websockets for live
-collaboration — runs in the `openknowledge` container; anything the HTTP
-proxy cannot carry degrades in the iframe exactly as documented in
-[the knowledge feature](../../../server/features/knowledge/README.md).
+home-workspace tab: an iframe over the editor's own published origin
+(`runtimeConfig.public.openknowledgeEditorUrl`, default
+`http://localhost:4310`). The editor is a websocket-collab app whose
+`/collab` socket dials the origin it is served from, so it is never framed
+same-origin through the app proxy — that reconnect storm killed the Nuxt
+dev server. Admission gates the sidebar entry server-side
+([the knowledge feature](../../../server/features/knowledge/README.md));
+the authenticated HTTP proxy stays available for programmatic access.
 
 Registration lives in
 [`components/generated/workspace-pages.js`](../generated/workspace-pages.js)

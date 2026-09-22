@@ -47,8 +47,15 @@ The UI contract: the sidebar `CommunicationMenu` shows a Knowledge entry
 only when `admitted`, and it opens the editor as a home-workspace tab
 (page id `knowledge`,
 [`components/knowledge/KnowledgeWorkspacePage.vue`](../../../components/knowledge/README.md))
-hosting the proxy URL in a same-origin iframe — not an external browser
-tab.
+whose iframe targets the editor's own published origin
+(`runtimeConfig.public.openknowledgeEditorUrl`, default
+`http://localhost:4310`, compose-published). The editor is a
+websocket-collab app: its `/collab` socket dials the origin it is served
+from, which the app's dev server cannot survive, so it is never framed
+same-origin through the proxy. Admission gates the menu entry
+server-side; the published editor port is trusted to the deployment
+network in dev. The authenticated proxy remains the HTTP-only surface
+for programmatic access.
 
 The proxy strips the `/api/knowledge/proxy` prefix, preserves method,
 headers, body, and query string, and forwards to
@@ -69,7 +76,7 @@ host, which OpenKnowledge's host admission rejects.
 | Variable | Default | Meaning |
 |---|---|---|
 | `OPENKNOWLEDGE_INTERNAL_URL` | `http://openknowledge:4310` | Network-internal base URL of the container; set empty to disable the feature. |
-| `OPENKNOWLEDGE_EXTERNAL_URL` | `http://localhost:3000` | Browser-facing app origin. OpenKnowledge's host admission allowlists the proxy-forwarded Host/Origin headers against this URL; override it when the app is reached on another host (for example a LAN IP). |
+| `OPENKNOWLEDGE_EXTERNAL_URL` | `http://localhost:4310` | Browser-facing editor origin (published port). OpenKnowledge's host admission allowlists Host/Origin headers against it, its collab websocket dials it, and the workspace-tab iframe targets it (surfaced to the browser as `NUXT_PUBLIC_OPENKNOWLEDGE_EDITOR_URL`). |
 
 The `openknowledge` compose service (dev compose only, like LiveKit) is
 built from [`deploy/openknowledge/Dockerfile`](../../../deploy/openknowledge/Dockerfile):
@@ -105,11 +112,11 @@ that workspace (the image bakes a global git identity for it).
   knowledge base. Single-organization deployments are the intended shape;
   per-org workspaces would need per-org containers or path-scoped
   rewrites the flat web editor cannot honor.
-- The proxy forwards HTTP only. OpenKnowledge's websocket endpoints
-  (live collab on `/collab`) answer `501` cleanly — attempting them
-  through the HTTP proxy would fail with socket errors, and an escaped
-  unhandled rejection takes down the dev module bridge; the editor falls
-  back to its non-socket behavior.
+- The proxy forwards HTTP only; websocket upgrades answer `501` cleanly.
+  The editor UI therefore targets the editor's own published origin
+  (`http://localhost:4310`), where its `/collab` socket is served
+  natively — framing it same-origin through the app killed the Nuxt dev
+  server with an unsurvivable websocket reconnect storm.
 - Realtime integration with the connections layer is intentionally
   absent: OpenKnowledge has no event contract to fan out.
 
