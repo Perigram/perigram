@@ -32,10 +32,19 @@ export function diffTypes(previous = {}, next = {}) {
   for (const value of previousValues) {
     if (!nextValues.includes(value)) changes.push({ severity: 'breaking', kind: 'remove-state', state: value });
   }
+  // Additive state values are minor (SPEC §11): new enum entries extend
+  // the axis without invalidating stored instances. A rename is not
+  // inferred from a remove/add pair — it is declared migration intent.
+  for (const value of nextValues) {
+    if (!previousValues.includes(value)) changes.push({ severity: 'minor', kind: 'add-state', state: value });
+  }
   const previousChildren = Object.keys(previous.edges?.children || {});
   const nextChildren = Object.keys(next.edges?.children || {});
   for (const key of previousChildren) {
     if (!nextChildren.includes(key)) changes.push({ severity: 'breaking', kind: 'remove-edge', edge: `children.${key}` });
+  }
+  for (const key of nextChildren) {
+    if (!previousChildren.includes(key)) changes.push({ severity: 'minor', kind: 'add-edge', edge: `children.${key}` });
   }
 
   return Object.freeze({

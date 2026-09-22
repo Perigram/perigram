@@ -205,6 +205,37 @@ describe('evolution (R7, refuse-on-diff)', () => {
     expect(() => requireCompatible(v1, { ...v1, fields: { serial: { base: 'string' } } })).toThrow(/breaking change/);
   });
 
+  it('added state values and children edges are minor; removals are breaking', () => {
+    const v1 = {
+      id: 'item',
+      fields: { name: { base: 'string' } },
+      states: { main: { values: ['draft', 'done'] } },
+      edges: { children: { batch: { typeId: 'batch' } } }
+    };
+    const additive = diffTypes(v1, {
+      ...v1,
+      states: { main: { values: ['draft', 'done', 'archived'] } },
+      edges: { children: { batch: { typeId: 'batch' }, kit: { typeId: 'kit' } } }
+    });
+    expect(additive.breaking).toBe(false);
+    expect(additive.changes).toEqual([
+      { severity: 'minor', kind: 'add-state', state: 'archived' },
+      { severity: 'minor', kind: 'add-edge', edge: 'children.kit' }
+    ]);
+    const removedState = diffTypes(v1, { ...v1, states: { main: { values: ['draft'] } } });
+    expect(removedState.changes).toContainEqual({ severity: 'breaking', kind: 'remove-state', state: 'done' });
+  });
+
+  it('reports a rename as its remove/add pair — rename intent is never inferred', () => {
+    const v1 = { id: 'item', states: { main: { values: ['scrap', 'ready'] } } };
+    const diff = diffTypes(v1, { ...v1, states: { main: { values: ['recycled', 'ready'] } } });
+    expect(diff.breaking).toBe(true);
+    expect(diff.changes).toEqual([
+      { severity: 'breaking', kind: 'remove-state', state: 'scrap' },
+      { severity: 'minor', kind: 'add-state', state: 'recycled' }
+    ]);
+  });
+
   it('redefining with a breaking row is refused at the registry', () => {
     const registry = packRegistry();
     const sheet = registry.getType('sheet');
