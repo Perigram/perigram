@@ -225,6 +225,9 @@ import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/u
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
+import { useLocalizedTypeLabel } from '~/components/ui-mapping/type-labels.js';
+import { instanceIdentity } from '#shared/ui-mapping/index.js';
+import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { actionAppliesToEntity, isCreateAction, isGeneratedSurfaceAction, isRelationLinkAction } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { resolveGeneratedWorkspacePage, generatedWorkspacePages } from '~/components/generated/workspace-pages.js';
@@ -274,6 +277,7 @@ const supportChatStore = useSupportChatStore();
 const callsStore = useCallsStore();
 const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
+const { localizedTypeLabel } = useLocalizedTypeLabel();
 const activePaneId = ref('pane-1');
 const paneSequence = ref(1);
 const paneTree = ref(createWorkspaceLeaf('pane-1'));
@@ -498,7 +502,12 @@ function openMobileInstance(instance = {}) {
 }
 
 function typeLabelOf(typeId = '') {
-  return registryStore.typeRecord(typeId)?.render?.label || typeId;
+  const record = registryStore.typeRecord(typeId);
+  if (!record) return typeId;
+  // Sidebar type labels follow the single generator label seam
+  // (design-system entity contracts, then the authored render label),
+  // never the raw bundle field — parity with every ui-mapping surface.
+  return localizedTypeLabel({ id: typeId, render: record.render });
 }
 
 // The screen a type node opens: its compiled typeList screen.
@@ -823,13 +832,17 @@ function childCreateActions(item = null) {
 }
 
 function actionContext(section = {}) {
+  // Parent option labels follow the render identity contract: each loaded
+  // DTO maps through the wire-to-screen bridge before instanceIdentity,
+  // so declared identity fields win and raw ids never render.
+  const typeRecord = registryStore.typeRecord(section.source.typeId) || { id: section.source.typeId };
   return {
     region: section.region,
     source: section.source,
     typeId: section.source.typeId,
     parentTypeId: section.source.typeId,
     parentOptions: section.items.map(entity => ({
-      label: entity.identity?.name || entity.identity?.uid || entity._id,
+      label: instanceIdentity(typeRecord, dtoToScreenInstance(entity, typeRecord)),
       value: entity._id || entity.identity?.uid,
       entity
     }))

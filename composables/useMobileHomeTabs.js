@@ -2,6 +2,7 @@ import { computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { useRegistryStore } from '~/stores/registry';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
+import { useLocalizedTypeLabel } from '~/components/ui-mapping/type-labels.js';
 
 // The mobile home tab contract: the sidebar tree's top level as one
 // fixed tab list. Roots are derived exactly like the desktop tree's —
@@ -20,6 +21,8 @@ export function useMobileHomeTabs() {
   const screenfulTypes = computed(() => (authStore.screenManifest || [])
     .filter(screen => screen.typeId && screen.template === 'typeList')
     .map(screen => screen.typeId));
+
+  const { localizedTypeLabel } = useLocalizedTypeLabel();
 
   const tabs = computed(() => {
     const parentOf = new Map(effectiveContainment().map(triple => [triple.childType, triple.parentType]));
@@ -40,14 +43,17 @@ export function useMobileHomeTabs() {
     const screenOf = new Map((authStore.screenManifest || [])
       .filter(screen => screen.typeId && screen.template === 'typeList')
       .map(screen => [screen.typeId, screen]));
-    const record = typeId => registryStore.typeRecord(typeId);
     return [...visible]
       .filter(typeId => !rooted.has(typeId) && screenOf.has(typeId))
       .map(typeId => {
         const screen = screenOf.get(typeId);
+        // Tab labels follow the single generator label seam
+        // (design-system entity contracts, then the authored render
+        // label), never the raw bundle field.
+        const record = registryStore.typeRecord(typeId);
         return {
           key: `screen:${screen.screenKey || screen.id}`,
-          label: record(typeId)?.render?.label || typeId,
+          label: record ? localizedTypeLabel({ id: typeId, render: record.render }) : typeId,
           icon: registryStore.iconFor(typeId),
           screen
         };

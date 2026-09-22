@@ -58,6 +58,8 @@ import TabList from 'primevue/tablist';
 import Tab from 'primevue/tab';
 import { useI18n } from 'vue-i18n';
 import { useRegistryStore } from '~/stores/registry';
+import { instanceIdentity } from '#shared/ui-mapping/index.js';
+import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 import InstanceState from '~/components/shared/state/InstanceState.vue';
 
@@ -74,7 +76,11 @@ const registry = useRegistryStore();
 function tabLabel(tab = {}) {
   if (tab.kind === 'empty') return t('project.newTab');
   if (tab.kind === 'entity') {
-    return tab.entity?.identity?.name || tab.entity?.identity?.slug || tab.entity?.identity?.uid || tab.key;
+    // Entity tab titles follow the render identity contract: the loaded
+    // DTO maps through the wire-to-screen bridge before instanceIdentity,
+    // so the declared identity field wins and raw ids never render.
+    const typeRecord = registry.typeRecord(tab.type) || { id: tab.type };
+    return instanceIdentity(typeRecord, dtoToScreenInstance(tab.entity || {}, typeRecord));
   }
   // Opened type screens resolve their compiled label from the manifest.
   if (tab.kind === 'screen') {

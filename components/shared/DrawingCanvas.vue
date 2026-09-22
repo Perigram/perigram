@@ -25,10 +25,17 @@ const props = defineProps({
   source: { type: [Object, String], default: null },
   sourceType: { type: String, default: 'geometry-preview' },
   mode: { type: String, default: 'card' },
-  // Card/thumbnail modes enlarge dimension text for tile readability; a
-  // preview that must match the interactive canvas pixel-for-pixel (the
-  // unified OCCS preview) opts out and keeps the base font size.
+  // Fill mode: the canvas fills its container bounds exactly (h-full
+  // w-full, no aspect-ratio height, no own border/background — the host
+  // card owns the chrome) and the SVG scales to cover or contain per
+  // source: bitmap-like sketch scenes fill (uniform scale, cropped),
+  // vector drawings fit. Card preview bands (fixed-height headers) opt
+  // in; standalone thumbnails keep their aspect-driven frame.
+  // Card/thumbnail modes enlarge dimension text for tile readability; the
+  // unified OCCS preview keeps the enlargement in card bands but opts out
+  // in the interactive pane viewer to match that canvas pixel-for-pixel.
   scaleDimensionText: { type: Boolean, default: true },
+  fill: { type: Boolean, default: false },
   layerMapping: { type: Object, default: () => ({}) },
   showLayerPanel: { type: Boolean, default: false },
   selectedDesignerFaceId: { type: String, default: null },
@@ -137,11 +144,20 @@ const hasVisibleDesignerSectionLayer = computed(() => {
 });
 const viewBoxValue = computed(() => `${viewBox.value.x} ${viewBox.value.y} ${viewBox.value.width} ${viewBox.value.height}`);
 const canvasAspectClass = computed(() => {
+  if (props.fill) return '';
   if (!['thumbnail', 'card'].includes(props.mode)) return '';
   return viewBox.value.height > viewBox.value.width * 1.15 ? 'aspect-[3/4]' : 'aspect-[5/3]';
 });
-const canvasFrameClass = computed(() => (
-  ['thumbnail', 'card'].includes(props.mode) ? 'w-full' : 'h-full w-full'
+const canvasFrameClass = computed(() => {
+  if (props.fill) return 'h-full w-full';
+  return ['thumbnail', 'card'].includes(props.mode) ? 'w-full' : 'h-full w-full';
+});
+// Fill/fit policy for the canvas SVG: sketch scenes are bitmap-like and
+// fill the frame (uniform scale, cropped overflow); vector drawings
+// (dxf/svg/occs layers) fit inside it. Slice applies only to fill hosts
+// — standalone viewers never crop user content.
+const canvasPreserveAspectRatio = computed(() => (
+  props.fill && props.sourceType === 'sketch' ? 'xMidYMid slice' : 'xMidYMid meet'
 ));
 const displayStrokeWidth = (weight, fallback = 1.5) => {
   const numericWeight = Number(weight);
@@ -786,7 +802,7 @@ onBeforeUnmount(() => {
 <template>
   <div
     class="relative flex overflow-hidden"
-    :class="[isDesigner ? '' : 'rounded-ui border border-content-border bg-subtle', canvasFrameClass, canvasAspectClass]"
+    :class="[isDesigner ? '' : (props.fill ? '' : 'rounded-ui border border-content-border bg-subtle'), canvasFrameClass, canvasAspectClass]"
   >
     <div v-if="loading" class="flex h-full w-full items-center justify-center">
       <ProgressSpinner class="h-8 w-8" />
@@ -861,6 +877,7 @@ onBeforeUnmount(() => {
           ref="svgElement"
           xmlns="http://www.w3.org/2000/svg"
           :viewBox="viewBoxValue"
+          :preserveAspectRatio="canvasPreserveAspectRatio"
           class="h-full w-full"
           :class="[
             isViewer ? 'touch-none' : '',

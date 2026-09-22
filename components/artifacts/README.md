@@ -18,7 +18,12 @@ the domain attachment kind instead of accepting component names.
   overflow-hidden. Geometry canvases fit (the pane viewer keeps pan/zoom
   interaction), PDF/DOCX keep their document-native surfaces (an embedded
   frame and a white document host), tables page through the shared
-  `TABLE_PAGE_ROWS` budget with a paginator, and long text clamps.
+  `TABLE_PAGE_ROWS` budget with a paginator, and long text clamps. The
+  `card` variant fills its caller's fixed-height band with no own border
+  (the host card owns the chrome): images cover it at uniform scale,
+  sketch scenes fill it (slice), vector drawings (dxf/svg/occs) fit
+  inside it (meet), and cassette dimension text renders big there while
+  the pane viewer keeps the pixel-matched base size.
 - Text previews render in the app's serif prose voice. Markdown documents
   (`text/markdown` mime or a `.md` filename) render as sanitized HTML
   through `marked` + `DOMPurify`; plain text keeps its line breaks.
