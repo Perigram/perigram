@@ -59,8 +59,10 @@ prefix root.
 The `openknowledge` compose service (dev compose only, like LiveKit) is
 built from [`deploy/openknowledge/Dockerfile`](../../../deploy/openknowledge/Dockerfile):
 Node 24 + git, the `@inkeep/open-knowledge` npm CLI, and `ok start`
-serving on port 4310. Runtime flags are load-bearing, verified against the
-CLI's actual behavior:
+serving on port 4310. The build runs on the host network
+(`build.network: host`): its apt/npm steps need package mirrors, and
+build sandboxes on egress-restricted hosts cannot reach them. Runtime
+flags are load-bearing, verified against the CLI's actual behavior:
 
 - `ok start` refuses to serve an uninitialized directory, so the container
   entrypoint runs `ok init --no-mcp` on first boot (the volume has no
