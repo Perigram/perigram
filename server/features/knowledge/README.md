@@ -19,12 +19,16 @@ app does not affect the app's license; embedding its source would.
 
 The service is org-wide: every organization member is admitted, and under
 an active compiled process the `knowledge` feature grant (read level)
-additionally applies — the same shape as LiveKit's `call:org:*` rooms.
+additionally applies to non-admins — the same shape as LiveKit's
+`call:org:*` rooms. Organization membership follows the platform's own
+resolution (`resolveProcessAuth`): the user's explicit current
+organization, else their first `memberships[]` entry — most user records
+carry no top-level `organizationId`.
 
 | Caller | Admission |
 |---|---|
 | Unauthenticated | `401` |
-| Admin | Admitted |
+| Admin | Admitted (grant-free) |
 | Organization member (no active process) | Admitted |
 | Organization member (active process) | Admitted only with a `knowledge` read grant in `auth.effectivePermissions` |
 | No organization | `403` |
