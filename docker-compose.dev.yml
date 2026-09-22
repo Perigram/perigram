@@ -60,6 +60,9 @@ services:
   openknowledge:
     build:
       context: ./deploy/openknowledge
+      # Build steps need package mirrors; build sandboxes without egress
+      # (proxy-only hosts) time out, so the build rides the host network.
+      network: host
     container_name: cutkit_openknowledge
     volumes:
       - openknowledge-data:/workspace
