@@ -4,7 +4,7 @@
  * Standardized layout for entity detail pages.
  */
 import IdentityBlock from './blocks/IdentityBlock.vue';
-import InstanceState from './status/InstanceState.vue';
+import InstanceState from './state/InstanceState.vue';
 import TraceChain from './links/TraceChain.vue';
 import InstanceActionsPopover from './InstanceActionsPopover.vue';
 import { computed, inject, provide, unref } from 'vue';
