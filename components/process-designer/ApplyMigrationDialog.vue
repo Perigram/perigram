@@ -63,12 +63,15 @@ import SelectButton from 'primevue/selectbutton';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 
 // The Apply migration decision surface: one row per removed workflow state
-// with a live instance count, one retained-target select per row. Emits the
-// confirmed mappings — the executor contract lives in
-// server/features/process-definitions (Apply migration plan).
+// with a live instance count, one retained-target select per row,
+// pre-filled from the draft's declared migrations. Emits the confirmed
+// mappings — the composable persists them as a declaration on the draft;
+// the executor contract lives in server/features/process-definitions
+// (Apply migration plan).
 const props = defineProps({
   visible: { type: Boolean, default: false },
   plan: { type: Object, default: null },
+  mappings: { type: Array, default: null },
   loading: { type: Boolean, default: false }
 });
 
@@ -76,14 +79,21 @@ const emit = defineEmits(['update:visible', 'confirm', 'cancel']);
 
 const targets = ref({});
 
-watch(() => props.plan, plan => {
+watch(() => [props.plan, props.mappings], () => {
   targets.value = {};
-  if (!plan?.statuses) return;
-  for (const row of plan.statuses) {
-    // Pre-select the sole retained target when there is no real choice.
+  if (!props.plan?.statuses) return;
+  // Declared mappings win; the sole retained target pre-selects only what
+  // the declarations leave open.
+  for (const mapping of props.mappings || []) {
+    if (mapping?.typeId && mapping?.from && mapping?.to) {
+      targets.value[`${mapping.typeId}|${mapping.from}`] = mapping.to;
+    }
+  }
+  for (const row of props.plan.statuses) {
     if (row.targets?.length === 1) {
       for (const removed of row.removed) {
-        targets.value[`${row.typeId}|${removed.state}`] = row.targets[0];
+        const key = `${row.typeId}|${removed.state}`;
+        if (!targets.value[key]) targets.value[key] = row.targets[0];
       }
     }
   }

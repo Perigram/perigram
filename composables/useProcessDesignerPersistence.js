@@ -31,13 +31,11 @@ export function useProcessDesignerPersistence({ request = $fetch } = {}) {
     return request(`/api/process-definitions/${id}/validate`, { method: 'POST' });
   }
 
-  // `migration` carries the confirmed Apply migration mappings when the
-  // next contract removes states still held by live instances.
-  function activateDraft(id, migration = null) {
-    return request(`/api/process-definitions/${id}/activate`, {
-      method: 'POST',
-      body: migration ? { migration } : {}
-    });
+  // Activation carries no payload: the Apply migration decision is a
+  // declaration on the definition (data.migrations.statuses), persisted by
+  // the draft save that precedes activation.
+  function activateDraft(id) {
+    return request(`/api/process-definitions/${id}/activate`, { method: 'POST' });
   }
 
   function previewDraft(definition, nodeId) {
