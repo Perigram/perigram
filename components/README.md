@@ -155,7 +155,8 @@ system screens appended during auth hydration use the same generated template
 contract. Organization management is split into generated system screen records:
 the overview template links to accessible organization sections, the account
 template renders billing regions and checkout actions, and route templates
-represent existing team and process-designer pages. Menus and mobile shortcuts
+represent existing team and process-designer pages. Menus and the mobile
+home tab strip
 read those screen records instead of mining page-local permission checks or
 actions from one organization page. Generated user manifests are
 effective access views: when a user has several process
@@ -355,13 +356,20 @@ changes. The desktop floating chat launcher is icon-only; unread state belongs
 to the app-shell badge, not to a wide floating button label. Opening chat
 dispatches the same transient close event first, so inline entity popovers and
 shell menus do not remain open behind or above the chat surface.
-The mobile app shell runs on PrimeVue `Tabs` as a bottom tab strip: home, the
-user's generated-screen shortcuts, and chats are real tabs of one strip, while
-the profile trigger (account menu with theme switching, which also owns the
-Add screen shortcut entry) is the single action beside the strip. Every tab
-navigates —
-the chats tab opens the bounded `/chats` route exactly like the home and
-shortcut tabs open their routes — so chat is a routed screen, never a state
+The mobile app shell runs on PrimeVue `Tabs` as a bottom tab strip: the
+home workspace tree's root type screens and chats are real tabs of one
+strip, while the profile trigger (account menu with theme switching) is
+the single action beside the strip. The tab list is the shared mobile
+home tab contract
+([composables/README.md](../composables/README.md),
+`useMobileHomeTabs`): the app-shell bar writes the selection, the home
+workspace's mobile branch renders the selected typeList screen through
+the same generator contract as the desktop panes, and a type tab tapped
+outside the home route navigates home first. User-added screen shortcuts
+and the home tab are disabled while the home workspace migration
+settles; organizations without compiled type screens keep a home
+fallback tab. The chats tab opens the bounded `/chats` route — chat is a
+routed screen, never a state
 panel swapped over the current route. Other mobile chat entry points
 (status-history actor chat) navigate to `/chats` with the chat target preset,
 and the floating drawer surface stays desktop-only; there is no floating chat
@@ -381,18 +389,8 @@ to panning because Firefox ignores the `user-scalable` meta, and shell heights
 use `100dvh` so Firefox's dynamic toolbar cannot turn a fitted screen into a
 scrollable one. Surfaces that own gestures (designer canvases) opt into
 `touch-action: none` locally instead.
-The app shell mobile bottom panel may expose up to two generated-screen
-shortcuts. The profile menu carries an "Add screen" row (shown only while a
-slot is free) that opens a second menu tier — a popup PrimeVue `TieredMenu`
-anchored at the row — listing the available generated screens; picking one
-adds the shortcut, and the leaf click closes the tier while the item command
-closes the profile menu through the transient-surfaces event. The long-press
-on a shortcut tab opens a small replace picker — a PrimeVue `Popover` anchored
-at the pressed tab so it flips above the bottom bar and stays attached on
-scrolled pages (a detached `Menu` popup would misplace itself) — offering
-replacement screens plus a delete entry. Shortcuts
-use compiled screen labels and authored icons when available, then fall back to
-generated entity/template icons; they must not be hardcoded domain routes.
+Type tabs use the registry's authored render labels and icons; they must
+not be hardcoded domain routes.
 Generated screen titles, home section headers, generated breadcrumbs, and
 generated action buttons resolve labels through `utils/generated-labels.js`.
 That resolver prefers screen/region `labelKey`, then domain entity label keys,
@@ -655,9 +653,11 @@ field-access policy.
 
 Aura owns generic control and container typography, spacing, borders, radii, shadows, hover, active, disabled, invalid, and keyboard-focus states. App tokens are bounded to domain entity tones, status/process signals, operational workspace constraints, reusable layout dimensions, motion, and app-shell chrome. The `rounded-ui`, `rounded-panel`, `shadow-card`, and `shadow-overlay` utility aliases consume Aura variables directly; they do not define application radius or elevation values.
 
-Application typography has exactly eight complete roles: `text-page-title`,
+Application typography has exactly nine complete roles: `text-page-title`,
 `text-section-heading`, `text-body`, `text-label`, `text-supporting`,
-`text-metric`, `text-technical`, and `text-prose`. Each alias supplies its font
+`text-metric`, `text-technical`, `text-prose`, and `text-editor` (the
+document editing voice: serif like prose, one size step larger for
+authored content). Each alias supplies its font
 family, size, line height, weight, tracking, and numeric behavior from
 `assets/tokens/index.js`; usage sites must not compose those treatments from
 raw size, weight, tracking, leading, mono, or serif utilities. Only
