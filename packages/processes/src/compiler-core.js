@@ -734,6 +734,15 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     validateScreenContract(screen, { screenId, entities, actions: process.actions, errors });
   }
 
+  // Inference owns default stations (crystallization Phase 4): an
+  // authored screen that is projection-equal to the station inference
+  // would emit is redundant — it suppresses nothing and must be deleted,
+  // not maintained by hand.
+  const compiledRoles = compileRoles(process, domain, organizationRoles, lineageBindings);
+  for (const hit of redundantAuthoredScreens(process, domain, compiledRoles, lineageBindings)) {
+    errors.push(`Screen ${hit.id} duplicates the inferred station for role ${hit.roleId} (${hit.typeId}) — delete it; default stations are inference-owned`);
+  }
+
   for (const roleId of Object.keys(process.roleGrants)) {
     if (!organizationRoles[roleId]) errors.push(`Process grants reference missing organization role ${roleId}`);
   }
@@ -2552,6 +2561,90 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, pro
   }
 
   return inferred;
+}
+
+// Crystallization Phase 4 — inference owns default stations. Detector for
+// authored screens that are projection-equal to the station
+// `inferScreensFromRoleGrants` would emit for the same role + type: such
+// screens only suppress an identical inference and are hand-maintained
+// slop. Pure comparison: the inference runs with an empty authored set
+// (no existingKeys suppression), both sides project through
+// `normalizeScreenContract`, and equivalence covers exactly the fields
+// inference sets — any authored customization (label, route, bindings,
+// extra sources/regions) makes the screen NOT redundant.
+export function redundantAuthoredScreens(process = {}, domain = {}, compiledRoles = {}, lineageBindings = []) {
+  const authored = process.screens || {};
+  if (!Object.keys(authored).length || !Object.keys(compiledRoles || {}).length) return [];
+  const pureInferred = inferScreensFromRoleGrants({
+    screens: {},
+    roles: compiledRoles,
+    domain,
+    producerOutputs: process.producerOutputs || {},
+    actions: process.actions || {},
+    graph: process.graph || {},
+    lineageBindings
+  });
+  const inferredByKey = new Map();
+  for (const candidate of Object.values(pureInferred)) {
+    const roleId = candidate.roleIds?.[0];
+    if (!roleId || !candidate.typeId) continue;
+    inferredByKey.set(
+      `${roleId}:${candidate.typeId}:${candidate.template}`,
+      projectScreenForInferenceEquivalence(normalizeScreenContract(candidate))
+    );
+  }
+  const redundant = [];
+  const seen = new Set();
+  for (const [id, screen] of Object.entries(authored)) {
+    if (!screen || typeof screen !== 'object') continue;
+    const normalized = normalizeScreenContract(screen);
+    const roleIds = normalized.roleIds?.length ? normalized.roleIds : Object.keys(compiledRoles);
+    for (const roleId of roleIds) {
+      const key = `${roleId}:${normalized.typeId}:${normalized.template}`;
+      const inferredProjection = inferredByKey.get(key);
+      if (!inferredProjection || seen.has(id)) continue;
+      const projection = projectScreenForInferenceEquivalence({ ...normalized, roleIds: [roleId] });
+      if (canonicalJson(projection) === canonicalJson(inferredProjection)) {
+        seen.add(id);
+        redundant.push({ id, roleId, typeId: normalized.typeId, template: normalized.template });
+      }
+    }
+  }
+  return redundant;
+}
+
+// Script-facing wrapper: the same detection over a raw definition and
+// the organization role catalog, without a prior validation pass (the
+// sweep must run on definitions whose slop would fail validation).
+export function detectRedundantScreens(definition = {}, domain = {}, roles = {}) {
+  const process = normalizeProcessDefinition(definition, domain);
+  const lineageBindings = compileLineageBindings(process, domain);
+  const organizationRoles = normalizeRoleCatalog(roles);
+  const compiledRoles = compileRoles(process, domain, organizationRoles, lineageBindings);
+  return redundantAuthoredScreens(process, domain, compiledRoles, lineageBindings);
+}
+
+function projectScreenForInferenceEquivalence(screen = {}) {
+  return {
+    label: screen.label ?? null,
+    kind: screen.kind ?? null,
+    template: screen.template ?? null,
+    placement: screen.placement ?? null,
+    typeId: screen.typeId ?? null,
+    required: screen.required ?? null,
+    roleIds: [...(screen.roleIds || [])],
+    sources: screen.sources || [],
+    regions: screen.regions || [],
+    actions: screen.actions || []
+  };
+}
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value ?? null);
 }
 
 // Screen actions attach by the screen's entity type when the action knows

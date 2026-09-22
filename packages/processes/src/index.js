@@ -1,5 +1,7 @@
 export {
-  compileProcessDefinition
+  compileProcessDefinition,
+  detectRedundantScreens,
+  redundantAuthoredScreens
 } from './compiler-core.js';
 export * from './normalization.js';
 export * from './validation.js';

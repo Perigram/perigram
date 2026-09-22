@@ -322,6 +322,49 @@ authors attach deltas.
 - Acceptance: no create verb in code; guard red-greens a violating
   fixture; inference-equality sweep reports zero.
 
+#### Agent Notes — 2026-09-22 (phase 4, slice 1: slop guard + broom)
+
+**Correction to the Phase 0 audit:** role-grant station inference
+ALREADY EXISTS (`inferScreensFromRoleGrants` — `auto_<roleId>_<typeId>`
+list + detail stations). Phase 0's claim "no per-type station inference
+exists" was wrong. The real gap was the inverse: authored screens may
+duplicate inference (they suppress it via the existingKeys set), which
+is exactly the hand-added-screens slop.
+
+This slice lands the guard and the broom:
+
+- `redundantAuthoredScreens` detector (exported; script-facing wrapper
+  `detectRedundantScreens(definition, domain, orgRoles)`): runs the
+  pure inference (empty authored set) and flags authored screens whose
+  normalized projection equals the inferred candidate over exactly the
+  fields inference sets. Any customization (label, route, bindings,
+  extra sources/regions) makes a screen NOT redundant — only true
+  duplicates are flagged.
+- `validateProcessDefinition` refuses redundant screens: Apply fails
+  with "duplicates the inferred station for role … — delete it". The
+  slop dies by guard, not vigilance.
+- `server/scripts/sweep-redundant-screens.js` — one-time broom over
+  stored definitions (org domain projection + `organizations.data.roles`
+  read directly; dry-run default, `--apply` deletes and best-effort
+  recompiles).
+- Spec: `packages/processes/src/screen-inference.spec.js` (4 cases:
+  detection, validation block, label-deviation kept, clean compile).
+  Full `packages/processes` suite green except the 2 pre-existing
+  `ui-contract.spec` failures (baseline-verified on `local`).
+
+Deferred to the Phase 4 follow-up slices (tracked here):
+
+1. Create-verb removal + delta-only serialization in the designer
+   Screens tab (screens become override records referencing inferred
+   stations; the tab reworks around diffs-against-inference).
+2. Empty-section law, designer-wide (inspector sections with nothing
+   to say do not render).
+3. Palette discipline: unbindable entries hidden but discoverable.
+4. Phase 3 residual: `defineType` breaking-change refusals attach the
+   binder list (`findTypeReferences`) to the 400 payload.
+
+Status: WAITING (slice 1 of N).
+
 ### Phase 5 — Constants: one storage, two views `[ ]`
 
 - Unify literal-node and socket-value into one record with two
