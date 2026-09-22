@@ -164,7 +164,11 @@ nodeId?, edgeId?, socketId?, producerOutputId? }` graph anchors. Edge,
 join/convergence, required-input availability, and lineage-binding diagnostics
 emit anchors (graph node id, edge id, socket id, and producer output id where
 applicable); `errors` strings remain the derived `message` list so existing
-consumers are unchanged. The activation adapter merges the package
+consumers are unchanged. Diagnostics name process nodes the way the designer
+renders them — the humanized catalog operation label plus the canvas node id
+(`Create entity processNode_42`), with an authored node label winning over
+both; the raw-kind echo the designer sync persists as `label` (for example
+`cts.construct`) is never surfaced. The activation adapter merges the package
 diagnostics with the availability and lineage passes, so the validate and
 activate responses carry one anchored diagnostic list the designer can focus.
 
@@ -505,7 +509,13 @@ value, an authored `inputDefaults` fallback, a domain-owned `default`, a
 generated manual prompt (manual actions only), or the run context (manual
 actions only). Activation rejects a required input with none of these sources;
 a prompt never satisfies an automatically evaluated data path, so an
-event-triggered effect must be complete without a UI prompt. The emptiness rule
+event-triggered effect must be complete without a UI prompt. On a generic
+create, the legacy identity block socket yields to the composer-less
+contract: when the construction contract declares the `name` row, that row is
+the identity source and the block socket stays an optional path for migrated
+v4 wiring instead of a second required input — the v5 construct surface never
+renders block sockets, so a block requirement there would be unsatisfiable.
+The emptiness rule
 is shared by authored fallbacks and domain defaults: `null`/`undefined` never
 satisfy; an empty collection or attachment never satisfies a required
 entity-list/attachment input; an empty string or zero satisfies a required

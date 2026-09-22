@@ -246,7 +246,8 @@ selection, and the join never becomes a workflow anchor of its own.
 Validation and Apply focus the responsible graph element: failed validation
 and activation responses carry structured diagnostics (`nodeId`, `edgeId`,
 `socketId`, `producerOutputId` anchors), and the first anchored diagnostic
-selects its edge or node on the canvas before the error message is shown.
+selects its edge or node on the canvas — framing that element into view —
+before the error message is shown.
 
 Effect-node authorization is authored as roles only, because the node is the
 complete access context: entity type, producer path, workflow, and transition
