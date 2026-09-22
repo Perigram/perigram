@@ -122,6 +122,13 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   the tech-drawing palette colors (§3 system instances in the `files`
   collection; `seed-palette-colors.js` upserts by code, `--apply` to
   persist).
+- `server/scripts/sweep-redundant-screens.js`: One-time Phase 4 broom.
+  Finds authored screens in stored process definitions that are
+  projection-equal to the station inference would emit for the same
+  role + type (pure detection through the org's projected domain and
+  role catalog) and deletes them; validation refuses to re-apply such
+  screens. Dry-run reports; `--apply` deletes and best-effort
+  recompiles the stored contract.
 - `server/scripts/migrate-construction-modes.js`: Persists the
   construct-mode hygiene re-bind into stored process definitions — create
   nodes whose mode the type no longer declares are rewritten to the

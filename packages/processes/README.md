@@ -1036,6 +1036,21 @@ the individual status-scoped grants when it filters returned records, while
 edit/admin affordances come from action and field grants rather than the
 route-level screen requirement.
 
+**Inference owns default stations** (crystallization Phase 4): an
+authored screen that is projection-equal to the station inference would
+emit for the same role + type is redundant slop — it only suppresses an
+identical inference and must be hand-maintained for nothing.
+`redundantAuthoredScreens` (script-facing wrapper:
+`detectRedundantScreens(definition, domain, orgRoles)`) detects them by
+running the pure inference (no authored-screen suppression) and
+comparing normalized projections over exactly the fields inference
+sets; any authored customization — label, route, bindings, extra
+sources/regions — makes a screen NOT redundant. Validation refuses to
+apply a redundant screen ("duplicates the inferred station"); the
+one-time broom is
+[`server/scripts/sweep-redundant-screens.js`](../../server/scripts/README.md)
+(dry-run default, `--apply` deletes and best-effort recompiles).
+
 Each compiled producer output owns its field policy. `read` fields are public
 display fields, `write` fields require write grants, and `private` fields
 require admin grants. Socket definitions are
