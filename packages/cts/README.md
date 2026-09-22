@@ -38,7 +38,15 @@ module layout and how the code maps to the spec's build-order tiers.
   step budget, `map`/`filter` comprehensions, compile-checked exhaustive
   `match` (§18).
 - `diff.js` — version stamping and refuse-on-breaking-diff (R7 core tier);
-  declarative migration steps are deferred per SPEC §19. Redefinition is
+  the classification is complete over the row, the single-axis state enum,
+  and children edges: additive changes (`add-nullable-field`,
+  `loosen-field`, `add-state`, `add-edge`) are minor, while
+  `remove-field`/`retype-field`/`add-required-field`/`remove-state`/
+  `remove-edge` are breaking. Rename intent is not inferred from the diff —
+  a rename is a declared migration step, so the diff reports the underlying
+  remove/add pair and the declaration carries the mapping. Declarative
+  migration steps are deferred per SPEC §19: a breaking diff on a type
+  with persisted instances is still refused. Redefinition is
   free for empty types (instance probe reports zero rows) and for repairs:
   a stored declaration that itself violates class obligations or declares
   unresolvable children never compiled as a contract, so the diff does not
