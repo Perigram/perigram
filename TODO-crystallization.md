@@ -244,7 +244,20 @@ as (a) the v4 executable-contract vocabulary at the lowering seam and
 
 Status: WAITING.
 
-### Phase 2 — Kill copies (reference, not copy) `[ ]`
+### Phase 2 — Kill copies (reference, not copy) `[x]`
+
+#### Agent Notes — 2026-09-22 (closed by verification)
+
+The audit already found this mostly built; the remaining "pin with
+round-trip specs" is covered by existing coverage:
+`cts-designer-roundtrip.spec.js` (declaration nodes/wires persist
+through the canvas round trip), `useProcessDesignerCanvasModel.spec.js`
+(rename re-binds a bound construct live; class delete unbinds without
+losing the node), `useProcessDesignerLiveGraph.spec.js` (rename
+propagates in the same tick), plus Phase 1's legacy-via self-clean
+case. The async literal-lag residual stands as tracked in the
+construct-hygiene notes (no consumer); nothing further to build here.
+
 
 The graph stores bindings; the type document is the single home for
 declaration bytes.
@@ -293,11 +306,9 @@ see the diff.
 - Route `DELETE /api/admin/cts/types/:id` accepts `?abandon=true` and
   the session actor; the types pane surfaces the 409 payload as a
   second explicit abandon confirm (i18n en+ru).
-- Residual (tracked, not blocking): the EDIT path's breaking-change
-  refusal in `defineType` does not yet attach the binder list to its
-  400 — binder visibility today is delete-path only. Fold into the
-  Phase 3 follow-up or the apply-diff work when Phase 4's compiler
-  inference lands (both touch the same diff surface).
+- Residual RESOLVED 2026-09-22 (follow-ups session): `defineType`
+  refusals now attach `data.boundBy` (the `findTypeReferences` list) to
+  the 400 — binder visibility on both delete and edit paths.
 - Validation: cts-types spec (16, incl. 3 new gate/ceremony cases),
   localization spec, arch guard, docs guard.
 
@@ -346,7 +357,10 @@ This slice lands the guard and the broom:
 - `server/scripts/sweep-redundant-screens.js` — one-time broom over
   stored definitions (org domain projection + `organizations.data.roles`
   read directly; dry-run default, `--apply` deletes and best-effort
-  recompiles).
+  recompiles). Follow-up fix: domains/roles are memoized per
+  organization (730 stored definitions sweep in ~2s; per-doc rebuild
+  took minutes). Live-DB dry-run 2026-09-22: ZERO redundant screens
+  stored — the guard is preventive, `--apply` unnecessary.
 - Spec: `packages/processes/src/screen-inference.spec.js` (4 cases:
   detection, validation block, label-deviation kept, clean compile).
   Full `packages/processes` suite green except the 2 pre-existing
