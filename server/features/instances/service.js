@@ -15,8 +15,8 @@ import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import * as typeStore from '../cts-types/repository.js';
 import * as repository from './repository.js';
 import * as filesService from '../files/service.js';
-import * as entityRevisionsService from '../entity-revisions/service.js';
-import { hasEntityAccess } from '../../core/access/service.js';
+import * as instanceRevisionsService from '../instance-revisions/service.js';
+import { hasInstanceAccess } from '../../core/access/service.js';
 
 // The composed system view (framework + mounted packs in dependency
 // order): every pack type is executable through the generic instance
@@ -319,7 +319,7 @@ function instanceService(typeId) {
       }
       const current = toDto(doc, declaration);
       const feature = CLASS_COLLECTIONS[declaration.class] || typeId;
-      if (!hasEntityAccess({ entity: current, typeId: typeId, feature, level: 'write', auth: auth || null })) {
+      if (!hasInstanceAccess({ entity: current, typeId: typeId, feature, level: 'write', auth: auth || null })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
       const stored = await filesService.uploadFile(buffer, filename || 'payload', {
@@ -336,7 +336,7 @@ function instanceService(typeId) {
             name: filename || 'payload'
           }
         }, declaration);
-        await entityRevisionsService.ensureForEntitySnapshot({
+        await instanceRevisionsService.ensureForEntitySnapshot({
           typeId: typeId,
           entity: current,
           scope: declaration.revisions,

@@ -19,7 +19,7 @@ const mocks = vi.hoisted(() => ({
     deleteGroupById: vi.fn()
   },
   appRegistry: {
-    getEntityService: vi.fn(() => ({ processGetById: vi.fn(async () => null) }))
+    getInstanceService: vi.fn(() => ({ processGetById: vi.fn(async () => null) }))
   },
   usersService: {
     getById: vi.fn(),
@@ -407,7 +407,7 @@ describe('support communication service', () => {
           id: 'nesting_run_children',
           typeId: 'nesting_run',
           required: { feature: 'nesting_runs', level: 'read' },
-          filters: { queueId: '$screen.scope.entityId' }
+          filters: { queueId: '$screen.scope.instanceId' }
         }]
       }]
     };
@@ -465,7 +465,7 @@ describe('support communication service', () => {
           id: 'nesting_run_children',
           typeId: 'nesting_run',
           required: { feature: 'nesting_runs', level: 'read' },
-          filters: { queueId: '$screen.scope.entityId' }
+          filters: { queueId: '$screen.scope.instanceId' }
         }]
       }, {
         id: 'nesting_run_list',
@@ -854,7 +854,7 @@ describe('support communication service', () => {
 
     // Regression: a manifest whose creator kinds were not expanded by the
     // compiler must degrade to "no creator credit", not throw a 500 that
-    // takes down type-ids, entity-options, and every message send.
+    // takes down type-ids, instance-options, and every message send.
     await expect(supportService.listEntityOptionTypes(auth)).resolves.toEqual([]);
     await expect(supportService.sendUserMessage(auth, {
       recipientUserId: 'user-b',
@@ -862,7 +862,7 @@ describe('support communication service', () => {
     })).resolves.toBeTruthy();
   });
   it('resolves entity conversation contexts through the scoped registry read', async () => {
-    mocks.appRegistry.getEntityService.mockImplementation((type) => ({
+    mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
       processGetById: vi.fn(async (id) => (type === 'project' && id === 'project-1'
         ? { toJSON: () => ({ _id: 'project-1', identity: { name: 'Facade Alpha' }, lineage: { organizationId: 'org-1' } }) }
         : null))
@@ -886,7 +886,7 @@ describe('support communication service', () => {
   it('resolves child-entity contexts through the scoped option window', async () => {
     // Direct registry reads deny cassettes; the scoped list window the
     // picker browses still returns them, and the chat context follows it.
-    mocks.appRegistry.getEntityService.mockImplementation((type) => ({
+    mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
       processGetById: vi.fn(async () => (type === 'cassette'
         ? null
         : { toJSON: () => ({ _id: 'org-1', identity: { name: 'Org1' }, lineage: {} }) }))
@@ -915,7 +915,7 @@ describe('support communication service', () => {
   it('composes aggregated entity views through the entity path', () => {
     const context = {
       typeId: 'organization',
-      entityId: 'org-1',
+      instanceId: 'org-1',
       match: { conversationKey: 'entity:organization:org-1' }
     };
     expect(supportService.entityConversationMatch(context, true)).toEqual({
@@ -933,7 +933,7 @@ describe('support communication service', () => {
       'project:project-1': { _id: 'project-1', identity: { name: 'Facade Alpha' }, lineage: { organizationId: 'org-1' } },
       'organization:org-1': { _id: 'org-1', identity: { name: 'Org1' }, lineage: {} }
     };
-    mocks.appRegistry.getEntityService.mockImplementation((type) => ({
+    mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
       processGetById: vi.fn(async (id) => {
         const dto = table[`${type}:${id}`];
         return dto ? { toJSON: () => dto } : null;
@@ -989,7 +989,7 @@ describe('support communication service', () => {
     mocks.usersService.getById.mockResolvedValue({
       toJSON: () => ({ _id: 'user-b', identity: { name: 'User B' }, data: {} })
     });
-    mocks.appRegistry.getEntityService.mockImplementation((type) => ({
+    mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
       processGetById: vi.fn(async (id) => (type === 'organization' && id === 'org-1'
         ? { toJSON: () => ({ _id: 'org-1', identity: { name: 'Org1' }, lineage: {} }) }
         : null))
@@ -1027,7 +1027,7 @@ describe('support communication service', () => {
     // Live lineage: the queue carries projectId; the walk climbs to the
     // project whose type has no non-organization parent binding, even when
     // the stored entityPath is degraded.
-    mocks.appRegistry.getEntityService.mockImplementation((type) => ({
+    mocks.appRegistry.getInstanceService.mockImplementation((type) => ({
       processGetById: vi.fn(async (id) => {
         const table = {
           organization: { _id: 'org-1', identity: { name: 'Org1' }, lineage: {} },

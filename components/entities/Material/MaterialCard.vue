@@ -1,6 +1,6 @@
 <template>
   <div class="h-full">
-    <EntityCard :entity="material" type-id="material" :variant="variant" :show-trace="false" :show-status="false">
+    <InstanceCard :entity="material" type-id="material" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-database"></i>
       </template>
@@ -15,18 +15,18 @@
       </template>
       <Divider />
       <DataBlock type-id="material" :entity="material" :fields="FIELDS" />
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>
 
 <script setup>
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
-const FIELDS = resolveEntityDisplayFields({ typeId: 'material', surface: 'card' });
+const FIELDS = resolveInstanceDisplayFields({ typeId: 'material', surface: 'card' });
 
 defineProps({
   material: { type: Object, required: true },

@@ -4,7 +4,7 @@
 // references, relations passed through as typed refs, and the primary
 // status landing on the main state axis.
 import { describe, expect, it } from 'vitest';
-import { entityDtoToScreenInstance } from './instance-shape.js';
+import { dtoToScreenInstance } from './instance-shape.js';
 
 const typeRecord = {
   id: 'part',
@@ -24,9 +24,9 @@ const typeRecord = {
   }
 };
 
-describe('entityDtoToScreenInstance', () => {
+describe('dtoToScreenInstance', () => {
   it('maps row fields through their slots with quantity wrapping', () => {
-    const instance = entityDtoToScreenInstance({
+    const instance = dtoToScreenInstance({
       _id: 'ent-1',
       identity: { uid: 'uid-1', name: 'Bracket' },
       data: { name: 'Bracket', owner: { type: 'keeper', id: 'k-1' }, margins: { leftMm: 4, note: 'tight' } },
@@ -42,7 +42,7 @@ describe('entityDtoToScreenInstance', () => {
   });
 
   it('normalizes lineage ids to references and keeps typed relations', () => {
-    const instance = entityDtoToScreenInstance({
+    const instance = dtoToScreenInstance({
       _id: 'ent-2',
       lineage: { projectId: 'p-9', queueId: null },
       relations: { linkedSheets: [{ type: 'sheet', id: 's-1' }], pinned: { type: 'sheet', id: 's-2' } },
@@ -55,7 +55,7 @@ describe('entityDtoToScreenInstance', () => {
   });
 
   it('falls back to identity core fields for labels when rows carry none', () => {
-    const instance = entityDtoToScreenInstance({
+    const instance = dtoToScreenInstance({
       _id: 'ent-3',
       identity: { name: 'Legacy part' },
       data: {}

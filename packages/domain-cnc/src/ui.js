@@ -1,6 +1,6 @@
 import { cncEntities } from './entities.js';
 import { cncWorkflows } from './workflows.js';
-import { cncEntityFieldGroups } from './ui-fields.js';
+import { cncInstanceFieldGroups } from './ui-fields.js';
 import { createEntitySurfaceContracts } from './ui-surfaces.js';
 
 export const cncStatusUi = {
@@ -44,15 +44,15 @@ export const cncDesignSystemGroups = [
 ];
 
 export const cncDesignSystemPrimitives = [
-  { key: 'EntityCard', kind: 'entity-chrome', componentPath: 'components/shared/EntityCard.vue', purpose: 'Standard entity card chrome with identity, optional trace, optional status, content, and footer slots.', docs: ['components/shared/README.md'] },
-  { key: 'EntityPage', kind: 'entity-layout', componentPath: 'components/shared/EntityPage.vue', purpose: 'Standard detail-page shell with trace, identity, status, info, actions, body, and sidebar slots.', docs: ['components/shared/README.md'] },
-  { key: 'EntitySelect', kind: 'entity-input', componentPath: 'components/shared/EntitySelect.vue', purpose: 'PrimeVue Select wrapper that renders canonical entity options as compact cards and selected entities outside the value area with a compact change trigger.', docs: ['components/shared/README.md', 'docs/DESIGN_SYSTEM.md'] },
-  { key: 'EntityMultiSelect', kind: 'entity-input', componentPath: 'components/shared/EntityMultiSelect.vue', purpose: 'PrimeVue MultiSelect wrapper that renders entity options as compact cards and selected entities outside the chip area with a compact change trigger.', docs: ['components/shared/README.md', 'docs/DESIGN_SYSTEM.md'] },
+  { key: 'InstanceCard', kind: 'entity-chrome', componentPath: 'components/shared/InstanceCard.vue', purpose: 'Standard entity card chrome with identity, optional trace, optional status, content, and footer slots.', docs: ['components/shared/README.md'] },
+  { key: 'InstancePage', kind: 'entity-layout', componentPath: 'components/shared/InstancePage.vue', purpose: 'Standard detail-page shell with trace, identity, status, info, actions, body, and sidebar slots.', docs: ['components/shared/README.md'] },
+  { key: 'InstanceSelect', kind: 'entity-input', componentPath: 'components/shared/InstanceSelect.vue', purpose: 'PrimeVue Select wrapper that renders canonical entity options as compact cards and selected entities outside the value area with a compact change trigger.', docs: ['components/shared/README.md', 'docs/DESIGN_SYSTEM.md'] },
+  { key: 'InstanceMultiSelect', kind: 'entity-input', componentPath: 'components/shared/InstanceMultiSelect.vue', purpose: 'PrimeVue MultiSelect wrapper that renders entity options as compact cards and selected entities outside the chip area with a compact change trigger.', docs: ['components/shared/README.md', 'docs/DESIGN_SYSTEM.md'] },
   { key: 'IdentityBlock', kind: 'block', componentPath: 'components/shared/blocks/IdentityBlock.vue', purpose: 'Canonical identity rendering for names, slugs, serials, references, and inline trace labels.', docs: ['components/shared/README.md'] },
   { key: 'DataBlock', kind: 'block', componentPath: 'components/shared/blocks/DataBlock.vue', purpose: 'Canonical label/value rows for generated entity data fields.', docs: ['components/shared/README.md', 'utils/README.md'] },
   { key: 'SpecsBlock', kind: 'block', componentPath: 'components/shared/blocks/SpecsBlock.vue', purpose: 'Canonical width, length, area, and thickness display for entities with specs.', docs: ['components/shared/README.md'] },
   { key: 'StatusBadge', kind: 'status', componentPath: 'components/shared/blocks/StatusBadge.vue', purpose: 'Read-only status tag using the shared status mapping.', docs: ['components/shared/README.md', 'utils/README.md'] },
-  { key: 'EntityStatus', kind: 'status', componentPath: 'components/shared/status/EntityStatus.vue', purpose: 'Interactive status display and workflow-derived transition actions.', docs: ['components/shared/README.md', 'utils/README.md'] },
+  { key: 'InstanceStatus', kind: 'status', componentPath: 'components/shared/status/InstanceStatus.vue', purpose: 'Interactive status display and workflow-derived transition actions.', docs: ['components/shared/README.md', 'utils/README.md'] },
   { key: 'StatusLocation', kind: 'status', componentPath: 'components/shared/status/StatusLocation.vue', purpose: 'Typed current lifecycle location rendering from status.lifecycle.data.location.', docs: ['components/shared/README.md', 'docs/DESIGN_SYSTEM.md'] },
   { key: 'StatusHistory', kind: 'status', componentPath: 'components/shared/status/StatusHistory.vue', purpose: 'Status audit timeline for entity lifecycle events.', docs: ['components/shared/README.md'] },
   { key: 'DrawingCanvas', kind: 'block', componentPath: 'components/shared/DrawingCanvas.vue', purpose: 'Shared layer-aware SVG canvas for geometry previews, DXF artifacts, cassette thumbnails, and cassette designer interactions.', docs: ['components/shared/README.md', 'utils/README.md'] },
@@ -73,7 +73,7 @@ export const cncDesignSystemPrimitives = [
 
 const workflowStatus = (typeId) => cncWorkflows[typeId] ? 'interactive' : 'hidden';
 
-export const cncDesignSystemEntityContracts = [
+export const cncDesignSystemInstanceContracts = [
   ['facade', 'facade', 'production', 'entities.facade', 'facade', 'createMockFacade', workflowStatus('facade'), true, ['components/entities/Facade/README.md', 'server/features/facades/README.md']],
   ['facadePattern', 'facade_pattern', 'master', 'entities.facadePattern', 'facadePattern', 'createMockFacadePattern', workflowStatus('facade_pattern'), true, ['components/entities/FacadePattern/README.md', 'server/features/facade-patterns/README.md']],
   ['project', 'project', 'production', 'entities.project', 'project', 'createMockProject', workflowStatus('project'), true, ['components/entities/Project/README.md', 'server/features/projects/README.md']],
@@ -93,7 +93,7 @@ export const cncDesignSystemEntityContracts = [
   ['remnant', 'remnant', 'material', 'entities.remnant', 'remnant', 'createMockRemnant', workflowStatus('remnant'), true, ['server/features/remnants/README.md']],
   ['catalog', 'catalog', 'master', 'entities.catalog', 'catalog', 'createMockCatalog', 'hidden', true, ['server/features/catalogs/README.md']],
   ['color', 'color', 'master', 'entities.color', 'color', 'createMockColor', 'hidden', true, ['server/features/colors/README.md']],
-  ['entityRevision', 'entity_revision', 'system', 'entities.entityRevision', 'revision', 'createMockEntityRevision', 'hidden', true, ['components/entities/EntityRevision/README.md', 'server/features/entity-revisions/README.md']],
+  ['entityRevision', 'entity_revision', 'system', 'entities.entityRevision', 'revision', 'createMockEntityRevision', 'hidden', true, ['components/entities/EntityRevision/README.md', 'server/features/instance-revisions/README.md']],
   ['geometryCapture', 'geometry_capture', 'production', 'entities.geometryCapture', 'capture', 'createMockGeometryCapture', workflowStatus('geometry_capture'), true, ['components/entities/GeometryCapture/README.md', 'server/features/geometry-captures/README.md']],
   ['profileTemplate', 'profile_template', 'master', 'entities.profileTemplate', 'profile', 'createMockProfileTemplate', 'hidden', false, ['server/features/profile-templates/README.md']],
   ['warehouse', 'warehouse', 'master', 'entities.warehouse', 'warehouse', 'createMockWarehouse', workflowStatus('warehouse'), true, ['server/features/warehouses/README.md']],
@@ -117,15 +117,15 @@ export const cncDesignSystemEntityContracts = [
   docs
 }));
 
-export const cncEntitySurfaceContracts = createEntitySurfaceContracts(cncDesignSystemEntityContracts);
+export const cncInstanceSurfaceContracts = createEntitySurfaceContracts(cncDesignSystemInstanceContracts);
 
 export const cncDesignSystem = {
   variants: cncDesignSystemVariants,
   groups: cncDesignSystemGroups,
   primitives: cncDesignSystemPrimitives,
-  contracts: cncDesignSystemEntityContracts,
-  fieldGroups: cncEntityFieldGroups,
-  surfaces: cncEntitySurfaceContracts
+  contracts: cncDesignSystemInstanceContracts,
+  fieldGroups: cncInstanceFieldGroups,
+  surfaces: cncInstanceSurfaceContracts
 };
 
 export const cncUiSurfaces = cncEntities.map(definition => ({

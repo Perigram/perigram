@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { emitStatusTransitionResult } from '~/utils/entity-events.js';
+import { emitStatusTransitionResult } from '~/utils/instance-events.js';
 import { useOutboxStore } from '~/stores/outbox';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 
@@ -65,7 +65,7 @@ export const useStatusController = () => {
       url: getStatusEndpoint(),
       method: 'POST',
       body,
-      meta: { kind: 'transition', typeId, entityId: targetId, reason: 'status-transition' }
+      meta: { kind: 'transition', typeId, instanceId: targetId, reason: 'status-transition' }
     });
   }
 

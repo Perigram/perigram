@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { cncWorkflows } from '~/packages/domain-cnc/src/index.js';
 import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
 import { createCncFixtureScenario, validateCncFixtureScenario } from './scenarios.js';
-import { contextToScenario, createWorkbenchContext, findContextEntity, transitionContextEntityStatus, upsertContextEntities } from './workbench-context.js';
+import { contextToScenario, createWorkbenchContext, findContextEntity, transitionContextInstanceStatus, upsertContextEntities } from './workbench-context.js';
 import { buildManualWorkbenchEntity, defaultManualEntityDraft, manualEntityContextType, manualFieldsForEntity } from './workbench-manual-entities.js';
 
 describe('CNC fixture scenarios', () => {
@@ -65,7 +65,7 @@ describe('CNC fixture scenarios', () => {
 
   it('updates workbench entity statuses inside the fixture context', () => {
     const context = createWorkbenchContext();
-    const next = transitionContextEntityStatus(context, {
+    const next = transitionContextInstanceStatus(context, {
       type: 'project',
       id: context.refs.project,
       state: 'ACTIVE',
@@ -101,7 +101,7 @@ describe('CNC fixture scenarios', () => {
       label: 'Project'
     });
 
-    expect(queueFields.find(field => field.name === 'projectId')?.type).toBe('entityId');
+    expect(queueFields.find(field => field.name === 'projectId')?.type).toBe('instanceId');
     expect(queueFields.find(field => field.name === 'cassetteId')?.typeId).toBe('cassette');
     expect(projectFields).not.toContain('address');
     expect(projectDraft.organizationId).toBeUndefined();

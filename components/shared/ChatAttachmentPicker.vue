@@ -31,7 +31,7 @@
             <i class="pi pi-spinner pi-spin shrink-0" aria-hidden="true" />
             <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
           </span>
-          <EntityInlineRef
+          <InstanceInlineRef
             v-else-if="node.data?.item"
             :type="node.data.item.type"
             :entity="node.data.item.entity"
@@ -50,7 +50,7 @@ import { computed, ref } from 'vue'
 import Popover from 'primevue/popover'
 import Tree from 'primevue/tree'
 import { useI18n } from 'vue-i18n'
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue'
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue'
 import { isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js'
 import { generatedDetailScreenForTypeId } from '~/components/generated/detail-screen-actions.js'
 import { generatedActionLabel, generatedRegionLabel } from '~/utils/generated-labels.js'
@@ -87,14 +87,14 @@ const effectiveContainment = useEffectiveContainment()
 
 const iconFor = (type) => instances.iconFor(type)
 
-const entityId = (entity = null) => {
+const instanceId = (entity = null) => {
   const value = entity?._id || entity?.identity?.uid || ''
   return value ? String(value) : ''
 }
 
 const entityLabel = (entity = null, type = '') => (
   entity?.identity?.name || entity?.identity?.serial || entity?.identity?.uid
-  || entityId(entity) || type
+  || instanceId(entity) || type
 )
 
 // Home-screen sections, filtered like the sidebar: list sources whose type
@@ -222,7 +222,7 @@ function onNodeSelect(node) {
       ? { ...option, type: item.type }
       : {
           type: item.type,
-          value: entityId(item.entity) || item.key,
+          value: instanceId(item.entity) || item.key,
           label: item.name || entityLabel(item.entity, item.type),
           entity: item.entity || null
         })
@@ -244,7 +244,7 @@ async function loadSectionOptions(typeId, sectionKey) {
   if (loadedKeys.value.has(sectionKey) || loadingKeys.value.has(sectionKey)) return
   loadingKeys.value = new Set([...loadingKeys.value, sectionKey])
   try {
-    const loaded = await $fetch('/api/support/entity-options', {
+    const loaded = await $fetch('/api/support/instance-options', {
       query: {
         type: typeId,
         ...(props.recipientUserId ? { recipientUserId: props.recipientUserId } : {})
@@ -285,7 +285,7 @@ async function loadChildren(parent) {
       try {
         const entities = await instances.listInstances(instances.canonicalTypeKey(source.typeId), source.filters)
         return (Array.isArray(entities) ? entities : []).map(entity => ({
-          key: `${source.typeId}:${entityId(entity)}`,
+          key: `${source.typeId}:${instanceId(entity)}`,
           type: source.typeId,
           name: entityLabel(entity, source.typeId),
           entity

@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="remnant" type-id="remnant">
+    <InstancePage :entity="remnant" type-id="remnant">
         <template #actions>
             <Button icon="pi pi-qrcode" text :aria-label="$t('common.printTag')" />
         </template>
@@ -9,16 +9,16 @@
                 <div class="flex flex-col gap-3">
                     <div class="flex items-center justify-between gap-4">
                         <small class="text-muted">{{ $t('results.material') }}</small>
-                        <EntityInlineRef v-if="pile" type="materialPile" :entity="pile" />
+                        <InstanceInlineRef v-if="pile" type="materialPile" :entity="pile" />
                         <span v-else>—</span>
                     </div>
                     <div v-if="sheet" class="flex items-center justify-between gap-4">
                         <small class="text-muted">{{ $t('results.sheet') }}</small>
-                        <EntityInlineRef type="sheet" :entity="sheet" />
+                        <InstanceInlineRef type="sheet" :entity="sheet" />
                     </div>
                     <div v-if="warehouse" class="flex items-center justify-between gap-4">
                         <small class="text-muted">{{ $t('entities.warehouse') }}</small>
-                        <EntityInlineRef type="warehouse" :entity="warehouse" />
+                        <InstanceInlineRef type="warehouse" :entity="warehouse" />
                     </div>
                 </div>
             </Panel>
@@ -35,7 +35,7 @@
                 <GeometryPreview :entity="remnant" />
             </Panel>
         </div>
-    </EntityPage>
+    </InstancePage>
 </template>
 
 <script setup>
@@ -45,9 +45,9 @@ import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import { useInstancesStore } from '~/stores/instances';
-import EntityPage from '~/components/shared/EntityPage.vue';
+import InstancePage from '~/components/shared/InstancePage.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import MetricPanel from '~/components/shared/MetricPanel.vue';
 
 const { t } = useI18n();

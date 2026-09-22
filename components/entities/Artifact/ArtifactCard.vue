@@ -4,10 +4,10 @@
  */
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
 const props = defineProps({
   artifact: { type: Object, required: true },
@@ -28,7 +28,7 @@ const icon = computed(() => {
   return 'pi-file';
 });
 
-const ARTIFACT_FIELDS = resolveEntityDisplayFields({ typeId: 'artifact', surface: 'card' })
+const ARTIFACT_FIELDS = resolveInstanceDisplayFields({ typeId: 'artifact', surface: 'card' })
   .filter(field => field.display !== 'entityRef');
 
 const isChildControl = (event) => {
@@ -56,11 +56,11 @@ const onPreviewKeydown = (event) => {
     class="cursor-pointer"
     role="button"
     tabindex="0"
-    data-entity-card-interactive="true"
+    data-instance-card-interactive="true"
     @click.stop="emitPreview"
     @keydown="onPreviewKeydown"
   >
-    <EntityCard :entity="artifact" type-id="artifact" :variant="variant" :show-status="false" :expandable="false">
+    <InstanceCard :entity="artifact" type-id="artifact" :variant="variant" :show-status="false" :expandable="false">
       <template #before-identity>
         <i :class="['pi', icon]"></i>
       </template>
@@ -69,9 +69,9 @@ const onPreviewKeydown = (event) => {
         <DataBlock type-id="artifact" :entity="artifact" :fields="ARTIFACT_FIELDS" />
         <div v-if="runId" class="flex items-center justify-between gap-4">
           <small class="text-muted">{{ $t('entities.nestingRun') }}</small>
-          <EntityInlineRef type="nestingRun" :id="runId" />
+          <InstanceInlineRef type="nestingRun" :id="runId" />
         </div>
       </div>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>

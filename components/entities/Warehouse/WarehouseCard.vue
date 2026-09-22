@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <EntityCard :entity="warehouse" type-id="warehouse" :variant="variant" :show-trace="false" :show-status="false">
+    <InstanceCard :entity="warehouse" type-id="warehouse" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-building"></i>
       </template>
@@ -18,7 +18,7 @@
       </template>
       <Divider />
       <DataBlock type-id="warehouse" :entity="warehouse" :fields="FIELDS" />
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>
 
@@ -29,11 +29,11 @@
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
-const FIELDS = resolveEntityDisplayFields({ typeId: 'warehouse', surface: 'card' });
+const FIELDS = resolveInstanceDisplayFields({ typeId: 'warehouse', surface: 'card' });
 
 const props = defineProps({
   warehouse: { type: Object, required: true },

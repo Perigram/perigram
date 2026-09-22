@@ -106,7 +106,7 @@
 // re-derives records, ports, and the tree overlay from it.
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import DescriptorEditor from '~/components/type-designer/DescriptorEditor.vue';
 import { DECLARABLE_CLASSES } from '~/packages/cts/src/index.js';
 

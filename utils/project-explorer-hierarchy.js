@@ -1,9 +1,9 @@
-import { containmentParent, normalizeHierarchyType } from './entity-hierarchy.js';
+import { containmentParent, normalizeHierarchyType } from './instance-hierarchy.js';
 
 export function projectExplorerHierarchy({ projectItem = null, items = [], linkedItemKeys = [], containment = null } = {}) {
   if (!projectItem) return { childrenByKey: new Map(), rootItems: [], linkedRootItems: [], orphanItems: [] };
   const uniqueItems = [...new Map(items.filter(item => item?.key).map(item => [item.key, item])).values()];
-  const byIdentity = new Map(uniqueItems.map(item => [identityKey(item.type, entityId(item.entity)), item]));
+  const byIdentity = new Map(uniqueItems.map(item => [identityKey(item.type, instanceId(item.entity)), item]));
   const childrenByKey = new Map();
   const roots = [];
   const linkedRoots = [];
@@ -22,7 +22,7 @@ export function projectExplorerHierarchy({ projectItem = null, items = [], linke
     }
     if (linkedKeys.has(item.key)) linkedRoots.push(item);
     else if (parent && normalizeHierarchyType(parent.parentType) === normalizeHierarchyType(projectItem.type)
-      && String(parentId) === String(entityId(projectItem.entity))) roots.push(item);
+      && String(parentId) === String(instanceId(projectItem.entity))) roots.push(item);
     else orphans.push(item);
   }
 
@@ -39,6 +39,6 @@ function identityKey(type, id) {
   return `${normalizeHierarchyType(type)}:${String(id || '')}`;
 }
 
-function entityId(entity = {}) {
+function instanceId(entity = {}) {
   return entity?._id?.toString?.() || entity?.identity?.uid?.toString?.() || entity?.id?.toString?.() || '';
 }

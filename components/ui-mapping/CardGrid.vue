@@ -106,7 +106,7 @@ import {
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
-import AppSelect from '~/components/shared/EntitySelect.vue';
+import AppSelect from '~/components/shared/InstanceSelect.vue';
 
 const spacing = inject('uiMappingSpacing', null);
 const editorSize = computed(() => (spacing ? spacing.editorSize : undefined));

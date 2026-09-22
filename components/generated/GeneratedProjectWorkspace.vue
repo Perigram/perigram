@@ -32,7 +32,7 @@
           rounded
           size="small"
           severity="secondary"
-          :aria-label="$t('support.entityChat')"
+          :aria-label="$t('support.instanceChat')"
           @click="openProjectChat"
         />
       </span>
@@ -111,7 +111,7 @@
 
       <div class="flex h-full min-h-0 flex-col lg:hidden">
         <div class="shrink-0 border-b border-content-border p-1">
-          <EntitySelect
+          <InstanceSelect
             v-model="mobileSelectedKey"
             :options="mobileWorkspaceOptions"
             option-label="label"
@@ -142,12 +142,12 @@
 <script setup>
 import { computed, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
-import { openEntityChat } from '~/utils/entity-chat.js';
+import { openEntityChat } from '~/utils/instance-chat.js';
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
 import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
-import EntitySelect from '~/components/shared/EntitySelect.vue';
+import InstanceSelect from '~/components/shared/InstanceSelect.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import GeneratedProjectActionPalette from '~/components/generated/GeneratedProjectActionPalette.vue';
@@ -160,7 +160,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
-import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
+import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { projectExplorerHierarchy } from '~/utils/project-explorer-hierarchy.js';
 import { emptyTabItem, emptyTabKey, isEmptyTabKey } from '~/utils/workspace-empty-tabs.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
@@ -232,7 +232,7 @@ const projectKey = computed(() => entityKey('project', project.value));
 const workspaceStorageKey = computed(() => projectWorkspaceStorageKey({
   userId: authStore.userData?.id || authStore.userData?.userId || authStore.userData?._id,
   organizationId: authStore.organizationData?._id || authStore.userData?.organizationId,
-  projectId: entityId(project.value)
+  projectId: instanceId(project.value)
 }));
 const projectItem = computed(() => project.value ? {
   key: projectKey.value,
@@ -244,7 +244,7 @@ const projectItem = computed(() => project.value ? {
 const projectActionContext = computed(() => ({
   parentTypeId: 'project',
   parentEntity: project.value,
-  parentEntityId: entityId(project.value)
+  parentEntityId: instanceId(project.value)
 }));
 const childSections = computed(() => regions.value
   .filter(region => region !== mainRegion.value)
@@ -267,7 +267,7 @@ const entityItems = computed(() => [
     entity,
     region: section.region
   })))
-].filter(item => item?.entity && entityId(item.entity)));
+].filter(item => item?.entity && instanceId(item.entity)));
 const workspaceEntityItems = computed(() => [...entityItems.value, ...linkedEntityItems.value, ...linkedChildItems.value, ...openedEntityItems.value]
   .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index));
 const explorerHierarchy = computed(() => projectExplorerHierarchy({
@@ -277,7 +277,7 @@ const explorerHierarchy = computed(() => projectExplorerHierarchy({
   containment: effectiveContainment()
 }));
 const linkedRefs = computed(() => Object.values(project.value?.relations || {})
-  .flatMap(value => resolveEntityRelationRefs(value)));
+  .flatMap(value => resolveInstanceRelationRefs(value)));
 const linkedChildSources = computed(() => linkedExplorerChildSources({
   linkedItems: linkedEntityItems.value,
   screens: authStore.screenManifest,
@@ -298,7 +298,7 @@ const projectActions = computed(() => projectContextActionEntries({
 const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
   const entityItem = workspaceEntityItems.value.find(item => (
     item.type === reference.typeId
-    && entityId(item.entity) === reference.entityId
+    && instanceId(item.entity) === reference.instanceId
   ));
   if (!entityItem) return null;
   return {
@@ -409,7 +409,7 @@ watch(workspaceItems, () => {
 watch(linkedRefs, async refs => {
   const loaded = await Promise.all(refs.map(async ref => {
     const existing = entityItems.value.find(item => (
-      item.type === ref.typeId && entityId(item.entity) === ref.id
+      item.type === ref.typeId && instanceId(item.entity) === ref.id
     ));
     const entity = existing?.entity || ref.entity
       || await instances.resolveReadableReference(instances.canonicalTypeKey(ref.typeId), ref.id, { silent: true });
@@ -442,12 +442,12 @@ watch(openedEntityRefs, async refs => {
   const sequence = ++openedEntityLoadSequence;
   const loaded = await Promise.all(refs.map(async reference => {
     const existing = entityItems.value.find(item => (
-      item.type === reference.typeId && entityId(item.entity) === reference.entityId
+      item.type === reference.typeId && instanceId(item.entity) === reference.instanceId
     )) || linkedEntityItems.value.find(item => (
-      item.type === reference.typeId && entityId(item.entity) === reference.entityId
+      item.type === reference.typeId && instanceId(item.entity) === reference.instanceId
     ));
     const entity = existing?.entity
-      || await instances.resolveReadableReference(instances.canonicalTypeKey(reference.typeId), reference.entityId, { silent: true });
+      || await instances.resolveReadableReference(instances.canonicalTypeKey(reference.typeId), reference.instanceId, { silent: true });
     return entity ? workspaceEntityItem(reference.typeId, entity) : null;
   }));
   if (sequence !== openedEntityLoadSequence) return;
@@ -573,7 +573,7 @@ function openWorkspacePage(request = {}) {
 
   const entityItem = workspaceEntityItems.value.find(item => (
     item.type === definition.typeId
-    && entityId(item.entity) === entityId(request.entity)
+    && instanceId(item.entity) === instanceId(request.entity)
   ));
   if (!entityItem || !activePane.value) return;
 
@@ -583,7 +583,7 @@ function openWorkspacePage(request = {}) {
       key,
       pageId: definition.id,
       typeId: definition.typeId,
-      entityId: entityId(entityItem.entity)
+      instanceId: instanceId(entityItem.entity)
     }];
   }
   selectPaneTab(activePane.value.id, key);
@@ -596,7 +596,7 @@ function openWorkspacePage(request = {}) {
 }
 
 function rememberWorkspaceEntity(typeId, entity) {
-  const id = entityId(entity);
+  const id = instanceId(entity);
   if (!typeId || !id) return null;
   const key = entityKey(typeId, entity);
   const existing = workspaceEntityItems.value.find(item => item.key === key);
@@ -608,7 +608,7 @@ function rememberWorkspaceEntity(typeId, entity) {
     openedEntityRefs.value = [...openedEntityRefs.value, {
       key,
       typeId,
-      entityId: id
+      instanceId: id
     }];
   }
   return item;
@@ -682,7 +682,7 @@ function openedPagesForEntity(item) {
   if (!item?.entity) return [];
   return openedPageItems.value.filter(page => (
     page.typeId === item.type
-    && entityId(page.entity) === entityId(item.entity)
+    && instanceId(page.entity) === instanceId(item.entity)
   ));
 }
 
@@ -700,7 +700,7 @@ function pageNode(page) {
 
 function workspaceItemLabel(item) {
   if (item?.kind === 'entity') {
-    return item.entity?.identity?.name || item.entity?.identity?.uid || entityId(item.entity);
+    return item.entity?.identity?.name || item.entity?.identity?.uid || instanceId(item.entity);
   }
   const definition = resolveGeneratedWorkspacePage(item?.pageId);
   return definition ? t(definition.labelKey) : '';
@@ -711,11 +711,11 @@ function sourceStateForRegion(region = {}) {
 }
 
 function workspacePageKey(pageId, entity) {
-  return `page:${pageId}:${entityId(entity)}`;
+  return `page:${pageId}:${instanceId(entity)}`;
 }
 
 function entityKey(type, entity) {
-  return `${type}:${entityId(entity)}`;
+  return `${type}:${instanceId(entity)}`;
 }
 
 function workspaceEntityItem(type, entity) {
@@ -728,7 +728,7 @@ function workspaceEntityItem(type, entity) {
   };
 }
 
-function entityId(entity = null) {
+function instanceId(entity = null) {
   const value = entity?._id || entity?.identity?.uid || '';
   return value ? String(value) : '';
 }

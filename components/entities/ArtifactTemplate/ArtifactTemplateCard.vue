@@ -1,6 +1,6 @@
 <script setup>
-import EntityCard from '~/components/shared/EntityCard.vue';
-import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
+import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
 
 defineProps({
   artifactTemplate: { type: Object, required: true },
@@ -9,10 +9,10 @@ defineProps({
 </script>
 
 <template>
-  <EntityCard :entity="artifactTemplate" type-id="artifactTemplate" :variant="variant" :show-status="false">
-    <EntitySurfaceContent :entity="artifactTemplate" type-id="artifactTemplate" :surface="variant" />
+  <InstanceCard :entity="artifactTemplate" type-id="artifactTemplate" :variant="variant" :show-status="false">
+    <InstanceSurfaceContent :entity="artifactTemplate" type-id="artifactTemplate" :surface="variant" />
     <template #footer>
       <slot name="footer" />
     </template>
-  </EntityCard>
+  </InstanceCard>
 </template>

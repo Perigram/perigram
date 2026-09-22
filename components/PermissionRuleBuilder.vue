@@ -41,7 +41,7 @@
                     :subject-options="subjectOptions"
                     :type-id-options="typeIdOptions"
                     :condition-operator-options="conditionOperatorOptions"
-                    :entity-options-loading="entityOptionsLoading"
+                    :instance-options-loading="entityOptionsLoading"
                     :trait-options-for-condition="traitOptionsForCondition"
                     :condition-subject="conditionSubject"
                     :condition-type-id="conditionTypeId"
@@ -179,8 +179,8 @@ import { computed } from 'vue';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
-import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
-import Select from '~/components/shared/EntitySelect.vue';
+import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 
 defineOptions({ name: 'PermissionRuleBuilder' });
 

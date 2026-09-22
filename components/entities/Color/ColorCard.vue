@@ -1,6 +1,6 @@
 <template>
   <div>
-    <EntityCard :entity="color" type-id="color" :variant="variant" :show-trace="false" :show-status="false">
+    <InstanceCard :entity="color" type-id="color" :variant="variant" :show-trace="false" :show-status="false">
       <template #header>
         <div class="h-32 w-full" :style="swatchStyle"></div>
       </template>
@@ -12,7 +12,7 @@
       </template>
       <template #compact-content>
         <div v-if="catalogId" class="mt-3 text-body">
-          <EntityInlineRef type="catalog" :id="catalogId" />
+          <InstanceInlineRef type="catalog" :id="catalogId" />
         </div>
       </template>
       <Divider />
@@ -26,9 +26,9 @@
       </div>
       <div v-if="catalogId" class="flex justify-between items-center gap-4 mt-2">
         <small class="text-muted">{{ $t('entities.catalog') }}</small>
-        <EntityInlineRef type="catalog" :id="catalogId" />
+        <InstanceInlineRef type="catalog" :id="catalogId" />
       </div>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>
 
@@ -38,8 +38,8 @@
  */
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
-import EntityCard from '~/components/shared/EntityCard.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 
 const props = defineProps({
   color: { type: Object, required: true },

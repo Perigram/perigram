@@ -11,7 +11,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import AppMultiSelect from '~/components/shared/EntityMultiSelect.vue';
+import AppMultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 
 const props = defineProps({
   accepts: { type: Array, default: () => [] },

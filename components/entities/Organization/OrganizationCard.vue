@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <EntityCard :entity="organization" type-id="organization" :variant="variant" :show-trace="false" :show-status="false">
+    <InstanceCard :entity="organization" type-id="organization" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <Avatar :label="avatarLabel" shape="circle" size="large" />
       </template>
@@ -28,7 +28,7 @@
         <Divider />
         <slot name="actions" />
       </template>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>
 
@@ -40,9 +40,9 @@ import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import Avatar from 'primevue/avatar';
 import Tag from 'primevue/tag';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
 const props = defineProps({
   organization: { type: Object, required: true },
@@ -51,7 +51,7 @@ const props = defineProps({
 
 const avatarLabel = computed(() => (props.organization.identity?.name || '?').charAt(0));
 
-const ORGANIZATION_FIELDS = resolveEntityDisplayFields({ typeId: 'organization', surface: 'card' });
+const ORGANIZATION_FIELDS = resolveInstanceDisplayFields({ typeId: 'organization', surface: 'card' });
 
 const createdAt = computed(() => {
     const ts = props.organization.lineage?.createdAt || props.organization.origin?.timestamp;

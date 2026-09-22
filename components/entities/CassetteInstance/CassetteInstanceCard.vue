@@ -1,6 +1,6 @@
 <template>
   <div>
-    <EntityCard :entity="instance" type-id="cassette_instance" :variant="variant">
+    <InstanceCard :entity="instance" type-id="cassette_instance" :variant="variant">
       <template #before-identity>
         <i class="pi pi-qrcode"></i>
       </template>
@@ -14,7 +14,7 @@
         <Divider />
         <DataBlock type-id="cassetteInstance" :entity="instance" :fields="INSTANCE_FIELDS" />
       </div>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>
 
@@ -28,9 +28,9 @@
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
 const props = defineProps({
     instance: { type: Object, required: true },
@@ -40,6 +40,6 @@ const props = defineProps({
 const designId = computed(() => props.instance.lineage?.cassetteDesignId || props.instance.lineage?.designId || null);
 const designIdValue = computed(() => designId.value?.toString?.() || designId.value || '');
 
-const INSTANCE_FIELDS = resolveEntityDisplayFields({ typeId: 'cassetteInstance', surface: 'card' })
+const INSTANCE_FIELDS = resolveInstanceDisplayFields({ typeId: 'cassetteInstance', surface: 'card' })
   .filter(field => field.display !== 'entityRef');
 </script>

@@ -11,7 +11,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import AppSelect from '~/components/shared/EntitySelect.vue';
+import AppSelect from '~/components/shared/InstanceSelect.vue';
 
 const props = defineProps({
   options: { type: Array, default: () => [] },

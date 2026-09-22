@@ -136,7 +136,7 @@ import { useI18n } from 'vue-i18n';
 import { useCassettesStore } from '~/stores/cassettes';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { storeToRefs } from 'pinia';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import ProgressSpinner from 'primevue/progressspinner';
 import Message from 'primevue/message';
 import InputText from 'primevue/inputtext';

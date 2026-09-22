@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { currentTariffLabel } from '~/utils/billing-presentation.js';
 import { organizationBreadcrumbEntries } from '~/utils/navigation-breadcrumbs.js';
-import { containmentAncestors } from '~/utils/entity-hierarchy.js';
+import { containmentAncestors } from '~/utils/instance-hierarchy.js';
 
 describe('reviewed UI behavior contracts', () => {
   it('builds organization breadcrumbs from the active organization and compiled system screens', () => {

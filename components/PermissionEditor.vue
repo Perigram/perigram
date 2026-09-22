@@ -95,7 +95,7 @@
                                             :subject-options="subjectOptionsForFeature"
                                             :type-id-options="relatedTypeIdOptions"
                                             :condition-operator-options="conditionOperatorOptions"
-                                            :entity-options-loading="entityOptionsLoading"
+                                            :instance-options-loading="entityOptionsLoading"
                                             :trait-options-for-condition="traitOptionsForCondition"
                                             :condition-subject="conditionSubject"
                                             :condition-type-id="conditionTypeId"
@@ -156,14 +156,14 @@ import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import Checkbox from 'primevue/checkbox';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import Tag from 'primevue/tag';
 import Listbox from 'primevue/listbox';
 import Message from 'primevue/message';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import {
-    cncEntityFieldGroups,
+    cncInstanceFieldGroups,
     cncDomain,
     cncWorkflows,
     getEntityFieldAccessPolicy
@@ -229,7 +229,7 @@ const scopeFields = computed(() => [
     { key: 'projectId', label: t('auth.scope.projectId') },
     { key: 'queueId', label: t('auth.scope.queueId') },
     { key: 'warehouseId', label: t('auth.scope.warehouseId') },
-    { key: 'entityId', label: t('auth.scope.entityId') },
+    { key: 'instanceId', label: t('auth.scope.instanceId') },
     { key: 'typeId', label: t('auth.scope.typeId') }
 ]);
 
@@ -272,7 +272,7 @@ const SCOPE_FACT_BY_KEY = {
     projectId: 'lineage.projectId',
     queueId: 'lineage.queueId',
     warehouseId: 'lineage.warehouseId',
-    entityId: 'entityId',
+    instanceId: 'instanceId',
     typeId: 'typeId'
 };
 
@@ -632,7 +632,7 @@ function factForCondition(subject, typeId, trait) {
     }
     if (trait === 'type') return 'typeId';
     if (trait === 'status') return 'status.primary';
-    return 'entityId';
+    return 'instanceId';
 }
 
 function conditionSubject(clause = {}) {
@@ -818,7 +818,7 @@ function propertyTraitOptions(typeId) {
 }
 
 function entityFieldDescriptors(typeId) {
-    const groups = cncEntityFieldGroups[typeId] || {};
+    const groups = cncInstanceFieldGroups[typeId] || {};
     return Object.values(groups).flat();
 }
 

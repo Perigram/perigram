@@ -7,11 +7,11 @@ import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import { computed } from 'vue';
 import { useAuthStore } from '~/stores/auth';
-import EntityCard from '~/components/shared/EntityCard.vue';
-import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
+import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
 import NameEditPopover from '~/components/shared/NameEditPopover.vue';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
-import { appEntityDisplayExtensions } from '~/utils/app-entity-surfaces.js';
+import { appInstanceDisplayExtensions } from '~/utils/app-instance-surfaces.js';
 
 const props = defineProps({
   project: { type: Object, required: true },
@@ -34,12 +34,12 @@ const totalArea = computed(() => props.project.summary?.totalArea || 0);
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <EntityCard
+    <InstanceCard
       :entity="project"
       type-id="project"
       :surface="variant === 'card' ? 'workspace' : variant"
       :variant="variant"
-      :display-extensions="appEntityDisplayExtensions"
+      :display-extensions="appInstanceDisplayExtensions"
     >
       <template #before-identity>
         <i class="pi pi-folder"></i>
@@ -55,11 +55,11 @@ const totalArea = computed(() => props.project.summary?.totalArea || 0);
       </template>
       <div class="flex flex-col gap-3">
         <Divider />
-        <EntitySurfaceContent
+        <InstanceSurfaceContent
           :entity="project"
           type-id="project"
           surface="workspace"
-          :display-extensions="appEntityDisplayExtensions"
+          :display-extensions="appInstanceDisplayExtensions"
         />
       </div>
 
@@ -86,6 +86,6 @@ const totalArea = computed(() => props.project.summary?.totalArea || 0);
           />
         </div>
       </template>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>

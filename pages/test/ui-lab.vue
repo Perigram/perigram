@@ -59,17 +59,17 @@
           <div class="flex flex-col gap-4">
             <small class="text-muted">{{ primitive.purpose }}</small>
 
-            <template v-if="primitive.key === 'EntityCard'">
-              <EntityCard :entity="primitiveEntity" type-id="queue">
+            <template v-if="primitive.key === 'InstanceCard'">
+              <InstanceCard :entity="primitiveEntity" type-id="queue">
                 <DataBlock type-id="queue" :entity="primitiveEntity" :fields="queueFields" />
                 <template #footer>
                   <Button :label="$t('common.open')" icon="pi pi-external-link" text size="small" />
                 </template>
-              </EntityCard>
+              </InstanceCard>
             </template>
 
-            <template v-else-if="primitive.key === 'EntityPage'">
-              <EntityPage :entity="primitiveEntity" type-id="queue">
+            <template v-else-if="primitive.key === 'InstancePage'">
+              <InstancePage :entity="primitiveEntity" type-id="queue">
                 <template #info>
                   <small>{{ primitiveEntity.queueNumber }}</small>
                 </template>
@@ -77,11 +77,11 @@
                   <Button :label="$t('common.update')" icon="pi pi-refresh" text size="small" />
                 </template>
                 <StateBlock :message="$t('uiLab.primitives.empty')" icon="pi pi-inbox" />
-              </EntityPage>
+              </InstancePage>
             </template>
 
-            <template v-else-if="primitive.key === 'EntitySelect'">
-              <EntitySelect
+            <template v-else-if="primitive.key === 'InstanceSelect'">
+              <InstanceSelect
                 v-model="primitiveSelectedQueueId"
                 :options="primitiveQueueOptions"
                 option-label="label"
@@ -91,8 +91,8 @@
               />
             </template>
 
-            <template v-else-if="primitive.key === 'EntityMultiSelect'">
-              <EntityMultiSelect
+            <template v-else-if="primitive.key === 'InstanceMultiSelect'">
+              <InstanceMultiSelect
                 v-model="primitiveSelectedQueueIds"
                 :options="primitiveQueueOptions"
                 option-label="label"
@@ -124,9 +124,9 @@
               </div>
             </template>
 
-            <template v-else-if="primitive.key === 'EntityStatus'">
-            <EntityStatus :entity="primitiveEntity" type-id="queue" variant="inline" />
-            <EntityStatus :entity="primitiveEntity" type-id="queue" variant="full" :show-actions="false" />
+            <template v-else-if="primitive.key === 'InstanceStatus'">
+            <InstanceStatus :entity="primitiveEntity" type-id="queue" variant="inline" />
+            <InstanceStatus :entity="primitiveEntity" type-id="queue" variant="full" :show-actions="false" />
             </template>
 
             <template v-else-if="primitive.key === 'StatusLocation'">
@@ -267,7 +267,7 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import Panel from 'primevue/panel';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import Tag from 'primevue/tag';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -277,7 +277,7 @@ import ThemeSwitcher from '~/components/ThemeSwitcher.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
 import frameworkManifest from '~/framework.manifest.json';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import InstanceStatus from '~/components/shared/status/InstanceStatus.vue';
 import StatusLocation from '~/components/shared/status/StatusLocation.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
@@ -295,10 +295,10 @@ import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
-import EntityCard from '~/components/shared/EntityCard.vue';
-import EntityPage from '~/components/shared/EntityPage.vue';
-import EntitySelect from '~/components/shared/EntitySelect.vue';
-import EntityMultiSelect from '~/components/shared/EntityMultiSelect.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
+import InstancePage from '~/components/shared/InstancePage.vue';
+import InstanceSelect from '~/components/shared/InstanceSelect.vue';
+import InstanceMultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import MetricPanel from '~/components/shared/MetricPanel.vue';
@@ -329,15 +329,15 @@ const variants = DESIGN_SYSTEM_VARIANTS;
 const { t } = useI18n();
 const ENTITY_COLLECTION_BY_TYPE = new Map((frameworkManifest.entities || []).map(entity => [entity.type, entity.collection]));
 const PRIMITIVE_EXAMPLE_KEYS = [
-  'EntityCard',
-  'EntityPage',
-  'EntitySelect',
-  'EntityMultiSelect',
+  'InstanceCard',
+  'InstancePage',
+  'InstanceSelect',
+  'InstanceMultiSelect',
   'IdentityBlock',
   'DataBlock',
   'SpecsBlock',
   'StatusBadge',
-  'EntityStatus',
+  'InstanceStatus',
   'StatusLocation',
   'StatusHistory',
   'DrawingCanvas',

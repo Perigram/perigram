@@ -11,7 +11,7 @@ import { composeSystemDeclarations, composePackEditors } from '~/server/packs/de
 import { invalidateInstanceDeclarations } from '../instances/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
-import { publishOrgContractChanged } from '../entity-events/service.js';
+import { publishOrgContractChanged } from '../instance-events/service.js';
 
 function to400(error) {
   if (error?.statusCode) throw error;

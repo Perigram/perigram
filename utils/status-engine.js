@@ -10,7 +10,7 @@ import { cncStatusUi } from '@cutkit/domain-cnc';
  * `ck-entity-icon-*` mask classes (assets/css/main.css) backed by the SVGs in
  * public/icons/data-model/cnc-domain; everything else uses PrimeIcons.
  */
-export const ENTITY_UI = {
+export const INSTANCE_UI = {
     project: { icon: 'pi pi-folder' },
     queue: { icon: 'pi pi-list' },
     nesting_run: { icon: 'pi pi-list-check' },
@@ -49,8 +49,8 @@ function toSnakeCase(type = '') {
     return String(type || '').replace(/[A-Z]/g, character => `_${character.toLowerCase()}`).replace(/^_/, '');
 }
 
-export function entityUiFor(type = '') {
-    return ENTITY_UI[type] || ENTITY_UI[toSnakeCase(type)] || { icon: 'pi pi-box' };
+export function instanceUiFor(type = '') {
+    return INSTANCE_UI[type] || INSTANCE_UI[toSnakeCase(type)] || { icon: 'pi pi-box' };
 }
 
 /**

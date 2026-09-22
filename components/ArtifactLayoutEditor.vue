@@ -111,7 +111,7 @@ import { computed, ref, watch } from 'vue';
 import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps({

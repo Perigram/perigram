@@ -28,12 +28,12 @@ vi.mock('../files/service.js', () => ({
   uploadFile: mocks.uploadFile,
   deleteFile: mocks.deleteFile
 }));
-vi.mock('../entity-revisions/service.js', () => ({
+vi.mock('../instance-revisions/service.js', () => ({
   ensureForEntitySnapshot: mocks.ensureRevision
 }));
 vi.mock('../../core/access/service.js', () => ({
   assertEntityAccess: vi.fn(),
-  hasEntityAccess: vi.fn(() => true)
+  hasInstanceAccess: vi.fn(() => true)
 }));
 vi.mock('../../utils/permissions.js', () => ({ getLineageFilter: vi.fn(() => ({})) }));
 vi.mock('../_template/process-update-handler.js', () => ({

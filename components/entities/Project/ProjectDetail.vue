@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="project" type-id="project">
+    <InstancePage :entity="project" type-id="project">
         <template #info>
             <small>{{ $t('common.created') }}: {{ project.origin?.timestamp ? new Date(project.origin.timestamp).toLocaleDateString() : '—' }}</small>
         </template>
@@ -34,7 +34,7 @@
                 </template>
             </StateBlock>
         </div>
-    </EntityPage>
+    </InstancePage>
 </template>
 
 <script setup>
@@ -46,7 +46,7 @@ import Panel from 'primevue/panel';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import QueueCard from '~/components/entities/Queue/QueueCard.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
-import EntityPage from '~/components/shared/EntityPage.vue';
+import InstancePage from '~/components/shared/InstancePage.vue';
 import MetricPanel from '~/components/shared/MetricPanel.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';

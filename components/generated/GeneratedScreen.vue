@@ -86,7 +86,7 @@
            would detach the regions fallback below from the shared
            v-if/v-else-if chain and render it under overloads like the home
            workspace. -->
-      <EntityChatPanel
+      <InstanceChatPanel
         v-if="detailEntity"
         :type="detailTypeId"
         :id="detailEntityId"
@@ -287,8 +287,8 @@ import { computed, reactive, ref, toRef, watch } from 'vue';
 import Button from 'primevue/button';
 import DatePicker from 'primevue/datepicker';
 import InputText from 'primevue/inputtext';
-import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
-import Select from '~/components/shared/EntitySelect.vue';
+import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -304,18 +304,18 @@ import GeneratedOrganizationOverview from '~/components/generated/GeneratedOrgan
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
 import GeneratedArtifactCreator from '~/components/generated/GeneratedArtifactCreator.vue';
 import GeneratedObjectInput from '~/components/generated/GeneratedObjectInput.vue';
-import { entityIdentifier, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
+import { instanceIdentifier, resolveGeneratedActionEntities } from '~/components/generated/action-context.js';
 import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { usePayloadUpload } from '~/composables/usePayloadUpload.js';
 import { useInstancesStore } from '~/stores/instances';
 import { useAuthStore } from '~/stores/auth';
 import { actionAppliesToEntity, isCreateAction, isDeleteAction, isUpdateAction } from '~/components/generated/action-visibility.js';
-import { resolveCreatedEntityOpen } from '~/components/generated/created-entity-open.js';
-import { openEntityInWorkspace } from '~/utils/entity-workspace-open.js';
+import { resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
+import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { generatedActionLabel, generatedScreenLabel } from '~/utils/generated-labels.js';
 import { occsQueueParameters } from '~/utils/occs/parameters.js';
 import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js';
-import { routeContextTraceExclusions } from '~/utils/entity-hierarchy.js';
+import { routeContextTraceExclusions } from '~/utils/instance-hierarchy.js';
 import {
   artifactCreatorForAction,
   collectActionInputFields,
@@ -468,7 +468,7 @@ function openArtifactCreator(field = {}) {
 const artifactCreatorLineage = computed(() => {
   const owner = pendingEntity.value?.entity || {};
   const ownerType = pendingEntity.value?.context?.typeId || pendingAction.value?.typeId || '';
-  const ownerId = entityIdentifier(owner);
+  const ownerId = instanceIdentifier(owner);
   return {
     ...(owner.lineage || {}),
     ...(ownerType && ownerId ? { [`${camelTypeId(ownerType)}Id`]: ownerId } : {})
@@ -477,7 +477,7 @@ const artifactCreatorLineage = computed(() => {
 
 function selectCreatedArtifact(artifact = {}) {
   const field = artifactCreatorField.value;
-  const id = entityIdentifier(artifact);
+  const id = instanceIdentifier(artifact);
   if (!field || !id) return;
   if (pendingAction.value?.typeId && pendingAction.value.typeId === field.creator?.typeId) {
     artifactCreatorField.value = null;
@@ -519,9 +519,9 @@ async function postAction(action, entity = null, data = {}, context = {}) {
     const result = await actionOffline({
       url: `/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`,
       typeId: action.typeId,
-      entityId: entity?._id || entity?.identity?.uid || null,
+      instanceId: entity?._id || entity?.identity?.uid || null,
       body: {
-        entityId: entity?._id || entity?.identity?.uid || null,
+        instanceId: entity?._id || entity?.identity?.uid || null,
         entities: { ...actionEntities(action, entity, context), ...(data?.entities || {}) },
         data,
         parameters: { ...(context?.parameters || {}), ...(data?.parameters || {}) }
@@ -540,7 +540,7 @@ async function postAction(action, entity = null, data = {}, context = {}) {
   }
 }
 
-async function actionOffline({ url, typeId, entityId, body }) {
+async function actionOffline({ url, typeId, instanceId, body }) {
   if (typeof window === 'undefined') {
     return $fetch(url, { method: 'POST', body });
   }
@@ -549,7 +549,7 @@ async function actionOffline({ url, typeId, entityId, body }) {
     url,
     method: 'POST',
     body,
-    meta: { kind: 'action', typeId, entityId, reason: 'process-action' }
+    meta: { kind: 'action', typeId, instanceId, reason: 'process-action' }
   });
 }
 
@@ -589,7 +589,7 @@ function mappedMutationItems(result) {
 
 async function openCreatedEntity(action = {}, result = null) {
   if (!isCreateAction(action)) return;
-  const target = resolveCreatedEntityOpen({
+  const target = resolveCreatedInstanceOpen({
     action,
     result,
     screenKey: screen.value.screenKey || screen.value.id,
@@ -606,7 +606,7 @@ async function openCreatedEntity(action = {}, result = null) {
   // when the workspace opens the editor.
   toast.add({ severity: 'success', summary: t('common.created'), detail: target.name || target.typeId, life: 4000 });
   if (target.kind === 'workspace') {
-    openEntityInWorkspace({ typeId: target.typeId, entityId: target.entityId });
+    openInstanceInWorkspace({ typeId: target.typeId, instanceId: target.instanceId });
   }
 }
 
@@ -627,7 +627,7 @@ function selectedTemplateForField(field = {}) {
     pending.origin?.type === templateTypeId
     || pendingEntity.value?.context?.typeId === templateTypeId
   )) {
-    const pendingId = entityIdentifier(pending);
+    const pendingId = instanceIdentifier(pending);
     if (!templateId || pendingId?.toString() === templateId?.toString()) return pending;
   }
   if (!templateId) return null;
@@ -717,9 +717,9 @@ async function loadPromptOptions(fields = []) {
 async function entityOptions(typeId, field = {}) {
   if (field.relationKey && pendingAction.value?.relationMutation?.operation === 'link') {
     const actionId = pendingAction.value.actionId || pendingAction.value.id;
-    const ownerId = entityIdentifier(pendingEntity.value?.entity);
+    const ownerId = instanceIdentifier(pendingEntity.value?.entity);
     const items = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/options`, {
-      query: { entityId: ownerId }
+      query: { instanceId: ownerId }
     });
     return (items || []).map(entity => entityOption(entity, typeId));
   }
@@ -740,10 +740,10 @@ async function toggleRelationCreator(field = {}) {
     relationCreatorValues[creatorField.id] = initialPromptValue(creatorField);
   }
   const actionId = pendingAction.value?.actionId || pendingAction.value?.id;
-  const ownerId = entityIdentifier(pendingEntity.value?.entity);
+  const ownerId = instanceIdentifier(pendingEntity.value?.entity);
   for (const creatorField of relationCreatorFields.value.filter(item => item.type === 'entity')) {
     const items = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/options`, {
-      query: { entityId: ownerId, source: 'creator' }
+      query: { instanceId: ownerId, source: 'creator' }
     });
     relationCreatorOptions[creatorField.id] = (items || []).map(entity => entityOption(entity, creatorField.typeId));
   }

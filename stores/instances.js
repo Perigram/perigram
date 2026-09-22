@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, reactive, ref } from 'vue';
-import { emitEntityCreated, emitEntityDeleted, emitEntityUpdated, onEntityChanged } from '~/utils/entity-events.js';
-import { entityDtoToScreenInstance } from '~/utils/instance-shape.js';
+import { emitInstanceCreated, emitInstanceDeleted, emitInstanceUpdated, onInstanceChanged } from '~/utils/instance-events.js';
+import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useRegistryStore } from './registry';
 import { useOutboxStore } from './outbox';
 
@@ -12,7 +12,7 @@ import { useOutboxStore } from './outbox';
 // reads and mutations coalesce per type:id. Endpoint resolution mirrors the
 // server: framework party/service types keep feature routes, the remaining
 // mounted pack feature modules keep theirs, and every other type resolves
-// to the generic instance transport. One `onEntityChanged` subscriber
+// to the generic instance transport. One `onInstanceChanged` subscriber
 // reconciles every open surface.
 
 // Framework types with explicit feature services (mirror of the server
@@ -22,7 +22,7 @@ const FRAMEWORK_ROUTES = {
   user: '/api/users',
   artifact: '/api/artifacts',
   process_definition: '/api/process-definitions',
-  entity_revision: '/api/entity-revisions'
+  entity_revision: '/api/instance-revisions'
 };
 
 // Pack feature modules that still own mounted REST routes; every other
@@ -107,7 +107,7 @@ export const useInstancesStore = defineStore('instances', () => {
 
   function deriveInstance(typeKey = '', dto = {}) {
     const typeRecord = registry.typeRecord(typeKey);
-    return typeRecord ? entityDtoToScreenInstance(dto, typeRecord) : null;
+    return typeRecord ? dtoToScreenInstance(dto, typeRecord) : null;
   }
 
   function upsertRecord(typeKey = '', dto = {}) {
@@ -247,13 +247,13 @@ export const useInstancesStore = defineStore('instances', () => {
   // Process actions are the mutation boundary: the projected manifest
   // action id is the execution contract; the run API resolves the rest
   // server-side. Offline replays carry the idempotency key.
-  async function runAction({ actionId, entityId = null, entities = {}, data = {}, parameters = {} } = {}) {
+  async function runAction({ actionId, instanceId = null, entities = {}, data = {}, parameters = {} } = {}) {
     const outbox = useOutboxStore();
     return outbox.mutate({
       url: `/api/process-definitions/active/actions/${encodeURIComponent(actionId)}/execute`,
       method: 'POST',
-      body: { entityId, entities, data, parameters },
-      meta: { kind: 'action', entityId, change: 'updated', reason: 'process-action' }
+      body: { instanceId, entities, data, parameters },
+      meta: { kind: 'action', instanceId, change: 'updated', reason: 'process-action' }
     });
   }
 
@@ -276,7 +276,7 @@ export const useInstancesStore = defineStore('instances', () => {
   // (runAction) reconcile through the server-published events instead.
   function publishMutation(detail = {}) {
     if (import.meta.server || !detail.type || !detail.id) return;
-    $fetch('/api/entity-events', { method: 'POST', body: detail }).catch(() => null);
+    $fetch('/api/instance-events', { method: 'POST', body: detail }).catch(() => null);
   }
 
   async function createInstance(typeKey = '', body = {}, { typeId = typeKey } = {}) {
@@ -284,7 +284,7 @@ export const useInstancesStore = defineStore('instances', () => {
       body,
       meta: { kind: 'entity', typeId, change: 'created', reason: 'create' }
     });
-    emitEntityCreated({ type: typeId, id: data?._id, entity: data });
+    emitInstanceCreated({ type: typeId, id: data?._id, entity: data });
     publishMutation({ type: typeId, id: data?._id, change: 'created', reason: 'create' });
     return data;
   }
@@ -293,9 +293,9 @@ export const useInstancesStore = defineStore('instances', () => {
     const data = await mutateDirect(typeKey, 'PATCH', {
       id,
       body,
-      meta: { kind: 'entity', typeId, entityId: id, change: 'updated', reason: 'update' }
+      meta: { kind: 'entity', typeId, instanceId: id, change: 'updated', reason: 'update' }
     });
-    emitEntityUpdated({ type: typeId, id: data?._id || id, entity: data });
+    emitInstanceUpdated({ type: typeId, id: data?._id || id, entity: data });
     publishMutation({ type: typeId, id: data?._id || id, change: 'updated', reason: 'update' });
     return data;
   }
@@ -303,9 +303,9 @@ export const useInstancesStore = defineStore('instances', () => {
   async function removeInstance(typeKey = '', id = '', { typeId = typeKey, entity = null } = {}) {
     await mutateDirect(typeKey, 'DELETE', {
       id,
-      meta: { kind: 'entity', typeId, entityId: id, change: 'deleted', reason: 'delete' }
+      meta: { kind: 'entity', typeId, instanceId: id, change: 'deleted', reason: 'delete' }
     });
-    emitEntityDeleted({ type: typeId, id, entity });
+    emitInstanceDeleted({ type: typeId, id, entity });
     publishMutation({ type: typeId, id, change: 'deleted', reason: 'delete' });
   }
 
@@ -315,7 +315,7 @@ export const useInstancesStore = defineStore('instances', () => {
   // idempotent, so a re-created store re-attaching under tests is harmless.
   function ensureSyncListener() {
     if (typeof window === 'undefined') return;
-    onEntityChanged(({ type, id, entity, change }) => {
+    onInstanceChanged(({ type, id, entity, change }) => {
       const typeKey = canonicalTypeKey(type);
       const normalizedId = id?.toString?.() || id || entity?._id?.toString?.() || entity?._id;
       if (!typeKey || !normalizedId) return;

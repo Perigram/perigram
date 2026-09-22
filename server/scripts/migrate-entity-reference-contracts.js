@@ -44,7 +44,7 @@ export function migrateCanonicalTypeIds(value, { strictTypeIdFields = true } = {
         if (canonical && canonical !== raw) changed = true;
         continue;
       }
-      if (key === 'type' && typeof raw === 'string' && raw && (current.id || current.entityId || current.revisionId)) {
+      if (key === 'type' && typeof raw === 'string' && raw && (current.id || current.instanceId || current.revisionId)) {
         const canonical = canonicalTypeId(raw);
         if (canonical) {
           result[key] = canonical;
@@ -72,12 +72,12 @@ function withoutKeys(value = {}, keys = []) {
 export function migrateLegacyRevisionData(data = {}) {
   if (data.source?.type && data.source?.id) return { changed: false, data };
   const type = data.typeId || '';
-  const id = data.entityId;
+  const id = data.instanceId;
   if (!type || !id) return { changed: false, data };
   return {
     changed: true,
     data: {
-      ...withoutKeys(data, ['typeId', 'entityId']),
+      ...withoutKeys(data, ['typeId', 'instanceId']),
       source: { type, id: stringId(id) }
     }
   };
@@ -89,7 +89,7 @@ export function migrateLegacyDerivedFrom(design = {}) {
   const templateId = design.lineage?.templateId;
   const legacySource = legacy?.source || {
     type: legacy?.typeId || legacy?.type,
-    id: legacy?.entityId || legacy?.id,
+    id: legacy?.instanceId || legacy?.id,
     ...(legacy?.revisionId ? { revisionId: stringId(legacy.revisionId) } : {})
   };
   const source = existing?.source
@@ -102,7 +102,7 @@ export function migrateLegacyDerivedFrom(design = {}) {
     return { changed: false, invalid: true, design };
   }
   const derivedFrom = existing || {
-    ...withoutKeys(legacy, ['source', 'typeId', 'entityId', 'type', 'id', 'revisionId']),
+    ...withoutKeys(legacy, ['source', 'typeId', 'instanceId', 'type', 'id', 'revisionId']),
     source: {
       type: source.type,
       id: stringId(source.id),
@@ -225,7 +225,7 @@ async function main() {
     db.collection('entity_revisions').find({
       'data.source': { $exists: false },
       'data.typeId': { $exists: true },
-      'data.entityId': { $exists: true }
+      'data.instanceId': { $exists: true }
     }),
     revision => {
       const result = migrateLegacyRevisionData(revision.data || {});

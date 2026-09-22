@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { assertCommandAccess, assertTransitionAccess, createLineageFilter, hasEntityAccess } from './service.js';
+import { assertCommandAccess, assertTransitionAccess, createLineageFilter, hasInstanceAccess } from './service.js';
 import { hasLineagePermission } from '../../utils/permissions.js';
 
 vi.mock('h3', () => ({
@@ -18,12 +18,12 @@ const auth = {
 
 describe('access engine', () => {
   it('allows entity access by lineage membership permission level', () => {
-    expect(hasEntityAccess({ entity, feature: 'queues', level: 'read', auth })).toBe(true);
-    expect(hasEntityAccess({ entity, feature: 'queues', level: 'write', auth })).toBe(true);
+    expect(hasInstanceAccess({ entity, feature: 'queues', level: 'read', auth })).toBe(true);
+    expect(hasInstanceAccess({ entity, feature: 'queues', level: 'write', auth })).toBe(true);
   });
 
   it('prefers active process effective permissions over membership fallback', () => {
-    expect(hasEntityAccess({
+    expect(hasInstanceAccess({
       entity,
       feature: 'queues',
       level: 'admin',
@@ -34,7 +34,7 @@ describe('access engine', () => {
       }
     })).toBe(true);
 
-    expect(hasEntityAccess({
+    expect(hasInstanceAccess({
       entity,
       feature: 'queues',
       level: 'write',
@@ -47,8 +47,8 @@ describe('access engine', () => {
   });
 
   it('denies missing org membership or insufficient permission level', () => {
-    expect(hasEntityAccess({ entity, feature: 'queues', level: 'admin', auth })).toBe(false);
-    expect(hasEntityAccess({
+    expect(hasInstanceAccess({ entity, feature: 'queues', level: 'admin', auth })).toBe(false);
+    expect(hasInstanceAccess({
       entity,
       feature: 'queues',
       level: 'read',
@@ -67,7 +67,7 @@ describe('access engine', () => {
     };
 
     expect(createLineageFilter(multiOrgAuth)).toEqual({ 'lineage.organizationId': 'org-1' });
-    expect(hasEntityAccess({
+    expect(hasInstanceAccess({
       entity: { lineage: { organizationId: 'org-2' } },
       feature: 'queues',
       level: 'read',
@@ -82,21 +82,21 @@ describe('access engine', () => {
     };
     const ungrantedAuth = { userId: 'u-public', memberships: [] };
 
-    expect(hasEntityAccess({
+    expect(hasInstanceAccess({
       entity: material,
       typeId: 'material',
       feature: 'materials',
       level: 'read',
       auth: null
     })).toBe(true);
-    expect(hasEntityAccess({
+    expect(hasInstanceAccess({
       entity: material,
       typeId: 'material',
       feature: 'materials',
       level: 'read',
       auth: ungrantedAuth
     })).toBe(true);
-    expect(hasEntityAccess({
+    expect(hasInstanceAccess({
       entity: material,
       typeId: 'material',
       feature: 'materials',
@@ -130,8 +130,8 @@ describe('access engine', () => {
       }]
     };
 
-    expect(hasEntityAccess({ entity: scopedEntity, feature: 'queues', level: 'write', auth: scopedAuth })).toBe(true);
-    expect(hasEntityAccess({
+    expect(hasInstanceAccess({ entity: scopedEntity, feature: 'queues', level: 'write', auth: scopedAuth })).toBe(true);
+    expect(hasInstanceAccess({
       entity: { lineage: { organizationId: 'org-1', projectId: 'project-b' } },
       feature: 'queues',
       level: 'write',

@@ -1,7 +1,7 @@
 import * as repository from './repository.js';
 import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as cassetteDesignService from '../cassette-designs/service.js';
-import * as entityRevisionsService from '../entity-revisions/service.js';
+import * as instanceRevisionsService from '../instance-revisions/service.js';
 import * as artifactsService from '../artifacts/service.js';
 import * as filesService from '../files/service.js';
 import { createError } from 'h3';
@@ -77,7 +77,7 @@ function geometryRevisionPointer(revision) {
 }
 
 async function ensureGeometryRevision(cassette, userId, reason = 'content-change') {
-  const revision = await entityRevisionsService.ensureForEntitySnapshot({
+  const revision = await instanceRevisionsService.ensureForEntitySnapshot({
     typeId: 'cassette',
     entity: cassette,
     scope: GEOMETRY_REVISION_SCOPE,
@@ -106,7 +106,7 @@ export async function ensureCurrentGeometryRevision(cassetteOrId, userId = 'SYST
 }
 
 export function derivedFromGeometryRevision(revision, parameters = {}) {
-  return entityRevisionsService.derivedFromRevision(revision, parameters);
+  return instanceRevisionsService.derivedFromRevision(revision, parameters);
 }
 
 function resolveTemplateDefinition(template = {}) {

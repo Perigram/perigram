@@ -25,7 +25,7 @@ const CAPABILITY_FEATURES = [
   'config-bot',
   'connections',
   'cts-types',
-  'entity-events',
+  'instance-events',
   'files',
   'livekit',
   'billing',
@@ -393,7 +393,7 @@ uiRuntimeFiles.forEach(file => {
   if (relFile === 'composables/useStatusController.js') return;
   const content = fs.readFileSync(file, 'utf8');
   if (/['"]\/api\/status\/(?:transition|actions)['"]/.test(content)) {
-    console.error(`❌ ${relFile} calls status API directly — use useStatusController/EntityStatus`);
+    console.error(`❌ ${relFile} calls status API directly — use useStatusController/InstanceStatus`);
     errors++;
   }
   if (
@@ -401,7 +401,7 @@ uiRuntimeFiles.forEach(file => {
     !relFile.startsWith('pages/test/') &&
     /:status-actions\s*=/.test(content)
   ) {
-    console.error(`❌ ${relFile} passes local status actions — live entity UI must use server-provided EntityStatus actions`);
+    console.error(`❌ ${relFile} passes local status actions — live entity UI must use server-provided InstanceStatus actions`);
     errors++;
   }
 });

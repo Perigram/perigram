@@ -1,6 +1,6 @@
 import { createError } from 'h3';
 import { randomUUID } from 'node:crypto';
-import { hasEntityAccess } from '../../core/access/service.js';
+import { hasInstanceAccess } from '../../core/access/service.js';
 import { createDomainDraft, validateDomainDraft } from '~/utils/domain-builder.js';
 import {
   cncAttachmentKinds,
@@ -109,7 +109,7 @@ export async function reindexKnowledge(_params = {}, auth = {}) {
 export function assertConfigBotAccess(auth = {}) {
   if (!auth?.userId) throw createError({ statusCode: 401, message: 'Authentication required' });
   const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId || null;
-  const allowed = hasEntityAccess({
+  const allowed = hasInstanceAccess({
     entity: { lineage: { organizationId } },
     feature: 'config_bot',
     level: 'admin',
@@ -242,7 +242,7 @@ function selectComponents(selectedEntities, manifest) {
       key: component.key,
       typeId: component.typeId,
       componentPath: component.componentPath,
-      primitives: ['StandardPage', 'ActionToolbar', 'ResponsiveGrid', 'StateBlock', 'EntityCard', 'EntityStatus']
+      primitives: ['StandardPage', 'ActionToolbar', 'ResponsiveGrid', 'StateBlock', 'InstanceCard', 'InstanceStatus']
     }));
 }
 

@@ -201,9 +201,9 @@ function defaultSourcesForScreen(screen = {}, template = 'typeList') {
 }
 
 function defaultSingleIdentifier(screen = {}) {
-  return screen.scope?.entityId
+  return screen.scope?.instanceId
     || screen.scope?.[`${screen.typeId}Id`]
-    || screen.bindings?.entityId
+    || screen.bindings?.instanceId
     || screen.bindings?.[`${screen.typeId}Id`]
     || '';
 }

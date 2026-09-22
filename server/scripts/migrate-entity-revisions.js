@@ -74,12 +74,12 @@ async function ensureIndexes(db) {
 }
 
 async function ensureCassetteGeometryRevision(db, cassette) {
-  const entityId = toFlexibleId(cassette._id);
+  const instanceId = toFlexibleId(cassette._id);
   const content = revisionContent(cassette);
   const contentHash = hashContent(content);
   const existing = await db.collection(REVISION_COLLECTION).findOne({
     'data.source.type': 'cassette',
-    'data.source.id': entityId.toString(),
+    'data.source.id': instanceId.toString(),
     'data.scope': GEOMETRY_SCOPE,
     'data.contentHash': contentHash
   });
@@ -89,7 +89,7 @@ async function ensureCassetteGeometryRevision(db, cassette) {
   const latest = await db.collection(REVISION_COLLECTION)
     .find({
       'data.source.type': 'cassette',
-      'data.source.id': entityId.toString(),
+      'data.source.id': instanceId.toString(),
       'data.scope': GEOMETRY_SCOPE
     })
     .sort({ 'data.number': -1, _id: -1 })
@@ -112,10 +112,10 @@ async function ensureCassetteGeometryRevision(db, cassette) {
     status: origin,
     lineage: {
       ...(cassette.lineage || {}),
-      cassetteId: entityId
+      cassetteId: instanceId
     },
     data: {
-      source: { type: 'cassette', id: entityId.toString() },
+      source: { type: 'cassette', id: instanceId.toString() },
       scope: GEOMETRY_SCOPE,
       number,
       contentHash,
@@ -135,7 +135,7 @@ async function ensureCassetteGeometryRevision(db, cassette) {
     if (error?.code === 11000) {
       return await db.collection(REVISION_COLLECTION).findOne({
         'data.source.type': 'cassette',
-        'data.source.id': entityId.toString(),
+        'data.source.id': instanceId.toString(),
         'data.scope': GEOMETRY_SCOPE,
         'data.contentHash': contentHash
       });

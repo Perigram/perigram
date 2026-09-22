@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="queue" type-id="queue">
+    <InstancePage :entity="queue" type-id="queue">
         <template #actions>
             <Button :label="$t('queue.nestingConfig')" icon="pi pi-sliders-h" severity="secondary" outlined />
             <Button
@@ -24,7 +24,7 @@
                         :key="`${item.type}-${item.id}`"
                         class="flex items-center justify-between gap-3"
                     >
-                        <EntityInlineRef v-if="item.typeId" :type="item.typeId" :id="item.id" />
+                        <InstanceInlineRef v-if="item.typeId" :type="item.typeId" :id="item.id" />
                         <span v-else>{{ item.id }}</span>
                         <Tag :value="item.count" severity="warn" size="small" />
                     </div>
@@ -38,7 +38,7 @@
             <template v-if="queue.artifacts?.length">
                 <ActionToolbar :title="$t('queues.artifacts')" :level="2" />
                 <ResponsiveGrid variant="bounded" responsive-context="container">
-                    <EntityInlineRef v-for="artId in queue.artifacts" :key="artId" type="artifact" :id="artId" />
+                    <InstanceInlineRef v-for="artId in queue.artifacts" :key="artId" type="artifact" :id="artId" />
                 </ResponsiveGrid>
             </template>
 
@@ -58,14 +58,14 @@
                 </DataTable>
             </TableFrame>
         </div>
-    </EntityPage>
+    </InstancePage>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import Panel from 'primevue/panel';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -73,7 +73,7 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
-import EntityPage from '~/components/shared/EntityPage.vue';
+import InstancePage from '~/components/shared/InstancePage.vue';
 import MetricPanel from '~/components/shared/MetricPanel.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 

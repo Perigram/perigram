@@ -1,10 +1,10 @@
 import { generatedDetailScreenForTypeId } from '~/components/generated/detail-screen-actions.js';
 import { resolveSourceFilters } from '~/composables/useGeneratedScreen.js';
-import { normalizeHierarchyType } from './entity-hierarchy.js';
+import { normalizeHierarchyType } from './instance-hierarchy.js';
 
 export function linkedExplorerChildSources({ linkedItems = [], screens = [], containment = [] } = {}) {
   return linkedItems.flatMap(parent => {
-    const parentId = entityId(parent?.entity);
+    const parentId = instanceId(parent?.entity);
     if (!parentId || !parent?.type) return [];
     const detailScreen = generatedDetailScreenForTypeId({ screens, typeId: parent.type });
     if (!detailScreen) return [];
@@ -12,7 +12,7 @@ export function linkedExplorerChildSources({ linkedItems = [], screens = [], con
       ...detailScreen,
       scope: {
         ...(detailScreen.scope || {}),
-        entityId: parentId,
+        instanceId: parentId,
         [`${parent.type}Id`]: parentId
       }
     };
@@ -33,6 +33,6 @@ function containedBy(parentType, childType, containment = []) {
   ));
 }
 
-function entityId(entity = {}) {
+function instanceId(entity = {}) {
   return entity?._id?.toString?.() || entity?.identity?.uid?.toString?.() || entity?.id?.toString?.() || '';
 }

@@ -3,10 +3,10 @@ import { getWorkflowRegions, normalizeWorkflow, validateTransition } from '../pa
 import { validateDomainDraft } from './domain-builder.js';
 
 export function compileWorkflowDraft({ entities = cncEntities, workflows = {}, hookContracts = cncHookContracts } = {}) {
-  const entityDefinitions = Array.isArray(entities) && entities.length > 0 ? entities : cncEntities;
+  const instanceDefinitions = Array.isArray(entities) && entities.length > 0 ? entities : cncEntities;
   const hookDefinitions = hookContracts && Object.keys(hookContracts).length > 0 ? hookContracts : cncHookContracts;
   const draft = {
-    entities: entityDefinitions,
+    entities: instanceDefinitions,
     workflows,
     hookContracts: hookDefinitions,
     frontendEntities: [],

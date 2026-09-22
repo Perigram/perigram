@@ -14,9 +14,9 @@ import {
   normalizeWorkflow,
   validateTransition
 } from '~/packages/workflows/src/index.js';
-import { assertTransitionAccess, hasEntityAccess } from '../access/service.js';
+import { assertTransitionAccess, hasInstanceAccess } from '../access/service.js';
 import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
-import { getEntityCollection, getEntityDefinition, normalizeTypeId } from '~/server/runtime/entities.js';
+import { getEntityCollection, getInstanceDefinition, normalizeTypeId } from '~/server/runtime/entities.js';
 import { CLASS_COLLECTIONS } from '~/packages/cts/src/index.js';
 import { processEffects } from '../effects/service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
@@ -754,16 +754,16 @@ async function captureLifecycleSnapshots({ db, entity, typeId, auth, snapshotSch
     const collection = getEntityCollection(targetTypeId);
     if (!collection) continue;
     const lineageKey = definition.lineageKey || `${typeId}Id`;
-    const entityId = entity?._id || entity?.identity?.uid;
-    const candidates = [entityId, entityId?.toString?.()].filter(Boolean);
+    const instanceId = entity?._id || entity?.identity?.uid;
+    const candidates = [instanceId, instanceId?.toString?.()].filter(Boolean);
     const filter = {
       [`lineage.${lineageKey}`]: candidates.length > 1 ? { $in: candidates } : candidates[0]
     };
     const limit = Math.max(1, Math.min(Number(definition.limit || 50), 100));
     const docs = await db.collection(collection).find(filter).limit(limit).toArray();
-    const entityDefinition = getEntityDefinition(targetTypeId);
+    const entityDefinition = getInstanceDefinition(targetTypeId);
     const feature = entityDefinition?.feature || entityDefinition?.collection || targetTypeId;
-    const readable = docs.filter(doc => hasEntityAccess({
+    const readable = docs.filter(doc => hasInstanceAccess({
       entity: doc,
       feature,
       level: 'read',
@@ -891,7 +891,7 @@ function resolveHookHandler(registry, typeId, handler) {
   const hookFn = registry.getHookHandler(handler) || hooks[handler];
   if (hookFn) return hookFn;
 
-  const service = registry.getEntityService(typeId);
+  const service = registry.getInstanceService(typeId);
   return service?.hooks?.[handler] || null;
 }
 

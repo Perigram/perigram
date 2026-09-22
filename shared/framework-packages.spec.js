@@ -9,7 +9,7 @@ describe('Framework package contracts', () => {
       CANONICAL_BLOCK_SCHEMAS,
       CANONICAL_ENTITY_BLOCKS,
       createRegistry,
-      createEntityRef,
+      createInstanceRef,
       createProvenance,
       createCommandResult,
       createTaskResult
@@ -27,8 +27,8 @@ describe('Framework package contracts', () => {
     });
 
     expect(definition.collection).toBe('test_entities');
-    expect(registry.getEntityDefinition('test_entity')).toEqual(definition);
-    expect(registry.listEntityDefinitions()).toContainEqual(definition);
+    expect(registry.getInstanceDefinition('test_entity')).toEqual(definition);
+    expect(registry.listInstanceDefinitions()).toContainEqual(definition);
     expect(entity.toJSON()).toMatchObject({
       _id: 'test-1',
       identity: { uid: 'test-1', name: 'Test Entity' },
@@ -85,7 +85,7 @@ describe('Framework package contracts', () => {
     });
     const handler = async () => createCommandResult({
       commandId: 'runTest',
-      entities: [createEntityRef('test_entity', 'test-1')]
+      entities: [createInstanceRef('test_entity', 'test-1')]
     });
     registry.registerCommandHandler('runTest', handler);
     expect(registry.getCommandDefinition('runTest')).toEqual(command);
@@ -102,12 +102,12 @@ describe('Framework package contracts', () => {
       commandId: 'runTest',
       entities: [{ type: 'test_entity', id: 'test-1' }]
     });
-    expect(createEntityRef('test_entity', 'test-1', 'revision-2')).toEqual({
+    expect(createInstanceRef('test_entity', 'test-1', 'revision-2')).toEqual({
       type: 'test_entity',
       id: 'test-1',
       revisionId: 'revision-2'
     });
-    expect(createProvenance(createEntityRef('test_entity', 'test-1', 'revision-2'), { scope: 'geometry' })).toEqual({
+    expect(createProvenance(createInstanceRef('test_entity', 'test-1', 'revision-2'), { scope: 'geometry' })).toEqual({
       source: { type: 'test_entity', id: 'test-1', revisionId: 'revision-2' },
       scope: 'geometry'
     });
@@ -115,7 +115,7 @@ describe('Framework package contracts', () => {
       identity: { uid: 'derived-1', name: 'Derived' },
       relations: {
         library: { type: 'library', id: 'library-1' },
-        invalid: { typeId: 'library', entityId: 'legacy-library' }
+        invalid: { typeId: 'library', instanceId: 'legacy-library' }
       },
       provenance: {
         derivedFrom: {
@@ -145,13 +145,13 @@ describe('Framework package contracts', () => {
         isolatedTask: { id: 'isolated.task', service: 'isolated', executor: { type: 'server', handler: 'isolated.task' } }
       }
     });
-    isolated.registerEntityService('isolated_entity', { getById: async () => null });
+    isolated.registerInstanceService('isolated_entity', { getById: async () => null });
     isolated.registerCommandHandler('isolatedAction', async () => ({ ok: true }));
     isolated.registerHookHandler('isolatedHook', async () => null);
     expect(isolated.getDomain('isolated-domain')).toMatchObject({ id: 'isolated-domain' });
     expect(isolated.getCommandDefinition('isolatedAction')).toMatchObject({ service: 'isolated' });
     expect(isolated.getTaskDefinition('isolated.task')).toMatchObject({ service: 'isolated' });
-    expect(isolated.getEntityService('isolated_entity')).toBeTruthy();
+    expect(isolated.getInstanceService('isolated_entity')).toBeTruthy();
     expect(isolated.getCommandHandler('isolatedAction')).toBeTruthy();
     expect(isolated.getHookHandler('isolatedHook')).toBeTruthy();
   });
@@ -178,7 +178,7 @@ describe('Framework package contracts', () => {
     const {
       cncAttachmentKinds,
       cncDesignSystem,
-      cncDesignSystemEntityContracts,
+      cncDesignSystemInstanceContracts,
       cncDomain,
       cncEntities,
       cncContainment,
@@ -288,7 +288,7 @@ describe('Framework package contracts', () => {
     expect(cncWorkflows.queue.regions.main.transitions.every(transition => !transition.roles)).toBe(true);
     expect(cncDomain).toMatchObject({ id: 'cnc', commands: cncCommands, tasks: cncTasks, attachmentKinds: cncAttachmentKinds });
     expect(cncDomain.ui.designSystem).toBe(cncDesignSystem);
-    expect(cncDesignSystemEntityContracts).toContainEqual(expect.objectContaining({ key: 'cassette', typeId: 'cassette' }));
+    expect(cncDesignSystemInstanceContracts).toContainEqual(expect.objectContaining({ key: 'cassette', typeId: 'cassette' }));
     expect(cncTasks.nestingSolve).toMatchObject({ id: 'nesting.solve', service: 'nesting' });
     expect(cncTasks.nestingSolve.output.entities).toEqual([
       { type: 'nesting_run', persistenceOwner: 'commandOwned', timing: 'completion' },
@@ -322,7 +322,7 @@ describe('Framework package contracts', () => {
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'saveCassetteTemplate' }));
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'generateAttachment' }));
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'generateConfigBotDraft' }));
-    await expect(handlers.list_ui_primitives()).resolves.toContainEqual(expect.objectContaining({ key: 'EntityCard', kind: 'entity-chrome' }));
+    await expect(handlers.list_ui_primitives()).resolves.toContainEqual(expect.objectContaining({ key: 'InstanceCard', kind: 'entity-chrome' }));
     await expect(handlers.query_docs({ query: 'workflow' })).resolves.toContainEqual(expect.objectContaining({ path: 'README.md' }));
     await expect(handlers.get_framework_manifest()).resolves.toMatchObject({ schemaVersion: 1, validations: { ok: true } });
     await expect(handlers.validate_ui_contracts()).resolves.toEqual({ ok: true, issues: [] });
@@ -362,11 +362,11 @@ describe('Framework package contracts', () => {
       'data.parameters'
     ]);
     expect(committed.designSystem.primitives).toContainEqual(expect.objectContaining({
-      key: 'EntityPage',
-      componentPath: 'components/shared/EntityPage.vue'
+      key: 'InstancePage',
+      componentPath: 'components/shared/InstancePage.vue'
     }));
 
-    const docsResult = spawnSync( process.execPath, ['scripts/framework-inspect.js', 'query-docs', 'EntityPage'], { encoding: 'utf8' });
+    const docsResult = spawnSync( process.execPath, ['scripts/framework-inspect.js', 'query-docs', 'InstancePage'], { encoding: 'utf8' });
     expect(docsResult.status).toBe(0);
     expect(JSON.parse(docsResult.stdout)).toContainEqual(expect.objectContaining({
       path: 'components/shared/README.md'

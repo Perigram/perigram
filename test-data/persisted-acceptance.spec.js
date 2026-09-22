@@ -10,7 +10,7 @@ import {
 } from '#packages/processes/src/index.js';
 import { filterRootSourceItems } from '#utils/generated-screen-source.js';
 import { resolveGeneratedEntityActions } from '../components/generated/action-visibility.js';
-import { entitySelectOptions, selectOptionForValue } from '#utils/entity-select.js';
+import { instanceSelectOptions, selectOptionForValue } from '#utils/instance-select.js';
 import { resolveArtifactViewer } from '#utils/artifact-viewer.js';
 import { STATUS_MAPPINGS } from '#utils/status-engine.js';
 import { createPersistedAcceptanceFixture } from './persisted-acceptance.js';
@@ -59,7 +59,7 @@ describe('persisted architecture acceptance fixture', () => {
     const projectDetail = access.screens.find(screen => screen.template === 'instanceDetail' && screen.typeId === 'project');
     expect(projectDetail.sources).toContainEqual(expect.objectContaining({
       typeId: 'artifact',
-      filters: { projectId: '$screen.scope.entityId' }
+      filters: { projectId: '$screen.scope.instanceId' }
     }));
   });
 
@@ -113,7 +113,7 @@ describe('persisted architecture acceptance fixture', () => {
     const viewer = resolveArtifactViewer({ artifact: fixture.hierarchy.artifact, domainUi });
 
     expect(selected.entity._id).toBe(fixture.hierarchy.project._id);
-    expect(entitySelectOptions(options, 'project')).toHaveLength(1);
+    expect(instanceSelectOptions(options, 'project')).toHaveLength(1);
     expect(STATUS_MAPPINGS.DRAFT).toEqual(expect.objectContaining({ severity: expect.any(String) }));
     expect(viewer).toEqual(expect.objectContaining({ hasFile: true, mode: 'dxf', fileUrl: `/api/artifacts/${fixture.hierarchy.artifact._id}` }));
   });

@@ -21,7 +21,7 @@ import * as instanceRepository from '~/server/features/instances/repository.js';
 // carry `framework: true` on their declarations: in the view for tenancy
 // and ref targets, never projected as authorable instances. Their explicit
 // services own them (artifact keeps the uploadArtifact constructor).
-import * as entityEventService from '~/server/features/entity-events/service.js';
+import * as entityEventService from '~/server/features/instance-events/service.js';
 
 // The projected view is the single domain source (SPEC §19 after the cut):
 // framework party types plus pack declarations.
@@ -42,7 +42,7 @@ function projectedDomain() {
 function registryCapabilities(registry, domain) {
   const bindings = {};
   for (const entity of domain.entities) {
-    const service = registry.getEntityService(entity.type);
+    const service = registry.getInstanceService(entity.type);
     if (!service) continue;
     bindings[entity.type] = {
       list: service.processList,
@@ -102,13 +102,13 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
   it('serves the framework five explicitly and everything else through the resolver', () => {
     resetAppRegistryForTests();
     const registry = getAppRegistry();
-    const explicit = new Map(registry.listEntityServices().map(binding => [binding.type, binding.service]));
+    const explicit = new Map(registry.listInstanceServices().map(binding => [binding.type, binding.service]));
     expect([...explicit.keys()].sort()).toEqual([...FRAMEWORK_SERVICE_TYPES, ...PACK_LEGACY_SERVICE_TYPES].sort());
 
     // Pack types resolve through the generic instance services with full
     // process boundaries.
     for (const entity of projectedDomain().entities) {
-      const service = registry.getEntityService(entity.type);
+      const service = registry.getInstanceService(entity.type);
       expect(service, entity.type).not.toBeNull();
       expect(service.processList, entity.type).toBeTypeOf('function');
       expect(service.processGetById, entity.type).toBeTypeOf('function');
@@ -119,7 +119,7 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     resetAppRegistryForTests();
     const registry = getAppRegistry();
     for (const type of [...FRAMEWORK_SERVICE_TYPES, ...projectedDomain().entities.map(entity => entity.type)]) {
-      const service = registry.getEntityService(type);
+      const service = registry.getInstanceService(type);
       expect(typeof service.processDelete === 'function', type).toBe(service.processCapabilities.delete);
     }
   });
@@ -137,7 +137,7 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     expect(domain.entities.map(entity => entity.type)).not.toContain('process-definition');
 
     for (const entity of domain.entities) {
-      const service = registry.getEntityService(entity.type);
+      const service = registry.getInstanceService(entity.type);
       const declaredModes = (domain.construction[entity.type]?.modes || []).slice().sort();
 
       // Handlers are shared generic machinery (genericCreate plus the
@@ -203,9 +203,9 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     const registry = getAppRegistry();
     // The resolver still returns a service; the per-call declaration check
     // is the boundary (unknown types must not silently serve).
-    await expect(registry.getEntityService('warehouse').list({}, 'user-1', 'org-1'))
+    await expect(registry.getInstanceService('warehouse').list({}, 'user-1', 'org-1'))
       .rejects.toThrow('Unknown type warehouse');
-    await expect(registry.getEntityService('cassette_design').create({}, 'user-1', 'org-1'))
+    await expect(registry.getInstanceService('cassette_design').create({}, 'user-1', 'org-1'))
       .rejects.toThrow('Unknown type cassette_design');
   });
 
@@ -215,7 +215,7 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
     const domain = projectedDomain();
     const roles = { admin: { id: 'admin', label: 'Admin' } };
     const capabilities = Object.fromEntries(
-      domain.entities.map(entity => [entity.type, registry.getEntityService(entity.type).processCapabilities])
+      domain.entities.map(entity => [entity.type, registry.getInstanceService(entity.type).processCapabilities])
     );
 
     // panel declares states (available initial): a create needs its target
@@ -251,7 +251,7 @@ describe('application entity service bindings (resolver world, SPEC §13/§21)',
       effectivePermissions: {}
     };
 
-    const entity = await getAppRegistry().getEntityService('cassette').processGetById('cassette-9', auth);
+    const entity = await getAppRegistry().getInstanceService('cassette').processGetById('cassette-9', auth);
 
     expect(entity).toMatchObject({ _id: 'cassette-9', type: 'cassette' });
     expect(find).toHaveBeenCalledWith('files', 'cassette-9', 'cassette');

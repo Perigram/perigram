@@ -1,4 +1,4 @@
-import { cncEntityFieldGroups } from './ui-fields.js';
+import { cncInstanceFieldGroups } from './ui-fields.js';
 
 export const CNC_SURFACES = ['inline', 'compact', 'card', 'detail', 'table', 'picker', 'workspace'];
 export const CNC_PREVIEW_MODES = ['none', 'icon', 'thumbnail', 'hero', 'canvas', 'attachment'];
@@ -7,7 +7,7 @@ export const CNC_RELATION_DISPLAYS = ['none', 'inlineRefs', 'summary', 'expanded
 export const CNC_ACTION_DISPLAYS = ['none', 'menu', 'footer', 'toolbar', 'primaryOnly'];
 
 const defaultFieldGroupsFor = (key) => {
-  const groups = cncEntityFieldGroups[key] || {};
+  const groups = cncInstanceFieldGroups[key] || {};
   if (groups.summary) return ['summary'];
   if (groups.stock) return ['stock'];
   if (groups.specs) return ['specs'];
@@ -35,7 +35,7 @@ const CARD_GROUP_OVERRIDES = {
 
 const cardGroupsFor = (key) => {
   if (CARD_GROUP_OVERRIDES[key]) return CARD_GROUP_OVERRIDES[key];
-  const groups = cncEntityFieldGroups[key] || {};
+  const groups = cncInstanceFieldGroups[key] || {};
   const orderedGroups = key === 'nestingRun'
     ? ['summary', 'production', 'identity', 'specs', 'stock', 'geometry', 'relations']
     : ['summary', 'identity', 'specs', 'stock', 'geometry', 'relations'];
@@ -44,7 +44,7 @@ const cardGroupsFor = (key) => {
 };
 
 const detailGroupsFor = (key) => {
-  const groups = cncEntityFieldGroups[key] || {};
+  const groups = cncInstanceFieldGroups[key] || {};
   return ['identity', 'summary', 'specs', 'stock', 'geometry', 'production', 'relations', 'provenance']
     .filter(group => groups[group]);
 };

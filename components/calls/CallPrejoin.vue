@@ -61,7 +61,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 
 const props = defineProps({
     room: { type: String, required: true },

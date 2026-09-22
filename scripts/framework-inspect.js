@@ -4,9 +4,9 @@ import { spawnSync } from 'node:child_process';
 import { designTokens, cssVariableTokens, tailwindThemeExtension } from '../assets/tokens/index.js';
 import {
   cncAttachmentKinds,
-  cncDesignSystemEntityContracts,
-  cncEntityFieldGroups,
-  cncEntitySurfaceContracts,
+  cncDesignSystemInstanceContracts,
+  cncInstanceFieldGroups,
+  cncInstanceSurfaceContracts,
   cncDesignSystemGroups,
   cncDesignSystemPrimitives,
   cncDesignSystemVariants,
@@ -264,7 +264,7 @@ function createManifest() {
       variants: cncDesignSystemVariants,
       groups: cncDesignSystemGroups,
       primitives: cncDesignSystemPrimitives,
-      contracts: cncDesignSystemEntityContracts,
+      contracts: cncDesignSystemInstanceContracts,
       componentInventory,
       tokens: {
         designTokens,
@@ -288,8 +288,8 @@ function createComponentInventory() {
 }
 
 function contractFieldPaths(key) {
-  const groups = cncEntityFieldGroups[key] || {};
-  const surfaceGroups = Object.values(cncEntitySurfaceContracts[key]?.surfaces || {})
+  const groups = cncInstanceFieldGroups[key] || {};
+  const surfaceGroups = Object.values(cncInstanceSurfaceContracts[key]?.surfaces || {})
     .flatMap(surface => surface.fieldGroups || []);
 
   return surfaceGroups

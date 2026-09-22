@@ -14,25 +14,25 @@ export async function create(data) {
     return { ...doc, _id: result.insertedId };
 }
 
-export async function findByEntity(entityId, typeId) {
+export async function findByEntity(instanceId, typeId) {
     const db = await connectDB();
     // Singularize typeId for status_events query if needed, 
     // but the service should pass the correct targetType
     return await db.collection(COLLECTION)
         .find({ 
-            targetId: toFlexibleId(entityId),
+            targetId: toFlexibleId(instanceId),
             targetType: typeId 
         })
         .sort({ timestamp: -1 })
         .toArray();
 }
 
-export async function findLatestByEntity(entityId, typeId) {
+export async function findLatestByEntity(instanceId, typeId) {
     const db = await connectDB();
     return await db.collection(COLLECTION)
         .findOne(
             { 
-                targetId: toFlexibleId(entityId),
+                targetId: toFlexibleId(instanceId),
                 targetType: typeId 
             },
             { sort: { timestamp: -1 } }

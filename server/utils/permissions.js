@@ -1,6 +1,6 @@
 import { createError } from 'h3';
 import { hasPermission } from './auth-helpers.js';
-import { createLineageFilter, hasEntityAccess } from '../core/access/service.js';
+import { createLineageFilter, hasInstanceAccess } from '../core/access/service.js';
 
 export function requireAuth(event) {
   if (!event.context.auth) {
@@ -20,7 +20,7 @@ export function hasLineagePermission(user, lineageOrEntity, typeId, level, optio
   const entity = lineageOrEntity?.lineage
     ? lineageOrEntity
     : { lineage: lineageOrEntity || {} };
-  return hasEntityAccess({ entity, feature: typeId, level, action: options.action || null, auth: user });
+  return hasInstanceAccess({ entity, feature: typeId, level, action: options.action || null, auth: user });
 }
 
 export function requireLineagePermission(event, lineageOrEntity, typeId, level) {

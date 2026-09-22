@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="catalog" type-id="catalog" :show-status="false">
+    <InstancePage :entity="catalog" type-id="catalog" :show-status="false">
         <template #actions>
             <div class="flex flex-wrap gap-2" v-if="authStore.can('catalogs', 'edit')">
                 <Button icon="pi pi-pencil" severity="secondary" text :aria-label="$t('common.edit')" @click="$emit('edit', catalog)" />
@@ -43,7 +43,7 @@
                     <DataBlock type-id="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />
                     <div v-if="catalog.lineage?.manufacturerId" class="flex items-center justify-between gap-4">
                         <small class="text-muted">{{ $t('requisition.manufacturer') }}</small>
-                        <EntityInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
+                        <InstanceInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
                     </div>
                 </div>
             </Panel>
@@ -60,7 +60,7 @@
                 </div>
             </ResponsiveGrid>
         </div>
-    </EntityPage>
+    </InstancePage>
 </template>
 
 <script setup>
@@ -68,14 +68,14 @@ import { computed } from 'vue';
 import Panel from 'primevue/panel';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
-import EntityPage from '~/components/shared/EntityPage.vue';
+import InstancePage from '~/components/shared/InstancePage.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import ColorCard from '~/components/entities/Color/ColorCard.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { useAuthStore } from '~/stores/auth';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
 const props = defineProps({
     catalog: { type: Object, required: true },
@@ -90,6 +90,6 @@ const foilThicknessOptions = computed(() => props.catalog.data?.options?.foilThi
 const sheetThicknessOptions = computed(() => props.catalog.data?.options?.sheetThicknesses || []);
 const widthOptions = computed(() => props.catalog.data?.options?.widths || []);
 
-const CATALOG_FIELDS = resolveEntityDisplayFields({ typeId: 'catalog', surface: 'detail' })
+const CATALOG_FIELDS = resolveInstanceDisplayFields({ typeId: 'catalog', surface: 'detail' })
     .filter(field => field.display !== 'entityRef');
 </script>

@@ -42,7 +42,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
-import { filterEntityFields } from '~/shared/entity-field-access.js';
+import { filterEntityFields } from '~/shared/instance-field-access.js';
 import { decorateDataValue, resolveDataPath } from '~/utils/data-display.js';
 
 const props = defineProps({

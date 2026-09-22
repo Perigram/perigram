@@ -1,5 +1,5 @@
 <template>
-  <GeneratedEntityDetail
+  <GeneratedInstanceDetail
     v-if="sourceState.source?.mode === 'single'"
     :entity="sourceState.entity"
     :type-id="sourceState.source.typeId"
@@ -15,8 +15,8 @@
     @execute-action="(action, entity, context) => $emit('execute-action', action, entity, context)"
   >
     <slot />
-  </GeneratedEntityDetail>
-  <GeneratedEntityCollection
+  </GeneratedInstanceDetail>
+  <GeneratedInstanceCollection
     v-else
     :items="sourceState.items"
     :type-id="sourceState.source?.typeId || ''"
@@ -37,8 +37,8 @@
 
 <script setup>
 import { computed } from 'vue';
-import GeneratedEntityCollection from '~/components/generated/GeneratedEntityCollection.vue';
-import GeneratedEntityDetail from '~/components/generated/GeneratedEntityDetail.vue';
+import GeneratedInstanceCollection from '~/components/generated/GeneratedInstanceCollection.vue';
+import GeneratedInstanceDetail from '~/components/generated/GeneratedInstanceDetail.vue';
 
 const props = defineProps({
   region: { type: Object, required: true },

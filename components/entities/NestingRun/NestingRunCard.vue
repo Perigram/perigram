@@ -7,12 +7,12 @@ import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
-import EntityRelationsBlock from '~/components/shared/EntityRelationsBlock.vue';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
+import InstanceRelationsBlock from '~/components/shared/InstanceRelationsBlock.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
@@ -54,7 +54,7 @@ const relatedSheetDesigns = computed(() => uniqueById([
 const hasCompletedOutput = computed(() =>
     hasResultData.value || sheetDesignRelationItems.value.length > 0
 );
-const NESTING_RUN_CARD_FIELDS = resolveEntityDisplayFields({ typeId: 'nestingRun', surface: 'card' });
+const NESTING_RUN_CARD_FIELDS = resolveInstanceDisplayFields({ typeId: 'nestingRun', surface: 'card' });
 const RUN_FIELDS = NESTING_RUN_CARD_FIELDS.filter(field => field.display !== 'entityRefList');
 const sheetDesignRelationFields = computed(() => NESTING_RUN_CARD_FIELDS
     .filter(field => field.display === 'entityRefList' && field.path === 'data.sheetDesignIds')
@@ -104,7 +104,7 @@ function selectRun(event) {
 
 <template>
   <div class="cursor-pointer" @click="selectRun">
-    <EntityCard
+    <InstanceCard
       :entity="run"
       type-id="nesting_run"
       :variant="variant"
@@ -122,7 +122,7 @@ function selectRun(event) {
         </div>
       </template>
       <template #compact-content>
-        <EntityRelationsBlock
+        <InstanceRelationsBlock
           v-if="sheetDesignRelationItems.length"
           class="mt-3"
           :entity="run"
@@ -143,13 +143,13 @@ function selectRun(event) {
               :key="`${source.type}-${source.id}`"
               class="flex min-w-0 items-center justify-between gap-2"
             >
-              <EntityInlineRef :type="source.typeId" :id="source.id" />
+              <InstanceInlineRef :type="source.typeId" :id="source.id" />
               <Tag v-if="source.count" :value="source.count" severity="secondary" size="small" />
             </div>
           </div>
         </div>
         <div v-if="hasCompletedOutput && sheetDesignRelationItems.length">
-          <EntityRelationsBlock
+          <InstanceRelationsBlock
             :entity="run"
             :fields="sheetDesignRelationFields"
             item-variant="compact"
@@ -176,6 +176,6 @@ function selectRun(event) {
           />
         </div>
       </template>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>

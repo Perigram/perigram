@@ -40,6 +40,6 @@ export function createEntityServiceBinder(registry, {
     const processCapabilities = buildProcessCapabilities(type, constructionHandlers);
     const processDelete = processCapabilities.delete ? createProcessDelete(type, service, read) : null;
     verifyProcessCapabilities(type, service, constructionHandlers, processCapabilities, processDelete);
-    registry.registerEntityService(type, { ...service, processList: list, processGetById: read, processDelete, processCapabilities, constructionHandlers });
+    registry.registerInstanceService(type, { ...service, processList: list, processGetById: read, processDelete, processCapabilities, constructionHandlers });
   };
 }

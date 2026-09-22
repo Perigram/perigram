@@ -24,7 +24,7 @@ export async function getActiveProcessForOrganization(organizationId) {
 export async function getActiveCompiledProcess(organizationId) {
   const active = await getActiveProcessForOrganization(organizationId);
   const organization = organizationId
-    ? await getAppRegistry().getEntityService('organization').getProcessConfiguration(organizationId)
+    ? await getAppRegistry().getInstanceService('organization').getProcessConfiguration(organizationId)
     : null;
   // A stored active process that no longer compiles (types removed from the
   // registry view after the pack cutover) must not brick auth hydration:
@@ -85,7 +85,7 @@ export async function resolveProcessAuth(auth = {}) {
     };
   }
   const userId = String(auth.userId || '');
-  const organization = await getAppRegistry().getEntityService('organization').getProcessConfiguration(organizationId);
+  const organization = await getAppRegistry().getInstanceService('organization').getProcessConfiguration(organizationId);
   const assignment = organization?.roleAssignments?.[userId] || null;
   // Assignment resolution reads the projected view — the same single
   // source the compiler consumed (legacy tables are not projected).

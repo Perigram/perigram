@@ -19,7 +19,7 @@
     <StateBlock v-if="!cassettes || cassettes.length === 0" :message="!cassettes ? $t('cassette.loading') : $t('cassette.noCassettes')" icon="pi pi-inbox" />
 
     <ResponsiveGrid v-else>
-      <EntityCard
+      <InstanceCard
         v-for="cassette in cassettes"
         :key="cassette._id"
         :entity="cassette"
@@ -40,7 +40,7 @@
         </div>
 
         <template #footer>
-          <div class="flex justify-end gap-2" data-entity-card-interactive="true" @click.stop>
+          <div class="flex justify-end gap-2" data-instance-card-interactive="true" @click.stop>
             <NameEditPopover
               :model-value="getCassetteName(cassette)"
               :label="$t('common.name')"
@@ -69,7 +69,7 @@
             <Button icon="pi pi-trash" text rounded size="small" severity="danger" :aria-label="$t('common.delete')" @click="handleDelete(cassette._id)" />
           </div>
         </template>
-      </EntityCard>
+      </InstanceCard>
     </ResponsiveGrid>
 
     <CassetteEditorDialog 
@@ -107,7 +107,7 @@ import { useConfirm } from 'primevue/useconfirm';
 import CassetteEditorDialog from './CassetteEditorDialog.vue';
 import CassetteDesignerV2 from './CassetteDesignerV2.vue';
 import CassetteThumbnail from './CassetteThumbnail.vue';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DesignerDialog from '~/components/shared/DesignerDialog.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';

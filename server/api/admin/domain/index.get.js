@@ -25,11 +25,11 @@ export default defineEventHandler(async (event) => {
   });
 
   // Resolver-aware bindings: every entity in the projected view resolves
-  // through getEntityService (explicit framework services AND the generic
+  // through getInstanceService (explicit framework services AND the generic
   // instance services for pack/org types — SPEC §13).
   const bindings = {};
   for (const entity of domain?.entities || []) {
-    const service = registry.getEntityService(entity.type);
+    const service = registry.getInstanceService(entity.type);
     if (!service) continue;
     bindings[entity.type] = {
       list: service.processList,

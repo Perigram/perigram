@@ -26,7 +26,7 @@ describe('discoverAssignmentBindingRequirements', () => {
             scope: { queueId: '$assignment.queueId' }, bindings: { tab: '$assignment.tab' },
             required: { feature: 'queues', level: 'read', rule: { fact: 'lineage.projectId', equals: '$assignment.requiredProjectId' } },
             sources: [
-              { identifier: '$assignment.entityId', required: { scope: { projectId: '$assignment.sourceProjectId' } } },
+              { identifier: '$assignment.instanceId', required: { scope: { projectId: '$assignment.sourceProjectId' } } },
               { filters: { ownerId: '$assignment.ownerId' } }
             ]
           }
@@ -36,11 +36,11 @@ describe('discoverAssignmentBindingRequirements', () => {
     const byKey = Object.fromEntries(requirements.map(item => [item.key, item]));
     expect(Object.keys(byKey)).toEqual(expect.arrayContaining([
       'projectId', 'status', 'limit', 'enabled', 'projectSlug', 'queueId', 'tab',
-      'requiredProjectId', 'entityId', 'sourceProjectId', 'ownerId', 'effectQueueId'
+      'requiredProjectId', 'instanceId', 'sourceProjectId', 'ownerId', 'effectQueueId'
     ]));
     expect(byKey.limit.type).toBe('number');
     expect(byKey.enabled.type).toBe('boolean');
-    expect(byKey.entityId.locations[0]).toContain('identifier');
+    expect(byKey.instanceId.locations[0]).toContain('identifier');
     expect(byKey.ownerId.locations[0]).toContain('filters');
   });
 });

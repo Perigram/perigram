@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
 
   return await processDefinitionsService.projectEntityThroughSocket({
     socketId: event.context.params.id,
-    entityId: body.entityId,
+    instanceId: body.instanceId,
     targetOrganizationId: body.targetOrganizationId
   }, auth);
 });

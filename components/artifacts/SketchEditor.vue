@@ -51,7 +51,7 @@
             <template v-if="persistence.origin">
                 <span class="text-muted text-supporting">{{ $t('sketch.originEntity') }}:</span>
                 <span class="text-muted text-supporting">{{ $t('sketch.originEntity') }}:</span>
-                <EntityInlineRef :type="originEntity.typeId" :id="originEntity.entityId" :fetch="false" />
+                <InstanceInlineRef :type="originEntity.typeId" :id="originEntity.instanceId" :fetch="false" />
                 <Button icon="pi pi-times" severity="secondary" text rounded size="small" :aria-label="$t('sketch.clearOrigin')" @click="clearOrigin" />
             </template>
             <template v-else>
@@ -66,7 +66,7 @@
                     :aria-label="$t('sketch.originType')"
                 />
                 <InputText
-                    v-model="originDraft.entityId"
+                    v-model="originDraft.instanceId"
                     size="small"
                     class="w-44"
                     :placeholder="$t('sketch.originId')"
@@ -78,7 +78,7 @@
                     size="small"
                     severity="secondary"
                     outlined
-                    :disabled="!originDraft.typeId || !originDraft.entityId.trim()"
+                    :disabled="!originDraft.typeId || !originDraft.instanceId.trim()"
                     @click="setOrigin"
                 />
             </template>
@@ -138,11 +138,11 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import Button from 'primevue/button';
 import ColorPicker from 'primevue/colorpicker';
 import InputText from 'primevue/inputtext';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import SelectButton from 'primevue/selectbutton';
 import { useI18n } from 'vue-i18n';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { artifactSurfaces } from '~/utils/artifact-ui.js';
 import { SKETCH_TOOLS, SKETCH_VIEWBOX, parseScene, strokeToSvgPath, strokesAtPoint } from '~/utils/sketch.js';
@@ -168,7 +168,7 @@ const liveStroke = ref(null);
 const svgEl = ref(null);
 const backgroundInput = ref(null);
 const originEntity = ref(props.persistence.origin?.value || null);
-const originDraft = ref({ typeId: '', entityId: '' });
+const originDraft = ref({ typeId: '', instanceId: '' });
 const editorTitle = computed(() => props.persistence.title || t('sketch.editorTitle'));
 const undoStack = [];
 const redoStack = [];
@@ -291,10 +291,10 @@ const clearScene = () => {
 
 const setOrigin = () => {
     const typeId = originDraft.value.typeId;
-    const entityId = originDraft.value.entityId.trim();
-    if (!typeId || !entityId) return;
-    originEntity.value = { typeId, entityId };
-    originDraft.value = { typeId: '', entityId: '' };
+    const instanceId = originDraft.value.instanceId.trim();
+    if (!typeId || !instanceId) return;
+    originEntity.value = { typeId, instanceId };
+    originDraft.value = { typeId: '', instanceId: '' };
     dirty.value = true;
 };
 

@@ -2,10 +2,10 @@ import { createError } from 'h3';
 import * as repository from './repository.js';
 import { ArtifactTemplate } from './model.js';
 import { createAttachment, createData, createIdentity } from '../../core/blocks/index.js';
-import { assertEntityAccess, hasEntityAccess } from '../../core/access/service.js';
+import { assertEntityAccess, hasInstanceAccess } from '../../core/access/service.js';
 import { getLineageFilter } from '../../utils/permissions.js';
 import * as filesService from '../files/service.js';
-import * as entityRevisionsService from '../entity-revisions/service.js';
+import * as instanceRevisionsService from '../instance-revisions/service.js';
 import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { normalizeTemplateLayout, parseTemplate, renderTemplate, templateFormatFor, templateVariables } from './format.js';
 import { statusService } from '../../core/machines/service.js';
@@ -26,7 +26,7 @@ function revisionPointer(revision) {
 }
 
 async function ensureLayoutRevision(template, userId, reason) {
-  return await entityRevisionsService.ensureForEntitySnapshot({
+  return await instanceRevisionsService.ensureForEntitySnapshot({
     typeId: 'artifact_template',
     entity: template,
     scope: REVISION_SCOPE,
@@ -93,7 +93,7 @@ export async function createUploaded({ buffer, filename, mimeType, name } = {}, 
 export async function getById(id, userId = null, userOrg = null, userRole = null, auth = null) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Artifact template not found' });
-  if (auth && !hasEntityAccess({ entity: raw, typeId: 'artifact_template', feature: 'artifact_templates', level: 'read', auth })) {
+  if (auth && !hasInstanceAccess({ entity: raw, typeId: 'artifact_template', feature: 'artifact_templates', level: 'read', auth })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return toDTO(raw);
@@ -103,7 +103,7 @@ export async function list(filter = {}, userId = null, userOrg = null, userRole 
   const finalFilter = auth?.memberships ? { ...getLineageFilter(auth), ...filter } : filter;
   const raws = await repository.find(finalFilter);
   return raws
-    .filter(raw => !auth || hasEntityAccess({ entity: raw, typeId: 'artifact_template', feature: 'artifact_templates', level: 'read', auth }))
+    .filter(raw => !auth || hasInstanceAccess({ entity: raw, typeId: 'artifact_template', feature: 'artifact_templates', level: 'read', auth }))
     .map(toDTO);
 }
 
@@ -134,7 +134,7 @@ export async function render(id, { revisionId = null, values = {}, layout = null
   let selectedLayout = layout ? normalizeTemplateLayout(layout, template.data?.format) : template.data?.layout;
   let selectedRevisionId = revisionId || template.data?.activeRevisionId || null;
   if (revisionId) {
-    const revision = await entityRevisionsService.getById(revisionId, auth.userId, auth.role, auth);
+    const revision = await instanceRevisionsService.getById(revisionId, auth.userId, auth.role, auth);
     if (revision.data?.source?.type !== 'artifact_template' || String(revision.data?.source?.id) !== String(template._id)) {
       throw createError({ statusCode: 400, message: 'Artifact template revision does not belong to the selected template' });
     }

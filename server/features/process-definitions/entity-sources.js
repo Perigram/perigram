@@ -1,4 +1,4 @@
-import { normalizeEntityRef } from '~/packages/core/src/index.js';
+import { normalizeInstanceRef } from '~/packages/core/src/index.js';
 
 export async function processParentEntity(containment = [], resolveEntity, entity, typeId) {
   const relation = containment.find(item => sameTypeId(item.childType, typeId));
@@ -9,11 +9,11 @@ export async function processParentEntity(containment = [], resolveEntity, entit
 }
 
 export async function processChildEntities(containment = [], queryEntities, entity, typeId) {
-  const entityId = entityInputId(entity);
-  if (!entityId) return [];
+  const instanceId = entityInputId(entity);
+  if (!instanceId) return [];
   const relations = containment.filter(item => sameTypeId(item.parentType, typeId));
   const children = await Promise.all(relations.map(relation => (
-    queryEntities(relation.childType, { [relation.lineageKey]: String(entityId) })
+    queryEntities(relation.childType, { [relation.lineageKey]: String(instanceId) })
   )));
   return children.flat();
 }
@@ -26,7 +26,7 @@ export async function processRelatedEntities(relations = [], resolveEntity, enti
   const stored = entity?.relations?.[relation.key];
   const refs = Array.isArray(stored) ? stored : stored ? [stored] : [];
   const resolved = await Promise.all(refs.map(ref => {
-    const normalized = normalizeEntityRef(ref);
+    const normalized = normalizeInstanceRef(ref);
     return normalized?.id ? resolveEntity(relation.targetType, normalized) : null;
   }));
   return resolved.filter(Boolean);

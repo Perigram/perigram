@@ -1,5 +1,5 @@
 <template>
-  <span class="inline-flex" data-entity-card-interactive="true" @click.stop>
+  <span class="inline-flex" data-instance-card-interactive="true" @click.stop>
     <slot name="trigger" :open="open">
       <Button
         icon="pi pi-pencil"

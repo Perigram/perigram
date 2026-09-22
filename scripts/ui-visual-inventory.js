@@ -11,9 +11,9 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/generated/GeneratedProjectWorkspace.vue': 'layout',
   'components/shared/DesignerDialog.vue': 'layout',
   'components/shared/DesignerWorkspace.vue': 'layout',
-  'components/shared/EntityPage.vue': 'layout',
-  'components/shared/EntitySurfaceContent.vue': 'layout',
-  'components/shared/EntityWorkspace.vue': 'layout',
+  'components/shared/InstancePage.vue': 'layout',
+  'components/shared/InstanceSurfaceContent.vue': 'layout',
+  'components/shared/InstanceWorkspace.vue': 'layout',
   'components/shared/ResponsiveGrid.vue': 'layout',
   'components/ui-mapping/StateStrip.vue': 'layout',
   'components/ui-mapping/SurfaceHeader.vue': 'layout',
@@ -75,7 +75,7 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
     ':style="handleStyle(row.input)"',
     ':style="handleStyle(row.output)"'
   ]],
-  'components/shared/EntityInlineRef.vue': ['data-driven', [':style="toneStyle"', ':style="toneStyle"']],
+  'components/shared/InstanceInlineRef.vue': ['data-driven', [':style="toneStyle"', ':style="toneStyle"']],
 });
 
 const REGISTERED_PRIMITIVE_PATHS = new Set(cncDesignSystemPrimitives.map(primitive => primitive.componentPath));

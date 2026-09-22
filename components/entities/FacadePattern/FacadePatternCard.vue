@@ -1,10 +1,10 @@
 <template>
-  <EntityCard :entity="facadePattern" type-id="facadePattern" :variant="variant">
-    <EntitySurfaceContent :entity="facadePattern" type-id="facadePattern" :surface="variant" />
-  </EntityCard>
+  <InstanceCard :entity="facadePattern" type-id="facadePattern" :variant="variant">
+    <InstanceSurfaceContent :entity="facadePattern" type-id="facadePattern" :surface="variant" />
+  </InstanceCard>
 </template>
 <script setup>
-import EntityCard from '~/components/shared/EntityCard.vue';
-import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
+import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
 defineProps({ facadePattern: { type: Object, required: true }, variant: { type: String, default: 'card' } });
 </script>

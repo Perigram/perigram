@@ -35,7 +35,7 @@ function projectScreen(screen, actionsBySourceId) {
     const projected = { id: source.id, typeId: source.typeId, mode: source.mode || 'list' };
     if (source.required) projected.required = source.required;
     if (source.identifier) projected.identifier = source.identifier;
-    // Compiler detail filters ({ lineageKey: '$screen.scope.entityId' })
+    // Compiler detail filters ({ lineageKey: '$screen.scope.instanceId' })
     // become lineage-scoped lists against the single source.
     const filterEntries = Object.entries(source.filters || {});
     const singleSource = (screen.sources || []).find(item => item.mode === 'single');
@@ -57,7 +57,7 @@ function projectScreen(screen, actionsBySourceId) {
     template: screen.template === 'typeList' ? 'typeList'
       : screen.template === 'instanceDetail' ? 'instanceDetail' : screen.template,
     typeId: screen.typeId ?? null,
-    scope: screen.scope ? { instanceId: screen.scope.entityId ?? null } : {},
+    scope: screen.scope ? { instanceId: screen.scope.instanceId ?? null } : {},
     sources,
     regions,
     actions: (screen.actions || [])

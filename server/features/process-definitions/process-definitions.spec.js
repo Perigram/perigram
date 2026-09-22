@@ -14,7 +14,7 @@ import * as processRepository from './repository.js';
 import * as ctsTypes from '../cts-types/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { statusService } from '~/server/core/machines/service.js';
-import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
+import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
 import { PROCESS_DATAFLOW_VERSION } from '~/packages/processes/src/index.js';
 import { createPersistedAcceptanceFixture, PERSISTED_ACCEPTANCE_IDS } from '~/test-data/persisted-acceptance.js';
 
@@ -58,7 +58,7 @@ vi.mock('~/server/core/machines/service.js', async (importOriginal) => {
 
 vi.mock('../instances/indexes.js', () => ({ ensureInstanceIndexes: vi.fn(async () => []) }));
 
-vi.mock('~/server/features/entity-revisions/service.js', () => ({
+vi.mock('~/server/features/instance-revisions/service.js', () => ({
   getById: vi.fn()
 }));
 
@@ -75,7 +75,7 @@ describe('current process-definition service contract', () => {
       roleAssignments: {}
     });
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'organization' ? organizationService : null
+      getInstanceService: type => type === 'organization' ? organizationService : null
     });
   });
 
@@ -85,7 +85,7 @@ describe('current process-definition service contract', () => {
       lineage: { organizationId: 'org-1' }
     });
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'material' ? { processGetById } : organizationService
+      getInstanceService: type => type === 'material' ? { processGetById } : organizationService
     });
     const auth = {
       userId: 'user-1',
@@ -288,13 +288,13 @@ describe('current process-definition service contract', () => {
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
     const processList = vi.fn().mockResolvedValue([{ status: { state: { primary: 'LEGACY_RETIRED' } } }]);
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === typeId ? { processList } : organizationService
+      getInstanceService: type => type === typeId ? { processList } : organizationService
     });
 
     const validation = await validate('process-draft', adminAuth());
     console.log("VALIDATION ERRORS:", JSON.stringify(validation.errors));
     expect(validation.ok).toBe(true);
-    expect(validation.diff.removedEntityStatuses).toEqual([{ typeId, statuses: ['LEGACY_RETIRED'] }]);
+    expect(validation.diff.removedInstanceStatuses).toEqual([{ typeId, statuses: ['LEGACY_RETIRED'] }]);
 
     await expect(activate('process-draft', adminAuth())).rejects.toMatchObject({
       statusCode: 409,
@@ -369,7 +369,7 @@ describe('current process-definition service contract', () => {
     processRepository.findById.mockResolvedValue(draftRecord(fixture.processDefinition.data));
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === typeId
+      getInstanceService: type => type === typeId
         ? { processList: vi.fn().mockResolvedValue([{ status: { state: { primary: 'draft' } } }]) }
         : organizationService
     });
@@ -402,7 +402,7 @@ describe('current process-definition service contract', () => {
       { _id: 'p-2', status: { state: { primary: 'LEGACY_RETIRED' } } }
     ];
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === typeId
+      getInstanceService: type => type === typeId
         ? { processList: vi.fn().mockResolvedValue(strandedEntities) }
         : organizationService
     });
@@ -445,7 +445,7 @@ describe('current process-definition service contract', () => {
     });
     processRepository.findById.mockResolvedValue(draftRecord(draftData));
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === typeId
+      getInstanceService: type => type === typeId
         ? { processList: vi.fn().mockResolvedValue([{ _id: 'p-1', status: { state: { primary: 'LEGACY_RETIRED' } } }]) }
         : organizationService
     });
@@ -478,7 +478,7 @@ describe('current process-definition service contract', () => {
     processRepository.findById.mockResolvedValue(draftRecord(draftData));
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === typeId
+      getInstanceService: type => type === typeId
         ? { processList: vi.fn().mockResolvedValue([
             { _id: 'p-1', status: { state: { primary: 'LEGACY_RETIRED' } } },
             { _id: 'p-2', status: { state: { primary: 'draft' } } }
@@ -569,7 +569,7 @@ describe('current process-definition service contract', () => {
       return persisted;
     });
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'machine'
+      getInstanceService: type => type === 'machine'
         ? { processUpdate }
         : type === 'organization' ? organizationService : null
     });
@@ -618,7 +618,7 @@ describe('current process-definition service contract', () => {
       return { entity: updated, status: updated.status, actions: [], effects: [] };
     });
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'machine'
+      getInstanceService: type => type === 'machine'
         ? {}
         : type === 'organization' ? organizationService : null
     });
@@ -664,7 +664,7 @@ describe('current process-definition service contract', () => {
     const create = vi.fn().mockResolvedValue(created);
     statusService.setInitialStateForOrganization.mockResolvedValue(initialStatus);
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'queue'
+      getInstanceService: type => type === 'queue'
         ? { constructionHandlers: { genericCreate: create } }
         : organizationService
     });
@@ -697,7 +697,7 @@ describe('current process-definition service contract', () => {
       .mockResolvedValueOnce({ state: { primary: 'PLANNED' } })
       .mockResolvedValueOnce({ state: { primary: 'SURVEYING' } });
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'project'
+      getInstanceService: type => type === 'project'
         ? { constructionHandlers: { genericCreate: create } }
         : organizationService
     });
@@ -730,7 +730,7 @@ describe('current process-definition service contract', () => {
     const entity = { _id: 'sheet-1', type: 'sheet', status: { state: { primary: 'AVAILABLE' } } };
     statusService.transitionWithResult.mockResolvedValue({ entity: { ...entity, status: { state: { primary: 'VERIFIED' } } }, actions: [], effects: [] });
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'sheet' ? {} : organizationService
+      getInstanceService: type => type === 'sheet' ? {} : organizationService
     });
 
     const result = await performDurableEffect({
@@ -758,7 +758,7 @@ describe('current process-definition service contract', () => {
   it('archives through a compiled domain intent and hard-deletes only through the runtime adapter', async () => {
     const processDelete = vi.fn().mockResolvedValue({ success: true });
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'queue'
+      getInstanceService: type => type === 'queue'
         ? { processCapabilities: { archive: true, delete: true }, processDelete }
         : organizationService
     });
@@ -781,7 +781,7 @@ describe('current process-definition service contract', () => {
 
   it('denies archive and hard delete when runtime capabilities do not allow them', async () => {
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'queue'
+      getInstanceService: type => type === 'queue'
         ? { processCapabilities: { archive: false, delete: false } }
         : organizationService
     });
@@ -800,7 +800,7 @@ describe('current process-definition service contract', () => {
     const create = vi.fn().mockResolvedValue({ _id: 'facade-1' });
     const targetGet = vi.fn().mockResolvedValue(library('library-1'));
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'facade'
+      getInstanceService: type => type === 'facade'
         ? { constructionHandlers: { genericCreate: create } }
         : type === 'material' ? { processGetById: targetGet } : organizationService
     });
@@ -836,11 +836,11 @@ describe('current process-definition service contract', () => {
       ? null
       : id === 'foreign' ? { ...library(id), lineage: { organizationId: 'org-other' } } : library(id));
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'facade'
+      getInstanceService: type => type === 'facade'
         ? { processUpdate }
         : type === 'material' ? { processGetById: targetGet } : organizationService
     });
-    entityRevisionsService.getById.mockResolvedValue({
+    instanceRevisionsService.getById.mockResolvedValue({
       data: { source: libraryRef('library-1') }
     });
 
@@ -887,7 +887,7 @@ describe('current process-definition service contract', () => {
   it('persists v5 leaf field inputs as direct field writes without block composition', async () => {
     const processUpdate = vi.fn(async (id, patch) => ({ _id: id, ...patch }));
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'sheet'
+      getInstanceService: type => type === 'sheet'
         ? { processGetById: vi.fn(), processUpdate, processCapabilities: { processUpdate: true } }
         : organizationService
     });
@@ -924,7 +924,7 @@ describe('current process-definition service contract', () => {
       roleAssignments: {}
     });
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'facade'
+      getInstanceService: type => type === 'facade'
         ? { processGetById: vi.fn().mockImplementation(async () => structuredClone(owner)), processUpdate }
         : type === 'material' ? { processGetById: targetGet } : organizationService
     });
@@ -935,28 +935,28 @@ describe('current process-definition service contract', () => {
 
     await executeActiveProcessAction({
       actionId: 'update:link:libraries',
-      entityId: 'facade-1',
+      instanceId: 'facade-1',
       data: { relations: { libraries: libraryRef('library-2') } }
     }, auth);
     expect(owner.relations.libraries).toEqual([libraryRef('library-1'), libraryRef('library-2')]);
 
     await executeActiveProcessAction({
       actionId: 'update:link:libraries',
-      entityId: 'facade-1',
+      instanceId: 'facade-1',
       data: { relations: { libraries: libraryRef('library-3') }, relationReplaces: libraryRef('library-1') }
     }, auth);
     expect(owner.relations.libraries).toEqual([libraryRef('library-2'), libraryRef('library-3')]);
 
     await executeActiveProcessAction({
       actionId: 'update:unlink:libraries',
-      entityId: 'facade-1',
+      instanceId: 'facade-1',
       data: { relations: { libraries: libraryRef('library-2') } }
     }, auth);
     expect(owner.relations.libraries).toEqual([libraryRef('library-3')]);
 
     await expect(executeActiveProcessAction({
       actionId: 'update:link:libraries',
-      entityId: 'facade-1',
+      instanceId: 'facade-1',
       data: { relations: { libraries: libraryRef('missing') } }
     }, auth)).rejects.toMatchObject({ statusCode: 404 });
     expect(processUpdate).toHaveBeenCalledTimes(3);

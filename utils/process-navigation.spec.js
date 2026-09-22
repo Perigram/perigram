@@ -8,11 +8,11 @@ describe('process navigation', () => {
       required: {
         feature: 'projects',
         level: 'read',
-        scope: { entityId: 'project-123' }
+        scope: { instanceId: 'project-123' }
       }
     }];
     const permissions = {
-      projects: [{ level: 'read', scope: { entityId: 'project-123' } }]
+      projects: [{ level: 'read', scope: { instanceId: 'project-123' } }]
     };
 
     expect(resolveVisibleScreens(screens, permissions)).toHaveLength(1);
@@ -24,11 +24,11 @@ describe('process navigation', () => {
       required: {
         feature: 'projects',
         level: 'read',
-        scope: { entityId: 'project-123' }
+        scope: { instanceId: 'project-123' }
       }
     }];
     const permissions = {
-      projects: [{ level: 'read', scope: { entityId: 'project-456' } }]
+      projects: [{ level: 'read', scope: { instanceId: 'project-456' } }]
     };
 
     expect(resolveVisibleScreens(screens, permissions)).toEqual([]);

@@ -73,7 +73,7 @@ export function upsertContextEntities(context, entries = []) {
   return next;
 }
 
-export function transitionContextEntityStatus(context, { type, id, state, userId = 'SYSTEM', metadata = {}, lifecycle = null } = {}) {
+export function transitionContextInstanceStatus(context, { type, id, state, userId = 'SYSTEM', metadata = {}, lifecycle = null } = {}) {
   const next = normalizeWorkbenchContext(context);
   const entity = type && id ? next.entities?.[type]?.[id.toString()] : null;
   if (!entity || !state) return next;

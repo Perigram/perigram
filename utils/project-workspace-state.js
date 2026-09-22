@@ -111,6 +111,15 @@ function normalizeOpenedScreenRefs(value) {
   }));
 }
 
+// The id key renamed with the instance vocabulary; stored refs from the
+// entity-vocabulary era migrate one way at load (the next save persists
+// the new shape).
+function storedInstanceId(reference = {}) {
+  if (typeof reference.instanceId === 'string') return reference.instanceId;
+  if (typeof reference.entityId === 'string') return reference.entityId;
+  return '';
+}
+
 function normalizeOpenedPageRefs(value) {
   if (!Array.isArray(value)) return [];
   return value.filter(reference => (
@@ -118,12 +127,12 @@ function normalizeOpenedPageRefs(value) {
     && typeof reference.key === 'string'
     && typeof reference.pageId === 'string'
     && typeof reference.typeId === 'string'
-    && typeof reference.entityId === 'string'
+    && storedInstanceId(reference)
   )).map(reference => ({
     key: reference.key,
     pageId: reference.pageId,
     typeId: reference.typeId,
-    entityId: reference.entityId
+    instanceId: storedInstanceId(reference)
   }));
 }
 
@@ -133,10 +142,10 @@ function normalizeOpenedEntityRefs(value) {
     reference
     && typeof reference.key === 'string'
     && typeof reference.typeId === 'string'
-    && typeof reference.entityId === 'string'
+    && storedInstanceId(reference)
   )).map(reference => ({
     key: reference.key,
     typeId: reference.typeId,
-    entityId: reference.entityId
+    instanceId: storedInstanceId(reference)
   }));
 }

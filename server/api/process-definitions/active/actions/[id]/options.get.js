@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   return await processDefinitionsService.getActiveRelationOptions({
     actionId: decodeURIComponent(event.context.params.id),
-    entityId: query.entityId,
+    instanceId: query.instanceId,
     source: query.source === 'creator'
   }, auth);
 });

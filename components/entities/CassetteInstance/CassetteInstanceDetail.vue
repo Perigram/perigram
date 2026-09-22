@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="instance" type-id="cassette_instance">
+    <InstancePage :entity="instance" type-id="cassette_instance">
         <template #actions>
                 <Button :label="$t('cassetteInstance.printLabel')" icon="pi pi-print" text />
         </template>
@@ -20,20 +20,20 @@
             </Panel>
 
             <Panel :header="$t('cassetteInstance.parentDesign')">
-                <EntityInlineRef v-if="design" type="cassetteDesign" :entity="design" />
+                <InstanceInlineRef v-if="design" type="cassetteDesign" :entity="design" />
                 <span v-else>—</span>
             </Panel>
 
             <Panel :header="$t('entities.cassetteTemplate')">
-                <EntityInlineRef v-if="template" type="cassetteTemplate" :entity="template" />
+                <InstanceInlineRef v-if="template" type="cassetteTemplate" :entity="template" />
                 <span v-else>—</span>
             </Panel>
 
             <Panel :header="$t('cassetteInstance.materialSource')">
                 <div class="flex flex-col gap-3">
-                    <EntityInlineRef v-if="sheet" type="sheet" :entity="sheet" />
-                    <EntityInlineRef v-if="pile" type="materialPile" :entity="pile" />
-                    <EntityInlineRef v-if="warehouse" type="warehouse" :entity="warehouse" />
+                    <InstanceInlineRef v-if="sheet" type="sheet" :entity="sheet" />
+                    <InstanceInlineRef v-if="pile" type="materialPile" :entity="pile" />
+                    <InstanceInlineRef v-if="warehouse" type="warehouse" :entity="warehouse" />
                     <span v-if="!sheet && !pile && !warehouse">—</span>
                 </div>
             </Panel>
@@ -51,7 +51,7 @@
                 </Panel>
             </div>
         </div>
-    </EntityPage>
+    </InstancePage>
 </template>
 
 <script setup>
@@ -60,9 +60,9 @@ import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import Divider from 'primevue/divider';
-import EntityPage from '~/components/shared/EntityPage.vue';
+import InstancePage from '~/components/shared/InstancePage.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import { useInstancesStore } from '~/stores/instances';
 

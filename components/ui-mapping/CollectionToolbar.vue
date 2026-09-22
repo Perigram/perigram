@@ -28,7 +28,7 @@
 import { computed, inject } from 'vue';
 import InputText from 'primevue/inputtext';
 import { LAYOUT, toolbarVisibleFor } from '#shared/ui-mapping/index.js';
-import AppSelect from '~/components/shared/EntitySelect.vue';
+import AppSelect from '~/components/shared/InstanceSelect.vue';
 
 // The collection toolbar: materializes the composed list-controls
 // contract (searchKeys, facets over values actually present) above a

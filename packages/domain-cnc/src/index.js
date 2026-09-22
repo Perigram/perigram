@@ -22,12 +22,12 @@ export {
   cncDesignSystemVariants,
   cncDesignSystemGroups,
   cncDesignSystemPrimitives,
-  cncDesignSystemEntityContracts,
-  cncEntitySurfaceContracts,
+  cncDesignSystemInstanceContracts,
+  cncInstanceSurfaceContracts,
   cncDesignSystem,
   cncUiSurfaces
 } from './ui.js';
-export { cncEntityFieldGroups, getEntityFieldGroups } from './ui-fields.js';
+export { cncInstanceFieldGroups, getEntityFieldGroups } from './ui-fields.js';
 export {
   cncBlockComposition,
   cncBlockFieldSchemas,
@@ -62,8 +62,8 @@ import { cncArtifactConversions } from './artifact-conversions.js';
 import { cncAttachmentKinds } from './attachment-kinds.js';
 import { cncEntityConstruction } from './entity-construction.js';
 import { cncEntityFieldAccess } from './field-access.js';
-import { cncDesignSystem, cncStatusUi, cncUiSurfaces, cncEntitySurfaceContracts } from './ui.js';
-import { cncEntityFieldGroups } from './ui-fields.js';
+import { cncDesignSystem, cncStatusUi, cncUiSurfaces, cncInstanceSurfaceContracts } from './ui.js';
+import { cncInstanceFieldGroups } from './ui-fields.js';
 import { cncBlockComposition, cncBlockFieldSchemas, cncEntityFieldSchemas } from './field-schemas.js';
 
 const entityEndpoints = cncEntities.map(entity => ({
@@ -95,11 +95,11 @@ export const cncDomain = {
   construction: cncEntityConstruction,
   fieldAccess: cncEntityFieldAccess,
   designSystem: cncDesignSystem,
-  fieldGroups: cncEntityFieldGroups,
+  fieldGroups: cncInstanceFieldGroups,
   blockComposition: cncBlockComposition,
   blockSchemas: cncBlockFieldSchemas,
   fieldSchemas: cncEntityFieldSchemas,
-  surfaceContracts: cncEntitySurfaceContracts,
+  surfaceContracts: cncInstanceSurfaceContracts,
   uiSurfaces: cncUiSurfaces,
   ui: {
     endpoints: entityEndpoints,

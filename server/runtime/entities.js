@@ -6,15 +6,15 @@ export function normalizeTypeId(type) {
   // Registry definitions canonicalize legacy aliases; unknown ids pass
   // through unchanged — the registry view is the whole catalog and org/
   // pack type ids are valid storage ids themselves (SPEC §19 cut).
-  return getCutkitRegistry().getEntityDefinition(key)?.type || key;
+  return getCutkitRegistry().getInstanceDefinition(key)?.type || key;
 }
 
-export function getEntityDefinition(type) {
+export function getInstanceDefinition(type) {
   const normalized = normalizeTypeId(type);
-  return getCutkitRegistry().getEntityDefinition(normalized);
+  return getCutkitRegistry().getInstanceDefinition(normalized);
 }
 
 export function getEntityCollection(type) {
-  const definition = getEntityDefinition(type);
+  const definition = getInstanceDefinition(type);
   return definition?.collection || null;
 }

@@ -21,14 +21,14 @@ test.describe('artifact and designer UI', () => {
     const auth = await (await app.request.get('/api/auth/me')).json();
     const detail = (auth.screens || []).find(screen => screen.template === 'instanceDetail' && screen.typeId === 'artifact');
     test.skip(!detail?.route, 'Active process has no generated artifact detail screen');
-    await app.page.goto(`${detail.route}?entityId=${encodeURIComponent(artifact._id)}&artifactId=${encodeURIComponent(artifact._id)}&projectId=${encodeURIComponent(project._id)}`);
+    await app.page.goto(`${detail.route}?instanceId=${encodeURIComponent(artifact._id)}&artifactId=${encodeURIComponent(artifact._id)}&projectId=${encodeURIComponent(project._id)}`);
     await expect(app.page.locator('[data-artifact-viewer][data-viewer-mode="dxf"]')).toBeVisible();
 
     const replacement = await app.request.put(`/api/artifacts/${artifact._id}/file`, {
       multipart: { file: { name: 'replacement.dxf', mimeType: 'application/dxf', buffer: Buffer.from('0\nSECTION\n2\nENTITIES\n999\nEOF') } }
     });
     expect(replacement.ok(), await replacement.text()).toBeTruthy();
-    const revisions = await app.request.get(`/api/entity-revisions?typeId=artifact&entityId=${artifact._id}&scope=file`);
+    const revisions = await app.request.get(`/api/instance-revisions?typeId=artifact&instanceId=${artifact._id}&scope=file`);
     expect(revisions.ok(), await revisions.text()).toBeTruthy();
     expect((await revisions.json()).length).toBeGreaterThanOrEqual(2);
 

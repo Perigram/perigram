@@ -29,7 +29,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import Button from 'primevue/button';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import ThreeViewport from '~/components/shared/ThreeViewport.vue';

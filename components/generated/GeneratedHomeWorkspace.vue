@@ -81,10 +81,10 @@
                 v-else
                 class="group flex min-w-0 flex-1 items-center gap-1"
                 :class="node.data?.item?.key !== activePane?.selectionKey ? 'text-muted' : ''"
-                :data-entity-id="entityId(node.data?.item?.entity)"
+                :data-entity-id="instanceId(node.data?.item?.entity)"
               >
                 <span class="flex min-w-0 flex-1 items-center">
-                  <EntityInlineRef
+                  <InstanceInlineRef
                     :type="node.data.item.type"
                     :entity="node.data.item.entity"
                     :fetch="false"
@@ -93,7 +93,7 @@
                     variant="inline"
                   />
                 </span>
-                <EntityStatus
+                <InstanceStatus
                   v-if="node.data?.item?.entity?.status"
                   :entity="node.data.item.entity"
                   :type-id="node.data.item.type"
@@ -205,13 +205,13 @@ import Avatar from 'primevue/avatar';
 import Menu from 'primevue/menu';
 import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
+import InstanceStatus from '~/components/shared/status/InstanceStatus.vue';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
 import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
-import { consumePendingWorkspaceEntity, workspaceEntityOpenEvent } from '~/utils/entity-workspace-open.js';
+import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
@@ -219,7 +219,7 @@ import { actionAppliesToEntity, isCreateAction, isGeneratedSurfaceAction, isRela
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { resolveGeneratedWorkspacePage, generatedWorkspacePages } from '~/components/generated/workspace-pages.js';
 import { generatedDetailScreenForTypeId } from '~/components/generated/detail-screen-actions.js';
-import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
+import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useRegistryStore } from '~/stores/registry';
@@ -230,8 +230,8 @@ import { generatedActionLabel } from '~/utils/generated-labels.js';
 import { callRoomIcon, callRoomLabel, conversationKeyForRoom } from '~/utils/call-rooms.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
-import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
-import { containmentParent, normalizeHierarchyType } from '~/utils/entity-hierarchy.js';
+import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
+import { containmentParent, normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
 import { emptyTabItem, emptyTabKey, isEmptyTabKey } from '~/utils/workspace-empty-tabs.js';
 import {
   closeWorkspaceLeaf,
@@ -310,7 +310,7 @@ const sections = computed(() => props.screen.regions
   .filter(section => section.source.typeId && shouldRenderHomeSection(section)));
 
 const sectionItems = computed(() => sections.value.flatMap(section => section.items
-  .filter(entity => entityId(entity))
+  .filter(entity => instanceId(entity))
   .map(entity => workspaceEntityItem(section.source.typeId, entity))));
 const workspaceEntityItems = computed(() => [...sectionItems.value, ...openedEntityItems.value]
   .filter((item, index, items) => items.findIndex(candidate => candidate.key === item.key) === index));
@@ -318,7 +318,7 @@ const cassetteItems = computed(() => workspaceEntityItems.value.filter(item => i
 const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
   const entityItem = workspaceEntityItems.value.find(item => (
     item.type === reference.typeId
-    && entityId(item.entity) === reference.entityId
+    && instanceId(item.entity) === reference.instanceId
   ));
   if (!entityItem) return null;
   return {
@@ -386,7 +386,7 @@ const currentUserId = computed(() => String(
 const childrenByKey = computed(() => {
   const containment = effectiveContainment();
   const byIdentity = new Map(workspaceEntityItems.value.map(item => [
-    `${normalizeHierarchyType(item.type)}:${entityId(item.entity)}`,
+    `${normalizeHierarchyType(item.type)}:${instanceId(item.entity)}`,
     item
   ]));
   const children = new Map();
@@ -543,10 +543,10 @@ watch(openedEntityRefs, async refs => {
   const sequence = ++openedEntityLoadSequence;
   const loaded = await Promise.all(refs.map(async reference => {
     const existing = workspaceEntityItems.value.find(item => (
-      item.type === reference.typeId && entityId(item.entity) === reference.entityId
+      item.type === reference.typeId && instanceId(item.entity) === reference.instanceId
     ));
     const entity = existing?.entity
-      || await instances.resolveReadableReference(instances.canonicalTypeKey(reference.typeId), reference.entityId, { silent: true });
+      || await instances.resolveReadableReference(instances.canonicalTypeKey(reference.typeId), reference.instanceId, { silent: true });
     return entity ? workspaceEntityItem(reference.typeId, entity) : null;
   }));
   if (sequence !== openedEntityLoadSequence) return;
@@ -579,14 +579,14 @@ watch(() => callsStore.pendingTabRoom, room => {
 // consumed on mount.
 function openRequestedWorkspaceEntity(event) {
   event?.preventDefault?.();
-  const { typeId, entityId } = event?.detail || {};
-  if (!typeId || !entityId) return;
-  openWorkspaceEntity(typeId, { _id: entityId });
+  const { typeId, instanceId } = event?.detail || {};
+  if (!typeId || !instanceId) return;
+  openWorkspaceEntity(typeId, { _id: instanceId });
 }
 
 onMounted(() => {
-  window.addEventListener(workspaceEntityOpenEvent, openRequestedWorkspaceEntity);
-  const pending = consumePendingWorkspaceEntity();
+  window.addEventListener(workspaceInstanceOpenEvent, openRequestedWorkspaceEntity);
+  const pending = consumePendingWorkspaceInstance();
   if (pending?.typeId) openRequestedWorkspaceEntity({ detail: pending });
   window.addEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
   const pendingChat = consumePendingWorkspaceChat();
@@ -594,7 +594,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener(workspaceEntityOpenEvent, openRequestedWorkspaceEntity);
+  window.removeEventListener(workspaceInstanceOpenEvent, openRequestedWorkspaceEntity);
   window.removeEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
 });
 
@@ -777,7 +777,7 @@ function childCreateActions(item = null) {
           incoming: {
             parentTypeId: item.type,
             parentEntity: item.entity,
-            parentEntityId: entityId(item.entity)
+            parentEntityId: instanceId(item.entity)
           },
           region,
           source,
@@ -810,7 +810,7 @@ function sectionItemsFor(regionId) {
   const section = sections.value.find(candidate => candidate.region.id === regionId);
   return section ? sectionItems.value.filter(item => (
     item.type === section.source.typeId
-    && section.items.some(entity => entityId(entity) === entityId(item.entity))
+    && section.items.some(entity => instanceId(entity) === instanceId(item.entity))
   )) : [];
 }
 
@@ -849,7 +849,7 @@ function selectNode(node) {
   // screen for the row's type is the canonical instance surface, so the
   // click routes there. With no paired detail screen the row keeps its
   // workspace-pane behavior (selected in the open pane, dead when none).
-  const route = detailRouteForEntity({
+  const route = detailRouteForInstance({
     entity: item.entity,
     typeId: item.type,
     manifest: authStore.screenManifest
@@ -878,7 +878,7 @@ async function loadChildrenFor(parent) {
   if (childLoadSequences.get(parent.key) !== sequence) return;
   const known = new Set(workspaceEntityItems.value.map(item => item.key));
   const additions = [...sourceChildren, ...relationChildren]
-    .filter(item => item?.entity && entityId(item.entity) && !known.has(item.key));
+    .filter(item => item?.entity && instanceId(item.entity) && !known.has(item.key));
   if (additions.length) openedEntityItems.value = [...openedEntityItems.value, ...additions];
   linkedChildrenByKey.value = new Map([
     ...linkedChildrenByKey.value,
@@ -911,7 +911,7 @@ async function loadRelationChildren(parent) {
   let entity = parent.entity;
   if (!entity?.relations) {
     try {
-      entity = await instances.resolveReadableReference(instances.canonicalTypeKey(parent.type), entityId(entity), { silent: true }) || entity;
+      entity = await instances.resolveReadableReference(instances.canonicalTypeKey(parent.type), instanceId(entity), { silent: true }) || entity;
     } catch {
       entity = entity;
     }
@@ -919,7 +919,7 @@ async function loadRelationChildren(parent) {
   const refs = relationRefsFor(entity);
   const loaded = await Promise.all(refs.map(async ref => {
     const existing = workspaceEntityItems.value.find(item => (
-      item.type === ref.typeId && entityId(item.entity) === ref.id
+      item.type === ref.typeId && instanceId(item.entity) === ref.id
     ));
     const resolved = existing?.entity
       || ref.entity
@@ -930,7 +930,7 @@ async function loadRelationChildren(parent) {
 }
 
 function relationRefsFor(entity = {}) {
-  return Object.values(entity?.relations || {}).flatMap(value => resolveEntityRelationRefs(value));
+  return Object.values(entity?.relations || {}).flatMap(value => resolveInstanceRelationRefs(value));
 }
 
 function hasRelationRefs(entity = {}) {
@@ -1021,7 +1021,7 @@ function openWorkspacePage(request = {}) {
 
   const entityItem = workspaceEntityItems.value.find(item => (
     item.type === definition.typeId
-    && entityId(item.entity) === entityId(request.entity)
+    && instanceId(item.entity) === instanceId(request.entity)
   ));
   if (!entityItem || !activePane.value) return;
 
@@ -1031,14 +1031,14 @@ function openWorkspacePage(request = {}) {
       key,
       pageId: definition.id,
       typeId: definition.typeId,
-      entityId: entityId(entityItem.entity)
+      instanceId: instanceId(entityItem.entity)
     }];
   }
   selectPaneTab(activePane.value.id, key);
 }
 
 function rememberWorkspaceEntity(typeId, entity) {
-  const id = entityId(entity);
+  const id = instanceId(entity);
   if (!typeId || !id) return null;
   const key = entityKey(typeId, entity);
   const existing = workspaceEntityItems.value.find(item => item.key === key);
@@ -1050,7 +1050,7 @@ function rememberWorkspaceEntity(typeId, entity) {
     openedEntityRefs.value = [...openedEntityRefs.value, {
       key,
       typeId,
-      entityId: id
+      instanceId: id
     }];
   }
   return item;
@@ -1109,11 +1109,11 @@ function syncActiveSelection() {
 }
 
 function workspacePageKey(pageId, entity) {
-  return `page:${pageId}:${entityId(entity)}`;
+  return `page:${pageId}:${instanceId(entity)}`;
 }
 
 function entityKey(type, entity) {
-  return `${type}:${entityId(entity)}`;
+  return `${type}:${instanceId(entity)}`;
 }
 
 function workspaceEntityItem(type, entity) {
@@ -1129,12 +1129,12 @@ function workspaceEntityItem(type, entity) {
 function sectionRegionForEntity(type, entity) {
   const section = sections.value.find(candidate => (
     candidate.source.typeId === type
-    && candidate.items.some(item => entityId(item) === entityId(entity))
+    && candidate.items.some(item => instanceId(item) === instanceId(entity))
   ));
   return section?.region || null;
 }
 
-function entityId(entity = null) {
+function instanceId(entity = null) {
   const value = entity?._id || entity?.identity?.uid || '';
   return value ? String(value) : '';
 }

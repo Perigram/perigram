@@ -165,8 +165,8 @@ describe('nesting operation worker payloads', () => {
     expect(materialMode.options).toContain('WAREHOUSE');
     expect(fields).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: 'materialPool', type: 'array' }),
-      expect.objectContaining({ name: 'machineId', type: 'entityId' }),
-      expect.objectContaining({ name: 'toolProfileId', type: 'entityId' }),
+      expect.objectContaining({ name: 'machineId', type: 'instanceId' }),
+      expect.objectContaining({ name: 'toolProfileId', type: 'instanceId' }),
       expect.objectContaining({ name: 'virtualWidth', type: 'number' }),
       expect.objectContaining({ name: 'virtualLength', type: 'number' }),
       expect.objectContaining({ name: 'virtualThickness', type: 'number' })

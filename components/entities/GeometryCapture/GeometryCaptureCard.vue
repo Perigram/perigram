@@ -2,10 +2,10 @@
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
 const props = defineProps({
   capture: { type: Object, required: true },
@@ -17,13 +17,13 @@ defineEmits(['click']);
 const mode = computed(() => props.capture.data?.mode || 'REMNANT');
 const hasGeometry = computed(() => Boolean(props.capture.data?.geometry?.polygon?.outer?.length));
 
-const FIELDS = resolveEntityDisplayFields({ typeId: 'geometryCapture', surface: 'card' })
+const FIELDS = resolveInstanceDisplayFields({ typeId: 'geometryCapture', surface: 'card' })
   .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource');
 </script>
 
 <template>
   <div class="h-full" role="button" tabindex="0" @click="$emit('click', capture)" @keydown.enter="$emit('click', capture)">
-    <EntityCard :entity="capture" type-id="geometry_capture" :variant="variant">
+    <InstanceCard :entity="capture" type-id="geometry_capture" :variant="variant">
       <template #before-identity>
         <i class="pi pi-camera"></i>
       </template>
@@ -47,6 +47,6 @@ const FIELDS = resolveEntityDisplayFields({ typeId: 'geometryCapture', surface: 
         <Divider />
         <DataBlock type-id="geometryCapture" :entity="capture" :fields="FIELDS" />
       </div>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>

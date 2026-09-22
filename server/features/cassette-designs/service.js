@@ -1,7 +1,7 @@
 import * as repository from './repository.js';
 import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import * as queuesRepository from '../queues/repository.js';
-import * as entityRevisionsService from '../entity-revisions/service.js';
+import * as instanceRevisionsService from '../instance-revisions/service.js';
 import * as artifactsService from '../artifacts/service.js';
 import * as filesService from '../files/service.js';
 import { createError } from 'h3';
@@ -50,8 +50,8 @@ function derivedFromTemplateFilter(templateId) {
 async function derivedFromTemplate(templateId, parameters = {}, explicitProvenance = null) {
   if (explicitProvenance) return explicitProvenance;
   if (!templateId) return null;
-  const revision = await entityRevisionsService.getCurrentForEntity('cassette', templateId, 'geometry');
-  return revision ? entityRevisionsService.derivedFromRevision(revision, parameters) : null;
+  const revision = await instanceRevisionsService.getCurrentForEntity('cassette', templateId, 'geometry');
+  return revision ? instanceRevisionsService.derivedFromRevision(revision, parameters) : null;
 }
 
 export async function createFromQueue(queueId, data, userId, userRole, userPermissions) {

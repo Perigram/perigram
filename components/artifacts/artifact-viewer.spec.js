@@ -23,7 +23,7 @@ describe('ArtifactViewer behavior', () => {
       artifact: { _id: 'artifact-1', data: { type: 'DXF_SOURCE' }, attachments: { primary: { fileId: 'latest' } } },
       revision: { _id: 'revision/old', attachments: { primary: { fileId: 'old' } } }
     });
-    expect(viewer.fileUrl).toBe('/api/entity-revisions/revision%2Fold/file');
+    expect(viewer.fileUrl).toBe('/api/instance-revisions/revision%2Fold/file');
     expect(viewer.mode).toBe('dxf');
   });
 });

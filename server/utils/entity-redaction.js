@@ -1,4 +1,4 @@
-import { redactEntityForAccess } from '#shared/entity-field-access.js';
+import { redactEntityForAccess } from '#shared/instance-field-access.js';
 
 export function serializeForAccess(typeId, entity, auth = null) {
   if (!entity) return entity;

@@ -42,8 +42,8 @@ import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import { isOfflineQueuedError } from '~/utils/outbox.js';
 import { isCreateAction } from '~/components/generated/action-visibility.js';
-import { resolveCreatedEntityOpen } from '~/components/generated/created-entity-open.js';
-import { resolveGeneratedEntityDetailOverload } from '~/components/generated/overloads.js';
+import { resolveCreatedInstanceOpen } from '~/components/generated/created-instance-open.js';
+import { resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
 
 definePageMeta({
   layout: 'app',
@@ -73,7 +73,7 @@ const screenKey = computed(() => Array.isArray(route.params.screenKey)
 // typeId vocabulary — there is no view adapter re-injecting legacy keys.
 const detailOverload = computed(() => (
   screen.value?.template === 'instanceDetail' && screen.value?.typeId
-    ? resolveGeneratedEntityDetailOverload(screen.value.typeId)
+    ? resolveGeneratedInstanceDetailOverload(screen.value.typeId)
     : null
 ));
 const isGeneratedScreen = computed(() => (
@@ -147,14 +147,14 @@ watch([screen, processBundle], () => reload(), { immediate: true });
 // the run targets that entity instead of the screen scope.
 async function runGeneratedAction(action, data = {}, context = {}) {
   const scope = screen.value?.scope || {};
-  const entityId = context.instance?.id || scope.instanceId || scope.entityId || null;
+  const instanceId = context.instance?.id || scope.instanceId || scope.instanceId || null;
   try {
-    const result = await instances.runAction({ actionId: action.id, entityId, entities: {}, data, parameters: {} });
+    const result = await instances.runAction({ actionId: action.id, instanceId, entities: {}, data, parameters: {} });
     // Created entities open their destination like every other generated
     // surface (compiled detail route first) instead of stranding the
     // author on the list they came from.
     if (isCreateAction(action)) {
-      const target = resolveCreatedEntityOpen({
+      const target = resolveCreatedInstanceOpen({
         action,
         result,
         screenKey: screenKey.value,
@@ -185,7 +185,7 @@ function openInstance(instance) {
   const detailKey = `auto_${instance.type}_detail`;
   const exists = authStore.screenManifest.some(item => item.screenKey === detailKey);
   if (!exists) return;
-  navigateTo({ path: `/screens/${encodeURIComponent(detailKey)}`, query: { entityId: instance.id } });
+  navigateTo({ path: `/screens/${encodeURIComponent(detailKey)}`, query: { instanceId: instance.id } });
 }
 
 function synthesizedDetailScreen(key = '') {
@@ -211,7 +211,7 @@ function synthesizedDetailScreen(key = '') {
       typeId,
       mode: 'single',
       required,
-      identifier: '$screen.scope.entityId'
+      identifier: '$screen.scope.instanceId'
     }],
     regions: [{
       id: 'main',
@@ -226,11 +226,11 @@ function synthesizedDetailScreen(key = '') {
 
 function scopeFromQuery(query = {}) {
   const scope = Object.fromEntries(Object.entries(query)
-    .filter(([key]) => key === 'entityId' || key.endsWith('Id'))
+    .filter(([key]) => key === 'instanceId' || key.endsWith('Id'))
     .map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])
     .filter(([, value]) => value !== undefined && value !== null && value !== ''));
   // The generator resolves single sources through scope.instanceId.
-  if (scope.entityId && !scope.instanceId) scope.instanceId = scope.entityId;
+  if (scope.instanceId && !scope.instanceId) scope.instanceId = scope.instanceId;
   return scope;
 }
 </script>

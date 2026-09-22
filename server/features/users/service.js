@@ -7,7 +7,7 @@ import { User } from './model.js';
 import { statusService } from '../../core/machines/service.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { ObjectId } from 'mongodb';
-import { hasEntityAccess } from '../../core/access/service.js';
+import { hasInstanceAccess } from '../../core/access/service.js';
 import * as organizationsRepository from '../organizations/repository.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 import { ensureOwnerMembership, isOwnerMembership, mergeOwnerPermissions } from './organization-owner.js';
@@ -335,7 +335,7 @@ function uniqueIdValues(values) {
 
 export async function canManageUsersInOrganization(auth = {}, organizationId) {
   if (!organizationId) return false;
-  if (hasEntityAccess({
+  if (hasInstanceAccess({
     entity: { lineage: { organizationId } },
     feature: 'users',
     level: 'admin',

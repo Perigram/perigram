@@ -91,8 +91,8 @@ describe('ui-contract projection', () => {
           template: 'instanceDetail',
           typeId: 'queue',
           sources: [
-            { id: 'queue', typeId: 'queue', mode: 'single', identifier: '$screen.scope.entityId' },
-            { id: 'runs_children', typeId: 'nesting_run', mode: 'list', filters: { queueId: '$screen.scope.entityId' } }
+            { id: 'queue', typeId: 'queue', mode: 'single', identifier: '$screen.scope.instanceId' },
+            { id: 'runs_children', typeId: 'nesting_run', mode: 'list', filters: { queueId: '$screen.scope.instanceId' } }
           ],
           regions: [{ id: 'runs_region', slot: 'main', sourceId: 'runs_children', surface: 'card', actions: [] }]
         }

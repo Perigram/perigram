@@ -8,10 +8,10 @@ import Tag from 'primevue/tag';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 import { hasPermissionGrant } from '#shared/access-control.js';
 
 const props = defineProps({
@@ -28,7 +28,7 @@ const props = defineProps({
 const emit = defineEmits(['view', 'edit', 'delete']);
 const authStore = useAuthStore();
 const { t } = useI18n();
-const queueSummaryFields = computed(() => resolveEntityDisplayFields({ typeId: 'queue', surface: 'card' })
+const queueSummaryFields = computed(() => resolveInstanceDisplayFields({ typeId: 'queue', surface: 'card' })
     .filter(field => field.display !== 'entityRefList'));
 
 const FORM_CONTROL_SELECTOR = 'a[href],button,input,select,textarea,[contenteditable="true"]';
@@ -72,7 +72,7 @@ const commandActions = computed(() => [
 
 <template>
   <div class="cursor-pointer" @click="handleCardClick">
-    <EntityCard
+    <InstanceCard
         :entity="queue"
         type-id="queue"
         :variant="variant"
@@ -128,6 +128,6 @@ const commandActions = computed(() => [
                 <Button v-if="canEditQueue" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="$emit('edit', queue)" />
             </div>
         </template>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>

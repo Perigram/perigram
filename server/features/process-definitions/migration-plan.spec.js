@@ -8,7 +8,7 @@ import {
 } from './migration-plan.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { statusService } from '~/server/core/machines/service.js';
-import * as entityEventService from '../entity-events/service.js';
+import * as entityEventService from '../instance-events/service.js';
 
 vi.mock('~/server/runtime/app-registry.js', async (importOriginal) => ({
   ...(await importOriginal()),
@@ -23,7 +23,7 @@ vi.mock('~/server/core/machines/service.js', async (importOriginal) => {
   };
 });
 
-vi.mock('../entity-events/service.js', () => ({
+vi.mock('../instance-events/service.js', () => ({
   publishEntityChanged: vi.fn(async () => null)
 }));
 
@@ -107,7 +107,7 @@ describe('apply migration executor', () => {
 
   it('re-targets only instances holding a mapped state and publishes invalidations', async () => {
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'project'
+      getInstanceService: type => type === 'project'
         ? {
             processList: vi.fn().mockResolvedValue([
               { _id: 'p-1', status: { state: { primary: 'LEGACY_RETIRED' } } },
@@ -143,7 +143,7 @@ describe('apply migration executor', () => {
 
   it('is idempotent: instances already migrated are skipped on resume', async () => {
     getAppRegistry.mockReturnValue({
-      getEntityService: () => ({
+      getInstanceService: () => ({
         processList: vi.fn().mockResolvedValue([
           { _id: 'p-1', status: { state: { primary: 'done' } } }
         ])
@@ -163,7 +163,7 @@ describe('apply migration executor', () => {
 
   it('records per-entity failures without aborting the remaining mappings', async () => {
     getAppRegistry.mockReturnValue({
-      getEntityService: type => type === 'project'
+      getInstanceService: type => type === 'project'
         ? { processList: vi.fn().mockResolvedValue([{ _id: 'p-1', status: { state: { primary: 'LEGACY_RETIRED' } } }]) }
         : null
     });

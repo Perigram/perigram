@@ -1,6 +1,6 @@
 <template>
   <div class="h-full">
-    <EntityCard :entity="library" type-id="library" :variant="variant" :show-trace="false" :show-status="false">
+    <InstanceCard :entity="library" type-id="library" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-book"></i>
       </template>
@@ -8,7 +8,7 @@
         <Tag v-if="materialLabel" :value="materialLabel" severity="secondary" size="small" />
       </template>
       <template #compact-content>
-        <EntityRelationsBlock
+        <InstanceRelationsBlock
           v-if="hasCassettePreview"
           class="mt-3"
           :entity="library"
@@ -21,14 +21,14 @@
       </template>
       <Divider />
       <DataBlock type-id="library" :entity="library" :fields="DATA_FIELDS" />
-      <EntityRelationsBlock
+      <InstanceRelationsBlock
         v-if="hasCassettePreview"
         class="mt-3"
         :entity="library"
         :fields="RELATION_FIELDS"
         item-variant="compact"
       />
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>
 
@@ -36,23 +36,23 @@
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import EntityRelationsBlock from '~/components/shared/EntityRelationsBlock.vue';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import InstanceRelationsBlock from '~/components/shared/InstanceRelationsBlock.vue';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 import { resolveDataPath } from '~/utils/data-display.js';
-import { resolveEntityRelationRefs } from '~/utils/entity-relations.js';
+import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 
 const props = defineProps({
   library: { type: Object, required: true },
   variant: { type: String, default: 'card' }
 });
 
-const FIELDS = resolveEntityDisplayFields({ typeId: 'library', surface: 'card' });
+const FIELDS = resolveInstanceDisplayFields({ typeId: 'library', surface: 'card' });
 const RELATION_FIELDS = FIELDS.filter(field => field.display === 'entityRef' || field.display === 'entityRefList');
 const relationCountReplacements = computed(() => new Set(RELATION_FIELDS
   .filter(field => field.replacesCountPath)
-  .filter(field => resolveEntityRelationRefs(resolveDataPath(props.library, field.path), field).length)
+  .filter(field => resolveInstanceRelationRefs(resolveDataPath(props.library, field.path), field).length)
   .map(field => field.replacesCountPath)));
 const DATA_FIELDS = computed(() => FIELDS.filter(field =>
   field.display !== 'entityRef'
@@ -62,7 +62,7 @@ const DATA_FIELDS = computed(() => FIELDS.filter(field =>
 
 const cassetteCount = computed(() => props.library.summary?.cassetteCount || 0);
 const hasCassettePreview = computed(() => RELATION_FIELDS.some(field =>
-  resolveEntityRelationRefs(resolveDataPath(props.library, field.path), field).length
+  resolveInstanceRelationRefs(resolveDataPath(props.library, field.path), field).length
 ));
 const materialLabel = computed(() => {
   const material = props.library.data?.material;

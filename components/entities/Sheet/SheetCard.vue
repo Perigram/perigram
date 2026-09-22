@@ -7,7 +7,7 @@
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 
 const props = defineProps({
     sheet: { type: Object, required: true },
@@ -22,7 +22,7 @@ const colorLabel = computed(() => colorName.value || materialName.value);
 
 <template>
   <div class="h-full">
-    <EntityCard :entity="sheet" type-id="sheet" :variant="variant">
+    <InstanceCard :entity="sheet" type-id="sheet" :variant="variant">
       <template #before-identity>
         <i class="ck-entity-icon ck-entity-icon-sheet-instance"></i>
       </template>
@@ -46,6 +46,6 @@ const colorLabel = computed(() => colorName.value || materialName.value);
         <Divider />
         <SpecsBlock type-id="sheet" :entity="sheet" />
       </div>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>

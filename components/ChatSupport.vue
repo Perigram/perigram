@@ -258,7 +258,7 @@
                             v-if="activeConversation.conversationKind === 'group'"
                             class="flex min-w-0 flex-wrap items-center gap-1"
                         >
-                            <EntityInlineRef
+                            <InstanceInlineRef
                                 v-for="participantId in groupParticipantIds"
                                 :key="participantId"
                                 type="user"
@@ -648,7 +648,7 @@
                             :key="`${ref.type}-${ref.id}`"
                             class="inline-flex max-w-full items-center gap-1 rounded-ui bg-subtle px-2 py-1"
                         >
-                            <EntityInlineRef
+                            <InstanceInlineRef
                                 :type="ref.type"
                                 :id="ref.id"
                                 :entity="ref.entity || null"
@@ -811,7 +811,7 @@
                     :placeholder="$t('support.groupName')"
                     :aria-label="$t('support.groupName')"
                 />
-                <EntityMultiSelect
+                <InstanceMultiSelect
                     v-model="groupMemberIds"
                     :options="newChatUsers"
                     option-label="label"
@@ -851,7 +851,7 @@
                         filter
                         class="w-full"
                     />
-                    <EntityMultiSelect
+                    <InstanceMultiSelect
                         v-else-if="field.type === 'typeList'"
                         v-model="createPromptValues[field.id]"
                         :options="createPromptOptions[field.id] || []"
@@ -920,8 +920,8 @@ import Listbox from 'primevue/listbox'
 import Button from 'primevue/button'
 import ConfirmDialog from 'primevue/confirmdialog'
 import InputText from 'primevue/inputtext'
-import Select from '~/components/shared/EntitySelect.vue'
-import EntityMultiSelect from '~/components/shared/EntityMultiSelect.vue'
+import Select from '~/components/shared/InstanceSelect.vue'
+import InstanceMultiSelect from '~/components/shared/InstanceMultiSelect.vue'
 import Textarea from 'primevue/textarea'
 import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
@@ -932,7 +932,7 @@ import DatePicker from 'primevue/datepicker'
 import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue'
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue'
 import SupportMessageContent from '~/components/shared/SupportMessageContent.vue'
 import StateBlock from '~/components/shared/StateBlock.vue'
 import StandardDialog from '~/components/shared/StandardDialog.vue'
@@ -946,9 +946,9 @@ import { useConnections } from '~/composables/useConnections.js'
 import { usePayloadUpload } from '~/composables/usePayloadUpload.js'
 import { useInstancesStore } from '~/stores/instances'
 import { useRegistryStore } from '~/stores/registry'
-import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js'
-import { openEntityChat } from '~/utils/entity-chat.js'
-import { openEntityInWorkspace } from '~/utils/entity-workspace-open.js'
+import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js'
+import { openEntityChat } from '~/utils/instance-chat.js'
+import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js'
 import { openChatInWorkspaceTab } from '~/utils/chat-workspace-open.js'
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js'
 import { useEnterExit, enterOnce } from '~/composables/useMotion.js'
@@ -1158,9 +1158,9 @@ const entityConversationIcon = (conversation) => (
 // detail route when the process manifest exposes one.
 const activeEntityDetailRoute = computed(() => {
     const conversation = activeConversation.value
-    if (conversation?.conversationKind !== 'entity' || !conversation.entityId) return null
-    return detailRouteForEntity({
-        entity: { _id: conversation.entityId },
+    if (conversation?.conversationKind !== 'entity' || !conversation.instanceId) return null
+    return detailRouteForInstance({
+        entity: { _id: conversation.instanceId },
         typeId: conversation.typeId,
         screenKey: '',
         manifest: authStore.screenManifest
@@ -1171,13 +1171,13 @@ const activeEntityDetailRoute = computed(() => {
 // route.
 const openEntityFromThread = () => {
     const conversation = activeConversation.value
-    if (!conversation?.typeId || !conversation.entityId) return
+    if (!conversation?.typeId || !conversation.instanceId) return
     if (typeof window !== 'undefined'
         && window.matchMedia?.('(max-width: 767px)')?.matches) {
         if (activeEntityDetailRoute.value) navigateTo(activeEntityDetailRoute.value)
         return
     }
-    if (openEntityInWorkspace({ typeId: conversation.typeId, entityId: String(conversation.entityId) })) return
+    if (openInstanceInWorkspace({ typeId: conversation.typeId, instanceId: String(conversation.instanceId) })) return
     if (activeEntityDetailRoute.value) navigateTo(activeEntityDetailRoute.value)
 }
 
@@ -1261,7 +1261,7 @@ const sendMessage = async () => {
                 entity: activeConversation.value.conversationKind === 'entity'
                     ? (composerEntity.value || {
                         type: activeConversation.value.typeId,
-                        id: activeConversation.value.entityId
+                        id: activeConversation.value.instanceId
                     })
                     : null,
                 parentMessageId: replyTo.value?._id || null,
@@ -1381,7 +1381,7 @@ const stopAndSendVoiceRecording = () => {
                     entity: activeConversation.value?.conversationKind === 'entity'
                         ? (composerEntity.value || {
                             type: activeConversation.value.typeId,
-                            id: activeConversation.value.entityId
+                            id: activeConversation.value.instanceId
                         })
                         : null,
                     parentMessageId: replyTo.value?._id || null,
@@ -1424,7 +1424,7 @@ const conversationQuery = (extra = {}) => {
     if (conversation.conversationKind === 'entity') {
         return {
             ...extra,
-            entity: `${conversation.typeId}:${conversation.entityId}`,
+            entity: `${conversation.typeId}:${conversation.instanceId}`,
             includeChildren: includeChildren.value ? 1 : 0
         }
     }
@@ -1456,7 +1456,7 @@ const loadConversation = async () => {
             conversation.conversationKind = snapshot.conversation.kind
             if (snapshot.conversation.kind === 'entity') {
                 conversation.typeId = snapshot.conversation.typeId || conversation.typeId
-                conversation.entityId = snapshot.conversation.entityId || conversation.entityId
+                conversation.instanceId = snapshot.conversation.instanceId || conversation.instanceId
                 conversation.entityName = snapshot.conversation.name || conversation.entityName
             }
             if (snapshot.conversation.kind === 'group' && snapshot.conversation.name && !conversation.groupName) {
@@ -1534,7 +1534,7 @@ const stripTargetKey = computed(() => {
     const conversation = activeConversation.value
     if (conversation?.conversationKind !== 'entity') return ''
     const deepest = stripTrail.value[stripTrail.value.length - 1]
-    return deepest?.key || `${conversation.typeId}:${conversation.entityId}`
+    return deepest?.key || `${conversation.typeId}:${conversation.instanceId}`
 })
 
 // The composed entity is the target whenever no child is drilled; the root
@@ -1558,7 +1558,7 @@ const stripChildren = computed(() => {
     const conversation = activeConversation.value
     if (conversation?.conversationKind !== 'entity') return loaded
     const pathIndex = (path) => path.findIndex(entry => (
-        entry.type === conversation.typeId && String(entry.id) === String(conversation.entityId)
+        entry.type === conversation.typeId && String(entry.id) === String(conversation.instanceId)
     ))
     for (const messageItem of messages.value) {
         const path = messageItem.entityPath || []
@@ -1608,14 +1608,14 @@ async function loadStripChildren(targetKey, targetType, targetEntity = null) {
         let merged = loaded.flat()
         // Fallback child source: when the lineage list endpoints expose
         // nothing (scoped services missing or denied), the readable
-        // entity-options window still fills the strip so chips drill.
+        // instance-options window still fills the strip so chips drill.
         if (!merged.length) {
             const childTypes = [...new Set(effectiveContainmentForStrip()
                 .filter(edge => edge.parentType === targetType)
                 .map(edge => edge.childType))]
             const optionRows = await Promise.all(childTypes.map(async childType => {
                 try {
-                    const options = await $fetch('/api/support/entity-options', { query: { type: childType } })
+                    const options = await $fetch('/api/support/instance-options', { query: { type: childType } })
                     return (options || []).filter(option => option?.value)
                         .map(option => ({
                             key: `${childType}:${option.value}`,
@@ -1678,16 +1678,16 @@ const stripEntityId = (entity = null) => {
     return value ? String(value) : ''
 }
 
-watch([activeConversationKey, () => activeConversation.value?.typeId, () => activeConversation.value?.entityId], ([key]) => {
+watch([activeConversationKey, () => activeConversation.value?.typeId, () => activeConversation.value?.instanceId], ([key]) => {
     if (!key || activeConversation.value?.conversationKind !== 'entity') return
     stripTrail.value = []
     stripChildrenByKey.value = new Map()
     composerEntity.value = null
     composerEntityTouched = false
     loadStripChildren(
-        `${activeConversation.value.typeId}:${activeConversation.value.entityId}`,
+        `${activeConversation.value.typeId}:${activeConversation.value.instanceId}`,
         activeConversation.value.typeId,
-        { _id: activeConversation.value.entityId }
+        { _id: activeConversation.value.instanceId }
     )
 }, { immediate: true })
 
@@ -1804,7 +1804,7 @@ const lowerEntityChip = (messageItem) => {
     const conversation = activeConversation.value
     if (conversation?.conversationKind !== 'entity' || !messageItem.entityLink?.id) return false
     return !(messageItem.entityLink.type === conversation.typeId
-        && String(messageItem.entityLink.id) === String(conversation.entityId))
+        && String(messageItem.entityLink.id) === String(conversation.instanceId))
 }
 
 const openLowerEntityChat = (messageItem) => {
@@ -2157,7 +2157,7 @@ const openCreatePromptDialog = async (action) => {
         if (field.type === 'entity' || field.type === 'typeList') {
             if (!type) continue
             try {
-                createPromptOptions[field.id] = await $fetch('/api/support/entity-options', {
+                createPromptOptions[field.id] = await $fetch('/api/support/instance-options', {
                     query: { type }
                 })
             } catch (error) {
@@ -2189,7 +2189,7 @@ const executeCreateAction = async (action, data) => {
         const result = await $fetch(`/api/process-definitions/active/actions/${encodeURIComponent(action.id)}/execute`, {
             method: 'POST',
             body: {
-                entityId: null,
+                instanceId: null,
                 entities: {},
                 data,
                 parameters: {}
@@ -2227,7 +2227,7 @@ const hydrateEntityRefs = async (refs = []) => {
     for (const ref of refs) {
         if (!ref?.type || !ref?.id) continue
         try {
-            const options = await $fetch('/api/support/entity-options', {
+            const options = await $fetch('/api/support/instance-options', {
                 query: {
                     type: ref.type,
                     q: ref.id,
@@ -2261,7 +2261,7 @@ const openNewChatDialog = async () => {
 const loadNewChatUsers = async () => {
     newChatUsersLoading.value = true
     try {
-        newChatUsers.value = await $fetch('/api/support/entity-options', {
+        newChatUsers.value = await $fetch('/api/support/instance-options', {
             query: { type: 'user' }
         })
     } catch (error) {
@@ -2352,12 +2352,12 @@ function openConversationByKey(key) {
         return
     }
     if (key.startsWith('entity:')) {
-        const [, typeId, entityId] = key.split(':')
+        const [, typeId, instanceId] = key.split(':')
         activeConversation.value = {
             conversationKey: key,
             conversationKind: 'entity',
             typeId,
-            entityId,
+            instanceId,
             entityName: props.entityName || '',
             lastMessage: ''
         }

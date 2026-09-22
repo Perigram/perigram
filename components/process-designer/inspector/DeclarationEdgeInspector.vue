@@ -32,7 +32,7 @@
 // itself; the live-graph pass picks edits up from the edge set.
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import { ON_REMOVE } from '~/packages/cts/src/index.js';
 
 defineProps({

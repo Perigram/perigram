@@ -1,5 +1,5 @@
 <template>
-  <GeneratedEntityFile
+  <GeneratedInstanceFile
     v-if="item?.kind === 'entity'"
     :item="item"
     :tabs="tabs"
@@ -77,7 +77,7 @@
 </template>
 
 <script setup>
-import GeneratedEntityFile from '~/components/generated/GeneratedEntityFile.vue';
+import GeneratedInstanceFile from '~/components/generated/GeneratedInstanceFile.vue';
 import GeneratedWorkspacePage from '~/components/generated/GeneratedWorkspacePage.vue';
 import GeneratedScreenPane from '~/components/generated/GeneratedScreenPane.vue';
 import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTabs.vue';

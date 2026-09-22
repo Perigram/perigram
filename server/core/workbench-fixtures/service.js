@@ -21,7 +21,7 @@ export async function seedScenario({ scenario, context, workflows = {} } = {}) {
   for (const [typeId, entities] of Object.entries(sourceScenario.entities)) {
     const collection = entityCollections[typeId];
     if (!collection) continue;
-    persistedEntities[typeId] = toPlainObject(await repository.upsertEntities(collection, entities.map(entity => normalizeEntityStatus(entity, compiled.machines[typeId]))));
+    persistedEntities[typeId] = toPlainObject(await repository.upsertEntities(collection, entities.map(entity => normalizeInstanceStatus(entity, compiled.machines[typeId]))));
   }
 
   const persistedScenario = {
@@ -56,7 +56,7 @@ function getEntityCollections() {
   return Object.fromEntries(entities.map(entity => [entity.type, entity.collection]));
 }
 
-function normalizeEntityStatus(entity, workflow) {
+function normalizeInstanceStatus(entity, workflow) {
   if (!workflow) return entity;
   const normalized = normalizeWorkflow(workflow);
   const region = getWorkflowRegion(normalized, normalized.primaryRegion);

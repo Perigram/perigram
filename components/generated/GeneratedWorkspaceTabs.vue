@@ -16,7 +16,7 @@
         >
           <i v-if="tabIcon(tab)" :class="tabIcon(tab)" class="shrink-0" aria-hidden="true" />
           <span class="min-w-0 truncate">{{ tabLabel(tab) }}</span>
-          <EntityStatus
+          <InstanceStatus
             v-if="tab.kind === 'entity' && tab.entity?.status?.state"
             :entity="tab.entity"
             :type-id="tab.type"
@@ -59,7 +59,7 @@ import Tab from 'primevue/tab';
 import { useI18n } from 'vue-i18n';
 import { useRegistryStore } from '~/stores/registry';
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import InstanceStatus from '~/components/shared/status/InstanceStatus.vue';
 
 defineProps({
   tabs: { type: Array, default: () => [] },

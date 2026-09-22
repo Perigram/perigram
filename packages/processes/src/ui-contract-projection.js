@@ -82,13 +82,13 @@ function projectUiSource(source = {}, mainSourceId) {
 }
 
 // A child-collection source scopes one lineage key to the screen's entity
-// (`filters: { [lineageKey]: '$screen.scope.entityId' }`); project it to the
+// (`filters: { [lineageKey]: '$screen.scope.instanceId' }`); project it to the
 // ui-mapping `lineage` reference against the detail main source.
 function lineageRefOfSource(source = {}, mainSourceId) {
   if (source.mode === 'single') return null;
   if (source.lineage) return { ...source.lineage };
   const filters = source.filters || {};
-  const entries = Object.entries(filters).filter(([, value]) => value === '$screen.scope.entityId');
+  const entries = Object.entries(filters).filter(([, value]) => value === '$screen.scope.instanceId');
   if (entries.length === 1) {
     return { sourceId: mainSourceId, key: entries[0][0] };
   }

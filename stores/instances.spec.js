@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useAuthStore } from './auth';
 import { useInstancesStore } from './instances';
-import { emitEntityCreated, emitEntityDeleted, emitEntityUpdated } from '~/utils/entity-events.js';
+import { emitInstanceCreated, emitInstanceDeleted, emitInstanceUpdated } from '~/utils/instance-events.js';
 
 // The client state model contract (stores/README.md): cache key
 // canonicalization, endpoint resolution mirroring the server resolver,
@@ -110,13 +110,13 @@ describe('instances store cache', () => {
   it('reconciles shared entity events into the cache by canonical type key', async () => {
     const instances = useInstancesStore();
 
-    emitEntityCreated({ type: 'queue', entity: { _id: 'q-1', identity: { name: 'Created' } } });
+    emitInstanceCreated({ type: 'queue', entity: { _id: 'q-1', identity: { name: 'Created' } } });
     expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ identity: { name: 'Created' } });
 
-    emitEntityUpdated({ type: 'queue', entity: { _id: 'q-1', identity: { name: 'Updated' } } });
+    emitInstanceUpdated({ type: 'queue', entity: { _id: 'q-1', identity: { name: 'Updated' } } });
     expect(instances.dtoFor('queue', 'q-1')).toMatchObject({ identity: { name: 'Updated' } });
 
-    emitEntityDeleted({ type: 'queue', id: 'q-1' });
+    emitInstanceDeleted({ type: 'queue', id: 'q-1' });
     expect(instances.dtoFor('queue', 'q-1')).toBeNull();
   });
 
@@ -126,11 +126,11 @@ describe('instances store cache', () => {
     const mutate = vi.spyOn(store, 'mutate').mockResolvedValue({ ok: true });
     const instances = useInstancesStore();
 
-    await instances.runAction({ actionId: 'act-1', entityId: 'q-1', data: { note: 'x' } });
+    await instances.runAction({ actionId: 'act-1', instanceId: 'q-1', data: { note: 'x' } });
     expect(mutate).toHaveBeenCalledWith(expect.objectContaining({
       url: '/api/process-definitions/active/actions/act-1/execute',
       method: 'POST',
-      body: { entityId: 'q-1', entities: {}, data: { note: 'x' }, parameters: {} }
+      body: { instanceId: 'q-1', entities: {}, data: { note: 'x' }, parameters: {} }
     }));
   });
 

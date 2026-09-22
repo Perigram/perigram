@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 
 function scopeFromQuery(query = {}) {
     return Object.fromEntries(Object.entries(query)
-        .filter(([key]) => key === 'entityId' || key.endsWith('Id'))
+        .filter(([key]) => key === 'instanceId' || key.endsWith('Id'))
         .map(([key, value]) => [key, Array.isArray(value) ? value[0] : value])
         .filter(([, value]) => value !== undefined && value !== null && value !== ''));
 }
@@ -32,7 +32,7 @@ function synthesizedDetailScreen(authStore, key = '') {
             typeId,
             mode: 'single',
             required,
-            identifier: '$screen.scope.entityId'
+            identifier: '$screen.scope.instanceId'
         }],
         regions: [{
             id: 'main',
@@ -51,10 +51,10 @@ describe('generated screen hydration', () => {
             ...{ screenKey: 'auto_project_detail' },
             scope: {
                 ...{},
-                ...scopeFromQuery({ entityId: 'proj-1', projectId: 'proj-1', tab: 'ignored' })
+                ...scopeFromQuery({ instanceId: 'proj-1', projectId: 'proj-1', tab: 'ignored' })
             }
         };
-        expect(merged.scope.entityId).toBe('proj-1');
+        expect(merged.scope.instanceId).toBe('proj-1');
         expect(merged.scope.projectId).toBe('proj-1');
         expect(merged.scope.tab).toBeUndefined();
     });
@@ -81,7 +81,7 @@ describe('generated screen hydration', () => {
         expect(detail.template).toBe('instanceDetail');
         expect(detail.sources[0].mode).toBe('single');
         expect(detail.sources[0].typeId).toBe('queue');
-        expect(detail.sources[0].identifier).toBe('$screen.scope.entityId');
+        expect(detail.sources[0].identifier).toBe('$screen.scope.instanceId');
     });
 
     it('does not synthesize a detail screen when the base is missing', () => {

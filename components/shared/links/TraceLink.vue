@@ -3,7 +3,7 @@
         v-if="!disabled"
         :to="route"
         class="inline-flex min-w-0 items-center gap-1.5 rounded-ui p-1"
-        data-entity-card-interactive="true"
+        data-instance-card-interactive="true"
         @click.stop="requestCloseMobileTransientSurfaces"
     >
         <i :class="config.icon" class="shrink-0"></i>
@@ -14,7 +14,7 @@
     <span
         v-else
         class="inline-flex min-w-0 items-center gap-1.5 rounded-ui p-1 text-muted"
-        data-entity-card-interactive="true"
+        data-instance-card-interactive="true"
     >
         <i :class="config.icon" class="shrink-0"></i>
         <span class="truncate">
@@ -25,7 +25,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { entityUiFor } from '~/utils/status-engine';
+import { instanceUiFor } from '~/utils/status-engine';
 import { useRegistryStore } from '~/stores/registry';
 import { requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
@@ -61,7 +61,7 @@ const props = defineProps({
 });
 
 const registry = useRegistryStore();
-const config = computed(() => ({ ...entityUiFor(props.type), icon: registry.iconFor(props.type) }));
+const config = computed(() => ({ ...instanceUiFor(props.type), icon: registry.iconFor(props.type) }));
 
 const route = computed(() => {
     if (props.to) return props.to;

@@ -1,7 +1,7 @@
 import { CANONICAL_BLOCK_COMPOSITION, CANONICAL_BLOCK_SCHEMAS } from '../../core/src/index.js';
 import { cncEntities } from './entities.js';
 import { cncEntityFieldAccess, normalizeFieldAccessTypeId } from './field-access.js';
-import { cncEntityFieldGroups } from './ui-fields.js';
+import { cncInstanceFieldGroups } from './ui-fields.js';
 import { cncContainment } from './relationships.js';
 
 const CORE_FIELDS = [
@@ -179,8 +179,8 @@ function descriptorUnit(descriptor = {}) {
 }
 
 function descriptorsFor(typeId) {
-  const groups = cncEntityFieldGroups[normalizeFieldAccessTypeId(typeId)]
-    || cncEntityFieldGroups[typeId]
+  const groups = cncInstanceFieldGroups[normalizeFieldAccessTypeId(typeId)]
+    || cncInstanceFieldGroups[typeId]
     || {};
   return Object.values(groups)
     .flatMap(group => Array.isArray(group) ? group : [])

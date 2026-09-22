@@ -14,7 +14,7 @@ vi.mock('../cts-types/service.js', async () => {
 });
 vi.mock('./repository.js', () => ({ findActiveByOrganization: vi.fn() }));
 vi.mock('~/server/runtime/app-registry.js', () => ({
-  getAppRegistry: () => ({ getEntityService: () => mocks.organizationService })
+  getAppRegistry: () => ({ getInstanceService: () => mocks.organizationService })
 }));
 
 import * as repository from './repository.js';

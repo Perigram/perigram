@@ -35,7 +35,7 @@
           class="w-[18rem] min-w-[18rem] flex-none"
           :data-entity-id="entity._id || entity.id || entity.identity?.uid"
         >
-          <EntityCard
+          <InstanceCard
             :entity="entity"
             :type-id="section.source.typeId"
             :surface="section.region.surface || 'card'"
@@ -53,7 +53,7 @@
                 >
                   <IdentityBlock :entity="entity" />
                 </Button>
-                <EntityStatus
+                <InstanceStatus
                   v-if="entity.status"
                   :entity="entity"
                   :type-id="section.source.typeId"
@@ -63,7 +63,7 @@
                 />
               </div>
             </template>
-            <EntitySurfaceContent
+            <InstanceSurfaceContent
               :entity="entity"
               :type-id="section.source.typeId"
               :surface="section.region.surface || 'card'"
@@ -95,7 +95,7 @@
                 />
               </div>
             </template>
-          </EntityCard>
+          </InstanceCard>
         </div>
       </div>
     </section>
@@ -106,14 +106,14 @@
 import { computed, provide } from 'vue';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
-import EntityCard from '~/components/shared/EntityCard.vue';
-import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
+import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import EntityStatus from '~/components/shared/status/EntityStatus.vue';
+import InstanceStatus from '~/components/shared/status/InstanceStatus.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
-import { entityEditorActionFor, entityHasEditorAction } from '~/components/generated/entity-editor-action.js';
+import { instanceEditorActionFor, instanceHasEditorAction } from '~/components/generated/instance-editor-action.js';
 import { useAuthStore } from '~/stores/auth';
-import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
+import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { actionAppliesToEntity, isCreateAction, isGeneratedSurfaceAction, parentBoundCreateAppliesToTypeId } from '~/components/generated/action-visibility.js';
 import { generatedRegionLabel } from '~/utils/generated-labels.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
@@ -126,8 +126,8 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action']);
 
 const authStore = useAuthStore();
-const hasEditorAction = entityHasEditorAction;
-const editorActionFor = entityEditorActionFor;
+const hasEditorAction = instanceHasEditorAction;
+const editorActionFor = instanceEditorActionFor;
 const { t, te } = useI18n();
 provide('generatedExecuteAction', (action, entity, context = {}) => {
   emit('execute-action', action, entity, context);
@@ -204,7 +204,7 @@ function openEntity(section, entity) {
 }
 
 function detailRouteFor(section = {}, entity = {}) {
-  return detailRouteForEntity({
+  return detailRouteForInstance({
     entity,
     typeId: section.source.typeId,
     screenKey: section.region.screenKey || props.screen.screenKey || props.screen.id,

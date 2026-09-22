@@ -13,7 +13,7 @@
 
 <script setup>
 import { computed, ref, watch, onMounted } from 'vue';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import { selectOptionText } from '~/utils/selectOptions';
 
 // Using useI18n composable from @nuxtjs/i18n

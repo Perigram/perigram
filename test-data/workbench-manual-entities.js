@@ -46,7 +46,7 @@ export function manualEntityContextType(typeId) {
   return typeId === 'cassette_template' ? 'cassette' : typeId;
 }
 
-export function manualEntityPreviewType(typeId) {
+export function manualInstancePreviewType(typeId) {
   return typeId === 'cassette' ? 'cassette_template' : typeId;
 }
 
@@ -95,7 +95,7 @@ export function buildManualWorkbenchEntity(type, draft = {}, { context = {}, wor
 function lineageFieldsFor(type) {
   return (LINEAGE_FIELDS[type] || []).map(name => ({
     name,
-    type: 'entityId',
+    type: 'instanceId',
     typeId: ENTITY_ID_FIELD_TYPES[name],
     required: !OPTIONAL_LINEAGE_FIELDS.has(name)
   }));
@@ -104,9 +104,9 @@ function lineageFieldsFor(type) {
 function dataFieldsFor(type) {
   if (type !== 'queue') return [];
   return [
-    { name: 'cassetteId', type: 'entityId', typeId: 'cassette', required: true },
+    { name: 'cassetteId', type: 'instanceId', typeId: 'cassette', required: true },
     { name: 'quantity', type: 'number', min: 1, required: true },
-    { name: 'materialPileId', type: 'entityId', typeId: 'material_pile' }
+    { name: 'materialPileId', type: 'instanceId', typeId: 'material_pile' }
   ];
 }
 

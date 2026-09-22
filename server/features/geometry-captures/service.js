@@ -6,7 +6,7 @@ import * as remnantsService from '../remnants/service.js';
 import * as warehousesService from '../warehouses/service.js';
 import * as artifactsService from '../artifacts/service.js';
 import { GeometryCapture } from './model.js';
-import { createData, createEntityRef } from '../../core/blocks/index.js';
+import { createData, createInstanceRef } from '../../core/blocks/index.js';
 import { statusService, createTransitionAuth } from '../../core/machines/service.js';
 import { createTaskRun } from '../../core/tasks/service.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
@@ -53,7 +53,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
     status: origin,
     lineage,
     specs: {},
-    relations: { sourcePhoto: createEntityRef('artifact', sourcePhoto._id) },
+    relations: { sourcePhoto: createInstanceRef('artifact', sourcePhoto._id) },
     attachments: {},
     data: createData({
       mode,
@@ -387,7 +387,7 @@ export async function confirm(id, userId, userOrg, userRole, userPermissions) {
   requireLineageAccess(raw.lineage, feature, 'write', userPermissions);
 
   let output = raw.data.output || null;
-  if (mode === 'REMNANT' && !output?.entityId) {
+  if (mode === 'REMNANT' && !output?.instanceId) {
     const metrics = raw.specs || metricsForGeometry(raw.data.geometry);
     const remnant = await remnantsService.create({
       warehouseId: raw.lineage?.warehouseId,
@@ -404,12 +404,12 @@ export async function confirm(id, userId, userOrg, userRole, userPermissions) {
         sourcePhoto: raw.relations?.sourcePhoto || null
       }
     }, userId, userOrg, userRole, userPermissions);
-    output = { typeId: 'remnant', entityId: remnant._id?.toString?.() || remnant._id || remnant.id };
+    output = { typeId: 'remnant', instanceId: remnant._id?.toString?.() || remnant._id || remnant.id };
     if (raw.lineage?.warehouseId) {
       await warehousesService.updateInventoryCounts(raw.lineage.warehouseId, { totalRemnants: 1 });
     }
   } else if (mode === 'FACADE') {
-    output = { typeId: 'facadeDraft', entityId: null };
+    output = { typeId: 'facadeDraft', instanceId: null };
   }
 
   await repository.updateById(id, {

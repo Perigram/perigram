@@ -1159,7 +1159,7 @@ describe('@cutkit/processes compiler', () => {
         role_project_viewer: { id: 'role_project_viewer' }
       },
       roleGrants: {
-        role_project_viewer: [{ feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } }]
+        role_project_viewer: [{ feature: 'projects', level: 'read', scope: { instanceId: '$assignment.projectId' } }]
       },
       screens: {
         assigned_project: {
@@ -1170,7 +1170,7 @@ describe('@cutkit/processes compiler', () => {
           required: {
             feature: 'projects',
             level: 'read',
-            scope: { entityId: '$assignment.projectId' }
+            scope: { instanceId: '$assignment.projectId' }
           }
         }
       },
@@ -1184,7 +1184,7 @@ describe('@cutkit/processes compiler', () => {
       }
     }, domain);
 
-    expect(compiled.userAccess.user_a.permissions.projects[0].scope.entityId).toBe('project-123');
+    expect(compiled.userAccess.user_a.permissions.projects[0].scope.instanceId).toBe('project-123');
   });
 
   it('does not grant backend capability or a gated screen from screen layout alone', () => {
@@ -1209,7 +1209,7 @@ describe('@cutkit/processes compiler', () => {
           id: 'create_project', actionKind: 'createEntity', typeId: 'project', producerOutputId: 'project_entity:entity', status: { to: 'READY' },
           access: { grants: [{
             roleId: 'operator', level: 'write', actions: { create: true },
-            scope: { entityId: '$assignment.projectId' }, transitions: ['DRAFT->READY'],
+            scope: { instanceId: '$assignment.projectId' }, transitions: ['DRAFT->READY'],
             rule: { any: [{ fact: 'lineage.projectId', equals: '$assignment.projectId' }] }
           }] }
         }
@@ -1217,7 +1217,7 @@ describe('@cutkit/processes compiler', () => {
       assignments: { user: { userId: 'user', roleIds: ['operator'], bindings: { projectId: 'project-1' }, status: 'active' } }
     }, domain);
     expect(compiled.userAccess.user.permissions.projects[0]).toMatchObject({
-      level: 'write', actions: { create: true }, scope: { entityId: 'project-1' },
+      level: 'write', actions: { create: true }, scope: { instanceId: 'project-1' },
       transitions: expect.arrayContaining(['DRAFT->READY']),
       rule: { all: expect.any(Array) }
     });
@@ -1263,7 +1263,7 @@ describe('@cutkit/processes compiler', () => {
       sources: [expect.objectContaining({
         typeId: 'queue',
         mode: 'single',
-        identifier: '$screen.scope.entityId'
+        identifier: '$screen.scope.instanceId'
       })],
       actions: ['action_accept']
     });
@@ -1439,7 +1439,7 @@ describe('@cutkit/processes compiler', () => {
     const childRegion = (projectDetail.regions || []).find(region => region.sourceId === 'queue_children');
     expect(childRegion).toMatchObject({ slot: 'main' });
     expect(projectDetail.sources.find(source => source.id === 'queue_children'))
-      .toMatchObject({ typeId: 'queue', mode: 'list', filters: { projectId: '$screen.scope.entityId' } });
+      .toMatchObject({ typeId: 'queue', mode: 'list', filters: { projectId: '$screen.scope.instanceId' } });
   });
 
   it('excludes detail screens from top-level navigation while keeping them in the manifest', () => {
@@ -1798,7 +1798,7 @@ describe('@cutkit/processes compiler', () => {
         role_project_viewer: { id: 'role_project_viewer' }
       },
       roleGrants: {
-        role_project_viewer: [{ feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } }]
+        role_project_viewer: [{ feature: 'projects', level: 'read', scope: { instanceId: '$assignment.projectId' } }]
       },
       screens: {
         assigned_project: {
@@ -1808,7 +1808,7 @@ describe('@cutkit/processes compiler', () => {
           required: {
             feature: 'projects',
             level: 'read',
-            scope: { entityId: '$assignment.projectId' }
+            scope: { instanceId: '$assignment.projectId' }
           }
         }
       },
@@ -1838,8 +1838,8 @@ describe('@cutkit/processes compiler', () => {
         role_supervisor: { id: 'role_supervisor' }
       },
       roleGrants: {
-        role_operator: [{ feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } }],
-        role_supervisor: [{ feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } }]
+        role_operator: [{ feature: 'projects', level: 'read', scope: { instanceId: '$assignment.projectId' } }],
+        role_supervisor: [{ feature: 'projects', level: 'read', scope: { instanceId: '$assignment.projectId' } }]
       },
       screens: {
         assigned_project: {
@@ -1849,7 +1849,7 @@ describe('@cutkit/processes compiler', () => {
           route: '/project/$assignment.projectSlug/details',
           placement: 'hub',
           typeId: 'project',
-          required: { feature: 'projects', level: 'read', scope: { entityId: '$assignment.projectId' } },
+          required: { feature: 'projects', level: 'read', scope: { instanceId: '$assignment.projectId' } },
           roleIds: ['role_operator', 'role_supervisor'],
           bindings: { projectId: '$assignment.projectId' },
           actions: []
@@ -1874,7 +1874,7 @@ describe('@cutkit/processes compiler', () => {
       scope: { projectId: 'project-123' },
       sourceRoleIds: ['role_operator', 'role_supervisor']
     });
-    expect(compiled.userAccess.user_a.permissions.projects[0].scope.entityId).toBe('project-123');
+    expect(compiled.userAccess.user_a.permissions.projects[0].scope.instanceId).toBe('project-123');
   });
 
   it('skips screens with incomplete assignment bindings', () => {
@@ -3691,7 +3691,7 @@ describe('@cutkit/processes compiler', () => {
           access: {
             level: 'admin',
             roleIds: ['role_project'],
-            scope: { entityId: '$assignment.projectId' }
+            scope: { instanceId: '$assignment.projectId' }
           },
           outputs: [{ id: 'created', typeId: 'project', status: SOURCE_STATE }]
         },
@@ -3719,7 +3719,7 @@ describe('@cutkit/processes compiler', () => {
     expect(compiled.userAccess.user_queue.permissions.queues).toEqual([
       {
         level: 'write',
-        scope: { entityId: 'project-a' },
+        scope: { instanceId: 'project-a' },
         rule: { fact: 'primaryStatus', equals: INITIAL_STATE }
       }
     ]);

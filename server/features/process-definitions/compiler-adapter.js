@@ -108,7 +108,7 @@ function capabilityBindings(domain = {}) {
   const registry = getAppRegistry();
   const capabilities = {};
   for (const entity of domain.entities || []) {
-    const record = registry?.getEntityService?.(entity.type)?.processCapabilities;
+    const record = registry?.getInstanceService?.(entity.type)?.processCapabilities;
     if (!record) continue;
     // The projected construction contract governs executable modes for
     // org-authored types: their declarations live in the async type

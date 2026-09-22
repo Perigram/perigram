@@ -29,7 +29,7 @@ function defaultRoutes({ type = '', collection = '' }) {
   // REST surface was deleted.
   const restBacked = new Set([
     'artifacts', 'artifact-templates', 'cassettes', 'cassette-designs',
-    'entity-revisions', 'facades', 'facade-patterns', 'geometry-captures',
+    'instance-revisions', 'facades', 'facade-patterns', 'geometry-captures',
     'nesting-runs', 'organizations', 'process-definitions', 'sheet-designs', 'users'
   ]);
   if (restBacked.has(routeBase)) {
@@ -47,7 +47,9 @@ export const cncEntities = [
   { type: 'cassette_instance', collection: 'cassette_instances', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'catalog', collection: 'catalogs', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'summary'] },
   { type: 'color', collection: 'colors', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
-  { type: 'entity_revision', collection: 'entity_revisions', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
+  // The framework revision type keeps its persisted id and collection; its
+  // feature directory and REST route carry the instance vocabulary.
+  { type: 'entity_revision', collection: 'entity_revisions', feature: 'instance-revisions', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'] },
   { type: 'facade', collection: 'facades', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
   { type: 'facade_pattern', collection: 'facade_patterns', meta: true, blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data'], operations: { delete: true } },
   { type: 'geometry_capture', collection: 'geometry_captures', blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'specs'] },

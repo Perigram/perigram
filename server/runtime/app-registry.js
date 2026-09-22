@@ -6,7 +6,7 @@ import { createRegistry } from '~/server/core/blocks/index.js';
 import { hooks } from '~/server/core/machines/hooks.js';
 
 import * as artifactsService from '~/server/features/artifacts/service.js';
-import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
+import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
 import * as organizationsService from '~/server/features/organizations/service.js';
 import * as processDefinitionsService from '~/server/features/process-definitions/service.js';
 import * as usersService from '~/server/features/users/service.js';
@@ -39,9 +39,9 @@ export function getAppRegistry() {
   return registry;
 }
 
-const frameworkEntityServices = {
+const frameworkInstanceServices = {
   artifact: artifactsService,
-  entity_revision: entityRevisionsService,
+  entity_revision: instanceRevisionsService,
   organization: organizationsService,
   process_definition: processDefinitionsService,
   user: usersService
@@ -49,7 +49,7 @@ const frameworkEntityServices = {
 
 const frameworkProcessLists = {
   artifact: (filters, auth) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
-  entity_revision: (filters, auth) => entityRevisionsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
+  entity_revision: (filters, auth) => instanceRevisionsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
   organization: (filters, auth) => organizationsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
   process_definition: (_filters, auth) => processDefinitionsService.list(auth),
   user: (_filters, auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth)
@@ -57,7 +57,7 @@ const frameworkProcessLists = {
 
 const frameworkProcessReads = {
   artifact: (id, auth) => artifactsService.getById(id, auth.userId, auth.organizationId, auth.role, auth),
-  entity_revision: (id, auth) => entityRevisionsService.getById(id, auth.userId, auth.role, auth),
+  entity_revision: (id, auth) => instanceRevisionsService.getById(id, auth.userId, auth.role, auth),
   organization: id => organizationsService.getById(id),
   process_definition: (id, auth) => processDefinitionsService.getById(id, auth),
   user: id => usersService.getById(id)
@@ -89,11 +89,11 @@ function registerAppBindings(registry) {
   // Generic instance services (SPEC §13): every type without an explicit
   // feature service resolves to its per-class instance service — pack types
   // and org-authored types are executable without hand-written services.
-  registry.registerEntityServiceResolver(instanceServiceResolver);
+  registry.registerInstanceServiceResolver(instanceServiceResolver);
 
   registerServiceSet(registry, {
     domain: packDomainOf(FRAMEWORK_PACKS),
-    entityServices: frameworkEntityServices,
+    instanceServices: frameworkInstanceServices,
     processLists: frameworkProcessLists,
     processReads: frameworkProcessReads,
     processCapabilities: frameworkProcessCapabilities,
@@ -104,10 +104,10 @@ function registerAppBindings(registry) {
 
   for (const pack of FRAMEWORK_PACKS) {
     registry.defineDomain(pack.domain);
-    if (pack.entityServices) {
+    if (pack.instanceServices) {
       registerServiceSet(registry, {
         domain: pack.domain,
-        entityServices: pack.entityServices,
+        instanceServices: pack.instanceServices,
         processLists: pack.processLists,
         processReads: pack.processReads,
         processCapabilities: pack.processCapabilities,
@@ -143,7 +143,7 @@ function packDomainOf(packs) {
 
 function registerServiceSet(registry, {
   domain,
-  entityServices,
+  instanceServices,
   processLists,
   processReads,
   processCapabilities,
@@ -151,7 +151,7 @@ function registerServiceSet(registry, {
   modeHandlers,
   deleteAdapters
 }) {
-  for (const [type, service] of Object.entries(entityServices)) {
+  for (const [type, service] of Object.entries(instanceServices)) {
     const list = processLists[type];
     const read = processReads[type];
     if (!list) throw new Error(`Entity service ${type} requires an explicit processList binding`);
@@ -162,7 +162,7 @@ function registerServiceSet(registry, {
       ? createProcessDelete(type, service, read, deleteAdapters)
       : null;
     verifyProcessCapabilities(type, service, constructionHandlersResolved, capabilities, processDelete, domain);
-    registry.registerEntityService(type, { ...service, processList: list, processGetById: read, processDelete, processCapabilities: capabilities, constructionHandlers: constructionHandlersResolved });
+    registry.registerInstanceService(type, { ...service, processList: list, processGetById: read, processDelete, processCapabilities: capabilities, constructionHandlers: constructionHandlersResolved });
   }
 }
 

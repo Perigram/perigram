@@ -13,7 +13,7 @@ export const CANONICAL_BLOCKS = [
   'summary'
 ];
 
-export const TYPED_FIELD_TYPES = new Set(['string', 'number', 'boolean', 'enum', 'entityId', 'typeId', 'workflowState', 'array', 'object']);
+export const TYPED_FIELD_TYPES = new Set(['string', 'number', 'boolean', 'enum', 'instanceId', 'typeId', 'workflowState', 'array', 'object']);
 
 export const ENTITY_OUTPUT_OWNERS = new Set(['commandOwned', 'graphOwned']);
 export const ENTITY_OUTPUT_TIMINGS = new Set(['immediate', 'completion']);

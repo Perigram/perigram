@@ -214,13 +214,13 @@ function entityDto(entity = null) {
     return entity?.toJSON ? entity.toJSON() : entity;
 }
 
-function entityIdOf(dto = null) {
+function instanceIdOf(dto = null) {
     const value = dto?._id || dto?.id || '';
     return value ? String(value) : '';
 }
 
 function entityName(dto = null, type = '') {
-    return dto?.identity?.name || dto?.identity?.serial || dto?.identity?.uid || entityIdOf(dto) || type;
+    return dto?.identity?.name || dto?.identity?.serial || dto?.identity?.uid || instanceIdOf(dto) || type;
 }
 
 function organizationIdOf(dto = null, scopedAuth = {}) {
@@ -235,7 +235,7 @@ function organizationIdOf(dto = null, scopedAuth = {}) {
  */
 async function registryReadDenied(scopedAuth, type, id) {
     try {
-        const service = getAppRegistry().getEntityService(type);
+        const service = getAppRegistry().getInstanceService(type);
         if (!service?.processGetById) return false;
         await service.processGetById(id, scopedAuth);
         return false;
@@ -247,7 +247,7 @@ async function registryReadDenied(scopedAuth, type, id) {
 async function fetchLinkedEntity(scopedAuth, type, id) {
     if (!type || !id) return null;
     try {
-        const service = getAppRegistry().getEntityService(type);
+        const service = getAppRegistry().getInstanceService(type);
         if (!service?.processGetById) return null;
         return await service.processGetById(id, scopedAuth);
     } catch {
@@ -308,7 +308,7 @@ export async function getEntityConversationContext(auth, entityKey = '') {
         kind: 'entity',
         conversationKey: entityConversationKey(parsed.type, parsed.id),
         typeId: parsed.type,
-        entityId: parsed.id,
+        instanceId: parsed.id,
         entityName: entityName(dto, parsed.type),
         entity: dto,
         participants: [String(auth.userId)],
@@ -324,7 +324,7 @@ export async function getEntityConversationContext(auth, entityKey = '') {
  */
 async function buildEntityPath(scopedAuth, type, entity) {
     const dto = entityDto(entity);
-    const path = [{ type, id: entityIdOf(dto), name: entityName(dto, type) }];
+    const path = [{ type, id: instanceIdOf(dto), name: entityName(dto, type) }];
     const bindings = scopedAuth.process?.lineageBindings || [];
     let currentType = type;
     let currentDto = dto;
@@ -364,7 +364,7 @@ async function buildEntityPath(scopedAuth, type, entity) {
 export function entityConversationMatch(context, includeChildren = true) {
     if (!includeChildren) return context.match;
     return {
-        entityPath: { $elemMatch: { type: context.typeId, id: context.entityId } }
+        entityPath: { $elemMatch: { type: context.typeId, id: context.instanceId } }
     };
 }
 
@@ -495,7 +495,7 @@ function entitySummaryRow(entry, message, flags = {}) {
         conversationKey: entityConversationKey(entry.type, entry.id),
         conversationKind: 'entity',
         typeId: entry.type,
-        entityId: entry.id,
+        instanceId: entry.id,
         entityName: entry.name || entry.id,
         lastMessage: message.message,
         entityRefs: message.entityRefs || [],
@@ -640,7 +640,7 @@ export async function sendAdminSupportMessage(auth, customerId, body = {}) {
 }
 
 async function insertMessage({ context, sender, senderUserId, message, entityRefs, attachment, parentMessageId, auth, recipientUserId = null }) {
-    const refs = await normalizeEntityRefs(entityRefs, auth, { recipientUserId });
+    const refs = await normalizeInstanceRefs(entityRefs, auth, { recipientUserId });
     const normalizedAttachment = normalizeAttachment(attachment);
     const text = normalizeMessage(message, refs, normalizedAttachment);
     const parent = await resolveParentMessage(auth, context, parentMessageId);
@@ -806,7 +806,7 @@ function normalizeAttachment(attachment) {
     };
 }
 
-async function normalizeEntityRefs(entityRefs = [], auth = {}, options = {}) {
+async function normalizeInstanceRefs(entityRefs = [], auth = {}, options = {}) {
     if (!Array.isArray(entityRefs)) return [];
     const scopedAuth = await resolveEntityOptionAuth(auth);
     const allowedTypes = new Set(scopedEntityOptionTypes(scopedAuth).map(source => source.typeId));
@@ -1243,7 +1243,7 @@ function resolveFilterPlaceholders(value, scope = {}) {
     if (value && typeof value === 'object') {
         return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, resolveFilterPlaceholders(item, scope)]));
     }
-    if (value === '$screen.entityId' || value === '$screen.scope.entityId') {
+    if (value === '$screen.instanceId' || value === '$screen.scope.instanceId') {
         return resolveScopeEntityId(scope) || value;
     }
     return value;
@@ -1269,7 +1269,7 @@ async function expandParentScopedFilters(auth, filters = {}, source = {}) {
     for (const parentId of parentIds) {
         const resolved = resolveFilterPlaceholders(filters, {
             ...(source.screenScope || {}),
-            entityId: parentId
+            instanceId: parentId
         });
         if (!hasUnresolvedScreenScope(resolved)) expansions.push(resolved);
     }
@@ -1277,7 +1277,7 @@ async function expandParentScopedFilters(auth, filters = {}, source = {}) {
 }
 
 function resolveScopeEntityId(scope = {}) {
-    if (scope.entityId) return scope.entityId;
+    if (scope.instanceId) return scope.instanceId;
     for (const [key, value] of Object.entries(scope || {})) {
         if (key.endsWith('Id') && value) return value;
     }

@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   if (!typeId || !id) {
     throw createError({ statusCode: 400, statusMessage: 'type and id are required' });
   }
-  const service = getAppRegistry().getEntityService(typeId);
+  const service = getAppRegistry().getInstanceService(typeId);
   if (!service || typeof service.replacePayload !== 'function') {
     throw createError({ statusCode: 404, statusMessage: `no instance service for type ${typeId}` });
   }

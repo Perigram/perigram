@@ -3,17 +3,17 @@ import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import InputNumber from 'primevue/inputnumber';
 import Panel from 'primevue/panel';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import Tag from 'primevue/tag';
-import EntityPage from '~/components/shared/EntityPage.vue';
+import InstancePage from '~/components/shared/InstancePage.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import PhotoGeometryOverlay from './PhotoGeometryOverlay.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import { getPrimaryState } from '~/packages/core/src/index.js';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
 const props = defineProps({
   capture: { type: Object, required: true },
@@ -188,12 +188,12 @@ function closeRing(ring = []) {
 
 resetEditor();
 
-const FIELDS = resolveEntityDisplayFields({ typeId: 'geometryCapture', surface: 'detail' })
+const FIELDS = resolveInstanceDisplayFields({ typeId: 'geometryCapture', surface: 'detail' })
   .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource');
 </script>
 
 <template>
-  <EntityPage :entity="capture" type-id="geometry_capture">
+  <InstancePage :entity="capture" type-id="geometry_capture">
     <template #actions>
       <Button
         v-if="state === 'READY'"
@@ -362,15 +362,15 @@ const FIELDS = resolveEntityDisplayFields({ typeId: 'geometryCapture', surface: 
           <div class="flex flex-col gap-3">
             <div v-if="warehouseId" class="flex items-center justify-between gap-4">
               <small class="text-muted">{{ $t('entities.warehouse') }}</small>
-              <EntityInlineRef type="warehouse" :id="warehouseId" />
+              <InstanceInlineRef type="warehouse" :id="warehouseId" />
             </div>
             <div v-if="projectId" class="flex items-center justify-between gap-4">
               <small class="text-muted">{{ $t('entities.project') }}</small>
-              <EntityInlineRef type="project" :id="projectId" />
+              <InstanceInlineRef type="project" :id="projectId" />
             </div>
-            <div v-if="output?.entityId" class="flex items-center justify-between gap-4">
+            <div v-if="output?.instanceId" class="flex items-center justify-between gap-4">
               <small class="text-muted">{{ $t('geometryCapture.createdEntity') }}</small>
-              <EntityInlineRef :type="output.typeId" :id="output.entityId" />
+              <InstanceInlineRef :type="output.typeId" :id="output.instanceId" />
             </div>
           </div>
         </Panel>
@@ -392,5 +392,5 @@ const FIELDS = resolveEntityDisplayFields({ typeId: 'geometryCapture', surface: 
         </Panel>
       </div>
     </template>
-  </EntityPage>
+  </InstancePage>
 </template>

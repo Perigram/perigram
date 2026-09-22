@@ -1,7 +1,7 @@
 import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import { createData, createIdentity } from '../../core/blocks/index.js';
-import { assertEntityAccess, hasEntityAccess } from '../../core/access/service.js';
+import { assertEntityAccess, hasInstanceAccess } from '../../core/access/service.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { markPublicSystemData } from '#shared/public-entities.js';
 import { Machine } from './model.js';
@@ -48,7 +48,7 @@ export async function seedSystemDefault() {
 export async function getById(id, userId = null, userOrg = null, userRole = null, auth = null) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Machine not found' });
-  if (!hasEntityAccess({ entity: raw, typeId: 'machine', feature: 'machines', level: 'read', auth })) {
+  if (!hasInstanceAccess({ entity: raw, typeId: 'machine', feature: 'machines', level: 'read', auth })) {
     throw createError({ statusCode: auth ? 403 : 401, message: auth ? 'Permission denied' : 'Authentication required' });
   }
   return toDTO(raw);
@@ -67,7 +67,7 @@ export async function list(userId = null, userOrg = null, userRole = null, auth 
     ]
   });
   return raws
-    .filter(raw => hasEntityAccess({ entity: raw, typeId: 'machine', feature: 'machines', level: 'read', auth }))
+    .filter(raw => hasInstanceAccess({ entity: raw, typeId: 'machine', feature: 'machines', level: 'read', auth }))
     .map(toDTO);
 }
 

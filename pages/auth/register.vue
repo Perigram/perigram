@@ -52,7 +52,7 @@ import { useI18n } from 'vue-i18n';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import Panel from 'primevue/panel';
 import Message from 'primevue/message';
 

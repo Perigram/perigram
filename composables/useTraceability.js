@@ -1,6 +1,6 @@
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
-import { containmentAncestors, hierarchyTypeAlias } from '~/utils/entity-hierarchy.js';
+import { containmentAncestors, hierarchyTypeAlias } from '~/utils/instance-hierarchy.js';
 
 export const useTraceability = () => {
     const authStore = useAuthStore();

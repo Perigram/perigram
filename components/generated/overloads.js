@@ -37,7 +37,7 @@ export function resolveGeneratedScreenOverload(screen = {}) {
   )) || null;
 }
 
-export function resolveGeneratedEntityDetailOverload(typeId = '') {
+export function resolveGeneratedInstanceDetailOverload(typeId = '') {
   return generatedEntityDetailOverloads.find(overload => overload.typeId === typeId) || null;
 }
 

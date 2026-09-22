@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
             name: context.name || context.entityName || null,
             ...(context.kind === 'entity' ? {
                 typeId: context.typeId,
-                entityId: context.entityId
+                instanceId: context.instanceId
             } : {})
         }
     }

@@ -6,12 +6,12 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import { computed } from 'vue';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
 const props = defineProps({
   catalog: { type: Object, required: true },
@@ -29,14 +29,14 @@ const material = computed(() => props.catalog.data?.material || '');
 const sheetOptionCount = computed(() => props.catalog.data?.options?.sheetThicknesses?.length || 0);
 const foilOptionCount = computed(() => props.catalog.data?.options?.foilThicknesses?.length || 0);
 
-const CATALOG_FIELDS = resolveEntityDisplayFields({ typeId: 'catalog', surface: 'card' })
+const CATALOG_FIELDS = resolveInstanceDisplayFields({ typeId: 'catalog', surface: 'card' })
   .filter(field => field.display !== 'entityRef');
 
 </script>
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <EntityCard :entity="catalog" type-id="catalog" :variant="variant" :show-trace="false" :show-status="false">
+    <InstanceCard :entity="catalog" type-id="catalog" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-book"></i>
       </template>
@@ -55,7 +55,7 @@ const CATALOG_FIELDS = resolveEntityDisplayFields({ typeId: 'catalog', surface: 
       <Divider />
       <div v-if="catalog.lineage?.manufacturerId" class="flex items-center justify-between gap-4">
         <small class="text-muted">{{ $t('requisition.manufacturer') }}</small>
-        <EntityInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
+        <InstanceInlineRef type="organization" :id="catalog.lineage.manufacturerId" />
       </div>
       <DataBlock type-id="catalog" :entity="catalog" :fields="CATALOG_FIELDS" />
       <template #footer>
@@ -63,6 +63,6 @@ const CATALOG_FIELDS = resolveEntityDisplayFields({ typeId: 'catalog', surface: 
           <Button v-if="authStore.can('catalogs', 'edit')" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="$emit('edit', catalog)" />
         </div>
       </template>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>

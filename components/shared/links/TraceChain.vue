@@ -48,12 +48,12 @@
 import { ref, computed, inject, toRef, unref, watchEffect } from 'vue';
 import TraceLink from './TraceLink.vue';
 import Button from 'primevue/button';
-import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
+import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { useLineage } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
-import { containmentAncestors, normalizeHierarchyType, traceContextExclusions, visibleTraceAncestors } from '~/utils/entity-hierarchy.js';
+import { containmentAncestors, normalizeHierarchyType, traceContextExclusions, visibleTraceAncestors } from '~/utils/instance-hierarchy.js';
 
 const props = defineProps({
     entity: { type: Object, default: null },
@@ -128,7 +128,7 @@ const routeForItem = (item) => {
     if (!item?.type || !item?.id) return null;
     const resolvedEntity = resolvedEntities.value[labelKey(item)] || null;
     if (authStore.processActive) {
-        return detailRouteForEntity({
+        return detailRouteForInstance({
             entity: resolvedEntity || { _id: item.id },
             typeId: generatedTypeId(item.type),
             manifest: authStore.screenManifest

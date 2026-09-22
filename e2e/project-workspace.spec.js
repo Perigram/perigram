@@ -39,7 +39,7 @@ test.describe('generated project workspace', () => {
     await fulfillJson(app.page, '**/api/templates/pens', []);
     await fulfillJson(app.page, '**/api/layer-standards**', []);
 
-    await app.page.goto(`${projectScreen.route}?entityId=project-1&projectId=project-1`);
+    await app.page.goto(`${projectScreen.route}?instanceId=project-1&projectId=project-1`);
     await app.page.evaluate(() => {
       for (const key of Object.keys(localStorage)) {
         if (key.includes('project-workspace')) localStorage.removeItem(key);

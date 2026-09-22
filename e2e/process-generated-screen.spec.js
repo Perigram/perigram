@@ -103,13 +103,13 @@ test.describe('process generated screens', () => {
     await app.page.route('**/api/cassettes?**', cassetteHandler);
     await mockStatusActions(app.page);
 
-    await app.page.goto('/screens/auto_library_detail?entityId=library-m1&libraryId=library-m1');
+    await app.page.goto('/screens/auto_library_detail?instanceId=library-m1&libraryId=library-m1');
     await expect(app.page.getByText('Matrix Library One').first()).toBeVisible();
     await expect(app.page.getByText('Matrix Cassette One').first()).toBeVisible();
 
     // The single-mode source resolves its identifier from the
-    // $screen.scope.entityId binding and the child list source resolves its
-    // $screen.scope.entityId filter placeholder plus the access-rule status.
+    // $screen.scope.instanceId binding and the child list source resolves its
+    // $screen.scope.instanceId filter placeholder plus the access-rule status.
     expect(cassetteRequests.some(url => (
       url.includes('libraryId=library-m1') && url.includes('primaryStatus=NEW')
     ))).toBeTruthy();
@@ -135,7 +135,7 @@ test.describe('process generated screens', () => {
     await fulfillJson(app.page, '**/api/cassette-designs?**', [design]);
     await mockStatusActions(app.page);
 
-    await app.page.goto('/screens/auto_cassette_design_detail?entityId=cd-m1&cassette_designId=cd-m1');
+    await app.page.goto('/screens/auto_cassette_design_detail?instanceId=cd-m1&cassette_designId=cd-m1');
     await expect(app.page.getByText('Matrix Design One').first()).toBeVisible();
 
     // The banner breadcrumb carries a screen dropdown button, so generated
@@ -238,7 +238,7 @@ test.describe('process generated screens', () => {
     // card in place: no source reload and no page reload are involved.
     await expect(app.page.getByText('Refresh Project Linked')).toBeVisible();
     await app.page.waitForTimeout(400);
-    expect(executeBody?.entityId).toBe('project-r1');
+    expect(executeBody?.instanceId).toBe('project-r1');
     expect(projectListRequests).toBe(listRequestsAfterLoad);
     await expect(app.page.getByText('Refresh Project One', { exact: true })).toHaveCount(0);
     expect(await app.page.evaluate(() => window.__e2eNoReload)).toBe(true);

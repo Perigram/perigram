@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="design" type-id="sheet_design">
+    <InstancePage :entity="design" type-id="sheet_design">
         <template #actions>
                 <Button
                     :label="$t('sheetDesign.downloadDxf')"
@@ -34,7 +34,7 @@
                             :key="item.cassetteDesignId"
                             class="flex items-center justify-between gap-2"
                         >
-                            <EntityInlineRef type="cassetteDesign" :id="item.cassetteDesignId" />
+                            <InstanceInlineRef type="cassetteDesign" :id="item.cassetteDesignId" />
                             <Tag :value="item.count" size="small" />
                         </div>
                     </div>
@@ -62,7 +62,7 @@
                 </Panel>
                 <Panel :header="$t('sheetDesign.instances')">
                     <div class="flex flex-col gap-2">
-                        <EntityInlineRef
+                        <InstanceInlineRef
                             v-for="cid in design.data?.instanceIds || []"
                             :key="cid"
                             type="cassetteInstance"
@@ -72,7 +72,7 @@
                 </Panel>
             </div>
         </template>
-    </EntityPage>
+    </InstancePage>
 </template>
 
 <script setup>
@@ -80,16 +80,16 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import Tag from 'primevue/tag';
-import EntityPage from '~/components/shared/EntityPage.vue';
+import InstancePage from '~/components/shared/InstancePage.vue';
 import { cassetteDesignCountsForSheetDesign } from '~/utils/sheetDesigns.js';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 import { useAuthStore } from '~/stores/auth';
 import { hasPermissionGrant } from '#shared/access-control.js';
 
@@ -109,7 +109,7 @@ const canEdit = computed(() => hasPermissionGrant({
     typeId: 'sheet_design'
 }));
 
-const SHEET_DESIGN_FIELDS = resolveEntityDisplayFields({ typeId: 'sheetDesign', surface: 'detail' })
+const SHEET_DESIGN_FIELDS = resolveInstanceDisplayFields({ typeId: 'sheetDesign', surface: 'detail' })
     .filter(field => field.role !== 'previewSource');
 
 const cassetteDesigns = computed(() => cassetteDesignCountsForSheetDesign(props.design).map(item => ({

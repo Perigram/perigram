@@ -165,7 +165,7 @@ import { storeToRefs } from 'pinia';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
 import Avatar from 'primevue/avatar';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import ToggleSwitch from 'primevue/toggleswitch';
 import Tag from 'primevue/tag';
 import InputText from 'primevue/inputtext';

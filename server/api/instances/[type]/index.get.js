@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'type is required' });
   }
   const registry = getAppRegistry();
-  const service = registry.getEntityService(typeId);
+  const service = registry.getInstanceService(typeId);
   if (!service?.processList) {
     throw createError({ statusCode: 404, statusMessage: `no instance service for type ${typeId}` });
   }

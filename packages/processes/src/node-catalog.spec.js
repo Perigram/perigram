@@ -439,7 +439,7 @@ describe('process v4 node catalog', () => {
         input: {
           entities: [{ name: 'queue', type: 'queue', required: true }],
           parameters: [
-            { name: 'machineId', type: 'entityId', typeId: 'machine', required: true },
+            { name: 'machineId', type: 'instanceId', typeId: 'machine', required: true },
             { name: 'materialMode', type: 'enum', options: ['VIRTUAL', 'WAREHOUSE'] }
           ]
         },

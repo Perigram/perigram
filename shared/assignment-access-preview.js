@@ -1,6 +1,6 @@
 import { resolveRoleAssignmentAccess } from '#packages/processes/src/index.js';
 import { hasPermissionGrant, normalizePermissionGrants } from './access-control.js';
-import { canDisplayEntityField, getActiveEntityFieldPolicyEntries } from './entity-field-access.js';
+import { canDisplayEntityField, getActiveEntityFieldPolicyEntries } from './instance-field-access.js';
 
 const OWNER_RECOVERY_PERMISSIONS = {
   organizations: { level: 'admin' },
@@ -126,7 +126,7 @@ function evaluationContext(context = {}, typeId = '') {
 
 function contextEntity(context = {}, typeId = '') {
   return {
-    _id: context.entityId,
+    _id: context.instanceId,
     typeId,
     lineage: context.lineage || {},
     status: context.status ? { state: { primary: context.status } } : undefined,

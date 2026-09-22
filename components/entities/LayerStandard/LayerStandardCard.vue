@@ -1,6 +1,6 @@
 <template>
   <div :class="[`variant-${variant}`]">
-    <EntityCard :entity="standard" type-id="layer_standard" :variant="variant" :show-trace="false" :show-status="false">
+    <InstanceCard :entity="standard" type-id="layer_standard" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-palette"></i>
       </template>
@@ -41,7 +41,7 @@
           />
         </div>
       </template>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>
 
@@ -54,7 +54,7 @@ import Badge from 'primevue/badge';
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import { useAuthStore } from '~/stores/auth';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 

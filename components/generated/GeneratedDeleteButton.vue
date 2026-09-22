@@ -45,7 +45,7 @@ const visible = computed(() => canDeleteGeneratedEntity({
   entity: props.entity,
   typeId: props.typeId
 }));
-const entityId = computed(() => props.entity?._id || props.entity?.identity?.uid || '');
+const instanceId = computed(() => props.entity?._id || props.entity?.identity?.uid || '');
 
 function removeEntity() {
   if (!visible.value || loading.value) return;
@@ -60,7 +60,7 @@ function removeEntity() {
 async function performDelete() {
   loading.value = true;
   try {
-    await instances.removeInstance(normalizedType.value, entityId.value, { typeId: props.typeId, entity: props.entity });
+    await instances.removeInstance(normalizedType.value, instanceId.value, { typeId: props.typeId, entity: props.entity });
     toast.add({ severity: 'success', summary: t('common.success'), detail: t('common.delete'), life: 2000 });
     emit('deleted');
   } catch (error) {

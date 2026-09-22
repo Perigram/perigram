@@ -49,14 +49,14 @@ export function hasPermission(user, entity, requiredLevel) {
   });
 }
 
-export function canAccessEntity(user, typeId, entityId) {
+export function canAccessEntity(user, typeId, instanceId) {
   // If no restrictions, can access all in org
   if (!user.restrictedTo) return true;
   
   const restrictedField = `${typeId}Ids`;
   if (!user.restrictedTo[restrictedField]) return true;
   
-  return user.restrictedTo[restrictedField].includes(entityId.toString());
+  return user.restrictedTo[restrictedField].includes(instanceId.toString());
 }
 
 // Session generation

@@ -97,7 +97,7 @@ body {
     border-radius: inherit;
 }
 
-.entity-inline-chip {
+.instance-inline-chip {
     display: inline-flex;
     align-items: center;
     max-width: 100%;
@@ -105,7 +105,7 @@ body {
     vertical-align: baseline;
 }
 
-.entity-inline-chip-icon {
+.instance-inline-chip-icon {
     flex: 0 0 auto;
     font-size: 0.9em;
     opacity: 0.9;
@@ -170,7 +170,7 @@ body {
 }
 /* ck-entity-icons:end */
 
-.entity-inline-chip-label {
+.instance-inline-chip-label {
     flex: 1 1 auto;
     min-width: 0;
     max-width: 100%;
@@ -179,11 +179,11 @@ body {
     white-space: nowrap;
 }
 
-.entity-inline-tone {
+.instance-inline-tone {
     vertical-align: baseline;
 }
 
-.entity-inline-compact {
+.instance-inline-compact {
     display: inline-flex;
     align-items: center;
     width: 100%;
@@ -193,7 +193,7 @@ body {
     min-height: 4.75rem;
 }
 
-.entity-inline-compact-preview {
+.instance-inline-compact-preview {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -203,25 +203,25 @@ body {
     overflow: hidden;
 }
 
-.entity-inline-compact-preview > *,
-.entity-inline-compact-preview :where([data-entity-card-interactive]) {
+.instance-inline-compact-preview > *,
+.instance-inline-compact-preview :where([data-instance-card-interactive]) {
     width: 100%;
     height: 100%;
 }
 
-.entity-inline-compact-preview :where(.relative.flex.overflow-hidden) {
+.instance-inline-compact-preview :where(.relative.flex.overflow-hidden) {
     width: 100%;
     height: 100%;
     aspect-ratio: auto;
 }
 
-.entity-inline-compact-preview :where(img) {
+.instance-inline-compact-preview :where(img) {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.entity-inline-compact-main {
+.instance-inline-compact-main {
     display: flex;
     min-width: 0;
     flex: 1 1 auto;
@@ -229,56 +229,56 @@ body {
     gap: 0.25rem;
 }
 
-.entity-inline-compact-header {
+.instance-inline-compact-header {
     display: flex;
     min-width: 0;
     align-items: center;
     gap: 0.375rem;
 }
 
-.entity-inline-compact-status-row {
+.instance-inline-compact-status-row {
     display: flex;
     min-width: 0;
     max-width: 100%;
     align-items: center;
 }
 
-.entity-inline-compact :where(dl) {
+.instance-inline-compact :where(dl) {
     max-height: 1.35rem;
     overflow: hidden;
 }
 
-.entity-inline-compact-facts {
+.instance-inline-compact-facts {
     display: block;
     min-width: 0;
 }
 
-.entity-relations-gallery--compact {
+.instance-relations-gallery--compact {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 13.5rem), 1fr));
     gap: 0.5rem;
 }
 
-.entity-relations-overflow-tile {
+.instance-relations-overflow-tile {
     min-height: 4.75rem;
     width: 100%;
     justify-content: center;
 }
 
-.entity-card-popup-content :where(.data-block) {
+.instance-card-popup-content :where(.data-block) {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem 0.875rem;
 }
 
-.entity-card-popup-content :where(.data-block > div) {
+.instance-card-popup-content :where(.data-block > div) {
     display: inline-flex;
     min-width: 0;
     align-items: baseline;
     gap: 0.375rem;
 }
 
-.entity-card-popup-content :where(.data-block dd) {
+.instance-card-popup-content :where(.data-block dd) {
     margin-top: 0;
     word-break: normal;
 }

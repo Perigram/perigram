@@ -5,7 +5,7 @@ export function resolveArtifactViewer({ artifact = {}, revision = null } = {}) {
   const hasFile = Boolean(attachment?.fileId);
   const mode = attachmentPreview(artifact.data?.type || '').mode;
   const fileUrl = !hasFile ? '' : revision?._id
-    ? `/api/entity-revisions/${encodeURIComponent(revision._id)}/file`
+    ? `/api/instance-revisions/${encodeURIComponent(revision._id)}/file`
     : artifactDownloadUrl(artifact._id);
   return { attachment, fileUrl, hasFile, mode };
 }

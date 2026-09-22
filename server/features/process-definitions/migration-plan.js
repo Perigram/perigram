@@ -9,7 +9,7 @@ import { createError } from 'h3';
 import { primaryStates } from '~/packages/processes/src/index.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import { statusService } from '~/server/core/machines/service.js';
-import * as entityEventService from '../entity-events/service.js';
+import * as entityEventService from '../instance-events/service.js';
 
 // stranded: [{ typeId, statuses: [{ state, count }] }] from the live
 // count pass; nextCompiled: the compiled contract about to be applied.
@@ -98,7 +98,7 @@ export async function applyStatusMigrations({ mappings = [], auth = {}, organiza
   const applied = {};
   const failures = [];
   for (const [typeId, typeMappings] of byTypeId) {
-    const service = getAppRegistry().getEntityService(typeId);
+    const service = getAppRegistry().getInstanceService(typeId);
     if (!service?.processList) {
       for (const mapping of typeMappings) {
         failures.push({ typeId, id: null, from: mapping.from, to: mapping.to, error: `Entity service cannot query ${typeId} from a process` });

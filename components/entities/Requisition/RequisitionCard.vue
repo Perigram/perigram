@@ -8,13 +8,13 @@ import Tag from 'primevue/tag';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
-const REQUISITION_FIELDS = resolveEntityDisplayFields({ typeId: 'requisition', surface: 'card' })
+const REQUISITION_FIELDS = resolveInstanceDisplayFields({ typeId: 'requisition', surface: 'card' })
   .filter(field => field.display !== 'entityRef');
 
 const props = defineProps({
@@ -40,7 +40,7 @@ const manufacturerId = computed(() => props.requisition.lineage?.manufacturerId 
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <EntityCard :entity="requisition" type-id="requisition" :variant="variant">
+    <InstanceCard :entity="requisition" type-id="requisition" :variant="variant">
       <template #before-identity>
         <i class="pi pi-send"></i>
       </template>
@@ -56,7 +56,7 @@ const manufacturerId = computed(() => props.requisition.lineage?.manufacturerId 
         <DataBlock type-id="requisition" :entity="requisition" :fields="REQUISITION_FIELDS" />
         <div v-if="manufacturerId" class="flex items-center justify-between gap-4">
           <small class="text-muted">{{ $t('requisition.manufacturer') }}</small>
-          <EntityInlineRef type="organization" :id="manufacturerId" />
+          <InstanceInlineRef type="organization" :id="manufacturerId" />
         </div>
       </div>
       <template #footer v-if="variant === 'card'">
@@ -65,6 +65,6 @@ const manufacturerId = computed(() => props.requisition.lineage?.manufacturerId 
             <Button v-if="authStore.can('requisitions', 'edit')" icon="pi pi-pencil" text rounded size="small" :aria-label="$t('common.edit')" @click="emit('edit', requisition)" />
         </div>
       </template>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>

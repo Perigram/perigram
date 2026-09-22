@@ -25,7 +25,7 @@ const compiled = {
   },
   screens: {
     projects: { id: 'projects', label: 'Projects', roleIds: ['viewer'], required: { feature: 'projects', level: 'read' } },
-    queue: { id: 'queue', label: 'Queue', roleIds: ['operator'], route: '/queue/$assignment.queueId', scope: { entityId: '$assignment.queueId' }, required: { feature: 'queues', level: 'read' } }
+    queue: { id: 'queue', label: 'Queue', roleIds: ['operator'], route: '/queue/$assignment.queueId', scope: { instanceId: '$assignment.queueId' }, required: { feature: 'queues', level: 'read' } }
   },
   workflows: {
     queue: { regions: { main: { transitions: [{ from: 'OPEN', to: 'DONE', processRoleIds: ['operator'] }] } } }
@@ -58,8 +58,8 @@ describe('previewAssignmentAccess', () => {
       assignment: { roleIds: ['viewer', 'operator'], bindings: { projectId: 'project-1', queueId: 'queue-1' } },
       domain,
       contexts: [
-        { typeId: 'project', entityId: 'project-1', status: 'READY' },
-        { typeId: 'queue', entityId: 'queue-1', status: 'OPEN', lineage: { projectId: 'project-1' } }
+        { typeId: 'project', instanceId: 'project-1', status: 'READY' },
+        { typeId: 'queue', instanceId: 'queue-1', status: 'OPEN', lineage: { projectId: 'project-1' } }
       ]
     });
     expect(preview.entities).toEqual(expect.arrayContaining([
@@ -71,7 +71,7 @@ describe('previewAssignmentAccess', () => {
     expect(preview.transitions).toEqual([expect.objectContaining({ transition: 'OPEN->DONE', allowed: true })]);
     expect(preview.screens.map(screen => screen.id)).toEqual(expect.arrayContaining(['projects', 'queue']));
     expect(preview.screens.find(screen => screen.id === 'projects')).toMatchObject({ allowed: true });
-    expect(preview.screens.find(screen => screen.id === 'queue').scope.entityId).toBe('queue-1');
+    expect(preview.screens.find(screen => screen.id === 'queue').scope.instanceId).toBe('queue-1');
   });
 
   it('attributes owner recovery to active membership instead of process roles', () => {

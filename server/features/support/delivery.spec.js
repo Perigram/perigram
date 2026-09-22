@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
     findSince: vi.fn()
   },
   appRegistry: {
-    getEntityService: vi.fn(() => ({ processGetById: vi.fn(async () => null) }))
+    getInstanceService: vi.fn(() => ({ processGetById: vi.fn(async () => null) }))
   },
   usersService: {
     getById: vi.fn(),

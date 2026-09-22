@@ -167,7 +167,7 @@ async function loadCommandEntities(registry, command, refs) {
     if (!id && input.required) throw createError({ statusCode: 400, message: `Command ${command.id} requires ${input.name}` });
     if (!id) continue;
 
-    const service = registry.getEntityService(input.type);
+    const service = registry.getInstanceService(input.type);
     if (!service?.getById) throw createError({ statusCode: 500, message: `Entity service missing for ${input.type}` });
     const entity = await service.getById(id);
     if (!entity) throw createError({ statusCode: 404, message: `${input.type} not found` });
@@ -184,7 +184,7 @@ async function loadCommandEntities(registry, command, refs) {
       throw createError({ statusCode: 400, message: `Command ${command.id} ${input.name} does not accept ${type}` });
     }
 
-    const service = registry.getEntityService(type);
+    const service = registry.getInstanceService(type);
     if (!service?.getById) throw createError({ statusCode: 500, message: `Entity service missing for ${type}` });
     const entity = await service.getById(id);
     if (!entity) throw createError({ statusCode: 404, message: `${type} not found` });

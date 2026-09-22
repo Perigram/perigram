@@ -5,10 +5,10 @@
 import Button from 'primevue/button';
 import Divider from 'primevue/divider';
 import { computed, ref, watch } from 'vue';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import MaterialSummary from '~/components/entities/MaterialPile/MaterialSummary.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
@@ -40,7 +40,7 @@ watch(catalogId, async (id) => {
 
 <template>
   <div class="h-full cursor-pointer" @click="handleCardClick">
-    <EntityCard :entity="pile" type-id="material_pile" :variant="variant">
+    <InstanceCard :entity="pile" type-id="material_pile" :variant="variant">
       <template #before-identity>
         <i class="pi pi-database"></i>
       </template>
@@ -53,7 +53,7 @@ watch(catalogId, async (id) => {
         <SpecsBlock type-id="materialPile" :entity="pile" />
         <div v-if="catalog" class="flex items-center justify-between gap-4">
           <small class="text-muted">{{ $t('entities.catalog') }}</small>
-          <EntityInlineRef type="catalog" :entity="catalog" />
+          <InstanceInlineRef type="catalog" :entity="catalog" />
         </div>
       </div>
       <template #footer v-if="variant === 'card'">
@@ -63,6 +63,6 @@ watch(catalogId, async (id) => {
             <Button v-if="authStore.can('materials', 'delete')" icon="pi pi-trash" text rounded severity="danger" size="small" :aria-label="$t('common.delete')" @click="emit('delete', pile)" />
         </div>
       </template>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>

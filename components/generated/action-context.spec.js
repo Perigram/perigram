@@ -28,7 +28,7 @@ describe('generated action context', () => {
         parentEntity: { _id: 'library-1' },
         typeId: 'cassette'
       },
-      screen: { typeId: 'library', scope: { entityId: 'library-1' } }
+      screen: { typeId: 'library', scope: { instanceId: 'library-1' } }
     });
 
     expect(entities).toEqual({ library: 'library-1' });
@@ -37,7 +37,7 @@ describe('generated action context', () => {
   it('does not use a detail entity id as an unrelated parent id', () => {
     expect(generatedActionRequiresParent({
       action: { actionKind: 'createInstance', typeId: 'cassette', parentTypeId: 'library' },
-      screen: { typeId: 'project', scope: { entityId: 'project-1' } }
+      screen: { typeId: 'project', scope: { instanceId: 'project-1' } }
     })).toBe('library');
   });
 

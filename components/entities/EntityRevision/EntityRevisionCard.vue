@@ -1,6 +1,6 @@
 <template>
   <div class="h-full">
-    <EntityCard :entity="revision" type-id="entity_revision" :variant="variant" :show-status="false">
+    <InstanceCard :entity="revision" type-id="entity_revision" :variant="variant" :show-status="false">
       <template #before-identity>
         <i class="pi pi-history"></i>
       </template>
@@ -9,22 +9,22 @@
         <DataBlock type-id="entityRevision" :entity="revisionForDisplay" :fields="FIELDS" />
         <div v-if="sourceType && sourceId" class="flex items-center justify-between gap-4">
           <small class="text-muted">{{ $t('revision.source') }}</small>
-          <EntityInlineRef :type="sourceType" :id="sourceId" />
+          <InstanceInlineRef :type="sourceType" :id="sourceId" />
         </div>
       </div>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
-const FIELDS = resolveEntityDisplayFields({ typeId: 'entityRevision', surface: 'card' })
+const FIELDS = resolveInstanceDisplayFields({ typeId: 'entityRevision', surface: 'card' })
   .filter(field => field.display !== 'entityRef');
 
 const ENTITY_TYPE_TO_UI_TYPE = {
@@ -37,7 +37,7 @@ const props = defineProps({
 });
 
 const sourceType = computed(() => ENTITY_TYPE_TO_UI_TYPE[props.revision.data?.typeId] || null);
-const sourceId = computed(() => props.revision.data?.entityId || null);
+const sourceId = computed(() => props.revision.data?.instanceId || null);
 const revisionForDisplay = computed(() => ({
   ...props.revision,
   data: {

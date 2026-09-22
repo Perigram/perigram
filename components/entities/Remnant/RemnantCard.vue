@@ -5,7 +5,7 @@
  * Sheet provenance lives on the detail page, not in grid cards.
  */
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import Divider from 'primevue/divider';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 
@@ -17,7 +17,7 @@ defineProps({
 
 <template>
   <div class="h-full">
-    <EntityCard :entity="remnant" type-id="remnant" :variant="variant">
+    <InstanceCard :entity="remnant" type-id="remnant" :variant="variant">
       <template #before-identity>
         <i class="ck-entity-icon ck-entity-icon-remnant"></i>
       </template>
@@ -32,6 +32,6 @@ defineProps({
         <Divider />
         <SpecsBlock type-id="remnant" :entity="remnant" />
       </div>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>

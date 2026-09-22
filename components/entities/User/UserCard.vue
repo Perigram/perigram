@@ -1,6 +1,6 @@
 <template>
   <div v-if="user" :class="[`variant-${variant}`]" class="cursor-pointer" @click="handleCardClick">
-    <EntityCard :entity="user" type-id="user" :variant="variant" :show-trace="false" :show-status="false">
+    <InstanceCard :entity="user" type-id="user" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <Avatar :image="avatarUrl" :label="!avatarUrl ? avatarLabel : null" shape="circle" :size="avatarSize" class="[&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover" />
       </template>
@@ -21,7 +21,7 @@
           <Button v-if="authStore.can('users', 'edit')" icon="pi pi-pencil" text size="small" :aria-label="$t('common.edit')" @click="$emit('edit', user)" />
         </div>
       </template>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>
 
@@ -34,11 +34,11 @@ import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import { computed } from 'vue';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -55,7 +55,7 @@ const role = computed(() => props.user.data?.role || '');
 const organizationCount = computed(() => props.user.data?.memberships?.length || 0);
 const avatarSize = computed(() => props.variant === 'inline' ? 'normal' : 'xlarge');
 
-const USER_FIELDS = resolveEntityDisplayFields({ typeId: 'user', surface: 'card' });
+const USER_FIELDS = resolveInstanceDisplayFields({ typeId: 'user', surface: 'card' });
 
 const handleCardClick = (event) => {
     if (isInteractiveEventTarget(event)) return;

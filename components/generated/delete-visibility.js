@@ -11,9 +11,9 @@ export function canDeleteGeneratedEntity({ authStore, domainUi, entity, typeId }
   const instances = useInstancesStore();
   const registry = useRegistryStore();
   const typeKey = instances.canonicalTypeKey(typeId);
-  const entityId = entity?._id || entity?.identity?.uid || '';
+  const instanceId = entity?._id || entity?.identity?.uid || '';
   return Boolean(
-    entityId
+    instanceId
     && typeSupportsClientDelete(typeKey, registry, instances)
     && hasPermissionGrant({
       permissions: authStore?.activePermissions,

@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="warehouse" type-id="warehouse">
+    <InstancePage :entity="warehouse" type-id="warehouse">
         <template #actions>
             <div class="flex gap-2" v-if="authStore.can('warehouses', 'edit')">
                 <Button icon="pi pi-pencil" severity="secondary" text :aria-label="$t('common.edit')" @click="$emit('edit', warehouse)" />
@@ -12,7 +12,7 @@
         </div>
 
         <MetricPanel :metrics="warehouseMetrics" />
-    </EntityPage>
+    </InstancePage>
 </template>
 
 <script setup>
@@ -20,7 +20,7 @@ import { computed } from 'vue';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
-import EntityPage from '~/components/shared/EntityPage.vue';
+import InstancePage from '~/components/shared/InstancePage.vue';
 import MetricPanel from '~/components/shared/MetricPanel.vue';
 
 const props = defineProps({

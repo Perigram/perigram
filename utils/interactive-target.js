@@ -7,7 +7,7 @@ const INTERACTIVE_TARGET_SELECTOR = [
   '[contenteditable="true"]',
   '[role="button"]',
   '[role="link"]',
-  '[data-entity-card-interactive="true"]'
+  '[data-instance-card-interactive="true"]'
 ].join(',');
 
 export function isInteractiveEventTarget(event) {

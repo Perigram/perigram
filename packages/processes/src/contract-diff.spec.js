@@ -35,7 +35,7 @@ describe('semantic process contract diff', () => {
     );
     const diff = diffProcessContracts(previous, structuredClone(previous));
     expect(hasProcessContractChanges(diff)).toBe(false);
-    expect(diff.removedEntityStatuses).toEqual([]);
+    expect(diff.removedInstanceStatuses).toEqual([]);
   });
 
   it('diffs added, removed, and changed actions with the changed fields', () => {
@@ -83,7 +83,7 @@ describe('semantic process contract diff', () => {
       producer('import_b:entity', 'queue', workflow(['IMPORTED']))
     ]);
     const diff = diffProcessContracts(previous, next);
-    expect(diff.removedEntityStatuses).toEqual([{ typeId: 'queue', statuses: ['ACTIVE'] }]);
+    expect(diff.removedInstanceStatuses).toEqual([{ typeId: 'queue', statuses: ['ACTIVE'] }]);
   });
 
   it('keeps a status that survives on any same-type producer', () => {
@@ -93,7 +93,7 @@ describe('semantic process contract diff', () => {
       producer('import_b:entity', 'queue', workflow(['ACTIVE']))
     ]);
     const diff = diffProcessContracts(previous, next);
-    expect(diff.removedEntityStatuses).toEqual([]);
+    expect(diff.removedInstanceStatuses).toEqual([]);
   });
 
   it('diffs field policies per producer section', () => {

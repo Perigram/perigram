@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('~/composables/useGeneratedScreen.js', () => ({
   resolveSourceFilters: (source, screen) => Object.fromEntries(Object.entries(source.filters || {}).map(([key, value]) => [
     key,
-    value === '$screen.scope.entityId' ? screen.scope.entityId : value
+    value === '$screen.scope.instanceId' ? screen.scope.instanceId : value
   ]))
 }));
 
@@ -17,7 +17,7 @@ describe('linked project child sources', () => {
         template: 'instanceDetail',
         sources: [
           { id: 'library', typeId: 'library', mode: 'single' },
-          { id: 'cassettes', typeId: 'cassette', mode: 'list', filters: { libraryId: '$screen.scope.entityId' } }
+          { id: 'cassettes', typeId: 'cassette', mode: 'list', filters: { libraryId: '$screen.scope.instanceId' } }
         ]
       }],
       containment: [{ parentType: 'library', childType: 'cassette', lineageKey: 'libraryId' }]

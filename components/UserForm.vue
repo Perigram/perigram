@@ -32,7 +32,7 @@ import { ref, computed } from 'vue';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import { USER_ROLES } from '~/constants/roles.constants';
 
 const props = defineProps({

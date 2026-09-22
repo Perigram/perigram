@@ -1,7 +1,7 @@
 import { createError, defineEventHandler, readBody } from 'h3';
 import { statusService } from '~/server/core/machines/service.js';
 import { requireAuth } from '~/server/utils/permissions.js';
-import * as entityEventService from '~/server/features/entity-events/service.js';
+import * as entityEventService from '~/server/features/instance-events/service.js';
 
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);

@@ -128,7 +128,7 @@ function isSystemTransition(transition = {}) {
 
 function assertKnownTypeId(typeId) {
   const normalized = normalizeTypeId(typeId);
-  if (!getCutkitRegistry().getEntityDefinition(normalized)) {
+  if (!getCutkitRegistry().getInstanceDefinition(normalized)) {
     throw createError({ statusCode: 400, message: `Unknown entity type: ${typeId}` });
   }
   return normalized;

@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="requisition" type-id="requisition">
+    <InstancePage :entity="requisition" type-id="requisition">
 
         <template #sidebar>
             <Panel :header="$t('requisition.lifecycleTimeline')">
@@ -43,7 +43,7 @@
                 <p>{{ requisition.notes }}</p>
             </Fieldset>
         </div>
-    </EntityPage>
+    </InstancePage>
 </template>
 
 <script setup>
@@ -52,7 +52,7 @@ import Fieldset from 'primevue/fieldset';
 import Divider from 'primevue/divider';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
-import EntityPage from '~/components/shared/EntityPage.vue';
+import InstancePage from '~/components/shared/InstancePage.vue';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 

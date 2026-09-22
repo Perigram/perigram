@@ -20,7 +20,7 @@ const uid = computed(() => props.entity?.identity?.uid || '');
 // Instance ids are private: the primary label is the name, then the
 // slug, then the type's class label (provided by inline-card context),
 // and only then the localized unnamed placeholder — never the raw id.
-const inlineTypeLabel = inject('entityInlineTypeLabel', ref(null));
+const inlineTypeLabel = inject('instanceInlineTypeLabel', ref(null));
 const primary = computed(() => name.value || slug.value || inlineTypeLabel.value || t('common.unnamed'));
 
 const fieldValueMap = computed(() => ({
@@ -64,11 +64,11 @@ const identityMetaText = computed(() => identityMeta.value.map((item) => `${item
     <!-- Inline Variant — text-inline pill with optional icon -->
     <span
       v-else-if="variant === 'inline'"
-      class="entity-inline-chip max-w-full"
+      class="instance-inline-chip max-w-full"
       :title="identityMetaText || primary"
     >
-      <i v-if="icon" :class="['entity-inline-chip-icon', icon]" aria-hidden="true"></i>
-      <span class="entity-inline-chip-label">{{ primary }}</span>
+      <i v-if="icon" :class="['instance-inline-chip-icon', icon]" aria-hidden="true"></i>
+      <span class="instance-inline-chip-label">{{ primary }}</span>
     </span>
 
     <!-- Default (Card title area) -->

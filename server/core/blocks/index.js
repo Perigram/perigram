@@ -21,7 +21,7 @@ export {
   createCutkitRegistry,
   createAttachmentRef,
   createCommandResult,
-  createEntityRef,
+  createInstanceRef,
   createProvenance,
   createTaskResult,
   normalizeEntityOutputContracts,

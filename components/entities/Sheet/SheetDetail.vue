@@ -1,5 +1,5 @@
 <template>
-    <EntityPage :entity="sheet" type-id="sheet">
+    <InstancePage :entity="sheet" type-id="sheet">
         <template #actions>
             <Button icon="pi pi-qrcode" text :aria-label="$t('common.printTag')" />
         </template>
@@ -9,15 +9,15 @@
                 <div class="flex flex-col gap-3">
                     <div v-if="warehouseId" class="flex items-center justify-between gap-4">
                         <small class="text-muted">{{ $t('entities.warehouse') }}</small>
-                        <EntityInlineRef type="warehouse" :id="warehouseId" />
+                        <InstanceInlineRef type="warehouse" :id="warehouseId" />
                     </div>
                     <div v-if="pileId" class="flex items-center justify-between gap-4">
                         <small class="text-muted">{{ $t('entities.materialPile') }}</small>
-                        <EntityInlineRef type="materialPile" :id="pileId" />
+                        <InstanceInlineRef type="materialPile" :id="pileId" />
                     </div>
                     <div v-if="runId" class="flex items-center justify-between gap-4">
                         <small class="text-muted">{{ $t('entities.nestingRun') }}</small>
-                        <EntityInlineRef type="nestingRun" :id="runId" />
+                        <InstanceInlineRef type="nestingRun" :id="runId" />
                     </div>
                 </div>
             </Panel>
@@ -58,7 +58,7 @@
                 </div>
             </Fieldset>
         </div>
-    </EntityPage>
+    </InstancePage>
 </template>
 
 <script setup>
@@ -69,8 +69,8 @@ import Fieldset from 'primevue/fieldset';
 import Button from 'primevue/button';
 import StatusHistory from '~/components/shared/status/StatusHistory.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
-import EntityPage from '~/components/shared/EntityPage.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstancePage from '~/components/shared/InstancePage.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 
 const props = defineProps({
     sheet: { type: Object, required: true }

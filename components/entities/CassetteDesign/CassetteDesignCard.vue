@@ -1,8 +1,8 @@
 <template>
   <div>
-    <EntityCard :entity="design" type-id="cassette_design" :variant="variant" :show-status="false">
+    <InstanceCard :entity="design" type-id="cassette_design" :variant="variant" :show-status="false">
       <template #before-identity>
-        <EntityInlineRef
+        <InstanceInlineRef
           v-if="templateId"
           type="cassetteTemplate"
           :id="templateId"
@@ -14,7 +14,7 @@
         <CassetteThumbnail :cassette="design" prefer-geometry />
         <div v-if="revisionId" class="flex items-center justify-between gap-4">
           <small class="text-muted">{{ $t('revision.sourceRevision') }}</small>
-          <EntityInlineRef type="entityRevision" :id="revisionId" />
+          <InstanceInlineRef type="entityRevision" :id="revisionId" />
         </div>
       </div>
       <template #footer>
@@ -28,21 +28,21 @@
           />
         </div>
       </template>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>
 
 <script setup>
 /**
  * Cassette Design View Component - v24 Standardized
- * CassetteDesign has no status — uses EntityCard with status disabled.
+ * CassetteDesign has no status — uses InstanceCard with status disabled.
  */
 import { computed } from 'vue';
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 
 const props = defineProps({
   design: { type: Object, required: true },

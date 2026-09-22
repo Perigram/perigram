@@ -17,7 +17,7 @@ import { SheetDesign } from './model.js';
 import { serializeForAccess, serializeManyForAccess } from '../../utils/entity-redaction.js';
 import { generateLayeredDxf } from '../../utils/dxf-writer.js';
 import * as filesService from '../files/service.js';
-import * as entityRevisionsService from '../entity-revisions/service.js';
+import * as instanceRevisionsService from '../instance-revisions/service.js';
 
 /**
  * Sheet Designs Service - v24 Standardized
@@ -49,7 +49,7 @@ function geometryRevisionPointer(revision) {
 }
 
 async function ensureGeometryRevision(design, userId = 'SYSTEM', reason = 'layout-updated') {
-  const revision = await entityRevisionsService.ensureForEntitySnapshot({
+  const revision = await instanceRevisionsService.ensureForEntitySnapshot({
     typeId: 'sheet_design',
     entity: design,
     scope: GEOMETRY_REVISION_SCOPE,

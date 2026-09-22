@@ -32,7 +32,7 @@ function isDimensionLayerName(name = '') {
 </script>
 
 <template>
-  <div data-entity-card-interactive="true" @click.stop>
+  <div data-instance-card-interactive="true" @click.stop>
     <DrawingCanvas
       :source="entity"
       source-type="geometry-preview"

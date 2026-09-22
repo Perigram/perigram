@@ -36,8 +36,8 @@
         class="w-full text-technical"
         @update:model-value="value => updateJsonField(field, value)"
       />
-      <EntityRefInput
-        v-else-if="field.type === 'entityId'"
+      <InstanceRefInput
+        v-else-if="field.type === 'instanceId'"
         :model-value="modelValue?.[field.name] ?? ''"
         :type-id="field.typeId"
         :context="context"
@@ -60,9 +60,9 @@
 import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
-import EntityRefInput from '~/components/shared/EntityRefInput.vue';
+import InstanceRefInput from '~/components/shared/InstanceRefInput.vue';
 
 const props = defineProps({
   modelValue: { type: Object, default: () => ({}) },
@@ -113,7 +113,7 @@ function fieldHelpParts(field) {
   return [
     field.unit,
     field.help,
-    field.type === 'entityId' && field.typeId ? `entity:${field.typeId}` : null
+    field.type === 'instanceId' && field.typeId ? `entity:${field.typeId}` : null
   ].filter(Boolean);
 }
 </script>

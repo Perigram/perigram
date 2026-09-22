@@ -111,12 +111,12 @@ function scopeMatches(scope = {}, entity = null, typeId = null) {
   if (scope.typeIds && typeId && !scope.typeIds.includes(typeId)) return false;
 
   const lineage = entity?.lineage || {};
-  const entityId = entity?._id || entity?.identity?.uid;
+  const instanceId = entity?._id || entity?.identity?.uid;
   return idScopeMatches(scope, 'organizationId', lineage.organizationId)
     && idScopeMatches(scope, 'projectId', lineage.projectId)
     && idScopeMatches(scope, 'queueId', lineage.queueId)
     && idScopeMatches(scope, 'warehouseId', lineage.warehouseId)
-    && idScopeMatches(scope, 'entityId', entityId);
+    && idScopeMatches(scope, 'instanceId', instanceId);
 }
 
 function idScopeMatches(scope, key, value) {
@@ -147,7 +147,7 @@ function resolveRuleFact(rule, context) {
   if (fact === 'requiredLevel') return context.requiredLevel;
   if (fact === 'action') return context.action;
   if (fact === 'typeId') return context.typeId;
-  if (fact === 'entityId') return context.entity?._id || context.entity?.identity?.uid;
+  if (fact === 'instanceId') return context.entity?._id || context.entity?.identity?.uid;
   if (fact === 'primaryStatus' || fact === 'status.primary') return getPrimaryStatus(context.entity?.status);
   if (fact === 'transition.from') return context.transition?.from;
   if (fact === 'transition.to') return context.transition?.to;

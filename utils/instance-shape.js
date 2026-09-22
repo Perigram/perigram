@@ -28,7 +28,7 @@ function nestedRowValues(dto = {}, descriptor = {}, prefix = []) {
   return values;
 }
 
-export function entityDtoToScreenInstance(dto = {}, typeRecord = {}) {
+export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
   const fields = {};
   const classOf = typeRecord.class || '';
   for (const [name, descriptor] of Object.entries(typeRecord.fields || {})) {

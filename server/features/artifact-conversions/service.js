@@ -1,5 +1,5 @@
 import { createError } from 'h3';
-import { createEntityRef, createProvenance } from '../../core/blocks/index.js';
+import { createInstanceRef, createProvenance } from '../../core/blocks/index.js';
 import { getArtifactConversion } from '#packages/domain-cnc/src/artifact-conversions.js';
 import * as artifactsService from '../artifacts/service.js';
 import * as cassettesService from '../cassettes/service.js';
@@ -48,7 +48,7 @@ async function convertToArtifact(artifact, conversion, name, auth) {
     lineage: artifact.lineage || {},
     metadata: { conversionId: conversion.id, convertedFromArtifactId: String(artifact._id) },
     provenance: {
-      derivedFrom: createProvenance(createEntityRef('artifact', artifact._id), { conversionId: conversion.id })
+      derivedFrom: createProvenance(createInstanceRef('artifact', artifact._id), { conversionId: conversion.id })
     }
   }, auth);
   return { type: 'artifact', entity: converted };

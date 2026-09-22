@@ -201,7 +201,7 @@ import { Handle, Position } from '@vue-flow/core';
 import DatePicker from 'primevue/datepicker';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useI18n } from 'vue-i18n';
@@ -442,7 +442,7 @@ function parseInputDefault(input, value) {
 
 function inputPlaceholder(input) {
   if (input.base === 'entityRef') {
-    return t('processDesigner.entityIdFallback', { entity: input.type?.typeId || t('processDesigner.entity') });
+    return t('processDesigner.instanceIdFallback', { entity: input.type?.typeId || t('processDesigner.entity') });
   }
   return t('processDesigner.inlineValue');
 }

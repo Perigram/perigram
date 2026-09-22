@@ -10,10 +10,10 @@ import { Artifact } from './model.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { generateRandomString } from '../../utils/strings.js';
 import * as filesService from '../files/service.js';
-import { assertEntityAccess, hasEntityAccess } from '../../core/access/service.js';
+import { assertEntityAccess, hasInstanceAccess } from '../../core/access/service.js';
 import { getLineageFilter } from '../../utils/permissions.js';
 import { statusService, createTransitionAuth } from '../../core/machines/service.js';
-import * as entityRevisionsService from '../entity-revisions/service.js';
+import * as instanceRevisionsService from '../instance-revisions/service.js';
 import * as artifactTemplatesService from '../artifact-templates/service.js';
 
 /**
@@ -192,7 +192,7 @@ export async function replaceUploadedFile(id, { buffer, filename, mimeType } = {
 export async function restoreFileRevision(id, revisionId, auth = {}) {
   const artifact = await getById(id, auth.userId, auth.organizationId, auth.role, auth);
   assertEntityAccess({ entity: artifact, typeId: 'artifact', feature: 'artifacts', level: 'write', action: 'update', auth });
-  const revision = await entityRevisionsService.getById(revisionId, auth.userId, auth.role, auth);
+  const revision = await instanceRevisionsService.getById(revisionId, auth.userId, auth.role, auth);
   if (revision.data?.source?.type !== 'artifact' || String(revision.data?.source?.id) !== String(artifact._id)) {
     throw createError({ statusCode: 404, message: 'Artifact revision not found' });
   }
@@ -275,7 +275,7 @@ export async function replaceLayout(id, layout, values = {}, auth = {}) {
 export async function getById(id, userId = null, userOrg = null, userRole = null, auth = null) {
   const raw = await repository.findById(id);
   if (!raw) throw createError({ statusCode: 404, message: 'Artifact not found' });
-  if (auth && !hasEntityAccess({ entity: raw, typeId: 'artifact', feature: 'artifacts', level: 'read', auth })) {
+  if (auth && !hasInstanceAccess({ entity: raw, typeId: 'artifact', feature: 'artifacts', level: 'read', auth })) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   return new Artifact(raw).toJSON();
@@ -289,14 +289,14 @@ export async function list(filter = {}, userId = null, userOrg = null, userRole 
   const finalFilter = auth?.memberships ? { ...getLineageFilter(auth), ...filter } : filter;
   const raws = await repository.find(finalFilter);
   return raws
-    .filter(raw => !auth || hasEntityAccess({ entity: raw, typeId: 'artifact', feature: 'artifacts', level: 'read', auth }))
+    .filter(raw => !auth || hasInstanceAccess({ entity: raw, typeId: 'artifact', feature: 'artifacts', level: 'read', auth }))
     .map(raw => new Artifact(raw).toJSON());
 }
 
 export async function remove(id, userId = null, userOrg = null, userRole = null, auth = null) {
   const artifact = await getById(id, userId, userOrg, userRole, auth);
   if (auth) assertEntityAccess({ entity: artifact, typeId: 'artifact', feature: 'artifacts', level: 'admin', auth });
-  const revisions = await entityRevisionsService.removeForEntity('artifact', artifact._id);
+  const revisions = await instanceRevisionsService.removeForEntity('artifact', artifact._id);
   const files = [artifact.attachments?.primary, ...revisions.map(revision => revision.attachments?.primary)]
     .filter(attachment => attachment?.fileId);
   const seen = new Set();
@@ -375,7 +375,7 @@ async function createFileRevision(artifact, userId, reason) {
 async function ensureFileRevision(artifact, userId, reason) {
   const primary = artifact.attachments?.primary;
   if (!primary?.fileId) throw createError({ statusCode: 409, message: 'Artifact file is required for revisioning' });
-  return await entityRevisionsService.ensureForEntitySnapshot({
+  return await instanceRevisionsService.ensureForEntitySnapshot({
     typeId: 'artifact',
     entity: artifact,
     scope: 'file',
@@ -391,7 +391,7 @@ async function ensureFileRevision(artifact, userId, reason) {
 }
 
 async function ensureLayoutRevision(artifact, userId, reason) {
-  return await entityRevisionsService.ensureForEntitySnapshot({
+  return await instanceRevisionsService.ensureForEntitySnapshot({
     typeId: 'artifact',
     entity: artifact,
     scope: 'layout',

@@ -4,14 +4,14 @@ import Divider from 'primevue/divider';
 import Tag from 'primevue/tag';
 import { computed } from 'vue';
 import { getPrimaryState } from '~/packages/core/src/index.js';
-import EntityCard from '~/components/shared/EntityCard.vue';
-import EntityPreview from '~/components/shared/EntityPreview.vue';
-import EntitySurfaceContent from '~/components/shared/EntitySurfaceContent.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
+import InstancePreview from '~/components/shared/InstancePreview.vue';
+import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import NameEditPopover from '~/components/shared/NameEditPopover.vue';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
-import { appEntityDisplayExtensions } from '~/utils/app-entity-surfaces.js';
+import { appInstanceDisplayExtensions } from '~/utils/app-instance-surfaces.js';
 
 const props = defineProps({
   project: { type: Object, required: true },
@@ -65,12 +65,12 @@ function queueState(queue) {
 
 <template>
   <div class="min-w-0 cursor-pointer" @click="handleCardClick">
-    <EntityCard
+    <InstanceCard
       :entity="cardProject"
       type-id="project"
       surface="workspace"
       variant="card"
-      :display-extensions="appEntityDisplayExtensions"
+      :display-extensions="appInstanceDisplayExtensions"
     >
       <template #before-identity>
         <i class="pi pi-folder"></i>
@@ -79,7 +79,7 @@ function queueState(queue) {
       <div class="grid min-w-0 gap-4 xl:grid-cols-[18rem_minmax(0,1fr)_14rem] xl:items-stretch">
         <div class="flex min-w-0 flex-col gap-3">
           <div class="overflow-hidden rounded-ui border border-content-border bg-subtle">
-            <EntityPreview
+            <InstancePreview
               v-if="cardProject.data?.thumbnailUrl"
               :entity="cardProject"
               type-id="project"
@@ -89,11 +89,11 @@ function queueState(queue) {
               <i class="pi pi-folder text-muted"></i>
             </div>
           </div>
-          <EntitySurfaceContent
+          <InstanceSurfaceContent
             :entity="cardProject"
             type-id="project"
             surface="workspace"
-            :display-extensions="appEntityDisplayExtensions"
+            :display-extensions="appInstanceDisplayExtensions"
           />
         </div>
 
@@ -178,6 +178,6 @@ function queueState(queue) {
           />
         </div>
       </template>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>

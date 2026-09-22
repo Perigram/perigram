@@ -8,13 +8,13 @@ import {
 
 describe('entity reference contract migration', () => {
   it('moves revision source metadata to one canonical EntityRef', () => {
-    const result = migrateLegacyRevisionData({ typeId: 'cassette', entityId: 42, scope: 'geometry' });
+    const result = migrateLegacyRevisionData({ typeId: 'cassette', instanceId: 42, scope: 'geometry' });
     expect(result.data).toEqual({ source: { type: 'cassette', id: '42' }, scope: 'geometry' });
   });
 
   it('moves design derivation to provenance and removes the old data shape', () => {
     const result = migrateLegacyDerivedFrom({
-      data: { derivedFrom: { typeId: 'cassette', entityId: 'c1', revisionId: 'r1', contentHash: 'hash' } }
+      data: { derivedFrom: { typeId: 'cassette', instanceId: 'c1', revisionId: 'r1', contentHash: 'hash' } }
     });
     expect(result.design.data).not.toHaveProperty('derivedFrom');
     expect(result.design.provenance.derivedFrom).toEqual({
@@ -40,7 +40,7 @@ describe('entity reference contract migration', () => {
   it('uses the stored template lineage when legacy derivation fields are empty', () => {
     const result = migrateLegacyDerivedFrom({
       lineage: { organizationId: 'org-1', templateId: 'template-1' },
-      data: { derivedFrom: { typeId: null, entityId: null, parameters: { A: 100 } } }
+      data: { derivedFrom: { typeId: null, instanceId: null, parameters: { A: 100 } } }
     });
 
     expect(result.invalid).toBe(false);

@@ -736,7 +736,7 @@ import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
 import MotionDock from '~/components/shared/MotionDock.vue';
 import ScrollPanel from 'primevue/scrollpanel';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import Tag from 'primevue/tag';
 import Textarea from 'primevue/textarea';
 import CassetteExpressionEditor from '~/components/CassetteExpressionEditor.vue';

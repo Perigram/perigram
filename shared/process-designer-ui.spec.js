@@ -258,7 +258,7 @@ describe('process designer interaction boundaries', () => {
   it('switches source modes without retaining fields invalid for the canonical mode', () => {
     const screen = normalizeScreenContract({
       id: 'detail', template: 'table', typeId: 'queue', required: { feature: 'queues', level: 'read' },
-      bindings: { entityId: '$assignment.queueId' },
+      bindings: { instanceId: '$assignment.queueId' },
       sources: [{ id: 'queues', typeId: 'queue', mode: 'list', filters: { status: 'READY' }, lineageBindings: [{ lineageKey: 'projectId' }] }],
       regions: [{ id: 'main', slot: 'main', sourceId: 'queues', surface: 'table', actions: [] }]
     });
@@ -268,11 +268,11 @@ describe('process designer interaction boundaries', () => {
     });
 
     screens.setSourceMode(screen, screen.sources[0], 'single');
-    expect(screen.sources[0]).toMatchObject({ mode: 'single', identifier: '$assignment.entityId', filters: {}, lineageBindings: [] });
+    expect(screen.sources[0]).toMatchObject({ mode: 'single', identifier: '$assignment.instanceId', filters: {}, lineageBindings: [] });
     const errors = [];
     validateScreenContract(screen, { screenId: screen.id, entities: new Set(['queue']), errors });
     expect(errors).toEqual([]);
-    expect(compileScreens({ detail: screen }).detail.sources[0].identifier).toBe('$assignment.entityId');
+    expect(compileScreens({ detail: screen }).detail.sources[0].identifier).toBe('$assignment.instanceId');
     screens.setSourceMode(screen, screen.sources[0], 'list');
     expect(screen.sources[0]).toMatchObject({ mode: 'list', identifier: null, filters: {}, lineageBindings: [] });
   });

@@ -52,7 +52,7 @@ const domain = {
     solve: {
       input: {
         parameters: [
-          { name: 'machineId', type: 'entityId', typeId: 'machine', required: true },
+          { name: 'machineId', type: 'instanceId', typeId: 'machine', required: true },
           { name: 'secret', type: 'string', required: true, display: 'hidden' }
         ]
       }

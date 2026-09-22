@@ -22,7 +22,7 @@ import {
 import { cncWorkflows } from '../packages/domain-cnc/src/index.js';
 import { normalizeWorkflow } from '../packages/workflows/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
-import { resolveEntityRelationRefs } from '../utils/entity-relations.js';
+import { resolveInstanceRelationRefs } from '../utils/instance-relations.js';
 import { STATUS_MAPPINGS } from '../utils/status-engine.js';
 import { getWorkflowStatusActions } from '../utils/status-actions.js';
 import {
@@ -210,7 +210,7 @@ describe('Design system manifest', () => {
   });
 
   it('normalizes relation lists for compact generated card galleries', () => {
-    expect(resolveEntityRelationRefs([
+    expect(resolveInstanceRelationRefs([
       { type: 'material_pile', id: 'pile-1' },
       { type: 'sheet', id: 'sheet-1' },
       { type: 'remnant', id: 'remnant-1' }
@@ -220,7 +220,7 @@ describe('Design system manifest', () => {
       { typeId: 'remnant', id: 'remnant-1', entity: null }
     ]);
 
-    expect(resolveEntityRelationRefs({
+    expect(resolveInstanceRelationRefs({
       sheetIds: ['sheet-1'],
       remnantIds: ['remnant-1'],
       cassetteInstanceIds: ['instance-1']
@@ -228,7 +228,7 @@ describe('Design system manifest', () => {
   });
 
   it('renders a revision-pinned canonical ref through its immutable revision entity', () => {
-    expect(resolveEntityRelationRefs({
+    expect(resolveInstanceRelationRefs({
       type: 'sheet_design',
       id: 'design-1',
       revisionId: 'revision-7'
@@ -483,7 +483,7 @@ describe('Design system manifest', () => {
   });
 
   it('keeps shared status and entity accents inside the token system', () => {
-    const entityInlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityInlineRef.vue'), 'utf8');
+    const entityInlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceInlineRef.vue'), 'utf8');
     const statusBadge = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/StatusBadge.vue'), 'utf8');
 
     expect(entityInlineRef).toContain('var(--ck-entity-tone-command)');
@@ -565,7 +565,7 @@ describe('Design system manifest', () => {
 
     const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
     expect(runtimeCss).not.toMatch(/:where\(button, a, input[^}]+outline:\s*none/s);
-    expect(runtimeCss).not.toMatch(/\.entity-card-popup-content[^{}]*\{[^}]*(?:font-size|background|border|padding)\s*:/s);
+    expect(runtimeCss).not.toMatch(/\.instance-card-popup-content[^{}]*\{[^}]*(?:font-size|background|border|padding)\s*:/s);
   });
 
   it('uses existing semantic variables for SVG designer label contrast', () => {
@@ -577,7 +577,7 @@ describe('Design system manifest', () => {
 
   it('keeps raw Card and Dialog ownership inside shared wrappers', () => {
     const allowed = new Set([
-      'components/shared/EntityCard.vue',
+      'components/shared/InstanceCard.vue',
       'components/shared/StandardDialog.vue',
       'components/shared/DesignerDialog.vue',
       'components/shared/ChatSupportDialog.vue',
@@ -723,7 +723,7 @@ describe('Design system manifest', () => {
 
 
 
-  it('keeps entity cards on shared EntityCard title chrome', () => {
+  it('keeps entity cards on shared InstanceCard title chrome', () => {
     const offenders = walkFiles(
       path.join(REPO_ROOT, 'components/entities'),
       (file) => file.endsWith('Card.vue') && !file.endsWith('.old.vue') && !file.endsWith('.v23.vue')
@@ -734,12 +734,12 @@ describe('Design system manifest', () => {
   });
 
   it('leaves entity card and popover chrome to Aura', () => {
-    const entityCard = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityCard.vue'), 'utf8');
+    const entityCard = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceCard.vue'), 'utf8');
     const runtimeCss = fs.readFileSync(path.join(REPO_ROOT, 'assets/css/main.css'), 'utf8');
 
     expect(entityCard).not.toMatch(/border-content-border|shadow-|box-shadow|hover:border|\.p-card-|!p-/);
     expect(runtimeCss).not.toMatch(/--ck-(?:radius|shadow)/);
-    expect(runtimeCss).not.toMatch(/\.entity-inline-(?:chip|compact)[^{]*\{[^}]*(?:background|border(?:-radius)?|box-shadow|padding)\s*:/s);
+    expect(runtimeCss).not.toMatch(/\.instance-inline-(?:chip|compact)[^{]*\{[^}]*(?:background|border(?:-radius)?|box-shadow|padding)\s*:/s);
   });
 
 
@@ -747,7 +747,7 @@ describe('Design system manifest', () => {
     const nestingRunCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/NestingRun/NestingRunCard.vue'), 'utf8');
     const nestingRunService = fs.readFileSync(path.join(REPO_ROOT, 'server/features/nesting-runs/service.js'), 'utf8');
 
-    expect(nestingRunCard).toContain('EntityRelationsBlock');
+    expect(nestingRunCard).toContain('InstanceRelationsBlock');
     expect(nestingRunCard).toContain("typeId: 'sheetDesign'");
     expect(nestingRunCard).toContain("field.path === 'data.sheetDesignIds'");
     expect(nestingRunCard).toContain('item-variant="compact"');
@@ -765,8 +765,8 @@ describe('Design system manifest', () => {
 
   it('keeps sheet layout editing on semantic layer and bounded snap contracts', () => {
     const editor = fs.readFileSync(path.join(REPO_ROOT, 'components/SheetDesignEditor.vue'), 'utf8');
-    const generatedDetail = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedEntityDetail.vue'), 'utf8');
-    const relationBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityRelationsBlock.vue'), 'utf8');
+    const generatedDetail = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedInstanceDetail.vue'), 'utf8');
+    const relationBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceRelationsBlock.vue'), 'utf8');
 
     expect(editor).toContain('applyLayerPens');
     expect(editor).toContain("resolvedStyle('contour.material_sheet')");
@@ -774,7 +774,7 @@ describe('Design system manifest', () => {
     expect(editor).toContain('majorGridSize');
     expect(editor).toContain('selectedSnapPoint');
     expect(generatedDetail).toContain(':show-identity="showIdentity || forceIdentityForEditor"');
-    expect(generatedDetail).toContain('entityEditorForcesIdentity(props.typeId)');
+    expect(generatedDetail).toContain('instanceEditorForcesIdentity(props.typeId)');
     expect(relationBlock).toContain(':variant="itemVariant"');
   });
 
@@ -793,28 +793,28 @@ describe('Design system manifest', () => {
 
   it('keeps generated home cards as horizontal carousel items', () => {
     const generatedHome = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedHomeScreen.vue'), 'utf8');
-    const generatedCollection = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedEntityCollection.vue'), 'utf8');
-    const relationsBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityRelationsBlock.vue'), 'utf8');
-    const surfaceContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntitySurfaceContent.vue'), 'utf8');
-    const inlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityInlineRef.vue'), 'utf8');
+    const generatedCollection = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedInstanceCollection.vue'), 'utf8');
+    const relationsBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceRelationsBlock.vue'), 'utf8');
+    const surfaceContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceSurfaceContent.vue'), 'utf8');
+    const inlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceInlineRef.vue'), 'utf8');
     const identityBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/IdentityBlock.vue'), 'utf8');
-    const entityPreview = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/EntityPreview.vue'), 'utf8');
+    const entityPreview = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstancePreview.vue'), 'utf8');
     const cassetteThumbnail = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteThumbnail.vue'), 'utf8');
 
     expect(generatedHome).toContain('overflow-x-auto');
     expect(generatedHome).toContain('shrink-0');
     expect(generatedHome).toContain('suppress-child-summaries');
     expect(generatedHome).toContain('relation-variant="compact"');
-    expect(generatedHome).toContain('entityEditorActionFor');
+    expect(generatedHome).toContain('instanceEditorActionFor');
     expect(generatedCollection).toContain('suppress-child-summaries');
     expect(generatedCollection).toContain('relation-variant="compact"');
-    expect(generatedCollection).toContain('entityEditorActionFor');
+    expect(generatedCollection).toContain('instanceEditorActionFor');
     expect(generatedHome).toContain('pi pi-external-link');
     expect(generatedCollection).toContain('pi pi-external-link');
     expect(relationsBlock).toContain('overflow-x-auto');
-    expect(relationsBlock).toContain('entity-relations-gallery--compact');
+    expect(relationsBlock).toContain('instance-relations-gallery--compact');
     expect(relationsBlock).toContain('isCompactGallery.value ? 2 : 4');
-    expect(relationsBlock).toContain('entity-relations-overflow-tile');
+    expect(relationsBlock).toContain('instance-relations-overflow-tile');
     expect(relationsBlock).toContain('openOverflow');
     expect(relationsBlock).toContain('overflowItems');
     expect(relationsBlock).toContain('itemVariant');
@@ -828,15 +828,15 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain('variant="inline"');
     expect(inlineRef).toContain('StatusBadge');
     expect(inlineRef).toContain('compactStatusState');
-    expect(inlineRef).toContain('entity-inline-compact-status-row');
+    expect(inlineRef).toContain('instance-inline-compact-status-row');
     expect(inlineRef).toContain('compactPreviewHideDimensionLayer');
     expect(inlineRef).toContain("'sheet_design'");
     expect(inlineRef).toContain('needsNestingRunHydration');
     expect(inlineRef).toContain('hydrateNestingRunOutputs');
     expect(inlineRef).toContain(".listInstances(instances.canonicalTypeKey('sheetDesign'), { runId }, { silent: true })");
     expect(inlineRef).toContain('relationSheetDesigns');
-    expect(inlineRef).not.toContain('entity-inline-compact-fallback');
-    expect(identityBlock).toContain('entity-inline-chip');
+    expect(inlineRef).not.toContain('instance-inline-compact-fallback');
+    expect(identityBlock).toContain('instance-inline-chip');
     expect(entityPreview).toContain('hideDimensionLayer');
     expect(entityPreview).toContain(':hide-dimension-layer="hideDimensionLayer"');
     expect(entityPreview).toContain('GeometryPreview');
@@ -850,7 +850,7 @@ describe('Design system manifest', () => {
     const generatedHome = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedHomeScreen.vue'), 'utf8');
 
     expect(generatedHome).toContain('class="w-[18rem] min-w-[18rem] flex-none"');
-    expect(generatedHome).not.toMatch(/<EntityCard\s+class=/);
+    expect(generatedHome).not.toMatch(/<InstanceCard\s+class=/);
   });
 
   it('keeps queue entity controls scoped to the concrete queue', () => {
@@ -862,13 +862,13 @@ describe('Design system manifest', () => {
   });
 
 
-  it('keeps entity details on shared EntityPage header chrome', () => {
+  it('keeps entity details on shared InstancePage header chrome', () => {
     const offenders = walkFiles(
       path.join(REPO_ROOT, 'components/entities'),
       (file) => file.endsWith('Detail.vue') && !file.endsWith('.old.vue') && !file.endsWith('.v23.vue')
     ).filter((file) => {
       const source = fs.readFileSync(file, 'utf8');
-      return /<TraceChain\s+:entity|<IdentityBlock[^>]+variant=["']header["']|<EntityStatus\b/.test(source);
+      return /<TraceChain\s+:entity|<IdentityBlock[^>]+variant=["']header["']|<InstanceStatus\b/.test(source);
     }).map((file) => path.relative(REPO_ROOT, file));
 
     expect(offenders).toEqual([]);
@@ -893,7 +893,7 @@ describe('Design system manifest', () => {
   });
 
   it('keeps status popovers free of placeholder copy and duplicate last-updated sections', () => {
-    const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/EntityStatus.vue'), 'utf8');
+    const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/InstanceStatus.vue'), 'utf8');
     const statusHistory = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/StatusHistory.vue'), 'utf8');
 
     expect(entityStatus).not.toContain("common.actions.title");

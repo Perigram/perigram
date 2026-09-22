@@ -1,6 +1,6 @@
 export function createRegistry({ id = 'app' } = {}) {
   const domains = new Map();
-  const entityDefinitions = new Map();
+  const instanceDefinitions = new Map();
   const workflowDefinitions = new Map();
   const commandDefinitions = new Map();
   const taskDefinitions = new Map();
@@ -8,8 +8,8 @@ export function createRegistry({ id = 'app' } = {}) {
   const hookDefinitions = new Map();
   const effectDefinitions = new Map();
   const attachmentKindDefinitions = new Map();
-  const entityServices = new Map();
-  const entityServiceResolvers = [];
+  const instanceServices = new Map();
+  const instanceServiceResolvers = [];
   const commandHandlers = new Map();
   const taskExecutors = new Map();
   const hookHandlers = new Map();
@@ -41,17 +41,17 @@ export function createRegistry({ id = 'app' } = {}) {
     },
 
     defineEntity(definition) {
-      validateEntityDefinition(definition);
-      entityDefinitions.set(definition.type, deepFreeze({ ...definition }));
-      return registry.getEntityDefinition(definition.type);
+      validateInstanceDefinition(definition);
+      instanceDefinitions.set(definition.type, deepFreeze({ ...definition }));
+      return registry.getInstanceDefinition(definition.type);
     },
 
-    getEntityDefinition(type) {
-      return entityDefinitions.get(type) || null;
+    getInstanceDefinition(type) {
+      return instanceDefinitions.get(type) || null;
     },
 
-    listEntityDefinitions() {
-      return Array.from(entityDefinitions.values());
+    listInstanceDefinitions() {
+      return Array.from(instanceDefinitions.values());
     },
 
     defineWorkflow(definition) {
@@ -182,10 +182,10 @@ export function createRegistry({ id = 'app' } = {}) {
       return Array.from(attachmentKindDefinitions.values());
     },
 
-    registerEntityService(type, service) {
+    registerInstanceService(type, service) {
       if (!type) throw new Error('Entity service type is required');
       if (!service?.getById) throw new Error(`Entity service ${type} requires getById`);
-      entityServices.set(type, service);
+      instanceServices.set(type, service);
       return service;
     },
 
@@ -193,24 +193,24 @@ export function createRegistry({ id = 'app' } = {}) {
     // explicit-miss, it binds types that have no hand-registered service —
     // pack types and org-authored types served by the generic per-class
     // instance services.
-    registerEntityServiceResolver(resolver) {
+    registerInstanceServiceResolver(resolver) {
       if (typeof resolver !== 'function') throw new Error('Entity service resolver must be a function');
-      entityServiceResolvers.push(resolver);
+      instanceServiceResolvers.push(resolver);
       return registry;
     },
 
-    getEntityService(type) {
-      const explicit = entityServices.get(type);
+    getInstanceService(type) {
+      const explicit = instanceServices.get(type);
       if (explicit) return explicit;
-      for (const resolver of entityServiceResolvers) {
+      for (const resolver of instanceServiceResolvers) {
         const resolved = resolver(type);
         if (resolved) return resolved;
       }
       return null;
     },
 
-    listEntityServices() {
-      return Array.from(entityServices.entries()).map(([type, service]) => ({ type, service }));
+    listInstanceServices() {
+      return Array.from(instanceServices.entries()).map(([type, service]) => ({ type, service }));
     },
 
     registerCommandHandler(id, handler) {
@@ -514,7 +514,7 @@ export class Lineage {
   }
 }
 
-export function normalizeEntityRef(value = null) {
+export function normalizeInstanceRef(value = null) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   if (!value.type || !value.id) return null;
   const ref = {
@@ -529,11 +529,11 @@ export class Relations {
   constructor(raw = {}) {
     for (const [key, value] of Object.entries(raw || {})) {
       if (Array.isArray(value)) {
-        const refs = value.map(normalizeEntityRef).filter(Boolean);
+        const refs = value.map(normalizeInstanceRef).filter(Boolean);
         if (refs.length) this[key] = refs;
         continue;
       }
-      const ref = normalizeEntityRef(value);
+      const ref = normalizeInstanceRef(value);
       if (ref) this[key] = ref;
     }
   }
@@ -547,7 +547,7 @@ export class Provenance {
   constructor(raw = {}) {
     for (const [key, value] of Object.entries(raw || {})) {
       if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
-      const source = normalizeEntityRef(value.source);
+      const source = normalizeInstanceRef(value.source);
       if (!source) continue;
       this[key] = { ...value, source };
     }
@@ -631,21 +631,21 @@ export class BaseEntity {
   }
 }
 
-export function createEntityRef(type, id, revisionId = null) {
-  if (!type || !id) throw new Error('EntityRef requires type and id');
-  return normalizeEntityRef({ type, id, revisionId });
+export function createInstanceRef(type, id, revisionId = null) {
+  if (!type || !id) throw new Error('InstanceRef requires type and id');
+  return normalizeInstanceRef({ type, id, revisionId });
 }
 
 export function createProvenance(source, facts = {}) {
-  const normalizedSource = normalizeEntityRef(source);
+  const normalizedSource = normalizeInstanceRef(source);
   if (!normalizedSource) throw new Error('Provenance requires a canonical source EntityRef');
   return { ...facts, source: normalizedSource };
 }
 
-export function createAttachmentRef({ entityId, kind, name = '', metadata = {} } = {}) {
-  if (!entityId) throw new Error('AttachmentRef requires entityId');
+export function createAttachmentRef({ instanceId, kind, name = '', metadata = {} } = {}) {
+  if (!instanceId) throw new Error('AttachmentRef requires instanceId');
   if (!kind) throw new Error('AttachmentRef requires kind');
-  return { entityId: entityId.toString(), kind, name, metadata };
+  return { instanceId: instanceId.toString(), kind, name, metadata };
 }
 
 export function createCommandResult({
@@ -735,7 +735,7 @@ export function validateDomain(domain) {
   if (!domain?.id) throw new Error('Domain requires id');
 }
 
-export function validateEntityDefinition(definition) {
+export function validateInstanceDefinition(definition) {
   if (!definition?.type) throw new Error('Entity definition requires type');
 }
 

@@ -3,7 +3,7 @@
     ref="container"
     class="w-full"
     :class="{ 'aspect-square': fixedFrame }"
-    data-entity-card-interactive="true"
+    data-instance-card-interactive="true"
     @click.stop
   >
     <DrawingCanvas

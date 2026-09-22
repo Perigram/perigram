@@ -818,7 +818,7 @@ function inputValueSatisfies(value, port, declared = {}) {
   }
   if (['entity', 'entityRef', 'revisionRef'].includes(base)) {
     if (typeof scalar !== 'object') return false;
-    return Boolean(scalar.id || scalar._id || scalar.identity || scalar.entityId || scalar.type);
+    return Boolean(scalar.id || scalar._id || scalar.identity || scalar.instanceId || scalar.type);
   }
   if (['block', 'predicate', 'patch', 'record', 'taskRef'].includes(base)) return typeof scalar === 'object';
   if (base === 'attachmentRef' || base === 'attachment' || base === 'opaque') {
@@ -2266,9 +2266,9 @@ function deriveActionWindowScope(action = {}, incoming = null, lineageBindings =
   if (!parentType || !incoming) return inheritedScope;
   const parentKey = parentRelationForChild(action.typeId, parentType, lineageBindings)?.lineageKey;
   if (!parentKey) return inheritedScope;
-  if (inheritedScope?.entityId && !inheritedScope[parentKey]) {
-    const { entityId, ...lineageScope } = inheritedScope;
-    return { ...lineageScope, [parentKey]: entityId };
+  if (inheritedScope?.instanceId && !inheritedScope[parentKey]) {
+    const { instanceId, ...lineageScope } = inheritedScope;
+    return { ...lineageScope, [parentKey]: instanceId };
   }
   return inheritedScope;
 }
@@ -2283,9 +2283,9 @@ function deriveCommandOutputScope(outputTypeId = '', incoming = null, lineageBin
   if (!incoming?.typeId) return inheritedScope;
   const relation = parentRelationForChild(outputTypeId, incoming.typeId, lineageBindings);
   if (!relation) return inheritedScope;
-  if (inheritedScope?.entityId && !inheritedScope[relation.lineageKey]) {
-    const { entityId, ...lineageScope } = inheritedScope;
-    return { ...lineageScope, [relation.lineageKey]: entityId };
+  if (inheritedScope?.instanceId && !inheritedScope[relation.lineageKey]) {
+    const { instanceId, ...lineageScope } = inheritedScope;
+    return { ...lineageScope, [relation.lineageKey]: instanceId };
   }
   return inheritedScope;
 }
@@ -2506,7 +2506,7 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, pro
           typeId,
           mode: 'single',
           required,
-          identifier: '$screen.scope.entityId'
+          identifier: '$screen.scope.instanceId'
         }, ...childRegions.sources],
         regions: [{
           id: 'main',
@@ -2642,7 +2642,7 @@ function ensureChildRegion({ sourcesByEntity, regions, childTypeId, childFeature
       typeId: childTypeId,
       mode: 'list',
       required: aggregateScreenRequirement(childFeature, childGrants),
-      filters: { [parentIdKey]: '$screen.scope.entityId' }
+      filters: { [parentIdKey]: '$screen.scope.instanceId' }
     });
   }
   let region = regions.find(item => item.sourceId === sourceId);

@@ -7,7 +7,7 @@ import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import { cassetteDesignCountsForSheetDesign, cassettePlacementCountForSheetDesign } from '~/utils/sheetDesigns.js';
@@ -33,7 +33,7 @@ const openDesign = () => {
 
 <template>
   <div>
-    <EntityCard :entity="design" type-id="sheet_design" :variant="variant" :show-status="false">
+    <InstanceCard :entity="design" type-id="sheet_design" :variant="variant" :show-status="false">
       <template #before-identity>
         <i class="ck-entity-icon ck-entity-icon-sheet-design"></i>
       </template>
@@ -58,6 +58,6 @@ const openDesign = () => {
           <Button :label="$t('common.open')" icon="pi pi-external-link" text size="small" @click="openDesign" />
         </div>
       </template>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>

@@ -2,7 +2,7 @@ import { createError } from 'h3';
 import standardSlugify from 'standard-slugify';
 import { createData, createIdentity } from '~/server/core/blocks/index.js';
 import { createProcessUpdateHandler } from '~/server/features/_template/process-update-handler.js';
-import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
+import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
 import * as repository from './repository.js';
 import { FacadePattern } from './model.js';
 import { getLineageFilter, hasLineagePermission } from '~/server/utils/permissions.js';
@@ -21,7 +21,7 @@ function normalizeGraph(graph) {
   return { schemaVersion: 1, nodes: Array.isArray(next.nodes) ? next.nodes : [], edges: Array.isArray(next.edges) ? next.edges : [], outputs: Array.isArray(next.outputs) ? next.outputs : [], parameters: Array.isArray(next.parameters) ? next.parameters : [] };
 }
 async function ensureAlgorithmRevision(pattern, userId, reason) {
-  const revision = await entityRevisionsService.ensureForEntitySnapshot({ typeId: 'facade_pattern', entity: pattern, scope: 'algorithm', content: { graph: pattern.data?.graph || emptyGraph() }, snapshot: { identity: pattern.identity, data: { graph: pattern.data?.graph || emptyGraph() } }, userId, reason });
+  const revision = await instanceRevisionsService.ensureForEntitySnapshot({ typeId: 'facade_pattern', entity: pattern, scope: 'algorithm', content: { graph: pattern.data?.graph || emptyGraph() }, snapshot: { identity: pattern.identity, data: { graph: pattern.data?.graph || emptyGraph() } }, userId, reason });
   return await repository.updateById(pattern._id, { data: { ...pattern.data, revisions: { ...(pattern.data?.revisions || {}), algorithm: { currentId: revision._id, number: revision.data?.number || 0, contentHash: revision.data?.contentHash || '' } } } });
 }
 export async function create(input = {}, userId, userOrg, userRole, auth) {

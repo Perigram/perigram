@@ -63,14 +63,15 @@ describe('project workspace state', () => {
       openedEntityRefs: [{
         key: 'cassette:c1',
         typeId: 'cassette',
-        entityId: 'c1'
+        instanceId: 'c1'
       }],
       openedPageRefs: [{
         key: 'page:cassette-designer:c1',
         pageId: 'cassette-designer',
         typeId: 'cassette',
-        entityId: 'c1'
-      }]
+        instanceId: 'c1'
+      }],
+      openedScreenRefs: []
     };
 
     saveProjectWorkspaceState(storage, 'workspace', state);

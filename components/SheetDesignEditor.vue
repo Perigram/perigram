@@ -138,7 +138,7 @@ import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
 import Button from 'primevue/button';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import MotionDock from '~/components/shared/MotionDock.vue';

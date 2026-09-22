@@ -27,7 +27,7 @@ export const cncPack = {
   // (SPEC §13); the feature modules this pack imports remain its internal
   // implementation (the nesting solver and the editors call them
   // directly), not registry services.
-  entityServices: {
+  instanceServices: {
     queue: queuesService
   },
   processLists: {

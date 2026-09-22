@@ -115,7 +115,7 @@ const screens = [
     typeId: 't-k3x9fj2mqa',
     route: '/screens/auto_t-k3x9fj2mqa_detail',
     roleIds: ['role_op'],
-    sources: [{ id: 't-k3x9fj2mqa', typeId: 't-k3x9fj2mqa', mode: 'single', required: null, identifier: '$screen.scope.entityId', filters: {} }],
+    sources: [{ id: 't-k3x9fj2mqa', typeId: 't-k3x9fj2mqa', mode: 'single', required: null, identifier: '$screen.scope.instanceId', filters: {} }],
     regions: [{ id: 'main', slot: 'main', sourceId: 't-k3x9fj2mqa', surface: 'detail', actions: [] }],
     actions: []
   }

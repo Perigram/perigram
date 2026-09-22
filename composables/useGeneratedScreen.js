@@ -4,7 +4,7 @@ import { useRequestHeaders } from '#app';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { hasProcessRequirement } from '~/utils/process-navigation.js';
-import { onEntityChanged } from '~/utils/entity-events.js';
+import { onInstanceChanged } from '~/utils/instance-events.js';
 import { filterRootSourceItems } from '~/utils/generated-screen-source.js';
 
 export function useGeneratedScreen(screenRef) {
@@ -75,7 +75,7 @@ export function useGeneratedScreen(screenRef) {
     load({ initial: true });
   }, { immediate: true, deep: true });
 
-  const stopEntityChangeListener = onEntityChanged(change => {
+  const stopEntityChangeListener = onInstanceChanged(change => {
     if (!entityChangeAffectsSources(change, visibleSources.value, screen.value)) return;
     if (change.change === 'deleted') {
       removeEntitySnapshot(change.type, change.id);
@@ -187,7 +187,7 @@ function emptyState(source = {}) {
 
 function resolveSourceIdentifier(source = {}, screen = {}) {
   return resolveValue(source.identifier, screen)
-    || screen.scope?.entityId
+    || screen.scope?.instanceId
     || screen.scope?.[`${source.typeId}Id`]
     || '';
 }

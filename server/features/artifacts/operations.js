@@ -4,7 +4,7 @@ import * as attachmentService from './service.js';
 import * as nestingJobs from '../nesting/jobs.js';
 import * as sheetDesignsService from '../sheet-designs/service.js';
 import * as artifactTemplatesService from '../artifact-templates/service.js';
-import { createEntityRef, createProvenance } from '../../core/blocks/index.js';
+import { createInstanceRef, createProvenance } from '../../core/blocks/index.js';
 
 export async function generateAttachment({ entities, parameters = {}, auth }) {
   const source = entities.source || entities.sheetDesign || entities.nestingRun;
@@ -38,8 +38,8 @@ export async function generateAttachment({ entities, parameters = {}, auth }) {
       values: parameters.values || {},
       metadata: { templateRevisionId: rendered.revisionId },
       provenance: {
-        derivedFrom: createProvenance(createEntityRef(sourceType, sourceId)),
-        template: createProvenance(createEntityRef('artifact_template', templateId, rendered.revisionId), {
+        derivedFrom: createProvenance(createInstanceRef(sourceType, sourceId)),
+        template: createProvenance(createInstanceRef('artifact_template', templateId, rendered.revisionId), {
           variables: rendered.variables
         })
       }

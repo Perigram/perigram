@@ -1,4 +1,4 @@
-import { normalizeEntityRef } from '~/packages/core/src/index.js';
+import { normalizeInstanceRef } from '~/packages/core/src/index.js';
 import { resolveRelationOptionPath, resolveRelationOptionScope } from './relation-options.js';
 
 export async function resolveCompiledRelationOptions({
@@ -32,7 +32,7 @@ export async function resolveCompiledRelationOptions({
   const ancestor = await resolveEntity(ownerParent.parentType, ancestorId, auth);
   const refs = ancestor.relations?.[bridgeRelationKey];
   const parentIds = (Array.isArray(refs) ? refs : refs ? [refs] : [])
-    .map(ref => normalizeEntityRef(ref)?.id)
+    .map(ref => normalizeInstanceRef(ref)?.id)
     .filter(Boolean);
   if (!parentIds.length) return [];
   const creatorAction = compiled.actions?.[creator.actionId];
@@ -45,21 +45,21 @@ export async function resolveCompiledRelationOptions({
     optionAuth
   )))).flat();
   if (source) return sources.map(toPlain);
-  const sourceIds = [...new Set(sources.map(entityId).filter(Boolean).map(String))];
+  const sourceIds = [...new Set(sources.map(instanceId).filter(Boolean).map(String))];
   const targets = (await Promise.all(sourceIds.map(id => queryEntities(
     registry,
     action.relationMutation.targetType,
     { templateId: id },
     optionAuth
   )))).flat();
-  return Array.from(new Map(targets.map(item => [String(entityId(item)), toPlain(item)])).values());
+  return Array.from(new Map(targets.map(item => [String(instanceId(item)), toPlain(item)])).values());
 }
 
 async function queryEntities(registry, typeId, filters, auth) {
-  return registry.getEntityService(typeId).processList(filters, auth);
+  return registry.getInstanceService(typeId).processList(filters, auth);
 }
 
-function entityId(entity = {}) {
+function instanceId(entity = {}) {
   return entity?._id || entity?.id || entity?.identity?.uid || null;
 }
 

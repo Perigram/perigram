@@ -5,11 +5,11 @@ vi.mock('../files/service.js', () => ({
   uploadFile: vi.fn(async (buffer, filename) => ({ id: `stored-${filename}`, filename, url: '#' })),
   deleteFile: vi.fn(async () => {})
 }));
-vi.mock('../entity-revisions/service.js', () => ({
+vi.mock('../instance-revisions/service.js', () => ({
   ensureForEntitySnapshot: vi.fn(async () => ({ _id: 'rev-1', data: { number: 1, contentHash: 'sha256:x' } }))
 }));
 vi.mock('../../core/access/service.js', () => ({
-  hasEntityAccess: vi.fn(() => true)
+  hasInstanceAccess: vi.fn(() => true)
 }));
 vi.mock('../cts-types/repository.js', () => ({
   findByTypeId: vi.fn(async (organizationId, typeId) => (
@@ -260,7 +260,7 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
     }, { userId: 'user-1', organizationId: 'org-1', auth: { userId: 'user-1', organizationId: 'org-1' } });
 
     const { uploadFile } = await import('../files/service.js');
-    const { ensureForEntitySnapshot } = await import('../entity-revisions/service.js');
+    const { ensureForEntitySnapshot } = await import('../instance-revisions/service.js');
     expect(uploadFile).toHaveBeenCalledWith(expect.any(Buffer), 'scene.json', expect.objectContaining({ type: 'sketch' }), 'files');
     expect(ensureForEntitySnapshot).toHaveBeenCalledWith(expect.objectContaining({
       typeId: 'sketch',
@@ -295,8 +295,8 @@ describe('payload replacement (the editor concern, SPEC §3)', () => {
     }, { userId: 'user-1', organizationId: 'org-1', auth: {} }))
       .rejects.toMatchObject({ statusCode: 400, message: expect.stringContaining('not accepted') });
 
-    const { hasEntityAccess } = await import('../../core/access/service.js');
-    hasEntityAccess.mockReturnValueOnce(false);
+    const { hasInstanceAccess } = await import('../../core/access/service.js');
+    hasInstanceAccess.mockReturnValueOnce(false);
     await expect(service.replacePayload(SKETCH_ID, {
       buffer: Buffer.from('{}'),
       filename: 'scene.json',

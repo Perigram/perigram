@@ -12,7 +12,7 @@
 
       <div class="queue-entry-card__content flex min-w-0 flex-col gap-2">
         <div class="flex min-w-0 items-center justify-between gap-2">
-          <EntityInlineRef
+          <InstanceInlineRef
             v-if="template || templateId"
             type="cassetteTemplate"
             :id="templateId"
@@ -21,7 +21,7 @@
             :interactive="false"
           />
           <Tag v-else :value="sourceLabel" severity="secondary" />
-          <div class="flex shrink-0 items-center gap-1" data-entity-card-interactive="true" @click.stop>
+          <div class="flex shrink-0 items-center gap-1" data-instance-card-interactive="true" @click.stop>
             <small class="text-muted">{{ $t('common.quantity') }}</small>
             <InputNumber
               :model-value="entry.quantity"
@@ -79,7 +79,7 @@ import Button from 'primevue/button';
 import InputNumber from 'primevue/inputnumber';
 import Tag from 'primevue/tag';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 
 const props = defineProps({
   entry: { type: Object, required: true },

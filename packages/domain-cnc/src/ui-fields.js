@@ -1,4 +1,4 @@
-export const cncEntityFieldGroups = {
+export const cncInstanceFieldGroups = {
   facade: {
     summary: [
       { path: 'data.parts.length', i18n: 'facade.parts', display: 'count', priority: 10 },
@@ -310,7 +310,7 @@ const PINNED_PARENT_ENTITY_KEYS = [
 ];
 
 for (const key of PINNED_PARENT_ENTITY_KEYS) {
-  const groups = cncEntityFieldGroups[key];
+  const groups = cncInstanceFieldGroups[key];
   if (!groups) continue;
   groups.provenance = [
     ...(groups.provenance || []),
@@ -319,5 +319,5 @@ for (const key of PINNED_PARENT_ENTITY_KEYS) {
 }
 
 export function getEntityFieldGroups(entityKey) {
-  return cncEntityFieldGroups[entityKey] || {};
+  return cncInstanceFieldGroups[entityKey] || {};
 }

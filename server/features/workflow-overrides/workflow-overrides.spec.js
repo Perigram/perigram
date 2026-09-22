@@ -29,7 +29,7 @@ vi.mock('~/server/runtime/cutkit-registry.js', () => ({
         }
       }
     }),
-    getEntityDefinition: (type) => (['project', 'artifact'].includes(type) ? { type, collection: `${type}s` } : null)
+    getInstanceDefinition: (type) => (['project', 'artifact'].includes(type) ? { type, collection: `${type}s` } : null)
   })
 }));
 

@@ -6,7 +6,7 @@
 import { computed, toRef } from 'vue';
 import { useSpecs } from '~/composables/useBlocks';
 import { useAuthStore } from '~/stores/auth';
-import { canDisplayEntityField } from '~/shared/entity-field-access.js';
+import { canDisplayEntityField } from '~/shared/instance-field-access.js';
 
 const props = defineProps({
   typeId: { type: String, required: true },

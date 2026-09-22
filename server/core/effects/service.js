@@ -216,7 +216,7 @@ async function processUpdateEntityEffect(effect = {}, context = {}) {
 function resolveEntityService(typeId, context) {
   if (!typeId) return null;
   const registry = context.registry || getAppRegistry();
-  return registry.getEntityService(typeId);
+  return registry.getInstanceService(typeId);
 }
 
 function resolveEntityRef(entity = {}, context = {}) {

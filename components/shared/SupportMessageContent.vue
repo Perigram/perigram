@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 
 const TOKEN_PATTERN = /\{\{entity:([^:}]+):([^}]+)\}\}/g;
 
@@ -125,7 +125,7 @@ const canFetchRef = (ref = {}) => {
           ? 'min-w-0 truncate'
           : 'min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere]'"
       >{{ part.value }}</span>
-      <EntityInlineRef
+      <InstanceInlineRef
         v-else
         :type="part.typeId"
         :id="part.id"
@@ -135,7 +135,7 @@ const canFetchRef = (ref = {}) => {
         class="max-w-full"
       />
     </template>
-    <EntityInlineRef
+    <InstanceInlineRef
       v-for="ref in trailingRefs"
       :key="`${ref.type}-${ref.id}`"
       :type="ref.type"

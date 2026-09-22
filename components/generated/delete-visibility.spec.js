@@ -33,13 +33,13 @@ describe('generated delete visibility', () => {
     const entity = { _id: 'queue-1', lineage: { organizationId: 'org-1' } };
     const authStore = {
       activePermissions: {
-        'cts-types': [{ level: 'admin', scope: { typeId: 'queue', entityId: 'queue-1' } }]
+        'cts-types': [{ level: 'admin', scope: { typeId: 'queue', instanceId: 'queue-1' } }]
       }
     };
 
     expect(canDeleteGeneratedEntity({ authStore, entity, typeId: 'queue' })).toBe(true);
     expect(canDeleteGeneratedEntity({
-      authStore: { activePermissions: { 'cts-types': [{ level: 'write', scope: { typeId: 'queue', entityId: 'queue-1' } }] } },
+      authStore: { activePermissions: { 'cts-types': [{ level: 'write', scope: { typeId: 'queue', instanceId: 'queue-1' } }] } },
       entity,
       typeId: 'queue'
     })).toBe(false);
@@ -53,7 +53,7 @@ describe('generated delete visibility', () => {
   it('requires a registry-known type or a mounted feature route to delete', () => {
     const authStore = {
       activePermissions: {
-        'cts-types': [{ level: 'admin', scope: { typeId: 'queue', entityId: 'queue-1' } }]
+        'cts-types': [{ level: 'admin', scope: { typeId: 'queue', instanceId: 'queue-1' } }]
       }
     };
     const instances = useInstancesStore();

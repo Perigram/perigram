@@ -1,5 +1,5 @@
 <template>
-  <EntityPage
+  <InstancePage
     v-if="organization"
     :entity="organization"
     type-id="organization"
@@ -23,7 +23,7 @@
       :entity="organization"
       :fields="organizationFields"
     />
-  </EntityPage>
+  </InstancePage>
 </template>
 
 <script setup>
@@ -31,10 +31,10 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import { useI18n } from 'vue-i18n';
-import EntityPage from '~/components/shared/EntityPage.vue';
+import InstancePage from '~/components/shared/InstancePage.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { useAuthStore } from '~/stores/auth';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -46,7 +46,7 @@ const { t, te } = useI18n();
 
 const organization = computed(() => authStore.organizationData);
 const systemScreens = computed(() => (props.screen.systemScreens || []).filter(item => item.route));
-const organizationFields = resolveEntityDisplayFields({ typeId: 'organization', surface: 'detail' });
+const organizationFields = resolveInstanceDisplayFields({ typeId: 'organization', surface: 'detail' });
 
 function systemLabel(key = '', fallback = '') {
   return key && te(key) ? t(key) : fallback || key;

@@ -1,5 +1,5 @@
 <template>
-  <EntityPage :entity="artifact" type-id="artifact">
+  <InstancePage :entity="artifact" type-id="artifact">
     <template #actions>
       <Button icon="pi pi-download" :label="$t('common.download')" size="small" severity="secondary" outlined @click="download" />
       <Button v-if="canEdit && revision" icon="pi pi-history" :label="$t('artifacts.restoreRevision')" size="small" severity="secondary" outlined @click="restore" />
@@ -16,14 +16,14 @@
       <SketchEditor v-else-if="canEdit && editor.mode === 'sketch'" :persistence="sketchPersistence" @saved="$emit('saved', $event)" />
       <ArtifactViewer v-else :artifact="artifact" :revision="revision" />
     </div>
-  </EntityPage>
+  </InstancePage>
 </template>
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import Button from 'primevue/button';
-import Select from '~/components/shared/EntitySelect.vue';
-import EntityPage from '~/components/shared/EntityPage.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
+import InstancePage from '~/components/shared/InstancePage.vue';
 import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';
 import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
 import SketchEditor from '~/components/artifacts/SketchEditor.vue';
@@ -82,7 +82,7 @@ const revision = computed(() => revisions.value.find(item => String(item._id) ==
 const revisionOptions = computed(() => artifactRevisionOptions(revisions.value));
 
 async function loadRevisions() {
-  revisions.value = await $fetch(`/api/entity-revisions?typeId=artifact&entityId=${encodeURIComponent(props.artifact._id)}&scope=file`);
+  revisions.value = await $fetch(`/api/instance-revisions?typeId=artifact&instanceId=${encodeURIComponent(props.artifact._id)}&scope=file`);
   selectedRevisionId.value = '';
 }
 onMounted(loadRevisions);
@@ -106,5 +106,5 @@ async function restore() {
   await loadRevisions();
   emit('saved', updated);
 }
-function download() { window.open(revision.value?._id ? `/api/entity-revisions/${encodeURIComponent(revision.value._id)}/file` : `/api/artifacts/${encodeURIComponent(props.artifact._id)}`, '_blank', 'noopener'); }
+function download() { window.open(revision.value?._id ? `/api/instance-revisions/${encodeURIComponent(revision.value._id)}/file` : `/api/artifacts/${encodeURIComponent(props.artifact._id)}`, '_blank', 'noopener'); }
 </script>

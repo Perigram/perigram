@@ -61,7 +61,7 @@
 import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
 import { useI18n } from 'vue-i18n';
 

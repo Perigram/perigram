@@ -8,8 +8,8 @@ import { processOperationalScreens, resolveVisibleNavigation, resolveVisibleScre
 import { generatedScreenLabel } from '~/utils/generated-labels.js';
 import { useInstancesStore } from './instances';
 import { useRegistryStore } from './registry';
-import { detailRouteForEntity } from '~/components/generated/entity-detail-routing.js';
-import { containmentAncestors, entityHierarchyId, normalizeHierarchyType, rootContainmentFilter, siblingContainmentScope } from '~/utils/entity-hierarchy.js';
+import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
+import { containmentAncestors, instanceHierarchyId, normalizeHierarchyType, rootContainmentFilter, siblingContainmentScope } from '~/utils/instance-hierarchy.js';
 import { organizationBreadcrumbEntries } from '~/utils/navigation-breadcrumbs.js';
 import { isDetailScreenTemplate } from '~/components/generated/action-visibility.js';
 
@@ -56,7 +56,7 @@ export const useNavigationStore = defineStore('navigation', () => {
             const entity = await instances.resolveReadableReference(instances.canonicalTypeKey(ref.type), ref.id, { silent: true, fetchOptions });
             if (entity) ancestors.push({ ...ref, entity });
         }
-        currentHierarchy.value = [...ancestors, { type: normalizeHierarchyType(target.typeId), id: entityHierarchyId(current), entity: current, current: true }];
+        currentHierarchy.value = [...ancestors, { type: normalizeHierarchyType(target.typeId), id: instanceHierarchyId(current), entity: current, current: true }];
         currentHierarchySiblings.value = await fetchHierarchySiblings(current, target.typeId, fetchOptions);
     }
 
@@ -66,7 +66,7 @@ export const useNavigationStore = defineStore('navigation', () => {
             const screen = visibleProcessScreens.value.find(item => (item.screenKey || item.id) === parts[1]);
             if (!isDetailScreenTemplate(screen?.template)) return null;
             const typeId = screen.typeId || screen.typeId || '';
-            return { typeId, id: query.entityId || query[`${typeId}Id`] };
+            return { typeId, id: query.instanceId || query[`${typeId}Id`] };
         }
         return null;
     }
@@ -91,7 +91,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     // the hardcoded legacy per-entity route tables are gone.
     function hierarchyRoute(item = {}) {
         if (authStore.processActive) {
-            return detailRouteForEntity({ entity: item.entity, typeId: item.type, manifest: authStore.screenManifest });
+            return detailRouteForInstance({ entity: item.entity, typeId: item.type, manifest: authStore.screenManifest });
         }
         return null;
     }
@@ -217,7 +217,7 @@ export const useNavigationStore = defineStore('navigation', () => {
                 const siblings = item.current
                     ? currentHierarchySiblings.value.map(sibling => ({
                         name: entitySelectLabel(sibling, sibling._id),
-                        id: hierarchyRoute({ type: item.type, id: entityHierarchyId(sibling), entity: sibling })
+                        id: hierarchyRoute({ type: item.type, id: instanceHierarchyId(sibling), entity: sibling })
                     })).filter(sibling => sibling.id)
                     : [];
                 nav.push({

@@ -30,7 +30,7 @@ export function useProcessDesignerScreens({
     screen.actions ||= [];
     if (['instanceDetail', 'formAction'].includes(screen.template) && screen.sources?.[0]) {
       screen.sources[0].mode = 'single';
-      screen.sources[0].identifier ||= '$assignment.entityId';
+      screen.sources[0].identifier ||= '$assignment.instanceId';
     }
     Object.assign(screen, normalizeScreenContract(screen), { kind: 'route' });
     const source = ensureSource(screen);
@@ -96,7 +96,7 @@ export function useProcessDesignerScreens({
 
   function setSourceMode(screen, source, mode) {
     source.mode = mode;
-    if (mode === 'single') source.identifier ||= '$assignment.entityId';
+    if (mode === 'single') source.identifier ||= '$assignment.instanceId';
     sync(screen);
   }
 
@@ -191,7 +191,7 @@ function createSource(screen, id, typeId, mode) {
     typeId,
     mode,
     required: { feature: screen.required?.feature || '', level: screen.required?.level || 'read' },
-    identifier: mode === 'single' ? '$assignment.entityId' : null,
+    identifier: mode === 'single' ? '$assignment.instanceId' : null,
     filters: {},
     lineageBindings: []
   };

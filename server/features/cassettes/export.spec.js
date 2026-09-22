@@ -24,7 +24,7 @@ vi.mock('../parametric-cassettes/service.js', () => ({
   generateSimpleDxf: generateSimpleDxfMock
 }));
 vi.mock('../cassette-designs/service.js', () => ({}));
-vi.mock('../entity-revisions/service.js', () => ({}));
+vi.mock('../instance-revisions/service.js', () => ({}));
 
 import * as cassettesService from './service.js';
 

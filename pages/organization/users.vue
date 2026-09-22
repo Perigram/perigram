@@ -158,7 +158,7 @@
             <Panel :header="$t('organization.evaluationContext')" toggleable collapsed>
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <InputText v-model="assignmentContext.typeId" :placeholder="$t('organization.typeId')" />
-                    <InputText v-model="assignmentContext.entityId" :placeholder="$t('organization.entityId')" />
+                    <InputText v-model="assignmentContext.instanceId" :placeholder="$t('organization.instanceId')" />
                     <InputText v-model="assignmentContext.status" :placeholder="$t('organization.primaryStatus')" />
                     <InputText v-model="assignmentContext.projectId" :placeholder="$t('organization.projectId')" />
                     <InputText v-model="assignmentContext.queueId" :placeholder="$t('organization.queueId')" />
@@ -220,7 +220,7 @@ import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Checkbox from 'primevue/checkbox';
 import Password from 'primevue/password';
-import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
+import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Tag from 'primevue/tag';
 import Panel from 'primevue/panel';
 import Message from 'primevue/message';
@@ -261,7 +261,7 @@ const activeProcess = ref(null);
 const organizationRoles = ref({});
 const organizationRoleAssignments = ref({});
 const roleAssignment = ref({ roleIds: [], bindings: {} });
-const assignmentContext = ref({ typeId: '', entityId: '', status: '', projectId: '', queueId: '', warehouseId: '' });
+const assignmentContext = ref({ typeId: '', instanceId: '', status: '', projectId: '', queueId: '', warehouseId: '' });
 const selectedRoleDerivedAccessSummary = computed(() => deriveRoleAccessSummary({
     process: activeProcess.value,
     roleIds: roleAssignment.value.roleIds
@@ -273,7 +273,7 @@ const assignmentPreview = computed(() => previewAssignmentAccess({
     domain: registry.projectedDomain,
     contexts: assignmentContext.value.typeId ? [{
         typeId: assignmentContext.value.typeId,
-        entityId: assignmentContext.value.entityId,
+        instanceId: assignmentContext.value.instanceId,
         status: assignmentContext.value.status,
         lineage: {
             projectId: assignmentContext.value.projectId,

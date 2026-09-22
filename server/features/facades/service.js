@@ -3,7 +3,7 @@ import standardSlugify from 'standard-slugify';
 import { createData, createIdentity } from '~/server/core/blocks/index.js';
 import { createProcessUpdateHandler } from '~/server/features/_template/process-update-handler.js';
 import * as artifactsService from '~/server/features/artifacts/service.js';
-import * as entityRevisionsService from '~/server/features/entity-revisions/service.js';
+import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
 import * as repository from './repository.js';
 import { Facade } from './model.js';
 import { getLineageFilter, hasLineagePermission } from '~/server/utils/permissions.js';
@@ -21,7 +21,7 @@ function normalizeAssignments(value = []) {
 }
 
 async function ensureLayoutRevision(facade, userId, reason) {
-  const revision = await entityRevisionsService.ensureForEntitySnapshot({ typeId: 'facade', entity: facade, scope: 'layout', content: { parts: facade.data?.parts || [], partAssignments: facade.data?.partAssignments || [] }, snapshot: { identity: facade.identity, data: facade.data }, userId, reason });
+  const revision = await instanceRevisionsService.ensureForEntitySnapshot({ typeId: 'facade', entity: facade, scope: 'layout', content: { parts: facade.data?.parts || [], partAssignments: facade.data?.partAssignments || [] }, snapshot: { identity: facade.identity, data: facade.data }, userId, reason });
   const data = { ...facade.data, revisions: { ...(facade.data?.revisions || {}), layout: { currentId: revision._id, number: revision.data?.number || 0, contentHash: revision.data?.contentHash || '' } } };
   return await repository.updateById(facade._id, { data });
 }

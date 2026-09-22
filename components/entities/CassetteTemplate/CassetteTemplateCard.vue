@@ -1,6 +1,6 @@
 <template>
   <div>
-    <EntityCard :entity="template" type-id="cassette_template" :variant="variant" :show-trace="false" :show-status="false">
+    <InstanceCard :entity="template" type-id="cassette_template" :variant="variant" :show-trace="false" :show-status="false">
       <template #before-identity>
         <i class="pi pi-clone"></i>
       </template>
@@ -10,7 +10,7 @@
         <DataBlock type-id="cassetteTemplate" :entity="templateForDisplay" :fields="TEMPLATE_FIELDS" />
         <div v-if="geometryRevisionId" class="flex items-center justify-between gap-4">
           <small class="text-muted">{{ $t('revision.currentGeometry') }}</small>
-          <EntityInlineRef type="entityRevision" :id="geometryRevisionId" />
+          <InstanceInlineRef type="entityRevision" :id="geometryRevisionId" />
         </div>
       </div>
       <template #footer>
@@ -19,7 +19,7 @@
           <Button icon="pi pi-download" text size="small" :aria-label="$t('common.download')" @click="emit('download', template)" />
         </div>
       </template>
-    </EntityCard>
+    </InstanceCard>
   </div>
 </template>
 
@@ -30,13 +30,13 @@
 import Divider from 'primevue/divider';
 import Button from 'primevue/button';
 import { computed } from 'vue';
-import EntityCard from '~/components/shared/EntityCard.vue';
+import InstanceCard from '~/components/shared/InstanceCard.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
-import { resolveEntityDisplayFields } from '~/utils/entity-display-contract.js';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
 
-const TEMPLATE_FIELDS = resolveEntityDisplayFields({ typeId: 'cassetteTemplate', surface: 'card' })
+const TEMPLATE_FIELDS = resolveInstanceDisplayFields({ typeId: 'cassetteTemplate', surface: 'card' })
     .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource');
 
 const props = defineProps({

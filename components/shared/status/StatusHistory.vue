@@ -6,7 +6,7 @@
 import ProgressSpinner from 'primevue/progressspinner';
 import Button from 'primevue/button';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
-import EntityInlineRef from '~/components/shared/EntityInlineRef.vue';
+import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStatusHistory } from '~/composables/useStatusHistory';
@@ -156,7 +156,7 @@ const eventKey = (event, index) => event._id || `${eventState(event)}-${event.ti
           <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <StatusBadge :state="eventState(event)" :display="eventDisplay(event)" />
             <span v-if="actorUserId(event)" class="inline-flex min-w-0 items-center gap-1" :title="actorTitle(event)">
-              <EntityInlineRef type="user" :id="actorUserId(event)" :entity="{ _id: actorUserId(event), identity: { name: actorName(event) }, data: {} }" />
+              <InstanceInlineRef type="user" :id="actorUserId(event)" :entity="{ _id: actorUserId(event), identity: { name: actorName(event) }, data: {} }" />
               <Button
                 icon="pi pi-comments"
                 text

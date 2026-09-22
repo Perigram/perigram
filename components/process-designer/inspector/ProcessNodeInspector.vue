@@ -208,9 +208,9 @@ import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
-import MultiSelect from '~/components/shared/EntityMultiSelect.vue';
+import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import Panel from 'primevue/panel';
-import Select from '~/components/shared/EntitySelect.vue';
+import Select from '~/components/shared/InstanceSelect.vue';
 import Tag from 'primevue/tag';
 import { useI18n } from 'vue-i18n';
 

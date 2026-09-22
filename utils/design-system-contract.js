@@ -3,21 +3,21 @@ import {
   CNC_DATA_DISPLAYS,
   CNC_PREVIEW_MODES,
   CNC_RELATION_DISPLAYS,
-  cncDesignSystemEntityContracts,
+  cncDesignSystemInstanceContracts,
   cncDesignSystemGroups,
   cncDesignSystemPrimitives,
   cncDesignSystemVariants,
-  cncEntityFieldGroups,
-  cncEntitySurfaceContracts
+  cncInstanceFieldGroups,
+  cncInstanceSurfaceContracts
 } from '../packages/domain-cnc/src/index.js';
-import { findEntityFieldPolicy } from '../shared/entity-field-access.js';
+import { findEntityFieldPolicy } from '../shared/instance-field-access.js';
 
 export const DESIGN_SYSTEM_VARIANTS = cncDesignSystemVariants;
 export const DESIGN_SYSTEM_GROUPS = cncDesignSystemGroups;
 export const DESIGN_SYSTEM_PRIMITIVES = cncDesignSystemPrimitives;
-export const DESIGN_SYSTEM_ENTITY_CONTRACTS = cncDesignSystemEntityContracts;
-export const DESIGN_SYSTEM_FIELD_GROUPS = cncEntityFieldGroups;
-export const DESIGN_SYSTEM_SURFACES = cncEntitySurfaceContracts;
+export const DESIGN_SYSTEM_ENTITY_CONTRACTS = cncDesignSystemInstanceContracts;
+export const DESIGN_SYSTEM_FIELD_GROUPS = cncInstanceFieldGroups;
+export const DESIGN_SYSTEM_SURFACES = cncInstanceSurfaceContracts;
 
 export function validateDesignSystemContracts(entries = DESIGN_SYSTEM_ENTITY_CONTRACTS) {
   return entries.flatMap((entry) => {
