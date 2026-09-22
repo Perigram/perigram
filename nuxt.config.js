@@ -93,13 +93,6 @@ export default defineNuxtConfig({
         // The NUXT_ prefix allows runtime override
         mongoUri: process.env.NUXT_MONGODB_URI || process.env.MONGODB_URI || '',
         stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
-        public: {
-            // Browser-facing OpenKnowledge editor origin. The editor is a
-            // websocket-collab app and must be reached on its own origin:
-            // its /collab socket dials the origin it is served from, and
-            // the Nuxt dev server cannot survive that reconnect storm.
-            openknowledgeEditorUrl: process.env.NUXT_PUBLIC_OPENKNOWLEDGE_EDITOR_URL || 'http://localhost:4310',
-        },
         billing: {
             priceCatalog: process.env.NUXT_BILLING_PRICE_CATALOG || '[]',
             mode: process.env.NUXT_BILLING_MODE || 'prepaidTokens',

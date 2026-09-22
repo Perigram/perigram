@@ -103,11 +103,6 @@ Routes are grouped into sub-directories corresponding to features:
   (`GET /livekit/active-rooms`) that backs the home workspace's active-call
   list. Group call rooms derive from support group chats. See
   [the livekit feature](../features/livekit/README.md).
-- `knowledge/`: Authenticated org-wide OpenKnowledge entry — the admission
-  snapshot (`GET /knowledge/info`) that gates the sidebar entry and the
-  catch-all reverse proxy (`/knowledge/proxy/**`) that forwards admitted
-  requests to the self-hosted OpenKnowledge container. See
-  [the knowledge feature](../features/knowledge/README.md).
 - `support/`: Authenticated support chat endpoints. User routes snapshot the
   current user's support conversation, a direct user-to-user conversation
   selected by `recipientUserId`, or a group conversation selected by

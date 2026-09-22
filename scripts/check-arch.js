@@ -31,7 +31,6 @@ const CAPABILITY_FEATURES = [
   'billing',
   'artifact-conversions',
   'invitations',
-  'knowledge',
   'material-options',
   'nesting',
   'notification',

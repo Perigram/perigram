@@ -20,7 +20,6 @@
                absolutely positioned child that must overlay the pane area. -->
           <CommunicationMenu
             @open-chats="openChatsPage"
-            @open-knowledge="openKnowledgeTab"
             @start-call="startCallFromConversation"
           />
           <!-- Ongoing calls live directly in the sidebar as persistent rows;
@@ -713,12 +712,6 @@ async function startCallFromConversation(conversation = {}) {
 
 function openChatsPage() {
   if (activePane.value) selectPaneTab(activePane.value.id, 'page:chats');
-}
-
-// Knowledge is a registered workspace page: selecting its key opens (or
-// focuses) the tab hosting the proxied OpenKnowledge editor.
-function openKnowledgeTab() {
-  if (activePane.value) selectPaneTab(activePane.value.id, 'page:knowledge');
 }
 
 function toggleSectionActions(event, node) {
