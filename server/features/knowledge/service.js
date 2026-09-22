@@ -28,16 +28,19 @@ function requireKnowledgeGrant(auth, level = 'read') {
 
 /**
  * The service is org-wide: admins and any organization member are
- * admitted. Under an active compiled process the knowledge feature grant
- * (read level) additionally applies — the same contract as LiveKit's
- * `call:org:*` rooms.
+ * admitted. Org affiliation mirrors `resolveProcessAuth`: the user's
+ * explicit current organization, else their first membership. Under an
+ * active compiled process the knowledge feature grant (read level)
+ * additionally applies to non-admins — the same contract as LiveKit's
+ * `call:org:*` rooms, where admins bypass the grant.
  */
 export function authorizeKnowledge(auth) {
     if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
-    if (!auth.isAdmin && !auth.organizationId) {
-        throw createError({ statusCode: 403, message: 'Forbidden' });
+    if (!auth.isAdmin) {
+        const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
+        if (!organizationId) throw createError({ statusCode: 403, message: 'Forbidden' });
+        requireKnowledgeGrant(auth);
     }
-    requireKnowledgeGrant(auth);
     return { admitted: true };
 }
 
