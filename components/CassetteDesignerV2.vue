@@ -812,10 +812,6 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
-  persist: {
-    type: Boolean,
-    default: true
-  }
 });
 const emit = defineEmits(['load-template', 'save-template']);
 
@@ -863,15 +859,13 @@ const documentDockItems = computed(() => [
   },
   { separator: true },
   {
-    icon: () => h('i', { class: savingTemplate.value ? 'pi pi-spinner pi-spin' : 'pi pi-copy', 'aria-hidden': 'true' }),
+    icon: () => h('i', { class: 'pi pi-copy', 'aria-hidden': 'true' }),
     label: t('common.saveAs'),
-    disabled: savingTemplate.value,
     onClick: () => saveTemplate({ saveAs: true })
   },
   {
-    icon: () => h('i', { class: savingTemplate.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
+    icon: () => h('i', { class: 'pi pi-save', 'aria-hidden': 'true' }),
     label: t('common.save'),
-    disabled: savingTemplate.value,
     onClick: () => saveTemplate()
   },
   { separator: true },
@@ -921,7 +915,6 @@ const drawingLayers = ref([]);
 const visibleLayerNames = ref([]);
 const hiddenLayerNames = ref([]);
 const loadedTemplateId = ref('');
-const savingTemplate = ref(false);
 const persistedTemplateIdOverride = ref('');
 const historyPast = ref([]);
 const historyFuture = ref([]);
@@ -1521,52 +1514,15 @@ const saveTemplate = async ({ saveAs = false } = {}) => {
     parameters: Object.keys(definition.parameters || {})
   };
 
-  if (!props.persist) {
-    emit('save-template', payload);
-    clearSessionDraft();
-    return;
+  // Persistence lives with the mounting surface: the designer emits the
+  // authored document (the legacy direct-REST branch died with the
+  // cassette manager); the generated mounts own the instance transport.
+  emit('save-template', payload);
+  if (process.client) {
+    window.sessionStorage.removeItem(draftKeyBeforeSave);
+    window.sessionStorage.removeItem(autosaveStorageKey.value);
   }
-
-  savingTemplate.value = true;
-  try {
-    const updating = !saveAs && selectedTemplateIsPersisted.value && payload.id;
-    const body = {
-      name: payload.name,
-      type: 'PARAMETRIC',
-      definition: payload.definition,
-      parameters: payload.parameters,
-      ...(!updating && props.template?.lineage?.libraryId
-        ? { libraryId: props.template.lineage.libraryId }
-        : {})
-    };
-    const response = await $fetch(
-      updating ? `/api/cassettes/${encodeURIComponent(payload.id)}` : '/api/cassettes',
-      { method: updating ? 'PUT' : 'POST', body }
-    );
-    const savedId = response?._id || response?.identity?.uid || payload.id;
-    if (savedId) {
-      suppressAutosave = true;
-      persistedTemplateIdOverride.value = savedId;
-    }
-    const savedEntity = response || (savedId
-      ? await $fetch(`/api/cassettes/${encodeURIComponent(savedId)}`).catch(() => null)
-      : null);
-    if (process.client) {
-      window.sessionStorage.removeItem(draftKeyBeforeSave);
-      window.sessionStorage.removeItem(autosaveStorageKey.value);
-    }
-    sessionDraftAvailable.value = false;
-    toast.add({ severity: 'success', summary: t('common.success'), detail: t('cassette.messages.saveSuccess'), life: 3000 });
-    emit('save-template', {
-      ...payload,
-      id: savedId || payload.id,
-      savedEntity
-    });
-  } catch {
-    toast.add({ severity: 'error', summary: t('common.error'), detail: t('cassette.errors.saveFailed'), life: 3000 });
-  } finally {
-    savingTemplate.value = false;
-  }
+  sessionDraftAvailable.value = false;
 };
 
 let previewToken = 0;

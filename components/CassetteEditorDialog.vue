@@ -133,7 +133,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useCassettesStore } from '~/stores/cassettes';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { storeToRefs } from 'pinia';
 import Select from '~/components/shared/InstanceSelect.vue';
@@ -190,7 +189,6 @@ const layerMappings = ref({});
 const dxfText = ref('');
 const requiredNestingLayer = OCCS_LAYER_CUT_OUTER;
 
-const cassettesStore = useCassettesStore();
 const layerStandardsStore = useLayerStandardsStore();
 
 const { standards } = storeToRefs(layerStandardsStore);
@@ -245,7 +243,7 @@ const canUpload = computed(() => {
 watch(() => props.cassetteId, async (newId) => {
   if (newId) {
     try {
-      cassette.value = await cassettesStore.fetchById(newId);
+      cassette.value = await $fetch(`/api/cassettes/${encodeURIComponent(newId)}`);
       const mapping = cassette.value.definition?.mapping || cassette.value.definition?.data?.mapping || cassette.value.data?.definition?.mapping;
       if (mapping) {
         layerMappings.value = { ...mapping };

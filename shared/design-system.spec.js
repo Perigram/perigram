@@ -780,13 +780,10 @@ describe('Design system manifest', () => {
 
   it('keeps inline design editing inside its active workspace', () => {
     const cassetteDesigner = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteDesignerV2.vue'), 'utf8');
-    const cassetteManager = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteManager.vue'), 'utf8');
     const generatedCassetteAction = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedCassetteDesignerAction.vue'), 'utf8');
 
     expect(cassetteDesigner).toContain('saveTemplate({ saveAs: true })');
     expect(cassetteDesigner).toContain('handleDesignerEscape');
-    expect(cassetteManager).toContain(':close-on-escape="false"');
-    expect(cassetteManager).not.toContain('showDesignerDialog.value = false;\n};\n\nconst onRename');
     expect(generatedCassetteAction).toContain(':close-on-escape="false"');
     expect(generatedCassetteAction).not.toContain('visible.value = false;\n  emit(\'refresh\')');
   });
