@@ -31,9 +31,11 @@ services:
       - CONFIG_BOT_CHAT_MODEL=${CONFIG_BOT_CHAT_MODEL:-qwen3:4b}
       - CONFIG_BOT_EMBED_MODEL=${CONFIG_BOT_EMBED_MODEL:-bge-m3}
       - CONFIG_BOT_CORTEX_PATH=${CONFIG_BOT_CORTEX_PATH:-/opt/cutkit-cortex}
+      - OPENKNOWLEDGE_INTERNAL_URL=${OPENKNOWLEDGE_INTERNAL_URL:-http://openknowledge:4310}
     depends_on:
       - mongo
       - livekit
+      - openknowledge
     networks:
       - cutkit-network
     extra_hosts:
@@ -51,6 +53,16 @@ services:
       - "7880:7880"
       - "7881:7881"
       - "7882:7882/udp"
+    networks:
+      - cutkit-network
+    restart: unless-stopped
+
+  openknowledge:
+    build:
+      context: ./deploy/openknowledge
+    container_name: cutkit_openknowledge
+    volumes:
+      - openknowledge-data:/workspace
     networks:
       - cutkit-network
     restart: unless-stopped
@@ -126,3 +138,4 @@ networks:
 
 volumes:
   mongo-data:
+  openknowledge-data:
