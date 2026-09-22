@@ -104,7 +104,14 @@ export function useProcessDesignerApply({
     // so validation and activation see the types the graph references. A
     // failed declaration post aborts the apply with its real cause.
     const posted = await persistTreeDeclarations();
-    if (posted.failures.length) return null;
+    if (posted.failures.length) {
+      // Toasts alone expire and leave the canvas silent: land the refusal in
+      // the same persistent validation feedback every other Apply abort
+      // carries, so the cause stays visible after the toasts are gone.
+      validation.value = { ok: false, errors: [...posted.failures], warnings: [] };
+      focusFirstValidationDiagnostic(validation.value);
+      return null;
+    }
     const result = await persistence.validateDraft(draft.value._id);
     validation.value = result;
     if (!result.ok) {

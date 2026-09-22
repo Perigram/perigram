@@ -39,7 +39,10 @@ record access, roles, screens, and dock/panel state:
   pan, and node placement.
 - `useProcessDesignerContextPalette` — the socket-filtered drop palette.
 - `useProcessDesignerApply` — save/validate/activate as one operation with
-  first-diagnostic focus. When validation returns an Apply migration plan
+  first-diagnostic focus. Declaration-post failures abort before validation
+  and land in the same persistent validation feedback the canvas renders
+  (never toasts alone), so an Apply that dies on a registry refusal keeps
+  showing its cause after the toasts expire. When validation returns an Apply migration plan
   (removed workflow states with live instances), Apply pauses with
   `pendingMigration` instead of activating; `ApplyMigrationDialog` collects
   one target state per removed state, and confirming re-posts activate
