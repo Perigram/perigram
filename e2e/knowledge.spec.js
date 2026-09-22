@@ -19,9 +19,8 @@ test.describe('knowledge service', () => {
     });
 
     test('sidebar entry opens the editor workspace tab', async ({ app }) => {
-        const me = await app.request.get('/api/auth/me');
-        expect(me.ok()).toBeTruthy();
-        const manifest = await me.json();
+        test.setTimeout(120_000);
+        const { manifest } = await app.seedSpeciesProcess({ types: ['cassette'] });
         const home = (manifest.screens || []).find(screen => screen.template === 'home');
         expect(home?.route, 'Expected a compiled home screen').toBeTruthy();
         await app.gotoClient(home.route);
