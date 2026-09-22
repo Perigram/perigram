@@ -74,62 +74,38 @@
         <ChatSupportDialog v-model:visible="supportDialog" :label="t('support.chatTitle')">
             <ChatSupport />
         </ChatSupportDialog>
-        <!-- Add-screen tier: popup TieredMenu anchored at the Add screen row
-             inside the profile menu. It self-hides after a leaf pick; the
-             item commands close the remaining transient chrome. -->
-        <TieredMenu ref="mobileScreenTierMenu" :model="mobileScreenMenuItems" :popup="true" />
-        <!-- Replace-shortcut picker for the long-press flow: anchored at the
-             pressed tab, flips above the bar. -->
-        <Popover ref="mobileScreenMenu">
-            <div class="flex min-w-56 flex-col gap-1">
-                <template v-for="(item, index) in mobileScreenMenuItems" :key="index">
-                    <Divider v-if="item.separator" class="my-1" />
-                    <Button
-                        v-else
-                        :label="item.label"
-                        :icon="item.icon"
-                        text
-                        severity="secondary"
-                        size="small"
-                        class="w-full !justify-start"
-                        @click="runMobileScreenMenuItem(item)"
-                    />
-                </template>
-            </div>
-        </Popover>
         <nav
             v-if="authStore.userIsSet"
             class="chrome-signal-rule fixed inset-x-0 bottom-0 z-[998] border-t [border-color:var(--ck-chrome-border)] bg-chrome px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-overlay md:hidden"
             :aria-label="$t('nav.home')"
         >
-            <!-- Mobile app tabs run on PrimeVue Tabs: home, user shortcuts, and
-                 chats are real tabs of one strip, and every tab navigates — the
-                 chats tab opens the bounded /chats route exactly like the home
-                 and shortcut tabs open their routes. The profile trigger is the
-                 bar's only action and owns the Add screen entry through its
-                 menu's items slot. Tab internals are adapted for the bottom bar
-                 through pt (see bottomBar pt objects in the script): PrimeVue
-                 runtime styles load after Tailwind, so utility classes cannot
-                 restyle tab strip internals. -->
+        <!-- Mobile app tabs run on PrimeVue Tabs: the home workspace tree's
+              top level (root type screens) and chats are real tabs of one
+              strip. User-added shortcuts and the home tab are disabled
+              while the home workspace migration settles; a type tab
+              selects that screen in the home workspace (navigating home
+              first when another route is open), the chats tab opens the
+              bounded /chats route, and organizations without compiled type
+              screens keep a home fallback. The profile trigger remains the
+              bar's only action. Tab internals are adapted for the bottom
+              bar through pt (see bottomBar pt objects in the script):
+              PrimeVue runtime styles load after Tailwind, so utility
+              classes cannot restyle tab strip internals. -->
             <div class="mx-auto flex max-w-md items-center gap-1">
                 <Tabs :value="mobileTabValue" class="min-w-0 flex-1" @update:value="selectMobileTab">
                     <TabList class="w-full" :pt="bottomBarTabListPt">
-                        <Tab value="home" :pt="bottomBarTabPt" :aria-label="$t('nav.home')">
-                            <i class="pi pi-home" aria-hidden="true" />
-                        </Tab>
                         <Tab
-                            v-for="shortcut in mobileShortcutLinks"
-                            :key="shortcut.key"
-                            :value="`shortcut:${shortcut.key}`"
+                            v-for="tab in mobileHomeTabs"
+                            :key="tab.key"
+                            :value="tab.key"
                             :pt="bottomBarTabPt"
-                            :aria-label="shortcut.label"
-                            @pointerdown="startShortcutHold($event, shortcut.index)"
-                            @pointerup="clearShortcutHold"
-                            @pointerleave="clearShortcutHold"
-                            @pointercancel="clearShortcutHold"
-                            @contextmenu.prevent="openReplaceShortcutMenu($event, shortcut.index)"
+                            :aria-label="tab.label"
+                            :title="tab.label"
                         >
-                            <i :class="shortcut.icon" aria-hidden="true" />
+                            <i :class="tab.icon" aria-hidden="true" />
+                        </Tab>
+                        <Tab v-if="!mobileHomeTabs.length" value="home" :pt="bottomBarTabPt" :aria-label="$t('nav.home')">
+                            <i class="pi pi-home" aria-hidden="true" />
                         </Tab>
                         <Tab value="chats" :pt="bottomBarTabPt" :aria-label="$t('support.openChat')">
                             <span class="relative inline-flex">
@@ -146,28 +122,6 @@
                     </TabList>
                 </Tabs>
                 <UserAccountMenu v-if="authStore.userIsSet">
-                    <template #items>
-                        <!-- Add screen is a menu tier: the row opens a popup
-                             TieredMenu flyout with the screen list instead of
-                             embedding the screens in this menu. -->
-                        <section
-                            v-if="mobileShortcutLinks.length < MOBILE_SHORTCUT_LIMIT && mobileScreenMenuItems.length"
-                            class="flex flex-col gap-1"
-                        >
-                            <Button
-                                text
-                                severity="secondary"
-                                size="small"
-                                class="w-full !justify-start"
-                                :aria-label="$t('nav.addScreen')"
-                                @click="toggleMobileScreenTier"
-                            >
-                                <i class="pi pi-plus" aria-hidden="true" />
-                                <span>{{ $t('nav.addScreen') }}</span>
-                                <i class="pi pi-chevron-right ml-auto" aria-hidden="true" />
-                            </Button>
-                        </section>
-                    </template>
                     <template #trigger="{ toggle }">
                         <Button
                             icon="pi pi-user"
@@ -210,10 +164,7 @@
     import { useI18n } from 'vue-i18n'
     import Button from 'primevue/button'
     import Badge from 'primevue/badge'
-    import Divider from 'primevue/divider'
     import Menu from 'primevue/menu'
-    import Popover from 'primevue/popover'
-    import TieredMenu from 'primevue/tieredmenu'
     import Tabs from 'primevue/tabs'
     import TabList from 'primevue/tablist'
     import Tab from 'primevue/tab'
@@ -226,31 +177,26 @@
     import { useCallsStore } from '~/stores/calls'
     import { useSupportDialog } from '~/composables/useModalState'
     import { useAuthStore } from '~/stores/auth'
-    import { useRegistryStore } from '~/stores/registry'
     import { useSupportChatStore } from '~/stores/supportChat'
     import { useNavigationStore } from '~/stores/navigation'
-    import { useGlobalStore } from '~/stores/global'
     import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT } from '~/utils/mobile-transient-surfaces.js'
-    import { generatedScreenLabel } from '~/utils/generated-labels.js'
     import { resolveGeneratedScreenOverload } from '~/components/generated/overloads.js'
+    import { useMobileHomeTabs } from '~/composables/useMobileHomeTabs.js'
 
     const router = useRouter()
     const route = useRoute()
-    const { t, te } = useI18n()
+    const { t } = useI18n()
     const supportDialog = useSupportDialog()
     const authStore = useAuthStore()
-    const registry = useRegistryStore()
     provide('statusWorkflows', computed(() => authStore.statusWorkflows))
     const supportChatStore = useSupportChatStore()
     const callsStore = useCallsStore()
     const navStore = useNavigationStore()
-    const globalStore = useGlobalStore()
     const ssrFetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {}
-    const mobileShortcuts = ref([])
-    const mobileShortcutReplaceIndex = ref(null)
-    const mobileShortcutHoldTriggered = ref(false)
-    const mobileShortcutHoldTimer = ref(null)
-    const MOBILE_SHORTCUT_LIMIT = 2
+    // The mobile tab strip mirrors the home workspace tree's top level
+    // (shared selection state — the home workspace renders the selected
+    // type screen in its mobile branch).
+    const { tabs: mobileHomeTabs, activeKey: mobileHomeTabKey, selectTab: selectMobileHomeTab } = useMobileHomeTabs()
 
     // Bottom-bar adaptation of the Aura tab strip, applied through pt because
     // PrimeVue runtime styles load after Tailwind and override utility
@@ -280,13 +226,11 @@
     }, { immediate: true })
 
     onMounted(async () => {
-        loadMobileShortcuts()
         window.addEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeMobileTransientSurfaces)
     })
 
     onUnmounted(() => {
         window.removeEventListener(MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, closeMobileTransientSurfaces)
-        clearShortcutHold()
     })
 
     watch(() => authStore.userIsSet, (isSet) => {
@@ -341,12 +285,6 @@
     ))
     const isAccountRoute = computed(() => route.path === '/profile' || route.path.startsWith('/organization'))
     const isFlushMobileSurface = computed(() => isAccountRoute.value || isChatsRoute.value)
-    const screenName = (screen) => generatedScreenLabel(screen, { t, te })
-    const mobileShortcutStorageKey = computed(() => [
-        'cutkit.mobileScreenShortcuts.v1',
-        authStore.userData?.id || authStore.userData?.userId || 'anonymous',
-        authStore.userData?.organizationId || authStore.organizationData?._id || 'organization'
-    ].join(':'))
     const processOperationalScreens = computed(() => authStore.screenManifest
         .filter(screen => screen.kind !== 'system')
         .filter(screen => typeof screen.route === 'string' && screen.route.startsWith('/screens/')))
@@ -360,54 +298,10 @@
         }
         return '/'
     })
-    const availableMobileGeneratedScreens = computed(() => processOperationalScreens.value
-        .filter(screen => screen.route && screen.template !== 'home')
-        .filter(screen => screen.template !== 'instanceDetail')
-        .map(screen => ({
-            screenKey: screen.screenKey || screen.id || screen.route,
-            to: screen.route,
-            label: screenName(screen),
-            icon: screenIcon(screen)
-        })))
-    const mobileScreenMenuItems = computed(() => availableMobileGeneratedScreens.value.map(screen => ({
-        label: screen.label,
-        icon: screen.icon,
-        command: () => {
-            addMobileScreenShortcut(screen)
-            // Close the profile menu (and any other transient chrome) after a
-            // pick; the TieredMenu hides itself on leaf click.
-            requestCloseTransientSurfaces()
-        }
-    })).concat(Number.isInteger(mobileShortcutReplaceIndex.value)
-        ? [{
-            separator: true
-        }, {
-            label: t('common.delete'),
-            icon: 'pi pi-trash',
-            command: deleteMobileScreenShortcut
-        }]
-        : []))
-    const mobileShortcutLinks = computed(() => mobileShortcuts.value
-        .map((shortcut, index) => {
-            const screen = authStore.screenManifest.find(item => (
-                item.screenKey === shortcut.screenKey
-                || item.id === shortcut.screenKey
-                || item.route === shortcut.to
-            ))
-            return {
-                ...shortcut,
-                index,
-                key: `${shortcut.screenKey}:${shortcut.to}`,
-                label: screen ? screenName(screen) : shortcut.label,
-                icon: screenIcon(screen || shortcut)
-            }
-        })
-        .filter(shortcut => Boolean(shortcut.to)))
 
     const closeMobileTransientSurfaces = () => {
         supportDialog.value = false
         breadcrumbMenu.value?.hide?.()
-        mobileScreenMenu.value?.hide?.()
     }
 
     const requestCloseTransientSurfaces = () => {
@@ -425,17 +319,11 @@
     // --- Mobile app tabs (PrimeVue Tabs bottom strip) ---
     const mobileTabValue = computed(() => {
         if (isChatsRoute.value) return 'chats'
-        const shortcut = mobileShortcutLinks.value.find(item => isRouteActive(item.to))
-        if (shortcut) return `shortcut:${shortcut.key}`
-        if (isRouteActive(homeRoute.value)) return 'home'
+        if (isGeneratedHomeRoute.value) return mobileHomeTabKey.value
         return null
     })
 
     const selectMobileTab = (value) => {
-        if (mobileShortcutHoldTriggered.value) {
-            mobileShortcutHoldTriggered.value = false
-            return
-        }
         if (value === 'chats') {
             navigateMobile('/chats')
             return
@@ -444,10 +332,10 @@
             navigateMobile(homeRoute.value)
             return
         }
-        if (typeof value === 'string' && value.startsWith('shortcut:')) {
-            const shortcut = mobileShortcutLinks.value.find(item => `shortcut:${item.key}` === value)
-            if (shortcut?.to) navigateMobile(shortcut.to)
-        }
+        // A type tab selects that screen inside the home workspace; from
+        // any other route the tab navigates home first.
+        selectMobileHomeTab(value)
+        if (!isGeneratedHomeRoute.value) navigateMobile(homeRoute.value)
     }
 
     const navigateMobile = (to) => {
@@ -455,109 +343,6 @@
         router.push(to)
     }
 
-    const isRouteActive = (to) => {
-        const target = String(to || '')
-        const [path, query] = target.split('?')
-        return query ? route.fullPath === target : route.path === path
-    }
-
-    const loadMobileShortcuts = () => {
-        if (!process.client) return
-        try {
-            const parsed = JSON.parse(window.localStorage.getItem(mobileShortcutStorageKey.value) || '[]')
-            mobileShortcuts.value = Array.isArray(parsed)
-                ? parsed.slice(-MOBILE_SHORTCUT_LIMIT).filter(item => item?.to && item?.screenKey)
-                : []
-        } catch {
-            mobileShortcuts.value = []
-        }
-    }
-
-    const saveMobileShortcuts = () => {
-        if (!process.client) return
-        window.localStorage.setItem(mobileShortcutStorageKey.value, JSON.stringify(mobileShortcuts.value.slice(-MOBILE_SHORTCUT_LIMIT)))
-    }
-
-    // Tier-2 of the profile menu: the Add screen row toggles a popup
-    // TieredMenu anchored at that row (a real click on a still-mounted
-    // element, unlike a synthetic anchor). The replace picker Popover below
-    // serves only the long-press flow on a shortcut tab.
-    const mobileScreenTierMenu = ref()
-
-    const toggleMobileScreenTier = (event) => {
-        mobileShortcutReplaceIndex.value = null
-        mobileScreenTierMenu.value?.toggle(event)
-    }
-
-    const runMobileScreenMenuItem = (item) => {
-        mobileScreenMenu.value?.hide?.()
-        item?.command?.()
-    }
-
-    const openReplaceShortcutMenu = (event, index) => {
-        mobileShortcutReplaceIndex.value = index
-        mobileScreenMenu.value?.show?.(event)
-    }
-
-    const startShortcutHold = (event, index) => {
-        clearShortcutHold()
-        mobileShortcutHoldTriggered.value = false
-        const anchor = event.currentTarget
-        mobileShortcutHoldTimer.value = window.setTimeout(() => {
-            mobileShortcutHoldTriggered.value = true
-            openReplaceShortcutMenu({ currentTarget: anchor, target: anchor }, index)
-        }, 550)
-    }
-
-    const clearShortcutHold = () => {
-        if (mobileShortcutHoldTimer.value) {
-            clearTimeout(mobileShortcutHoldTimer.value)
-            mobileShortcutHoldTimer.value = null
-        }
-    }
-
-    const addMobileScreenShortcut = (screen) => {
-        if (!screen) return
-        const next = {
-            screenKey: screen.screenKey,
-            to: screen.to,
-            label: screen.label,
-            icon: screen.icon
-        }
-        const replaceIndex = mobileShortcutReplaceIndex.value
-        if (Number.isInteger(replaceIndex)) {
-            const items = mobileShortcuts.value
-                .slice(0, MOBILE_SHORTCUT_LIMIT)
-                .filter((item, index) => index !== replaceIndex && !(item.screenKey === next.screenKey && item.to === next.to))
-            items.splice(Math.min(replaceIndex, items.length), 0, next)
-            mobileShortcuts.value = items.slice(0, MOBILE_SHORTCUT_LIMIT)
-        } else {
-            mobileShortcuts.value = [
-                ...mobileShortcuts.value.filter(item => !(item.screenKey === next.screenKey && item.to === next.to)),
-                next
-            ].slice(-MOBILE_SHORTCUT_LIMIT)
-        }
-        mobileShortcutReplaceIndex.value = null
-        saveMobileShortcuts()
-    }
-
-    const deleteMobileScreenShortcut = () => {
-        const removeIndex = mobileShortcutReplaceIndex.value
-        if (!Number.isInteger(removeIndex)) return
-        mobileShortcuts.value = mobileShortcuts.value.filter((_, index) => index !== removeIndex)
-        mobileShortcutReplaceIndex.value = null
-        saveMobileShortcuts()
-    }
-
-    const screenIcon = (screen = {}) => {
-        if (screen.icon) return screen.icon
-        if (screen.template === 'home') return 'pi pi-home'
-        return registry.iconFor(screen.typeId)
-    }
-
-    watch(mobileShortcutStorageKey, loadMobileShortcuts)
-
-    const mobileScreenMenu = ref();
     onMounted(async () => {
         if (!authStore.userIsSet) {
             await authStore.setUser();

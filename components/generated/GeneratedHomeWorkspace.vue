@@ -178,36 +178,17 @@
       </div>
     </div>
 
-    <!-- Mobile home mirrors the desktop sidebar's top level as one tab
-         strip: the root type screens plus chats. Tabs are fixed (no
-         user-added tabs, no home tab — the workspace is already home);
-         selecting a type tab renders its typeList screen through the
-         same CTS render contract as the desktop panes. -->
+    <!-- Mobile home renders the screen selected in the app-shell bottom
+         bar — the shared mobile home tab state over the sidebar tree's
+         root types (chats is the bar's own route tab). The typeList
+         screen renders through the same CTS render contract as the
+         desktop panes; instance opens follow the routed surface
+         contract: the compiled detail screen route. -->
     <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:hidden" data-home-workspace-mobile>
-      <Tabs :value="mobileTabKey" class="flex shrink-0 flex-col" @update:value="selectMobileTab">
-        <TabList scrollable>
-          <Tab v-for="tab in mobileTabs" :key="tab.key" :value="tab.key">
-            <span class="flex min-w-0 items-center gap-2">
-              <i :class="tab.icon" class="shrink-0" aria-hidden="true" />
-              <span class="min-w-0 truncate">{{ tab.label }}</span>
-            </span>
-          </Tab>
-        </TabList>
-      </Tabs>
-      <div v-if="mobileChatsDefinition" v-show="mobileTabKey === 'page:chats'" class="min-h-0 flex-1 overflow-hidden">
-        <!-- The registry definition supplies the component; mobile keeps
-             openCallInPane off so calls take ChatSupport's own mobile
-             full-screen surface instead of invisible desktop panes. -->
-        <component
-          :is="mobileChatsDefinition.component"
-          embedded
-          full-page
-          @refresh="$emit('refresh')"
-        />
-      </div>
-      <div v-if="mobileTypeScreen" v-show="mobileTabKey !== 'page:chats'" class="min-h-0 flex-1 overflow-y-auto p-4">
+      <div class="min-h-0 flex-1 overflow-y-auto p-4">
         <GeneratedTypeScreen
-          :key="mobileTypeScreen.screenKey"
+          v-if="mobileTypeScreen"
+          :key="mobileTypeScreen.screenKey || mobileTypeScreen.id"
           :screen="mobileTypeScreen"
           @open-instance="openMobileInstance"
           @refresh="$emit('refresh')"
@@ -233,9 +214,6 @@ import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
 import Menu from 'primevue/menu';
 import Tree from 'primevue/tree';
-import Tabs from 'primevue/tabs';
-import TabList from 'primevue/tablist';
-import Tab from 'primevue/tab';
 import { useI18n } from 'vue-i18n';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import InstanceStatus from '~/components/shared/status/InstanceStatus.vue';
@@ -258,6 +236,7 @@ import { useRegistryStore } from '~/stores/registry';
 import { useSupportChatStore } from '~/stores/supportChat';
 import { useCallsStore } from '~/stores/calls';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
+import { useMobileHomeTabs } from '~/composables/useMobileHomeTabs.js';
 import { generatedActionLabel } from '~/utils/generated-labels.js';
 import { callRoomIcon, callRoomLabel, conversationKeyForRoom } from '~/utils/call-rooms.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
@@ -499,34 +478,13 @@ function typeMenuKey(typeId = '') {
   return `type:${typeId}`;
 }
 
-// Mobile tabs mirror the sidebar tree's top level: root types with a
-// compiled typeList screen plus the always-openable chats page. The
-// selection is session-local; nothing here persists or adds tabs.
-const mobileTabs = computed(() => [
-  ...explorerNodes.value.flatMap(node => (
-    node.data?.typeId && node.data?.screen
-      ? [{
-        key: `screen:${node.data.screen.screenKey || node.data.screen.id}`,
-        label: node.label,
-        icon: node.icon,
-        screen: node.data.screen
-      }]
-      : []
-  )),
-  { key: 'page:chats', label: t('support.chatTitle'), icon: 'pi pi-comments' }
-]);
-const mobileTabKey = ref('');
-watch(mobileTabs, tabs => {
-  if (!tabs.some(tab => tab.key === mobileTabKey.value)) mobileTabKey.value = tabs[0]?.key || '';
-}, { immediate: true });
+// Mobile content follows the app-shell bottom bar's selection — the
+// shared mobile home tab state over the sidebar tree's root types (see
+// composables/useMobileHomeTabs.js, the canonical contract for both).
+const { tabs: mobileHomeTabs, activeKey: mobileHomeTabKey } = useMobileHomeTabs();
 const mobileTypeScreen = computed(() => (
-  mobileTabs.value.find(tab => tab.key === mobileTabKey.value)?.screen || null
+  mobileHomeTabs.value.find(tab => tab.key === mobileHomeTabKey.value)?.screen || null
 ));
-const mobileChatsDefinition = computed(() => resolveGeneratedWorkspacePage('chats'));
-
-function selectMobileTab(key) {
-  mobileTabKey.value = key;
-}
 
 // Mobile instance opens follow the routed surface contract: the compiled
 // detail screen route is the instance surface outside the desktop panes.

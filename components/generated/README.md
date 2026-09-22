@@ -207,13 +207,17 @@ designer tree.
 Discord-style operational shell:
 
 - Desktop (`md` and up) is a fixed two-column bounded workspace: a sidebar and
-  the recursive pane area. Mobile mirrors the sidebar tree's top level as one
-  fixed tab strip — the root types' compiled `typeList` screens plus the
-  `chats` page (no user-added tabs, no home tab; the selection is
-  session-local). A type tab renders through `GeneratedTypeScreen` (the
-  same generator contract as the desktop panes); the chats tab mounts the
-  registered chats page component full-page. Instance opens on mobile
-  follow the routed surface contract: the compiled detail screen route.
+  the recursive pane area. Mobile renders the screen selected in the
+  app-shell bottom bar — the shared mobile home tab state
+  (`useMobileHomeTabs`, see
+  [composables/README.md](../../composables/README.md)) over the sidebar
+  tree's root types; the bar replaces the previous in-workspace strip
+  (user-added tabs and a home tab are disabled while the migration
+  settles, chats stays the bar's route tab). A type tab renders through
+  `GeneratedTypeScreen` (the
+  same generator contract as the desktop panes); instance opens on
+  mobile follow the routed surface contract: the compiled detail screen
+  route.
 - The sidebar owns navigation for the whole shell. Below the brand header, a
   pinned communication nav renders the shared `CommunicationMenu.vue`
   (components/shared): Chats and Calls as proper PrimeVue `TieredMenu`

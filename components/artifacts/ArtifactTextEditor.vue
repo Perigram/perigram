@@ -1,5 +1,5 @@
 <template>
-  <div class="flex min-h-0 flex-1 flex-col gap-2">
+  <div class="flex min-h-0 flex-1 flex-col gap-2 p-4">
     <DataTable v-if="isCsv" :value="rows" edit-mode="cell" scrollable scroll-height="flex" size="small" class="min-h-80 flex-1">
       <Column v-for="column in columns" :key="column" :field="column" :header="column">
         <template #editor="{ data, field }"><InputText v-model="data[field]" size="small" /></template>
@@ -8,10 +8,17 @@
     <!-- Markdown documents edit through the PrimeVue rich text editor
          (Quill): the payload is markdown by default — the editor content
          converts HTML → markdown on save and markdown → HTML on load.
-         The editing surface reads and writes in the app's serif prose
-         voice, matching the preview. -->
-    <div v-else class="flex min-h-0 flex-1 flex-col text-prose">
-      <Editor v-model="html" editor-style="min-height: 12rem" class="flex min-h-0 flex-1 flex-col" :formats="editorFormats" />
+         The editing surface reads and writes in the app's serif document
+         voice (the `editor` typography role, one step above prose) and
+         carries its own pane padding — it is a document surface, not a
+         flush canvas editor. -->
+    <div v-else class="text-editor flex min-h-0 flex-1 flex-col">
+      <Editor
+        v-model="html"
+        :formats="editorFormats"
+        :pt="editorPt"
+        editor-style="flex: 1 1 0; min-height: 12rem"
+      />
     </div>
     <div class="flex justify-end">
       <Button :label="$t('common.save')" icon="pi pi-save" size="small" :loading="saving" @click="save" />
@@ -50,6 +57,18 @@ const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fen
 // keeps the toolbar and the round-trip honest (no colors/aligns that
 // markdown cannot carry).
 const editorFormats = ['bold', 'italic', 'underline', 'strike', 'code', 'blockquote', 'header', 'list', 'indent', 'link', 'code-block'];
+// Quill's bundled themes hardcode a Helvetica 13px document voice on the
+// editor container and toolbar. The app's document voice lives on the
+// host (the `editor` typography role) and is carried into the editor
+// internals through inline pt styles — they sit above every theme class
+// in the cascade without scoped CSS, and the root flex layout is applied
+// the same way because PrimeVue injects `.p-editor { display: block }`
+// after Tailwind.
+const editorPt = {
+  root: { style: { display: 'flex', flexDirection: 'column' } },
+  toolbar: { style: { fontFamily: 'var(--ck-font-ui)' } },
+  content: { style: { fontFamily: 'inherit', fontSize: 'inherit' } }
+};
 
 onMounted(async () => {
   const text = await props.persistence.loadText();

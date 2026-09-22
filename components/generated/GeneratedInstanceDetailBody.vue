@@ -63,7 +63,7 @@ const bodyClass = computed(() => {
   if (props.mode !== 'file') return '';
   return detailOverload.value
     ? 'h-full min-h-0 min-w-0 overflow-hidden'
-    : 'h-full min-h-0 min-w-0 overflow-y-auto p-2';
+    : 'h-full min-h-0 min-w-0 overflow-y-auto p-4';
 });
 
 function uniqueActions(actions = []) {

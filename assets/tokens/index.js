@@ -87,7 +87,10 @@ export const designTokens = {
             supporting: { fontFamily: 'ui', fontSize: '0.75rem', lineHeight: '1rem', fontWeight: '400' },
             metric: { fontFamily: 'ui', fontSize: '1.75rem', lineHeight: '2rem', fontWeight: '700', fontVariantNumeric: 'tabular-nums' },
             technical: { fontFamily: 'mono', fontSize: '0.875rem', lineHeight: '1.25rem', fontWeight: '400' },
-            prose: { fontFamily: 'serif', fontSize: '1rem', lineHeight: '1.625', fontWeight: '400' }
+            prose: { fontFamily: 'serif', fontSize: '1rem', lineHeight: '1.625', fontWeight: '400' },
+            // The document editing voice: serif like prose, one step larger
+            // so authored content reads at a comfortable document size.
+            editor: { fontFamily: 'serif', fontSize: '1.125rem', lineHeight: '1.625', fontWeight: '400' }
         }
     },
     status: {

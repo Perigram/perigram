@@ -415,7 +415,8 @@ describe('Design system manifest', () => {
       'supporting',
       'metric',
       'technical',
-      'prose'
+      'prose',
+      'editor'
     ]);
     for (const role of Object.values(designTokens.typography.roles)) {
       expect(role).toEqual(expect.objectContaining({
@@ -478,10 +479,11 @@ describe('Design system manifest', () => {
     expect(dataBlock).toContain('text-technical');
     expect(actionToolbar).toContain("props.level <= 1 ? 'text-page-title' : 'text-section-heading'");
     // Document previews read in the app's prose voice (serif), not the
-    // technical mono role.
+    // technical mono role; the rich text editor edits in the same serif
+    // voice one size step larger (the `editor` role).
     expect(artifactViewer).toContain('text-prose');
     expect(artifactViewer).not.toContain('text-technical');
-    expect(artifactTextEditor).toContain('text-prose');
+    expect(artifactTextEditor).toContain('text-editor');
     expect(supportMessageContent).not.toContain('text-prose');
   });
 

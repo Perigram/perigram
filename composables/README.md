@@ -301,6 +301,25 @@ no surface mints artifact entities.
 
 ---
 
+## useMobileHomeTabs
+
+```js
+const { tabs, activeKey, selectTab } = useMobileHomeTabs();
+```
+
+The canonical mobile home tab contract: the home workspace sidebar
+tree's top level as one fixed tab list. Roots derive exactly like the
+desktop tree (manifest-backed typeList types plus their containment
+ancestors form the visible set; a visible type that is another visible
+type's containment child is not a root; structural ancestors without a
+compiled screen are folders, not tabs). The selection is shared app
+state: the app-shell bottom bar writes it and highlights it, the home
+workspace's mobile branch renders the selected screen, and an unknown
+or unset key resolves to the first tab. Chats is not part of this
+contract — it stays the bar's own route tab navigating `/chats`.
+
+---
+
 ## State Management (Pinia) — stores/
 
 | Store | Contents |

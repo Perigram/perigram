@@ -25,11 +25,17 @@ the domain attachment kind instead of accepting component names.
 - `ArtifactTextEditor.vue` owns the editable text and CSV save path. Text
   documents are markdown by default: the editing surface is the PrimeVue
   `Editor` (Quill) rich text control whose HTML converts to markdown on
-  save (`turndown`) and from markdown on load (`marked`), reading and
-  writing in the same serif prose voice as the preview. The editor
+  save (`turndown`) and from markdown on load (`marked`). Quill's bundled
+  themes hardcode a Helvetica 13px document voice, so the host applies
+  the app's `editor` typography role (serif, one size above prose) and
+  re-imposes it on the editor internals through inline pt styles (the
+  repo's cascade discipline: no scoped typography CSS); the toolbar
+  keeps the UI font. The editor
   toolbar is restricted to formats markdown can round-trip. The
   persistence adapter carries the file `extension` (`.md` for instance
   documents, `.txt` for legacy plain-text artifacts) and the save mime.
+  The editor is a document surface, not a flush canvas editor: it owns
+  its own pane padding.
 - `SketchEditor.vue` owns the SKETCH editing surface: perfect-freehand pen
   plus line/rect/ellipse/eraser tools, undo/redo, an optional background
   image (uploaded to the `sketches` bucket, referenced from the scene JSON),
