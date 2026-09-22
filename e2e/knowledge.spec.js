@@ -19,8 +19,14 @@ test.describe('knowledge service', () => {
     });
 
     test('sidebar entry opens the editor workspace tab', async ({ app }) => {
-        await app.gotoClient('/screens');
-        const entry = app.page.locator('li[role="menuitem"]', { hasText: 'Knowledge' }).first();
+        const me = await app.request.get('/api/auth/me');
+        expect(me.ok()).toBeTruthy();
+        const manifest = await me.json();
+        const home = (manifest.screens || []).find(screen => screen.template === 'home');
+        expect(home?.route, 'Expected a compiled home screen').toBeTruthy();
+        await app.gotoClient(home.route);
+        await app.page.waitForLoadState('load');
+        const entry = app.page.locator('.p-tieredmenu-item-label', { hasText: 'Knowledge' }).first();
         await expect(entry).toBeVisible();
         await entry.click();
         const editor = app.page.locator('iframe[data-knowledge-editor]');
@@ -28,5 +34,6 @@ test.describe('knowledge service', () => {
         expect(await editor.getAttribute('src')).toBe('http://localhost:4310/');
         const editorResponse = await app.request.get('http://localhost:4310/');
         expect(editorResponse.ok()).toBeTruthy();
+        await app.expectCleanRuntime();
     });
 });
