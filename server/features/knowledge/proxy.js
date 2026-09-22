@@ -15,6 +15,11 @@ import { authorizeKnowledge, proxyTarget } from './service.js';
  * container-internal host. The original browser Host must reach the
  * container because it is what `--external-url` allowlists.
  *
+ * Websocket upgrades (OpenKnowledge's `/collab`) answer 501 instead of
+ * being attempted: a half-open upgrade through `node:http` fails with
+ * socket errors that must never escape as unhandled rejections. The
+ * handler therefore always resolves and destroys broken sockets itself.
+ *
  * Served from both the bare route and the catch-all so the entry URL can
  * keep its trailing slash (OpenKnowledge emits relative asset paths).
  */
@@ -38,6 +43,11 @@ export function handleProxy(event) {
     }
     authorizeKnowledge(auth);
 
+    if (getHeader(event, 'upgrade') || event.method === 'CONNECT') {
+        setResponseStatus(event, 501);
+        return Promise.resolve();
+    }
+
     const path = event.context.params?._ ?? '';
     const search = new URL(event.path, 'http://proxy.internal').search;
     const target = new URL(proxyTarget(`${path}${search}`));
@@ -48,7 +58,7 @@ export function handleProxy(event) {
     }
     headers.host = getHeader(event, 'host') || target.host;
 
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
         const upstream = httpRequest(
             {
                 hostname: target.hostname,
@@ -58,23 +68,24 @@ export function handleProxy(event) {
                 headers
             },
             upstreamRes => {
-                setResponseStatus(event, upstreamRes.statusCode || 502);
-                for (const [name, value] of Object.entries(upstreamRes.headers)) {
-                    if (HOP_BY_HOP.has(name) || name === 'content-length') continue;
-                    if (value !== undefined) setResponseHeader(event, name, value);
+                try {
+                    setResponseStatus(event, upstreamRes.statusCode || 502);
+                    for (const [name, value] of Object.entries(upstreamRes.headers)) {
+                        if (HOP_BY_HOP.has(name) || name === 'content-length') continue;
+                        if (value !== undefined) setResponseHeader(event, name, value);
+                    }
+                } catch {
+                    event.node.res.destroy();
+                    return resolve();
                 }
-                pipeline(upstreamRes, event.node.res, error => {
-                    if (error) reject(error);
-                    else resolve();
-                });
+                pipeline(upstreamRes, event.node.res, () => resolve());
             }
         );
-        upstream.on('error', error => {
-            setResponseStatus(event, 502);
+        upstream.on('error', () => {
+            if (!event.node.res.headersSent) setResponseStatus(event, 502);
+            event.node.res.destroy();
             resolve();
         });
-        pipeline(event.node.req, upstream, error => {
-            if (error) upstream.destroy();
-        });
+        pipeline(event.node.req, upstream, () => upstream.destroy());
     });
 }
