@@ -115,7 +115,7 @@ process vocabulary; none may gain new consumers.
   entity mutation snapshots publish through the same store. Successful
   mutations publish a complete entity snapshot to the browser-local
   `utils/instance-events.js` contract used by shared stores and generated screens.
-- `cassettes.js`, `toolProfiles.js`, etc.: Related feature stores.
+- `toolProfiles.js` etc.: Related feature stores. The legacy cassettes store died with the cassette manager; generated surfaces use the instances store.
 
 ## Conventions
 - Stores use `$fetch` to call Nitro API endpoints.

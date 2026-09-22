@@ -122,11 +122,13 @@ created template and its initial design; queue uploads should add the design id,
 not the template id.
 
 ### Update Operations
-- Cassette Designer v2 persists the entity it edits through `POST /api/cassettes`
-  and `PUT /api/cassettes/:id`, keeping editor persistence on the cassette
-  feature boundary. OCCS stays canonical under `data.definition`.
-- Save, Save As (posts a distinct template and switches the editor to it), and
-  Escape-selection clearing are UI behaviors on the same endpoints.
+- The generated designer mounts persist through the instance transport
+  (see [components/generated/README.md](../../../components/generated/README.md)):
+  the OCCS document is the file payload, and the designer emits its document
+  to the mounting surface. The legacy direct-REST designer path died with the
+  cassette manager. These routes remain for the pack-internal pipeline
+  (designs-from-template, export, DXF upload) and the sheet editor's
+  cassette upload dialog.
 - **`updateLayerMapping`**: Updates the mapping between DXF layers and production tools/standards.
 - **`updateParameters`**: Updates the list of configurable parameters for the template.
 - **`ensureCurrentGeometryRevision`**: Creates or reuses the current geometry
