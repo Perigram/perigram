@@ -1,4 +1,7 @@
 <template>
+  <!-- The project overload still owns entity tabs through the legacy
+       renderer family; generated home screens never produce entity items
+       — their instance surfaces are compiled screen tabs. -->
   <GeneratedInstanceFile
     v-if="item?.kind === 'entity'"
     :item="item"
@@ -6,7 +9,6 @@
     :action-entries="actionEntries"
     :closeable="closeable"
     :splittable="splittable"
-    :show-generated-actions="item.type !== 'project'"
     @execute-action="(action, entry) => $emit('execute-action', action, entry)"
     @open-entity="request => $emit('open-entity', request)"
     @open-page="page => $emit('open-page', page)"
@@ -57,7 +59,7 @@
         :tabs="tabs"
         active-key=""
         @select="$emit('select-tab', $event)"
-        @close="$emit('close-tab', $event)"
+        @close-tab="$emit('close-tab', $event)"
         @add="$emit('add-tab', $event)"
         @refresh="$emit('refresh')"
       />
@@ -78,6 +80,11 @@
 </template>
 
 <script setup>
+// The workspace pane dispatcher: opened screens (type screens and
+// instance-bound detail screens), registered workspace pages, and — for
+// the project overload only — legacy entity file tabs. Generated home
+// screens produce no entity items: every instance surface there is a
+// compiled screen rendered through the generator.
 import GeneratedInstanceFile from '~/components/generated/GeneratedInstanceFile.vue';
 import GeneratedWorkspacePage from '~/components/generated/GeneratedWorkspacePage.vue';
 import GeneratedScreenPane from '~/components/generated/GeneratedScreenPane.vue';

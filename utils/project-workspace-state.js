@@ -107,7 +107,10 @@ function normalizeOpenedScreenRefs(value) {
   )).map(reference => ({
     key: reference.key,
     screenKey: reference.screenKey,
-    ...(typeof reference.typeId === 'string' ? { typeId: reference.typeId } : {})
+    ...(typeof reference.typeId === 'string' ? { typeId: reference.typeId } : {}),
+    // Instance-bound detail tabs carry their instance id; type screens
+    // carry none.
+    ...(typeof reference.instanceId === 'string' ? { instanceId: reference.instanceId } : {})
   }));
 }
 

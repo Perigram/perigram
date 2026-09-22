@@ -257,10 +257,9 @@ Discord-style operational shell:
   self-scrolling wrapper. The tree renders the TYPE hierarchy from the
   render contracts: registry containment (declared children edges) nests
   types under their parents, manifest-backed types plus their ancestors
-  render as nodes (the single generator label seam —
-  `useLocalizedTypeLabel` over the bundle type, so design-system entity
-  contracts win before the authored render label — plus the render-policy
-  icon), and a type's home-section
+  render as nodes (procedural labels only — the generated type key with
+  a locale override over the authored render label, plus the
+  render-policy icon; no entity contracts), and a type's home-section
   instances hang beneath it. Root types — authored classes and groups —
   are selectable: clicking any type node opens its compiled `typeList`
   screen as a pane tab (`GeneratedScreenPane`, below), never a separate
@@ -303,12 +302,18 @@ Discord-style operational shell:
   sources (`linkedExplorerChildSources`) scoped to the parent's lineage and
   merges them into the workspace item pool. Entities opened through nested
   pane navigation nest the same way.
-- Selecting an explorer row opens or selects that entity in the active pane;
-   the active pane's selected key drives the tree selection. The
+- Selecting an explorer row opens the instance's compiled detail screen
+   as a pane tab — the manifest's `instanceDetail` screen, or the
+   synthesized fallback derived from the type's list screen — rendered
+   through the generator; there is no entity renderer in the home shell.
+   Editor-bound types without a detail surface open their registered
+   editor page instead, and a type with neither stays silent, exactly
+   like the routed surface contract. Rows whose instance is open in the
+   active pane carry the normal text color. The
    desktop sidebar does not link out to hub entity-list screens; the full
    hierarchy is navigable in place.
-- Sidebar row chrome: entity rows render muted until opened — only the row
-   open in the active pane carries the normal text color — and the row
+- Sidebar row chrome: entity rows render muted until opened — only rows
+   whose instance is open in the active pane carry the normal text color — and the row
    ellipsis action buttons (section create actions, entity row actions)
    reveal on hover (`opacity-0 group-hover:opacity-100`, keyboard focus
    included) instead of sitting permanently beside every row.
@@ -318,28 +323,36 @@ Discord-style operational shell:
 - The pane area is the same recursive `WorkspaceSplitNode` tree used by the
   project workspace: IDE-style file tabs, wheel-scrollable tab strips, split
   right/down, pane-local close, registered workspace pages (for example the
-  cassette designer), and `GeneratedInstanceFile` bodies that scope each
-  entity's own compiled detail screen. There is no Explorer header or project
-  action strip; collection creation belongs to sidebar sections and entity
-  operations belong to the opened file tabs.
+  cassette designer), and screen panes (`GeneratedScreenPane`): type
+  screens through the shared type host, instance-bound detail screens
+  through the detail host (`GeneratedDetailScreen`) with the instance id
+  in the screen scope. Workspace overloads (project, editor-backed
+  detail types) keep the legacy renderer inside the pane, exactly like
+  the routed page. There is no Explorer header or project
+  action strip; collection creation belongs to sidebar sections and
+  entity operations belong to the detail screens' own action surfaces.
 - Tab creation is explicit: new tabs come only from the tab strip's add
-  control, sidebar type screens, and live call stages (calls stay in their own tab so workspace
+  control, sidebar type screens, explorer instance rows, and live call stages (calls stay in their own tab so workspace
   navigation never unmounts an active call). Every other navigation —
   explorer rows, nested entity links, workspace pages — reuses the pane's
   selected tab in place (replacing an empty placeholder like any content), and
   opening an item that already has a tab in the pane just selects it. Each
   tab keeps its own selected content while switching because pane tab keys
-  and the selected key are persisted pane state. Entity tab titles follow
-  the render identity contract (the loaded DTO through
-  `dtoToScreenInstance` plus `instanceIdentity` from the mapping
-  contract), so the declared identity field wins and raw ids never
-  render; type-screen tabs carry their compiled manifest label.
+  and the selected key are persisted pane state. Detail tab titles follow
+  the render identity contract (`instanceIdentity` from the mapping
+  contract over the instances pool), so the declared identity field wins
+  and raw ids never render; type-screen tabs carry procedural labels
+  (the generated type key with a locale override over the manifest
+  label).
 - Tab and pane state persists as versioned browser UI state scoped to the
-  current user and organization (`utils/home-workspace-state.js`). It stores
-  the pane tree, tab selections, opened entity references, and opened page
+  current user and organization (`utils/home-workspace-state.js`,
+  version 3 — instance surfaces are instance-bound screen references).
+  It stores the pane tree, tab selections, opened screen references
+  (type and instance-bound), and opened page
   references using the same normalization contract as the project workspace,
-  minus explorer fields. Entities opened through nested detail navigation are
-  hydrated through the entity store like project workspace files; lazily
+  minus explorer fields. Explorer rows and editor pages keep their
+  records hydrated through the instances store pool for nesting and
+  page props; lazily
   fetched explorer children stay session-local.
 
 ## Project Workspace

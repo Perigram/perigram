@@ -18,7 +18,7 @@ function memoryStorage(initial = {}) {
 describe('home workspace state', () => {
   it('scopes the storage key to the user and organization', () => {
     expect(homeWorkspaceStorageKey({ userId: 'u1', organizationId: 'o1' }))
-      .toBe('cutkit:home-workspace:2:u1:o1');
+      .toBe('cutkit:home-workspace:3:u1:o1');
     expect(homeWorkspaceStorageKey({ userId: '', organizationId: 'o1' })).toBe('');
     expect(homeWorkspaceStorageKey({ userId: 'u1', organizationId: '' })).toBe('');
   });
