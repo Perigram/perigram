@@ -105,9 +105,11 @@ that workspace (the image bakes a global git identity for it).
   knowledge base. Single-organization deployments are the intended shape;
   per-org workspaces would need per-org containers or path-scoped
   rewrites the flat web editor cannot honor.
-- The proxy forwards HTTP only. Anything OpenKnowledge serves over
-  websockets (live timeline push) does not traverse the Nitro proxy;
-  the editor falls back to its non-socket behavior.
+- The proxy forwards HTTP only. OpenKnowledge's websocket endpoints
+  (live collab on `/collab`) answer `501` cleanly — attempting them
+  through the HTTP proxy would fail with socket errors, and an escaped
+  unhandled rejection takes down the dev module bridge; the editor falls
+  back to its non-socket behavior.
 - Realtime integration with the connections layer is intentionally
   absent: OpenKnowledge has no event contract to fan out.
 
