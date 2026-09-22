@@ -62,9 +62,12 @@ const sketchPersistence = computed(() => ({
   origin: { value: props.artifact.data?.metadata?.origin || null }
 }));
 // Artifact-backed persistence for the shared text/csv editor: bytes
-// through the artifact file-revision transport, mime preserved.
+// through the artifact file-revision transport, mime preserved. Legacy
+// text artifacts are plain .txt documents; the markdown default belongs
+// to the instance-backed editor contract.
 const textPersistence = computed(() => ({
   title: props.artifact.identity?.name || '',
+  extension: '.txt',
   loadText: () => fetch(`/api/artifacts/${encodeURIComponent(props.artifact._id)}`).then(response => response.text()),
   saveText: async (text, filename) => {
     const mimeType = props.artifact.attachments?.primary?.metadata?.mimeType

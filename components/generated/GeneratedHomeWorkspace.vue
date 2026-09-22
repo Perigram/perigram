@@ -60,7 +60,8 @@
                 class="group flex min-w-0 flex-1 items-center gap-2"
                 :data-home-type-id="node.data.typeId"
               >
-                <i :class="node.icon" class="shrink-0 text-muted" aria-hidden="true" />
+                <!-- The tree's own node icon renders node.icon (Aura
+                     default); a second icon here would duplicate it. -->
                 <span class="min-w-0 flex-1 truncate text-label">{{ node.label }}</span>
                 <Button
                   v-if="node.data.section && collectionActions(node.data.section.region).length"
@@ -177,13 +178,41 @@
       </div>
     </div>
 
-    <div class="flex h-full min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-4 pb-6 md:hidden">
-      <GeneratedHomeScreen
-        :screen="screen"
-        :source-state="sourceState"
-        @refresh="$emit('refresh')"
-        @execute-action="(action, entity, context) => $emit('execute-action', action, entity, context)"
-      />
+    <!-- Mobile home mirrors the desktop sidebar's top level as one tab
+         strip: the root type screens plus chats. Tabs are fixed (no
+         user-added tabs, no home tab — the workspace is already home);
+         selecting a type tab renders its typeList screen through the
+         same CTS render contract as the desktop panes. -->
+    <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:hidden" data-home-workspace-mobile>
+      <Tabs :value="mobileTabKey" class="flex shrink-0 flex-col" @update:value="selectMobileTab">
+        <TabList scrollable>
+          <Tab v-for="tab in mobileTabs" :key="tab.key" :value="tab.key">
+            <span class="flex min-w-0 items-center gap-2">
+              <i :class="tab.icon" class="shrink-0" aria-hidden="true" />
+              <span class="min-w-0 truncate">{{ tab.label }}</span>
+            </span>
+          </Tab>
+        </TabList>
+      </Tabs>
+      <div v-if="mobileChatsDefinition" v-show="mobileTabKey === 'page:chats'" class="min-h-0 flex-1 overflow-hidden">
+        <!-- The registry definition supplies the component; mobile keeps
+             openCallInPane off so calls take ChatSupport's own mobile
+             full-screen surface instead of invisible desktop panes. -->
+        <component
+          :is="mobileChatsDefinition.component"
+          embedded
+          full-page
+          @refresh="$emit('refresh')"
+        />
+      </div>
+      <div v-if="mobileTypeScreen" v-show="mobileTabKey !== 'page:chats'" class="min-h-0 flex-1 overflow-y-auto p-4">
+        <GeneratedTypeScreen
+          :key="mobileTypeScreen.screenKey"
+          :screen="mobileTypeScreen"
+          @open-instance="openMobileInstance"
+          @refresh="$emit('refresh')"
+        />
+      </div>
     </div>
 
     <Menu ref="actionsMenu" :model="rowActionMenuItems" :popup="true">
@@ -204,6 +233,9 @@ import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
 import Menu from 'primevue/menu';
 import Tree from 'primevue/tree';
+import Tabs from 'primevue/tabs';
+import TabList from 'primevue/tablist';
+import Tab from 'primevue/tab';
 import { useI18n } from 'vue-i18n';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import InstanceStatus from '~/components/shared/status/InstanceStatus.vue';
@@ -213,7 +245,7 @@ import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
-import GeneratedHomeScreen from '~/components/generated/GeneratedHomeScreen.vue';
+import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import { actionAppliesToEntity, isCreateAction, isGeneratedSurfaceAction, isRelationLinkAction } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
@@ -465,6 +497,46 @@ function typeNode(typeId, childTypes) {
 
 function typeMenuKey(typeId = '') {
   return `type:${typeId}`;
+}
+
+// Mobile tabs mirror the sidebar tree's top level: root types with a
+// compiled typeList screen plus the always-openable chats page. The
+// selection is session-local; nothing here persists or adds tabs.
+const mobileTabs = computed(() => [
+  ...explorerNodes.value.flatMap(node => (
+    node.data?.typeId && node.data?.screen
+      ? [{
+        key: `screen:${node.data.screen.screenKey || node.data.screen.id}`,
+        label: node.label,
+        icon: node.icon,
+        screen: node.data.screen
+      }]
+      : []
+  )),
+  { key: 'page:chats', label: t('support.chatTitle'), icon: 'pi pi-comments' }
+]);
+const mobileTabKey = ref('');
+watch(mobileTabs, tabs => {
+  if (!tabs.some(tab => tab.key === mobileTabKey.value)) mobileTabKey.value = tabs[0]?.key || '';
+}, { immediate: true });
+const mobileTypeScreen = computed(() => (
+  mobileTabs.value.find(tab => tab.key === mobileTabKey.value)?.screen || null
+));
+const mobileChatsDefinition = computed(() => resolveGeneratedWorkspacePage('chats'));
+
+function selectMobileTab(key) {
+  mobileTabKey.value = key;
+}
+
+// Mobile instance opens follow the routed surface contract: the compiled
+// detail screen route is the instance surface outside the desktop panes.
+function openMobileInstance(instance = {}) {
+  const route = detailRouteForInstance({
+    entity: { _id: instance.id },
+    typeId: instance.type,
+    manifest: authStore.screenManifest
+  });
+  if (route) navigateTo(route);
 }
 
 function typeLabelOf(typeId = '') {
@@ -845,19 +917,8 @@ function selectNode(node) {
   }
   const item = node.data?.item;
   if (!item) return;
-  // Sidebar rows are contract-generated destinations: the compiled detail
-  // screen for the row's type is the canonical instance surface, so the
-  // click routes there. With no paired detail screen the row keeps its
-  // workspace-pane behavior (selected in the open pane, dead when none).
-  const route = detailRouteForInstance({
-    entity: item.entity,
-    typeId: item.type,
-    manifest: authStore.screenManifest
-  });
-  if (route) {
-    navigateTo(route);
-    return;
-  }
+  // Sidebar rows open in the active pane — the workspace owns instance
+  // surfaces; nothing navigates a separate route from the tree.
   selectByKey(item.key);
 }
 

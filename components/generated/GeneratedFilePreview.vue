@@ -3,7 +3,7 @@
     <ArtifactViewer
       v-if="preview.renderable"
       :source="{ mode: preview.mode, fileUrl: preview.fileUrl, attachment: entity.attachments?.primary }"
-      class="min-h-[24rem] flex-1"
+      class="h-72 w-full shrink-0"
     />
     <div v-else class="flex items-center justify-end">
       <Button
@@ -13,7 +13,8 @@
         severity="secondary"
         outlined
         as="a"
-        :href="preview.fileUrl"
+        :href="`${preview.fileUrl}&download=1`"
+        download
         target="_blank"
         rel="noopener"
       />
@@ -23,8 +24,11 @@
 
 <script setup>
 // File payload preview: renders a file instance's payload through the
-// shared viewer modules using the type's declared preview policy. Only
-// the preview contract lives here; editor surfaces own their overloads.
+// shared viewer modules using the type's declared preview policy. The
+// preview is a bounded, non-scrolling surface (the pane viewer owns
+// pan/zoom interaction; documents page themselves; long text clamps);
+// the payload download stays the escape hatch. Only the preview contract
+// lives here; editor surfaces own their overloads.
 import { computed } from 'vue';
 import Button from 'primevue/button';
 import ArtifactViewer from '~/components/artifacts/ArtifactViewer.vue';

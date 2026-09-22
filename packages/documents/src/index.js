@@ -40,8 +40,8 @@ export const documentsTypes = Object.freeze([
   }),
   documentType({
     id: 'text-document',
-    mime: ['text/plain'],
-    accept: ['.txt', 'text/plain'],
+    mime: ['text/markdown'],
+    accept: ['.md', 'text/markdown'],
     maxSize: 10 * MB,
     preview: 'text',
     icon: 'pi pi-file-edit',
@@ -74,7 +74,10 @@ export const documentsTypes = Object.freeze([
     mime: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
     accept: ['.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
     maxSize: 25 * MB,
-    preview: 'docx',
+    // Word documents have no reasonable bounded preview: a faithful render
+    // needs a paginated document surface, not a preview box. The payload
+    // downloads instead.
+    preview: 'download',
     icon: 'pi pi-file-word',
     label: 'DOCX document'
   })
