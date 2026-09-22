@@ -1,28 +1,4 @@
-import { cncCommands, cncWorkflows } from '#packages/domain-cnc/src/index.js';
-import { compileWorkflowDraft } from '#utils/workflow-compiler.js';
-import { createCncFixtureScenario, validateCncFixtureScenario } from './scenarios.js';
-
 export const WORKBENCH_CONTEXT_ID = 'cnc-workbench-context';
-
-export function createWorkbenchContext({ workflows = cncWorkflows, entities = [], commands = cncCommands } = {}) {
-  const compiled = compileWorkflowDraft({ entities, workflows });
-  const scenario = createCncFixtureScenario({
-    workflows: compiled.machines,
-    commands
-  });
-  const context = normalizeWorkbenchContext({
-    id: WORKBENCH_CONTEXT_ID,
-    label: 'CNC workbench context',
-    workflows: compiled,
-    entities: scenario.entities,
-    refs: scenario.refs,
-    access: scenario.access,
-    commandBindings: scenario.manifests?.commandDefaults || {},
-    relationships: scenario.relationships || [],
-    validation: validateCncFixtureScenario(scenario, compiled.machines)
-  });
-  return toPlainObject(context);
-}
 
 export function normalizeWorkbenchContext(context = {}) {
   const entities = normalizeEntityMap(context.entities || {});
