@@ -31,7 +31,7 @@ export function prepareAuthoredDefinition(data = {}, domain = {}) {
 const BLOCK_PRESENTATION = {
   identity: { defaultPath: 'identity.name', icon: 'pi pi-id-card', fields: ['identity.uid', 'identity.name', 'identity.slug', 'identity.serial', 'identity.reference'] },
   origin: { defaultPath: 'origin.state.primary', icon: 'pi pi-history', fields: ['origin.state.primary', 'origin.userId', 'origin.timestamp', 'origin.metadata', 'origin.eventId', 'origin.lifecycle'] },
-  status: { defaultPath: 'status.state.primary', icon: 'pi pi-circle-fill', fields: ['status.state.primary', 'status.userId', 'status.timestamp', 'status.metadata', 'status.eventId', 'status.lifecycle'] },
+  status: { defaultPath: 'states.main', icon: 'pi pi-circle-fill', fields: ['states.main', 'status.userId', 'status.timestamp', 'status.metadata', 'status.eventId', 'status.lifecycle'] },
   lineage: { defaultPath: 'lineage.organizationId', icon: 'pi pi-sitemap' },
   relations: { defaultPath: 'relations.value', icon: 'pi pi-link' },
   provenance: { defaultPath: 'provenance.source', icon: 'pi pi-directions-alt' },
@@ -577,7 +577,7 @@ export function interpretDeclarationEdges(nodes = [], edges = [], records = {}, 
       // entry wire: the state value is the record's status target
       const value = String(source.data?.value || '').trim();
       const record = records[target.data?.refId];
-      if (value && record && record.status?.to !== value) {
+      if (value && record && record.state?.to !== value) {
         mutations.push({ scope: 'record', recordId: target.data.refId, key: 'status.to', value });
       }
     } else if ((source.type === 'ctsClass' || source.type === 'ctsType') && target.type === 'ctsField') {

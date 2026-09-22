@@ -35,7 +35,7 @@ test.describe('home and entity UI', () => {
     await app.page.route('**/api/instances/cassette**', route => route.fulfill({ json: [cassette] }));
     await app.page.route('**/api/instances/e2e-folder**', route => route.fulfill({ json: [folder] }));
     await app.page.route('**/api/instances/e2e-note**', route => route.fulfill({ json: [note] }));
-    await app.page.route('**/api/status/actions**', route => route.fulfill({ json: [] }));
+    await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
 
     const home = (manifest.screens || []).find(screen => screen.template === 'home');
     expect(home?.route, 'Expected a compiled home screen').toBeTruthy();
@@ -85,7 +85,7 @@ test.describe('home and entity UI', () => {
     expect(id, 'Expected the created image id').toBeTruthy();
     const detail = (manifest.screens || []).find(screen => screen.template === 'instanceDetail' && screen.typeId === 'image');
     expect(detail?.route, 'Expected a compiled image detail screen').toBeTruthy();
-    await app.page.route('**/api/status/actions**', route => route.fulfill({ json: [] }));
+    await app.page.route('**/api/state/actions**', route => route.fulfill({ json: [] }));
     await app.gotoClient(`${detail.route}?instanceId=${encodeURIComponent(id)}`);
     await expect(app.page.getByText('Detail Image One').first()).toBeVisible();
     const entityPage = app.page.locator('.entity-page').first();
@@ -202,7 +202,7 @@ function instanceDto(id, type, name, overrides = {}) {
     type,
     identity: { uid: id, name },
     origin: {},
-    status: { state: { primary: 'CREATED' } },
+    states: { main: 'CREATED' },
     lineage: { organizationId: 'org' },
     relations: {},
     provenance: {},

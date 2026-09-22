@@ -44,27 +44,27 @@ const INDEXES = {
   // Libraries Collection
   libraries: [
     { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
-    { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
+    { keys: { 'states.main': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Projects Collection
   projects: [
     { keys: { 'identity.slug': 1 }, options: { unique: true, name: 'slug_unique' } },
     { keys: { 'lineage.organizationId': 1 }, options: { name: 'lineage_org_idx' } },
-    { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
+    { keys: { 'states.main': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Queues Collection
   queues: [
     { keys: { 'lineage.organizationId': 1, 'lineage.projectId': 1 }, options: { name: 'lineage_org_prj_idx' } },
     { keys: { 'identity.queueNumber': -1 }, options: { name: 'queue_number_idx' } },
-    { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
+    { keys: { 'states.main': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Nesting Runs Collection
   nesting_runs: [
     { keys: { 'lineage.queueId': 1 }, options: { name: 'lineage_queue_idx' } },
-    { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
+    { keys: { 'states.main': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Sheet Designs Collection
@@ -88,7 +88,7 @@ const INDEXES = {
   // Material Piles Collection
   material_piles: [
     { keys: { 'lineage.organizationId': 1, 'lineage.warehouseId': 1 }, options: { name: 'lineage_org_wh_idx' } },
-    { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
+    { keys: { 'states.main': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Sheets Collection
@@ -96,7 +96,7 @@ const INDEXES = {
     { keys: { 'identity.serial': 1 }, options: { unique: true, name: 'serial_unique' } },
     { keys: { 'lineage.pileId': 1 }, options: { name: 'lineage_pile_idx' } },
     { keys: { 'lineage.runId': 1 }, options: { name: 'lineage_run_idx' } },
-    { keys: { 'status.state.primary': 1 }, options: { name: 'status_state_idx' } }
+    { keys: { 'states.main': 1 }, options: { name: 'status_state_idx' } }
   ],
 
   // Remnants Collection

@@ -36,12 +36,12 @@ export function actionAppliesToEntity(action = {}, entity = {}, typeId = '') {
   if (isCreateAction(action)) {
     const parentType = action.parentTypeId || '';
     if (!parentType || parentType !== typeId) return false;
-    const fromStatus = action.status?.from || '';
+    const fromStatus = action.state?.from || '';
     if (fromStatus && entityPrimaryStatus(entity) !== fromStatus) return false;
     return true;
   }
   if (action.typeId && typeId && action.typeId !== typeId) return false;
-  const fromStatus = action.status?.from || '';
+  const fromStatus = action.state?.from || '';
   if (fromStatus && entityPrimaryStatus(entity) !== fromStatus) return false;
   return true;
 }
@@ -79,6 +79,10 @@ export function parentBoundCreateAppliesToTypeId(action = {}, typeId = '') {
 }
 
 export function entityPrimaryStatus(entity = {}) {
+  return entity.states?.main || entityPrimaryStatusOfLegacyBlock(entity) || '';
+}
+
+function entityPrimaryStatusOfLegacyBlock(entity = {}) {
   const state = entity.status?.state;
   if (typeof state === 'string') return state;
   return state?.primary || state?.active?.main || '';

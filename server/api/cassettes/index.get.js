@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     auth,
     {
       ...query,
-      status: query.status || query.primaryStatus,
+      status: query.status || query.primaryState,
       limit: query.limit ? parseInt(query.limit) : 100,
       skip: query.skip ? parseInt(query.skip) : 0
     }

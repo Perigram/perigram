@@ -14,7 +14,6 @@
         :icon="source === 'real' ? 'pi pi-database' : 'pi pi-sparkles'"
         size="small"
         :severity="source === 'real' ? undefined : 'secondary'"
-        @click="toggleSource"
       />
       <Button
         :label="$t('uiMapping.stateMatrix')"
@@ -69,7 +68,6 @@ import ScrollTop from 'primevue/scrolltop';
 import Slider from 'primevue/slider';
 import GeneratedMappingScreen from '~/components/ui-mapping/GeneratedMappingScreen.vue';
 import { generateUiMappingWorld, DEFAULT_RANDOM_SEED } from '~/test-data/ui-mapping-random.js';
-import { createRealUiMappingWorld } from '~/test-data/ui-mapping-real.js';
 import { SPACING_STEPS } from '#shared/ui-mapping/index.js';
 
 definePageMeta({ layout: 'ui-lab-layout' });
@@ -82,10 +80,7 @@ const seed = computed(() => {
   const parsed = Number(route.query.seed);
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_RANDOM_SEED;
 });
-const source = computed(() => (route.query.source === 'real' ? 'real' : 'random'));
-const world = computed(() => (source.value === 'real'
-  ? createRealUiMappingWorld()
-  : generateUiMappingWorld(seed.value)));
+const world = computed(() => generateUiMappingWorld(seed.value));
 const scale = computed(() => {
   const raw = Number(route.query.scale);
   return SPACING_STEPS.includes(raw) ? raw : 1;
@@ -93,6 +88,8 @@ const scale = computed(() => {
 const setScale = value => {
   router.push({ query: { ...route.query, scale: String(value) } });
 };
+// The real-world fixture source died with the legacy entity fixtures;
+// the lab always renders the synthetic world now.
 const screens = computed(() => Object.values(world.value.contract.screens));
 
 // Data-state matrix: applies the world's seeded loading/denied/error
@@ -127,9 +124,7 @@ watch(() => route.query.screen, async key => {
   document.getElementById(`wsection-${String(key).replace(/[^a-zA-Z0-9_-]/g, '-')}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }, { immediate: true });
 
-const toggleSource = () => {
-  router.push({ query: { ...route.query, source: source.value === 'real' ? undefined : 'real' } });
-};
+
 
 const reroll = () => {
   router.push({ query: { ...route.query, seed: Math.floor(Math.random() * 999999) + 1 } });

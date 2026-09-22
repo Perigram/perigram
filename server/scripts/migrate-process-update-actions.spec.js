@@ -7,10 +7,10 @@ describe('process update action migration', () => {
       id: 'approve',
       actionKind: 'changeStatus',
       typeId: 'project',
-      statusRef: 'approved',
-      status: { from: 'DRAFT', to: 'APPROVED', label: 'Approve' },
+      stateRef: 'approved',
+      state: { from: 'DRAFT', to: 'APPROVED', label: 'Approve' },
       access: { grants: [{ roleId: 'approver', level: 'write' }] },
-      inputPolicy: { fields: [{ id: 'note', path: 'statusMeta.note' }] },
+      inputPolicy: { fields: [{ id: 'note', path: 'stateMeta.note' }] },
       trigger: { mode: 'manual' }
     });
 
@@ -18,15 +18,15 @@ describe('process update action migration', () => {
       id: 'approve',
       actionKind: 'updateEntity',
       typeId: 'project',
-      statusRef: 'approved',
-      status: { from: 'DRAFT', to: 'APPROVED', label: 'Approve' },
+      stateRef: 'approved',
+      state: { from: 'DRAFT', to: 'APPROVED', label: 'Approve' },
       access: {
         grants: [{ roleId: 'approver', level: 'write' }],
-        statusFrom: 'DRAFT',
-        statusTo: 'APPROVED'
+        stateFrom: 'DRAFT',
+        stateTo: 'APPROVED'
       },
       mutation: { fields: [] },
-      inputPolicy: { fields: [{ id: 'note', path: 'statusMeta.note' }] },
+      inputPolicy: { fields: [{ id: 'note', path: 'stateMeta.note' }] },
       trigger: { mode: 'manual' }
     });
     expect(migrated.inputs.map(input => input.id)).toEqual(['entity', 'status']);

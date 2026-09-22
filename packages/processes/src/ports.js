@@ -232,8 +232,8 @@ export function resolveNodePort(process = {}, node = {}, handle = '', direction 
     const entityInput = (record.inputs || []).find(port => port.id === 'entity' || port.typeId);
     return normalizePortSpec(entityInput || { id: 'entity', kind: 'entity' });
   }
-  if (node.type === 'statusDefinition' && direction === 'output') {
-    return normalizePortSpec({ id: 'status', label: record.label || record.statusId || 'status', kind: 'status' });
+  if (node.type === 'stateDefinition' && direction === 'output') {
+    return normalizePortSpec({ id: 'status', label: record.label || record.stateId || 'status', kind: 'status' });
   }
   if (node.type === 'valueInput' && direction === 'output') {
     return normalizePortSpec({
@@ -496,7 +496,7 @@ function recordForNode(process = {}, node = {}) {
     action: 'actions',
     service: 'services',
     socket: 'sockets',
-    statusDefinition: 'statusDefinitions',
+    stateDefinition: 'stateDefinitions',
     valueInput: 'valueInputs',
     processNode: 'processNodes'
   }[node.type];

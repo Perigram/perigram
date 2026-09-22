@@ -11,7 +11,7 @@ import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.
 import { toFlexibleId } from '../../utils/objectid.js';
 import { pluralize } from '../../utils/strings.js';
 import { EntityRevision } from './model.js';
-import { statusService } from '../../core/machines/service.js';
+import { stateService } from '../../core/machines/service.js';
 
 const DEFAULT_SCOPE = 'content';
 
@@ -102,7 +102,7 @@ export async function ensureForEntitySnapshot({
 
   const latest = await repository.findLatest(typeId, instanceId, scope);
   const number = Number(latest?.data?.number || 0) + 1;
-  const origin = await statusService.initialStatusForOrganization(
+  const origin = await stateService.initialStatusForOrganization(
     'entity_revision',
     entity.lineage?.organizationId,
     userId,

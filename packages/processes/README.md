@@ -199,7 +199,7 @@ contracts: `diffProcessContracts(previous, next)` reports added/removed/changed
 actions (with the changed semantic fields), screens, and role grants;
 per-type-id CRUD capability changes; per-producer workflow changes (states
 with region prefixes, `from->to` transitions, entry states); field-policy
-section changes; and `removedInstanceStatuses` — primary-region statuses whose
+section changes; and `removedInstanceStatees` — primary-region statuses whose
 removal strands live entities, computed per entity type as the union of that
 type's producers. `hasProcessContractChanges` is the emptiness check. The diff
 is pure over compiled outputs; callers recompile both sides because the stored
@@ -621,7 +621,7 @@ mask, and pass the original list plus mask to `collection.filter`. Filter and
 Dispatch are selectors, not replacements: they return the original entity
 values and require an equal-length mask with the same branch paths, rejecting
 any branch or item mismatch instead of silently repeating the last mask entry.
-Comparison semantics are scalar for status and enum values — `status.state.primary`
+Comparison semantics are scalar for status and enum values — `states.main`
 travels through the ordinary Get Field/Logic dataflow as the primary status id
 string and compares as a scalar, and enum values compare as their scalar string
 form — while typed entity references compare structurally by their serialized
@@ -766,7 +766,7 @@ paths and item order in the output, and the managed read-only blocks
 (`origin`, `status`, `provenance`, `summary`) are readable through them even
 though writes to those blocks are rejected. Status remains a dedicated
 lifecycle socket and never travels through a
-generic mutable block. Status-based find/filter reads `status.state.primary`
+generic mutable block. Status-based find/filter reads `states.main`
 as a scalar through Get Field and compares it with scalar equality; it never
 constructs or mutates the status block. Producer services resolve their declared
 entity/entity-list construction references at the effect boundary.
@@ -845,7 +845,7 @@ the designer derives the entity type and source status from the incoming graph
 socket, carries the type to the output socket, and stores
 `action.access.statusFrom` / `action.access.statusTo` from that graph context
 and target status input. Compilation emits transition metadata plus a
-`primaryStatus = statusTo` rule on that concrete entity feature, and the same
+`primaryState = statusTo` rule on that concrete entity feature, and the same
 transition is written into the compiled workflow with `processRoleIds`. Manual execution remains controlled by the action
 availability contract; the access grant itself describes which entity type the
 role may access after the status change. Create-action access grants are
@@ -997,7 +997,7 @@ cassette-to-create-cassette-design graph compiles cassette design creation as a
 target-list action with a `templateId` constructor input, not as a cassette
 detail action.
 Typed create nodes expose their mode-specific constructor inputs together with
-canonical constructible block inputs and `status.state.primary`. Canonical
+canonical constructible block inputs and `states.main`. Canonical
 blocks do not change the selected typed construction mode; they augment the
 entity produced by that constructor.
 Relation-derived actions are update actions and therefore carry no create
@@ -1031,7 +1031,7 @@ access to `project` in both `CREATED` and `NEW`, the inferred screen aggregates
 them into one feature-level read source instead of pinning the source to the
 first status rule or lifting the whole screen to the maximum grant level. The
 generated source keeps applicable grant rules as `rule.any`; frontend loading
-turns those rules into `primaryStatuses` filters. The entity API still enforces
+turns those rules into `primaryStates` filters. The entity API still enforces
 the individual status-scoped grants when it filters returned records, while
 edit/admin affordances come from action and field grants rather than the
 route-level screen requirement.

@@ -45,7 +45,7 @@ flush to the app content boundary and do not inherit ordinary route padding or
 maximum width. The layout resolves this from the current user's screen manifest
 and the generated overload registry instead of hardcoding screen ids.
 
-The authenticated layout provides the active process `statusWorkflows` from
+The authenticated layout provides the active process `stateWorkflows` from
 the auth store to shared entity surfaces. This keeps card, page, inline-ref,
 and picker status presentation aligned with the organization lifecycle contract.
 

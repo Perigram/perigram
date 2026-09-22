@@ -54,7 +54,7 @@ function regionEntries(workflow = {}) {
 }
 
 // Retained primary-region states for one entity type across its producers.
-// Shared by the contract diff (removedInstanceStatuses) and the Apply
+// Shared by the contract diff (removedInstanceStatees) and the Apply
 // migration plan (target choices), so both speak the same state set.
 export function primaryStates(producerOutputs = {}, typeId = '') {
   const states = new Set();
@@ -150,7 +150,7 @@ function capabilitiesByTypeId(actions = {}) {
   return byType;
 }
 
-function removedInstanceStatuses(previousProducers = {}, nextProducers = {}) {
+function removedInstanceStatees(previousProducers = {}, nextProducers = {}) {
   const typeIds = new Set([
     ...Object.values(previousProducers || {}).map(output => output.typeId),
     ...Object.values(nextProducers || {}).map(output => output.typeId)
@@ -189,7 +189,7 @@ export function diffProcessContracts(previous = {}, next = {}) {
     capabilities: diffCapabilities(previous.actions, next.actions),
     workflows: diffWorkflows(previous.producerOutputs, next.producerOutputs),
     fieldPolicies: diffFieldPolicies(previous.producerOutputs, next.producerOutputs),
-    removedInstanceStatuses: removedInstanceStatuses(previous.producerOutputs, next.producerOutputs)
+    removedInstanceStatees: removedInstanceStatees(previous.producerOutputs, next.producerOutputs)
   };
 }
 
@@ -204,6 +204,6 @@ export function hasProcessContractChanges(diff = {}) {
     const record = diff[section];
     if (record && (record.addedProducers?.length || record.removedProducers?.length || record.changed?.length)) return true;
   }
-  if (diff.removedInstanceStatuses?.length) return true;
+  if (diff.removedInstanceStatees?.length) return true;
   return false;
 }

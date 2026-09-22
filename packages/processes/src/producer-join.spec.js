@@ -49,7 +49,7 @@ function createProjectRecord(id, label) {
     label,
     trigger: { mode: 'manual' },
     access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
-    status: { to: SOURCE_STATE }
+    state: { to: SOURCE_STATE }
   };
 }
 
@@ -172,7 +172,7 @@ describe('explicit producer join contract', () => {
       label: 'Create queue',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
-      status: { to: SOURCE_STATE },
+      state: { to: SOURCE_STATE },
       blocks: ['lineage']
     };
     definition.producerOutputs['create_queue:entity'] = producerOutputRecords([['create_queue', 'queue']])['create_queue:entity'];

@@ -170,12 +170,12 @@ export function createUiMapping(overrides = {}) {
 
   // resolveActionButton(action, { render }) -> { component, tone, icon, confirm, hidden }
   function resolveActionButton(action = {}, options = {}) {
-    const statusTarget = action.status?.to ? true : null;
+    const stateTarget = action.state?.to ? true : null;
     const entry = pickEntry(actionEntries, {
       actionKind: action.actionKind || null,
       trigger: action.trigger?.mode || null,
       relation: action.relation ? true : null,
-      statusTarget
+      stateTarget
     });
     if (entry.hidden) {
       return Object.freeze({ component: null, tone: null, icon: null, confirm: false, hidden: true });
@@ -188,8 +188,8 @@ export function createUiMapping(overrides = {}) {
       inline: entry.inline === true,
       hidden: false
     };
-    if (outcome.tone === 'state' && statusTarget) {
-      const stateRender = options.render?.states?.[action.status.to];
+    if (outcome.tone === 'state' && stateTarget) {
+      const stateRender = options.render?.states?.[action.state.to];
       outcome.severity = SEVERITY_MAP[stateRender?.severity] || 'secondary';
       outcome.icon = stateRender?.icon || outcome.icon;
       outcome.label = stateRender?.label || null;
@@ -509,7 +509,7 @@ export function resolveInstanceActions(actions = {}, typeId = null) {
   return Object.values(actions).filter(action => action?.typeId === typeId
     && INSTANCE_ACTION_KINDS.includes(action?.actionKind)
     && action?.trigger?.mode === 'manual'
-    && (action?.actionKind !== 'updateInstance' || action?.status?.to));
+    && (action?.actionKind !== 'updateInstance' || action?.state?.to || action?.status?.to));
 }
 
 // planActionLaunch(action): how a screen launches one manual action —

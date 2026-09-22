@@ -94,7 +94,7 @@
                     variant="inline"
                   />
                 </span>
-                <InstanceStatus
+                <InstanceState
                   v-if="node.data?.item?.entity?.status"
                   :entity="node.data.item.entity"
                   :type-id="node.data.item.type"
@@ -216,7 +216,7 @@ import Menu from 'primevue/menu';
 import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
-import InstanceStatus from '~/components/shared/status/InstanceStatus.vue';
+import InstanceState from '~/components/shared/state/InstanceState.vue';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
 import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';

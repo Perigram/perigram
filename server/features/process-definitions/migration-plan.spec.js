@@ -7,7 +7,7 @@ import {
   validateStatusMappings
 } from './migration-plan.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { statusService } from '~/server/core/machines/service.js';
+import { stateService } from '~/server/core/machines/service.js';
 import * as entityEventService from '../instance-events/service.js';
 
 vi.mock('~/server/runtime/app-registry.js', async (importOriginal) => ({
@@ -19,7 +19,7 @@ vi.mock('~/server/core/machines/service.js', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    statusService: { ...actual.statusService, setInitialStateForOrganization: vi.fn() }
+    stateService: { ...actual.stateService, setInitialStateForOrganization: vi.fn() }
   };
 });
 
@@ -102,7 +102,7 @@ describe('apply migration executor', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    statusService.setInitialStateForOrganization.mockResolvedValue({});
+    stateService.setInitialStateForOrganization.mockResolvedValue({});
   });
 
   it('re-targets only instances holding a mapped state and publishes invalidations', async () => {
@@ -110,9 +110,9 @@ describe('apply migration executor', () => {
       getInstanceService: type => type === 'project'
         ? {
             processList: vi.fn().mockResolvedValue([
-              { _id: 'p-1', status: { state: { primary: 'LEGACY_RETIRED' } } },
-              { _id: 'p-2', status: { state: { primary: 'draft' } } },
-              { _id: 'p-3', status: { state: { primary: 'OLD_DRAFT' } } }
+              { _id: 'p-1', states: { main: 'LEGACY_RETIRED' } },
+              { _id: 'p-2', states: { main: 'draft' } },
+              { _id: 'p-3', states: { main: 'OLD_DRAFT' } }
             ])
           }
         : null
@@ -130,8 +130,8 @@ describe('apply migration executor', () => {
 
     expect(result.failures).toEqual([]);
     expect(result.applied).toEqual({ project: { 'LEGACY_RETIRED->done': 1, 'OLD_DRAFT->draft': 1 } });
-    expect(statusService.setInitialStateForOrganization).toHaveBeenCalledTimes(2);
-    expect(statusService.setInitialStateForOrganization).toHaveBeenCalledWith(
+    expect(stateService.setInitialStateForOrganization).toHaveBeenCalledTimes(2);
+    expect(stateService.setInitialStateForOrganization).toHaveBeenCalledWith(
       'project', 'p-1', 'done', 'org-1', 'user-1',
       expect.objectContaining({ producerOutputId: 'project_source:result' })
     );
@@ -158,16 +158,16 @@ describe('apply migration executor', () => {
     });
 
     expect(result.applied).toEqual({});
-    expect(statusService.setInitialStateForOrganization).not.toHaveBeenCalled();
+    expect(stateService.setInitialStateForOrganization).not.toHaveBeenCalled();
   });
 
   it('records per-entity failures without aborting the remaining mappings', async () => {
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === 'project'
-        ? { processList: vi.fn().mockResolvedValue([{ _id: 'p-1', status: { state: { primary: 'LEGACY_RETIRED' } } }]) }
+        ? { processList: vi.fn().mockResolvedValue([{ _id: 'p-1', states: { main: 'LEGACY_RETIRED' } }]) }
         : null
     });
-    statusService.setInitialStateForOrganization.mockRejectedValue(new Error('machine missing'));
+    stateService.setInitialStateForOrganization.mockRejectedValue(new Error('machine missing'));
 
     const result = await applyStatusMigrations({
       mappings: [

@@ -45,7 +45,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     const service = instanceServiceResolver('cassette'); // pack type: static declaration, name row field
 
     const dto = await service.create(
-      { identity: { name: 'My cassette' }, data: { name: 'My cassette' }, status: { state: { primary: 'draft' } }, lineage: {} },
+      { identity: { name: 'My cassette' }, data: { name: 'My cassette' }, states: { main: 'draft' }, lineage: {} },
       'user-1',
       'org-1'
     );
@@ -63,7 +63,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(dto).toMatchObject({
       type: 'cassette',
       identity: { name: 'My cassette' },
-      status: { state: { primary: 'draft' } },
+      states: { main: 'draft' },
       data: { name: 'My cassette' }
     });
   });
@@ -91,7 +91,7 @@ describe('generic instance service stored shape (SPEC §3)', () => {
 
     await service.processUpdate('507f1f77bcf86cd799439011', {
       data: { name: 'Renamed' },
-      status: { state: { primary: 'active' } },
+      states: { main: 'active' },
       lineage: { organizationId: 'org-1' }
     });
 

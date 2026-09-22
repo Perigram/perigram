@@ -124,17 +124,17 @@
               </div>
             </template>
 
-            <template v-else-if="primitive.key === 'InstanceStatus'">
-            <InstanceStatus :entity="primitiveEntity" type-id="queue" variant="inline" />
-            <InstanceStatus :entity="primitiveEntity" type-id="queue" variant="full" :show-actions="false" />
+            <template v-else-if="primitive.key === 'InstanceState'">
+            <InstanceState :entity="primitiveEntity" type-id="queue" variant="inline" />
+            <InstanceState :entity="primitiveEntity" type-id="queue" variant="full" :show-actions="false" />
             </template>
 
-            <template v-else-if="primitive.key === 'StatusLocation'">
-              <StatusLocation :entity="sheetEntity" />
+            <template v-else-if="primitive.key === 'StateLocation'">
+              <StateLocation :entity="sheetEntity" />
             </template>
 
-            <template v-else-if="primitive.key === 'StatusHistory'">
-              <StatusHistory type-id="queue" :entity="primitiveEntity" :mock-events="mockHistory" />
+            <template v-else-if="primitive.key === 'StateHistory'">
+              <StateHistory type-id="queue" :entity="primitiveEntity" :mock-events="mockHistory" />
             </template>
 
             <template v-else-if="primitive.key === 'GeometryPreview'">
@@ -277,9 +277,9 @@ import ThemeSwitcher from '~/components/ThemeSwitcher.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
 import frameworkManifest from '~/framework.manifest.json';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import InstanceStatus from '~/components/shared/status/InstanceStatus.vue';
-import StatusLocation from '~/components/shared/status/StatusLocation.vue';
-import StatusHistory from '~/components/shared/status/StatusHistory.vue';
+import InstanceState from '~/components/shared/state/InstanceState.vue';
+import StateLocation from '~/components/shared/state/StateLocation.vue';
+import StateHistory from '~/components/shared/state/StateHistory.vue';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
@@ -337,9 +337,9 @@ const PRIMITIVE_EXAMPLE_KEYS = [
   'DataBlock',
   'SpecsBlock',
   'StatusBadge',
-  'InstanceStatus',
-  'StatusLocation',
-  'StatusHistory',
+  'InstanceState',
+  'StateLocation',
+  'StateHistory',
   'DrawingCanvas',
   'DesignerSurface',
   'DesignerWorkspace',

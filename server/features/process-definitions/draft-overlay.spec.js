@@ -39,7 +39,7 @@ function draftWithTypeClass() {
           fields: { read: [], write: [], private: [] }, allowedRoles: { read: [], write: [], admin: [] }
         }
       },
-      actions: {}, services: {}, sockets: {}, screens: {}, statusDefinitions: {}, valueInputs: {},
+      actions: {}, services: {}, sockets: {}, screens: {}, stateDefinitions: {}, valueInputs: {},
       processNodes: {
         c1: { id: 'c1', kind: 'cts.construct', typeId, via: 'genericCreate', label: '', construction: { mode: 'genericCreate', inputs: [] }, status: null, matching: 'item', fields: [], inputs: [], outputs: [] }
       },

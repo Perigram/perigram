@@ -55,8 +55,8 @@ describe('process v4 validation', () => {
       typeId: 'project',
       fields: [],
       trigger: { mode: 'manual' },
-      statusRef: 'ready',
-      inputDefaults: { 'status.state.primary': 'READY' }
+      stateRef: 'ready',
+      inputDefaults: { 'states.main': 'READY' }
     }), domain);
 
     expect(result.errors).not.toContain('Process node node must select at least one writable field or status');
@@ -377,7 +377,7 @@ describe('process v4 validation', () => {
           typeId: 'library',
           blocks: ['identity'],
           construction: { mode: 'genericCreate' },
-          status: { to: 'NEW' },
+          state: { to: 'NEW' },
           trigger: { mode: 'manual' }
         },
         compose: {
@@ -393,7 +393,7 @@ describe('process v4 validation', () => {
           typeId: 'project',
           blocks: ['relations'],
           construction: { mode: 'genericCreate' },
-          status: { to: 'NEW' },
+          state: { to: 'NEW' },
           trigger: { mode: 'manual' }
         }
       },
@@ -571,8 +571,8 @@ describe('process v4 validation', () => {
       kind: 'effect.updateEntity',
       typeId: 'project',
       trigger: { mode: 'manual' },
-      statusRef: 'ready',
-      inputDefaults: { 'status.state.primary': 'READY' }
+      stateRef: 'ready',
+      inputDefaults: { 'states.main': 'READY' }
     }), domain, { capabilities: { project: { create: true, processUpdate: false, delete: true, archive: false } } });
 
     expect(result.errors).toContain('Process node node cannot update project: entity service lacks processUpdate support');
@@ -583,7 +583,7 @@ describe('process v4 validation', () => {
       kind: 'effect.changeStatus',
       typeId: 'project',
       trigger: { mode: 'manual' },
-      inputDefaults: { 'status.state.primary': 'READY' }
+      inputDefaults: { 'states.main': 'READY' }
     }), domain, { capabilities: { project: { create: true, processUpdate: true, delete: true, archive: false } } });
 
     expect(result.errors).toContain('Process node node cannot change project: entity has no status workflow');
@@ -676,7 +676,7 @@ describe('process v4 validation', () => {
       typeId: 'project',
       producerOutputId: 'node:entity',
       construction: { mode: 'genericCreate' },
-      status: { to: 'NEW' },
+      state: { to: 'NEW' },
       trigger: { mode: 'manual' }
     }, {
       producerOutputs: {

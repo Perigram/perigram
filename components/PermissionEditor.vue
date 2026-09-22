@@ -668,7 +668,7 @@ function conditionTrait(clause = {}) {
     const fact = clause.fact || '';
     if (fact === 'field') return 'path';
     if (fact === 'typeId' || fact.endsWith('.type')) return 'type';
-    if (fact === 'status.primary' || fact === 'primaryStatus' || fact.endsWith('.status.primary')) return 'status';
+    if (fact === 'status.primary' || fact === 'primaryState' || fact.endsWith('.status.primary')) return 'status';
     if (fact === 'transition.from') return 'from';
     if (fact === 'transition.to') return 'to';
     const lineagePropertyMatch = fact.match(/^lineage\.[^.]+\.(.+)$/);

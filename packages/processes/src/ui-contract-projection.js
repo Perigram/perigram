@@ -126,7 +126,7 @@ export function projectUiAction(action = {}, { typeLabels = new Map() } = {}) {
   };
   if (action.producerOutputId) projected.producerOutputId = action.producerOutputId;
   if (action.commandId) projected.commandId = action.commandId;
-  if (action.status?.to) projected.status = { to: action.status.to };
+  if (action.state?.to) projected.state = { to: action.state.to };
   if (action.construction?.mode) {
     projected.construction = {
       mode: action.construction.mode,
@@ -197,7 +197,7 @@ export function projectManifestAction(action = {}, { typeLabels = new Map() } = 
     // The exposure input contracts (entity inputs row binding consumes);
     // their descriptors keep the compiler prompt-form field vocabulary.
     inputs: action.inputs || [],
-    ...(action.status ? { status: { ...action.status } } : {}),
+    ...(action.state ? { state: { ...action.state } } : {}),
     ...(action.parentTypeId ? { parentTypeId: action.parentTypeId } : {}),
     ...(action.parentRevision ? { parentRevision: action.parentRevision } : {})
   };

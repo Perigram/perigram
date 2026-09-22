@@ -188,7 +188,7 @@
     const { t } = useI18n()
     const supportDialog = useSupportDialog()
     const authStore = useAuthStore()
-    provide('statusWorkflows', computed(() => authStore.statusWorkflows))
+    provide('stateWorkflows', computed(() => authStore.stateWorkflows))
     const supportChatStore = useSupportChatStore()
     const callsStore = useCallsStore()
     const navStore = useNavigationStore()

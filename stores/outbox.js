@@ -9,7 +9,7 @@ import {
     OfflineQueuedError,
     REPLAY_CONTINUE
 } from '~/utils/outbox.js'
-import { emitInstanceMutation, emitStatusTransitionResult } from '~/utils/instance-events.js'
+import { emitInstanceMutation, emitStateTransitionResult } from '~/utils/instance-events.js'
 
 const queue = createOutboxQueue({ storage: createIndexedDbStorage() })
 
@@ -26,7 +26,7 @@ export const useOutboxStore = defineStore('outbox', () => {
         const meta = operation.meta || {}
         const hasSnapshot = Boolean(!duplicate && data)
         if (meta.kind === 'transition') {
-            emitStatusTransitionResult({ typeId: meta.typeId, targetId: meta.instanceId, response: hasSnapshot ? data : null })
+            emitStateTransitionResult({ typeId: meta.typeId, targetId: meta.instanceId, response: hasSnapshot ? data : null })
             return
         }
         const change = meta.kind === 'action' ? 'updated' : (meta.change || 'updated')

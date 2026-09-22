@@ -63,7 +63,7 @@ describe('instances store cache', () => {
   });
 
   it('caches records with the derived instance shape and deduplicates single reads', async () => {
-    const request = vi.fn().mockResolvedValue({ _id: 'q-1', identity: { name: 'Queue one' }, status: { state: { primary: 'draft' } } });
+    const request = vi.fn().mockResolvedValue({ _id: 'q-1', identity: { name: 'Queue one' }, states: { main: 'draft' } });
     vi.stubGlobal('$fetch', request);
     const instances = useInstancesStore();
 

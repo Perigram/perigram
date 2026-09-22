@@ -178,7 +178,7 @@ describe('process programming algebra', () => {
       },
       processNodes: {
         query: { id: 'query', kind: 'entityQuery', typeId: 'queue' },
-        ready: { id: 'ready', kind: 'entityCondition', typeId: 'queue', path: 'status.state.primary', operation: 'eq', valueType: 'string' },
+        ready: { id: 'ready', kind: 'entityCondition', typeId: 'queue', path: 'states.main', operation: 'eq', valueType: 'string' },
         filter: { id: 'filter', kind: 'entityFilter', typeId: 'queue' },
         first: { id: 'first', kind: 'entitySelect', typeId: 'queue', operation: 'first' }
       },
@@ -200,8 +200,8 @@ describe('process programming algebra', () => {
 
     const result = await resolveProcessActionInputContext(process, 'command', {}, {
       queryEntities: async () => [
-        { identity: { uid: 'q1' }, status: { state: { primary: 'DRAFT' } } },
-        { identity: { uid: 'q2' }, status: { state: { primary: 'READY' } } }
+        { identity: { uid: 'q1' }, states: { main: 'DRAFT' } },
+        { identity: { uid: 'q2' }, states: { main: 'READY' } }
       ]
     });
 
@@ -219,7 +219,7 @@ describe('process programming algebra', () => {
       },
       processNodes: {
         query: { id: 'query', kind: 'entityQuery', typeId: 'queue' },
-        ready: { id: 'ready', kind: 'entityCondition', typeId: 'queue', path: 'status.state.primary', operation: 'eq', valueType: 'string' },
+        ready: { id: 'ready', kind: 'entityCondition', typeId: 'queue', path: 'states.main', operation: 'eq', valueType: 'string' },
         large: { id: 'large', kind: 'entityCondition', typeId: 'queue', path: 'summary.totalArea', operation: 'gte', valueType: 'number' },
         both: { id: 'both', kind: 'predicateLogic', typeId: 'queue', operation: 'and' },
         filter: { id: 'filter', kind: 'entityFilter', typeId: 'queue' },
@@ -246,9 +246,9 @@ describe('process programming algebra', () => {
 
     const result = await resolveProcessActionInputContext(process, 'command', {}, {
       queryEntities: async () => [
-        { identity: { uid: 'q1' }, status: { state: { primary: 'READY' } }, summary: { totalArea: 4 } },
-        { identity: { uid: 'q2' }, status: { state: { primary: 'DRAFT' } }, summary: { totalArea: 20 } },
-        { identity: { uid: 'q3' }, status: { state: { primary: 'READY' } }, summary: { totalArea: 20 } }
+        { identity: { uid: 'q1' }, states: { main: 'READY' }, summary: { totalArea: 4 } },
+        { identity: { uid: 'q2' }, states: { main: 'DRAFT' }, summary: { totalArea: 20 } },
+        { identity: { uid: 'q3' }, states: { main: 'READY' }, summary: { totalArea: 20 } }
       ]
     });
 

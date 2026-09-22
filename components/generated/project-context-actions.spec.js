@@ -3,7 +3,7 @@ import { projectContextActionEntries } from './project-context-actions.js';
 
 const project = {
   _id: 'project-1',
-  status: { state: { primary: 'ACTIVE' } }
+  states: { main: 'ACTIVE' }
 };
 
 describe('project context actions', () => {

@@ -336,91 +336,6 @@
   "designSystem": {
     "components": [
       {
-        "componentPath": null,
-        "docs": [
-          "components/entities/Facade/README.md",
-          "server/features/facades/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "production",
-        "key": "facade",
-        "labelKey": "entities.facade",
-        "propName": "facade",
-        "status": "interactive",
-        "trace": true,
-        "typeId": "facade"
-      },
-      {
-        "componentPath": null,
-        "docs": [
-          "components/entities/FacadePattern/README.md",
-          "server/features/facade-patterns/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "master",
-        "key": "facadePattern",
-        "labelKey": "entities.facadePattern",
-        "propName": "facadePattern",
-        "status": "interactive",
-        "trace": true,
-        "typeId": "facade_pattern"
-      },
-      {
-        "componentPath": "components/entities/Project/ProjectCard.vue",
-        "docs": [
-          "components/entities/Project/README.md",
-          "server/features/projects/README.md"
-        ],
-        "fieldPaths": [
-          "summary.queueCount",
-          "summary.totalArea"
-        ],
-        "group": "production",
-        "key": "project",
-        "labelKey": "entities.project",
-        "propName": "project",
-        "status": "interactive",
-        "trace": true,
-        "typeId": "project"
-      },
-      {
-        "componentPath": "components/entities/Queue/QueueCard.vue",
-        "docs": [
-          "server/features/queues/README.md"
-        ],
-        "fieldPaths": [
-          "data.queueNumber",
-          "summary.runCount",
-          "summary.sheetCount",
-          "summary.totalArea"
-        ],
-        "group": "production",
-        "key": "queue",
-        "labelKey": "entities.queue",
-        "propName": "queue",
-        "status": "interactive",
-        "trace": true,
-        "typeId": "queue"
-      },
-      {
-        "componentPath": "components/entities/NestingRun/NestingRunCard.vue",
-        "docs": [
-          "server/features/nesting-runs/README.md"
-        ],
-        "fieldPaths": [
-          "data.results.efficiency",
-          "data.results.remnantArea",
-          "data.results.sheetCount"
-        ],
-        "group": "production",
-        "key": "nestingRun",
-        "labelKey": "entities.nestingRun",
-        "propName": "run",
-        "status": "interactive",
-        "trace": true,
-        "typeId": "nesting_run"
-      },
-      {
         "componentPath": "components/entities/SheetDesign/SheetDesignCard.vue",
         "docs": [
           "server/features/sheet-designs/README.md"
@@ -486,181 +401,6 @@
         "typeId": "cassette_template"
       },
       {
-        "componentPath": "components/entities/CassetteInstance/CassetteInstanceCard.vue",
-        "docs": [
-          "server/features/cassette-instances/README.md"
-        ],
-        "fieldPaths": [
-          "identity.reference"
-        ],
-        "group": "production",
-        "key": "cassetteInstance",
-        "labelKey": "entities.cassetteInstance",
-        "propName": "instance",
-        "status": "interactive",
-        "trace": true,
-        "typeId": "cassette_instance"
-      },
-      {
-        "componentPath": "components/entities/Requisition/RequisitionCard.vue",
-        "docs": [
-          "server/features/requisitions/README.md"
-        ],
-        "fieldPaths": [
-          "data.items.length",
-          "data.totalPrice"
-        ],
-        "group": "production",
-        "key": "requisition",
-        "labelKey": "entities.requisition",
-        "propName": "requisition",
-        "status": "interactive",
-        "trace": true,
-        "typeId": "requisition"
-      },
-      {
-        "componentPath": null,
-        "docs": [
-          "components/entities/Library/README.md",
-          "server/features/libraries/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "master",
-        "key": "library",
-        "labelKey": "entities.library",
-        "propName": "library",
-        "status": "hidden",
-        "trace": true,
-        "typeId": "library"
-      },
-      {
-        "componentPath": "components/entities/Material/MaterialCard.vue",
-        "docs": [
-          "components/entities/Material/README.md",
-          "server/DATA_MODEL.md"
-        ],
-        "fieldPaths": [
-          "data.code",
-          "data.description"
-        ],
-        "group": "material",
-        "key": "material",
-        "labelKey": "entities.material",
-        "propName": "material",
-        "status": "hidden",
-        "trace": false,
-        "typeId": "material"
-      },
-      {
-        "componentPath": "components/entities/MaterialPile/PileCard.vue",
-        "docs": [
-          "components/entities/MaterialPile/README.md",
-          "server/features/material-piles/README.md"
-        ],
-        "fieldPaths": [
-          "data.stock.total",
-          "data.stock.used"
-        ],
-        "group": "material",
-        "key": "materialPile",
-        "labelKey": "entities.materialPile",
-        "propName": "pile",
-        "status": "interactive",
-        "trace": true,
-        "typeId": "material_pile"
-      },
-      {
-        "componentPath": "components/entities/BatchPile/BatchPileCard.vue",
-        "docs": [
-          "components/entities/BatchPile/README.md",
-          "server/features/material-piles/README.md"
-        ],
-        "fieldPaths": [
-          "data.serial",
-          "data.stock.total",
-          "data.stock.used"
-        ],
-        "group": "material",
-        "key": "batchPile",
-        "labelKey": "entities.batchPile",
-        "propName": "pile",
-        "status": "interactive",
-        "trace": true,
-        "typeId": "material_pile"
-      },
-      {
-        "componentPath": "components/entities/Sheet/SheetCard.vue",
-        "docs": [
-          "server/features/sheets/README.md"
-        ],
-        "fieldPaths": [
-          "specs.area",
-          "specs.color",
-          "specs.length",
-          "specs.material",
-          "specs.width"
-        ],
-        "group": "material",
-        "key": "sheet",
-        "labelKey": "entities.sheet",
-        "propName": "sheet",
-        "status": "interactive",
-        "trace": true,
-        "typeId": "sheet"
-      },
-      {
-        "componentPath": "components/entities/Remnant/RemnantCard.vue",
-        "docs": [
-          "server/features/remnants/README.md"
-        ],
-        "fieldPaths": [
-          "specs.area"
-        ],
-        "group": "material",
-        "key": "remnant",
-        "labelKey": "entities.remnant",
-        "propName": "remnant",
-        "status": "interactive",
-        "trace": true,
-        "typeId": "remnant"
-      },
-      {
-        "componentPath": "components/entities/Catalog/CatalogCard.vue",
-        "docs": [
-          "server/features/catalogs/README.md"
-        ],
-        "fieldPaths": [
-          "data.options.foilThicknesses",
-          "data.options.sheetThicknesses",
-          "data.pricing.pricePerSqm",
-          "summary.colorCount"
-        ],
-        "group": "master",
-        "key": "catalog",
-        "labelKey": "entities.catalog",
-        "propName": "catalog",
-        "status": "hidden",
-        "trace": true,
-        "typeId": "catalog"
-      },
-      {
-        "componentPath": "components/entities/Color/ColorCard.vue",
-        "docs": [
-          "server/features/colors/README.md"
-        ],
-        "fieldPaths": [
-          "data.code",
-          "data.visuals.hexCode"
-        ],
-        "group": "master",
-        "key": "color",
-        "labelKey": "entities.color",
-        "propName": "color",
-        "status": "hidden",
-        "trace": true,
-        "typeId": "color"
-      },
-      {
         "componentPath": null,
         "docs": [
           "components/entities/EntityRevision/README.md",
@@ -678,21 +418,6 @@
       {
         "componentPath": null,
         "docs": [
-          "components/entities/GeometryCapture/README.md",
-          "server/features/geometry-captures/README.md"
-        ],
-        "fieldPaths": [],
-        "group": "production",
-        "key": "geometryCapture",
-        "labelKey": "entities.geometryCapture",
-        "propName": "capture",
-        "status": "interactive",
-        "trace": true,
-        "typeId": "geometry_capture"
-      },
-      {
-        "componentPath": null,
-        "docs": [
           "server/features/profile-templates/README.md"
         ],
         "fieldPaths": [],
@@ -703,26 +428,6 @@
         "status": "hidden",
         "trace": false,
         "typeId": "profile_template"
-      },
-      {
-        "componentPath": "components/entities/Warehouse/WarehouseCard.vue",
-        "docs": [
-          "server/features/warehouses/README.md"
-        ],
-        "fieldPaths": [
-          "data.address",
-          "data.contactPerson",
-          "data.stats.totalRemnants",
-          "data.stats.totalSheets",
-          "data.type"
-        ],
-        "group": "master",
-        "key": "warehouse",
-        "labelKey": "entities.warehouse",
-        "propName": "warehouse",
-        "status": "hidden",
-        "trace": true,
-        "typeId": "warehouse"
       },
       {
         "componentPath": "components/entities/ToolProfile/ToolProfileCard.vue",
@@ -954,31 +659,31 @@
         "purpose": "Read-only status tag using the shared status mapping."
       },
       {
-        "componentPath": "components/shared/status/InstanceStatus.vue",
+        "componentPath": "components/shared/state/InstanceState.vue",
         "docs": [
           "components/shared/README.md",
           "utils/README.md"
         ],
-        "key": "InstanceStatus",
+        "key": "InstanceState",
         "kind": "status",
         "purpose": "Interactive status display and workflow-derived transition actions."
       },
       {
-        "componentPath": "components/shared/status/StatusLocation.vue",
+        "componentPath": "components/shared/state/StateLocation.vue",
         "docs": [
           "components/shared/README.md",
           "docs/DESIGN_SYSTEM.md"
         ],
-        "key": "StatusLocation",
+        "key": "StateLocation",
         "kind": "status",
         "purpose": "Typed current lifecycle location rendering from status.lifecycle.data.location."
       },
       {
-        "componentPath": "components/shared/status/StatusHistory.vue",
+        "componentPath": "components/shared/state/StateHistory.vue",
         "docs": [
           "components/shared/README.md"
         ],
-        "key": "StatusHistory",
+        "key": "StateHistory",
         "kind": "status",
         "purpose": "Status audit timeline for entity lifecycle events."
       },
@@ -1466,7 +1171,7 @@
         "identity",
         "lineage",
         "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1481,7 +1186,7 @@
         "identity",
         "lineage",
         "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1497,7 +1202,7 @@
         "identity",
         "lineage",
         "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1512,7 +1217,7 @@
         "identity",
         "lineage",
         "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1527,53 +1232,7 @@
         "identity",
         "lineage",
         "origin",
-        "status",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "cassette_instances",
-      "lineage": {},
-      "type": "cassette_instance"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
-        "attachments",
-        "data",
-        "summary",
-        "relations",
-        "provenance"
-      ],
-      "collection": "catalogs",
-      "lineage": {},
-      "type": "catalog"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "colors",
-      "lineage": {},
-      "type": "color"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1589,54 +1248,7 @@
         "identity",
         "lineage",
         "origin",
-        "status",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "facades",
-      "lineage": {},
-      "type": "facade"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "facade_patterns",
-      "lineage": {},
-      "meta": true,
-      "type": "facade_pattern"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
-        "attachments",
-        "data",
-        "specs",
-        "relations",
-        "provenance"
-      ],
-      "collection": "geometry_captures",
-      "lineage": {},
-      "type": "geometry_capture"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1652,23 +1264,7 @@
         "identity",
         "lineage",
         "origin",
-        "status",
-        "attachments",
-        "data",
-        "summary",
-        "relations",
-        "provenance"
-      ],
-      "collection": "libraries",
-      "lineage": {},
-      "type": "library"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1683,51 +1279,7 @@
       "blocks": [
         "identity",
         "origin",
-        "status",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "materials",
-      "lineage": {},
-      "type": "material"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "material_piles",
-      "lineage": {},
-      "type": "material_pile"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "nesting_runs",
-      "lineage": {},
-      "type": "nesting_run"
-    },
-    {
-      "blocks": [
-        "identity",
-        "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1743,7 +1295,7 @@
         "identity",
         "lineage",
         "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1759,7 +1311,7 @@
         "identity",
         "lineage",
         "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1775,7 +1327,7 @@
         "identity",
         "lineage",
         "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1791,85 +1343,7 @@
         "identity",
         "lineage",
         "origin",
-        "status",
-        "attachments",
-        "data",
-        "summary",
-        "relations",
-        "provenance"
-      ],
-      "collection": "projects",
-      "lineage": {},
-      "type": "project"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
-        "attachments",
-        "data",
-        "summary",
-        "relations",
-        "provenance"
-      ],
-      "collection": "queues",
-      "lineage": {},
-      "type": "queue"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "remnants",
-      "lineage": {},
-      "type": "remnant"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
-        "attachments",
-        "data",
-        "relations",
-        "provenance"
-      ],
-      "collection": "requisitions",
-      "lineage": {},
-      "type": "requisition"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
-        "attachments",
-        "data",
-        "specs",
-        "relations",
-        "provenance"
-      ],
-      "collection": "sheets",
-      "lineage": {},
-      "type": "sheet"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1884,7 +1358,7 @@
         "identity",
         "lineage",
         "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1900,7 +1374,7 @@
         "identity",
         "lineage",
         "origin",
-        "status",
+        "states",
         "attachments",
         "data",
         "relations",
@@ -1910,22 +1384,6 @@
       "lineage": {},
       "meta": true,
       "type": "user"
-    },
-    {
-      "blocks": [
-        "identity",
-        "lineage",
-        "origin",
-        "status",
-        "attachments",
-        "data",
-        "summary",
-        "relations",
-        "provenance"
-      ],
-      "collection": "warehouses",
-      "lineage": {},
-      "type": "warehouse"
     }
   ],
   "name": "cutkit-framework",
@@ -2091,46 +1549,10 @@
       "type": "cassetteDesign"
     },
     {
-      "collection": "cassette-instances",
-      "list": "/api/instances/cassette-instance",
-      "single": "/api/instances/cassette-instance/:id",
-      "type": "cassetteInstance"
-    },
-    {
-      "collection": "catalogs",
-      "list": "/api/instances/catalog",
-      "single": "/api/instances/catalog/:id",
-      "type": "catalog"
-    },
-    {
-      "collection": "colors",
-      "list": "/api/instances/color",
-      "single": "/api/instances/color/:id",
-      "type": "color"
-    },
-    {
       "collection": "entity-revisions",
       "list": "/api/instances/entity-revision",
       "single": "/api/instances/entity-revision/:id",
       "type": "entityRevision"
-    },
-    {
-      "collection": "facades",
-      "list": "/api/facades",
-      "single": "/api/facades/:id",
-      "type": "facade"
-    },
-    {
-      "collection": "facade-patterns",
-      "list": "/api/facade-patterns",
-      "single": "/api/facade-patterns/:id",
-      "type": "facadePattern"
-    },
-    {
-      "collection": "geometry-captures",
-      "list": "/api/geometry-captures",
-      "single": "/api/geometry-captures/:id",
-      "type": "geometryCapture"
     },
     {
       "collection": "layer-standards",
@@ -2139,34 +1561,10 @@
       "type": "layerStandard"
     },
     {
-      "collection": "libraries",
-      "list": "/api/instances/library",
-      "single": "/api/instances/library/:id",
-      "type": "library"
-    },
-    {
       "collection": "machines",
       "list": "/api/instances/machine",
       "single": "/api/instances/machine/:id",
       "type": "machine"
-    },
-    {
-      "collection": "materials",
-      "list": "/api/instances/material",
-      "single": "/api/instances/material/:id",
-      "type": "material"
-    },
-    {
-      "collection": "material-piles",
-      "list": "/api/instances/material-pile",
-      "single": "/api/instances/material-pile/:id",
-      "type": "materialPile"
-    },
-    {
-      "collection": "nesting-runs",
-      "list": "/api/nesting-runs",
-      "single": "/api/nesting-runs/:id",
-      "type": "nestingRun"
     },
     {
       "collection": "organizations",
@@ -2193,36 +1591,6 @@
       "type": "profileTemplate"
     },
     {
-      "collection": "projects",
-      "list": "/api/instances/project",
-      "single": "/api/instances/project/:id",
-      "type": "project"
-    },
-    {
-      "collection": "queues",
-      "list": "/api/instances/queue",
-      "single": "/api/instances/queue/:id",
-      "type": "queue"
-    },
-    {
-      "collection": "remnants",
-      "list": "/api/instances/remnant",
-      "single": "/api/instances/remnant/:id",
-      "type": "remnant"
-    },
-    {
-      "collection": "requisitions",
-      "list": "/api/instances/requisition",
-      "single": "/api/instances/requisition/:id",
-      "type": "requisition"
-    },
-    {
-      "collection": "sheets",
-      "list": "/api/instances/sheet",
-      "single": "/api/instances/sheet/:id",
-      "type": "sheet"
-    },
-    {
       "collection": "sheet-designs",
       "list": "/api/sheet-designs",
       "single": "/api/sheet-designs/:id",
@@ -2239,12 +1607,6 @@
       "list": "/api/users",
       "single": "/api/users/:id",
       "type": "user"
-    },
-    {
-      "collection": "warehouses",
-      "list": "/api/instances/warehouse",
-      "single": "/api/instances/warehouse/:id",
-      "type": "warehouse"
     }
   ],
   "schemaVersion": 1,
@@ -2431,75 +1793,6 @@
   },
   "workflows": [
     {
-      "initial": "DRAFT",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "DRAFT",
-        "ACTIVE",
-        "ARCHIVED"
-      ],
-      "transitionCount": 3,
-      "type": "facade"
-    },
-    {
-      "initial": "ACTIVE",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "ACTIVE",
-        "ARCHIVED"
-      ],
-      "transitionCount": 1,
-      "type": "facade_pattern"
-    },
-    {
-      "initial": "DRAFT",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "DRAFT",
-        "ACTIVE",
-        "CLOSED"
-      ],
-      "transitionCount": 5,
-      "type": "project"
-    },
-    {
-      "initial": "DRAFT",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "DRAFT",
-        "NESTING",
-        "READY",
-        "ERROR",
-        "CLOSED",
-        "ARCHIVED"
-      ],
-      "transitionCount": 18,
-      "type": "queue"
-    },
-    {
-      "initial": "NESTING",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "NESTING",
-        "COMPLETE",
-        "ERROR",
-        "CHOSEN",
-        "REJECTED"
-      ],
-      "transitionCount": 8,
-      "type": "nesting_run"
-    },
-    {
       "initial": "ACTIVE",
       "regions": [
         "main"
@@ -2522,59 +1815,6 @@
       ],
       "transitionCount": 1,
       "type": "cassette_design"
-    },
-    {
-      "initial": "ACTIVE",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "ACTIVE",
-        "ARCHIVED"
-      ],
-      "transitionCount": 1,
-      "type": "library"
-    },
-    {
-      "initial": "AVAILABLE",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "AVAILABLE",
-        "IN-CUTTING",
-        "MILLED",
-        "SCRAP"
-      ],
-      "transitionCount": 4,
-      "type": "sheet"
-    },
-    {
-      "initial": "STOCKED",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "STOCKED",
-        "DEPLETED"
-      ],
-      "transitionCount": 3,
-      "type": "material_pile"
-    },
-    {
-      "initial": "DRAFT",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "DRAFT",
-        "PROCESSING",
-        "READY",
-        "COMPLETE",
-        "FAILED"
-      ],
-      "transitionCount": 11,
-      "type": "geometry_capture"
     },
     {
       "initial": "PENDING",
@@ -2613,18 +1853,6 @@
       "type": "entity_revision"
     },
     {
-      "initial": "AVAILABLE",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "AVAILABLE",
-        "USED"
-      ],
-      "transitionCount": 3,
-      "type": "remnant"
-    },
-    {
       "initial": "DRAFT",
       "regions": [
         "main"
@@ -2636,35 +1864,6 @@
       ],
       "transitionCount": 2,
       "type": "process_definition"
-    },
-    {
-      "initial": "CUT",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "CUT",
-        "PRODUCED",
-        "MILLED",
-        "INSTALLED"
-      ],
-      "transitionCount": 3,
-      "type": "cassette_instance"
-    },
-    {
-      "initial": "DRAFT",
-      "regions": [
-        "main"
-      ],
-      "states": [
-        "DRAFT",
-        "SENT",
-        "APPROVED",
-        "FULFILLED",
-        "REJECTED"
-      ],
-      "transitionCount": 4,
-      "type": "requisition"
     }
   ]
 }

@@ -32,7 +32,7 @@ The system consists of three main parts: the transition engine, the dynamic hook
   source-state entity before the transition can run.
   Process actions that target the entity's current primary state are not
   returned from the status action API; no-op current-state buttons belong in
-  neither generated process actions nor `InstanceStatus`.
+  neither generated process actions nor `InstanceState`.
 - **Standardization**: Strictly uses `toFlexibleId()` for entity lookups and
   resolves collections through the runtime/domain entity registry, falling
   back to the per-class instance collections for CTS-native types that never
@@ -54,7 +54,7 @@ string; the canonical snapshot shape and workflow definition examples live in
 
 Use `getPrimaryState(status)` for primary lifecycle reads and
 `getRegionState(status, regionId)` for scoped reads. Primary-state indexes and
-filters use `status.state.primary`.
+filters use `states.main`.
 
 `metadata` is transition-local context. Current lifecycle facts belong in
 `status.lifecycle`, which is validated against each state's optional lifecycle
@@ -96,7 +96,7 @@ Acts as a decoupled dispatcher for side-effects. Manufacturing-specific logic is
 - **Execution mode**: Hooks default to asynchronous `after` execution. A
   workflow hook can declare `phase: 'before'` for preflight validation or
   `mode: 'sync'` for side effects that must complete before
-  `POST /api/status/transition` returns. Synchronous hook results are returned
+  `POST /api/state/transition` returns. Synchronous hook results are returned
   as transition `effects` so frontend stores can refresh related entities.
 
 ### 3. Centralized Aggregator (`aggregator.js`)
@@ -112,16 +112,16 @@ Interactive UI status changes use the canonical status endpoints:
 
 | Endpoint | Responsibility |
 |---|---|
-| `GET /api/status/actions?typeId=<type>&id=<id>` | Returns transitions authorized for the current user and entity, after running `before` hooks as availability preflight. It also includes compiled manual process status-mutating `updateEntity` actions from the current role assignment when their entity type and source status match the target entity. |
-| `POST /api/status/transition` | Executes a transition with full auth context and returns the updated entity, status, and refreshed actions. Optional `statusMeta.region` / `statusMeta.path` scopes a transition to a non-primary region. `statusMeta.metadata.note` carries the operator description, and `statusMeta.lifecycle.attachments` carries uploaded proof refs for schema-declared slots. |
+| `GET /api/state/actions?typeId=<type>&id=<id>` | Returns transitions authorized for the current user and entity, after running `before` hooks as availability preflight. It also includes compiled manual process status-mutating `updateEntity` actions from the current role assignment when their entity type and source status match the target entity. |
+| `POST /api/state/transition` | Executes a transition with full auth context and returns the updated entity, status, and refreshed actions. Optional `stateMeta.region` / `stateMeta.path` scopes a transition to a non-primary region. `stateMeta.metadata.note` carries the operator description, and `stateMeta.lifecycle.attachments` carries uploaded proof refs for schema-declared slots. |
 
 Entity-specific PATCH routes must not be the primary status API for standard
 workflow transitions. Runtime callers that know the business meaning of a
-transition should call `statusService.applyIntent(typeId, id, intent, auth,
-metadata)` instead of naming a target state. Raw `statusService.transition(...)`
+transition should call `stateService.applyIntent(typeId, id, intent, auth,
+metadata)` instead of naming a target state. Raw `stateService.transition(...)`
 is retained for the status API/runtime adapter and focused tests.
 Process create actions use
-`statusService.setInitialStateForOrganization(type, id, state, organizationId,
+`stateService.setInitialStateForOrganization(type, id, state, organizationId,
 actor, metadata)` after the entity service creates the record. This helper is
 creation-only: it validates that the target state exists in the active process
 workflow, writes the entity status snapshot and history event, and does not run
@@ -153,9 +153,9 @@ configuration errors still fail the endpoint so broken hook contracts are not
 masked.
 
 ## Data Flow
-1. User/System triggers `statusService.applyIntent(type, id, intent, ...)`,
-   `statusService.transition(type, id, state, ...)` from the status runtime/API
-   boundary, or `POST /api/status/transition`.
+1. User/System triggers `stateService.applyIntent(type, id, intent, ...)`,
+   `stateService.transition(type, id, state, ...)` from the status runtime/API
+   boundary, or `POST /api/state/transition`.
 2. Transition is validated against the domain workflow, access requirements, lifecycle schema, and actor/capability assignments.
 3. Entity's structured `status` block, including `metadata` and `lifecycle`, is updated and a history event is logged with `fromState`, `toState`, `fromStatePrimary`, `toStatePrimary`, and `region`.
    When a status mutation also carries an entity patch, the service requires a

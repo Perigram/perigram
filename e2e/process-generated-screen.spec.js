@@ -51,9 +51,9 @@ test.describe('process generated screens', () => {
       await expect(app.page.getByText(variant.name).first()).toBeVisible();
 
       expect(requested.length).toBeGreaterThan(0);
-      const statusUrls = requested.filter(url => url.includes('primaryStatus'));
+      const statusUrls = requested.filter(url => url.includes('primaryState'));
       if (variant.statusFiltered) {
-        expect(statusUrls.some(url => url.includes('primaryStatus=NEW'))).toBeTruthy();
+        expect(statusUrls.some(url => url.includes('primaryState=NEW'))).toBeTruthy();
       } else {
         expect(statusUrls).toEqual([]);
       }
@@ -111,7 +111,7 @@ test.describe('process generated screens', () => {
     // $screen.scope.instanceId binding and the child list source resolves its
     // $screen.scope.instanceId filter placeholder plus the access-rule status.
     expect(cassetteRequests.some(url => (
-      url.includes('libraryId=library-m1') && url.includes('primaryStatus=NEW')
+      url.includes('libraryId=library-m1') && url.includes('primaryState=NEW')
     ))).toBeTruthy();
 
     // Region action scoping: the cassette child region owns the create
@@ -295,8 +295,8 @@ async function fulfillJson(page, pattern, json) {
 }
 
 async function mockStatusActions(page) {
-  await fulfillJson(page, '**/api/status/actions', []);
-  await fulfillJson(page, '**/api/status/actions?**', []);
+  await fulfillJson(page, '**/api/state/actions', []);
+  await fulfillJson(page, '**/api/state/actions?**', []);
 }
 
 function entity(id, name, overrides = {}) {

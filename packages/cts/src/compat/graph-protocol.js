@@ -216,7 +216,62 @@ export function renameLegacyTypeKeys(value) {
     }
     renamed[key] = renameLegacyTypeKeys(entry);
   }
-  return renamed;
+  return renameLegacyStatusKeys(renamed);
+}
+
+const LEGACY_STATUS_KEYS = Object.freeze({
+  statusDefinitions: 'stateDefinitions',
+  statusRef: 'stateRef',
+  statusWorkflows: 'stateWorkflows',
+  primaryStatuses: 'primaryStates',
+  primaryStatus: 'primaryState',
+  stateTo: 'stateTo',
+  stateFrom: 'stateFrom'
+});
+
+// One-way rewrite of the pre-state vocabulary on every load: the action and
+// process-node `status` payload becomes `state`, the status-socket path
+// becomes `states.main` (input ids, defaults, handles, construction
+// inputs), and statusDefinition canvas nodes become stateDefinition. Old
+// drafts and stored compiled contracts hydrate into the state vocabulary;
+// the rewrite is idempotent and never re-introduces legacy keys.
+export function renameLegacyStatusKeys(value) {
+  if (Array.isArray(value)) return value.map(renameLegacyStatusKeys);
+  if (!value || typeof value !== 'object' || value instanceof Date) return value;
+  const rewritten = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (Object.hasOwn(LEGACY_STATUS_KEYS, key)) {
+      rewritten[LEGACY_STATUS_KEYS[key]] = renameLegacyStatusKeys(entry);
+      continue;
+    }
+    if (key === 'status.state.primary') {
+      rewritten['states.main'] = renameLegacyStatusKeys(entry);
+      continue;
+    }
+    if ((key === 'status' || key === 'state')
+      && value
+      && typeof value === 'object'
+      && (String(value.type || '').startsWith('cts.') || String(value.kind || '').startsWith('effect.') || String(value.kind || '').startsWith('cts.') || 'actionKind' in value)) {
+      // Process-node and action records: the lifecycle payload rides the
+      // state key.
+      rewritten.state = renameLegacyStatusKeys(entry);
+      continue;
+    }
+    if (key === 'type' && entry === 'statusDefinition') {
+      rewritten.type = 'stateDefinition';
+      continue;
+    }
+    if ((key === 'targetHandle' || key === 'sourceHandle') && typeof entry === 'string') {
+      rewritten[key] = entry.replace(/\bstatus\.state\.primary\b/g, 'states.main');
+      continue;
+    }
+    if (key === 'path' && entry === 'status.state.primary') {
+      rewritten.path = 'states.main';
+      continue;
+    }
+    rewritten[key] = renameLegacyStatusKeys(entry);
+  }
+  return rewritten;
 }
 
 export function migrateV4Definition(definition = {}, domain = {}) {
@@ -245,9 +300,9 @@ export function migrateV4Definition(definition = {}, domain = {}) {
     if (migrated.typeId) {
       migrated.typeId = kebab(migrated.typeId);
     }
-    if (migrated.targetStatus !== undefined) {
-      migrated.target = migrated.targetStatus;
-      delete migrated.targetStatus;
+    if (migrated.targetState !== undefined) {
+      migrated.target = migrated.targetState;
+      delete migrated.targetState;
     }
     if (migrated.status && migrated.status.to !== undefined) {
       migrated.target = migrated.status.to;
@@ -314,9 +369,9 @@ function migrateNode(node, domain, diagnostics, at) {
     migrated.via = migrated.construction.mode;
   }
   if (mapping.kind === CTS_KIND.transition) {
-    if (migrated.targetStatus !== undefined) {
-      migrated.target = migrated.targetStatus;
-      delete migrated.targetStatus;
+    if (migrated.targetState !== undefined) {
+      migrated.target = migrated.targetState;
+      delete migrated.targetState;
     }
     if (migrated.status && migrated.status.to !== undefined) {
       migrated.target = migrated.status.to;

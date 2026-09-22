@@ -4,7 +4,7 @@ import { createProcessUpdateHandler } from '../_template/process-update-handler.
 import { hashPassword, verifyPassword, generateSession, generateAccessToken } from '../../utils/auth-helpers.js';
 import { createError } from 'h3';
 import { User } from './model.js';
-import { statusService } from '../../core/machines/service.js';
+import { stateService } from '../../core/machines/service.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { ObjectId } from 'mongodb';
 import { hasInstanceAccess } from '../../core/access/service.js';

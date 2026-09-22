@@ -23,7 +23,7 @@ function completeStatus({ userId = 'SYSTEM', taskRunId = null, eventId }) {
 async function main() {
   const db = await connectDB();
   const runs = db.collection('nesting_runs').find({
-    'status.state.primary': 'NESTING',
+    'states.main': 'NESTING',
     'data.results': { $exists: true },
     'data.sheetDesignIds.0': { $exists: true }
   });
@@ -39,7 +39,7 @@ async function main() {
       skipped++;
       continue;
     }
-    if (run.status?.state?.primary === 'COMPLETE') {
+    if (run.states?.main === 'COMPLETE') {
       skipped++;
       continue;
     }

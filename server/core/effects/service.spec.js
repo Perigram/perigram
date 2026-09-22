@@ -6,7 +6,7 @@ const { applyIntent, enqueueTask } = vi.hoisted(() => ({
 }));
 
 vi.mock('../machines/service.js', () => ({
-  statusService: { applyIntent }
+  stateService: { applyIntent }
 }));
 
 vi.mock('../tasks/service.js', () => ({

@@ -408,7 +408,7 @@ Authoring loop:
 | Existing | Becomes |
 |---|---|
 | 30 `cncEntities` + blocks | type declarations (data) |
-| `workflows.js`, intents, `workflow_overrides` | states/transitions in type defs; intents on operator outputs — resolving the third home: entity-profile lifecycles and `statusDefinition` records compile INTO these declarations (compiler-core `compileLifecycle`), never alongside them |
+| `workflows.js`, intents, `workflow_overrides` | states/transitions in type defs; intents on operator outputs — resolving the third home: entity-profile lifecycles and `stateDefinition` records compile INTO these declarations (compiler-core `compileLifecycle`), never alongside them |
 | `cncStatusUi`, icons, labels | render policy on enum values |
 | `attachment-kinds.js` | payload traits + construct affiliations |
 | `producers.js`, `artifact-conversions.js` | construct/conversion operator registry |
@@ -643,7 +643,7 @@ Effect nodes take the species names of §8 (the canonical table is
   and load-time migration normalizes legacy persisted `type` strings.
 - **Fields**: row fields are row-relative (`specs.width` → `width`,
   `data.job.items` → `job.items`); managed slots keep qualified names
-  (`identity.*`, `status.state.primary`, `lineage.<key>`, `relations.*`,
+  (`identity.*`, `states.main`, `lineage.<key>`, `relations.*`,
   `provenance.*`, `data.value` the reserved generic slot) until the
   stored-shape migration (§3) re-homes them.
 - **States**: status strings become declaration-owned state values;
@@ -713,7 +713,7 @@ species record; blocks are the v4 twin's substrate), declared construct
 operators project as `via` modes with signature-derived mode inputs, and
 `cts.mutate` patches leaves (writable row fields as field sockets; blocks
 stay on the v4 twin). Remaining residue: field pickers list slot paths,
-which resolution passes through unchanged. `statusDefinitions` remain
+which resolution passes through unchanged. `stateDefinitions` remain
 definition-plane records authoring state metadata; per §7 they compile
 into declarations, never alongside.
 

@@ -28,7 +28,7 @@ of primitives, tokens, DTO paths, and validation commands.
 ## Working Rules
 
 - Prefer the repo's shared primitives over local markup: `InstanceCard`,
-  `InstancePage`, `IdentityBlock`, `InstanceStatus`, `StatusBadge`, `TraceChain`,
+  `InstancePage`, `IdentityBlock`, `InstanceState`, `StatusBadge`, `TraceChain`,
   `SpecsBlock`, `DataBlock`, `ActionToolbar`, `ResponsiveGrid`, `StateBlock`,
   `TableFrame`, `StandardDialog`, and `StandardPage`.
 - Use PrimeVue controls for UI elements and Tailwind utilities only for layout,
@@ -82,7 +82,7 @@ Use `before-identity`, `subtitle`, default body, `compact-content`,
 `inline-extra`, and `footer` slots. Avoid overriding `#title` unless there is no
 other way, because `InstanceCard` owns identity/status placement.
 
-Pass custom lifecycle commands as `:status-actions` to `InstanceCard`; do not
+Pass custom lifecycle commands as `:state-actions` to `InstanceCard`; do not
 rebuild status controls in the parent.
 
 Use `display: 'inline' | 'menu' | 'hidden'` on status actions. Inline/card
@@ -101,7 +101,7 @@ Build entity detail components with `InstancePage`.
 - Put header actions in the `actions` slot.
 - Put summary metrics in the `info` slot.
 - Put secondary panels in the `sidebar` slot.
-- Pass custom lifecycle commands through `:status-actions`.
+- Pass custom lifecycle commands through `:state-actions`.
 - Do not rebuild trace, identity, status, or page header rows locally.
 
 ## Data Display

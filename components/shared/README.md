@@ -15,7 +15,7 @@ Entity cards and page components must NEVER import from `useBlocks.js` directly.
 |---|---|
 | `const { name } = useIdentity(entity)` | `const { name } = useIdentity(project)` |
 
-State-only conditionals in entity cards should use a local `computed` from `entity.status?.state`. Do not import `useStatus` outside shared status/block primitives.
+State-only conditionals in entity cards should use a local `computed` from `entity.states`. Do not import `useStatus` outside shared status/block primitives.
 
 All shared and entity UI components consume the strict DTO contract: root `_id`
 plus canonical blocks only. Display identity through `IdentityBlock` or
@@ -199,9 +199,9 @@ status names render as data, not as missing translation keys.
 
 ---
 
-## Status & History (`components/shared/status/`)
+## Status & History (`components/shared/state/`)
 
-### `InstanceStatus.vue`
+### `InstanceState.vue`
 Interactive status component for display + state-machine transitions. Status-changing action buttons must live here (not in parent layouts).
 
 Props: `:entity`, `type-id`, `variant` (`icon` | `inline` | `full`), `:actions` (optional lifecycle override set for workflow-driven surfaces), `:expanded` (optional override).
@@ -215,7 +215,7 @@ pages continue to use `inline` or `full`.
 Rendering guard: component renders only when `props.entity` is present.
 Behavior: component auto-expands when lifecycle `actions` are provided; otherwise inline mode uses badge + popover. The popover is compact UI, not a labeled detail page: it renders lifecycle controls, current location, notes, and the status timeline without section headings or empty placeholder copy.
 Successful server transitions emit the `transitioned` event from
-`InstanceStatus`; matching browser-local entity-change events emit `refresh`
+`InstanceState`; matching browser-local entity-change events emit `refresh`
 from the status component itself. `InstanceCard` and `InstancePage` forward both as
 `refresh` on their entity shells, so entity-specific cards and pages can reload
 entity-local data after lifecycle changes without wiring listeners in each
@@ -227,12 +227,12 @@ The root exposes stable E2E hooks through `data-entity-status`,
 `data-type-id`, and `data-entity-id`; menu triggers and transition buttons
 use `data-status-menu-trigger` and `data-status-action`.
 
-**Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@cutkit/domain-cnc` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `InstanceStatus`, hides it, or renders read-only status.
+**Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@cutkit/domain-cnc` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `InstanceState`, hides it, or renders read-only status.
 Interactive status is enabled only for entity types that have a real workflow in
 `cncWorkflows`; non-workflow entities hide status chrome in cards unless a
 read-only `StatusBadge` is explicitly required. Live app transition actions are
 loaded from the canonical status API so access and preflight filtering stay
-server-side. When an action includes `intent`, `InstanceStatus` posts that intent
+server-side. When an action includes `intent`, `InstanceState` posts that intent
 with the target state so frontend components do not infer business meaning from
 raw lifecycle state names.
 When the effective organization or domain workflow declares exactly one unique
@@ -240,35 +240,35 @@ state, shared entity surfaces hide the status chrome because it carries no
 lifecycle information. The canonical `status` block remains persisted for
 audit and DTO consistency. Visibility derives from the supplied workflow
 contract, never a hardcoded entity or status list.
-`InstanceStatus` renders the primary lifecycle badge from `status.state.primary`.
+`InstanceState` renders the primary lifecycle badge from `states.main`.
 Additional active workflow regions render as compact status chips and actions
 carry `region` / `path` metadata back to the status API so parallel machines can
 transition independently.
 When an entity status carries process-authored display metadata under
-`status.metadata.display`, `InstanceStatus` passes it to `StatusBadge` so the
+`status.metadata.display`, `InstanceState` passes it to `StatusBadge` so the
 badge uses the process status label, severity/color, and icon instead of only
 the global raw-state mapping. Generated screens rely on this same DTO metadata;
 they must not synthesize local status labels or icons from action manifests.
 Development surfaces with custom workflow drafts derive lifecycle actions from
-workflow definitions through `utils/status-actions.js`. Card and page command
-actions must live outside `InstanceStatus` in the card footer or page action
+workflow definitions through `utils/state-actions.js`. Card and page command
+actions must live outside `InstanceState` in the card footer or page action
 slots; only real lifecycle transitions belong in the status surface.
-`InstanceStatus` can also receive a `workflows` prop or consume a provided
-`statusWorkflows` value. This is used only by development surfaces such as the
+`InstanceState` can also receive a `workflows` prop or consume a provided
+`stateWorkflows` value. This is used only by development surfaces such as the
 admin workbench so live draft machines can drive previews without replacing the
 committed `@cutkit/domain-cnc` runtime workflow source.
 Development surfaces that provide local workflows can also provide
-`statusTransitionHandler`; when present, `InstanceStatus` applies transitions
+`statusTransitionHandler`; when present, `InstanceState` applies transitions
 through that handler instead of posting in-memory fixture ids to the server
 status API.
 When a target state lifecycle schema declares a description, attachment slots,
-or snapshots, `InstanceStatus` opens `StatusTransitionDialog` before running the
+or snapshots, `InstanceState` opens `StateTransitionDialog` before running the
 transition. The dialog uploads proof files through `/api/files/upload` and
-submits `statusMeta.metadata.note` plus `statusMeta.lifecycle.attachments` to
+submits `stateMeta.metadata.note` plus `stateMeta.lifecycle.attachments` to
 the status API. Generic snapshots are captured server-side from the state
 schema, not from page-local loaded data.
 
-### `StatusHistory.vue`
+### `StateHistory.vue`
 Fetches and displays the audit log (`status_events`) for any entity.
 
 Props: `:entity`, `type-id`, `target-id`, `mock-events`, `compact`.
@@ -281,7 +281,7 @@ current `status`/`origin` as the first timeline event instead of displaying an
 empty-history placeholder. Last-update timestamps belong in this timeline, not
 as a separate status section.
 Persisted events may include response-only `actor` data from the status API.
-`StatusHistory` prefers `actor.name` for display and falls back to `status.userId`
+`StateHistory` prefers `actor.name` for display and falls back to `status.userId`
 only when no actor name is available.
 User actors render through `InstanceInlineRef type="user"` and include an
 icon-only chat action that opens the support chat in direct user conversation
@@ -289,14 +289,14 @@ mode for that actor.
 Structured v2 events prefer `toStatePrimary` for the visible badge and keep
 `region` available for grouped status surfaces.
 When an event snapshot carries process-authored display metadata under
-`status.metadata.display`, `StatusHistory` passes it to `StatusBadge` so
+`status.metadata.display`, `StateHistory` passes it to `StatusBadge` so
 historical badges retain the authored label, severity/color, and icon. The
 event's raw `toStatePrimary` remains the state identifier, not the display
 contract.
 History rows render lifecycle proof attachment refs as download links and
 snapshot entries as compact count chips from the persisted event snapshot.
 
-### `StatusLocation.vue`
+### `StateLocation.vue`
 Renders the current mutable lifecycle location from `status.lifecycle.data.location`.
 
 Supported location shapes:
@@ -648,7 +648,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   ancestor. Operational overloads compose their workspace primitives inside
   this canonical shell instead of adding overload-specific layout modes to
   `InstancePage`.
-- **`InstanceCard.vue`**: Shared entity card structure built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`) while the preset owns its border, radius, shadow, spacing, and interaction states. Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `statusActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title.
+- **`InstanceCard.vue`**: Shared entity card structure built directly on PrimeVue `Card` slots (`header` / `title` / `subtitle` / `content` / `footer`) while the preset owns its border, radius, shadow, spacing, and interaction states. Supports `showStatus` / `showTrace` toggles for entities that intentionally omit status or lineage chrome, and reserves `stateActions` for workflow-transition previews that carry `to`/`intent`. Default card surfaces hide lineage breadcrumbs unless a caller opts in with `showTrace`. Entity cards should use `before-identity` and `subtitle` instead of overriding the `title` slot; `before-identity` renders inline with the identity text in compact and card variants, and the default card title/status row keeps identity and status on one wrapped line rather than stacking the status under the title.
   Full-card footer actions render inline by default (`footer-display`);
   the ellipsis menu stays available for deliberately dense footers.
   Inline and compact variants share one expansion surface defined once in
@@ -659,7 +659,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   open-detail control) — never a nested ellipsis inside the popover.
 - **`NameEditPopover.vue`**: Compact single-field rename control for entity names and other one-field edits. Use it near identity or action clusters instead of opening a full dialog when the only editable field is a name.
 
-`InstanceStatus` action objects support `display: 'inline' | 'menu' | 'hidden'`. Workflow transitions default to inline actions, self-loop metadata transitions are hidden, and only lifecycle transitions should be passed into the status surface. Inline/card status surfaces use the badge itself as the popover trigger and do not render a second ellipsis button beside the badge; expanded/full status surfaces show up to two inline actions by default and put overflow actions, current location, metadata, and compact status history in the popover. Entity card title/status rows and status menus are allowed to wrap, and inline status rails are deliberately bounded so compact containers do not let status text or action buttons displace identity content.
+`InstanceState` action objects support `display: 'inline' | 'menu' | 'hidden'`. Workflow transitions default to inline actions, self-loop metadata transitions are hidden, and only lifecycle transitions should be passed into the status surface. Inline/card status surfaces use the badge itself as the popover trigger and do not render a second ellipsis button beside the badge; expanded/full status surfaces show up to two inline actions by default and put overflow actions, current location, metadata, and compact status history in the popover. Entity card title/status rows and status menus are allowed to wrap, and inline status rails are deliberately bounded so compact containers do not let status text or action buttons displace identity content.
 
 `TraceChain` omits ancestry already represented by the surrounding entity
 context. The active organization is always part of the authenticated app
@@ -685,7 +685,7 @@ control itself.
 Do not hide all meaningful body content behind `variant === 'card'`; relation
 popovers depend on the same default slot body being available in inline and
 compact cards.
-Nested interactive children such as `InstanceStatus`, `TraceLink`,
+Nested interactive children such as `InstanceState`, `TraceLink`,
 `GeometryPreview`, `CassetteThumbnail`, buttons, and nested inline entity cards
 mark themselves as card-interactive targets. Parent card click handlers must use
 `utils/interactive-target.js` before emitting view/select actions. Cards whose

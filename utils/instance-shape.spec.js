@@ -46,7 +46,7 @@ describe('dtoToScreenInstance', () => {
       _id: 'ent-2',
       lineage: { projectId: 'p-9', queueId: null },
       relations: { linkedSheets: [{ type: 'sheet', id: 's-1' }], pinned: { type: 'sheet', id: 's-2' } },
-      status: { state: { primary: 'READY' } }
+      states: { main: 'READY' }
     }, typeRecord);
 
     expect(instance.lineage).toEqual({ projectId: { id: 'p-9' } });

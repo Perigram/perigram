@@ -30,10 +30,6 @@ const FRAMEWORK_ROUTES = {
 const FEATURE_ROUTES = {
   artifact_template: '/api/artifact-templates',
   cassette_design: '/api/cassette-designs',
-  facade: '/api/facades',
-  facade_pattern: '/api/facade-patterns',
-  geometry_capture: '/api/geometry-captures',
-  nesting_run: '/api/nesting-runs',
   sheet_design: '/api/sheet-designs'
 };
 

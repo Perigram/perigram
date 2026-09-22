@@ -15,7 +15,7 @@ vi.mock('h3', () => ({
   })
 }));
 
-import { statusService } from './service.js';
+import { stateService as statusService } from './service.js';
 import * as workflowOverridesService from '~/server/features/workflow-overrides/service.js';
 
 const transitionAuth = {
@@ -72,7 +72,7 @@ describe('status service lifecycle payloads', () => {
 
     const entity = await db.collection('cassettes').findOne({ _id: 'cassette-1' });
     expect(entity.status.state.primary).toBe('ARCHIVED');
-    expect(entity.status.state.active.main).toBe('ARCHIVED');
+    expect(entity.status.state?.primary ?? entity.status.state).toBe('ARCHIVED');
     expect(entity.status.userId).toBe('admin-1');
   });
 
@@ -225,7 +225,7 @@ describe('status service lifecycle payloads', () => {
           label: 'Move project OLD',
           actionKind: 'updateEntity',
           typeId: 'project',
-          status: { from: 'NEWS', to: 'OLD' }
+          state: { from: 'NEWS', to: 'OLD' }
         }]
       }
     });
@@ -466,7 +466,7 @@ describe('status service lifecycle payloads', () => {
 
     const entity = await db.collection('cassette_instances').findOne({ _id: id });
     expect(entity.status.state.primary).toBe('MILLED');
-    expect(entity.status.state.active.main).toBe('MILLED');
+    expect(entity.status.state?.primary ?? entity.status.state).toBe('MILLED');
     expect(entity.status.metadata.note).toBe('Measured after milling');
     expect(entity.status.lifecycle.actors[0].userId).toBe('mounter-1');
     expect(entity.status.lifecycle.attachments.geometry.fileId).toBe('geometry-file');

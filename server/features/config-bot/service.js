@@ -19,7 +19,7 @@ import * as repository from './repository.js';
 import { buildConfigBotKnowledge } from './indexer.js';
 import { askOllama, getOllamaConfig } from './ollama.js';
 
-const DEFAULT_ENTITY_TYPES = ['project', 'queue', 'nesting_run', 'sheet_design'];
+const DEFAULT_ENTITY_TYPES = ['cassette', 'sheet_design', 'artifact'];
 const PACKAGE_NAMES = [
   '@cutkit/core',
   '@cutkit/workflows',
@@ -242,7 +242,7 @@ function selectComponents(selectedEntities, manifest) {
       key: component.key,
       typeId: component.typeId,
       componentPath: component.componentPath,
-      primitives: ['StandardPage', 'ActionToolbar', 'ResponsiveGrid', 'StateBlock', 'InstanceCard', 'InstanceStatus']
+      primitives: ['StandardPage', 'ActionToolbar', 'ResponsiveGrid', 'StateBlock', 'InstanceCard', 'InstanceState']
     }));
 }
 

@@ -293,9 +293,9 @@ describe('process designer domain contract', () => {
     expect(items.map(item => item.kind)).not.toContain('value.parse');
     expect(items.map(item => item.kind)).not.toContain('source.triggerPayload');
     expect(items.map(item => item.kind)).not.toContain('cts.command');
-    // statusDefinition and the ctsType reference node are canvas surfaces, not catalog operations
+    // stateDefinition and the ctsType reference node are canvas surfaces, not catalog operations
     // declaration canvas nodes (class/field/state/reference) are tree vocabulary, not catalog operations
-    expect(items.every(item => ['statusDefinition', 'ctsType', 'ctsClass', 'ctsField', 'ctsState'].includes(item.type) || getProcessNodeDefinition(item.kind))).toBe(true);
+    expect(items.every(item => ['stateDefinition', 'ctsType', 'ctsClass', 'ctsField', 'ctsState'].includes(item.type) || getProcessNodeDefinition(item.kind))).toBe(true);
     expect(new Set(items.map(item => item.id)).size).toBe(items.length);
     expect(items.every(item => item.description && item.preset)).toBe(true);
     expect(items.find(item => item.id === 'date')?.preset).toMatchObject({

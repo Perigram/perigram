@@ -152,7 +152,7 @@ function grantedCreateDefinition() {
         id: 'create', kind: 'effect.createEntity', typeId: 'facade', producerOutputId: 'create:result',
         construction: { mode: 'genericCreate' }, blocks: [], trigger: { mode: 'manual' },
         access: { level: 'admin', grants: [{ roleId: 'role_admin', level: 'admin' }] },
-        status: { to: 'draft' }
+        state: { to: 'draft' }
       }
     }
   };
@@ -337,8 +337,8 @@ describe('graph protocol v5 (SPEC §20)', () => {
       },
       actions: {}, services: {}, sockets: {}, screens: {},
       processNodes: {
-        a: { id: 'a', kind: 'effect.createEntity', typeId: 'panel-a', producerOutputId: 'a:result', construction: { mode: 'genericCreate' }, blocks: [], trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }, status: { to: 'draft' } },
-        b: { id: 'b', kind: 'effect.createEntity', typeId: 'panel-b', producerOutputId: 'b:result', construction: { mode: 'genericCreate' }, blocks: [], trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }, status: { to: 'draft' } }
+        a: { id: 'a', kind: 'effect.createEntity', typeId: 'panel-a', producerOutputId: 'a:result', construction: { mode: 'genericCreate' }, blocks: [], trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }, state: { to: 'draft' } },
+        b: { id: 'b', kind: 'effect.createEntity', typeId: 'panel-b', producerOutputId: 'b:result', construction: { mode: 'genericCreate' }, blocks: [], trigger: { mode: 'manual' }, access: { level: 'write', grants: [{ roleId: 'role_admin', level: 'write' }] }, state: { to: 'draft' } }
       }
     };
     const compiled = compileProcessDefinition(definition, domain, { roles });

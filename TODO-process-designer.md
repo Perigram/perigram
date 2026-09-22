@@ -34,7 +34,7 @@ component side only.
 
 - [x] Remove dead husks from the legacy cut: `applySemanticConnection`,
   `clearSemanticConnection`, `syncInferredActionInputs` (and their threading
-  through `useProcessDesignerGraphEditing`, whose statusDefinition-blocking
+  through `useProcessDesignerGraphEditing`, whose stateDefinition-blocking
   logic is equally dead), the ~60 blank-line scar clusters, and the dead
   helpers (`syncActionConstruction`, `statusSeverityOptions`,
   `statusIconOptions`, `addServicePrincipal`, `removeSelectedPrincipal`,
@@ -68,7 +68,7 @@ component side only.
 
 P1 landed in `agent/process-designer-plan-20260919`. The page dropped from
 4495 to ~3560 lines. Beyond the listed items: the unreachable canvas-node
-machinery for socket/valueInput/action/entity/statusDefinition records was
+machinery for socket/valueInput/action/entity/stateDefinition records was
 removed end-to-end (page sync branches, inspector `RECORD_KEYS` rows,
 node-record factories — `createEntityProfile`, `createStatusDefinition`,
 `createValueInput`, `createServicePrincipal`, `createCreatedWorkflow` are

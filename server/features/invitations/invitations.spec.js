@@ -8,7 +8,7 @@ const { mockedConnectDB } = vi.hoisted(() => ({
 
 vi.mock('~/server/db/mongo', () => ({ connectDB: mockedConnectDB }));
 
-vi.mock('~/server/features/statuses/service', () => ({
+vi.mock('~/server/features/states/service', () => ({
   initializeStatus: vi.fn(),
   addStatus: vi.fn()
 }));

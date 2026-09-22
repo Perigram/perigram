@@ -80,7 +80,7 @@ describe('producer output process contract', () => {
         typeId: 'project',
         producerOutputId: 'create:entity',
         construction: { mode: 'genericCreate', inputs: [] },
-        status: { to: 'CREATED' },
+        state: { to: 'CREATED' },
         inputs: [],
         outputs: []
       }
@@ -134,9 +134,9 @@ describe('producer output entry-state and binding diagnostics', () => {
   it('binds consumer effects to the upstream producer instead of minting own outputs', () => {
     const source = definition();
     source.processNodes = {
-      create: { id: 'create', kind: 'effect.createEntity', typeId: 'project', producerOutputId: 'create:entity', construction: { mode: 'genericCreate', inputs: [] }, status: { to: 'CREATED' } },
-      rename: { id: 'rename', kind: 'effect.updateEntity', typeId: 'project', trigger: { mode: 'manual' }, status: { to: 'ACTIVE' } },
-      stale: { id: 'stale', kind: 'effect.changeStatus', typeId: 'project', trigger: { mode: 'manual' }, status: { to: 'ACTIVE' }, producerOutputId: 'stale:result' }
+      create: { id: 'create', kind: 'effect.createEntity', typeId: 'project', producerOutputId: 'create:entity', construction: { mode: 'genericCreate', inputs: [] }, state: { to: 'CREATED' } },
+      rename: { id: 'rename', kind: 'effect.updateEntity', typeId: 'project', trigger: { mode: 'manual' }, state: { to: 'ACTIVE' } },
+      stale: { id: 'stale', kind: 'effect.changeStatus', typeId: 'project', trigger: { mode: 'manual' }, state: { to: 'ACTIVE' }, producerOutputId: 'stale:result' }
     };
     source.producerOutputs['stale:result'] = {
       producerOutputId: 'stale:result',

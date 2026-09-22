@@ -112,7 +112,7 @@ UI Lab/admin access examples use the same permission template and active
 membership shape as the access model. `createMockUser()` includes role,
 organization membership, and permissions so permission editors do not render a
 fake role-only user contract.
-Current mutable location examples belong in `status.lifecycle.data.location`, not in root `data` or `lineage`. Use typed shapes such as `warehouse`, `coordinates`, or `address` so `InstanceStatus` can render the same location contract used by real DTOs.
+Current mutable location examples belong in `status.lifecycle.data.location`, not in root `data` or `lineage`. Use typed shapes such as `warehouse`, `coordinates`, or `address` so `InstanceState` can render the same location contract used by real DTOs.
 Geometry previews for design/remnant cards belong under `data.geometry.preview` with layer paths or polygon points. Do not add UI-only filename fields when the card needs a visual preview.
 `createMockPile()` represents a general/manual warehouse material pile. `createMockBatchPile()` represents a requisition-sourced pile and must include `lineage.requisitionId` so UI Lab keeps `materialPile` and `batchPile` visually distinct even though both use the `material_pile` backend entity type.
 

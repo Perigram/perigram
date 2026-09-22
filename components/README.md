@@ -83,13 +83,13 @@ All entity-related components MUST use these patterns:
 | Concern | Pattern |
 |---|---|
 | Identity display (default: name/slug) | `<IdentityBlock :entity="..." variant="..." />` |
-| Status display + transitions/actions | `<InstanceStatus :entity="..." type-id="..." :actions="..." />` |
+| Status display + transitions/actions | `<InstanceState :entity="..." type-id="..." :actions="..." />` |
 | Read-only status display | `<StatusBadge :entity="..." />` |
-| Current lifecycle location | `status.lifecycle.data.location` rendered by `<InstanceStatus>` |
+| Current lifecycle location | `status.lifecycle.data.location` rendered by `<InstanceState>` |
 | Drawing and geometry preview | `<DrawingCanvas ... />` for layer-aware DXF/SVG/cassette canvas work; `<GeometryPreview :entity="..." />` as the entity-card wrapper |
 | Structured key/value data (specs, parameters, tool dims) | `<DataBlock type-id="..." :entity="..." :fields="ENTITY_FIELDS" />` |
 | Lineage breadcrumb | `<TraceChain :entity="..." />` |
-| Audit log | `<StatusHistory :entity="..." type-id="..." />` |
+| Audit log | `<StateHistory :entity="..." type-id="..." />` |
 | Detail page header | `<InstancePage :entity="..." type-id="..." />` |
 | CRUD + status operations | `useEntity(type, id)` |
 | Entity/container structure | Entity cards: `<InstanceCard>`; non-entity sections: PrimeVue `<Panel>` or semantic layout; Aura owns generic chrome |
@@ -400,7 +400,7 @@ not display English verbs such as `Create` or raw target statuses such as
 and status-mutating update actions show a localized operation label without
 exposing the state id in the button text.
 Generated non-status action surfaces, including detail header buttons and card
-footers, must not render status-mutating update actions. `InstanceStatus` loads
+footers, must not render status-mutating update actions. `InstanceState` loads
 server-filtered actions and owns the status popover/history.
 Generated entity detail headers show the entity `TraceChain` instead of a
 standalone repeated identity name, so the opened record keeps lineage context in
@@ -593,13 +593,13 @@ Child collection regions inside an entity detail must preserve the opened
 parent context when executing create actions. They may not replace that context
 with the child collection entity type, otherwise a `library -> cassette` action
 loses the concrete library id and creates unscoped children.
-`InstanceStatus` must not receive locally synthesized process actions.
+`InstanceState` must not receive locally synthesized process actions.
 Generated action setup and execution failures must be visible in the screen:
 prompt option loading errors, missing required entity options, and execution
 errors all surface through `StateBlock` and PrimeVue toast feedback instead of
 being converted to empty controls.
 
-Lifecycle transitions belong in `InstanceStatus` and should come from the
+Lifecycle transitions belong in `InstanceState` and should come from the
 canonical workflow/status API or development workflow previews. Destructive,
 edit, reset helper, and feature command buttons stay outside the status surface
 in card footers or page action slots.
@@ -717,9 +717,9 @@ broad whole-file CSS exceptions, and a second runtime visual layer fail.
 
 ## Composables Rule
 
-`useBlocks.js` composables (`useIdentity`, `useStatus`, `useSpecs`, `useLineage`) are **only** used inside the shared block components (`IdentityBlock`, `InstanceStatus`, `SpecsBlock`). Entity cards and pages must never import from `useBlocks.js` — they compose the block components instead.
+`useBlocks.js` composables (`useIdentity`, `useStatus`, `useSpecs`, `useLineage`) are **only** used inside the shared block components (`IdentityBlock`, `InstanceState`, `SpecsBlock`). Entity cards and pages must never import from `useBlocks.js` — they compose the block components instead.
 
-No exceptions are currently needed in used entity pages/cards; state-only conditionals should use a local `computed` from `entity.status?.state`.
+No exceptions are currently needed in used entity pages/cards; state-only conditionals should use a local `computed` from `entity.states`.
 
 ## Data Access
 

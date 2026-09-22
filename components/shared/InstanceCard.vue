@@ -41,11 +41,11 @@
                     </template>
                 </div>
                 <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
-                    <InstanceStatus
+                    <InstanceState
                         :entity="entity"
                         :type-id="typeId"
                         variant="inline"
-                        :actions="statusActions"
+                        :actions="stateActions"
                         @refresh="$emit('refresh')"
                         @transitioned="$emit('refresh')"
                     />
@@ -79,11 +79,11 @@
                             <IdentityBlock :entity="entity" :icon="entityConfig.icon" />
                         </div>
                         <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
-                            <InstanceStatus
+                            <InstanceState
                                 :entity="entity"
                                 :type-id="typeId"
                                 variant="inline"
-                                :actions="statusActions"
+                                :actions="stateActions"
                                 @refresh="$emit('refresh')"
                                 @transitioned="$emit('refresh')"
                             />
@@ -129,12 +129,12 @@
                     <small v-if="inlineTypeLabel" class="uppercase text-muted text-supporting">
                         {{ inlineTypeLabel }}
                     </small>
-                    <InstanceStatus
+                    <InstanceState
                         v-if="effectiveShowStatus"
                         :entity="entity"
                         :type-id="typeId"
                         variant="inline"
-                        :actions="statusActions"
+                        :actions="stateActions"
                         @refresh="$emit('refresh')"
                         @transitioned="$emit('refresh')"
                     />
@@ -193,7 +193,7 @@
 import { computed, inject, onMounted, onUnmounted, ref, unref } from 'vue';
 /**
  * InstanceCard - v24 Standardized
- * Shared entity card structure: TraceChain + IdentityBlock + InstanceStatus.
+ * Shared entity card structure: TraceChain + IdentityBlock + InstanceState.
  * Entity-specific cards use this as their container, providing only
  * entity-specific body/footer content via slots.
  *
@@ -208,7 +208,7 @@ import { computed, inject, onMounted, onUnmounted, ref, unref } from 'vue';
  *   footer           — footer actions (card variant; inline by default)
  */
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import InstanceStatus from '~/components/shared/status/InstanceStatus.vue';
+import InstanceState from '~/components/shared/state/InstanceState.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
 import Button from 'primevue/button';
@@ -220,7 +220,7 @@ import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCas
 import { useRegistryStore } from '~/stores/registry';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
-import { hasMeaningfulWorkflowStatus } from '~/utils/status-actions.js';
+import { hasMeaningfulWorkflowState } from '~/utils/state-actions.js';
 import { instanceHierarchyIds } from '~/utils/instance-hierarchy.js';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
@@ -233,7 +233,7 @@ const props = defineProps({
     showTrace: { type: Boolean, default: null },
     expandable: { type: Boolean, default: true },
     density: { type: String, default: 'default' },
-    statusActions: { type: Array, default: () => [] },
+    stateActions: { type: Array, default: () => [] },
     displayExtensions: { type: Object, default: null },
     displayOverrides: { type: Object, default: null },
     contextEntity: { type: Object, default: null },
@@ -264,7 +264,7 @@ const inlineActionEntityRef = inject('instanceInlineActionEntity', null);
 const inlineActionTypeIdRef = inject('instanceInlineActionTypeId', '');
 const inlineShowCassetteDesignerRef = inject('instanceInlineShowCassetteDesigner', false);
 const inlineExecuteActionRef = inject('instanceInlineExecuteAction', null);
-const statusWorkflowsRef = inject('statusWorkflows', null);
+const stateWorkflowsRef = inject('stateWorkflows', null);
 
 const registry = useRegistryStore();
 // Render-policy icons are the single icon source (stores/README.md):
@@ -278,7 +278,7 @@ const displayPlan = computed(() => resolveInstanceDisplayContract({
     overrides: props.displayOverrides
 }));
 const effectiveShowStatus = computed(() => {
-    if (!hasMeaningfulWorkflowStatus(props.typeId, unref(statusWorkflowsRef) || undefined)) return false;
+    if (!hasMeaningfulWorkflowState(props.typeId, unref(stateWorkflowsRef) || undefined)) return false;
     if (props.showStatus !== null) return props.showStatus;
     return displayPlan.value.surfaceContract.status === 'interactive'
         || displayPlan.value.surfaceContract.status === 'readonly';

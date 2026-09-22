@@ -17,7 +17,7 @@ const CORE_FIELDS = [
   field('origin.metadata', 'json', { writable: false, constructible: false }),
   field('origin.eventId', 'string', { writable: false, constructible: false }),
   field('origin.lifecycle', 'json', { writable: false, constructible: false }),
-  field('status.state.primary', 'status', { constructible: false }),
+  field('states.main', 'status', { constructible: false }),
   field('status.userId', 'string', { writable: false, constructible: false }),
   field('status.timestamp', 'dateTime', { writable: false, constructible: false }),
   field('status.metadata', 'json', { constructible: false }),

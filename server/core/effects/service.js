@@ -1,6 +1,6 @@
 import { createError } from 'h3';
 import { getAppRegistry } from '../../runtime/app-registry.js';
-import { statusService } from '../machines/service.js';
+import { stateService } from '../machines/service.js';
 import { enqueueTask } from '../tasks/service.js';
 import { publishDomainEvent } from '../events/service.js';
 import { getPrimaryState } from '~/server/core/blocks/index.js';
@@ -117,7 +117,7 @@ async function processTransitionEffect(effect = {}, context = {}) {
   const intent = effect.intent || null;
 
   if (intent) {
-    const result = await statusService.applyIntent(entity.type, entity.id, intent, auth, metadata, transitionContext);
+    const result = await stateService.applyIntent(entity.type, entity.id, intent, auth, metadata, transitionContext);
     return {
       type: 'transition',
       entity,
@@ -130,7 +130,7 @@ async function processTransitionEffect(effect = {}, context = {}) {
   if (!targetState) {
     throw createError({ statusCode: 400, message: 'transition effect requires targetState or intent' });
   }
-  const result = await statusService.transition(entity.type, entity.id, targetState, auth.userId, auth, metadata);
+  const result = await stateService.transition(entity.type, entity.id, targetState, auth.userId, auth, metadata);
   return {
     type: 'transition',
     entity,

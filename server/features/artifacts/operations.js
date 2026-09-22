@@ -1,7 +1,6 @@
 import { createError } from 'h3';
 import { toFlexibleId } from '../../utils/objectid.js';
 import * as attachmentService from './service.js';
-import * as nestingJobs from '../nesting/jobs.js';
 import * as sheetDesignsService from '../sheet-designs/service.js';
 import * as artifactTemplatesService from '../artifact-templates/service.js';
 import { createInstanceRef, createProvenance } from '../../core/blocks/index.js';
@@ -71,11 +70,10 @@ export async function generateAttachment({ entities, parameters = {}, auth }) {
   throw createError({ statusCode: 400, message: `Unsupported attachment kind: ${kind}` });
 }
 
-async function findGeneratedRunDxf(runId) {
-  const job = await nestingJobs.findLatestByRun(runId);
-  const fileId = job?.dxf_file_ids?.[0];
-  if (!fileId || job.status !== 'done') return null;
-  return { fileId };
+// Nesting-run DXF lookup died with the legacy nesting pipeline: runs no
+// longer carry generated DXF jobs to attach.
+async function findGeneratedRunDxf() {
+  return null;
 }
 
 function toCommandAttachmentResult(attachment) {

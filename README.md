@@ -151,7 +151,7 @@ builds only).
 - Offline mutations are queued in a client-side IndexedDB outbox
   (`utils/outbox.js`, `stores/outbox.js`) and replayed through the same API
   endpoints when connectivity returns. Entity CRUD (`useEntity`), status
-  transitions (`useStatusController`), and generated process actions route
+  transitions (`useStateController`), and generated process actions route
   through the outbox; queued operations raise a typed `OfflineQueuedError`,
   and the floating `OfflineOutboxBadge` shows sync state with per-operation
   retry/discard. Successful replays emit the shared entity-event contract, so

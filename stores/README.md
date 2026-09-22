@@ -61,7 +61,7 @@ endpoint, the hardcoded per-entity route tables in breadcrumb/trace
 routing, the queue editor flow and its orphan stores). The remaining
 client imports of `@cutkit/domain-cnc` are owned by legacy server
 contracts, not by declarations —
-`utils/status-engine.js` (status labels/severity for feature-served
+`utils/state-engine.js` (status labels/severity for feature-served
 types whose compiled workflows supplement the table),
 `utils/instance-display-contract.js` (the legacy card surface registry),
 `components/PermissionEditor.vue` (the membership feature-key
@@ -128,7 +128,7 @@ process vocabulary; none may gain new consumers.
   `tenantPermissions` through `hasTenantPermission()`, which reads explicit
   active membership grants for organization/team/process management recovery.
   It also exposes the active process's compiled lifecycle machines through
-  `statusWorkflows`; entity UI uses this contract for workflow-derived status
+  `stateWorkflows`; entity UI uses this contract for workflow-derived status
   visibility and transitions.
 - `navigation.js` owns route breadcrumbs. SSR callers must pass request
   headers through `fetchRouteHierarchy(path, query, fetchOptions)` so

@@ -113,7 +113,7 @@ describe('graph protocol v5 designer round trip', () => {
       actions: {},
       services: {},
       sockets: {},
-      statusDefinitions: {},
+      stateDefinitions: {},
       valueInputs: {},
       screens: { list: { id: 'list', label: 'List', template: 'entityList', roleIds: [], sources: [{ id: 'sheet', entityType: 'sheet', mode: 'list', filters: {} }], regions: [{ id: 'main', slot: 'main', sourceId: 'sheet', surface: 'card', actions: [] }] } },
       processNodes: {
@@ -145,7 +145,7 @@ describe('graph protocol v5 designer round trip', () => {
       actions: {},
       services: {},
       sockets: {},
-      statusDefinitions: {},
+      stateDefinitions: {},
       valueInputs: {},
       screens: {},
       processNodes: {
@@ -190,7 +190,7 @@ describe('graph protocol v5 designer round trip', () => {
       actions: {},
       services: {},
       sockets: {},
-      statusDefinitions: {},
+      stateDefinitions: {},
       valueInputs: {},
       screens: {},
       processNodes: {

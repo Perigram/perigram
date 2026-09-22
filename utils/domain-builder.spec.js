@@ -24,8 +24,8 @@ describe('domain builder utilities', () => {
   it('rejects duplicate entities and invalid workflow states', () => {
     const draft = createDomainDraft({
       entities: [
-        { type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' }, blocks: ['identity', 'status'] },
-        { type: 'queue', collection: 'queues_copy', routes: { single: '/api/queue-copy/:id', list: '/api/queue-copy' }, blocks: ['identity', 'status'] }
+        { type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' }, blocks: ['identity', 'states'] },
+        { type: 'queue', collection: 'queues_copy', routes: { single: '/api/queue-copy/:id', list: '/api/queue-copy' }, blocks: ['identity', 'states'] }
       ],
       workflows: {
         queue: {
@@ -45,7 +45,7 @@ describe('domain builder utilities', () => {
 
   it('validates typed command parameters and hook params', () => {
     const draft = createDomainDraft({
-      entities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' }, blocks: ['identity', 'status'] }],
+      entities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' }, blocks: ['identity', 'states'] }],
       workflows: {
         queue: {
           initial: 'DRAFT',
@@ -80,7 +80,7 @@ describe('domain builder utilities', () => {
 
   it('generates deterministic domain-cnc source exports', () => {
     const source = generateDomainCncSource({
-      entities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' }, blocks: ['identity', 'status'] }],
+      entities: [{ type: 'queue', collection: 'queues', routes: { single: '/api/queue/:id', list: '/api/queue' }, blocks: ['identity', 'states'] }],
       workflows: { queue: { initial: 'DRAFT', states: { DRAFT: {} }, transitions: [] } },
       summaries: []
     });
@@ -131,7 +131,7 @@ describe('domain builder utilities', () => {
   it('compiles workflows with committed hook contracts when the caller has not loaded hooks yet', async () => {
     const { compileWorkflowDraft } = await import('./workflow-compiler.js');
     const compiled = compileWorkflowDraft({
-      entities: [{ type: 'queue', collection: 'queues', blocks: ['identity', 'status'] }],
+      entities: [{ type: 'queue', collection: 'queues', blocks: ['identity', 'states'] }],
       workflows: {
         queue: {
           initial: 'DRAFT',

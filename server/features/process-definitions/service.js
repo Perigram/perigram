@@ -5,7 +5,7 @@ import { normalizeInstanceRef } from '~/packages/core/src/index.js';
 import { assertEntityAccess } from '~/server/core/access/service.js';
 import { executeCommand } from '~/server/core/commands/service.js';
 import { createStatusState } from '~/server/core/blocks/index.js';
-import { statusService } from '~/server/core/machines/service.js';
+import { stateService } from '~/server/core/machines/service.js';
 import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
 import * as entityEventService from '~/server/features/instance-events/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
@@ -87,9 +87,9 @@ export async function list(auth) {
 export async function findRoleReferences(organizationId, roleId) {
   const raws = await repository.find({ 'lineage.organizationId': toFlexibleId(organizationId) });
   return raws
-    .filter(raw => raw.status?.state?.primary !== 'ARCHIVED')
+    .filter(raw => raw.states?.main !== 'ARCHIVED')
     .filter(raw => definitionReferencesRole(raw.data || {}, roleId))
-    .map(raw => ({ id: String(raw._id), name: raw.identity?.name || '', status: raw.status?.state?.primary || '' }));
+    .map(raw => ({ id: String(raw._id), name: raw.identity?.name || '', status: raw.states?.main || '' }));
 }
 
 function definitionReferencesRole(data = {}, roleId) {
@@ -161,14 +161,14 @@ export async function create(payload = {}, auth) {
     lineage: { organizationId: toFlexibleId(organizationId) },
     data: authored
   });
-  applyProcessStatus(process, 'DRAFT', auth.userId, 'Process draft created');
+  applyProcessState(process, 'DRAFT', auth.userId, 'Process draft created');
   const created = await repository.create(process);
   return new ProcessDefinition(created).toJSON();
 }
 
 export async function update(id, payload = {}, auth) {
   const process = await loadAuthorized(id, auth, 'write');
-  if (process.status?.state?.primary === 'ACTIVE') {
+  if (process.states?.main === 'ACTIVE') {
     throw createError({ statusCode: 409, message: 'Active process definitions cannot be edited directly' });
   }
   if (payload.identity?.name || payload.name) {
@@ -219,10 +219,10 @@ async function contractDiffFor(process, auth) {
 // removed state become plan rows, and a confirmed mapping payload re-targets
 // the affected instances right after the new contract is active. Entity
 // types whose status check cannot run are not treated as affected.
-async function collectStrandedInstanceStatuses(process, auth, nextCompiled) {
+async function collectStrandedInstanceStatees(process, auth, nextCompiled) {
   const baseline = await activeContractBaseline(process, auth);
   if (!baseline) return [];
-  const removed = diffProcessContracts(baseline, nextCompiled).removedInstanceStatuses;
+  const removed = diffProcessContracts(baseline, nextCompiled).removedInstanceStatees;
   const stranded = [];
   for (const { typeId, statuses } of removed) {
     let entities = [];
@@ -233,7 +233,7 @@ async function collectStrandedInstanceStatuses(process, auth, nextCompiled) {
     }
     const counts = Object.fromEntries(statuses.map(state => [state, 0]));
     for (const entity of entities) {
-      const primary = entity?.status?.state?.primary;
+      const primary = entity?.states?.main;
       if (Object.hasOwn(counts, primary)) counts[primary] += 1;
     }
     const present = statuses.filter(state => counts[state] > 0)
@@ -251,10 +251,10 @@ export async function validate(id, auth) {
   const validation = validateActivatableProcess(accepted, domain, await loadOrganizationRoles(process.lineage.organizationId));
   const diff = await contractDiffFor(process, auth);
   let migrationPlan = null;
-  if (diff?.removedInstanceStatuses?.length) {
+  if (diff?.removedInstanceStatees?.length) {
     try {
       const nextCompiled = await compileOrganizationProcess(process.data, process.lineage.organizationId, await loadOrganizationRoles(process.lineage.organizationId));
-      const stranded = await collectStrandedInstanceStatuses(process, auth, nextCompiled);
+      const stranded = await collectStrandedInstanceStatees(process, auth, nextCompiled);
       if (stranded.length) migrationPlan = buildStatusMigrationPlan(stranded, nextCompiled);
     } catch {
       // The activate boundary recomputes the plan from fresh compiles; a
@@ -282,7 +282,7 @@ export async function activate(id, auth, payload = {}) {
     ...process.data,
     compiled: await compileOrganizationProcess(process.data, process.lineage.organizationId, roles)
   };
-  const stranded = await collectStrandedInstanceStatuses(process, auth, process.data.compiled);
+  const stranded = await collectStrandedInstanceStatees(process, auth, process.data.compiled);
   const plan = stranded.length ? buildStatusMigrationPlan(stranded, process.data.compiled) : null;
   const mappings = normalizeStatusMappings(payload?.migration?.statuses);
   if (stranded.length) {
@@ -293,7 +293,7 @@ export async function activate(id, auth, payload = {}) {
     }
   }
   await repository.archiveActiveByOrganization(process.lineage.organizationId, auth.userId);
-  applyProcessStatus(process, 'ACTIVE', auth.userId, 'Process activated');
+  applyProcessState(process, 'ACTIVE', auth.userId, 'Process activated');
   let updated = await repository.updateById(id, process);
   await organizationProcessService().setActiveProcessDefinition(process.lineage.organizationId, updated._id);
   // Activation can flip the org's registry view (APPLY posts in-tree
@@ -351,7 +351,7 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
       services: {},
       sockets: {},
       screens: {},
-      statusDefinitions: {},
+      stateDefinitions: {},
       valueInputs: {},
       processNodes: {},
       compiled: null
@@ -369,7 +369,7 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
     ...process.data,
     compiled: await compileOrganizationProcess(process.data, process.lineage.organizationId, roles)
   };
-  applyProcessStatus(process, 'ACTIVE', actorId || 'SYSTEM', 'Process activated (empty)');
+  applyProcessState(process, 'ACTIVE', actorId || 'SYSTEM', 'Process activated (empty)');
 
   await repository.archiveActiveByOrganization(organizationId, actorId || 'SYSTEM');
   const created = await repository.create(process);
@@ -380,7 +380,7 @@ export async function createActiveEmptyProcess({ organizationId, actorId } = {})
 
 export async function archive(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
-  applyProcessStatus(process, 'ARCHIVED', auth.userId, 'Process archived');
+  applyProcessState(process, 'ARCHIVED', auth.userId, 'Process archived');
   const updated = await repository.updateById(id, process);
   return new ProcessDefinition(updated).toJSON();
 }
@@ -919,15 +919,15 @@ async function applyProcessOutputStatuses({ actionId, result = {}, processData =
   if (!statusesByTypeId.size) return;
   for (const entityRef of result.entities || []) {
     const typeId = normalizeTypeId(entityRef.type || entityRef.typeId || '');
-    const statusTargets = statusesByTypeId.get(typeId) || [];
-    if (statusTargets.length > 1) {
+    const stateTargets = statusesByTypeId.get(typeId) || [];
+    if (stateTargets.length > 1) {
       throw new Error(`Process command action ${actionId} has ambiguous status outputs for ${typeId}`);
     }
-    const statusTarget = statusTargets[0];
-    const targetState = statusTarget?.targetState;
+    const stateTarget = stateTargets[0];
+    const targetState = stateTarget?.targetState;
     const targetId = entityRef.id || entityRef._id;
     if (!typeId || !targetState || !targetId) continue;
-    await statusService.setInitialStateForOrganization(
+    await stateService.setInitialStateForOrganization(
       typeId,
       targetId,
       targetState,
@@ -935,8 +935,8 @@ async function applyProcessOutputStatuses({ actionId, result = {}, processData =
       auth.userId,
       processStatusMetadata({
         typeId,
-        producerOutputId: statusTarget.producerOutputId,
-        status: { to: targetState }
+        producerOutputId: stateTarget.producerOutputId,
+        state: { to: targetState }
       }, `Created by process command action ${actionId}`, processData)
     );
     await entityEventService.publishEntityChanged(auth, {
@@ -1006,13 +1006,13 @@ function commandOutputStatusMap(actionId, processData = {}) {
     if (!sourceNodeIds.has(String(edge.source))) continue;
     const targetActionId = actionIdByNodeId.get(String(edge.target)) || String(edge.target);
     const targetAction = targetActionId ? processData.actions?.[targetActionId] : null;
-    if (targetAction?.actionKind !== 'updateEntity' || !(targetAction.status?.to || targetAction.access?.statusTo)) continue;
+    if (targetAction?.actionKind !== 'updateEntity' || !(targetAction.state?.to || targetAction.access?.stateTo)) continue;
     const typeId = normalizeTypeId(
       targetAction.typeId
       || targetAction.inputs?.find(input => input.typeId)?.typeId
       || String(edge.sourceHandle || '').replace(/^output:/, '')
     );
-    const targetState = targetAction.status?.to || targetAction.access?.statusTo;
+    const targetState = targetAction.state?.to || targetAction.access?.stateTo;
     if (typeId && targetState) {
       const targets = map.get(typeId) || [];
       targets.push({ targetState, producerOutputId: targetAction.producerOutputId || null });
@@ -1032,7 +1032,7 @@ function processStatusMetadata(action = {}, note = '', processData = {}) {
 }
 
 function processTransitionContext(action = {}, data = {}, processData = {}) {
-  const source = data?.statusMeta || data?.context || {};
+  const source = data?.stateMeta || data?.context || {};
   const display = actionStatusDisplayMetadata(action, processData);
   if (!display) return source;
   if (source?.metadata || source?.lifecycle) {
@@ -1052,18 +1052,18 @@ function processTransitionContext(action = {}, data = {}, processData = {}) {
 
 function actionStatusDisplayMetadata(action = {}, processData = {}) {
   return statusDisplayMetadata({
-    ...statusDefinitionForAction(action, processData),
-    ...(action.status || {})
+    ...stateDefinitionForAction(action, processData),
+    ...(action.state || {})
   });
 }
 
-function statusDefinitionForAction(action = {}, processData = {}) {
-  const statusRef = action.statusRef;
-  if (statusRef && processData?.statusDefinitions?.[statusRef]) return processData.statusDefinitions[statusRef];
-  const target = action.status?.to || action.access?.statusTo;
+function stateDefinitionForAction(action = {}, processData = {}) {
+  const stateRef = action.stateRef;
+  if (stateRef && processData?.stateDefinitions?.[stateRef]) return processData.stateDefinitions[stateRef];
+  const target = action.state?.to || action.access?.stateTo;
   if (!target) return {};
-  return Object.values(processData?.statusDefinitions || {}).find(definition => (
-    definition?.statusId === target || definition?.id === target
+  return Object.values(processData?.stateDefinitions || {}).find(definition => (
+    definition?.stateId === target || definition?.id === target
   )) || {};
 }
 
@@ -1082,7 +1082,7 @@ export async function getByIdInternal(id) {
   return raw ? new ProcessDefinition(raw).toJSON() : null;
 }
 
-function applyProcessStatus(process, primary, userId, note) {
+function applyProcessState(process, primary, userId, note) {
   process.applyStatus(createStatusState(primary), userId || 'SYSTEM', { note });
 }
 
@@ -1419,7 +1419,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
     const executionAuth = createActionExecutionAuth(auth, record);
     blockDraft = await normalizeProcessMutation(typeId, blockDraft, relationContracts, executionAuth);
-    const targetState = inputs['status.state.primary'] || record.status?.to;
+    const targetState = inputs['states.main'] || record.state?.to;
     const draft = {
       ...blockDraft,
       ...constructionDraft,
@@ -1430,10 +1430,10 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       // (the conversion's replay-safety inputs).
       provenance: constructProvenance(record, constructionDraft, targetState, inputs)
     };
-    const statusMetadata = draft.status?.metadata && typeof draft.status.metadata === 'object'
-      ? draft.status.metadata
+    const stateMetadata = draft.states?.metadata && typeof draft.states.metadata === 'object'
+      ? draft.states.metadata
       : {};
-    delete draft.status;
+    delete draft.states;
     const mode = record.construction?.mode || '';
     const handler = service.constructionHandlers?.[mode];
     if (typeof handler !== 'function') {
@@ -1452,14 +1452,14 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     const result = targetState && targetId
       ? {
           ...dto,
-          status: await statusService.setInitialStateForOrganization(
+          status: await stateService.setInitialStateForOrganization(
             typeId,
             targetId,
             targetState,
             organizationId,
             auth.userId,
             {
-              ...statusMetadata,
+              ...stateMetadata,
               ...processStatusMetadata(record, `Created by process effect ${record.id}`, processData)
             }
           )
@@ -1478,9 +1478,9 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       .fieldSchemas?.[typeId];
     const schemas = projectedFieldSchemas || getEntityFieldSchemas(record.typeId);
     const persistedChanges = processBlockInputChanges(record, inputs, schemas);
-    const statusValue = inputs['status.state.primary'];
+    const statusValue = inputs['states.main'];
     const statusChange = statusValue == null ? null : {
-      path: 'status.state.primary',
+      path: 'states.main',
       operation: 'set',
       value: statusValue
     };
@@ -1492,7 +1492,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       Object.assign(patch, Object.fromEntries(Object.entries(declaredRelationValues(inputs.relations, relationContracts))
         .map(([key, value]) => [`relations.${key}`, value])));
       patch = await normalizeProcessPatchRelations(typeId, patch, relationContracts, auth);
-      const result = await statusService.transitionWithResult({
+      const result = await stateService.transitionWithResult({
         typeId,
         targetId: target.id,
         targetState: typeof statusChange.value === 'string' ? statusChange.value : statusChange.value?.id,
@@ -1526,7 +1526,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
       if ((change.operation || 'set') !== 'set') throw new Error(`Status transition patch does not support ${change.operation}`);
       return [change.path, change.value];
     }));
-    const result = await statusService.transitionWithResult({
+    const result = await stateService.transitionWithResult({
       typeId,
       targetId: target.id,
       targetState: typeof inputs.status === 'string' ? inputs.status : inputs.status?.id,
@@ -1537,7 +1537,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     return result.entity;
   }
   if (kind === 'effect.archiveEntity') {
-    const result = await statusService.transitionWithResult({
+    const result = await stateService.transitionWithResult({
       typeId,
       targetId: target.id,
       ...(record.archiveIntent ? { intent: record.archiveIntent } : { targetState: 'ARCHIVED' }),

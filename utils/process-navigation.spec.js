@@ -40,11 +40,11 @@ describe('process navigation', () => {
       required: {
         feature: 'projects',
         level: 'admin',
-        rule: { fact: 'primaryStatus', equals: 'NEW' }
+        rule: { fact: 'primaryState', equals: 'NEW' }
       }
     }];
     const permissions = {
-      projects: [{ level: 'admin', rule: { fact: 'primaryStatus', equals: 'NEW' } }]
+      projects: [{ level: 'admin', rule: { fact: 'primaryState', equals: 'NEW' } }]
     };
 
     expect(resolveVisibleScreens(screens, permissions)).toHaveLength(1);
@@ -60,7 +60,7 @@ describe('process navigation', () => {
       required: {
         feature: 'cassettes',
         level: 'read',
-        rule: { fact: 'primaryStatus', equals: 'READY' }
+        rule: { fact: 'primaryState', equals: 'READY' }
       },
       sources: [{
         id: 'cassette',
@@ -69,7 +69,7 @@ describe('process navigation', () => {
         required: {
           feature: 'cassettes',
           level: 'read',
-          rule: { fact: 'primaryStatus', equals: 'READY' }
+          rule: { fact: 'primaryState', equals: 'READY' }
         }
       }]
     }, {
@@ -81,7 +81,7 @@ describe('process navigation', () => {
       required: {
         feature: 'cassettes',
         level: 'read',
-        rule: { fact: 'primaryStatus', equals: 'ACTIVE' }
+        rule: { fact: 'primaryState', equals: 'ACTIVE' }
       },
       sources: [{
         id: 'cassette',
@@ -90,7 +90,7 @@ describe('process navigation', () => {
         required: {
           feature: 'cassettes',
           level: 'read',
-          rule: { fact: 'primaryStatus', equals: 'ACTIVE' }
+          rule: { fact: 'primaryState', equals: 'ACTIVE' }
         }
       }],
       actions: ['create_cassette']
@@ -108,15 +108,15 @@ describe('process navigation', () => {
         level: 'read',
         rule: {
           any: [
-            { fact: 'primaryStatus', equals: 'READY' },
-            { fact: 'primaryStatus', equals: 'ACTIVE' }
+            { fact: 'primaryState', equals: 'READY' },
+            { fact: 'primaryState', equals: 'ACTIVE' }
           ]
         }
       }
     });
     expect(effective[0].sources[0].required.rule.any).toEqual([
-      { fact: 'primaryStatus', equals: 'READY' },
-      { fact: 'primaryStatus', equals: 'ACTIVE' }
+      { fact: 'primaryState', equals: 'READY' },
+      { fact: 'primaryState', equals: 'ACTIVE' }
     ]);
   });
 

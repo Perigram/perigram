@@ -7,7 +7,6 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/ChatSupport.vue': 'layout',
   'components/calls/CallPanel.vue': 'layout',
   'components/calls/CallWorkspacePage.vue': 'layout',
-  'components/entities/Queue/QueueEntryCard.vue': 'layout',
   'components/generated/GeneratedProjectWorkspace.vue': 'layout',
   'components/shared/DesignerDialog.vue': 'layout',
   'components/shared/DesignerWorkspace.vue': 'layout',
@@ -63,12 +62,8 @@ export const INLINE_STYLE_EXCEPTIONS = Object.freeze({
     ':style="{ opacity: swipeIconOpacity(messageItem) }"',
     ':style="swipeStyle(messageItem)"'
   ]],
-  'components/entities/Color/ColorCard.vue': ['data-driven', [':style="swatchStyle"', ':style="swatchStyle"']],
   'components/shared/blocks/DataBlock.vue': ['data-driven', [':style="{ backgroundColor: row.swatch }"']],
   'components/entities/PenTemplate/PenTemplateCard.vue': ['data-driven', [':style="lineStyle"']],
-  'components/entities/Requisition/RequisitionDetail.vue': ['data-driven', [':style="{ backgroundColor: item.colorHex || item.colorFallback || \'var(--p-content-border-color)\' }"']],
-  'components/entities/Sheet/SheetDetail.vue': ['data-driven', [':style="{ backgroundColor: colorHex }"', ':style="geometryStyle"']],
-  'components/entities/Sheet/SheetCard.vue': ['data-driven', [':style="{ backgroundColor: colorHex }"', ':style="{ backgroundColor: colorHex }"']],
   'components/process-designer/ProcessNode.vue': ['data-driven', [
     ':style="handleStyle(row.input)"',
     ':style="handleStyle(row.output)"',

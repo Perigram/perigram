@@ -139,8 +139,8 @@ not the template id.
 Access is governed by `lineage.organizationId` and status-scoped process
 grants. Multi-tenant isolation is enforced at the service layer using
 `hasLineagePermission` with the full cassette DTO, not only its lineage block,
-so rules such as `primaryStatus = ACTIVE` apply to both collection and detail
-reads. `GET /api/cassettes` accepts the generated-screen `primaryStatuses`
+so rules such as `primaryState = ACTIVE` apply to both collection and detail
+reads. `GET /api/cassettes` accepts the generated-screen `primaryStates`
 filter and then prunes results through the same read check used by
 `GET /api/cassettes/:id`; a generated list must not show a template whose
 detail page would return 403. Single-template reads must also pass the full

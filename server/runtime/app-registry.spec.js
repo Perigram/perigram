@@ -57,10 +57,9 @@ function registryCapabilities(registry, domain) {
 }
 
 const FRAMEWORK_SERVICE_TYPES = ['organization', 'user', 'artifact', 'process_definition', 'entity_revision'];
-// Transitional legacy entity services the cnc pack mounts explicitly for
-// its queue production flow (hooks/effects target the registry); deleted
-// with that flow's legacy cut.
-const PACK_LEGACY_SERVICE_TYPES = ['queue'];
+// The cnc pack no longer mounts legacy entity services: every pack type
+// rides the generic instance services.
+const PACK_LEGACY_SERVICE_TYPES = [];
 
 function createEffectDefinition(typeId, mode) {
   return {
@@ -84,6 +83,7 @@ function createEffectDefinition(typeId, mode) {
         typeId,
         producerOutputId: 'create:entity',
         construction: { mode },
+        state: { to: 'CREATED' },
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: 'admin', level: 'write' }] },
         blocks: [],

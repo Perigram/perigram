@@ -20,7 +20,7 @@ describe('process workflow resolution', () => {
           typeId: 'cassette',
           construction: { mode: 'genericCreate', inputs: [] },
           trigger: { mode: 'manual' },
-          status: { to: 'CREATED' }
+          state: { to: 'CREATED' }
         }
       },
       graph: { nodes: [{ id, type: 'processNode', data: { refId: id } }], edges: [] }

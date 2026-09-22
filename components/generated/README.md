@@ -267,7 +267,7 @@ Discord-style operational shell:
   remaining width so trailing row controls align to the row end.
 - Entity rows are inline entity entries through the shared component:
   `InstanceInlineRef variant="inline"` with `interactive: false` (non-expanding
-  inline card, no detail popup), followed by the icon-variant `InstanceStatus`
+  inline card, no detail popup), followed by the icon-variant `InstanceState`
   and the separate ellipsis control at the end of the row. The tree owns
   selection. Entity nodes carry no tree-level icon — the inline chip owns the
   entity icon, and a tree icon would duplicate it.

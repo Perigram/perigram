@@ -69,7 +69,7 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
     Scaffold-from-type designer macro: not built, marked optional.
   - [x] **P5 — UI contract flip (declaration side)**: declared states
     carry the type's render policy (label/icon/severity) into projected
-    workflows — the same metadata channel statusDefinitions use; payload
+    workflows — the same metadata channel stateDefinitions use; payload
     preview derives from payload traits. Assembly (screens/navigation/
     access) stays process-owned and already consumes the projected view.
 - [x] **Server compiles through CTS**: activation, contract diff, draft
@@ -93,7 +93,7 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
   graph nodes. (Reference-card experiment removed: cards that only display a
   type add no composition; types participate through the real nodes.) `RECORD_NODE_TYPES` +
   `CANVAS_OWNED_RECORD_KEYS` in `packages/processes/src/transpiler.js` —
-  only statusDefinition/processNode canvas nodes survive the round trip
+  only stateDefinition/processNode canvas nodes survive the round trip
   today; a `ctsType` reference node needs a `ctsTypes` record home there,
   then the standard pattern (factories map, `recordKeyForType`,
   `syncNodeData`, palette group, inline node card) in process.vue. The

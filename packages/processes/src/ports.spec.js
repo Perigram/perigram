@@ -53,12 +53,12 @@ describe('process programming node ports', () => {
 
   it('exposes a status definition as a typed status output', () => {
     const output = resolveNodePort({
-      statusDefinitions: {
-        ready: { id: 'ready', statusId: 'READY', label: 'Ready' }
+      stateDefinitions: {
+        ready: { id: 'ready', stateId: 'READY', label: 'Ready' }
       }
     }, {
       id: 'ready',
-      type: 'statusDefinition',
+      type: 'stateDefinition',
       data: { refId: 'ready' }
     }, 'data:status', 'output');
 
@@ -73,15 +73,15 @@ describe('process programming node ports', () => {
 
   it('connects a status definition to a structured v3 status input', () => {
     const process = {
-      statusDefinitions: {
-        ready: { id: 'ready', statusId: 'READY', label: 'Ready' }
+      stateDefinitions: {
+        ready: { id: 'ready', stateId: 'READY', label: 'Ready' }
       },
       processNodes: {
         create: {
           id: 'create',
           kind: 'effect.createEntity',
           inputs: [{
-            id: 'status.state.primary',
+            id: 'states.main',
             type: { base: 'status', shape: 'item', typeId: 'project' },
             role: 'data'
           }]
@@ -89,7 +89,7 @@ describe('process programming node ports', () => {
       },
       graph: {
         nodes: [
-          { id: 'ready', type: 'statusDefinition', data: { refId: 'ready' } },
+          { id: 'ready', type: 'stateDefinition', data: { refId: 'ready' } },
           { id: 'create', type: 'processNode', data: { refId: 'create' } }
         ],
         edges: [{
@@ -97,12 +97,12 @@ describe('process programming node ports', () => {
           source: 'ready',
           sourceHandle: 'data:status',
           target: 'create',
-          targetHandle: 'data:status.state.primary'
+          targetHandle: 'data:states.main'
         }]
       }
     };
 
-    expect(resolveNodePort(process, process.graph.nodes[1], 'data:status.state.primary', 'input'))
+    expect(resolveNodePort(process, process.graph.nodes[1], 'data:states.main', 'input'))
       .toMatchObject({ kind: 'status', typeId: 'project' });
     expect(validateProcessEdges(process)).toEqual([]);
   });
@@ -165,7 +165,7 @@ describe('process programming node ports', () => {
     expect(resolveProcessNodePorts({
       kind: 'entityField',
       typeId: 'queue',
-      path: 'status.state.primary',
+      path: 'states.main',
       valueType: 'string',
       structure: 'list'
     })).toEqual({
@@ -183,7 +183,7 @@ describe('process programming node ports', () => {
     expect(resolveProcessNodePorts({
       kind: 'entityCondition',
       typeId: 'queue',
-      path: 'status.state.primary',
+      path: 'states.main',
       operation: 'eq',
       valueType: 'string'
     })).toEqual({

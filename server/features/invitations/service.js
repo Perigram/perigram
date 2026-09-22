@@ -4,7 +4,7 @@ import * as organizationsRepository from '../organizations/repository.js';
 import { createError } from 'h3';
 import crypto from 'node:crypto';
 import { canManageUsersInOrganization } from '../users/service.js';
-import { addStatus, initializeStatus } from '~/server/features/statuses/service';
+import { addStatus, initializeStatus } from '~/server/features/states/service';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 
 export async function generateInvitation(organizationId, roleIds, creatorUser) {

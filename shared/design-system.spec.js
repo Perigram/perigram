@@ -23,8 +23,8 @@ import { cncWorkflows } from '../packages/domain-cnc/src/index.js';
 import { normalizeWorkflow } from '../packages/workflows/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { resolveInstanceRelationRefs } from '../utils/instance-relations.js';
-import { STATUS_MAPPINGS } from '../utils/status-engine.js';
-import { getWorkflowStatusActions } from '../utils/status-actions.js';
+import { STATE_MAPPINGS } from '../utils/state-engine.js';
+import { getWorkflowStateActions } from '../utils/state-actions.js';
 import {
   analyzeVueVisuals,
   inventoryId,
@@ -209,23 +209,6 @@ describe('Design system manifest', () => {
     expect(decorateDataValue(design.data.parameters, { display: 'parameterMap' })).toBe('A=1200, B=400, C=35');
   });
 
-  it('normalizes relation lists for compact generated card galleries', () => {
-    expect(resolveInstanceRelationRefs([
-      { type: 'material_pile', id: 'pile-1' },
-      { type: 'sheet', id: 'sheet-1' },
-      { type: 'remnant', id: 'remnant-1' }
-    ])).toEqual([
-      { typeId: 'material_pile', id: 'pile-1', entity: null },
-      { typeId: 'sheet', id: 'sheet-1', entity: null },
-      { typeId: 'remnant', id: 'remnant-1', entity: null }
-    ]);
-
-    expect(resolveInstanceRelationRefs({
-      sheetIds: ['sheet-1'],
-      remnantIds: ['remnant-1'],
-      cassetteInstanceIds: ['instance-1']
-    })).toEqual([]);
-  });
 
   it('renders a revision-pinned canonical ref through its immutable revision entity', () => {
     expect(resolveInstanceRelationRefs({
@@ -240,17 +223,6 @@ describe('Design system manifest', () => {
     }]);
   });
 
-  it('keeps material pile and batch pile demo DTOs distinct', () => {
-    const material = factories.createMockMaterial();
-    const materialPile = factories.createMockPile();
-    const batchPile = factories.createMockBatchPile();
-
-    expect(material.data.code).toBe('ACP');
-    expect(materialPile.lineage.requisitionId).toBeUndefined();
-    expect(batchPile.lineage.requisitionId).toBeTruthy();
-    expect(batchPile.data.serial).toBeTruthy();
-    expect(batchPile.data.stock.total).toBeGreaterThan(batchPile.data.stock.used);
-  });
 
   it('uses real workflow definitions as the only interactive status source', () => {
     for (const entry of DESIGN_SYSTEM_ENTITY_CONTRACTS) {
@@ -263,7 +235,7 @@ describe('Design system manifest', () => {
   });
 
   it('allows status actions to use a live workflow override', () => {
-    const actions = getWorkflowStatusActions({
+    const actions = getWorkflowStateActions({
       typeId: 'queue',
       state: 'DRAFT',
       workflows: {
@@ -279,7 +251,7 @@ describe('Design system manifest', () => {
   });
 
   it('passes target lifecycle evidence schema through status actions', () => {
-    const actions = getWorkflowStatusActions({
+    const actions = getWorkflowStateActions({
       typeId: 'queue',
       state: 'DRAFT',
       workflows: {
@@ -748,25 +720,6 @@ describe('Design system manifest', () => {
   });
 
 
-  it('keeps nesting runs focused on sheet design outputs', () => {
-    const nestingRunCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/NestingRun/NestingRunCard.vue'), 'utf8');
-    const nestingRunService = fs.readFileSync(path.join(REPO_ROOT, 'server/features/nesting-runs/service.js'), 'utf8');
-
-    expect(nestingRunCard).toContain('InstanceRelationsBlock');
-    expect(nestingRunCard).toContain("typeId: 'sheetDesign'");
-    expect(nestingRunCard).toContain("field.path === 'data.sheetDesignIds'");
-    expect(nestingRunCard).toContain('item-variant="compact"');
-    expect(nestingRunCard).not.toContain('item-variant="inline"');
-    expect(nestingRunCard).not.toContain('SheetDesignCard');
-    expect(nestingRunCard).not.toContain('GeometryPreview');
-    expect(nestingRunCard).not.toContain('ArtifactCard');
-    expect(nestingRunCard).not.toContain('relatedArtifacts');
-    expect(nestingRunCard).toContain("feature: 'nesting_runs'");
-    expect(nestingRunCard).not.toContain("authStore.can('queues', 'edit')");
-    expect(nestingRunService).toContain("run, 'nesting_runs', 'read'");
-    expect(nestingRunService).not.toContain("run.lineage, 'queues', 'read'");
-    expect(DESIGN_SYSTEM_SURFACES.nestingRun.surfaces.card.fieldGroups).toContain('production');
-  });
 
   it('keeps sheet layout editing on semantic layer and bounded snap contracts', () => {
     const editor = fs.readFileSync(path.join(REPO_ROOT, 'components/SheetDesignEditor.vue'), 'utf8');
@@ -840,13 +793,6 @@ describe('Design system manifest', () => {
     expect(cassetteThumbnail).toContain("name !== 'dimension.cassette'");
   });
 
-  it('keeps queue entity controls scoped to the concrete queue', () => {
-    const queueCard = fs.readFileSync(path.join(REPO_ROOT, 'components/entities/Queue/QueueCard.vue'), 'utf8');
-
-    expect(queueCard).toContain('hasPermissionGrant');
-    expect(queueCard).not.toContain("authStore.can('queues', 'edit')");
-    expect(queueCard).not.toContain("authStore.can('queues', 'delete')");
-  });
 
 
   it('keeps entity details on shared InstancePage header chrome', () => {
@@ -855,33 +801,28 @@ describe('Design system manifest', () => {
       (file) => file.endsWith('Detail.vue') && !file.endsWith('.old.vue') && !file.endsWith('.v23.vue')
     ).filter((file) => {
       const source = fs.readFileSync(file, 'utf8');
-      return /<TraceChain\s+:entity|<IdentityBlock[^>]+variant=["']header["']|<InstanceStatus\b/.test(source);
+      return /<TraceChain\s+:entity|<IdentityBlock[^>]+variant=["']header["']|<InstanceState\b/.test(source);
     }).map((file) => path.relative(REPO_ROOT, file));
 
     expect(offenders).toEqual([]);
   });
 
-  it('derives status actions from workflow definitions instead of hardcoded fallbacks', async () => {
-    const { getWorkflowStatusActions } = await import('../utils/status-actions.js');
+  it('derives state actions from workflow definitions instead of hardcoded fallbacks', async () => {
+    const { getWorkflowStateActions } = await import('../utils/state-actions.js');
 
-    expect(getWorkflowStatusActions({ typeId: 'queue', state: 'DRAFT', t: key => key })).toContainEqual(expect.objectContaining({
-      to: 'NESTING'
+    expect(getWorkflowStateActions({ typeId: 'process_definition', state: 'DRAFT', t: key => key })).toContainEqual(expect.objectContaining({
+      to: 'ACTIVE', display: 'inline'
     }));
-    expect(getWorkflowStatusActions({ typeId: 'queue', state: 'DRAFT', t: key => key })).not.toContainEqual(expect.objectContaining({
-      to: 'READY'
-    }));
-    expect(getWorkflowStatusActions({ typeId: 'sheet', state: 'AVAILABLE', t: key => key })).toEqual(expect.arrayContaining([
-      expect.objectContaining({ to: 'IN-CUTTING', display: 'inline' }),
-      expect.objectContaining({ to: 'SCRAP', display: 'menu' })
+    expect(getWorkflowStateActions({ typeId: 'artifact', state: 'PENDING', t: key => key })).toEqual([]);
+    expect(getWorkflowStateActions({ typeId: 'cassette', state: 'ACTIVE', t: key => key })).toEqual(expect.arrayContaining([
+      expect.objectContaining({ to: 'ARCHIVED', display: 'menu' })
     ]));
-    expect(getWorkflowStatusActions({ typeId: 'project', state: 'DRAFT', t: key => key })).not.toContainEqual(expect.objectContaining({
-      to: 'DRAFT'
-    }));
+    expect(getWorkflowStateActions({ typeId: 'queue', state: 'DRAFT', t: key => key })).toEqual([]);
   });
 
   it('keeps status popovers free of placeholder copy and duplicate last-updated sections', () => {
-    const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/InstanceStatus.vue'), 'utf8');
-    const statusHistory = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/status/StatusHistory.vue'), 'utf8');
+    const entityStatus = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/state/InstanceState.vue'), 'utf8');
+    const statusHistory = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/state/StateHistory.vue'), 'utf8');
 
     expect(entityStatus).not.toContain("common.actions.title");
     expect(entityStatus).not.toContain("common.lastUpdated");
@@ -895,10 +836,10 @@ describe('Design system manifest', () => {
     expect(statusHistory).toContain(':display="eventDisplay(event)"');
   });
 
-  it('normalizes typed status lifecycle locations for status surfaces', async () => {
-    const { normalizeStatusLocation } = await import('../utils/status-location.js');
+  it('normalizes typed state lifecycle locations for state surfaces', async () => {
+    const { normalizeStateLocation } = await import('../utils/state-location.js');
 
-    expect(normalizeStatusLocation({
+    expect(normalizeStateLocation({
       status: {
         lifecycle: {
           data: {
@@ -908,7 +849,7 @@ describe('Design system manifest', () => {
       }
     })).toEqual({ type: 'warehouse', id: 'wh-1', label: 'Main' });
 
-    expect(normalizeStatusLocation({
+    expect(normalizeStateLocation({
       status: {
         lifecycle: {
           data: {
@@ -940,7 +881,7 @@ describe('Design system manifest', () => {
         .flatMap(region => Object.keys(region.states || {}));
       for (const state of workflowStates) {
         expect(
-          STATUS_MAPPINGS[state] || STATUS_MAPPINGS[state.toLowerCase()],
+          STATE_MAPPINGS[state] || STATE_MAPPINGS[state.toLowerCase()],
           `${typeId}.${state} missing status badge mapping`
         ).toBeTruthy();
       }

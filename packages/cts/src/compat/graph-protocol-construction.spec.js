@@ -72,7 +72,7 @@ describe('persisted genericCreate constructs validate against the real domain', 
       graphProtocol: 5,
       graph: { nodes: [], edges: [] },
       roleGrants: { role_admin: [] },
-      producerOutputs: {}, actions: {}, services: {}, sockets: {}, screens: {}, statusDefinitions: {}, valueInputs: {},
+      producerOutputs: {}, actions: {}, services: {}, sockets: {}, screens: {}, stateDefinitions: {}, valueInputs: {},
       processNodes: {
         n1: { id: 'n1', kind: 'cts.construct', typeId: 'cassette', via: 'genericCreate', label: 'Make cassette' },
         n2: { id: 'n2', kind: 'cts.construct', typeId: 'sketch', via: 'genericCreate', label: 'Make sketch' }
@@ -92,7 +92,7 @@ describe('persisted genericCreate constructs validate against the real domain', 
       dataflowVersion: 4,
       graph: { nodes: [], edges: [] },
       roleGrants: { role_admin: [] },
-      producerOutputs: {}, actions: {}, services: {}, sockets: {}, screens: {}, statusDefinitions: {}, valueInputs: {},
+      producerOutputs: {}, actions: {}, services: {}, sockets: {}, screens: {}, stateDefinitions: {}, valueInputs: {},
       processNodes: {
         n1: { id: 'n1', kind: 'effect.createEntity', typeId: 'cassette', construction: { mode: 'genericCreate' }, label: 'Make cassette' }
       }

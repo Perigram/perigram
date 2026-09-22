@@ -15,10 +15,5 @@ Legacy notification helper for compatibility nesting jobs.
 - Email delivery is best-effort. Missing users/projects or Resend/API errors
   return `false` and log a warning so nesting completion is not reported as a
   server error.
-- `server/plugins/nest-notify.js` consumes the boolean result and stores
-  `notification_sent` or `notification_skipped` on the compatibility
-  `nesting_jobs.emailNotify` field.
-
-## Related
-
-- [nesting](../nesting/README.md) - producer of compatibility `nesting_jobs`.
+- Results are stored as `notification_sent` or `notification_skipped` on the
+  compatibility `nesting_jobs.emailNotify` field.

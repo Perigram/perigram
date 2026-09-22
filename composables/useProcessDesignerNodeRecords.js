@@ -174,7 +174,7 @@ export function useProcessDesignerNodeRecords({
     }
     // initial status derives post-preset in syncProcessNode (the palette
     // preset may bind a different type than the default).
-    if (['effect.createEntity', 'effect.runProducer'].includes(op)) node.status = {};
+    if (['effect.createEntity', 'effect.runProducer'].includes(op)) node.state = {};
     syncProcessNode(node);
     return node;
   }

@@ -28,7 +28,7 @@ export function emitInstanceDeleted({ type, id, entity = null, reason = 'delete'
   emitInstanceMutation({ type, id, entity, change: 'deleted', reason, source });
 }
 
-export function emitStatusTransitionResult({ typeId, targetId, response }) {
+export function emitStateTransitionResult({ typeId, targetId, response }) {
   emitInstanceMutation({
     type: typeId,
     id: response?.entity?._id || targetId,

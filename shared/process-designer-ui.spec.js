@@ -49,9 +49,9 @@ describe('process designer interaction boundaries', () => {
   it('orders active, draft, and archived process definitions and selects a projectable definition', () => {
     const catalog = useProcessDefinitionCatalog({ definitionToCanvas });
     const current = createPersistedAcceptanceFixture().processDefinition;
-    const archived = { ...current, _id: 'archived', status: { state: { primary: 'ARCHIVED' } } };
-    const draft = { ...current, _id: 'draft', status: { state: { primary: 'DRAFT' } } };
-    const active = { ...current, _id: 'active', status: { state: { primary: 'ACTIVE' } } };
+    const archived = { ...current, _id: 'archived', states: { main: 'ARCHIVED' } };
+    const draft = { ...current, _id: 'draft', states: { main: 'DRAFT' } };
+    const active = { ...current, _id: 'active', states: { main: 'ACTIVE' } };
 
     const list = catalog.normalizeProcessList(active, [archived, draft, active]);
 
@@ -68,7 +68,7 @@ describe('process designer interaction boundaries', () => {
     });
     const current = createPersistedAcceptanceFixture().processDefinition;
     const invalid = { ...current, _id: 'invalid', data: { invalid: true } };
-    const draft = { ...current, _id: 'draft', status: { state: { primary: 'DRAFT' } } };
+    const draft = { ...current, _id: 'draft', states: { main: 'DRAFT' } };
 
     expect(catalog.pickInitialProcess(invalid, [invalid, draft])).toBe(draft);
   });

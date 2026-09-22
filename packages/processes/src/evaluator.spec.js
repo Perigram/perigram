@@ -224,13 +224,13 @@ describe('process v4 data execution', () => {
       {
         id: 'deconstruct',
         kind: 'record.deconstruct',
-        blocks: ['identity', 'status']
+        blocks: ['identity', 'states']
       },
-      { entity: createDataPacket({ identity: { name: 'Queue' }, status: { timestamp: '2026-01-01T00:00:00.000Z' } }) },
-      { outputId: 'status' }
+      { entity: createDataPacket({ identity: { name: 'Queue' }, states: { main: null, timestamp: '2026-01-01T00:00:00.000Z' } }) },
+      { outputId: 'states' }
     );
 
-    expect(result.branches[0].items).toEqual([{ timestamp: '2026-01-01T00:00:00.000Z' }]);
+    expect(result.branches[0].items).toEqual([{ main: null, timestamp: '2026-01-01T00:00:00.000Z' }]);
   });
 
   it('composes and modifies typed blocks without entity field paths leaking into their values', async () => {
@@ -518,7 +518,7 @@ describe('process v4 data execution', () => {
   });
 
   it('rejects Get Block and Deconstruct blocks outside the entity contract at runtime', async () => {
-    const domain = { entities: [{ type: 'project', blocks: ['identity', 'status', 'attachments', 'data'] }] };
+    const domain = { entities: [{ type: 'project', blocks: ['identity', 'states', 'attachments', 'data'] }] };
     const entity = createDataPacket({ identity: { name: 'One' } });
 
     await expect(executeProcessDataNode(
@@ -559,14 +559,14 @@ describe('process v4 data execution', () => {
   const fullFamilyDomain = {
     entities: [{
       type: 'sheet',
-      blocks: ['identity', 'lineage', 'origin', 'status', 'attachments', 'data', 'specs', 'summary', 'relations', 'provenance']
+      blocks: ['identity', 'lineage', 'origin', 'states', 'attachments', 'data', 'specs', 'summary', 'relations', 'provenance']
     }]
   };
   const fullFamilyEntity = (name, primary) => ({
     identity: { name },
     lineage: { projectId: 'project-1' },
     origin: { source: 'import' },
-    status: { state: { primary } },
+    states: { main: primary },
     attachments: { drawings: [{ kind: 'drawing', id: `att-${name}` }] },
     data: { note: `note-${name}` },
     specs: { thickness: 18 },
@@ -643,10 +643,10 @@ describe('process v4 data execution', () => {
     const statusBlocks = await executeProcessDataNode(
       { id: 'deconstruct', ...deconstruct },
       { entity: treeInput },
-      { domain: fullFamilyDomain, outputId: 'status' }
+      { domain: fullFamilyDomain, outputId: 'states' }
     );
     const statuses = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'status', path: 'status.state.primary' },
+      { kind: 'record.getField', block: 'states', path: 'states.main' },
       { block: statusBlocks }
     );
     expect(statuses.branches).toEqual([
@@ -754,9 +754,9 @@ describe('process v4 data execution', () => {
 
   it('composes multiple Logic conditions without a second query language', async () => {
     const entities = [
-      { identity: { name: 'Alpha' }, status: { state: { primary: 'NEW' } } },
-      { identity: { name: 'Alpha' }, status: { state: { primary: 'DONE' } } },
-      { identity: { name: 'Beta' }, status: { state: { primary: 'NEW' } } }
+      { identity: { name: 'Alpha' }, states: { main: 'NEW' } },
+      { identity: { name: 'Alpha' }, states: { main: 'DONE' } },
+      { identity: { name: 'Beta' }, states: { main: 'NEW' } }
     ];
     const selected = await executeProcessDataNode(
       { kind: 'read.queryEntities', typeId: 'project' },
@@ -769,7 +769,7 @@ describe('process v4 data execution', () => {
       return executeProcessDataNode({ kind: 'value.logic', operation }, { left: values, right: createDataPacket(target) });
     };
     const nameMask = await fieldMask('identity', 'identity.name', 'eq', 'Alpha');
-    const statusMask = await fieldMask('status', 'status.state.primary', 'eq', 'NEW');
+    const statusMask = await fieldMask('states', 'states.main', 'eq', 'NEW');
     const combined = await executeProcessDataNode(
       { kind: 'value.logic', operation: 'and' },
       { left: nameMask, right: statusMask }
@@ -783,9 +783,9 @@ describe('process v4 data execution', () => {
 
   it('selects by status as a scalar primary status id', async () => {
     const entities = [
-      { identity: { name: 'Alpha' }, status: { state: { primary: 'NEW' } } },
-      { identity: { name: 'Beta' }, status: { state: { primary: 'DONE' } } },
-      { identity: { name: 'Gamma' }, status: { state: { primary: 'DONE' } } }
+      { identity: { name: 'Alpha' }, states: { main: 'NEW' } },
+      { identity: { name: 'Beta' }, states: { main: 'DONE' } },
+      { identity: { name: 'Gamma' }, states: { main: 'DONE' } }
     ];
     const selected = await executeProcessDataNode(
       { kind: 'read.queryEntities', typeId: 'project' },
@@ -793,12 +793,12 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const blocks = await executeProcessDataNode(
-      { kind: 'record.deconstruct', blocks: ['status'] },
+      { kind: 'record.deconstruct', blocks: ['states'] },
       { entity: selected },
-      { outputId: 'status' }
+      { outputId: 'states' }
     );
     const statuses = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'status', path: 'status.state.primary' },
+      { kind: 'record.getField', block: 'states', path: 'states.main' },
       { block: blocks }
     );
     const mask = await executeProcessDataNode(
@@ -1051,9 +1051,9 @@ describe('process v4 data execution', () => {
 
   it('groups entities by an aligned status key preserving source branch paths', async () => {
     const entities = [
-      { status: { state: { primary: 'NEW' } }, identity: { name: 'a' } },
-      { status: { state: { primary: 'DONE' } }, identity: { name: 'b' } },
-      { status: { state: { primary: 'NEW' } }, identity: { name: 'c' } }
+      { states: { main: 'NEW' }, identity: { name: 'a' } },
+      { states: { main: 'DONE' }, identity: { name: 'b' } },
+      { states: { main: 'NEW' }, identity: { name: 'c' } }
     ];
     const selected = await executeProcessDataNode(
       { kind: 'read.queryEntities', typeId: 'project' },
@@ -1061,11 +1061,11 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const blocks = await executeProcessDataNode(
-      { kind: 'record.getBlock', block: 'status' },
+      { kind: 'record.getBlock', block: 'states' },
       { entity: selected }
     );
     const statuses = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'status', path: 'status.state.primary' },
+      { kind: 'record.getField', block: 'states', path: 'states.main' },
       { block: blocks }
     );
     const grouped = await executeProcessDataNode(
@@ -1134,9 +1134,9 @@ describe('process v4 data execution', () => {
 
   it('returns the first matching entity by composing Filter then Item At', async () => {
     const entities = [
-      { identity: { name: 'Alpha' }, status: { state: { primary: 'NEW' } } },
-      { identity: { name: 'Beta' }, status: { state: { primary: 'DONE' } } },
-      { identity: { name: 'Gamma' }, status: { state: { primary: 'DONE' } } }
+      { identity: { name: 'Alpha' }, states: { main: 'NEW' } },
+      { identity: { name: 'Beta' }, states: { main: 'DONE' } },
+      { identity: { name: 'Gamma' }, states: { main: 'DONE' } }
     ];
     const selected = await executeProcessDataNode(
       { kind: 'read.queryEntities', typeId: 'project' },
@@ -1144,11 +1144,11 @@ describe('process v4 data execution', () => {
       { queryEntities: async () => entities }
     );
     const blocks = await executeProcessDataNode(
-      { kind: 'record.getBlock', block: 'status' },
+      { kind: 'record.getBlock', block: 'states' },
       { entity: selected }
     );
     const statuses = await executeProcessDataNode(
-      { kind: 'record.getField', block: 'status', path: 'status.state.primary' },
+      { kind: 'record.getField', block: 'states', path: 'states.main' },
       { block: blocks }
     );
     const mask = await executeProcessDataNode(
