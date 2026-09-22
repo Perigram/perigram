@@ -50,7 +50,12 @@ browser tab, so the session cookie carries admission on every proxied
 request. The entry URL keeps its trailing slash deliberately:
 OpenKnowledge emits relative asset paths (`./assets/...`), which resolve
 against the proxy prefix only when the page itself is served at the
-prefix root.
+prefix root. Two route files share one handler
+(`server/features/knowledge/proxy.js`): the bare route serves the prefix
+root (Nitro's catch-all does not match an empty subpath) and the catch-all
+serves everything below it. The original Host header is forwarded
+explicitly — `proxyRequest` would otherwise send the container-internal
+host, which OpenKnowledge's host admission rejects.
 
 ## Configuration
 
