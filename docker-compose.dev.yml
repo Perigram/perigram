@@ -64,6 +64,10 @@ services:
       # (proxy-only hosts) time out, so the build rides the host network.
       network: host
     container_name: cutkit_openknowledge
+    environment:
+      # Must match the browser-facing app origin: OK's host admission
+      # allowlists the proxy-forwarded Host/Origin against this URL.
+      - OPENKNOWLEDGE_EXTERNAL_URL=${OPENKNOWLEDGE_EXTERNAL_URL:-http://localhost:3000}
     volumes:
       - openknowledge-data:/workspace
     networks:

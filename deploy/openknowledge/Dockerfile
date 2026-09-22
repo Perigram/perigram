@@ -13,12 +13,15 @@ RUN apt-get update \
 
 WORKDIR /workspace
 # OK_ALLOW_EXTERNAL consents to non-loopback Host/Origin headers: this
-# container's only exposure is the app's authenticated proxy.
+# container's only exposure is the app's authenticated proxy. The external
+# URL must match the browser-facing app origin — OK's host admission
+# allowlists the proxy-forwarded Host/Origin against it.
 ENV PORT=4310 \
-    OK_ALLOW_EXTERNAL=1
+    OK_ALLOW_EXTERNAL=1 \
+    OPENKNOWLEDGE_EXTERNAL_URL=http://localhost:3000
 EXPOSE 4310
 
 # `ok start` refuses uninitialized directories, so first boot scaffolds the
 # workspace (--no-mcp: the container has no coding agents to wire). Idle
 # shutdown stays off: the service must survive gaps between clients.
-CMD ["sh", "-c", "[ -d .ok ] || ok init --no-mcp; exec ok start --port \"${PORT}\" --bind 0.0.0.0 --no-open-browser --idle-shutdown off"]
+CMD ["sh", "-c", "[ -d .ok ] || ok init --no-mcp; exec ok start --port \"${PORT}\" --bind 0.0.0.0 --no-open-browser --idle-shutdown off --external-url \"${OPENKNOWLEDGE_EXTERNAL_URL}\""]
