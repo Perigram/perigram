@@ -200,7 +200,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedfacadedesignerworkspacepage-vue` | `components/generated/GeneratedFacadeDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedfacadepatterndesignerworkspacepage-vue` | `components/generated/GeneratedFacadePatternDesignerWorkspacePage.vue` | derived usage | compliant |
 | `ui-components-generated-generatedfilepreview-vue` | `components/generated/GeneratedFilePreview.vue` | derived usage | compliant |
-| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (13); remove:state (4); remove:important-override (17) |
+| `ui-components-generated-generatedhomeworkspace-vue` | `components/generated/GeneratedHomeWorkspace.vue` | derived usage | replace:chrome (13); remove:state (4); remove:important-override (12) |
 | `ui-components-generated-generatedinstancecollection-vue` | `components/generated/GeneratedInstanceCollection.vue` | derived usage | remove:important-override (2) |
 | `ui-components-generated-generatedinstancedetail-vue` | `components/generated/GeneratedInstanceDetail.vue` | derived usage | compliant |
 | `ui-components-generated-generatedinstancedetailbody-vue` | `components/generated/GeneratedInstanceDetailBody.vue` | derived usage | compliant |
@@ -317,7 +317,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-ui-mapping-varianteditor-vue` | `components/ui-mapping/VariantEditor.vue` | derived usage | compliant |
 | `ui-components-userform-vue` | `components/UserForm.vue` | derived usage | compliant |
 | `ui-error-vue` | `error.vue` | derived usage | compliant |
-| `ui-layouts-app-vue` | `layouts/app.vue` | derived usage | centralize:layout (4); replace:chrome (6); remove:state (1); remove:important-override (4) |
+| `ui-layouts-app-vue` | `layouts/app.vue` | derived usage | centralize:layout (4); replace:chrome (7); remove:state (1); remove:important-override (2) |
 | `ui-layouts-ui-lab-layout-vue` | `layouts/ui-lab-layout.vue` | derived usage | centralize:layout (2); replace:chrome (10); remove:state (2) |
 | `ui-pages-auth-login-vue` | `pages/auth/login.vue` | derived usage | replace:chrome (1) |
 | `ui-pages-auth-register-vue` | `pages/auth/register.vue` | derived usage | replace:chrome (1) |
