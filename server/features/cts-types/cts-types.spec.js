@@ -86,6 +86,21 @@ describe('cts type storage', () => {
     )).rejects.toThrow(/breaking change/);
   });
 
+  it('attaches the binding processes to a refused write (edit-path blast radius)', async () => {
+    repository.listByOrganization.mockResolvedValue([
+      { id: 'gadget', class: 'file', scope: 'org', organizationId: ORG, version: 3,
+        fields: { code: { base: 'string' }, gone: { base: 'string' } } }
+    ]);
+    findTypeReferences.mockResolvedValueOnce([{ id: 'pd-1', name: 'Production', status: 'ACTIVE' }]);
+    const error = await defineType(
+      { id: 'gadget', class: 'file', fields: { code: { base: 'string' } } },
+      { organizationId: ORG }
+    ).catch(e => e);
+    expect(error.statusCode).toBe(400);
+    expect(error.message).toMatch(/breaking change/);
+    expect(error.data).toMatchObject({ boundBy: [{ id: 'pd-1', name: 'Production' }] });
+  });
+
   it('executes covered migrate steps after persisting and records the summary', async () => {
     const { applyTypeMigrationSteps } = await import('../instances/migrations.js');
     applyTypeMigrationSteps.mockResolvedValueOnce({

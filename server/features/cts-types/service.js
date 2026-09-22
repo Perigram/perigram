@@ -105,7 +105,16 @@ export async function defineType(declaration = {}, { organizationId, actor = nul
   try {
     versioned = registry.defineType(orgDeclaration);
   } catch (error) {
-    to400(error);
+    // Blast radius on the edit path too (Phase 3): a refused write names
+    // the processes that bind the type, so a breaking change's reach is
+    // visible before it is retried.
+    if (error?.statusCode) throw error;
+    const boundBy = await findTypeReferences(organizationId, orgDeclaration.id);
+    throw createError({
+      statusCode: 400,
+      message: error?.message || String(error),
+      ...(boundBy.length ? { data: { boundBy } } : {})
+    });
   }
   let compiled;
   try {

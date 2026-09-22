@@ -18,6 +18,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import { ObjectId } from 'mongodb';
 import { connectDB } from '../db/mongo.js';
 import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '../../packages/cts/src/index.js';
 import { prepareAuthoredDefinition, detectRedundantScreens, compileProcessDefinition } from '../../packages/processes/src/index.js';
@@ -51,12 +52,20 @@ async function projectedDomainFor(db, organizationId) {
 
 async function organizationRolesFor(db, organizationId) {
   if (!organizationId) return {};
-  const org = await db.collection('organizations').findOne({ _id: organizationId });
+  // `organizations._id` is an ObjectId; the cache key arrives as string.
+  const id = ObjectId.isValid(organizationId) ? new ObjectId(organizationId) : organizationId;
+  const org = await db.collection('organizations').findOne({ _id: id });
   return org?.data?.roles || {};
 }
 
 async function sweep(db) {
   const summary = { scanned: 0, rewritten: 0, unchanged: 0, failed: 0, rewrites: [], failures: [] };
+  // Definitions accumulate (every activation persists); rebuilding the
+  // projected domain per document made the sweep take minutes on real
+  // data. Domains and role catalogs are cached per organization — the
+  // whole corpus sweeps in seconds.
+  const domainCache = new Map();
+  const rolesCache = new Map();
   const cursor = db.collection(COLLECTION).find({});
   for await (const doc of cursor) {
     summary.scanned += 1;
@@ -65,10 +74,13 @@ async function sweep(db) {
       summary.unchanged += 1;
       continue;
     }
-    const organizationId = doc.lineage?.organizationId || null;
+    const organizationId = doc.lineage?.organizationId?.toString() || null;
     let domain;
     try {
-      domain = await projectedDomainFor(db, organizationId);
+      if (!domainCache.has(organizationId)) {
+        domainCache.set(organizationId, await projectedDomainFor(db, organizationId));
+      }
+      domain = domainCache.get(organizationId);
     } catch (error) {
       summary.failed += 1;
       summary.failures.push(`${doc.identity?.name || doc._id}: domain projection failed: ${error?.message || error}`);
@@ -80,8 +92,10 @@ async function sweep(db) {
       summary.failures.push(`${doc.identity?.name || doc._id}: acceptance failed: ${accepted.errors.join('; ')}`);
       continue;
     }
-    const roles = await organizationRolesFor(db, organizationId);
-    const hits = detectRedundantScreens(accepted.definition, domain, roles);
+    if (!rolesCache.has(organizationId)) {
+      rolesCache.set(organizationId, await organizationRolesFor(db, organizationId));
+    }
+    const hits = detectRedundantScreens(accepted.definition, domain, rolesCache.get(organizationId));
     if (!hits.length) {
       summary.unchanged += 1;
       continue;
@@ -96,7 +110,7 @@ async function sweep(db) {
     // slop immediately; an unrelated compile failure still persists the
     // removal (independently correct) and is reported.
     try {
-      const compiled = compileProcessDefinition({ ...accepted.definition, screens }, domain, { roles });
+      const compiled = compileProcessDefinition({ ...accepted.definition, screens }, domain, { roles: rolesCache.get(organizationId) });
       update['data.compiled'] = compiled;
     } catch (error) {
       summary.failures.push(`${doc.identity?.name || doc._id}: screens removed but recompile failed: ${error?.message || error}`);
