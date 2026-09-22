@@ -151,4 +151,17 @@ describe('useProcessDesignerApply migration pause', () => {
     await expect(apply.saveDraft()).rejects.toThrow('boom');
     expect(createDraft).not.toHaveBeenCalled();
   });
+
+  it('lands declaration-post failures in the persistent validation feedback and stops before validation', async () => {
+    const validation = { value: null };
+    const { apply, persistence } = mountApply({
+      validation,
+      persistTreeDeclarations: vi.fn(async () => ({ failures: ['Plate: bad descriptor'] }))
+    });
+
+    await apply.applyProcess();
+
+    expect(persistence.validateDraft).not.toHaveBeenCalled();
+    expect(validation.value).toMatchObject({ ok: false, errors: ['Plate: bad descriptor'] });
+  });
 });
