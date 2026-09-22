@@ -55,6 +55,7 @@ prefix root.
 | Variable | Default | Meaning |
 |---|---|---|
 | `OPENKNOWLEDGE_INTERNAL_URL` | `http://openknowledge:4310` | Network-internal base URL of the container; set empty to disable the feature. |
+| `OPENKNOWLEDGE_EXTERNAL_URL` | `http://localhost:3000` | Browser-facing app origin. OpenKnowledge's host admission allowlists the proxy-forwarded Host/Origin headers against this URL; override it when the app is reached on another host (for example a LAN IP). |
 
 The `openknowledge` compose service (dev compose only, like LiveKit) is
 built from [`deploy/openknowledge/Dockerfile`](../../../deploy/openknowledge/Dockerfile):
@@ -69,6 +70,10 @@ flags are load-bearing, verified against the CLI's actual behavior:
   coding agents to wire) before exec'ing the server.
 - `--bind 0.0.0.0` — the default bind is loopback-only, unreachable from
   the app container.
+- `--external-url "$OPENKNOWLEDGE_EXTERNAL_URL"` — OK's host admission
+  answers `403 urn:ok:error:host-not-allowed` for Host/Origin headers not
+  derived from the external URL, so it must equal the browser-facing app
+  origin (the proxy forwards the browser's headers unchanged).
 - `--idle-shutdown off` — the default 30-minute idle shutdown would reap
   the service between clients.
 - `OK_ALLOW_EXTERNAL=1` — the server admits only allowlisted Host/Origin
