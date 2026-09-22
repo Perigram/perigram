@@ -43,6 +43,13 @@ probe the container (a down container surfaces as proxy `502`).
 | `GET /api/knowledge/info` | Admission snapshot for the current user; `{ enabled, admitted, url }`. |
 | `ANY /api/knowledge/proxy/**` | Authenticated catch-all reverse proxy to the OpenKnowledge container. |
 
+The UI contract: the sidebar `CommunicationMenu` shows a Knowledge entry
+only when `admitted`, and it opens the editor as a home-workspace tab
+(page id `knowledge`,
+[`components/knowledge/KnowledgeWorkspacePage.vue`](../../../components/knowledge/README.md))
+hosting the proxy URL in a same-origin iframe — not an external browser
+tab.
+
 The proxy strips the `/api/knowledge/proxy` prefix, preserves method,
 headers, body, and query string, and forwards to
 `OPENKNOWLEDGE_INTERNAL_URL`. The UI opens `/api/knowledge/proxy/` in a
