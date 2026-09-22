@@ -42,6 +42,9 @@ noise.
 ## Coverage
 
 - `auth.spec.js`: real auth API login and protected project-page bootstrap.
+- `knowledge.spec.js`: the org-wide OpenKnowledge service rejects
+  unauthenticated callers and reports the admission snapshot contract the
+  sidebar entry consumes.
 - `warehouse.spec.js`: warehouse hub opens without asking the status API for
   nonexistent warehouse workflow actions.
 - `queue-workflow.spec.js`: project/queue creation opens the queue editor and

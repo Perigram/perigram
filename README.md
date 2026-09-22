@@ -67,6 +67,7 @@ commands.
 | `nesting-worker` | `workers/nesting/` | FastAPI HTTP solver for nesting geometry. |
 | `mongo` | Docker image | MongoDB documents and GridFS files. |
 | `livekit` | Docker image (`livekit/livekit-server`, `livekit.dev.yaml`) | Self-hosted WebRTC SFU for voice/video calls; rooms are derived and token-gated by the `livekit` capability module. |
+| `openknowledge` | `deploy/openknowledge/` (Dockerfile) | Self-hosted OpenKnowledge markdown wiki; org-wide admission is gated by the `knowledge` capability module's authenticated proxy. |
 
 The geometry-capture worker source remains in `workers/geometry-capture/`, but
 the neural-network capture worker is not part of the Docker compose stack or
