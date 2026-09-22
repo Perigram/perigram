@@ -555,7 +555,9 @@ function closePane(paneId) {
 }
 
 function openWorkspaceEntity(request = {}) {
-  const item = rememberWorkspaceEntity(request.typeId, request.entity);
+  // Screen panes emit id-bound opens; the stub carries the id exactly like
+  // the previous payload shape, and pane hydration resolves the record.
+  const item = rememberWorkspaceEntity(request.typeId, { _id: request.instanceId });
   if (!item) return;
   selectByKey(item.key);
 }

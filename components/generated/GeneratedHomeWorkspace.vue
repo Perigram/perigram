@@ -81,7 +81,7 @@
               <span
                 v-else
                 class="group flex min-w-0 flex-1 items-center gap-1"
-                :class="node.data?.item?.key !== activePane?.selectionKey ? 'text-muted' : ''"
+                :class="!activeInstanceKeys.has(`${node.data?.item?.type}:${instanceId(node.data?.item?.entity)}`) ? 'text-muted' : ''"
                 :data-entity-id="instanceId(node.data?.item?.entity)"
               >
                 <span class="flex min-w-0 flex-1 items-center">
@@ -160,10 +160,9 @@
             <GeneratedWorkspacePane
               :item="itemForPane(pane)"
               :tabs="tabItemsForPane(pane)"
-              :action-entries="actionEntriesForPane(pane)"
               :closeable="paneCount > 1"
               @execute-action="executeWorkspaceAction"
-              @open-entity="request => openWorkspaceEntity(request.typeId, request.entity)"
+              @open-entity="request => openWorkspaceEntity(request.typeId, { _id: request.instanceId })"
               @open-page="openWorkspacePage"
               @open-call="request => openCallTab(request.room, request)"
               @refresh="$emit('refresh')"
@@ -225,13 +224,13 @@ import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/u
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
-import { useLocalizedTypeLabel } from '~/components/ui-mapping/type-labels.js';
-import { instanceIdentity } from '#shared/ui-mapping/index.js';
+import { instanceIdentity, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
-import { actionAppliesToEntity, isCreateAction, isGeneratedSurfaceAction, isRelationLinkAction } from '~/components/generated/action-visibility.js';
+import { isCreateAction, isGeneratedSurfaceAction, isRelationLinkAction } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { resolveGeneratedWorkspacePage, generatedWorkspacePages } from '~/components/generated/workspace-pages.js';
-import { generatedDetailScreenForTypeId } from '~/components/generated/detail-screen-actions.js';
+import { generatedDetailScreenForTypeId, resolveDetailScreen } from '~/components/generated/detail-screen-actions.js';
+import { resolveFileSurface, packEditorBindings } from '~/components/generated/file-surfaces.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
@@ -277,7 +276,6 @@ const supportChatStore = useSupportChatStore();
 const callsStore = useCallsStore();
 const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
-const { localizedTypeLabel } = useLocalizedTypeLabel();
 const activePaneId = ref('pane-1');
 const paneSequence = ref(1);
 const paneTree = ref(createWorkspaceLeaf('pane-1'));
@@ -345,16 +343,31 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
     cassettes: cassetteItems.value.map(item => item.entity)
   };
 }).filter(Boolean));
-// Opened type screens: sidebar type nodes opened as pane tabs. Labels and
-// icons resolve live from the manifest/registry, so a recompiled process
-// updates open tabs without persisted stale text.
-const screenItems = computed(() => openedScreenRefs.value.map(reference => ({
-  key: reference.key,
-  kind: 'screen',
-  screenKey: reference.screenKey,
-  typeId: reference.typeId || '',
-  label: screenLabelFor(reference.screenKey)
-})));
+// Opened screens as pane tabs. Type screens keep their manifest label;
+// instance-bound detail tabs label from the render identity contract
+// (instanceIdentity over the pool DTO), so the declared identity field
+// wins and raw ids never render. Labels and icons resolve live from the
+// manifest/registry/pool, so a recompiled process updates open tabs
+// without persisted stale text.
+const screenItems = computed(() => openedScreenRefs.value.map(reference => {
+  const base = {
+    key: reference.key,
+    kind: 'screen',
+    screenKey: reference.screenKey,
+    typeId: reference.typeId || '',
+    instanceId: reference.instanceId || ''
+  };
+  return reference.instanceId
+    ? { ...base, label: instanceLabelOf(reference.typeId, reference.instanceId) }
+    : { ...base, label: screenLabelFor(reference.screenKey) };
+}));
+
+// The active pane's selected detail tabs, as entity identities — drives
+// the sidebar row highlight (rows mute until their instance is open).
+const activeInstanceKeys = computed(() => new Set(screenItems.value
+  .filter(item => item.instanceId)
+  .map(item => `${item.typeId}:${item.instanceId}`)
+  .concat(openedPageRefs.value.map(page => `${page.typeId}:${page.instanceId}`))));
 // Registered pages without an entity binding are always openable tabs.
 const staticPageItems = computed(() => generatedWorkspacePages
   .filter(page => !page.typeId && !page.ephemeral)
@@ -503,11 +516,10 @@ function openMobileInstance(instance = {}) {
 
 function typeLabelOf(typeId = '') {
   const record = registryStore.typeRecord(typeId);
+  // Procedural label contract only: the generated type key (locale
+  // override) over the authored render label — no entity contracts.
   if (!record) return typeId;
-  // Sidebar type labels follow the single generator label seam
-  // (design-system entity contracts, then the authored render label),
-  // never the raw bundle field — parity with every ui-mapping surface.
-  return localizedTypeLabel({ id: typeId, render: record.render });
+  return localizedLabel({ te, t }, typeLabelKey(typeId), record.render?.label || typeId);
 }
 
 // The screen a type node opens: its compiled typeList screen.
@@ -521,7 +533,46 @@ function screenLabelFor(screenKey = '') {
   const screen = (authStore.screenManifest || []).find(candidate => (
     candidate.screenKey === screenKey || candidate.id === screenKey
   ));
-  return screen?.label || screen?.typeId || screenKey;
+  return localizedLabel({ te, t }, screen?.typeId ? typeLabelKey(screen.typeId) : '', screen?.label || screen?.typeId || screenKey);
+}
+
+// Instance tab titles follow the render identity contract over the
+// instances pool (the screen hosts load the same pool); a not-yet-loaded
+// instance falls back to its type label until hydration lands.
+function instanceLabelOf(typeId = '', id = '') {
+  const typeRecord = registryStore.typeRecord(typeId);
+  const entity = instances.records?.[instances.canonicalTypeKey(typeId)]?.[String(id)];
+  if (typeRecord && entity) return instanceIdentity(typeRecord, dtoToScreenInstance(entity, typeRecord));
+  return typeLabelOf(typeId || id) || '';
+}
+
+// An instance opens as a compiled detail-screen tab in the active pane —
+// never a separate route and never an entity renderer: the manifest's
+// instanceDetail screen first, the synthesized fallback (from the type's
+// list screen) second. Editor-bound types route to their registered
+// editor page instead; a type with neither stays silent, exactly like
+// the routed surface contract.
+function openInstanceTab(typeId = '', instanceIdValue = '') {
+  if (!typeId || !instanceIdValue || !activePane.value) return;
+  const detail = resolveDetailScreen({ screens: authStore.screenManifest, typeId });
+  const screenKey = detail ? (detail.screenKey || detail.id) : null;
+  const key = screenKey ? `screen:${screenKey}:${instanceIdValue}` : '';
+  if (key && !openedScreenRefs.value.some(reference => reference.key === key)) {
+    openedScreenRefs.value = [...openedScreenRefs.value, {
+      key,
+      screenKey,
+      typeId,
+      instanceId: instanceIdValue
+    }];
+  }
+  if (key) {
+    selectPaneTab(activePane.value.id, key);
+    return;
+  }
+  const surface = resolveFileSurface(packEditorBindings, typeId);
+  if (surface?.workspacePage) {
+    openWorkspacePage({ pageId: surface.surface, typeId, entity: { _id: instanceIdValue } });
+  }
 }
 
 // A type (or its screen) opens as a pane tab in the active pane — never a
@@ -613,14 +664,14 @@ watch(() => callsStore.pendingTabRoom, room => {
   callsStore.consumePendingTabRoom();
 }, { immediate: true });
 
-// Desktop entity links open as workspace tabs: live events while the home
-// workspace is mounted, pending requests (stashed before navigating home)
-// consumed on mount.
+// Desktop instance links open as compiled detail-screen tabs: live events
+// while the home workspace is mounted, pending requests (stashed before
+// navigating home) consumed on mount.
 function openRequestedWorkspaceEntity(event) {
   event?.preventDefault?.();
   const { typeId, instanceId } = event?.detail || {};
   if (!typeId || !instanceId) return;
-  openWorkspaceEntity(typeId, { _id: instanceId });
+  openInstanceTab(typeId, instanceId);
 }
 
 onMounted(() => {
@@ -888,9 +939,10 @@ function selectNode(node) {
   }
   const item = node.data?.item;
   if (!item) return;
-  // Sidebar rows open in the active pane — the workspace owns instance
-  // surfaces; nothing navigates a separate route from the tree.
-  selectByKey(item.key);
+  // Sidebar rows open the instance's compiled detail screen as a tab in
+  // the active pane — the workspace owns screen surfaces; nothing
+  // navigates a separate route and no entity renderer mounts.
+  openInstanceTab(item.type, instanceId(item.entity));
 }
 
 function expandNode(node) {
@@ -973,11 +1025,6 @@ function activatePane(paneId) {
   activePaneId.value = paneId;
 }
 
-function selectByKey(key) {
-  if (!workspaceItems.value.some(item => item.key === key) || !activePane.value) return;
-  selectPaneTab(activePane.value.id, key);
-}
-
 function selectPaneTab(paneId, key, options = {}) {
   const pane = panes.value.find(item => item.id === paneId);
   if (!pane) return;
@@ -1035,9 +1082,12 @@ function closePane(paneId) {
 }
 
 function openWorkspaceEntity(typeId, entity) {
+  // Explorer hydration entry: remembers the record for the tree (nesting,
+  // editor-page entities) and opens its compiled detail screen tab.
   const item = rememberWorkspaceEntity(typeId, entity);
-  if (!item || !activePane.value) return;
-  selectPaneTab(activePane.value.id, item.key);
+  if (!item) return null;
+  openInstanceTab(typeId, instanceId(item.entity));
+  return item;
 }
 
 function openWorkspacePage(request = {}) {
@@ -1090,32 +1140,6 @@ function rememberWorkspaceEntity(typeId, entity) {
 
 function executeWorkspaceAction(action, entry = {}) {
   emit('execute-action', action, entry.entity ?? null, entry.context || contextForItem(entry.item));
-}
-
-function actionEntriesForPane(pane) {
-  const item = itemForPane(pane);
-  if (!item || item.kind !== 'entity') return [];
-  const section = sections.value.find(candidate => candidate.region === item.region);
-  return entityActionEntries(
-    [...(item.region?.actions || []), ...(props.screenActions || [])],
-    item,
-    section ? actionContext(section) : contextForItem(item)
-  );
-}
-
-function entityActionEntries(actionIds, item, context = {}) {
-  return [...new Set(actionIds)]
-    .map(actionId => authStore.actionManifest.find(action => action.id === actionId))
-    .filter(Boolean)
-    .filter(isGeneratedSurfaceAction)
-    .filter(action => actionAppliesToEntity(action, item.entity, item.type))
-    .map(action => ({
-      key: `${item.key}:${action.id}`,
-      actionId: action.id,
-      entity: item.entity,
-      item,
-      context
-    }));
 }
 
 function contextForItem(item = null) {

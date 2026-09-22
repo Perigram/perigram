@@ -1,6 +1,8 @@
 import { normalizeProjectWorkspaceState } from './project-workspace-state.js';
 
-export const HOME_WORKSPACE_STATE_VERSION = 2;
+// Version 3: instance surfaces are compiled screen tabs (instance-bound
+// screen refs); the entity tab-key contract is gone from the home shell.
+export const HOME_WORKSPACE_STATE_VERSION = 3;
 
 export function homeWorkspaceStorageKey({ userId, organizationId }) {
   if (!userId || !organizationId) return '';
