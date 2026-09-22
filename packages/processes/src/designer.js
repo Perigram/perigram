@@ -774,7 +774,7 @@ export function typeCatalogPaletteGroups(types = []) {
         label: mode === modes[0] ? (entry.label || entry.id) : `${entry.label || entry.id} · ${mode}`,
         icon: entry.icon,
         description: entry.description || entry.id,
-        preset: { typeId: entry.id, via: mode }
+        preset: { typeId: entry.id, construction: { mode } }
       }));
     }
     for (const operatorId of entry.constructOperators || []) {
@@ -782,7 +782,7 @@ export function typeCatalogPaletteGroups(types = []) {
         label: `${entry.label || entry.id} · ${operatorId}`,
         icon: entry.icon,
         description: entry.description || entry.id,
-        preset: { typeId: entry.id, via: operatorId }
+        preset: { typeId: entry.id, construction: { mode: operatorId } }
       }));
     }
   }

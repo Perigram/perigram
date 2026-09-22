@@ -195,7 +195,7 @@ describe('persisted producer output identity migration', () => {
     const data = persistedCreate();
     const node = data.processNodes.processNode_1785860422855;
     node.kind = 'cts.construct';
-    node.via = 'genericCreate';
+    node.construction = { mode: 'genericCreate' };
 
     const result = migrateProducerOutputIdentities(data);
 

@@ -569,8 +569,8 @@ describe('type catalog palette', () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].id).toBe('types');
     const items = groups[0].items;
-    expect(items[0]).toMatchObject({ id: 'panel', kind: 'cts.construct', preset: { typeId: 'panel', via: 'genericCreate' } });
-    expect(items[1]).toMatchObject({ id: 'panel:bake-panel', preset: { typeId: 'panel', via: 'bake-panel' } });
+    expect(items[0]).toMatchObject({ id: 'panel', kind: 'cts.construct', preset: { typeId: 'panel', construction: { mode: 'genericCreate' } } });
+    expect(items[1]).toMatchObject({ id: 'panel:bake-panel', preset: { typeId: 'panel', construction: { mode: 'bake-panel' } } });
     expect(items[2]).toMatchObject({ id: 'project' });
     expect(items.some(item => item.id === 'revision')).toBe(false);
   });
@@ -584,9 +584,9 @@ describe('type catalog palette', () => {
     // Default mode keeps the plain label; additional modes become
     // `· mode` variants — the artifact-era protocol picker.
     expect(items.map(item => item.id)).toEqual(['image', 'image:capture', 'cassette']);
-    expect(items[0]).toMatchObject({ label: 'Image', preset: { typeId: 'image', via: 'upload' } });
-    expect(items[1]).toMatchObject({ label: 'Image · capture', preset: { typeId: 'image', via: 'capture' } });
-    expect(items[2]).toMatchObject({ label: 'Cassette', preset: { typeId: 'cassette', via: 'editor' } });
+    expect(items[0]).toMatchObject({ label: 'Image', preset: { typeId: 'image', construction: { mode: 'upload' } } });
+    expect(items[1]).toMatchObject({ label: 'Image · capture', preset: { typeId: 'image', construction: { mode: 'capture' } } });
+    expect(items[2]).toMatchObject({ label: 'Cassette', preset: { typeId: 'cassette', construction: { mode: 'editor' } } });
   });
 
   it('falls back to the entry via when no modes list is supplied', () => {
@@ -594,7 +594,7 @@ describe('type catalog palette', () => {
       { id: 'legacy-entry', constructible: true, via: 'genericCreate' }
     ]);
     expect(groups[0].items).toHaveLength(1);
-    expect(groups[0].items[0].preset).toEqual({ typeId: 'legacy-entry', via: 'genericCreate' });
+    expect(groups[0].items[0].preset).toEqual({ typeId: 'legacy-entry', construction: { mode: 'genericCreate' } });
   });
 });
 

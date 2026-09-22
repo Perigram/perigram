@@ -113,12 +113,8 @@ export async function migrateConstructionModes(db, { apply = APPLY } = {}) {
     const processNodes = { ...data.processNodes };
     for (const id of ids) {
       const node = { ...processNodes[id] };
-      if (node.kind === 'cts.construct' || String(node.kind || '').startsWith('cts.')) {
-        node.via = byNodeId[id];
-        if (node.construction?.mode !== undefined) node.construction = { ...node.construction, mode: byNodeId[id] };
-      } else {
-        node.construction = { ...(node.construction || {}), mode: byNodeId[id] };
-      }
+      node.construction = { ...(node.construction || {}), mode: byNodeId[id] };
+      if (node.via !== undefined) delete node.via;
       processNodes[id] = node;
     }
     await db.collection(COLLECTION).updateOne(

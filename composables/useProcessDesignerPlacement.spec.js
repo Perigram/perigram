@@ -57,7 +57,7 @@ const { ensureRecord, factoryForType, recordKeyForType } = useProcessDesignerIns
 });
 
 const presets = {
-  construct: { kind: 'cts.construct', preset: { via: 'genericCreate' } },
+  construct: { kind: 'cts.construct', preset: { construction: { mode: 'genericCreate' } } },
   mutate: { kind: 'cts.mutate', preset: {} },
   query: { kind: 'cts.read', preset: { select: 'query' } },
   literal: { kind: 'source.literalItem', preset: { type: { base: 'string', nullable: false }, access: 'item', value: '' } }

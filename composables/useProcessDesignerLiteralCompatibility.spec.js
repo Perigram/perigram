@@ -58,7 +58,7 @@ function constructPorts() {
   draft.value = { data: { processNodes: {}, producerOutputs: {} } };
   const record = nodeRecords.createProcessNode('c1', 'cts.construct');
   record.typeId = 'widget';
-  record.via = 'genericCreate';
+  record.construction = { ...(record.construction || {}), mode: 'genericCreate' };
   sync.syncProcessNode(record);
   return resolveCatalogNodePorts(record, { domain, fieldSchemas: [] }).inputs;
 }

@@ -39,10 +39,10 @@ describe('graph protocol v5 designer round trip', () => {
   it('catalog ports resolve cts records through the operation-kind twin', () => {
     const domain = projectedDomain();
     const context = record => ({
-      fieldSchemas: domain.fieldSchemas[record.typeId || record.typeId] || [],
+      fieldSchemas: domain.fieldSchemas[record.typeId] || [],
       domain
     });
-    const construct = resolveCatalogNodePorts({ kind: 'cts.construct', typeId: 'project', via: 'genericCreate' }, context({ type: 'project' }));
+    const construct = resolveCatalogNodePorts({ kind: 'cts.construct', typeId: 'project', construction: { mode: 'genericCreate' } }, context({ type: 'project' }));
     expect(construct.outputs.some(port => port.type?.base === 'entity')).toBe(true);
 
     const transition = resolveCatalogNodePorts({ kind: 'cts.transition', typeId: 'queue' }, context({ type: 'queue' }));
@@ -194,7 +194,7 @@ describe('graph protocol v5 designer round trip', () => {
       valueInputs: {},
       screens: {},
       processNodes: {
-        construct: { id: 'construct', kind: 'cts.construct', typeId: 'sheet', via: 'genericCreate', trigger: { mode: 'manual' }, access: { level: 'write', grants: [] } }
+        construct: { id: 'construct', kind: 'cts.construct', typeId: 'sheet', construction: { mode: 'genericCreate' }, trigger: { mode: 'manual' }, access: { level: 'write', grants: [] } }
       }
     };
     const canvas = definitionToCanvas(structuredClone(v5));

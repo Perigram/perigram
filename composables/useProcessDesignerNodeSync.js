@@ -282,10 +282,13 @@ export function useProcessDesignerNodeSync({
     const contract = constructionContractForEntity(nodeTypeId(node));
     const modes = contract.modes?.length ? contract.modes : ['genericCreate'];
     node.construction ||= {};
-    // a v5 record via field (palette preset or binding) names the authored mode
+    // Legacy draft records carried the authored mode as `via`; the sync
+    // pass adopts it as the one spelling and drops the stale key so the
+    // next save persists `construction.mode` only.
     if (!node.construction.mode && node.via && modes.includes(node.via)) {
       node.construction.mode = node.via;
     }
+    if (node.via !== undefined) delete node.via;
     if (!modes.includes(node.construction.mode)) {
       node.construction.mode = contract.defaultMode && modes.includes(contract.defaultMode)
         ? contract.defaultMode

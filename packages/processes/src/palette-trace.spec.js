@@ -91,7 +91,7 @@ describe('palette trace', () => {
   });
 
   it('pin carriers expose exactly the Type pin while unbound and derived sockets when bound', () => {
-    const construct = { id: 't', kind: 'cts.construct', typeId: '', via: 'genericCreate' };
+    const construct = { id: 't', kind: 'cts.construct', typeId: '', construction: { mode: 'genericCreate' } };
     expect(resolveCatalogNodePorts(construct, { domain }).inputs.map(port => port.id)).toEqual(['type']);
     const bound = resolveCatalogNodePorts(
       { ...construct, typeId: 'sheet', construction: domain.construction.sheet },

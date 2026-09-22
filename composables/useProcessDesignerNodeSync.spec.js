@@ -54,16 +54,26 @@ describe('effect record access stays a grant object', () => {
   it('a fresh cts.construct record syncs to a clean grant object, not a spread socket string', () => {
     freshDraft();
     const record = nodeRecords.createProcessNode('create', 'cts.construct');
-    Object.assign(record, { via: 'genericCreate' });
+    Object.assign(record, { construction: { mode: 'genericCreate' } });
     sync.syncProcessNode(record);
     expect(record.access).toEqual({ level: 'write', roleIds: [], grants: [] });
+  });
+
+  it('a legacy draft record carrying via adopts construction.mode and drops the stale key', () => {
+    freshDraft();
+    const record = nodeRecords.createProcessNode('create', 'cts.construct');
+    delete record.construction;
+    record.via = 'genericCreate';
+    sync.syncProcessNode(record);
+    expect(record.construction.mode).toBe('genericCreate');
+    expect(record.via).toBeUndefined();
   });
 
   it('authored grants survive re-sync untouched', () => {
     freshDraft();
     const record = nodeRecords.createProcessNode('create', 'cts.construct');
     Object.assign(record, {
-      via: 'genericCreate',
+      construction: { mode: 'genericCreate' },
       access: { level: 'write', grants: [{ roleId: 'role-1', level: 'admin' }] }
     });
     sync.syncProcessNode(record);
@@ -83,7 +93,7 @@ describe('effect record access stays a grant object', () => {
     freshDraft();
     const record = nodeRecords.createProcessNode('create', 'cts.construct');
     Object.assign(record, {
-      via: 'genericCreate',
+      construction: { mode: 'genericCreate' },
       access: { '0': 'i', '1': 't', '2': 'e', '3': 'm', level: 'admin', roleIds: ['role-1'], grants: [{ roleId: 'role-1', level: 'admin' }] }
     });
     sync.syncProcessNode(record);

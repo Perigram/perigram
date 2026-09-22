@@ -225,7 +225,7 @@ describe('canvas lifecycle invariants', () => {
 
   it('never resurrects deleted process nodes or their records', async () => {
     const canvas = createCanvas();
-    const construct = canvas.addProcessNode('cts.construct', { typeId: 'panel', via: 'genericCreate' });
+    const construct = canvas.addProcessNode('cts.construct', { typeId: 'panel', construction: { mode: 'genericCreate' } });
     const mutate = canvas.addProcessNode('cts.mutate', { typeId: '' });
     await canvas.settle();
 
@@ -250,7 +250,7 @@ describe('canvas lifecycle invariants', () => {
   it('a class rename with a bound construct re-binds without losing the node', async () => {
     const canvas = createCanvas();
     const cls = canvas.addDeclarationNode('ctsClass', { typeId: 'panel', class: 'item', fields: 0, states: 0 });
-    const construct = canvas.addProcessNode('cts.construct', { typeId: '', via: 'genericCreate' });
+    const construct = canvas.addProcessNode('cts.construct', { typeId: '', construction: { mode: 'genericCreate' } });
     await canvas.settle();
 
     expect(canvas.connect(cls.id, construct.id, 'output:type', 'data:type')).toBe(true);

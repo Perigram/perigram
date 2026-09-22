@@ -1693,10 +1693,10 @@ export function compileHomeScreenForAssignment({ assignment = {}, screens = [], 
 }
 
 function topLevelHomeSections(screens = [], hierarchy = []) {
-  const listScreens = screens.filter(screen => (screen.template === 'typeList' || screen.template === 'typeList') && (screen.typeId || screen.typeId) && screen.sources?.some(source => source.mode === 'list'));
+  const listScreens = screens.filter(screen => screen.template === 'typeList' && screen.typeId && screen.sources?.some(source => source.mode === 'list'));
   const sectionsByType = new Map();
   for (const screen of listScreens) {
-    const typeId = screen.typeId || screen.typeId;
+    const typeId = screen.typeId;
     if (sectionsByType.has(typeId)) {
       const existing = sectionsByType.get(typeId);
       existing.actions = [...new Set([...(existing.actions || []), ...(screen.actions || [])])];
@@ -2796,7 +2796,7 @@ function compileScreenForAssignment(screen = {}, assignment = {}, roleId = null)
     route: screen.route,
     sourceRoute: screen.sourceRoute || screen.route,
     placement: screen.placement,
-    typeId: screen.typeId || screen.typeId || null,
+    typeId: screen.typeId || null,
     required: screen.required,
     scope: { ...(screen.scope || {}), ...(screen.bindings || {}) },
     sources: screen.sources || [],
@@ -2840,9 +2840,9 @@ function mergeCompiledScreen(screenMap, screen) {
 
 function screenMergeKey(screen = {}) {
   if (screen.template === 'home') return screen.screenKey || screen.id;
-  const typeId = screen.typeId || screen.typeId;
+  const typeId = screen.typeId;
   if (!String(screen.id || '').startsWith('auto_') || !typeId) return screen.screenKey || screen.id;
-  const suffix = screen.template === 'instanceDetail' || screen.template === 'instanceDetail' ? '_detail' : '';
+  const suffix = screen.template === 'instanceDetail' ? '_detail' : '';
   const scopeValues = Object.values(screen.scope || {}).filter(value => value !== undefined && value !== null && value !== '');
   return [`auto_${typeId}${suffix}`, ...scopeValues].filter(Boolean).map(String).join(':');
 }

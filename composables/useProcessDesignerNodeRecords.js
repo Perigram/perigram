@@ -165,7 +165,6 @@ export function useProcessDesignerNodeRecords({
       inputs: [],
       outputs: []
     };
-    if (v5 && op === 'effect.createEntity') node.via = 'genericCreate';
     // No default bindings: nodes are unbound until the author binds them
     // (wire a type node, or pick explicitly). A seeded domain type here is
     // an invisible authoring decision the user never made.

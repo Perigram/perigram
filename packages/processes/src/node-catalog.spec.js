@@ -187,7 +187,6 @@ describe('process v4 node catalog', () => {
     const speciesCreate = resolveCatalogNodePorts({
       kind: 'cts.construct',
       typeId: 'widget',
-      via: 'genericCreate',
       slots: ['identity', 'data', 'specs'],
       construction: {
         mode: 'genericCreate',
@@ -255,7 +254,7 @@ describe('process v4 node catalog', () => {
 
     // the pin persists on origin species, typed by the binding when bound
     for (const record of [
-      { kind: 'cts.construct', typeId: '', via: 'genericCreate' },
+      { kind: 'cts.construct', typeId: '', construction: { mode: 'genericCreate' } },
       { kind: 'cts.read', typeId: '' }
     ]) {
       const ports = resolveCatalogNodePorts(record, context);
