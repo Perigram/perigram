@@ -176,6 +176,7 @@ builds only).
 | Area | Doc |
 |---|---|
 | System graph | [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md) |
+| Platform convergence roadmap | [docs/PLATFORM_CONVERGENCE.md](./docs/PLATFORM_CONVERGENCE.md) |
 | Remote access and deployment | [docs/REMOTE_ACCESS.md](./docs/REMOTE_ACCESS.md) |
 | UI component audit | [docs/UI_COMPONENT_AUDIT.md](./docs/UI_COMPONENT_AUDIT.md) |
 | Backend | [server/README.md](./server/README.md) |

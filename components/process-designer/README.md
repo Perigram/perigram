@@ -43,10 +43,13 @@ record access, roles, screens, and dock/panel state:
   and land in the same persistent validation feedback the canvas renders
   (never toasts alone), so an Apply that dies on a registry refusal keeps
   showing its cause after the toasts expire. When validation returns an Apply migration plan
-  (removed workflow states with live instances), Apply pauses with
-  `pendingMigration` instead of activating; `ApplyMigrationDialog` collects
-  one target state per removed state, and confirming re-posts activate
-  with the mapping payload (see the canonical Apply migration contract in
+  (removed workflow states with live instances) that the draft's declared
+  migrations (`data.migrations.statuses`) do not already cover, Apply pauses
+  with `pendingMigration` instead of activating; `ApplyMigrationDialog`
+  collects one target state per removed state (pre-filled from the
+  declarations), and confirming persists the mappings as a declaration on
+  the draft — save, then activate with no request payload (see the
+  canonical Apply migration contract in
   [server/features/process-definitions/README.md](../../server/features/process-definitions/README.md)).
 - `utils/processDesignerAccess.js` (grant-row normalization) and
   `utils/processDesignerPaletteText.js` (localized palette labels) are the

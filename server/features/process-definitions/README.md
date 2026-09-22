@@ -53,11 +53,16 @@ migration. `migration-plan.js` owns the contract:
   are refused at the registry and Apply never removes types; declared
   migrations (CTS SPEC §11 deferred tier) will land in this same plan when
   that tier is built.
-- **Decision** — `POST …/activate` accepts `{ migration: { statuses:
-  [{ typeId, from, to }] } }`. Every removed state with a live count
-  must carry exactly one mapping whose `to` is a retained target for that
-  entity type; invalid or partial mappings are HTTP 400 with the plan
-  attached. Without a payload the boundary keeps the historical 409.
+- **Decision** — migration decisions are authored data on the definition,
+  not an activate-time payload: `data.migrations.statuses` carries
+  `[{ typeId, from, to }]` alongside the graph records, and activation
+  reads the declaration (the activate request body carries no migration
+  data). Every removed state with a live count must be covered by one
+  declared mapping whose `to` is a retained target for that entity type;
+  partial or off-target declarations are HTTP 400 with the plan attached.
+  A declared row the current plan no longer requires is a no-op, so stale
+  declarations from earlier applies never block activation. With no
+  declaration at all the boundary keeps the historical 409.
 - **Ordering** — activate, then migrate, inside one request. The status
   machine resolves the *active* contract (`resolveActiveWorkflow`), so
   re-targeting before activation would validate targets against machines
@@ -72,10 +77,12 @@ migration. `migration-plan.js` owns the contract:
   activating actor's auth — process definitions never run generic Mongo
   writes for business entities.
 - **Idempotent resume** — re-targeting skips instances no longer holding
-  the removed state, so re-POSTing activate with the same mappings
-  completes an interrupted migration. The applied summary is persisted as
-  `data.migration` on the activated definition (`appliedAt`, actor,
-  mappings, per-mapping counts, failures). A migration step that fails
+  the removed state, so re-posting activate re-runs the declared mappings
+  and completes an interrupted migration. The applied summary is persisted
+  as `data.migrations.applied` on the activated definition (`appliedAt`,
+  actor, applied counts, failures) beside the declarations it executed;
+  the former top-level `data.migration` summary key is this contract's
+  predecessor and is not read by any code path. A migration step that fails
   after activation returns HTTP 500 with `migrationIncomplete` and the
   partial summary; every re-target publishes the shared typed
   invalidation event, so open screens reconcile exactly as if the
