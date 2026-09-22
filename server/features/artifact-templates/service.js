@@ -8,7 +8,7 @@ import * as filesService from '../files/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
 import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
 import { normalizeTemplateLayout, parseTemplate, renderTemplate, templateFormatFor, templateVariables } from './format.js';
-import { statusService } from '../../core/machines/service.js';
+import { stateService } from '../../core/machines/service.js';
 
 const REVISION_SCOPE = 'layout';
 const BUCKET = 'artifactTemplates';
@@ -53,7 +53,7 @@ export async function createUploaded({ buffer, filename, mimeType, name } = {}, 
     typeId: 'artifact_template',
     format
   }, BUCKET);
-  const status = await statusService.initialStatusForOrganization(
+  const status = await stateService.initialStatusForOrganization(
     'artifact_template',
     auth.organizationId,
     auth.userId,

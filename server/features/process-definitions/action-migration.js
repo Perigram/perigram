@@ -9,8 +9,8 @@ export function migrateStatusAction(action = {}) {
     inputs.push({
       id: 'status',
       kind: 'status',
-      statusRef: action.statusRef || null,
-      status: action.status?.to || action.access?.statusTo || '',
+      stateRef: action.stateRef || null,
+      status: action.state?.to || action.access?.stateTo || '',
       required: false
     });
   }
@@ -22,8 +22,8 @@ export function migrateStatusAction(action = {}) {
     mutation: action.mutation || { fields: [] },
     access: {
       ...(action.access || {}),
-      statusFrom: action.access?.statusFrom || action.status?.from || '',
-      statusTo: action.access?.statusTo || action.status?.to || ''
+      stateFrom: action.access?.stateFrom || action.state?.from || '',
+      stateTo: action.access?.stateTo || action.state?.to || ''
     }
   };
 }

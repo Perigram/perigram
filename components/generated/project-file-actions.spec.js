@@ -3,7 +3,7 @@ import { projectContextActionEntries } from './project-context-actions.js';
 
 const project = {
   _id: 'project-1',
-  status: { state: { primary: 'READY' } }
+  states: { main: 'READY' }
 };
 
 describe('project context action palette', () => {
@@ -39,14 +39,14 @@ describe('project context action palette', () => {
           actionKind: 'createInstance',
           typeId: 'queue',
           parentTypeId: 'project',
-          status: { from: 'READY' }
+          state: { from: 'READY' }
         },
         {
           id: 'draft-create',
           actionKind: 'createInstance',
           typeId: 'queue',
           parentTypeId: 'project',
-          status: { from: 'DRAFT' }
+          state: { from: 'DRAFT' }
         }
       ],
       childSections: [{

@@ -4,7 +4,7 @@ import { createError } from 'h3';
 import { hasPermission, resolveAuthPermissions } from '../../utils/auth-helpers.js';
 import { getLineageFilter } from '../../utils/permissions.js';
 import { Organization } from './model.js';
-import { statusService } from '../../core/machines/service.js';
+import { stateService } from '../../core/machines/service.js';
 import { ObjectId } from 'mongodb';
 import * as processDefinitionsService from '../process-definitions/service.js';
 import * as invitationsService from '../invitations/service.js';

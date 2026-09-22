@@ -32,7 +32,7 @@ export async function findActiveByOrganization(organizationId) {
   const db = await connectDB();
   return await db.collection(COLLECTION).findOne({
     'lineage.organizationId': toFlexibleId(organizationId),
-    'status.state.primary': 'ACTIVE'
+    'states.main': 'ACTIVE'
   });
 }
 
@@ -49,11 +49,11 @@ export async function archiveActiveByOrganization(organizationId, userId) {
   return await db.collection(COLLECTION).updateMany(
     {
       'lineage.organizationId': toFlexibleId(organizationId),
-      'status.state.primary': 'ACTIVE'
+      'states.main': 'ACTIVE'
     },
     {
       $set: {
-        'status.state.primary': 'ARCHIVED',
+        'states.main': 'ARCHIVED',
         'status.state.active.main': 'ARCHIVED',
         'status.state.regions.main.state': 'ARCHIVED',
         'status.state.regions.main.path': ['ARCHIVED'],

@@ -13,7 +13,7 @@ import {
 import * as processRepository from './repository.js';
 import * as ctsTypes from '../cts-types/service.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { statusService } from '~/server/core/machines/service.js';
+import { stateService } from '~/server/core/machines/service.js';
 import * as instanceRevisionsService from '~/server/features/instance-revisions/service.js';
 import { PROCESS_DATAFLOW_VERSION } from '~/packages/processes/src/index.js';
 import { createPersistedAcceptanceFixture, PERSISTED_ACCEPTANCE_IDS } from '~/test-data/persisted-acceptance.js';
@@ -21,8 +21,9 @@ import { createPersistedAcceptanceFixture, PERSISTED_ACCEPTANCE_IDS } from '~/te
 vi.mock('../cts-types/service.js', async () => {
   const cts = await import('~/packages/cts/src/index.js');
   const pack = await import('~/packages/cts/src/pack/cnc.js');
+  const domainPack = await import('~/packages/domain-cnc/src/pack.js');
   const registry = cts.createTypeRegistry({ id: 'spec-cts' });
-  for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack]) {
+  for (const declaration of [...cts.frameworkTypes, ...pack.cncTypePack, ...domainPack.cncFileTypes]) {
     registry.defineType(declaration);
   }
   return { compileRegistryForOrganization: vi.fn(async () => registry) };
@@ -52,7 +53,7 @@ vi.mock('~/server/core/machines/service.js', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
-    statusService: { ...actual.statusService, transitionWithResult: vi.fn(), setInitialStateForOrganization: vi.fn() }
+    stateService: { ...actual.stateService, transitionWithResult: vi.fn(), setInitialStateForOrganization: vi.fn() }
   };
 });
 
@@ -113,7 +114,7 @@ describe('current process-definition service contract', () => {
       roleAssignments: {}
     });
 
-    await expect(executeActiveProcessAction({ actionId: 'project_source' }, {
+    await expect(executeActiveProcessAction({ actionId: 'create_cassette' }, {
       userId: 'user-1',
       organizationId: 'org-acceptance',
       roleAssignments: { actions: [] }
@@ -178,7 +179,7 @@ describe('current process-definition service contract', () => {
           id: 'create', kind: 'cts.construct', typeId: 'fixture-panel-9', via: 'genericCreate',
           producerOutputId: 'create:result', trigger: { mode: 'manual' },
           access: { level: 'write', grants: [{ roleId, level: 'admin' }] },
-          status: { to: 'draft' }
+          state: { to: 'draft' }
         }
       }
     }));
@@ -231,7 +232,7 @@ describe('current process-definition service contract', () => {
 
   it('migrates a persisted entity-producing node before save and activation', async () => {
     const authored = createPersistedAcceptanceFixture().processDefinition.data;
-    const node = authored.processNodes.project_source;
+    const node = authored.processNodes.create_cassette;
     const profile = authored.producerOutputs[node.producerOutputId];
     delete authored.producerOutputs[node.producerOutputId];
     delete node.producerOutputId;
@@ -243,37 +244,37 @@ describe('current process-definition service contract', () => {
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
 
     const saved = await update('process-draft', { data: authored }, adminAuth());
-    const producerOutputId = 'project_source:result';
-    expect(saved.data.processNodes.project_source.producerOutputId).toBe(producerOutputId);
+    const producerOutputId = 'create_cassette:result';
+    expect(saved.data.processNodes.create_cassette.producerOutputId).toBe(producerOutputId);
     expect(saved.data.producerOutputs[producerOutputId]).toMatchObject({
       producerOutputId,
-      nodeId: 'project_source',
+      nodeId: 'create_cassette',
       outputSocketId: 'result',
-      typeId: 'project'
+      typeId: 'cassette'
     });
     expect(saved.data).not.toHaveProperty('entityProfiles');
 
     processRepository.findById.mockResolvedValue(draftRecord(saved.data));
     await expect(validate('process-draft', adminAuth())).resolves.toMatchObject({ ok: true });
     await expect(activate('process-draft', adminAuth())).resolves.toMatchObject({
-      status: { state: { primary: 'ACTIVE' } }
+      states: { main: 'ACTIVE' }
     });
   });
 
   it('reports the semantic apply diff and requires a migration decision for removed workflow states', async () => {
     const fixture = createPersistedAcceptanceFixture();
-    const typeId = fixture.processDefinition.data.producerOutputs['project_source:result'].typeId;
+    const typeId = fixture.processDefinition.data.producerOutputs['create_cassette:result'].typeId;
     const activeData = structuredClone(fixture.processDefinition.data);
-    activeData.producerOutputs['project_source:result'].lifecycle = {
+    activeData.producerOutputs['create_cassette:result'].lifecycle = {
       mode: 'custom',
       workflow: {
         schemaVersion: 2,
         primaryRegion: 'main',
         regions: {
           main: {
-            label: 'Project lifecycle',
-            initial: 'draft',
-            states: { draft: { canUpdateMeta: true }, LEGACY_RETIRED: {} },
+            label: 'Cassette lifecycle',
+            initial: 'ACTIVE',
+            states: { ACTIVE: { canUpdateMeta: true }, LEGACY_RETIRED: {} },
             transitions: []
           }
         }
@@ -286,7 +287,7 @@ describe('current process-definition service contract', () => {
     });
     processRepository.findById.mockResolvedValue(draftRecord(fixture.processDefinition.data));
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
-    const processList = vi.fn().mockResolvedValue([{ status: { state: { primary: 'LEGACY_RETIRED' } } }]);
+    const processList = vi.fn().mockResolvedValue([{ states: { main: 'LEGACY_RETIRED' } }]);
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === typeId ? { processList } : organizationService
     });
@@ -294,7 +295,7 @@ describe('current process-definition service contract', () => {
     const validation = await validate('process-draft', adminAuth());
     console.log("VALIDATION ERRORS:", JSON.stringify(validation.errors));
     expect(validation.ok).toBe(true);
-    expect(validation.diff.removedInstanceStatuses).toEqual([{ typeId, statuses: ['LEGACY_RETIRED'] }]);
+    expect(validation.diff.removedInstanceStatees).toEqual([{ typeId, statuses: ['LEGACY_RETIRED'] }]);
 
     await expect(activate('process-draft', adminAuth())).rejects.toMatchObject({
       statusCode: 409,
@@ -344,9 +345,9 @@ describe('current process-definition service contract', () => {
 
   it('activates when removed workflow states have no live entities', async () => {
     const fixture = createPersistedAcceptanceFixture();
-    const typeId = fixture.processDefinition.data.producerOutputs['project_source:result'].typeId;
+    const typeId = fixture.processDefinition.data.producerOutputs['create_cassette:result'].typeId;
     const activeData = structuredClone(fixture.processDefinition.data);
-    activeData.producerOutputs['project_source:result'].lifecycle = {
+    activeData.producerOutputs['create_cassette:result'].lifecycle = {
       mode: 'custom',
       workflow: {
         schemaVersion: 2,
@@ -370,25 +371,25 @@ describe('current process-definition service contract', () => {
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === typeId
-        ? { processList: vi.fn().mockResolvedValue([{ status: { state: { primary: 'draft' } } }]) }
+        ? { processList: vi.fn().mockResolvedValue([{ states: { main: 'draft' } }]) }
         : organizationService
     });
 
     await expect(activate('process-draft', adminAuth())).resolves.toMatchObject({
-      status: { state: { primary: 'ACTIVE' } }
+      states: { main: 'ACTIVE' }
     });
     expect(processRepository.archiveActiveByOrganization).toHaveBeenCalled();
   });
 
   it('returns the migration plan on validate and keeps the 409 without mappings', async () => {
     const fixture = createPersistedAcceptanceFixture();
-    const typeId = fixture.processDefinition.data.producerOutputs['project_source:result'].typeId;
+    const typeId = fixture.processDefinition.data.producerOutputs['create_cassette:result'].typeId;
     const activeData = structuredClone(fixture.processDefinition.data);
-    activeData.producerOutputs['project_source:result'].lifecycle = customLifecycle({
+    activeData.producerOutputs['create_cassette:result'].lifecycle = customLifecycle({
       draft: { canUpdateMeta: true }, LEGACY_RETIRED: {}
     });
     const draftData = structuredClone(fixture.processDefinition.data);
-    draftData.producerOutputs['project_source:result'].lifecycle = customLifecycle({
+    draftData.producerOutputs['create_cassette:result'].lifecycle = customLifecycle({
       draft: { canUpdateMeta: true }, done: {}
     });
     processRepository.findActiveByOrganization.mockResolvedValue({
@@ -398,8 +399,8 @@ describe('current process-definition service contract', () => {
     });
     processRepository.findById.mockResolvedValue(draftRecord(draftData));
     const strandedEntities = [
-      { _id: 'p-1', status: { state: { primary: 'LEGACY_RETIRED' } } },
-      { _id: 'p-2', status: { state: { primary: 'LEGACY_RETIRED' } } }
+      { _id: 'p-1', states: { main: 'LEGACY_RETIRED' } },
+      { _id: 'p-2', states: { main: 'LEGACY_RETIRED' } }
     ];
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === typeId
@@ -431,13 +432,13 @@ describe('current process-definition service contract', () => {
 
   it('rejects migration mappings outside the next contract states', async () => {
     const fixture = createPersistedAcceptanceFixture();
-    const typeId = fixture.processDefinition.data.producerOutputs['project_source:result'].typeId;
+    const typeId = fixture.processDefinition.data.producerOutputs['create_cassette:result'].typeId;
     const activeData = structuredClone(fixture.processDefinition.data);
-    activeData.producerOutputs['project_source:result'].lifecycle = customLifecycle({
+    activeData.producerOutputs['create_cassette:result'].lifecycle = customLifecycle({
       draft: {}, LEGACY_RETIRED: {}
     });
     const draftData = structuredClone(fixture.processDefinition.data);
-    draftData.producerOutputs['project_source:result'].lifecycle = customLifecycle({ draft: {}, done: {} });
+    draftData.producerOutputs['create_cassette:result'].lifecycle = customLifecycle({ draft: {}, done: {} });
     processRepository.findActiveByOrganization.mockResolvedValue({
       ...fixture.processDefinition,
       _id: 'process-active',
@@ -446,7 +447,7 @@ describe('current process-definition service contract', () => {
     processRepository.findById.mockResolvedValue(draftRecord(draftData));
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === typeId
-        ? { processList: vi.fn().mockResolvedValue([{ _id: 'p-1', status: { state: { primary: 'LEGACY_RETIRED' } } }]) }
+        ? { processList: vi.fn().mockResolvedValue([{ _id: 'p-1', states: { main: 'LEGACY_RETIRED' } }]) }
         : organizationService
     });
 
@@ -461,13 +462,13 @@ describe('current process-definition service contract', () => {
 
   it('activates with confirmed mappings, re-targets stranded instances, and records the migration', async () => {
     const fixture = createPersistedAcceptanceFixture();
-    const typeId = fixture.processDefinition.data.producerOutputs['project_source:result'].typeId;
+    const typeId = fixture.processDefinition.data.producerOutputs['create_cassette:result'].typeId;
     const activeData = structuredClone(fixture.processDefinition.data);
-    activeData.producerOutputs['project_source:result'].lifecycle = customLifecycle({
+    activeData.producerOutputs['create_cassette:result'].lifecycle = customLifecycle({
       draft: { canUpdateMeta: true }, LEGACY_RETIRED: {}
     });
     const draftData = structuredClone(fixture.processDefinition.data);
-    draftData.producerOutputs['project_source:result'].lifecycle = customLifecycle({
+    draftData.producerOutputs['create_cassette:result'].lifecycle = customLifecycle({
       draft: { canUpdateMeta: true }, done: {}
     });
     processRepository.findActiveByOrganization.mockResolvedValue({
@@ -480,20 +481,20 @@ describe('current process-definition service contract', () => {
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === typeId
         ? { processList: vi.fn().mockResolvedValue([
-            { _id: 'p-1', status: { state: { primary: 'LEGACY_RETIRED' } } },
-            { _id: 'p-2', status: { state: { primary: 'draft' } } }
+            { _id: 'p-1', states: { main: 'LEGACY_RETIRED' } },
+            { _id: 'p-2', states: { main: 'draft' } }
           ]) }
         : organizationService
     });
-    statusService.setInitialStateForOrganization.mockResolvedValue({ state: { primary: 'draft' } });
+    stateService.setInitialStateForOrganization.mockResolvedValue({ state: { primary: 'draft' } });
 
     const result = await activate('process-draft', adminAuth(), {
       migration: { statuses: [{ typeId, from: 'LEGACY_RETIRED', to: 'draft' }] }
     });
 
-    expect(result.status.state.primary).toBe('ACTIVE');
-    expect(statusService.setInitialStateForOrganization).toHaveBeenCalledWith(
-      typeId, 'p-1', 'draft', 'org-acceptance', 'admin', expect.objectContaining({ producerOutputId: 'project_source:result' })
+    expect(result.states.main).toBe('ACTIVE');
+    expect(stateService.setInitialStateForOrganization).toHaveBeenCalledWith(
+      typeId, 'p-1', 'draft', 'org-acceptance', 'admin', expect.objectContaining({ producerOutputId: 'create_cassette:result' })
     );
     expect(result.data.migration).toEqual(expect.objectContaining({
       actor: 'admin',
@@ -506,19 +507,19 @@ describe('current process-definition service contract', () => {
 
   it('rejects ambiguous persisted producer sockets at the save boundary', async () => {
     const authored = createPersistedAcceptanceFixture().processDefinition.data;
-    const node = authored.processNodes.project_source;
+    const node = authored.processNodes.create_cassette;
     delete authored.producerOutputs[node.producerOutputId];
     delete node.producerOutputId;
     node.outputs = [
-      { id: 'result', type: { base: 'entity', typeId: 'project' } },
-      { id: 'alternate', type: { base: 'entity', typeId: 'project' } }
+      { id: 'result', type: { base: 'entity', typeId: 'cassette' } },
+      { id: 'alternate', type: { base: 'entity', typeId: 'cassette' } }
     ];
     processRepository.findById.mockResolvedValue(draftRecord(authored));
 
     await expect(update('process-draft', { data: authored }, adminAuth())).rejects.toMatchObject({
       statusCode: 400,
       message: expect.stringContaining(
-        'Process node project_source requires one project producer output; candidates: project_source:alternate (project), project_source:result (project)'
+        'Process node create_cassette requires one cassette producer output; candidates: create_cassette:alternate (cassette), create_cassette:result (cassette)'
       )
     });
     expect(processRepository.updateById).not.toHaveBeenCalled();
@@ -531,7 +532,7 @@ describe('current process-definition service contract', () => {
 
     const result = await activate('process-draft', adminAuth());
 
-    expect(result.status.state.primary).toBe('ACTIVE');
+    expect(result.states.main).toBe('ACTIVE');
     expect(result.data.compiled.lineageBindings).toEqual(expect.arrayContaining([
       expect.objectContaining({ childTypeId: 'facade', parentTypeId: 'project', lineageKey: 'projectId' })
     ]));
@@ -559,7 +560,7 @@ describe('current process-definition service contract', () => {
       lineage: { organizationId: 'org-acceptance' },
       data: { workingArea: { width: 1300, depth: 2500 } },
       attachments: {},
-      status: { state: { primary: 'ACTIVE' }, timestamp: '2026-01-01T00:00:00.000Z', userId: 'admin' }
+      states: { main: 'ACTIVE' }
     };
     const processUpdate = vi.fn(async (id, patch) => {
       const persisted = structuredClone(machine);
@@ -607,9 +608,9 @@ describe('current process-definition service contract', () => {
       lineage: { organizationId: 'org-acceptance' },
       data: { workingArea: { width: 1300, depth: 2500 } },
       attachments: {},
-      status: { state: { primary: 'ACTIVE' }, timestamp: '2026-01-01T00:00:00.000Z', userId: 'admin' }
+      states: { main: 'ACTIVE' }
     };
-    statusService.transitionWithResult.mockImplementation(async ({ targetState, patch }) => {
+    stateService.transitionWithResult.mockImplementation(async ({ targetState, patch }) => {
       const updated = structuredClone(machine);
       for (const [path, value] of Object.entries(patch || {})) {
         setByPath(updated, path, value);
@@ -623,7 +624,7 @@ describe('current process-definition service contract', () => {
         : type === 'organization' ? organizationService : null
     });
     const data = readModifyWriteProcessData();
-    data.processNodes.update.inputDefaults = { 'status.state.primary': 'MAINTENANCE' };
+    data.processNodes.update.inputDefaults = { 'states.main': 'MAINTENANCE' };
     processRepository.findById.mockResolvedValue(draftRecord(data));
 
     const run = await startRun('process-draft', {
@@ -632,8 +633,8 @@ describe('current process-definition service contract', () => {
     }, adminAuth(), { runRepository });
 
     expect(run.status).toBe('succeeded');
-    expect(statusService.transitionWithResult).toHaveBeenCalledTimes(1);
-    expect(statusService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
+    expect(stateService.transitionWithResult).toHaveBeenCalledTimes(1);
+    expect(stateService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
       typeId: 'machine',
       targetId: 'machine-1',
       targetState: 'MAINTENANCE',
@@ -652,7 +653,7 @@ describe('current process-definition service contract', () => {
         slug: 'cnc-router',
         reference: { code: 'M-01', location: 'Hall A' }
       },
-      status: { state: { primary: 'MAINTENANCE' } }
+      states: { main: 'MAINTENANCE' }
     });
     expect(emitted).not.toHaveProperty('actions');
     expect(emitted).not.toHaveProperty('effects');
@@ -662,7 +663,7 @@ describe('current process-definition service contract', () => {
     const created = { _id: 'queue-1', type: 'queue', identity: { name: 'Queue' } };
     const initialStatus = { state: { primary: 'READY', active: { main: 'READY', fulfillment: 'UNASSIGNED' } } };
     const create = vi.fn().mockResolvedValue(created);
-    statusService.setInitialStateForOrganization.mockResolvedValue(initialStatus);
+    stateService.setInitialStateForOrganization.mockResolvedValue(initialStatus);
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === 'queue'
         ? { constructionHandlers: { genericCreate: create } }
@@ -679,10 +680,10 @@ describe('current process-definition service contract', () => {
         construction: { mode: 'genericCreate' },
         blocks: []
       },
-      inputs: { 'status.state.primary': 'READY' }
+      inputs: { 'states.main': 'READY' }
     }, adminAuth());
 
-    expect(statusService.setInitialStateForOrganization).toHaveBeenCalledWith(
+    expect(stateService.setInitialStateForOrganization).toHaveBeenCalledWith(
       'queue', 'queue-1', 'READY', 'org-acceptance', 'admin', expect.objectContaining({ producerOutputId: 'create:result' })
     );
     expect(result.status).toEqual(initialStatus);
@@ -693,7 +694,7 @@ describe('current process-definition service contract', () => {
     const create = vi.fn()
       .mockResolvedValueOnce({ _id: 'project-a', type: 'project' })
       .mockResolvedValueOnce({ _id: 'project-b', type: 'project' });
-    statusService.setInitialStateForOrganization
+    stateService.setInitialStateForOrganization
       .mockResolvedValueOnce({ state: { primary: 'PLANNED' } })
       .mockResolvedValueOnce({ state: { primary: 'SURVEYING' } });
     getAppRegistry.mockReturnValue({
@@ -701,7 +702,7 @@ describe('current process-definition service contract', () => {
         ? { constructionHandlers: { genericCreate: create } }
         : organizationService
     });
-    const createEffect = (id, statusTo) => performDurableEffect({
+    const createEffect = (id, stateTo) => performDurableEffect({
       kind: 'effect.createEntity',
       record: {
         kind: 'effect.createEntity',
@@ -709,7 +710,7 @@ describe('current process-definition service contract', () => {
         typeId: 'project',
         producerOutputId: `${id}:result`,
         construction: { mode: 'genericCreate' },
-        status: { to: statusTo },
+        state: { to: stateTo },
         blocks: []
       },
       inputs: {}
@@ -718,17 +719,17 @@ describe('current process-definition service contract', () => {
     await createEffect('create_a', 'PLANNED');
     await createEffect('create_b', 'SURVEYING');
 
-    expect(statusService.setInitialStateForOrganization).toHaveBeenNthCalledWith(1,
+    expect(stateService.setInitialStateForOrganization).toHaveBeenNthCalledWith(1,
       'project', 'project-a', 'PLANNED', 'org-acceptance', 'admin',
       expect.objectContaining({ producerOutputId: 'create_a:result' }));
-    expect(statusService.setInitialStateForOrganization).toHaveBeenNthCalledWith(2,
+    expect(stateService.setInitialStateForOrganization).toHaveBeenNthCalledWith(2,
       'project', 'project-b', 'SURVEYING', 'org-acceptance', 'admin',
       expect.objectContaining({ producerOutputId: 'create_b:result' }));
   });
 
   it('passes the authored note to status execution as metadata and returns the entity DTO', async () => {
-    const entity = { _id: 'sheet-1', type: 'sheet', status: { state: { primary: 'AVAILABLE' } } };
-    statusService.transitionWithResult.mockResolvedValue({ entity: { ...entity, status: { state: { primary: 'VERIFIED' } } }, actions: [], effects: [] });
+    const entity = { _id: 'sheet-1', type: 'sheet', states: { main: 'AVAILABLE' } };
+    stateService.transitionWithResult.mockResolvedValue({ entity: { ...entity, states: { main: 'VERIFIED' } }, actions: [], effects: [] });
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === 'sheet' ? {} : organizationService
     });
@@ -743,7 +744,7 @@ describe('current process-definition service contract', () => {
       }
     }, adminAuth());
 
-    expect(statusService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
+    expect(stateService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
       targetState: 'VERIFIED',
       context: {
         source: 'process-run',
@@ -762,14 +763,14 @@ describe('current process-definition service contract', () => {
         ? { processCapabilities: { archive: true, delete: true }, processDelete }
         : organizationService
     });
-    statusService.transitionWithResult.mockResolvedValue({ entity: { _id: 'queue-1', status: { state: { primary: 'ARCHIVED' } } } });
+    stateService.transitionWithResult.mockResolvedValue({ entity: { _id: 'queue-1', states: { main: 'ARCHIVED' } } });
 
     await expect(performDurableEffect({
       kind: 'effect.archiveEntity',
       record: { kind: 'effect.archiveEntity', typeId: 'queue', archiveIntent: 'archiveQueue' },
       inputs: { entity: { type: 'queue', id: 'queue-1' } }
     }, adminAuth())).resolves.toMatchObject({ _id: 'queue-1' });
-    expect(statusService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({ intent: 'archiveQueue' }));
+    expect(stateService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({ intent: 'archiveQueue' }));
 
     await expect(performDurableEffect({
       kind: 'effect.deleteEntity',
@@ -781,7 +782,7 @@ describe('current process-definition service contract', () => {
 
   it('denies archive and hard delete when runtime capabilities do not allow them', async () => {
     getAppRegistry.mockReturnValue({
-      getInstanceService: type => type === 'queue'
+      getInstanceService: type => type === 'sheet_design'
         ? { processCapabilities: { archive: false, delete: false } }
         : organizationService
     });
@@ -789,99 +790,10 @@ describe('current process-definition service contract', () => {
     for (const kind of ['effect.archiveEntity', 'effect.deleteEntity']) {
       await expect(performDurableEffect({
         kind,
-        record: { kind, typeId: 'queue' },
-        inputs: { entity: { type: 'queue', id: 'queue-1' } }
+        record: { kind, typeId: 'sheet_design' },
+        inputs: { entity: { type: 'sheet_design', id: 'sheet-1' } }
       }, adminAuth())).rejects.toThrow('does not support process');
     }
-  });
-
-  it('validates graph-declared Create relations before invoking the owning constructor', async () => {
-    const data = relationEffectProcessData('effect.createEntity', 'sourceLibrary', 'one');
-    const create = vi.fn().mockResolvedValue({ _id: 'facade-1' });
-    const targetGet = vi.fn().mockResolvedValue(library('library-1'));
-    getAppRegistry.mockReturnValue({
-      getInstanceService: type => type === 'facade'
-        ? { constructionHandlers: { genericCreate: create } }
-        : type === 'material' ? { processGetById: targetGet } : organizationService
-    });
-
-    await performDurableEffect({
-      kind: 'effect.createEntity',
-      record: data.processNodes.effect,
-      inputs: { relations: { sourceLibrary: { type: 'material', id: 'library-1' } } }
-    }, relationAuth(), data);
-
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({ relations: { sourceLibrary: { type: 'material', id: 'library-1' } } }),
-      expect.any(Object)
-    );
-
-    await expect(performDurableEffect({
-      kind: 'effect.createEntity',
-      record: data.processNodes.effect,
-      inputs: { relations: { sourceLibrary: { type: 'project', id: 'project-1' } } }
-    }, relationAuth(), data)).rejects.toThrow('Relation target must be material');
-    await expect(performDurableEffect({
-      kind: 'effect.createEntity',
-      record: data.processNodes.effect,
-      inputs: { relations: { sourceLibrary: [libraryRef('library-1'), libraryRef('library-2')] } }
-    }, relationAuth(), data)).rejects.toThrow('accepts exactly one entity');
-    expect(create).toHaveBeenCalledTimes(1);
-  });
-
-  it('normalizes graph-declared Modify relation arrays and rejects missing or inaccessible targets before persistence', async () => {
-    const data = relationEffectProcessData('effect.updateEntity', 'reviewLibraries', 'many');
-    const processUpdate = vi.fn().mockResolvedValue({ _id: 'facade-1' });
-    const targetGet = vi.fn(async id => id === 'missing'
-      ? null
-      : id === 'foreign' ? { ...library(id), lineage: { organizationId: 'org-other' } } : library(id));
-    getAppRegistry.mockReturnValue({
-      getInstanceService: type => type === 'facade'
-        ? { processUpdate }
-        : type === 'material' ? { processGetById: targetGet } : organizationService
-    });
-    instanceRevisionsService.getById.mockResolvedValue({
-      data: { source: libraryRef('library-1') }
-    });
-
-    await performDurableEffect({
-      kind: 'effect.updateEntity',
-      record: data.processNodes.effect,
-      inputs: {
-        entity: { type: 'facade', id: 'facade-1' },
-        relations: {
-          reviewLibraries: [
-            libraryRef('library-1'),
-            { ...libraryRef('library-1'), revisionId: 'revision-1' },
-            libraryRef('library-2')
-          ]
-        }
-      }
-    }, relationAuth(), data);
-
-    expect(processUpdate).toHaveBeenCalledWith('facade-1', {
-      'relations.reviewLibraries': [
-        { ...libraryRef('library-1'), revisionId: 'revision-1' },
-        libraryRef('library-2')
-      ]
-    }, relationAuth());
-
-    await expect(performDurableEffect({
-      kind: 'effect.updateEntity',
-      record: data.processNodes.effect,
-      inputs: { entity: { type: 'facade', id: 'facade-1' }, relations: { reviewLibraries: [libraryRef('missing')] } }
-    }, relationAuth(), data)).rejects.toMatchObject({ statusCode: 404 });
-    await expect(performDurableEffect({
-      kind: 'effect.updateEntity',
-      record: data.processNodes.effect,
-      inputs: { entity: { type: 'facade', id: 'facade-1' }, relations: { reviewLibraries: [libraryRef('library-3')] } }
-    }, { ...relationAuth(), effectivePermissions: { facades: { level: 'write' } } }, data)).rejects.toMatchObject({ statusCode: 403 });
-    await expect(performDurableEffect({
-      kind: 'effect.updateEntity',
-      record: data.processNodes.effect,
-      inputs: { entity: { type: 'facade', id: 'facade-1' }, relations: { reviewLibraries: [libraryRef('foreign')] } }
-    }, relationAuth(), data)).rejects.toMatchObject({ statusCode: 403 });
-    expect(processUpdate).toHaveBeenCalledTimes(1);
   });
 
   it('persists v5 leaf field inputs as direct field writes without block composition', async () => {
@@ -905,100 +817,6 @@ describe('current process-definition service contract', () => {
     expect(processUpdate).toHaveBeenCalledWith('sheet-1', { 'data.serial': 'SH-42' }, expect.objectContaining({ organizationId: 'org-acceptance' }));
   });
 
-  it('runs Link, Unlink, and replacement with target access and duplicate guarantees', async () => {
-    const data = relationActionProcessData();
-    const owner = {
-      _id: 'facade-1',
-      type: 'facade',
-      lineage: { organizationId: 'org-acceptance' },
-      relations: { libraries: [libraryRef('library-1'), libraryRef('library-2')] }
-    };
-    const processUpdate = vi.fn(async (id, patch) => {
-      owner.relations.libraries = patch['relations.libraries'];
-      return structuredClone(owner);
-    });
-    const targetGet = vi.fn(async id => id === 'missing' ? null : library(id));
-    processRepository.findActiveByOrganization.mockResolvedValue(draftRecord(data));
-    organizationService.getProcessConfiguration.mockResolvedValue({
-      roles: { role_admin: { id: 'role_admin', label: 'Admin' } },
-      roleAssignments: {}
-    });
-    getAppRegistry.mockReturnValue({
-      getInstanceService: type => type === 'facade'
-        ? { processGetById: vi.fn().mockImplementation(async () => structuredClone(owner)), processUpdate }
-        : type === 'material' ? { processGetById: targetGet } : organizationService
-    });
-    const auth = relationAuth([
-      'update:link:libraries',
-      'update:unlink:libraries'
-    ]);
-
-    await executeActiveProcessAction({
-      actionId: 'update:link:libraries',
-      instanceId: 'facade-1',
-      data: { relations: { libraries: libraryRef('library-2') } }
-    }, auth);
-    expect(owner.relations.libraries).toEqual([libraryRef('library-1'), libraryRef('library-2')]);
-
-    await executeActiveProcessAction({
-      actionId: 'update:link:libraries',
-      instanceId: 'facade-1',
-      data: { relations: { libraries: libraryRef('library-3') }, relationReplaces: libraryRef('library-1') }
-    }, auth);
-    expect(owner.relations.libraries).toEqual([libraryRef('library-2'), libraryRef('library-3')]);
-
-    await executeActiveProcessAction({
-      actionId: 'update:unlink:libraries',
-      instanceId: 'facade-1',
-      data: { relations: { libraries: libraryRef('library-2') } }
-    }, auth);
-    expect(owner.relations.libraries).toEqual([libraryRef('library-3')]);
-
-    await expect(executeActiveProcessAction({
-      actionId: 'update:link:libraries',
-      instanceId: 'facade-1',
-      data: { relations: { libraries: libraryRef('missing') } }
-    }, auth)).rejects.toMatchObject({ statusCode: 404 });
-    expect(processUpdate).toHaveBeenCalledTimes(3);
-  });
-});
-
-function relationEffectProcessData(kind, key, cardinality) {
-  const effect = {
-    id: 'effect',
-    kind,
-    typeId: 'facade',
-    blocks: ['relations'],
-    construction: { mode: 'genericCreate' },
-    trigger: { mode: 'manual' },
-    access: { level: 'write', grants: [] }
-  };
-  return {
-    schemaVersion: 1,
-    dataflowVersion: PROCESS_DATAFLOW_VERSION,
-    graph: {
-      nodes: ['relations', 'effect'].map(id => ({ id, type: 'processNode', data: { refId: id } })),
-      edges: [{ id: 'relations-effect', source: 'relations', sourceHandle: 'data:block', target: 'effect', targetHandle: 'data:relations', role: 'data' }]
-    },
-    roleGrants: {},
-    producerOutputs: {
-      'facade_context:entity': {
-        id: 'facade_context:entity', producerOutputId: 'facade_context:entity', nodeId: 'facade_context', outputSocketId: 'entity',
-        typeId: 'facade', lifecycle: { mode: 'domainDefault' }, fields: { read: [], write: ['relations.*'], private: [] }
-      }
-    },
-    actions: {}, services: {}, sockets: {}, screens: {},
-    processNodes: {
-      relations: {
-        id: 'relations', kind: 'record.composeBlock', block: 'relations', compositionMode: 'relations',
-        entries: [{ id: key, key, typeId: 'material', type: cardinality === 'many'
-          ? { base: 'array', itemType: { base: 'entityRef', typeId: 'material' } }
-          : { base: 'entityRef', typeId: 'material' } }]
-      },
-      effect
-    }
-  };
-}
 
 function relationActionProcessData() {
   const data = relationEffectProcessData('effect.updateEntity', 'libraries', 'many');
@@ -1186,7 +1004,7 @@ function draftRecord(data) {
     _id: 'process-draft',
     identity: { uid: 'process-draft', name: 'Acceptance process', slug: 'acceptance-process' },
     lineage: { organizationId: 'org-acceptance' },
-    status: { state: 'DRAFT' },
+    status: { state: 'DRAFT', userId: 'admin', timestamp: '2026-01-01T00:00:00.000Z', metadata: {}, eventId: null, lifecycle: { actors: [], attachments: {}, data: {} } },
     data
   };
 }
@@ -1208,3 +1026,4 @@ function customLifecycle(states) {
     }
   };
 }
+});

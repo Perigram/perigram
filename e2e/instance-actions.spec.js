@@ -14,7 +14,7 @@ test.describe('entity action buttons', () => {
     await expect(statusControl.locator('[data-status-menu-trigger="true"]')).toBeVisible();
 
     const transitionResponsePromise = app.page.waitForResponse(response =>
-      response.url().includes('/api/status/transition') &&
+      response.url().includes('/api/state/transition') &&
       response.request().method() === 'POST'
     );
 
@@ -33,7 +33,7 @@ test.describe('entity action buttons', () => {
     const updatedText = await updatedResponse.text();
     expect(updatedResponse.ok(), updatedText).toBeTruthy();
     const updatedProject = JSON.parse(updatedText);
-    expect(updatedProject.status?.state).toBe('ACTIVE');
+    expect(updatedProject.states).toBe('ACTIVE');
     await app.expectCleanRuntime();
   });
 

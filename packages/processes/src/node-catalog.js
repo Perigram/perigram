@@ -328,7 +328,7 @@ function cts(kind, label, family, level) {
           const blocks = (Array.isArray(record.slots) ? record.slots : [])
             .filter(slot => ports.inputs.some(port => port.id === slot && port.type?.base === 'block'))
             .map(slot => ports.inputs.find(port => port.id === slot));
-          const status = ports.inputs.find(port => port.id === 'status.state.primary');
+          const status = ports.inputs.find(port => port.id === 'states.main');
           return {
             ...ports,
             inputs: [
@@ -839,7 +839,7 @@ function effectInputs(kind, types) {
         label: input.label || input.id
       })),
       ...types.blocks.map(block => socket(block, processType('block', { block }), DATA, false, 'list')),
-      socket('status.state.primary', processType('status', { typeId: types.entity.typeId }), DATA, false, 'list')
+      socket('states.main', processType('status', { typeId: types.entity.typeId }), DATA, false, 'list')
     ];
   }
   if (kind === 'effect.createEntity') return [
@@ -853,14 +853,14 @@ function effectInputs(kind, types) {
     ...types.blocks.map(block => socket(block, processType('block', {
       block
     }), DATA, block === 'identity', 'list')),
-    socket('status.state.primary', processType('status', { typeId: types.entity.typeId }), DATA, false, 'list')
+    socket('states.main', processType('status', { typeId: types.entity.typeId }), DATA, false, 'list')
   ];
   if (kind === 'effect.updateEntity') return [
     socket('entity', types.entityRef, DATA, true, 'list'),
     ...types.blocks.map(block => socket(block, processType('block', {
       block
     }), DATA, false, 'list')),
-    socket('status.state.primary', processType('status', { typeId: types.entity.typeId }), DATA, false, 'list')
+    socket('states.main', processType('status', { typeId: types.entity.typeId }), DATA, false, 'list')
   ];
   if (kind === 'effect.changeStatus') return [
     socket('entity', types.entityRef, DATA, true, 'list'),

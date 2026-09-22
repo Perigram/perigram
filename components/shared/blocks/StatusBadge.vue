@@ -6,7 +6,7 @@
 import Tag from 'primevue/tag';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { STATUS_MAPPINGS } from '~/utils/status-engine';
+import { STATE_MAPPINGS } from '~/utils/state-engine';
 
 const props = defineProps({
   state: { type: String, required: true },
@@ -18,7 +18,7 @@ const { t, te } = useI18n();
 
 const config = computed(() => {
     const s = props.state?.toUpperCase() || 'UNKNOWN';
-    const mapped = STATUS_MAPPINGS[s] || STATUS_MAPPINGS[s.toLowerCase()] || {
+    const mapped = STATE_MAPPINGS[s] || STATE_MAPPINGS[s.toLowerCase()] || {
         label: s, 
         severity: 'secondary', 
         icon: 'pi pi-question-circle' 

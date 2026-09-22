@@ -84,7 +84,7 @@ describe('literal -> construct field sockets', () => {
 
   it('a bound construct exposes the declared row fields as typed sockets', () => {
     const ids = ports.map(port => port.id);
-    for (const id of ['name', 'data.name', 'specs.thicknessMm', 'data.count', 'data.owner', 'data.madeAt', 'data.flag', 'status.state.primary']) {
+    for (const id of ['name', 'data.name', 'specs.thicknessMm', 'data.count', 'data.owner', 'data.madeAt', 'data.flag', 'states.main']) {
       expect(ids, `missing socket ${id}`).toContain(id);
     }
     expect(input(ports, 'specs.thicknessMm').type).toMatchObject({ base: 'number', unit: 'mm' });

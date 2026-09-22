@@ -154,8 +154,8 @@ export function useGeneratedScreen(screenRef) {
 function entityMatchesSource(entity = {}, source = {}, screen = {}) {
   const filters = resolveSourceFilters(source, screen);
   return Object.entries(filters).every(([path, expected]) => {
-    if (path === 'primaryStatus') return entity.status?.state?.primary === expected;
-    if (path === 'primaryStatuses') return String(expected).split(',').includes(entity.status?.state?.primary);
+    if (path === 'primaryState') return entity.states?.main === expected;
+    if (path === 'primaryStates') return String(expected).split(',').includes(entity.states?.main);
     if (expected && typeof expected === 'object') return false;
     const actual = path.split('.').reduce((value, key) => value?.[key], entity);
     return String(actual ?? '') === String(expected ?? '');
@@ -196,8 +196,8 @@ export function resolveSourceFilters(source = {}, screen = {}) {
   const filters = resolveValue(source.filters || {}, screen) || {};
   const statuses = statusFiltersFromRequirement(source.required || screen.required || {});
   if (!statuses.length) return filters;
-  if (statuses.length === 1) return { ...filters, primaryStatus: statuses[0] };
-  return { ...filters, primaryStatuses: statuses.join(',') };
+  if (statuses.length === 1) return { ...filters, primaryState: statuses[0] };
+  return { ...filters, primaryStates: statuses.join(',') };
 }
 
 function statusFiltersFromRequirement(requirement = {}) {
@@ -210,8 +210,8 @@ function statusesFromRule(rule) {
   if (Array.isArray(rule.any)) return rule.any.flatMap(statusesFromRule);
   if (Array.isArray(rule.all)) return rule.all.flatMap(statusesFromRule);
   if (rule.not) return [];
-  if ((rule.fact === 'primaryStatus' || rule.fact === 'status.primary') && rule.equals) return [String(rule.equals)];
-  if ((rule.fact === 'primaryStatus' || rule.fact === 'status.primary') && Array.isArray(rule.in)) return rule.in.map(String);
+  if ((rule.fact === 'primaryState' || rule.fact === 'status.primary') && rule.equals) return [String(rule.equals)];
+  if ((rule.fact === 'primaryState' || rule.fact === 'status.primary') && Array.isArray(rule.in)) return rule.in.map(String);
   return [];
 }
 

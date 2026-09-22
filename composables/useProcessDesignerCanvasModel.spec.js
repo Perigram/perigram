@@ -27,7 +27,7 @@ function createCanvas() {
     action: id => ({ id }),
     service: id => ({ id }),
     socket: id => ({ id }),
-    statusDefinition: id => ({ id }),
+    stateDefinition: id => ({ id }),
     valueInput: id => ({ id }),
     processNode: id => ({ id, kind: 'cts.construct', typeId: '', trigger: { mode: 'manual' }, access: { grants: [] } }),
     ctsClass: id => ({ id, kind: 'class', typeId: '', class: 'file', payload: null, operators: [] }),

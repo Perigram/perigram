@@ -57,7 +57,7 @@ async function migrateStatusEvents() {
   });
   let count = 0;
   for await (const event of cursor) {
-    const statusState = normalizeStatusState(event.status?.state || event.toState || 'UNKNOWN');
+    const statusState = normalizeStatusState(event.status?.state ?? event.toState ?? 'UNKNOWN');
     const $set = {
       'status.state': statusState,
       fromStatePrimary: event.fromStatePrimary || getPrimaryState(event.fromState, event.fromState || 'UNKNOWN'),

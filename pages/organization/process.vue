@@ -929,7 +929,7 @@ const accessLevelOptions = [
 const defaultEdgeOptions = { type: 'default' };
 
 const activeName = computed(() => draft.value?.identity?.name || '');
-const isActiveProcess = computed(() => draft.value?.status?.state?.primary === 'ACTIVE');
+const isActiveProcess = computed(() => draft.value?.states?.main === 'ACTIVE');
 const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
 const documentDockItems = computed(() => [
   {
@@ -992,7 +992,7 @@ const canvasDockItems = computed(() => [
 const processOptions = computed(() => processDefinitions.value.map(process => ({
   label: [
     normalizeProcessDisplayName(process.identity?.name || process.identity?.uid || process._id),
-    process.status?.state?.primary
+    process.states?.main
   ].filter(Boolean).join(' · '),
   value: String(process._id),
   entity: processDisplayEntity(process)
@@ -1154,7 +1154,7 @@ const selectedProcessNodeAccessDetail = computed(() => {
   if (!node?.kind || !['effect.changeStatus', 'effect.archiveEntity', 'effect.updateEntity'].includes(opKind(node))) return '';
   const incoming = node.id ? inferIncomingEntityContract(node.id) : {};
   const from = incoming.status || '';
-  const to = node.status?.to || '';
+  const to = node.state?.to || '';
   if (!from && !to) return '';
   return [from || '?', to || '?'].join(' -> ');
 });
@@ -1308,7 +1308,7 @@ function applyGraphInterpretation(mutations) {
     const record = draft.value?.data?.processNodes?.[mutation.recordId];
     if (!record) continue;
     if (mutation.key === 'status.to') {
-      record.status = { ...(record.status || {}), to: mutation.value };
+      record.state = { ...(record.state || {}), to: mutation.value };
       continue;
     }
     setNodeTypeId(record, mutation.value);

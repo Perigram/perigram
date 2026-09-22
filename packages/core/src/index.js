@@ -296,7 +296,7 @@ export const CANONICAL_BLOCK_SCHEMAS = Object.freeze({
     canonicalBlockField('origin.lifecycle', 'json')
   ]),
   status: Object.freeze([
-    canonicalBlockField('status.state.primary', 'status'),
+    canonicalBlockField('states.main', 'status'),
     canonicalBlockField('status.userId', 'string'),
     canonicalBlockField('status.timestamp', 'dateTime'),
     canonicalBlockField('status.metadata', 'json'),
@@ -443,6 +443,7 @@ export function getPrimaryState(statusOrState, fallback = 'UNKNOWN') {
   const state = statusOrState?.state ?? statusOrState;
   if (typeof state === 'string') return state || fallback;
   if (state && typeof state === 'object') {
+    if (typeof state.main === 'string') return state.main || fallback;
     return state.primary || getFirstActiveState(state.active) || fallback;
   }
   return fallback;
@@ -622,7 +623,13 @@ export class BaseEntity {
       relations: this.relations.toJSON(),
       provenance: this.provenance.toJSON(),
       origin: this.origin?.toJSON() || null,
-      status: this.status?.toJSON() || null,
+      // Wire vocabulary: the stored v24 Status block projects onto flat
+      // `states` (main resolves through the workflow-state shapes the
+      // block may carry); storage keeps its block until each legacy
+      // feature migrates. The wire speaks states only.
+      states: this.status
+        ? { main: getPrimaryState(this.status.state, null), userId: this.status.userId, timestamp: this.status.timestamp, metadata: this.status.metadata, eventId: this.status.eventId, lifecycle: this.status.lifecycle }
+        : null,
       specs: this.specs?.toJSON() || null,
       attachments: this.attachments,
       data: this.data,

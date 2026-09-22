@@ -129,7 +129,7 @@ describe('cassette design DXF export', () => {
       effectivePermissions: {
         cassette_designs: [{
           level: 'write',
-          rule: { fact: 'primaryStatus', equals: 'RECEIVED' }
+          rule: { fact: 'primaryState', equals: 'RECEIVED' }
         }]
       }
     };
@@ -143,7 +143,7 @@ describe('cassette design DXF export', () => {
       organizationId,
       null,
       processAuth,
-      { primaryStatuses: 'RECEIVED,DRAFT' }
+      { primaryStates: 'RECEIVED,DRAFT' }
     );
 
     expect(listed.map(item => item._id)).toEqual(['received-design']);

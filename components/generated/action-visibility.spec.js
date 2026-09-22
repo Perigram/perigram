@@ -11,8 +11,8 @@ describe('generated action visibility', () => {
   it('accepts the projected manifest vocabulary beside the legacy kinds', () => {
     expect(actionAppliesToEntity({ actionKind: 'createInstance', typeId: 'cassette' }, {}, 'cassette')).toBe(false);
     expect(actionAppliesToEntity(
-      { actionKind: 'updateInstance', typeId: 'cassette', status: { from: 'CREATED', to: 'DELETED' } },
-      { status: { state: { primary: 'CREATED' } } },
+      { actionKind: 'updateInstance', typeId: 'cassette', state: { from: 'CREATED', to: 'DELETED' } },
+      { states: { main: 'CREATED' } },
       'cassette'
     )).toBe(true);
     expect(parentBoundCreateAppliesToTypeId({
@@ -37,11 +37,11 @@ describe('generated action visibility', () => {
     const action = {
       actionKind: 'updateInstance',
       typeId: 'cassette',
-      status: { from: 'CREATED', to: 'DELETED' }
+      state: { from: 'CREATED', to: 'DELETED' }
     };
 
-    expect(actionAppliesToEntity(action, { status: { state: { primary: 'CREATED' } } }, 'cassette')).toBe(true);
-    expect(actionAppliesToEntity(action, { status: { state: { primary: 'DELETED' } } }, 'cassette')).toBe(false);
+    expect(actionAppliesToEntity(action, { states: { main: 'CREATED' } }, 'cassette')).toBe(true);
+    expect(actionAppliesToEntity(action, { states: { main: 'DELETED' } }, 'cassette')).toBe(false);
     expect(actionAppliesToEntity(action, {}, 'cassette')).toBe(false);
   });
 
@@ -54,12 +54,12 @@ describe('generated action visibility', () => {
       actionKind: 'createInstance',
       typeId: 'cassette_design',
       parentTypeId: 'cassette',
-      status: { from: 'CREATED', to: 'RECEIVED' }
+      state: { from: 'CREATED', to: 'RECEIVED' }
     };
 
-    expect(actionAppliesToEntity(action, { status: { state: { primary: 'CREATED' } } }, 'cassette')).toBe(true);
-    expect(actionAppliesToEntity(action, { status: { state: { primary: 'DELETED' } } }, 'cassette')).toBe(false);
-    expect(actionAppliesToEntity(action, { status: { state: { primary: 'CREATED' } } }, 'project')).toBe(false);
+    expect(actionAppliesToEntity(action, { states: { main: 'CREATED' } }, 'cassette')).toBe(true);
+    expect(actionAppliesToEntity(action, { states: { main: 'DELETED' } }, 'cassette')).toBe(false);
+    expect(actionAppliesToEntity(action, { states: { main: 'CREATED' } }, 'project')).toBe(false);
   });
 
   it('identifies parent-bound create actions for collection rows', () => {
@@ -79,7 +79,7 @@ describe('generated action visibility', () => {
   });
 
   it('resolves generated entity actions from region ids and user action manifest', () => {
-    const entity = { status: { state: { primary: 'READY' } } };
+    const entity = { states: { main: 'READY' } };
     const actions = resolveGeneratedEntityActions({
       actionIds: ['solve', 'delete', 'missing'],
       actionManifest: [
@@ -88,13 +88,13 @@ describe('generated action visibility', () => {
           actionKind: 'runCommand',
           commandId: 'solveNesting',
           typeId: 'queue',
-          status: { from: 'READY' }
+          state: { from: 'READY' }
         },
         {
           id: 'delete',
           actionKind: 'updateInstance',
           typeId: 'queue',
-          status: { from: 'ARCHIVED', to: 'DELETED' }
+          state: { from: 'ARCHIVED', to: 'DELETED' }
         }
       ],
       entity,

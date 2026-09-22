@@ -9,8 +9,8 @@ export function useProcessDefinitionCatalog({ definitionToCanvas }) {
 
   function pickInitialProcess(active, processes = []) {
     if (active && canProjectProcess(active)) return active;
-    return processes.find(process => process.status?.state?.primary === 'ACTIVE' && canProjectProcess(process))
-      || processes.find(process => process.status?.state?.primary === 'DRAFT' && canProjectProcess(process))
+    return processes.find(process => process.states?.main === 'ACTIVE' && canProjectProcess(process))
+      || processes.find(process => process.states?.main === 'DRAFT' && canProjectProcess(process))
       || processes.find(canProjectProcess)
       || active
       || processes[0]
@@ -27,9 +27,9 @@ export function useProcessDefinitionCatalog({ definitionToCanvas }) {
   }
 
   function compareProcessDefinitions(left, right) {
-    const statusRank = { ACTIVE: 0, DRAFT: 1, ARCHIVED: 2 };
-    const leftRank = statusRank[left?.status?.state?.primary] ?? 3;
-    const rightRank = statusRank[right?.status?.state?.primary] ?? 3;
+    const stateRank = { ACTIVE: 0, DRAFT: 1, ARCHIVED: 2 };
+    const leftRank = stateRank[left?.states?.main] ?? 3;
+    const rightRank = stateRank[right?.states?.main] ?? 3;
     if (leftRank !== rightRank) return leftRank - rightRank;
     return new Date(right?.status?.timestamp || 0) - new Date(left?.status?.timestamp || 0);
   }

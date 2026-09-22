@@ -1,6 +1,6 @@
 import { computed, unref } from 'vue';
 
-import { STATUS_MAPPINGS } from '~/utils/status-engine';
+import { STATE_MAPPINGS } from '~/utils/state-engine';
 import { getPrimaryState, getStatusRegions, normalizeStatusState } from '~/packages/core/src/index.js';
 
 /**
@@ -55,7 +55,7 @@ export const useStatus = (entity) => {
   const statusColor = computed(() => {
     // Try exact match in mappings
     const s = unref(state);
-    const mapping = STATUS_MAPPINGS[s] || STATUS_MAPPINGS[s?.toLowerCase()];
+    const mapping = STATE_MAPPINGS[s] || STATE_MAPPINGS[s?.toLowerCase()];
     if (mapping) return mapping.severity;
 
     const colors = {

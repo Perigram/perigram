@@ -223,7 +223,7 @@ export function createUiMappingCompiledContract() {
       typeId: 'watch_job',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] },
-      status: { to: 'running' }
+      state: { to: 'running' }
     },
     job_abort: {
       id: 'job_abort',
@@ -232,7 +232,7 @@ export function createUiMappingCompiledContract() {
       typeId: 'watch_job',
       trigger: { mode: 'manual' },
       access: { level: 'write', grants: [] },
-      status: { to: 'aborted' }
+      state: { to: 'aborted' }
     },
     job_run: {
       id: 'job_run',

@@ -38,7 +38,7 @@ describe('ui-contract projection', () => {
     const projected = projectUiContractChannels({
       actions: {
         create: { id: 'create', actionKind: 'createEntity', typeId: 'project', label: 'Create' },
-        update: { id: 'update', actionKind: 'updateEntity', typeId: 'project', status: { to: 'DONE' } },
+        update: { id: 'update', actionKind: 'updateEntity', typeId: 'project', state: { to: 'DONE' } },
         remove: { id: 'remove', actionKind: 'deleteEntity', typeId: 'project' },
         link: { id: 'link', actionKind: 'updateEntity', typeId: 'queue', relationMutation: { key: 'items', targetType: 'cassette_design', cardinality: 'array', operation: 'link' } },
         unlink: { id: 'unlink', actionKind: 'updateEntity', typeId: 'queue', relationMutation: { key: 'items', targetType: 'cassette_design', operation: 'unlink' } },
@@ -48,7 +48,7 @@ describe('ui-contract projection', () => {
       screens: {}
     });
     expect(projected.actions.create).toMatchObject({ actionKind: 'createInstance', typeId: 'project' });
-    expect(projected.actions.update).toMatchObject({ actionKind: 'updateInstance', status: { to: 'DONE' } });
+    expect(projected.actions.update).toMatchObject({ actionKind: 'updateInstance', state: { to: 'DONE' } });
     expect(projected.actions.remove).toMatchObject({ actionKind: 'deleteInstance' });
     expect(projected.actions.link).toMatchObject({ actionKind: 'link', relation: { key: 'items', targetType: 'cassette_design' } });
     expect(projected.actions.unlink).toMatchObject({ actionKind: 'unlink' });

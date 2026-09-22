@@ -3,7 +3,7 @@ const CANVAS_RECORD_KEYS = {
   action: 'actions',
   service: 'services',
   socket: 'sockets',
-  statusDefinition: 'statusDefinitions',
+  stateDefinition: 'stateDefinitions',
   valueInput: 'valueInputs',
   processNode: 'processNodes',
   ctsClass: 'ctsTypes',
@@ -17,7 +17,7 @@ const CANVAS_RECORD_KEYS = {
 // record kind is panel-owned definition-plane data: it is never projected as
 // a canvas node and survives the canvas round trip untouched.
 const CANVAS_OWNED_RECORD_KEYS = {
-  statusDefinition: 'statusDefinitions',
+  stateDefinition: 'stateDefinitions',
   processNode: 'processNodes',
   // Declaration-plane nodes own their authoring records in `ctsTypes`
   // (SPEC §20/§21 one tree): classes, fields, states, and type references
@@ -36,7 +36,7 @@ const CANVAS_PERSISTENT_NODE_TYPES = [...RECORD_NODE_TYPES];
 
 export function hasCanonicalProcessSource(definition = {}) {
   const data = definition.data || definition;
-  return ['roleGrants', 'servicePrincipals', 'producerOutputs', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens', 'ctsTypes']
+  return ['roleGrants', 'servicePrincipals', 'producerOutputs', 'actions', 'services', 'sockets', 'stateDefinitions', 'valueInputs', 'processNodes', 'screens', 'ctsTypes']
     .some(key => data[key] && typeof data[key] === 'object' && Object.keys(data[key]).length > 0);
 }
 
@@ -203,7 +203,7 @@ function normalizeProcessLike(definition = {}) {
     actions: normalizeRecord(data.actions),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
-    statusDefinitions: normalizeRecord(data.statusDefinitions),
+    stateDefinitions: normalizeRecord(data.stateDefinitions),
     ctsTypes: normalizeRecord(data.ctsTypes),
     valueInputs: normalizeRecord(data.valueInputs),
     processNodes: normalizeRecord(data.processNodes),
@@ -216,7 +216,7 @@ function normalizeProcessLike(definition = {}) {
 
 function projectRecordNodes(process) {
   return [
-    ...projectRecords(process.statusDefinitions, 'statusDefinition', 560),
+    ...projectRecords(process.stateDefinitions, 'stateDefinition', 560),
     ...projectRecords(process.processNodes, 'processNode', 420),
     ...projectDeclarationRecords(process.ctsTypes, 80)
   ];
@@ -303,7 +303,7 @@ function collectCanvasRefs(nodes = []) {
 
 function compareSemanticRecords(source, next) {
   const errors = [];
-  for (const key of ['roleGrants', 'servicePrincipals', 'producerOutputs', 'actions', 'services', 'sockets', 'statusDefinitions', 'valueInputs', 'processNodes', 'screens', 'ctsTypes']) {
+  for (const key of ['roleGrants', 'servicePrincipals', 'producerOutputs', 'actions', 'services', 'sockets', 'stateDefinitions', 'valueInputs', 'processNodes', 'screens', 'ctsTypes']) {
     const sourceJson = JSON.stringify(sortObject(source[key] || {}));
     const nextJson = JSON.stringify(sortObject(next[key] || {}));
     if (sourceJson !== nextJson) errors.push(`Round-trip changed ${key}`);

@@ -260,9 +260,9 @@ describe('action button resolution', () => {
 
   it('tones status transitions from the target state render policy', () => {
     const render = { states: { FAILED: { label: 'Failed', severity: 'danger' }, DONE: { severity: 'success' } } };
-    expect(resolveActionButton({ actionKind: 'updateInstance', status: { to: 'FAILED' } }, { render }))
+    expect(resolveActionButton({ actionKind: 'updateInstance', state: { to: 'FAILED' } }, { render }))
       .toMatchObject({ tone: 'state', severity: 'danger' });
-    expect(resolveActionButton({ actionKind: 'updateInstance', status: { to: 'DONE' } }, { render }))
+    expect(resolveActionButton({ actionKind: 'updateInstance', state: { to: 'DONE' } }, { render }))
       .toMatchObject({ severity: 'success' });
     expect(resolveActionButton({ actionKind: 'updateInstance' }, { render }).tone).toBe('secondary');
   });
@@ -288,7 +288,7 @@ describe('action launch plan', () => {
     expect(planActionLaunch({ actionKind: 'deleteInstance', access: { level: 'admin' } })).toBe('confirm');
     expect(planActionLaunch({ actionKind: 'link' })).toBe('link');
     expect(planActionLaunch({ actionKind: 'updateInstance' })).toBe('run');
-    expect(planActionLaunch({ actionKind: 'updateInstance', access: { level: 'admin' }, status: { to: 'DONE' } })).toBe('run');
+    expect(planActionLaunch({ actionKind: 'updateInstance', access: { level: 'admin' }, state: { to: 'DONE' } })).toBe('run');
     expect(planActionLaunch({ actionKind: 'runCommand' })).toBe('run');
   });
 });
@@ -597,9 +597,9 @@ describe('client-side row ordering and paging', () => {
 describe('per-instance quick actions', () => {
   const actions = {
     a_create: { id: 'a_create', actionKind: 'createInstance', typeId: 'document', trigger: { mode: 'manual' } },
-    a_transition: { id: 'a_transition', actionKind: 'updateInstance', typeId: 'document', trigger: { mode: 'manual' }, status: { to: 'archived' } },
+    a_transition: { id: 'a_transition', actionKind: 'updateInstance', typeId: 'document', trigger: { mode: 'manual' }, state: { to: 'archived' } },
     a_edit: { id: 'a_edit', actionKind: 'updateInstance', typeId: 'document', trigger: { mode: 'manual' } },
-    a_auto: { id: 'a_auto', actionKind: 'updateInstance', typeId: 'document', trigger: { mode: 'event' }, status: { to: 'synced' } },
+    a_auto: { id: 'a_auto', actionKind: 'updateInstance', typeId: 'document', trigger: { mode: 'event' }, state: { to: 'synced' } },
     a_delete: { id: 'a_delete', actionKind: 'deleteInstance', typeId: 'document', trigger: { mode: 'manual' } },
     a_link: { id: 'a_link', actionKind: 'link', typeId: 'document', trigger: { mode: 'manual' } },
     a_other: { id: 'a_other', actionKind: 'deleteInstance', typeId: 'sheet', trigger: { mode: 'manual' } }

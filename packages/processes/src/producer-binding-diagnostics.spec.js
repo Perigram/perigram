@@ -55,7 +55,7 @@ function lineageFixture() {
         label: 'Create project',
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
-        status: { to: SOURCE_STATE }
+        state: { to: SOURCE_STATE }
       },
       queue_lineage: {
         id: 'queue_lineage',
@@ -72,7 +72,7 @@ function lineageFixture() {
         label: 'Create queue',
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: 'operator', level: 'write' }] },
-        status: { to: SOURCE_STATE },
+        state: { to: SOURCE_STATE },
         blocks: ['lineage']
       }
     },

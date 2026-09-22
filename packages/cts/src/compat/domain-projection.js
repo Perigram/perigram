@@ -52,7 +52,7 @@ const CORE_BLOCK_FIELDS = [
   coreField('origin.metadata', 'origin', 'json', { writable: false, constructible: false }),
   coreField('origin.eventId', 'origin', 'string', { writable: false, constructible: false }),
   coreField('origin.lifecycle', 'origin', 'json', { writable: false, constructible: false }),
-  coreField('status.state.primary', 'status', 'status', { constructible: false }),
+  coreField('states.main', 'status', 'status', { constructible: false }),
   coreField('status.userId', 'status', 'string', { writable: false, constructible: false }),
   coreField('status.timestamp', 'status', 'dateTime', { writable: false, constructible: false }),
   coreField('status.metadata', 'status', 'json', { constructible: false }),

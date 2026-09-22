@@ -4,7 +4,7 @@ import { generatedActionRendersAt, generatedActionSurface } from './action-place
 import { resolveGeneratedEntityActions } from './action-visibility.js';
 
 describe('project file operations', () => {
-  const project = { _id: 'project-1', identity: { uid: 'project-1' }, status: { state: { primary: 'ACTIVE' } } };
+  const project = { _id: 'project-1', identity: { uid: 'project-1' }, states: { main: 'ACTIVE' } };
   const actions = [
     { id: 'create-artifact', actionKind: 'createInstance', typeId: 'artifact', parentTypeId: 'project', access: { roleIds: ['operator'] } },
     { id: 'rename-project', actionKind: 'updateInstance', typeId: 'project', access: { roleIds: ['operator'] } }

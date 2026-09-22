@@ -339,7 +339,7 @@ export const ACTION_ENTRIES = Object.freeze([
   { match: { actionKind: 'runCommand' }, component: 'Button', tone: 'secondary', icon: 'pi pi-bolt' },
   { match: { actionKind: 'link' }, component: 'Button', tone: 'text', icon: 'pi pi-link' },
   { match: { actionKind: 'unlink' }, component: 'Button', tone: 'text', icon: 'pi pi-times', inline: true },
-  { match: { actionKind: 'updateInstance', statusTarget: true }, component: 'Button', tone: 'state' },
+  { match: { actionKind: 'updateInstance', stateTarget: true }, component: 'Button', tone: 'state' },
   { match: { actionKind: 'updateInstance' }, component: 'Button', tone: 'secondary', icon: 'pi pi-pencil' },
   { match: {}, component: 'Button', tone: 'secondary' }
 ]);

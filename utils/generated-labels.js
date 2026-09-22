@@ -56,7 +56,7 @@ export function generatedActionLabel(action = {}, fallback = '', { t, te } = {})
   const explicit = String(action.label || '').trim();
   if (explicit && !isGenericActionLabel(explicit, action)) return explicit;
 
-  if (isUpdateAction(action)) return action.status?.to ? t('generatedScreen.actions.change') : t('common.edit');
+  if (isUpdateAction(action)) return action.state?.to ? t('generatedScreen.actions.change') : t('common.edit');
   if (action.actionKind === 'runCommand') return meaningfulLabel(action.commandId) || t('generatedScreen.actions.run');
   if (action.actionKind === 'sendToOrganization') return t('generatedScreen.actions.send');
   return fallback || t('common.confirm');
@@ -64,7 +64,7 @@ export function generatedActionLabel(action = {}, fallback = '', { t, te } = {})
 
 export function isGenericActionLabel(label = '', action = {}) {
   const normalized = label.trim().toLowerCase();
-  const statusValues = [action.status?.from, action.status?.to].filter(Boolean).map(value => String(value).toLowerCase());
+  const statusValues = [action.state?.from, action.state?.to].filter(Boolean).map(value => String(value).toLowerCase());
   const genericWords = [
     'create',
     'status',

@@ -3,7 +3,7 @@ import {
   emitInstanceCreated,
   emitInstanceDeleted,
   emitInstanceUpdated,
-  emitStatusTransitionResult,
+  emitStateTransitionResult,
   INSTANCE_CHANGED_EVENT
 } from './instance-events.js';
 
@@ -35,7 +35,7 @@ describe('entity sync event helpers', () => {
     const received = [];
     window.addEventListener(INSTANCE_CHANGED_EVENT, event => received.push(event.detail));
 
-    emitStatusTransitionResult({
+    emitStateTransitionResult({
       typeId: 'queue',
       targetId: 'queue-1',
       response: {

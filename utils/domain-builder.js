@@ -6,7 +6,7 @@ export const CANONICAL_BLOCKS = [
   'relations',
   'provenance',
   'origin',
-  'status',
+  'states',
   'specs',
   'attachments',
   'data',

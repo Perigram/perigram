@@ -1,6 +1,5 @@
 import * as repository from './repository.js';
 import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
-import * as queuesRepository from '../queues/repository.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
 import * as artifactsService from '../artifacts/service.js';
 import * as filesService from '../files/service.js';
@@ -11,7 +10,7 @@ import {
   inheritLineage,
   createData
 } from '../../core/blocks/index.js';
-import { createTransitionAuth, statusService } from '../../core/machines/service.js';
+import { createTransitionAuth, stateService } from '../../core/machines/service.js';
 import { GridFSBucket } from 'mongodb';
 import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
@@ -54,56 +53,12 @@ async function derivedFromTemplate(templateId, parameters = {}, explicitProvenan
   return revision ? instanceRevisionsService.derivedFromRevision(revision, parameters) : null;
 }
 
-export async function createFromQueue(queueId, data, userId, userRole, userPermissions) {
-  const queue = await queuesRepository.findById(queueId);
-  if (!queue) throw createError({ statusCode: 404, message: 'Queue not found' });
-
-  // 1. Permission Check
-  if (!hasLineagePermission(userPermissions, queue.lineage, 'projects', 'write')) {
-    throw createError({ statusCode: 403, message: 'Permission denied' });
-  }
-
-  // 2. Lineage Inheritance
-  const lineage = inheritLineage(queue, 'queue');
-
-  const origin = await statusService.initialStatusForOrganization(
-    'cassette_design',
-    lineage.organizationId,
-    userId,
-    { note: 'Cassette design initialized' }
-  );
-
-  const designData = {
-    identity: createIdentity(data.name || 'Cassette Design'),
-    origin,
-    status: origin,
-    lineage,
-    provenance: {
-      derivedFrom: await derivedFromTemplate(
-        data.templateId,
-        data.parameters || {},
-        data.provenance?.derivedFrom
-      )
-    },
-    data: createData({
-      geometry: {
-        data: data.geometryData || null,
-        dxfId: data.dxfId ? toFlexibleId(data.dxfId) : null
-      },
-      parameters: data.parameters || {}
-    })
-  };
-
-  const created = await repository.create(designData);
-  return toDTO(created, userPermissions);
-}
-
 export async function createFromTemplateUpload(data, userId, userPermissions = null) {
   const lineage = { ...(data.lineage || {}) };
   if (userPermissions && !hasLineagePermission(userPermissions, lineage, 'cassette_designs', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassette designs' });
   }
-  const origin = await statusService.initialStatusForOrganization(
+  const origin = await stateService.initialStatusForOrganization(
     'cassette_design',
     lineage.organizationId,
     userId,
@@ -243,13 +198,14 @@ export async function list(userId, userOrg, userRole, userPermissions, filter = 
     Object.assign(processedFilter, derivedFromTemplateFilter(processedFilter.templateId));
     delete processedFilter.templateId;
   }
-  const statuses = normalizePrimaryStatuses(processedFilter.primaryStatuses);
+  const statuses = normalizePrimaryStatuses(processedFilter.primaryStates);
+  // v24 storage: the status block is the storage path.
   if (statuses.length) processedFilter['status.state.primary'] = { $in: statuses };
-  else if (processedFilter.status || processedFilter.primaryStatus) {
-    processedFilter['status.state.primary'] = processedFilter.status || processedFilter.primaryStatus;
+  else if (processedFilter.status || processedFilter.primaryState) {
+    processedFilter['status.state.primary'] = processedFilter.status || processedFilter.primaryState;
   }
-  delete processedFilter.primaryStatuses;
-  delete processedFilter.primaryStatus;
+  delete processedFilter.primaryStates;
+  delete processedFilter.primaryState;
   delete processedFilter.status;
 
   const finalFilter = { ...lineageFilter, ...processedFilter };
@@ -272,15 +228,15 @@ export async function update(id, updates, userId, userRole, userPermissions) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  if (updates.status) {
-    await statusService.transitionWithResult({
+  if (updates.state) {
+    await stateService.transitionWithResult({
       typeId: 'cassette_design',
       targetId: design._id,
-      targetState: updates.status,
+      targetState: updates.state,
       auth: createTransitionAuth(userId, userRole, userPermissions),
-      context: updates.statusMeta || {}
+      context: updates.stateMeta || {}
     });
-    delete updates.status;
+    delete updates.state;
   }
 
   const {

@@ -349,13 +349,13 @@ export function generateUiMappingWorld(seed = 7) {
       addAction(`a_shift_${type.id}`, {
         id: `a_shift_${type.id}`, label: 'Shift', actionKind: 'updateInstance', typeId: type.id,
         trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
-        status: { to: type.states.main.values[type.states.main.values.length - 1] }
+        state: { to: type.states.main.values[type.states.main.values.length - 1] }
       });
       if (type.states.main.values.length > 2) {
         addAction(`a_stage_${type.id}`, {
           id: `a_stage_${type.id}`, label: 'Stage', actionKind: 'updateInstance', typeId: type.id,
           trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
-          status: { to: type.states.main.values[1] }
+          state: { to: type.states.main.values[1] }
         });
       }
     }

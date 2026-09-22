@@ -61,7 +61,7 @@ export function previewAssignmentAccess({ compiled = {}, assignment = {}, domain
     const conditional = normalizePermissionGrants(permissions[feature]).some(grant => grant.scope || grant.rule || grant.transitions || grant.actions);
     const selected = selectedActions.has(candidate.actionId);
     const allowed = !selected ? false : context
-      ? hasPermissionGrant({ permissions, feature, level: 'write', action: actionName, transition: action.status, ...evaluationContext(context, action.typeId) })
+      ? hasPermissionGrant({ permissions, feature, level: 'write', action: actionName, transition: action.state, ...evaluationContext(context, action.typeId) })
       : conditional ? null : true;
     return { ...action, key: `action:${action.actionId}`, allowed, explanation: selected ? decisionExplanation(allowed, conditional, context) : 'Denied because none of the selected roles exposes this action.' };
   });
@@ -129,7 +129,7 @@ function contextEntity(context = {}, typeId = '') {
     _id: context.instanceId,
     typeId,
     lineage: context.lineage || {},
-    status: context.status ? { state: { primary: context.status } } : undefined,
+    states: context.status ? { main: context.status } : undefined,
     ...(context.fields || {})
   };
 }

@@ -149,7 +149,7 @@ export function normalizeProcessDefinition(definition = {}, domain = {}) {
     actions: normalizeActions(deriveRelationMutationActions(effectActions, domain)),
     services: normalizeRecord(data.services),
     sockets: normalizeRecord(data.sockets),
-    statusDefinitions: normalizeRecord(data.statusDefinitions),
+    stateDefinitions: normalizeRecord(data.stateDefinitions),
     valueInputs: normalizeRecord(data.valueInputs),
     processNodes,
     screens: normalizeRecord(data.screens),
@@ -292,7 +292,7 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       ...Object.keys(promptContract.defaults),
       ...promptContract.wiredFields
     ]);
-    const statusTo = processDefaultValue(node.inputDefaults?.['status.state.primary']) || node.status?.to || '';
+    const stateTo = processDefaultValue(node.inputDefaults?.['states.main']) || node.state?.to || '';
     // Consumer effects bind to the upstream producer of their entity input
     // wire; a stale own-node binding from a persisted draft is ignored.
     const producerOutputId = CONSUMER_EFFECT_KINDS.includes(node.kind)
@@ -336,8 +336,8 @@ function deriveEffectActions(actions = {}, processNodes = {}, graph = {}, domain
       },
       access: node.access || derived[actionId]?.access || { level: 'write', grants: [] },
       trigger: node.trigger || derived[actionId]?.trigger || { mode: 'manual' },
-      status: { ...(derived[actionId]?.status || {}), ...(statusTo ? { to: statusTo } : {}) },
-      statusRef: node.statusRef || derived[actionId]?.statusRef || '',
+      state: { ...(derived[actionId]?.state || {}), ...(stateTo ? { to: stateTo } : {}) },
+      stateRef: node.stateRef || derived[actionId]?.stateRef || '',
       inputs: Array.isArray(node.inputs) ? node.inputs.map(input => ({ ...input })) : [],
       outputs: Array.isArray(node.outputs) ? node.outputs.map(output => ({ ...output })) : [],
       events: [{ id: 'completed', label: `${node.label || actionKind} completed`, kind: 'event' }]
@@ -606,7 +606,7 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
     if (node.type === 'action' && !process.actions[refId]) errors.push(`Action node ${node.id} references missing action ${refId}`);
     if (node.type === 'service' && !process.services[refId]) errors.push(`Service node ${node.id} references missing service ${refId}`);
     if (node.type === 'socket' && !process.sockets[refId]) errors.push(`Socket node ${node.id} references missing socket ${refId}`);
-    if (node.type === 'statusDefinition' && !process.statusDefinitions[refId]) errors.push(`Status node ${node.id} references missing status definition ${refId}`);
+    if (node.type === 'stateDefinition' && !process.stateDefinitions[refId]) errors.push(`Status node ${node.id} references missing status definition ${refId}`);
     if (node.type === 'valueInput' && !process.valueInputs[refId]) errors.push(`Value node ${node.id} references missing value input ${refId}`);
     if (node.type === 'processNode' && !process.processNodes[refId]) errors.push(`Process node ${node.id} references missing process node ${refId}`);
   }
@@ -670,7 +670,7 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
         errors.push(`Action ${actionId} producerOutputId emits ${producerOutput.typeId}, not ${resolvedActionTypeId}`);
       }
     }
-    validateAction(actionId, action, { entities, commands, roles: organizationRoles, domain, errors, statusDefinitions: process.statusDefinitions, process, lineageBindings });
+    validateAction(actionId, action, { entities, commands, roles: organizationRoles, domain, errors, stateDefinitions: process.stateDefinitions, process, lineageBindings });
   }
 
   for (const [nodeId, node] of Object.entries(process.processNodes)) {
@@ -685,27 +685,27 @@ export function validateProcessDefinition(definition = {}, domain = {}, { roles 
   }
   validateProcessNodeConnections(process, errors, domain);
 
-  const statusDefinitionIds = new Set(Object.values(process.statusDefinitions)
-    .map(status => status.statusId)
+  const stateDefinitionIds = new Set(Object.values(process.stateDefinitions)
+    .map(status => status.stateId)
     .filter(Boolean));
-  for (const [statusId, status] of Object.entries(process.statusDefinitions)) {
-    if (!status.statusId) errors.push(`Status definition ${statusId} must define statusId`);
-    if (status.typeId && !entities.has(status.typeId)) errors.push(`Status definition ${statusId} uses unknown entity type ${status.typeId}`);
+  for (const [stateId, status] of Object.entries(process.stateDefinitions)) {
+    if (!status.stateId) errors.push(`Status definition ${stateId} must define stateId`);
+    if (status.typeId && !entities.has(status.typeId)) errors.push(`Status definition ${stateId} uses unknown entity type ${status.typeId}`);
     const parentStatusId = status.parentStatusId || '';
     if (!parentStatusId) continue;
-    if (!statusDefinitionIds.has(parentStatusId)) {
-      errors.push(`Status definition ${statusId} references unknown parent status ${parentStatusId}`);
+    if (!stateDefinitionIds.has(parentStatusId)) {
+      errors.push(`Status definition ${stateId} references unknown parent status ${parentStatusId}`);
       continue;
     }
-    const seen = new Set([status.statusId]);
+    const seen = new Set([status.stateId]);
     let cursor = status;
     while (cursor?.parentStatusId) {
       if (seen.has(cursor.parentStatusId)) {
-        errors.push(`Status definition ${statusId} has a cyclic parent status chain`);
+        errors.push(`Status definition ${stateId} has a cyclic parent status chain`);
         break;
       }
       seen.add(cursor.parentStatusId);
-      cursor = Object.values(process.statusDefinitions).find(item => item.statusId === cursor.parentStatusId) || null;
+      cursor = Object.values(process.stateDefinitions).find(item => item.stateId === cursor.parentStatusId) || null;
     }
   }
 
@@ -782,7 +782,7 @@ function unreachableNodeDiagnostics(process = {}) {
 // Inputs whose value is resolvable from the manual run context even without a
 // wire, fallback, or prompt: the current entity, the change-status target, and
 // the initial create status.
-const CONTEXT_RESOLVABLE_PORTS = new Set(['entity', 'parent', 'status', 'status.state.primary']);
+const CONTEXT_RESOLVABLE_PORTS = new Set(['entity', 'parent', 'status', 'states.main']);
 
 function edgeHandle(handle = '') {
   return String(handle || '').replace(/^(input|output|data|control|success|failure):/, '');
@@ -1104,7 +1104,7 @@ export function compileProcessDefinition(definition = {}, domain = {}, { roles =
     servicePrincipals: process.servicePrincipals,
     producerOutputs,
     actions: compiledActions,
-    statusDefinitions: compileStatusDefinitions(process.statusDefinitions),
+    stateDefinitions: compileStatusDefinitions(process.stateDefinitions),
     valueInputs: compileValueInputs(process.valueInputs),
     processNodes: compileProcessNodes(process.processNodes),
     services: compileServices(process.services),
@@ -1301,12 +1301,12 @@ function normalizeActionRecord(action = {}) {
   if (!inputs.some(input => input.id === 'entity')) {
     inputs.unshift({ id: 'entity', kind: 'entity', typeId, required: false });
   }
-  if (!inputs.some(input => input.id === 'status')) {
+  if (!inputs.some(input => input.id === 'state')) {
     inputs.push({
-      id: 'status',
-      kind: 'status',
-      statusRef: action.statusRef || null,
-      status: action.status?.to || action.access?.statusTo || '',
+      id: 'state',
+      kind: 'state',
+      stateRef: action.stateRef || null,
+      state: action.state?.to || action.access?.stateTo || '',
       required: false
     });
   }
@@ -1318,8 +1318,8 @@ function normalizeActionRecord(action = {}) {
     mutation: action.mutation || { fields: [] },
     access: {
       ...(action.access || {}),
-      statusFrom: action.access?.statusFrom || action.status?.from || '',
-      statusTo: action.access?.statusTo || action.status?.to || ''
+      stateFrom: action.access?.stateFrom || action.state?.from || '',
+      stateTo: action.access?.stateTo || action.state?.to || ''
     }
   };
 }
@@ -1403,7 +1403,7 @@ function compileWorkflows(process = {}, domain = {}, lineageBindings = []) {
   for (const [producerOutputId, builder] of builders) {
     if (!Object.values(builder.regions).some(region => Object.keys(region.states).length)) continue;
     for (const region of Object.values(builder.regions)) {
-      applyStatusDefinitionMetadata(region, process.producerOutputs?.[producerOutputId]?.typeId, process.statusDefinitions);
+      applyStatusDefinitionMetadata(region, process.producerOutputs?.[producerOutputId]?.typeId, process.stateDefinitions);
     }
     workflows[producerOutputId] = normalizeWorkflow({
       ...builder.contracts,
@@ -1433,8 +1433,8 @@ function workflowTransitionSources(actionId, action = {}, typeId = '', graphCont
     sources.push({ status: sourceWindow.status, window: sourceWindow });
   }
 
-  const fallbackStatus = action.status?.from
-    || action.access?.statusFrom
+  const fallbackStatus = action.state?.from
+    || action.access?.stateFrom
     || action.inputs?.find(input => input.status)?.status
     || '';
   if (fallbackStatus) sources.push({ status: fallbackStatus, window: actionWindows.get(actionId)?.input || null });
@@ -1447,13 +1447,13 @@ function workflowTransitionSources(actionId, action = {}, typeId = '', graphCont
   });
 }
 
-function applyStatusDefinitionMetadata(builder, typeId, statusDefinitions = {}) {
-  for (const definition of Object.values(statusDefinitions || {})) {
+function applyStatusDefinitionMetadata(builder, typeId, stateDefinitions = {}) {
+  for (const definition of Object.values(stateDefinitions || {})) {
     if (definition.typeId && definition.typeId !== typeId) continue;
-    const statusId = definition.statusId || definition.id;
-    if (!statusId) continue;
+    const stateId = definition.stateId || definition.id;
+    if (!stateId) continue;
     const decorated = {
-      label: definition.label || statusId,
+      label: definition.label || stateId,
       color: definition.color || definition.severity || '',
       severity: definition.severity || definition.color || '',
       icon: definition.icon || '',
@@ -1464,11 +1464,11 @@ function applyStatusDefinitionMetadata(builder, typeId, statusDefinitions = {}) 
       const parent = builder.states[parentStatusId];
       if (!parent) continue;
       parent.states ||= {};
-      parent.states[statusId] = { ...(parent.states[statusId] || {}), ...decorated };
+      parent.states[stateId] = { ...(parent.states[stateId] || {}), ...decorated };
       continue;
     }
-    if (!builder.states[statusId]) continue;
-    builder.states[statusId] = { ...(builder.states[statusId] || {}), ...decorated };
+    if (!builder.states[stateId]) continue;
+    builder.states[stateId] = { ...(builder.states[stateId] || {}), ...decorated };
   }
 }
 
@@ -1768,7 +1768,7 @@ function compileRoles(process = {}, domain = {}, organizationRoles = {}, lineage
         typeId: resolvedTypeId,
         parentTypeId: parentTypeId || null,
         parentRevision: resolveParentRevision(action.parentRevision, parentTypeId, domain),
-        status: actionStatusForExposure(action, actionWindow, access, process),
+        state: actionStatusForExposure(action, actionWindow, access, process),
         relationMutation: action.relationMutation || null,
         construction: (action.actionKind || 'createEntity') === 'createEntity'
           ? normalizeConstruction(action.construction, action.typeId, domain)
@@ -1838,10 +1838,10 @@ function executableRoleIdsForWindow(window = null, access = {}) {
 
 function actionStatusForExposure(action = {}, actionWindow = null, access = {}, process = {}) {
   const status = compileActionStatus(action, process);
-  const inputStatus = actionWindow?.input?.status || '';
+  const inputStatus = actionWindow?.input?.state || '';
   if (!status.from && inputStatus) status.from = inputStatus;
-  const targetStatus = actionTargetState(action, process) || access.statusTo || actionWindow?.outputs?.[0]?.status || '';
-  if (!status.to && targetStatus) status.to = targetStatus;
+  const targetState = actionTargetState(action, process) || access.stateTo || actionWindow?.outputs?.[0]?.state || '';
+  if (!status.to && targetState) status.to = targetState;
   return status;
 }
 
@@ -1854,14 +1854,14 @@ function grantFromAction(action = {}, access = {}, domain = {}) {
     level: access.level || 'write'
   };
   if (action.actionKind === 'createEntity') {
-    const to = action.status?.to || '';
-    if (to) grant.rule = { fact: 'primaryStatus', equals: to };
+    const to = action.state?.to || '';
+    if (to) grant.rule = { fact: 'primaryState', equals: to };
   }
   if (action.actionKind === 'updateEntity' && actionTargetState(action)) {
-    const from = access.statusFrom || action.status?.from || '';
-    const to = access.statusTo || action.status?.to || '';
+    const from = access.stateFrom || action.state?.from || '';
+    const to = access.stateTo || action.state?.to || '';
     if (from || to) grant.transitions = [{ from: from || undefined, to: to || undefined }];
-    if (to) grant.rule = { fact: 'primaryStatus', equals: to };
+    if (to) grant.rule = { fact: 'primaryState', equals: to };
   }
   return grant;
 }
@@ -1954,7 +1954,7 @@ function buildActionGraphContext(process = {}) {
       if (parentOutput?.typeId) {
         parentIncomingByActionId.set(targetActionId, {
           typeId: parentOutput.typeId,
-          status: parentOutput.status || '',
+          state: parentOutput.state || '',
           parentInput: true
         });
       }
@@ -1996,7 +1996,7 @@ function incomingWindowForAction(actionId, action = {}, graphContext, windows) {
   if (!input) return null;
   return {
     typeId: input.typeId,
-    status: input.status || '',
+    state: input.state || '',
     level: normalizeActionAccess(action.access).level,
     roleIds: [],
     roleGrants: [],
@@ -2016,7 +2016,7 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
   const kind = action.actionKind || 'createEntity';
   const access = normalizeActionAccess(action.access);
   const typeId = actionTypeId(action) || incoming?.typeId || '';
-  const statusTo = actionTargetState(action, process) || access.statusTo || incoming?.status || '';
+  const stateTo = actionTargetState(action, process) || access.stateTo || incoming?.status || '';
   const feature = typeId ? resolveEntityFeature(domain, typeId) : null;
   const inheritedRoleGrants = incoming?.roleGrants || grantsFromRoleIds(incoming?.roleIds || [], incoming?.level || access.level);
   const explicitRoleGrants = access.grants || grantsFromRoleIds(access.roleIds || [], access.level);
@@ -2043,7 +2043,7 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
   if (['createEntity', 'updateEntity'].includes(kind) && feature && typeId) {
     const status = kind === 'updateEntity'
       ? (actionTargetState(action, process) || incoming?.status || action.inputs?.find(input => input.status)?.status || '')
-      : statusTo;
+      : stateTo;
     const window = {
       id: outputSocketId(action, kind),
       handleId: outputHandleId(action, kind),
@@ -2071,7 +2071,7 @@ function compileActionWindow(actionId, action = {}, incoming = null, domain = {}
         handleId: `output:${outputTypeId}`,
         typeId: outputTypeId,
         feature: outputFeature,
-        status: '',
+        state: '',
         level,
         roleIds,
         roleGrants,
@@ -2177,7 +2177,7 @@ function actionInputsForExposure(action = {}, parentTypeId = '', domain = {}) {
       label: parentTypeId || 'Parent entity',
       typeId: parentTypeId || '',
       required: false,
-      status: parentTypeId ? input.status || '' : ''
+      state: parentTypeId ? input.state || '' : ''
     };
   });
   if (parentTypeId && !inputs.some(input => input.id === 'parent')) {
@@ -2313,10 +2313,10 @@ function windowGrant(window = {}, action = {}, access = {}, dimensions = {}, rol
     sourcePath: window.sourcePath
   };
   if (window.scope) grant.scope = { ...(dimensions.scope || {}), ...window.scope };
-  if (window.status) grant.rule = mergeGrantRules(dimensions.rule, { fact: 'primaryStatus', equals: window.status });
+  if (window.status) grant.rule = mergeGrantRules(dimensions.rule, { fact: 'primaryState', equals: window.status });
   if ((action.actionKind || 'createEntity') === 'updateEntity' && actionTargetState(action)) {
-    const from = access.statusFrom || action.status?.from || '';
-    const to = access.statusTo || action.status?.to || window.status || '';
+    const from = access.stateFrom || action.state?.from || '';
+    const to = access.stateTo || action.state?.to || window.status || '';
     if (from || to) grant.transitions = [...(dimensions.transitions || []), { from: from || undefined, to: to || undefined }];
   }
   return grant;
@@ -3017,13 +3017,13 @@ export function compileActions(actions = {}, process = {}, domain = {}, lineageB
       parentTypeId: parentTypeId || null,
       parentRevision: resolveParentRevision(action.parentRevision, parentTypeId, domain),
       commandId: action.commandId || null,
-      status: compileActionStatus(action, process),
+      state: compileActionStatus(action, process),
       mutation: action.mutation || { fields: [] },
       relationMutation: action.relationMutation || null,
       projection: action.projection || null,
       construction: normalizeConstruction(action.construction, action.typeId, domain),
       inputPolicy: compiledInputPolicy(action, domain),
-      statusRef: action.statusRef || null,
+      stateRef: action.stateRef || null,
       access: normalizeActionAccess(action.access),
       trigger: {
         mode: action.trigger?.mode || 'manual'
@@ -3044,7 +3044,7 @@ function compileActionEntityContracts(action = {}, inputs = [], outputs = [], ac
       kind: input.multiple ? 'entity_list' : 'entity',
       typeId: input.typeId,
       required: false,
-      status: input.status || null,
+      state: input.state || null,
       relationKey: input.relationKey || null,
       cardinality: input.cardinality || null
     }));
@@ -3054,18 +3054,18 @@ function compileActionEntityContracts(action = {}, inputs = [], outputs = [], ac
       id: output.id || 'entity',
       kind: output.multiple ? 'entity_list' : 'entity',
       typeId: output.typeId,
-      status: output.status || null
+      state: output.state || null
     }));
   const typeId = actionTypeId(action);
   if (action.actionKind === 'createEntity' && typeId && !outputContracts.some(contract => contract.typeId === typeId)) {
-    outputContracts.push({ id: 'created', kind: 'entity', typeId, status: actionTargetState(action) || null });
+    outputContracts.push({ id: 'created', kind: 'entity', typeId, state: actionTargetState(action) || null });
   }
   if (action.actionKind === 'updateEntity' && typeId) {
     if (!inputContracts.some(contract => contract.typeId === typeId)) {
-      inputContracts.unshift({ id: 'entity', kind: 'entity', typeId, required: false, status: actionWindow?.input?.status || null });
+      inputContracts.unshift({ id: 'entity', kind: 'entity', typeId, required: false, state: actionWindow?.input?.state || null });
     }
     if (!outputContracts.some(contract => contract.typeId === typeId)) {
-      outputContracts.push({ id: 'entity', kind: 'entity', typeId, status: actionTargetState(action) || actionWindow?.outputs?.[0]?.status || null });
+      outputContracts.push({ id: 'entity', kind: 'entity', typeId, status: actionTargetState(action) || actionWindow?.outputs?.[0]?.state || null });
     }
   }
   if (action.actionKind === 'runCommand') {
@@ -3080,25 +3080,25 @@ function compileActionEntityContracts(action = {}, inputs = [], outputs = [], ac
 
 function compileActionStatus(action = {}, process = {}) {
   const target = actionTargetState(action, process);
-  const metadata = action.statusRef ? statusDefinitionMetadata(process.statusDefinitions?.[action.statusRef]) : {};
+  const metadata = action.stateRef ? stateDefinitionMetadata(process.stateDefinitions?.[action.stateRef]) : {};
   return {
-    ...(action.status || {}),
+    ...(action.state || {}),
     ...metadata,
     ...(target ? { to: target } : {})
   };
 }
 
 function actionTargetState(action = {}, process = {}) {
-  const statusRef = action.statusRef;
-  const referenced = statusRef ? process.statusDefinitions?.[statusRef] : null;
-  return referenced?.statusId
-    || action.status?.to
-    || action.access?.statusTo
+  const stateRef = action.stateRef;
+  const referenced = stateRef ? process.stateDefinitions?.[stateRef] : null;
+  return referenced?.stateId
+    || action.state?.to
+    || action.access?.stateTo
     || action.outputs?.find(output => output.status)?.status
     || '';
 }
 
-function statusDefinitionMetadata(definition = {}) {
+function stateDefinitionMetadata(definition = {}) {
   if (!definition) return {};
   return {
     ...(definition.label ? { label: definition.label } : {}),
@@ -3108,12 +3108,12 @@ function statusDefinitionMetadata(definition = {}) {
   };
 }
 
-function compileStatusDefinitions(statusDefinitions = {}) {
-  return Object.fromEntries(Object.entries(statusDefinitions).map(([id, definition]) => [id, {
+function compileStatusDefinitions(stateDefinitions = {}) {
+  return Object.fromEntries(Object.entries(stateDefinitions).map(([id, definition]) => [id, {
     id: definition.id || id,
     typeId: definition.typeId || '',
-    statusId: definition.statusId || definition.id || id,
-    label: definition.label || definition.statusId || id,
+    stateId: definition.stateId || definition.id || id,
+    label: definition.label || definition.stateId || id,
     color: definition.color || '',
     severity: definition.severity || definition.color || '',
     icon: definition.icon || '',
@@ -3295,10 +3295,10 @@ function displayActionLabel(action = {}, id = '', process = {}, domain = {}) {
     || action.outputs?.find(output => output.typeId)?.typeId
     || '';
   if ((action.actionKind || 'createEntity') === 'createEntity') {
-    return ['Create', typeIdLabel(domain, typeId), action.status?.to].filter(Boolean).join(' ');
+    return ['Create', typeIdLabel(domain, typeId), action.state?.to].filter(Boolean).join(' ');
   }
   if (action.actionKind === 'updateEntity') {
-    if (actionTargetState(action, process)) return statusTargetLabel(action, process) || ['Move', typeIdLabel(domain, typeId), action.status?.to].filter(Boolean).join(' ');
+    if (actionTargetState(action, process)) return stateTargetLabel(action, process) || ['Move', typeIdLabel(domain, typeId), action.state?.to].filter(Boolean).join(' ');
     return ['Update', typeIdLabel(domain, typeId)].filter(Boolean).join(' ');
   }
   if (action.actionKind === 'runCommand') {
@@ -3310,13 +3310,13 @@ function displayActionLabel(action = {}, id = '', process = {}, domain = {}) {
   return action.actionKind || id;
 }
 
-function statusTargetLabel(action = {}, process = {}) {
-  const referenced = action.statusRef ? process.statusDefinitions?.[action.statusRef] : null;
+function stateTargetLabel(action = {}, process = {}) {
+  const referenced = action.stateRef ? process.stateDefinitions?.[action.stateRef] : null;
   return referenced?.label
-    || referenced?.statusId
-    || action.status?.label
-    || action.status?.to
-    || action.access?.statusTo
+    || referenced?.stateId
+    || action.state?.label
+    || action.state?.to
+    || action.access?.stateTo
     || action.outputs?.find(output => output.status)?.status
     || '';
 }
@@ -3352,8 +3352,8 @@ function normalizeActionAccess(access = {}) {
     grants,
     modified: Boolean(access.modified),
     scope: access.scope && typeof access.scope === 'object' && !Array.isArray(access.scope) ? { ...access.scope } : null,
-    statusFrom: typeof access.statusFrom === 'string' ? access.statusFrom : '',
-    statusTo: typeof access.statusTo === 'string' ? access.statusTo : ''
+    stateFrom: typeof access.stateFrom === 'string' ? access.stateFrom : '',
+    stateTo: typeof access.stateTo === 'string' ? access.stateTo : ''
   };
 }
 
@@ -3371,7 +3371,7 @@ function normalizeAccessLevel(level) {
   return ['read', 'write', 'admin'].includes(level) ? level : 'write';
 }
 
-function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors, statusDefinitions = {}, process = {}, lineageBindings = [] }) {
+function validateAction(actionId, action = {}, { entities, commands, roles, domain, errors, stateDefinitions = {}, process = {}, lineageBindings = [] }) {
   const kind = action.actionKind || 'createEntity';
   const normalizedAccess = normalizeActionAccess(action.access);
   if (!['createEntity', 'updateEntity', 'archiveEntity', 'deleteEntity', 'runCommand', 'sendToOrganization'].includes(kind)) {
@@ -3388,7 +3388,7 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
   if (action.parentTypeId && !entities.has(action.parentTypeId)) {
     errors.push(`Action ${actionId} uses unknown parent entity type ${action.parentTypeId}`);
   }
-  const hasTargetStatus = Boolean(action.status?.to || (action.statusRef && statusDefinitions[action.statusRef]));
+  const hasTargetStatus = Boolean(action.state?.to || (action.stateRef && stateDefinitions[action.stateRef]));
   if (kind === 'createEntity' && !hasTargetStatus) {
     errors.push(`Action ${actionId} must define target status`);
   }
@@ -3437,8 +3437,8 @@ function validateAction(actionId, action = {}, { entities, commands, roles, doma
   for (const roleId of normalizedAccess.roleIds) {
     if (!roles[roleId]) errors.push(`Action ${actionId} references missing access role ${roleId}`);
   }
-  if (action.statusRef && !statusDefinitions[action.statusRef]) {
-    errors.push(`Action ${actionId} references missing status definition ${action.statusRef}`);
+  if (action.stateRef && !stateDefinitions[action.stateRef]) {
+    errors.push(`Action ${actionId} references missing status definition ${action.stateRef}`);
   }
 }
 
@@ -3679,8 +3679,8 @@ function validateDataflowProcessNode(nodeId, node, { entities, domain, errors })
     }
   }
   if (['effect.createEntity', 'effect.updateEntity'].includes(node.kind)) {
-    const statusTarget = processDefaultValue(node.inputDefaults?.['status.state.primary']) || node.status?.to || node.statusRef;
-    if (node.kind === 'effect.updateEntity' && !node.blocks?.length && !statusTarget) {
+    const stateTarget = processDefaultValue(node.inputDefaults?.['states.main']) || node.state?.to || node.stateRef;
+    if (node.kind === 'effect.updateEntity' && !node.blocks?.length && !stateTarget) {
       errors.push(`Process node ${nodeId} must accept at least one writable block or status`);
     }
     if (node.kind === 'effect.createEntity') {

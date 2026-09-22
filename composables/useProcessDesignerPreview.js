@@ -54,7 +54,7 @@ export function useProcessDesignerPreview({
       ].filter(Boolean).join(' · ');
       if (parts) lines.push(`${t('processDesigner.applyDiffCapabilities')} — ${change.typeId}: ${parts}`);
     }
-    for (const item of diff.removedInstanceStatuses || []) {
+    for (const item of diff.removedInstanceStatees || []) {
       lines.push(t('processDesigner.applyDiffRemovedStatuses', { typeId: item.typeId, statuses: item.statuses.join(', ') }));
     }
     return lines;

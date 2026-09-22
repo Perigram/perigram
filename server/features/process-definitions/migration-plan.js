@@ -8,7 +8,7 @@
 import { createError } from 'h3';
 import { primaryStates } from '~/packages/processes/src/index.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
-import { statusService } from '~/server/core/machines/service.js';
+import { stateService } from '~/server/core/machines/service.js';
 import * as entityEventService from '../instance-events/service.js';
 
 // stranded: [{ typeId, statuses: [{ state, count }] }] from the live
@@ -116,13 +116,14 @@ export async function applyStatusMigrations({ mappings = [], auth = {}, organiza
     }
     for (const entity of entities || []) {
       const record = entity?.toJSON ? entity.toJSON() : entity;
-      const from = record?.status?.state?.primary;
+      const from = record?.states?.main
+        ?? (typeof record?.status?.state === 'string' ? record.status.state : record?.status?.state?.primary);
       const mapping = typeMappings.find(item => item.from === from);
       if (!mapping) continue;
       const id = record?._id || record?.id || record?.identity?.uid;
       if (!id) continue;
       try {
-        await statusService.setInitialStateForOrganization(
+        await stateService.setInitialStateForOrganization(
           typeId,
           id,
           mapping.to,

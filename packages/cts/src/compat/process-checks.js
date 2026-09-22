@@ -62,7 +62,7 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
     }
     if (!typeId || !statesByType.has(typeId)) return;
     const states = statesByType.get(typeId);
-    for (const key of ['status', 'targetStatus', 'statusTo', 'toState', 'to']) {
+    for (const key of ['status', 'targetState', 'stateTo', 'toState', 'to']) {
       const value = node[key];
       if (typeof value === 'string' && value && !states.has(value)) {
         errors.push(`${path} moves ${typeId} to undeclared state ${value}`);

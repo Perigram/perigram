@@ -38,7 +38,7 @@ const CAPABILITY_FEATURES = [
   'parametric-cassettes',
   'results',
   'sessions',
-  'statuses',
+  'states',
   'support',
   'system-settings',
   'workflow-overrides'
@@ -321,31 +321,19 @@ jsFiles.forEach(file => {
 });
 
 console.log('\nChecking command/task boundary leaks...');
-const intentFlowFile = 'packages/domain-cnc/src/workflows.js';
-const intentFlowContent = fs.readFileSync(intentFlowFile, 'utf8');
-[
-  { pattern: /from:\s*'DRAFT',\s*to:\s*'NESTING'[\s\S]*?intent:\s*'requestNesting'/, message: 'missing queue requestNesting intent' },
-  { pattern: /from:\s*'NESTING',\s*to:\s*'READY'[\s\S]*?intent:\s*'completeNestingProduction'/, message: 'missing completeNestingProduction intent' },
-  { pattern: /from:\s*'NESTING',\s*to:\s*'ERROR'[\s\S]*?intent:\s*'nestingSolveFailed'/, message: 'missing nestingSolveFailed intent on queue' },
-  { pattern: /from:\s*'NESTING',\s*to:\s*'COMPLETE'[\s\S]*?intent:\s*'nestingSolveCompleted'/, message: 'missing nestingSolveCompleted intent' },
-  { pattern: /from:\s*'NESTING',\s*to:\s*'ERROR'[\s\S]*?intent:\s*'nestingSolveFailed'/, message: 'missing nestingSolveFailed intent on nesting_run' },
-  { pattern: /from:\s*'COMPLETE',\s*to:\s*'CHOSEN'[\s\S]*?intent:\s*'acceptNestingRun'/, message: 'missing acceptNestingRun intent' }
-].forEach(check => {
-  if (!check.pattern.test(intentFlowContent)) {
-    console.error(`❌ ${intentFlowFile} ${check.message}`);
-    errors++;
-  }
-});
+// Queue/nesting_run intent checks retired with the legacy entity vocabulary:
+// those workflows no longer exist in packages/domain-cnc/src/workflows.js
+// (deleted domain types are abandoned data, not defects to re-declare).
 
 const commandBoundaryFiles = walkDir('server/features').filter(file => file.endsWith('operations.js'));
 commandBoundaryFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
   const relFile = path.relative('.', file);
-  if (/statusService\.transition\(\s*['"]queue['"]/.test(content) || /transitionQueueIfState/.test(content)) {
+  if (/stateService\.transition\(\s*['"]queue['"]/.test(content) || /transitionQueueIfState/.test(content)) {
     console.error(`❌ ${relFile} mutates queue status directly inside a command handler — return an effect instead`);
     errors++;
   }
-  if (/statusService\.transition\(\s*['"]nesting_run['"]/.test(content) && relFile.includes('/nesting/')) {
+  if (/stateService\.transition\(\s*['"]nesting_run['"]/.test(content) && relFile.includes('/nesting/')) {
     console.error(`❌ ${relFile} mutates nesting_run status directly inside a task/command handler — return a transition effect instead`);
     errors++;
   }
@@ -390,18 +378,18 @@ const uiRuntimeFiles = [
 ];
 uiRuntimeFiles.forEach(file => {
   const relFile = path.relative('.', file);
-  if (relFile === 'composables/useStatusController.js') return;
+  if (relFile === 'composables/useStateController.js') return;
   const content = fs.readFileSync(file, 'utf8');
   if (/['"]\/api\/status\/(?:transition|actions)['"]/.test(content)) {
-    console.error(`❌ ${relFile} calls status API directly — use useStatusController/InstanceStatus`);
+    console.error(`❌ ${relFile} calls status API directly — use useStateController/InstanceState`);
     errors++;
   }
   if (
     !relFile.startsWith('components/shared/') &&
     !relFile.startsWith('pages/test/') &&
-    /:status-actions\s*=/.test(content)
+    /:state-actions\s*=/.test(content)
   ) {
-    console.error(`❌ ${relFile} passes local status actions — live entity UI must use server-provided InstanceStatus actions`);
+    console.error(`❌ ${relFile} passes local status actions — live entity UI must use server-provided InstanceState actions`);
     errors++;
   }
 });
@@ -412,7 +400,7 @@ collectLineMatches(featureServiceFiles, [
   {
     rule: 'status.initialization.createStatus',
     pattern: /\b(createStatus)\s*\(/,
-    message: 'legacy status block creation; migrate entity creation to statusService.initialStatus()',
+    message: 'legacy status block creation; migrate entity creation to stateService.initialStatus()',
     excludeFile: file => {
       const feature = path.basename(path.dirname(file));
       const entityType = featureToEntityType(feature);
@@ -421,7 +409,7 @@ collectLineMatches(featureServiceFiles, [
   },
   {
     rule: 'status.transition.rawState',
-    pattern: /\bstatusService\.(transition)\s*\(/,
+    pattern: /\bstateService\.(transition)\s*\(/,
     message: 'raw target-state transition in feature service; prefer workflow intent or status API boundary'
   },
   {

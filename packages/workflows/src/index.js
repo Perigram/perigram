@@ -52,7 +52,7 @@ export function getWorkflowRegion(workflow = {}, regionId = 'main') {
 export function getPrimaryState(statusOrState, fallback = null) {
   const state = statusOrState?.state ?? statusOrState;
   if (typeof state === 'string') return state || fallback;
-  return state?.primary || Object.values(state?.active || {}).find(Boolean) || fallback;
+  return state?.main ?? (state?.primary || Object.values(state?.active || {}).find(Boolean) || fallback);
 }
 
 export function getRegionState(statusOrState, regionId = 'main', fallback = null) {
@@ -251,7 +251,7 @@ export function createTransitionEngine({ entityStore, eventStore, hooks = {}, au
       }
 
       const event = await eventStore.append({ type, id, from: validation.from, to: targetState, actor, metadata });
-      await entityStore.setStatus(type, id, { state: applyWorkflowTransitionState(entity?.status?.state, normalized, validation.transition || { region }, targetState), userId: actor?.id || 'SYSTEM', metadata, eventId: event?.id || null });
+      await entityStore.setStatus(type, id, { state: applyWorkflowTransitionState(entity?.states, normalized, validation.transition || { region }, targetState), userId: actor?.id || 'SYSTEM', metadata, eventId: event?.id || null });
 
       for (const hook of validation.transition?.hooks || []) {
         if (hooks[hook.handler]) await hooks[hook.handler]({ type, id, actor, metadata }, hook.params || {});

@@ -153,21 +153,21 @@ describe('durable process orchestration', () => {
       typeId: 'project',
       trigger: { mode: 'manual' },
       fields: [],
-      statusRef: 'ready'
+      stateRef: 'ready'
     }], ['update'], [{
       id: 'ready-update',
       source: 'ready',
       sourceHandle: 'data:status',
       target: 'update',
-      targetHandle: 'data:status.state.primary',
+      targetHandle: 'data:states.main',
       role: 'data'
     }]);
-    definition.statusDefinitions = {
-      ready: { id: 'ready', statusId: 'READY', label: 'Ready' }
+    definition.stateDefinitions = {
+      ready: { id: 'ready', stateId: 'READY', label: 'Ready' }
     };
     definition.graph.nodes.unshift({
       id: 'ready',
-      type: 'statusDefinition',
+      type: 'stateDefinition',
       data: { refId: 'ready' }
     });
     const executeEffect = vi.fn().mockResolvedValue({ type: 'project', id: 'project-1' });
@@ -184,7 +184,7 @@ describe('durable process orchestration', () => {
     expect(executeEffect).toHaveBeenCalledWith(expect.objectContaining({
       inputs: {
         entity: { type: 'project', id: 'project-1' },
-        'status.state.primary': 'READY'
+        'states.main': 'READY'
       }
     }));
   });

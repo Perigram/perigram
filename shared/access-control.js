@@ -148,7 +148,7 @@ function resolveRuleFact(rule, context) {
   if (fact === 'action') return context.action;
   if (fact === 'typeId') return context.typeId;
   if (fact === 'instanceId') return context.entity?._id || context.entity?.identity?.uid;
-  if (fact === 'primaryStatus' || fact === 'status.primary') return getPrimaryStatus(context.entity?.status);
+  if (fact === 'primaryState' || fact === 'primaryStatus' || fact === 'status.primary') return getPrimaryStatus(context.entity?.states) || getPrimaryStatus(context.entity?.status);
   if (fact === 'transition.from') return context.transition?.from;
   if (fact === 'transition.to') return context.transition?.to;
   if (fact === 'transition.region') return context.transition?.region;
@@ -171,14 +171,19 @@ function resolveLineageFact(path, context) {
 
   if (traitPath === 'id') return lineageEntity?._id || lineageEntity?.identity?.uid || context.entity?.lineage?.[`${type}Id`];
   if (traitPath === 'type') return lineageEntity?.type || lineageEntity?.typeId || lineageEntity?.origin?.type || lineageEntity?.data?.type;
-  if (traitPath === 'status.primary') return getPrimaryStatus(lineageEntity?.status);
+  if (traitPath === 'status.primary') return getPrimaryStatus(lineageEntity?.states) || getPrimaryStatus(lineageEntity?.status);
   return getByPath(lineageEntity, traitPath);
 }
 
 function getPrimaryStatus(status) {
-  const state = status?.state ?? status;
-  if (typeof state === 'string') return state;
-  return state?.primary || Object.values(state?.active || {}).find(Boolean);
+  if (typeof status === 'string') return status;
+  // `states.main` may carry the workflow-state object (the v24 Status
+  // block shape) — resolve to the primary string either way.
+  const main = status?.main;
+  if (typeof main === 'string') return main;
+  if (main && typeof main === 'object') return main.primary || Object.values(main.active || {}).find(Boolean);
+  if (typeof status?.state === 'string') return status.state;
+  return status?.primary ?? status?.state?.primary ?? Object.values(status?.active || {}).find(Boolean);
 }
 
 function compareRuleValues(left, right) {

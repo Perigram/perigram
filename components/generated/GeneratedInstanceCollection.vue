@@ -84,7 +84,7 @@
               </Button>
             </div>
             <div v-if="entity.status" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
-              <InstanceStatus
+              <InstanceState
                 :entity="entity"
                 :type-id="typeId"
                 variant="inline"
@@ -144,7 +144,7 @@ import { useI18n } from 'vue-i18n';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
 import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import InstanceStatus from '~/components/shared/status/InstanceStatus.vue';
+import InstanceState from '~/components/shared/state/InstanceState.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -298,10 +298,10 @@ function formatCell(entity, path) {
 }
 
 function entityStatus(entity = {}) {
-  return entity.status?.state?.primary
-    || entity.status?.state?.active?.main
+  return entity.states?.main
+    || entity.states?.active?.main
     || entity.status?.lifecycle?.state
-    || (typeof entity.status?.state === 'string' ? entity.status.state : '')
+    || (typeof entity.states === 'string' ? entity.status.state : '')
     || (typeof entity.status === 'string' ? entity.status : '');
 }
 

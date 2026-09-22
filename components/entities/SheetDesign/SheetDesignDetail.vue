@@ -25,7 +25,7 @@
         <template #sidebar>
             <div class="flex flex-col gap-8">
                 <Panel :header="$t('cassetteInstance.tracking')">
-                    <StatusHistory :entity="design" type-id="sheet_design" />
+                    <StateHistory :entity="design" type-id="sheet_design" />
                 </Panel>
                 <Panel :header="$t('sheetDesign.cassetteDesigns')">
                     <div v-if="cassetteDesigns.length" class="flex flex-col gap-2">
@@ -79,7 +79,7 @@
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from 'primevue/usetoast';
-import StatusHistory from '~/components/shared/status/StatusHistory.vue';
+import StateHistory from '~/components/shared/state/StateHistory.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';

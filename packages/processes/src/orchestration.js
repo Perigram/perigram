@@ -399,10 +399,10 @@ function readInputPath(value, path = '') {
 
 async function evaluateNodeOutput(process, nodeId, outputId, run, environment, tokenContext, resolving) {
   const graphNode = (process.graph?.nodes || []).find(item => String(item.id) === String(nodeId));
-  if (graphNode?.type === 'statusDefinition') {
-    const definition = process.statusDefinitions?.[recordId(graphNode)];
-    if (!definition?.statusId) throw new Error(`Status definition ${recordId(graphNode)} does not exist`);
-    return createDataPacket(definition.statusId);
+  if (graphNode?.type === 'stateDefinition') {
+    const definition = process.stateDefinitions?.[recordId(graphNode)];
+    if (!definition?.stateId) throw new Error(`Status definition ${recordId(graphNode)} does not exist`);
+    return createDataPacket(definition.stateId);
   }
   const node = processNode(process, nodeId);
   const record = process.processNodes[recordId(node)];

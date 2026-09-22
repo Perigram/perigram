@@ -151,7 +151,7 @@ export const test = base.extend({
             typeId,
             via: mode,
             construction: { mode, inputs: seedConstructionInputs(typeId, mode) },
-            status: { to: initialStatus[typeId] || 'CREATED' },
+            state: { to: initialStatus[typeId] || 'CREATED' },
             trigger: { mode: 'manual' },
             slots: ['identity', 'relations', 'attachments', 'data', 'lineage'],
             access: { level: 'admin', roleIds: [role.id], grants: [{ roleId: role.id, level: 'admin' }] }
@@ -234,8 +234,8 @@ export { expect };
 function shouldFailOnClientError(url, status, method = 'GET') {
   if (status < 400 || status >= 500) return false;
   if (method !== 'GET' && method !== 'HEAD') return true;
-  if (url.includes('/api/status/actions')) return true;
-  if (url.includes('/api/status/transition')) return true;
+  if (url.includes('/api/state/actions')) return true;
+  if (url.includes('/api/state/transition')) return true;
   if (url.includes('/api/process-definitions/active/actions/')) return true;
   return false;
 }

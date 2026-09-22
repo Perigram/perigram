@@ -25,7 +25,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { instanceUiFor } from '~/utils/status-engine';
+import { instanceUiFor } from '~/utils/state-engine';
 import { useRegistryStore } from '~/stores/registry';
 import { requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 

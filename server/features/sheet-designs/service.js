@@ -1,14 +1,13 @@
 import crypto from 'node:crypto';
 import * as repository from './repository.js';
 import { createProcessUpdateHandler } from '../_template/process-update-handler.js';
-import * as nestingRunsRepository from '../nesting-runs/repository.js';
 import { createError } from 'h3';
 import {
   inheritLineage,
   createData,
   createAttachment
 } from '../../core/blocks/index.js';
-import { createTransitionAuth, statusService } from '../../core/machines/service.js';
+import { createTransitionAuth, stateService } from '../../core/machines/service.js';
 import { mapLineageQuery } from '../../utils/query.js';
 import { hasLineagePermission, getLineageFilter } from '../../utils/permissions.js';
 import { ObjectId } from 'mongodb';
@@ -657,7 +656,7 @@ export async function listForRunOutput(queueId, runId, sheetDesignIds = []) {
 }
 
 export async function updateStatus(id, newState, userId, userRole, metadata = {}) {
-  const result = await statusService.transitionWithResult({
+  const result = await stateService.transitionWithResult({
     typeId: 'sheet_design',
     targetId: id,
     targetState: newState,

@@ -53,7 +53,7 @@
                 >
                   <IdentityBlock :entity="entity" />
                 </Button>
-                <InstanceStatus
+                <InstanceState
                   v-if="entity.status"
                   :entity="entity"
                   :type-id="section.source.typeId"
@@ -109,7 +109,7 @@ import { useI18n } from 'vue-i18n';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
 import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
-import InstanceStatus from '~/components/shared/status/InstanceStatus.vue';
+import InstanceState from '~/components/shared/state/InstanceState.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { instanceEditorActionFor, instanceHasEditorAction } from '~/components/generated/instance-editor-action.js';
 import { useAuthStore } from '~/stores/auth';

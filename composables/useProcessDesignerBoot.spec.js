@@ -103,7 +103,7 @@ describe('designer boot smoke', () => {
         requests.push({ url, ...options });
         if (url === '/api/process-definitions/active') return null;
         if (url === '/api/process-definitions') return options.method === 'POST'
-          ? { _id: 'created-1', status: { state: { primary: 'DRAFT' } }, data: options.body.data }
+          ? { _id: 'created-1', states: { main: 'DRAFT' }, data: options.body.data }
           : [];
         if (url.startsWith('/api/organizations/')) return {};
         return { _id: 'created-1' };

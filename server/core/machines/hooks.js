@@ -1,5 +1,5 @@
 import { connectDB } from '../../db/mongo.js';
-import { createTransitionAuth, statusService } from './service.js';
+import { createTransitionAuth, stateService } from './service.js';
 import { aggregator } from './aggregator.js';
 import { toFlexibleId } from '../../utils/objectid.js';
 import { getEntityCollection } from '~/server/runtime/entities.js';
@@ -27,7 +27,7 @@ export const hooks = {
     
     for (const child of children) {
       try {
-        await statusService.transition(childType, child._id, childState, userId, createTransitionAuth(userId, auth || userRole), {
+        await stateService.transition(childType, child._id, childState, userId, createTransitionAuth(userId, auth || userRole), {
           reason: `Automatic propagation from parent ${targetType}`
         });
       } catch (err) {

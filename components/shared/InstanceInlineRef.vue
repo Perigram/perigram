@@ -7,7 +7,7 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import InstancePreview from '~/components/shared/InstancePreview.vue';
-import InstanceStatus from '~/components/shared/status/InstanceStatus.vue';
+import InstanceState from '~/components/shared/state/InstanceState.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
@@ -23,31 +23,15 @@ import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
-import { hasMeaningfulWorkflowStatus } from '~/utils/status-actions.js';
+import { hasMeaningfulWorkflowState } from '~/utils/state-actions.js';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
 const CARD_COMPONENTS = {
-  facade: defineAsyncComponent(() => import('~/components/entities/Facade/FacadeCard.vue')),
-  facadePattern: defineAsyncComponent(() => import('~/components/entities/FacadePattern/FacadePatternCard.vue')),
-  project: defineAsyncComponent(() => import('~/components/entities/Project/ProjectCard.vue')),
-  queue: defineAsyncComponent(() => import('~/components/entities/Queue/QueueCard.vue')),
-  nestingRun: defineAsyncComponent(() => import('~/components/entities/NestingRun/NestingRunCard.vue')),
   sheetDesign: defineAsyncComponent(() => import('~/components/entities/SheetDesign/SheetDesignCard.vue')),
   cassette: defineAsyncComponent(() => import('~/components/entities/Cassette/CassetteCard.vue')),
   cassetteDesign: defineAsyncComponent(() => import('~/components/entities/CassetteDesign/CassetteDesignCard.vue')),
   cassetteTemplate: defineAsyncComponent(() => import('~/components/entities/CassetteTemplate/CassetteTemplateCard.vue')),
-  cassetteInstance: defineAsyncComponent(() => import('~/components/entities/CassetteInstance/CassetteInstanceCard.vue')),
-  requisition: defineAsyncComponent(() => import('~/components/entities/Requisition/RequisitionCard.vue')),
-  material: defineAsyncComponent(() => import('~/components/entities/Material/MaterialCard.vue')),
-  materialPile: defineAsyncComponent(() => import('~/components/entities/MaterialPile/PileCard.vue')),
-  batchPile: defineAsyncComponent(() => import('~/components/entities/BatchPile/BatchPileCard.vue')),
-  sheet: defineAsyncComponent(() => import('~/components/entities/Sheet/SheetCard.vue')),
-  remnant: defineAsyncComponent(() => import('~/components/entities/Remnant/RemnantCard.vue')),
-  library: defineAsyncComponent(() => import('~/components/entities/Library/LibraryCard.vue')),
-  catalog: defineAsyncComponent(() => import('~/components/entities/Catalog/CatalogCard.vue')),
-  color: defineAsyncComponent(() => import('~/components/entities/Color/ColorCard.vue')),
   entityRevision: defineAsyncComponent(() => import('~/components/entities/EntityRevision/EntityRevisionCard.vue')),
-  warehouse: defineAsyncComponent(() => import('~/components/entities/Warehouse/WarehouseCard.vue')),
   toolProfile: defineAsyncComponent(() => import('~/components/entities/ToolProfile/ToolProfileCard.vue')),
   penTemplate: defineAsyncComponent(() => import('~/components/entities/PenTemplate/PenTemplateCard.vue')),
   layerStandard: defineAsyncComponent(() => import('~/components/entities/LayerStandard/LayerStandardCard.vue')),
@@ -148,8 +132,8 @@ const compactPreviewHideDimensionLayer = computed(() =>
   ['cassette', 'cassette_design', 'sheet_design'].includes(generatedTypeId.value)
 );
 const compactStatusState = computed(() => {
-  if (!hasMeaningfulWorkflowStatus(generatedTypeId.value, authStore.statusWorkflows || undefined)) return '';
-  const state = resolved.value?.status?.state;
+  if (!hasMeaningfulWorkflowState(generatedTypeId.value, authStore.stateWorkflows || undefined)) return '';
+  const state = resolved.value?.states;
   if (typeof state === 'string') return state;
   return state?.primary || state?.active?.main || '';
 });
@@ -458,7 +442,7 @@ function tonePalette(role) {
           </small>
           <div v-if="resolved" class="flex flex-wrap items-start justify-between gap-3">
             <IdentityBlock :entity="resolved" />
-            <InstanceStatus
+            <InstanceState
               v-if="resolved.status"
               :entity="resolved"
               :type-id="generatedTypeId"

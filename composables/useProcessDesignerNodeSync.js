@@ -76,7 +76,7 @@ export function useProcessDesignerNodeSync({
       }));
   }
 
-  function initialStatusForEntity(typeId) {
+  function initialStateForEntity(typeId) {
     const workflow = designer.domain.workflows?.[typeId];
     if (!workflow) return '';
     const region = workflow.regions?.[workflow.primaryRegion] || Object.values(workflow.regions || {})[0];
@@ -334,8 +334,8 @@ export function useProcessDesignerNodeSync({
     }
     if (['effect.createEntity', 'effect.runProducer'].includes(op)) {
       syncProcessNodeConstruction(node);
-      node.status ||= {};
-      node.status.to ||= initialStatusForEntity(nodeTypeId(node));
+      node.state ||= {};
+      node.state.to ||= initialStateForEntity(nodeTypeId(node));
     }
     if (node.kind === 'cts.field') {
       // The projection gate: an unbound record offers only its entity input;
@@ -462,7 +462,7 @@ export function useProcessDesignerNodeSync({
     portForHandle,
     socketPairCompatible,
     relationOptionsForEntity,
-    initialStatusForEntity,
+    initialStateForEntity,
     constructionContractForEntity,
     constructionInputsForMode,
     constructionModeOptions,

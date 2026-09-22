@@ -20,7 +20,7 @@ const initialStatusForOrganization = vi.hoisted(() => vi.fn(async () => ({ state
 
 vi.mock('./repository.js', () => repository);
 vi.mock('../../core/machines/service.js', () => ({
-  statusService: {
+  stateService: {
     initialStatusForOrganization,
     applyIntent: vi.fn()
   },
@@ -58,11 +58,11 @@ describe('artifact service', () => {
     );
     expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({
       lineage: { organizationId: 'org-1' },
-      status: { state: 'NEW' }
+      status: expect.objectContaining({ state: 'NEW' })
     }));
     expect(artifact).toMatchObject({
       lineage: { organizationId: 'org-1' },
-      status: { state: { primary: 'NEW' } }
+      states: { main: 'NEW' }
     });
   });
 

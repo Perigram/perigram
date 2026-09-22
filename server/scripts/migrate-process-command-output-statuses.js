@@ -56,7 +56,7 @@ function commandOutputStatusMappings(processData = {}) {
         || targetAction.inputs?.find(input => input.typeId)?.typeId
         || String(edge.sourceHandle || '').replace(/^output:/, '')
       );
-      const targetState = targetAction.status?.to || targetAction.access?.statusTo;
+      const targetState = targetAction.state?.to || targetAction.access?.stateTo;
       if (!typeId || !targetState) continue;
       mappings.push({ actionId, typeId, targetState, producerOutputId: targetAction.producerOutputId || '', targetAction });
     }
@@ -119,7 +119,7 @@ async function migrateMapping({ db, process, organizationId, mapping }) {
 
   for await (const entity of cursor) {
     scanned++;
-    const currentState = entity.status?.state?.primary;
+    const currentState = entity.states?.main;
     if (processStates.has(currentState)) {
       skipped++;
       continue;
@@ -160,7 +160,7 @@ async function migrateMapping({ db, process, organizationId, mapping }) {
 
 async function main() {
   const db = await connectDB();
-  const cursor = db.collection('process_definitions').find({ 'status.state.primary': 'ACTIVE' });
+  const cursor = db.collection('process_definitions').find({ 'states.main': 'ACTIVE' });
   let processes = 0;
   let scanned = 0;
   let updated = 0;

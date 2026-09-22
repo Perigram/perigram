@@ -12,7 +12,7 @@ import { generateRandomString } from '../../utils/strings.js';
 import * as filesService from '../files/service.js';
 import { assertEntityAccess, hasInstanceAccess } from '../../core/access/service.js';
 import { getLineageFilter } from '../../utils/permissions.js';
-import { statusService, createTransitionAuth } from '../../core/machines/service.js';
+import { stateService, createTransitionAuth } from '../../core/machines/service.js';
 import * as instanceRevisionsService from '../instance-revisions/service.js';
 import * as artifactTemplatesService from '../artifact-templates/service.js';
 
@@ -29,9 +29,9 @@ export async function create(data, userId = 'SYSTEM', userOrg = null, userRole =
   };
   if (!lineage.organizationId && userOrg) lineage.organizationId = toFlexibleId(userOrg);
   if (!lineage.organizationId) throw createError({ statusCode: 400, message: 'Artifact organization lineage is required' });
-  const origin = await statusService.initialStatusForOrganization('artifact', lineage.organizationId, userId, { note: 'Artifact record created' });
+  const origin = await stateService.initialStatusForOrganization('artifact', lineage.organizationId, userId, { note: 'Artifact record created' });
   if (auth) assertEntityAccess({
-    entity: { lineage, status: origin },
+    entity: { lineage, states: { main: origin?.state?.primary ?? origin?.state } },
     typeId: 'artifact',
     feature: 'artifacts',
     level: 'write',
@@ -60,7 +60,7 @@ export async function create(data, userId = 'SYSTEM', userOrg = null, userRole =
 
   const raw = await repository.create(artifactData);
   if (data.fileId) {
-    await statusService.applyIntent('artifact', raw._id, 'artifactFileStored', createTransitionAuth('SYSTEM', 'SYSTEM'), {
+    await stateService.applyIntent('artifact', raw._id, 'artifactFileStored', createTransitionAuth('SYSTEM', 'SYSTEM'), {
       note: 'Artifact file stored'
     });
   }
@@ -331,7 +331,7 @@ export async function markReadyByRun(runId, type, fileId, mimeType, name = '') {
     updatedAt: new Date()
   });
 
-  await statusService.applyIntent('artifact', artifact._id, 'artifactFileStored', createTransitionAuth('SYSTEM', 'SYSTEM'), {
+  await stateService.applyIntent('artifact', artifact._id, 'artifactFileStored', createTransitionAuth('SYSTEM', 'SYSTEM'), {
     note: 'Generated artifact file stored'
   });
 

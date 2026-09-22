@@ -2,7 +2,7 @@ const COMMON_READ_FIELDS = [
   '_id',
   'identity.*',
   'origin.*',
-  'status.*',
+  'states.*',
   'lineage.*',
   'relations.*',
   'provenance.*',
@@ -152,7 +152,7 @@ export const cncEntityFieldAccess = {
       'identity.name',
       'identity.reference',
       'origin.*',
-      'status.*',
+      'states.*',
       'lineage.*',
       'data.email',
       'data.role',
@@ -167,7 +167,7 @@ export const cncEntityFieldAccess = {
   },
   organization: {
     feature: 'organizations',
-    read: ['_id', 'identity.*', 'origin.*', 'status.*', 'lineage.*', 'data.type', 'data.email', 'data.phone'],
+    read: ['_id', 'identity.*', 'origin.*', 'states.*', 'lineage.*', 'data.type', 'data.email', 'data.phone'],
     write: ['data.address', 'data.phone'],
     admin: ['data.*', 'summary.*', 'attachments.*']
   },

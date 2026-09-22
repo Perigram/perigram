@@ -3,9 +3,9 @@ import { compileProcessDefinition } from '../../packages/processes/src/index.js'
 import { cncDomain } from '../../packages/domain-cnc/src/index.js';
 
 export function planOrganizationRoleMigration({ organization, processes = [], users = [], invitations = [] } = {}) {
-  const active = processes.find(process => process.status?.state?.primary === 'ACTIVE') || null;
+  const active = processes.find(process => process.states?.main === 'ACTIVE') || null;
   const drafts = processes
-    .filter(process => process.status?.state?.primary === 'DRAFT')
+    .filter(process => process.states?.main === 'DRAFT')
     .sort((left, right) => new Date(right.updatedAt || right.createdAt || 0) - new Date(left.updatedAt || left.createdAt || 0));
   const assignmentSource = active || drafts[0] || null;
   const roleSources = [active, ...drafts].filter(Boolean);
@@ -110,7 +110,7 @@ async function main() {
       $set: { 'data.roles': plan.roles, 'data.roleAssignments': plan.roleAssignments }
     });
     for (const item of orgProcesses) {
-      const status = item.status?.state?.primary || '';
+      const status = item.states?.main || '';
       await db.collection('process_definitions').updateOne({ _id: item._id }, {
         $set: { data: migrateProcessData(item.data || {}, plan.roles, status) }
       });

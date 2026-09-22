@@ -184,8 +184,8 @@ function actionTypeId(action = {}) {
 }
 
 function actionTargetStatus(action = {}) {
-  return action.access?.statusTo
-    || action.status?.to
+  return action.access?.stateTo
+    || action.state?.to
     || action.outputs?.find(output => typeof output.status === 'string')?.status
     || '';
 }

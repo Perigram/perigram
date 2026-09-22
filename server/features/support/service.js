@@ -2,19 +2,8 @@ import { createError } from 'h3';
 import * as artifactsService from '~/server/features/artifacts/service.js';
 import * as cassetteDesignsService from '~/server/features/cassette-designs/service.js';
 import * as cassettesService from '~/server/features/cassettes/service.js';
-import * as catalogsService from '~/server/features/catalogs/service.js';
-import * as librariesService from '~/server/features/libraries/service.js';
-import * as materialsService from '~/server/features/materials/service.js';
-import * as materialPilesService from '~/server/features/material-piles/service.js';
-import * as nestingRunsService from '~/server/features/nesting-runs/service.js';
-import * as projectsService from '~/server/features/projects/service.js';
-import * as queuesService from '~/server/features/queues/service.js';
-import * as remnantsService from '~/server/features/remnants/service.js';
-import * as requisitionsService from '~/server/features/requisitions/service.js';
 import * as sheetDesignsService from '~/server/features/sheet-designs/service.js';
-import * as sheetsService from '~/server/features/sheets/service.js';
 import * as usersService from '~/server/features/users/service.js';
-import * as warehousesService from '~/server/features/warehouses/service.js';
 import { resolveProcessAuth } from '~/server/features/process-definitions/runtime.js';
 import { getAppRegistry } from '~/server/runtime/app-registry.js';
 import * as connectionsService from '~/server/features/connections/service.js';
@@ -35,19 +24,8 @@ const ENTITY_OPTION_LOADERS = {
     artifact: (auth, filters) => artifactsService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
     cassette: scopedList(cassettesService),
     cassette_design: scopedList(cassetteDesignsService),
-    catalog: scopedList(catalogsService),
-    library: scopedList(librariesService),
-    project: (auth, filters) => projectsService.list(auth.userId, auth.organizationId, auth.role, auth, filters),
-    queue: (auth, filters) => queuesService.list(filters, auth.userId, auth.organizationId, auth.role, auth),
-    material_pile: scopedList(materialPilesService),
-    nesting_run: scopedList(nestingRunsService),
-    remnant: scopedList(remnantsService),
-    requisition: (auth) => requisitionsService.list(auth.userId, auth.organizationId, auth.role, auth),
     sheet_design: scopedList(sheetDesignsService),
-    sheet: (auth, filters) => sheetsService.list(auth.userId, auth.organizationId, auth.role, auth, filters),
-    material: () => materialsService.list(),
-    user: (auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth),
-    warehouse: scopedList(warehousesService)
+    user: (auth) => usersService.list(auth.userId, auth.organizationId, auth.role, auth)
 };
 
 export async function getUserConversationContext(auth, recipientUserId = null) {
@@ -1222,8 +1200,8 @@ function dedupeSources(sources = []) {
 function sourceFilters(source = {}) {
     const filters = { ...(source.filters || {}) };
     const statuses = statusFiltersFromRequirement(source.required || {});
-    if (statuses.length === 1) filters.primaryStatus = statuses[0];
-    else if (statuses.length > 1) filters.primaryStatuses = statuses.join(',');
+    if (statuses.length === 1) filters.primaryState = statuses[0];
+    else if (statuses.length > 1) filters.primaryStates = statuses.join(',');
     return filters;
 }
 
@@ -1294,8 +1272,8 @@ function statusesFromRule(rule) {
     if (Array.isArray(rule.any)) return rule.any.flatMap(statusesFromRule);
     if (Array.isArray(rule.all)) return rule.all.flatMap(statusesFromRule);
     if (rule.not) return [];
-    if ((rule.fact === 'primaryStatus' || rule.fact === 'status.primary') && rule.equals) return [String(rule.equals)];
-    if ((rule.fact === 'primaryStatus' || rule.fact === 'status.primary') && Array.isArray(rule.in)) return rule.in.map(String);
+    if ((rule.fact === 'primaryState' || rule.fact === 'status.primary') && rule.equals) return [String(rule.equals)];
+    if ((rule.fact === 'primaryState' || rule.fact === 'status.primary') && Array.isArray(rule.in)) return rule.in.map(String);
     return [];
 }
 

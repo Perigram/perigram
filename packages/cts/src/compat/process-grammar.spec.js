@@ -94,8 +94,8 @@ describe('declaration-check phase', () => {
       data: {
         producerOutputs: { w: { typeId: 'widget' }, q: { typeId: 'queue' } },
         actions: {
-          bad: { actionKind: 'changeStatus', typeId: 'widget', targetStatus: 'FLYING' },
-          good: { actionKind: 'changeStatus', typeId: 'widget', targetStatus: 'done' }
+          bad: { actionKind: 'changeStatus', typeId: 'widget', targetState: 'FLYING' },
+          good: { actionKind: 'changeStatus', typeId: 'widget', targetState: 'done' }
         },
         processNodes: {
           n1: { kind: 'record.getField', typeId: 'widget', field: 'data.name' },

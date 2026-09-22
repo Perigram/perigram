@@ -4,7 +4,7 @@
  * Standardized layout for entity detail pages.
  */
 import IdentityBlock from './blocks/IdentityBlock.vue';
-import InstanceStatus from './status/InstanceStatus.vue';
+import InstanceState from './status/InstanceState.vue';
 import TraceChain from './links/TraceChain.vue';
 import InstanceActionsPopover from './InstanceActionsPopover.vue';
 import { computed, inject, provide, unref } from 'vue';
@@ -24,7 +24,7 @@ const props = defineProps({
   showTypeLabel: { type: Boolean, default: true },
   traceExclusions: { type: Array, default: () => [] },
   actionsDisplay: { type: String, default: 'inline', validator: value => ['menu', 'inline'].includes(value) },
-  statusActions: { type: Array, default: () => [] }
+  stateActions: { type: Array, default: () => [] }
 });
 
 const emit = defineEmits(['refresh']);
@@ -61,12 +61,12 @@ provide('displayedEntityContexts', computed(() => [
           </div>
           <div class="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
             <IdentityBlock v-if="showIdentity" :entity="entity" variant="header" :icon="entityIcon" />
-            <InstanceStatus
+            <InstanceState
               v-if="showStatus"
               :entity="entity"
               :type-id="typeId"
               variant="inline"
-              :actions="statusActions"
+              :actions="stateActions"
               @refresh="$emit('refresh')"
               @transitioned="$emit('refresh')"
             />

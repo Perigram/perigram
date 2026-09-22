@@ -30,7 +30,7 @@ describe('generated labels', () => {
     expect(generatedActionLabel({
       actionKind: 'createInstance',
       typeId: 'cassette',
-      status: { to: 'NEW' },
+      state: { to: 'NEW' },
       label: 'Create'
     }, '', i18n)).toBe('Cassette');
 
@@ -43,7 +43,7 @@ describe('generated labels', () => {
     expect(generatedActionLabel({
       actionKind: 'updateInstance',
       typeId: 'cassette',
-      status: { from: 'NEW', to: 'DELETED' },
+      state: { from: 'NEW', to: 'DELETED' },
       label: 'DELETED'
     }, '', i18n)).toBe('Change');
   });

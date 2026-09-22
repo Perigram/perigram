@@ -10,7 +10,7 @@ import {
   createIdentity,
   createData
 } from '../../core/blocks/index.js';
-import { createTransitionAuth, statusService } from '../../core/machines/service.js';
+import { createTransitionAuth, stateService } from '../../core/machines/service.js';
 import { aggregator } from '../../core/machines/aggregator.js';
 import standardSlugify from 'standard-slugify';
 import { generateRandomString } from '../../utils/strings.js';
@@ -161,7 +161,7 @@ export async function create(data, userId, userOrg, userRole, userPermissions) {
   const libraryId = data.libraryId || data.data?.libraryId;
   if (libraryId) lineage.libraryId = toFlexibleId(libraryId);
 
-  const origin = await statusService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Template created' });
+  const origin = await stateService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Template created' });
 
   if (userPermissions && !hasLineagePermission(userPermissions, { lineage, status: origin }, 'cassettes', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied for cassettes' });
@@ -222,7 +222,7 @@ export async function importFromArtifact(artifactId, name, userId, userOrg, user
 
   // 1. Create Template
   const slug = `${standardSlugify(name || fileName, { keepCase: false })}-${generateRandomString(6)}`;
-  const origin = await statusService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Standard template uploaded' });
+  const origin = await stateService.initialStatusForOrganization('cassette', targetOrgId, userId, { note: 'Standard template uploaded' });
 
   const templateData = {
     identity: createIdentity(name || fileName, slug),
@@ -262,14 +262,16 @@ export async function importFromArtifact(artifactId, name, userId, userOrg, user
 }
 
 export async function list(userId, userOrg, userRole, userPermissions, query = {}) {
-  const { limit, skip, status, primaryStatus, primaryStatuses, ...rest } = query;
+  const { limit, skip, status, primaryState, primaryStates, ...rest } = query;
 
   const lineageFilter = getLineageFilter(userPermissions);
   const processedFilter = normalizeLineageQuery(rest);
 
-  const statuses = normalizePrimaryStatuses(primaryStatuses);
+  // Wire filter vocabulary is primaryStates; the v24 cassettes storage
+  // keeps its status block, so the storage path targets the block.
+  const statuses = normalizePrimaryStatuses(primaryStates);
   if (statuses.length) processedFilter['status.state.primary'] = { $in: statuses };
-  else if (status || primaryStatus) processedFilter['status.state.primary'] = status || primaryStatus;
+  else if (status || primaryState) processedFilter['status.state.primary'] = status || primaryState;
 
   const finalFilter = { ...lineageFilter, ...processedFilter };
 
@@ -517,15 +519,15 @@ export async function update(id, updates, userId, userOrg, userRole, userPermiss
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
 
-  if (updates.status && typeof updates.status === 'string') {
-    await statusService.transitionWithResult({
+  if (updates.state && typeof updates.state === 'string') {
+    await stateService.transitionWithResult({
       typeId: 'cassette',
       targetId: cassette._id,
-      targetState: updates.status,
+      targetState: updates.state,
       auth: createTransitionAuth(userId, userRole, userPermissions),
-      context: updates.statusMeta || {}
+      context: updates.stateMeta || {}
     });
-    delete updates.status;
+    delete updates.state;
   }
 
   const { identity, origin, status, lineage, data: updatesData, ...clean } = updates;

@@ -30,7 +30,7 @@ describe('GET /api/cassettes', () => {
       context: { auth },
       query: {
         libraryId: 'library-1',
-        primaryStatuses: 'ACTIVE,DRAFT',
+        primaryStates: 'ACTIVE,DRAFT',
         limit: '25',
         skip: '5'
       }
@@ -43,7 +43,7 @@ describe('GET /api/cassettes', () => {
       auth,
       expect.objectContaining({
         libraryId: 'library-1',
-        primaryStatuses: 'ACTIVE,DRAFT',
+        primaryStates: 'ACTIVE,DRAFT',
         limit: 25,
         skip: 5
       })

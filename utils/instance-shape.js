@@ -47,7 +47,7 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
     if (value == null) continue;
     lineage[key] = typeof value === 'object' ? value : { id: String(value) };
   }
-  const primary = dto.status?.state?.primary;
+  const primary = dto.states?.main;
   return {
     id: String(dto._id || dto.identity?.uid || ''),
     type: typeRecord.id || '',

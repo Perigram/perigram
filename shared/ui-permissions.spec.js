@@ -77,14 +77,14 @@ describe('UI Permission Matrix', () => {
                 feature: 'projects',
                 level: 'write',
                 typeId: 'project',
-                entity: { lineage: { projectId: 'project-a' }, status: { state: { primary: 'ACTIVE' } } }
+                entity: { lineage: { projectId: 'project-a' }, states: { main: 'ACTIVE' } }
             })).toBe(true);
             expect(hasPermissionGrant({
                 permissions,
                 feature: 'projects',
                 level: 'write',
                 typeId: 'project',
-                entity: { lineage: { projectId: 'project-b' }, status: { state: { primary: 'ACTIVE' } } }
+                entity: { lineage: { projectId: 'project-b' }, states: { main: 'ACTIVE' } }
             })).toBe(false);
         });
 
@@ -117,14 +117,14 @@ describe('UI Permission Matrix', () => {
                     }
                 }
             };
-            const queue = { lineage: { projectId: 'project-a' }, status: { state: { primary: 'READY' } } };
+            const queue = { lineage: { projectId: 'project-a' }, states: { main: 'READY' } };
             expect(hasPermissionGrant({
                 permissions,
                 feature: 'queues',
                 level: 'write',
                 typeId: 'queue',
                 entity: queue,
-                context: { lineageEntities: { project: { _id: 'project-a', data: { type: 'production' }, status: { state: { primary: 'ACTIVE' } } } } }
+                context: { lineageEntities: { project: { _id: 'project-a', data: { type: 'production' }, states: { main: 'ACTIVE' } } } }
             })).toBe(true);
             expect(hasPermissionGrant({
                 permissions,
@@ -132,7 +132,7 @@ describe('UI Permission Matrix', () => {
                 level: 'write',
                 typeId: 'queue',
                 entity: queue,
-                context: { lineageEntities: { project: { _id: 'project-a', data: { type: 'production' }, status: { state: { primary: 'CLOSED' } } } } }
+                context: { lineageEntities: { project: { _id: 'project-a', data: { type: 'production' }, states: { main: 'CLOSED' } } } }
             })).toBe(false);
         });
     });

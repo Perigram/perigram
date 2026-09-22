@@ -11,15 +11,13 @@ describe('CNC entity field schemas', () => {
   });
 
   it('preserves type, shape, domain and unit independently', () => {
-    expect(getEntityFieldSchema('project', 'summary.queuePreview')?.type).toMatchObject({
-      base: 'array',
-      shape: 'item',
-      itemType: { base: 'entityRef', typeId: 'queue', shape: 'item' }
+    expect(getEntityFieldSchema('cassette', 'identity.name')?.type).toMatchObject({
+      base: 'string',
+      shape: 'item'
     });
-    expect(getEntityFieldSchema('project', 'summary.totalArea')?.type).toMatchObject({
-      base: 'number',
-      shape: 'item',
-      unit: 'm2'
+    expect(getEntityFieldSchema('cassette', 'lineage.libraryId')?.type).toMatchObject({
+      base: 'entityRef',
+      shape: 'item'
     });
   });
 
@@ -27,7 +25,7 @@ describe('CNC entity field schemas', () => {
     expect(cncBlockFieldSchemas.identity).toBeTruthy();
     expect(getBlockFieldSchema('data')?.type).toMatchObject({ base: 'json', shape: 'item' });
     expect(getBlockFieldSchema('data.description')).toBeNull();
-    expect(getEntityFieldSchema('library', 'data.description')?.type).toMatchObject({ base: 'string', shape: 'item' });
+    expect(getEntityFieldSchema('cassette', 'identity.name')?.type).toMatchObject({ base: 'string', shape: 'item' });
     expect(cncBlockFieldSchemas.lineage.map(field => field.path)).toEqual(['lineage']);
     expect(getBlockFieldSchema('identity.uid')).toMatchObject({
       readable: true,
@@ -44,34 +42,26 @@ describe('CNC entity field schemas', () => {
   });
 
   it('does not mistake wildcard authorization for a field', () => {
-    expect(getEntityFieldSchema('queue', 'data.job.*')).toBeNull();
+    expect(getEntityFieldSchema('cassette', 'data.definition.*')).toBeNull();
   });
 
   it('declares cumulative lineage slots from containment relationships', () => {
-    expect(getEntityFieldSchema('nesting_run', 'lineage.queueId')).toMatchObject({
-      type: { base: 'entityRef', typeId: 'queue' },
+    expect(getEntityFieldSchema('cassette', 'lineage.libraryId')).toMatchObject({
+      type: { base: 'entityRef', typeId: 'library' },
       constructible: true,
       writable: false
-    });
-    expect(getEntityFieldSchema('nesting_run', 'lineage.projectId')?.type).toMatchObject({
-      base: 'entityRef',
-      typeId: 'project'
-    });
-    expect(getEntityFieldSchema('artifact', 'lineage.nestingRunId')?.type).toMatchObject({
-      base: 'entityRef',
-      typeId: 'nesting_run'
     });
   });
 
   it('separates create-time composition from update permission', () => {
-    expect(getEntityFieldSchema('queue', 'identity.name')).toMatchObject({
+    expect(getEntityFieldSchema('cassette', 'identity.name')).toMatchObject({
       constructible: true,
       writable: false
     });
-    expect(getEntityFieldSchema('queue', 'identity.uid')).toMatchObject({
+    expect(getEntityFieldSchema('cassette', 'identity.uid')).toMatchObject({
       constructible: false
     });
-    expect(getEntityFieldSchema('queue', 'status.metadata')).toMatchObject({
+    expect(getEntityFieldSchema('cassette', 'states.main')).toMatchObject({
       constructible: false
     });
     expect(getEntityFieldSchema('cassette_design', 'identity.name')).toMatchObject({

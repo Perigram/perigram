@@ -77,7 +77,7 @@ function toDto(doc, declaration = {}) {
     type: doc.type,
     typeVersion: doc.typeVersion,
     identity: { uid: doc._id.toString(), ...(doc.name != null ? { name: doc.name } : {}) },
-    status: { state: { primary: doc.states?.main || 'CREATED' } },
+    states: { main: doc.states?.main || 'CREATED' },
     lineage,
     relations: doc.relations || {},
     // §3 payload slot projects onto the legacy wire attachments block.
@@ -203,7 +203,7 @@ function instanceService(typeId) {
       name: draft.identity?.name ?? null,
       // §3: the row is one flat fields map (data/specs split is wire-only)
       fields: { ...(draft.data || {}), ...(draft.specs || {}) },
-      states: { main: draft.status?.state?.primary || declaration.states?.main?.initial || 'CREATED' },
+      states: { main: draft.states?.main || declaration.states?.main?.initial || 'CREATED' },
       lineage: wireLineage,
       ...(draft.relations ? { relations: draft.relations } : {}),
       ...(payload ? { payload } : {}),
@@ -259,7 +259,7 @@ function instanceService(typeId) {
       const collection = repository.collectionForClass(declaration.class);
       // Wire patches (block paths from the effect boundary) map to §3
       // writes: data/specs leaves land in the flat fields map,
-      // status.state.primary becomes states.main.
+      // states.main becomes states.main.
       const set = {};
       const mergeSlot = (slot, value) => {
         for (const [key, leaf] of Object.entries(value || {})) {
@@ -269,7 +269,7 @@ function instanceService(typeId) {
       if (patch.identity?.name !== undefined) set.name = patch.identity.name;
       if (patch.data && typeof patch.data === 'object') mergeSlot('data', patch.data);
       if (patch.specs && typeof patch.specs === 'object') mergeSlot('specs', patch.specs);
-      if (patch.status?.state?.primary !== undefined) set['states.main'] = patch.status.state.primary;
+      if (patch.states?.main !== undefined) set['states.main'] = patch.states.main;
       if (patch.lineage && typeof patch.lineage === 'object') {
         for (const [key, value] of Object.entries(patch.lineage)) {
           // Tenancy is immutable after construct: the wire projection's

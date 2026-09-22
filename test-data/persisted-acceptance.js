@@ -26,95 +26,50 @@ export function createPersistedAcceptanceFixture() {
     schemaVersion: 1,
     dataflowVersion: PROCESS_DATAFLOW_VERSION,
     graph: {
-      nodes: ['project_source', 'facade_lineage', 'create_facade'].map((id, index) => ({
+      nodes: ['create_cassette'].map((id, index) => ({
         id,
         type: 'processNode',
         position: { x: index * 240, y: 120 },
         data: { refId: id }
       })),
-      edges: [
-        {
-          id: 'project-to-facade-lineage',
-          source: 'project_source',
-          sourceHandle: 'data:result',
-          target: 'facade_lineage',
-          targetHandle: 'entry:project'
-        },
-        {
-          id: 'facade-lineage-to-create',
-          source: 'facade_lineage',
-          sourceHandle: 'data:block',
-          target: 'create_facade',
-          targetHandle: 'data:lineage',
-          role: 'data'
-        }
-      ],
+      edges: [],
       viewport: { x: 0, y: 0, zoom: 1 }
     },
     roleGrants: {},
     producerOutputs: {
-      'project_source:result': {
-        id: 'project_source:result',
-        producerOutputId: 'project_source:result',
-        nodeId: 'project_source',
+      'create_cassette:result': {
+        id: 'create_cassette:result',
+        producerOutputId: 'create_cassette:result',
+        nodeId: 'create_cassette',
         outputSocketId: 'result',
-        typeId: 'project',
+        typeId: 'cassette',
         lifecycle: { mode: 'domainDefault' },
-        fields: { read: ['identity.*', 'status.*', 'lineage.*'], write: [], private: [] },
-        allowedRoles: { read: [ids.role], write: [ids.role], admin: [] }
-      },
-      'create_facade:result': {
-        id: 'create_facade:result',
-        producerOutputId: 'create_facade:result',
-        nodeId: 'create_facade',
-        outputSocketId: 'result',
-        typeId: 'facade',
-        lifecycle: { mode: 'domainDefault' },
-        fields: { read: ['identity.*', 'status.*', 'lineage.*'], write: [], private: [] },
+        fields: { read: ['identity.*'], write: [], private: [] },
         allowedRoles: { read: [ids.role], write: [ids.role], admin: [] }
       }
     },
     actions: {},
     services: {},
     sockets: {},
-    statusDefinitions: {},
+    stateDefinitions: {},
     valueInputs: {},
     screens: {},
     processNodes: {
-      project_source: {
-        id: 'project_source',
+      create_cassette: {
+        id: 'create_cassette',
         kind: 'effect.createEntity',
-        typeId: 'project',
-        producerOutputId: 'project_source:result',
-        label: 'Create project',
-        construction: { mode: 'genericCreate' },
+        typeId: 'cassette',
+        producerOutputId: 'create_cassette:result',
+        label: 'Create cassette',
+        construction: { mode: 'editor', inputs: [{ id: 'name', label: 'Name', path: 'name', type: 'string', required: true, prompt: true }] },
         trigger: { mode: 'manual' },
         access: { level: 'write', grants: [{ roleId: ids.role, level: 'write' }] },
-        status: { to: 'draft' },
+        state: { to: 'ACTIVE' },
         blocks: []
-      },
-      facade_lineage: {
-        id: 'facade_lineage',
-        kind: 'record.composeBlock',
-        block: 'lineage',
-        compositionMode: 'ancestors',
-        targetTypeId: 'facade',
-        entries: [{ id: 'project' }]
-      },
-      create_facade: {
-        id: 'create_facade',
-        kind: 'effect.createEntity',
-        typeId: 'facade',
-        producerOutputId: 'create_facade:result',
-        label: 'Create facade',
-        construction: { mode: 'genericCreate' },
-        trigger: { mode: 'manual' },
-        access: { level: 'write', grants: [{ roleId: ids.role, level: 'write' }] },
-        status: { to: 'draft' },
-        blocks: ['lineage']
       }
     }
   };
+
 
   return structuredClone({
     organization: {

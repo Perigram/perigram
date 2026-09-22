@@ -47,7 +47,7 @@ vi.mock('./format.js', () => ({
   renderTemplate: vi.fn()
 }));
 vi.mock('../../core/machines/service.js', () => ({
-  statusService: { initialStatusForOrganization: mocks.initialStatus }
+  stateService: { initialStatusForOrganization: mocks.initialStatus }
 }));
 
 import { createUploaded, replaceLayout } from './service.js';

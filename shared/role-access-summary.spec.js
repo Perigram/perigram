@@ -28,7 +28,7 @@ const processData = {
         id: 'millSheet',
         actionKind: 'updateEntity',
         typeId: 'sheets',
-        access: { roleIds: ['cutter'], level: 'write', statusFrom: 'CREATED', statusTo: 'MILLED' }
+        access: { roleIds: ['cutter'], level: 'write', stateFrom: 'CREATED', stateTo: 'MILLED' }
       },
       archiveSheet: {
         id: 'archiveSheet',

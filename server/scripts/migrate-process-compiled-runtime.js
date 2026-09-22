@@ -134,7 +134,7 @@ async function main() {
   const db = await connectDB();
   const cursor = db.collection('process_definitions').find({
     'data.compiled': { $exists: true, $ne: null },
-    'status.state.primary': 'ACTIVE'
+    'states.main': 'ACTIVE'
   });
   let scanned = 0;
   let updated = 0;

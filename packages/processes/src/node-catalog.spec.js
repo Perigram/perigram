@@ -90,7 +90,7 @@ describe('process v4 node catalog', () => {
       fieldSchemas: [
         { path: 'identity.name', block: 'identity', type: { base: 'string', shape: 'item' } },
         { path: 'data.note', block: 'data', type: { base: 'string', shape: 'item' } },
-        { path: 'status.state.primary', block: 'status', type: { base: 'status', shape: 'item' } }
+        { path: 'states.main', block: 'states', type: { base: 'status', shape: 'item' } }
       ]
     };
     const create = resolveCatalogNodePorts({
@@ -104,9 +104,9 @@ describe('process v4 node catalog', () => {
       blocks: ['identity', 'data']
     }, context);
 
-    expect(create.inputs.map(input => input.id)).toEqual(['identity', 'data', 'status.state.primary']);
+    expect(create.inputs.map(input => input.id)).toEqual(['identity', 'data', 'states.main']);
     expect(create.inputs.find(input => input.id === 'identity')?.required).toBe(false);
-    expect(modify.inputs.map(input => input.id)).toEqual(['entity', 'identity', 'data', 'status.state.primary']);
+    expect(modify.inputs.map(input => input.id)).toEqual(['entity', 'identity', 'data', 'states.main']);
     expect(create.outputs.map(output => output.id)).toEqual(['completed', 'result']);
     const typedCreate = resolveCatalogNodePorts({
       kind: 'effect.createEntity',
@@ -121,7 +121,7 @@ describe('process v4 node catalog', () => {
       'templateId',
       'identity',
       'relations',
-      'status.state.primary'
+      'states.main'
     ]);
     const automaticModify = resolveCatalogNodePorts({
       kind: 'effect.updateEntity',
@@ -129,7 +129,7 @@ describe('process v4 node catalog', () => {
       trigger: { mode: 'event' },
       blocks: ['identity']
     }, context);
-    expect(automaticModify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity', 'status.state.primary']);
+    expect(automaticModify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity', 'states.main']);
   });
 
   it('exposes declared row fields as construction sockets on the composer-less construct', () => {
@@ -154,7 +154,7 @@ describe('process v4 node catalog', () => {
       'identity',
       'data',
       'specs',
-      'status.state.primary'
+      'states.main'
     ]);
     const owner = rowCreate.inputs.find(input => input.id === 'data.owner');
     expect(owner.type).toMatchObject({ base: 'entityRef', typeId: 'project' });
@@ -181,7 +181,7 @@ describe('process v4 node catalog', () => {
     expect(speciesCreate.inputs.map(input => input.id)).toEqual([
       'type',
       'specs.width',
-      'status.state.primary'
+      'states.main'
     ]);
   });
 
@@ -192,7 +192,7 @@ describe('process v4 node catalog', () => {
         { path: 'data.width', block: 'data', type: { base: 'number', shape: 'item' }, writable: true },
         { path: 'specs.thickness', block: 'specs', type: { base: 'number', shape: 'item', unit: 'mm' }, writable: true },
         { path: 'data.locked', block: 'data', type: { base: 'boolean', shape: 'item' }, writable: false },
-        { path: 'status.state.primary', block: 'status', type: { base: 'status', shape: 'item' }, writable: false }
+        { path: 'states.main', block: 'states', type: { base: 'status', shape: 'item' }, writable: false }
       ]
     };
     const ports = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel' }, context);
@@ -202,7 +202,7 @@ describe('process v4 node catalog', () => {
     expect(ids).not.toContain('data.locked');
     expect(ids).not.toContain('identity');
     expect(ids).not.toContain('data');
-    expect(ids.at(-1)).toBe('status.state.primary');
+    expect(ids.at(-1)).toBe('states.main');
   });
 
   it('renders a migrated mutate record with persisted block slots after the leaves', () => {
@@ -215,10 +215,10 @@ describe('process v4 node catalog', () => {
     // a v4 updateEntity wired through blocks migrates with slots: the block
     // sockets must survive so the legacy graph keeps working
     const migrated = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel', slots: ['identity'] }, context);
-    expect(migrated.inputs.map(input => input.id)).toEqual(['entity', 'data.width', 'identity', 'status.state.primary']);
+    expect(migrated.inputs.map(input => input.id)).toEqual(['entity', 'data.width', 'identity', 'states.main']);
     // a fresh mutate carries no slots: leaves only
     const fresh = resolveCatalogNodePorts({ kind: 'cts.mutate', typeId: 'panel' }, context);
-    expect(fresh.inputs.map(input => input.id)).toEqual(['entity', 'data.width', 'status.state.primary']);
+    expect(fresh.inputs.map(input => input.id)).toEqual(['entity', 'data.width', 'states.main']);
   });
 
   it('splits the species binding contract: origins carry a typed pin, consumers adapt to their entity wire', () => {
@@ -416,7 +416,7 @@ describe('process v4 node catalog', () => {
       }
     });
 
-    expect(create.inputs.map(input => input.id)).toEqual(['name', 'templateId', 'status.state.primary']);
+    expect(create.inputs.map(input => input.id)).toEqual(['name', 'templateId', 'states.main']);
     expect(create.inputs[1].type).toMatchObject({ base: 'entityRef', typeId: 'cassette' });
   });
 

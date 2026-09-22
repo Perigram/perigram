@@ -276,7 +276,7 @@ describe('sheet design access', () => {
       effectivePermissions: {
         sheet_designs: [{
           level: 'read',
-          rule: { fact: 'primaryStatus', equals: 'CUT' }
+          rule: { fact: 'primaryState', equals: 'CUT' }
         }]
       }
     };

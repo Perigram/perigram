@@ -26,7 +26,7 @@ import * as workflowOverridesService from '~/server/features/workflow-overrides/
  * Handles state transitions and audit logging.
  * Architectural Excellence: Strict adherence to defined lifecycles.
  */
-export const statusService = {
+export const stateService = {
   /**
    * Change status of an entity
    * @param {string} typeId - e.g., 'project', 'queue'
@@ -95,11 +95,11 @@ export const statusService = {
     });
     const actorId = typeof actor === 'object' ? actor.userId : actor;
     const eventId = new ObjectId();
-    const statusMetadata = mergeStatusDisplayMetadata(persistableStatusMetadata(metadata), region.states[targetState]);
+    const stateMetadata = mergeStatusDisplayMetadata(persistableStatusMetadata(metadata), region.states[targetState]);
     const status = createStatus(
       createWorkflowState(normalizedMachine, { active: { [regionId]: targetState }, primary: targetState }),
       actorId || 'SYSTEM',
-      statusMetadata,
+      stateMetadata,
       eventId,
       normalizeLifecycle()
     );
@@ -183,15 +183,15 @@ export const statusService = {
     }
     const { entity, machine: loadedMachine } = loaded;
     if (!loadedMachine) {
-      return { typeId: normalizedTypeId, targetId, state: entity.status?.state || null, actions: [] };
+      return { typeId: normalizedTypeId, targetId, state: entity.states || null, actions: [] };
     }
     const normalizedMachine = normalizeWorkflow(loadedMachine);
-    const primaryState = getPrimaryState(entity.status, normalizedMachine.initial);
+    const primaryState = getPrimaryState(entity.states ?? entity.status, normalizedMachine.initial);
     const lifecycle = entity.status?.lifecycle || normalizeLifecycle();
     const actions = [];
 
     for (const [regionId, region] of Object.entries(normalizedMachine.regions || {})) {
-      const currentState = getRegionState(entity.status, regionId, region.initial);
+      const currentState = getRegionState(entity.states ?? entity.status, regionId, region.initial);
       for (const transition of region.transitions || []) {
       if (transition.from !== currentState) continue;
 
@@ -202,7 +202,7 @@ export const statusService = {
         region: regionId,
         role: auth.role,
         actorId: auth.userId,
-        currentStatus: entity.status,
+        currentStatus: entity.states ?? entity.status,
         lifecycle,
         requireLifecyclePayload: false
       });
@@ -243,7 +243,7 @@ export const statusService = {
       primaryState
     });
 
-    return { typeId: normalizedTypeId, targetId, state: entity.status?.state || createWorkflowState(normalizedMachine), primaryState, actions };
+    return { typeId: normalizedTypeId, targetId, state: entity.states || createWorkflowState(normalizedMachine), primaryState, actions };
   },
 
   async transitionWithResult({ typeId, targetId, targetState, intent = null, auth, context = {}, patch = null }) {
@@ -295,7 +295,7 @@ async function resolveIntentTransition({
   const transitionScope = normalizeTransitionScope(transitionContext);
   const regionId = transitionScope.region || normalizedMachine.primaryRegion || 'main';
   const region = getWorkflowRegion(normalizedMachine, regionId);
-  const currentState = getRegionState(entity.status, regionId, region?.initial);
+  const currentState = getRegionState(entity.states ?? entity.status, regionId, region?.initial);
   const transition = (region?.transitions || []).find(item => item.intent === intent && item.from === currentState);
   if (!transition) {
     throw createError({
@@ -337,11 +337,11 @@ function appendProcessStatusActions(actions = [], { auth = {}, typeId = '', prim
   for (const action of auth.roleAssignments?.actions || []) {
     // The assignment manifest carries the projected UI-contract kinds
     // (`updateInstance`) beside the legacy exposure fields.
-    if ((action.actionKind !== 'updateEntity' && action.actionKind !== 'updateInstance') || !(action.status?.to || action.access?.statusTo)) continue;
+    if ((action.actionKind !== 'updateEntity' && action.actionKind !== 'updateInstance') || !(action.state?.to || action.access?.stateTo)) continue;
     if ((action.mutation?.fields || []).length || (action.inputPolicy?.fields || []).length) continue;
     if (normalizeTypeId(action.typeId || action.typeId) !== typeId) continue;
-    const from = action.status?.from || action.access?.statusFrom || '';
-    const to = action.status?.to || action.access?.statusTo || '';
+    const from = action.state?.from || action.access?.stateFrom || '';
+    const to = action.state?.to || action.access?.stateTo || '';
     if (!to) continue;
     if (from && from !== primaryState) continue;
     if (to === primaryState) continue;
@@ -372,7 +372,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
     const transitionScope = normalizeTransitionScope(transitionContext);
     const regionId = transitionScope.region || normalizedMachine.primaryRegion || 'main';
     const workflowRegion = getWorkflowRegion(normalizedMachine, regionId);
-    const currentState = getRegionState(entity.status, regionId, workflowRegion?.initial);
+    const currentState = getRegionState(entity.states ?? entity.status, regionId, workflowRegion?.initial);
     const targetStateDefinition = workflowRegion?.states?.[targetState] || {};
     const transitionMetadata = mergeStatusDisplayMetadata(
       persistableStatusMetadata(transitionContext.metadata),
@@ -405,7 +405,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       path: transitionScope.path,
       role: auth.role,
       actorId,
-      currentStatus: entity.status,
+      currentStatus: entity.states ?? entity.status,
       lifecycle: lifecycleForValidation
     });
     const transition = validation.transition;
@@ -450,7 +450,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
     
     // 3. Create Event Record
     const nextState = applyWorkflowTransitionState(
-      entity.status?.state || createWorkflowState(normalizedMachine),
+      entity.states || createWorkflowState(normalizedMachine),
       normalizedMachine,
       transition || { region: regionId },
       targetState
@@ -466,7 +466,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       targetType: normalizedTypeId,
       fromState: currentState,
       toState: targetState,
-      fromStatePrimary: getPrimaryState(entity.status, normalizedMachine.initial),
+      fromStatePrimary: getPrimaryState(entity.states ?? entity.status, normalizedMachine.initial),
       toStatePrimary: getPrimaryState(nextState, targetState),
       region: regionId,
       status: statusData,
@@ -969,17 +969,17 @@ async function loadEntityForWorkflow(typeId, targetId, options = {}) {
     });
   }
 
-  return { entity: instanceStatusView(found.doc), machine, collection: found.collection, flexId: found.doc._id, instanceDoc: found.doc };
+  return { entity: instanceStateView(found.doc), machine, collection: found.collection, flexId: found.doc._id, instanceDoc: found.doc };
 }
 
 // The §3 stored shape keeps lifecycle in states.main; project the status
 // block the engine reads so transitions, guards, and hooks see the live
 // state instead of the initial default.
-function instanceStatusView(doc = {}) {
+function instanceStateView(doc = {}) {
   if (doc && typeof doc === 'object' && !doc.status && doc.states && typeof doc.states.main === 'string') {
     return {
       ...doc,
-      status: { state: { primary: doc.states.main, active: { main: doc.states.main } } }
+      states: { main: doc.states.main }
     };
   }
   return doc;

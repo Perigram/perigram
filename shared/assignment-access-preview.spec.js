@@ -20,7 +20,7 @@ const compiled = {
     },
     operator: {
       grants: [{ feature: 'queues', level: 'write', scope: { projectId: '$assignment.projectId' }, transitions: ['OPEN->DONE'] }],
-      actions: [{ actionId: 'finish', label: 'Finish', actionKind: 'updateEntity', feature: 'queues', typeId: 'queue', status: { from: 'OPEN', to: 'DONE' } }]
+      actions: [{ actionId: 'finish', label: 'Finish', actionKind: 'updateEntity', feature: 'queues', typeId: 'queue', state: { from: 'OPEN', to: 'DONE' } }]
     }
   },
   screens: {

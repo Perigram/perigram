@@ -193,7 +193,7 @@ describe('Cassette Management & Ownership', () => {
       effectivePermissions: {
         cassettes: [{
           level: 'read',
-          rule: { fact: 'primaryStatus', equals: 'ACTIVE' }
+          rule: { fact: 'primaryState', equals: 'ACTIVE' }
         }]
       }
     };
@@ -203,7 +203,7 @@ describe('Cassette Management & Ownership', () => {
       user1.organizationId,
       null,
       readOnlyActiveAuth,
-      { primaryStatuses: 'ACTIVE,DRAFT' }
+      { primaryStates: 'ACTIVE,DRAFT' }
     );
 
     expect(result.map(item => item._id.toString())).toEqual([active._id.toString()]);
@@ -218,7 +218,7 @@ describe('Cassette Management & Ownership', () => {
       user1.organizationId,
       null,
       scopedReadAuth,
-      { primaryStatuses: 'ACTIVE,DRAFT', projectId: 'project-a' }
+      { primaryStates: 'ACTIVE,DRAFT', projectId: 'project-a' }
     );
     expect(scoped.map(item => item._id.toString())).toEqual([projectScoped._id.toString()]);
     await expect(cassetteService.getById(
@@ -245,7 +245,7 @@ describe('Cassette Management & Ownership', () => {
       effectivePermissions: {
         cassettes: [{
           level: 'write',
-          rule: { fact: 'primaryStatus', equals: 'CREATED2' }
+          rule: { fact: 'primaryState', equals: 'CREATED2' }
         }]
       }
     };
@@ -283,7 +283,7 @@ describe('Cassette Management & Ownership', () => {
       effectivePermissions: {
         cassettes: [{
           level: 'write',
-          rule: { fact: 'primaryStatus', equals: 'CREATED' }
+          rule: { fact: 'primaryState', equals: 'CREATED' }
         }]
       }
     };
