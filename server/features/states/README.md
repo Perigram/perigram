@@ -1,4 +1,4 @@
-# COMPONENT: Statuses Feature (v24 Standardized)
+# COMPONENT: States Feature (v24 Standardized)
 
 Centralized state management and audit logging system for all system entities.
 
@@ -80,12 +80,12 @@ Transitions are governed by declarative machines in `server/core/machines/`.
 For history, use the specific status service or API.
 
 ### Updating Status
-**NEVER** update `status` blocks manually. Always use the `statusService.transition()` from the machine engine.
+**NEVER** update `status` blocks manually. Always use the `stateService.transition()` from the machine engine.
 
 ```javascript
-import { statusService } from '~/server/core/machines/service';
+import { stateService } from '~/server/core/machines/service';
 
-await statusService.transition(
+await stateService.transition(
   'project', 
   project._id, 
   'ACTIVE', 
@@ -94,7 +94,7 @@ await statusService.transition(
   { note: 'Started production' }
 );
 
-await statusService.transition(
+await stateService.transition(
   'cassette_instance',
   instance._id,
   'MILLED',
@@ -111,10 +111,10 @@ await statusService.transition(
 ```
 
 ## Legacy Compatibility
-The `server/features/statuses/service.js` provides lightweight wrappers for v24 blocks but is largely superseded by `server/core/machines/service.js`. 
+The `server/features/states/service.js` provides lightweight wrappers for v24 blocks but is largely superseded by `server/core/machines/service.js`. 
 
 - `addStatus()`: Logs to `status_events`.
-- `getStatusHistory()`: Aggregates history from `status_events`.
+- `getStateHistory()`: Aggregates history from `status_events`.
 
 ## Related
 - [server/core/machines/README.md](../../core/machines/README.md) (Engine details)

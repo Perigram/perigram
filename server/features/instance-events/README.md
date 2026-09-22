@@ -43,7 +43,7 @@ contract.
 
 ## Producers
 
-- `POST /api/status/transition` publishes `updated` events for the transitioned
+- `POST /api/state/transition` publishes `updated` events for the transitioned
   entity and synchronous transition effect entities.
 - `useEntity()` publishes successful frontend CRUD mutations through
   `POST /api/instance-events` after the canonical API call succeeds.

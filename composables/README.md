@@ -25,7 +25,7 @@ sources load without false 401s.
 import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
 ```
 
-⚠️ **Restricted use**: Only imported by shared block components (`IdentityBlock.vue`, `InstanceStatus.vue`, `SpecsBlock.vue`). Entity cards and pages **must not** import directly — use the block components over the cached wire DTO instead. See [components/shared/README.md](../components/shared/README.md#critical-architectural-rule-blocks-vs-composables).
+⚠️ **Restricted use**: Only imported by shared block components (`IdentityBlock.vue`, `InstanceState.vue`, `SpecsBlock.vue`). Entity cards and pages **must not** import directly — use the block components over the cached wire DTO instead. See [components/shared/README.md](../components/shared/README.md#critical-architectural-rule-blocks-vs-composables).
 
 ---
 
@@ -93,14 +93,14 @@ preference implementation.
 
 ---
 
-## useStatusController
+## useStateController
 
 Direct bridge to the State Machine Engine. Used internally by `useEntity.changeStatus()`.
-All standard workflow transitions go through `POST /api/status/transition`.
+All standard workflow transitions go through `POST /api/state/transition`.
 Interactive status controls load server-authorized actions from
-`GET /api/status/actions`, so frontend components do not duplicate transition
+`GET /api/state/actions`, so frontend components do not duplicate transition
 permission checks.
-After a successful transition, `useStatusController` emits the same
+After a successful transition, `useStateController` emits the same
 browser-local entity sync event for the changed entity and any related entities
 returned in transition `effects`. Transition responses normalize effects as
 grouped arrays (`effects.entities`, `effects.tasks`, `effects.transitions`, and
@@ -108,7 +108,7 @@ grouped arrays (`effects.entities`, `effects.tasks`, `effects.transitions`, and
 event bridge.
 
 ```js
-const { transition, fetchActions, isTransitioning } = useStatusController();
+const { transition, fetchActions, isTransitioning } = useStateController();
 const actions = await fetchActions(type, id);
 await transition(type, id, newState, metadata);
 await transition(type, id, newState, {
@@ -123,7 +123,7 @@ await transition(type, id, newState, { region: 'qa' });
 
 ## Offline Mutations & Outbox
 
-On the client, `useEntity` CRUD, `useStatusController.transition`, and
+On the client, `useEntity` CRUD, `useStateController.transition`, and
 generated screen actions post through the outbox store (`stores/outbox.js`,
 backed by the IndexedDB queue and typed `OfflineQueuedError` in
 `utils/outbox.js`). Online calls pass through unchanged but carry an
@@ -165,15 +165,15 @@ fire everywhere except `/chats`. Closed-tab delivery is Web Push (see
 
 ---
 
-## useStatusHistory
+## useStateHistory
 
 Fetches and reactively manages the audit log (`status_events`) for an entity.
 
 ```js
-const { events, fetch } = useStatusHistory(type, id);
+const { events, fetch } = useStateHistory(type, id);
 ```
 
-Used by `<StatusHistory>` component.
+Used by `<StateHistory>` component.
 
 ---
 
@@ -259,7 +259,7 @@ controls backed by the domain UI endpoint registry. Submitted values are
 normalized into the action input path before posting to the process runtime.
 When a generated source comes from a role with several status-scoped grants for
 the same entity feature, `useGeneratedScreen` derives a role-local
-`primaryStatuses` list from the source requirement and passes it to
+`primaryStates` list from the source requirement and passes it to
 `useEntity.list()`. This keeps a multi-role user's role-specific screen from
 showing records that are only visible through another assigned role.
 

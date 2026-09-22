@@ -61,9 +61,9 @@ without restarting Tailwind.
 | `DataBlock` | Label/value rows for entity-specific DTO fields using `{ path, i18n, suffix?, prefix? }`. |
 | `SpecsBlock` | Standard width, length, area, sheet thickness, and foil thickness display. |
 | `StatusBadge` | Read-only status tag with shared status mapping. |
-| `InstanceStatus` | Interactive status display, workflow-derived transition actions, current location, and compact history popover. |
-| `StatusHistory` | Status audit timeline for lifecycle events. |
-| `StatusLocation` | Typed current lifecycle location from `status.lifecycle.data.location`. |
+| `InstanceState` | Interactive status display, workflow-derived transition actions, current location, and compact history popover. |
+| `StateHistory` | Status audit timeline for lifecycle events. |
+| `StateLocation` | Typed current lifecycle location from `status.lifecycle.data.location`. |
 | `TraceLink` | Icon-aware link to a related entity. |
 | `TraceChain` | Canonical lineage breadcrumb chain using `:entity`, not raw ancestry arrays. |
 | `ActionToolbar` | Responsive title/subtitle/action row for pages, sections, tab panels. |
@@ -133,7 +133,7 @@ shapes:
 - No manual `$fetch` for standard CRUD/status; use `useEntity`.
 - No direct rendering of `entity.identity.*` in templates when `IdentityBlock`
   fits.
-- No manual status rows or transition buttons outside `InstanceStatus`.
+- No manual status rows or transition buttons outside `InstanceState`.
 - No custom title/status row in entity cards unless `InstanceCard` slots cannot
   express the case.
 - No page-local hardcoded colors, radii, shadows, animation durations, max

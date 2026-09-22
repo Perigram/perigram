@@ -69,7 +69,7 @@ Status { state, userId, timestamp, metadata, eventId, lifecycle }
 
 Use `getPrimaryState(status)` and `getRegionState(status, regionId)` for reads;
 do not compare `status.state` directly to a string. Mongo filters use
-`status.state.primary` for the primary lifecycle.
+`states.main` for the primary lifecycle.
 
 `lifecycle` always serializes as `{ actors: [], attachments: {}, data: {} }`. Use it for current lifecycle facts such as assigned actors, state-specific attachment refs, and measured/captured state data. Do not use `metadata` for durable facts that must be queried, diffed, or updated independently.
 

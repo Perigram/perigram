@@ -63,7 +63,7 @@ migration. `migration-plan.js` owns the contract:
   re-targeting before activation would validate targets against machines
   that do not contain them yet. After the new contract is active, each
   affected instance is re-targeted through
-  `statusService.setInitialStateForOrganization` (initial-state semantics:
+  `stateService.setInitialStateForOrganization` (initial-state semantics:
   the `status_events` record carries `fromState: null`; the old→new mapping
   is preserved in the migration summary on the definition). The producer
   output whose machine contains the target state is resolved per write and
@@ -272,15 +272,15 @@ authorized as create operations by
 the process action itself before the created entity exists; the delegated
 entity service receives a temporary action-scoped create grant for that feature
 instead of requiring an already-existing status-scoped entity grant. After the
-record is created, create actions apply `action.status.to` through the status
+record is created, create actions apply `action.state.to` through the status
 runtime, treating it as the process initial state for that new record rather
 than a transition from the feature service default. When the compiled action
 status includes process-authored `label`, `color`/`severity`, or `icon`
 metadata, create and status-mutating update execution stores that display contract under
 `status.metadata.display`. Status-badge rendering for generated screens and shared entity cards is defined in [server/core/machines/README.md](../../core/machines/README.md).
 If an already-active compiled action was produced before that metadata was
-embedded, execution resolves the action `statusRef` or target status against
-the semantic `data.statusDefinitions` record and writes the same display
+embedded, execution resolves the action `stateRef` or target status against
+the semantic `data.stateDefinitions` record and writes the same display
 contract at runtime. This keeps existing active process definitions rendering
 the authored severity and icon without requiring an immediate compiled-runtime
 rebuild.

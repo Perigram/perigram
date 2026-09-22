@@ -46,6 +46,4 @@ warehouse material source; the machine boundary offset is the usable-area inset.
 
 ## Related
 
-- [queues](../queues/README.md) - stores nesting settings.
-- [nesting](../nesting/README.md) - solver operations and snapshots.
 - [tool-profiles](../tool-profiles/README.md) - kerf and cutter profile data.

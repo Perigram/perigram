@@ -50,7 +50,7 @@ noise.
   nesting request supplies a readable tool profile because `solveNesting`
   validates required command entities before checking queue contents.
 - `entity-actions.spec.js`: verifies user clicks on entity action buttons send
-  the expected command/API requests, verifies a generic shared `InstanceStatus`
+  the expected command/API requests, verifies a generic shared `InstanceState`
   transition against a project workflow, sheet-design DXF action downloads the
   generated artifact, cassette-template creation uses OCCS defaults, and the
   seeded sheet/template/design DXF export routes return real DXF content.

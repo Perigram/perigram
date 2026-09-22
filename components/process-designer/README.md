@@ -382,7 +382,7 @@ immutable status snapshot (`status.state` with the primary and nested
 axes, `userId`, `timestamp`, `metadata.note` from Change Status, and
 lifecycle evidence — `server/core/blocks/Status.js`), while the full
 transition history is an append-only `status_events` collection queried
-through the status service (`server/features/statuses/`). The snapshot
+through the status service (`server/features/states/`). The snapshot
 IS the "last" state for read efficiency; "first" is the earliest event —
 no embedded history arrays on entities.
 

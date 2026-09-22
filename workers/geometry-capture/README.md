@@ -97,4 +97,3 @@ explicitly.
 ## Related
 
 - [workers](../README.md)
-- [server/features/geometry-captures](../../server/features/geometry-captures/README.md)

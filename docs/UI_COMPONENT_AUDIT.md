@@ -146,49 +146,18 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-entities-artifact-artifactcard-vue` | `components/entities/Artifact/ArtifactCard.vue` | derived usage | compliant |
 | `ui-components-entities-artifact-artifactdetail-vue` | `components/entities/Artifact/ArtifactDetail.vue` | derived usage | centralize:layout (1) |
 | `ui-components-entities-artifacttemplate-artifacttemplatecard-vue` | `components/entities/ArtifactTemplate/ArtifactTemplateCard.vue` | derived usage | compliant |
-| `ui-components-entities-batchpile-batchpilecard-vue` | `components/entities/BatchPile/BatchPileCard.vue` | derived usage | compliant |
-| `ui-components-entities-batchpile-batchpilesummary-vue` | `components/entities/BatchPile/BatchPileSummary.vue` | derived usage | replace:chrome (4) |
 | `ui-components-entities-cassette-cassettecard-vue` | `components/entities/Cassette/CassetteCard.vue` | derived usage | compliant |
 | `ui-components-entities-cassettedesign-cassettedesigncard-vue` | `components/entities/CassetteDesign/CassetteDesignCard.vue` | derived usage | compliant |
-| `ui-components-entities-cassetteinstance-cassetteinstancecard-vue` | `components/entities/CassetteInstance/CassetteInstanceCard.vue` | derived usage | compliant |
-| `ui-components-entities-cassetteinstance-cassetteinstancedetail-vue` | `components/entities/CassetteInstance/CassetteInstanceDetail.vue` | derived usage | compliant |
 | `ui-components-entities-cassettetemplate-cassettetemplatecard-vue` | `components/entities/CassetteTemplate/CassetteTemplateCard.vue` | derived usage | compliant |
-| `ui-components-entities-catalog-catalogcard-vue` | `components/entities/Catalog/CatalogCard.vue` | derived usage | compliant |
-| `ui-components-entities-catalog-catalogdetail-vue` | `components/entities/Catalog/CatalogDetail.vue` | derived usage | compliant |
-| `ui-components-entities-color-colorcard-vue` | `components/entities/Color/ColorCard.vue` | derived usage | replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-entities-entityrevision-entityrevisioncard-vue` | `components/entities/EntityRevision/EntityRevisionCard.vue` | derived usage | compliant |
-| `ui-components-entities-facade-facadecard-vue` | `components/entities/Facade/FacadeCard.vue` | derived usage | compliant |
-| `ui-components-entities-facadepattern-facadepatterncard-vue` | `components/entities/FacadePattern/FacadePatternCard.vue` | derived usage | compliant |
-| `ui-components-entities-geometrycapture-geometrycapturecard-vue` | `components/entities/GeometryCapture/GeometryCaptureCard.vue` | derived usage | replace:chrome (5) |
-| `ui-components-entities-geometrycapture-geometrycapturedetail-vue` | `components/entities/GeometryCapture/GeometryCaptureDetail.vue` | derived usage | replace:chrome (17) |
-| `ui-components-entities-geometrycapture-photogeometryoverlay-vue` | `components/entities/GeometryCapture/PhotoGeometryOverlay.vue` | derived usage | replace:chrome (4) |
 | `ui-components-entities-layerstandard-layerstandardcard-vue` | `components/entities/LayerStandard/LayerStandardCard.vue` | derived usage | compliant |
-| `ui-components-entities-library-librarycard-vue` | `components/entities/Library/LibraryCard.vue` | derived usage | compliant |
-| `ui-components-entities-material-materialcard-vue` | `components/entities/Material/MaterialCard.vue` | derived usage | compliant |
-| `ui-components-entities-materialpile-materialsummary-vue` | `components/entities/MaterialPile/MaterialSummary.vue` | derived usage | compliant |
-| `ui-components-entities-materialpile-pilecard-vue` | `components/entities/MaterialPile/PileCard.vue` | derived usage | compliant |
-| `ui-components-entities-nestingrun-nestingruncard-vue` | `components/entities/NestingRun/NestingRunCard.vue` | derived usage | compliant |
 | `ui-components-entities-organization-organizationcard-vue` | `components/entities/Organization/OrganizationCard.vue` | derived usage | compliant |
 | `ui-components-entities-pentemplate-pentemplatecard-vue` | `components/entities/PenTemplate/PenTemplateCard.vue` | derived usage | replace:chrome (5); narrowly-allowlist:inline-data-driven (1) |
 | `ui-components-entities-profiletemplate-profiletemplatecard-vue` | `components/entities/ProfileTemplate/ProfileTemplateCard.vue` | derived usage | compliant |
-| `ui-components-entities-project-projectcard-vue` | `components/entities/Project/ProjectCard.vue` | derived usage | compliant |
-| `ui-components-entities-project-projectdetail-vue` | `components/entities/Project/ProjectDetail.vue` | derived usage | compliant |
-| `ui-components-entities-project-projectindexcard-vue` | `components/entities/Project/ProjectIndexCard.vue` | derived usage | centralize:layout (1); replace:chrome (16) |
-| `ui-components-entities-queue-queuecard-vue` | `components/entities/Queue/QueueCard.vue` | derived usage | compliant |
-| `ui-components-entities-queue-queuedetail-vue` | `components/entities/Queue/QueueDetail.vue` | derived usage | compliant |
-| `ui-components-entities-queue-queueentrycard-vue` | `components/entities/Queue/QueueEntryCard.vue` | derived usage | remove:important-override (2); compliant:scoped-layout |
-| `ui-components-entities-remnant-remnantcard-vue` | `components/entities/Remnant/RemnantCard.vue` | derived usage | compliant |
-| `ui-components-entities-remnant-remnantdetail-vue` | `components/entities/Remnant/RemnantDetail.vue` | derived usage | compliant |
-| `ui-components-entities-requisition-requisitioncard-vue` | `components/entities/Requisition/RequisitionCard.vue` | derived usage | compliant |
-| `ui-components-entities-requisition-requisitiondetail-vue` | `components/entities/Requisition/RequisitionDetail.vue` | derived usage | replace:chrome (2); narrowly-allowlist:inline-data-driven (1) |
-| `ui-components-entities-sheet-sheetcard-vue` | `components/entities/Sheet/SheetCard.vue` | derived usage | replace:chrome (3); narrowly-allowlist:inline-data-driven (2) |
-| `ui-components-entities-sheet-sheetdetail-vue` | `components/entities/Sheet/SheetDetail.vue` | derived usage | replace:chrome (8); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-entities-sheetdesign-sheetdesigncard-vue` | `components/entities/SheetDesign/SheetDesignCard.vue` | derived usage | compliant |
 | `ui-components-entities-sheetdesign-sheetdesigndetail-vue` | `components/entities/SheetDesign/SheetDesignDetail.vue` | derived usage | compliant |
 | `ui-components-entities-toolprofile-toolprofilecard-vue` | `components/entities/ToolProfile/ToolProfileCard.vue` | derived usage | compliant |
 | `ui-components-entities-user-usercard-vue` | `components/entities/User/UserCard.vue` | derived usage | compliant |
-| `ui-components-entities-warehouse-warehousecard-vue` | `components/entities/Warehouse/WarehouseCard.vue` | derived usage | compliant |
-| `ui-components-entities-warehouse-warehousedetail-vue` | `components/entities/Warehouse/WarehouseDetail.vue` | derived usage | compliant |
 | `ui-components-facadedesigner-vue` | `components/FacadeDesigner.vue` | derived usage | compliant |
 | `ui-components-facadepatterndesigner-vue` | `components/FacadePatternDesigner.vue` | derived usage | replace:chrome (9) |
 | `ui-components-footer-vue` | `components/Footer.vue` | derived usage | compliant |
@@ -266,11 +235,11 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-scrollablepanel-vue` | `components/shared/ScrollablePanel.vue` | derived usage | remove:important-override (3) |
 | `ui-components-shared-standarddialog-vue` | `components/shared/StandardDialog.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-standardpage-vue` | `components/shared/StandardPage.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-state-instancestate-vue` | `components/shared/state/InstanceState.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-state-statehistory-vue` | `components/shared/state/StateHistory.vue` | shared/domain primitive | centralize:layout (1); replace:chrome (3) |
+| `ui-components-shared-state-statelocation-vue` | `components/shared/state/StateLocation.vue` | shared/domain primitive | compliant |
+| `ui-components-shared-state-statetransitiondialog-vue` | `components/shared/state/StateTransitionDialog.vue` | derived usage | compliant |
 | `ui-components-shared-stateblock-vue` | `components/shared/StateBlock.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-status-instancestatus-vue` | `components/shared/status/InstanceStatus.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-status-statushistory-vue` | `components/shared/status/StatusHistory.vue` | shared/domain primitive | centralize:layout (1); replace:chrome (3) |
-| `ui-components-shared-status-statuslocation-vue` | `components/shared/status/StatusLocation.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-status-statustransitiondialog-vue` | `components/shared/status/StatusTransitionDialog.vue` | derived usage | compliant |
 | `ui-components-shared-supportmessagecontent-vue` | `components/shared/SupportMessageContent.vue` | derived usage | compliant |
 | `ui-components-shared-tableframe-vue` | `components/shared/TableFrame.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-threeviewport-vue` | `components/shared/ThreeViewport.vue` | shared/domain primitive | compliant |

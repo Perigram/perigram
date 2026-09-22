@@ -80,7 +80,7 @@ from any current queue state through a menu transition; admin users can restore
 archived queues to `DRAFT`.
 CNC workflows export the v2 workflow contract from `@cutkit/workflows`. Current
 CNC lifecycles use a single `main` region, so persisted entity status stores
-`status.state.primary` plus `status.state.active.main`; future independent
+`states.main` plus `status.state.active.main`; future independent
 lifecycle axes should add regions instead of overloading the primary state.
 Organization process definitions can compile entity profile lifecycles into
 runtime workflows that override these domain defaults for that organization.

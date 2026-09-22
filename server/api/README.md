@@ -51,8 +51,8 @@ Routes are grouped into sub-directories corresponding to features:
   The project list route returns authorized project DTOs with canonical
   identity, status, origin, lineage, safe project data, summary fields, and
   queue previews.
-  Collection routes for process-generated screens accept `primaryStatus` or
-  comma-separated `primaryStatuses` when a role screen is scoped to one or more
+  Collection routes for process-generated screens accept `primaryState` or
+  comma-separated `primaryStates` when a role screen is scoped to one or more
   lifecycle windows.
 - `process-definitions/`: Authenticated organization process definition CRUD,
   validation, activation, and archive endpoints. Activation compiles the visual

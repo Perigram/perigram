@@ -133,5 +133,4 @@ not available.
 
 ## Related
 
-- [nesting-runs](../nesting-runs/README.md) - parent process that produces sheet designs
 - [components](../../../components/README.md) - card/display contract

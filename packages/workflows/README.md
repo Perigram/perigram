@@ -92,4 +92,4 @@ transition `access.permissions` through their access layer.
 
 Transition objects may also carry UI-only presentation metadata such as
 `display: 'inline' | 'menu' | 'hidden'`. The workflow validator ignores this
-field; frontend adapters use it to place actions in `InstanceStatus`.
+field; frontend adapters use it to place actions in `InstanceState`.

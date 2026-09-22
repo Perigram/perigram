@@ -154,8 +154,8 @@ irregular, such as `library -> libraries`; do not add script-local exceptions.
 Non-entity capability directories must be added to the explicit capability list
 in `check-arch.js` and documented in `server/features/README.md`.
 
-The checker also blocks live entity UI that passes local `:status-actions`
-instead of relying on server-provided `InstanceStatus` workflow actions.
+The checker also blocks live entity UI that passes local `:state-actions`
+instead of relying on server-provided `InstanceState` workflow actions.
 
 `npm run agent:scope-check -- --base origin/local` is the mandatory guard for
 external top-layer agents before they commit or push. It is intentionally
