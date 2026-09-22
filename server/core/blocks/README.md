@@ -163,13 +163,23 @@ class BaseEntity {
   "relations": {},
   "provenance": {},
   "origin":  { "state", "userId", "timestamp", "metadata", "eventId", "lifecycle" },
-  "status":  { "state", "userId", "timestamp", "metadata", "eventId", "lifecycle" },
+  "states":  { "main", "userId", "timestamp", "metadata", "eventId", "lifecycle" } | null,
   "specs":   { "sheetThickness", "foilThickness", "width", "length", "area" } | null,
   "attachments": {},
   "data": {},
   "summary": {}
 }
 ```
+
+**Round-trip contract:** `toJSON()` is both the wire DTO and the persisted
+document shape — repositories store its output directly. The constructor
+therefore rehydrates the current `Status` block from persisted flat `states`
+(the `main` primary plus actor/timestamp/metadata evidence) whenever the
+document carries no `status` block, so a stored document round-trips
+losslessly instead of surfacing `states: null` on re-read. Documents that
+still carry a pre-migration `status` block parse unchanged, and `origin`
+always round-trips as a block. Wire and storage speak `states`; the `Status`
+block is the in-memory form and never leaks to the wire.
 
 **Rules for subclasses:**
 - Call `super.toJSON()` and spread it only when replacing a canonical block, for example to remove private fields from `data`.

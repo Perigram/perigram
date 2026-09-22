@@ -29,7 +29,9 @@ registry refusal. Target contract:
 - `@perigram/cts` diff classifies changes: additive-nullable/added-edge are
   minor bumps; rename/remove/retype are breaking and require declared steps
   (today `diff.js` refuses breaking changes outright for types with
-  persisted instances).
+  persisted instances). Classification over the row, the state enum, and
+  children edges is complete (`add-state`/`add-edge` included); rename
+  intent stays a declared step, never an inference from the diff.
 - The step language is declarative and total, per SPEC §11: rename,
   add default, remove, retype via expression. A breaking diff without a
   declared migration is a compile error (R7), not a script someone

@@ -71,6 +71,12 @@ declared lineage slots, entity types, and attachment kinds.
 `regions`; compare states through `getPrimaryState()` or `getRegionState()`
 rather than reading `status.state` as a string.
 
+`BaseEntity.toJSON()` projects the current status block onto flat wire
+`states` (`main` primary plus transition evidence), and the constructor
+rehydrates the block from persisted `states`, so stored documents round-trip
+losslessly — the canonical round-trip contract lives in
+[server/core/blocks](../../server/core/blocks/README.md).
+
 ## Related
 
 - [server/core/blocks](../../server/core/blocks/README.md)

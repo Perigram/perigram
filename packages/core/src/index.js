@@ -593,7 +593,15 @@ export class BaseEntity {
     this.relations = new Relations(raw.relations || {});
     this.provenance = new Provenance(raw.provenance || {});
     this.origin = raw.origin?.state ? new Status(raw.origin.state, raw.origin.userId, raw.origin.metadata, raw.origin.eventId, raw.origin.timestamp, raw.origin.lifecycle) : null;
-    this.status = raw.status?.state ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId, raw.status.timestamp, raw.status.lifecycle) : null;
+    // Storage round-trip (canonical contract in server/core/blocks/README.md):
+    // toJSON() is the persisted document shape, so the current status block
+    // rehydrates from flat persisted `states` when the document carries no
+    // `status` block; pre-migration block documents keep parsing unchanged.
+    this.status = raw.status?.state
+      ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId, raw.status.timestamp, raw.status.lifecycle)
+      : (raw.states?.main
+          ? new Status(raw.states.main, raw.states.userId, raw.states.metadata, raw.states.eventId, raw.states.timestamp, raw.states.lifecycle)
+          : null);
     this.specs = raw.specs ? new Specs(raw.specs) : null;
     this.attachments = raw.attachments || {};
     this.data = raw.data || {};
