@@ -176,7 +176,8 @@ Shared frontend utility modules used by Vue pages/components.
 ## Utility Protocol
 
 Keep utilities pure: they should not call `$fetch`, mutate Pinia stores, or own
-component state. Cross-entity generated data belongs in `test-data/scenarios.js`;
+component state. Cross-entity generated data belongs in the
+[test-data workbench context](../test-data/README.md);
 stateful workbench flows belong in stores/composables; backend writes belong in
 server feature services and repositories.
 

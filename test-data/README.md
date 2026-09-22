@@ -137,12 +137,10 @@ saved Cassette Designer v2 templates can feed the nesting command through the
 normal queue input. Default manual drafts only fill name and workflow state;
 entity references must be selected explicitly.
 
-`scenarios.js` composes factory DTOs into the base coherent CNC graph and uses
-the default OCCS cassette template from `utils/occs/templates.js` for
-`refs.cassetteTemplate`.
-The context helper projects that graph to a scenario shape only when the seed
-endpoint needs collection arrays for persistence. Scenario generation owns
-cross-entity consistency; individual factories remain low-level DTO
+The legacy `scenarios.js` demo-graph composer was deleted with the entity-era
+CNC vocabulary (SPEC §19 abandoned data). The context helper
+(`contextToScenario`) projects workbench context entities to the collection
+arrays the seed endpoint persists; individual factories remain low-level DTO
 constructors and should not grow random/default entity methods.
 
 Scenario statuses are derived from the compiled workflow draft passed by the
