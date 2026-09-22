@@ -116,7 +116,10 @@ that workspace (the image bakes a global git identity for it).
   The editor UI therefore targets the editor's own published origin
   (`http://localhost:4310`), where its `/collab` socket is served
   natively — framing it same-origin through the app killed the Nuxt dev
-  server with an unsurvivable websocket reconnect storm.
+  server with an unsurvivable websocket reconnect storm. As a last line
+  of defense for stale editor sessions that still dial the app origin,
+  `server/routes/collab.js` answers `/collab` with an immediate 501
+  instead of an SSR error page.
 - Realtime integration with the connections layer is intentionally
   absent: OpenKnowledge has no event contract to fan out.
 
