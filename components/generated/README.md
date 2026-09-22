@@ -257,7 +257,10 @@ Discord-style operational shell:
   self-scrolling wrapper. The tree renders the TYPE hierarchy from the
   render contracts: registry containment (declared children edges) nests
   types under their parents, manifest-backed types plus their ancestors
-  render as nodes (registry render label + icon), and a type's home-section
+  render as nodes (the single generator label seam —
+  `useLocalizedTypeLabel` over the bundle type, so design-system entity
+  contracts win before the authored render label — plus the render-policy
+  icon), and a type's home-section
   instances hang beneath it. Root types — authored classes and groups —
   are selectable: clicking any type node opens its compiled `typeList`
   screen as a pane tab (`GeneratedScreenPane`, below), never a separate
@@ -326,7 +329,11 @@ Discord-style operational shell:
   selected tab in place (replacing an empty placeholder like any content), and
   opening an item that already has a tab in the pane just selects it. Each
   tab keeps its own selected content while switching because pane tab keys
-  and the selected key are persisted pane state.
+  and the selected key are persisted pane state. Entity tab titles follow
+  the render identity contract (the loaded DTO through
+  `dtoToScreenInstance` plus `instanceIdentity` from the mapping
+  contract), so the declared identity field wins and raw ids never
+  render; type-screen tabs carry their compiled manifest label.
 - Tab and pane state persists as versioned browser UI state scoped to the
   current user and organization (`utils/home-workspace-state.js`). It stores
   the pane tree, tab selections, opened entity references, and opened page

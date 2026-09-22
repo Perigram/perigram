@@ -315,7 +315,9 @@ type's containment child is not a root; structural ancestors without a
 compiled screen are folders, not tabs). The selection is shared app
 state: the app-shell bottom bar writes it and highlights it, the home
 workspace's mobile branch renders the selected screen, and an unknown
-or unset key resolves to the first tab. Chats is not part of this
+or unset key resolves to the first tab. Tab labels follow the single
+generator label seam (`useLocalizedTypeLabel` over the bundle type),
+never the raw bundle field. Chats is not part of this
 contract — it stays the bar's own route tab navigating `/chats`.
 
 ---
