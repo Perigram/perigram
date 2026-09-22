@@ -266,6 +266,12 @@ Auth hydration resolves the active organization assignment against that
 contract on every request, so editing a team assignment does not mutate or
 recompile the active process and a draft can never overwrite assignments.
 
+`findTypeReferences(organizationId, typeId)` is the blast-radius probe type
+authoring consumes before destructive changes (see
+[cts-types](../cts-types/README.md)): it lists the org's non-archived
+definitions whose nodes, screens, or draft declaration children edges
+bind a CTS type.
+
 ## Manual action execution
 
 Manual generated-screen actions execute through the active process definition,

@@ -264,7 +264,7 @@ declaration bytes.
   intact (round-trip spec); edit propagates to other binders after
   apply; hollowing-class specs pin it.
 
-### Phase 3 — Apply grows teeth `[ ]`
+### Phase 3 — Apply grows teeth `[x]`
 
 The posting verb becomes the flagship moment: post a revised traveler,
 see the diff.
@@ -277,6 +277,31 @@ see the diff.
   promoted from note to gate).
 - Acceptance: apply with orphaned instances fails closed; diff lists
   binders and affected stations.
+
+#### Agent Notes — 2026-09-22 (phase 3, delete ceremony + blast radius)
+
+- `removeType` (`server/features/cts-types`) now diffs the removal
+  against reality: living instances (per-class collection probe) AND
+  non-archived process definitions binding the type. Non-empty blast
+  radius refuses with 409 `{ instances, boundBy }`; explicit
+  `abandon: true` proceeds and records the ceremony (counts, actor,
+  timestamp) on the org contract-change event and in the response —
+  SPEC §19 promoted from note to gate.
+- `findTypeReferences(organizationId, typeId)` added to
+  process-definitions service (structural scan: nodes, screens, draft
+  declaration children edges; mirrors `findRoleReferences`).
+- Route `DELETE /api/admin/cts/types/:id` accepts `?abandon=true` and
+  the session actor; the types pane surfaces the 409 payload as a
+  second explicit abandon confirm (i18n en+ru).
+- Residual (tracked, not blocking): the EDIT path's breaking-change
+  refusal in `defineType` does not yet attach the binder list to its
+  400 — binder visibility today is delete-path only. Fold into the
+  Phase 3 follow-up or the apply-diff work when Phase 4's compiler
+  inference lands (both touch the same diff surface).
+- Validation: cts-types spec (16, incl. 3 new gate/ceremony cases),
+  localization spec, arch guard, docs guard.
+
+Status: WAITING.
 
 ### Phase 4 — Optics by inference only `[ ]`
 

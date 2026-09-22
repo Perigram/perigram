@@ -38,7 +38,17 @@ strangler layer 0 of the designer rebuild (see
   compiler, not a script to remember. This boundary serves org-authored
   declarations; system/pack type changes are deploy-time code edits whose
   instance migrations remain deploy concerns.
-  `removeType` deletes org declarations only.
+  `removeType` deletes org declarations only, as a ceremony: the removal
+  diffs against reality first — living instances (the per-class
+  collection probe) and non-archived process definitions that bind the
+  type (`findTypeReferences` in
+  [process-definitions](../process-definitions/README.md) scans nodes,
+  screens, and draft declaration children edges). A non-empty blast
+  radius refuses with `409` carrying `{ instances, boundBy }`; the
+  caller's explicit `abandon: true` (route: `?abandon=true`, actor from
+  the session) proceeds and records the abandonment — instance/binder
+  counts, actor, timestamp — on the org contract-change event and in
+  the response (SPEC §19 abandoned data, promoted to a gate).
 - `describeOrganizationTypes` returns the compiled client bundle (types,
   states, operators, render policy, JSON Schemas) plus attachment-kind
   payload traits and the composed pack editor bindings (SPEC §21: each
