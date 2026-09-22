@@ -239,8 +239,11 @@ The type catalog completes the Types group: `typeCatalogPaletteGroups`
 projects the registry view into construct items — one bound construct
 per constructible type, plus one variant per declared construct
 operator — so types and their operators are draggable composables,
-refreshed from the registry with the designer contract. A dropped variant
-seeds the record's construction mode from its `via`.
+refreshed from the registry with the designer contract. A dropped
+variant seeds the record's `construction.mode` directly (the one
+authored spelling; the v4 executable contract derives its `via` at the
+lowering seam, and legacy draft records that still carry `via` adopt
+it as `construction.mode` and drop the stale key on the first sync).
 
 The Types palette ends with **Join producer paths** (`cts.join`), the
 one legal convergence point for same-type producer paths: activation

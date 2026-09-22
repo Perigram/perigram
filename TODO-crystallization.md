@@ -202,7 +202,7 @@ verify in Phase 1.
 
 Status: WAITING.
 
-### Phase 1 — One spelling `[ ]`
+### Phase 1 — One spelling `[x]`
 
 Kill dual vocabularies. Same expressiveness, one serialization.
 
@@ -215,6 +215,34 @@ Kill dual vocabularies. Same expressiveness, one serialization.
 - Delete fallback reads and reconciliation logic.
 - Acceptance: old spellings absent from `src` (archives excluded);
   designer round-trip specs green.
+
+#### Agent Notes — 2026-09-22 (phase 1 complete)
+
+`construction.mode` is the one authored spelling; `via` survives only
+as (a) the v4 executable-contract vocabulary at the lowering seam and
+(b) a legacy input the sync/load seams adopt and delete.
+
+- Palette presets carry `construction: { mode }`
+  (`typeCatalogPaletteGroups`); the drop replace also fixes a latent
+  defect where a non-default preset variant lost to the factory's
+  `genericCreate` default.
+- `updateProcessNodeConstructionMode` writes one spelling; inspector
+  and page reads dropped the `?? via` fallbacks; the node factory's
+  duplicate `via` write is gone.
+- `syncProcessNodeConstruction` adopts a legacy `via` and deletes the
+  key (drafts self-clean; saves persist one spelling); the
+  `migrate-construction-modes` script writes `construction.mode` and
+  strips `via`.
+- `entityType`-era tautologies collapsed in `compiler-core.js`
+  (`'typeList' || 'typeList'`, `typeId || typeId`, and the
+  `instanceDetail` twin).
+- Specs updated to the one spelling; new legacy-self-clean case in
+  `useProcessDesignerNodeSync.spec.js`. Validation: 9 focused suites
+  (109 tests), `packages/processes` + `packages/cts/src/compat`
+  (476 pass; 2 `ui-contract.spec` failures are pre-existing on
+  `local`, verified by baseline run), arch guard, docs guard.
+
+Status: WAITING.
 
 ### Phase 2 — Kill copies (reference, not copy) `[ ]`
 
