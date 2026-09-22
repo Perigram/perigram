@@ -12,13 +12,13 @@ import { useSupportChatStore } from '~/stores/supportChat';
  * The sidebar communication menu: Chats, Knowledge, and Calls as proper
  * PrimeVue TieredMenu items. The Calls submenu lists every direct/group
  * conversation and rings it. Knowledge opens the org-wide OpenKnowledge
- * editor through its authenticated proxy, and only appears for users the
+ * editor as a home-workspace tab, and only appears for users the
  * knowledge service admits. Ongoing rooms are NOT listed here — they live
  * as persistent sidebar rows (see the generated home workspace sidebar) and
  * brand-new invites float through the global IncomingCalls surface. Data
  * comes from the auth/support stores; actions are delegated through events.
  */
-const emit = defineEmits(['open-chats', 'start-call']);
+const emit = defineEmits(['open-chats', 'open-knowledge', 'start-call']);
 
 const { t } = useI18n();
 const supportChatStore = useSupportChatStore();
@@ -49,7 +49,7 @@ const items = computed(() => [
     ? [{
         label: t('knowledge.title'),
         icon: 'pi pi-book',
-        command: () => window.open('/api/knowledge/proxy/', '_blank')
+        command: () => emit('open-knowledge')
       }]
     : []),
   {

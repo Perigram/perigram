@@ -17,4 +17,16 @@ test.describe('knowledge service', () => {
             expect(info.url).toBe('/api/knowledge/proxy/');
         }
     });
+
+    test('sidebar entry opens the editor workspace tab', async ({ app }) => {
+        await app.gotoClient('/screens');
+        const entry = app.page.locator('li[role="menuitem"]', { hasText: 'Knowledge' }).first();
+        await expect(entry).toBeVisible();
+        await entry.click();
+        const editor = app.page.locator('iframe[data-knowledge-editor]');
+        await expect(editor).toBeVisible();
+        expect(await editor.getAttribute('src')).toBe('/api/knowledge/proxy/');
+        const proxied = await app.request.get('/api/knowledge/proxy/');
+        expect(proxied.ok()).toBeTruthy();
+    });
 });

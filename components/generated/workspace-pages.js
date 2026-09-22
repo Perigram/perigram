@@ -1,5 +1,6 @@
 import ChatSupport from '~/components/ChatSupport.vue';
 import CallWorkspacePage from '~/components/calls/CallWorkspacePage.vue';
+import KnowledgeWorkspacePage from '~/components/knowledge/KnowledgeWorkspacePage.vue';
 import { fileWorkspacePages } from '~/components/generated/file-surfaces.js';
 
 // Entity-bound editor pages (for example the cassette designer) derive
@@ -34,6 +35,12 @@ export const generatedWorkspacePages = [
       room: page.room,
       conversationKey: page.conversationKey || ''
     })
+  },
+  {
+    id: 'knowledge',
+    labelKey: 'knowledge.title',
+    icon: 'pi pi-book',
+    component: KnowledgeWorkspacePage
   }
 ];
 
