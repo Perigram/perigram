@@ -19,9 +19,18 @@
       </div>
     </div>
 
-    <div class="min-h-0 flex-1 overflow-auto">
+    <div class="min-h-0 flex-1 overflow-auto p-4">
       <StateBlock v-if="loading" state="loading" :message="$t('common.loading')" />
       <StateBlock v-else-if="notFound" state="error" :message="$t('generatedScreen.notFound')" />
+      <!-- typeList screens render through the ui-mapping engine — the
+           same CTS render contract as the routed surface — and emit
+           instance opens to the workspace instead of routing. -->
+      <GeneratedTypeScreen
+        v-else-if="resolvedScreen.template === 'typeList'"
+        :screen="resolvedScreen"
+        @open-instance="instance => $emit('open-entity', { typeId: instance.type, entity: { _id: instance.id } })"
+        @refresh="$emit('refresh')"
+      />
       <GeneratedScreen v-else :screen="resolvedScreen" @refresh="$emit('refresh')" />
     </div>
   </section>
@@ -31,10 +40,12 @@
 // The workspace pane adapter for an opened type screen: the compiled
 // typeList screen of a sidebar type node renders inside the active pane
 // tab. The manifest record resolves by screenKey exactly like the routed
-// surface (pages/screens/[screenKey].vue); GeneratedScreen owns its own
-// action execution and dialogs, so the pane adds only the tab chrome.
+// surface (pages/screens/[screenKey].vue); typeList bodies render through
+// the shared GeneratedTypeScreen host, everything else keeps the legacy
+// renderer with its own action execution and dialogs.
 import { computed } from 'vue';
 import GeneratedScreen from '~/components/generated/GeneratedScreen.vue';
+import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
 import GeneratedWorkspaceTabs from '~/components/generated/GeneratedWorkspaceTabs.vue';
 import GeneratedWorkspacePaneMenu from '~/components/generated/GeneratedWorkspacePaneMenu.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
@@ -47,7 +58,7 @@ const props = defineProps({
   splittable: { type: Boolean, default: true }
 });
 
-defineEmits(['refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close']);
+defineEmits(['refresh', 'select-tab', 'close-tab', 'add-tab', 'split', 'close', 'open-entity']);
 
 const authStore = useAuthStore();
 

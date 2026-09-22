@@ -477,7 +477,10 @@ describe('Design system manifest', () => {
     expect(fontsCss).not.toContain('.ck-prose');
     expect(dataBlock).toContain('text-technical');
     expect(actionToolbar).toContain("props.level <= 1 ? 'text-page-title' : 'text-section-heading'");
-    expect(artifactViewer).toContain('text-technical');
+    // Document previews read in the app's prose voice (serif), not the
+    // technical mono role.
+    expect(artifactViewer).toContain('text-prose');
+    expect(artifactViewer).not.toContain('text-technical');
     expect(artifactTextEditor).toContain('text-prose');
     expect(supportMessageContent).not.toContain('text-prose');
   });
@@ -788,8 +791,7 @@ describe('Design system manifest', () => {
     expect(generatedCassetteAction).not.toContain('visible.value = false;\n  emit(\'refresh\')');
   });
 
-  it('keeps generated home cards as horizontal carousel items', () => {
-    const generatedHome = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedHomeScreen.vue'), 'utf8');
+  it('keeps generated collection cards as horizontal carousel items', () => {
     const generatedCollection = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedInstanceCollection.vue'), 'utf8');
     const relationsBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceRelationsBlock.vue'), 'utf8');
     const surfaceContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceSurfaceContent.vue'), 'utf8');
@@ -798,15 +800,9 @@ describe('Design system manifest', () => {
     const entityPreview = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstancePreview.vue'), 'utf8');
     const cassetteThumbnail = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteThumbnail.vue'), 'utf8');
 
-    expect(generatedHome).toContain('overflow-x-auto');
-    expect(generatedHome).toContain('shrink-0');
-    expect(generatedHome).toContain('suppress-child-summaries');
-    expect(generatedHome).toContain('relation-variant="compact"');
-    expect(generatedHome).toContain('instanceEditorActionFor');
     expect(generatedCollection).toContain('suppress-child-summaries');
     expect(generatedCollection).toContain('relation-variant="compact"');
     expect(generatedCollection).toContain('instanceEditorActionFor');
-    expect(generatedHome).toContain('pi pi-external-link');
     expect(generatedCollection).toContain('pi pi-external-link');
     expect(relationsBlock).toContain('overflow-x-auto');
     expect(relationsBlock).toContain('instance-relations-gallery--compact');
@@ -840,14 +836,6 @@ describe('Design system manifest', () => {
     expect(fs.readFileSync(path.join(REPO_ROOT, 'components/shared/GeometryPreview.vue'), 'utf8')).toContain('isProductionPreviewLayer');
     expect(fs.readFileSync(path.join(REPO_ROOT, 'components/shared/GeometryPreview.vue'), 'utf8')).toContain('isDimensionLayerName');
     expect(cassetteThumbnail).toContain("name !== 'dimension.cassette'");
-    expect(generatedHome).not.toContain('min-w-64 max-w-72');
-  });
-
-  it('keeps generated Home layout sizing off variant entity-card roots', () => {
-    const generatedHome = fs.readFileSync(path.join(REPO_ROOT, 'components/generated/GeneratedHomeScreen.vue'), 'utf8');
-
-    expect(generatedHome).toContain('class="w-[18rem] min-w-[18rem] flex-none"');
-    expect(generatedHome).not.toMatch(/<InstanceCard\s+class=/);
   });
 
   it('keeps queue entity controls scoped to the concrete queue', () => {

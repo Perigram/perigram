@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-0 min-w-0 flex-1 overflow-auto" data-artifact-viewer :data-viewer-mode="mode">
+  <div class="min-h-0 min-w-0 flex-1 overflow-hidden" data-artifact-viewer :data-viewer-mode="mode">
     <DrawingCanvas
       v-if="hasFile && ['dxf', 'svg'].includes(mode)"
       :source="fileUrl"
@@ -21,14 +21,24 @@
       :scale-dimension-text="false"
     />
     <img v-else-if="hasFile && mode === 'image'" :src="blobUrl || fileUrl" class="mx-auto block max-h-full max-w-full object-contain" :alt="artifactName">
-    <iframe v-else-if="hasFile && mode === 'pdf'" :src="blobUrl || fileUrl" class="h-full min-h-[32rem] w-full border-0" :title="artifactName || 'PDF'" />
-    <div v-else-if="hasFile && mode === 'docx'" ref="docxHost" class="min-h-[32rem] bg-white p-6 text-black" />
+    <iframe v-else-if="hasFile && mode === 'pdf'" :src="blobUrl || fileUrl" class="h-full w-full border-0" :title="artifactName || 'PDF'" />
+    <!-- The Word document keeps its own document-native scrolling surface
+         (like the PDF iframe); every other mode fits its bounds without a
+         scroll container. -->
+    <div v-else-if="hasFile && mode === 'docx'" ref="docxHost" class="h-full overflow-y-auto bg-white p-6 text-black" />
     <TableFrame v-else-if="hasFile && ['table', 'workbook'].includes(mode) && rows.length">
-      <DataTable :value="rows" scrollable scroll-height="flex" size="small">
+      <DataTable :value="rows" :rows="TABLE_PAGE_ROWS" paginator size="small">
         <Column v-for="column in columns" :key="column" :field="column" :header="column" />
       </DataTable>
     </TableFrame>
-    <pre v-else-if="hasFile && mode === 'text'" class="whitespace-pre-wrap break-words p-4 text-technical">{{ text }}</pre>
+    <!-- Text previews render as prose (serif, the app's document voice);
+         markdown documents render sanitized HTML, plain text keeps its
+         line breaks. The preview never scrolls — long content clamps. -->
+    <div v-else-if="hasFile && mode === 'text'" class="h-full overflow-hidden p-4 text-prose">
+      <!-- eslint-disable-next-line vue/no-v-html -- sanitized below -->
+      <div v-if="renderedText" class="line-clamp-[12] break-words" v-html="renderedText" />
+      <p v-else class="line-clamp-[12] m-0 whitespace-pre-wrap break-words">{{ text }}</p>
+    </div>
     <StateBlock v-else-if="!hasFile" state="empty" :message="$t('artifacts.previewUnavailable')" />
     <StateBlock v-else-if="error" state="error" :message="error" />
     <StateBlock v-else state="empty" :message="$t('artifacts.previewUnavailable')" />
@@ -38,11 +48,14 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import * as XLSX from 'xlsx';
+import DOMPurify from 'dompurify';
+import { marked } from 'marked';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import TableFrame from '~/components/shared/TableFrame.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
+import { TABLE_PAGE_ROWS } from '#shared/ui-mapping/index.js';
 
 import { resolveArtifactViewer } from '~/utils/artifact-viewer.js';
 
@@ -81,6 +94,13 @@ const mimeType = computed(() => props.source?.attachment?.mime
   || props.revision?.attachments?.primary?.metadata?.mimeType
   || props.artifact?.attachments?.primary?.metadata?.mimeType
   || 'application/octet-stream');
+const isMarkdown = computed(() => (
+  mimeType.value === 'text/markdown' || /\.md$/i.test(artifactName.value || '')
+));
+const renderedText = computed(() => {
+  if (!isMarkdown.value || !text.value || typeof window === 'undefined') return '';
+  return DOMPurify.sanitize(marked.parse(text.value));
+});
 
 function releaseBlob() {
   if (blobUrl.value) URL.revokeObjectURL(blobUrl.value);

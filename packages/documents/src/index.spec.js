@@ -19,6 +19,9 @@ describe('documents pack declarations', () => {
     const renderable = ['dxf', 'svg', 'sketch', 'image', 'pdf', 'docx', 'table', 'workbook', 'text'];
     const byId = new Map(documentsTypes.map(type => [type.id, type.payload.preview]));
     for (const [id, preview] of byId) {
+      // 'download' marks types without a reasonable bounded preview —
+      // Word documents degrade to a payload download.
+      if (preview === 'download') continue;
       expect(renderable, id).toContain(preview);
     }
     expect(Object.fromEntries(byId)).toEqual({
@@ -27,7 +30,7 @@ describe('documents pack declarations', () => {
       'text-document': 'text',
       'csv-table': 'table',
       'xlsx-workbook': 'workbook',
-      'docx-document': 'docx'
+      'docx-document': 'download'
     });
   });
 
@@ -38,8 +41,10 @@ describe('documents pack declarations', () => {
   });
 
   it('restricts payload traits to the declared document kinds', () => {
+    // Text documents are markdown by default: the rich text editor
+    // surface converts HTML <-> markdown on save/load.
     const text = documentsTypes.find(type => type.id === 'text-document');
-    expect(text.payload).toMatchObject({ mime: ['text/plain'], maxSize: 10 * 1024 * 1024 });
+    expect(text.payload).toMatchObject({ mime: ['text/markdown'], maxSize: 10 * 1024 * 1024 });
     const image = documentsTypes.find(type => type.id === 'image');
     expect(image.payload).toMatchObject({ mime: ['image/jpeg', 'image/png'], maxSize: 25 * 1024 * 1024 });
   });

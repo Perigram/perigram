@@ -24,6 +24,7 @@
     :closeable="closeable"
     :splittable="splittable"
     @refresh="$emit('refresh')"
+    @open-entity="request => $emit('open-entity', request)"
     @select-tab="$emit('select-tab', $event)"
     @close-tab="$emit('close-tab', $event)"
     @add-tab="$emit('add-tab', $event)"
