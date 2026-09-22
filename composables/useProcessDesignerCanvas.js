@@ -181,6 +181,14 @@ export function useProcessDesignerCanvas({
     fitView({ nodes: ids, padding: 0.3, duration: 180 });
   }
 
+  // Diagnostic focus frames the responsible element into view — the same
+  // framing contract frame-selection uses, addressed by node ids.
+  function frameNodeIds(ids = []) {
+    const unique = [...new Set(ids.map(id => String(id || '')).filter(Boolean))];
+    if (!unique.length) return;
+    fitView({ nodes: unique, padding: 0.3, duration: 180 });
+  }
+
   function zoomCanvasIn() {
     zoomIn({ duration: 120 });
   }
@@ -221,6 +229,7 @@ export function useProcessDesignerCanvas({
     nextNodePosition,
     frameAllNodes,
     frameSelectedNodes,
+    frameNodeIds,
     zoomCanvasIn,
     zoomCanvasOut,
     resetCanvasZoom,

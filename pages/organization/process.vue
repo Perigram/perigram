@@ -766,6 +766,53 @@ const {
 });
 
 const {
+  deleteGraphSelection,
+  selectedGraphEdges,
+  selectedGraphNodes
+} = useProcessDesignerGraphEditing({
+  draft,
+  nodes,
+  edges,
+  selectedNode,
+  selectedNodeId,
+  selectedEdgeId,
+  recordKeyForType,
+  onGraphChange: () => syncNodeData()
+});
+
+const {
+  canvasFrame,
+  touchPanDrag,
+  handleDesignerPointerDown,
+  handleDesignerFocus,
+  handleDesignerWheel,
+  beginSocketConnection,
+  endSocketConnection,
+  clientPoint,
+  clientToGraphPosition,
+  nextNodePosition,
+  frameAllNodes,
+  frameSelectedNodes,
+  frameNodeIds,
+  zoomCanvasIn,
+  zoomCanvasOut,
+  resetCanvasZoom,
+  fitInitialCanvas,
+  snapshotViewport
+} = useProcessDesignerCanvas({
+  nodes,
+  edges,
+  draft,
+  selectedNodeId,
+  selectedEdgeId,
+  selectedGraphNodes,
+  selectedGraphEdges,
+  deleteGraphSelection,
+  clearGraphSelection,
+  decorateEdge: value => decorateEdge(value)
+});
+
+const {
   dataflowPreview,
   previewingData,
   validationDiffLines,
@@ -789,7 +836,8 @@ const {
   nodes,
   edges,
   selectNode,
-  selectEdge
+  selectEdge,
+  frameNodeIds
 });
 
 const {
@@ -818,52 +866,6 @@ const {
 });
 
 const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen, normalizeScreenContract, defaultTypeId, featureForTypeId });
-
-const {
-  deleteGraphSelection,
-  selectedGraphEdges,
-  selectedGraphNodes
-} = useProcessDesignerGraphEditing({
-  draft,
-  nodes,
-  edges,
-  selectedNode,
-  selectedNodeId,
-  selectedEdgeId,
-  recordKeyForType,
-  onGraphChange: () => syncNodeData()
-});
-
-const {
-  canvasFrame,
-  touchPanDrag,
-  handleDesignerPointerDown,
-  handleDesignerFocus,
-  handleDesignerWheel,
-  beginSocketConnection,
-  endSocketConnection,
-  clientPoint,
-  clientToGraphPosition,
-  nextNodePosition,
-  frameAllNodes,
-  frameSelectedNodes,
-  zoomCanvasIn,
-  zoomCanvasOut,
-  resetCanvasZoom,
-  fitInitialCanvas,
-  snapshotViewport
-} = useProcessDesignerCanvas({
-  nodes,
-  edges,
-  draft,
-  selectedNodeId,
-  selectedEdgeId,
-  selectedGraphNodes,
-  selectedGraphEdges,
-  deleteGraphSelection,
-  clearGraphSelection,
-  decorateEdge: value => decorateEdge(value)
-});
 
 const {
   contextPalette,

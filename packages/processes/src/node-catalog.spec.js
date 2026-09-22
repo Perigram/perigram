@@ -132,6 +132,24 @@ describe('process v4 node catalog', () => {
     expect(automaticModify.inputs.map(input => input.id)).toEqual(['in', 'entity', 'identity', 'status.state.primary']);
   });
 
+  it('keeps the identity block optional when the name row authors identity (composer-less construct)', () => {
+    const context = { domain: {} };
+    const withNameRow = resolveCatalogNodePorts({
+      kind: 'effect.createEntity',
+      typeId: 'widget',
+      blocks: ['identity'],
+      construction: { mode: 'genericCreate', inputs: [{ id: 'name', type: 'string', required: true }] }
+    }, context);
+    expect(withNameRow.inputs.find(input => input.id === 'identity')?.required).toBe(false);
+    const withoutNameRow = resolveCatalogNodePorts({
+      kind: 'effect.createEntity',
+      typeId: 'widget',
+      blocks: ['identity'],
+      construction: { mode: 'genericCreate', inputs: [] }
+    }, context);
+    expect(withoutNameRow.inputs.find(input => input.id === 'identity')?.required).toBe(true);
+  });
+
   it('exposes declared row fields as construction sockets on the composer-less construct', () => {
     const context = { domain: {} };
     const rowCreate = resolveCatalogNodePorts({

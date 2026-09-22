@@ -17,7 +17,8 @@ export function useProcessDesignerPreview({
   nodes,
   edges,
   selectNode,
-  selectEdge
+  selectEdge,
+  frameNodeIds = () => {}
 } = {}) {
   const dataflowPreview = ref(null);
   const previewingData = ref(false);
@@ -109,19 +110,24 @@ export function useProcessDesignerPreview({
   }
 
   // Apply focus: the first structured diagnostic with a graph anchor selects
-  // the responsible node or edge so the author lands on the exact element.
+  // the responsible node or edge and frames it into view, so the author
+  // lands on the exact element even in a large graph.
   function focusValidationDiagnostic(diagnostic) {
     if (!diagnostic) return;
     if (diagnostic.edgeId) {
       const edge = edges.value.find(item => String(item.id) === String(diagnostic.edgeId));
       if (edge) {
         selectEdge(edge);
+        frameNodeIds([edge.source, edge.target]);
         return;
       }
     }
     if (diagnostic.nodeId) {
       const node = nodes.value.find(item => String(item.id) === String(diagnostic.nodeId));
-      if (node) selectNode(node);
+      if (node) {
+        selectNode(node);
+        frameNodeIds([node.id]);
+      }
     }
   }
 
