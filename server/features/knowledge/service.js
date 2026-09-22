@@ -1,5 +1,4 @@
 import { createError } from 'h3';
-import { hasPermissionGrant } from '#shared/access-control.js';
 
 /**
  * Knowledge base capability module over the self-hosted OpenKnowledge web
@@ -16,30 +15,19 @@ const config = () => ({
 
 export const publicConfig = () => ({ enabled: Boolean(config().internalUrl) });
 
-function requireKnowledgeGrant(auth, level = 'read') {
-    if (!auth.process?.active || !auth.effectivePermissions) return;
-    const granted = hasPermissionGrant({
-        permissions: auth.effectivePermissions,
-        feature: 'knowledge',
-        level
-    });
-    if (!granted) throw createError({ statusCode: 403, message: 'Forbidden' });
-}
-
 /**
- * The service is org-wide: admins and any organization member are
- * admitted. Org affiliation mirrors `resolveProcessAuth`: the user's
- * explicit current organization, else their first membership. Under an
- * active compiled process the knowledge feature grant (read level)
- * additionally applies to non-admins — the same contract as LiveKit's
- * `call:org:*` rooms, where admins bypass the grant.
+ * The service is org-wide, like support chat: admins and every
+ * organization member are admitted. Org affiliation mirrors
+ * `resolveProcessAuth`: the user's explicit current organization, else
+ * their first membership — most user records carry no top-level
+ * `organizationId`. No process feature grant applies; capability toggles
+ * are not part of the app's onboarding flow.
  */
 export function authorizeKnowledge(auth) {
     if (!auth?.userId) throw createError({ statusCode: 401, message: 'Unauthorized' });
-    if (!auth.isAdmin) {
-        const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
-        if (!organizationId) throw createError({ statusCode: 403, message: 'Forbidden' });
-        requireKnowledgeGrant(auth);
+    const organizationId = auth.organizationId || auth.memberships?.[0]?.organizationId;
+    if (!auth.isAdmin && !organizationId) {
+        throw createError({ statusCode: 403, message: 'Forbidden' });
     }
     return { admitted: true };
 }
