@@ -77,14 +77,17 @@ describe('apply migration plan builders', () => {
     ])).toEqual([{ typeId: 'project', from: 'LEGACY_RETIRED', to: 'draft' }]);
   });
 
-  it('rejects missing, unknown, and off-target mappings', () => {
+  it('tolerates stale declared rows and rejects missing or off-target mappings', () => {
     const plan = buildStatusMigrationPlan(stranded, compiled);
+    // The declared NOT_REMOVED row is a no-op: declarations persist across
+    // applies, and a mapping for a state the current plan no longer removes
+    // must not block activation.
     expect(validateStatusMappings(plan, [
       { typeId: 'project', from: 'LEGACY_RETIRED', to: 'draft' },
       { typeId: 'project', from: 'OLD_DRAFT', to: 'done' },
       { typeId: 'facade', from: 'GONE', to: 'draft' },
       { typeId: 'facade', from: 'NOT_REMOVED', to: 'draft' }
-    ])).toEqual(['No removed state NOT_REMOVED on facade requires a mapping']);
+    ])).toEqual([]);
     expect(validateStatusMappings(plan, [
       { typeId: 'project', from: 'LEGACY_RETIRED', to: 'draft' },
       { typeId: 'project', from: 'OLD_DRAFT', to: 'done' }

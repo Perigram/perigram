@@ -47,6 +47,11 @@ export function normalizeStatusMappings(mappings = []) {
   });
 }
 
+// Declared mappings cover the plan when every removed state with a live
+// count carries one mapping onto a retained target. Declared rows the
+// current plan does not require are no-ops: declarations persist on the
+// definition across applies, and a mapping for a state a later plan no
+// longer removes must not block activation.
 export function validateStatusMappings(plan = {}, mappings = []) {
   const errors = [];
   const requiredByKey = new Map();
@@ -57,11 +62,6 @@ export function validateStatusMappings(plan = {}, mappings = []) {
         state,
         targets: row.targets || []
       });
-    }
-  }
-  for (const { typeId, from } of mappings) {
-    if (!requiredByKey.has(`${typeId}|${from}`)) {
-      errors.push(`No removed state ${from} on ${typeId} requires a mapping`);
     }
   }
   for (const { typeId, state, targets } of requiredByKey.values()) {

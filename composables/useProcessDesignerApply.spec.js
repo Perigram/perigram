@@ -2,20 +2,22 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { useProcessDesignerApply } from './useProcessDesignerApply.js';
 
 // The apply orchestration contract: validation carrying a migration plan
-// pauses activation until the designer's migration dialog confirms target
-// mappings; confirming re-posts activate with the payload, and drifted
-// plans (409) refresh the dialog instead of failing the apply.
+// pauses activation until the draft's declared migrations cover it; the
+// designer's migration dialog confirms target mappings, confirming
+// persists them as a declaration (save) and re-activates with no payload,
+// and drifted plans (409) refresh the dialog instead of failing the apply.
 function mountApply(overrides = {}) {
   const persistence = {
     saveDraft: vi.fn(async () => ({ _id: 'draft-1' })),
     validateDraft: vi.fn(),
     activateDraft: vi.fn()
   };
+  const draft = { value: { _id: 'draft-1', data: {} } };
   const apply = useProcessDesignerApply({
     persistence,
     t: key => key,
     toast: { add: vi.fn() },
-    draft: { value: { _id: 'draft-1' } },
+    draft,
     validation: { value: null },
     isActiveProcess: () => false,
     serializeProcess: () => ({}),
@@ -27,7 +29,7 @@ function mountApply(overrides = {}) {
     syncNow: vi.fn(),
     ...overrides
   });
-  return { apply, persistence };
+  return { apply, persistence, draft };
 }
 
 const validResult = { ok: true, errors: [], warnings: [], diff: null };
@@ -62,8 +64,25 @@ describe('useProcessDesignerApply migration pause', () => {
     expect(apply.pendingMigration.value).toBeNull();
   });
 
-  it('resumes activation with the confirmed mappings', async () => {
-    const { apply, persistence } = mountApply();
+  it('activates without pausing when declared migrations already cover the plan', async () => {
+    const { apply, persistence, draft } = mountApply();
+    draft.value.data.migrations = {
+      statuses: [{ typeId: 'project', from: 'OLD', to: 'draft' }]
+    };
+    persistence.validateDraft.mockResolvedValue({
+      ...validResult,
+      migrationPlan: { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 2 }], targets: ['draft', 'done'] }] }
+    });
+    persistence.activateDraft.mockResolvedValue({ _id: 'draft-1', data: { compiled: { warnings: [] } } });
+
+    await apply.applyProcess();
+
+    expect(persistence.activateDraft).toHaveBeenCalledWith('draft-1');
+    expect(apply.pendingMigration.value).toBeNull();
+  });
+
+  it('persists confirmed mappings as a declaration, then activates with no payload', async () => {
+    const { apply, persistence, draft } = mountApply();
     persistence.validateDraft.mockResolvedValue({
       ...validResult,
       migrationPlan: { statuses: [{ typeId: 'project', removed: [{ state: 'OLD', count: 2 }], targets: ['draft', 'done'] }] }
@@ -73,9 +92,11 @@ describe('useProcessDesignerApply migration pause', () => {
     persistence.activateDraft.mockResolvedValue({ _id: 'draft-1', data: { compiled: { warnings: [] } } });
     await apply.confirmApplyMigration([{ typeId: 'project', from: 'OLD', to: 'draft' }]);
 
-    expect(persistence.activateDraft).toHaveBeenCalledWith('draft-1', {
-      statuses: [{ typeId: 'project', from: 'OLD', to: 'draft' }]
-    });
+    expect(draft.value.data.migrations.statuses).toEqual([
+      { typeId: 'project', from: 'OLD', to: 'draft' }
+    ]);
+    expect(persistence.saveDraft).toHaveBeenCalled();
+    expect(persistence.activateDraft).toHaveBeenCalledWith('draft-1');
     expect(apply.pendingMigration.value).toBeNull();
   });
 

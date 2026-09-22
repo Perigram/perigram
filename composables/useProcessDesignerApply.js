@@ -7,8 +7,21 @@ import { ref } from 'vue';
 // state lands in the shared `validation` ref the page renders. When the
 // next contract removes workflow states still held by live instances,
 // validation returns a migration plan: Apply pauses with `pendingMigration`
-// and only the confirmed target mappings (collected by the designer's
-// migration dialog) resume activation.
+// unless the draft's declared migrations (`data.migrations.statuses`)
+// already cover it — the migration decision is a declaration on the
+// definition, so confirming persists the mappings through save and
+// activation itself carries no payload.
+function declaredMappingsCover(plan, statuses = []) {
+  return (plan?.statuses || []).every(row =>
+    row.removed.every(({ state }) =>
+      statuses.some(mapping =>
+        mapping.typeId === row.typeId
+        && mapping.from === state
+        && (row.targets || []).includes(mapping.to)
+      )
+    )
+  );
+}
 export function useProcessDesignerApply({
   persistence,
   t,
@@ -120,9 +133,11 @@ export function useProcessDesignerApply({
       failure.data = result;
       throw failure;
     }
-    if (result.migrationPlan?.statuses?.length) {
-      // Pause: the migration dialog collects one target per removed state;
-      // confirming resumes through confirmApplyMigration.
+    if (result.migrationPlan?.statuses?.length
+      && !declaredMappingsCover(result.migrationPlan, draft.value?.data?.migrations?.statuses)) {
+      // Pause: the migration dialog collects one target per removed state
+      // (pre-filled from the declarations); confirming persists them as a
+      // declaration and resumes through confirmApplyMigration.
       pendingMigration.value = result.migrationPlan;
       return null;
     }
@@ -133,7 +148,15 @@ export function useProcessDesignerApply({
     if (!draft.value?._id || applyingProcess.value) return;
     applyingProcess.value = true;
     try {
-      const activated = await persistence.activateDraft(draft.value._id, { statuses: mappings });
+      // The decision is a declaration, not a payload: persist the mappings
+      // on the draft first, then activate — the declaration is also what an
+      // idempotent resume re-runs after an interrupted migration.
+      draft.value.data = {
+        ...draft.value.data,
+        migrations: { ...(draft.value.data?.migrations || {}), statuses: mappings }
+      };
+      await saveDraft();
+      const activated = await persistence.activateDraft(draft.value._id);
       pendingMigration.value = null;
       return completeActivation(activated);
     } catch (error) {

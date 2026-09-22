@@ -430,7 +430,7 @@ describe('current process-definition service contract', () => {
     expect(processRepository.archiveActiveByOrganization).not.toHaveBeenCalled();
   });
 
-  it('rejects migration mappings outside the next contract states', async () => {
+  it('rejects declared migration mappings outside the next contract states', async () => {
     const fixture = createPersistedAcceptanceFixture();
     const typeId = fixture.processDefinition.data.producerOutputs['create_cassette:result'].typeId;
     const activeData = structuredClone(fixture.processDefinition.data);
@@ -439,6 +439,7 @@ describe('current process-definition service contract', () => {
     });
     const draftData = structuredClone(fixture.processDefinition.data);
     draftData.producerOutputs['create_cassette:result'].lifecycle = customLifecycle({ draft: {}, done: {} });
+    draftData.migrations = { statuses: [{ typeId, from: 'LEGACY_RETIRED', to: 'NOT_A_STATE' }] };
     processRepository.findActiveByOrganization.mockResolvedValue({
       ...fixture.processDefinition,
       _id: 'process-active',
@@ -451,16 +452,14 @@ describe('current process-definition service contract', () => {
         : organizationService
     });
 
-    await expect(activate('process-draft', adminAuth(), {
-      migration: { statuses: [{ typeId, from: 'LEGACY_RETIRED', to: 'NOT_A_STATE' }] }
-    })).rejects.toMatchObject({
+    await expect(activate('process-draft', adminAuth())).rejects.toMatchObject({
       statusCode: 400,
       data: { migrationPlan: { statuses: expect.any(Array) } }
     });
     expect(processRepository.archiveActiveByOrganization).not.toHaveBeenCalled();
   });
 
-  it('activates with confirmed mappings, re-targets stranded instances, and records the migration', async () => {
+  it('activates with declared migrations, re-targets stranded instances, and records the applied summary', async () => {
     const fixture = createPersistedAcceptanceFixture();
     const typeId = fixture.processDefinition.data.producerOutputs['create_cassette:result'].typeId;
     const activeData = structuredClone(fixture.processDefinition.data);
@@ -471,13 +470,22 @@ describe('current process-definition service contract', () => {
     draftData.producerOutputs['create_cassette:result'].lifecycle = customLifecycle({
       draft: { canUpdateMeta: true }, done: {}
     });
+    draftData.migrations = { statuses: [{ typeId, from: 'LEGACY_RETIRED', to: 'draft' }] };
     processRepository.findActiveByOrganization.mockResolvedValue({
       ...fixture.processDefinition,
       _id: 'process-active',
       data: activeData
     });
     processRepository.findById.mockResolvedValue(draftRecord(draftData));
-    processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
+    // Faithful storage round-trip: the wire shape (`states`) plus the status
+    // block a re-parsed model needs — production storage must preserve both
+    // (see repository updateById).
+    processRepository.updateById.mockImplementation(async (id, process) => ({
+      ...process.toJSON(),
+      status: process.status ? process.status.toJSON() : null,
+      origin: process.origin ? process.origin.toJSON() : null,
+      _id: id
+    }));
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === typeId
         ? { processList: vi.fn().mockResolvedValue([
@@ -488,19 +496,19 @@ describe('current process-definition service contract', () => {
     });
     stateService.setInitialStateForOrganization.mockResolvedValue({ state: { primary: 'draft' } });
 
-    const result = await activate('process-draft', adminAuth(), {
-      migration: { statuses: [{ typeId, from: 'LEGACY_RETIRED', to: 'draft' }] }
-    });
+    const result = await activate('process-draft', adminAuth());
 
     expect(result.states.main).toBe('ACTIVE');
     expect(stateService.setInitialStateForOrganization).toHaveBeenCalledWith(
       typeId, 'p-1', 'draft', 'org-acceptance', 'admin', expect.objectContaining({ producerOutputId: 'create_cassette:result' })
     );
-    expect(result.data.migration).toEqual(expect.objectContaining({
-      actor: 'admin',
-      mappings: [{ typeId, from: 'LEGACY_RETIRED', to: 'draft' }],
-      applied: { [typeId]: { 'LEGACY_RETIRED->draft': 1 } },
-      failures: []
+    expect(result.data.migrations).toEqual(expect.objectContaining({
+      statuses: [{ typeId, from: 'LEGACY_RETIRED', to: 'draft' }],
+      applied: expect.objectContaining({
+        actor: 'admin',
+        applied: { [typeId]: { 'LEGACY_RETIRED->draft': 1 } },
+        failures: []
+      })
     }));
     expect(organizationService.setActiveProcessDefinition).toHaveBeenCalledWith('org-acceptance', 'process-draft');
   });

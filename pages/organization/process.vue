@@ -500,6 +500,7 @@
     <ApplyMigrationDialog
       :visible="Boolean(pendingMigration)"
       :plan="pendingMigration"
+      :mappings="draft?.data?.migrations?.statuses || null"
       :loading="applyingProcess"
       @update:visible="value => { if (!value) cancelApplyMigration(); }"
       @confirm="confirmApplyMigration"

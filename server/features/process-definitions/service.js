@@ -264,7 +264,7 @@ export async function validate(id, auth) {
   return { ...validation, diff, ...(migrationPlan ? { migrationPlan } : {}) };
 }
 
-export async function activate(id, auth, payload = {}) {
+export async function activate(id, auth) {
   const process = await loadAuthorized(id, auth, 'admin');
   const domain = await getProjectedDomain(process.lineage.organizationId);
   const accepted = currentProcessDefinition(process.data, domain);
@@ -284,7 +284,11 @@ export async function activate(id, auth, payload = {}) {
   };
   const stranded = await collectStrandedInstanceStatees(process, auth, process.data.compiled);
   const plan = stranded.length ? buildStatusMigrationPlan(stranded, process.data.compiled) : null;
-  const mappings = normalizeStatusMappings(payload?.migration?.statuses);
+  // The migration decision is a declaration on the definition
+  // (data.migrations.statuses), not an activate-time payload: activation
+  // reads what the organization authored. Stale declared rows are no-ops
+  // (migration-plan contract); every plan row must be covered.
+  const mappings = normalizeStatusMappings(process.data?.migrations?.statuses);
   if (stranded.length) {
     if (!mappings.length) throwMigrationRequired(stranded, plan);
     const mappingErrors = validateStatusMappings(plan, mappings);
@@ -311,19 +315,22 @@ export async function activate(id, auth, payload = {}) {
       organizationId: process.lineage.organizationId,
       compiled: process.data.compiled
     });
-    process.data.migration = {
-      appliedAt: new Date().toISOString(),
-      actor: auth.userId || 'SYSTEM',
-      mappings,
-      applied: migration.applied,
-      failures: migration.failures
+    process.data.migrations = {
+      ...(process.data.migrations || {}),
+      statuses: mappings,
+      applied: {
+        appliedAt: new Date().toISOString(),
+        actor: auth.userId || 'SYSTEM',
+        applied: migration.applied,
+        failures: migration.failures
+      }
     };
     updated = await repository.updateById(id, process);
     if (migration.failures.length) {
       throw createError({
         statusCode: 500,
         message: `Migration incomplete: ${migration.failures.length} instance(s) failed to re-target. Re-apply with the same mappings to resume.`,
-        data: { migrationIncomplete: true, migration: process.data.migration, migrationPlan: plan }
+        data: { migrationIncomplete: true, migration: process.data.migrations.applied, migrationPlan: plan }
       });
     }
   }
