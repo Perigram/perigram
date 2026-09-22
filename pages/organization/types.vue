@@ -176,6 +176,25 @@ async function deleteType(node) {
     await $fetch(`/api/admin/cts/types/${encodeURIComponent(typeId)}`, { method: 'DELETE' });
     await load();
   } catch (error) {
+    // 409 = the removal diff found living instances or binding processes:
+    // the abandonment ceremony (SPEC §19) needs an explicit second confirm.
+    if (error?.statusCode === 409 || error?.status === 409) {
+      const { instances = 0, boundBy = [] } = error?.data?.data || {};
+      const binders = boundBy.length ? boundBy.map(b => b.name || b.id).join(', ') : '';
+      const detail = [
+        instances ? t('typesPane.abandonInstances', { count: instances }) : null,
+        binders ? t('typesPane.abandonBinders', { names: binders }) : null
+      ].filter(Boolean).join(' — ');
+      if (!window.confirm(`${detail}\n${t('typesPane.abandonConfirm', { id: typeId })}`)) return;
+      try {
+        await $fetch(`/api/admin/cts/types/${encodeURIComponent(typeId)}?abandon=true`, { method: 'DELETE' });
+        await load();
+        return;
+      } catch (abandonError) {
+        toast.add({ severity: 'error', summary: t('common.delete'), detail: abandonError?.data?.message || abandonError?.message, life: 8000 });
+        return;
+      }
+    }
     toast.add({ severity: 'error', summary: t('common.delete'), detail: error?.data?.message || error?.message, life: 8000 });
   }
 }

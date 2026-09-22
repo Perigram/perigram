@@ -5,6 +5,9 @@ vi.mock('../instances/count.js', () => ({ countInstancesOfType: vi.fn(async () =
 vi.mock('../instances/migrations.js', () => ({
   applyTypeMigrationSteps: vi.fn(async () => ({ appliedAt: '2026-09-22T00:00:00.000Z', actor: 'SYSTEM', counts: {}, failures: [] }))
 }));
+vi.mock('../process-definitions/service.js', () => ({
+  findTypeReferences: vi.fn(async () => [])
+}));
 
 vi.mock('./repository.js', () => ({
   create: vi.fn(),
@@ -16,6 +19,8 @@ vi.mock('./repository.js', () => ({
 
 import * as repository from './repository.js';
 import { compileRegistryForOrganization, defineType, removeType, describeOrganizationTypes } from './service.js';
+import { findTypeReferences } from '../process-definitions/service.js';
+import { countInstancesOfType } from '../instances/count.js';
 
 const ORG = 'org-1';
 
@@ -229,7 +234,50 @@ describe('cts type storage', () => {
     repository.listByOrganization.mockResolvedValue([
       { id: 'widget', class: 'file', scope: 'org', organizationId: ORG, version: 1, fields: {} }
     ]);
-    await expect(removeType('widget', { organizationId: ORG })).resolves.toBe(true);
+    countInstancesOfType.mockResolvedValueOnce(0);
+    const result = await removeType('widget', { organizationId: ORG });
+    expect(result.removed).toBe(true);
+    expect(result.abandoned).toBeNull();
+    expect(repository.deleteByTypeId).toHaveBeenCalledWith(ORG, 'widget');
+  });
+
+  it('refuses deleting a type with living instances or binding processes (409 + blast radius)', async () => {
+    repository.listByOrganization.mockResolvedValue([
+      { id: 'widget', class: 'file', scope: 'org', organizationId: ORG, version: 1, fields: {} }
+    ]);
+    countInstancesOfType.mockResolvedValueOnce(3);
+    findTypeReferences.mockResolvedValueOnce([
+      { id: 'pd-1', name: 'Production', status: 'ACTIVE' },
+      { id: 'pd-2', name: 'Draft flow', status: 'DRAFT' }
+    ]);
+    const error = await removeType('widget', { organizationId: ORG }).catch(e => e);
+    expect(error.statusCode).toBe(409);
+    expect(error.data).toMatchObject({
+      instances: 3,
+      boundBy: expect.arrayContaining([expect.objectContaining({ id: 'pd-1', name: 'Production' })])
+    });
+    expect(error.message).toContain('3 persisted instance(s)');
+    expect(error.message).toContain('Production');
+    expect(repository.deleteByTypeId).not.toHaveBeenCalled();
+
+    // Binder-only blast radius also refuses.
+    countInstancesOfType.mockResolvedValueOnce(0);
+    findTypeReferences.mockResolvedValueOnce([{ id: 'pd-1', name: 'Production', status: 'ACTIVE' }]);
+    const binderError = await removeType('widget', { organizationId: ORG }).catch(e => e);
+    expect(binderError.statusCode).toBe(409);
+    expect(repository.deleteByTypeId).not.toHaveBeenCalled();
+  });
+
+  it('abandons the blast radius when explicitly confirmed and records the ceremony', async () => {
+    repository.listByOrganization.mockResolvedValue([
+      { id: 'widget', class: 'file', scope: 'org', organizationId: ORG, version: 1, fields: {} }
+    ]);
+    countInstancesOfType.mockResolvedValueOnce(7);
+    findTypeReferences.mockResolvedValueOnce([{ id: 'pd-1', name: 'Production', status: 'ACTIVE' }]);
+    const result = await removeType('widget', { organizationId: ORG, actor: 'user-1', abandon: true });
+    expect(result.removed).toBe(true);
+    expect(result.abandoned).toMatchObject({ instances: 7, boundBy: 1, actor: 'user-1' });
+    expect(result.abandoned.at).toBeTruthy();
     expect(repository.deleteByTypeId).toHaveBeenCalledWith(ORG, 'widget');
   });
 

@@ -92,6 +92,26 @@ export async function findRoleReferences(organizationId, roleId) {
     .map(raw => ({ id: String(raw._id), name: raw.identity?.name || '', status: raw.states?.main || '' }));
 }
 
+// Blast-radius probe for type authoring (crystallization Phase 3): the
+// org's non-archived process definitions whose graph or screens bind a
+// CTS type. Structural match only — nodes, screens, and draft
+// declaration children edges.
+export async function findTypeReferences(organizationId, typeId) {
+  const raws = await repository.find({ 'lineage.organizationId': toFlexibleId(organizationId) });
+  return raws
+    .filter(raw => raw.states?.main !== 'ARCHIVED')
+    .filter(raw => definitionReferencesType(raw.data || {}, typeId))
+    .map(raw => ({ id: String(raw._id), name: raw.identity?.name || '', status: raw.states?.main || '' }));
+}
+
+function definitionReferencesType(data = {}, typeId) {
+  if (Object.values(data.processNodes || {}).some(node => node?.typeId === typeId)) return true;
+  if (Object.values(data.screens || {}).some(screen => screen?.typeId === typeId)) return true;
+  return Object.values(data.ctsTypes || {})
+    .some(decl => Object.values(decl?.edges?.children || {})
+      .some(edge => (edge?.types || []).includes(typeId)));
+}
+
 function definitionReferencesRole(data = {}, roleId) {
   if (Object.hasOwn(data.roleGrants || {}, roleId)) return true;
   const serialized = JSON.stringify({

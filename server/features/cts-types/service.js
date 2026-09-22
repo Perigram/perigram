@@ -14,6 +14,7 @@ import { invalidateInstanceDeclarations } from '../instances/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { countInstancesOfType } from '../instances/count.js';
 import { applyTypeMigrationSteps } from '../instances/migrations.js';
+import { findTypeReferences } from '../process-definitions/service.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
 
 function to400(error) {
@@ -148,7 +149,7 @@ export async function defineType(declaration = {}, { organizationId, actor = nul
   return stored;
 }
 
-export async function removeType(typeId, { organizationId } = {}) {
+export async function removeType(typeId, { organizationId, actor = null, abandon = false } = {}) {
   if (!organizationId) throw createError({ statusCode: 400, message: 'Organization context required' });
   const registry = await compileRegistryForOrganization(organizationId);
   const type = registry.getType(String(typeId), organizationId);
@@ -156,11 +157,38 @@ export async function removeType(typeId, { organizationId } = {}) {
   if (type.scope === 'system') {
     throw createError({ statusCode: 403, message: 'System types are compiled from domain packs and cannot be deleted' });
   }
+  // Deleting a type is a ceremony (SPEC §19 abandoned data): the removal
+  // diff runs against reality first — living instances and non-archived
+  // processes that bind the type. Both refuse the delete until the caller
+  // explicitly abandons; the abandonment (counts + actor) rides the org
+  // contract-change event and the response as the record.
+  const [instances, boundBy] = await Promise.all([
+    countInstancesOfType(String(typeId), organizationId),
+    findTypeReferences(organizationId, String(typeId))
+  ]);
+  const hasBlastRadius = instances > 0 || boundBy.length > 0;
+  if (hasBlastRadius && !abandon) {
+    const parts = [];
+    if (instances > 0) parts.push(`${instances} persisted instance(s)`);
+    if (boundBy.length > 0) parts.push(`bound by ${boundBy.length} process definition(s): ${boundBy.map(b => b.name || b.id).join(', ')}`);
+    throw createError({
+      statusCode: 409,
+      message: `Type ${typeId} still has ${parts.join(' and ')} — pass abandon: true to abandon (SPEC §19)`,
+      data: { instances, boundBy }
+    });
+  }
   const removed = await repository.deleteByTypeId(organizationId, typeId);
   invalidateInstanceDeclarations(String(organizationId));
   // A removed type may have been the last declaring an edge index.
   const after = await compileRegistryForOrganization(organizationId);
   await ensureInstanceIndexes(after.resolveView(organizationId));
-  publishOrgContractChanged(String(organizationId), 'registry', { typeId: String(typeId), removed: true });
-  return removed;
+  const abandoned = hasBlastRadius
+    ? { instances, boundBy: boundBy.length, actor: actor || 'SYSTEM', at: new Date().toISOString() }
+    : null;
+  publishOrgContractChanged(String(organizationId), 'registry', {
+    typeId: String(typeId),
+    removed: true,
+    ...(abandoned ? { abandoned } : {})
+  });
+  return { removed, instances, boundBy, abandoned };
 }
