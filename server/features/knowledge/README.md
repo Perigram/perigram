@@ -17,20 +17,18 @@ app does not affect the app's license; embedding its source would.
 
 ## Admission Contract
 
-The service is org-wide: every organization member is admitted, and under
-an active compiled process the `knowledge` feature grant (read level)
-additionally applies to non-admins — the same shape as LiveKit's
-`call:org:*` rooms. Organization membership follows the platform's own
-resolution (`resolveProcessAuth`): the user's explicit current
-organization, else their first `memberships[]` entry — most user records
-carry no top-level `organizationId`.
+The service is org-wide, like support chat: admins and every
+organization member are admitted. Organization membership follows the
+platform's own resolution (`resolveProcessAuth`): the user's explicit
+current organization, else their first `memberships[]` entry — most user
+records carry no top-level `organizationId`. No process feature grant
+applies; capability toggles are not part of the app's onboarding flow.
 
 | Caller | Admission |
 |---|---|
 | Unauthenticated | `401` |
-| Admin | Admitted (grant-free) |
-| Organization member (no active process) | Admitted |
-| Organization member (active process) | Admitted only with a `knowledge` read grant in `auth.effectivePermissions` |
+| Admin | Admitted |
+| Organization member | Admitted |
 | No organization | `403` |
 
 `GET /api/knowledge/info` reports `{ enabled, admitted, url? }` without
