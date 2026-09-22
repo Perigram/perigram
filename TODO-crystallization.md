@@ -90,7 +90,7 @@ editing it directly is a violation)?
 
 ## Program
 
-### Phase 0 — Survival audit `[ ]`
+### Phase 0 — Survival audit `[x]`
 
 One session, no code. Evidence, not taste.
 
@@ -104,6 +104,103 @@ One session, no code. Evidence, not taste.
   construct-hygiene session notes).
 - Output: three lists appended here — references (keep), payloads
   (migrate to registry), dual spellings (pick one).
+
+#### Agent Notes — 2026-09-22 (audit complete)
+
+**Verdict: the survivor set serves "paperwork that runs." PASS**, with
+two open dualities (artifact entity, v24 status-block residue) and one
+major inference gap (screens). Several planned phases turned out to be
+already built — later phases are amended below accordingly.
+
+**Survival record.**
+
+- Survived and serving the sentence: process compiler + compiled
+  contract; CTS registry + packs; the declaration one-tree (SPEC
+  §20/§21 — class/field/state/type-ref nodes, `compileTreeDeclarations`
+  in dependency order); states + `status_events` engine; lineage /
+  provenance / remnants; standards (pens, layers); editor bindings /
+  file surfaces; Apply with a write gate (SPEC §11 diff, `migrate`
+  steps, compile-before-persist); `ApplyMigrationDialog` (removed-state
+  ceremony for live instances); opaque rename-safe registry ids
+  (never derived from authored names); generated screen renderer;
+  home screen synthesis per assignment.
+- Died / dying: hardcoded entity vocabulary; statusDefinition canvas
+  records; the block substrate; the compose node (composer-less
+  construct landed); constant/literal nodes (inline socket fallbacks
+  replaced them); `entityType` keys; `status`→`states` rename (v24
+  block residue remains); artifact entity (still open — Phase 7).
+
+**Persistence seam (pinned).** SAVE: the declaration tree persists as
+`ctsTypes` records inside the process definition draft — no registry
+side effects. APPLY: `persistTreeDeclarations` posts through
+`POST /api/admin/cts/types`; the write gate compiles the whole org view
+first and refuses breaking redefinitions without `migrate` steps;
+declarations land in `cts_types`. The per-org registry is rebuilt from
+packs + stored org declarations (`server/features/cts-types`), served
+through `GET /api/admin/cts/types`; the designer's live overlay is a
+session registry keyed by tree signature. This IS "registry as build
+output" — the model Phase 2/3 assumed is already the shipped shape.
+Residual: the client registry view composes stored declarations
+async (the literal-lags note from the construct-hygiene session) —
+verify in Phase 1.
+
+**Node-kind classification.**
+
+- Structure-owns (type paper, authored in the one tree): class, field,
+  state, type-reference nodes; declaration wires (declare-on-class,
+  ref targets, children edges, state→state transitions). No data-plane
+  node authors type internals — the hollowing shape is already dead
+  (matching is by node identity; ids are opaque; renames re-bind).
+- Binding/computation (process grammar, keep): `cts.construct`,
+  `cts.read`, `cts.mutate`, `cts.field`, `producer.join`, `read.*`,
+  `collection.*`, `control.*`, `predicate.*`, `tree.*`, `value.*`,
+  `record.*`, services (from `serviceContracts`).
+- Inferable (Phase 4 targets): the Screens tab — `data.screens` are
+  authored records the compiler consumes verbatim; only the home
+  screen is synthesized. No per-type station inference exists yet.
+- Inspector: `ProcessNodeInspector` (binding/authorization — keep),
+  `DeclarationInspector` (structure authoring — keep), Roles tab
+  (org data CRUD — keep as organization surface).
+
+**Three lists.**
+
+- *References (keep):* type-reference items and construct palette
+  entries bound to registry ids; pack types surfaced read-only;
+  `producerOutputs` keyed by `nodeId:outputSocketId`.
+- *Payloads (migrate/verify):* none found at the node level — the
+  draft tree's `ctsTypes` records are the document home, not a copy
+  (draft vs posted is the Apply duality, by design). Phase 2 shrinks
+  to: pin the invariant with round-trip specs + close the async
+  literal-lag residual.
+- *Dual spellings (pick one):*
+  1. `construction?.mode ?? via` — read in `pages/organization/process.vue:1941`
+     and `ProcessNodeInspector.vue:163` (Phase 1).
+  2. Rename tautologies in `packages/processes/src/compiler-core.js:1696`:
+     `template === 'typeList' || 'typeList'` and `typeId || typeId` —
+     dead `entityType`-era residue (Phase 1).
+  3. v24 `status` block vs `states.main` wire — two Stamp vocabularies;
+     CTS-native types already write `states.main` only, legacy block
+     remains on older entities (Phase 7).
+  4. Artifact entity vs file-type instances — two Paper shapes for
+     payloads (Phase 7).
+
+**Plan corrections from evidence.**
+
+- Phase 2 (kill copies): mostly already built. Remaining: round-trip
+  guard specs + the async literal-lag residual. No rebuild.
+- Phase 5 (constants): already the architecture — inline socket
+  fallbacks, no constant nodes, `useProcessDesignerLiteralCompatibility.spec.js`
+  pins the socket boundary (it is a guard, not a reconciliation
+  layer). Phase shrinks to verification only; the `mode ?? via`
+  spelling is its only real deletion.
+- Phase 3 (apply teeth): write gate + removed-state ceremony exist.
+  Real gaps: `removeType` deletes org declarations without an
+  instance check (the abandonment gate is missing); no cross-process
+  blast radius in the apply diff for type edits.
+- Phase 4 (optics by inference): confirmed as the largest real gap —
+  screens are authored-only today.
+
+Status: WAITING.
 
 ### Phase 1 — One spelling `[ ]`
 
