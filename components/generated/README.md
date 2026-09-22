@@ -144,7 +144,11 @@ The `sketch-editor` surface mounts `SketchEditor` and the
 with an instance-backed persistence contract (payload download URL for
 loads, `PUT /api/instances/:type/:id/payload` for saves, which records
 an immutable content revision per save; the helper is generic over the
-type id). Both editors take only that persistence contract —
+type id). Text documents edit as markdown through the PrimeVue `Editor`
+rich text surface (see
+[components/artifacts/README.md](../artifacts/README.md)); the csv
+surface keeps the cell-table editor. Both editors take only that
+persistence contract —
 `ArtifactDetail` supplies the artifact-backed adapters for
 `SKETCH`/`TEXT`/`CSV`-kind artifacts, so one editor serves both hosts
 without duplicate editing logic. The `facade-pattern-designer` surface
@@ -164,13 +168,22 @@ viewer modules render (`dxf`, `svg`, `sketch`, `occs`, `image`, `pdf`,
 `RENDERABLE_PREVIEW_MODES` in the pure ui-mapping contract) are delegated
 to `ArtifactViewer` through its explicit-source override; `attachment`/
 `download`/unknown modes degrade to a download action instead of an empty
-preview pane. The `occs` mode renders the cassette OCCS payload through
-`DrawingCanvas`'s graph-tree path. `file-surfaces.js` re-exports the
+preview pane. A pack declares `download` for file types without a
+reasonable bounded preview (the documents pack does this for Word
+documents). The `occs` mode renders the cassette OCCS payload through
+`DrawingCanvas`'s graph-tree path. The payload download endpoint serves
+the stored file's real content type inline — image/iframe contexts (SVG
+canvases, PDF frames) refuse sniffed or octet-stream responses — and
+`?download=1` flips the disposition to an attachment.
+`file-surfaces.js` re-exports the
 helpers for its editor-surface consumers.
 `GeneratedFilePreview.vue` mounts that contract inside
 `GeneratedInstanceDetailBody`'s non-overload branch, so every file-typed
 instance opened through generated screens and project panes shows its
-payload preview without a hand-written surface. The type records come from
+payload preview without a hand-written surface. The preview is a bounded
+non-scrolling surface (see
+[components/artifacts/README.md](../artifacts/README.md)); the payload
+download stays the escape hatch. The type records come from
 `useFileTypeView()` ([composables/README.md](../../composables/README.md)),
 the organization-scoped cached read of the served type view. Editor
 overloads keep owning their surfaces — the preview panel renders only when
@@ -194,9 +207,13 @@ designer tree.
 Discord-style operational shell:
 
 - Desktop (`md` and up) is a fixed two-column bounded workspace: a sidebar and
-  the recursive pane area. Mobile keeps the previous stacked home sections
-  (`GeneratedHomeScreen.vue`) inside a self-scrolling container, so the mobile
-  contract is unchanged.
+  the recursive pane area. Mobile mirrors the sidebar tree's top level as one
+  fixed tab strip — the root types' compiled `typeList` screens plus the
+  `chats` page (no user-added tabs, no home tab; the selection is
+  session-local). A type tab renders through `GeneratedTypeScreen` (the
+  same generator contract as the desktop panes); the chats tab mounts the
+  registered chats page component full-page. Instance opens on mobile
+  follow the routed surface contract: the compiled detail screen route.
 - The sidebar owns navigation for the whole shell. Below the brand header, a
   pinned communication nav renders the shared `CommunicationMenu.vue`
   (components/shared): Chats and Calls as proper PrimeVue `TieredMenu`
@@ -391,9 +408,15 @@ bounded IDE-style Explorer and file workspace:
   selected entity's own detail-screen contract.
 - `GeneratedScreenPane` is the pane adapter for opened type screens: it
   resolves the manifest record by screen key (the same lookup the routed
-  surface performs) and mounts `GeneratedScreen`, which owns its action
-  execution and dialogs; opened screen refs persist with the pane state
-  (`openedScreenRefs`, same normalization contract as page refs).
+  surface performs) and mounts `GeneratedTypeScreen` for `typeList`
+  screens — the shared embedded host that loads the screen's sources
+  through the instances store pool and renders the ui-mapping engine, so
+  the pane body follows the same CTS render contract as the routed
+  surface. Its instance opens emit to the workspace (a pane tab), never a
+  route; other templates keep the legacy `GeneratedScreen` renderer with
+  its own action execution and dialogs. Opened screen refs persist with
+  the pane state (`openedScreenRefs`, same normalization contract as page
+  refs).
 - `GeneratedWorkspacePage` resolves a page id through the fixed app-owned
   `workspace-pages.js` registry. Process data never selects a Vue component,
   and workspace-level actions are not represented as a registered page or

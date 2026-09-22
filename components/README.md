@@ -312,11 +312,12 @@ exposes chats (a registered workspace page tab with the built-in inbox rail)
 and the LiveKit channel list with create/delete, and the sidebar
 footer carries the user controls that the desktop navbar owns on other
 routes. The desktop sidebar does not link out to hub entity-list screens.
-Mobile keeps the previous stacked home sections
-(`GeneratedHomeScreen`) with section-level create buttons, entity-card action
-footers, and the open-list button resolved from the compiled entity-list
-screen. Both surfaces use the region's compiled action ids and the
-same status/entity filters as collection screens. The home template must
+Mobile mirrors the sidebar tree's top level as one fixed tab strip — the
+root type screens plus chats, without user-added tabs or a home tab — and
+each type tab renders its compiled typeList screen through the same
+generator contract as the desktop panes. Both surfaces use the region's
+compiled action ids and the same status/entity filters as collection
+screens. The home template must
 reuse the same entity primitives and generated action execution path as
 collection screens; it must not invent static dashboard widgets, hardcoded
 domain routes, or per-card create buttons. Mobile must not construct list
@@ -331,12 +332,6 @@ empty child sections are omitted as well. Empty top-level sections remain
 available when they own a top-level create action. Record filtering still
 suppresses a descendant when any non-organization ancestor is readable, not
 only when its immediate parent is a Home section.
-Mobile home sections are true horizontal carousels: entity cards keep a stable
-non-shrinking width and overflow horizontally instead of shrinking every card
-to fit the viewport. The fixed width belongs on the carousel item wrapper, not
-on `<InstanceCard>` itself, because shared entity cards have variant root
-branches and cannot be relied on to receive layout sizing through attribute
-fallthrough.
 Generated card bodies may replace aggregate child-count facts such as
 `summary.queueCount` when those cards are rendered through
 `InstanceSurfaceContent`. Prefer compact `InstanceInlineRef variant="compact"`
