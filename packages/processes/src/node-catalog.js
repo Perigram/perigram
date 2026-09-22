@@ -824,6 +824,11 @@ function dynamicBlocks(record, context) {
     .filter(block => block && !['origin', 'status', 'provenance', 'summary'].includes(block)))];
 }
 
+// The construction row that composes identity on a composer-less construct.
+function hasNameRow(constructionInputs = []) {
+  return constructionInputs.some(input => (input.id || input.path) === 'name');
+}
+
 function effectInputs(kind, types) {
   if (kind === 'effect.runProducer') return types.constructionInputs.map(input => ({
     ...socket(input.id, input.type, DATA, input.required && input.default === undefined),
@@ -850,9 +855,13 @@ function effectInputs(kind, types) {
       ...socket(input.id, input.type, DATA, input.required && input.default === undefined, 'list'),
       label: input.label || input.id
     })),
+    // The identity block socket is the legacy v4 composition path; the
+    // composer-less construct authors identity through the Name row socket,
+    // so the block stays required only when the construction contract
+    // declares no name row to compose it.
     ...types.blocks.map(block => socket(block, processType('block', {
       block
-    }), DATA, block === 'identity', 'list')),
+    }), DATA, block === 'identity' && !hasNameRow(types.constructionInputs), 'list')),
     socket('status.state.primary', processType('status', { typeId: types.entity.typeId }), DATA, false, 'list')
   ];
   if (kind === 'effect.updateEntity') return [

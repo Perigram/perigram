@@ -228,6 +228,40 @@ describe('required input availability', () => {
     ])).toEqual([]);
   });
 
+  // The composer-less construct (SPEC §20) authors identity through the
+  // Name row socket; the lowered twin's legacy identity block socket must
+  // not resurface as a second, unsatisfiable requirement — the v5 surface
+  // renders no block sockets.
+  it('yields the identity block requirement to the composer-less name row', () => {
+    const composerLess = {
+      id: 'n',
+      label: 'panel',
+      kind: 'effect.createEntity',
+      typeId: 'project',
+      construction: {
+        mode: 'genericCreate',
+        inputs: [{ id: 'name', path: 'name', type: 'string', required: true, prompt: true }]
+      },
+      blocks: ['identity'],
+      trigger: { mode: 'event' }
+    };
+    const unmet = check(composerLess);
+    expect(unmet).toHaveLength(1);
+    expect(unmet[0]).toContain('Required input name');
+    expect(check(composerLess, [
+      { id: 'e1', source: 'src', target: 'gn', sourceHandle: 'output:x', targetHandle: 'input:name' }
+    ])).toEqual([]);
+    expect(check({ ...composerLess, inputDefaults: { name: 'Panel 1' } })).toEqual([]);
+  });
+
+  it('names nodes by humanized operation and canvas id instead of the raw kind label echo', () => {
+    const echoed = checkDiagnostics(typedCreate({ trigger: { mode: 'event' }, label: 'cts.construct' }));
+    expect(echoed[0].message).toContain('Create entity node gn');
+    expect(echoed[0].message).not.toContain('cts.construct');
+    const authored = checkDiagnostics(typedCreate({ trigger: { mode: 'event' } }));
+    expect(authored[0].message).toContain('design (Create entity node gn)');
+  });
+
   it('rejects an attachment upload construction input whose fallback is empty or scalar', () => {
     const node = {
       id: 'n',

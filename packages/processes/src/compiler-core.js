@@ -774,7 +774,7 @@ function unreachableNodeDiagnostics(process = {}) {
   const warnings = [];
   for (const [nodeId, record] of recordsByGraphId) {
     if (reachingOperational.has(nodeId)) continue;
-    warnings.push(`Process node ${nodeId} (${record?.kind || 'unknown'}) is non-operational: its values cannot reach any persistence effect`);
+    warnings.push(`Process node ${nodeId} (${humanizedKindLabel(record?.kind)}) is non-operational: its values cannot reach any persistence effect`);
   }
   return warnings;
 }
@@ -786,6 +786,34 @@ const CONTEXT_RESOLVABLE_PORTS = new Set(['entity', 'parent', 'status', 'status.
 
 function edgeHandle(handle = '') {
   return String(handle || '').replace(/^(input|output|data|control|success|failure):/, '');
+}
+
+// Diagnostics speak the designer's vocabulary, never the persisted kind
+// strings: the catalog's operation label humanized (createEntity -> Create
+// entity), with the canvas node id, so an author can find the element. An
+// authored node label wins; the raw-kind echo the designer sync persists as
+// `label` (for example `cts.construct`) is ignored.
+function humanizedKindLabel(kind = '') {
+  const definition = getProcessNodeDefinition(kind);
+  const words = String(definition?.label || kind || 'node')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[._-]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(word => word.toLowerCase());
+  if (!words.length) return 'Node';
+  return [words[0].charAt(0).toUpperCase() + words[0].slice(1), ...words.slice(1)].join(' ');
+}
+
+function diagnosticNodeName(record = {}, nodeId = '') {
+  // A label that is itself a catalog kind is the designer sync's raw-kind
+  // echo (`node.label = node.kind`, the species kind before lowering), not
+  // an authored name.
+  const label = record.label && !getProcessNodeDefinition(record.label) ? String(record.label) : '';
+  const authored = label && label !== record.kind ? label : '';
+  const reference = `${humanizedKindLabel(record.kind)} node ${nodeId}`;
+  return authored ? `${authored} (${reference})` : reference;
 }
 
 function isDataEdge(edge = {}) {
@@ -936,7 +964,7 @@ export function validateRequiredInputAvailability(process = {}, domain = {}) {
           : '';
         errors.push({
           message:
-            `Required input ${port.id} on ${record.kind} node ${record.label || recordId}${producerContext} has no available source `
+            `Required input ${port.id} on ${diagnosticNodeName(record, String(graphNode?.id || recordId))}${producerContext} has no available source `
             + (manual ? '(connected, fallback, default, manual prompt, or runtime context)' : '(connected, fallback, or default; a manual prompt cannot satisfy an automatically evaluated path)'),
           nodeId: String(graphNode?.id || recordId),
           socketId: port.id,

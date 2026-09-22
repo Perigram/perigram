@@ -60,7 +60,7 @@ describe('unreachable node diagnostics', () => {
 
     expect(result.ok).toBe(true);
     expect(nonOperational(result).length).toBe(2);
-    expect(nonOperational(result)[0]).toContain('Process node literal (source.literalItem) is non-operational');
+    expect(nonOperational(result)[0]).toContain('Process node literal (Literal item) is non-operational');
   });
 
   it('reports no non-operational nodes when the chain feeds a persistence effect', () => {
