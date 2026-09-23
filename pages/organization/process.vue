@@ -532,6 +532,16 @@
       @cancel="cancelApplyMigration"
     />
 
+    <TypeMigrationStepsDialog
+      :visible="Boolean(pendingTypeMigration)"
+      :failures="pendingTypeMigration"
+      :vocabulary="typeMigrationVocabulary"
+      :loading="applyingProcess"
+      @update:visible="value => { if (!value) cancelTypeMigration(); }"
+      @confirm="confirmTypeMigration"
+      @cancel="cancelTypeMigration"
+    />
+
 
   </StandardPage>
 </template>
@@ -562,6 +572,7 @@ import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
 import ApplyMigrationDialog from '~/components/process-designer/ApplyMigrationDialog.vue';
+import TypeMigrationStepsDialog from '~/components/process-designer/TypeMigrationStepsDialog.vue';
 import StandardPage from '~/components/shared/StandardPage.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 import PermissionEditor from '~/components/PermissionEditor.vue';
@@ -597,6 +608,7 @@ import { processSocketColor } from '~/utils/processDesignerSocketTone.js';
 import { createPaletteText } from '~/utils/processDesignerPaletteText.js';
 import { generateTypeId } from '~/utils/processDesignerIdentity.js';
 import { normalizeDesignerAccess } from '~/utils/processDesignerAccess.js';
+import { declarationVocabulary } from '~/utils/processDesignerTypeMigrations.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
 import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
 import { useProcessDesignerPanels } from '~/composables/useProcessDesignerPanels.js';
@@ -676,6 +688,7 @@ const {
   ctsRegistry,
   ctsProjectedDomain,
   ctsTypeView,
+  ctsOrgTypes,
   refreshTreeOverlay,
   loadOrgTypes,
   loadProcessCapabilities,
@@ -870,11 +883,14 @@ const {
   savingDraft,
   applyingProcess,
   pendingMigration,
+  pendingTypeMigration,
   saveDraft,
   saveDraftFromDock,
   applyProcess,
   confirmApplyMigration,
-  cancelApplyMigration
+  cancelApplyMigration,
+  confirmTypeMigration,
+  cancelTypeMigration
 } = useProcessDesignerApply({
   persistence,
   t,
@@ -888,8 +904,18 @@ const {
   focusFirstValidationDiagnostic,
   upsertProcessDefinition,
   setDraft: value => setDraft(value),
-  syncNow: () => syncNodeData()
+  syncNow: () => syncNodeData(),
+  nodes
 });
+
+// Authored vocabulary for the type-migration step dialog: class names,
+// field labels (tree first, stored descriptors for removed fields), and
+// the tree's current state values as rename targets.
+const typeMigrationVocabulary = computed(() => declarationVocabulary(
+  nodes.value,
+  edges.value,
+  ctsOrgTypes.value
+));
 
 const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, normalizeScreenContract, defaultTypeId, featureForTypeId });
 

@@ -37,15 +37,21 @@ export async function listByOrganization(organizationId) {
     .toArray();
 }
 
-export async function upsertByTypeId(organizationId, typeId, data) {
+export async function upsertByTypeId(organizationId, typeId, data, { unset = [] } = {}) {
   const db = await connectDB();
   // identity fields are immutable: they live in the filter and $setOnInsert
   // only — repeating them in $set makes Mongo reject the update ("would
-  // create a conflict at 'scope'").
+  // create a conflict at 'scope'"). `unset` removes keys an earlier
+  // document version carried (e.g. consumed `migrate` steps) that $set
+  // alone would leave behind.
   const { _id, scope, organizationId: dataOrg, id, ...clean } = data;
   await db.collection(COLLECTION).updateOne(
     { ...orgFilter(organizationId), id: String(typeId) },
-    { $set: clean, $setOnInsert: { _id: new ObjectId(), scope: 'org', organizationId: String(organizationId), id: String(typeId) } },
+    {
+      $set: clean,
+      $setOnInsert: { _id: new ObjectId(), scope: 'org', organizationId: String(organizationId), id: String(typeId) },
+      ...(unset.length ? { $unset: Object.fromEntries(unset.map(key => [key, ''])) } : {})
+    },
     { upsert: true }
   );
   return await findByTypeId(organizationId, typeId);

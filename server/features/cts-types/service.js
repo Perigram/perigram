@@ -22,6 +22,17 @@ function to400(error) {
   throw createError({ statusCode: 400, message: error?.message || String(error) });
 }
 
+// Steps are one-time (SPEC §11): executed or not, a persisted declaration
+// never carries `migrate`. A stored step set would rot into the next edit's
+// "declared migration step … matches no breaking change" refusal the moment
+// a client round-trips the stored declaration, so every persist strips the
+// key (and unsets it from any earlier document).
+function withoutMigrateSteps(declaration = {}) {
+  const next = { ...declaration };
+  delete next.migrate;
+  return next;
+}
+
 // One registry per organization view: system types first, the org's stored
 // declarations overlaying. Shadowing a system id throws here (R6/§4).
 // Authoring relief (SPEC §11): breaking redefinitions of types with
@@ -107,13 +118,26 @@ export async function defineType(declaration = {}, { organizationId, actor = nul
   } catch (error) {
     // Blast radius on the edit path too (Phase 3): a refused write names
     // the processes that bind the type, so a breaking change's reach is
-    // visible before it is retried.
+    // visible before it is retried. An uncovered declared-migration plan
+    // rides along as `data.plan` (SPEC §11/§14 authoring loop): the
+    // breaking change records plus the gate's required-step errors, so the
+    // designer can offer the declarative step instead of a dead-end
+    // string. Pure serialization — the gate's verdict is unchanged.
     if (error?.statusCode) throw error;
     const boundBy = await findTypeReferences(organizationId, orgDeclaration.id);
+    const data = {
+      ...(boundBy.length ? { boundBy } : {}),
+      ...(plan && !plan.covered ? {
+        plan: {
+          changes: plan.breaking.map(change => ({ ...change })),
+          requiredSteps: [...plan.errors]
+        }
+      } : {})
+    };
     throw createError({
       statusCode: 400,
       message: error?.message || String(error),
-      ...(boundBy.length ? { data: { boundBy } } : {})
+      ...(Object.keys(data).length ? { data } : {})
     });
   }
   let compiled;
@@ -129,10 +153,10 @@ export async function defineType(declaration = {}, { organizationId, actor = nul
 
   invalidateInstanceDeclarations(String(organizationId));
   let stored = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
-    ...versioned,
+    ...withoutMigrateSteps(versioned),
     scope: 'org',
     organizationId: String(organizationId)
-  });
+  }, { unset: ['migrate'] });
   // Covered breaking changes execute here: instances are behind the new
   // version from this write until the executor stamps them, so the run is
   // synchronous and idempotent (finished documents carry the new
@@ -146,11 +170,11 @@ export async function defineType(declaration = {}, { organizationId, actor = nul
       actor
     });
     stored = await repository.upsertByTypeId(organizationId, orgDeclaration.id, {
-      ...versioned,
+      ...withoutMigrateSteps(versioned),
       scope: 'org',
       organizationId: String(organizationId),
       migrated: migration
-    });
+    }, { unset: ['migrate'] });
   }
   // Declaration writes can change the derived index set (SPEC §13).
   await ensureInstanceIndexes(registry.resolveView(organizationId));
