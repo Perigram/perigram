@@ -26,7 +26,6 @@ import { normalizeType, renderPolicyFor } from '../packages/cts/src/index.js';
 import { normalizeWorkflow } from '../packages/workflows/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { resolveInstanceRelationRefs } from '../utils/instance-relations.js';
-import { STATE_MAPPINGS } from '../utils/state-engine.js';
 import { getWorkflowStateActions } from '../utils/state-actions.js';
 import {
   analyzeVueVisuals,
@@ -894,7 +893,7 @@ describe('Design system manifest', () => {
     })).toEqual({ type: 'coordinates', label: 'x: 10, y: 20' });
   });
 
-  it('keeps factory demo states and badge mappings aligned with workflow definitions', () => {
+  it('keeps factory demo states aligned with workflow definitions and resolves declared state display from the states facet', () => {
     for (const entry of DESIGN_SYSTEM_ENTITY_CONTRACTS) {
       const workflow = cncWorkflows[entry.typeId];
       if (!workflow) continue;
@@ -909,15 +908,22 @@ describe('Design system manifest', () => {
       ).toContain(entity.status.state);
     }
 
-    for (const [typeId, workflow] of Object.entries(cncWorkflows)) {
-      const normalizedWorkflow = normalizeWorkflow(workflow);
-      const workflowStates = Object.values(normalizedWorkflow.regions || {})
-        .flatMap(region => Object.keys(region.states || {}));
-      for (const state of workflowStates) {
+    // Declared state display resolves on the states facet (SPEC §7):
+    // every declared workflow value must resolve a display policy with a
+    // label and severity through the compiled bundle derivation.
+    const declarations = [...frameworkTypes, ...techDrawingTypes, ...cncFileTypes];
+    for (const declaration of declarations) {
+      const type = normalizeType(declaration);
+      const axis = type.states?.main;
+      if (!axis) continue;
+      const resolved = renderPolicyFor(type).states.main;
+      for (const value of axis.values) {
         expect(
-          STATE_MAPPINGS[state] || STATE_MAPPINGS[state.toLowerCase()],
-          `${typeId}.${state} missing status badge mapping`
+          resolved[value],
+          `${type.id}.${value} must resolve a states-facet display policy`
         ).toBeTruthy();
+        expect(typeof resolved[value].label).toBe('string');
+        expect(resolved[value].severity).toBeTruthy();
       }
     }
   });

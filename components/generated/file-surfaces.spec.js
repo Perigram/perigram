@@ -18,7 +18,8 @@ import {
   resolveFilePreview,
   resolveFileSurface,
   sketchInstancePersistence,
-  textInstancePersistence
+  textInstancePersistence,
+  validateEditorBindings
 } from './file-surfaces.js';
 
 describe('file surface registry', () => {
@@ -29,6 +30,26 @@ describe('file surface registry', () => {
       expect(surface.surface).toBe(editor.surface);
       expect(surface.modes).toEqual(editor.modes);
     }
+  });
+
+  it('rejects editor bindings whose surface id is absent from the registry', () => {
+    expect(() => validateEditorBindings([
+      { type: 'cassette', surface: 'no-such-surface', modes: ['edit'] }
+    ])).toThrow(/type cassette references unknown surface no-such-surface/);
+    expect(() => validateEditorBindings([
+      { type: null, surface: null, modes: ['edit'] }
+    ])).toThrow(/unknown surface/);
+  });
+
+  it('rejects two editor bindings for one type, naming both surfaces', () => {
+    expect(() => validateEditorBindings([
+      { type: 'cassette', surface: 'cassette-designer', modes: ['edit'] },
+      { type: 'cassette', surface: 'sketch-editor', modes: ['edit'] }
+    ])).toThrow(/duplicate editor binding for type cassette: surfaces cassette-designer and sketch-editor/);
+  });
+
+  it('validates the real pack bindings against the registry', () => {
+    expect(validateEditorBindings(packEditorBindings)).toBe(packEditorBindings);
   });
 
   it('binds the cassette type to the cassette designer presentations', () => {
@@ -115,6 +136,16 @@ describe('file surface registry', () => {
     ];
     expect(resolveFileSurface(served, 'cassette').modes).toEqual(['edit']);
     expect(resolveFileSurface(served, 'sheet-design')).toBeNull();
+  });
+
+  it('falls back to the pack bindings without a fetched type view', () => {
+    // This spec runs without an active Pinia/app context, so the served
+    // list cannot have been fetched: the documented pack fallback drives
+    // the defaulted derivations.
+    expect(resolveFileSurface(undefined, 'cassette').surface).toBe('cassette-designer');
+    expect(fileDetailOverloads().map(row => row.typeId)).toContain('sketch');
+    expect(fileWorkspacePages().map(row => row.id)).toEqual(['cassette-designer']);
+    expect(new Map(fileEditorActions()).get('text-document')).toMatchObject({ forceIdentity: true });
   });
 
   it('returns null for unknown types and unregistered surfaces', () => {

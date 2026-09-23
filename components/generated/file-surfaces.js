@@ -8,6 +8,8 @@ import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
 import { cncEditors } from '@cutkit/domain-cnc';
 import { techDrawingEditors } from '~/packages/tech-drawing/src/index.js';
 import { documentsEditors } from '~/packages/documents/src/index.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import { unref } from 'vue';
 import { instancePayloadFileUrl } from './file-preview-contract.js';
 
 /**
@@ -147,17 +149,64 @@ export function textInstancePersistence(entity = {}, typeId = '', format = 'text
   };
 }
 
+/**
+ * Validate editor bindings against the surface registry (the app-side
+ * editor-binding guards):
+ * - every binding's surface id must exist in the registry (the error
+ *   names the binding's type and the unknown surface id);
+ * - a type may carry at most one binding (the error names both surfaces).
+ * Pure by design; `file-surfaces.spec.js` runs it red-green against the
+ * real pack bindings.
+ */
+export function validateEditorBindings(bindings = [], registry = fileSurfaceRegistry) {
+  const byType = new Map();
+  for (const binding of bindings || []) {
+    const surfaceId = binding?.surface;
+    if (!surfaceId || !registry[surfaceId]) {
+      throw new Error(`editor binding for type ${binding?.type ?? '(no type)'} references unknown surface ${surfaceId ?? '(no surface)'} — register the surface in file-surfaces.js or fix the binding`);
+    }
+    const existing = byType.get(binding.type);
+    if (existing) {
+      throw new Error(`duplicate editor binding for type ${binding.type}: surfaces ${existing.surface} and ${surfaceId} — exactly one editor surface per file type`);
+    }
+    byType.set(binding.type, binding);
+  }
+  return bindings;
+}
+
 // The mounted packs' editor bindings in composition order — the same
 // records the cts-types feature serves with the organization type view.
-export const packEditorBindings = [...documentsEditors, ...techDrawingEditors, ...cncEditors];
+// Validated at module load so pack/registry drift fails here, not as a
+// silently missing editor presentation.
+export const packEditorBindings = validateEditorBindings([...documentsEditors, ...techDrawingEditors, ...cncEditors]);
+
+// Served-list default (editor-binding guard): when the app has fetched
+// the organization type view, the served editor list is the authoritative
+// binding source, read through the `useFileTypeView` cache. The pack
+// import above stays as the explicit fallback for contexts without a
+// fetched view — module-scope evaluation, unit specs, and pre-auth
+// shells. A loaded-but-empty served list also falls back: today every
+// served editor comes from the mounted packs, so empty can only mean
+// "nothing fetched for this context".
+function activeEditorBindings() {
+  try {
+    const view = useFileTypeView();
+    const editors = unref(view.editors);
+    if (unref(view.loaded) && Array.isArray(editors) && editors.length) return editors;
+  } catch {
+    // No active Pinia/app context (module scope, unit specs).
+  }
+  return packEditorBindings;
+}
 
 /**
  * Resolve one file type's surface record from editor bindings. Returns
  * `null` when the type has no editor binding or the bound surface has no
- * app presentation. The served editor list can be passed in place of the
- * pack import.
+ * app presentation. Omitting `editors` resolves against the served editor
+ * list when the organization type view has been fetched, with the pack
+ * bindings as the documented fallback.
  */
-export function resolveFileSurface(editors = packEditorBindings, typeId = '') {
+export function resolveFileSurface(editors = activeEditorBindings(), typeId = '') {
   const editor = (editors || []).find(item => item?.type === typeId && fileSurfaceRegistry[item.surface]);
   if (!editor) return null;
   const surface = fileSurfaceRegistry[editor.surface];
@@ -176,7 +225,7 @@ export function resolveFileSurface(editors = packEditorBindings, typeId = '') {
  * Derive generated entity-detail overload rows for every bound file type:
  * one row per editor binding whose surface has a detail presentation.
  */
-export function fileDetailOverloads(editors = packEditorBindings) {
+export function fileDetailOverloads(editors = activeEditorBindings()) {
   return (editors || [])
     .map(editor => {
       const surface = resolveFileSurface(editors, editor.type);
@@ -197,7 +246,7 @@ export function fileDetailOverloads(editors = packEditorBindings) {
  * surface has a pane presentation. Page ids are the surface ids, so
  * persisted pane state stays stable.
  */
-export function fileWorkspacePages(editors = packEditorBindings) {
+export function fileWorkspacePages(editors = activeEditorBindings()) {
   return (editors || [])
     .map(editor => {
       const surface = resolveFileSurface(editors, editor.type);
@@ -219,7 +268,7 @@ export function fileWorkspacePages(editors = packEditorBindings) {
  * Derive editor-action rows: every bound file type resolves its action
  * component and identity policy from the surface registry.
  */
-export function fileEditorActions(editors = packEditorBindings) {
+export function fileEditorActions(editors = activeEditorBindings()) {
   return (editors || [])
     .map((editor) => {
       const surface = resolveFileSurface(editors, editor.type);

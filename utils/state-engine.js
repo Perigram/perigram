@@ -1,61 +1,33 @@
-import { cncStatusUi } from '@cutkit/domain-cnc';
+// Per-state display policy from the compiled contract (SPEC §7): the
+// served CTS client bundle resolves every authored state value of a
+// type's `states` facet to `{ label, icon, severity }` (authored at
+// `states.<axis>.render` on declarations, derived defaults applied at
+// compile time by `@perigram/cts` `renderPolicyFor`). This resolver is
+// the single display seam shared by the status chip and transition
+// actions; values without a declaration render as a neutral chip
+// carrying the raw value — the documented stop-line for undeclared
+// types. There is no legacy domain status table lookup anymore.
 
-/**
- * Central registry for Entity-specific UI properties.
- * Maps canonical snake_case entity types to their icons and routing patterns.
- * Camel-case surface names are normalized at lookup time; only canonical
- * snake_case keys are stored.
- *
- * `icon` is a CSS class string. CNC-domain entities use the custom
- * `ck-entity-icon-*` mask classes (assets/css/main.css) backed by the SVGs in
- * public/icons/data-model/cnc-domain; everything else uses PrimeIcons.
- */
-export const INSTANCE_UI = {
-    project: { icon: 'pi pi-folder' },
-    queue: { icon: 'pi pi-list' },
-    nesting_run: { icon: 'pi pi-list-check' },
-    sheet_design: { icon: 'ck-entity-icon ck-entity-icon-sheet-design' },
-    cassette: { icon: 'ck-entity-icon ck-entity-icon-cassette-template' },
-    cassette_design: { icon: 'ck-entity-icon ck-entity-icon-cassette-design' },
-    cassette_template: { icon: 'ck-entity-icon ck-entity-icon-cassette-template' },
-    cassette_instance: { icon: 'ck-entity-icon ck-entity-icon-cassette-instance' },
-    facade: { icon: 'pi pi-table' },
-    facade_pattern: { icon: 'pi pi-share-alt' },
-    warehouse: { icon: 'pi pi-building' },
-    library: { icon: 'pi pi-book' },
-    catalog: { icon: 'pi pi-tags' },
-    color: { icon: 'pi pi-palette' },
-    material: { icon: 'pi pi-th-large' },
-    requisition: { icon: 'pi pi-shopping-cart' },
-    batch: { icon: 'pi pi-truck' },
-    batch_pile: { icon: 'pi pi-inbox' },
-    sheet: { icon: 'ck-entity-icon ck-entity-icon-sheet-instance' },
-    remnant: { icon: 'ck-entity-icon ck-entity-icon-remnant' },
-    material_pile: { icon: 'pi pi-clone' },
-    machine: { icon: 'pi pi-cog' },
-    tool_profile: { icon: 'pi pi-wrench' },
-    profile_template: { icon: 'pi pi-objects-column' },
-    pen_template: { icon: 'pi pi-pencil' },
-    layer_standard: { icon: 'pi pi-sitemap' },
-    entity_revision: { icon: 'pi pi-history' },
-    geometry_capture: { icon: 'pi pi-camera' },
-    user: { icon: 'pi pi-user' },
-    organization: { icon: 'pi pi-building' },
-    artifact: { icon: 'pi pi-file' },
-    artifact_template: { icon: 'pi pi-print' }
-};
-
-function toSnakeCase(type = '') {
-    return String(type || '').replace(/[A-Z]/g, character => `_${character.toLowerCase()}`).replace(/^_/, '');
+// Bundle ids are kebab CTS ids; callers hold kebab, snake, or legacy
+// camel spellings of the same type. One normalization for the states
+// lookup seam (mirrors `useFileTypeView.typeById`).
+export function kebabStateTypeId(typeId = '') {
+    return String(typeId)
+        .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+        .replace(/_/g, '-')
+        .toLowerCase();
 }
 
-export function instanceUiFor(type = '') {
-    return INSTANCE_UI[type] || INSTANCE_UI[toSnakeCase(type)] || { icon: 'pi pi-box' };
+export function resolveStateDisplay(states = null, value = '') {
+    const raw = value === null || value === undefined || value === ''
+        ? 'UNKNOWN'
+        : String(value);
+    const render = states?.main?.render || null;
+    const policy = render?.[raw] || render?.[raw.toLowerCase()] || render?.[raw.toUpperCase()] || null;
+    if (!policy) return { label: raw, severity: 'secondary', icon: null };
+    return {
+        label: policy.label || raw,
+        severity: policy.severity || 'secondary',
+        icon: policy.icon || null
+    };
 }
-
-/**
- * Status display mapping derived from the canonical domain `cncStatusUi`.
- * The domain owns status labels/severity/icon contracts; this is a projection,
- * not a second registry.
- */
-export const STATE_MAPPINGS = cncStatusUi;

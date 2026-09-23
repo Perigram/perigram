@@ -89,11 +89,16 @@ const eventSnapshots = (event) => Object.entries(event.status?.lifecycle?.data?.
     count: value?.count ?? value?.refs?.length ?? 0
   }));
 
+// Actor display uses the event's first-class stamp `actor` when present
+// (persisted `id`/`label`/`principalType`, merged with the display
+// projection `userId`/`name` by the states feature service); legacy
+// events predate the stamp and keep the status-block fallbacks.
 const actorName = (event) => {
   const userId = event.status?.userId || event.userId;
-  if (userId === 'SYSTEM') return t('status.systemActor');
+  if (isSystemActor(event, userId)) return t('status.systemActor');
 
-  return event.actor?.name
+  return event.actor?.label
+    || event.actor?.name
     || event.status?.actor?.name
     || event.status?.metadata?.actorName
     || event.status?.metadata?.userName
@@ -110,9 +115,16 @@ const actorTitle = (event) => {
 };
 
 const actorUserId = (event) => {
-  const userId = event.actor?.userId || event.status?.userId || event.userId;
-  return userId && userId !== 'SYSTEM' ? userId : '';
+  if (isSystemActor(event, event.status?.userId || event.userId)) return '';
+  const principalType = event.actor?.principalType;
+  if (principalType && principalType !== 'user') return '';
+  return event.actor?.id || event.actor?.userId || event.status?.userId || event.userId || '';
 };
+
+function isSystemActor(event, userId) {
+  if (event.actor?.principalType === 'SYSTEM' || event.actor?.type === 'system') return true;
+  return (!event.actor?.principalType && !event.actor?.type) && userId === 'SYSTEM';
+}
 
 const openActorChat = (event) => {
   const userId = actorUserId(event);
@@ -154,7 +166,7 @@ const eventKey = (event, index) => event._id || `${eventState(event)}-${event.ti
 
         <div class="min-w-0 pb-2">
           <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <StatusBadge :state="eventState(event)" :display="eventDisplay(event)" />
+            <StatusBadge :state="eventState(event)" :type-id="typeId" :display="eventDisplay(event)" />
             <span v-if="actorUserId(event)" class="inline-flex min-w-0 items-center gap-1" :title="actorTitle(event)">
               <InstanceInlineRef type="user" :id="actorUserId(event)" :entity="{ _id: actorUserId(event), identity: { name: actorName(event) }, data: {} }" />
               <Button
