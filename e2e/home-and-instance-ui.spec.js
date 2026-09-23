@@ -46,16 +46,16 @@ test.describe('home and entity UI', () => {
     });
     await app.gotoClient(home.route);
     await app.page.waitForLoadState('load');
-    // Desktop home shell: the sidebar PanelMenu carries one panel per
+    // Desktop home shell: the raw PanelMenu carries one panel per
     // screen-backed type; designer-authored containment nests the child
     // type beneath its parent (never a root entry); each root source
-    // loads its pool from its endpoint.
-    await expect(app.page.locator('span[data-home-type-id="cassette"]')).toBeVisible();
-    await expect(app.page.locator('span[data-home-type-id="e2e-folder"]')).toBeVisible();
+    // loads its pool from its endpoint. Type rows carry home-type-* ids.
+    await expect(app.page.locator('[id="home-type-cassette"]')).toBeVisible();
+    await expect(app.page.locator('[id="home-type-e2e-folder"]')).toBeVisible();
     await expect(
-      app.page.locator('.p-panelmenu-panel:has(> .p-panelmenu-header span[data-home-type-id="e2e-folder"]) .p-panelmenu-content span[data-home-type-id="e2e-note"]')
+      app.page.locator('.p-panelmenu-panel:has([id="home-type-e2e-folder"]) [id="home-type-e2e-note"]')
     ).toBeVisible();
-    await expect(app.page.locator('.p-panelmenu-root-list > .p-panelmenu-panel > .p-panelmenu-header span[data-home-type-id="e2e-note"]')).toHaveCount(0);
+    await expect(app.page.locator('[id="home-type-e2e-note"]')).toHaveCount(1);
     await expect.poll(() => requested.length, 'Expected the home cassette pool to load').toBeGreaterThan(0);
     await app.expectCleanRuntime();
   });

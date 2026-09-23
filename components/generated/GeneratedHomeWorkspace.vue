@@ -68,74 +68,10 @@
           <PanelMenu
             v-model:expanded-keys="expandedKeys"
             :model="sidebarMenuModel"
+            multiple
             class="w-full"
             :aria-label="$t('nav.home')"
-          >
-            <template #item="{ item, active, hasSubmenu }">
-              <a v-ripple class="flex items-center px-4 py-2 cursor-pointer group">
-                <span v-if="item.icon" :class="[item.icon, 'text-primary group-hover:text-inherit']" />
-                <span
-                  v-if="item.typeId"
-                  :data-home-type-id="item.typeId"
-                  :class="['ml-2 min-w-0 flex-1 truncate', { 'text-label': item.items }]"
-                >{{ item.label }}</span>
-                <span
-                  v-else-if="item.workspaceItem"
-                  class="ml-2 flex min-w-0 flex-1"
-                  :data-entity-id="instanceId(item.workspaceItem.entity)"
-                >
-                  <InstanceInlineRef
-                    :type="item.workspaceItem.type"
-                    :entity="item.workspaceItem.entity"
-                    :fetch="false"
-                    :fields="[]"
-                    :interactive="false"
-                    variant="inline"
-                  />
-                </span>
-                <span v-else :class="['ml-2 min-w-0 flex-1 truncate', { 'text-label': item.items }]">{{ item.label }}</span>
-                <InstanceState
-                  v-if="item.workspaceItem?.entity?.status"
-                  :entity="item.workspaceItem.entity"
-                  :type-id="item.workspaceItem.type"
-                  variant="icon"
-                  class="shrink-0"
-                  @click.stop
-                  @refresh="$emit('refresh')"
-                  @transitioned="$emit('refresh')"
-                />
-                <Badge v-if="item.badge" class="ml-auto shrink-0" :value="item.badge" />
-                <i
-                  v-if="hasSubmenu"
-                  :class="['ml-2 shrink-0 text-muted transition-transform duration-200', active ? 'rotate-0' : '-rotate-90']"
-                  class="pi pi-chevron-down"
-                  aria-hidden="true"
-                />
-                <Button
-                  v-if="item.typeId && item.section && collectionActions(item.section.region).length"
-                  icon="pi pi-ellipsis-v"
-                  text
-                  rounded
-                  size="small"
-                  severity="secondary"
-                  class="ml-auto shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                  :aria-label="$t('common.add')"
-                  @click.stop="toggleSectionActions($event, item)"
-                />
-                <Button
-                  v-else-if="item.workspaceItem && rowActions(item.workspaceItem).length"
-                  icon="pi pi-ellipsis-v"
-                  text
-                  rounded
-                  size="small"
-                  severity="secondary"
-                  class="ml-auto shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                  :aria-label="$t('common.more')"
-                  @click.stop="toggleChildActions($event, item)"
-                />
-              </a>
-            </template>
-          </PanelMenu>
+          />
         </div>
 
         <!-- Profile is its own bottom panel: the account trigger shows the
@@ -216,15 +152,6 @@
       </div>
     </div>
 
-    <Menu ref="actionsMenu" :model="rowActionMenuItems" :popup="true">
-      <template #item="{ item }">
-        <GeneratedActionButton
-          :action-id="item.actionId"
-          menu-item
-          @execute="runRowAction"
-        />
-      </template>
-    </Menu>
   </div>
 </template>
 
@@ -232,25 +159,18 @@
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
-import Menu from 'primevue/menu';
 import PanelMenu from 'primevue/panelmenu';
-import Badge from 'primevue/badge';
 import { useI18n } from 'vue-i18n';
-import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
-import InstanceState from '~/components/shared/state/InstanceState.vue';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
-import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
 import { titleFor, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
-import { isCreateAction, isGeneratedSurfaceAction, isRelationLinkAction } from '~/components/generated/action-visibility.js';
-import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
 import { resolveGeneratedWorkspacePage, generatedWorkspacePages } from '~/components/generated/workspace-pages.js';
-import { generatedDetailScreenForTypeId, resolveDetailScreen } from '~/components/generated/detail-screen-actions.js';
+import { resolveDetailScreen } from '~/components/generated/detail-screen-actions.js';
 import { resolveFileSurface, packEditorBindings } from '~/components/generated/file-surfaces.js';
 import { detailRouteForInstance } from '~/components/generated/instance-detail-routing.js';
 import { useAuthStore } from '~/stores/auth';
@@ -260,7 +180,6 @@ import { useSupportChatStore } from '~/stores/supportChat';
 import { useCallsStore } from '~/stores/calls';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { useMobileHomeTabs } from '~/composables/useMobileHomeTabs.js';
-import { generatedActionLabel } from '~/utils/generated-labels.js';
 import { callRoomIcon, callRoomLabel, conversationKeyForRoom } from '~/utils/call-rooms.js';
 import { shouldRenderHomeSection } from '~/utils/generated-screen-source.js';
 import { linkedExplorerChildSources } from '~/utils/project-linked-child-sources.js';
@@ -307,12 +226,6 @@ const openedPageRefs = ref([]);
 const openedScreenRefs = ref([]);
 const openedEntityItems = ref([]);
 const hydratedStorageKey = ref('');
-const actionsMenu = ref(null);
-const rowActionEntries = ref([]);
-const rowActionMenuItems = computed(() => rowActionEntries.value.map(entry => ({
-  actionId: entry.action.id,
-  label: generatedActionLabel(entry.action, entry.action.id, { t, te })
-})));
 const linkedChildrenByKey = ref(new Map());
 const loadedChildKeys = ref(new Set());
 let openedEntityLoadSequence = 0;
@@ -371,12 +284,6 @@ const screenItems = computed(() => openedScreenRefs.value.map(reference => {
     : { ...base, label: screenLabelFor(reference.screenKey) };
 }));
 
-// The active pane's selected detail tabs, as entity identities — drives
-// the sidebar row highlight (rows mute until their instance is open).
-const activeInstanceKeys = computed(() => new Set(screenItems.value
-  .filter(item => item.instanceId)
-  .map(item => `${item.typeId}:${item.instanceId}`)
-  .concat(openedPageRefs.value.map(page => `${page.typeId}:${page.instanceId}`))));
 // Registered pages without an entity binding are always openable tabs.
 const staticPageItems = computed(() => generatedWorkspacePages
   .filter(page => !page.typeId && !page.ephemeral)
@@ -478,10 +385,10 @@ const sidebarMenuModel = computed(() => [
 function typePanelItem(node) {
   return {
     key: node.key,
+    id: `home-type-${node.data.typeId}`,
     label: node.label,
     icon: node.icon,
     typeId: node.data.typeId,
-    section: node.data.section,
     command: () => openTypeScreen(node.data.screen),
     items: (node.children || []).map(child => (
       child.data?.typeId ? typePanelItem(child) : entityPanelItem(child)
@@ -531,8 +438,7 @@ function activeRoomItems() {
   return callsStore.activeRooms.map(room => ({
     key: `call-room:${room.room}`,
     icon: callRoomIcon(room.kind),
-    label: activeRoomLabel(room),
-    badge: room.participants ? String(room.participants) : undefined,
+    label: room.participants ? `${activeRoomLabel(room)} (${room.participants})` : activeRoomLabel(room),
     command: () => openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })
   }));
 }
@@ -684,9 +590,13 @@ function openTypeScreen(screen = null) {
 
 watch(explorerNodes, value => {
   const next = { ...expandedKeys.value };
-  for (const node of value) {
-    if (!(node.key in next)) next[node.key] = true;
-  }
+  const expandTypes = nodes => {
+    for (const node of nodes) {
+      if (node.data?.typeId && !(node.key in next)) next[node.key] = true;
+      expandTypes(node.children || []);
+    }
+  };
+  expandTypes(value);
   expandedKeys.value = next;
 }, { immediate: true });
 
@@ -862,134 +772,6 @@ async function startCallFromConversation(conversation = {}) {
 
 function openChatsPage() {
   if (activePane.value) selectPaneTab(activePane.value.id, 'page:chats');
-}
-
-function toggleSectionActions(event, item) {
-  const section = item?.section;
-  if (!section) return;
-  rowActionEntries.value = collectionActions(section.region)
-    .map(action => ({ action, context: actionContext(section) }));
-  actionsMenu.value?.toggle(event);
-}
-
-function toggleChildActions(event, item) {
-  const workspaceItem = item?.workspaceItem;
-  if (!workspaceItem) return;
-  rowActionEntries.value = rowActions(workspaceItem);
-  actionsMenu.value?.toggle(event);
-}
-
-function hideRowActions() {
-  actionsMenu.value?.hide();
-}
-
-function runRowAction(action) {
-  const entry = rowActionEntries.value.find(item => item.action.id === (action?.id || action?.id));
-  hideRowActions();
-  if (entry) emit('execute-action', action, entry.entity ?? null, entry.context);
-}
-
-// One action channel per explorer row: compiled child-collection creates with
-// the row bound as opened parent, plus the row's compiled relation Link
-// actions executed against the row entity itself.
-function rowActions(item = null) {
-  if (!item?.entity) return [];
-  return [...childCreateActions(item), ...linkActions(item)];
-}
-
-function collectionActions(region = {}) {
-  return resolvedRegionActions(region)
-    .filter(isCreateAction);
-}
-
-function resolvedRegionActions(region = {}) {
-  return [...new Map((region.actions || [])
-    .map(actionId => authStore.actionManifest.find(action => action.id === actionId))
-    .filter(Boolean)
-    .map(action => [action.id, action])).values()];
-}
-
-// Child creates for an explorer entity come from that entity type's compiled
-// detail screen: every list region below the single main source contributes
-// its createEntity actions with the row entity bound as the opened parent.
-function linkActions(item = null) {
-  const detailScreen = generatedDetailScreenForTypeId({
-    screens: authStore.screenManifest,
-    typeId: item.type
-  });
-  if (!detailScreen) return [];
-  const mainRegion = (detailScreen.regions || []).find(region => (
-    (detailScreen.sources || []).some(source => (
-      source.id === region.sourceId
-      && source.typeId === item.type
-      && source.mode === 'single'
-    ))
-  ));
-  const actionIds = [...new Set([...(mainRegion?.actions || []), ...(detailScreen.actions || [])])];
-  return resolvedRegionActions({ actions: actionIds })
-    .filter(isRelationLinkAction)
-    .filter(isGeneratedSurfaceAction)
-    .map(action => ({
-      action,
-      entity: item.entity,
-      context: {
-        parentEntity: item.entity,
-        parentTypeId: item.type
-      }
-    }));
-}
-
-function childCreateActions(item = null) {
-  if (!item?.entity) return [];
-  const detailScreen = generatedDetailScreenForTypeId({
-    screens: authStore.screenManifest,
-    typeId: item.type
-  });
-  if (!detailScreen) return [];
-  const entries = [];
-  for (const region of detailScreen.regions || []) {
-    const source = (detailScreen.sources || []).find(candidate => candidate.id === region.sourceId);
-    if (!source || source.mode !== 'list' || source.typeId === item.type) continue;
-    for (const action of resolvedRegionActions(region).filter(isCreateAction)) {
-      entries.push({
-        action,
-        context: mergeCollectionActionContext({
-          incoming: {
-            parentTypeId: item.type,
-            parentEntity: item.entity,
-            parentEntityId: instanceId(item.entity)
-          },
-          region,
-          source,
-          typeId: source.typeId,
-          items: []
-        })
-      });
-    }
-  }
-  return entries.filter((entry, index, list) => (
-    list.findIndex(candidate => candidate.action.id === entry.action.id) === index
-  ));
-}
-
-function actionContext(section = {}) {
-  // Parent option labels follow the one title resolver: each loaded DTO
-  // maps through the wire-to-screen bridge before titleFor, so declared
-  // identity fields win and raw ids never render.
-  const typeRecord = registryStore.typeRecord(section.source.typeId) || null;
-  return {
-    region: section.region,
-    source: section.source,
-    typeId: section.source.typeId,
-    parentTypeId: section.source.typeId,
-    parentOptions: section.items.map(entity => ({
-      label: typeRecord
-        ? titleFor(dtoToScreenInstance(entity, typeRecord), typeRecord, { unnamedLabel: t('common.unnamed') })
-        : t('common.unnamed'),
-      value: entity._id || entity.identity?.uid,
-      entity
-    }))
-  };
 }
 
 function sectionItemsFor(regionId) {
