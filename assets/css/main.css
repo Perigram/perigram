@@ -68,12 +68,6 @@ body {
     background: var(--ck-selection-background);
 }
 
-.chrome-signal-rule {
-    border-top-color: var(--p-accent-color);
-    border-top-style: solid;
-    border-top-width: var(--ck-chrome-signal-height);
-}
-
 .process-designer-canvas .vue-flow__connection-path {
     stroke: var(--p-primary-color);
     stroke-width: 2px;

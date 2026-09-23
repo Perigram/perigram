@@ -349,17 +349,21 @@ describe('Design system manifest', () => {
       tabs: { tablist: { background: 'transparent' }, tabpanel: { background: 'transparent' } },
       tree: { root: { background: 'transparent' } }
     });
-    expect(Object.keys(primeSemanticTokens)).toEqual(['primary', 'accent', 'focusRing', 'colorScheme']);
+    expect(Object.keys(primeSemanticTokens)).toEqual(['primary', 'accent', 'colorScheme']);
     expect(Object.keys(primeSemanticTokens.colorScheme)).toEqual(['light', 'dark']);
     expect(primeSemanticTokens.colorScheme.light.surface[100]).toBe('{zinc.100}');
     expect(primeSemanticTokens.colorScheme.dark.surface[950]).toBe('{zinc.950}');
     // Primary is a neutral contrast ink riding the zinc surface scale; the
-    // Perigram logo red is the accent and owns focus/selection signals.
+    // Perigram logo red is the accent, reserved for text selection, the
+    // decision signal, and brand ink. Focus rings and selection highlights
+    // keep Aura's primary-driven defaults, so they stay neutral.
     expect(designTokens.palette.primary[500]).toBe('#71717a');
     expect(designTokens.palette.accent[500]).toBe('#ff0040');
     expect(primeSemanticTokens.colorScheme.light.primary.color).toBe('{surface.900}');
     expect(primeSemanticTokens.colorScheme.dark.primary.color).toBe('{surface.50}');
-    expect(primeSemanticTokens.focusRing.color).toBe('{accent.color}');
+    expect(primeSemanticTokens.focusRing).toBeUndefined();
+    expect(primeSemanticTokens.colorScheme.light.highlight).toBeUndefined();
+    expect(primeSemanticTokens.colorScheme.dark.highlight).toBeUndefined();
     expect(cssVariableTokens['--ck-primary-700']).toBe(designTokens.palette.primary[700]);
     expect(cssVariableTokens['--ck-accent-700']).toBe(designTokens.palette.accent[700]);
     expect(cssVariableTokens['--ck-chrome-background']).toBe('var(--p-surface-100)');
@@ -423,8 +427,7 @@ describe('Design system manifest', () => {
     expect(runtimeCss).not.toContain('!important');
     expect(fs.readdirSync(path.join(REPO_ROOT, 'assets/css')).filter(file => file.endsWith('.css')).sort())
       .toEqual(['fonts.css', 'main.css', 'variants.css']);
-    expect(runtimeCss).toContain('.chrome-signal-rule');
-    expect(runtimeCss).toContain('border-top-width: var(--ck-chrome-signal-height)');
+    expect(runtimeCss).not.toContain('chrome-signal');
     expect(cssVariableTokens['--ck-chrome-background']).toBe('var(--p-surface-100)');
     expect(cssVariableTokens['--ck-page-background']).toBe('var(--p-surface-100)');
     expect(darkCssVariableTokens['--ck-chrome-background']).toBe('var(--p-surface-950)');
@@ -445,8 +448,8 @@ describe('Design system manifest', () => {
 
     const appLayout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/app.vue'), 'utf8');
     const uiLabLayout = fs.readFileSync(path.join(REPO_ROOT, 'layouts/ui-lab-layout.vue'), 'utf8');
-    expect(appLayout).toContain('chrome-signal-rule');
-    expect(uiLabLayout).toContain('chrome-signal-rule');
+    expect(appLayout).not.toContain('chrome-signal-rule');
+    expect(uiLabLayout).not.toContain('chrome-signal-rule');
   });
 
   it('assigns typography roles on their owning surfaces', () => {

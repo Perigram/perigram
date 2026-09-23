@@ -2,9 +2,10 @@
  * Primary is contrast, not a color: it rides the zinc surface scale, so
  * controls painted with it read as ink-on-surface — near-black on the light
  * canvas, near-white on the dark one — the monochrome primary style of the
- * PrimeVue showcase pages. Brand energy lives in the Perigram accent (the
- * logo red `#ff0040`), which owns intent signals: focus rings, selection,
- * and decision marks.
+ * PrimeVue showcase pages. PrimeVue's own focus rings and selection
+ * highlights follow primary, so they stay neutral ink and zinc tints.
+ * Brand energy lives in the Perigram accent (the logo red `#ff0040`),
+ * reserved for text selection, the decision signal, and brand ink.
  */
 const zincPrimary = {
     50: '#fafafa',
@@ -65,7 +66,6 @@ export const designTokens = {
     },
     layout: {
         pageMaxWidth: '1600px',
-        chromeSignalHeight: '0.25rem',
         gridGap: '1.25rem',
         boundedGridItemMinWidth: '24rem',
         boundedGridItemMaxWidth: '32rem',
@@ -185,7 +185,6 @@ export const cssVariableTokens = {
     '--ck-signal-effect': 'var(--ck-entity-tone-fabrication)',
     '--ck-signal-temporal': 'var(--ck-entity-tone-output)',
     '--ck-page-max-width': designTokens.layout.pageMaxWidth,
-    '--ck-chrome-signal-height': designTokens.layout.chromeSignalHeight,
     '--ck-grid-gap': designTokens.layout.gridGap,
     '--ck-bounded-grid-item-min-width': designTokens.layout.boundedGridItemMinWidth,
     '--ck-bounded-grid-item-max-width': designTokens.layout.boundedGridItemMaxWidth,
@@ -373,15 +372,6 @@ const zincSurface = {
 export const primeSemanticTokens = {
     primary: zincPrimary,
     accent: perigramAccent,
-    // The accent owns interactive intent signals: focus rings and overlay
-    // selection stay brand-red while primary stays a neutral contrast ink.
-    focusRing: {
-        width: '1px',
-        style: 'solid',
-        color: '{accent.color}',
-        offset: '2px',
-        shadow: 'none'
-    },
     colorScheme: {
         light: {
             surface: zincSurface,
@@ -396,12 +386,6 @@ export const primeSemanticTokens = {
                 hoverColor: '{accent.700}',
                 activeColor: '{accent.800}',
                 contrastColor: '#ffffff'
-            },
-            highlight: {
-                background: '{accent.100}',
-                focusBackground: '{accent.200}',
-                color: '{accent.700}',
-                focusColor: '{accent.800}'
             }
         },
         dark: {
@@ -417,12 +401,6 @@ export const primeSemanticTokens = {
                 hoverColor: '{accent.400}',
                 activeColor: '{accent.300}',
                 contrastColor: '#ffffff'
-            },
-            highlight: {
-                background: '{accent.950}',
-                focusBackground: '{accent.900}',
-                color: '{accent.300}',
-                focusColor: '{accent.200}'
             }
         }
     }

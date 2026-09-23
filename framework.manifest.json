@@ -795,7 +795,6 @@
         "--ck-chrome-border": "var(--p-content-border-color)",
         "--ck-chrome-foreground": "var(--p-text-color)",
         "--ck-chrome-muted": "var(--p-text-muted-color)",
-        "--ck-chrome-signal-height": "0.25rem",
         "--ck-chrome-subtle": "var(--p-surface-200)",
         "--ck-compact-preview-width": "10rem",
         "--ck-details-gap": "1.5rem",
@@ -894,7 +893,6 @@
         "layout": {
           "boundedGridItemMaxWidth": "32rem",
           "boundedGridItemMinWidth": "24rem",
-          "chromeSignalHeight": "0.25rem",
           "compactPreviewWidth": "10rem",
           "detailsGap": "1.5rem",
           "dialogLg": "56rem",
