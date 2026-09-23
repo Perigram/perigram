@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { ref } from 'vue';
-import { definitionToCanvas } from '~/packages/processes/src/index.js';
+import { definitionToCanvas, compileProcessDefinition, redundantAuthoredScreens } from '~/packages/processes/src/index.js';
 import { useProcessDefinitionCatalog } from '~/composables/useProcessDefinitionCatalog.js';
 import { useProcessDesignerSelection } from '~/composables/useProcessDesignerSelection.js';
 import { useProcessDesignerPersistence } from '~/composables/useProcessDesignerPersistence.js';
@@ -197,7 +197,6 @@ describe('process designer interaction boundaries', () => {
     const screens = useProcessDesignerScreens({
       draft,
       selectedScreenId: ref('operations'),
-      createScreen: vi.fn(),
       normalizeScreenContract,
       defaultTypeId: () => 'queue',
       featureForTypeId: typeId => `${typeId}s`
@@ -263,7 +262,7 @@ describe('process designer interaction boundaries', () => {
       regions: [{ id: 'main', slot: 'main', sourceId: 'queues', surface: 'table', actions: [] }]
     });
     const screens = useProcessDesignerScreens({
-      draft: ref({ data: { screens: { detail: screen } } }), selectedScreenId: ref('detail'), createScreen: vi.fn(),
+      draft: ref({ data: { screens: { detail: screen } } }), selectedScreenId: ref('detail'),
       normalizeScreenContract, defaultTypeId: () => 'queue', featureForTypeId: () => 'queues'
     });
 
@@ -276,4 +275,71 @@ describe('process designer interaction boundaries', () => {
     screens.setSourceMode(screen, screen.sources[0], 'list');
     expect(screen.sources[0]).toMatchObject({ mode: 'list', identifier: null, filters: {}, lineageBindings: [] });
   });
+
+  it('offers no create-a-screen-from-nothing verb — authoring is station customization', () => {
+    const designer = readFileSync(new URL('../pages/organization/process.vue', import.meta.url), 'utf8');
+    const composable = readFileSync(new URL('../composables/useProcessDesignerScreens.js', import.meta.url), 'utf8');
+
+    expect(designer).not.toContain('addScreen');
+    expect(designer).not.toContain('createScreen');
+    expect(composable).not.toContain('function add(');
+    expect(designer).toContain('customizeStation');
+  });
+
+  it('customizes an inferred station by duplicating it into a projection-equal authored override', () => {
+    const domain = {
+      entities: [{ type: 'queue' }, { type: 'project' }],
+      commands: {},
+      summaries: [],
+      containment: [{ childType: 'queue', parentType: 'project', lineageKey: 'projectId' }]
+    };
+    const base = {
+      roleGrants: { role_operator: [{ feature: 'queues', level: 'write', typeId: 'queue' }] },
+      producerOutputs: {},
+      graph: { nodes: [], edges: [] },
+      actions: {},
+      assignments: {}
+    };
+    const compiled = compileProcessDefinition(base, domain, { roles: { role_operator: { id: 'role_operator' } } });
+    const station = compiled.screens.auto_role_operator_queue;
+    expect(station).toBeTruthy();
+    // A compiled list station carries compile-attached lineage bindings
+    // (withCompiledLineage); the authored duplicate must not own them.
+    station.sources[0].lineageBindings = [{ childTypeId: 'queue', parentTypeId: 'project', lineageKey: 'projectId' }];
+
+    const draft = ref({ data: {} });
+    const selectedScreenId = ref(null);
+    const screens = useProcessDesignerScreens({
+      draft,
+      selectedScreenId,
+      normalizeScreenContract,
+      defaultTypeId: () => 'queue',
+      featureForTypeId: typeId => `${typeId}s`
+    });
+    const record = screens.customize(station);
+
+    const [id] = Object.keys(draft.value.data.screens);
+    expect(record.id).toBe(id);
+    expect(record.route).toBe(`/screens/${id}`);
+    expect(record.kind).toBe('typeList');
+    expect(record.sources[0].lineageBindings).toEqual([]);
+    expect(selectedScreenId.value).toBe(id);
+
+    // An untouched duplicate stays projection-equal to inference, so the
+    // redundancy guard refuses it at Apply until the author deviates.
+    const untouched = { ...base, screens: { [id]: JSON.parse(JSON.stringify(record)) } };
+    expect(redundantAuthoredScreens(untouched, domain, compiledRolesFor(untouched, domain))).toEqual([
+      { id, roleId: 'role_operator', typeId: 'queue', template: 'typeList' }
+    ]);
+    record.label = 'Cutting queues';
+    const customized = { ...base, screens: { [id]: record } };
+    expect(redundantAuthoredScreens(customized, domain, compiledRolesFor(customized, domain))).toEqual([]);
+  });
 });
+
+function compiledRolesFor(process, domain) {
+  const compiled = compileProcessDefinition({ ...process, screens: {} }, domain, {
+    roles: { role_operator: { id: 'role_operator' } }
+  });
+  return compiled.roles;
+}

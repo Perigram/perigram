@@ -71,6 +71,17 @@ describe('redundantAuthoredScreens', () => {
     ]);
   });
 
+  it('still flags the duplicate after JSON persistence drops unset-condition keys', () => {
+    // Every stored definition round-trips through JSON, which deletes the
+    // inference aggregation's undefined `rule`/`scope`/`transitions` keys —
+    // null-valued and absent entries are the same projection.
+    const persisted = JSON.parse(JSON.stringify(inferredStationProjection()));
+    const process = { ...baseProcess(), screens: { queue_list_hand: persisted } };
+    expect(redundantAuthoredScreens(process, domain, compiledRolesFor(process))).toEqual([
+      { id: 'queue_list_hand', roleId: 'role_operator', typeId: 'queue', template: 'typeList' }
+    ]);
+  });
+
   it('validation blocks the redundant screen with the inference-owned message', () => {
     const process = { ...baseProcess(), screens: { queue_list_hand: inferredStationProjection() } };
     const validation = validateProcessDefinition(process, domain, {

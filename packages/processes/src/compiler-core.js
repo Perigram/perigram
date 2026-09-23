@@ -2639,10 +2639,16 @@ function projectScreenForInferenceEquivalence(screen = {}) {
   };
 }
 
+// Canonical form for projection equivalence: null- and undefined-valued
+// entries are absent. Inference's requirement aggregation spells "unset"
+// grant conditions as undefined keys (`rule`, `scope`, `transitions`),
+// while any JSON-persisted authored record drops them — null and absent
+// are the same projection, and only non-null differences distinguish an
+// override from inference slop.
 function canonicalJson(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
   if (value && typeof value === 'object') {
-    return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
+    return `{${Object.keys(value).sort().filter(key => value[key] !== null && value[key] !== undefined).map(key => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(',')}}`;
   }
   return JSON.stringify(value ?? null);
 }

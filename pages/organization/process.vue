@@ -327,8 +327,17 @@
                   <div class="flex items-center justify-between gap-2">
                     <span class="min-w-0 truncate text-label">{{ screen.label || screen.id }}</span>
                     <div class="flex shrink-0 items-center gap-1">
+                      <Tag v-if="!isAuthoredStation(screen)" :value="$t('processDesigner.inferredStation')" severity="info" size="small" />
                       <Tag v-if="screen.typeId" :value="screen.typeId" severity="secondary" size="small" />
                       <Tag :value="screen.template" size="small" />
+                      <Button
+                        v-if="!isAuthoredStation(screen)"
+                        icon="pi pi-pencil"
+                        :label="$t('processDesigner.customizeStation')"
+                        size="small"
+                        text
+                        @click="customizeStation(screen)"
+                      />
                     </div>
                   </div>
                   <GeneratedMappingScreen
@@ -339,9 +348,6 @@
                   <small class="truncate text-muted">{{ screen.route || screen.id }}</small>
                 </div>
                 <StateBlock v-if="!compiledScreenPreview.length && !compiledPreviewError" :message="$t('processDesigner.noCompiledScreens')" />
-                <div class="flex justify-end">
-                  <Button icon="pi pi-plus" :label="$t('processDesigner.addScreen')" size="small" @click="addScreen" />
-                </div>
                 <div class="flex flex-wrap gap-2">
                   <Tag
                     v-for="screen in screenList"
@@ -866,7 +872,7 @@ const {
   syncNow: () => syncNodeData()
 });
 
-const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, createScreen, normalizeScreenContract, defaultTypeId, featureForTypeId });
+const screenEditing = useProcessDesignerScreens({ draft, selectedScreenId, normalizeScreenContract, defaultTypeId, featureForTypeId });
 
 const {
   contextPalette,
@@ -1819,43 +1825,14 @@ async function removeSelectedRole() {
   }
 }
 
-function addScreen() {
-  screenEditing.add();
+// A compiled station is authored iff its id keys the draft's screens map;
+// everything else is inference-owned (read-only presentation + Customize).
+function isAuthoredStation(screen) {
+  return Boolean(screen?.id) && Object.hasOwn(screens.value, screen.id);
 }
 
-function createScreen(id) {
-  const typeId = defaultTypeId();
-  const feature = featureForTypeId(typeId);
-  return {
-    id,
-    label: id,
-    kind: 'route',
-    template: 'typeList',
-    route: `/screens/${id}`,
-    placement: 'hub',
-    typeId,
-    roleIds: selectedRoleId.value ? [selectedRoleId.value] : [],
-    required: { feature, level: 'read' },
-    bindings: {},
-    sources: [{
-      id: typeId || id,
-      label: '',
-      typeId,
-      mode: 'list',
-      required: { feature, level: 'read' },
-      filters: {},
-      lineageBindings: []
-    }],
-    regions: [{
-      id: 'main',
-      label: '',
-      slot: 'main',
-      sourceId: typeId || id,
-      surface: 'card',
-      actions: []
-    }],
-    actions: []
-  };
+function customizeStation(screen) {
+  screenEditing.customize(screen);
 }
 
 function removeSelectedScreen() {

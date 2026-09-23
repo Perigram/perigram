@@ -1,17 +1,26 @@
 export function useProcessDesignerScreens({
   draft,
   selectedScreenId,
-  createScreen,
   normalizeScreenContract,
   defaultTypeId,
   featureForTypeId
 }) {
-  function add() {
+  // Crystallization Phase 4 — no screen is created from nothing. The only
+  // creation verb duplicates an inferred station into an authored record:
+  // fresh id and route, compile-only keys (labelKey, sourceRoute) and
+  // compile-attached lineage bindings dropped, station kind preserved — so
+  // the duplicate starts projection-equal to inference and validation
+  // refuses it until the author actually deviates.
+  function customize(station) {
+    if (!station) return null;
     const id = `screen_${Date.now()}`;
+    const record = withoutKeys(JSON.parse(JSON.stringify(station)), ['id', 'labelKey', 'route', 'sourceRoute']);
+    record.sources = (record.sources || []).map(source => withoutKeys(source, ['lineageBindings']));
     draft.value ||= { data: {} };
     draft.value.data.screens ||= {};
-    draft.value.data.screens[id] = createScreen(id);
+    draft.value.data.screens[id] = { ...record, id, route: `/screens/${id}` };
     selectedScreenId.value = id;
+    sync(draft.value.data.screens[id]);
     return draft.value.data.screens[id];
   }
 
@@ -32,7 +41,7 @@ export function useProcessDesignerScreens({
       screen.sources[0].mode = 'single';
       screen.sources[0].identifier ||= '$assignment.instanceId';
     }
-    Object.assign(screen, normalizeScreenContract(screen), { kind: 'route' });
+    Object.assign(screen, normalizeScreenContract(screen), { kind: screen.kind || 'route' });
     const source = ensureSource(screen);
     const region = ensureRegion(screen);
     for (const item of screen.sources) item.required ||= { feature: featureForTypeId(item.typeId), level: screen.required.level || 'read' };
@@ -162,11 +171,11 @@ export function useProcessDesignerScreens({
   }
 
   return {
-    add,
     addLineageBinding,
     addRegion,
     addScalar,
     addSource,
+    customize,
     ensureRegion,
     ensureSource,
     removeLineageBinding,
@@ -206,6 +215,10 @@ function createRegion(screen, id, sourceId) {
     surface: screen.template === 'instanceDetail' ? 'detail' : 'card',
     actions: []
   };
+}
+
+function withoutKeys(record = {}, keys = []) {
+  return Object.fromEntries(Object.entries(record).filter(([key]) => !keys.includes(key)));
 }
 
 function uniqueId(prefix, records) {
