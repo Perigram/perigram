@@ -14,7 +14,8 @@ export {
   EDGE_KINDS, ON_REMOVE, normalizeEdges, checkLineageAcyclic, lineageKeyForParent
 } from './edges.js';
 export {
-  normalizeStates, normalizeTransitions, checkStateTotality
+  normalizeStates, normalizeTransitions, checkStateTotality,
+  mergeTransitionNodeStates
 } from './states.js';
 export {
   OPERATOR_SPECIES, normalizeOperator
@@ -37,7 +38,7 @@ export {
 export {
   migrateV4Definition, renameLegacyTypeKeys, resolveCtsDefinition, checkCtsGraphBindings,
   isCtsGraphDefinition, operationKindOf, resolveCtsRecord,
-  typeIdOf, setTypeBinding, declarationsFromCtsRecords
+  typeIdOf, setTypeBinding, declarationsFromCtsRecords, transitionNodeStateTargets
 } from './compat/graph-protocol.js';
 export {
   cncTypePack, partyTypes, nestingOperators, packFixtures
@@ -48,4 +49,4 @@ export {
   enumRegistryForType, enumRegistryForView, SPECIES_BY_EFFECT_KIND
 } from './compat/process-grammar.js';
 export { checkDeclarationsAgainstCts } from './compat/process-checks.js';
-export { projectDomainFromView, CLASS_COLLECTIONS } from './compat/domain-projection.js';
+export { projectDomainFromView, declarationWorkflow, CLASS_COLLECTIONS } from './compat/domain-projection.js';

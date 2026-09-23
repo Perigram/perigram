@@ -507,6 +507,95 @@ describe('tree declaration compilation', () => {
     expect(declarations[0].states.main).toEqual({ initial: 'raw', values: ['raw'], terminal: ['raw'] });
   });
 
+  it('transition-node target statuses compile into the machine without state-to-state wires (SPEC §20)', () => {
+    // The user's case: GOO (entry) + CHANGED, no wires, a cts.transition
+    // node targeting CHANGED — a complete machine.
+    const goo = classNode('t-uth93vgdab');
+    const construct = { id: 'mk', type: 'processNode', data: { refId: 'mk', typeId: 't-uth93vgdab' } };
+    const nodes = [
+      goo,
+      stateNode('t-uth93vgdab', 'GOO'),
+      stateNode('t-uth93vgdab', 'CHANGED'),
+      construct
+    ];
+    const edges = [
+      declares(nodes[1], goo, 'state'),
+      declares(nodes[2], goo, 'state'),
+      { id: 'entry1', source: nodes[1].id, target: 'mk', role: 'type', label: 'entry' }
+    ];
+    const records = {
+      move: {
+        id: 'move',
+        kind: 'cts.transition',
+        typeId: 't-uth93vgdab',
+        state: { to: 'CHANGED', label: 'Changed', severity: 'success', terminal: true }
+      }
+    };
+    const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges, records);
+    expect(diagnostics).toEqual([]);
+    const compiled = declarations[0];
+    expect(compiled.states.main).toEqual({
+      initial: 'GOO',
+      values: ['GOO', 'CHANGED'],
+      terminal: ['CHANGED']
+    });
+    expect(compiled.transitions).toEqual([{ from: 'GOO', to: 'CHANGED' }]);
+    // The transition node's policy composes onto the axis render.
+    expect(compiled.render.states.CHANGED).toEqual({ label: 'Changed', severity: 'success' });
+  });
+
+  it('a transition node may declare a status no tree state node carries', () => {
+    const widget = classNode('widget');
+    const nodes = [widget, stateNode('widget', 'raw')];
+    const edges = [
+      declares(nodes[1], widget, 'state'),
+      { id: 'e1', source: nodes[1].id, target: 'mk', role: 'type', label: 'entry' }
+    ];
+    const records = {
+      ship: { id: 'ship', kind: 'effect.changeStatus', typeId: 'widget', state: { to: 'SHIPPED', intent: 'ship' } }
+    };
+    const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges, records);
+    expect(diagnostics).toEqual([]);
+    expect(declarations[0].states.main).toEqual({
+      initial: 'raw',
+      values: ['raw', 'SHIPPED'],
+      terminal: ['SHIPPED']
+    });
+    expect(declarations[0].transitions).toEqual([{ from: 'raw', to: 'SHIPPED', intent: 'ship' }]);
+  });
+
+  it('transition-node policy wins where a tree state declares the same value', () => {
+    const widget = classNode('widget');
+    const construct = { id: 'mk', type: 'processNode', data: { refId: 'mk', typeId: 'widget' } };
+    const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'done', { severity: 'info', icon: 'pi pi-circle' }), construct];
+    const edges = [
+      declares(nodes[1], widget, 'state'),
+      declares(nodes[2], widget, 'state'),
+      { id: 'e1', source: nodes[1].id, target: 'mk', role: 'type', label: 'entry' }
+    ];
+    const records = {
+      move: { id: 'move', kind: 'cts.transition', typeId: 'widget', state: { to: 'done', severity: 'danger' } }
+    };
+    const { declarations } = compileTreeDeclarations(nodes, edges, records);
+    const render = declarations[0].render.states;
+    expect(render.done).toEqual({ severity: 'danger', icon: 'pi pi-circle' });
+    // Tree flags on untouched values survive.
+    expect(declarations[0].states.main.values).toEqual(['raw', 'done']);
+  });
+
+  it('unbound or target-less transition records contribute nothing', () => {
+    const widget = classNode('widget');
+    const nodes = [widget, stateNode('widget', 'raw')];
+    const edges = [declares(nodes[1], widget, 'state')];
+    const records = {
+      orphan: { id: 'orphan', kind: 'cts.transition', state: { to: 'DONE' } },
+      unauthored: { id: 'unauthored', kind: 'cts.transition', typeId: 'widget' }
+    };
+    const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges, records);
+    expect(diagnostics).toEqual([]);
+    expect(declarations[0].states.main).toEqual({ initial: 'raw', values: ['raw'], terminal: ['raw'] });
+  });
+
   it('invalid field descriptors surface as diagnostics naming the type and field', () => {
     const widget = classNode('widget');
     const bad = fieldNode('widget', 'broken', { base: 'quantity' });

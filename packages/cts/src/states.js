@@ -83,3 +83,46 @@ export function checkStateTotality(type = {}) {
   }
   return errors;
 }
+
+// Transition-node-declared statuses (SPEC §7/§20): a bound cts.transition
+// record authors its target status inline, and the declaration compile
+// merges it with the tree-declared axis. This is the shared core of every
+// compile — canvas trees (compileTreeDeclarations in @perigram/processes)
+// and persisted drafts (declarationsFromCtsRecords) produce the same axis
+// from the same authoring. Edges fan out from every other declared value:
+// the runtime resolves from-state dynamically (SPEC §20, target-only is
+// lossless), so the declared machine must permit the target from any
+// state an instance may hold. Terminal states stay derived — sinks of the
+// merged edge set — plus explicitly terminal transition targets.
+export function mergeTransitionNodeStates({ values = [], transitions = [], targets = [] } = {}) {
+  const valueOrder = [...values];
+  for (const target of targets) {
+    if (target?.value && !valueOrder.includes(target.value)) valueOrder.push(target.value);
+  }
+  const merged = [];
+  const seen = new Set();
+  const push = transition => {
+    if (!valueOrder.includes(transition.from) || !valueOrder.includes(transition.to)) return;
+    const key = `${transition.from}->${transition.to}|${transition.intent || ''}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    merged.push(transition);
+  };
+  for (const transition of transitions) push({ ...transition });
+  for (const target of targets) {
+    if (!target?.value) continue;
+    for (const from of valueOrder) {
+      if (from === target.value) continue;
+      push({ from, to: target.value, ...(target.intent ? { intent: target.intent } : {}) });
+    }
+  }
+  const explicitTerminal = new Set(targets
+    .filter(target => target?.value && target.terminal === true)
+    .map(target => target.value));
+  const hasOutgoing = new Set(merged.map(transition => transition.from));
+  const terminal = [...new Set([
+    ...valueOrder.filter(value => !hasOutgoing.has(value)),
+    ...explicitTerminal
+  ])];
+  return { values: valueOrder, transitions: merged, terminal };
+}

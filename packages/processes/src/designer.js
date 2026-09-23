@@ -1,6 +1,6 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import { CONSUMER_EFFECT_KINDS, TYPE_BOUND_SPECIES, carriesTypePin } from './node-catalog.js';
-import { operationKindOf, describeType, normalizeOperator, typeIdOf, ctsFieldToProcessType } from '../../cts/src/index.js';
+import { operationKindOf, describeType, normalizeOperator, typeIdOf, ctsFieldToProcessType, mergeTransitionNodeStates, transitionNodeStateTargets } from '../../cts/src/index.js';
 // Single vocabulary seam: the species/operation table is re-exported, never
 // imported from the type system package directly by app surfaces.
 export { operationKindOf };
@@ -207,18 +207,22 @@ export function declarationWireLegality({ sourceType = '', targetType = '', targ
 // tree): class nodes with wired field/state nodes become registry
 // declarations; state-to-state wires are transitions with intents;
 // class-to-class wires are children edges with onRemove. Pure over the
-// canvas arrays — the page supplies nodes/edges, the server re-validates
-// through the real registry. States follow R4: exactly one initial when any
-// state is declared; the compiler never picks a default.
-// Tree diagnostics name the authored class name (the declaration's future
-// render label), falling back to the registry id — raw `t-…` ids never
-// stand alone in a message the designer renders.
+// canvas arrays and the bound process-node records — the page supplies
+// nodes/edges/records, the server re-validates through the real registry.
+// Transition-node-declared target statuses merge into the class axis
+// (SPEC §7/§20): target values join without tree nodes, the node fans a
+// declared edge from every other value, and its display policy composes
+// over the tree's with the transition node winning per value. States
+// follow R4: exactly one initial when any state is declared; the compiler
+// never picks a default. Tree diagnostics name the authored class name
+// (the declaration's future render label), falling back to the registry
+// id — raw `t-…` ids never stand alone in a message the designer renders.
 function classLabelOf(classNode = null) {
   const name = String(classNode?.data?.name || '').trim();
   return name || String(classNode?.data?.typeId || '').trim();
 }
 
-export function compileTreeDeclarations(nodes = [], edges = []) {
+export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
   const nodeById = new Map(nodes.map(node => [node.id, node]));
   const classes = nodes.filter(node => node.type === 'ctsClass' && node.data?.typeId);
   // Entry wires: a state wired into a process node's status input. On a
@@ -254,6 +258,10 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
   const statesByType = new Map();
   const transitionsByType = new Map();
   const childrenByType = new Map();
+  // Transition-node target statuses per bound type (SPEC §20): the
+  // records map is the draft's processNodes — the same vocabulary the
+  // persisted twin (declarationsFromCtsRecords) reads.
+  const targetsByType = transitionNodeStateTargets(records);
   const diagnostics = [];
 
   for (const edge of edges) {
@@ -341,19 +349,34 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
   const declarations = classes.map(classNode => {
     const typeId = classNode.data.typeId;
     const states = statesByType.get(typeId) || new Map();
+    // Transition-node target statuses (SPEC §20): per-value display
+    // policy composes — tree severity/icon, then the transition node's
+    // label/severity/icon winning where both declare the same value.
+    const targets = targetsByType.get(typeId) || [];
+    const statePolicies = new Map([...states.entries()].map(([value, flags]) => [value, { ...flags }]));
+    for (const target of targets) {
+      if (!target.value) continue;
+      statePolicies.set(target.value, {
+        ...(statePolicies.get(target.value) || {}),
+        ...(target.label ? { label: target.label } : {}),
+        ...(target.severity ? { severity: target.severity } : {}),
+        ...(target.icon ? { icon: target.icon } : {})
+      });
+    }
     const declaration = {
       id: typeId,
       class: classNode.data.class,
       fields: Object.fromEntries([...(fieldsByType.get(typeId) || new Map()).entries()]),
-      ...(classNode.data.name || [...states.entries()].some(([, flags]) => flags.severity || flags.icon)
+      ...(classNode.data.name || [...statePolicies.values()].some(flags => flags.severity || flags.icon || flags.label)
         ? {
             render: {
               ...(classNode.data.name ? { label: classNode.data.name } : {}),
-              ...([...states.entries()].some(([, flags]) => flags.severity || flags.icon)
+              ...([...statePolicies.values()].some(flags => flags.severity || flags.icon || flags.label)
                 ? {
-                    states: Object.fromEntries([...states.entries()]
-                      .filter(([, flags]) => flags.severity || flags.icon)
+                    states: Object.fromEntries([...statePolicies.entries()]
+                      .filter(([, flags]) => flags.severity || flags.icon || flags.label)
                       .map(([value, flags]) => [value, {
+                        ...(flags.label ? { label: flags.label } : {}),
                         ...(flags.severity ? { severity: flags.severity } : {}),
                         ...(flags.icon ? { icon: flags.icon } : {})
                       }]))
@@ -381,21 +404,27 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
       } else if (states.size > 1 && wiredEntries.length === 0) {
         diagnostics.push(`class ${classLabelOf(classNode)}: no entry state — wire a state into the create node to set where instances start`);
       } else {
+        // The merged axis: tree values ∪ transition-node targets, wire
+        // transitions ∪ the nodes' fan-out edges (from every other
+        // declared value — from-state resolves dynamically, SPEC §20).
+        const merged = mergeTransitionNodeStates({
+          values: [...states.keys()],
+          transitions: transitionsByType.get(typeId) || [],
+          targets
+        });
         declaration.states = {
           main: {
             initial: wiredEntries[0] || [...states.keys()][0],
-            values: [...states.keys()]
+            values: merged.values
           }
         };
-        const declared = new Set(states.keys());
-        declaration.transitions = (transitionsByType.get(typeId) || [])
-          .filter(transition => declared.has(transition.from) && declared.has(transition.to))
+        declaration.transitions = merged.transitions
           .map(({ from, to, intent }) => (intent ? { from, to, intent } : { from, to }));
         // Terminal states are graph sinks — states with no outgoing
-        // transition. Never hand-flagged: the transition graph IS the
-        // machine, and its endpoints follow from it.
-        const hasOutgoing = new Set(declaration.transitions.map(transition => transition.from));
-        declaration.states.main.terminal = [...states.keys()].filter(value => !hasOutgoing.has(value));
+        // transition in the MERGED edge set — plus explicitly terminal
+        // transition targets. Never hand-flagged: the transition graph IS
+        // the machine, and its endpoints follow from it.
+        declaration.states.main.terminal = merged.terminal;
         declaration.states.main = Object.freeze(declaration.states.main);
       }
     }

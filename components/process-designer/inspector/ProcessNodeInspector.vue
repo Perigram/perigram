@@ -37,6 +37,52 @@
         >{{ item.label }}</span>
       </div>
     </div>
+    <Panel v-if="op === 'effect.changeStatus' && typeId" :header="$t('processDesigner.transitionStatusHeader')" class="mt-0">
+      <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-1">
+          <label>{{ $t('processDesigner.transitionStatusValue') }}</label>
+          <InputText
+            :model-value="record.state?.to || ''"
+            @update:model-value="value => updateTargetStatus('to', value)"
+          />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label>{{ $t('processDesigner.transitionStatusLabel') }}</label>
+          <InputText
+            :model-value="record.state?.label || ''"
+            @update:model-value="value => updateTargetStatus('label', value)"
+          />
+        </div>
+        <div class="flex items-center gap-2">
+          <Select
+            :model-value="record.state?.severity || ''"
+            :options="severityOptions"
+            option-label="label"
+            option-value="value"
+            size="small"
+            class="min-w-0 flex-1"
+            :aria-label="$t('processDesigner.transitionStatusSeverity')"
+            @update:model-value="value => updateTargetStatus('severity', value)"
+          />
+          <InputText
+            :model-value="record.state?.icon || ''"
+            size="small"
+            class="min-w-0 flex-1"
+            :placeholder="$t('processDesigner.transitionStatusIcon')"
+            @update:model-value="value => updateTargetStatus('icon', value)"
+          />
+        </div>
+        <label class="flex items-center gap-2">
+          <Checkbox
+            :model-value="record.state?.terminal === true"
+            binary
+            @update:model-value="value => updateTargetStatus('terminal', value)"
+          />
+          {{ $t('processDesigner.transitionStatusTerminal') }}
+        </label>
+        <small class="text-muted">{{ $t('processDesigner.transitionStatusHint') }}</small>
+      </div>
+    </Panel>
     <Panel v-if="producerAvailable" :header="$t('processDesigner.createdEntity')" class="mt-0">
       <div class="flex flex-col gap-3">
         <div class="flex min-w-0 items-center justify-between gap-2">
@@ -243,7 +289,7 @@ const props = defineProps({
   formatPreviewItems: { type: Function, required: true }
 });
 
-defineEmits([
+const emit = defineEmits([
   'sync',
   'update-grant-roles',
   'update-grant-level',
@@ -262,6 +308,7 @@ const op = computed(() => operationKindOf(props.record || {}));
 const isEffect = computed(() => op.value.startsWith('effect.'));
 const typeId = computed(() => typeIdOf(props.record || {}));
 const dataInputs = computed(() => props.inputs.filter(item => item.role === 'data'));
+const severityOptions = ['info', 'success', 'warn', 'danger', 'secondary'].map(value => ({ label: value, value }));
 const accessLevelOptions = computed(() => [
   { label: t('processDesigner.accessRead'), value: 'read' },
   { label: t('processDesigner.accessWrite'), value: 'write' },
@@ -272,6 +319,23 @@ const serviceBillingModeOptions = computed(() => [
   { label: t('processDesigner.serviceBillingNone'), value: 'none' },
   { label: t('processDesigner.serviceBillingPrepaidTokens'), value: 'prepaidTokens' }
 ]);
+
+// The transition node's inline target status (SPEC §20): value, label,
+// severity, icon, terminal — one payload (`record.state`) beside the
+// runtime target the entry wire and the status socket also write. Empty
+// values drop the key: unfinished authoring stays out of the compile.
+// Mutating the record's nested payload matches the section's v-model
+// convention; the sync event is the page's single re-derive entry point.
+function updateTargetStatus(key, value) {
+  const state = { ...(props.record.state || {}) };
+  const cleaned = key === 'terminal'
+    ? (value === true ? true : undefined)
+    : String(value ?? '').trim() || undefined;
+  if (cleaned === undefined) delete state[key];
+  else state[key] = cleaned;
+  props.record.state = state;
+  emit('sync');
+}
 
 function typeIdLabelFor(typeId) {
   return props.typeIdOptions.find(option => option.value === typeId)?.label || typeId || '';
