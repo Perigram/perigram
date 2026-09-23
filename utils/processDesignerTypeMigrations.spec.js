@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   clearTypeMigrationSteps,
+  declarationPostFailure,
   declarationVocabulary,
   stepsFromTypeMigrationRows,
   typeMigrationRows,
@@ -185,5 +186,41 @@ describe('class-node step write-back', () => {
     const child = classNode('child', { migrate: [{ kind: 'remove-field', field: 'x' }] });
     writeTypeMigrationSteps([child], { child: [] });
     expect(child.data.migrate).toBeUndefined();
+  });
+});
+
+describe('declaration post failure extraction', () => {
+  // ofetch puts the whole h3 body in error.data; createError nests its
+  // payload one level deeper — the plan lives at error.data.data.plan
+  // (the same nesting the types pane reads for boundBy). Pinned after a
+  // wrong-nesting regression flattened every refusal back to a string.
+  it('keeps a plan refusal structured at the ofetch nesting', () => {
+    const error = {
+      data: {
+        statusCode: 400,
+        message: 'breaking change to child without a covering declared migration (retype-field anythin requires a retype-field step)',
+        data: {
+          boundBy: [],
+          plan: {
+            changes: [{ severity: 'breaking', kind: 'retype-field', field: 'anythin' }],
+            requiredSteps: ['retype-field anythin requires a retype-field step']
+          }
+        }
+      }
+    };
+    expect(declarationPostFailure(error, { typeId: 'child', typeName: 'Child' })).toEqual({
+      typeId: 'child',
+      typeName: 'Child',
+      plan: {
+        changes: [{ severity: 'breaking', kind: 'retype-field', field: 'anythin' }],
+        requiredSteps: ['retype-field anythin requires a retype-field step']
+      }
+    });
+  });
+
+  it('flattens refusals without a plan through the labeler', () => {
+    const error = { data: { statusCode: 400, message: 'nope' } };
+    expect(declarationPostFailure(error, { typeId: 'child', typeName: 'Child', labeler: () => 'labeled' })).toBe('Child: labeled');
+    expect(declarationPostFailure(null, { typeId: 'child', typeName: 'Child' })).toBe('Child: ');
   });
 });

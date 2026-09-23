@@ -7,6 +7,27 @@ import { camelCaseId } from '~/packages/processes/src/index.js';
 // the page/composables supply nodes, edges, and the stored type view; the
 // server re-verifies every step at the declaration post.
 
+// Declaration-post failure extraction. An ofetch error carries the whole
+// h3 body in `error.data`, and createError nests its own `data` payload
+// one level deeper — so the gate's plan lives at
+// `error.data.data.plan` (the same nesting the types pane reads for
+// `boundBy`). With a plan the failure stays structured (the step dialog
+// opens on it); without one it is the flattened dead-end string.
+export function declarationPostFailure(error, { typeId, typeName, labeler = (text => text) } = {}) {
+  const plan = error?.data?.data?.plan;
+  if (plan) {
+    return {
+      typeId,
+      typeName,
+      plan: {
+        changes: plan.changes || [],
+        requiredSteps: (plan.requiredSteps || []).map(step => labeler(step))
+      }
+    };
+  }
+  return `${typeName}: ${labeler(error?.data?.message || error?.message || '')}`;
+}
+
 // Authored vocabulary per declared type: the class NAME, field-id ->
 // authored LABEL, and the tree's CURRENT state values (the next enum).
 // Stored declarations back the labels of fields whose tree nodes are gone
