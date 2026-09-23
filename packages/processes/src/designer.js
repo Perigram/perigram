@@ -367,21 +367,22 @@ export function compileTreeDeclarations(nodes = [], edges = [], records = {}) {
       id: typeId,
       class: classNode.data.class,
       fields: Object.fromEntries([...(fieldsByType.get(typeId) || new Map()).entries()]),
-      ...(classNode.data.name || [...statePolicies.values()].some(flags => flags.severity || flags.icon || flags.label)
+      // SPEC §4 naming vocabulary: the authored name and glyph are
+      // top-level declaration keys; per-state display policy rides
+      // `render.states` (the registry boundary adopts it into the states
+      // facet home — normalizeType moves it to states.main.render).
+      ...(classNode.data.name ? { name: classNode.data.name } : {}),
+      ...(classNode.data.glyph ? { glyph: classNode.data.glyph } : {}),
+      ...([...statePolicies.values()].some(flags => flags.severity || flags.icon || flags.label)
         ? {
             render: {
-              ...(classNode.data.name ? { label: classNode.data.name } : {}),
-              ...([...statePolicies.values()].some(flags => flags.severity || flags.icon || flags.label)
-                ? {
-                    states: Object.fromEntries([...statePolicies.entries()]
-                      .filter(([, flags]) => flags.severity || flags.icon || flags.label)
-                      .map(([value, flags]) => [value, {
-                        ...(flags.label ? { label: flags.label } : {}),
-                        ...(flags.severity ? { severity: flags.severity } : {}),
-                        ...(flags.icon ? { icon: flags.icon } : {})
-                      }]))
-                  }
-                : {})
+              states: Object.fromEntries([...statePolicies.entries()]
+                .filter(([, flags]) => flags.severity || flags.icon || flags.label)
+                .map(([value, flags]) => [value, {
+                  ...(flags.label ? { label: flags.label } : {}),
+                  ...(flags.severity ? { severity: flags.severity } : {}),
+                  ...(flags.icon ? { icon: flags.icon } : {})
+                }]))
             }
           }
         : {}),
@@ -496,6 +497,35 @@ function referencedTypeIds(declaration = {}) {
     if (descriptor?.base === 'ref') ids.push(...(descriptor.accepts || []));
   }
   return ids;
+}
+
+// Single-holder display-role authoring (SPEC §4): enabling `identifier`
+// or `depiction` on one field node clears the flag from the previous
+// holder among the sibling field nodes of the same declared type — the
+// compile law is exactly-one (identifier) / at-most-one (depiction), and
+// the toggle is the authored deviation (when no identifier is authored,
+// the registry boundary mints the first string field). Mutates the
+// canvas nodes' authoring state in place, like the enrichment pass; the
+// caller owns the sync. An unbound field (no declared type) owns its own
+// flag only — it declares nowhere yet.
+export function applyFieldDisplayRole(nodes = [], fieldNodeId = '', flag = '', enabled = true) {
+  if (flag !== 'identifier' && flag !== 'depiction') return;
+  const target = nodes.find(node => node.id === fieldNodeId && node.type === 'ctsField');
+  if (!target) return;
+  const typeId = target.data?.typeId ?? null;
+  for (const node of nodes) {
+    if (node.type !== 'ctsField') continue;
+    const isTarget = node.id === fieldNodeId;
+    if (!isTarget && (typeId == null || (node.data?.typeId ?? null) !== typeId)) continue;
+    const holds = node.data?.descriptor?.[flag] === true;
+    if (isTarget && enabled === true) {
+      if (!holds) node.data.descriptor = { ...(node.data.descriptor || { base: 'string' }), [flag]: true };
+    } else if (holds) {
+      const next = { ...(node.data.descriptor || {}) };
+      delete next[flag];
+      node.data.descriptor = next;
+    }
+  }
 }
 
 // Typed port specs for declaration canvas nodes: every handle a

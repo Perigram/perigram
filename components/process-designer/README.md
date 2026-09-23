@@ -91,7 +91,8 @@ service/join/construction sections, and the transition-node target-status
 panel — value, label, severity, icon, terminal writing the record's
 `state` payload), `DeclarationInspector.vue` (class,
 field, state, and type-reference authoring — the field descriptor reuses
-the shared `type-designer/DescriptorEditor`), and
+the shared `type-designer/DescriptorEditor`, and both carry the SPEC §4
+display tokens), and
 `DeclarationEdgeInspector.vue` (transition intents, children edges). They
 are pure presentation: every mutation is an event back to the page's
 update/sync entry points. The Roles and Screens tabs remain page-owned
@@ -172,7 +173,20 @@ complete machine with no state-to-state wires. Declared severities/icons compile
 `render.states`, which `renderPolicyFor` consumes for state chips and
 action tones; on a value declared by both a tree node and a transition
 node, the transition node's policy wins.
-Class card labels derive from the authored name. Field mutability is
+Class card labels derive from the authored name. The declaration inspector
+authors the display tokens (the SPEC §4 naming vocabulary, canonical grammar
+in [`packages/cts/SPEC.md`](../../packages/cts/SPEC.md) §4). Beside the
+class name, one glyph row offers a curated PrimeIcon set plus a free-text
+override; an absent glyph derives from the class default table. Per field,
+the inspector offers a display label (the placeholder is the authored name;
+empty means derived), a `display` kind select over the closed SPEC §4
+vocabulary plus "auto" (key absent), and two single-holder toggles: the
+names-the-record toggle sets `identifier: true` on exactly one field per
+type — enabling it clears the flag from the previous holder, and when none
+is authored the registry boundary mints the first string field, so the
+toggle is the authored deviation — and the picture toggle sets
+`depiction: true` at most once with the same move semantics. Field
+mutability is
 authored on the descriptor (Writable / Constructible toggles in the
 shared descriptor editor): writable governs mutate leaf sockets and
 update paths, constructible governs construct sockets and creation
@@ -360,7 +374,13 @@ renderer's concern (see [`TODO-process-designer.md`](../../TODO-process-designer
 The preview lowers the authored snapshot through the same graph-protocol
 acceptance seam the server uses (`prepareAuthoredDefinition`) before
 compiling, so `cts.*` species records drive actions, grants, and inferred
-screens exactly as they do at validate/apply.
+screens exactly as they do at validate/apply. The preview bundle carries the
+authored display tokens (the live tree overlay feeds the same registry the
+preview compiles), and its screens resolve titles, headers, and icons through
+the one resolvers (`titleFor`/`fieldLabel`/`iconFor` in
+[`shared/ui-mapping`](../../shared/ui-mapping/README.md)) — so toggling the
+identifier field, editing a display label, or picking a glyph is visible in
+the preview rows immediately.
 
 ## Node cards and sockets
 

@@ -279,4 +279,54 @@ describe('graph protocol v5 designer round trip', () => {
     const roundTrip = canvasToDefinition(reloaded, definition);
     expect(Object.keys(roundTrip.ctsTypes).sort()).toEqual(['c1', 'f1', 's1']);
   });
+
+  it('field display tokens and the class glyph survive the canvas round trip', () => {
+    const canvas = {
+      nodes: [
+        {
+          id: 'c1', type: 'ctsClass', position: { x: 0, y: 0 },
+          data: { refId: 'c1', typeId: 'panel', class: 'item', name: 'Panel', glyph: 'pi pi-star', payload: null, operators: [] }
+        },
+        {
+          id: 'f1', type: 'ctsField', position: { x: 260, y: 0 },
+          data: {
+            refId: 'f1', typeId: 'panel', name: 'Serial',
+            descriptor: {
+              base: 'string', label: 'Serial number', display: 'code', control: 'textarea',
+              identifier: true, depiction: true
+            }
+          }
+        }
+      ],
+      edges: [
+        { id: 'declares:f1-c1', source: 'f1', target: 'c1', role: 'type', label: 'field' }
+      ]
+    };
+    const definition = canvasToDefinition(canvas, normalizeProcessDefinition({ dataflowVersion: 4 }));
+    expect(definition.ctsTypes.c1).toMatchObject({ kind: 'class', name: 'Panel', glyph: 'pi pi-star' });
+    expect(definition.ctsTypes.f1.descriptor).toEqual({
+      base: 'string', label: 'Serial number', display: 'code', control: 'textarea',
+      identifier: true, depiction: true
+    });
+
+    const reloaded = definitionToCanvas(definition);
+    const glyphNode = reloaded.nodes.find(node => node.type === 'ctsClass');
+    const fieldNode = reloaded.nodes.find(node => node.type === 'ctsField');
+    expect(glyphNode.data.glyph).toBe('pi pi-star');
+    expect(fieldNode.data.descriptor).toEqual(canvas.nodes[1].data.descriptor);
+
+    // A glyph-less class (the legacy stored shape: no key anywhere)
+    // normalizes to null on both halves, so a stored record without one
+    // still round-trips byte-identical.
+    const bareClassData = { ...canvas.nodes[0].data };
+    delete bareClassData.glyph;
+    const bare = canvasToDefinition({
+      nodes: [{ ...canvas.nodes[0], data: bareClassData }],
+      edges: canvas.edges
+    }, normalizeProcessDefinition({ dataflowVersion: 4 }));
+    expect(bare.ctsTypes.c1.glyph).toBeNull();
+    const bareReload = definitionToCanvas(bare);
+    expect(bareReload.nodes.find(node => node.type === 'ctsClass').data.glyph).toBeNull();
+    expect(canvasToDefinition(bareReload, bare).ctsTypes.c1.glyph).toBeNull();
+  });
 });

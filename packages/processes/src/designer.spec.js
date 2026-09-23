@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
-import { compileTreeDeclarations, createProcessDesignerContract, declarationNodePorts, declarationWireLegality, interpretDeclarationEdges, syncProcessNodeProducerOutputs, typeCatalogPaletteGroups } from './designer.js';
+import { applyFieldDisplayRole, compileTreeDeclarations, createProcessDesignerContract, declarationNodePorts, declarationWireLegality, interpretDeclarationEdges, syncProcessNodeProducerOutputs, typeCatalogPaletteGroups } from './designer.js';
 import { getProcessNodeDefinition } from './node-catalog.js';
 
 describe('process designer domain contract', () => {
@@ -460,6 +460,41 @@ describe('tree declaration compilation', () => {
     });
   });
 
+  it('descriptor display tokens compile verbatim onto the declaration (SPEC §4)', () => {
+    const widget = classNode('widget');
+    const nodes = [widget,
+      fieldNode('widget', 'Serial', {
+        base: 'string', label: 'Serial number', display: 'code', control: 'textarea',
+        identifier: true, depiction: true
+      }),
+      // An authored label wins over the name-derived default.
+      fieldNode('widget', 'Cut speed', { base: 'quantity', unit: 'mm', label: 'Speed' })
+    ];
+    const edges = [declares(nodes[1], widget, 'field'), declares(nodes[2], widget, 'field')];
+    const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges);
+    expect(diagnostics).toEqual([]);
+    expect(declarations[0].fields).toEqual({
+      serial: {
+        base: 'string', label: 'Serial number', display: 'code', control: 'textarea',
+        identifier: true, depiction: true
+      },
+      cutSpeed: { base: 'quantity', unit: 'mm', label: 'Speed' }
+    });
+  });
+
+  it('compiles the class name and glyph as top-level declaration keys', () => {
+    const widget = classNode('widget', { name: 'Widget', glyph: 'pi pi-star' });
+    const { declarations } = compileTreeDeclarations([widget], []);
+    expect(declarations[0].name).toBe('Widget');
+    expect(declarations[0].glyph).toBe('pi pi-star');
+    expect(declarations[0].render).toBeUndefined();
+    // Absent authored keys stay absent: the class default table derives
+    // the glyph and the boundary adopts the name.
+    const bare = compileTreeDeclarations([classNode('gadget')], []).declarations[0];
+    expect(Object.hasOwn(bare, 'name')).toBe(false);
+    expect(Object.hasOwn(bare, 'glyph')).toBe(false);
+  });
+
   it('carries class-node declared migration steps onto the declaration (SPEC §11)', () => {
     const withSteps = classNode('widget', {
       migrate: [{ kind: 'rename-field', from: 'anythin', to: 'anything' }]
@@ -680,6 +715,50 @@ describe('tree declaration compilation', () => {
       triggers: [{ event: 'widget.requested' }]
     });
     expect(diagnostics.some(message => message.includes('operator (unnamed)'))).toBe(true);
+  });
+});
+
+describe('field display-role toggles', () => {
+  const fieldNode = (id, typeId, descriptor) => ({ id, type: 'ctsField', data: { typeId, name: id, descriptor } });
+
+  it('moves the identifier flag between the sibling fields of one type', () => {
+    const nodes = [
+      fieldNode('title', 'widget', { base: 'string', identifier: true }),
+      fieldNode('code', 'widget', { base: 'string' })
+    ];
+    applyFieldDisplayRole(nodes, 'code', 'identifier', true);
+    expect(nodes[0].data.descriptor.identifier).toBeUndefined();
+    expect(nodes[1].data.descriptor.identifier).toBe(true);
+    // Disabling removes the flag — the boundary mint owns the default,
+    // never the toggle.
+    applyFieldDisplayRole(nodes, 'code', 'identifier', false);
+    expect(nodes[1].data.descriptor.identifier).toBeUndefined();
+  });
+
+  it('moves the depiction flag without touching the identifier', () => {
+    const nodes = [
+      fieldNode('title', 'widget', { base: 'string', identifier: true }),
+      fieldNode('photo', 'widget', { base: 'string', depiction: true })
+    ];
+    applyFieldDisplayRole(nodes, 'title', 'depiction', true);
+    expect(nodes[0].data.descriptor.depiction).toBe(true);
+    expect(nodes[0].data.descriptor.identifier).toBe(true);
+    expect(nodes[1].data.descriptor.depiction).toBeUndefined();
+  });
+
+  it('never crosses type boundaries and leaves unbound fields alone', () => {
+    const nodes = [
+      fieldNode('title', 'widget', { base: 'string', identifier: true }),
+      fieldNode('name', 'gadget', { base: 'string' }),
+      fieldNode('loose', null, { base: 'string' })
+    ];
+    applyFieldDisplayRole(nodes, 'name', 'identifier', true);
+    expect(nodes[0].data.descriptor.identifier).toBe(true);
+    expect(nodes[1].data.descriptor.identifier).toBe(true);
+    // An unbound field toggles its own flag only — it declares nowhere.
+    applyFieldDisplayRole(nodes, 'loose', 'identifier', true);
+    expect(nodes[2].data.descriptor.identifier).toBe(true);
+    expect(nodes[1].data.descriptor.identifier).toBe(true);
   });
 });
 

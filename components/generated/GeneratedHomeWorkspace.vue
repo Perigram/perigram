@@ -60,9 +60,7 @@
                 class="group flex min-w-0 flex-1 items-center gap-2"
                 :data-home-type-id="node.data.typeId"
               >
-                <!-- The tree's own node icon renders node.icon (Aura
-                     default); a second icon here would duplicate it. -->
-                <span class="min-w-0 flex-1 truncate text-label">{{ node.label }}</span>
+                <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
                 <Button
                   v-if="node.data.section && collectionActions(node.data.section.region).length"
                   icon="pi pi-ellipsis-v"
@@ -84,7 +82,7 @@
                 :class="!activeInstanceKeys.has(`${node.data?.item?.type}:${instanceId(node.data?.item?.entity)}`) ? 'text-muted' : ''"
                 :data-entity-id="instanceId(node.data?.item?.entity)"
               >
-                <span class="flex min-w-0 flex-1 items-center">
+                <span class="flex min-w-0 flex-1 ">
                   <InstanceInlineRef
                     :type="node.data.item.type"
                     :entity="node.data.item.entity"

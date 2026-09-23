@@ -21,7 +21,8 @@ import {
 } from '../utils/instance-display-contract.js';
 import { registerDeclarationFieldAccess, filterEntityFields } from './instance-field-access.js';
 import { decorateDataValue } from '../utils/data-display.js';
-import { titleFor, iconFor } from '../shared/ui-mapping/index.js';
+import { titleFor, iconFor, fieldLabel } from '../shared/ui-mapping/index.js';
+import { applyFieldDisplayRole, compileTreeDeclarations } from '../packages/processes/src/designer.js';
 
 // The served org view: framework + mounted packs (documents omitted here —
 // same composition as server/packs/declarations.js for the types under test).
@@ -231,5 +232,54 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     expect(allowed.map(field => field.path)).toEqual(['data.name', 'data.parts']);
     expect(denied).toEqual([]);
     registerDeclarationFieldAccess({});
+  });
+
+  it('designer-authored display tokens reach the preview bundle and drive the one resolvers', () => {
+    // The process designer's live path: tree nodes compile through
+    // compileTreeDeclarations, overlay the registry (same seam the
+    // Screens tab's compiled preview reads), and the authored tokens —
+    // not defaults — drive titleFor/fieldLabel/iconFor.
+    const classNode = {
+      id: 'c', type: 'ctsClass',
+      data: { typeId: 'bracket', class: 'file', name: 'Bracket', glyph: 'pi pi-star' }
+    };
+    const fieldNodes = [
+      { id: 'f1', type: 'ctsField', data: { typeId: 'bracket', name: 'Title', descriptor: { base: 'string', identifier: true } } },
+      { id: 'f2', type: 'ctsField', data: { typeId: 'bracket', name: 'Part code', descriptor: { base: 'string', label: 'Code', display: 'code' } } },
+      { id: 'f3', type: 'ctsField', data: { typeId: 'bracket', name: 'Photo', descriptor: { base: 'string', depiction: true } } }
+    ];
+    const declares = (source) => ({ id: `d:${source.id}`, source: source.id, target: 'c', role: 'type', label: 'field' });
+    const { declarations } = compileTreeDeclarations([classNode, ...fieldNodes], fieldNodes.map(declares));
+
+    const registry = createTypeRegistry({ id: 'designer-preview' });
+    registry.defineType({ ...declarations[0], scope: 'org', organizationId: 'org-1' });
+    const preview = compileClientBundle(registry, 'org-1');
+    const bracket = preview.types.find(type => type.id === 'bracket');
+
+    // Authored tokens land in the served bundle shape.
+    expect(bracket.name).toBe('Bracket');
+    expect(bracket.glyph).toBe('pi pi-star');
+    expect(bracket.fields.partCode).toMatchObject({ label: 'Code', display: 'code' });
+    // The identifier toggle decides which field titles rows; the label
+    // decides the shown header — the same resolvers the preview screens
+    // render through.
+    expect(titleFor({ fields: { title: 'B-1', partCode: 'PC-9' } }, bracket)).toBe('B-1');
+    expect(fieldLabel('partCode', bracket.fields.partCode)).toBe('Code');
+    expect(fieldLabel('title', bracket.fields.title)).toBe('Title');
+    expect(iconFor(bracket)).toBe('pi pi-star');
+    expect(iconFor(bracket, { fields: { photo: 'thumb://b-1' } })).toBe('thumb://b-1');
+
+    // Moving the flag moves the title source: the page's toggle gesture
+    // is applyFieldDisplayRole — enabling it on one field clears the
+    // previous holder, so the compile law (exactly one) still holds and
+    // the boundary mint never fires while one is authored.
+    const toggled = [classNode, ...fieldNodes.map(node => structuredClone(node))];
+    applyFieldDisplayRole(toggled, 'f2', 'identifier', true);
+    const retried = compileTreeDeclarations(toggled, toggled.slice(1).map(declares));
+    const nextRegistry = createTypeRegistry({ id: 'designer-preview-2' });
+    nextRegistry.defineType({ ...retried.declarations[0], scope: 'org', organizationId: 'org-1' });
+    const nextBracket = compileClientBundle(nextRegistry, 'org-1').types.find(type => type.id === 'bracket');
+    expect(nextRegistry.compile('org-1').ok).toBe(true);
+    expect(titleFor({ fields: { title: 'B-1', partCode: 'PC-9' } }, nextBracket)).toBe('PC-9');
   });
 });

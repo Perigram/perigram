@@ -158,3 +158,17 @@ Committing is mandatory for completed work.
 
 At handoff, report commit hashes, validation run, and any remaining untracked or
 unstaged files.
+
+## Coding rules
+
+### Tests
+
+- NEVER write unit tests after you write code. 
+- Highly prefer E2E tests as the sole testing mechanism. Use them to verify complex features work. At the end of E2E tests, produce a verifiable and repeatable artifact. 
+- If you must test a system in isolation, FIRST write all the ways it could fail, THEN write the code.
+
+### UI labels
+
+- Unless absolutely needed, DO NOT add any labels or messages that need to "describe" UI element or action. UI needs to be self-explanatory. 
+- Unless absolutely needed, DO NOT expose ID or other technical information that belongs to code only, unless it's absolutely needed for
+  debugging or administration. 
