@@ -59,11 +59,9 @@
           />
         </nav>
 
-        <!-- Expanded navigation is a PanelMenu: chats/calls panel first,
-             then one panel per top-level explorer type. Item rows render
-             through the #item slot so entity rows keep the inline ref chip,
-             state icon, and hover actions; type rows use PanelMenu item
-             icons straight from the registry. -->
+        <!-- Expanded navigation is a raw PanelMenu: the communication panel
+             first, then one panel per top-level explorer type. Default rows
+             carry the registry icons and title-resolver labels. -->
         <div v-else class="min-h-0 flex-1 overflow-y-auto p-1.5">
           <PanelMenu
             v-model:expanded-keys="expandedKeys"
@@ -71,6 +69,7 @@
             multiple
             class="w-full"
             :aria-label="$t('nav.home')"
+            :pt="menuPt"
           />
         </div>
 
@@ -231,6 +230,12 @@ const loadedChildKeys = ref(new Set());
 let openedEntityLoadSequence = 0;
 let childLoadSequences = new Map();
 provide('displayedEntityContexts', computed(() => []));
+
+// Layout-only passthrough: panel headers inherit the 1.5 line-height item
+// labels dropped, which made top-level entries taller than their rows.
+const menuPt = {
+  headerLabel: { style: { lineHeight: '1' } }
+};
 
 const sections = computed(() => props.screen.regions
   .map(region => {
@@ -399,6 +404,7 @@ function typePanelItem(node) {
 function entityPanelItem(node) {
   return {
     key: node.key,
+    icon: instances.iconFor(node.data.item.type),
     label: instanceLabelOf(node.data.item.type, instanceId(node.data.item.entity)),
     workspaceItem: node.data.item,
     command: () => openInstanceTab(node.data.item.type, instanceId(node.data.item.entity)),
@@ -406,9 +412,9 @@ function entityPanelItem(node) {
   };
 }
 
-// Chats/calls panel: the header opens the chats tab (PanelMenu headers run
-// their command and toggle), children list joinable rooms as rows and the
-// Calls submenu rings conversations.
+// One communication panel: the header opens the chats tab (PanelMenu
+// headers run their command and toggle), and chats and calls live inside
+// as flat sibling rows - joinable rooms plus every ringable conversation.
 function communicationPanelModel() {
   const conversations = supportChatStore.conversations
     .filter(conversation => conversation.conversationKind === 'direct' || conversation.conversationKind === 'group');
@@ -427,7 +433,7 @@ function communicationPanelModel() {
     command: () => openChatsPage(),
     items: [
       ...activeRoomItems(),
-      { key: 'communication:calls', label: t('call.calls'), icon: 'pi pi-phone', items: callItems }
+      ...callItems
     ]
   };
 }
