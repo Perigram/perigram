@@ -33,9 +33,23 @@ strangler layer 0 of the designer rebuild (see
   [instances](../instances/README.md) (fields and `states.main` per step,
   then the new `typeVersion` stamp), each migrated instance publishing the
   shared typed invalidation event. The applied summary persists on the
-  stored declaration as `migrated`. An uncovered breaking change (or a
-  declared step matching nothing in the diff) is refused — the gate is a
-  compiler, not a script to remember. This boundary serves org-authored
+  stored declaration as `migrated`; the steps themselves never do — a
+  persisted declaration is always step-free (`migrate` is stripped from
+  every upsert and `$unset` from any earlier document), because steps are
+  one-time by design and a stored step set would rot into the next edit's
+  "declared migration step … matches no breaking change" refusal the
+  moment a client round-trips the stored declaration. An uncovered
+  breaking change (or a declared step matching nothing in the diff) is
+  refused — the gate is a compiler, not a script to remember — and the
+  refusal is authorable: the `400` carries `data.plan` beside
+  `data.boundBy`, the serialization of the computed migration plan
+  (`{ changes: [<breaking change records>], requiredSteps: [<gate error
+  strings>] }` — change records are the diff's `{ severity, kind,
+  field? | state? | edge?, from?, to? }` shapes). The process designer
+  turns that payload into the declarative-step dialog (see
+  [components/process-designer](../../../components/process-designer/README.md));
+  re-posting the declaration with the offered `migrate` steps is the whole
+  ceremony. This boundary serves org-authored
   declarations; system/pack type changes are deploy-time code edits whose
   instance migrations remain deploy concerns.
   `removeType` deletes org declarations only, as a ceremony: the removal

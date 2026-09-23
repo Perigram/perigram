@@ -185,4 +185,86 @@ describe('useProcessDesignerApply migration pause', () => {
     expect(persistence.validateDraft).not.toHaveBeenCalled();
     expect(validation.value).toMatchObject({ ok: false, errors: ['Plate: bad descriptor'] });
   });
+
+  it('pauses apply with the step dialog when a declaration post carries a migration plan', async () => {
+    const validation = { value: null };
+    const planFailure = {
+      typeId: 'child',
+      typeName: 'Child',
+      plan: {
+        changes: [{ severity: 'breaking', kind: 'remove-field', field: 'anythin' }],
+        requiredSteps: ['remove-field anythin requires a remove-field or rename-field step']
+      }
+    };
+    const { apply, persistence } = mountApply({
+      validation,
+      persistTreeDeclarations: vi.fn(async () => ({ failures: [planFailure] }))
+    });
+
+    await apply.applyProcess();
+
+    expect(persistence.validateDraft).not.toHaveBeenCalled();
+    expect(persistence.activateDraft).not.toHaveBeenCalled();
+    expect(apply.pendingTypeMigration.value).toEqual([planFailure]);
+    // The refusal also lands in the persistent feedback, named by the type.
+    expect(validation.value).toMatchObject({
+      ok: false,
+      errors: ['Child: remove-field anythin requires a remove-field or rename-field step']
+    });
+  });
+
+  it('confirming writes the steps onto the class nodes and retries the apply', async () => {
+    const planFailure = {
+      typeId: 'child',
+      typeName: 'Child',
+      plan: {
+        changes: [
+          { severity: 'breaking', kind: 'remove-field', field: 'anythin' },
+          { severity: 'breaking', kind: 'add-required-field', field: 'anything' }
+        ],
+        requiredSteps: []
+      }
+    };
+    const classNode = { id: 'class:child', type: 'ctsClass', data: { typeId: 'child', class: 'item' } };
+    const nodes = { value: [classNode] };
+    const persistTreeDeclarations = vi.fn()
+      .mockResolvedValueOnce({ failures: [planFailure] })
+      .mockResolvedValue({ failures: [] });
+    const { apply, persistence } = mountApply({ nodes, persistTreeDeclarations });
+    persistence.validateDraft.mockResolvedValue(validResult);
+    persistence.activateDraft.mockResolvedValue({ _id: 'draft-1', data: { compiled: { warnings: [] } } });
+
+    await apply.applyProcess();
+    expect(apply.pendingTypeMigration.value).toHaveLength(1);
+
+    await apply.confirmTypeMigration({
+      child: [{ kind: 'rename-field', from: 'anythin', to: 'anything' }]
+    });
+
+    // The confirmed steps are the author's consent: they land on the class
+    // node as declaration state before the retry posts them.
+    expect(classNode.data.migrate).toEqual([{ kind: 'rename-field', from: 'anythin', to: 'anything' }]);
+    expect(persistTreeDeclarations).toHaveBeenCalledTimes(2);
+    expect(persistence.activateDraft).toHaveBeenCalledWith('draft-1');
+    expect(apply.pendingTypeMigration.value).toBeNull();
+  });
+
+  it('cancel clears the type-migration pause without writing steps', async () => {
+    const planFailure = {
+      typeId: 'child',
+      typeName: 'Child',
+      plan: { changes: [], requiredSteps: ['declared migration step … matches no breaking change'] }
+    };
+    const nodes = { value: [] };
+    const { apply, persistence } = mountApply({
+      nodes,
+      persistTreeDeclarations: vi.fn(async () => ({ failures: [planFailure] }))
+    });
+
+    await apply.applyProcess();
+    apply.cancelTypeMigration();
+
+    expect(apply.pendingTypeMigration.value).toBeNull();
+    expect(persistence.activateDraft).not.toHaveBeenCalled();
+  });
 });

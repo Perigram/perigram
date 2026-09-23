@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import { writeTypeMigrationSteps } from '~/utils/processDesignerTypeMigrations.js';
 
 // The apply orchestration: Save persists the authored graph as a draft (or
 // the explicit copy-to-draft on an active process); Apply = save, compile
@@ -10,7 +11,12 @@ import { ref } from 'vue';
 // unless the draft's declared migrations (`data.migrations.statuses`)
 // already cover it — the migration decision is a declaration on the
 // definition, so confirming persists the mappings through save and
-// activation itself carries no payload.
+// activation itself carries no payload. A declaration post refused by the
+// type-migration gate pauses the same way with `pendingTypeMigration`:
+// the structured plan failures open the declarative-step dialog
+// (`TypeMigrationStepsDialog`), confirming writes the steps onto the class
+// nodes' `data.migrate` and retries the apply — the dialog is the author's
+// consent; nothing auto-declares.
 function declaredMappingsCover(plan, statuses = []) {
   return (plan?.statuses || []).every(row =>
     row.removed.every(({ state }) =>
@@ -35,11 +41,13 @@ export function useProcessDesignerApply({
   focusFirstValidationDiagnostic,
   upsertProcessDefinition,
   setDraft,
-  syncNow
+  syncNow,
+  nodes = { value: [] }
 }) {
   const savingDraft = ref(false);
   const applyingProcess = ref(false);
   const pendingMigration = ref(null);
+  const pendingTypeMigration = ref(null);
 
   async function saveDraft() {
     savingDraft.value = true;
@@ -120,9 +128,19 @@ export function useProcessDesignerApply({
     if (posted.failures.length) {
       // Toasts alone expire and leave the canvas silent: land the refusal in
       // the same persistent validation feedback every other Apply abort
-      // carries, so the cause stays visible after the toasts are gone.
-      validation.value = { ok: false, errors: [...posted.failures], warnings: [] };
+      // carries, so the cause stays visible after the toasts are gone. A
+      // structured plan failure additionally pauses with the declarative-
+      // step dialog (the type-migration authoring moment).
+      const typeMigration = posted.failures.filter(failure => failure && typeof failure === 'object' && failure.plan);
+      validation.value = {
+        ok: false,
+        errors: posted.failures.map(failure => (typeof failure === 'string'
+          ? failure
+          : `${failure.typeName}: ${failure.plan.requiredSteps.join('; ')}`)),
+        warnings: []
+      };
       focusFirstValidationDiagnostic(validation.value);
+      if (typeMigration.length) pendingTypeMigration.value = typeMigration;
       return null;
     }
     const result = await persistence.validateDraft(draft.value._id);
@@ -193,6 +211,30 @@ export function useProcessDesignerApply({
     pendingMigration.value = null;
   }
 
+  async function confirmTypeMigration(stepsByType) {
+    if (!draft.value?._id || applyingProcess.value) return;
+    applyingProcess.value = true;
+    try {
+      // The dialog IS the author's consent: the confirmed steps land on the
+      // class nodes as one-time declaration state (`data.migrate`, read by
+      // `compileTreeDeclarations`), and the retried apply posts them. A
+      // re-refusal re-opens the dialog with the fresh plan; consumed steps
+      // clear at the successful post.
+      writeTypeMigrationSteps(nodes.value, stepsByType);
+      pendingTypeMigration.value = null;
+      syncNow();
+      await activateDraft();
+    } catch (error) {
+      reportApplyError(error);
+    } finally {
+      applyingProcess.value = false;
+    }
+  }
+
+  function cancelTypeMigration() {
+    pendingTypeMigration.value = null;
+  }
+
   async function applyProcess() {
     if (!draft.value?._id || isActiveProcess.value || applyingProcess.value) return;
     applyingProcess.value = true;
@@ -210,11 +252,14 @@ export function useProcessDesignerApply({
     savingDraft,
     applyingProcess,
     pendingMigration,
+    pendingTypeMigration,
     saveDraft,
     saveDraftFromDock,
     activateDraft,
     applyProcess,
     confirmApplyMigration,
-    cancelApplyMigration
+    cancelApplyMigration,
+    confirmTypeMigration,
+    cancelTypeMigration
   };
 }

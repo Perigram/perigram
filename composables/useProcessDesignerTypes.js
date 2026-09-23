@@ -2,6 +2,7 @@ import { reactive, ref } from 'vue';
 import { compileTreeDeclarations, createProcessDesignerContract, typeCatalogPaletteGroups } from '~/packages/processes/src/index.js';
 import { createTypeRegistry, projectDomainFromView, renderPolicyFor, frameworkTypes } from '~/packages/cts/src/index.js';
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
+import { clearTypeMigrationSteps } from '~/utils/processDesignerTypeMigrations.js';
 
 // The CTS declaration layer's lifecycle: the organization's type registry
 // view (system pack extracted from the domain content plus authored org
@@ -230,8 +231,27 @@ export function useProcessDesignerTypes({
     for (const declaration of declarations) {
       try {
         await $fetch('/api/admin/cts/types', { method: 'POST', body: declaration });
+        // Declared migration steps are one-time (SPEC §11): the post
+        // consumed whatever the class node carried — clear now so the next
+        // apply can never re-post a stale step set.
+        clearTypeMigrationSteps(nodes.value, declaration.id);
       } catch (error) {
         const name = labels.get(declaration.id) || declaration.id;
+        if (error?.data?.plan) {
+          // The type-migration authoring refusal stays structured: the
+          // apply flow opens the declarative-step dialog on it instead of
+          // flattening to a dead-end string.
+          failures.push({
+            typeId: declaration.id,
+            typeName: name,
+            plan: {
+              changes: error.data.plan.changes || [],
+              requiredSteps: (error.data.plan.requiredSteps || [])
+                .map(step => namedDeclarationFailures(step, labels))
+            }
+          });
+          continue;
+        }
         failures.push(`${name}: ${namedDeclarationFailures(error?.data?.message || error?.message || '', labels)}`);
       }
     }
@@ -240,6 +260,9 @@ export function useProcessDesignerTypes({
       // stop here with the real cause instead of letting validation report
       // downstream phantoms ("unknown type ...").
       for (const failure of failures) {
+        // Structured refusals surface in the step dialog and the persistent
+        // validation feedback, not as expiring id-soup toasts.
+        if (typeof failure !== 'string') continue;
         toast.add({ severity: 'error', summary: t('processDesigner.declarationErrors'), detail: failure, life: 10000 });
       }
       return { failures };
@@ -256,6 +279,7 @@ export function useProcessDesignerTypes({
     ctsRegistry,
     ctsProjectedDomain,
     ctsTypeView,
+    ctsOrgTypes,
     resetCtsRegistry,
     refreshTreeOverlay,
     refreshDesignerFromTypes,

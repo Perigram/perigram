@@ -134,6 +134,68 @@ describe('cts type storage', () => {
     }));
   });
 
+  it('persists covered declarations step-free; the next additive edit compiles clean', async () => {
+    // Steps are one-time (SPEC §11): a covered apply executes them, and the
+    // stored declaration must NOT carry them forward — a stored step set
+    // rotting on the declaration is the "declared migration step … matches
+    // no breaking change" wedge for every round-tripping client.
+    const { applyTypeMigrationSteps } = await import('../instances/migrations.js');
+    applyTypeMigrationSteps.mockResolvedValueOnce({
+      appliedAt: '2026-09-23T00:00:00.000Z', actor: 'admin', counts: {}, failures: []
+    });
+    const existing = {
+      id: 'child', class: 'item', scope: 'org', organizationId: ORG, version: 2,
+      fields: { anythin: { base: 'string', label: 'Anythin' } },
+      states: { main: { values: ['active'], initial: 'active' } }
+    };
+    repository.findByTypeId.mockResolvedValue(existing);
+    repository.listByOrganization.mockResolvedValue([existing]);
+    const stored = await defineType(
+      {
+        id: 'child', class: 'item',
+        fields: { anything: { base: 'string', label: 'Anything' } },
+        states: { main: { values: ['active'], initial: 'active' } },
+        migrate: [{ kind: 'rename-field', from: 'anythin', to: 'anything' }]
+      },
+      { organizationId: ORG, actor: 'admin' }
+    );
+    expect(stored.version).toBe(3);
+    expect(stored.migrated).toMatchObject({ actor: 'admin' });
+    // Every persist is step-free and unsets the key from earlier documents.
+    const [lastOrg, lastTypeId, lastPayload, lastOptions] = repository.upsertByTypeId.mock.calls.at(-1);
+    expect(lastOrg).toBe(ORG);
+    expect(lastTypeId).toBe('child');
+    expect(Object.hasOwn(lastPayload, 'migrate')).toBe(false);
+    expect(lastOptions).toEqual({ unset: ['migrate'] });
+
+    // The rot the strip prevents: a client that round-trips the OLD stored
+    // shape (steps still on the declaration) carries them into its next
+    // post and is refused — the gate reads the NEXT declaration's steps.
+    repository.findByTypeId.mockResolvedValue(stored);
+    repository.listByOrganization.mockResolvedValue([stored]);
+    await expect(defineType(
+      {
+        id: 'child', class: 'item',
+        fields: { anything: { base: 'string' }, note: { base: 'string', nullable: true } },
+        states: { main: { values: ['active'], initial: 'active' } },
+        migrate: [{ kind: 'rename-field', from: 'anythin', to: 'anything' }]
+      },
+      { organizationId: ORG }
+    )).rejects.toThrow(/declared migration step rename-field anythin -> anything matches no breaking change/);
+
+    // With the strip, the stored declaration is step-free, so the next
+    // additive edit compiles clean without manually clearing anything.
+    const next = await defineType(
+      {
+        id: 'child', class: 'item',
+        fields: { anything: { base: 'string' }, note: { base: 'string', nullable: true } },
+        states: { main: { values: ['active'], initial: 'active' } }
+      },
+      { organizationId: ORG }
+    );
+    expect(next.version).toBe(4);
+  });
+
   it('refuses a breaking redefinition whose steps do not cover the diff', async () => {
     const existing = {
       id: 'widget', class: 'item', scope: 'org', organizationId: ORG, version: 3,
@@ -152,6 +214,38 @@ describe('cts type storage', () => {
     )).rejects.toThrow(/without a covering declared migration/);
     const { applyTypeMigrationSteps } = await import('../instances/migrations.js');
     expect(applyTypeMigrationSteps).not.toHaveBeenCalled();
+  });
+
+  it('attaches the migration plan to an uncovered refusal (SPEC §14 authoring payload)', async () => {
+    // The refusal names what broke AND offers the declarative step: the
+    // 400 carries the computed plan's breaking change records plus the
+    // gate's required-step errors beside the binder blast radius.
+    const existing = {
+      id: 'child', class: 'item', scope: 'org', organizationId: ORG, version: 2,
+      fields: { anythin: { base: 'string', label: 'Anythin' } },
+      states: { main: { values: ['active'], initial: 'active' } }
+    };
+    repository.findByTypeId.mockResolvedValue(existing);
+    repository.listByOrganization.mockResolvedValue([existing]);
+    findTypeReferences.mockResolvedValueOnce([{ id: 'pd-1', name: 'Production', status: 'ACTIVE' }]);
+    const error = await defineType(
+      {
+        id: 'child', class: 'item',
+        fields: { anything: { base: 'string', label: 'Anything' } },
+        states: { main: { values: ['active'], initial: 'active' } }
+      },
+      { organizationId: ORG }
+    ).catch(e => e);
+    expect(error.statusCode).toBe(400);
+    expect(error.data.boundBy).toEqual([{ id: 'pd-1', name: 'Production', status: 'ACTIVE' }]);
+    expect(error.data.plan.changes).toEqual([
+      { severity: 'breaking', kind: 'remove-field', field: 'anythin' },
+      { severity: 'breaking', kind: 'add-required-field', field: 'anything' }
+    ]);
+    expect(error.data.plan.requiredSteps).toEqual([
+      'remove-field anythin requires a remove-field or rename-field step',
+      'add-required-field anything requires an add-default-field step'
+    ]);
   });
 
   it('refuses invalid declarations as 400s', async () => {

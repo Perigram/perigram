@@ -460,6 +460,24 @@ describe('tree declaration compilation', () => {
     });
   });
 
+  it('carries class-node declared migration steps onto the declaration (SPEC §11)', () => {
+    const withSteps = classNode('widget', {
+      migrate: [{ kind: 'rename-field', from: 'anythin', to: 'anything' }]
+    });
+    const { declarations } = compileTreeDeclarations([withSteps], []);
+    expect(declarations[0].migrate).toEqual([
+      { kind: 'rename-field', from: 'anythin', to: 'anything' }
+    ]);
+    // Absent by default: a tree without authored steps never carries the key.
+    const { declarations: bare } = compileTreeDeclarations([classNode('gadget')], []);
+    expect(Object.hasOwn(bare[0], 'migrate')).toBe(false);
+    // An empty array is authoring residue, not a declaration.
+    const { declarations: emptied } = compileTreeDeclarations(
+      [classNode('gizmo', { migrate: [] })], []
+    );
+    expect(Object.hasOwn(emptied[0], 'migrate')).toBe(false);
+  });
+
   it('states without exactly one initial are a diagnostic, never a default (R4)', () => {
     const widget = classNode('widget');
     const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'done')];

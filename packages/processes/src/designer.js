@@ -11,7 +11,10 @@ import { processType } from './types.js';
 // row key is plumbing. Splits on any non-alphanumeric run, lowercases the
 // first segment, capitalizes the rest ("Field name 2" -> "fieldName2").
 // Returns '' when nothing alphanumeric survives (unfinished input).
-function camelCaseId(value = '') {
+// Exported as the one derivation home: designer surfaces mapping a field
+// id back to its authored label (the type-migration step dialog) derive
+// ids exactly the way the compiled declaration does.
+export function camelCaseId(value = '') {
   const segments = String(value).split(/[^a-zA-Z0-9]+/).filter(Boolean);
   if (!segments.length) return '';
   const [first, ...rest] = segments;
@@ -359,7 +362,13 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
             }
           }
         : {}),
-      ...(classNode.data.payload ? { payload: classNode.data.payload } : {})
+      ...(classNode.data.payload ? { payload: classNode.data.payload } : {}),
+      // Declared migration steps (SPEC §11) ride the class node as
+      // transient apply-time state written by the step dialog; the
+      // designer clears them once the declaration post consumes them.
+      ...(Array.isArray(classNode.data.migrate) && classNode.data.migrate.length
+        ? { migrate: classNode.data.migrate }
+        : {})
     };
     if (states.size) {
       // The entry comes from entry wires (a state wired into a construct
