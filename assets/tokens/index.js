@@ -418,8 +418,10 @@ export const primeSemanticTokens = {
 // (the generated search and sort strips) drop the theme's side padding
 // so they align with the content inside already-padded surfaces.
 // Workspace surfaces ride the zero canvas: Panels and PanelMenu panels
-// paint no background and no border (structure reads through spacing and
-// gaps), and Splitter gutters are invisible — draggable, never drawn.
+// paint no background and Panels paint no border (PanelMenu panels keep
+// Aura's default hairline border; the workspace node's pane Panels restore
+// the same border locally), and Splitter gutters are invisible —
+// draggable, never drawn.
 export const primeComponentTokens = {
     panel: {
         root: {

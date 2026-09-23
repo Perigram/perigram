@@ -58,10 +58,15 @@ defineProps({
 defineEmits(['activate', 'split', 'close', 'resize']);
 
 // Panel chrome follows the pane contract: no content padding (the hosted
-// surface owns its own tab strip and body), and the panel itself stretches
-// to the split cell.
+// surface owns its own tab strip and body), the zero-canvas background, and
+// the panel itself stretches to the split cell. The preset strips panel
+// borders globally for the zero canvas; the pane Panel is the pane box, so
+// its pt restores the default panel border color (Aura's content border).
 const panePanelPt = {
-  root: { class: 'h-full min-h-0 min-w-0 flex flex-col overflow-hidden' },
+  root: {
+    class: 'h-full min-h-0 min-w-0 flex flex-col overflow-hidden',
+    style: { '--p-panel-border-color': 'var(--p-content-border-color)' }
+  },
   // Panel's grid container and wrapper default to min-width:auto, so wide
   // tab strips pushed them past the split cell - every layer must be able
   // to shrink below its content for the tablist to overflow and scroll.
