@@ -80,7 +80,7 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import {
   LAYOUT, fieldLabel, tableColumnCount, ROW_RELATION_BUDGET, applyBudget,
-  SEVERITY_MAP, instanceIdentity, resolveListControls,
+  SEVERITY_MAP, titleFor, resolveListControls,
   localizedLabel, fieldLabelKey
 } from '#shared/ui-mapping/index.js';
 import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
@@ -107,12 +107,12 @@ const resolvedControls = computed(() => props.controls || resolveListControls(pr
 const pagination = computed(() => resolvedControls.value.pagination);
 const virtual = computed(() => props.instances.length > pagination.value.virtualizeAt);
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const identityOf = instance => instanceIdentity(props.type, instance);
+const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const hasStatus = computed(() => Boolean(props.type?.states?.main));
 const statusOf = instance => {
   const value = instance.states?.main;
   if (!value) return null;
-  const render = props.type.render?.states?.[value];
+  const render = props.type.states?.main?.render?.[value];
   return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
 };
 const sortByIdentity = item => identityOf(item).toLowerCase();

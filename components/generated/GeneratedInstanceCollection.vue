@@ -155,7 +155,9 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { instanceEditorActionFor, instanceHasEditorAction } from '~/components/generated/instance-editor-action.js';
 import { useAuthStore } from '~/stores/auth';
-import { instanceIdentityLabel, resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { titleFor } from '#shared/ui-mapping/index.js';
+import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { instanceHierarchyIds } from '~/utils/instance-hierarchy.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToTypeId } from '~/components/generated/action-visibility.js';
@@ -295,7 +297,12 @@ function isIdentityNameField(path) {
 }
 
 function identityLabel(entity) {
-  return instanceIdentityLabel(entity, { unnamedLabel: t('common.unnamed') });
+  const typeRecord = typeById(props.typeId);
+  return titleFor(
+    typeRecord ? dtoToScreenInstance(entity, typeRecord) : null,
+    typeRecord,
+    { unnamedLabel: t('common.unnamed') }
+  );
 }
 
 function formatCell(entity, path) {

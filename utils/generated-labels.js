@@ -7,11 +7,13 @@ const ENTITY_CONTRACTS_BY_TYPE = new Map(DESIGN_SYSTEM_ENTITY_CONTRACTS.flatMap(
   [entry.key, entry]
 ]));
 
-// The authored type name from the CTS client bundle riding auth
-// hydration (the registry store is the runtime consumption contract).
-// Guarded: contexts without an active Pinia (specs, pure utils) keep the
-// deterministic fallbacks below.
-function authoredTypeLabel(typeId = '') {
+// The entity-label fallback chain is `name` → localized unnamed
+// placeholder: the authored type name from the CTS client bundle riding
+// auth hydration (the registry store is the runtime consumption
+// contract) is the only non-i18n source — humanized raw ids never
+// render. Guarded: contexts without an active Pinia (specs, pure utils)
+// keep the placeholder fallback.
+function authoredTypeLabel(typeId = '', { t } = {}) {
   if (!typeId) return '';
   try {
     return useRegistryStore().typeRecord(typeId)?.name || '';
@@ -20,23 +22,28 @@ function authoredTypeLabel(typeId = '') {
   }
 }
 
+function unnamedLabel({ t, te } = {}) {
+  if (typeof te === 'function' && te('common.unnamed') && typeof t === 'function') return t('common.unnamed');
+  return 'Unnamed';
+}
+
 export function generatedEntityLabel(typeId = '', { t, te } = {}) {
   const key = ENTITY_CONTRACTS_BY_TYPE.get(typeId)?.labelKey;
   if (key && canTranslate(te, key)) return t(key);
-  return authoredTypeLabel(typeId) || humanize(typeId);
+  return authoredTypeLabel(typeId, { t }) || unnamedLabel({ t, te });
 }
 
 export function generatedScreenLabel(screen = {}, { t, te } = {}) {
   if (screen.labelKey && canTranslate(te, screen.labelKey)) return t(screen.labelKey);
   if (screen.template === 'home') return t('generatedScreen.home');
   if (screen.typeId) return generatedEntityLabel(screen.typeId, { t, te });
-  return meaningfulLabel(screen.label || screen.id || screen.screenKey);
+  return meaningfulLabel(screen.label) || unnamedLabel({ t, te });
 }
 
 export function generatedRegionLabel(region = {}, source = {}, { t, te } = {}) {
   if (region.labelKey && canTranslate(te, region.labelKey)) return t(region.labelKey);
   if (source.typeId) return generatedEntityLabel(source.typeId, { t, te });
-  return meaningfulLabel(region.label || source.label || region.id || source.id);
+  return meaningfulLabel(region.label || source.label) || unnamedLabel({ t, te });
 }
 
 function actionTypeOf(action = {}) {

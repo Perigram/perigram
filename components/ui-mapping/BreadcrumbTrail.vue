@@ -9,7 +9,8 @@
 <script setup>
 import { computed } from 'vue';
 import Breadcrumb from 'primevue/breadcrumb';
-import { instanceIdentity } from '#shared/ui-mapping/index.js';
+import { useI18n } from 'vue-i18n';
+import { titleFor } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   instance: { type: Object, required: true },
@@ -17,6 +18,7 @@ const props = defineProps({
   pool: { type: Object, default: () => ({}) }
 });
 
+const { t } = useI18n();
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
 
 const crumbs = computed(() => {
@@ -25,7 +27,7 @@ const crumbs = computed(() => {
   const seen = new Set([cursor.id]);
   while (cursor) {
     chain.unshift({
-      label: instanceIdentity(typesById.value[cursor.type], cursor),
+      label: titleFor(cursor, typesById.value[cursor.type], { unnamedLabel: t('common.unnamed') }),
       instanceId: cursor.id
     });
     const parentRef = Object.values(cursor.lineage || {})[0];

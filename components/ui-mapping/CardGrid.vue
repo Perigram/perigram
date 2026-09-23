@@ -35,7 +35,7 @@
           <template #title>
             <div :class="LAYOUT.rowBetween">
               <div :class="LAYOUT.row">
-                <i :class="type?.render?.icon || 'pi pi-circle'" class="text-muted" />
+                <i :class="iconFor(type, instance)" class="text-muted" />
                 <Button
                   v-if="openable"
                   link
@@ -63,7 +63,7 @@
               </div>
             </div>
           </template>
-          <template #subtitle>{{ type?.render?.label }}</template>
+          <template #subtitle>{{ type?.name }}</template>
           <template #content>
             <div :class="spacing ? spacing.stackTight : 'flex flex-col gap-3'">
               <div v-for="field in scalarFields" :key="field.name" :class="LAYOUT.rowBetween">
@@ -99,7 +99,7 @@ import Message from 'primevue/message';
 import Menu from 'primevue/menu';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import {
-  LAYOUT, SCALAR_BASES, cardFactCount, SEVERITY_MAP, instanceIdentity,
+  LAYOUT, SCALAR_BASES, cardFactCount, SEVERITY_MAP, titleFor, iconFor,
   fieldLabel, fieldLabelKey, localizedLabel, resolveListControls, sortControlRows,
   resolveActionButton, actionLabelKey
 } from '#shared/ui-mapping/index.js';
@@ -153,11 +153,11 @@ const sortedInstances = computed(() => (sortKey.value
   : props.instances));
 
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const identityOf = instance => instanceIdentity(props.type, instance);
+const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const statusOf = instance => {
   const value = instance.states?.main;
   if (!value || !props.type?.states?.main) return null;
-  const render = props.type.render?.states?.[value];
+  const render = props.type.states?.main?.render?.[value];
   return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
 };
 const scalarFields = computed(() => Object.entries(props.type?.fields || {})

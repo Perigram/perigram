@@ -101,7 +101,7 @@ export async function resolveProcessAuth(auth = {}) {
   // home, lineage bindings keyed childTypeId/parentTypeId). The compiled
   // execution channel keeps its internal names server-side; nothing with
   // `typeId`/`actionId` keys crosses hydration.
-  const typeLabels = new Map((compiled.bundle?.types || []).map(type => [type.id, type.render?.label || type.id]));
+  const typeLabels = new Map((compiled.bundle?.types || []).map(type => [type.id, type.name || 'Unnamed']));
   const manifestActions = (assignmentAccess.actions || [])
     .map(action => projectManifestAction(action, { typeLabels }))
     .filter(Boolean);

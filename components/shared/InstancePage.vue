@@ -9,7 +9,8 @@ import InstanceActionsPopover from './InstanceActionsPopover.vue';
 import { computed, inject, provide, unref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
-import { instanceIdentityLabel } from '~/utils/instance-display-contract.js';
+import { titleFor } from '#shared/ui-mapping/index.js';
+import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useRegistryStore } from '~/stores/registry';
 
 const props = defineProps({
@@ -39,10 +40,14 @@ const typeLabel = computed(() => {
 });
 const registry = useRegistryStore();
 const entityIcon = computed(() => registry.iconFor(props.typeId));
-const identityLabel = computed(() => instanceIdentityLabel(props.entity, {
-  typeLabel: typeLabel.value,
-  unnamedLabel: t('common.unnamed')
-}));
+// Record titles resolve through the one title resolver (identifier field
+// value via the wire-to-screen bridge; unnamed otherwise).
+const typeView = computed(() => registry.typeRecord(props.typeId));
+const identityLabel = computed(() => titleFor(
+  typeView.value ? dtoToScreenInstance(props.entity, typeView.value) : null,
+  typeView.value,
+  { unnamedLabel: t('common.unnamed') }
+));
 const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
 provide('displayedEntityContexts', computed(() => [
   ...(unref(parentDisplayedEntityContexts) || []),

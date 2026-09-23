@@ -599,11 +599,10 @@ describe('Design system manifest', () => {
     expect(manifest.validations).toEqual({ ok: true, issues: [] });
     expect(cassette.fieldPaths).toEqual([]);
     expect(cassette.fieldPaths).not.toContain('data.type');
-    expect(cassetteDesign.fieldPaths).toEqual(['data.parameters']);
-    expect(DESIGN_SYSTEM_FIELD_GROUPS.cassetteDesign.summary[0].fallbackPaths).toEqual(['provenance.derivedFrom.parameters']);
+    // The legacy residual field-group map died with the fact channel: no
+    // design-system component carries legacy fact rows anymore.
+    expect(cassetteDesign.fieldPaths).toEqual([]);
     expect(cassetteTemplate.fieldPaths).toEqual([]);
-    expect(cassetteTemplate.fieldPaths).not.toContain('type');
-    expect(cassetteTemplate.fieldPaths).not.toContain('parameterCount');
   });
 
   it('declares constructor surfaces and field groups in the domain contract', () => {
@@ -641,10 +640,12 @@ describe('Design system manifest', () => {
         card: expect.any(Object),
         detail: expect.any(Object)
       }));
-      if (!bundleDeclared.has(entry.key)) {
-        expect(DESIGN_SYSTEM_FIELD_GROUPS[entry.key] || {}).toBeTruthy();
-      }
     }
+
+    // Live-type audit: the residual legacy map carries only the artifact
+    // family (undeclared master data Phase 7 cuts later). Every other key
+    // that once lived there rendered retired types and was deleted.
+    expect(Object.keys(DESIGN_SYSTEM_FIELD_GROUPS)).toEqual(['artifactTemplate']);
   });
 
   it('keeps standard entity DataBlock fields out of component-local arrays', () => {
@@ -818,7 +819,7 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain('relationSheetDesigns');
     expect(inlineRef).not.toContain('instance-inline-compact-fallback');
     expect(instanceCard).toContain('instance-inline-chip');
-    expect(instanceCard).toContain('instanceIdentityLabel');
+    expect(instanceCard).toContain('titleFor');
     expect(entityPreview).toContain('hideDimensionLayer');
     expect(entityPreview).toContain(':hide-dimension-layer="hideDimensionLayer"');
     expect(entityPreview).toContain('GeometryPreview');

@@ -230,7 +230,9 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import { useRegistryStore } from '~/stores/registry';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
-import { instanceIdentityLabel, resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { titleFor } from '#shared/ui-mapping/index.js';
+import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useI18n } from 'vue-i18n';
 import { hasMeaningfulWorkflowState } from '~/utils/state-actions.js';
 import { instanceHierarchyIds } from '~/utils/instance-hierarchy.js';
@@ -308,12 +310,16 @@ const traceExclusions = computed(() => {
         id
     }));
 });
-// Identity chrome resolves through the compiled identity policy
-// (name → slug → type label → localized unnamed placeholder).
-const identityLabel = computed(() => instanceIdentityLabel(props.entity, {
-    typeLabel: unref(inlineTypeLabelRef) || '',
-    unnamedLabel: t('common.unnamed')
-}));
+// Record titles resolve through the one title resolver: the DTO maps
+// through the wire-to-screen bridge against the bundle type record, so
+// the declared identifier field wins and raw ids never render; a record
+// without a declared title is unnamed.
+const typeView = computed(() => registry.typeRecord(props.typeId));
+const identityLabel = computed(() => titleFor(
+  typeView.value ? dtoToScreenInstance(props.entity, typeView.value) : null,
+  typeView.value,
+  { unnamedLabel: t('common.unnamed') }
+));
 const inlineDetailRoute = computed(() => unref(inlineDetailRouteRef));
 const inlineTypeLabel = computed(() => unref(inlineTypeLabelRef) || '');
 const inlineActionIds = computed(() => unref(inlineActionIdsRef) || []);

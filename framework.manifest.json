@@ -369,9 +369,7 @@
         "docs": [
           "server/features/cassette-designs/README.md"
         ],
-        "fieldPaths": [
-          "data.parameters"
-        ],
+        "fieldPaths": [],
         "group": "production",
         "key": "cassetteDesign",
         "labelKey": "entities.cassetteDesign",
@@ -429,11 +427,7 @@
         "docs": [
           "server/features/tool-profiles/README.md"
         ],
-        "fieldPaths": [
-          "data.angle",
-          "data.diameter",
-          "data.kerf"
-        ],
+        "fieldPaths": [],
         "group": "master",
         "key": "toolProfile",
         "labelKey": "entities.toolProfile",

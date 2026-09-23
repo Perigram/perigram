@@ -4,13 +4,13 @@
       <template #title>
         <div :class="LAYOUT.rowBetween">
           <div :class="LAYOUT.row">
-            <i :class="type?.render?.icon || 'pi pi-circle'" class="text-muted" />
+            <i :class="iconFor(type)" class="text-muted" />
             <span>{{ identityOf(instance) }}</span>
           </div>
           <Tag v-if="statusOf(instance)" :value="statusOf(instance).label" :severity="statusOf(instance).severity" />
         </div>
       </template>
-      <template #subtitle>{{ type?.render?.label }}</template>
+      <template #subtitle>{{ type?.name }}</template>
       <template #content>
         <div class="flex flex-col gap-1">
           <span class="text-metric">{{ metricOf(instance) }}</span>
@@ -26,7 +26,8 @@ import { computed } from 'vue';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
-import { LAYOUT, analyzeTypeShape, instanceIdentity, formatQuantity, SEVERITY_MAP } from '#shared/ui-mapping/index.js';
+import { useI18n } from 'vue-i18n';
+import { LAYOUT, analyzeTypeShape, titleFor, iconFor, formatQuantity, SEVERITY_MAP } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   instances: { type: Array, default: () => [] },
@@ -37,7 +38,8 @@ const props = defineProps({
 
 const shape = computed(() => analyzeTypeShape(props.type));
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const identityOf = instance => instanceIdentity(props.type, instance);
+const { t } = useI18n();
+const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const metricLabel = computed(() => (shape.value.metricField
   ? (props.type.fields[shape.value.metricField].label || startCase(shape.value.metricField))
   : null));
@@ -49,7 +51,7 @@ const metricOf = (instance) => {
 const statusOf = instance => {
   const value = instance.states?.main;
   if (!value || !props.type?.states?.main) return null;
-  const render = props.type.render?.states?.[value];
+  const render = props.type.states?.main?.render?.[value];
   return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
 };
 </script>

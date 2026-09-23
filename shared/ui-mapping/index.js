@@ -315,11 +315,12 @@ export function applyBudget(items = [], budget = null) {
 }
 
 // toolbarVisibleFor(node): the collection toolbar appears on list regions
-// past SEARCH_AT, or whenever a multi-value enum facet exists. Identity
-// search always functions (instanceIdentity falls back to the id), so the
-// bar is never gated on the descriptor vocabulary alone — a type with no
-// short strings and no enums still earns search on large collections,
-// while a small enum-heavy collection still earns its facet selects.
+// past SEARCH_AT, or whenever a multi-value enum facet exists. Title
+// search always functions (instanceMatchesToolbar falls back to the id),
+// so the bar is never gated on the descriptor vocabulary alone — a type
+// with no enums and no identifier field still earns search on large
+// collections, while a small enum-heavy collection still earns its facet
+// selects.
 export function toolbarVisibleFor(node = {}) {
   if (node.surfaceKind !== 'list') return false;
   const controls = node.listControls || {};
@@ -329,20 +330,20 @@ export function toolbarVisibleFor(node = {}) {
 }
 
 // instanceMatchesToolbar(type, controls, instance, query, facetSelections):
-// identity-plus-fields substring match combined with exact facet matches.
+// title-plus-fields substring match combined with exact facet matches.
 // Empty queries and empty selections are no-ops, so an untouched toolbar
 // never filters anything out.
 export function instanceMatchesToolbar(type = {}, controls = {}, instance = {}, query = '', facetSelections = {}) {
   const normalized = String(query || '').trim().toLowerCase();
   if (normalized) {
-    // Search matches the identity label AND the instance id: the label
+    // Search matches the record title AND the instance id: the title
     // never carries the raw id (it is private display vocabulary), but
     // finding a row by its id stays functional.
     const haystack = [
       ...((controls.searchKeys || [])
         .map(key => instance.fields?.[key])
         .filter(value => typeof value === 'string')),
-      instanceIdentity(type, instance),
+      titleFor(instance, type),
       instance.id || ''
     ].join(' ').toLowerCase();
     if (!haystack.includes(normalized)) return false;
@@ -388,10 +389,6 @@ const UNIT_SYMBOLS = Object.freeze({
   mm: 'mm', m2: 'm²', min: 'min', deg: '°', percent: '%', currency: '', count: ''
 });
 
-// Preferred identity field names, first match wins; shared by
-// instanceIdentity and the list-controls search-key derivation.
-const PREFERRED_IDENTITY_KEYS = Object.freeze(['serial', 'designation', 'title', 'grade', 'name', 'summary']);
-
 export function formatQuantity(quantity) {
   if (!quantity || !Number.isFinite(quantity.value)) return '—';
   const suffix = UNIT_SYMBOLS[quantity.unit];
@@ -400,25 +397,27 @@ export function formatQuantity(quantity) {
   return suffix ? `${value} ${suffix}` : value;
 }
 
-export function instanceIdentity(type, instance) {
-  // Neutral placeholder glyph: private ids never render, and a bare '?'
-  // reads as a broken string rather than an unnamed record.
-  if (!instance) return '—';
-  const fields = instance.fields || {};
-  const declared = type?.identifier;
-  if (declared && typeof fields[declared] === 'string' && fields[declared]) return fields[declared];
-  for (const key of PREFERRED_IDENTITY_KEYS) {
-    if (typeof fields[key] === 'string' && fields[key]) return fields[key];
+// titleFor(record, typeView, { unnamedLabel }): the one record-title
+// resolver — the value of the type's `identifier`-flagged field when
+// non-empty, else the localized unnamed placeholder (default 'Unnamed';
+// callers pass t('common.unnamed')). Never record ids, never slugs,
+// never heuristics: a record without a declared title is unnamed.
+export function titleFor(record = null, typeView = null, { unnamedLabel = 'Unnamed' } = {}) {
+  const identifier = typeView?.identifier;
+  const value = identifier ? record?.fields?.[identifier] : null;
+  return typeof value === 'string' && value ? value : unnamedLabel;
+}
+
+// iconFor(typeView, record?): the one glyph resolver — the type's
+// `glyph`, except that a given record with a non-empty `depiction.thumb`
+// field value wins (the declared thumbnail is per-record data).
+export function iconFor(typeView = null, record = null) {
+  const thumbField = typeView?.depiction?.thumb;
+  if (record && thumbField) {
+    const value = record?.fields?.[thumbField];
+    if (typeof value === 'string' && value) return value;
   }
-  const descriptors = type?.fields || {};
-  const firstShortString = Object.entries(descriptors).find(([name, descriptor]) => descriptor.base === 'string'
-    && !(descriptor.multiline === true || (descriptor.max || 0) >= 120)
-    && typeof fields[name] === 'string'
-    && fields[name]);
-  // Identity fallback is the type name — raw instance ids are private
-  // and never render in user-facing labels; an unnamed type serves
-  // "Unnamed".
-  return firstShortString ? fields[firstShortString[0]] : (type?.name || 'Unnamed');
+  return typeView?.glyph || 'pi pi-circle';
 }
 
 const isFilled = value => !(value === null || value === undefined || value === ''
@@ -455,8 +454,9 @@ export function analyzeInstanceShape(typeRecord = {}, instances = []) {
 }
 
 // resolveListControls(type, instances): the compose-time list contract one
-// collection surface consumes — search keys (identity-shaped short
-// strings), filled scalar sort keys, enum facets over the values actually
+// collection surface consumes — search keys (the declared identifier
+// field; the preferred-name and first-short-string heuristics are gone),
+// filled scalar sort keys, enum facets over the values actually
 // present, and the shared pagination budgets. Pure over the type record
 // and the loaded instances. The authored default-sort override channel is
 // gone (derivation replaced it): the first filled short scalar sorts by
@@ -476,12 +476,9 @@ export function resolveListControls(typeRecord = {}, instances = []) {
     .filter(([, descriptor]) => descriptor.base === 'string'
       && !(descriptor.multiline === true || (descriptor.max || 0) >= 120))
     .map(([name]) => name);
-  const searchKeys = [];
-  if (declaredIdentity && shortStringNames.includes(declaredIdentity)) searchKeys.push(declaredIdentity);
-  for (const name of PREFERRED_IDENTITY_KEYS) {
-    if (shortStringNames.includes(name) && !searchKeys.includes(name)) searchKeys.push(name);
-  }
-  if (!searchKeys.length && shortStringNames.length) searchKeys.push(shortStringNames[0]);
+  const searchKeys = declaredIdentity && shortStringNames.includes(declaredIdentity)
+    ? [declaredIdentity]
+    : [];
   const facets = Object.entries(shape.enumValues)
     .filter(([, values]) => values.length > 0)
     .map(([name, values]) => ({ name, label: fieldLabel(name, descriptors[name]), values }));

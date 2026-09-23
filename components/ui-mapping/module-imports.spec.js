@@ -17,7 +17,7 @@ describe('ui-mapping component module imports', () => {
       for (const name of sharedImports) {
         expect(indexModule[name], `${file} imports ${name}`).toBeDefined();
       }
-      const SHARED_HELPERS = ['formatValue', 'formatQuantity', 'instanceIdentity', 'fieldLabel',
+      const SHARED_HELPERS = ['formatValue', 'formatQuantity', 'titleFor', 'fieldLabel',
         'applyBudget', 'resolveListLayout', 'resolveSurface', 'resolveFieldControl',
         'tableColumnCount', 'cardFactCount', 'cardVariantFor', 'analyzeTypeShape', 'composeScreen'];
       const scriptBody = source.slice(source.indexOf('<script'));

@@ -4,23 +4,24 @@
 // facet), the CTS client bundle derives the display policy (sections,
 // resolved state display — no render facet anywhere),
 // `utils/instance-display-contract.js` resolves fact rows by surface
-// (legacy map and app extensions composing for undeclared types), display
-// policies render units/dimensions, identity chrome resolves through the
-// compiled policy, and fact rows gate through field access (legacy-first,
-// declaration-derived for org-authored types).
+// through `factsFor` (bundle-only; app extensions composing on top,
+// per-call overrides winning), display policies render units/dimensions,
+// record titles and glyphs resolve through the one resolvers
+// (`titleFor`/`iconFor`), fact rows gate through field access
+// (legacy-first, declaration-derived for org-authored types), and the
+// legacy residual fact channel is gone (artifact family excepted).
 import { describe, expect, it } from 'vitest';
 import { createTypeRegistry, compileClientBundle, frameworkTypes, projectDomainFromView } from '../packages/cts/src/index.js';
-import { cncFileTypes } from '../packages/domain-cnc/src/index.js';
+import { cncFileTypes, cncInstanceFieldGroups } from '../packages/domain-cnc/src/index.js';
 import { techDrawingTypes } from '../packages/tech-drawing/src/index.js';
 import {
   resolveInstanceDisplayContract,
   resolveInstanceDisplayFields,
-  instanceIdentityLabel,
-  instanceIdentityMeta
+  factsFor
 } from '../utils/instance-display-contract.js';
 import { registerDeclarationFieldAccess, filterEntityFields } from './instance-field-access.js';
 import { decorateDataValue } from '../utils/data-display.js';
-import { instanceIdentity } from '../shared/ui-mapping/index.js';
+import { titleFor, iconFor } from '../shared/ui-mapping/index.js';
 
 // The served org view: framework + mounted packs (documents omitted here —
 // same composition as server/packs/declarations.js for the types under test).
@@ -109,24 +110,56 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     expect(compact.surfaceContract.fieldLimit).toBe(3);
   });
 
-  it('resolves record labels through the identifier flag', () => {
-    const widget = typeRecordFor(bundle, 'widget');
-    expect(instanceIdentity(widget, { fields: { name: 'Bracket', parts: [] } })).toBe('Bracket');
-    // No identifier flag and no short-string value: the type name, never
-    // the raw id.
-    expect(instanceIdentity(widget, { fields: { name: '', parts: [] } })).toBe('Widget');
+  it('exposes factsFor as the one bundle-only fact-row resolver', () => {
+    const sheetDesign = typeRecordFor(bundle, 'sheet-design');
+    expect(factsFor(sheetDesign, 'card').map(field => field.path)).toEqual(['data.geometry', 'data.parts']);
+    expect(factsFor(sheetDesign, 'detail').map(field => field.path)).toEqual(['data.geometry', 'data.parts']);
+    // Compact surfaces bound to the leading summary facts only.
+    expect(factsFor(sheetDesign, 'compact').map(field => field.path)).toEqual(['data.geometry']);
+    // No type view, no rows: undeclared types resolve nothing.
+    expect(factsFor(null, 'card')).toEqual([]);
   });
 
-  it('keeps legacy fallback + extension composition for undeclared types', () => {
-    const legacy = resolveInstanceDisplayContract({ typeId: 'queue', surface: 'card' });
-    expect(legacy.bundleResolved).toBe(false);
-    expect(legacy.fields.map(field => field.path)).toContain('summary.totalArea');
-
+  it('composes app extensions and per-call overrides over the bundle rows', () => {
+    const widget = typeRecordFor(bundle, 'widget');
     const extensions = {
-      fieldGroups: { queue: { summary: [{ path: 'data.queueNumber', label: 'queue.name', display: 'text', priority: 1 }] } }
+      fieldGroups: { widget: { extra: [{ path: 'data.extra', label: 'widget.extra', display: 'text', priority: 1 }] } },
+      surfaces: { widget: { surfaces: { card: { fieldGroups: ['extra'] } } } }
     };
-    const overridden = resolveInstanceDisplayContract({ typeId: 'queue', surface: 'card', extensions });
-    expect(overridden.fields[0]).toMatchObject({ path: 'data.queueNumber' });
+    const extended = resolveInstanceDisplayContract({ typeId: 'widget', surface: 'card', typeRecord: widget, extensions });
+    expect(extended.fields.map(field => field.path)).toEqual(['data.extra']);
+    // Per-call overrides win over everything, including extensions.
+    const overridden = resolveInstanceDisplayContract({
+      typeId: 'widget', surface: 'card', typeRecord: widget, extensions,
+      fieldGroups: { picked: [{ path: 'data.picked', label: 'widget.picked', display: 'text', priority: 1 }] },
+      surfaces: { card: { fieldGroups: ['picked'] } }
+    });
+    expect(overridden.fields.map(field => field.path)).toEqual(['data.picked']);
+    // With no authored list, synthesis runs over the merged map.
+    const plain = resolveInstanceDisplayContract({ typeId: 'widget', surface: 'card', typeRecord: widget });
+    expect(plain.fields.map(field => field.path)).toEqual(['data.name', 'data.parts']);
+  });
+
+  it('resolves record titles through the one title resolver (identifier or unnamed)', () => {
+    const widget = typeRecordFor(bundle, 'widget');
+    expect(titleFor({ fields: { name: 'Bracket', parts: [] } }, widget)).toBe('Bracket');
+    // Empty identifier value: the localized unnamed placeholder — never
+    // the record id, never a slug, never another field's value.
+    expect(titleFor({ id: 'w-77', fields: { name: '', parts: [] } }, widget, { unnamedLabel: 'Sin nombre' })).toBe('Sin nombre');
+    expect(titleFor({ id: 'w-77', fields: {} }, widget)).toBe('Unnamed');
+    // No identifier flag, no type view: unnamed, even with filled strings.
+    expect(titleFor({ id: 'w-77', fields: { note: 'Kepler' } }, typeRecordFor(bundle, 'entity-revision'))).toBe('Unnamed');
+    expect(titleFor({ id: 'w-77', fields: { note: 'Kepler' } }, null)).toBe('Unnamed');
+  });
+
+  it('resolves glyphs through the one glyph resolver (record thumbs preferred)', () => {
+    const widget = typeRecordFor(bundle, 'widget');
+    expect(iconFor(widget)).toBe(widget.glyph);
+    // A record with a declared depiction.thumb value wins over the glyph.
+    const withThumb = { ...widget, depiction: { glyph: widget.glyph, thumb: 'snap' } };
+    expect(iconFor(withThumb, { fields: { snap: 'thumb://w-77' } })).toBe('thumb://w-77');
+    expect(iconFor(withThumb, { fields: { snap: '' } })).toBe(widget.glyph);
+    expect(iconFor(null)).toBe('pi pi-circle');
   });
 
   it('renders dimensions and units through the display policies', () => {
@@ -135,13 +168,17 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     expect(decorateDataValue(94.2, { display: 'percent', unit: 'percent' })).toBe('94.2%');
   });
 
-  it('resolves identity chrome through the compiled policy', () => {
-    expect(instanceIdentityLabel({ identity: { name: 'Bracket' } })).toBe('Bracket');
-    expect(instanceIdentityLabel({ identity: { slug: 'bracket-4' } })).toBe('bracket-4');
-    expect(instanceIdentityLabel({ identity: {} }, { typeLabel: 'Cassette', unnamedLabel: 'Unnamed' })).toBe('Cassette');
-    expect(instanceIdentityLabel({}, { unnamedLabel: 'Unnamed' })).toBe('Unnamed');
-    expect(instanceIdentityMeta({ identity: { name: 'X', serial: 'S-1' } }, ['slug', 'serial']))
-      .toEqual([{ key: 'serial', value: 'S-1' }]);
+  it('keeps only the artifact family in the legacy residual map', () => {
+    // Live-type audit: everything else that once lived in
+    // `cncInstanceFieldGroups` rendered entity types retired from
+    // `cncEntities` (project, queue, sheet, remnant, catalog, …) or
+    // master data whose legacy surfaces are gone. The artifact family
+    // stays until Phase 7's file-paper cut.
+    expect(Object.keys(cncInstanceFieldGroups)).toEqual(['artifactTemplate']);
+    // An undeclared type resolves no fact rows and no legacy fallback.
+    const undeclared = resolveInstanceDisplayContract({ typeId: 'queue', surface: 'card' });
+    expect(undeclared.bundleResolved).toBe(false);
+    expect(undeclared.fields).toEqual([]);
   });
 
   it('filters bundle-derived rows through field access', () => {

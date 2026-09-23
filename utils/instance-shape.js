@@ -39,7 +39,14 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
     fields[name] = fieldValue(descriptor, readBlockPath(dto, [slotFor(descriptor, classOf), name]));
   }
   // Identity core fields ride as plain values so labels and pickers work
-  // even for types whose rows carry no name-like field.
+  // even for types whose rows carry no name-like field. The declared
+  // identifier field also absorbs the wire display name when its row is
+  // empty, so the one title resolver (titleFor) never needs heuristics —
+  // legacy DTOs keep their user-authored name in the identity block.
+  const identifier = typeRecord.identifier;
+  if (identifier && fields[identifier] === undefined && dto.identity?.name != null) {
+    fields[identifier] = dto.identity.name;
+  }
   if (dto.identity?.name != null && fields.name === undefined) fields.name = dto.identity.name;
   if (dto.identity?.serial != null && fields.serial === undefined) fields.serial = dto.identity.serial;
   const lineage = {};

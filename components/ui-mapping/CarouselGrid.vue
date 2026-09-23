@@ -18,7 +18,8 @@
 <script setup>
 import Carousel from 'primevue/carousel';
 import Card from 'primevue/card';
-import { LAYOUT, instanceIdentity } from '#shared/ui-mapping/index.js';
+import { useI18n } from 'vue-i18n';
+import { LAYOUT, titleFor } from '#shared/ui-mapping/index.js';
 import PreviewBox from './PreviewBox.vue';
 
 const props = defineProps({
@@ -28,5 +29,6 @@ const props = defineProps({
   bundle: { type: Object, default: null }
 });
 
-const identityOf = instance => instanceIdentity(props.type, instance);
+const { t } = useI18n();
+const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 </script>
