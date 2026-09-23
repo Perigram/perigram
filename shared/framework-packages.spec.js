@@ -228,15 +228,14 @@ describe('Framework package contracts', () => {
       validateTransition: () => ({ ok: true })
     });
 
-    expect(cncEntities.find(entity => entity.type === 'queue')?.collection).toBe('queues');
+    expect(cncEntities.find(entity => entity.type === 'cassette')?.collection).toBe('cassettes');
     expect(cncEntities.every(entity => entity.blocks.includes('relations') && entity.blocks.includes('provenance'))).toBe(true);
-    expect(cncContainment).toContainEqual({ parentType: 'project', childType: 'queue', lineageKey: 'projectId' });
     expect(cncContainment).toContainEqual({ parentType: 'cassette', childType: 'cassette_design', lineageKey: 'templateId' });
     expect(cncRelations).toContainEqual(expect.objectContaining({
-      ownerType: 'queue',
-      key: 'cassettes',
-      targetType: 'cassette_design',
-      cardinality: 'many'
+      ownerType: 'cassette',
+      key: 'sourceDxf',
+      targetType: 'artifact',
+      cardinality: 'one'
     }));
     expect(cncDomain.construction.cassette_design.modeInputs.bakeCassetteDesignFromTemplate
       .some(input => input.id === 'name')).toBe(false);
@@ -248,11 +247,11 @@ describe('Framework package contracts', () => {
     expect(cncEntities.find(entity => entity.type === 'user')?.meta).toBe(true);
     expect(cncEntities).toEqual(expect.arrayContaining([
       expect.objectContaining({ type: 'layer_standard', collection: 'layer_standards' }),
-      expect.objectContaining({ type: 'material', collection: 'materials' }),
+      expect.objectContaining({ type: 'machine', collection: 'machines' }),
       expect.objectContaining({ type: 'pen_template', collection: 'pen_templates' }),
       expect.objectContaining({ type: 'tool_profile', collection: 'tool_profiles' })
     ]));
-    expect(cncWorkflows.queue.regions.main.initial).toBe('DRAFT');
+    expect(cncWorkflows.cassette.regions.main.initial).toBe('ACTIVE');
     expect(cncCommands.solveNesting).toMatchObject({
       service: 'nesting',
       action: 'solve',
@@ -285,7 +284,7 @@ describe('Framework package contracts', () => {
       service: 'configBot',
       action: 'reindexKnowledge'
     });
-    expect(cncWorkflows.queue.regions.main.transitions.every(transition => !transition.roles)).toBe(true);
+    expect(cncWorkflows.cassette.regions.main.transitions.every(transition => !transition.roles)).toBe(true);
     expect(cncDomain).toMatchObject({ id: 'cnc', commands: cncCommands, tasks: cncTasks, attachmentKinds: cncAttachmentKinds });
     expect(cncDomain.ui.designSystem).toBe(cncDesignSystem);
     expect(cncDesignSystemInstanceContracts).toContainEqual(expect.objectContaining({ key: 'cassette', typeId: 'cassette' }));
@@ -299,10 +298,10 @@ describe('Framework package contracts', () => {
     expect(cncAttachmentKinds.LAYOUT_DXF).toMatchObject({ bucket: 'nestDxf', preview: { mode: 'dxf' } });
     const endpointMap = createEndpointMap(cncDomain.ui.endpoints);
     const domainUi = createDomainUiAdapter(cncDomain);
-    expect(getSingleEndpoint(endpointMap, 'project', 'p-1')).toBe('/api/instances/project/p-1');
-    expect(getListEndpoint(endpointMap, 'cassetteInstance', { 'lineage.queueId': 'q-1' })).toBe('/api/instances/cassette-instance?lineage.queueId=q-1');
+    expect(getSingleEndpoint(endpointMap, 'machine', 'p-1')).toBe('/api/instances/machine/p-1');
+    expect(getListEndpoint(endpointMap, 'toolProfile', { 'lineage.templateId': 'q-1' })).toBe('/api/instances/tool-profile?lineage.templateId=q-1');
     expect(existsSync('server/api/instances/[type]/index.get.js')).toBe(true);
-    expect(domainUi.getSingleEndpoint('project', 'p-1')).toBe('/api/instances/project/p-1');
+    expect(domainUi.getSingleEndpoint('machine', 'p-1')).toBe('/api/instances/machine/p-1');
     expect(domainUi.getAttachmentPreview('LAYOUT_DXF')).toEqual({ mode: 'dxf' });
     expect(domainUi.getAttachmentCreation('DXF_SOURCE')).toMatchObject({
       mode: 'upload',
@@ -315,9 +314,9 @@ describe('Framework package contracts', () => {
     expect(domainUi.getAttachmentEditor('LAYOUT_DXF')).toEqual({ mode: 'layout' });
     expect(domainUi.getAttachmentEditor('DXF_SOURCE')).toEqual({ mode: 'none' });
     expect(domainUi.getDownloadEndpoint('artifact', 'a-1')).toBe('/api/artifacts/a-1');
-    await expect(handlers.list_entities()).resolves.toContainEqual(expect.objectContaining({ type: 'project' }));
-    await expect(handlers.get_entity_schema({ type: 'queue' })).resolves.toMatchObject({ collection: 'queues' });
-    await expect(handlers.list_routes()).resolves.toContainEqual(expect.objectContaining({ type: 'project', single: '/api/instances/project/:id' }));
+    await expect(handlers.list_entities()).resolves.toContainEqual(expect.objectContaining({ type: 'machine' }));
+    await expect(handlers.get_entity_schema({ type: 'cassette' })).resolves.toMatchObject({ collection: 'cassettes' });
+    await expect(handlers.list_routes()).resolves.toContainEqual(expect.objectContaining({ type: 'machine', single: '/api/instances/machine/:id' }));
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'solveNesting' }));
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'saveCassetteTemplate' }));
     await expect(handlers.list_commands()).resolves.toContainEqual(expect.objectContaining({ id: 'generateAttachment' }));
