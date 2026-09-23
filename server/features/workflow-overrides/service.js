@@ -3,9 +3,10 @@ import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { assertEntityAccess } from '~/server/core/access/service.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
-import { declarationWorkflow, normalizeType } from '~/packages/cts/src/index.js';
+import { declarationWorkflow, normalizeType, mergeTransitionNodeStates, transitionNodeStateTargets } from '~/packages/cts/src/index.js';
 import { resolveProcessWorkflow } from '~/server/features/process-definitions/runtime.js';
 import { declarationForType, staticTypeDeclaration } from '~/server/features/instances/service.js';
+import { findActiveByOrganization as findActiveProcessByOrganization } from '~/server/features/process-definitions/repository.js';
 import * as repository from './repository.js';
 
 export async function getByEntity(typeId, auth) {
@@ -91,16 +92,64 @@ const declarationMachineCache = new Map();
 
 async function resolveDeclarationWorkflow({ typeId, organizationId }) {
   const declaration = await declarationForType(typeId, organizationId);
-  return machineFromDeclaration(declaration);
+  if (!declaration) return null;
+  // The active process's transition-declared statuses join the machine:
+  // authors declare statuses on transition nodes (SPEC §20/§14), and the
+  // runtime must see the SAME merged lifecycle apply-time compilation
+  // produces — otherwise applied graphs leave live instances on states
+  // the served machine does not know (state chips and action windows
+  // silently vanish). The merge is per-type, best-effort: a process fetch
+  // failure serves the plain declaration machine, never blocks reads.
+  const merged = await withActiveProcessStates(declaration, organizationId);
+  // The cache key carries the active process identity: a re-applied
+  // process (new transition-declared statuses) must rotate the derived
+  // machine, not serve the pre-merge one under the declaration version.
+  return machineFromDeclaration(merged.declaration, merged.processStamp);
+}
+
+async function withActiveProcessStates(declaration, organizationId) {
+  if (!organizationId) return { declaration, processStamp: '' };
+  try {
+    const active = await findActiveProcessByOrganization(organizationId);
+    const targets = active ? transitionNodeStateTargets(active?.data?.processNodes || {}).get(declaration.id) : null;
+    if (!targets?.length) return { declaration, processStamp: String(active?._id || '') };
+    const axis = declaration.states?.main || {};
+    const mergedAxis = mergeTransitionNodeStates({
+      values: axis.values || [],
+      transitions: declaration.transitions || [],
+      targets
+    });
+    const render = { ...(axis.render || {}) };
+    for (const target of targets) {
+      if (target.label || target.severity || target.icon) {
+        render[target.value] = {
+          ...(render[target.value] || {}),
+          ...(target.label ? { label: target.label } : {}),
+          ...(target.severity ? { severity: target.severity } : {}),
+          ...(target.icon ? { icon: target.icon } : {})
+        };
+      }
+    }
+    return {
+      declaration: {
+        ...declaration,
+        states: { ...declaration.states, main: { ...axis, ...mergedAxis, ...(Object.keys(render).length ? { render } : {}) } },
+        transitions: mergedAxis.transitions
+      },
+      processStamp: `${active?._id || ''}@${active?.updatedAt || ''}`
+    };
+  } catch {
+    return { declaration, processStamp: '' };
+  }
 }
 
 function staticDeclarationWorkflow(typeId) {
   return machineFromDeclaration(staticTypeDeclaration(typeId));
 }
 
-function machineFromDeclaration(declaration) {
+function machineFromDeclaration(declaration, processStamp = '') {
   if (!declaration) return null;
-  const cacheKey = `${declaration.id}@${declaration.organizationId || 'system'}|v${declaration.version || 1}`;
+  const cacheKey = `${declaration.id}@${declaration.organizationId || 'system'}|v${declaration.version || 1}${processStamp ? `|p${processStamp}` : ''}`;
   if (declarationMachineCache.has(cacheKey)) return declarationMachineCache.get(cacheKey);
   let machine = null;
   try {
