@@ -215,7 +215,9 @@
     "login": "Login / Sign Up",
     "admin": "Administration",
     "organization": "Organization",
-    "settings": "Settings"
+    "settings": "Settings",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar"
   },
   "status": {
     "status": "Status",

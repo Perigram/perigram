@@ -2,69 +2,85 @@
   <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
     <div class="hidden h-full min-h-0 flex-1 overflow-hidden md:flex" data-home-workspace>
       <aside
-        class="flex w-64 min-w-0 shrink-0 flex-col border-r border-chrome-border"
+        :class="['flex min-w-0 shrink-0 flex-col border-r border-chrome-border transition-[width] duration-200', sidebarCollapsed ? 'w-14' : 'w-64']"
         :aria-label="$t('nav.home')"
       >
-        <header class="flex h-12 shrink-0 items-center border-b border-chrome-border px-3">
-          <NuxtLink to="/" class="flex items-center no-underline">
-            <img src="/logo-light.svg" alt="Perigram" class="h-7 w-auto dark:hidden" />
-            <img src="/logo-dark.svg" alt="Perigram" class="hidden h-7 w-auto dark:block" />
+        <!-- Brand panel owns the wrap control: the wordmark shrinks to the
+             mark and the toggle flips with it. -->
+        <header
+          :class="['flex shrink-0 items-center border-b border-chrome-border', sidebarCollapsed ? 'flex-col gap-1 px-1.5 py-2' : 'h-12 justify-between px-3']"
+        >
+          <NuxtLink to="/" class="flex items-center no-underline" aria-label="Perigram">
+            <template v-if="!sidebarCollapsed">
+              <img src="/logo-light.svg" alt="Perigram" class="h-7 w-auto dark:hidden" />
+              <img src="/logo-dark.svg" alt="Perigram" class="hidden h-7 w-auto dark:block" />
+            </template>
+            <img v-else src="/icon.svg" alt="Perigram" class="h-7 w-7" />
           </NuxtLink>
+          <Button
+            :icon="sidebarCollapsed ? 'pi pi-chevron-right' : 'pi pi-chevron-left'"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="sidebarCollapsed ? $t('nav.expandSidebar') : $t('nav.collapseSidebar')"
+            @click="toggleSidebarCollapsed"
+          />
         </header>
 
+        <!-- Wrapped rail: one icon per top-level panel; the brand mark,
+             profile avatar, and this rail are the whole sidebar. -->
         <nav
-          class="relative z-50 flex shrink-0 flex-col border-b border-chrome-border p-2"
-          :aria-label="$t('support.chatTitle')"
+          v-if="sidebarCollapsed"
+          class="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto p-1.5"
+          :aria-label="$t('nav.home')"
         >
-          <!-- Layered above pane content: the TieredMenu flyout submenu is an
-               absolutely positioned child that must overlay the pane area. -->
-          <CommunicationMenu
-            @open-chats="openChatsPage"
-            @start-call="startCallFromConversation"
+          <Button
+            v-for="node in explorerNodes"
+            :key="node.key"
+            :icon="node.icon"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="node.label"
+            :title="node.label"
+            @click="openTypeScreen(node.data.screen)"
           />
-          <!-- Ongoing calls live directly in the sidebar as persistent rows;
-               only brand-new invites float (IncomingCalls). -->
-          <div v-if="callsStore.activeRooms.length" class="mt-2 flex flex-col gap-1" data-active-calls>
-            <small class="px-2 text-muted text-supporting">{{ $t('call.activeRooms') }}</small>
-            <Button
-              v-for="room in callsStore.activeRooms"
-              :key="room.room"
-              text
-              severity="secondary"
-              size="small"
-              class="w-full !justify-start !gap-2"
-              :aria-label="$t('call.join')"
-              @click="openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })"
-            >
-              <i :class="callRoomIcon(room.kind)" class="shrink-0 text-primary" aria-hidden="true" />
-              <span class="min-w-0 flex-1 truncate text-label">{{ activeRoomLabel(room) }}</span>
-              <span class="shrink-0 text-muted text-supporting">{{ room.participants }}</span>
-            </Button>
-          </div>
+          <Button
+            icon="pi pi-comments"
+            text
+            rounded
+            size="small"
+            severity="secondary"
+            :aria-label="$t('support.chatTitle')"
+            :title="$t('support.chatTitle')"
+            @click="openChatsPage"
+          />
         </nav>
 
-        <div class="min-h-0 flex-1 overflow-y-auto">
-          <Tree
-            v-model:selection-keys="selectionKeys"
+        <!-- Expanded navigation is a PanelMenu: chats/calls panel first,
+             then one panel per top-level explorer type. Item rows render
+             through the #item slot so entity rows keep the inline ref chip,
+             state icon, and hover actions; type rows use PanelMenu item
+             icons straight from the registry. -->
+        <div v-else class="min-h-0 flex-1 overflow-y-auto p-1.5">
+          <PanelMenu
             v-model:expanded-keys="expandedKeys"
-            :value="explorerNodes"
-            selection-mode="single"
+            :model="sidebarMenuModel"
+            class="w-full !border-none !bg-transparent"
             :aria-label="$t('nav.home')"
-            :pt="explorerTreePt"
-            @node-select="selectNode"
-            @node-expand="expandNode"
           >
-            <template #default="{ node }">
+            <template #item="{ item, active, hasSubmenu }">
               <span
-                v-if="node.data?.typeId"
+                v-if="item.data?.typeId"
                 class="group flex min-w-0 flex-1 items-center gap-2"
-                :data-home-type-id="node.data.typeId"
+                :data-home-type-id="item.data.typeId"
               >
-                <!-- The tree's own node icon renders node.icon (Aura
-                     default); a second icon here would duplicate it. -->
-                <span class="min-w-0 flex-1 truncate text-label">{{ node.label }}</span>
+                <i v-if="item.icon" :class="item.icon" class="shrink-0" aria-hidden="true" />
+                <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
                 <Button
-                  v-if="node.data.section && collectionActions(node.data.section.region).length"
+                  v-if="item.data.section && collectionActions(item.data.section.region).length"
                   icon="pi pi-ellipsis-v"
                   text
                   rounded
@@ -72,22 +88,27 @@
                   severity="secondary"
                   class="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                   :aria-label="$t('common.add')"
-                  @click.stop="toggleSectionActions($event, node)"
+                  @click.stop="toggleSectionActions($event, item)"
+                />
+                <i
+                  v-if="hasSubmenu"
+                  :class="['shrink-0 text-supporting text-muted', active ? 'pi pi-chevron-down' : 'pi pi-chevron-right']"
+                  aria-hidden="true"
                 />
               </span>
               <!-- Row hierarchy: entity rows read as muted until opened; the
                    row open in the active pane carries the normal text color,
                    and row action affordances reveal on hover. -->
               <span
-                v-else
+                v-else-if="item.data?.item"
                 class="group flex min-w-0 flex-1 items-center gap-1"
-                :class="!activeInstanceKeys.has(`${node.data?.item?.type}:${instanceId(node.data?.item?.entity)}`) ? 'text-muted' : ''"
-                :data-entity-id="instanceId(node.data?.item?.entity)"
+                :class="!activeInstanceKeys.has(`${item.data.item.type}:${instanceId(item.data.item.entity)}`) ? 'text-muted' : ''"
+                :data-entity-id="instanceId(item.data.item.entity)"
               >
-                <span class="flex min-w-0 flex-1 items-center">
+                <span class="flex min-w-0 flex-1">
                   <InstanceInlineRef
-                    :type="node.data.item.type"
-                    :entity="node.data.item.entity"
+                    :type="item.data.item.type"
+                    :entity="item.data.item.entity"
                     :fetch="false"
                     :fields="[]"
                     :interactive="false"
@@ -95,9 +116,9 @@
                   />
                 </span>
                 <InstanceState
-                  v-if="node.data?.item?.entity?.status"
-                  :entity="node.data.item.entity"
-                  :type-id="node.data.item.type"
+                  v-if="item.data.item.entity?.status"
+                  :entity="item.data.item.entity"
+                  :type-id="item.data.item.type"
                   variant="icon"
                   class="shrink-0"
                   @click.stop
@@ -105,7 +126,7 @@
                   @transitioned="$emit('refresh')"
                 />
                 <Button
-                  v-if="rowActions(node.data?.item).length"
+                  v-if="rowActions(item.data.item).length"
                   icon="pi pi-ellipsis-v"
                   text
                   rounded
@@ -113,22 +134,38 @@
                   severity="secondary"
                   class="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                   :aria-label="$t('common.more')"
-                  @click.stop="toggleChildActions($event, node)"
+                  @click.stop="toggleChildActions($event, item)"
+                />
+                <i
+                  v-if="hasSubmenu"
+                  :class="['shrink-0 text-supporting text-muted', active ? 'pi pi-chevron-down' : 'pi pi-chevron-right']"
+                  aria-hidden="true"
+                />
+              </span>
+              <span v-else class="flex min-w-0 flex-1 items-center gap-2">
+                <i v-if="item.icon" :class="item.icon" class="shrink-0" aria-hidden="true" />
+                <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
+                <small v-if="item.badgeText" class="shrink-0 text-supporting text-muted">{{ item.badgeText }}</small>
+                <i
+                  v-if="hasSubmenu"
+                  :class="['shrink-0 text-supporting text-muted', active ? 'pi pi-chevron-down' : 'pi pi-chevron-right']"
+                  aria-hidden="true"
                 />
               </span>
             </template>
-          </Tree>
+          </PanelMenu>
         </div>
 
-        <footer class="flex shrink-0 items-center border-t border-chrome-border p-2">
-          <UserAccountMenu class="min-w-0 flex-1">
+        <!-- Profile is its own bottom panel: the account trigger shows the
+             user's actual name in the unwrapped state, the avatar alone in
+             the wrapped rail. -->
+        <footer :class="['shrink-0 border-t border-chrome-border', sidebarCollapsed ? 'p-1.5' : 'p-2']">
+          <UserAccountMenu class="block">
             <template #trigger="{ toggle }">
-              <Button
+              <button
+                type="button"
                 data-testid="user-menu-trigger"
-                text
-                size="small"
-                severity="secondary"
-                class="w-full !justify-start !px-2"
+                :class="['flex w-full items-center rounded-ui border border-chrome-border bg-subtle text-left transition-colors hover:bg-content', sidebarCollapsed ? 'justify-center p-1' : 'gap-2 p-1.5']"
                 :aria-label="$t('nav.profile')"
                 @click="toggle"
               >
@@ -139,17 +176,19 @@
                   size="small"
                   class="shrink-0 bg-primary text-primary-contrast [&_.p-avatar-image]:h-full [&_.p-avatar-image]:w-full [&_.p-avatar-image]:object-cover"
                 />
-                <span class="m-0 min-w-0 flex-1 truncate text-left text-label">
-                  {{ authStore.userData.name || $t('common.user') }}
-                </span>
-                <i class="pi pi-chevron-up shrink-0" aria-hidden="true" />
-              </Button>
+                <template v-if="!sidebarCollapsed">
+                  <span class="m-0 min-w-0 flex-1 truncate text-label">
+                    {{ authStore.userData.name || $t('common.user') }}
+                  </span>
+                  <i class="pi pi-chevron-up shrink-0 text-muted" aria-hidden="true" />
+                </template>
+              </button>
             </template>
           </UserAccountMenu>
         </footer>
       </aside>
 
-      <div class="min-h-0 min-w-0 flex-1 overflow-hidden">
+      <div class="min-h-0 min-w-0 flex-1 overflow-hidden p-1.5">
         <WorkspaceSplitNode
           :node="paneTree"
           :active-pane-id="activePaneId"
@@ -212,12 +251,11 @@ import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
 import Menu from 'primevue/menu';
-import Tree from 'primevue/tree';
+import PanelMenu from 'primevue/panelmenu';
 import { useI18n } from 'vue-i18n';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import InstanceState from '~/components/shared/state/InstanceState.vue';
 import UserAccountMenu from '~/components/shared/UserAccountMenu.vue';
-import CommunicationMenu from '~/components/shared/CommunicationMenu.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import GeneratedActionButton from '~/components/generated/GeneratedActionButton.vue';
 import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/utils/instance-workspace-open.js';
@@ -279,7 +317,7 @@ const { t, te } = useI18n();
 const activePaneId = ref('pane-1');
 const paneSequence = ref(1);
 const paneTree = ref(createWorkspaceLeaf('pane-1'));
-const selectionKeys = ref({});
+const sidebarCollapsed = ref(false);
 const expandedKeys = ref({});
 const openedEntityRefs = ref([]);
 const openedPageRefs = ref([]);
@@ -296,18 +334,6 @@ const linkedChildrenByKey = ref(new Map());
 const loadedChildKeys = ref(new Set());
 let openedEntityLoadSequence = 0;
 let childLoadSequences = new Map();
-// Layout-only passthroughs: dense rows (matching the project workspace
-// Explorer), full-width hover/selection with the indent carried inside the
-// row content, and a label that owns the remaining width for end-aligned
-// row controls.
-const explorerTreePt = {
-  nodeChildren: { style: { paddingInlineStart: '0' } },
-  nodeContent: ({ props }) => ({
-    style: { paddingInlineStart: `${(Math.max(props.level || 1, 1) - 1) * 0.75}rem` }
-  }),
-  nodeLabel: { class: 'flex min-w-0 flex-1 items-center' }
-};
-
 provide('displayedEntityContexts', computed(() => []));
 
 const sections = computed(() => props.screen.regions
@@ -457,6 +483,83 @@ const visibleTypes = computed(() => {
   }
   return visible;
 });
+
+// The PanelMenu model is the explorer tree plus the communication panel:
+// type nodes become panels (their registry icon is PanelMenu's item icon),
+// entity nodes become rows carrying the workspace item for the #item slot.
+const sidebarMenuModel = computed(() => [
+  communicationPanelModel(),
+  ...explorerNodes.value.map(node => typePanelItem(node))
+]);
+
+function typePanelItem(node) {
+  return {
+    key: node.key,
+    label: node.label,
+    icon: node.icon,
+    data: node.data,
+    command: () => openTypeScreen(node.data.screen),
+    items: (node.children || []).map(child => (
+      child.data?.typeId ? typePanelItem(child) : entityPanelItem(child)
+    ))
+  };
+}
+
+function entityPanelItem(node) {
+  return {
+    key: node.key,
+    data: node.data,
+    command: () => openInstanceTab(node.data.item.type, instanceId(node.data.item.entity)),
+    items: node.children?.length ? node.children.map(entityPanelItem) : undefined
+  };
+}
+
+// Chats/calls panel: the header opens the chats tab (PanelMenu headers run
+// their command and toggle), children list joinable rooms as rows and the
+// Calls submenu rings conversations.
+function communicationPanelModel() {
+  const conversations = supportChatStore.conversations
+    .filter(conversation => conversation.conversationKind === 'direct' || conversation.conversationKind === 'group');
+  const callItems = conversations.length
+    ? conversations.map(conversation => ({
+      key: `call-invite:${conversation.conversationKey}`,
+      icon: conversation.conversationKind === 'group' ? 'pi pi-users' : 'pi pi-user',
+      label: conversationLabel(conversation),
+      command: () => startCallFromConversation(conversation)
+    }))
+    : [{ key: 'call-invite:none', label: t('support.noConversations'), disabled: true }];
+  return {
+    key: 'communication',
+    label: t('support.chatTitle'),
+    icon: 'pi pi-comments',
+    command: () => openChatsPage(),
+    children: [
+      ...activeRoomItems(),
+      { key: 'communication:calls', label: t('call.calls'), icon: 'pi pi-phone', items: callItems }
+    ]
+  };
+}
+
+// Ongoing rooms live as persistent rows inside the chats panel; only
+// brand-new invites float (IncomingCalls).
+function activeRoomItems() {
+  return callsStore.activeRooms.map(room => ({
+    key: `call-room:${room.room}`,
+    icon: callRoomIcon(room.kind),
+    label: activeRoomLabel(room),
+    badgeText: room.participants ? String(room.participants) : '',
+    command: () => openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })
+  }));
+}
+
+function conversationLabel(conversation = {}) {
+  if (conversation.conversationKind === 'group') {
+    return conversation.groupName || t('support.sectionGroups');
+  }
+  return conversation?.participant?.identity?.name
+    || conversation?.participant?.name
+    || t('common.user');
+}
 
 const explorerNodes = computed(() => {
   const childTypes = new Map();
@@ -611,12 +714,12 @@ watch(workspaceStorageKey, key => {
   openedEntityRefs.value = state.openedEntityRefs;
   openedPageRefs.value = state.openedPageRefs;
   openedScreenRefs.value = state.openedScreenRefs || [];
+  sidebarCollapsed.value = Boolean(state.sidebarCollapsed);
   hydratedStorageKey.value = key;
-  syncActiveSelection();
 }, { immediate: true });
 
 watch(
-  [paneTree, activePaneId, paneSequence, openedEntityRefs, openedPageRefs, openedScreenRefs],
+  [paneTree, activePaneId, paneSequence, openedEntityRefs, openedPageRefs, openedScreenRefs, sidebarCollapsed],
   () => {
     const key = workspaceStorageKey.value;
     if (!key || hydratedStorageKey.value !== key || typeof window === 'undefined') return;
@@ -626,7 +729,8 @@ watch(
       paneSequence: paneSequence.value,
       openedEntityRefs: openedEntityRefs.value,
       openedPageRefs: openedPageRefs.value,
-      openedScreenRefs: openedScreenRefs.value
+      openedScreenRefs: openedScreenRefs.value,
+      sidebarCollapsed: sidebarCollapsed.value
     });
   },
   { deep: true }
@@ -690,8 +794,6 @@ onBeforeUnmount(() => {
   window.removeEventListener(workspaceInstanceOpenEvent, openRequestedWorkspaceEntity);
   window.removeEventListener(workspaceChatOpenEvent, openRequestedWorkspaceChat);
 });
-
-watch([activePaneId, paneTree], syncActiveSelection);
 
 function activeRoomLabel(room = {}) {
   return callRoomLabel(room.room, supportChatStore.conversations, {
@@ -937,23 +1039,19 @@ function entityNode(item) {
   };
 }
 
-function selectNode(node) {
-  if (node.data?.typeId) {
-    openTypeScreen(node.data.screen);
-    return;
-  }
-  const item = node.data?.item;
-  if (!item) return;
-  // Sidebar rows open the instance's compiled detail screen as a tab in
-  // the active pane — the workspace owns screen surfaces; nothing
-  // navigates a separate route and no entity renderer mounts.
-  openInstanceTab(item.type, instanceId(item.entity));
+function toggleSidebarCollapsed() {
+  sidebarCollapsed.value = !sidebarCollapsed.value;
 }
 
-function expandNode(node) {
-  const item = node.data?.item;
-  if (item) loadChildrenFor(item);
-}
+// Expanding an entity panel lazy-loads its children, exactly like the old
+// tree's node-expand: containment and relation sources resolve on demand.
+watch(expandedKeys, (next, prev = {}) => {
+  for (const [key, expanded] of Object.entries(next)) {
+    if (!expanded || prev[key]) continue;
+    const item = workspaceEntityItems.value.find(candidate => candidate.key === key);
+    if (item) loadChildrenFor(item);
+  }
+});
 
 async function loadChildrenFor(parent) {
   if (!parent || loadedChildKeys.value.has(parent.key)) return;
@@ -1039,7 +1137,6 @@ function selectPaneTab(paneId, key, options = {}) {
     tabKeys: withPaneTab(pane, key, options)
   });
   activePaneId.value = paneId;
-  syncActiveSelection();
 }
 
 function openEmptyPaneTab(paneId) {
@@ -1065,7 +1162,6 @@ function closePaneTab(paneId, key) {
     callPageRefs.value = callPageRefs.value.filter(call => call.key !== key);
   }
   activePaneId.value = paneId;
-  syncActiveSelection();
 }
 
 function splitPane(paneId, orientation) {
@@ -1162,11 +1258,6 @@ function itemForPane(pane) {
 function tabItemsForPane(pane) {
   return (pane?.tabKeys || [])
     .map(key => workspaceItems.value.find(item => item.key === key) || emptyTabItem(key));
-}
-
-function syncActiveSelection() {
-  const key = activePane.value?.selectionKey || '';
-  selectionKeys.value = key ? { [key]: true } : {};
 }
 
 function workspacePageKey(pageId, entity) {

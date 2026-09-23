@@ -215,7 +215,9 @@
     "login": "Войти / Регистрация",
     "admin": "Администрирование",
     "organization": "Организация",
-    "settings": "Настройки"
+    "settings": "Настройки",
+    "collapseSidebar": "Свернуть панель",
+    "expandSidebar": "Развернуть панель"
   },
   "status": {
     "status": "Статус",
