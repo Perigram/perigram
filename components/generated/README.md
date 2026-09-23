@@ -234,43 +234,22 @@ Discord-style operational shell:
   mobile follow the routed surface contract: the compiled detail screen
   route.
 - The sidebar owns navigation for the whole shell as a PrimeVue
-  `PanelMenu`. The brand header is its own panel and carries the wrap
-  control: wrapped, the sidebar becomes an icon rail (brand mark, one icon
-  per top-level panel, chats, avatar) and the wordmark returns on expand;
-  the wrapped state persists with the workspace layout
-  (`sidebarCollapsed` in the home workspace state). The first panel is
-  communication: Chats (its header opens the chats workspace page and
-  expands) with joinable call rooms as persistent rows (icon, label,
-  participant count; clicking the row joins) sourced from the shared
-  `calls` store (`stores/calls.js`), which keeps the
-  `/api/livekit/active-rooms` snapshot fresh on `call.activity` events and
-  also drives the global `IncomingCalls` ring cards — only brand-new invites
-  float; ongoing calls stay in the sidebar and in chats — and a Calls
-  submenu listing direct/group conversations from the chats store (choosing
-  one rings the room through `/api/livekit/invite`).
-  Chats open as the registered entity-less `chats` workspace page (see
-  `workspace-pages.js`): a tab in the main pane area rendering `ChatSupport`
-  full-page with its built-in inbox rail — chats are not a floating surface
-  on this route and the desktop floating launcher is hidden. The full-page
-  chat splits into inbox rail
-  plus thread through a container query on its host wrapper at 44rem; the
-  row direction lives on the inner `.chat-page` node because a container
-  query cannot restyle its own container element.
-  Every call opens as
-  an ephemeral `call` workspace tab (`CallWorkspacePage.vue` — stage plus
-  the conversation chat rail) in the active pane, never a floating dialog;
-  the tab disappears when its `CallPanel` reports the call closed and is
-  never persisted with the pane layout. Room activity reaches the store
-  live through the LiveKit webhook fanout into `call.activity`
-  events (see
-  [server/features/livekit/README.md](../../server/features/livekit/README.md));
-  `livekit.dev.yaml` points the webhook at the compose-internal app
-  endpoint. `CallPanel` stays usable in small
-  panes: tiles keep a small minimum height, the speaker stage scrolls
-  instead of overflowing, and the wide side-strip arrangement
-  applies only from the panel's own 40rem container width. Entity-less page definitions marked
-  `ephemeral: true` are runtime-parameterized like this and never appear in
-  add-tab lists.
+  `PanelMenu`, header labels passthrough'd to line-height 1 so panel
+  headers match row heights. The brand header is its own panel and
+  carries the wrap control: wrapped, the sidebar becomes an icon rail
+  (brand mark, one icon per top-level panel, chats, avatar) and the
+  wordmark returns on expand; the wrapped state persists with the
+  workspace layout (`sidebarCollapsed` in the home workspace state). The
+  first panel is communication: its header opens the chats workspace
+  page and expands, and chats and calls live inside as flat sibling
+  rows — joinable call rooms (icon, label, participant count; clicking
+  the row joins) sourced from the shared `calls` store
+  (`stores/calls.js`), which keeps the `/api/livekit/active-rooms`
+  snapshot fresh on `call.activity` events and also drives the global
+  `IncomingCalls` ring cards — only brand-new invites float; ongoing
+  calls stay in the sidebar and in chats — plus every direct/group
+  conversation from the chats store as a row that rings the room through
+  `/api/livekit/invite` when chosen.
 - Entity navigation is a raw default `PanelMenu` — no item slot, default
   rows, `multiple` panels open — one panel per top-level type from the
   same TYPE hierarchy the render contracts declare: registry containment
@@ -279,8 +258,8 @@ Discord-style operational shell:
   labels only — the generated type key with a locale override over the
   authored render label, plus the registry's render-policy icon as the
   PanelMenu item icon; no entity contracts), and a type's home-section
-  instances hang beneath it as plain default rows labeled through the one
-  title resolver (`instanceLabelOf`). Clicking a type panel header opens
+  instances hang beneath it as plain default rows carrying the type’s
+  registry icon and the one title resolver label (`instanceLabelOf`).
   its compiled `typeList` screen as a pane tab (`GeneratedScreenPane`,
   below) and toggles the panel, never a separate route. The whole type
   hierarchy auto-expands on first sight; explicit collapses persist per
