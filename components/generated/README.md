@@ -271,48 +271,24 @@ Discord-style operational shell:
   applies only from the panel's own 40rem container width. Entity-less page definitions marked
   `ephemeral: true` are runtime-parameterized like this and never appear in
   add-tab lists.
-- Entity navigation is one `PanelMenu` panel per top-level type, built
-  from the same TYPE hierarchy the render contracts declare: registry
-  containment (declared children edges) nests types under their parents,
+- Entity navigation is a raw default `PanelMenu` — no item slot, default
+  rows, `multiple` panels open — one panel per top-level type from the
+  same TYPE hierarchy the render contracts declare: registry containment
+  (declared children edges) nests types under their parents,
   manifest-backed types plus their ancestors render as panels (procedural
   labels only — the generated type key with a locale override over the
   authored render label, plus the registry's render-policy icon as the
   PanelMenu item icon; no entity contracts), and a type's home-section
-  instances hang beneath it. Clicking a type panel header opens its
-  compiled `typeList` screen as a pane tab (`GeneratedScreenPane`, below)
-  and toggles the panel, never a separate route. Rows render through the
-  `#item` slot using the default PanelMenu row pattern from the PrimeVue
-  docs (v-ripple anchor, `text-primary group-hover:text-inherit` icon,
-  label, trailing `Badge`), extended only with the entity inline ref, the
-  icon-variant `InstanceState`, and the generated action ellipsis (the
-  `#item` slot replaces the built-in row, so the submenu chevron is
-  rendered in the row: collapsed points right, expanded down); the
-  sidebar paints no background — panels sit on the zero canvas with
-  their default hairline border as the panel box.
-- Entity rows are inline entity entries through the shared component:
-  `InstanceInlineRef variant="inline"` with `interactive: false` (non-expanding
-  inline card, no detail popup), followed by the icon-variant `InstanceState`
-  and the separate ellipsis control at the end of the row. There is no
-  selection state: the open-in-active-pane row carries the normal text
-  color. Entity rows carry no panel-level icon — the inline chip owns the
-  entity icon, and a row icon would duplicate it.
-- Generated mutation buttons follow the hierarchy and live behind one
-  ellipsis menu per row: section folders expose the region's compiled create
-  actions, and each entity row resolves the create actions of its entity
-  type's compiled detail-screen child collection regions
-  (`generatedDetailScreenForTypeId`) with the row entity bound as the
-  opened parent through `mergeCollectionActionContext`, plus the compiled
-  relation Link actions of the detail screen's main region, which execute
-  against the row entity itself. Action records are resolved from the
-  user's assignment manifest through the shared kind predicates in
-  `action-visibility.js`, which accept both manifest vocabularies (the
-  projected `createInstance`/`link` + `typeId` records and the legacy
-  exposure kinds); labels come from `utils/generated-labels.js`, which
-  resolves org-authored types by their authored render label through the
-  registry bundle before humanizing. The ellipsis opens a
-  popover of menu-item `GeneratedActionButton`s and only renders when the
-  row has actions. Nothing is hardcoded per entity type; a row without
-  compiled mutations shows no ellipsis.
+  instances hang beneath it as plain default rows labeled through the one
+  title resolver (`instanceLabelOf`). Clicking a type panel header opens
+  its compiled `typeList` screen as a pane tab (`GeneratedScreenPane`,
+  below) and toggles the panel, never a separate route. The whole type
+  hierarchy auto-expands on first sight; explicit collapses persist per
+  key. Type rows carry `home-type-<typeId>` ids for the E2E selectors.
+  The sidebar paints no background — panels sit on the zero canvas with
+  their default hairline border as the panel box. Sidebar row actions are
+  gone with the custom rows: mutations belong to the compiled detail
+  screens' own action surfaces.
 - The explorer shows the full hierarchy like the project page: entities nest
   beneath a loaded ancestor through the effective containment graph and
   canonical `lineage.*Id` references, and declared relation links participate
@@ -335,11 +311,6 @@ Discord-style operational shell:
    active pane carry the normal text color. The
    desktop sidebar does not link out to hub entity-list screens; the full
    hierarchy is navigable in place.
-- Sidebar row chrome: entity rows render muted until opened — only rows
-   whose instance is open in the active pane carry the normal text color — and the row
-   ellipsis action buttons (section create actions, entity row actions)
-   reveal on hover (`opacity-0 group-hover:opacity-100`, keyboard focus
-   included) instead of sitting permanently beside every row.
 - The sidebar footer is a separate bottom profile panel mounting the shared
   `UserAccountMenu`: a bordered trigger showing the user's actual name (and
   the avatar alone in the wrapped rail), so on this route the desktop top
