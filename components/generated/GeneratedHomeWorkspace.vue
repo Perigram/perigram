@@ -2,13 +2,13 @@
   <div class="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
     <div class="hidden h-full min-h-0 flex-1 overflow-hidden md:flex" data-home-workspace>
       <aside
-        :class="['flex min-w-0 shrink-0 flex-col border-r border-chrome-border transition-[width] duration-200', sidebarCollapsed ? 'w-14' : 'w-64']"
+        :class="['flex min-w-0 shrink-0 flex-col transition-[width] duration-200', sidebarCollapsed ? 'w-14' : 'w-64']"
         :aria-label="$t('nav.home')"
       >
         <!-- Brand panel owns the wrap control: the wordmark shrinks to the
              mark and the toggle flips with it. -->
         <header
-          :class="['flex shrink-0 items-center border-b border-chrome-border', sidebarCollapsed ? 'flex-col gap-1 px-1.5 py-2' : 'h-12 justify-between px-3']"
+          :class="['flex shrink-0 items-center', sidebarCollapsed ? 'flex-col gap-1 px-1.5 py-2' : 'h-12 justify-between px-3']"
         >
           <NuxtLink to="/" class="flex items-center no-underline" aria-label="Perigram">
             <template v-if="!sidebarCollapsed">
@@ -68,90 +68,66 @@
           <PanelMenu
             v-model:expanded-keys="expandedKeys"
             :model="sidebarMenuModel"
-            class="w-full !border-none !bg-transparent"
+            class="w-full"
             :aria-label="$t('nav.home')"
           >
-            <template #item="{ item, active, hasSubmenu }">
-              <span
-                v-if="item.data?.typeId"
-                class="group flex min-w-0 flex-1 items-center gap-2"
-                :data-home-type-id="item.data.typeId"
-              >
-                <i v-if="item.icon" :class="item.icon" class="shrink-0" aria-hidden="true" />
-                <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
-                <Button
-                  v-if="item.data.section && collectionActions(item.data.section.region).length"
-                  icon="pi pi-ellipsis-v"
-                  text
-                  rounded
-                  size="small"
-                  severity="secondary"
-                  class="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                  :aria-label="$t('common.add')"
-                  @click.stop="toggleSectionActions($event, item)"
-                />
-                <i
-                  v-if="hasSubmenu"
-                  :class="['shrink-0 text-supporting text-muted', active ? 'pi pi-chevron-down' : 'pi pi-chevron-right']"
-                  aria-hidden="true"
-                />
-              </span>
-              <!-- Row hierarchy: entity rows read as muted until opened; the
-                   row open in the active pane carries the normal text color,
-                   and row action affordances reveal on hover. -->
-              <span
-                v-else-if="item.data?.item"
-                class="group flex min-w-0 flex-1 items-center gap-1"
-                :class="!activeInstanceKeys.has(`${item.data.item.type}:${instanceId(item.data.item.entity)}`) ? 'text-muted' : ''"
-                :data-entity-id="instanceId(item.data.item.entity)"
-              >
-                <span class="flex min-w-0 flex-1">
+            <template #item="{ item }">
+              <a v-ripple class="flex items-center px-4 py-2 cursor-pointer group">
+                <span v-if="item.icon" :class="[item.icon, 'text-primary group-hover:text-inherit']" />
+                <span
+                  v-if="item.typeId"
+                  :data-home-type-id="item.typeId"
+                  :class="['ml-2 min-w-0 flex-1 truncate', { 'text-label': item.items }]"
+                >{{ item.label }}</span>
+                <span
+                  v-else-if="item.workspaceItem"
+                  class="ml-2 flex min-w-0 flex-1"
+                  :data-entity-id="instanceId(item.workspaceItem.entity)"
+                >
                   <InstanceInlineRef
-                    :type="item.data.item.type"
-                    :entity="item.data.item.entity"
+                    :type="item.workspaceItem.type"
+                    :entity="item.workspaceItem.entity"
                     :fetch="false"
                     :fields="[]"
                     :interactive="false"
                     variant="inline"
                   />
                 </span>
+                <span v-else :class="['ml-2 min-w-0 flex-1 truncate', { 'text-label': item.items }]">{{ item.label }}</span>
                 <InstanceState
-                  v-if="item.data.item.entity?.status"
-                  :entity="item.data.item.entity"
-                  :type-id="item.data.item.type"
+                  v-if="item.workspaceItem?.entity?.status"
+                  :entity="item.workspaceItem.entity"
+                  :type-id="item.workspaceItem.type"
                   variant="icon"
                   class="shrink-0"
                   @click.stop
                   @refresh="$emit('refresh')"
                   @transitioned="$emit('refresh')"
                 />
+                <Badge v-if="item.badge" class="ml-auto shrink-0" :value="item.badge" />
                 <Button
-                  v-if="rowActions(item.data.item).length"
+                  v-if="item.typeId && item.section && collectionActions(item.section.region).length"
                   icon="pi pi-ellipsis-v"
                   text
                   rounded
                   size="small"
                   severity="secondary"
-                  class="shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                  class="ml-auto shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                  :aria-label="$t('common.add')"
+                  @click.stop="toggleSectionActions($event, item)"
+                />
+                <Button
+                  v-else-if="item.workspaceItem && rowActions(item.workspaceItem).length"
+                  icon="pi pi-ellipsis-v"
+                  text
+                  rounded
+                  size="small"
+                  severity="secondary"
+                  class="ml-auto shrink-0 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                   :aria-label="$t('common.more')"
                   @click.stop="toggleChildActions($event, item)"
                 />
-                <i
-                  v-if="hasSubmenu"
-                  :class="['shrink-0 text-supporting text-muted', active ? 'pi pi-chevron-down' : 'pi pi-chevron-right']"
-                  aria-hidden="true"
-                />
-              </span>
-              <span v-else class="flex min-w-0 flex-1 items-center gap-2">
-                <i v-if="item.icon" :class="item.icon" class="shrink-0" aria-hidden="true" />
-                <span class="min-w-0 flex-1 truncate">{{ item.label }}</span>
-                <small v-if="item.badgeText" class="shrink-0 text-supporting text-muted">{{ item.badgeText }}</small>
-                <i
-                  v-if="hasSubmenu"
-                  :class="['shrink-0 text-supporting text-muted', active ? 'pi pi-chevron-down' : 'pi pi-chevron-right']"
-                  aria-hidden="true"
-                />
-              </span>
+              </a>
             </template>
           </PanelMenu>
         </div>
@@ -159,7 +135,7 @@
         <!-- Profile is its own bottom panel: the account trigger shows the
              user's actual name in the unwrapped state, the avatar alone in
              the wrapped rail. -->
-        <footer :class="['shrink-0 border-t border-chrome-border', sidebarCollapsed ? 'p-1.5' : 'p-2']">
+        <footer :class="['shrink-0', sidebarCollapsed ? 'p-1.5' : 'p-2']">
           <UserAccountMenu class="block">
             <template #trigger="{ toggle }">
               <button
@@ -252,6 +228,7 @@ import Button from 'primevue/button';
 import Avatar from 'primevue/avatar';
 import Menu from 'primevue/menu';
 import PanelMenu from 'primevue/panelmenu';
+import Badge from 'primevue/badge';
 import { useI18n } from 'vue-i18n';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import InstanceState from '~/components/shared/state/InstanceState.vue';
@@ -497,7 +474,8 @@ function typePanelItem(node) {
     key: node.key,
     label: node.label,
     icon: node.icon,
-    data: node.data,
+    typeId: node.data.typeId,
+    section: node.data.section,
     command: () => openTypeScreen(node.data.screen),
     items: (node.children || []).map(child => (
       child.data?.typeId ? typePanelItem(child) : entityPanelItem(child)
@@ -508,7 +486,8 @@ function typePanelItem(node) {
 function entityPanelItem(node) {
   return {
     key: node.key,
-    data: node.data,
+    label: instanceLabelOf(node.data.item.type, instanceId(node.data.item.entity)),
+    workspaceItem: node.data.item,
     command: () => openInstanceTab(node.data.item.type, instanceId(node.data.item.entity)),
     items: node.children?.length ? node.children.map(entityPanelItem) : undefined
   };
@@ -547,7 +526,7 @@ function activeRoomItems() {
     key: `call-room:${room.room}`,
     icon: callRoomIcon(room.kind),
     label: activeRoomLabel(room),
-    badgeText: room.participants ? String(room.participants) : '',
+    badge: room.participants ? String(room.participants) : undefined,
     command: () => openCallTab(room.room, { conversationKey: conversationKeyForRoom(room.room) })
   }));
 }
@@ -879,18 +858,18 @@ function openChatsPage() {
   if (activePane.value) selectPaneTab(activePane.value.id, 'page:chats');
 }
 
-function toggleSectionActions(event, node) {
-  const section = node.data?.section;
+function toggleSectionActions(event, item) {
+  const section = item?.section;
   if (!section) return;
   rowActionEntries.value = collectionActions(section.region)
     .map(action => ({ action, context: actionContext(section) }));
   actionsMenu.value?.toggle(event);
 }
 
-function toggleChildActions(event, node) {
-  const item = node.data?.item;
-  if (!item) return;
-  rowActionEntries.value = rowActions(item);
+function toggleChildActions(event, item) {
+  const workspaceItem = item?.workspaceItem;
+  if (!workspaceItem) return;
+  rowActionEntries.value = rowActions(workspaceItem);
   actionsMenu.value?.toggle(event);
 }
 

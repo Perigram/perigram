@@ -417,7 +417,33 @@ export const primeSemanticTokens = {
 // row reads through spacing, not a hairline. View/table header slots
 // (the generated search and sort strips) drop the theme's side padding
 // so they align with the content inside already-padded surfaces.
+// Workspace surfaces ride the zero canvas: Panels and PanelMenu panels
+// paint no background and no border (structure reads through spacing and
+// gaps), and Splitter gutters are invisible — draggable, never drawn.
 export const primeComponentTokens = {
+    panel: {
+        root: {
+            background: 'transparent',
+            borderColor: 'transparent'
+        }
+    },
+    panelmenu: {
+        panel: {
+            background: 'transparent',
+            borderWidth: '0',
+            first: {
+                borderWidth: '0'
+            },
+            last: {
+                borderWidth: '0'
+            }
+        }
+    },
+    splitter: {
+        gutter: {
+            background: 'transparent'
+        }
+    },
     card: {
         root: {
             shadow: 'none'
