@@ -155,6 +155,12 @@ function patch(changes) {
 
 function setBase(base) {
   const next = { base };
+  // The SPEC §4 naming facet (label / display / control / the closed
+  // identifier / depiction flags) describes the field, not its base:
+  // switching the base must not drop authored display tokens.
+  for (const key of ['label', 'display', 'control', 'identifier', 'depiction']) {
+    if (props.modelValue[key] !== undefined) next[key] = props.modelValue[key];
+  }
   if (props.modelValue.nullable === true) next.nullable = true;
   if (base === 'quantity') next.unit = props.modelValue.unit || units[0];
   if (base === 'ref') next.accepts = props.modelValue.accepts?.length ? props.modelValue.accepts : [];

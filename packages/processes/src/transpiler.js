@@ -120,6 +120,10 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
       ...(kind === 'class' ? {
         class: data.class || 'file',
         name: data.name || '',
+        // Authored glyph normalizes like the binding: a non-empty string
+        // or null on both halves of the round trip (absent means the
+        // class default table derives one).
+        glyph: data.glyph || null,
         idCustom: data.idCustom === true,
         payload: data.payload || null,
         operators: Array.isArray(data.operators) ? data.operators : []
@@ -239,6 +243,7 @@ function projectDeclarationRecords(records = {}, x) {
         ...(record.kind === 'class' ? {
           typeId: record.typeId || null,
           name: record.name || '',
+          glyph: record.glyph || null,
           idCustom: record.idCustom === true,
           class: record.class || 'file',
           payload: record.payload || null,

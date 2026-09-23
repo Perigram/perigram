@@ -35,6 +35,7 @@ export {
   classLifecycleOf,
   PROCESS_DESIGNER_PALETTE_GROUPS,
   DECLARATION_NODE_TYPES,
+  applyFieldDisplayRole,
   compileTreeDeclarations,
   declarationNodePorts,
   interpretDeclarationEdges,

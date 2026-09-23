@@ -188,6 +188,7 @@
                   :type-anchor-options="typeAnchorOptions"
                   @sync="syncNodeData"
                   @update-name="value => updateClassName(selectedNode, value)"
+                  @update-display-role="({ flag, value }) => setFieldDisplayRole(selectedNode, flag, value)"
                 />
 
                 <ProcessNodeInspector
@@ -578,6 +579,7 @@ import StateBlock from '~/components/shared/StateBlock.vue';
 import PermissionEditor from '~/components/PermissionEditor.vue';
 import { projectUiAction } from '~/packages/processes/src/ui-contract-projection.js';
 import {
+  applyFieldDisplayRole,
   canvasToDefinition,
   compileProcessDefinition,
   compileTreeDeclarations,
@@ -1580,6 +1582,15 @@ function updateClassName(node, name) {
   syncNodeData();
 }
 
+// Single-holder display roles (SPEC §4): the inspector emits the toggle,
+// the tree enforces exactly-one identifier / at-most-one depiction among
+// the sibling field nodes of the declared type.
+function setFieldDisplayRole(node, flag, enabled) {
+  if (!node || node.type !== 'ctsField') return;
+  applyFieldDisplayRole(nodes.value, node.id, flag, enabled);
+  syncNodeData();
+}
+
 function renameDeclarationNode(props, value) {
   const node = nodes.value.find(candidate => candidate.id === props.id);
   if (!node) return;
@@ -1917,6 +1928,7 @@ function syncDeclarationRecord(record = {}, node = {}) {
   if (node.type === 'ctsClass') {
     record.typeId = node.data.typeId || '';
     record.name = node.data.name || '';
+    record.glyph = node.data.glyph || null;
     record.class = node.data.class || 'file';
     record.payload = node.data.payload || null;
     record.operators = Array.isArray(node.data.operators) ? node.data.operators : [];
