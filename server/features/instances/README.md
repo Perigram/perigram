@@ -69,6 +69,20 @@ hand-written services.
   save fills the payload). Wire patches map to §3 writes; wire
   `lineage.organizationId` is ignored on update (tenancy is immutable
   after construct).
+- List filters (the compiled screen-source transport contract, the same
+  vocabulary the feature routes speak — cassettes' `libraryId`):
+  `list`/`processList` accept a flat scalar filter map and apply it
+  server-side. A bare key applies as `lineage.<key>` iff some parent's
+  declared children edge stamps that lineage key for the listed type
+  (the derivation walks the same view the derived indexes walk: static
+  pack declarations plus the organization's stored declarations, cached
+  per organization beside the declaration cache and invalidated with it);
+  ObjectId-shaped lineage values match both stored id forms. `primaryState`
+  and comma-separated `primaryStates` filter `states.main`, and `_id`
+  resolves reference lookups. Undeclared keys are transport noise — never
+  a Mongo path — and `limit`/`skip` stay transport parameters. This is
+  what scopes an org-authored parent detail's child collection to the
+  opened parent.
 - Payload replacement (`replacePayload`, the editor concern SPEC §3
   names): multipart file in, validated against the declared payload
   traits through the same construct-time checks, stored in the `files`

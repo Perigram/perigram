@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { ObjectId } from 'mongodb';
 
 vi.mock('~/server/db/mongo', () => ({ connectDB: vi.fn() }));
 vi.mock('../files/service.js', () => ({
@@ -19,7 +20,13 @@ vi.mock('../cts-types/repository.js', () => ({
         ? { id: 'gallery', class: 'file', version: 1, payload: { mime: ['image/*'], maxSize: 1024 }, fields: { name: { base: 'string' } } }
         : null
   )),
-  listByOrganization: vi.fn(async () => [])
+  // org-1 declares the panel-under-bin hierarchy (SPEC §6 children edge,
+  // no authored lineageKey -> stamped 'binId' at edge normalize)
+  listByOrganization: vi.fn(async (organizationId) => (
+    organizationId === 'org-1'
+      ? [{ id: 'bin', class: 'group', version: 1, fields: { name: { base: 'string' } }, edges: { children: { panels: { types: ['panel'], onRemove: 'restrict' } } } }]
+      : []
+  ))
 }));
 
 import { instanceServiceResolver } from './service.js';
@@ -219,6 +226,77 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(stored.organizationId).toBe('org-1');
     expect(stored.lineage).toEqual({ projectId: 'p-1' });
     expect(dto.lineage).toEqual({ projectId: 'p-1', organizationId: 'org-1' });
+  });
+});
+
+describe('generic instance list filters (compiled screen source contract)', () => {
+  // The compiled child-region source speaks the bare lineageKey convention
+  // (`binId: '$screen.scope.instanceId'` resolved to the parent id): the
+  // generic transport must scope the read by the declared edge's storage
+  // path, exactly like the feature routes (cassettes' libraryId).
+  it('scopes list reads by declared children-edge lineage keys', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('panel');
+
+    await service.list({ binId: 'bin-1' }, 'user-1', 'org-1');
+
+    const filter = coll.find.mock.calls[0][0];
+    expect(filter.type).toBe('panel');
+    expect(filter['lineage.binId']).toBe('bin-1');
+  });
+
+  it('matches both stored id forms for ObjectId-shaped lineage values', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('panel');
+    const objectId = '507f1f77bcf86cd799439011';
+
+    await service.list({ binId: objectId }, 'user-1', 'org-1');
+
+    const match = coll.find.mock.calls[0][0]['lineage.binId'];
+    expect(match.$in.map(String)).toEqual([objectId, objectId]);
+  });
+
+  it('admits declared lineage keys from org declarations for org-served types', async () => {
+    const coll = stubCollection();
+    // org-2 declares nothing: a key org-1 declared must not leak scope
+    // into another organization's reads (the derivation is per-org).
+    const service = instanceServiceResolver('panel');
+
+    await service.list({ binId: 'bin-1' }, 'user-1', 'org-2');
+
+    expect(coll.find.mock.calls[0][0]['lineage.binId']).toBeUndefined();
+  });
+
+  it('applies primary status windows the compiled sources emit', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('panel');
+
+    await service.list({ primaryState: 'available' }, 'user-1', 'org-1');
+    expect(coll.find.mock.calls[0][0]['states.main']).toBe('available');
+
+    await service.list({ primaryStates: 'available,installed' }, 'user-1', 'org-1');
+    expect(coll.find.mock.calls[1][0]['states.main']).toEqual({ $in: ['available', 'installed'] });
+  });
+
+  it('resolves _id reference lookups server-side', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('panel');
+
+    await service.list({ _id: '507f1f77bcf86cd799439011' }, 'user-1', 'org-1');
+
+    expect(coll.find.mock.calls[0][0]._id).toEqual(new ObjectId('507f1f77bcf86cd799439011'));
+  });
+
+  it('ignores filter keys the type never declared', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('panel');
+
+    await service.list({ binId: 'bin-1', mysteryId: 'nope' }, 'user-1', 'org-1');
+
+    const filter = coll.find.mock.calls[0][0];
+    expect(filter.mysteryId).toBeUndefined();
+    expect(filter['lineage.mysteryId']).toBeUndefined();
+    expect(filter['lineage.binId']).toBe('bin-1');
   });
 });
 

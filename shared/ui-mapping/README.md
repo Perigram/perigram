@@ -310,7 +310,14 @@ It resolves
 sources (`mode: 'single'` by `scope.instanceId` with first-instance
 fallback; `mode: 'list'` unscoped, or scoped by
 `relation: { sourceId, key }` / `lineage: { sourceId, key }` against the
-origin source's instance), maps
+origin source's instance, or scoped by the compiler-emitted flat
+`filters` map — the inferred child-region shape — whose `$screen.*`
+placeholders resolve against the screen scope: a bare filter key is a
+declared lineage key (children edges, SPEC §6 of the CTS spec) matched
+against the pool instance's lineage ref id, and
+`primaryState`/`primaryStates` match the status window on
+`states.main`; unresolved placeholder values skip the filter, mirroring
+the server transport), maps
 regions to surface kinds (detail main regions at `full`, nested detail at
 `detail`, list rows at `row`), attaches resolved surface policy, resolved
 action records, the per-region `dataState` (see Data states), the

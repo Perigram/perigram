@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterRootSourceItems, shouldRenderHomeSection } from './generated-screen-source.js';
+import { entityMatchesFilters, filterRootSourceItems, shouldRenderHomeSection } from './generated-screen-source.js';
 
 describe('generated screen root sources', () => {
   const bindings = (...rows) => rows.map(([parentTypeId, childTypeId, lineageKey]) => ({
@@ -112,5 +112,43 @@ describe('generated screen root sources', () => {
         leaves: { source: { typeId: 'synthetic_leaf', mode: 'list' }, items: [child] }
       }
     )).toEqual([]);
+  });
+});
+
+describe('entityMatchesFilters (wire reconciliation of source filters)', () => {
+  // The compiled parent-detail child region carries a list source filtered
+  // by the declared lineage key against the screen scope. Wire DTOs store
+  // that ref at lineage.<key>; a bare filter key must read through the
+  // lineage block so created children reconcile into the open region.
+  it('matches a child whose declared lineage key points at the opened parent', () => {
+    expect(entityMatchesFilters(
+      { _id: 'panel-1', type: 'panel', lineage: { binId: 'bin-1' } },
+      { binId: 'bin-1' }
+    )).toBe(true);
+  });
+
+  it('rejects a child of another parent and a parentless child', () => {
+    expect(entityMatchesFilters(
+      { _id: 'panel-2', type: 'panel', lineage: { binId: 'bin-2' } },
+      { binId: 'bin-1' }
+    )).toBe(false);
+    expect(entityMatchesFilters({ _id: 'panel-3', type: 'panel', lineage: {} }, { binId: 'bin-1' })).toBe(false);
+  });
+
+  it('still honors dotted filter paths over the wire DTO', () => {
+    expect(entityMatchesFilters({ lineage: { binId: 'bin-1' } }, { 'lineage.binId': 'bin-1' })).toBe(true);
+    expect(entityMatchesFilters({ lineage: { binId: 'bin-2' } }, { 'lineage.binId': 'bin-1' })).toBe(false);
+  });
+
+  it('keeps status window filters on states.main', () => {
+    expect(entityMatchesFilters(
+      { states: { main: 'installed' }, lineage: { binId: 'bin-1' } },
+      { primaryStates: 'available,installed', binId: 'bin-1' }
+    )).toBe(true);
+    expect(entityMatchesFilters(
+      { states: { main: 'gone' }, lineage: { binId: 'bin-1' } },
+      { primaryStates: 'available,installed', binId: 'bin-1' }
+    )).toBe(false);
+    expect(entityMatchesFilters({ states: { main: 'available' } }, { primaryState: 'available' })).toBe(true);
   });
 });
