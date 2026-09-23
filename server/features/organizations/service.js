@@ -15,7 +15,13 @@ import { ownerMembership } from '../users/organization-owner.js';
  */
 
 export async function create(data, userId, userOrg, userRole, userPermissions) {
-  if (!hasPermission({ permissions: userPermissions.effectivePermissions || userPermissions.permissions }, 'organizations', 'write')) {
+  // Bootstrap grant: an account without any organization creates its first
+  // one here (registration no longer creates organizations); the created
+  // owner membership is what unlocks tenant permissions afterwards.
+  const memberships = userPermissions?.memberships || [];
+  const isBootstrap = !userOrg && !memberships.length;
+  const permissions = userPermissions?.effectivePermissions || userPermissions?.permissions || {};
+  if (!isBootstrap && !hasPermission({ permissions }, 'organizations', 'write')) {
     throw createError({ statusCode: 403, message: 'Permission denied' });
   }
   
