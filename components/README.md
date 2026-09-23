@@ -39,8 +39,7 @@
   related entity, transition, or custom path), then an entity type when the
   subject is related, then a trait, an operator, and a value. Entity traits must
   come from the real domain contracts: exact `id`, workflow `status` from
-  `cncWorkflows`, and property paths from the residual
-  `cncInstanceFieldGroups` map or `cncEntityFieldAccess`. Do not expose storage terms like
+  `cncWorkflows`, and property paths from `cncEntityFieldAccess`. Do not expose storage terms like
   `lineage.organization` as user-facing targets; related entity types come from
   the domain frontend entity registry but must be constrained to valid lineage
   ancestors for the selected feature entity. Do not offer descendant filters
@@ -82,7 +81,7 @@ All entity-related components MUST use these patterns:
 
 | Concern | Pattern |
 |---|---|
-| Identity display (default: name/slug) | `instanceIdentityLabel(entity, { typeLabel, unnamedLabel })` from `utils/instance-display-contract.js` — the compiled identity policy — rendered inline as title/chip markup |
+| Identity display (default: declared identifier field) | `titleFor(dtoToScreenInstance(entity, typeRecord), typeRecord, { unnamedLabel: t('common.unnamed') })` from `shared/ui-mapping` — the one title resolver — rendered inline as title/chip markup |
 | Status display + transitions/actions | `<InstanceState :entity="..." type-id="..." :actions="..." />` |
 | Read-only status display | `<StatusBadge :entity="..." />` |
 | Current lifecycle location | `status.lifecycle.data.location` rendered by `<InstanceState>` |
