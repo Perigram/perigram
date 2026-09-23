@@ -284,9 +284,11 @@ Discord-style operational shell:
   `#item` slot using the default PanelMenu row pattern from the PrimeVue
   docs (v-ripple anchor, `text-primary group-hover:text-inherit` icon,
   label, trailing `Badge`), extended only with the entity inline ref, the
-  icon-variant `InstanceState`, and the generated action ellipsis; the
-  sidebar and its panels paint no background or border — they sit on the
-  zero canvas like the rest of the shell.
+  icon-variant `InstanceState`, and the generated action ellipsis (the
+  `#item` slot replaces the built-in row, so the submenu chevron is
+  rendered in the row: collapsed points right, expanded down); the
+  sidebar paints no background — panels sit on the zero canvas with
+  their default hairline border as the panel box.
 - Entity rows are inline entity entries through the shared component:
   `InstanceInlineRef variant="inline"` with `interactive: false` (non-expanding
   inline card, no detail popup), followed by the icon-variant `InstanceState`
