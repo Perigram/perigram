@@ -69,15 +69,20 @@ export async function getHistoryByTarget(typeId, instanceId) {
 
 async function enrichHistoryActors(history) {
   const actorIds = [...new Set(history
-    .map(event => event.status?.userId)
+    .map(event => event.actor?.id || event.status?.userId)
     .filter(userId => userId && userId !== 'SYSTEM'))];
 
   const users = await usersRepository.findByIds(actorIds);
   const usersById = new Map(users.map(user => [user._id?.toString(), user]));
 
   return history.map(event => {
-    const userId = event.status?.userId;
-    const actor = resolveActor(userId, usersById.get(userId?.toString()));
+    const persistedActor = event.actor && typeof event.actor === 'object' && event.actor.id
+      ? event.actor
+      : null;
+    const userId = persistedActor?.id || event.status?.userId;
+    const actor = persistedActor
+      ? { ...resolveActor(userId, usersById.get(userId?.toString()), persistedActor.label), ...persistedActor }
+      : resolveActor(userId, usersById.get(userId?.toString()));
     return {
       ...event,
       actor
@@ -85,7 +90,7 @@ async function enrichHistoryActors(history) {
   });
 }
 
-function resolveActor(userId, user) {
+function resolveActor(userId, user, stampLabel = null) {
   if (!userId) return null;
   if (userId === 'SYSTEM') {
     return { userId, type: 'system', name: 'System' };
@@ -93,7 +98,7 @@ function resolveActor(userId, user) {
   return {
     userId,
     type: 'user',
-    name: user?.identity?.name || userId
+    name: stampLabel || user?.identity?.name || userId
   };
 }
 

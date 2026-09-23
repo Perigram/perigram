@@ -63,4 +63,50 @@ describe('statuses service history', () => {
     });
     expect(history[0].actor).not.toHaveProperty('email');
   });
+
+  it('merges the persisted stamp actor under the display actor projection', async () => {
+    await db.collection('users').insertOne({
+      _id: 'user-operator',
+      identity: { uid: 'user-operator', name: 'Operator One' },
+      data: { email: 'operator@example.com' }
+    });
+    await db.collection('status_events').insertOne({
+      _id: 'event-2',
+      targetId: 'queue-2',
+      targetType: 'queue',
+      fromState: 'DRAFT',
+      toState: 'READY',
+      actor: { id: 'user-operator', label: 'Stamp Label', principalType: 'user' },
+      operation: { kind: 'intent', intent: 'completeNestingProduction', region: 'main' },
+      evidence: {
+        description: 'Completed',
+        attachments: {},
+        lifecycle: { actors: [], attachments: {}, data: {} }
+      },
+      status: {
+        state: 'READY',
+        userId: 'user-operator',
+        timestamp: new Date('2026-06-16T09:00:00.000Z'),
+        metadata: { note: 'Completed' }
+      },
+      timestamp: new Date('2026-06-16T09:00:00.000Z')
+    });
+
+    const history = await stateService.getHistoryByTarget('queue', 'queue-2');
+
+    expect(history).toHaveLength(1);
+    expect(history[0].actor).toMatchObject({
+      userId: 'user-operator',
+      type: 'user',
+      name: 'Stamp Label',
+      id: 'user-operator',
+      label: 'Stamp Label',
+      principalType: 'user'
+    });
+    expect(history[0].operation).toEqual({
+      kind: 'intent',
+      intent: 'completeNestingProduction',
+      region: 'main'
+    });
+  });
 });

@@ -427,6 +427,154 @@ describe('status service lifecycle payloads', () => {
     expect(run.status.state.primary).toBe('COMPLETE');
   });
 
+  it('records actor, operation, and evidence first-class on transition events', async () => {
+    const id = new ObjectId();
+    await db.collection('items').insertOne({
+      _id: id,
+      type: 'e2e-note',
+      typeVersion: 1,
+      organizationId: 'org-1',
+      name: 'Note',
+      fields: { name: 'Note' },
+      states: { main: 'new' },
+      lineage: { organizationId: 'org-1' }
+    });
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'new',
+          states: {
+            new: { canUpdateMeta: true },
+            active: {
+              canUpdateLifecycle: true,
+              lifecycle: {
+                data: true,
+                attachments: { proof: { kind: 'mounting-proof' } }
+              }
+            }
+          },
+          transitions: [{ from: 'new', to: 'active', intent: 'activate' }]
+        }
+      }
+    });
+
+    await statusService.transition('e2e-note', id.toString(), 'active', 'operator-1', {
+      userId: 'operator-1',
+      name: 'Operator One',
+      memberships: [{ organizationId: 'org-1', permissions: {} }]
+    }, {
+      metadata: { note: 'Activated with proof' },
+      lifecycle: {
+        attachments: { proof: { fileId: 'proof-file', bucketName: 'uploads' } },
+        data: { measuredWidth: 1200 }
+      }
+    });
+
+    const event = await db.collection('status_events').findOne({ targetId: id });
+    expect(event.actor).toEqual({ id: 'operator-1', label: 'Operator One', principalType: 'user' });
+    expect(event.operation).toEqual({ kind: 'transition', intent: 'activate', region: 'main' });
+    expect(event.evidence.description).toBe('Activated with proof');
+    expect(event.evidence.attachments.proof).toMatchObject({
+      fileId: 'proof-file',
+      bucketName: 'uploads',
+      attachmentKey: expect.stringMatching(/^status_proof_/)
+    });
+    expect(event.evidence.lifecycle.data.measuredWidth).toBe(1200);
+    expect(event).not.toHaveProperty('source');
+
+    expect(event.fromState).toBe('new');
+    expect(event.toState).toBe('active');
+    expect(event.region).toBe('main');
+    expect(event.status.userId).toBe('operator-1');
+    expect(event.status.metadata.note).toBe('Activated with proof');
+    expect(event.status.lifecycle.attachments.proof.fileId).toBe('proof-file');
+
+    const entity = await db.collection('items').findOne({ _id: id });
+    expect(entity.states.main).toBe('active');
+    expect(entity).not.toHaveProperty('status');
+  });
+
+  it('records intent operations and the system actor on intent events', async () => {
+    const id = new ObjectId();
+    await db.collection('items').insertOne({
+      _id: id,
+      type: 'e2e-note',
+      typeVersion: 1,
+      organizationId: 'org-1',
+      name: 'Note',
+      fields: { name: 'Note' },
+      states: { main: 'new' },
+      lineage: { organizationId: 'org-1' }
+    });
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue({
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'new',
+          states: { new: {}, active: {} },
+          transitions: [{ from: 'new', to: 'active', intent: 'activate' }]
+        }
+      }
+    });
+
+    await statusService.applyIntent('e2e-note', id.toString(), 'activate', { userId: 'SYSTEM', role: 'SYSTEM', system: true }, {
+      note: 'System activated'
+    });
+
+    const event = await db.collection('status_events').findOne({ targetId: id });
+    expect(event.actor).toEqual({ id: 'SYSTEM', principalType: 'SYSTEM' });
+    expect(event.operation).toEqual({ kind: 'intent', intent: 'activate', region: 'main' });
+    expect(event.evidence.description).toBe('System activated');
+    expect(event.evidence.lifecycle).toEqual({ actors: [], attachments: {}, data: {} });
+    expect(event.toState).toBe('active');
+  });
+
+  it('records actor, initialize operation, and source on initial-state events', async () => {
+    const id = new ObjectId();
+    await db.collection('items').insertOne({
+      _id: id,
+      type: 'e2e-note',
+      typeVersion: 1,
+      organizationId: 'org-1',
+      name: 'Note',
+      fields: { name: 'Note' },
+      states: { main: 'new' },
+      lineage: { organizationId: 'org-1' }
+    });
+    const machine = {
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'new',
+          states: { new: {}, active: {} },
+          transitions: [{ from: 'new', to: 'active' }]
+        }
+      }
+    };
+    vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow').mockResolvedValue(machine);
+
+    await statusService.setInitialStateForOrganization('e2e-note', id.toString(), 'new', 'org-1', { userId: 'admin-1', name: 'Admin One' }, {
+      note: 'Seeded by process',
+      source: { kind: 'process-run', actionId: 'create_a' }
+    });
+
+    const event = await db.collection('status_events').findOne({ targetId: id });
+    expect(event.fromState).toBeNull();
+    expect(event.toState).toBe('new');
+    expect(event.actor).toEqual({ id: 'admin-1', label: 'Admin One', principalType: 'user' });
+    expect(event.operation).toEqual({ kind: 'initialize', region: 'main' });
+    expect(event.evidence.description).toBe('Seeded by process');
+    expect(event.evidence.lifecycle).toEqual({ actors: [], attachments: {}, data: {} });
+    expect(event.source).toEqual({ kind: 'process-run', actionId: 'create_a' });
+    expect(event.status.metadata.note).toBe('Seeded by process');
+    expect(event.status.metadata).not.toHaveProperty('source');
+
+    const entity = await db.collection('items').findOne({ _id: id });
+    expect(entity.states.main).toBe('new');
+    expect(entity).not.toHaveProperty('status');
+  });
+
   it('returns no actions for entity types without workflows', async () => {
     const actions = await statusService.getActions('warehouse', 'warehouse-1', {
       userId: 'admin-1',

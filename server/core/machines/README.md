@@ -141,6 +141,9 @@ Persisted entity status metadata never identifies an authored process graph:
 the write boundary strips `producerOutputId` (used only to resolve the
 producer-scoped workflow) before creating the status snapshot, and migration
 scripts must not write process/run/action/node/workflow identifiers into
+`status.metadata`. Caller-declared invocation context (`source`, e.g. the
+process action runtime's `{ kind: 'process-run', actionId }`) is treated the
+same way: lifted onto the status event record, stripped from persisted
 `status.metadata`. Existing documents that still carry such provenance are
 cleaned by `migrate-strip-status-process-provenance.js` (see
 [scripts/README.md](../../scripts/README.md)); append-only `status_events`
@@ -157,7 +160,8 @@ masked.
    `stateService.transition(type, id, state, ...)` from the status runtime/API
    boundary, or `POST /api/state/transition`.
 2. Transition is validated against the domain workflow, access requirements, lifecycle schema, and actor/capability assignments.
-3. Entity's structured `status` block, including `metadata` and `lifecycle`, is updated and a history event is logged with `fromState`, `toState`, `fromStatePrimary`, `toStatePrimary`, and `region`.
+3. Entity's structured `status` block, including `metadata` and `lifecycle`, is updated and a history event is logged with `fromState`, `toState`, `fromStatePrimary`, `toStatePrimary`, and `region`, plus the first-class stamp fields: `actor` (who, from the auth context), `operation` (initialize/transition/intent with region and intent), and `evidence` (normalized description, attachment refs, and lifecycle, including snapshots). The canonical event record contract lives in
+   [server/features/states/README.md](../../features/states/README.md).
    When a status mutation also carries an entity patch, the service requires a
    Mongo transaction for the status event plus entity snapshot. Standalone
    Mongo deployments that reject transactions fail the combined mutation

@@ -93,20 +93,21 @@ export const stateService = {
       requireMachine: false,
       producerOutputId: metadata.producerOutputId
     });
-    const actorId = typeof actor === 'object' ? actor.userId : actor;
+    const actorId = (typeof actor === 'object' ? actor.userId : actor) || 'SYSTEM';
     const eventId = new ObjectId();
     const stateMetadata = mergeStatusDisplayMetadata(persistableStatusMetadata(metadata), region.states[targetState]);
+    const initialLifecycle = normalizeLifecycle();
     const status = createStatus(
       createWorkflowState(normalizedMachine, { active: { [regionId]: targetState }, primary: targetState }),
-      actorId || 'SYSTEM',
+      actorId,
       stateMetadata,
       eventId,
-      normalizeLifecycle()
+      initialLifecycle
     );
     const statusData = JSON.parse(JSON.stringify(status));
     const db = await connectDB();
-    await db.collection('status_events').insertOne({
-      _id: eventId,
+    await db.collection('status_events').insertOne(buildStatusEventRecord({
+      eventId,
       targetId: flexId,
       targetType: normalizedTypeId,
       fromState: null,
@@ -114,9 +115,12 @@ export const stateService = {
       fromStatePrimary: null,
       toStatePrimary: targetState,
       region: regionId,
-      status: statusData,
-      timestamp: new Date()
-    });
+      statusData,
+      actor: buildEventActor(typeof actor === 'object' ? actor : {}, actorId),
+      operation: { kind: 'initialize', region: regionId },
+      evidence: buildEventEvidence(stateMetadata, initialLifecycle),
+      source: metadata?.source ?? null
+    }));
     await db.collection(collection).updateOne(
       { _id: flexId },
       instanceDoc
@@ -143,6 +147,7 @@ export const stateService = {
       authContext,
       {
         metadata,
+        intent,
         region: resolved.regionId,
         ...transitionContext
       }
@@ -259,7 +264,7 @@ export const stateService = {
         transitionContext: context
       });
       transitionTarget = resolved.transition.to;
-      transitionContext = { ...context, region: resolved.regionId };
+      transitionContext = { ...context, intent, region: resolved.regionId };
     }
     const { status, effects } = await performTransition(
       normalizedTypeId,
@@ -459,9 +464,10 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
     
     // Ensure we store a plain object in DB, not a class instance
     const statusData = JSON.parse(JSON.stringify(newStatus));
-    
-    const eventRecord = {
-      _id: eventId,
+
+    const operationIntent = transitionContext.intent || transition?.intent || null;
+    const eventRecord = buildStatusEventRecord({
+      eventId,
       targetId: flexId,
       targetType: normalizedTypeId,
       fromState: currentState,
@@ -469,9 +475,16 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       fromStatePrimary: getPrimaryState(entity.states ?? entity.status, normalizedMachine.initial),
       toStatePrimary: getPrimaryState(nextState, targetState),
       region: regionId,
-      status: statusData,
-      timestamp: new Date()
-    };
+      statusData,
+      actor: buildEventActor(auth, actorId),
+      operation: {
+        kind: transitionContext.intent ? 'intent' : 'transition',
+        ...(operationIntent ? { intent: operationIntent } : {}),
+        region: regionId
+      },
+      evidence: buildEventEvidence(transitionMetadata, evidence.lifecycle),
+      source: transitionContext.source
+    });
     
     const entitySet = instanceDoc
       ? { 'states.main': targetState, updatedAt: new Date().toISOString() }
@@ -570,24 +583,73 @@ export function createTransitionAuth(userId, userRoleOrAuth, userPermissions = {
 }
 
 function persistableStatusMetadata(metadata = {}) {
-  const { producerOutputId: _producerOutputId, ...persisted } = metadata && typeof metadata === 'object' ? metadata : {};
+  const { producerOutputId: _producerOutputId, source: _source, ...persisted } = metadata && typeof metadata === 'object' ? metadata : {};
   return persisted;
 }
 
+function buildStatusEventRecord({ eventId, targetId, targetType, fromState, toState, fromStatePrimary, toStatePrimary, region, statusData, actor, operation, evidence, source = null }) {
+  return {
+    _id: eventId,
+    targetId,
+    targetType,
+    fromState,
+    toState,
+    fromStatePrimary,
+    toStatePrimary,
+    region,
+    status: statusData,
+    actor,
+    operation,
+    evidence,
+    ...(source ? { source } : {}),
+    timestamp: new Date()
+  };
+}
+
+function buildEventActor(auth = {}, actorId) {
+  const label = auth?.name || auth?.label || null;
+  return {
+    id: actorId,
+    ...(label ? { label } : {}),
+    principalType: resolveEventPrincipalType(actorId, auth)
+  };
+}
+
+function resolveEventPrincipalType(actorId, auth = {}) {
+  if (auth?.system === true || actorId === 'SYSTEM') return 'SYSTEM';
+  return /^(service|principal)_/.test(String(actorId)) ? 'service' : 'user';
+}
+
+function buildEventEvidence(metadata = {}, lifecycle = {}) {
+  const normalized = normalizeLifecycle(lifecycle);
+  return {
+    description: metadata?.note || metadata?.description || null,
+    attachments: normalized.attachments,
+    lifecycle: normalized
+  };
+}
+
 function normalizeTransitionContext(input = {}) {
+  const invocation = {
+    intent: input?.intent || null,
+    source: input?.source ?? null
+  };
   if (input && typeof input === 'object' && ('metadata' in input || 'lifecycle' in input)) {
     return {
       metadata: input.metadata && typeof input.metadata === 'object' ? input.metadata : {},
       lifecycle: normalizeLifecycle(input.lifecycle),
+      ...invocation,
       producerOutputId: input.producerOutputId || null,
       region: input.region || input.machineRegion || input.machine,
       path: Array.isArray(input.path) ? input.path : null
     };
   }
 
+  const { intent: _invokedIntent, source: _declaredSource, ...metadata } = input && typeof input === 'object' ? input : {};
   return {
-    metadata: input && typeof input === 'object' ? input : {},
+    metadata,
     lifecycle: normalizeLifecycle(),
+    ...invocation,
     producerOutputId: input?.producerOutputId || null,
     region: input?.region || input?.machineRegion || input?.machine,
     path: Array.isArray(input?.path) ? input.path : null

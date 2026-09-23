@@ -755,7 +755,7 @@ describe('current process-definition service contract', () => {
     expect(stateService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
       targetState: 'VERIFIED',
       context: {
-        source: 'process-run',
+        source: { kind: 'process-run' },
         producerOutputId: 'sheet_source:entity',
         metadata: { note: 'Inspection complete' }
       }
