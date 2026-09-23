@@ -1,4 +1,4 @@
-const CACHE = 'perigram-static-v2'
+const CACHE = 'perigram-static-v3'
 // No '/_nuxt/' here on purpose: in dev that path serves live source modules,
 // and a cache-first worker (registered earlier by a prod build on the same
 // origin) would keep answering with stale code through any hard refresh.
