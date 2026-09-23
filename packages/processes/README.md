@@ -261,7 +261,10 @@ a class/type binding normalizes to a non-empty string or `null` on both the
 projection and the rebuild, and state `initial`/`terminal` booleans project
 explicitly — so an authored record survives the canvas cycle byte-identical
 (an explicit `false` must not become an absent key, and a `null` binding must
-not become `''`).
+not become `''`). Field-node descriptors carry the SPEC §4 display dictionary
+(`label`/`display`/`control` plus the closed `identifier`/`depiction` flags)
+verbatim through the cycle, and class nodes round-trip their authored `glyph`
+(`null` on both halves when absent).
 
 Process lifecycle profiles and action nodes compile directly to normalized
 `@perigram/workflows` v2 state machines. Entity profiles may provide a full
