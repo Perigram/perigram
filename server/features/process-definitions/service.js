@@ -960,11 +960,14 @@ async function applyProcessOutputStatuses({ actionId, result = {}, processData =
       targetState,
       organizationId,
       auth.userId,
-      processStatusMetadata({
-        typeId,
-        producerOutputId: stateTarget.producerOutputId,
-        state: { to: targetState }
-      }, `Created by process command action ${actionId}`, processData)
+      {
+        source: { kind: 'process-run', actionId },
+        ...processStatusMetadata({
+          typeId,
+          producerOutputId: stateTarget.producerOutputId,
+          state: { to: targetState }
+        }, `Created by process command action ${actionId}`, processData)
+      }
     );
     await entityEventService.publishEntityChanged(auth, {
       type: typeId,
@@ -1486,6 +1489,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
             organizationId,
             auth.userId,
             {
+              source: { kind: 'process-run', ...(record.id ? { actionId: record.id } : {}) },
               ...stateMetadata,
               ...processStatusMetadata(record, `Created by process effect ${record.id}`, processData)
             }
@@ -1597,7 +1601,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
 function effectTransitionContext(record = {}, inputs = {}) {
   const note = inputs.note ?? record.note;
   return {
-    source: 'process-run',
+    source: { kind: 'process-run', ...(record.id ? { actionId: record.id } : {}) },
     ...(record.producerOutputId ? { producerOutputId: record.producerOutputId } : {}),
     ...(note != null && note !== '' ? { metadata: { note: String(note) } } : {})
   };
