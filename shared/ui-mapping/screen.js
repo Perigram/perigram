@@ -48,7 +48,42 @@ function resolveList(source, screen, pool, sourcesById) {
     if (!origin) return [];
     return Object.values(byId).filter(instance => instance.lineage?.[source.lineage.key]?.id === origin.id);
   }
+  if (source.filters) {
+    // The compiler-emitted child-region shape: flat scalar filters whose
+    // `$screen.*` placeholders resolve against the routed screen scope.
+    // Bare keys are declared lineage keys (children edges, SPEC §6) — the
+    // pool stores them as lineage refs; status windows read states.main.
+    const filters = resolveFilterPlaceholders(source.filters, screen);
+    return Object.values(byId).filter(instance => instanceMatchesSourceFilters(instance, filters));
+  }
   return Object.values(byId);
+}
+
+function resolveFilterPlaceholders(filters = {}, screen = {}) {
+  return Object.fromEntries(Object.entries(filters || {}).map(([key, value]) => [
+    key,
+    typeof value === 'string' && value.startsWith('$screen.')
+      ? screenPath(screen, value.slice('$screen.'.length))
+      : value
+  ]));
+}
+
+function screenPath(screen = {}, path = '') {
+  return String(path).split('.').filter(Boolean).reduce((value, key) => (value == null ? undefined : value[key]), screen);
+}
+
+// Mirrors the server transport's filter semantics (skip unresolved values,
+// match declared lineage keys by their ref id, status windows on main).
+function instanceMatchesSourceFilters(instance = {}, filters = {}) {
+  return Object.entries(filters || {}).every(([path, expected]) => {
+    if (expected === undefined || expected === null || expected === '') return true;
+    if (path === 'primaryState') return instance.states?.main === expected;
+    if (path === 'primaryStates') return String(expected).split(',').includes(instance.states?.main);
+    const ref = path.startsWith('lineage.')
+      ? screenPath(instance, path)
+      : instance.lineage?.[path];
+    return String(ref?.id ?? ref ?? '') === String(expected);
+  });
 }
 
 function surfaceKindOf(region, source) {

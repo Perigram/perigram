@@ -10,7 +10,7 @@
 import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { frameworkTypes, CLASS_COLLECTIONS } from '~/packages/cts/src/index.js';
+import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent } from '~/packages/cts/src/index.js';
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import * as typeStore from '../cts-types/repository.js';
 import * as repository from './repository.js';
@@ -23,6 +23,43 @@ import { hasInstanceAccess } from '../../core/access/service.js';
 // service.
 const staticTypes = new Map([...frameworkTypes, ...composeSystemDeclarations()].map(type => [type.id, type]));
 const declarationCache = new Map();
+// Declared lineage keys per child type (SPEC §6), derived from the same
+// view the indexes derive from: the storage keys parents' children edges
+// name on the child. Static pack declarations compose the system half
+// once; org declarations resolve per organization beside the declaration
+// cache and invalidate with it on registry writes.
+let staticLineageKeys = null;
+const lineageKeysCache = new Map();
+
+function declaredLineageKeysOf(declarations = []) {
+  const keysByType = new Map();
+  for (const parent of declarations) {
+    for (const [key, edge] of Object.entries(parent?.edges?.children || {})) {
+      const lineageKey = edge?.lineageKey || lineageKeyForParent(parent.id) || key;
+      for (const childType of edge?.types || []) {
+        if (!keysByType.has(childType)) keysByType.set(childType, new Set());
+        keysByType.get(childType).add(lineageKey);
+      }
+    }
+  }
+  return keysByType;
+}
+
+async function lineageKeysFor(typeId, organizationId = null) {
+  staticLineageKeys ||= declaredLineageKeysOf([...staticTypes.values()]);
+  if (!organizationId) return staticLineageKeys.get(typeId) || new Set();
+  const cacheKey = String(organizationId);
+  if (!lineageKeysCache.has(cacheKey)) {
+    let orgDeclarations = [];
+    try {
+      orgDeclarations = await typeStore.listByOrganization(organizationId);
+    } catch {
+      orgDeclarations = [];
+    }
+    lineageKeysCache.set(cacheKey, declaredLineageKeysOf([...staticTypes.values(), ...orgDeclarations]));
+  }
+  return lineageKeysCache.get(cacheKey).get(typeId) || new Set();
+}
 
 async function declarationFor(typeId, organizationId = null) {
   const cacheKey = organizationId ? `${typeId}@${organizationId}` : typeId;
@@ -44,9 +81,11 @@ export function invalidateInstanceDeclarations(organizationId = null) {
     for (const key of declarationCache.keys()) {
       if (key.endsWith(`@${organizationId}`)) declarationCache.delete(key);
     }
+    lineageKeysCache.delete(String(organizationId));
     return;
   }
   declarationCache.clear();
+  lineageKeysCache.clear();
 }
 
 // Stored shape (SPEC §3): { _id, type, typeVersion, organizationId, name,
@@ -157,6 +196,45 @@ function provenanceFromWire(draft = {}) {
   return { ...(op ? { op } : {}), sources, effective };
 }
 
+// The compiled screen-source filter vocabulary (the same transport
+// contract the feature routes speak, cassettes' libraryId): a bare
+// DECLARED lineage key scopes the read by parent, primaryState(s) by the
+// status window, and _id resolves reference lookups. Keys the type never
+// declared are transport noise the service ignores — never a Mongo path.
+function listQueryFilter(filters = {}, declaredLineageKeys = new Set()) {
+  const filter = {};
+  for (const [key, rawValue] of Object.entries(filters || {})) {
+    const value = Array.isArray(rawValue) ? rawValue[0] : rawValue;
+    if (value === undefined || value === null || value === '') continue;
+    if (key === 'limit' || key === 'skip') continue;
+    if (key === '_id') {
+      filter._id = toFlexibleId(value);
+      continue;
+    }
+    if (key === 'primaryState') {
+      filter['states.main'] = String(value);
+      continue;
+    }
+    if (key === 'primaryStates') {
+      const states = String(value).split(',').map(item => item.trim()).filter(Boolean);
+      if (states.length) filter['states.main'] = { $in: states };
+      continue;
+    }
+    if (declaredLineageKeys.has(key)) {
+      filter[`lineage.${key}`] = lineageMatchValues(value);
+    }
+  }
+  return filter;
+}
+
+// Stored lineage values keep whatever shape their writer persisted
+// (string ids from dialogs and the effect boundary, ObjectIds from
+// flexible-id writes), so an id-shaped filter matches both forms.
+function lineageMatchValues(value) {
+  const flexible = toFlexibleId(value);
+  return flexible === value ? value : { $in: [value, flexible] };
+}
+
 async function requireDeclaration(typeId, organizationId) {
   const declaration = await declarationFor(typeId, organizationId);
   if (!declaration) {
@@ -225,11 +303,13 @@ function instanceService(typeId) {
 
     async list(filters = {}, userId, organizationId) {
       const declaration = await requireDeclaration(typeId, organizationId);
+      const filter = listQueryFilter(filters, await lineageKeysFor(typeId, organizationId));
       const docs = await repository.listInstances(
         repository.collectionForClass(declaration.class),
         typeId,
         organizationId,
-        Number(filters?.limit) || 200
+        Number(filters?.limit) || 200,
+        filter
       );
       return docs.map(doc => toDto(doc, declaration));
     },

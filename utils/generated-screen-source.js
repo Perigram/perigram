@@ -19,6 +19,30 @@ export function shouldRenderHomeSection({ items = [], rawItems = [], source = {}
   return !parentLineageKeys.length;
 }
 
+// Wire reconciliation for a source's resolved filters: every filter must
+// hold on the wire DTO. Lineage filter keys (the compiled child-source
+// convention: the declared bare lineageKey) live under `lineage.<key>`,
+// not at the DTO root — a created child carrying its parent ref must
+// therefore match the open parent detail's child region and accumulate
+// into it. Status-window filters (`primaryState`/`primaryStates`) read
+// `states.main`; dotted paths read verbatim.
+export function entityMatchesFilters(entity = {}, filters = {}) {
+  return Object.entries(filters || {}).every(([path, expected]) => {
+    if (path === 'primaryState') return entity.states?.main === expected;
+    if (path === 'primaryStates') return String(expected).split(',').includes(entity.states?.main);
+    if (expected && typeof expected === 'object') return false;
+    const actual = readFilterPath(entity, path);
+    return String(actual ?? '') === String(expected ?? '');
+  });
+}
+
+function readFilterPath(entity = {}, path = '') {
+  const segments = String(path).split('.');
+  const dotted = segments.reduce((value, key) => (value == null ? undefined : value[key]), entity);
+  if (dotted !== undefined || segments.length > 1) return dotted;
+  return entity?.lineage?.[segments[0]];
+}
+
 function accessibleEntityIds(sourceStates = {}) {
   const result = new Map();
   for (const state of Object.values(sourceStates || {})) {

@@ -26,10 +26,10 @@ export async function insertInstance(collection, doc) {
   return doc;
 }
 
-export async function listInstances(collection, typeId, organizationId, limit = 200) {
+export async function listInstances(collection, typeId, organizationId, limit = 200, filter = {}) {
   const db = await connectDB();
   return await db.collection(collection)
-    .find({ type: typeId, ...orgFilter(organizationId) })
+    .find({ type: typeId, ...orgFilter(organizationId), ...filter })
     .sort({ createdAt: -1 })
     .limit(limit)
     .toArray();

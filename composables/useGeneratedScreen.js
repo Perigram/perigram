@@ -5,7 +5,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { hasProcessRequirement } from '~/utils/process-navigation.js';
 import { onInstanceChanged } from '~/utils/instance-events.js';
-import { filterRootSourceItems } from '~/utils/generated-screen-source.js';
+import { entityMatchesFilters, filterRootSourceItems } from '~/utils/generated-screen-source.js';
 
 export function useGeneratedScreen(screenRef) {
   const authStore = useAuthStore();
@@ -151,15 +151,14 @@ export function useGeneratedScreen(screenRef) {
   };
 }
 
+// A wire entity matches a source's resolved filters when every filter
+// holds. Lineage filter keys (the compiled child-source convention: bare
+// declared lineageKey) live on the wire DTO under `lineage.<key>`, not at
+// the root — a created child carrying its parent ref must therefore match
+// the open parent detail's child region. Pure matcher in
+// utils/generated-screen-source.js (`entityMatchesFilters`).
 function entityMatchesSource(entity = {}, source = {}, screen = {}) {
-  const filters = resolveSourceFilters(source, screen);
-  return Object.entries(filters).every(([path, expected]) => {
-    if (path === 'primaryState') return entity.states?.main === expected;
-    if (path === 'primaryStates') return String(expected).split(',').includes(entity.states?.main);
-    if (expected && typeof expected === 'object') return false;
-    const actual = path.split('.').reduce((value, key) => value?.[key], entity);
-    return String(actual ?? '') === String(expected ?? '');
-  });
+  return entityMatchesFilters(entity, resolveSourceFilters(source, screen));
 }
 
 function entityChangeAffectsSources(change = {}, sources = [], screen = {}) {

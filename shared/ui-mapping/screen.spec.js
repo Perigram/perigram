@@ -96,6 +96,40 @@ describe('screen composition', () => {
     expect(lineageScoped.regions[0].instances.map(instance => instance.id)).toEqual(['w2']);
   });
 
+  it('scopes list sources by compiled filter placeholders against the screen scope', () => {
+    // The compiler-emitted child-region shape: bare declared lineage key
+    // filtered by $screen.scope.instanceId — the org-authored hierarchy
+    // contract without an authored lineage/relation source.
+    const filtered = composeScreen(
+      { screenKey: 'f1', template: 'instanceDetail', label: 'F1', scope: { instanceId: 'w1' },
+        sources: [
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'made', typeId: 'widget', mode: 'list', filters: { madeById: '$screen.scope.instanceId' } }
+        ],
+        regions: [
+          { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
+          { id: 'made', slot: 'children', sourceId: 'made', surface: 'list' }
+        ] },
+      contract, bundle, { ...pool, widget: { w1: pool.widget.w1, w2: { ...pool.widget.w2, lineage: { madeBy: { type: 'widget', id: 'w1' }, madeById: { id: 'w1' } } } } }
+    );
+    expect(filtered.regions[0].childRegions[0].instances.map(instance => instance.id)).toEqual(['w2']);
+
+    // A different opened scope scopes to that parent only.
+    const other = composeScreen(
+      { screenKey: 'f2', template: 'instanceDetail', label: 'F2', scope: { instanceId: 'w2' },
+        sources: [
+          { id: 'widget', typeId: 'widget', mode: 'single' },
+          { id: 'made', typeId: 'widget', mode: 'list', filters: { madeById: '$screen.scope.instanceId' } }
+        ],
+        regions: [
+          { id: 'main', slot: 'main', sourceId: 'widget', surface: 'detail' },
+          { id: 'made', slot: 'children', sourceId: 'made', surface: 'list' }
+        ] },
+      contract, bundle, { ...pool, widget: { w1: pool.widget.w1, w2: { ...pool.widget.w2, lineage: { madeBy: { type: 'widget', id: 'w1' }, madeById: { id: 'w1' } } } } }
+    );
+    expect(other.regions[0].childRegions[0].instances).toEqual([]);
+  });
+
   it('carries tree-owned chrome per region (container role by depth)', () => {
     const composed = composeScreen(
       { screenKey: 'c1', template: 'instanceDetail', label: 'C1',
