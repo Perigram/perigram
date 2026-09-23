@@ -240,7 +240,13 @@ positional: a changed entity replaces the matching item in place and is
 appended to a list source only when it satisfies that source's resolved
 filters; a delete event removes the id from every list source of that entity
 type. Single-mode sources patch only when the changed id matches the source's
-resolved identifier. Events without a complete snapshot are the only case that
+resolved identifier. Filter matching is the pure `entityMatchesFilters`
+contract in
+[utils/generated-screen-source.js](../utils/README.md): bare declared
+lineage keys read through the wire DTO's `lineage` block, so a created child
+carrying its parent ref lands in the open parent detail's child region — the
+generated hierarchy accumulates without a reload. Events without a complete
+snapshot are the only case that
 schedules a (debounced) source reload; API routes still enforce whether the
 source may read the changed entity. `GeneratedScreen.applyActionResult` feeds
 the same `applyEntitySnapshot` path synchronously from the action response, so

@@ -110,6 +110,13 @@ Shared frontend utility modules used by Vue pages/components.
 - `generated-screen-source.js`: Applies exact compiled Lineage bindings to
   generated source filters and Home visibility. It never guesses arbitrary id
   keys or imports static CNC containment in active-process mode.
+  `entityMatchesFilters(entity, filters)` is the wire-DTO reconciliation
+  matcher for a source's resolved filters: bare filter keys are declared
+  lineage keys read through the DTO's `lineage` block (a created child
+  carrying its parent ref therefore matches the open parent detail's child
+  region and accumulates into it), dotted paths read verbatim, and
+  `primaryState`/`primaryStates` match `states.main` — the same vocabulary
+  the generic instance list transport applies server-side.
 - `instance-hierarchy.js`: Consumes canonical entity identity and effective
   compiled Lineage projections for ancestry, root/sibling scope, and trace
   context. Route trace exclusions require the route value to match both the
