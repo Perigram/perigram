@@ -58,8 +58,25 @@ palette item through record creation, typed port resolution, and twin
 lowering — the executable form of the palette audit. Declaration authoring composes in the same
 tree: Class/Field/State canvas nodes wire through the legality matrix
 (`declarationWireLegality`) and compile into registry declarations via
-`compileTreeDeclarations` (R4-enforcing, pure over the canvas arrays). A
-class node's `data.migrate` (array of SPEC §11 declared-migration steps,
+`compileTreeDeclarations` (R4-enforcing, pure over the canvas arrays and
+the bound process-node records). Transition nodes declare statuses too:
+a `cts.transition` record bound to a type may carry its target status
+inline on the record's `state` payload (`to`, plus `label`, `severity`,
+`icon`, `terminal`, and an optional `intent`), and the compile merges
+those graph-declared targets into the class's declaration — target
+values join `states.main.values` without tree nodes, the node fans a
+declared edge into the machine from every other declared value (SPEC
+§20: from-state resolves dynamically, so target-only is lossless), and
+per-value display policy composes with the tree's
+(severity/icon on state nodes) with the transition node winning where
+both declare the same value. The tree stays the structural home: the
+entry/initial state is authored only by wiring a state node into a
+construct, and end states derive as sinks of the merged transition set
+plus explicitly terminal transition targets. The persisted twin is
+`declarationsFromCtsRecords(ctsTypes, processNodes)` — the draft overlay
+reads the same merge, so acceptance validates bindings against
+transition-node-declared statuses before they are posted. A class
+node's `data.migrate` (array of SPEC §11 declared-migration steps,
 default absent) passes verbatim onto the emitted declaration — it is
 transient apply-time state written by the designer's step dialog, not
 persisted authoring state: the designer clears it once the declaration

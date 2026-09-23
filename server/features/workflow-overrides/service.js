@@ -3,7 +3,9 @@ import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { assertEntityAccess } from '~/server/core/access/service.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
+import { declarationWorkflow, normalizeType } from '~/packages/cts/src/index.js';
 import { resolveProcessWorkflow } from '~/server/features/process-definitions/runtime.js';
+import { declarationForType, staticTypeDeclaration } from '~/server/features/instances/service.js';
 import * as repository from './repository.js';
 
 export async function getByEntity(typeId, auth) {
@@ -39,7 +41,9 @@ export async function activate(typeId, payload = {}, auth) {
 export async function resolveActiveWorkflow({ typeId, organizationId, producerOutputId }) {
   const normalizedTypeId = normalizeTypeId(typeId);
   const defaultWorkflow = getDefaultWorkflow(normalizedTypeId);
-  if (!organizationId) return defaultWorkflow;
+  if (!organizationId) {
+    return defaultWorkflow || staticDeclarationWorkflow(normalizedTypeId);
+  }
 
   const processWorkflow = producerOutputId ? await resolveProcessWorkflow({
     organizationId,
@@ -55,16 +59,60 @@ export async function resolveActiveWorkflow({ typeId, organizationId, producerOu
   }
 
   const override = await repository.findActiveByEntity({ organizationId, typeId: normalizedTypeId });
-  return override?.workflow ? normalizeWorkflowPayload(override.workflow) : defaultWorkflow;
+  if (override?.workflow) return normalizeWorkflowPayload(override.workflow);
+  // The declaration IS a machine source — but only for types the
+  // hand-registered domain does not already govern: the domain workflow
+  // keeps its precedence so legacy resolutions are unchanged, and a
+  // declared lifecycle serves every type that previously resolved to no
+  // machine at all.
+  return defaultWorkflow
+    || await resolveDeclarationWorkflow({ typeId: normalizedTypeId, organizationId })
+    || null;
 }
 
 export function resolveDefaultWorkflow(typeId) {
-  return getDefaultWorkflow(normalizeTypeId(typeId));
+  const normalizedTypeId = normalizeTypeId(typeId);
+  return getDefaultWorkflow(normalizedTypeId) || staticDeclarationWorkflow(normalizedTypeId);
 }
 
 function getDefaultWorkflow(typeId) {
   const domain = getPerigramRegistry().getDomain('cnc');
   return domain?.workflows?.[typeId] || null;
+}
+
+// Declaration-derived machines (types whose lifecycle lives on their
+// declaration, not in a hand-registered domain workflow). Tenancy follows
+// the instances feature's cached declaration resolution: the org's stored
+// declarations overlay the static system view. Derived machines cache by
+// declaration identity — derivation is pure over the declaration, and the
+// version key rotates exactly when a redefinition lands (invalidating
+// with the declaration cache would otherwise need another write hook).
+const declarationMachineCache = new Map();
+
+async function resolveDeclarationWorkflow({ typeId, organizationId }) {
+  const declaration = await declarationForType(typeId, organizationId);
+  return machineFromDeclaration(declaration);
+}
+
+function staticDeclarationWorkflow(typeId) {
+  return machineFromDeclaration(staticTypeDeclaration(typeId));
+}
+
+function machineFromDeclaration(declaration) {
+  if (!declaration) return null;
+  const cacheKey = `${declaration.id}@${declaration.organizationId || 'system'}|v${declaration.version || 1}`;
+  if (declarationMachineCache.has(cacheKey)) return declarationMachineCache.get(cacheKey);
+  let machine = null;
+  try {
+    machine = declarationWorkflow(normalizeType(declaration));
+  } catch {
+    // A declaration that cannot normalize serves no machine — identical
+    // to a type without one, and the registry's own diagnostics own the
+    // report.
+    machine = null;
+  }
+  declarationMachineCache.set(cacheKey, machine);
+  return machine;
 }
 
 function normalizeWorkflowPayload(workflow) {

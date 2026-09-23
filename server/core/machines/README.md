@@ -12,6 +12,21 @@ The system consists of three main parts: the transition engine, the dynamic hook
   entity's organization-scoped active override from
   `server/features/workflow-overrides` before falling back to the registered
   domain workflow.
+- **Declaration workflows**: A type with no domain workflow, override, or
+  process machine is NOT machine-less: the declaration itself is a machine
+  source. Resolution derives a normalized v2 machine from the type's
+  registry declaration (`states.main` axis + declared `transitions`, display
+  policy from the axis render) through the shared
+  `@perigram/cts` declaration→workflow projection — the same shape the
+  compiler's domain projection emits, so producer lifecycles and the status
+  engine agree. Tenancy follows the declaration seam: org-authored types
+  resolve through the instances feature's cached per-organization
+  declaration lookup (invalidated on declaration writes), pack/framework
+  types through their static declarations (also the org-less synchronous
+  fallback). Guards match the legacy default machines: declaration
+  transitions carry no roles, so any authenticated actor with entity access
+  may fire them; intents on declared transitions resolve through
+  `applyIntent` unchanged.
 - **Process workflows**: When the target organization has an active process
   definition, compiled process workflows resolve before workflow overrides.
   Process lifecycle profiles and action-only graph status changes are

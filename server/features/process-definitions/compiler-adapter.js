@@ -21,7 +21,10 @@ import { CLASS_COLLECTIONS, createTypeRegistry, declarationsFromCtsRecords, proj
 const DRAFT_OVERLAY_ORG = 'draft-overlay';
 
 function declarationOverlayDomain(data = {}, domain = {}) {
-  const declarations = declarationsFromCtsRecords(data?.ctsTypes || {});
+  // Transition-node-declared target statuses ride the process records:
+  // the overlay must know them or a draft binding check would refuse the
+  // very target the transition node authors.
+  const declarations = declarationsFromCtsRecords(data?.ctsTypes || {}, data?.processNodes || {});
   if (!declarations.length) return domain;
   const registry = createTypeRegistry({ id: 'cts:draft-overlay' });
   const invalid = [];

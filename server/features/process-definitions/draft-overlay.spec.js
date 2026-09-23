@@ -58,4 +58,21 @@ describe('draft declaration overlay at acceptance', () => {
     const unknown = validation.errors?.filter(error => error.includes('unknown entity type')) || [];
     expect(unknown).toEqual([]);
   });
+
+  it('accepts a transition node targeting a status only the transition node declares', () => {
+    // The revived authoring shape: the class tree carries the entry state
+    // only; the target status lives on the transition node's record. The
+    // overlay must know the target or acceptance refuses it as an
+    // undeclared state.
+    const { typeId, data } = draftWithTypeClass();
+    data.processNodes.mv = {
+      id: 'mv', kind: 'cts.transition', typeId, label: '',
+      state: { to: 'SHIPPED', severity: 'success', terminal: true },
+      matching: 'item', fields: [], inputs: [], outputs: []
+    };
+    const validation = validateActivatableProcess(data, rawDomain, {});
+    expect(
+      (validation.errors || []).filter(error => error.includes('target state SHIPPED is not declared'))
+    ).toEqual([]);
+  });
 });

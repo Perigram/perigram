@@ -455,9 +455,12 @@ function updateInputDefault(id, value) {
 }
 
 function updateStatusInputDefault(id, value) {
+  // The target rides the record's `state` payload — the compile
+  // vocabulary (`state.to`) the entry wire and the inspector write too;
+  // the legacy `status` spelling only survives load-time renaming.
   update({
     inputDefaults: { ...(record.value.inputDefaults || {}), [id]: { branches: [{ path: [], items: [value] }] } },
-    status: { ...(record.value.status || {}), to: value }
+    state: { ...(record.value.state || {}), to: value }
   });
 }
 

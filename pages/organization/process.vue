@@ -701,6 +701,7 @@ const {
   activeOrganizationId,
   baseDomain: cncDomain,
   packContent: cncPackContent,
+  records: () => draft.value?.data?.processNodes || {},
   syncNow: () => syncNodeData()
 });
 
@@ -1114,7 +1115,11 @@ const classTypeIdValid = computed(() => /^[a-z][a-z0-9-]*$/.test(selectedNode.va
 const classDeclarationDiagnostics = computed(() => {
   const classes = nodes.value.filter(node => node.type === 'ctsClass');
   if (!classes.length) return [];
-  const { declarations, diagnostics } = compileTreeDeclarations(nodes.value, edges.value);
+  const { declarations, diagnostics } = compileTreeDeclarations(
+    nodes.value,
+    edges.value,
+    draft.value?.data?.processNodes || {}
+  );
   for (const declaration of declarations) {
     try {
       normalizeType({ ...declaration, scope: 'org', organizationId: activeOrganizationId() });
@@ -2328,7 +2333,7 @@ function inferIncomingEntityContract(nodeId) {
   const typeId = port?.type?.typeId || port?.type?.itemType?.typeId || nodeTypeId(sourceRecord) || '';
   return {
     typeId,
-    status: typeof port?.status === 'string' ? port.status : (sourceRecord.status?.to || ''),
+    status: typeof port?.status === 'string' ? port.status : (sourceRecord.state?.to || sourceRecord.status?.to || ''),
     access: sourceRecord.access ? normalizeDesignerAccess(sourceRecord.access) : null
   };
 }

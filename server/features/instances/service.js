@@ -88,6 +88,21 @@ export function invalidateInstanceDeclarations(organizationId = null) {
   lineageKeysCache.clear();
 }
 
+// The cached declaration accessor for sibling features (the
+// workflow-overrides declaration-machine fallback): same tenancy, same
+// invalidation. Returns the raw stored/static declaration — callers
+// normalize for their own use.
+export async function declarationForType(typeId, organizationId = null) {
+  return declarationFor(typeId, organizationId);
+}
+
+// The synchronous static-only twin: pack/framework declarations without
+// organization context. Org-authored declarations live in the async type
+// store and cannot resolve here.
+export function staticTypeDeclaration(typeId) {
+  return staticTypes.get(typeId) || null;
+}
+
 // Stored shape (SPEC §3): { _id, type, typeVersion, organizationId, name,
 // fields, states, lineage, relations, createdAt, updatedAt }. Tenancy is
 // the top-level `organizationId` slot; `lineage` holds pure tree edges —

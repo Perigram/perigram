@@ -23,6 +23,7 @@ export function useProcessDesignerTypes({
   activeOrganizationId,
   baseDomain,
   packContent,
+  records = () => ({}),
   syncNow = () => {}
 }) {
   const ctsOrgTypes = ref([]);
@@ -121,9 +122,12 @@ export function useProcessDesignerTypes({
   // declarations overlay the registry view immediately, so a construct bound
   // to a class node gains its field sockets the moment a Field node wires
   // in — no apply round trip. APPLY persists the same declarations.
+  // Transition-node target statuses ride the records accessor (the draft's
+  // processNodes) so the overlay sees statuses authored on transition
+  // nodes, not only on state nodes.
   function treeOverlayDeclarations() {
     if (!nodes.value?.some(node => node.type === 'ctsClass')) return [];
-    const { declarations } = compileTreeDeclarations(nodes.value, edges.value);
+    const { declarations } = compileTreeDeclarations(nodes.value, edges.value, records() || {});
     return declarations;
   }
 
@@ -222,7 +226,7 @@ export function useProcessDesignerTypes({
   async function persistTreeDeclarations() {
     const hasClasses = nodes.value.some(node => node.type === 'ctsClass');
     if (!hasClasses) return { failures: [] };
-    const { declarations, diagnostics } = compileTreeDeclarations(nodes.value, edges.value);
+    const { declarations, diagnostics } = compileTreeDeclarations(nodes.value, edges.value, records() || {});
     if (diagnostics.length) {
       toast.add({ severity: 'error', summary: t('processDesigner.declarationErrors'), detail: diagnostics.join('; '), life: 8000 });
     }

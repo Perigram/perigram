@@ -8,7 +8,9 @@ import {
   normalizeOperator,
   renderPolicyFor, compileClientBundle,
   cncTypePack, partyTypes, nestingOperators, packFixtures,
-  classMayDeclareChildren, lineageKeyForParent
+  classMayDeclareChildren, lineageKeyForParent,
+  declarationsFromCtsRecords, mergeTransitionNodeStates,
+  declarationWorkflow
 } from './index.js';
 
 function packRegistry() {
@@ -147,6 +149,78 @@ describe('state totality (R4)', () => {
     expect(() => packRegistry().defineType({
       id: 'intentful', class: 'file', intents: { go: {} }, fields: {}
     })).toThrow(/intents live on transition operators/);
+  });
+});
+
+describe('transition-node statuses (SPEC §7/§20 merge)', () => {
+  it('fans declared edges from every other value; terminals derive over the merged set', () => {
+    const merged = mergeTransitionNodeStates({
+      values: ['GOO'],
+      transitions: [],
+      targets: [{ value: 'CHANGED', terminal: true }]
+    });
+    expect(merged).toEqual({
+      values: ['GOO', 'CHANGED'],
+      transitions: [{ from: 'GOO', to: 'CHANGED' }],
+      terminal: ['CHANGED']
+    });
+  });
+
+  it('dedupes wire edges the fan-out repeats and drops off-values', () => {
+    const merged = mergeTransitionNodeStates({
+      values: ['a', 'b', 'c'],
+      transitions: [{ from: 'a', to: 'b', intent: 'go' }, { from: 'a', to: 'ghost' }],
+      targets: [{ value: 'b', intent: 'go' }]
+    });
+    expect(merged.transitions).toEqual([
+      { from: 'a', to: 'b', intent: 'go' },
+      { from: 'c', to: 'b', intent: 'go' }
+    ]);
+    // a and c carry outgoing edges; only b sinks.
+    expect(merged.terminal).toEqual(['b']);
+  });
+
+  it('declarationsFromCtsRecords merges persisted transition-node targets', () => {
+    const records = {
+      cls: { id: 'cls', kind: 'class', typeId: 't-goo-1', class: 'file' },
+      goo: { id: 'goo', kind: 'state', typeId: 't-goo-1', value: 'GOO', initial: true, terminal: false },
+      changed: { id: 'changed', kind: 'state', typeId: 't-goo-1', value: 'CHANGED', initial: false, terminal: false }
+    };
+    const processNodes = {
+      move: { id: 'move', kind: 'cts.transition', typeId: 't-goo-1', state: { to: 'CHANGED' } }
+    };
+    const [declaration] = declarationsFromCtsRecords(records, processNodes);
+    expect(declaration.states.main).toEqual({
+      initial: 'GOO',
+      values: ['GOO', 'CHANGED'],
+      terminal: ['CHANGED']
+    });
+    expect(declaration.transitions).toEqual([{ from: 'GOO', to: 'CHANGED' }]);
+    // The merged declaration satisfies R4 as a whole: the target is
+    // reachable and the terminal derives from the merged edge set.
+    const registry = createTypeRegistry({ id: 'merge-check' });
+    registry.defineType({ ...declaration, fields: { name: { base: 'string' } } });
+    expect(registry.compile().errors).toEqual([]);
+  });
+
+  it('declarationWorkflow derives the v2 machine a producer lifecycle and the status engine share', () => {
+    const type = normalizeType({
+      id: 't-goo-2', class: 'file', scope: 'org', organizationId: 'org-1',
+      fields: { name: { base: 'string' } },
+      states: { main: { initial: 'GOO', values: ['GOO', 'CHANGED'], terminal: ['CHANGED'] } },
+      transitions: [{ from: 'GOO', to: 'CHANGED', intent: 'change' }]
+    });
+    const workflow = declarationWorkflow(type);
+    expect(workflow.primaryRegion).toBe('main');
+    expect(workflow.regions.main.initial).toBe('GOO');
+    expect(workflow.regions.main.states.CHANGED.isTerminal).toBe(true);
+    expect(workflow.regions.main.states.GOO.canUpdateMeta).toBe(true);
+    expect(workflow.regions.main.transitions).toEqual([
+      { from: 'GOO', to: 'CHANGED', intent: 'change' }
+    ]);
+    expect(declarationWorkflow(normalizeType({
+      id: 't-plain', class: 'file', fields: { name: { base: 'string' } } }
+    ))).toBeNull();
   });
 });
 

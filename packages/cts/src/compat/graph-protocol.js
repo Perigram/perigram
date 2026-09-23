@@ -15,6 +15,7 @@
 // - checkCtsGraphBindings: declaration-level binding validation (type
 //   exists, state declared, field in row) beside R1-R6.
 import { SPECIES_BY_EFFECT_KIND } from './process-grammar.js';
+import { mergeTransitionNodeStates } from '../states.js';
 
 const CTS_KIND = Object.freeze({
   construct: 'cts.construct',
@@ -587,12 +588,15 @@ function resolveDescriptorRecord(record = {}) {
 // and land in the registry at APPLY. This projects them back into
 // declaration objects — the same shape compileTreeDeclarations emits — so
 // acceptance gates can validate a draft against its own declarations
-// before they are posted. Transitions are canvas wires and are not part
-// of the persisted record set; states still project so transition-target
-// checks resolve. `type`-kind records are registry references, not
-// declarations.
-export function declarationsFromCtsRecords(records = {}) {
+// before they are posted. State-to-state transitions are canvas wires and
+// are not part of the persisted record set, but transition NODES are
+// persisted process records: their inline target statuses (SPEC §20 —
+// `state` payload: to/label/severity/icon/terminal/intent) merge into the
+// projected axis through the same shared core the canvas compile uses.
+// `type`-kind records are registry references, not declarations.
+export function declarationsFromCtsRecords(records = {}, processNodes = {}) {
   const byKind = kind => Object.values(records || {}).filter(record => record?.kind === kind);
+  const targetsByType = transitionNodeStateTargets(processNodes);
   const declarations = [];
   for (const cls of byKind('class')) {
     if (!cls.typeId) continue;
@@ -608,16 +612,22 @@ export function declarationsFromCtsRecords(records = {}) {
       }
     }
     const states = byKind('state').filter(state => state.typeId === cls.typeId && state.value);
+    const targets = targetsByType.get(cls.typeId) || [];
     if (states.length) {
+      const treeValues = states.map(state => state.value);
+      // Transitions are canvas wires (absent here); the merged edge set is
+      // the transition nodes' fan-out, so sinks derive exactly as the
+      // canvas compile derives them.
+      const merged = mergeTransitionNodeStates({ values: treeValues, transitions: [], targets });
       const initial = states.filter(state => state.initial === true).map(state => state.value);
       declaration.states = {
         main: {
-          initial: initial[0] || states[0].value,
-          values: states.map(state => state.value),
-          terminal: states.filter(state => state.terminal === true).map(state => state.value)
+          initial: initial[0] || treeValues[0],
+          values: merged.values,
+          terminal: merged.terminal
         }
       };
-      declaration.transitions = [];
+      declaration.transitions = merged.transitions;
     }
     const operators = Array.isArray(cls.operators) ? cls.operators : [];
     if (operators.length) {
@@ -638,6 +648,35 @@ export function declarationsFromCtsRecords(records = {}) {
   return declarations;
 }
 
+// Transition-node target statuses (SPEC §20): a bound, non-archive
+// transition record authors its target status inline on its `state`
+// payload (the persisted v5 `target` key reads identically). Extracted
+// per bound type — the vocabulary seam both declaration compiles share.
+// A record without a binding or target contributes nothing (unfinished
+// authoring, like an unnamed field).
+export function transitionNodeStateTargets(processNodes = {}) {
+  const byType = new Map();
+  for (const record of Object.values(processNodes || {})) {
+    if (operationKindOf(record || {}) !== 'effect.changeStatus') continue;
+    const typeId = String(record.typeId || '');
+    const value = String(record.state?.to || record.target || '').trim();
+    if (!typeId || !value) continue;
+    const state = record.state || {};
+    const target = { value };
+    if (state.intent) target.intent = state.intent;
+    if (state.label) target.label = state.label;
+    if (state.severity) target.severity = state.severity;
+    if (state.icon) target.icon = state.icon;
+    if (state.terminal === true) target.terminal = true;
+    const list = byType.get(typeId) || [];
+    if (!list.some(existing => existing.value === value && (existing.intent || '') === (target.intent || ''))) {
+      list.push(target);
+    }
+    byType.set(typeId, list);
+  }
+  return byType;
+}
+
 // -- binding checks (SPEC §20, beside R1-R6) --
 
 export function checkCtsGraphBindings(definition = {}, domain = {}) {
@@ -653,11 +692,19 @@ export function checkCtsGraphBindings(definition = {}, domain = {}) {
       errors.push(`processNodes.${id}: unknown type ${typeId}`);
       continue;
     }
-    if (node.kind === CTS_KIND.transition && node.target) {
-      const workflow = domain.workflows?.[typeId];
-      const states = workflow?.regions?.[workflow?.primaryRegion || 'main']?.states || {};
-      if (typeId && Object.keys(states).length && !(node.target in states)) {
-        errors.push(`processNodes.${id}: target state ${node.target} is not declared for ${typeId}`);
+    if (node.kind === CTS_KIND.transition) {
+      // The target may be authored as the v5 `target` or inline on the
+      // record's `state` payload (the transition-node authoring surface) —
+      // both are binding-checked against the declared workflow, overlay
+      // included, so an authored-but-undeclared status fails validate
+      // instead of failing at runtime.
+      const target = node.target || node.state?.to || '';
+      if (target) {
+        const workflow = domain.workflows?.[typeId];
+        const states = workflow?.regions?.[workflow?.primaryRegion || 'main']?.states || {};
+        if (typeId && Object.keys(states).length && !(target in states)) {
+          errors.push(`processNodes.${id}: target state ${target} is not declared for ${typeId}`);
+        }
       }
     }
     if ((node.kind === CTS_KIND.field || node.kind === CTS_KIND.compose) && node.path) {

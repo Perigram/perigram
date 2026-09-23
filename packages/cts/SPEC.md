@@ -305,6 +305,14 @@ states: { main: draft | nesting | ready | error | closed,   -- axes are
   state VALUES are authored vocabulary; severity defaults `secondary` on
   terminal values, else `info`; icons default to none). They project to
   UI, they are not checked.
+- A status may also be declared at a transition node (SPEC §20): the
+  node's target (`to`) plus its inline policy (`label`, `severity`,
+  `icon`, terminal flag) compile into the declaration's axis before the
+  registry sees it — target values join `values`, the node contributes a
+  declared edge from every other value (from-state resolves dynamically),
+  and its policy composes over the axis render with the transition node
+  winning per value. The tree remains the structural home: `initial` is
+  authored only there, and R4 keeps judging the merged declaration.
 
 ## 8. Operators — six species
 
@@ -703,7 +711,12 @@ Effect nodes take the species names of §8 (the canonical table is
 - **States**: status strings become declaration-owned state values;
   `cts.transition` carries `target` plus optional `intent` (intent-first
   authoring arrives with the designer slice; the runtime resolves from-state
-  dynamically, so target-only is lossless).
+  dynamically, so target-only is lossless). The transition node may also
+  AUTHOR its target status inline (`state` payload: `to` with `label`,
+  `severity`, `icon`, `terminal`): those values compile into the bound
+  type's declaration machine per §7 — target-only authoring on the node is
+  the complete lifecycle gesture, wiring state nodes stays the structural
+  complement.
 - **Constructors**: `construction.mode` becomes `via`; typed constructor
   inputs and service signatures become declared operators (§8) — command and
   producer code registers as operators, unchanged.

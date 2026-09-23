@@ -100,6 +100,44 @@ function withAccessFlags(schema, policy) {
   };
 }
 
+// The declaration→machine seam (SPEC §7/§13): one home for deriving a
+// normalized v2 workflow from a compiled type declaration. The domain
+// projection's `workflows` and the server's status-engine fallback
+// (workflow-overrides) both read this — authored declarations execute as
+// machines wherever a machine is needed, in exactly one shape. Returns
+// null for types without a declared axis (no synthesized lifecycle).
+export function declarationWorkflow(type = {}) {
+  const axis = type.states?.main;
+  if (!axis?.values?.length) return null;
+  const terminal = new Set(axis.terminal || []);
+  const display = renderPolicyFor(type).states.main || {};
+  return {
+    schemaVersion: 2,
+    primaryRegion: 'main',
+    regions: {
+      main: {
+        label: 'Lifecycle',
+        initial: axis.initial,
+        states: Object.fromEntries(axis.values.map(value => [
+          value,
+          {
+            ...(terminal.has(value) ? { isTerminal: true } : {}),
+            canUpdateMeta: !terminal.has(value),
+            ...(display[value]?.label ? { label: display[value].label } : {}),
+            ...(display[value]?.icon ? { icon: display[value].icon } : {}),
+            ...(display[value]?.severity ? { severity: display[value].severity } : {})
+          }
+        ])),
+        transitions: (type.transitions || []).map(transition => ({
+          from: transition.from,
+          to: transition.to,
+          ...(transition.intent ? { intent: transition.intent } : {})
+        }))
+      }
+    }
+  };
+}
+
 export function projectDomainFromView(registry, organizationId = null, baseDomain = {}, { packServices = null } = {}) {
   const view = registry.resolveView ? registry.resolveView(organizationId) : new Map();
 
@@ -179,38 +217,13 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
   }
 
   // workflows: declared states/transitions with display policy (SPEC §7) —
-  // labels/icons/severity on the states facet are the single display home
-  // for declared states.
+  // derived by the exported declarationWorkflow seam below, shared with
+  // the server's status-engine machine resolution so a declared lifecycle
+  // compiles to exactly one machine shape everywhere.
   const workflows = {};
   for (const type of types) {
-    if (!type.states?.main?.values?.length) continue;
-    const terminal = new Set(type.states.main.terminal || []);
-    const display = renderPolicyFor(type).states.main || {};
-    workflows[type.id] = {
-      schemaVersion: 2,
-      primaryRegion: 'main',
-      regions: {
-        main: {
-          label: 'Lifecycle',
-          initial: type.states.main.initial,
-          states: Object.fromEntries(type.states.main.values.map(value => [
-            value,
-            {
-              ...(terminal.has(value) ? { isTerminal: true } : {}),
-              canUpdateMeta: !terminal.has(value),
-              ...(display[value]?.label ? { label: display[value].label } : {}),
-              ...(display[value]?.icon ? { icon: display[value].icon } : {}),
-              ...(display[value]?.severity ? { severity: display[value].severity } : {})
-            }
-          ])),
-          transitions: (type.transitions || []).map(transition => ({
-            from: transition.from,
-            to: transition.to,
-            ...(transition.intent ? { intent: transition.intent } : {})
-          }))
-        }
-      }
-    };
+    const workflow = declarationWorkflow(type);
+    if (workflow) workflows[type.id] = workflow;
   }
 
   // containment: children edges rebuild the lineage contract; org edges

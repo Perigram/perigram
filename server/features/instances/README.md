@@ -58,7 +58,12 @@ hand-written services.
   replay-safety inputs of the conversion that ran.
 - Declaration resolution per call: framework and pack types from static
   declarations, org types from `cts_types` (cached;
-  `invalidateInstanceDeclarations` on writes).
+  `invalidateInstanceDeclarations` on writes). The cached accessor is
+  exported as `declarationForType(typeId, organizationId)` for sibling
+  features — the workflow-overrides declaration-machine fallback reads it,
+  so its cache invalidation rides the same write hooks;
+  `staticTypeDeclaration(typeId)` is the synchronous static-only twin.
+  Both return raw declarations; callers normalize for their own use.
 - Service surface: the feature-service shape (getById/list/create/
   processUpdate/remove) plus the process bindings (processList,
   processGetById, processDelete, processCapabilities, and construction
