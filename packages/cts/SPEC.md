@@ -167,12 +167,17 @@ Field descriptors carry the naming facet alongside their type: `label?`
 phone/date/area/percent/dimensions/parameterMap/count/geometry/entityRef/
 entityRefList — passed through verbatim, not validated here), and
 `control?` (an edit-widget pin consumed by editor variants). Two closed
-boolean flags mark display roles: `identifier?: true` on at most one field
-(the record's name source; zero is legal — such records display
-"Unnamed") and `depiction?: true` on at most one field (its visual
-thumbnail source). Two or more of either flag is a compile error naming
-the fields; a system type without a name is a compile error naming the
-type id.
+boolean flags mark display roles: `identifier?: true` on exactly one
+field (the record's name source — the unnamed placeholder means "the
+identifier field's value is null" and nothing else) and `depiction?: true`
+on at most one field (its visual thumbnail source). When no field carries
+the identifier flag, normalization MINTS one: the first declared
+`string`-based field is flagged once, at the boundary, and the mint
+persists — later field additions never shift it; an explicit flag is the
+authored deviation and always wins. A type with no flag and no string
+field is a compile error telling the author to mark one; two or more of
+either flag is a compile error naming the fields; a system type without
+a name is a compile error naming the type id.
 
 There is no `render` facet on types. Identity, grouping, list layout, and
 default sort are not declaration concerns: display grouping derives from

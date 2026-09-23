@@ -78,8 +78,11 @@ module layout and how the code maps to the spec's build-order tiers.
   `render.identityField`→the field's `identifier` flag,
   `render.states`→the axis `render` home; system types without a carrier
   adopt `startCase(id)`, org-stored ones keep `name: null` ("Unnamed").
-  Compile also enforces the display-flag laws: at most one `identifier`
-  field, at most one `depiction` field, and a name on every system type.
+  Compile also enforces the display-flag laws: exactly one `identifier`
+  field (when none is flagged, normalization mints the first declared
+  string field — once, frozen; explicit flags deviate; no string field at
+  all is the compile error "mark the field that names its records"), at
+  most one `depiction` field, and a name on every system type.
 - `compat/domain-projection.js` — the single CTS → compiler-domain
   translator, synthesis-only: every type in the view (framework, pack,
   org) synthesizes its entities entry (per-class collection, §13),

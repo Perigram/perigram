@@ -319,6 +319,17 @@ export function migrateV4Definition(definition = {}, domain = {}) {
       : {})
   }));
 
+  // Declaration-tree records (`ctsTypes`) carry the registry id authored
+  // on their class node. Registry ids are kebab by law, but drafts saved
+  // by older sessions may spell the generated prefix with an underscore
+  // (`t_…`) while every other record collection was kebab-normalized —
+  // the same draft then references one type under two spellings and
+  // validation reports "unknown type" on both. One normalization here,
+  // idempotent, closes the seam for every load/validate path.
+  const ctsTypes = mapRecords(data.ctsTypes, record => (
+    record?.typeId ? { ...record, typeId: kebab(record.typeId) } : record
+  ));
+
   const migrated = {
     ...data,
     processNodes,
@@ -326,6 +337,7 @@ export function migrateV4Definition(definition = {}, domain = {}) {
     actions,
     sockets,
     screens,
+    ...(data.ctsTypes ? { ctsTypes } : {}),
     graphProtocol: 5
   };
   const result = wrapper?.data ? { ...wrapper, data: migrated } : migrated;

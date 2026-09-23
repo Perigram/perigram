@@ -74,8 +74,8 @@ function onStep(value) {
    :last-of-type flex: initial) and gives .p-steplist overflow-x: auto,
    so long labels overflow their container into a scroll. Equal
    flex-basis-0 shares with min-width 0 at every level remove content
-   from sizing entirely; .p-step-title already carries its own
-   nowrap/ellipsis, so it crops once constrained. */
+   from sizing entirely; the title WRAPS (never cropped, never scrolled
+   away) — long state labels grow the row instead of overflowing it. */
 .state-strip :deep(.p-steplist) {
   min-width: 0;
 }
@@ -100,6 +100,10 @@ function onStep(value) {
 
 .state-strip :deep(.p-step-title) {
   flex: 0 1 auto;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  overflow-wrap: anywhere;
   min-width: 0;
 }
 </style>

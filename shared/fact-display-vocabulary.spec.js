@@ -61,14 +61,16 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     // Legacy render.label/icon adopt to name/glyph at the boundary.
     expect(cassette.name).toBe('Cassette');
     expect(cassette.glyph).toBe('pi pi-box');
-    expect(cassette.identifier).toBeNull();
+    // No explicit flag on the legacy declaration: the first string field
+    // is minted as the identifier at the boundary (frozen, overridable).
+    expect(cassette.identifier).toBe('name');
     expect(cassette.sections).toEqual([{ id: 'summary', label: null, fields: ['name'] }]);
 
     const sheetDesign = typeRecordFor(bundle, 'sheet-design');
     expect(sheetDesign.name).toBe('Sheet design');
     // json -> summary; list of refs -> relations (item-base assignment).
     expect(sheetDesign.sections).toEqual([
-      { id: 'summary', label: null, fields: ['geometry'] },
+      { id: 'summary', label: null, fields: ['title', 'geometry'] },
       { id: 'relations', label: null, fields: ['parts'] }
     ]);
 
@@ -97,7 +99,7 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
       typeRecord: typeRecordFor(bundle, 'sheet-design')
     });
     expect(card.bundleResolved).toBe(true);
-    expect(card.fields.map(field => field.path)).toEqual(['data.geometry', 'data.parts']);
+    expect(card.fields.map(field => field.path)).toEqual(['data.title', 'data.geometry', 'data.parts']);
     const detail = resolveInstanceDisplayContract({
       typeId: 'sheet-design', surface: 'detail',
       typeRecord: typeRecordFor(bundle, 'sheet-design')
@@ -112,10 +114,10 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
 
   it('exposes factsFor as the one bundle-only fact-row resolver', () => {
     const sheetDesign = typeRecordFor(bundle, 'sheet-design');
-    expect(factsFor(sheetDesign, 'card').map(field => field.path)).toEqual(['data.geometry', 'data.parts']);
-    expect(factsFor(sheetDesign, 'detail').map(field => field.path)).toEqual(['data.geometry', 'data.parts']);
+    expect(factsFor(sheetDesign, 'card').map(field => field.path)).toEqual(['data.title', 'data.geometry', 'data.parts']);
+    expect(factsFor(sheetDesign, 'detail').map(field => field.path)).toEqual(['data.title', 'data.geometry', 'data.parts']);
     // Compact surfaces bound to the leading summary facts only.
-    expect(factsFor(sheetDesign, 'compact').map(field => field.path)).toEqual(['data.geometry']);
+    expect(factsFor(sheetDesign, 'compact').map(field => field.path)).toEqual(['data.title', 'data.geometry']);
     // No type view, no rows: undeclared types resolve nothing.
     expect(factsFor(null, 'card')).toEqual([]);
   });
@@ -147,8 +149,10 @@ describe('one fact vocabulary — bundle-resolved fact rows', () => {
     // the record id, never a slug, never another field's value.
     expect(titleFor({ id: 'w-77', fields: { name: '', parts: [] } }, widget, { unnamedLabel: 'Sin nombre' })).toBe('Sin nombre');
     expect(titleFor({ id: 'w-77', fields: {} }, widget)).toBe('Unnamed');
-    // No identifier flag, no type view: unnamed, even with filled strings.
-    expect(titleFor({ id: 'w-77', fields: { note: 'Kepler' } }, typeRecordFor(bundle, 'entity-revision'))).toBe('Unnamed');
+    // Every declared type carries an identifier (compile law): the note
+    // field names an entity-revision record. Only the null VALUE renders
+    // the placeholder — and no type view at all is unnamed regardless.
+    expect(titleFor({ id: 'w-77', fields: { note: 'Kepler' } }, typeRecordFor(bundle, 'entity-revision'))).toBe('Kepler');
     expect(titleFor({ id: 'w-77', fields: { note: 'Kepler' } }, null)).toBe('Unnamed');
   });
 

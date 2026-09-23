@@ -69,6 +69,19 @@ export function normalizeType(declaration = {}) {
   if (legacyRender.identityField && Object.hasOwn(fields, legacyRender.identityField)) {
     fields = { ...fields, [legacyRender.identityField]: { ...fields[legacyRender.identityField], identifier: true } };
   }
+  // Identifier adoption: when no field carries the flag, the FIRST
+  // declared string field is minted as the identifier — once, here at
+  // the boundary, and the mint persists (later field additions never
+  // shift it). An explicit flag is the authored deviation and always
+  // wins. Every record therefore has a name field; the unnamed
+  // placeholder only ever means "the identifier field's value is null".
+  if (!Object.values(fields).some(descriptor => descriptor?.identifier === true)) {
+    const firstString = Object.entries(fields)
+      .find(([, descriptor]) => descriptor?.base === 'string');
+    if (firstString) {
+      fields = { ...fields, [firstString[0]]: { ...firstString[1], identifier: true } };
+    }
+  }
   let states = declaration.states || {};
   if (states.main && legacyRender.states && !states.main.render) {
     states = { ...states, main: { ...states.main, render: legacyRender.states } };
@@ -215,7 +228,9 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
     });
   }
 
-  // Display-facet laws (SPEC §4): at most one `identifier` field and one
+  // Display-facet laws (SPEC §4): exactly one `identifier` field (the
+  // field whose value names each record — its null value is the only
+  // thing that renders the unnamed placeholder) and at most one
   // `depiction` field per type; system types must carry a name (the
   // boundary adopt guarantees it). Org-stored declarations may honestly
   // have no name — they serve "Unnamed" — so the name invariant holds
@@ -226,7 +241,10 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
       .filter(([, descriptor]) => descriptor[flag] === true).map(([name]) => name);
     const identifiers = flagged('identifier');
     if (identifiers.length > 1) {
-      errors.push(`type ${type.id}: identifier flag on multiple fields (${identifiers.join(', ')}) — exactly one or none`);
+      errors.push(`type ${type.id}: identifier flag on multiple fields (${identifiers.join(', ')}) — exactly one required`);
+    }
+    if (identifiers.length === 0) {
+      errors.push(`type ${type.id}: mark the field that names its records (identifier flag on exactly one field)`);
     }
     const depictions = flagged('depiction');
     if (depictions.length > 1) {

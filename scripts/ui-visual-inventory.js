@@ -43,7 +43,13 @@ export const SCOPED_LAYOUT_PROPERTIES = new Set([
   'min-height',
   'min-width',
   'overflow',
-  'width'
+  'width',
+  // Text flow is layout, not typography: wrap behavior sizes the box
+  // (long labels grow the row instead of overflowing it).
+  'white-space',
+  'text-overflow',
+  'overflow-wrap',
+  'word-break'
 ]);
 
 export const SCOPED_EXCEPTION_PROPERTIES = Object.freeze({
