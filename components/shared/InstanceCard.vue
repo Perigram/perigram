@@ -10,7 +10,10 @@
             @click="togglePopup"
             @keydown="onToggleKeydown"
         >
-            <IdentityBlock :entity="entity" variant="inline" :icon="entityConfig.icon" />
+            <span class="instance-inline-chip max-w-full" :title="identityLabel">
+                <i v-if="entityConfig.icon" :class="['instance-inline-chip-icon', entityConfig.icon]" aria-hidden="true"></i>
+                <span class="instance-inline-chip-label">{{ identityLabel }}</span>
+            </span>
             <slot name="inline-extra" />
         </span>
     </template>
@@ -37,7 +40,10 @@
                     </template>
                     <template v-else>
                         <slot name="before-identity" />
-                        <IdentityBlock :entity="entity" variant="compact" :icon="entityConfig.icon" />
+                        <div class="flex min-w-0 items-center gap-2">
+                            <i v-if="entityConfig.icon" :class="entityConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
+                            <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
+                        </div>
                     </template>
                 </div>
                 <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
@@ -76,7 +82,10 @@
                     <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
                         <div class="flex min-w-0 flex-1 items-center gap-2">
                             <slot name="before-identity" />
-                            <IdentityBlock :entity="entity" :icon="entityConfig.icon" />
+                            <div class="flex min-w-0 items-center gap-2">
+                                <i v-if="entityConfig.icon" :class="entityConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
+                                <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
+                            </div>
                         </div>
                         <div v-if="effectiveShowStatus" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
                             <InstanceState
@@ -139,7 +148,10 @@
                         @transitioned="$emit('refresh')"
                     />
                 </div>
-                <IdentityBlock :entity="entity" variant="header" :icon="entityConfig.icon" />
+                <div class="flex min-w-0 items-center gap-2">
+                    <i v-if="entityConfig.icon" :class="entityConfig.icon" class="shrink-0 text-muted" aria-hidden="true"></i>
+                    <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
+                </div>
                 <TraceChain
                     v-if="effectivePopupShowTrace"
                     :entity="entity"
@@ -193,7 +205,7 @@
 import { computed, inject, onMounted, onUnmounted, ref, unref } from 'vue';
 /**
  * InstanceCard - v24 Standardized
- * Shared entity card structure: TraceChain + IdentityBlock + InstanceState.
+ * Shared entity card structure: TraceChain + identity chrome + InstanceState.
  * Entity-specific cards use this as their container, providing only
  * entity-specific body/footer content via slots.
  *
@@ -207,7 +219,6 @@ import { computed, inject, onMounted, onUnmounted, ref, unref } from 'vue';
  *   inline-extra     — suffix in inline row
  *   footer           — footer actions (card variant; inline by default)
  */
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import InstanceState from '~/components/shared/state/InstanceState.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import InstanceActionsPopover from '~/components/shared/InstanceActionsPopover.vue';
@@ -219,7 +230,8 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import GeneratedCassetteDesignerAction from '~/components/generated/GeneratedCassetteDesignerAction.vue';
 import { useRegistryStore } from '~/stores/registry';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
-import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { instanceIdentityLabel, resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { useI18n } from 'vue-i18n';
 import { hasMeaningfulWorkflowState } from '~/utils/state-actions.js';
 import { instanceHierarchyIds } from '~/utils/instance-hierarchy.js';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
@@ -266,6 +278,7 @@ const inlineShowCassetteDesignerRef = inject('instanceInlineShowCassetteDesigner
 const inlineExecuteActionRef = inject('instanceInlineExecuteAction', null);
 const stateWorkflowsRef = inject('stateWorkflows', null);
 
+const { t } = useI18n();
 const registry = useRegistryStore();
 // Render-policy icons are the single icon source (stores/README.md):
 // the legacy instanceUiFor table died with the per-surface icon drift.
@@ -295,6 +308,12 @@ const traceExclusions = computed(() => {
         id
     }));
 });
+// Identity chrome resolves through the compiled identity policy
+// (name → slug → type label → localized unnamed placeholder).
+const identityLabel = computed(() => instanceIdentityLabel(props.entity, {
+    typeLabel: unref(inlineTypeLabelRef) || '',
+    unnamedLabel: t('common.unnamed')
+}));
 const inlineDetailRoute = computed(() => unref(inlineDetailRouteRef));
 const inlineTypeLabel = computed(() => unref(inlineTypeLabelRef) || '');
 const inlineActionIds = computed(() => unref(inlineActionIdsRef) || []);

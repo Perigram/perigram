@@ -43,6 +43,7 @@ import Tag from 'primevue/tag';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 
 const props = defineProps({
   organization: { type: Object, required: true },
@@ -51,7 +52,8 @@ const props = defineProps({
 
 const avatarLabel = computed(() => (props.organization.identity?.name || '?').charAt(0));
 
-const ORGANIZATION_FIELDS = resolveInstanceDisplayFields({ typeId: 'organization', surface: 'card' });
+const { typeById } = useFileTypeView();
+const ORGANIZATION_FIELDS = computed(() => resolveInstanceDisplayFields({ typeId: 'organization', surface: 'card', typeRecord: typeById('organization') }));
 
 const createdAt = computed(() => {
     const ts = props.organization.lineage?.createdAt || props.organization.origin?.timestamp;

@@ -102,18 +102,8 @@
               />
             </template>
 
-            <template v-else-if="primitive.key === 'IdentityBlock'">
-            <IdentityBlock :entity="primitiveEntity" variant="header" :fields="['slug', 'serial', 'reference']" />
-            <IdentityBlock :entity="primitiveEntity" variant="compact" :fields="['slug', 'serial']" />
-            <IdentityBlock :entity="primitiveEntity" variant="inline" icon="pi pi-box" />
-            </template>
-
             <template v-else-if="primitive.key === 'DataBlock'">
               <DataBlock type-id="materialPile" :entity="pileEntity" :fields="pileFields" />
-            </template>
-
-            <template v-else-if="primitive.key === 'SpecsBlock'">
-              <SpecsBlock type-id="sheet" :entity="sheetEntity" />
             </template>
 
             <template v-else-if="primitive.key === 'StatusBadge'">
@@ -276,14 +266,12 @@ import Textarea from 'primevue/textarea';
 import ThemeSwitcher from '~/components/ThemeSwitcher.vue';
 import LanguageSwitcher from '~/components/LanguageSwitcher.vue';
 import frameworkManifest from '~/framework.manifest.json';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import InstanceState from '~/components/shared/state/InstanceState.vue';
 import StateLocation from '~/components/shared/state/StateLocation.vue';
 import StateHistory from '~/components/shared/state/StateHistory.vue';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import TraceLink from '~/components/shared/links/TraceLink.vue';
-import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
 import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
@@ -333,9 +321,7 @@ const PRIMITIVE_EXAMPLE_KEYS = [
   'InstancePage',
   'InstanceSelect',
   'InstanceMultiSelect',
-  'IdentityBlock',
   'DataBlock',
-  'SpecsBlock',
   'StatusBadge',
   'InstanceState',
   'StateLocation',

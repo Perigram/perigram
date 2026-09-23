@@ -32,8 +32,10 @@ import Divider from 'primevue/divider';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 
-const FIELDS = resolveInstanceDisplayFields({ typeId: 'penTemplate', surface: 'card' });
+const { typeById } = useFileTypeView();
+const FIELDS = computed(() => resolveInstanceDisplayFields({ typeId: 'penTemplate', surface: 'card', typeRecord: typeById('pen-template') }));
 
 const props = defineProps({
   pen: { type: Object, required: true },

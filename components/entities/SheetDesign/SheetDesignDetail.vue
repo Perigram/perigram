@@ -90,6 +90,7 @@ import Tag from 'primevue/tag';
 import InstancePage from '~/components/shared/InstancePage.vue';
 import { cassetteDesignCountsForSheetDesign } from '~/utils/sheetDesigns.js';
 import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { useAuthStore } from '~/stores/auth';
 import { hasPermissionGrant } from '#shared/access-control.js';
 
@@ -109,8 +110,9 @@ const canEdit = computed(() => hasPermissionGrant({
     typeId: 'sheet_design'
 }));
 
-const SHEET_DESIGN_FIELDS = resolveInstanceDisplayFields({ typeId: 'sheetDesign', surface: 'detail' })
-    .filter(field => field.role !== 'previewSource');
+const { typeById } = useFileTypeView();
+const SHEET_DESIGN_FIELDS = computed(() => resolveInstanceDisplayFields({ typeId: 'sheetDesign', surface: 'detail', typeRecord: typeById('sheet-design') })
+    .filter(field => field.role !== 'previewSource'));
 
 const cassetteDesigns = computed(() => cassetteDesignCountsForSheetDesign(props.design).map(item => ({
     ...item,

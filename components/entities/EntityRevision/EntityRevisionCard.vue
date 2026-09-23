@@ -23,9 +23,11 @@ import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 
-const FIELDS = resolveInstanceDisplayFields({ typeId: 'entityRevision', surface: 'card' })
-  .filter(field => field.display !== 'entityRef');
+const { typeById } = useFileTypeView();
+const FIELDS = computed(() => resolveInstanceDisplayFields({ typeId: 'entityRevision', surface: 'card', typeRecord: typeById('entity-revision') })
+  .filter(field => field.display !== 'entityRef'));
 
 const ENTITY_TYPE_TO_UI_TYPE = {
   cassette: 'cassetteTemplate'

@@ -231,7 +231,16 @@ const ENTITY_ALIASES = {
   machine: 'machine',
   tool_profile: 'toolProfile',
   pen_template: 'penTemplate',
-  layer_standard: 'layerStandard'
+  layer_standard: 'layerStandard',
+  // Kebab CTS ids of types whose fact vocabulary moved to the bundle but
+  // whose field-access policy is still served by this legacy map (the
+  // declaration projection's own fieldAccess does not carry the legacy
+  // read paths yet — access migrates when the DTO paths become declared
+  // rows).
+  'entity-revision': 'entityRevision',
+  'sheet-design': 'sheetDesign',
+  'facade-design': 'facade',
+  'facade-pattern': 'facade_pattern'
 };
 
 export function normalizeFieldAccessTypeId(typeId = '') {

@@ -603,12 +603,18 @@ export function resolveFieldGroups(type = {}) {
   const declared = type.render?.groups || [];
   const entries = Object.entries(type.fields || {})
     .map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) }));
-  const assigned = new Set(declared.flatMap(group => group.fields || []));
+  // Group fields may be bare field names (the section vocabulary) or
+  // normalized fact descriptors ({ path, ... }) from the render facet —
+  // section matching reads the name either way.
+  const namesOf = (group) => (group.fields || []).map(field => (
+    typeof field === 'string' ? field : field?.path
+  ));
+  const assigned = new Set(declared.flatMap(group => namesOf(group)));
   const groups = declared
     .map(group => ({
       id: group.id,
       label: group.label || String(group.id).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase()),
-      fields: entries.filter(entry => (group.fields || []).includes(entry.name))
+      fields: entries.filter(entry => namesOf(group).includes(entry.name))
     }))
     .filter(group => group.fields.length);
   const rest = entries.filter(entry => !assigned.has(entry.name));

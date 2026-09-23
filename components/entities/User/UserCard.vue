@@ -39,6 +39,7 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -55,7 +56,8 @@ const role = computed(() => props.user.data?.role || '');
 const organizationCount = computed(() => props.user.data?.memberships?.length || 0);
 const avatarSize = computed(() => props.variant === 'inline' ? 'normal' : 'xlarge');
 
-const USER_FIELDS = resolveInstanceDisplayFields({ typeId: 'user', surface: 'card' });
+const { typeById } = useFileTypeView();
+const USER_FIELDS = computed(() => resolveInstanceDisplayFields({ typeId: 'user', surface: 'card', typeRecord: typeById('user') }));
 
 const handleCardClick = (event) => {
     if (isInteractiveEventTarget(event)) return;

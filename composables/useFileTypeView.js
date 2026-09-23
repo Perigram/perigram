@@ -40,8 +40,19 @@ export function useFileTypeView() {
 
   const entry = cache.get(cacheKey);
 
+  // Bundle ids are kebab CTS ids; callers hold kebab, snake, or legacy
+  // camel spellings of the same type. One normalization home for the
+  // display seam.
+  const kebab = (value) => String(value)
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/_/g, '-')
+    .toLowerCase();
+
   function typeById(typeId = '') {
-    return entry.types.value.find(type => type.id === typeId) || null;
+    const exact = entry.types.value.find(type => type.id === typeId);
+    if (exact || !typeId) return exact || null;
+    const normalized = kebab(typeId);
+    return entry.types.value.find(type => type.id === normalized) || null;
   }
 
   return {

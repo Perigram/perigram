@@ -12,7 +12,7 @@
 
     <template #inspector>
       <div class="flex min-h-0 flex-1 flex-col gap-3 p-3">
-        <IdentityBlock v-if="selectedPart" :entity="{ identity: { name: selectedPart.label } }" variant="compact" />
+        <span v-if="selectedPart" class="truncate">{{ selectedPart.label }}</span>
         <StateBlock v-else :message="$t('facade.parts')" icon="pi pi-objects-column" />
         <div v-if="selectedPart" class="flex flex-col gap-2">
           <Select v-model="selectedPatternId" :options="patternOptions" option-label="label" option-value="value" type-id="facadePattern" :placeholder="$t('facade.patterns')" />
@@ -33,7 +33,6 @@ import Select from '~/components/shared/InstanceSelect.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import ThreeViewport from '~/components/shared/ThreeViewport.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import StateBlock from '~/components/shared/StateBlock.vue';
 
 const props = defineProps({ facade: { type: Object, required: true }, readOnly: { type: Boolean, default: false } });

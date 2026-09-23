@@ -3,13 +3,13 @@
  * InstancePage - v24
  * Standardized layout for entity detail pages.
  */
-import IdentityBlock from './blocks/IdentityBlock.vue';
 import InstanceState from './state/InstanceState.vue';
 import TraceChain from './links/TraceChain.vue';
 import InstanceActionsPopover from './InstanceActionsPopover.vue';
 import { computed, inject, provide, unref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
+import { instanceIdentityLabel } from '~/utils/instance-display-contract.js';
 import { useRegistryStore } from '~/stores/registry';
 
 const props = defineProps({
@@ -39,6 +39,10 @@ const typeLabel = computed(() => {
 });
 const registry = useRegistryStore();
 const entityIcon = computed(() => registry.iconFor(props.typeId));
+const identityLabel = computed(() => instanceIdentityLabel(props.entity, {
+  typeLabel: typeLabel.value,
+  unnamedLabel: t('common.unnamed')
+}));
 const parentDisplayedEntityContexts = inject('displayedEntityContexts', computed(() => []));
 provide('displayedEntityContexts', computed(() => [
   ...(unref(parentDisplayedEntityContexts) || []),
@@ -60,7 +64,10 @@ provide('displayedEntityContexts', computed(() => [
             {{ effectiveTitle }}
           </div>
           <div class="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <IdentityBlock v-if="showIdentity" :entity="entity" variant="header" :icon="entityIcon" />
+            <div v-if="showIdentity" class="flex min-w-0 items-center gap-2">
+              <i v-if="entityIcon" :class="entityIcon" class="shrink-0 text-muted" aria-hidden="true"></i>
+              <span class="truncate" :title="identityLabel">{{ identityLabel }}</span>
+            </div>
             <InstanceState
               v-if="showStatus"
               :entity="entity"

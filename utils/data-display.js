@@ -3,11 +3,27 @@ export function resolveDataPath(obj, path) {
   return path.split('.').reduce((acc, key) => acc?.[key], obj);
 }
 
+// Unit policy for fact rows (Phase 6): declared units render as value
+// suffixes. Authored `suffix`/`prefix` strings still pass through for
+// display shapes that are not closed-units vocabulary.
+const UNIT_SUFFIXES = Object.freeze({
+  mm: ' mm',
+  m: ' m',
+  m2: ' m²',
+  percent: '%',
+  min: ' min',
+  deg: '°'
+});
+
 export function formatDataValue(raw, field = {}) {
   if (raw == null || raw === '') return null;
 
   if (field.display === 'parameterMap') {
     return formatParameterMap(raw);
+  }
+
+  if (field.display === 'dimensions') {
+    return formatDimensions(raw, field);
   }
 
   if (typeof raw === 'boolean') {
@@ -38,6 +54,13 @@ export function formatDataValue(raw, field = {}) {
   return String(raw);
 }
 
+function formatDimensions(raw, field = {}) {
+  if (!raw || typeof raw !== 'object') return null;
+  const { width, length } = raw;
+  if (width == null || length == null) return null;
+  return `${width} × ${length}`;
+}
+
 export function formatParameterMap(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const parts = Object.entries(raw)
@@ -49,7 +72,8 @@ export function formatParameterMap(raw) {
 export function decorateDataValue(raw, field = {}) {
   const formatted = formatDataValue(raw, field);
   if (formatted == null || formatted === '') return null;
-  return `${field.prefix ?? ''}${formatted}${field.suffix ?? ''}`;
+  const suffix = field.suffix ?? (field.unit ? UNIT_SUFFIXES[field.unit] ?? ` ${field.unit}` : '');
+  return `${field.prefix ?? ''}${formatted}${suffix}`;
 }
 
 function isScalar(value) {

@@ -35,6 +35,7 @@ import InstancePage from '~/components/shared/InstancePage.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import { useAuthStore } from '~/stores/auth';
 import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 
 const props = defineProps({
   screen: { type: Object, required: true }
@@ -46,7 +47,8 @@ const { t, te } = useI18n();
 
 const organization = computed(() => authStore.organizationData);
 const systemScreens = computed(() => (props.screen.systemScreens || []).filter(item => item.route));
-const organizationFields = resolveInstanceDisplayFields({ typeId: 'organization', surface: 'detail' });
+const { typeById } = useFileTypeView();
+const organizationFields = computed(() => resolveInstanceDisplayFields({ typeId: 'organization', surface: 'detail', typeRecord: typeById('organization') }));
 
 function systemLabel(key = '', fallback = '') {
   return key && te(key) ? t(key) : fallback || key;

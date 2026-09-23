@@ -431,7 +431,46 @@ describe('render policy (SPEC §7)', () => {
     expect(render.identityField).toBe('name');
     expect(render.sortKey).toBe('size');
     expect(render.listLayout).toBe('timeline');
-    expect(render.groups).toEqual([{ id: 'core', label: null, fields: ['name'] }]);
+    // Bare field names normalize to descriptor records — the one shape
+    // fact-row consumers read.
+    expect(render.groups).toEqual([{ id: 'core', label: null, fields: [{ path: 'name' }] }]);
+    // The identity fallback policy is compiled, not authored.
+    expect(render.identity).toEqual({
+      fields: ['identity.name', 'identity.slug', 'identity.uid'],
+      unnamed: 'common.unnamed'
+    });
+  });
+
+  it('normalizes authored fact-row descriptors into the render facet', () => {
+    const registry = createTypeRegistry({ id: 'render-facet-spec' });
+    registry.defineType({
+      id: 'gadget', class: 'item',
+      fields: { name: { base: 'string' }, width: { base: 'quantity', unit: 'mm' } },
+      render: {
+        groups: [
+          {
+            id: 'specs',
+            label: 'Specs',
+            fields: [
+              { name: 'width', label: 'gadget.width', display: 'dimension', unit: 'mm', priority: 10 },
+              { path: 'summary.area', label: 'common.area', display: 'area', unit: 'm2', fallbackPaths: ['specs.area'] }
+            ]
+          }
+        ]
+      }
+    });
+    const render = compileClientBundle(registry).types.find(type => type.id === 'gadget').render;
+    expect(render.groups).toEqual([{
+      id: 'specs',
+      label: 'Specs',
+      fields: [
+        { path: 'width', label: 'gadget.width', display: 'dimension', unit: 'mm', priority: 10 },
+        { path: 'summary.area', label: 'common.area', display: 'area', unit: 'm2', fallbackPaths: ['specs.area'] }
+      ]
+    }]);
+    // Authored vocabulary the facet never invented: unknown keys do not
+    // ride through — the compiled shape is closed.
+    expect(Object.keys(render.groups[0].fields[0]).sort()).toEqual(['display', 'label', 'path', 'priority', 'unit']);
   });
 
   it('defaults the authored vocabulary to empty when undeclared', () => {
