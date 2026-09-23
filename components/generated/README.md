@@ -115,16 +115,31 @@ The current default overloads are:
 `file-surfaces.js` is the single app-side home of the file-type editor
 contract. It combines two halves:
 
-- **Served/pack data** — the pack editor bindings (`{ type, surface, modes }`,
+- **Served data by default** — the editor bindings (`{ type, surface, modes }`,
   see the [domain-cnc pack direction](../../packages/domain-cnc/README.md)),
   served with the organization type view by
-  [cts-types](../../server/features/cts-types/README.md). This decides which
-  file type opens which surface and in which modes.
+  [cts-types](../../server/features/cts-types/README.md) and read through the
+  `useFileTypeView` cache. This decides which file type opens which surface
+  and in which modes. The app-side pack recomposition
+  (`packEditorBindings`) remains as the explicit fallback for contexts
+  without a fetched view — module-scope evaluation, unit specs, and
+  pre-auth shells.
 - **The fixed surface registry** — surface id → app presentations. Each
   surface record may carry the detail-body overload component (with its props
   adapter and `ownsActionSurface`), the card/detail editor-action component,
   and the workspace-page presentation (label key, icon, component, props).
   Process data never selects components; the surface id does.
+
+Two editor-binding guards live here: `validateEditorBindings(bindings,
+registry)` throws naming the binding when a surface id is absent from the
+registry, and rejects two bindings for one type naming both surfaces. The
+pack fallback is validated at module load, so pack/registry drift fails at
+import instead of silently dropping an editor presentation;
+`file-surfaces.spec.js` runs the helper red-green against the real pack
+bindings. The complementary server-side guard (an editor binding must target
+a payload-bearing file class) is enforced at the pack composition seam
+documented in the
+[cts-types README](../../server/features/cts-types/README.md).
 
 `overloads.js`, `instance-editor-action.js`, and `workspace-pages.js` derive
 their file-type rows (cassette, sheet-design, facade-design,
