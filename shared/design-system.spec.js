@@ -609,35 +609,29 @@ describe('Design system manifest', () => {
   it('declares constructor surfaces and field groups in the domain contract', () => {
     expect(validateDesignSystemDisplayContracts()).toEqual([]);
 
-    // Declared types (framework, tech-drawing, CNC pack) carry their fact
-    // groups as authored render data: the compiled bundle facet is the
-    // one fact vocabulary. Legacy keys remain only for undeclared types.
+    // Declared types (framework, tech-drawing, CNC pack) carry their
+    // display vocabulary on the declaration (name, glyph, field labels);
+    // fact grouping derives at compile (sections over the row). Legacy
+    // field-group keys remain only for undeclared types.
     const bundleDeclared = new Set([
       'cassette', 'sheetDesign', 'penTemplate', 'layerStandard',
       'user', 'organization', 'artifact', 'entityRevision'
     ]);
-    const declaredGroups = (typeId) => {
-      const declaration = [...frameworkTypes, ...techDrawingTypes, ...cncFileTypes]
-        .find(type => type.id === typeId);
-      return declaration?.render?.groups || [];
-    };
     for (const key of bundleDeclared) {
       const entry = DESIGN_SYSTEM_ENTITY_CONTRACTS.find(contract => contract.key === key);
-      const groups = declaredGroups(entry.typeId.replace(/_/g, '-'));
-      expect(groups.length, `${key} declares its fact groups on its type declaration`).toBeGreaterThan(0);
-      for (const group of groups) {
-        for (const field of group.fields) {
-          expect(field.path, `${key}.${group.id}.${field.path} carries a label`).toBeTruthy();
-          expect(field.path).not.toMatch(/^entity\./);
-        }
+      const type = normalizeType(declarationFor(entry.typeId.replace(/_/g, '-')));
+      expect(type.name, `${key} declares its name`).toBeTruthy();
+      expect(type.render, `${key} carries no render facet`).toBeUndefined();
+      // The bundle projection derives the sections and the display
+      // policy (renderPolicyFor): total assignment — every section field
+      // is a real row field, every row field lands in exactly one.
+      const policy = renderPolicyFor(type);
+      const rowFields = Object.keys(type.fields);
+      expect(policy.sections.flatMap(section => section.fields)).toHaveLength(rowFields.length);
+      expect(policy.sections.every(section => section.fields.every(name => type.fields[name]))).toBe(true);
+      for (const name of rowFields) {
+        expect(policy.sections.filter(section => section.fields.includes(name)), `${key}.${name} lands in exactly one section`).toHaveLength(1);
       }
-      // The bundle projection normalizes descriptors and the identity
-      // policy (renderPolicyFor).
-      const policy = renderPolicyFor(normalizeType(declarationFor(entry.typeId.replace(/_/g, '-'))));
-      expect(policy.groups.flatMap(group => group.fields)).toEqual(
-        expect.arrayContaining([expect.objectContaining({ path: groups[0].fields[0].path })])
-      );
-      expect(policy.identity.fields).toEqual(['identity.name', 'identity.slug', 'identity.uid']);
     }
 
     for (const entry of DESIGN_SYSTEM_ENTITY_CONTRACTS) {

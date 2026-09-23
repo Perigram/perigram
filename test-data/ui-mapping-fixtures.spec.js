@@ -124,9 +124,9 @@ describe('hydration four breaks the previous skeleton', () => {
   });
 
   it('resolves every compiled action with the CTS vocabulary', () => {
-    const jobRender = bundle.types.find(type => type.id === 'watch_job').render;
+    const jobType = bundle.types.find(type => type.id === 'watch_job');
     const outcomes = Object.fromEntries(
-      Object.values(contract.actions).map(action => [action.id, resolveActionButton(action, { render: jobRender })])
+      Object.values(contract.actions).map(action => [action.id, resolveActionButton(action, { type: jobType })])
     );
     expect(outcomes.doc_create).toMatchObject({ tone: 'primary' });
     expect(outcomes.doc_delete).toMatchObject({ tone: 'danger', confirm: true });

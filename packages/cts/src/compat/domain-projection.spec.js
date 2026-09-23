@@ -15,6 +15,7 @@ function registry() {
 
 const orgPanel = {
   id: 'panel',
+  name: 'Panel',
   class: 'item',
   scope: 'org',
   organizationId: 'org-1',
@@ -30,6 +31,7 @@ const orgPanel = {
 
 const orgBin = {
   id: 'bin',
+  name: 'Bin',
   class: 'group',
   scope: 'org',
   organizationId: 'org-1',
@@ -40,6 +42,7 @@ const orgBin = {
 
 const orgDoc = {
   id: 'spec-sheet',
+  name: 'Spec sheet',
   class: 'file',
   scope: 'org',
   organizationId: 'org-1',
@@ -56,6 +59,7 @@ function orgRegistry() {
 
 const orgDerivedPlan = {
   id: 'derived-plan',
+  name: 'Derived plan',
   class: 'file',
   scope: 'org',
   organizationId: 'org-1',

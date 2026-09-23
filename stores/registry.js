@@ -56,15 +56,11 @@ export const useRegistryStore = defineStore('registry', () => {
     return typeRecord(typeId)?.operators || {};
   }
 
-  function renderOf(typeId = '') {
-    return typeRecord(typeId)?.render || {};
-  }
-
-  // Render-policy icons are the single icon source; unknown types keep the
-  // adapter-era default so pickers and inline refs never render a blank
-  // glyph (class default from `renderPolicyFor`).
+  // Display-policy glyphs are the single icon source; unknown types keep
+  // the adapter-era default so pickers and inline refs never render a
+  // blank glyph (class default from `renderPolicyFor`).
   function iconFor(typeId = '') {
-    return renderOf(typeId).icon || 'pi pi-circle';
+    return typeRecord(typeId)?.glyph || 'pi pi-circle';
   }
 
   // Constructibility is declarative: a declared construct operator (species
@@ -124,7 +120,6 @@ export const useRegistryStore = defineStore('registry', () => {
     projectedDomain,
     statesOf,
     operatorsOf,
-    renderOf,
     iconFor,
     constructible,
     refresh

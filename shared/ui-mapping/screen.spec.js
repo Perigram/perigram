@@ -5,15 +5,27 @@ const bundle = {
   types: [
     {
       id: 'widget', class: 'item',
-      fields: { name: { base: 'string' }, size: { base: 'quantity', unit: 'mm' } },
-      states: { main: { initial: 'draft', values: ['draft', 'done'], terminal: ['done'] } },
-      render: { label: 'Widget', icon: 'pi pi-box', states: { done: { severity: 'success' } } }
+      name: 'Widget',
+      glyph: 'pi pi-box',
+      identifier: 'name',
+      fields: { name: { base: 'string', identifier: true }, size: { base: 'quantity', unit: 'mm' } },
+      sections: [{ id: 'summary', label: null, fields: ['name'] }, { id: 'dimensions', label: null, fields: ['size'] }],
+      states: {
+        main: {
+          initial: 'draft', values: ['draft', 'done'], terminal: ['done'],
+          render: { draft: { label: 'Draft', icon: null, severity: 'info' }, done: { label: 'Done', icon: null, severity: 'secondary' } }
+        }
+      }
     },
     {
       id: 'sheet_file', class: 'file',
+      name: 'Sheet',
+      glyph: 'pi pi-file',
+      identifier: 'title',
       payload: { mime: ['image/png'], preview: 'image' },
-      fields: { title: { base: 'string' } },
-      render: { label: 'Sheet', icon: 'pi pi-file' }
+      fields: { title: { base: 'string', identifier: true } },
+      sections: [{ id: 'summary', label: null, fields: ['title'] }],
+      states: {}
     }
   ]
 };

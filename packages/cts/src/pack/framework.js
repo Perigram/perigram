@@ -7,15 +7,10 @@ export const frameworkTypes = [
     class: 'party',
     scope: 'system',
     version: 1,
-    fields: { name: { base: 'string' }, email: { base: 'string', nullable: true } },
-    render: {
-      groups: [
-        { id: 'summary', fields: [
-          { path: 'data.type', label: 'organization.type', display: 'text', priority: 10 },
-          { path: 'data.email', label: 'profile.email', display: 'email', priority: 20 },
-          { path: 'data.phone', label: 'profile.phone', display: 'phone', priority: 30 }
-        ] }
-      ]
+    name: 'Organization',
+    fields: {
+      name: { base: 'string', identifier: true },
+      email: { base: 'string', nullable: true, label: 'profile.email', display: 'email' }
     }
   },
   {
@@ -23,14 +18,10 @@ export const frameworkTypes = [
     class: 'party',
     scope: 'system',
     version: 1,
-    fields: { email: { base: 'string' }, name: { base: 'string', nullable: true } },
-    render: {
-      groups: [
-        { id: 'summary', fields: [
-          { path: 'data.email', label: 'profile.email', display: 'email', priority: 10 },
-          { path: 'identity.reference', label: 'common.reference', display: 'text', priority: 20 }
-        ] }
-      ]
+    name: 'User',
+    fields: {
+      email: { base: 'string', identifier: true, label: 'profile.email', display: 'email' },
+      name: { base: 'string', nullable: true }
     }
   },
   // Framework machinery types: file storage, revisions, process definitions.
@@ -43,20 +34,11 @@ export const frameworkTypes = [
     class: 'file',
     scope: 'system',
     version: 1,
+    name: 'File',
+    glyph: 'pi pi-file',
     payload: { mime: 'application/octet-stream' },
-    fields: { filename: { base: 'string' } },
-    render: {
-      label: 'File',
-      icon: 'pi pi-file',
-      groups: [
-        { id: 'summary', fields: [
-          { path: 'data.type', label: 'file.type', display: 'text', priority: 10 },
-          { path: 'attachments.primary.name', fallbackPaths: ['data.filename'], label: 'file.name', display: 'text', priority: 20 }
-        ] },
-        { id: 'relations', fields: [
-          { path: 'lineage.nestingRunId', label: 'entities.nestingRun', display: 'entityRef', typeId: 'nestingRun', priority: 40 }
-        ] }
-      ]
+    fields: {
+      filename: { base: 'string', identifier: true, label: 'file.name', display: 'text' }
     }
   },
   {
@@ -65,31 +47,20 @@ export const frameworkTypes = [
     class: 'file',
     scope: 'system',
     version: 1,
-    fields: { note: { base: 'string', nullable: true } },
-    render: {
-      label: 'Revision',
-      icon: 'pi pi-history',
-      groups: [
-        { id: 'summary', fields: [
-          { path: 'data.scope', label: 'revision.scope', display: 'text', priority: 10 },
-          { path: 'data.number', label: 'revision.number', prefix: 'v', display: 'number', priority: 20 },
-          { path: 'data.shortHash', label: 'revision.hash', display: 'code', priority: 30 }
-        ] },
-        { id: 'relations', fields: [
-          { path: 'data.source', label: 'revision.source', display: 'entityRef', priority: 40 }
-        ] }
-      ]
-    }
+    name: 'Revision',
+    glyph: 'pi pi-history',
+    fields: { note: { base: 'string', nullable: true, label: 'Note' } }
   },
   {
     id: 'process-definition', framework: true, class: 'process', scope: 'system', version: 1,
-    fields: { name: { base: 'string' } },
+    name: 'Process definition',
+    glyph: 'pi pi-sitemap',
+    fields: { name: { base: 'string', identifier: true } },
     states: { main: { initial: 'DRAFT', values: ['DRAFT', 'ACTIVE', 'ARCHIVED'], terminal: ['ARCHIVED'] } },
     transitions: [
       { from: 'DRAFT', to: 'ACTIVE' },
       { from: 'ACTIVE', to: 'ARCHIVED' },
       { from: 'DRAFT', to: 'ARCHIVED' }
-    ],
-    render: { label: 'Process definition', icon: 'pi pi-sitemap' }
+    ]
   }
 ];

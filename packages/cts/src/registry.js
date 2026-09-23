@@ -38,31 +38,62 @@ function normalizePayload(payload) {
   });
 }
 
+function startCase(value = '') {
+  return String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
+}
+
+// Legacy `render` facet adoption (SPEC §4 boundary migration,
+// adopt-and-delete): both pack seeds and stored org docs normalize here,
+// so the retired keys convert exactly once and never reach the compiled
+// record. System/pack declarations whose only name carrier was the id
+// adopt `startCase(id)` (engineer-authored ids, one-time migration — the
+// opaque-id law forbids it as a served default); org-stored declarations
+// with neither carrier keep `name: null` and serve "Unnamed".
+function adoptName(declaration, scope) {
+  return declaration.name || declaration.render?.label
+    || (scope === 'org' ? null : startCase(declaration.id));
+}
+
 export function normalizeType(declaration = {}) {
   if (!declaration.id || !/^[a-z][a-z0-9-]*$/.test(declaration.id)) {
     throw new Error('type id must be kebab-case');
   }
   if (!declaration.class) throw new Error(`type ${declaration.id}: class is required`);
 
+  const legacyRender = declaration.render || {};
+  const scope = declaration.scope === 'org' ? 'org' : 'system';
+  const glyph = declaration.glyph || legacyRender.icon || null;
+  // `render.identityField` migrates onto the field's `identifier` flag;
+  // per-state display policy migrates to its states-facet home (SPEC §7).
+  let fields = declaration.fields || {};
+  if (legacyRender.identityField && Object.hasOwn(fields, legacyRender.identityField)) {
+    fields = { ...fields, [legacyRender.identityField]: { ...fields[legacyRender.identityField], identifier: true } };
+  }
+  let states = declaration.states || {};
+  if (states.main && legacyRender.states && !states.main.render) {
+    states = { ...states, main: { ...states.main, render: legacyRender.states } };
+  }
+
   const type = {
     id: declaration.id,
     class: declaration.class,
-    scope: declaration.scope === 'org' ? 'org' : 'system',
-    organizationId: declaration.scope === 'org' ? declaration.organizationId || null : null,
+    scope,
+    organizationId: scope === 'org' ? declaration.organizationId || null : null,
     version: declaration.version || 1,
-    fields: normalizeRow(declaration.fields || {}),
+    name: adoptName(declaration, scope),
+    ...(glyph ? { glyph } : {}),
+    fields: normalizeRow(fields),
     payload: normalizePayload(declaration.payload),
     // Derived types (SPEC §4): operator/service-produced — they enter
     // graphs as outputs, never as constructs.
     ...(declaration.derived === true ? { derived: true } : {}),
     edges: normalizeEdges(declaration.edges || {}, declaration.id),
-    states: normalizeStates(declaration.states || {}),
+    states: normalizeStates(states),
     // Declared migration steps (SPEC §11) ride the declaration through to
     // the R7 gate and the stored record; normalization validates the step
     // language at the authoring boundary.
     ...(declaration.migrate ? { migrate: normalizeMigrateSteps(declaration.migrate) } : {}),
     revisions: declaration.revisions || null,
-    render: declaration.render || {},
     ...(declaration.framework ? { framework: true } : {})
   };
   type.transitions = normalizeTransitions(declaration.transitions || [], type.states);
@@ -171,6 +202,7 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
     for (const type of view.values()) {
       errors.push(...checkClassObligations(type, { childTypes }));
       errors.push(...checkStateTotality(type));
+      errors.push(...checkDisplayFacet(type));
       errors.push(...checkRefTargets(type, view));
       errors.push(...checkChildrenDeclared(type, view));
     }
@@ -181,6 +213,27 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
       types: view,
       operatorSpecies: OPERATOR_SPECIES_BY_LETTER
     });
+  }
+
+  // Display-facet laws (SPEC §4): at most one `identifier` field and one
+  // `depiction` field per type; system types must carry a name (the
+  // boundary adopt guarantees it). Org-stored declarations may honestly
+  // have no name — they serve "Unnamed" — so the name invariant holds
+  // only where adoption could always have derived one.
+  function checkDisplayFacet(type) {
+    const errors = [];
+    const flagged = flag => Object.entries(type.fields)
+      .filter(([, descriptor]) => descriptor[flag] === true).map(([name]) => name);
+    const identifiers = flagged('identifier');
+    if (identifiers.length > 1) {
+      errors.push(`type ${type.id}: identifier flag on multiple fields (${identifiers.join(', ')}) — exactly one or none`);
+    }
+    const depictions = flagged('depiction');
+    if (depictions.length > 1) {
+      errors.push(`type ${type.id}: depiction flag on multiple fields (${depictions.join(', ')}) — at most one`);
+    }
+    if (type.scope !== 'org' && !type.name) errors.push(`type ${type.id}: name is required`);
+    return errors;
   }
 
   function checkRefTargets(type, view) {

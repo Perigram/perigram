@@ -39,7 +39,7 @@ export function canvasFromDeclarations(declarations = []) {
           typeId: declaration.id,
           class: declaration.class,
           scope: declaration.scope,
-          label: declaration.render?.label || declaration.id,
+          label: declaration.name || declaration.id,
           payload: declaration.payload || null,
           version: declaration.version
         }

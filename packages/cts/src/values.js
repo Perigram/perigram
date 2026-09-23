@@ -16,6 +16,17 @@ export function describeType(descriptor = {}) {
   const base = descriptor.base;
   if (!BASES.includes(base)) throw new Error(`Unknown base type ${JSON.stringify(base)}`);
   const normalized = { ...descriptor };
+  // Naming facet (SPEC §4): label / display kind / control pin ride
+  // verbatim (display kinds are pass-through, not a validated enum);
+  // identifier / depiction are closed boolean flags, absent unless true.
+  // The legacy nested `render.control` adopts to `control` here — the
+  // one-time boundary migration — and the dead `render` key is deleted.
+  if (normalized.render?.control && normalized.control == null) {
+    normalized.control = normalized.render.control;
+  }
+  delete normalized.render;
+  if (normalized.identifier !== true) delete normalized.identifier;
+  if (normalized.depiction !== true) delete normalized.depiction;
   if (base === 'ref') {
     if (!Array.isArray(descriptor.accepts) || !descriptor.accepts.length) {
       throw new Error('ref requires a non-empty accepts list of type ids');

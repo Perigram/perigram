@@ -4,8 +4,8 @@
 import { quantity } from '../units.js';
 
 export const partyTypes = [
-  { id: 'organization', class: 'party', fields: { name: { base: 'string' }, email: { base: 'string', nullable: true } } },
-  { id: 'user', class: 'party', fields: { email: { base: 'string' }, name: { base: 'string', nullable: true } } }
+  { id: 'organization', class: 'party', name: 'Organization', fields: { name: { base: 'string' }, email: { base: 'string', nullable: true } } },
+  { id: 'user', class: 'party', name: 'User', fields: { email: { base: 'string' }, name: { base: 'string', nullable: true } } }
 ];
 
 export const cncTypePack = [
@@ -13,14 +13,16 @@ export const cncTypePack = [
     id: 'material',
     class: 'file',
     version: 1,
+    name: 'Material',
+    glyph: 'pi-box',
     fields: {
-      code: { base: 'string' },
+      code: { base: 'string', identifier: true },
       thickness: { base: 'quantity', unit: 'mm' }
-    },
-    render: { label: 'Material', icon: 'pi-box' }
+    }
   },
   {
     id: 'occs',
+    name: 'Occs',
     class: 'file',
     version: 1,
     payload: { mime: ['application/perigram+occs'], accept: ['.occs'], maxSize: 5 * 1024 * 1024 },
@@ -37,6 +39,7 @@ export const cncTypePack = [
   },
   {
     id: 'cut-plan',
+    name: 'Cut Plan',
     class: 'file',
     version: 1,
     fields: {
@@ -51,6 +54,7 @@ export const cncTypePack = [
   },
   {
     id: 'photo',
+    name: 'Photo',
     class: 'file',
     version: 1,
     payload: { mime: ['image/*'], accept: ['image/*'], maxSize: 25 * 1024 * 1024 },
@@ -58,6 +62,7 @@ export const cncTypePack = [
   },
   {
     id: 'sheet',
+    name: 'Sheet',
     class: 'item',
     version: 1,
     fields: {
@@ -79,6 +84,7 @@ export const cncTypePack = [
   },
   {
     id: 'part',
+    name: 'Part',
     class: 'item',
     version: 1,
     fields: {
@@ -95,6 +101,7 @@ export const cncTypePack = [
   },
   {
     id: 'project',
+    name: 'Project',
     class: 'group',
     version: 1,
     fields: { name: { base: 'string' } },
@@ -107,6 +114,7 @@ export const cncTypePack = [
   },
   {
     id: 'facade',
+    name: 'Facade',
     class: 'group',
     version: 1,
     fields: {
@@ -119,6 +127,7 @@ export const cncTypePack = [
   },
   {
     id: 'queue',
+    name: 'Queue',
     class: 'process',
     version: 1,
     fields: {
@@ -149,6 +158,7 @@ export const cncTypePack = [
   },
   {
     id: 'solve-run',
+    name: 'Solve Run',
     class: 'process',
     version: 1,
     fields: {

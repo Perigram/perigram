@@ -23,7 +23,7 @@ export const CLASS_COLLECTIONS = Object.freeze({
 });
 
 // Create-dialog labels are authored vocabulary: a lineage input is named by
-// its parent type's render label, a row input by the start-cased row name;
+// its parent type's name, a row input by the start-cased row name;
 // anything already carrying an authored label keeps it.
 function constructionInputLabel({ path = '', label = '', typeId = '' } = {}, labelByType = new Map()) {
   const clean = String(path);
@@ -122,9 +122,10 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     const usesSpecs = Object.values(type.fields || {}).some(descriptor => slotFor(descriptor, type.class) === 'specs');
     return {
       type: type.id,
-      // The authored name (render policy) — the label every compiler and
-      // generator surface uses; raw type ids never reach users.
-      label: renderPolicyFor(type).label,
+      // The authored name — the label every compiler and generator
+      // surface uses; raw type ids never reach users. Declarations
+      // without one (legacy org-stored) serve "Unnamed".
+      label: renderPolicyFor(type).name || 'Unnamed',
       collection: CLASS_COLLECTIONS[type.class] || CLASS_COLLECTIONS.file,
       blocks: ['identity', 'origin', 'status', 'lineage', 'relations', 'provenance', 'attachments', 'data',
         ...(usesSpecs ? ['specs'] : [])],
@@ -177,13 +178,14 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     ].map(schema => withAccessFlags(schema, fieldAccess[type.id]));
   }
 
-  // workflows: declared states/transitions with render policy (SPEC §7) —
-  // labels/icons/severity are the single render home for declared states.
+  // workflows: declared states/transitions with display policy (SPEC §7) —
+  // labels/icons/severity on the states facet are the single display home
+  // for declared states.
   const workflows = {};
   for (const type of types) {
     if (!type.states?.main?.values?.length) continue;
     const terminal = new Set(type.states.main.terminal || []);
-    const render = renderPolicyFor(type);
+    const display = renderPolicyFor(type).states.main || {};
     workflows[type.id] = {
       schemaVersion: 2,
       primaryRegion: 'main',
@@ -196,9 +198,9 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
             {
               ...(terminal.has(value) ? { isTerminal: true } : {}),
               canUpdateMeta: !terminal.has(value),
-              ...(render.states[value]?.label ? { label: render.states[value].label } : {}),
-              ...(render.states[value]?.icon ? { icon: render.states[value].icon } : {}),
-              ...(render.states[value]?.severity ? { severity: render.states[value].severity } : {})
+              ...(display[value]?.label ? { label: display[value].label } : {}),
+              ...(display[value]?.icon ? { icon: display[value].icon } : {}),
+              ...(display[value]?.severity ? { severity: display[value].severity } : {})
             }
           ])),
           transitions: (type.transitions || []).map(transition => ({
@@ -299,7 +301,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
         // lineage and relation edges are construct-addressable: a child
         // type's parent key and declared relation keys arrive as typed
         // inputs where the entity begins. Labels are authored vocabulary
-        // (the parent type's render label; the row's start-cased name) —
+        // (the parent type's name; the row's start-cased name) —
         // raw storage paths never reach a generated create dialog.
         ...(edgeFieldsFor(type).lineage)
           .filter(schema => schema.constructible !== false)
