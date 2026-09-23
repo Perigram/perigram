@@ -73,7 +73,13 @@ module layout and how the code maps to the spec's build-order tiers.
   `preview`, `creation` protocol list — `upload | capture | editor`,
   defaulting to `upload`); a bare MIME string and a `byteLimit` key
   (legacy persisted docs and older pack fixtures) normalize at the
-  boundary.
+  boundary. The same boundary adopts the retired `render` facet
+  (SPEC §4 migration): `render.label`→`name`, `render.icon`→`glyph`,
+  `render.identityField`→the field's `identifier` flag,
+  `render.states`→the axis `render` home; system types without a carrier
+  adopt `startCase(id)`, org-stored ones keep `name: null` ("Unnamed").
+  Compile also enforces the display-flag laws: at most one `identifier`
+  field, at most one `depiction` field, and a name on every system type.
 - `compat/domain-projection.js` — the single CTS → compiler-domain
   translator, synthesis-only: every type in the view (framework, pack,
   org) synthesizes its entities entry (per-class collection, §13),
@@ -90,25 +96,30 @@ module layout and how the code maps to the spec's build-order tiers.
   vocabulary, and pack service registrations only. Owns the per-class
   collection map (`CLASS_COLLECTIONS`) shared with the instance
   repository.
-- `render.js` — render-policy projection (labels/icons/state severities
-  derived from declarations; where hand-mirrored status tables die) and
-  `compileClientBundle()`, the single frontend/designer consumption
-  contract. The projection compiles label/icon/preview/state policy and
-  passes the authored UI vocabulary through — `identityField`, field
-  `groups`, `listLayout`, and `sortKey` — so the client bundle is
-  the one input the UI mapping resolvers need (see
-  [shared/ui-mapping](../../shared/ui-mapping/README.md)). The fact-display
-  facet (Phase 6, one fact vocabulary): `render.groups` entries are display
-  field groups whose `fields` are normalized descriptor records
-  (`{ path, label?, display?, unit?, prefix?, suffix?, priority?,
-  fallbackPaths?, role?, typeId?, replacesCountPath? }` — bare field-name
-  strings normalize to `{ path }`), and the identity fallback policy is
-  compiled, not authored (`identity`: name → slug → uid with the localized
-  unnamed placeholder key). Fact-row surfaces resolve these descriptors
-  from the served bundle through
-  [utils/instance-display-contract.js](../../utils/README.md); authored
-  labels are render data (localizable when they are existing i18n keys,
-  plain strings otherwise).
+- `render.js` — display-policy derivation and `compileClientBundle()`,
+  the single frontend/designer consumption contract (this is where
+  hand-mirrored status tables die). Naming is authored vocabulary
+  (`name`, `glyph`, field `label`s — SPEC §4); everything else derives.
+  The bundle type record carries `name` (null → consumers render
+  "Unnamed"), `glyph` (declaration override || class default),
+  `identifier` (the resolved flag field id, or null), `depiction:
+  { glyph, thumb }` (thumb = the depiction flag field id or null),
+  `fields` (descriptors including the normalized naming facet), and
+  `sections` — the derived grouping that replaces authored groups: total
+  assignment by base (`quantity`→dimensions, `ref`→relations, `blob` or
+  the depiction flag→media, multiline/long strings→notes, else summary;
+  `list`/`map` by item base), section order summary/dimensions/media/
+  relations/notes, declared row order within a section, only non-empty
+  sections emitted as `{ id, label: null, fields: [fieldId] }`. No
+  authored override channel exists — deviations are not render concerns.
+  Per-state display policy resolves onto the state axes
+  (`states.<axis>.render[value]`: label default startCase — state values
+  are authored vocabulary — severity terminal→secondary else `info`,
+  icon null). The `render` key exists on neither declarations nor the
+  bundle; fact-row surfaces consume the derived sections through
+  [utils/instance-display-contract.js](../../utils/README.md), and the
+  UI mapping resolvers consume the same record (see
+  [shared/ui-mapping](../../shared/ui-mapping/README.md)).
 - `compat/domain-cnc.js` — DELETED (the strangler converter). The
   equivalence phase is over: the projection synthesizes from declarations
   only and legacy tables are not converted, projected, or served.

@@ -294,7 +294,7 @@ declarations instead of hardcoded entity tables (see
 [components/generated/README.md](../components/generated/README.md)),
 and fact-row surfaces (`InstanceSurfaceContent`, entity cards, generated
 collections) resolve their display descriptors from the same view: the
-bundle's render facet is the one fact vocabulary
+bundle's derived display policy is the one fact vocabulary
 ([utils/README.md](../utils/README.md) → `instance-display-contract.js`).
 The cache never serves another organization's view after an org switch.
 
@@ -328,8 +328,7 @@ compiled screen are folders, not tabs). The selection is shared app
 state: the app-shell bottom bar writes it and highlights it, the home
 workspace's mobile branch renders the selected screen, and an unknown
 or unset key resolves to the first tab. Tab labels are procedural only
-(the generated type key with a locale override over the authored render
-label); no entity contracts participate. Chats is not part of this
+(the generated type key with a locale override over the type `name`); no entity contracts participate. Chats is not part of this
 contract — it stays the bar's own route tab navigating `/chats`.
 
 ---

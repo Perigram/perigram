@@ -27,8 +27,10 @@ It deliberately does NOT type, and says so:
   emit; the log itself is schema-free and total.
 - **Storage topology.** Sharding, replication, physical layout (see §13 for
   the only storage contract CTS makes).
-- **UI layout.** Screens, cards, field groups are render-policy projections
-  of type declarations. They are downstream data, not part of the language.
+- **UI layout.** Screens and cards are downstream projections: display
+  policy (names, glyphs, state labels, field sections) derives from
+  declarations at compile time. Arrangement beyond that is station-side,
+  not part of the language.
 
 ## 2. Value universe V
 
@@ -134,6 +136,11 @@ relations/provenance` -> the three edge kinds.
 
 ```
 type T : Class {
+  name:         string                          -- REQUIRED; the only user-plane
+                                                  -- identifier (machine ids
+                                                  -- never render)
+  glyph:        string                          -- optional icon id; default
+                                                  -- derives from class
   fields:      { name: FieldType, ... }        -- closed row
   payload:     mime | none
   edges:       edge declarations (§6)
@@ -147,14 +154,52 @@ type T : Class {
 }
 
 FieldType ::= any V production without Ref
-            | Ref(T | [T1 ... Tn])              -- enumerated target set
-            | Nullable(t)
-            | Quantity(Unit)
+             | Ref(T | [T1 ... Tn])              -- enumerated target set
+             | Nullable(t)
+             | Quantity(Unit)
 ```
+
+Naming is vocabulary, not rendering. Every type declares `name` — the
+required, only user-plane identifier — and may declare `glyph` (an icon id
+such as `'pi pi-box'`; the class default table is the compiled fallback).
+Field descriptors carry the naming facet alongside their type: `label?`
+(display label), `display?` (a value format kind — text/number/code/email/
+phone/date/area/percent/dimensions/parameterMap/count/geometry/entityRef/
+entityRefList — passed through verbatim, not validated here), and
+`control?` (an edit-widget pin consumed by editor variants). Two closed
+boolean flags mark display roles: `identifier?: true` on at most one field
+(the record's name source; zero is legal — such records display
+"Unnamed") and `depiction?: true` on at most one field (its visual
+thumbnail source). Two or more of either flag is a compile error naming
+the fields; a system type without a name is a compile error naming the
+type id.
+
+There is no `render` facet on types. Identity, grouping, list layout, and
+default sort are not declaration concerns: display grouping derives from
+the row at compile time — total section assignment by base (`quantity` →
+dimensions, `ref` → relations, `blob` or the depiction flag → media,
+multiline/long strings → notes, everything else → summary; `list`/`map`
+assign by their item base, else summary) — and per-state display policy
+lives on the states facet (§7). Arrangement beyond derivation is
+station-side.
+
+Boundary migration (adopt-and-delete, one time at declaration
+normalization): the retired `render` keys are adopted and deleted —
+`render.label` becomes `name`, `render.icon` becomes `glyph`,
+`render.identityField` sets `identifier: true` on that field, and a
+field's nested `render.control` becomes `control`. System/pack
+declarations whose only name carrier was the id adopt `startCase(id)` —
+engineer-authored ids, adopted once at the boundary (the opaque-id law
+forbids startCase(id) as a served default; this is a migration, not a
+default). Org-stored declarations with neither carrier keep `name: null`
+and serve "Unnamed". `render.groups`, `render.listLayout`,
+`render.sortKey`, and the descriptor `priority`/`surfaces` keys are
+dropped — derivation replaces them.
 
 Payload traits: the payload declaration carries the accepted MIME list
 and byte limits (enforced at construct time) plus the preview mode
-(render policy, projected to UI like enum labels) and the creation
+(a payload trait projected to UI like the state display policy of §7)
+and the creation
 protocols — a list of `upload | capture | editor` stating how instances
 of the type come into being (`upload`: file picker on the payload
 traits; `capture`: camera capture; `editor`: blank instance whose first
@@ -249,8 +294,12 @@ states: { main: draft | nesting | ready | error | closed,   -- axes are
   place where lifecycle information lives — no `workflows.js`, no
   `workflow_overrides`, no status-label mirror. Status v2 `regions` are the
   axes, restated.
-- Labels, icons, severity are render policy attached to enum values in the
-  designer; they project to UI, they are not checked.
+- Labels, icons, severity are per-state display policy authored on the
+  axis — `states.<axis>.render = { <value>: { label?, icon?, severity? } }`
+  — and resolved at compile (label defaults to the start-cased value:
+  state VALUES are authored vocabulary; severity defaults `secondary` on
+  terminal values, else `info`; icons default to none). They project to
+  UI, they are not checked.
 
 ## 8. Operators — six species
 
@@ -409,7 +458,7 @@ Authoring loop:
 |---|---|
 | 30 `cncEntities` + blocks | type declarations (data) |
 | `workflows.js`, intents, `workflow_overrides` | states/transitions in type defs; intents on operator outputs — resolving the third home: entity-profile lifecycles and `stateDefinition` records compile INTO these declarations (compiler-core `compileLifecycle`), never alongside them |
-| `cncStatusUi`, icons, labels | render policy on enum values |
+| `cncStatusUi`, icons, labels | display policy on state values (§7) plus `name`/`glyph`/field labels on declarations |
 | `attachment-kinds.js` | payload traits + construct affiliations |
 | `producers.js`, `artifact-conversions.js` | construct/conversion operator registry |
 | `field-schemas.js` base/shape/itemType/unit | field-selector projection over rows (subsumed by §2; the runtime grammar is `packages/processes/types.js`, which CTS does not replace) |

@@ -50,7 +50,7 @@ strangler layer 0 of the designer rebuild (see
   counts, actor, timestamp — on the org contract-change event and in
   the response (SPEC §19 abandoned data, promoted to a gate).
 - `describeOrganizationTypes` returns the compiled client bundle (types,
-  states, operators, render policy, JSON Schemas) plus attachment-kind
+  states, operators, derived display policy, JSON Schemas) plus attachment-kind
   payload traits and the composed pack editor bindings (SPEC §21: each
   mounted pack's `{ type, surface, modes }` records, dependency-ordered by
   `server/packs/declarations.js`). The editor list is the served half of

@@ -12,14 +12,14 @@ Shared frontend utility modules used by Vue pages/components.
   into separate color contracts.
 - `instance-display-contract.js`: Pure resolver for the UI constructor and the
   one fact vocabulary seam. Fact-row descriptors resolve from the compiled
-  type view first — the served CTS client bundle's render facet
-  (`render.groups`, authored on type declarations and normalized by
-  `@perigram/cts` `renderPolicyFor`) — with the residual legacy domain map
-  (undeclared types only) and app extensions composing on top; per-call
-  overrides still win. Also owns the compiled identity chrome policy:
-  `instanceIdentityLabel` (name → slug → surrounding type label → localized
-  unnamed placeholder; ids stay private) and `instanceIdentityMeta`
-  (slug/serial/reference facts beside the label).
+  type view first — the served CTS client bundle's derived `sections`
+  (base-derived grouping from `@perigram/cts` `renderPolicyFor`, projected
+  as slot-qualified fact paths with descriptor labels and display kinds) —
+  with the residual legacy domain map (undeclared types only) and app
+  extensions composing on top; per-call overrides still win. Also owns the
+  compiled identity chrome policy: `instanceIdentityLabel` (name → slug →
+  surrounding type label → localized unnamed placeholder; ids stay private)
+  and `instanceIdentityMeta` (slug/serial/reference facts beside the label).
 - `app-instance-surfaces.js`: App-owned display extensions layered on top of the
   bundle-resolved groups. Production pages use it for route-specific surfaces
   such as project workspace rows, project detail facts, and selected warehouse
