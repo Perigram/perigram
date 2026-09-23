@@ -15,7 +15,11 @@ contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
   solve, attachment generation, and geometry capture extraction.
 - `attachment-kinds.js` - file/blob kinds, buckets, MIME types, preview modes.
 - `hooks.js` - typed transition hook parameter contracts.
-- `summaries.js` - aggregate summary contracts.
+- `relationships.js` - legacy pack-internal containment/relation tables
+  (SPEC §21), trimmed to pairs whose endpoints survive in `cncEntities`;
+  nothing new may be added.
+- `summaries.js` - aggregate summary contracts projected from
+  `cncContainment`; the projection is empty since the relationship trim.
 - `field-access.js` - per-entity field visibility policy consumed by backend
   DTO redaction and frontend shared blocks.
 - `field-schemas.js` - exact process-programming field paths with canonical
@@ -59,14 +63,14 @@ cassette design for that nesting run.
 `nesting_run` and `sheet_design` entities only. DXF/SVG/PDF files are requested
 later through the artifacts service and `AttachmentKind` contracts, not as
 primary nesting-run outputs.
-`summaries.js` declares both `nesting_run` and `sheet_design` as queue children
-because nesting output access, generated queue detail regions, and aggregate
-summary sync all use the same lineage relation contract. Services that create
-those outputs must persist `lineage.queueId` and, when available,
-`lineage.projectId`.
-Libraries are organization-scoped containers for cassette templates that share
-`data.material`; summary sync writes `summary.cassetteCount` on the parent
-library. Static containment describes non-process domain relationships and may
+`relationships.js` holds the legacy static containment/relation tables
+(SPEC §21). They are trimmed to pairs whose endpoints survive in
+`cncEntities`: containment keeps only `cassette -> cassette_design`
+(`lineage.templateId`), relations keep only the `sourceDxf -> artifact`
+references on `cassette` and `cassette_design`. The queue-, library-, and
+production-sheet-era edges died with their entity types in the
+deleted-domain retirement, so the `cncSummaries` projection is empty.
+Static containment describes non-process domain relationships and may
 validate persisted data, but it never authors process source classification,
 generated hierarchy, or Home placement. Those concerns use compiled Lineage
 bindings from the active process graph.
@@ -174,10 +178,13 @@ queue composition belongs to the queue editor and nesting command readiness
 checks, not to the initial create action dialog. Queue creation still requires
 a prompted `name` input so process-generated queues do not enter the system as
 unnamed shells.
-Queue composition is declared as the `queue.cassettes -> cassette_design`
-many-valued relationship. Producers create or import a complete design and then
-link it; no queue construction socket or embedded item contract duplicates the
-design.
+Queue composition is no longer declared in the pack tables: the legacy
+`queue.cassettes -> cassette_design` relation row was removed with the queue
+retirement. Where an organization still composes queues, the relation is
+authored as a CTS relation edge in the type view, and the process compiler
+generates the link mutation from that projection. Producers create or import
+a complete design and then link it; no queue construction socket or embedded
+item contract duplicates the design.
 `cassette_design` creation uses `bakeCassetteDesignFromTemplate` with a source
 `cassette` template and typed `cassetteParameters`. Design identity is derived
 by the owning creation service from that source; it is not a separate required

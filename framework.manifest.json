@@ -1433,54 +1433,6 @@
       "source": "user",
       "target": "tool_profile",
       "via": "lineage.userId"
-    },
-    {
-      "kind": "summary",
-      "source": "catalog",
-      "target": "color",
-      "via": "lineage.catalogId"
-    },
-    {
-      "kind": "summary",
-      "source": "library",
-      "target": "cassette",
-      "via": "lineage.libraryId"
-    },
-    {
-      "kind": "summary",
-      "source": "material_pile",
-      "target": "sheet",
-      "via": "lineage.pileId"
-    },
-    {
-      "kind": "summary",
-      "source": "nesting_run",
-      "target": "sheet_design",
-      "via": "lineage.runId"
-    },
-    {
-      "kind": "summary",
-      "source": "project",
-      "target": "queue",
-      "via": "lineage.projectId"
-    },
-    {
-      "kind": "summary",
-      "source": "queue",
-      "target": "nesting_run",
-      "via": "lineage.queueId"
-    },
-    {
-      "kind": "summary",
-      "source": "sheet_design",
-      "target": "sheet",
-      "via": "lineage.sheetDesignId"
-    },
-    {
-      "kind": "summary",
-      "source": "sheet",
-      "target": "cassette_instance",
-      "via": "lineage.sheetId"
     }
   ],
   "routes": [
@@ -1570,68 +1522,7 @@
     }
   ],
   "schemaVersion": 1,
-  "summaries": [
-    {
-      "countField": "cassetteCount",
-      "parentIdKey": "libraryId",
-      "parentType": "library",
-      "sumFields": {},
-      "typeId": "cassette"
-    },
-    {
-      "countField": "queueCount",
-      "parentIdKey": "projectId",
-      "parentType": "project",
-      "sumFields": {},
-      "typeId": "queue"
-    },
-    {
-      "countField": "runCount",
-      "parentIdKey": "queueId",
-      "parentType": "queue",
-      "sumFields": {},
-      "typeId": "nesting_run"
-    },
-    {
-      "countField": "sheetDesignCount",
-      "parentIdKey": "runId",
-      "parentType": "nesting_run",
-      "sumFields": {},
-      "typeId": "sheet_design"
-    },
-    {
-      "countField": "sheetCount",
-      "parentIdKey": "sheetDesignId",
-      "parentType": "sheet_design",
-      "sumFields": {
-        "area": "totalArea"
-      },
-      "typeId": "sheet"
-    },
-    {
-      "countField": "instanceCount",
-      "parentIdKey": "sheetId",
-      "parentType": "sheet",
-      "sumFields": {},
-      "typeId": "cassette_instance"
-    },
-    {
-      "countField": "colorCount",
-      "parentIdKey": "catalogId",
-      "parentType": "catalog",
-      "sumFields": {},
-      "typeId": "color"
-    },
-    {
-      "countField": "sheetCount",
-      "parentIdKey": "pileId",
-      "parentType": "material_pile",
-      "sumFields": {
-        "area": "totalArea"
-      },
-      "typeId": "sheet"
-    }
-  ],
+  "summaries": [],
   "tasks": [
     {
       "attachments": [
