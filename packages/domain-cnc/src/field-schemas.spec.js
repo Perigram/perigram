@@ -15,7 +15,7 @@ describe('CNC entity field schemas', () => {
       base: 'string',
       shape: 'item'
     });
-    expect(getEntityFieldSchema('cassette', 'lineage.libraryId')?.type).toMatchObject({
+    expect(getEntityFieldSchema('cassette_design', 'lineage.templateId')?.type).toMatchObject({
       base: 'entityRef',
       shape: 'item'
     });
@@ -45,9 +45,9 @@ describe('CNC entity field schemas', () => {
     expect(getEntityFieldSchema('cassette', 'data.definition.*')).toBeNull();
   });
 
-  it('declares cumulative lineage slots from containment relationships', () => {
-    expect(getEntityFieldSchema('cassette', 'lineage.libraryId')).toMatchObject({
-      type: { base: 'entityRef', typeId: 'library' },
+  it('declares lineage slots from containment relationships', () => {
+    expect(getEntityFieldSchema('cassette_design', 'lineage.templateId')).toMatchObject({
+      type: { base: 'entityRef', typeId: 'cassette' },
       constructible: true,
       writable: false
     });
