@@ -2468,10 +2468,20 @@ function withCompiledLineage(source = {}, screen = {}, lineageBindings = []) {
 function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, producerOutputs = {}, actions = {}, graph = {}, lineageBindings = [] } = {}) {
   const inferred = {};
   const graphContext = buildActionGraphContext({ actions, graph });
+  // Authored stations are per-kind deltas: an authored typeList or
+  // instanceDetail suppresses only the inferred station it equals in kind,
+  // while any other authored template for the role + feature stands in for
+  // both generated stations (a chrome screen replaces the feature's
+  // generated surfaces as a whole).
   const existingKeys = new Set(Object.values(screens).flatMap(screen => {
     const roleIds = screen.roleIds?.length ? screen.roleIds : Object.keys(roles);
     const feature = screen.required?.feature || featureFromTypeId(domain, screen.typeId);
-    return roleIds.map(roleId => `${roleId}:${feature || ''}`).filter(key => !key.endsWith(':'));
+    const station = screen.typeId || feature;
+    if (!station) return [];
+    const isList = screen.template === 'typeList' || screen.kind === 'typeList';
+    const isDetail = screen.template === 'instanceDetail' || screen.kind === 'instanceDetail';
+    const kinds = isList ? ['list'] : isDetail ? ['detail'] : ['list', 'detail'];
+    return roleIds.flatMap(roleId => kinds.map(kind => `${roleId}:${station}:${kind}`));
   }));
 
   for (const [roleId, role] of Object.entries(roles)) {
@@ -2487,7 +2497,9 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, pro
         ? authoredTypes
         : [typeIdFromFeature(domain, feature) || typeIdFromProducerOutputs(producerOutputs, domain, feature)].filter(Boolean);
       for (const typeId of resolvedTypes) {
-      if (existingKeys.has(`${roleId}:${feature}`) || existingKeys.has(`${roleId}:${typeId}`)) continue;
+      const listSuppressed = existingKeys.has(`${roleId}:${typeId}:list`) || existingKeys.has(`${roleId}:${feature}:list`);
+      const detailSuppressed = existingKeys.has(`${roleId}:${typeId}:detail`) || existingKeys.has(`${roleId}:${feature}:detail`);
+      if (listSuppressed && detailSuppressed) continue;
       const id = `auto_${roleId}_${typeId}`;
       const detailId = `${id}_detail`;
       const required = aggregateScreenRequirement(feature, grants);
@@ -2502,7 +2514,7 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, pro
         lineageBindings
       });
       const contextualActions = contextualParentActions(role.actions || [], typeId, domain, actions, graphContext, mergedHierarchyBindings(lineageBindings, domain));
-      inferred[id] = {
+      if (!listSuppressed) inferred[id] = {
         id,
         label: entityLabelOf(domain, typeId) || typeId,
         kind: 'typeList',
@@ -2529,7 +2541,7 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, pro
         }],
         actions: directActions
       };
-      inferred[detailId] = {
+      if (!detailSuppressed) inferred[detailId] = {
         id: detailId,
         label: entityLabelOf(domain, typeId) || typeId,
         kind: 'instanceDetail',
@@ -2554,9 +2566,11 @@ function inferScreensFromRoleGrants({ screens = {}, roles = {}, domain = {}, pro
         }, ...childRegions.regions],
         actions: [...new Set([...detailDirectActions, ...contextualActions, ...childRegions.actionIds])]
       };
-      existingKeys.add(`${roleId}:${typeId}`);
+      existingKeys.add(`${roleId}:${typeId}:list`);
+      existingKeys.add(`${roleId}:${typeId}:detail`);
       }
-      existingKeys.add(`${roleId}:${feature}`);
+      existingKeys.add(`${roleId}:${feature}:list`);
+      existingKeys.add(`${roleId}:${feature}:detail`);
     }
   }
 

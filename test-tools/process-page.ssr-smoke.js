@@ -43,12 +43,15 @@ describe('process designer page SSR smoke', () => {
     const html = await renderToString(app);
 
     // The workspace chrome, both drawer rails, the dock, and every tab
-    // panel (inspector, roles, screens) render server-side.
+    // panel (inspector, roles, screens) render server-side. With no
+    // process loaded the Screens tab renders its zero-station empty
+    // state (stations derive from role grants), not a create verb.
     expect(html).toContain('designer-workspace');
     expect(html).toContain('designer-workspace__rail');
     expect(html).toContain('process-designer-dock');
     expect(html).toContain('processDesigner.selectNode');
     expect(html).toContain('processDesigner.addRole');
-    expect(html).toContain('processDesigner.addScreen');
+    expect(html).toContain('processDesigner.noCompiledScreensHint');
+    expect(html).toContain('processDesigner.openRolesTab');
   });
 });

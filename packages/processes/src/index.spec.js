@@ -1866,14 +1866,18 @@ describe('@cutkit/processes compiler', () => {
     }, domain);
 
     const screens = resolveScreens({ compiled, userId: 'user_a' });
-    expect(screens).toHaveLength(1);
-    expect(screens[0]).toMatchObject({
-      screenKey: 'assigned_project:project-123',
+    const assigned = screens.find(screen => screen.screenKey === 'assigned_project:project-123');
+    expect(assigned).toMatchObject({
       route: '/screens/assigned_project%3Aproject-123',
       sourceRoute: '/project/p-123/details',
       scope: { projectId: 'project-123' },
       sourceRoleIds: ['role_operator', 'role_supervisor']
     });
+    // Per-kind suppression: the authored instanceDetail suppresses only
+    // the inferred detail, so the read grants keep the inference-owned
+    // project list (both roles merged per user), which also feeds the
+    // generated home screen.
+    expect(screens.map(screen => screen.screenKey).sort()).toEqual(['assigned_project:project-123', 'auto_project', 'home_user_a']);
     expect(compiled.userAccess.user_a.permissions.projects[0].scope.instanceId).toBe('project-123');
   });
 

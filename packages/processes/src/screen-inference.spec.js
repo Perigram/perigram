@@ -3,6 +3,7 @@
 // inferScreensFromRoleGrants would emit; validation blocks Apply on hits.
 import { describe, expect, it } from 'vitest';
 import { compileProcessDefinition, redundantAuthoredScreens, validateProcessDefinition } from './index.js';
+import { compileScreens } from './compiler-core.js';
 
 const domain = {
   entities: [
@@ -48,18 +49,22 @@ function baseProcess() {
   };
 }
 
-function inferredStationProjection() {
-  // An authored copy of the exact default station inference emits for
-  // (role_operator, queue) — derived from the compiled output so the
-  // fixture cannot drift from the inference shape. The authored id and
-  // route differ (authored screens require a route); neither field
-  // participates in equivalence.
+// An authored copy of the exact default station inference emits for
+// (role_operator, queue) — derived from the compiled output so the
+// fixture cannot drift from the inference shape. The authored id and
+// route differ (authored screens require a route); neither field
+// participates in equivalence.
+function stationCopyOf(stationId, id) {
   const base = baseProcess();
   const compiled = compileProcessDefinition(base, domain, {
     roles: { role_operator: { id: 'role_operator' } }
   });
-  const { labelKey, route, sourceRoute, scope, bindings, ...station } = compiled.screens.auto_role_operator_queue;
-  return { ...station, id: 'queue_list_hand', route: '/screens/queue_list_hand' };
+  const { labelKey, route, sourceRoute, scope, bindings, ...station } = compiled.screens[stationId];
+  return { ...station, id, route: `/screens/${id}` };
+}
+
+function inferredStationProjection() {
+  return stationCopyOf('auto_role_operator_queue', 'queue_list_hand');
 }
 
 describe('redundantAuthoredScreens', () => {
@@ -106,6 +111,48 @@ describe('redundantAuthoredScreens', () => {
     expect(redundantAuthoredScreens(process, domain, compiledRolesFor(process))).toEqual([]);
     const compiled = compileProcessDefinition(process, domain, { roles: { role_operator: { id: 'role_operator' } } });
     expect(compiled.screens.auto_role_operator_queue).toMatchObject({ typeId: 'queue' });
+  });
+});
+
+// Suppression is per station kind: an authored station is a delta that
+// customizes exactly the one inferred station it equals in kind, while any
+// other authored template for the feature stands in for both stations.
+describe('station suppression granularity', () => {
+  function stationsWith(authored) {
+    const process = { ...baseProcess(), screens: authored };
+    return compileScreens(process, domain, compiledRolesFor(process), []);
+  }
+
+  it('an authored typeList suppresses only the inferred list station', () => {
+    const stations = stationsWith({ queue_list_hand: stationCopyOf('auto_role_operator_queue', 'queue_list_hand') });
+    expect(stations.queue_list_hand).toMatchObject({ template: 'typeList', typeId: 'queue' });
+    expect(stations.auto_role_operator_queue).toBeUndefined();
+    expect(stations.auto_role_operator_queue_detail).toMatchObject({ template: 'instanceDetail', typeId: 'queue' });
+  });
+
+  it('an authored instanceDetail suppresses only the inferred detail station', () => {
+    const stations = stationsWith({ queue_detail_hand: stationCopyOf('auto_role_operator_queue_detail', 'queue_detail_hand') });
+    expect(stations.queue_detail_hand).toMatchObject({ template: 'instanceDetail', typeId: 'queue' });
+    expect(stations.auto_role_operator_queue).toMatchObject({ template: 'typeList', typeId: 'queue' });
+    expect(stations.auto_role_operator_queue_detail).toBeUndefined();
+  });
+
+  it('a non-station authored screen still suppresses both stations for its feature', () => {
+    // The grant-derived feature for type queue is "queue" — an authored
+    // chrome screen keyed to that feature stands in for both stations.
+    const chrome = {
+      id: 'queue_chrome',
+      kind: 'route',
+      template: 'route',
+      label: 'Queues',
+      route: '/queues',
+      roleIds: ['role_operator'],
+      required: { feature: 'queue' }
+    };
+    const stations = stationsWith({ queue_chrome: chrome });
+    expect(stations.queue_chrome).toMatchObject({ template: 'route' });
+    expect(stations.auto_role_operator_queue).toBeUndefined();
+    expect(stations.auto_role_operator_queue_detail).toBeUndefined();
   });
 });
 

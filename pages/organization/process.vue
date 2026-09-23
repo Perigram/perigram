@@ -347,7 +347,26 @@
                   />
                   <small class="truncate text-muted">{{ screen.route || screen.id }}</small>
                 </div>
-                <StateBlock v-if="!compiledScreenPreview.length && !compiledPreviewError" :message="$t('processDesigner.noCompiledScreens')" />
+                <!-- Zero stations (nothing inferred, nothing authored) is the
+                     delta-only contract: stations exist only as inference
+                     over role grants, so the tab explains where they come
+                     from instead of rendering nothing. -->
+                <StateBlock
+                  v-if="!compiledScreenPreview.length && !compiledPreviewError"
+                  :message="$t('processDesigner.noCompiledScreens')"
+                  :description="$t('processDesigner.noCompiledScreensHint')"
+                >
+                  <template #actions>
+                    <Button
+                      :label="$t('processDesigner.openRolesTab')"
+                      icon="pi pi-users"
+                      size="small"
+                      severity="secondary"
+                      outlined
+                      @click="inspectTab = 'roles'"
+                    />
+                  </template>
+                </StateBlock>
                 <div class="flex flex-wrap gap-2">
                   <Tag
                     v-for="screen in screenList"
