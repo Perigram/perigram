@@ -25,8 +25,35 @@ Shared frontend utility modules used by Vue pages/components.
   such as project workspace rows, project detail facts, and selected warehouse
   inventory context without changing the reusable core library contract.
 - `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`. Declared `unit`s render as value suffixes through the closed unit-symbol table (`mm`, `m`, `m2`→`m²`, `percent`, `min`, `deg`); `display: 'dimensions'` renders the width × length span of a resolved specs object.
-- `state-engine.js`: Compatibility status severity/icon mapping and entity route/icon registry used by shared status and trace components. New source-of-truth UI, artifact, and route metadata belongs in `@cutkit/domain-cnc` and is adapted by `@cutkit/vue`. Entity icons are CSS class strings: PrimeIcon classes, or the `ck-entity-icon-*` classes of the generated `ck-entity-icons` icon font (see `scripts/build-entity-icons.js`) used by CNC production entities. Keep both registries in sync when changing entity icons.
-- `state-actions.js`: Converts workflow definitions into default `InstanceState` action buttons so cards do not use hardcoded state transitions. Respects transition `display` (`inline`, `menu`, `hidden`) and hides self-loop metadata transitions by default. Callers may pass a workflow override; otherwise the utility uses the committed `@cutkit/domain-cnc` workflows. Also exposes `hasWorkflow()` so UI primitives can avoid server action lookups for workflow-less entity types without importing the domain package directly.
+- `state-engine.js`: Per-state display resolver over the compiled contract.
+  `resolveStateDisplay(states, value)` maps a state value to
+  `{ label, icon, severity }` from the served bundle's `states` facet
+  (`states.<axis>.render`, resolved server-side by `@perigram/cts`
+  `renderPolicyFor`), case-insensitively; `kebabStateTypeId` normalizes
+  kebab/snake/camel type-id spellings for that lookup. Values without a
+  declaration resolve to a neutral chip carrying the raw value — the
+  documented stop-line for genuinely undeclared types (e.g. the artifact
+  family until it is declared in a pack). The legacy compatibility tables
+  (`STATE_MAPPINGS` from `@cutkit/domain-cnc` `cncStatusUi`, and the
+  `INSTANCE_UI` type→icon registry) are deleted; `cncStatusUi` itself is
+  now orphaned in the domain package pending a later broom. Entity type
+  icons resolve from the registry bundle's display-policy glyph
+  (`stores/registry.js` `iconFor`).
+- `state-actions.js`: Derives `InstanceState` transition actions and
+  workflow-visibility answers from the compiled contract first, then the
+  committed `@cutkit/domain-cnc` machines as the verified-live fallback
+  for undeclared legacy types. `compiledWorkflowFor(typeRecord)` converts
+  a served bundle type record (its `states` facet + `transitions`) into
+  the v2 machine shape the workflow machinery consumes, with the axis
+  render map riding along so derived actions resolve their authored
+  display policy; `getWorkflowStateActions`, `hasWorkflow`,
+  `workflowStateCount`, and `hasMeaningfulWorkflowState` each accept that
+  compiled machine before the legacy workflow table. Live app transition
+  actions come from the status API (`/api/state/actions`), which applies
+  the process-compiled workflow server-side; this module drives
+  development surfaces with local workflow drafts. Transition `display`
+  (`inline`, `menu`, `hidden`) semantics are preserved and self-loop
+  metadata transitions stay hidden by default.
 - `state-location.js`: Normalizes typed current location facts from `status.lifecycle.data.location` for state surfaces. Supported UI types are `warehouse`, `coordinates`, and `address`.
 - `instance-events.js`: Browser-local entity change event helpers. Status
   transitions and successful `useEntity()` CRUD mutations emit the changed

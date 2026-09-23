@@ -25,7 +25,6 @@
 
 <script setup>
 import { computed } from 'vue';
-import { instanceUiFor } from '~/utils/state-engine';
 import { useRegistryStore } from '~/stores/registry';
 import { requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
@@ -61,7 +60,7 @@ const props = defineProps({
 });
 
 const registry = useRegistryStore();
-const config = computed(() => ({ ...instanceUiFor(props.type), icon: registry.iconFor(props.type) }));
+const config = computed(() => ({ icon: registry.iconFor(props.type) }));
 
 const route = computed(() => {
     if (props.to) return props.to;

@@ -202,7 +202,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-projectstatistics-vue` | `components/ProjectStatistics.vue` | derived usage | compliant |
 | `ui-components-shared-actiontoolbar-vue` | `components/shared/ActionToolbar.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-blocks-datablock-vue` | `components/shared/blocks/DataBlock.vue` | shared/domain primitive | replace:chrome (1); compliant:scoped-layout; narrowly-allowlist:inline-data-driven (1) |
-| `ui-components-shared-blocks-statusbadge-vue` | `components/shared/blocks/StatusBadge.vue` | shared/domain primitive | replace:chrome (9) |
+| `ui-components-shared-blocks-statusbadge-vue` | `components/shared/blocks/StatusBadge.vue` | shared/domain primitive | replace:chrome (1) |
 | `ui-components-shared-chatattachmentpicker-vue` | `components/shared/ChatAttachmentPicker.vue` | derived usage | compliant |
 | `ui-components-shared-chatsupportdialog-vue` | `components/shared/ChatSupportDialog.vue` | derived usage | centralize:layout (1); replace:inline-visual (1) |
 | `ui-components-shared-communicationmenu-vue` | `components/shared/CommunicationMenu.vue` | derived usage | replace:chrome (2); remove:important-override (3) |
@@ -234,8 +234,8 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-scrollablepanel-vue` | `components/shared/ScrollablePanel.vue` | derived usage | remove:important-override (3) |
 | `ui-components-shared-standarddialog-vue` | `components/shared/StandardDialog.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-standardpage-vue` | `components/shared/StandardPage.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-state-instancestate-vue` | `components/shared/state/InstanceState.vue` | shared/domain primitive | compliant |
-| `ui-components-shared-state-statehistory-vue` | `components/shared/state/StateHistory.vue` | shared/domain primitive | centralize:layout (1); replace:chrome (3) |
+| `ui-components-shared-state-instancestate-vue` | `components/shared/state/InstanceState.vue` | shared/domain primitive | remove:important-override (3) |
+| `ui-components-shared-state-statehistory-vue` | `components/shared/state/StateHistory.vue` | shared/domain primitive | centralize:layout (1); replace:chrome (3); remove:important-override (1) |
 | `ui-components-shared-state-statelocation-vue` | `components/shared/state/StateLocation.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-state-statetransitiondialog-vue` | `components/shared/state/StateTransitionDialog.vue` | derived usage | compliant |
 | `ui-components-shared-stateblock-vue` | `components/shared/StateBlock.vue` | shared/domain primitive | compliant |

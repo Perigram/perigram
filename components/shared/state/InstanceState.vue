@@ -16,7 +16,9 @@ import StateLocation from '~/components/shared/state/StateLocation.vue';
 import StateTransitionDialog from '~/components/shared/state/StateTransitionDialog.vue';
 import { useStatus } from '~/composables/useBlocks';
 import { useStateController } from '~/composables/useStateController';
-import { createStatusAction, getWorkflowStateActions, hasMeaningfulWorkflowState, hasWorkflow } from '~/utils/state-actions.js';
+import { useRegistryStore } from '~/stores/registry';
+import { compiledWorkflowFor, createStatusAction, getWorkflowStateActions, hasMeaningfulWorkflowState, hasWorkflow } from '~/utils/state-actions.js';
+import { kebabStateTypeId } from '~/utils/state-engine.js';
 import { onInstanceChanged } from '~/utils/instance-events.js';
 
 const props = defineProps({
@@ -50,11 +52,24 @@ const toggle = (event) => {
 
 const instanceId = computed(() => props.entity?._id || props.entity?.identity?.uid || props.entity?.identity?.slug);
 const localWorkflows = computed(() => props.workflows || unref(providedWorkflows) || null);
+// The compiled contract: the served bundle's type record (states facet +
+// transitions) drives workflow questions before any legacy fallback.
+// Development surfaces that supply local workflow drafts keep precedence
+// over the compiled record.
+const registry = useRegistryStore();
+const compiledTypeRecord = computed(() => registry.typeRecord(kebabStateTypeId(props.typeId)) || null);
+const compiledWorkflow = computed(() => (localWorkflows.value ? null : compiledWorkflowFor(compiledTypeRecord.value)));
+const compiledStateRender = computed(() => compiledTypeRecord.value?.states?.main?.render || null);
 const displaysLifecycleStatus = computed(() => hasMeaningfulWorkflowState(
     props.typeId,
-    localWorkflows.value || undefined
+    localWorkflows.value || undefined,
+    compiledWorkflow.value || undefined
 ) || (props.variant === 'icon' && Boolean(props.entity?.states)));
-const hasRegisteredWorkflow = computed(() => hasWorkflow(props.typeId, localWorkflows.value || undefined));
+const hasRegisteredWorkflow = computed(() => hasWorkflow(
+    props.typeId,
+    localWorkflows.value || undefined,
+    compiledWorkflow.value || undefined
+));
 const useServerActions = computed(() => props.showActions && !localWorkflows.value && hasRegisteredWorkflow.value);
 const useLocalTransition = computed(() => Boolean(localWorkflows.value && localTransitionHandler));
 
@@ -141,13 +156,14 @@ const customActions = computed(() => {
 
 const defaultTransitions = computed(() => {
     if (useServerActions.value) {
-        return serverActions.value.map(action => createStatusAction(action, undefined, t));
+        return serverActions.value.map(action => createStatusAction(action, compiledStateRender.value, t));
     }
 
     return getWorkflowStateActions({
         typeId: props.typeId,
         state: state.value,
         workflows: localWorkflows.value || undefined,
+        compiled: compiledWorkflow.value || undefined,
         t
     });
 });
@@ -281,6 +297,7 @@ function normalizeEventType(type) {
       <div class="flex min-w-0 max-w-48 flex-wrap items-center justify-end gap-1.5 sm:max-w-56">
         <StatusBadge
           :state="state"
+          :type-id="typeId"
           :display="statusDisplay"
           :icon-only="variant === 'icon'"
           class="cursor-pointer min-w-0 max-w-full shrink"
@@ -290,6 +307,7 @@ function normalizeEventType(type) {
           v-for="region in secondaryRegions"
           :key="region.id"
           :state="region.state"
+          :type-id="typeId"
           :display="regionDisplay[region.id]"
           icon-only
           class="cursor-pointer shrink-0"

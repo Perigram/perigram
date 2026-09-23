@@ -71,13 +71,26 @@ export function composeSystemDeclarations() {
 // Editor bindings (SPEC §21): `{ type, surface, modes }` records binding a
 // file type to its authoring surface. Composed in the same dependency
 // order as the type declarations; a malformed binding is a mount error,
-// not a silently dropped editor.
-export function composePackEditors() {
+// not a silently dropped editor. Editor bindings are file-type contracts:
+// the bound type must be declared by a mounted pack and carry the `file`
+// class (payload-bearing) — a binding for a party/group/process type is a
+// mount error, enforced here at the serving seam before the editor list
+// reaches the organization type view. The pack list is a parameter so the
+// guard is testable without mutating the frozen mount.
+export function composePackEditors(packs = orderedMountedPacks()) {
+  const declarations = new Map(packs.flatMap(pack => (pack.types || []).map(declaration => [declaration.id, declaration])));
   const editors = [];
-  for (const pack of orderedMountedPacks()) {
+  for (const pack of packs) {
     for (const editor of pack.editors || []) {
       if (!editor?.type || !editor?.surface || !(editor.modes || []).length) {
         throw new Error(`pack ${pack.id} declares a malformed editor binding: ${JSON.stringify(editor)}`);
+      }
+      const declaration = declarations.get(editor.type);
+      if (!declaration) {
+        throw new Error(`pack ${pack.id} binds an editor for type ${editor.type}, which no mounted pack declares`);
+      }
+      if (declaration.class !== 'file') {
+        throw new Error(`pack ${pack.id} binds an editor for type ${editor.type} of class ${declaration.class} — editor bindings require file types`);
       }
       editors.push(Object.freeze({ type: editor.type, surface: editor.surface, modes: Object.freeze([...editor.modes]) }));
     }

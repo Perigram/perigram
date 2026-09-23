@@ -164,10 +164,17 @@ it must not create another renderer or global pointer listener.
 
 ### `StatusBadge.vue`
 Atomic, read-only status tag with semantic coloring. Use for display-only contexts where no transitions are needed.
-Status labels may be either i18n keys from shared mappings or process-authored
-display labels stored on `status.metadata.display`. The badge checks whether a
-label is translatable before calling i18n; custom labels such as organization
-status names render as data, not as missing translation keys.
+The chip's display policy resolves from the compiled contract: process-authored
+display metadata passed as `display` (from `status.metadata.display`) wins;
+otherwise the badge resolves the served type view's per-state display policy
+(`states.main.render` through the registry bundle, passing `type-id`) into
+label, severity, and icon. A state value with no declaration — a missing
+`type-id` or a genuinely undeclared type — renders as a neutral chip carrying
+the raw value (the documented stop-line); there is no legacy domain status
+table lookup. Labels may be either authored strings or i18n keys: the badge
+checks whether a label is translatable before calling i18n; custom labels
+such as organization status names render as data, not as missing translation
+keys.
 
 ---
 
@@ -218,11 +225,19 @@ carry `region` / `path` metadata back to the status API so parallel machines can
 transition independently.
 When an entity status carries process-authored display metadata under
 `status.metadata.display`, `InstanceState` passes it to `StatusBadge` so the
-badge uses the process status label, severity/color, and icon instead of only
-the global raw-state mapping. Generated screens rely on this same DTO metadata;
-they must not synthesize local status labels or icons from action manifests.
-Development surfaces with custom workflow drafts derive lifecycle actions from
-workflow definitions through `utils/state-actions.js`. Card and page command
+badge uses the process status label, severity/color, and icon. Without DTO
+metadata the badge resolves the served type view's per-state display policy
+(`states.main.render`, see `StatusBadge` above) — `InstanceState` always
+passes its `type-id` through, and undeclared values render as neutral chips.
+Generated screens rely on this same resolution chain; they must not
+synthesize local status labels or icons from action manifests.
+Workflow questions resolve from the compiled contract first: `InstanceState`
+converts the registry bundle's type record (`states` facet + `transitions`)
+through `utils/state-actions.js` `compiledWorkflowFor` before the legacy
+`@cutkit/domain-cnc` fallback, so declared types drive status-chrome
+visibility and server-action lookups contract-first. Development surfaces
+with custom workflow drafts derive lifecycle actions from workflow
+definitions through the same utility. Card and page command
 actions must live outside `InstanceState` in the card footer or page action
 slots; only real lifecycle transitions belong in the status surface.
 `InstanceState` can also receive a `workflows` prop or consume a provided
@@ -235,7 +250,11 @@ through that handler instead of posting in-memory fixture ids to the server
 status API.
 When a target state lifecycle schema declares a description, attachment slots,
 or snapshots, `InstanceState` opens `StateTransitionDialog` before running the
-transition. The dialog uploads proof files through `/api/files/upload` and
+transition. That schema is the compiled workflow state's lifecycle evidence
+contract (server actions carry it from the process-compiled workflow state
+metadata; the status engine normalizes the same schema into the stamped
+event's `evidence`), so the dialog has no per-state assumptions of its own.
+The dialog uploads proof files through `/api/files/upload` and
 submits `stateMeta.metadata.note` plus `stateMeta.lifecycle.attachments` to
 the status API. Generic snapshots are captured server-side from the state
 schema, not from page-local loaded data.
@@ -253,8 +272,11 @@ current `status`/`origin` as the first timeline event instead of displaying an
 empty-history placeholder. Last-update timestamps belong in this timeline, not
 as a separate status section.
 Persisted events may include response-only `actor` data from the status API.
-`StateHistory` prefers `actor.name` for display and falls back to `status.userId`
-only when no actor name is available.
+`StateHistory` prefers the event's first-class stamp actor — the persisted
+`label`/`name` for display and `id`/`userId` for the user ref — and falls
+back to `status.userId`-derived display only when the event predates the
+stamp. Service/system principals render the localized system actor label
+and get no user chat action.
 User actors render through `InstanceInlineRef type="user"` and include an
 icon-only chat action that opens the support chat in direct user conversation
 mode for that actor.

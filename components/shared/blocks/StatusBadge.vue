@@ -1,34 +1,38 @@
 <script setup>
 /**
  * StatusBadge - v24 Standardized
- * Atomic component for mapping status strings to PrimeVue severities and icons.
+ * Atomic status chip. Display policy resolves from the compiled contract:
+ * process-authored DTO metadata (`status.metadata.display`) wins, then the
+ * served type view's per-state display policy (`states.main.render` through
+ * the registry bundle), then a neutral chip carrying the raw value — the
+ * stop-line for genuinely undeclared types. No legacy domain status table.
  */
 import Tag from 'primevue/tag';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { STATE_MAPPINGS } from '~/utils/state-engine';
+import { useRegistryStore } from '~/stores/registry';
+import { kebabStateTypeId, resolveStateDisplay } from '~/utils/state-engine';
 
 const props = defineProps({
   state: { type: String, required: true },
+  typeId: { type: String, default: '' },
   iconOnly: { type: Boolean, default: false },
   display: { type: Object, default: null }
 });
 
+const registry = useRegistryStore();
 const { t, te } = useI18n();
 
 const config = computed(() => {
-    const s = props.state?.toUpperCase() || 'UNKNOWN';
-    const mapped = STATE_MAPPINGS[s] || STATE_MAPPINGS[s.toLowerCase()] || {
-        label: s, 
-        severity: 'secondary', 
-        icon: 'pi pi-question-circle' 
-    };
-    const display = props.display && typeof props.display === 'object' ? props.display : {};
+    const authored = props.display && typeof props.display === 'object' ? props.display : {};
+    const policy = resolveStateDisplay(
+        props.typeId ? registry.statesOf(kebabStateTypeId(props.typeId)) : null,
+        props.state
+    );
     return {
-        ...mapped,
-        label: display.label || mapped.label,
-        severity: display.severity || display.color || mapped.severity,
-        icon: display.icon || mapped.icon
+        label: authored.label || policy.label,
+        severity: authored.severity || authored.color || policy.severity,
+        icon: authored.icon || policy.icon
     };
 });
 
@@ -59,7 +63,7 @@ const dotClass = computed(() => ({
   </span>
   <Tag
     v-else
-    :severity="config.severity" 
+    :severity="config.severity"
     class="max-w-full min-w-0 uppercase text-label"
     :icon="config.icon"
   >

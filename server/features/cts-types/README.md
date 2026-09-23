@@ -56,6 +56,11 @@ strangler layer 0 of the designer rebuild (see
   `server/packs/declarations.js`). The editor list is the served half of
   the type→surface contract; the app maps surface ids to components in
   [components/generated/file-surfaces](../../../components/generated/README.md).
+  Editor bindings are file-type contracts: the pack composition seam
+  (`composePackEditors`) refuses a binding whose type no mounted pack
+  declares or whose class is not `file` (payload-bearing), naming the
+  offending pack and type — a party/group/process type can never carry an
+  editor surface (spec: `editor-bindings.spec.js`).
 
 ## API
 

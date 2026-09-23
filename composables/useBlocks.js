@@ -1,6 +1,5 @@
 import { computed, unref } from 'vue';
 
-import { STATE_MAPPINGS } from '~/utils/state-engine';
 import { getPrimaryState, getStatusRegions, normalizeStatusState } from '~/packages/core/src/index.js';
 
 /**
@@ -30,27 +29,8 @@ export const useStatus = (entity) => {
       data: source.data || {}
     };
   });
-  
-  const statusColor = computed(() => {
-    // Try exact match in mappings
-    const s = unref(state);
-    const mapping = STATE_MAPPINGS[s] || STATE_MAPPINGS[s?.toLowerCase()];
-    if (mapping) return mapping.severity;
 
-    const colors = {
-      DRAFT: 'secondary',
-      PENDING: 'warn',
-      ACTIVE: 'primary',
-      READY: 'success',
-      CLOSED: 'info',
-      MILLED: 'success',
-      SCRAP: 'danger',
-      FAILED: 'danger'
-    };
-    return colors[s] || 'secondary';
-  });
-
-  return { state, stateObject, regions, timestamp, metadata, lifecycle, statusColor };
+  return { state, stateObject, regions, timestamp, metadata, lifecycle };
 };
 
 export const useLineage = (entity) => {
