@@ -2,7 +2,7 @@ import { reactive, ref } from 'vue';
 import { compileTreeDeclarations, createProcessDesignerContract, typeCatalogPaletteGroups } from '~/packages/processes/src/index.js';
 import { createTypeRegistry, projectDomainFromView, renderPolicyFor, frameworkTypes } from '~/packages/cts/src/index.js';
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
-import { clearTypeMigrationSteps } from '~/utils/processDesignerTypeMigrations.js';
+import { clearTypeMigrationSteps, declarationPostFailure } from '~/utils/processDesignerTypeMigrations.js';
 
 // The CTS declaration layer's lifecycle: the organization's type registry
 // view (system pack extracted from the domain content plus authored org
@@ -237,22 +237,13 @@ export function useProcessDesignerTypes({
         clearTypeMigrationSteps(nodes.value, declaration.id);
       } catch (error) {
         const name = labels.get(declaration.id) || declaration.id;
-        if (error?.data?.plan) {
-          // The type-migration authoring refusal stays structured: the
-          // apply flow opens the declarative-step dialog on it instead of
-          // flattening to a dead-end string.
-          failures.push({
-            typeId: declaration.id,
-            typeName: name,
-            plan: {
-              changes: error.data.plan.changes || [],
-              requiredSteps: (error.data.plan.requiredSteps || [])
-                .map(step => namedDeclarationFailures(step, labels))
-            }
-          });
-          continue;
-        }
-        failures.push(`${name}: ${namedDeclarationFailures(error?.data?.message || error?.message || '', labels)}`);
+        // Structured plan failures keep their shape (the step dialog opens
+        // on them); everything else flattens with the real cause.
+        failures.push(declarationPostFailure(error, {
+          typeId: declaration.id,
+          typeName: name,
+          labeler: text => namedDeclarationFailures(text, labels)
+        }));
       }
     }
     if (failures.length) {
