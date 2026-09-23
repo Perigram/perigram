@@ -388,25 +388,31 @@ Status: WAITING (slice 1 of N).
 - Acceptance: drag/collapse round-trip spec; expressiveness matrix
   (literal + operator wiring) unchanged; compatibility layer gone.
 
-### Phase 6 — One fact renderer `[ ]`
+### Phase 6 — One fact vocabulary `[ ]`
 
-The generic renderer already exists — `DataBlock` IS the
-descriptor-driven fact renderer (descriptors, access filtering,
-swatch/parameterMap policies, grid/compact variants, popup-scope
-collapse). Phase 6 is NOT "build a renderer"; inventing a parallel
-component beside it is the exact slop class this program kills. The cut
-is declaring the content of the two hardcoded blocks and deleting them:
+CORRECTED 2026-09-23 (twice, honestly): the UI generator already
+renders stations from the compiled contract — but its own surfaces
+(`GeneratedInstanceCollection`, `GeneratedInstanceDetailBody`) delegate
+fact rows to `InstanceSurfaceContent` → `instance-display-contract.js`
+→ domain-cnc `cncInstanceFieldGroups` → the named blocks. Two fact
+vocabularies feed one generator; the blocks exist only because the
+second channel exists. The cut is the channel, not the components:
 
-- `SpecsBlock` dies: its hardcoded dimensional field list becomes a
-  declared field group with units in the domain display contract,
-  rendered through the existing renderer.
-- `IdentityBlock` dies: identity becomes the declared group every type
-  emits; the name→slug→uid→Unnamed fallback becomes a display policy
-  on that group.
-- `DataBlock` evolves in place only where a policy is missing (units as
-  suffix) — no new component, no rename.
-- Acceptance: `IdentityBlock`/`SpecsBlock` gone; no new renderer
-  component; representative surfaces render the same data; audit +
+- The ONE fact vocabulary is the compiled type view (CTS client
+  bundle: field schemas + render policies — already served and cached
+  via `useFileTypeView`). Card/detail field groups become a render
+  facet of type declarations, compiled into the bundle.
+- `instance-display-contract.js` / `cncInstanceFieldGroups` stop being
+  a parallel source: descriptors resolve from the bundle; app
+  extensions (`app-instance-surfaces.js`) compose as overrides on it.
+- `IdentityBlock` and `SpecsBlock` die as a consequence (their content
+  is declared fields + policies: identity group with the
+  name→slug→uid→Unnamed fallback policy; dimensional group with units).
+- `DataBlock` survives as the generator's fact-row control — no new
+  component, no rename; it is fed by bundle-resolved descriptors.
+- Acceptance: one display truth repo-wide; generated surfaces' fact
+  rows resolve from the compiled bundle; `IdentityBlock`/`SpecsBlock`
+  gone; same data renders on representative surfaces; audit +
   design-system specs green.
 
 ### Phase 7 — Finish the dual worlds `[ ]`
