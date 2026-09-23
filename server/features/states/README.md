@@ -36,22 +36,63 @@ card-only data; use `lineage` only for ancestry and `attachments` only for file
 references.
 
 ### Audit Log: `status_events`
-Every state transition is recorded in the `status_events` collection.
+Every state change is recorded in the append-only `status_events` collection —
+the Stamp law: no state without a stamp recording who, when, which operation,
+with what evidence, at which station (see
+[packages/cts/SPEC.md](../../../packages/cts/SPEC.md) §1).
 
 ```javascript
 {
   _id: ObjectId,
   targetId: ObjectId,
-  targetType: String, // e.g., "project", "queue", "requisition"
-  fromState: String,
+  targetType: String,            // e.g., "project", "queue", "requisition"
+  fromState: String | null,      // null on initialize events
   toState: String,
-  status: [Status Block],
+  fromStatePrimary: String | null,
+  toStatePrimary: String,
+  region: String,
+  status: Status Block,          // legacy compatibility copy of the snapshot
+  actor: {
+    id: String,                  // user id or 'SYSTEM'
+    label: String,               // display name, when the auth context carries one
+    principalType: 'user' | 'service' | 'SYSTEM'
+  },
+  operation: {
+    kind: 'initialize' | 'transition' | 'intent',
+    intent: String,              // invoked or declared intent, when present
+    region: String
+  },
+  evidence: {
+    description: String | null,  // transition note/description
+    attachments: Object,         // slot -> normalized attachment refs
+    lifecycle: Object            // normalized lifecycle (actors, attachments, data)
+  },
+  source: Object,                // caller-declared origin, when the boundary passes one
   timestamp: Date
 }
 ```
 
+- `actor` is the stamp's who, taken from the auth context at the write
+  boundary (never re-resolved from the status block). `operation.kind` is
+  `initialize` for `setInitialStateForOrganization` events (which carry
+  `fromState: null`), `intent` when the call arrived through
+  `applyIntent`/`transitionWithResult({ intent })`, and `transition` for direct
+  target-state calls. Workflow transitions are anonymous — identified by
+  region + from/to + intent — so no separate transition id is recorded.
+- `evidence` carries the normalized transition payload produced by the status
+  engine: the description, per-slot attachment refs (with `attachmentKey`,
+  `fileId`, bucket, and download URL), and the full normalized lifecycle
+  including captured relation snapshots. The legacy `status` block copy remains
+  for compatibility; `evidence` is additive.
+- `source` is caller-declared at the transition boundary; the process action
+  runtime passes `{ kind: 'process-run', actionId }`. Like `producerOutputId`,
+  it is lifted onto the event and never persisted into `status.metadata`.
+- The log is append-only with no migration: events written before the stamp
+  change simply lack `actor`, `operation`, `evidence`, and `source`, and
+  consumers must treat those keys as absent.
+
 `getHistoryByTarget(targetType, targetId)` returns persisted events sorted
-newest-first and adds a response-only `actor` object resolved from
+newest-first and adds a response-only display `actor` resolved from
 `status.userId`:
 
 ```javascript
@@ -64,7 +105,10 @@ actor: {
 
 The display actor is not written back to the status block: the status block
 keeps the immutable `userId` audit value, while UI surfaces can render the
-human name when the user still exists.
+human name when the user still exists. When the event carries the persisted
+stamp `actor`, the display projection merges under it: the persisted `id`,
+`label`, and `principalType` win and the display `userId`, `type`, and `name`
+fill the UI vocabulary.
 
 ## Core Engine: State Machines
 Transitions are governed by declarative machines in `server/core/machines/`.
