@@ -32,7 +32,7 @@
             size="small"
             severity="secondary"
             :aria-label="$t('common.close')"
-            @click.stop="$emit('close', tab.key)"
+            @click.stop="$emit('close-tab', tab.key)"
           />
         </Tab>
       </TabList>
@@ -68,7 +68,7 @@ defineProps({
   activeKey: { type: String, default: '' }
 });
 
-defineEmits(['select', 'close', 'add', 'refresh']);
+defineEmits(['select', 'close-tab', 'add', 'refresh']);
 
 const { t } = useI18n();
 const registry = useRegistryStore();
