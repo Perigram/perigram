@@ -1040,6 +1040,14 @@ route-level screen requirement.
 authored screen that is projection-equal to the station inference would
 emit for the same role + type is redundant slop — it only suppresses an
 identical inference and must be hand-maintained for nothing.
+Suppression is per station kind: an authored `typeList` (template or
+kind) for a role + type suppresses only the inferred list station, an
+authored `instanceDetail` only the inferred detail, and any other
+authored template for the role + feature (formAction, table, home,
+route, system templates) stands in for both generated stations, because
+a chrome screen for a feature replaces the generated surfaces as a
+whole. An authored screen is a delta that customizes exactly the one
+station it equals in kind.
 `redundantAuthoredScreens` (script-facing wrapper:
 `detectRedundantScreens(definition, domain, orgRoles)`) detects them by
 running the pure inference (no authored-screen suppression) and
@@ -1050,6 +1058,13 @@ apply a redundant screen ("duplicates the inferred station"); the
 one-time broom is
 [`server/scripts/sweep-redundant-screens.js`](../../server/scripts/README.md)
 (dry-run default, `--apply` deletes and best-effort recompiles).
+
+A process whose grants infer zero stations compiles to zero screens:
+authoring is delta-only (there is no screen create verb), so with no
+inferred stations there is nothing to customize and nothing authored.
+The designer Screens tab explains this state — stations derive from
+role access grants — instead of rendering an empty list (see
+[`components/process-designer/README.md`](../../components/process-designer/README.md)).
 
 Each compiled producer output owns its field policy. `read` fields are public
 display fields, `write` fields require write grants, and `private` fields

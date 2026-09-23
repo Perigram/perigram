@@ -296,7 +296,13 @@ There is no create-a-screen-from-nothing verb: the Screens tab's compiled
 preview IS the station inventory — stations absent from `data.screens` are
 inference-owned, rendered read-only and marked as inferred, and their only
 authoring gesture is **Customize**, which duplicates the inferred station
-into an authored record. The duplicate gets a fresh id and route;
+into an authored record. Authored stations suppress only the station they
+equal in kind (per-kind suppression is owned by the process compiler's
+inference — see
+[`packages/processes/README.md`](../../packages/processes/README.md)).
+When grants infer zero stations and nothing is authored, the tab renders an
+explanatory empty state — stations derive from role access grants, with an
+action that opens the Roles tab — instead of an empty list. The duplicate gets a fresh id and route;
 compile-only keys (`labelKey`, `sourceRoute`) and compile-attached lineage
 bindings are dropped and the station's `kind` is preserved, so an untouched
 duplicate stays projection-equal to inference and Apply's redundancy guard
