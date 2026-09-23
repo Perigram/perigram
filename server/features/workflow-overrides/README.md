@@ -10,6 +10,16 @@ Organization-scoped lifecycle override storage for entity status machines.
 - Enforces organization-scoped admin access for the target entity domain.
 - Resolves the active organization override for the status engine, falling back
   to the domain workflow when no override exists.
+- The type declaration is itself a machine source: when neither an override
+  nor a process workflow exists and the registered domain carries no
+  workflow for the type, resolution derives a normalized v2 machine from
+  the type's registry declaration (`states.main` + declared transitions)
+  through `@perigram/cts` `declarationWorkflow`. Organization context
+  resolves the declaration through the instances feature's cached
+  per-organization lookup (tenancy: system view first, the org's stored
+  declarations overlay); without an organization the synchronous fallback
+  serves static pack/framework declarations only. A type with no
+  declaration and no domain workflow still resolves to no machine.
 - When an active process supplies a workflow, runtime resolution merges
   domain-owned system intent transitions into that process workflow. Process
   statuses remain user-authored, but hidden service intents such as

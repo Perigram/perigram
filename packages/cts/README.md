@@ -31,7 +31,11 @@ module layout and how the code maps to the spec's build-order tiers.
   derivation home, consumed by the domain projection, derived indexes, and
   the UI generator); lineage acyclicity (R2).
 - `states.js` — single-axis states, guarded transitions, unique intents,
-  terminal reachability (R4).
+  terminal reachability (R4); `mergeTransitionNodeStates` merges
+  transition-node-declared target statuses into a tree-declared axis
+  (values union, fan-out edges from every other value, sinks ∪ explicit
+  terminals — the shared core of `compileTreeDeclarations` and
+  `declarationsFromCtsRecords`).
 - `operators.js` — the six species with typed signatures, event/schedule
   triggers; services and projections are ref-free.
 - `expressions.js` — CEL-semantics expression ASTs: total evaluation with a
@@ -86,7 +90,9 @@ module layout and how the code maps to the spec's build-order tiers.
 - `compat/domain-projection.js` — the single CTS → compiler-domain
   translator, synthesis-only: every type in the view (framework, pack,
   org) synthesizes its entities entry (per-class collection, §13),
-  `workflows` (declared states/transitions with render policy), 
+  `workflows` (declared states/transitions with render policy — derived
+  by the exported `declarationWorkflow(type)`, the one declaration→v2
+  machine seam the server's status resolution reuses), 
   `fieldSchemas` (core-slot convention + rows), `fieldAccess` (bound to
   the cts-types feature), `containment` (children edges with lineage
   keys), `construction` (`genericCreate` + declared construct operators

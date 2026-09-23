@@ -14,7 +14,15 @@ identities are organization data, and the Roles panel performs immediate
 organization CRUD independently of process Save/Apply. Assignments belong
 to Team Management. Statuses are authored as state declaration nodes on
 their class (the Types palette) and enter effects through their typed
-status sockets; no status-definition canvas records exist. Status
+status sockets; no status-definition canvas records exist. Beside the
+tree, a `cts.transition` node may declare its target status inline in the
+inspector (value, label, severity, icon, terminal — persisted on the
+record's `state` payload): transition-node statuses compile into the
+class's declaration machine at save-overlay and APPLY
+(`compileTreeDeclarations`; see
+[packages/processes](../../../packages/processes/README.md)), composing
+with tree-declared states — the transition node wins where both declare
+the same value. Status
 fallback choices for an effect's typed status input derive from the bound
 type's declared lifecycle states.
 
@@ -79,7 +87,9 @@ record access, roles, screens, and dock/panel state:
 Per-kind inspector sections live in
 [`inspector/`](./inspector/): `ProcessNodeInspector.vue` (authorization
 rows, producer-output panel, data matching, output preview,
-service/join/construction sections), `DeclarationInspector.vue` (class,
+service/join/construction sections, and the transition-node target-status
+panel — value, label, severity, icon, terminal writing the record's
+`state` payload), `DeclarationInspector.vue` (class,
 field, state, and type-reference authoring — the field descriptor reuses
 the shared `type-designer/DescriptorEditor`), and
 `DeclarationEdgeInspector.vue` (transition intents, children edges). They
@@ -151,9 +161,17 @@ free-form icon — no hardcoded icon lists); they declare on a class by
 wire, author the machine entry by wiring into a Create node's status
 input, and target transitions by wiring into status-mutating effects.
 The machine comes from the process graph; end states derive (states
-with no outgoing transition). Declared severities/icons compile into
+with no outgoing transition). A `cts.transition` node is the second
+authoring path for statuses: its inspector declares the target status
+inline (value, label, severity, icon, terminal), the value compiles into
+the class's declared values without a tree node, and the transition node
+fans a declared edge into the machine from every other declared value
+(SPEC §20: from-state resolves dynamically, so target-only is lossless)
+— a class with GOO (entry) and a transition node targeting CHANGED is a
+complete machine with no state-to-state wires. Declared severities/icons compile into
 `render.states`, which `renderPolicyFor` consumes for state chips and
-action tones.
+action tones; on a value declared by both a tree node and a transition
+node, the transition node's policy wins.
 Class card labels derive from the authored name. Field mutability is
 authored on the descriptor (Writable / Constructible toggles in the
 shared descriptor editor): writable governs mutate leaf sockets and
