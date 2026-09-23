@@ -518,7 +518,7 @@ function communicationPanelModel() {
     label: t('support.chatTitle'),
     icon: 'pi pi-comments',
     command: () => openChatsPage(),
-    children: [
+    items: [
       ...activeRoomItems(),
       { key: 'communication:calls', label: t('call.calls'), icon: 'pi pi-phone', items: callItems }
     ]
