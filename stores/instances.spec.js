@@ -14,7 +14,7 @@ const queueType = {
   fields: { name: { base: 'string' } },
   states: { main: { initial: 'draft', values: ['draft', 'ready'] } },
   operators: { genericCreate: { id: 'genericCreate', species: 'construct' } },
-  render: { icon: 'pi pi-list' }
+  glyph: 'pi pi-list'
 };
 
 function seedBundle(types = [queueType]) {

@@ -1,12 +1,15 @@
 // Random world generator for the UI mapping showcase: a seeded PRNG builds
 // an entire hydration — types (random classes, fields, bases, units, enum
-// sizes, labels, groups, identity fields, states, payloads, preview
+// sizes, labels, identifier flags, control pins, states, payloads, preview
 // modes), a random containment DAG plus random relation edges, random
 // instances with conforming values, and a random compiled contract (home /
 // typeList / instanceDetail screens with lineage- and relation-scoped
 // regions and actions). Nothing here is hand-authored: the point is to
 // hydrate the generation layer with structures nobody chose. Same seed,
-// same world.
+// same world. Bundle records derive their display policy exactly the way
+// `compileClientBundle()` does (`renderPolicyFor` over the authored
+// declaration).
+import { renderPolicyFor } from '#packages/cts/src/index.js';
 
 function mulberry32(seed) {
   let a = seed >>> 0;
@@ -175,7 +178,16 @@ export function generateUiMappingWorld(seed = 7) {
     if (kind === 'item' && !Object.values(fields).some(descriptor => descriptor.base === 'string')) {
       fields.serial = { base: 'string', label: 'Serial' };
     }
-    const type = { id, class: kind, version: 1, fields, edges: {}, transitions: [] };
+    const type = {
+      id,
+      class: kind,
+      version: 1,
+      name: rnd.word().replace(/^./, character => character.toUpperCase()),
+      glyph: `pi pi-${rnd.pick(['circle', 'bolt', 'bookmark', 'box', 'tag', 'star', 'cog', 'send'])}`,
+      fields,
+      edges: {},
+      transitions: []
+    };
     if (kind === 'file') {
       const preview = rnd.pick(PREVIEWS);
       type.payload = { mime: [MIMES[preview]], accept: [`.${preview}`], maxSize: rnd.rand(1, 20) * 1024 * 1024, preview };
@@ -187,46 +199,35 @@ export function generateUiMappingWorld(seed = 7) {
       type.transitions = values.slice(1).map((value, stateIndex) => ({ from: values[stateIndex], to: value }));
     }
     const stringField = Object.entries(fields).find(([, descriptor]) => descriptor.base === 'string');
-    const render = { label: rnd.word().replace(/^./, character => character.toUpperCase()), icon: `pi pi-${rnd.pick(['circle', 'bolt', 'bookmark', 'box', 'tag', 'star', 'cog', 'send'])}` };
-    if (stringField && rnd.chance(0.8)) render.identityField = stringField[0];
-    // Authored render vocabulary: the declared sortKey (default ordering),
-    // the authored listLayout override (occasionally contradicting the
-    // shape-derived layout), and a pinned editor control on a short string
-    // all exercise the declared-beats-derived precedence paths live.
-    const scalars = Object.entries(fields)
-      .filter(([, descriptor]) => ['string', 'number', 'quantity', 'instant', 'enum', 'boolean'].includes(descriptor.base)
-        && !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120)));
-    if (scalars.length && rnd.chance(0.5)) render.sortKey = rnd.pick(scalars)[0];
-    if (rnd.chance(0.25)) render.listLayout = rnd.pick(['table', 'card-grid', 'timeline', 'stats', 'list']);
+    // The identifier flag (the record's name source) lands on a short
+    // string when one exists; a pinned editor control on another short
+    // string exercises the authored-control precedence path live.
+    if (stringField && rnd.chance(0.8)) stringField[1].identifier = true;
     const shortString = Object.entries(fields)
-      .find(([name, descriptor]) => descriptor.base === 'string' && !(descriptor.multiline === true || (descriptor.max || 0) >= 120) && name !== render.identityField);
-    if (shortString && rnd.chance(0.3)) shortString[1].render = { control: 'Textarea' };
-    if (Object.keys(fields).length > 4 && rnd.chance(0.6)) {
-      const names = Object.keys(fields);
-      render.groups = Array.from({ length: rnd.rand(1, 3) }, (_, groupIndex) => ({
-        id: `g${groupIndex + 1}`,
-        label: rnd.pick(GREEK).replace(/^./, character => character.toUpperCase()),
-        fields: names.slice(groupIndex * 2, groupIndex * 2 + rnd.rand(2, 3)).filter(name => rnd.chance(0.9))
-      })).filter(group => group.fields.length);
-    }
-    type.render = render;
+      .find(([, descriptor]) => descriptor.base === 'string' && !(descriptor.multiline === true || (descriptor.max || 0) >= 120) && !descriptor.identifier);
+    if (shortString && rnd.chance(0.3)) shortString[1].control = 'Textarea';
     return type;
   });
   // Guarantee at least one authored editor control per world: pin a
   // Textarea on the first short string, preferring non-identity fields.
-  if (!types.some(type => Object.values(type.fields).some(field => field.render?.control))) {
+  if (!types.some(type => Object.values(type.fields).some(field => field.control))) {
     const isShortString = descriptor => descriptor.base === 'string'
       && !(descriptor.multiline === true || (descriptor.max || 0) >= 120);
-    const host = types.find(type => Object.entries(type.fields).some(([name, descriptor]) => isShortString(descriptor) && name !== type.render?.identityField))
+    const host = types.find(type => Object.entries(type.fields).some(([, descriptor]) => isShortString(descriptor) && !descriptor.identifier))
       || types.find(type => Object.values(type.fields).some(isShortString));
-    const pinned = host && Object.entries(host.fields).find(([name, descriptor]) => isShortString(descriptor)
-      && (name !== host.render?.identityField || Object.values(host.fields).filter(d => isShortString(d)).length === 1));
-    if (pinned) pinned[1].render = { control: 'Textarea' };
+    const pinned = host && Object.entries(host.fields).find(([, descriptor]) => isShortString(descriptor)
+      && (!descriptor.identifier || Object.values(host.fields).filter(d => isShortString(d)).length === 1));
+    if (pinned) pinned[1].control = 'Textarea';
   }
-  // Guarantee at least one authored list-layout override per world.
-  if (!types.some(type => type.render?.listLayout)) {
-    const host = types[types.length - 1];
-    host.render.listLayout = 'timeline';
+  // Guarantee at least one identifier flag per world: flag the first
+  // string field, adding a name field when the world rolled stringless.
+  if (!types.some(type => Object.values(type.fields).some(field => field.identifier))) {
+    const host = types.find(type => Object.values(type.fields).some(descriptor => descriptor.base === 'string'));
+    if (host) {
+      Object.values(host.fields).find(descriptor => descriptor.base === 'string').identifier = true;
+    } else {
+      types[0].fields.name = { base: 'string', label: 'Name', identifier: true };
+    }
   }
 
   // Containment: children edges point forward only (acyclic), groups may
@@ -341,7 +342,7 @@ export function generateUiMappingWorld(seed = 7) {
   populated.forEach(type => {
     const inputNames = Object.keys(type.fields).slice(0, 3);
     addAction(`a_create_${type.id}`, {
-      id: `a_create_${type.id}`, label: `New ${type.render.label}`, actionKind: 'createInstance', typeId: type.id,
+      id: `a_create_${type.id}`, label: `New ${type.name}`, actionKind: 'createInstance', typeId: type.id,
       trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
       construction: { mode: 'generic', inputs: inputNames }
     });
@@ -360,11 +361,11 @@ export function generateUiMappingWorld(seed = 7) {
       }
     }
     addAction(`a_delete_${type.id}`, {
-      id: `a_delete_${type.id}`, label: `Delete ${type.render.label}`, actionKind: 'deleteInstance', typeId: type.id,
+      id: `a_delete_${type.id}`, label: `Delete ${type.name}`, actionKind: 'deleteInstance', typeId: type.id,
       trigger: { mode: 'manual' }, access: { level: 'admin', grants: [] }
     });
     addAction(`a_run_${type.id}`, {
-      id: `a_run_${type.id}`, label: `Sync ${type.render.label}`, actionKind: 'runCommand', typeId: type.id,
+      id: `a_run_${type.id}`, label: `Sync ${type.name}`, actionKind: 'runCommand', typeId: type.id,
       trigger: { mode: 'manual' }, access: { level: 'write', grants: [] }
     });
   });
@@ -404,7 +405,7 @@ export function generateUiMappingWorld(seed = 7) {
   populated.slice(0, 3).forEach(type => {
     const key = `list_${type.id}`;
     screens[key] = {
-      id: key, screenKey: key, label: `${type.render.label} list`, kind: 'typeList', template: 'typeList',
+      id: key, screenKey: key, label: `${type.name} list`, kind: 'typeList', template: 'typeList',
       route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'hub', typeId: type.id,
       required: null, roleIds: ['operator'], scope: {}, bindings: {},
       sources: [{ id: 'main', typeId: type.id, mode: 'list', required: null }],
@@ -416,7 +417,7 @@ export function generateUiMappingWorld(seed = 7) {
   // surface (and its region create action) is reachable in every world.
   if (!actions[`a_create_${emptyType.id}`]) {
     addAction(`a_create_${emptyType.id}`, {
-      id: `a_create_${emptyType.id}`, label: `New ${emptyType.render.label}`, actionKind: 'createInstance', typeId: emptyType.id,
+      id: `a_create_${emptyType.id}`, label: `New ${emptyType.name}`, actionKind: 'createInstance', typeId: emptyType.id,
       trigger: { mode: 'manual' }, access: { level: 'write', grants: [] },
       construction: { mode: 'generic', inputs: Object.keys(emptyType.fields).slice(0, 3) }
     });
@@ -425,7 +426,7 @@ export function generateUiMappingWorld(seed = 7) {
     const type = emptyType;
     const key = `list_${type.id}`;
     screens[key] = {
-      id: key, screenKey: key, label: `${type.render.label} list — empty state`, kind: 'typeList', template: 'typeList',
+      id: key, screenKey: key, label: `${type.name} list — empty state`, kind: 'typeList', template: 'typeList',
       route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'hub', typeId: type.id,
       required: null, roleIds: ['operator'], scope: {}, bindings: {},
       sources: [{ id: 'main', typeId: type.id, mode: 'list', required: null }],
@@ -455,7 +456,7 @@ export function generateUiMappingWorld(seed = 7) {
       regions.push({ id: 'crel', slot: 'children', sourceId: 'crel', surface: 'list', actions: [`a_link_${type.id}`, `a_unlink_${type.id}`].filter(id => actions[id]) });
     }
     screens[key] = {
-      id: key, screenKey: key, label: `${type.render.label} detail`, kind: 'instanceDetail', template: 'instanceDetail',
+      id: key, screenKey: key, label: `${type.name} detail`, kind: 'instanceDetail', template: 'instanceDetail',
       route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'detail', typeId: type.id,
       required: null, roleIds: ['operator'], scope: { instanceId: instance.id }, bindings: {},
       sources, regions, actions: regions.flatMap(region => region.actions)
@@ -468,7 +469,7 @@ export function generateUiMappingWorld(seed = 7) {
     const type = emptyType;
     const key = `detail_missing_${type.id}`;
     screens[key] = {
-      id: key, screenKey: key, label: `${type.render.label} detail — no record state`, kind: 'instanceDetail', template: 'instanceDetail',
+      id: key, screenKey: key, label: `${type.name} detail — no record state`, kind: 'instanceDetail', template: 'instanceDetail',
       route: `/screens/${key}`, sourceRoute: `/screens/${key}`, placement: 'detail', typeId: type.id,
       required: null, roleIds: ['operator'], scope: { instanceId: `${type.id}-none` }, bindings: {},
       sources: [{ id: 'main', typeId: type.id, mode: 'single', required: null, identifier: '$screen.scope.instanceId' }],
@@ -495,9 +496,26 @@ export function generateUiMappingWorld(seed = 7) {
     instances[type.id] = instancesByType[type.id];
   });
 
+  // Derive the bundle display policy after every mutation has landed
+  // (nullable marking touches descriptors late).
+  const bundleTypes = types.map(type => {
+    const policy = renderPolicyFor(type);
+    return {
+      ...type,
+      name: policy.name,
+      glyph: policy.glyph,
+      identifier: policy.identifier,
+      depiction: policy.depiction,
+      sections: policy.sections,
+      states: Object.fromEntries(Object.entries(type.states || {}).map(([axisName, axis]) => [
+        axisName, { ...axis, render: policy.states[axisName] }
+      ]))
+    };
+  });
+
   return {
     seed,
-    bundle: { ok: true, errors: [], organizationId: `org-seed-${seed}`, types },
+    bundle: { ok: true, errors: [], organizationId: `org-seed-${seed}`, types: bundleTypes },
     contract: { processId: `proc_seed_${seed}`, dataflowVersion: 4, roles: { operator: { id: 'operator', label: 'Operator', grants: [] } }, screens, actions, navigation: [] },
     instances,
     sourceStatesMatrix: stateMatrix

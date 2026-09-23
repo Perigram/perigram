@@ -9,14 +9,16 @@ const penTemplate = Object.freeze({
   id: 'pen-template',
   class: 'file',
   scope: 'system',
+  name: 'Pen template',
+  glyph: 'pi pi-pencil',
   fields: {
-    name: { base: 'string' },
+    name: { base: 'string', identifier: true },
     stroke: {
       base: 'record',
       fields: {
-        color: { base: 'string', render: { control: 'ColorPicker' } },
-        weight: { base: 'quantity', unit: 'mm' },
-        pattern: { base: 'enum', values: PEN_PATTERNS }
+        color: { base: 'string', control: 'ColorPicker', label: 'penTemplate.color', display: 'color' },
+        weight: { base: 'quantity', unit: 'mm', label: 'penTemplate.weight', display: 'dimension' },
+        pattern: { base: 'enum', values: PEN_PATTERNS, label: 'penTemplate.pattern', display: 'text' }
       }
     }
   },
@@ -26,17 +28,6 @@ const penTemplate = Object.freeze({
       // (arbitrary ink stays the stroke.color hex literal).
       palette: { types: ['color'], onRemove: 'detach' }
     }
-  },
-  render: {
-    label: 'Pen template',
-    icon: 'pi pi-pencil',
-    groups: [
-      { id: 'summary', fields: [
-        { path: 'data.stroke.color', label: 'penTemplate.color', display: 'color', priority: 10 },
-        { path: 'data.stroke.weight', label: 'penTemplate.weight', display: 'dimension', unit: 'mm', priority: 20 },
-        { path: 'data.stroke.pattern', label: 'penTemplate.pattern', display: 'text', priority: 30 }
-      ] }
-    ]
   }
 });
 
@@ -48,23 +39,12 @@ const color = Object.freeze({
   id: 'color',
   class: 'file',
   scope: 'system',
+  name: 'Color',
+  glyph: 'pi pi-palette',
   fields: {
-    code: { base: 'string' },
+    code: { base: 'string', identifier: true, label: 'common.code', display: 'code' },
     name: { base: 'string' },
-    hex: { base: 'string', render: { control: 'ColorPicker' } }
-  },
-  render: {
-    label: 'Color',
-    icon: 'pi pi-palette',
-    groups: [
-      { id: 'summary', fields: [
-        { path: 'data.visuals.hexCode', label: 'color.hexCode', display: 'swatch', priority: 10 },
-        { path: 'data.code', label: 'common.code', display: 'text', priority: 20 }
-      ] },
-      { id: 'relations', fields: [
-        { path: 'lineage.catalogId', label: 'entities.catalog', display: 'entityRef', typeId: 'catalog', priority: 10 }
-      ] }
-    ]
+    hex: { base: 'string', control: 'ColorPicker', label: 'color.hexCode', display: 'color' }
   }
 });
 
@@ -74,14 +54,15 @@ const dxfSource = Object.freeze({
   id: 'dxf-source',
   class: 'file',
   scope: 'system',
+  name: 'DXF source',
+  glyph: 'pi pi-objects-column',
   payload: {
     mime: ['application/dxf'],
     accept: ['.dxf', 'application/dxf'],
     maxSize: 50 * 1024 * 1024,
     preview: 'dxf'
   },
-  fields: { name: { base: 'string' } },
-  render: { label: 'DXF source', icon: 'pi pi-objects-column' }
+  fields: { name: { base: 'string', identifier: true } }
 });
 
 // The vector drawing document, kept with the vector-drawing family for
@@ -90,24 +71,27 @@ const svgFile = Object.freeze({
   id: 'svg-file',
   class: 'file',
   scope: 'system',
+  name: 'SVG file',
+  glyph: 'pi pi-code',
   payload: {
     mime: ['image/svg+xml'],
     accept: ['.svg', 'image/svg+xml'],
     maxSize: 10 * 1024 * 1024,
     preview: 'svg'
   },
-  fields: { name: { base: 'string' } },
-  render: { label: 'SVG file', icon: 'pi pi-code' }
+  fields: { name: { base: 'string', identifier: true } }
 });
 
 const layerStandard = Object.freeze({
   id: 'layer-standard',
   class: 'file',
   scope: 'system',
+  name: 'Layer standard',
+  glyph: 'pi pi-list',
   fields: {
-    code: { base: 'string' },
+    code: { base: 'string', identifier: true, label: 'common.code', display: 'code' },
     name: { base: 'string' },
-    category: { base: 'string' },
+    category: { base: 'string', label: 'common.type', display: 'text' },
     group: { base: 'string', nullable: true },
     kind: { base: 'string', nullable: true },
     purpose: { base: 'string', nullable: true },
@@ -125,20 +109,6 @@ const layerStandard = Object.freeze({
     relations: {
       defaultPen: { types: ['pen-template'], cardinality: 'one', onRemove: 'restrict' }
     }
-  },
-  render: {
-    label: 'Layer standard',
-    icon: 'pi pi-list',
-    groups: [
-      { id: 'summary', fields: [
-        { path: 'data.code', label: 'common.code', display: 'code', priority: 10 },
-        { path: 'data.category', label: 'common.type', display: 'text', priority: 20 }
-      ] },
-      { id: 'relations', fields: [
-        { path: 'data.defaultPenId', label: 'entities.penTemplate', display: 'entityRef', typeId: 'penTemplate', priority: 30 },
-        { path: 'data.orgPenId', label: 'entities.penTemplate', display: 'entityRef', typeId: 'penTemplate', priority: 40 }
-      ] }
-    ]
   }
 });
 
@@ -151,6 +121,8 @@ const sketch = Object.freeze({
   id: 'sketch',
   class: 'file',
   scope: 'system',
+  name: 'Sketch',
+  glyph: 'pi pi-pencil',
   payload: {
     mime: ['application/json'],
     accept: ['.json', 'application/json'],
@@ -160,9 +132,8 @@ const sketch = Object.freeze({
   },
   revisions: 'scene',
   fields: {
-    name: { base: 'string' }
-  },
-  render: { label: 'Sketch', icon: 'pi pi-pencil' }
+    name: { base: 'string', identifier: true }
+  }
 });
 
 export const techDrawingTypes = Object.freeze([penTemplate, layerStandard, color, dxfSource, svgFile, sketch]);

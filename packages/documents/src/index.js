@@ -6,15 +6,16 @@
 
 const MB = 1024 * 1024;
 
-function documentType({ id, mime, accept, maxSize, preview, icon, label, revisions = null, creation = null }) {
+function documentType({ id, mime, accept, maxSize, preview, glyph, name, revisions = null, creation = null }) {
   return Object.freeze({
     id,
     class: 'file',
     scope: 'system',
+    name,
+    ...(glyph ? { glyph } : {}),
     payload: { mime: [].concat(mime), accept, maxSize, preview, ...(creation ? { creation: [].concat(creation) } : {}) },
     ...(revisions ? { revisions } : {}),
-    fields: { name: { base: 'string' } },
-    render: { label, icon }
+    fields: { name: { base: 'string', identifier: true } }
   });
 }
 
@@ -25,8 +26,8 @@ export const documentsTypes = Object.freeze([
     accept: ['.jpg', '.jpeg', '.png', 'image/jpeg', 'image/png'],
     maxSize: 25 * MB,
     preview: 'image',
-    icon: 'pi pi-image',
-    label: 'Image',
+    glyph: 'pi pi-image',
+    name: 'Image',
     creation: ['upload', 'capture']
   }),
   documentType({
@@ -35,8 +36,8 @@ export const documentsTypes = Object.freeze([
     accept: ['.pdf', 'application/pdf'],
     maxSize: 25 * MB,
     preview: 'pdf',
-    icon: 'pi pi-file-pdf',
-    label: 'PDF document'
+    glyph: 'pi pi-file-pdf',
+    name: 'PDF document'
   }),
   documentType({
     id: 'text-document',
@@ -44,8 +45,8 @@ export const documentsTypes = Object.freeze([
     accept: ['.md', 'text/markdown'],
     maxSize: 10 * MB,
     preview: 'text',
-    icon: 'pi pi-file-edit',
-    label: 'Text document',
+    glyph: 'pi pi-file-edit',
+    name: 'Text document',
     revisions: 'content',
     creation: ['editor']
   }),
@@ -55,8 +56,8 @@ export const documentsTypes = Object.freeze([
     accept: ['.csv', 'text/csv'],
     maxSize: 10 * MB,
     preview: 'table',
-    icon: 'pi pi-table',
-    label: 'CSV table',
+    glyph: 'pi pi-table',
+    name: 'CSV table',
     revisions: 'content',
     creation: ['editor']
   }),
@@ -66,8 +67,8 @@ export const documentsTypes = Object.freeze([
     accept: ['.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
     maxSize: 25 * MB,
     preview: 'workbook',
-    icon: 'pi pi-file-excel',
-    label: 'XLSX workbook'
+    glyph: 'pi pi-file-excel',
+    name: 'XLSX workbook'
   }),
   documentType({
     id: 'docx-document',
@@ -78,8 +79,8 @@ export const documentsTypes = Object.freeze([
     // needs a paginated document surface, not a preview box. The payload
     // downloads instead.
     preview: 'download',
-    icon: 'pi pi-file-word',
-    label: 'DOCX document'
+    glyph: 'pi pi-file-word',
+    name: 'DOCX document'
   })
 ]);
 

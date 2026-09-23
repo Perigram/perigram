@@ -78,13 +78,13 @@ describe('random worlds', () => {
 });
 
 describe('showcase-reachable contracts in every world', () => {
-  it('ships the authored render vocabulary and full action-kind coverage', () => {
+  it('ships the authored naming vocabulary and full action-kind coverage', () => {
     for (const seed of SEEDS) {
       const world = generateUiMappingWorld(seed);
       const types = world.bundle.types;
-      expect(types.some(type => type.render?.sortKey), `seed ${seed} authored sortKey`).toBe(true);
-      expect(types.some(type => type.render?.listLayout), `seed ${seed} authored listLayout`).toBe(true);
-      expect(types.some(type => Object.values(type.fields).some(field => field.render?.control)), `seed ${seed} authored control`).toBe(true);
+      expect(types.every(type => typeof type.name === 'string' && type.name), `seed ${seed} authored names`).toBe(true);
+      expect(types.some(type => type.identifier), `seed ${seed} identifier flag`).toBe(true);
+      expect(types.some(type => Object.values(type.fields).some(field => field.control)), `seed ${seed} authored control`).toBe(true);
       const kinds = Object.values(world.contract.actions).map(action => action.actionKind);
       expect(kinds, `seed ${seed} runCommand`).toContain('runCommand');
       expect(kinds, `seed ${seed} unlink`).toContain('unlink');

@@ -75,7 +75,7 @@ describe('generated labels', () => {
     expect(generatedScreenLabel({ template: 'typeList', typeId: 'cassette_design' }, i18n)).toBe('Cassette design');
   });
 
-  it('labels org-authored types by their authored render label from the registry bundle', () => {
+  it('labels org-authored types by their authored name from the registry bundle', () => {
     setActivePinia(createPinia());
     const authStore = useAuthStore();
     authStore.user = {
@@ -83,7 +83,7 @@ describe('generated labels', () => {
       process: {
         active: true,
         bundle: {
-          types: [{ id: 't-k3x9fj2mqa', render: { label: 'Job Ticket' } }]
+          types: [{ id: 't-k3x9fj2mqa', name: 'Job Ticket' }]
         }
       }
     };

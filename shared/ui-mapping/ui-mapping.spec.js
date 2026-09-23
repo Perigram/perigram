@@ -241,7 +241,7 @@ describe('preview resolution', () => {
     expect(resolvePreview({ payload: { preview: 'geometry', mime: ['application/dxf'] } })).toMatchObject({
       component: 'GeometryPreview', mode: 'geometry'
     });
-    expect(resolvePreview({ render: { preview: 'image' } })).toMatchObject({ component: 'ImagePreview' });
+    expect(resolvePreview({ payload: { preview: 'image' } })).toMatchObject({ component: 'ImagePreview' });
     expect(resolvePreview({ payload: { mime: ['application/pdf'] } }).component).toBe('AttachmentPreview');
     expect(resolvePreview({}).component).toBeNull();
   });
@@ -258,13 +258,13 @@ describe('action button resolution', () => {
     expect(resolveActionButton({ actionKind: 'createInstance', trigger: { mode: 'event' } }).hidden).toBe(true);
   });
 
-  it('tones status transitions from the target state render policy', () => {
-    const render = { states: { FAILED: { label: 'Failed', severity: 'danger' }, DONE: { severity: 'success' } } };
-    expect(resolveActionButton({ actionKind: 'updateInstance', state: { to: 'FAILED' } }, { render }))
+  it('tones status transitions from the target state display policy', () => {
+    const type = { states: { main: { render: { FAILED: { label: 'Failed', severity: 'danger' }, DONE: { severity: 'success' } } } } };
+    expect(resolveActionButton({ actionKind: 'updateInstance', state: { to: 'FAILED' } }, { type }))
       .toMatchObject({ tone: 'state', severity: 'danger' });
-    expect(resolveActionButton({ actionKind: 'updateInstance', state: { to: 'DONE' } }, { render }))
+    expect(resolveActionButton({ actionKind: 'updateInstance', state: { to: 'DONE' } }, { type }))
       .toMatchObject({ severity: 'success' });
-    expect(resolveActionButton({ actionKind: 'updateInstance' }, { render }).tone).toBe('secondary');
+    expect(resolveActionButton({ actionKind: 'updateInstance' }, { type }).tone).toBe('secondary');
   });
 });
 
@@ -355,29 +355,31 @@ describe('value formatting and layout vocabulary', () => {
 });
 
 describe('identity and field groups', () => {
-  it('honors the declared identity field before the heuristic', () => {
-    const type = { fields: { codename: { base: 'string' }, serial: { base: 'string' } }, render: { identityField: 'codename' } };
+  it('honors the identifier-flagged field before the heuristic', () => {
+    const type = { identifier: 'codename', fields: { codename: { base: 'string', identifier: true }, serial: { base: 'string' } } };
     expect(instanceIdentity(type, { fields: { codename: 'Redshift', serial: 'S-1' } })).toBe('Redshift');
     // Instance ids are private display vocabulary: with no field and no
-    // render label the identity is the placeholder, never the raw id.
-    expect(instanceIdentity({ fields: {} }, { id: 'x-9', fields: {} })).toBe('—');
-    expect(instanceIdentity({ fields: {}, render: { label: 'Bin' } }, { id: 'x-9', fields: {} })).toBe('Bin');
+    // type name the identity is the unnamed placeholder, never the raw id.
+    expect(instanceIdentity({ fields: {} }, { id: 'x-9', fields: {} })).toBe('Unnamed');
+    expect(instanceIdentity({ fields: {}, name: 'Bin' }, { id: 'x-9', fields: {} })).toBe('Bin');
     expect(instanceIdentity({ fields: { name: { base: 'string' } } }, { id: 'id-missing', fields: { name: 'Kepler' } })).toBe('Kepler');
     const valueOnly = { fields: { zeta: { base: 'string' } } };
     expect(instanceIdentity(valueOnly, { id: 'x-1', fields: { zeta: 'Nomad' } })).toBe('Nomad');
   });
 
-  it('resolves authored field groups with a trailing default group', () => {
+  it('projects derived sections with a trailing default group for unassigned fields', () => {
     const type = {
       fields: { a: { base: 'string' }, b: { base: 'quantity', unit: 'mm' }, c: { base: 'boolean' } },
-      render: { groups: [{ id: 'core', fields: ['a', 'b'] }] }
+      sections: [{ id: 'summary', label: null, fields: ['a'] }, { id: 'dimensions', label: null, fields: ['b'] }]
     };
     const groups = resolveFieldGroups(type);
-    expect(groups[0]).toMatchObject({ id: 'core', label: 'Core' });
-    expect(groups[0].fields.map(field => field.name)).toEqual(['a', 'b']);
-    expect(groups[1].id).toBe('default');
-    expect(groups[1].label).toBeNull();
-    expect(groups[1].fields.map(field => field.name)).toEqual(['c']);
+    expect(groups[0]).toMatchObject({ id: 'summary', label: null });
+    expect(groups[0].fields.map(field => field.name)).toEqual(['a']);
+    expect(groups[1].id).toBe('dimensions');
+    expect(groups[1].fields.map(field => field.name)).toEqual(['b']);
+    expect(groups[2].id).toBe('default');
+    expect(groups[2].label).toBeNull();
+    expect(groups[2].fields.map(field => field.name)).toEqual(['c']);
     expect(resolveFieldGroups({ fields: { a: { base: 'string' } } }).map(group => group.id)).toEqual(['default']);
   });
 });
@@ -475,21 +477,9 @@ describe('budgets', () => {
   });
 });
 
-describe('authored render overrides', () => {
-  it('lets an authored render.listLayout win over shape matching when it names a known layout', () => {
-    const media = { class: 'file', payload: { preview: 'image' }, fields: { title: { base: 'string' } } };
-    expect(resolveListLayout({ ...media, render: { listLayout: 'timeline' } })).toBe('timeline');
-    expect(resolveListLayout(media)).toBe('card-grid');
-  });
-
-  it('ignores authored list layouts outside the vocabulary', () => {
-    const plain = { class: 'item', states: { main: { values: ['a'] } }, fields: { name: { base: 'string' } } };
-    expect(resolveListLayout({ ...plain, render: { listLayout: 'hologram' } })).toBe('table');
-    expect(resolveListLayout({ ...plain, render: { listLayout: 7 } })).toBe('table');
-  });
-
-  it('pins editor controls through descriptor render.control; display variants stay derived', () => {
-    const descriptor = { base: 'string', render: { control: 'Textarea' } };
+describe('authored display vocabulary', () => {
+  it('pins editor controls through descriptor control; display variants stay derived', () => {
+    const descriptor = { base: 'string', control: 'Textarea' };
     expect(resolveFieldControl(descriptor, { variant: 'detail' }).component).toBe('Textarea');
     expect(resolveFieldControl({ base: 'string' }, { variant: 'detail' }).component).toBe('InputText');
     expect(resolveFieldControl(descriptor, { variant: 'row' }).component).toBe('ValueText');
@@ -500,14 +490,14 @@ describe('instance-aware list controls', () => {
   const type = {
     id: 'probe',
     class: 'item',
+    identifier: 'name',
     fields: {
       name: { base: 'string' },
       note: { base: 'string', multiline: true },
       size: { base: 'quantity', unit: 'mm' },
       grade: { base: 'enum', values: ['a', 'b', 'c'] },
       alwaysNull: { base: 'number' }
-    },
-    render: { identityField: 'name', sortKey: 'size' }
+    }
   };
 
   const instances = [
@@ -523,17 +513,16 @@ describe('instance-aware list controls', () => {
     expect(shape.instanceCount).toBe(3);
   });
 
-  it('derives search keys, filled sort keys with the declared default, facets, and budgets', () => {
+  it('derives search keys, filled sort keys, facets, and budgets', () => {
     const controls = resolveListControls(type, instances);
     expect(controls.searchKeys).toEqual(['name']);
     expect(controls.sortKeys.map(key => key.name)).toEqual(['name', 'size', 'grade']);
-    expect(controls.sortKeys.find(key => key.name === 'size').default).toBe(true);
-    expect(controls.defaultSort).toBe('size');
+    expect(controls.defaultSort).toBeNull();
     expect(controls.facets).toEqual([{ name: 'grade', label: 'Grade', values: ['a', 'b'] }]);
     expect(controls.pagination).toEqual({ paginateAt: 10, rows: 10, virtualizeAt: 50 });
   });
 
-  it('drops the declared sort key when no instance fills it', () => {
+  it('drops unfilled sort keys entirely on empty collections', () => {
     const empty = resolveListControls(type, []);
     expect(empty.defaultSort).toBeNull();
     expect(empty.sortKeys).toEqual([]);
@@ -620,8 +609,8 @@ describe('per-instance quick actions', () => {
 describe('toolbar visibility and matching', () => {
   const type = {
     id: 'gear', class: 'item',
-    fields: { code: { base: 'string' }, size: { base: 'quantity', unit: 'mm' } },
-    render: { identityField: 'code' }
+    identifier: 'code',
+    fields: { code: { base: 'string' }, size: { base: 'quantity', unit: 'mm' } }
   };
   const rows = count => Array.from({ length: count }, (_, i) => ({
     id: `g${i + 1}`, type: 'gear', fields: { code: `G-${i + 1}`, size: { value: i, unit: 'mm' } }
@@ -668,7 +657,7 @@ describe('create dialog input resolution', () => {
     types: [
       {
         id: 't-bin-1',
-        render: { label: 'Bin' },
+        name: 'Bin',
         edges: { children: { tPart1Id: { types: ['t-part-1'] } } }
       },
       { id: 't-part-1', class: 'item', fields: { note: { base: 'string' }, width: { base: 'quantity', unit: 'mm' } } }
@@ -711,7 +700,7 @@ describe('create dialog input resolution', () => {
       types: [
         {
           id: 't-bin-1',
-          render: { label: 'Bin' },
+          name: 'Bin',
           edges: { children: { 't-part-1s': { types: ['t-part-1'], lineageKey: 'tBin1Id' } } }
         },
         type

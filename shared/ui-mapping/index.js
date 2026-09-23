@@ -125,13 +125,13 @@ export function createUiMapping(overrides = {}) {
   }
 
   // resolveFieldControl(descriptor, { variant }) -> { component, span, props }
-  // An authored `render.control` on the descriptor pins the editor control
+  // An authored `control` on the descriptor pins the editor control
   // (edit variants only); display variants stay shape-derived projections.
   function resolveFieldControl(descriptor = {}, options = {}) {
     const variant = options.variant || 'detail';
     const edit = EDIT_VARIANTS.has(variant);
-    const authored = edit && typeof descriptor.render?.control === 'string' && descriptor.render.control
-      ? descriptor.render.control
+    const authored = edit && typeof descriptor.control === 'string' && descriptor.control
+      ? descriptor.control
       : null;
     const entry = pickEntry(edit ? fieldEntries : fieldDisplayEntries, fieldCandidate(descriptor, variant));
     const props = { ...(entry.props || {}) };
@@ -156,9 +156,10 @@ export function createUiMapping(overrides = {}) {
   }
 
   // resolvePreview(typeRecord) -> { component, mode, mime }
+  // The preview mode is a payload trait (declared data, never guessed
+  // from MIME or extension).
   function resolvePreview(typeRecord = {}) {
-    const mode = typeRecord.render?.preview
-      || typeRecord.payload?.preview
+    const mode = typeRecord.payload?.preview
       || (typeRecord.payload ? 'attachment' : 'none');
     const entry = pickEntry(previewEntries, { preview: mode });
     return Object.freeze({
@@ -168,7 +169,9 @@ export function createUiMapping(overrides = {}) {
     });
   }
 
-  // resolveActionButton(action, { render }) -> { component, tone, icon, confirm, hidden }
+  // resolveActionButton(action, { type }) -> { component, tone, icon, confirm, hidden }
+  // State-toned buttons read the target state's resolved display policy
+  // from the bundle type record (`type.states.main.render[value]`).
   function resolveActionButton(action = {}, options = {}) {
     const stateTarget = action.state?.to ? true : null;
     const entry = pickEntry(actionEntries, {
@@ -189,7 +192,7 @@ export function createUiMapping(overrides = {}) {
       hidden: false
     };
     if (outcome.tone === 'state' && stateTarget) {
-      const stateRender = options.render?.states?.[action.state.to];
+      const stateRender = options.type?.states?.main?.render?.[action.state.to];
       outcome.severity = SEVERITY_MAP[stateRender?.severity] || 'secondary';
       outcome.icon = stateRender?.icon || outcome.icon;
       outcome.label = stateRender?.label || null;
@@ -224,12 +227,11 @@ export function createUiMapping(overrides = {}) {
     });
   }
 
-  // resolveListLayout(typeRecord, { hierarchical, size }). An authored
-  // `render.listLayout` wins when it names a known layout — declared data
-  // over shape guessing, same precedence as the declared preview mode.
+  // resolveListLayout(typeRecord, { hierarchical, size }): shape-derived
+  // only — the authored list-layout override channel is gone (display
+  // derivation replaced it); the matcher table over `analyzeTypeShape`
+  // decides.
   function resolveListLayout(typeRecord = {}, options = {}) {
-    const authored = typeRecord.render?.listLayout;
-    if (typeof authored === 'string' && LIST_LAYOUT_VALUES.includes(authored)) return authored;
     const shape = analyzeTypeShape(typeRecord);
     const entry = pickEntry(listLayoutEntries, {
       type: typeRecord.id || null,
@@ -403,7 +405,7 @@ export function instanceIdentity(type, instance) {
   // reads as a broken string rather than an unnamed record.
   if (!instance) return '—';
   const fields = instance.fields || {};
-  const declared = type?.render?.identityField;
+  const declared = type?.identifier;
   if (declared && typeof fields[declared] === 'string' && fields[declared]) return fields[declared];
   for (const key of PREFERRED_IDENTITY_KEYS) {
     if (typeof fields[key] === 'string' && fields[key]) return fields[key];
@@ -413,9 +415,10 @@ export function instanceIdentity(type, instance) {
     && !(descriptor.multiline === true || (descriptor.max || 0) >= 120)
     && typeof fields[name] === 'string'
     && fields[name]);
-  // Identity fallback is the class label — raw instance ids are private
-  // and never render in user-facing labels.
-  return firstShortString ? fields[firstShortString[0]] : (type?.render?.label || '—');
+  // Identity fallback is the type name — raw instance ids are private
+  // and never render in user-facing labels; an unnamed type serves
+  // "Unnamed".
+  return firstShortString ? fields[firstShortString[0]] : (type?.name || 'Unnamed');
 }
 
 const isFilled = value => !(value === null || value === undefined || value === ''
@@ -453,9 +456,11 @@ export function analyzeInstanceShape(typeRecord = {}, instances = []) {
 
 // resolveListControls(type, instances): the compose-time list contract one
 // collection surface consumes — search keys (identity-shaped short
-// strings), filled scalar sort keys with the declared `render.sortKey` as
-// default, enum facets over the values actually present, and the shared
-// pagination budgets. Pure over the type record and the loaded instances.
+// strings), filled scalar sort keys, enum facets over the values actually
+// present, and the shared pagination budgets. Pure over the type record
+// and the loaded instances. The authored default-sort override channel is
+// gone (derivation replaced it): the first filled short scalar sorts by
+// default.
 export function resolveListControls(typeRecord = {}, instances = []) {
   const descriptors = typeRecord.fields || {};
   const shape = analyzeInstanceShape(typeRecord, instances);
@@ -466,8 +471,7 @@ export function resolveListControls(typeRecord = {}, instances = []) {
       return !(descriptor.base === 'string' && (descriptor.multiline === true || (descriptor.max || 0) >= 120));
     })
     .map(name => ({ name, label: fieldLabel(name, descriptors[name]), base: descriptors[name].base }));
-  const declaredSort = typeof typeRecord.render?.sortKey === 'string' ? typeRecord.render.sortKey : null;
-  const declaredIdentity = typeRecord.render?.identityField;
+  const declaredIdentity = typeRecord.identifier;
   const shortStringNames = Object.entries(descriptors)
     .filter(([, descriptor]) => descriptor.base === 'string'
       && !(descriptor.multiline === true || (descriptor.max || 0) >= 120))
@@ -483,8 +487,8 @@ export function resolveListControls(typeRecord = {}, instances = []) {
     .map(([name, values]) => ({ name, label: fieldLabel(name, descriptors[name]), values }));
   return Object.freeze({
     searchKeys: Object.freeze(searchKeys),
-    sortKeys: Object.freeze(sortKeys.map(key => Object.freeze({ ...key, default: key.name === declaredSort || null }))),
-    defaultSort: sortKeys.some(key => key.name === declaredSort) ? declaredSort : null,
+    sortKeys: Object.freeze(sortKeys.map(key => Object.freeze({ ...key }))),
+    defaultSort: null,
     facets: Object.freeze(facets.map(facet => Object.freeze({ ...facet, values: Object.freeze([...facet.values]) }))),
     pagination: Object.freeze({
       paginateAt: TABLE_PAGINATE_AT,
@@ -599,22 +603,20 @@ export function childrenModeFor(childRegions = [], level = 0) {
   return 'stack';
 }
 
+// resolveFieldGroups(type): the derived-section projection — the bundle's
+// `sections` (base-derived, total field assignment) with descriptor
+// labels attached. Fields a stale bundle did not assign trail in an
+// unlabeled default group so no field ever disappears.
 export function resolveFieldGroups(type = {}) {
-  const declared = type.render?.groups || [];
   const entries = Object.entries(type.fields || {})
     .map(([name, descriptor]) => ({ name, descriptor, label: fieldLabel(name, descriptor) }));
-  // Group fields may be bare field names (the section vocabulary) or
-  // normalized fact descriptors ({ path, ... }) from the render facet —
-  // section matching reads the name either way.
-  const namesOf = (group) => (group.fields || []).map(field => (
-    typeof field === 'string' ? field : field?.path
-  ));
-  const assigned = new Set(declared.flatMap(group => namesOf(group)));
-  const groups = declared
-    .map(group => ({
-      id: group.id,
-      label: group.label || String(group.id).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase()),
-      fields: entries.filter(entry => namesOf(group).includes(entry.name))
+  const sections = Array.isArray(type.sections) ? type.sections : [];
+  const assigned = new Set(sections.flatMap(section => section.fields || []));
+  const groups = sections
+    .map(section => ({
+      id: section.id,
+      label: null,
+      fields: entries.filter(entry => (section.fields || []).includes(entry.name))
     }))
     .filter(group => group.fields.length);
   const rest = entries.filter(entry => !assigned.has(entry.name));
@@ -698,7 +700,7 @@ export function resolveCreateDialogInputs(action = {}, type = null, bundle = nul
       const key = id.slice('lineage.'.length);
       const accepts = parentTypesForChildrenKey(bundle, type?.id, key);
       if (accepts.length) {
-        const parentLabel = (bundle?.types || []).find(candidate => candidate.id === accepts[0])?.render?.label;
+        const parentLabel = (bundle?.types || []).find(candidate => candidate.id === accepts[0])?.name;
         rows.push({
           id,
           label: parentLabel || fieldLabel(key.replace(/Id$/, '')),

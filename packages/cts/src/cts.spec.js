@@ -411,79 +411,129 @@ describe('payload traits (SPEC §4)', () => {
   });
 });
 
-describe('render policy (SPEC §7)', () => {
-  it('carries the authored UI vocabulary through the client bundle', () => {
+describe('display policy (SPEC §4/§7)', () => {
+  it('derives name/glyph/identifier/sections into the client bundle', () => {
     const registry = createTypeRegistry({ id: 'render-spec' });
     registry.defineType({
       id: 'widget', class: 'item',
-      fields: { name: { base: 'string' }, size: { base: 'quantity', unit: 'mm' } },
-      states: { main: { initial: 'draft', values: ['draft', 'done'], terminal: ['done'] } },
-      render: {
-        label: 'Widget',
-        identityField: 'name',
-        sortKey: 'size',
-        listLayout: 'timeline',
-        groups: [{ id: 'core', fields: ['name'] }]
-      }
+      name: 'Widget',
+      glyph: 'pi pi-star',
+      fields: {
+        name: { base: 'string', identifier: true },
+        size: { base: 'quantity', unit: 'mm' },
+        photo: { base: 'blob', nullable: true, depiction: true },
+        owner: { base: 'ref', accepts: ['user'] },
+        notes: { base: 'string', max: 400, nullable: true }
+      },
+      states: { main: { initial: 'draft', values: ['draft', 'done'], terminal: ['done'] } }
     });
-    const bundle = compileClientBundle(registry);
-    const render = bundle.types.find(type => type.id === 'widget').render;
-    expect(render.identityField).toBe('name');
-    expect(render.sortKey).toBe('size');
-    expect(render.listLayout).toBe('timeline');
-    // Bare field names normalize to descriptor records — the one shape
-    // fact-row consumers read.
-    expect(render.groups).toEqual([{ id: 'core', label: null, fields: [{ path: 'name' }] }]);
-    // The identity fallback policy is compiled, not authored.
-    expect(render.identity).toEqual({
-      fields: ['identity.name', 'identity.slug', 'identity.uid'],
-      unnamed: 'common.unnamed'
+    const record = compileClientBundle(registry).types.find(type => type.id === 'widget');
+    expect(record.render).toBeUndefined();
+    expect(record.name).toBe('Widget');
+    expect(record.glyph).toBe('pi pi-star');
+    expect(record.identifier).toBe('name');
+    expect(record.depiction).toEqual({ glyph: 'pi pi-star', thumb: 'photo' });
+    // Sections derive from the row: declared order within, fixed section
+    // order, only non-empty sections emitted.
+    expect(record.sections).toEqual([
+      { id: 'summary', label: null, fields: ['name'] },
+      { id: 'dimensions', label: null, fields: ['size'] },
+      { id: 'media', label: null, fields: ['photo'] },
+      { id: 'relations', label: null, fields: ['owner'] },
+      { id: 'notes', label: null, fields: ['notes'] }
+    ]);
+    // Per-state display policy resolves on the axis: authored label,
+    // terminal default severity, startCase label default.
+    expect(record.states.main.render).toEqual({
+      draft: { label: 'Draft', icon: null, severity: 'info' },
+      done: { label: 'Done', icon: null, severity: 'secondary' }
     });
   });
 
-  it('normalizes authored fact-row descriptors into the render facet', () => {
-    const registry = createTypeRegistry({ id: 'render-facet-spec' });
+  it('assigns list/map fields by their item base and defaults the glyph by class', () => {
+    const registry = createTypeRegistry({ id: 'render-sections-spec' });
     registry.defineType({
-      id: 'gadget', class: 'item',
-      fields: { name: { base: 'string' }, width: { base: 'quantity', unit: 'mm' } },
-      render: {
-        groups: [
-          {
-            id: 'specs',
-            label: 'Specs',
-            fields: [
-              { name: 'width', label: 'gadget.width', display: 'dimension', unit: 'mm', priority: 10 },
-              { path: 'summary.area', label: 'common.area', display: 'area', unit: 'm2', fallbackPaths: ['specs.area'] }
-            ]
-          }
-        ]
+      id: 'gadget', class: 'file',
+      fields: {
+        widths: { base: 'list', itemType: { base: 'quantity', unit: 'mm' } },
+        parts: { base: 'list', itemType: { base: 'ref', accepts: ['user'] } },
+        tags: { base: 'list', itemType: { base: 'string' } },
+        specs: { base: 'map', itemType: { base: 'blob' }, nullable: true }
       }
     });
-    const render = compileClientBundle(registry).types.find(type => type.id === 'gadget').render;
-    expect(render.groups).toEqual([{
-      id: 'specs',
-      label: 'Specs',
-      fields: [
-        { path: 'width', label: 'gadget.width', display: 'dimension', unit: 'mm', priority: 10 },
-        { path: 'summary.area', label: 'common.area', display: 'area', unit: 'm2', fallbackPaths: ['specs.area'] }
-      ]
-    }]);
-    // Authored vocabulary the facet never invented: unknown keys do not
-    // ride through — the compiled shape is closed.
-    expect(Object.keys(render.groups[0].fields[0]).sort()).toEqual(['display', 'label', 'path', 'priority', 'unit']);
+    const record = compileClientBundle(registry).types[0];
+    expect(record.glyph).toBe('pi pi-file');
+    expect(record.sections).toEqual([
+      { id: 'summary', label: null, fields: ['tags'] },
+      { id: 'dimensions', label: null, fields: ['widths'] },
+      { id: 'media', label: null, fields: ['specs'] },
+      { id: 'relations', label: null, fields: ['parts'] }
+    ]);
+    expect(record.identifier).toBeNull();
+    expect(record.depiction.thumb).toBeNull();
   });
 
-  it('defaults the authored vocabulary to empty when undeclared', () => {
+  it('serves name: null as "Unnamed" for org declarations without a carrier', () => {
     const registry = createTypeRegistry({ id: 'render-spec-bare' });
     registry.defineType({
-      id: 'bare', class: 'item',
+      id: 'bare', class: 'item', scope: 'org', organizationId: 'org-1',
       fields: { serial: { base: 'string' } },
       states: { main: { initial: 'new', values: ['new'] } }
     });
-    const render = compileClientBundle(registry).types[0].render;
-    expect(render.identityField).toBeNull();
-    expect(render.sortKey).toBeNull();
-    expect(render.listLayout).toBeNull();
-    expect(render.groups).toEqual([]);
+    const record = compileClientBundle(registry, 'org-1').types[0];
+    expect(record.name).toBeNull();
+    expect(registry.compile('org-1').errors).toEqual([]);
+  });
+
+  it('adopts legacy render keys at the boundary and deletes them', () => {
+    const legacy = normalizeType({
+      id: 'legacy-widget', class: 'item',
+      fields: { name: { base: 'string' }, color: { base: 'string', render: { control: 'ColorPicker' } } },
+      states: { main: { initial: 'draft', values: ['draft', 'done'], terminal: ['done'] } },
+      render: {
+        label: 'Legacy Widget',
+        icon: 'pi pi-box',
+        identityField: 'name',
+        states: { done: { severity: 'success' } },
+        groups: [{ id: 'core', fields: ['name'] }],
+        listLayout: 'timeline',
+        sortKey: 'name'
+      }
+    });
+    expect(legacy.render).toBeUndefined();
+    expect(legacy.name).toBe('Legacy Widget');
+    expect(legacy.glyph).toBe('pi pi-box');
+    expect(legacy.fields.name.identifier).toBe(true);
+    expect(legacy.fields.color.control).toBe('ColorPicker');
+    expect(legacy.fields.color.render).toBeUndefined();
+    expect(legacy.states.main.render).toEqual({ done: { severity: 'success' } });
+    // System declarations without any carrier adopt startCase(id) once.
+    expect(normalizeType({ id: 'engineer-thing', class: 'file', fields: {} }).name).toBe('Engineer Thing');
+  });
+
+  it('enforces the display-flag laws at compile', () => {
+    const registry = createTypeRegistry({ id: 'render-flag-spec' });
+    registry.defineType({
+      id: 'two-ids', class: 'item', name: 'Two ids',
+      fields: {
+        name: { base: 'string', identifier: true },
+        serial: { base: 'string', identifier: true }
+      },
+      states: { main: { initial: 'new', values: ['new'] } }
+    });
+    expect(registry.compile().errors).toContainEqual(
+      'type two-ids: identifier flag on multiple fields (name, serial) — exactly one or none'
+    );
+    const registry2 = createTypeRegistry({ id: 'render-flag-spec-2' });
+    registry2.defineType({
+      id: 'two-pics', class: 'file', name: 'Two pics',
+      fields: {
+        front: { base: 'blob', depiction: true },
+        back: { base: 'blob', depiction: true }
+      }
+    });
+    expect(registry2.compile().errors).toContainEqual(
+      'type two-pics: depiction flag on multiple fields (front, back) — at most one'
+    );
   });
 });

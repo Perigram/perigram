@@ -8,6 +8,7 @@ import {
   cncInstanceSurfaceContracts,
   cncDesignSystemInstanceContracts
 } from '@cutkit/domain-cnc';
+import { slotFor } from '#packages/cts/src/index.js';
 
 export const DEFAULT_INSTANCE_SURFACE = 'card';
 
@@ -24,22 +25,29 @@ export function instanceKeyForDisplay(typeId) {
   return INSTANCE_KEY_BY_TYPE[typeId] || typeId;
 }
 
-// The one fact vocabulary (Phase 6): fact-row descriptors resolve from the
-// compiled type view first — the served CTS client bundle's render facet
-// (`render.groups`, normalized by `renderPolicyFor` and cached by
-// `useFileTypeView`) — with the residual legacy map (`ui-fields.js`,
-// undeclared types only) and app extensions (`app-instance-surfaces.js`)
-// composing on top of it. Callers pass the bundle `typeRecord`; without
-// one, legacy content keeps feeding undeclared types unchanged.
+// The one fact vocabulary: fact-row descriptors resolve from the compiled
+// type view first — the served CTS client bundle's derived sections
+// (`renderPolicyFor` output, cached by `useFileTypeView`) — with the
+// residual legacy map (`ui-fields.js`, undeclared types only) and app
+// extensions (`app-instance-surfaces.js`) composing on top of it. Section
+// fields project as slot-qualified fact paths with descriptor labels and
+// display kinds, so field-access filtering and the display policies read
+// the same paths the old authored groups used. Callers pass the bundle
+// `typeRecord`; without one, legacy content keeps feeding undeclared
+// types unchanged.
 function bundleFieldGroups(typeRecord) {
-  const groups = typeRecord?.render?.groups;
-  if (!Array.isArray(groups) || !groups.length) return null;
+  const sections = typeRecord?.sections;
+  if (!Array.isArray(sections) || !sections.length) return null;
+  const descriptors = typeRecord?.fields || {};
   const fieldGroups = {};
-  for (const group of groups) {
-    if (!group?.id || !Array.isArray(group.fields)) continue;
-    fieldGroups[group.id] = group.fields
-      .filter(field => field?.path)
-      .map(field => ({ ...field, label: field.label || field.path }));
+  for (const section of sections) {
+    fieldGroups[section.id] = (section.fields || [])
+      .filter(fieldId => descriptors[fieldId])
+      .map(fieldId => ({
+        path: `${slotFor(descriptors[fieldId], typeRecord.class)}.${fieldId}`,
+        label: descriptors[fieldId].label || fieldId,
+        ...(descriptors[fieldId].display ? { display: descriptors[fieldId].display } : {})
+      }));
   }
   return fieldGroups;
 }

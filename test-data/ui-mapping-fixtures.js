@@ -9,25 +9,43 @@
 // (watch jobs). No timeline type exists. The UI generation layer has zero
 // domain knowledge.
 
+// Bundle records derive exactly the way `compileClientBundle()` does:
+// authored name/glyph/field labels plus the derived display policy
+// (`renderPolicyFor` over the declaration-shaped record).
+import { renderPolicyFor } from '#packages/cts/src/index.js';
+
 const ORGANIZATION_ID = 'org-fixture-4';
 
 // --- CTS client bundle --------------------------------------------------------
 
 function typeRecord(declaration) {
-  return {
+  const record = {
     id: declaration.id,
     class: declaration.class,
     scope: declaration.scope || 'system',
     version: declaration.version || 1,
+    name: declaration.name || null,
+    glyph: declaration.glyph || null,
     fields: declaration.fields || {},
     payload: declaration.payload || null,
     edges: declaration.edges || {},
     states: declaration.states || {},
     transitions: declaration.transitions || [],
     operators: declaration.operators || {},
-    revisions: declaration.revisions || null,
-    schema: null,
-    render: declaration.render
+    revisions: declaration.revisions || null
+  };
+  const policy = renderPolicyFor(record);
+  return {
+    ...record,
+    name: policy.name,
+    glyph: policy.glyph,
+    identifier: policy.identifier,
+    depiction: policy.depiction,
+    sections: policy.sections,
+    states: Object.fromEntries(Object.entries(record.states).map(([axisName, axis]) => [
+      axisName, { ...axis, render: policy.states[axisName] }
+    ])),
+    schema: null
   };
 }
 
@@ -40,8 +58,10 @@ export function createUiMappingClientBundle() {
       typeRecord({
         id: 'folder',
         class: 'group',
+        name: 'Folder',
+        glyph: 'pi pi-folder',
         fields: {
-          name: { base: 'string', label: 'Name' }
+          name: { base: 'string', identifier: true, label: 'Name' }
         },
         edges: {
           children: {
@@ -51,15 +71,16 @@ export function createUiMappingClientBundle() {
           relations: {
             pinned: { types: ['document'], onRemove: 'detach' }
           }
-        },
-        render: { label: 'Folder', icon: 'pi pi-folder', identityField: 'name' }
+        }
       }),
       typeRecord({
         id: 'document',
         class: 'file',
+        name: 'Document',
+        glyph: 'pi pi-file',
         payload: { mime: ['image/png'], accept: ['.png'], maxSize: 12 * 1024 * 1024, preview: 'image' },
         fields: {
-          title: { base: 'string', label: 'Title' },
+          title: { base: 'string', identifier: true, label: 'Title' },
           pages: { base: 'number', label: 'Pages' },
           weightG: { base: 'quantity', unit: 'count', label: 'Weight (g)' },
           tags: { base: 'list', itemType: { base: 'string' }, label: 'Tags' },
@@ -71,23 +92,16 @@ export function createUiMappingClientBundle() {
           relations: {
             linkedSheets: { types: ['sheet'], onRemove: 'detach' }
           }
-        },
-        render: {
-          label: 'Document',
-          icon: 'pi pi-file',
-          identityField: 'title',
-          groups: [
-            { id: 'meta', label: 'Meta', fields: ['title', 'pages', 'weightG', 'tags'] },
-            { id: 'chain', label: 'Chain', fields: ['supersedes', 'owner', 'scan'] }
-          ]
         }
       }),
       typeRecord({
         id: 'sheet',
         class: 'file',
+        name: 'Sheet',
+        glyph: 'pi pi-table',
         payload: { mime: ['application/x-sheet'], accept: ['.sheet'], preview: 'geometry' },
         fields: {
-          code: { base: 'string', label: 'Code' },
+          code: { base: 'string', identifier: true, label: 'Code' },
           rows: { base: 'quantity', unit: 'count', label: 'Rows' },
           margins: {
             base: 'record',
@@ -115,29 +129,31 @@ export function createUiMappingClientBundle() {
           relations: {
             sources: { types: ['document'], onRemove: 'detach' }
           }
-        },
-        render: { label: 'Sheet', icon: 'pi pi-table', identityField: 'code' }
+        }
       }),
       typeRecord({
         id: 'keeper',
         class: 'item',
+        name: 'Keeper',
+        glyph: 'pi pi-user',
         fields: {
-          serial: { base: 'string', label: 'Serial' },
+          serial: { base: 'string', identifier: true, label: 'Serial' },
           load: { base: 'quantity', unit: 'percent', label: 'Load' }
         },
         states: {
-          main: { initial: 'available', values: ['available', 'busy', 'away'], terminal: [] }
+          main: { initial: 'available', values: ['available', 'busy', 'away'], terminal: [], render: { busy: { severity: 'info' } } }
         },
         transitions: [
           { from: 'available', to: 'busy' },
           { from: 'busy', to: 'available' },
           { from: 'busy', to: 'away' }
-        ],
-        render: { label: 'Keeper', icon: 'pi pi-user', identityField: 'serial', states: { busy: { severity: 'info' } } }
+        ]
       }),
       typeRecord({
         id: 'watch_job',
         class: 'process',
+        name: 'Watch job',
+        glyph: 'pi pi-eye',
         fields: {
           priority: {
             base: 'enum',
@@ -155,7 +171,10 @@ export function createUiMappingClientBundle() {
           }
         },
         states: {
-          main: { initial: 'queued', values: ['queued', 'running', 'review', 'done', 'aborted'], terminal: ['done', 'aborted'] }
+          main: {
+            initial: 'queued', values: ['queued', 'running', 'review', 'done', 'aborted'], terminal: ['done', 'aborted'],
+            render: { running: { severity: 'info' }, review: { severity: 'warning' }, done: { severity: 'success' }, aborted: { severity: 'danger' } }
+          }
         },
         transitions: [
           { from: 'queued', to: 'running', intent: 'startJob' },
@@ -163,15 +182,7 @@ export function createUiMappingClientBundle() {
           { from: 'review', to: 'done', intent: 'finishJob' },
           { from: 'running', to: 'aborted' },
           { from: 'review', to: 'aborted' }
-        ],
-        render: {
-          label: 'Watch job',
-          icon: 'pi pi-eye',
-          groups: [
-            { id: 'run', label: 'Run', fields: ['priority', 'startedAt', 'durationMin'] }
-          ],
-          states: { running: { severity: 'info' }, review: { severity: 'warning' }, done: { severity: 'success' }, aborted: { severity: 'danger' } }
-        }
+        ]
       })
     ]
   };

@@ -1,5 +1,8 @@
 // States (SPEC §7): single axis `main` (multi-axis deferred, SPEC §19),
-// guarded transitions; one intent has one target state.
+// guarded transitions; one intent has one target state. Per-state display
+// policy is authored on the axis (`render: { <value>: { label?, icon?,
+// severity? } }`) and normalized here — unknown values drop silently,
+// the same tolerance the old type-level `render.states` overrides had.
 export function normalizeStates(states = {}) {
   const axisNames = Object.keys(states);
   if (axisNames.length > 1) throw new Error('axes beyond main are deferred (SPEC §19)');
@@ -9,11 +12,21 @@ export function normalizeStates(states = {}) {
   if (!values.length) throw new Error('states.main requires values');
   if (new Set(values).size !== values.length) throw new Error('states.main values must be unique');
   if (!values.includes(axis.initial)) throw new Error(`states.main.initial ${axis.initial} not in values`);
+  const render = {};
+  for (const [value, policy = {}] of Object.entries(axis.render || {})) {
+    if (!values.includes(value)) continue;
+    render[value] = Object.freeze({
+      ...(policy.label ? { label: String(policy.label) } : {}),
+      ...(policy.icon ? { icon: String(policy.icon) } : {}),
+      ...(policy.severity ? { severity: String(policy.severity) } : {})
+    });
+  }
   return Object.freeze({
     main: Object.freeze({
       initial: axis.initial,
       values: Object.freeze(values),
-      terminal: Object.freeze([...(axis.terminal || [])])
+      terminal: Object.freeze([...(axis.terminal || [])]),
+      ...(Object.keys(render).length ? { render: Object.freeze(render) } : {})
     })
   });
 }

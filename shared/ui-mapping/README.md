@@ -16,14 +16,16 @@ Parent: [shared/README.md](../README.md).
 
 ## Inputs
 
-- **Field descriptors** — CTS row field descriptors (`{ base, unit?, accepts?,
-  values?, itemType?, fields?, tags?, nullable?, render?: { control } }` per
+- **Field descriptors** — CTS row field descriptors (`{ base, unit?,
+  accepts?, values?, itemType?, fields?, tags?, nullable?, label?,
+  display?, control?, identifier?, depiction? }` per
   [packages/cts/SPEC.md](../../packages/cts/SPEC.md) §2/§4); the authored
-  `render.control` pins the edit-variant control.
+  `control` pins the edit-variant control.
 - **Type records** — entries of the CTS client bundle
-  (`compileClientBundle()`), carrying `class`, `payload`, and `render`
-  (label/icon/preview/state severities plus the authored pass-through
-  vocabulary: `identityField`, `groups`, `listLayout`, `sortKey`).
+  (`compileClientBundle()`), carrying `class`, `payload`, `name`, `glyph`,
+  `identifier`, `depiction`, and the derived display policy: `sections`
+  (total field assignment by base) and per-state display resolved on the
+  state axes (`states.<axis>.render`). There is no `render` facet.
 - **Action records** — compiled process actions (`actionKind`, `trigger`,
   `status.to`, relation operation), per
   [packages/processes/README.md](../../packages/processes/README.md).
@@ -52,20 +54,21 @@ in one render tree without any composite registry entries.
 ### Fields
 
 `resolveFieldControl(descriptor, { variant })` → `{ component, span, props }`.
-An authored `render.control` string on the descriptor pins the editor
+An authored `control` string on the descriptor pins the editor
 control for edit variants (`full`/`detail`); display variants stay
 shape-derived projections — authored data chooses input affordances, not
 read-only presentations. Field display names come from
 `fieldLabel(name, descriptor)`: the descriptor's `label` override, else
-the start-case name — the same policy `renderPolicyFor` applies to type
-labels. `instanceIdentity(type,
-instance)` resolves the record label: the type's declared
-`render.identityField` first, then the short-string heuristic, then the
-id — and `formatQuantity` maps storage units to display symbols
+the start-case name. `instanceIdentity(type,
+instance)` resolves the record label: the type's `identifier`-flagged
+field first, then the short-string heuristic, then the type `name`
+(never the raw id; an unnamed type renders "Unnamed") — and
+`formatQuantity` maps storage units to display symbols
 (`count`/`currency` render as bare localized numbers). Detail surfaces
-are sectioned by authored `render.groups` (`resolveFieldGroups`: ordered
-groups with labels, unlisted fields trailing in an unlabeled default
-group), so record views carry field-group semantics instead of one
+are sectioned by the derived `sections` (`resolveFieldGroups`: base
+assignment in summary/dimensions/media/relations/notes order, fields a
+stale bundle left unassigned trailing in an unlabeled default group),
+so record views carry field-group semantics instead of one
 undifferentiated stream. Generated create dialogs resolve their rows from
 compiled construction inputs through `resolveCreateDialogInputs(action,
 type, bundle)`: authored fields match by bare name or slot-qualified
@@ -78,7 +81,7 @@ an edge matches by its declared `lineageKey`, the entry's map key is
 authoring identity). Inputs
 resolving to nothing stay hidden, so typed constructor inputs keep their
 editor surfaces. Construction-input labels are authored vocabulary
-resolved at the domain projection (parent render label, start-cased row
+resolved at the domain projection (parent type name, start-cased row
 name), never raw storage paths.
 Display presentations refine by
 data shape: percent quantities render as Knob dials, percent-valued maps
@@ -97,13 +100,13 @@ chronological (timeline), percent/quantity-dominant types are statlike
 (StatGrid cards with the `text-metric` role), media types get card grids,
 lineage-holding collections get tree tables, handful-sized sets render as
 a bare stacked list, and the default is the generated columnar table — no
-hand-picked type ids anywhere. Tree materialization (HierarchyTable,
+hand-picked type ids anywhere and no authored override channel (display
+derivation replaced it). Tree materialization (HierarchyTable,
 InstancePicker's hierarchical mode) matches children through
 `childrenOfParent(type, pool, parentId)`: every children edge contributes
 the pool instances of its declared child types whose `lineage[edge.lineageKey]`
-points at the parent — the declared storage key, never the edge's map key. An authored `render.listLayout` naming a
-known layout (`LIST_LAYOUT_VALUES`) wins over shape matching, the same
-declared-data precedence the preview mode uses. Presentation budgets
+points at the parent — the declared storage key, never the edge's map key.
+Presentation budgets
 scale with type richness (`TABLE_COLUMN_SCALE`, `CARD_FACT_SCALE`: wide
 types earn more columns and facts) instead of fixed constants. Collection
 thresholds are budgets too (`TABLE_PAGINATE_AT`, `TABLE_PAGE_ROWS`,
@@ -138,9 +141,10 @@ pure over the loaded pool. It reports which fields actually carry data
 or fact) and the enum values present per field
 (`enumValues`). `resolveListControls(type, instances)` builds the
 compose-time list contract every collection surface consumes:
-`searchKeys` (the declared identity field, the preferred identity names,
-else the first short string), `sortKeys` (filled short scalars with
-labels, the declared `render.sortKey` marked default), `facets` (enum
+`searchKeys` (the `identifier`-flagged field, the preferred identity
+names, else the first short string), `sortKeys` (filled short scalars
+with labels; the authored default-sort override channel is gone — the
+first filled short scalar is the natural default), `facets` (enum
 fields over the values actually present), and `pagination` from the
 shared table budgets. The contract is total and deterministic over the
 type record plus instances — never instance-of-the-week heuristics.
@@ -191,11 +195,12 @@ restating the list, and every other mode degrades to a payload download.
 
 ### Actions
 
-`resolveActionButton(action, { render })` → `{ component, tone, icon,
+`resolveActionButton(action, { type })` → `{ component, tone, icon,
 confirm, hidden }` from a fixed table: `createInstance` → primary,
 `deleteInstance` → danger + confirmation, relation link/unlink → text/icon
 presentations, event-triggered actions → hidden. Status-transition actions
-carry the target state's render severity as their tone.
+carry the target state's resolved display severity as their tone (read
+from the bundle type record's `states.main.render`).
 
 `planActionLaunch(action)` is the launch contract the screen engine
 consumes: `'link'` for relation link (its picker dialog), `'dialog'` when
@@ -331,8 +336,8 @@ handwritten.
   relations, instances, screens, actions) with nothing hand-authored; the
   showcase rerolls seeds from the URL. Beyond the random shapes, every
   world guarantees the showcase-reachable contracts by construction: at
-  least one authored `render.sortKey`, `render.listLayout` override, and
-  per-field `render.control`; `runCommand` and `unlink` beside the
+  least one `identifier`-flagged field, an authored `name`/`glyph` per
+  type, and a per-field `control` pin; `runCommand` and `unlink` beside the
   create/transition/delete/link/hidden kinds; one volume collection over
   fifty instances (virtualized tables, paginated views, toolbar search);
   one guaranteed-empty type with its own list screen (empty state) and a

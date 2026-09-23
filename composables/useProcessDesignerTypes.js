@@ -71,8 +71,11 @@ export function useProcessDesignerTypes({
         return {
           id: type.id,
           class: type.class,
-          label: policy.label,
-          icon: policy.icon,
+          // Authored name (null only for carrier-less stored org types);
+          // the designer palette is an authoring surface, so the raw id is
+          // the honest fallback there.
+          label: policy.name || type.id,
+          icon: policy.glyph,
           description: `${type.class} type${payload}`,
           constructible: Boolean(construction),
           via: construction?.defaultMode || (construction?.modes || [])[0] || 'genericCreate',

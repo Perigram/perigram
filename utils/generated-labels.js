@@ -7,14 +7,14 @@ const ENTITY_CONTRACTS_BY_TYPE = new Map(DESIGN_SYSTEM_ENTITY_CONTRACTS.flatMap(
   [entry.key, entry]
 ]));
 
-// The authored render label from the CTS client bundle riding auth
+// The authored type name from the CTS client bundle riding auth
 // hydration (the registry store is the runtime consumption contract).
 // Guarded: contexts without an active Pinia (specs, pure utils) keep the
 // deterministic fallbacks below.
 function authoredTypeLabel(typeId = '') {
   if (!typeId) return '';
   try {
-    return useRegistryStore().renderOf(typeId).label || '';
+    return useRegistryStore().typeRecord(typeId)?.name || '';
   } catch {
     return '';
   }
