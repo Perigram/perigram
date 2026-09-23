@@ -172,7 +172,7 @@ test.describe('process generated screens', () => {
 
     await app.page.goto(home.route);
     for (const section of sections) {
-      const region = app.page.locator(`[id="home-type-${section.typeId}"]`);
+      const region = app.page.locator('.p-panelmenu-header', { hasText: section.name });
       await expect(region.getByText(section.name).first()).toBeVisible();
     }
 
