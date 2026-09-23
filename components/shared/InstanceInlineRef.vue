@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import Popover from 'primevue/popover';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import StatusBadge from '~/components/shared/blocks/StatusBadge.vue';
 import InstancePreview from '~/components/shared/InstancePreview.vue';
 import InstanceState from '~/components/shared/state/InstanceState.vue';
@@ -22,7 +21,8 @@ import { normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
-import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { instanceIdentityLabel, instanceIdentityMeta, resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { hasMeaningfulWorkflowState } from '~/utils/state-actions.js';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
 
@@ -117,10 +117,22 @@ provide('instanceInlineActionTypeId', generatedTypeId);
 provide('instanceInlineShowCassetteDesigner', computed(() => popupShowCassetteDesigner.value));
 provide('instanceInlineExecuteAction', executePopupAction);
 const toneStyle = computed(() => entityToneStyle(props.type));
+const { typeById } = useFileTypeView();
 const compactDisplay = computed(() => resolveInstanceDisplayContract({
   typeId: generatedTypeId.value,
-  surface: 'compact'
+  surface: 'compact',
+  typeRecord: typeById(generatedTypeId.value)
 }));
+// Identity chrome through the compiled identity policy; the chip title
+// carries the declared meta facts (serial/reference) beside the label.
+const identityLabel = computed(() => instanceIdentityLabel(resolved.value, {
+  typeLabel: compactTypeLabel.value,
+  unnamedLabel: t('common.unnamed')
+}));
+const identityMetaText = computed(() => instanceIdentityMeta(resolved.value, props.fields)
+  .filter(item => item.value !== identityLabel.value)
+  .map(item => `${item.key}: ${item.value}`)
+  .join(' · '));
 const compactDataFields = computed(() => compactDisplay.value.fields.filter(field =>
   field.display !== 'entityRef'
   && field.display !== 'entityRefList'
@@ -401,14 +413,14 @@ function tonePalette(role) {
       </span>
       <span class="instance-inline-compact-main">
         <span class="instance-inline-compact-header">
-          <IdentityBlock
+          <span
             v-if="resolved"
-            class="min-w-0 flex-1"
-            :entity="resolved"
-            variant="inline"
-            :icon="icon"
-            :fields="fields"
-          />
+            class="instance-inline-chip min-w-0 max-w-full flex-1"
+            :title="identityMetaText || identityLabel"
+          >
+            <i v-if="icon" :class="['instance-inline-chip-icon', icon]" aria-hidden="true"></i>
+            <span class="instance-inline-chip-label">{{ identityLabel }}</span>
+          </span>
           <span v-else class="min-w-0 flex-1 truncate text-label">
             {{ compactTypeLabel || $t('common.notAvailable') }}
           </span>
@@ -441,7 +453,7 @@ function tonePalette(role) {
             {{ compactTypeLabel }}
           </small>
           <div v-if="resolved" class="flex flex-wrap items-start justify-between gap-3">
-            <IdentityBlock :entity="resolved" />
+            <span class="min-w-0 truncate" :title="identityLabel">{{ identityLabel }}</span>
             <InstanceState
               v-if="resolved.status"
               :entity="resolved"
@@ -503,14 +515,15 @@ function tonePalette(role) {
       class="min-w-0 max-w-full"
       data-instance-card-interactive="true"
     />
-    <IdentityBlock
+    <span
       v-else-if="resolved"
-      :entity="resolved"
-      variant="inline"
-      :icon="icon"
-      :fields="fields"
+      class="instance-inline-chip min-w-0 max-w-full"
+      :title="identityMetaText || identityLabel"
       data-instance-card-interactive="true"
-    />
+    >
+      <i v-if="icon" :class="['instance-inline-chip-icon', icon]" aria-hidden="true"></i>
+      <span class="instance-inline-chip-label">{{ identityLabel }}</span>
+    </span>
     <span v-else class="inline-flex min-w-0 items-center gap-1.5 text-muted" data-instance-card-interactive="true">
       <i :class="icon" class="shrink-0"></i>
       <span class="truncate">{{ resolvedId || $t('common.notAvailable') }}</span>

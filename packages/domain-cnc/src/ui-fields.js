@@ -1,17 +1,23 @@
+// Residual fact vocabulary for types that are NOT yet declared in the
+// type system (Phase 6, one fact vocabulary). Every type that IS declared
+// — framework, tech-drawing, documents, the CNC pack — carries its fact
+// groups as authored `render.groups` on its declaration, compiled into
+// the served CTS client bundle. This map remains only for legacy domain
+// entities with no CTS declaration yet:
+//
+// - production entity family (project, queue, nestingRun, sheet, remnant,
+//   catalog, material, library, materialPile, batchPile, requisition,
+//   cassetteDesign, cassetteInstance, geometryCapture) — their type
+//   declarations do not exist; they migrate as the entities are declared.
+// - master-data and artifact entities (toolProfile, machine,
+//   profileTemplate, cassetteTemplate, artifactTemplate) — same: no
+//   declaration; the artifact family lands with Phase 7's file-paper cut.
+//
+// Nothing new may be added here: declare the type and author its
+// `render.groups` instead. `utils/instance-display-contract.js` resolves
+// bundle-declared groups FIRST; this map is the fallback for the keys
+// above only.
 export const cncInstanceFieldGroups = {
-  facade: {
-    summary: [
-      { path: 'data.parts.length', i18n: 'facade.parts', display: 'count', priority: 10 },
-      { path: 'data.partAssignments.length', i18n: 'facade.assignments', display: 'count', priority: 20 },
-      { path: 'relations.sourceModel', i18n: 'facade.sourceModel', display: 'entityRef', typeId: 'artifact', priority: 30 },
-      { path: 'relations.patterns', i18n: 'facade.patterns', display: 'entityRefList', typeId: 'facadePattern', priority: 40 }
-    ]
-  },
-  facadePattern: {
-    summary: [
-      { path: 'data.graph.nodes.length', i18n: 'facadePattern.nodes', display: 'count', priority: 10 }
-    ]
-  },
   project: {
     summary: [
       { path: 'summary.queueCount', i18n: 'project.queues', display: 'count', role: 'childCount', priority: 10 },
@@ -45,25 +51,6 @@ export const cncInstanceFieldGroups = {
     production: [
       { path: 'data.materialPool', i18n: 'queue.materialConsumption', display: 'entityRefList', priority: 40 },
       { path: 'data.sheetDesignIds', i18n: 'entities.sheetDesign', display: 'entityRefList', typeId: 'sheetDesign', priority: 50 }
-    ]
-  },
-  sheetDesign: {
-    specs: [
-      { path: 'summary.efficiency', i18n: 'sheetDesign.utilization', suffix: '%', display: 'percent', priority: 10 },
-      { path: 'summary.placedCount', i18n: 'sheetDesign.parts', display: 'count', priority: 20 },
-      { path: 'specs.cuttingLength', i18n: 'sheetDesign.cuttingLength', suffix: ' m', display: 'dimension', priority: 30 },
-      { path: 'specs.estimatedTime', i18n: 'sheetDesign.estimatedTime', suffix: ' min', display: 'duration', priority: 40 }
-    ],
-    geometry: [
-      { path: 'data.geometry.preview', i18n: 'common.details', role: 'previewSource', display: 'geometry', priority: 10 }
-    ]
-  },
-  cassette: {
-    geometry: [
-      { path: 'data.geometry.preview', i18n: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
-    ],
-    provenance: [
-      { path: 'data.geometryRevisionId', i18n: 'revision.currentGeometry', display: 'entityRef', typeId: 'entityRevision', priority: 30 }
     ]
   },
   cassetteTemplate: {
@@ -176,25 +163,6 @@ export const cncInstanceFieldGroups = {
       { path: 'lineage.manufacturerId', i18n: 'entities.organization', display: 'entityRef', typeId: 'organization', priority: 50 }
     ]
   },
-  color: {
-    summary: [
-      { path: 'data.visuals.hexCode', i18n: 'color.hexCode', display: 'swatch', priority: 10 },
-      { path: 'data.code', i18n: 'common.code', display: 'text', priority: 20 }
-    ],
-    relations: [
-      { path: 'lineage.catalogId', i18n: 'entities.catalog', display: 'entityRef', typeId: 'catalog', priority: 10 }
-    ]
-  },
-  entityRevision: {
-    summary: [
-      { path: 'data.scope', i18n: 'revision.scope', display: 'text', priority: 10 },
-      { path: 'data.number', i18n: 'revision.number', prefix: 'v', display: 'number', priority: 20 },
-      { path: 'data.shortHash', i18n: 'revision.hash', display: 'code', priority: 30 }
-    ],
-    relations: [
-      { path: 'data.source', i18n: 'revision.source', display: 'entityRef', priority: 40 }
-    ]
-  },
   geometryCapture: {
     summary: [
       { path: 'data.mode', i18n: 'geometryCapture.mode', display: 'text', priority: 10 },
@@ -241,45 +209,6 @@ export const cncInstanceFieldGroups = {
       { path: 'data.boundaryOffset', i18n: 'machine.boundaryOffset', suffix: ' mm', display: 'dimension', priority: 30 }
     ]
   },
-  penTemplate: {
-    summary: [
-      { path: 'data.stroke.color', i18n: 'penTemplate.color', display: 'color', priority: 10 },
-      { path: 'data.stroke.weight', i18n: 'penTemplate.weight', suffix: ' mm', display: 'dimension', priority: 20 },
-      { path: 'data.stroke.pattern', i18n: 'penTemplate.pattern', display: 'text', priority: 30 }
-    ]
-  },
-  layerStandard: {
-    summary: [
-      { path: 'data.code', i18n: 'common.code', display: 'code', priority: 10 },
-      { path: 'data.category', i18n: 'common.type', display: 'text', priority: 20 }
-    ],
-    relations: [
-      { path: 'data.defaultPenId', i18n: 'entities.penTemplate', display: 'entityRef', typeId: 'penTemplate', priority: 30 },
-      { path: 'data.orgPenId', i18n: 'entities.penTemplate', display: 'entityRef', typeId: 'penTemplate', priority: 40 }
-    ]
-  },
-  user: {
-    summary: [
-      { path: 'data.email', i18n: 'profile.email', display: 'email', priority: 10 },
-      { path: 'identity.reference', i18n: 'common.reference', display: 'text', priority: 20 }
-    ]
-  },
-  organization: {
-    summary: [
-      { path: 'data.type', i18n: 'organization.type', display: 'text', priority: 10 },
-      { path: 'data.email', i18n: 'profile.email', display: 'email', priority: 20 },
-      { path: 'data.phone', i18n: 'profile.phone', display: 'phone', priority: 30 }
-    ]
-  },
-  artifact: {
-    summary: [
-      { path: 'data.type', i18n: 'file.type', display: 'text', priority: 10 },
-      { path: 'attachments.primary.name', fallbackPaths: ['data.filename'], i18n: 'file.name', display: 'text', priority: 20 }
-    ],
-    relations: [
-      { path: 'lineage.nestingRunId', i18n: 'entities.nestingRun', display: 'entityRef', typeId: 'nestingRun', priority: 40 }
-    ]
-  },
   artifactTemplate: {
     summary: [
       { path: 'data.format', i18n: 'file.type', display: 'text', priority: 10 },
@@ -291,6 +220,7 @@ export const cncInstanceFieldGroups = {
   }
 };
 
+
 const PARENT_REVISION_FIELD = {
   path: 'provenance.parent.source',
   i18n: 'revision.parentRevision',
@@ -299,14 +229,10 @@ const PARENT_REVISION_FIELD = {
 };
 
 const PINNED_PARENT_ENTITY_KEYS = [
-  'cassette',
   'cassetteInstance',
-  'color',
   'nestingRun',
   'queue',
-  'remnant',
-  'sheet',
-  'sheetDesign'
+  'remnant'
 ];
 
 for (const key of PINNED_PARENT_ENTITY_KEYS) {

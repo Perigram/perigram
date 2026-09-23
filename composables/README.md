@@ -22,10 +22,12 @@ sources load without false 401s.
 ## useBlocks — Low-level Block Composables
 
 ```js
-import { useIdentity, useStatus, useLineage, useSpecs } from './useBlocks';
+import { useStatus, useLineage } from './useBlocks';
 ```
 
-⚠️ **Restricted use**: Only imported by shared block components (`IdentityBlock.vue`, `InstanceState.vue`, `SpecsBlock.vue`). Entity cards and pages **must not** import directly — use the block components over the cached wire DTO instead. See [components/shared/README.md](../components/shared/README.md#critical-architectural-rule-blocks-vs-composables).
+⚠️ **Restricted use**: Only imported by the shared state/trace primitives
+(`InstanceState.vue`, `TraceChain.vue`). Entity cards and pages **must not**
+import directly. See [components/shared/README.md](../components/shared/README.md#critical-architectural-rule-blocks-vs-composables).
 
 ---
 
@@ -285,10 +287,15 @@ Used by `<TraceChain>` component.
 Organization-scoped cached read of the served CTS type view
 (`GET /api/admin/cts/types`). One in-flight fetch per organization is
 shared by every consumer; components resolve type records by id through
-`typeById(typeId)`. File surfaces use it to derive editor bindings and
-payload preview policy from declarations instead of hardcoded entity
-tables (see
-[components/generated/README.md](../components/generated/README.md)).
+`typeById(typeId)` — exact kebab ids first, then snake/camel spellings
+normalized to kebab, so legacy callers resolve the same declaration. File
+surfaces use it to derive editor bindings and payload preview policy from
+declarations instead of hardcoded entity tables (see
+[components/generated/README.md](../components/generated/README.md)),
+and fact-row surfaces (`InstanceSurfaceContent`, entity cards, generated
+collections) resolve their display descriptors from the same view: the
+bundle's render facet is the one fact vocabulary
+([utils/README.md](../utils/README.md) → `instance-display-contract.js`).
 The cache never serves another organization's view after an org switch.
 
 ---

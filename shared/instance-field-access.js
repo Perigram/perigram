@@ -42,8 +42,24 @@ export function fieldPathMatches(policyPath, requestedPath) {
   return requestedPath.startsWith(`${policyPath}.`);
 }
 
+// Declaration-derived field access (Phase 6): the compiled type view's
+// projected field policies for types with no legacy entry in the domain
+// map. The registry store registers them from the served CTS client
+// bundle — feature = the class-collection feature the server's own
+// instance access engine gates reads on, so client display filtering and
+// server read gating answer the same grant.
+let declarationAccessByType = new Map();
+
+export function registerDeclarationFieldAccess(entriesByType = {}) {
+  declarationAccessByType = new Map(Object.entries(entriesByType || {}));
+}
+
+function declarationFieldPolicyFor(typeId = '') {
+  return declarationAccessByType.get(String(typeId)) || null;
+}
+
 export function getInstanceFieldPolicyEntries(typeId) {
-  const policy = getEntityFieldAccessPolicy(typeId);
+  const policy = getEntityFieldAccessPolicy(typeId) || declarationFieldPolicyFor(typeId);
   if (!policy) return [];
 
   return POLICY_LEVELS.flatMap(level =>

@@ -31,7 +31,18 @@ export const cncFileTypes = [
       name: { base: 'string' }
     },
     revisions: 'geometry',
-    render: { label: 'Cassette', icon: 'pi pi-box' },
+    render: {
+      label: 'Cassette',
+      icon: 'pi pi-box',
+      groups: [
+        { id: 'geometry', fields: [
+          { path: 'data.geometry.preview', label: 'common.details', role: 'previewSource', display: 'geometry', priority: 20 }
+        ] },
+        { id: 'provenance', fields: [
+          { path: 'data.geometryRevisionId', label: 'revision.currentGeometry', display: 'entityRef', typeId: 'entityRevision', priority: 30 }
+        ] }
+      ]
+    },
     operators: {
       edit: { id: 'edit', species: 'mutate', input: { base: 'ref', accepts: ['cassette'] } }
     }
@@ -50,7 +61,25 @@ export const cncFileTypes = [
       parts: { base: 'list', itemType: { base: 'ref', accepts: ['cassette'] }, nullable: true }
     },
     revisions: 'geometry',
-    render: { label: 'Sheet design', icon: 'pi pi-th-large' }
+    render: {
+      label: 'Sheet design',
+      icon: 'pi pi-th-large',
+      groups: [
+        { id: 'specs', fields: [
+          { path: 'specs', label: 'catalog.dimensions', display: 'dimensions', unit: 'mm', priority: 5 },
+          { path: 'specs.area', label: 'common.area', display: 'area', unit: 'm2', priority: 8 },
+          { path: 'specs.sheetThickness', label: 'catalog.sheetThickness', display: 'dimension', unit: 'mm', priority: 9 },
+          { path: 'specs.foilThickness', label: 'catalog.foilThickness', display: 'dimension', unit: 'mm', priority: 9 },
+          { path: 'summary.efficiency', label: 'sheetDesign.utilization', display: 'percent', unit: 'percent', priority: 10 },
+          { path: 'summary.placedCount', label: 'sheetDesign.parts', display: 'count', priority: 20 },
+          { path: 'specs.cuttingLength', label: 'sheetDesign.cuttingLength', display: 'dimension', unit: 'm', priority: 30 },
+          { path: 'specs.estimatedTime', label: 'sheetDesign.estimatedTime', display: 'duration', unit: 'min', priority: 40 }
+        ] },
+        { id: 'geometry', fields: [
+          { path: 'data.geometry.preview', label: 'common.details', role: 'previewSource', display: 'geometry', priority: 10 }
+        ] }
+      ]
+    }
   },
   {
     id: 'facade-design',
@@ -65,7 +94,18 @@ export const cncFileTypes = [
     fields: {
       name: { base: 'string' }
     },
-    render: { label: 'Facade design', icon: 'pi pi-building' }
+    render: {
+      label: 'Facade design',
+      icon: 'pi pi-building',
+      groups: [
+        { id: 'summary', fields: [
+          { path: 'data.parts.length', label: 'facade.parts', display: 'count', priority: 10 },
+          { path: 'data.partAssignments.length', label: 'facade.assignments', display: 'count', priority: 20 },
+          { path: 'relations.sourceModel', label: 'facade.sourceModel', display: 'entityRef', typeId: 'artifact', priority: 30 },
+          { path: 'relations.patterns', label: 'facade.patterns', display: 'entityRefList', typeId: 'facadePattern', priority: 40 }
+        ] }
+      ]
+    }
   },
   {
     // The typed visual pattern graph. Persistence stays on the pattern
@@ -79,7 +119,15 @@ export const cncFileTypes = [
       name: { base: 'string' },
       graph: { base: 'json', nullable: true }
     },
-    render: { label: 'Facade pattern', icon: 'pi pi-objects-column' }
+    render: {
+      label: 'Facade pattern',
+      icon: 'pi pi-objects-column',
+      groups: [
+        { id: 'summary', fields: [
+          { path: 'data.graph.nodes.length', label: 'facadePattern.nodes', display: 'count', priority: 10 }
+        ] }
+      ]
+    }
   }
 ];
 

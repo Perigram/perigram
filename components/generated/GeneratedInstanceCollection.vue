@@ -80,7 +80,10 @@
                 :aria-label="entity.identity?.name || $t('common.open')"
                 @click.stop="openEntity(entity)"
               >
-                <IdentityBlock :entity="entity" :icon="entityIcon" />
+                <span class="flex min-w-0 items-center gap-2">
+                  <i v-if="entityIcon" :class="entityIcon" class="shrink-0 text-muted" aria-hidden="true"></i>
+                  <span class="truncate" :title="identityLabel(entity)">{{ identityLabel(entity) }}</span>
+                </span>
               </Button>
             </div>
             <div v-if="entity.status" class="min-w-0 max-w-full shrink sm:max-w-56" @click.stop>
@@ -143,7 +146,6 @@ import Select from '~/components/shared/InstanceSelect.vue';
 import { useI18n } from 'vue-i18n';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
 import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import InstanceState from '~/components/shared/state/InstanceState.vue';
 import TraceChain from '~/components/shared/links/TraceChain.vue';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
@@ -153,7 +155,8 @@ import GeneratedActionButton from '~/components/generated/GeneratedActionButton.
 import { openInstanceInWorkspace } from '~/utils/instance-workspace-open.js';
 import { instanceEditorActionFor, instanceHasEditorAction } from '~/components/generated/instance-editor-action.js';
 import { useAuthStore } from '~/stores/auth';
-import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { instanceIdentityLabel, resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { instanceHierarchyIds } from '~/utils/instance-hierarchy.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction, parentBoundCreateAppliesToTypeId } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
@@ -216,9 +219,11 @@ const traceExclusions = computed(() => {
     id
   }));
 });
+const { typeById } = useFileTypeView();
 const tableFields = computed(() => resolveInstanceDisplayContract({
   typeId: props.typeId,
-  surface: props.surface || 'table'
+  surface: props.surface || 'table',
+  typeRecord: typeById(props.typeId)
 }).fields.slice(0, 6));
 const statusOptions = computed(() => [
   { label: t('common.allStatuses'), value: '' },
@@ -287,6 +292,10 @@ function detailRouteFor(entity) {
 
 function isIdentityNameField(path) {
   return path === 'identity.name';
+}
+
+function identityLabel(entity) {
+  return instanceIdentityLabel(entity, { unnamedLabel: t('common.unnamed') });
 }
 
 function formatCell(entity, path) {

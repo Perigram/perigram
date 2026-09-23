@@ -25,9 +25,11 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import CassetteThumbnail from '~/components/CassetteThumbnail.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 
-const FIELDS = resolveInstanceDisplayFields({ typeId: 'cassette', surface: 'card' })
-  .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource');
+const { typeById } = useFileTypeView();
+const FIELDS = computed(() => resolveInstanceDisplayFields({ typeId: 'cassette', surface: 'card', typeRecord: typeById('cassette') })
+  .filter(field => field.display !== 'entityRef' && field.role !== 'previewSource'));
 
 const props = defineProps({
   cassette: { type: Object, required: true },

@@ -97,7 +97,9 @@
               @update:model-value="updateVisibleLayerNames"
             />
             <label :for="layerInputId(row.layer)" class="min-w-0 flex-1 truncate">
-              <IdentityBlock :entity="row.sourceEntity" variant="inline" :fields="row.layer.standardCode ? ['slug'] : []" />
+              <span class="instance-inline-chip min-w-0 max-w-full" :title="row.layer.standardCode && row.sourceEntity?.identity?.slug ? `slug: ${row.sourceEntity.identity.slug}` : row.sourceEntity?.identity?.name">
+                <span class="instance-inline-chip-label">{{ row.sourceEntity?.identity?.name }}</span>
+              </span>
             </label>
             <LayerStandardCard v-if="row.standard" :standard="row.standard" variant="inline" />
             <PenTemplateCard v-if="row.pen" :pen="row.pen" variant="inline" />
@@ -748,7 +750,6 @@ import DrawingCanvas from '~/components/shared/DrawingCanvas.vue';
 import DesignerWorkspace from '~/components/shared/DesignerWorkspace.vue';
 import DesignerSurface from '~/components/shared/DesignerSurface.vue';
 import StandardDialog from '~/components/shared/StandardDialog.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import { useInstancesStore } from '~/stores/instances';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';

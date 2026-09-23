@@ -39,7 +39,12 @@ Three cells; every surface derives from them, nothing else caches:
   store, never the edge's authoring map key), and
   `projectedDomain` — the compiler-domain projection over the bundle (the
   same projection the server compiles with) consumed by client access
-  previews so the resolver behaves exactly like auth hydration. The
+  previews so the resolver behaves exactly like auth hydration. The store
+  also registers the declaration-derived field-access policies
+  (`registerDeclarationFieldAccess`) into the shared display-access
+  resolver: bundle types with no legacy domain entry get their fact-row
+  access from the projection, re-featured to the class-collection grant
+  the server's instance reads check. The
   process designer reads the same bundle from its own overlay; this store
   is the runtime/client consumption contract.
 - `auth.js` — identity, memberships, and the compiled per-user access
@@ -63,7 +68,8 @@ client imports of `@cutkit/domain-cnc` are owned by legacy server
 contracts, not by declarations —
 `utils/state-engine.js` (status labels/severity for feature-served
 types whose compiled workflows supplement the table),
-`utils/instance-display-contract.js` (the legacy card surface registry),
+`utils/instance-display-contract.js` (the residual legacy card surface
+registry for undeclared types),
 `components/PermissionEditor.vue` (the membership feature-key
 vocabulary that membership grants are written against), and the designer
 inspector's palette-surface metadata. Each dies when membership grants

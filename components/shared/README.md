@@ -6,75 +6,31 @@ This directory contains reusable, standardized UI components and blocks that MUS
 
 ## Critical Architectural Rule: Blocks vs. Composables
 
-`useBlocks.js` exposes low-level composables (`useIdentity`, `useStatus`, `useSpecs`, `useLineage`).
+`useBlocks.js` exposes low-level composables (`useStatus`, `useLineage`).
 
-**These composables are ONLY for use inside the shared block components listed below.**
+**These composables are ONLY for use inside the shared state/trace primitives.**
 Entity cards and page components must NEVER import from `useBlocks.js` directly.
-
-| ✅ Correct — inside IdentityBlock.vue | ❌ Wrong — inside ProjectCard.vue |
-|---|---|
-| `const { name } = useIdentity(entity)` | `const { name } = useIdentity(project)` |
 
 State-only conditionals in entity cards should use a local `computed` from `entity.states`. Do not import `useStatus` outside shared status/block primitives.
 
 All shared and entity UI components consume the strict DTO contract: root `_id`
-plus canonical blocks only. Display identity through `IdentityBlock` or
-`entity.identity.*`, status through `entity.status.*`, and feature data through
-`entity.data.*`; do not read flat compatibility fields such as `entity.name`,
-`entity.id`, `entity.type`, or `entity.parameters`.
+plus canonical blocks only. Display identity through the compiled identity
+policy (`instanceIdentityLabel` from `utils/instance-display-contract.js`:
+name → slug → surrounding type label → localized unnamed placeholder; ids stay
+private display vocabulary), status through `entity.status.*`, and feature data
+through `entity.data.*`; do not read flat compatibility fields such as
+`entity.name`, `entity.id`, `entity.type`, or `entity.parameters`.
 
 ---
 
 ## Atomic Blocks (`components/shared/blocks/`)
 
-### `IdentityBlock.vue`
-Standardized identity display block. Always use this — never render `entity.identity.*` directly in templates.
-
-Inline identity chips are hard-bounded by their containing entity surface:
-their label is a shrinkable, ellipsized flex item. Entity picker selections
-must not clip the whole card to enforce that boundary because status badges and
-other card content need to remain fully visible. Arbitrarily long stored names
-must never expand a card, toolbar, or screen beyond its assigned width.
-
-**Variants:**
-
-| `variant` | Renders as | Use case |
-|---|---|---|
-| `inline` (default) | `<Chip>` with primary identifier | Pills in lists, tags, lineage |
-| `compact` | Primary identifier | Card titles, list items |
-| `default` | Primary identifier | Full card title area |
-| `header` | Primary identifier | Entity detail page headers |
-
-Primary identifier fallback: `name` → `slug` → `uid` → `'Unnamed'`.
-
-Props: `:entity` (required), `variant`, `icon` (class string; rendered as the
-chip icon for the inline variant and as a small muted glyph before the name
-in the compact, default, and header variants — entity cards, collection
-titles, and detail page headers pass the `instanceUiFor` registry icon),
-`:fields` (optional extra fields array).
-Rendering guard: block renders only when `props.entity` is present.
-Supported extra fields: `uid`, `slug`, `serial`, `reference`. By default, no extra fields are rendered.
-
-### `SpecsBlock.vue`
-Standardized display for entity dimensional specs (width, length, area, sheetThickness, foilThickness). Always use this for specs — never render `entity.specs?.width` directly.
-
-**Variants:**
-
-| `variant` | Renders as |
-|---|---|
-| `default` | Dimension-first grid with the main width/length span separated from area and thickness metrics |
-| `compact` | Inline dimensions, thickness, foil, and area facts for embedded card rows |
-
-Props: `type-id` (required), `:entity` (required), `:access-entity` (optional parent entity for scoped permission checks), `variant`.
-
-`SpecsBlock` is access-aware. It renders only spec paths allowed by the shared
-field policy in `@cutkit/domain-cnc` and the active auth-store permission
-grants. A specs field missing from that policy is not displayed.
-
-**Scope:** Only handles standard specs block fields. Entity-specific fields (tool diameter, pen stroke, pile stock) are accessed directly in the template — no SpecsBlock wrapper needed.
-
 ### `DataBlock.vue`
-Standardized label/value display for entity-specific data fields (anything not covered by SpecsBlock). Define the field array inline in the component's `<script setup>`.
+The one fact-row control. Dimensional facts (width × length spans, thickness,
+area) are declared descriptor rows with units — the former `SpecsBlock`
+content — not a separate block. One-off local facts may still define a small
+field array inline in the component's `<script setup>`; every reusable fact
+vocabulary lives on type declarations (see below).
 
 **Usage:**
 ```vue
@@ -86,33 +42,49 @@ const FIELDS = [
 
 Props: `type-id` (required), `:entity` (required), `:access-entity` (optional parent entity for scoped permission checks), `:fields` (required — inline array of field descriptors), `variant` (`default` definition grid or `compact` inline facts).
 
-**Field schema:** `{ path, i18n, suffix?, prefix? }` — `path` is dot-notation into entity object, `i18n` is the translation key for the label. Rows with null/undefined values are hidden automatically.
+**Field schema:** `{ path, label?, display?, unit?, suffix?, prefix?, priority?, fallbackPaths? }` —
+`path` is dot-notation into the entity object. `label` is authored render
+data: a value that is a translatable key localizes, anything else renders as
+the authored string. `unit` renders the declared unit symbol as a value suffix
+(`mm`, `m`, `m2` → `m²`, `percent`, `min`, `deg`); explicit `suffix`/`prefix`
+strings remain the escape hatch for non-unit decoration. `display:
+'dimensions'` renders a width × length span from the resolved specs object
+(the former `SpecsBlock` shape) with the declared unit. Rows with
+null/undefined values are hidden automatically.
 Values are formatted through `utils/data-display.js`: scalar arrays render as comma-separated text, arrays of objects render as counts, objects render only when they expose a stable identifier (`name`, `label`, `code`, `serial`, `reference`, `uid`, or `_id`), and non-displayable nested objects are hidden. Fields with `display: 'parameterMap'` render scalar object entries as exact named parameters such as `A=1200, B=400`; use this for materialized cassette design values, not symbolic template parameter lists.
 Default layout renders a semantic `<dl>` grid for card bodies; compact layout renders inline facts for popovers, relation rows, and tight embedded surfaces.
-The default `DataBlock` and `SpecsBlock` layouts use their own inline-size
-containers, so columns follow the width assigned by a page or split pane rather
-than the browser viewport.
+The default `DataBlock` layout uses its own inline-size container, so columns
+follow the width assigned by a page or split pane rather than the browser
+viewport.
 Inline entity popovers mark their body with `instance-card-popup-content`, and
 `DataBlock` collapses default grid rows to compact inline facts inside that
 scope. Do not add entity-local popup data layouts just to make popovers denser;
 use the shared popup scope or pass `variant="compact"` for explicit compact
 surfaces.
-Descriptors may come from the domain display constructor instead of component
-local constants. Constructor descriptors can also declare `fallbackPaths` and
-`priority`; `DataBlock` uses the first non-empty allowed path and hides rows
-that resolve to empty values.
+The reusable descriptor vocabulary is the compiled type view: fact groups are
+authored `render.groups` on type declarations, normalized into the served CTS
+client bundle by `@perigram/cts` `renderPolicyFor`, and resolved by
+`utils/instance-display-contract.js` (see below) — component-local constants
+are only for genuinely one-off facts. Bundle descriptors carry `fallbackPaths`
+and `priority`; `DataBlock` uses the first non-empty allowed path and hides
+rows that resolve to empty values.
 Rows are filtered through `shared/instance-field-access.js`. A descriptor path
-must match the domain field policy for `type-id`, and the current auth
-grant must satisfy that policy level. When the active organization process
-provides field policies, `DataBlock` applies those process policies before the
-domain defaults. Do not render sensitive or entity-specific facts beside
-`DataBlock` unless the API DTO has already been redacted for that same field
-policy.
+must match an access policy for `type-id` — the legacy domain field policy, or
+the declaration-derived policy the registry store registers from the served
+bundle (feature = the class-collection grant the server's own instance reads
+check) — and the current auth grant must satisfy that policy level. When the
+active organization process provides field policies, `DataBlock` applies those
+process policies before the domain defaults. Do not render sensitive or
+entity-specific facts beside `DataBlock` unless the API DTO has already been
+redacted for that same field policy.
 
 ### `InstanceSurfaceContent.vue`, `InstancePreview.vue`, `InstanceRelationsBlock.vue`
 Contract-driven body primitives for app constructors. `InstanceSurfaceContent`
 resolves an entity type plus `surface` through `utils/instance-display-contract.js`
-and renders preview, data facts, and relation rows with the shared primitives.
+— fact-row descriptors from the served org type view (`useFileTypeView` cache,
+the compiled CTS client bundle), surface chrome from the design-system surface
+contracts — and renders preview, data facts, and relation rows with the shared
+primitives.
 On the `detail` surface with a visible preview it composes a real page body:
 media and the fact column sit side by side from 48rem of the surface's own
 width and stack above it on narrower containers; card surfaces keep the
@@ -323,7 +295,7 @@ canonical `identity.uid`; both resolve to the same pen DTO.
 
 The optional viewer layer panel is part of the shared canvas surface but must
 render CutKit concepts through existing CutKit system components. Source DXF
-layer names use `IdentityBlock`; mapped layer standards use `LayerStandardCard`;
+layer names render through the identity policy helper; mapped layer standards use `LayerStandardCard`;
 resolved pens/colors use `PenTemplateCard`. Inline color dots, hand-rolled
 layer rows, or custom key/value renderers are not allowed for these entity
 concepts. PrimeVue controls are limited to non-entity interaction chrome such as
@@ -538,7 +510,7 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   workflow facts. Pages pass translated metric descriptors
   `{ key, label, value }` and may use the default slot for route actions. Use it
   beside reusable entity cards, hub tabs, or workflow tables; do not use it as a
-  replacement for entity-specific `DataBlock`, `SpecsBlock`, or
+  replacement for entity-specific `DataBlock`, or
   `InstanceSurfaceContent`. Vertical metric panels collapse to a two-column
   compact grid below the normal desktop breakpoint and become a stacked rail at
   `lg` and wider. It delegates container chrome to PrimeVue `Panel`; callers own only metric data and layout orientation.

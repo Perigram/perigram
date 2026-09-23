@@ -24,18 +24,69 @@ export function instanceKeyForDisplay(typeId) {
   return INSTANCE_KEY_BY_TYPE[typeId] || typeId;
 }
 
-export function getCoreFieldGroups(typeId) {
-  return cncInstanceFieldGroups[instanceKeyForDisplay(typeId)] || {};
+// The one fact vocabulary (Phase 6): fact-row descriptors resolve from the
+// compiled type view first — the served CTS client bundle's render facet
+// (`render.groups`, normalized by `renderPolicyFor` and cached by
+// `useFileTypeView`) — with the residual legacy map (`ui-fields.js`,
+// undeclared types only) and app extensions (`app-instance-surfaces.js`)
+// composing on top of it. Callers pass the bundle `typeRecord`; without
+// one, legacy content keeps feeding undeclared types unchanged.
+function bundleFieldGroups(typeRecord) {
+  const groups = typeRecord?.render?.groups;
+  if (!Array.isArray(groups) || !groups.length) return null;
+  const fieldGroups = {};
+  for (const group of groups) {
+    if (!group?.id || !Array.isArray(group.fields)) continue;
+    fieldGroups[group.id] = group.fields
+      .filter(field => field?.path)
+      .map(field => ({ ...field, label: field.label || field.path }));
+  }
+  return fieldGroups;
 }
 
-export function getCoreSurfaceContract(typeId) {
-  return cncInstanceSurfaceContracts[instanceKeyForDisplay(typeId)] || null;
+// Surface field-group synthesis — generic chrome policy over whatever
+// groups resolved (moved from domain-cnc `ui-surfaces.js` so it runs over
+// the merged bundle+legacy+extension map, not the static legacy table).
+// Authored surface patches (app extensions, per-call overrides) name
+// their groups explicitly and always win over synthesis.
+const COMPACT_PRIMARY_ORDER = ['summary', 'stock', 'specs', 'relations'];
+const CARD_GROUP_ORDER = ['summary', 'identity', 'specs', 'stock', 'geometry', 'relations'];
+const CARD_GROUP_OVERRIDES = {
+  queue: ['summary'],
+  catalog: ['summary'],
+  geometryCapture: ['summary'],
+  warehouse: ['summary']
+};
+const DETAIL_GROUP_ORDER = ['identity', 'summary', 'specs', 'stock', 'geometry', 'production', 'relations', 'provenance'];
+const DEFAULT_FIELD_LIMITS = { inline: 1, compact: 3 };
+
+function synthesizedGroups({ key, surface, fieldGroups }) {
+  const known = Object.keys(fieldGroups);
+  if (!known.length) return [];
+  if (surface === 'inline' || surface === 'compact' || surface === 'picker') {
+    const primary = COMPACT_PRIMARY_ORDER.find(group => fieldGroups[group]);
+    return primary ? [primary] : [];
+  }
+  if (surface === 'card' || surface === 'table') {
+    if (CARD_GROUP_OVERRIDES[key]) return CARD_GROUP_OVERRIDES[key];
+    const order = key === 'nestingRun'
+      ? ['summary', 'production', ...CARD_GROUP_ORDER.slice(1)]
+      : CARD_GROUP_ORDER;
+    return order.filter(group => fieldGroups[group]);
+  }
+  if (surface === 'detail') {
+    const ordered = DETAIL_GROUP_ORDER.filter(group => fieldGroups[group]);
+    const trailing = known.filter(group => !DETAIL_GROUP_ORDER.includes(group));
+    return [...ordered, ...trailing];
+  }
+  return [];
 }
 
 export function resolveInstanceDisplayContract({
   typeId,
   surface = DEFAULT_INSTANCE_SURFACE,
   variant = null,
+  typeRecord = null,
   fieldGroups = null,
   surfaces = null,
   extensions = null,
@@ -47,8 +98,9 @@ export function resolveInstanceDisplayContract({
   const extensionContract = extensions?.surfaces?.[key] || extensions?.[key] || {};
   const surfacePatch = surfaces?.[requestedSurface] || {};
 
+  const bundleGroups = bundleFieldGroups(typeRecord);
   const mergedGroups = {
-    ...(cncInstanceFieldGroups[key] || {}),
+    ...(bundleGroups || cncInstanceFieldGroups[key] || {}),
     ...(extensions?.fieldGroups?.[key] || extensions?.fields?.[key] || {}),
     ...(fieldGroups || {})
   };
@@ -60,9 +112,18 @@ export function resolveInstanceDisplayContract({
     overrides
   );
 
+  // Authored group lists (extension contracts, per-call patches) win —
+  // an explicitly named list, that is; synthesized contract lists that
+  // emptied out when their type migrated to the bundle fall through to
+  // synthesis over the resolved groups.
+  const authoredGroups = resolvedSurface.fieldGroups;
+  const groupNames = authoredGroups?.length
+    ? authoredGroups
+    : synthesizedGroups({ key, surface: requestedSurface, fieldGroups: mergedGroups });
+
   const resolvedFields = resolveDisplayFields({
     fieldGroups: mergedGroups,
-    groupNames: resolvedSurface.fieldGroups,
+    groupNames,
     fieldLimit: resolvedSurface.fieldLimit
   });
 
@@ -70,14 +131,36 @@ export function resolveInstanceDisplayContract({
     key,
     typeId: coreContract.typeId || typeId,
     surface: requestedSurface,
+    bundleResolved: Boolean(bundleGroups),
     fieldGroups: mergedGroups,
-    surfaceContract: normalizeSurfaceContract(resolvedSurface),
+    surfaceContract: normalizeSurfaceContract(requestedSurface, resolvedSurface),
     fields: resolvedFields
   };
 }
 
 export function resolveInstanceDisplayFields(options = {}) {
   return resolveInstanceDisplayContract(options).fields;
+}
+
+// Identity chrome policy (Phase 6, replaces IdentityBlock): the compiled
+// identity facet — name → slug, then the surrounding surface's type
+// label, then the localized unnamed placeholder. Instance ids stay
+// private display vocabulary: `uid` is a detail-surface fact row, never a
+// title. `fields` names the meta facts rendered beside the label
+// (slug/serial/reference).
+export function instanceIdentityLabel(entity, { typeLabel = '', unnamedLabel = 'Unnamed' } = {}) {
+  const identity = entity?.identity || {};
+  return identity.name || identity.slug || typeLabel || unnamedLabel;
+}
+
+const IDENTITY_META_KEYS = ['uid', 'slug', 'serial', 'reference'];
+
+export function instanceIdentityMeta(entity, fields = []) {
+  const identity = entity?.identity || {};
+  return fields
+    .filter(field => IDENTITY_META_KEYS.includes(field))
+    .map(field => ({ key: field, value: identity[field] }))
+    .filter(item => item.value);
 }
 
 export function validateInstanceDisplayContracts({
@@ -126,16 +209,18 @@ function mergeSurface(...surfaces) {
   }), {});
 }
 
-function normalizeSurfaceContract(surface = {}) {
+function normalizeSurfaceContract(surface = '', definition = {}) {
   return {
-    preview: CNC_PREVIEW_MODES.includes(surface.preview) ? surface.preview : 'none',
-    fieldGroups: Array.isArray(surface.fieldGroups) ? surface.fieldGroups : [],
-    fieldLimit: Number.isFinite(surface.fieldLimit) ? surface.fieldLimit : null,
-    dataDisplay: CNC_DATA_DISPLAYS.includes(surface.dataDisplay) ? surface.dataDisplay : 'grid',
-    relations: CNC_RELATION_DISPLAYS.includes(surface.relations) ? surface.relations : 'none',
-    actions: CNC_ACTION_DISPLAYS.includes(surface.actions) ? surface.actions : 'none',
-    status: surface.status || 'hidden',
-    trace: surface.trace || 'hidden'
+    preview: CNC_PREVIEW_MODES.includes(definition.preview) ? definition.preview : 'none',
+    fieldGroups: Array.isArray(definition.fieldGroups) ? definition.fieldGroups : [],
+    fieldLimit: Number.isFinite(definition.fieldLimit)
+      ? definition.fieldLimit
+      : DEFAULT_FIELD_LIMITS[surface] ?? null,
+    dataDisplay: CNC_DATA_DISPLAYS.includes(definition.dataDisplay) ? definition.dataDisplay : 'grid',
+    relations: CNC_RELATION_DISPLAYS.includes(definition.relations) ? definition.relations : 'none',
+    actions: CNC_ACTION_DISPLAYS.includes(definition.actions) ? definition.actions : 'none',
+    status: definition.status || 'hidden',
+    trace: definition.trace || 'hidden'
   };
 }
 

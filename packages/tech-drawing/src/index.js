@@ -27,7 +27,17 @@ const penTemplate = Object.freeze({
       palette: { types: ['color'], onRemove: 'detach' }
     }
   },
-  render: { label: 'Pen template', icon: 'pi pi-pencil' }
+  render: {
+    label: 'Pen template',
+    icon: 'pi pi-pencil',
+    groups: [
+      { id: 'summary', fields: [
+        { path: 'data.stroke.color', label: 'penTemplate.color', display: 'color', priority: 10 },
+        { path: 'data.stroke.weight', label: 'penTemplate.weight', display: 'dimension', unit: 'mm', priority: 20 },
+        { path: 'data.stroke.pattern', label: 'penTemplate.pattern', display: 'text', priority: 30 }
+      ] }
+    ]
+  }
 });
 
 // The drawing palette catalog (SPEC §3 system-instance pattern):
@@ -43,7 +53,19 @@ const color = Object.freeze({
     name: { base: 'string' },
     hex: { base: 'string', render: { control: 'ColorPicker' } }
   },
-  render: { label: 'Color', icon: 'pi pi-palette' }
+  render: {
+    label: 'Color',
+    icon: 'pi pi-palette',
+    groups: [
+      { id: 'summary', fields: [
+        { path: 'data.visuals.hexCode', label: 'color.hexCode', display: 'swatch', priority: 10 },
+        { path: 'data.code', label: 'common.code', display: 'text', priority: 20 }
+      ] },
+      { id: 'relations', fields: [
+        { path: 'lineage.catalogId', label: 'entities.catalog', display: 'entityRef', typeId: 'catalog', priority: 10 }
+      ] }
+    ]
+  }
 });
 
 // The CAD drawing exchange document — drawing vocabulary, home is here
@@ -104,7 +126,20 @@ const layerStandard = Object.freeze({
       defaultPen: { types: ['pen-template'], cardinality: 'one', onRemove: 'restrict' }
     }
   },
-  render: { label: 'Layer standard', icon: 'pi pi-list' }
+  render: {
+    label: 'Layer standard',
+    icon: 'pi pi-list',
+    groups: [
+      { id: 'summary', fields: [
+        { path: 'data.code', label: 'common.code', display: 'code', priority: 10 },
+        { path: 'data.category', label: 'common.type', display: 'text', priority: 20 }
+      ] },
+      { id: 'relations', fields: [
+        { path: 'data.defaultPenId', label: 'entities.penTemplate', display: 'entityRef', typeId: 'penTemplate', priority: 30 },
+        { path: 'data.orgPenId', label: 'entities.penTemplate', display: 'entityRef', typeId: 'penTemplate', priority: 40 }
+      ] }
+    ]
+  }
 });
 
 // The freehand annotation scene (draw-over-image document): the JSON

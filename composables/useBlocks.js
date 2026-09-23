@@ -7,27 +7,6 @@ import { getPrimaryState, getStatusRegions, normalizeStatusState } from '~/packa
  * Universal Block Composables - v24 Standardized
  */
 
-export const useIdentity = (entity) => {
-  const name = computed(() => {
-    const e = unref(entity);
-    return e?.identity?.name || 'Unnamed';
-  });
-  const slug = computed(() => {
-    const e = unref(entity);
-    return e?.identity?.slug || '';
-  });
-  const serial = computed(() => {
-    const e = unref(entity);
-    return e?.identity?.serial || '';
-  });
-  const reference = computed(() => {
-    const e = unref(entity);
-    return e?.identity?.reference || '';
-  });
-  
-  return { name, slug, serial, reference };
-};
-
 export const useStatus = (entity) => {
   // If entity has 'state', it might be a status block already (e.g. from history array)
   // Otherwise try entity.status
@@ -83,25 +62,4 @@ export const useLineage = (entity) => {
   const getAncestorId = (type) => lineage.value[`${type}Id`];
   
   return { lineage, getAncestorId };
-};
-
-export const useSpecs = (entity) => {
-  const specs = computed(() => {
-    const e = unref(entity);
-    return e?.specs || {};
-  });
-  
-  const formattedDimensions = computed(() => {
-    const s = unref(specs);
-    if (!s.width || !s.length) return '';
-    return `${s.width} x ${s.length} mm`;
-  });
-  
-  const formattedArea = computed(() => {
-    const s = unref(specs);
-    if (!s.area) return '0 m²';
-    return `${s.area.toFixed(2)} m²`;
-  });
-
-  return { specs, formattedDimensions, formattedArea };
 };

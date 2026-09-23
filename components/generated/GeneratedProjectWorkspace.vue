@@ -65,7 +65,7 @@
               >
                 <template #default="{ node }">
                   <div v-if="node.data?.item?.kind === 'entity'" class="flex min-w-0 max-w-full flex-1 items-center gap-1 overflow-hidden" data-explorer-entity>
-                    <IdentityBlock :entity="node.data.item.entity" variant="compact" class="min-w-0 flex-1" />
+                    <span class="truncate" :title="explorerEntityLabel(node.data.item.entity)">{{ explorerEntityLabel(node.data.item.entity) }}</span>
                   </div>
                   <div v-else class="flex min-w-0 flex-1 items-center gap-2">
                     <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
@@ -148,7 +148,6 @@ import SplitterPanel from 'primevue/splitterpanel';
 import Tree from 'primevue/tree';
 import { useI18n } from 'vue-i18n';
 import InstanceSelect from '~/components/shared/InstanceSelect.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import WorkspaceSplitNode from '~/components/shared/WorkspaceSplitNode.vue';
 import GeneratedProjectActionPalette from '~/components/generated/GeneratedProjectActionPalette.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
@@ -160,6 +159,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
+import { instanceIdentityLabel } from '~/utils/instance-display-contract.js';
 import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { projectExplorerHierarchy } from '~/utils/project-explorer-hierarchy.js';
 import { emptyTabItem, emptyTabKey, isEmptyTabKey } from '~/utils/workspace-empty-tabs.js';
@@ -189,6 +189,9 @@ const authStore = useAuthStore();
 const instances = useInstancesStore();
 const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
+function explorerEntityLabel(entity) {
+  return instanceIdentityLabel(entity, { unnamedLabel: t('common.unnamed') });
+}
 const explorerOpen = ref(true);
 const explorerSize = ref(15);
 const selectionKeys = ref({});

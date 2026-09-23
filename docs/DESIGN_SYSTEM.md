@@ -80,7 +80,7 @@ contract also declares `detail`, `table`, `picker`, and `workspace` surfaces for
 framework consumers. A surface selects preview mode, field groups, data display
 density, relation display, status/trace policy, and action placement.
 
-Card content is part of the contract, not filler. The title area owns identity and status, the body uses `SpecsBlock`/`DataBlock` for concise operational facts, and the footer owns actions. Prefer canonical DTO paths (`data.*`, `identity.*`, `lineage.*`, `attachments.*`, `summary.*`) and use flat aliases only as compatibility fallbacks where current services still emit them.
+Card content is part of the contract, not filler. The title area owns identity and status, the body uses `DataBlock` for concise operational facts (dimensional facts included — declared rows with units), and the footer owns actions. Prefer canonical DTO paths (`data.*`, `identity.*`, `lineage.*`, `attachments.*`, `summary.*`) and use flat aliases only as compatibility fallbacks where current services still emit them.
 Generated card surfaces may replace aggregate child-count facts when the card
 already has relation-backed child previews to show. Prefer explicit
 DTO-backed preview refs such as `summary.queuePreview`, `summary.runPreview`,
@@ -88,10 +88,12 @@ DTO-backed preview refs such as `summary.queuePreview`, `summary.runPreview`,
 over sibling-screen inference. Use compact `InstanceInlineRef` micro cards for
 those child previews instead of rendering `N children` rows in the card body.
 If no previewable child refs are loaded, keep the numeric count.
-Standard field groups live in `@cutkit/domain-cnc`; Vue cards consume resolved
-field descriptors through `utils/instance-display-contract.js`. Final apps may
-layer additional field groups and surface overrides, but access policy still
-controls whether a path can render.
+Standard field groups are authored `render.groups` on type declarations,
+compiled into the served CTS client bundle; Vue cards consume resolved field
+descriptors through `utils/instance-display-contract.js` (bundle first,
+`@cutkit/domain-cnc`'s residual map for undeclared types). Final apps may
+layer additional field groups and surface overrides on top, but access policy
+still controls whether a path can render.
 
 `cassette`, `cassetteTemplate`, `cassetteDesign`, and `cassetteInstance` are
 separate card contracts. `cassette` covers the base `cassettes` collection,
@@ -141,7 +143,7 @@ Shared ownership:
 - `ResponsiveGrid`'s `bounded` variant uses the shared bounded-item min/max
   width tokens for operational cards that must not grow indefinitely; extra
   width creates additional tracks.
-- `IdentityBlock`, `InstanceState`, `StatusBadge`, `TraceChain`, `SpecsBlock`, and `DataBlock` own v24 block visualization.
+- `InstanceState`, `StatusBadge`, `TraceChain`, and `DataBlock` own v24 block visualization; identity chrome resolves through the compiled identity policy (`instanceIdentityLabel`) rendered inline.
 - `StateLocation` renders typed mutable location facts from `status.lifecycle.data.location` so cards do not hardcode warehouse ids or coordinate text as static fields.
 - `DrawingCanvas` owns layer-aware SVG canvas rendering for DXF/SVG previews, cassette thumbnails, mapping previews, and cassette designer interactions. Sources must normalize into its `{ viewBox, layers }` contract and provide layer standard metadata explicitly; the shared canvas does not invent production layer codes.
 - `GeometryPreview` wraps `DrawingCanvas` for token-backed DXF/layer/polygon previews from `data.geometry.preview` so design cards show geometry instead of file-name fields.

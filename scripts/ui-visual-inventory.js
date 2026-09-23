@@ -16,8 +16,7 @@ export const SCOPED_STYLE_EXCEPTIONS = Object.freeze({
   'components/shared/ResponsiveGrid.vue': 'layout',
   'components/ui-mapping/StateStrip.vue': 'layout',
   'components/ui-mapping/SurfaceHeader.vue': 'layout',
-  'components/shared/blocks/DataBlock.vue': 'layout',
-  'components/shared/blocks/SpecsBlock.vue': 'layout'
+  'components/shared/blocks/DataBlock.vue': 'layout'
 });
 
 export const SCOPED_LAYOUT_PROPERTIES = new Set([

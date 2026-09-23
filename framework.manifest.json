@@ -340,12 +340,7 @@
         "docs": [
           "server/features/sheet-designs/README.md"
         ],
-        "fieldPaths": [
-          "specs.cuttingLength",
-          "specs.estimatedTime",
-          "summary.efficiency",
-          "summary.placedCount"
-        ],
+        "fieldPaths": [],
         "group": "production",
         "key": "sheetDesign",
         "labelKey": "entities.sheetDesign",
@@ -466,11 +461,7 @@
         "docs": [
           "server/features/pen-templates/README.md"
         ],
-        "fieldPaths": [
-          "data.stroke.color",
-          "data.stroke.pattern",
-          "data.stroke.weight"
-        ],
+        "fieldPaths": [],
         "group": "master",
         "key": "penTemplate",
         "labelKey": "entities.penTemplate",
@@ -484,10 +475,7 @@
         "docs": [
           "server/features/layer-standards/README.md"
         ],
-        "fieldPaths": [
-          "data.category",
-          "data.code"
-        ],
+        "fieldPaths": [],
         "group": "master",
         "key": "layerStandard",
         "labelKey": "entities.layerStandard",
@@ -501,10 +489,7 @@
         "docs": [
           "server/features/users/README.md"
         ],
-        "fieldPaths": [
-          "data.email",
-          "identity.reference"
-        ],
+        "fieldPaths": [],
         "group": "system",
         "key": "user",
         "labelKey": "entities.user",
@@ -518,11 +503,7 @@
         "docs": [
           "server/features/organizations/README.md"
         ],
-        "fieldPaths": [
-          "data.email",
-          "data.phone",
-          "data.type"
-        ],
+        "fieldPaths": [],
         "group": "system",
         "key": "organization",
         "labelKey": "entities.organization",
@@ -536,10 +517,7 @@
         "docs": [
           "server/features/artifacts/README.md"
         ],
-        "fieldPaths": [
-          "attachments.primary.name",
-          "data.type"
-        ],
+        "fieldPaths": [],
         "group": "system",
         "key": "artifact",
         "labelKey": "entities.artifact",
@@ -618,16 +596,7 @@
         ],
         "key": "InstanceMultiSelect",
         "kind": "entity-input",
-        "purpose": "PrimeVue MultiSelect wrapper that renders entity options as compact cards and selected entities outside the chip area with a compact change trigger."
-      },
-      {
-        "componentPath": "components/shared/blocks/IdentityBlock.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
-        "key": "IdentityBlock",
-        "kind": "block",
-        "purpose": "Canonical identity rendering for names, slugs, serials, references, and inline trace labels."
+        "purpose": "PrimeVue MultiSelect wrapper that renders canonical entity options as compact cards and selected chip area with a compact change trigger."
       },
       {
         "componentPath": "components/shared/blocks/DataBlock.vue",
@@ -637,16 +606,7 @@
         ],
         "key": "DataBlock",
         "kind": "block",
-        "purpose": "Canonical label/value rows for generated entity data fields."
-      },
-      {
-        "componentPath": "components/shared/blocks/SpecsBlock.vue",
-        "docs": [
-          "components/shared/README.md"
-        ],
-        "key": "SpecsBlock",
-        "kind": "block",
-        "purpose": "Canonical width, length, area, and thickness display for entities with specs."
+        "purpose": "Canonical label/value rows for fact surfaces; descriptors resolve from the compiled type view (render.groups), rendered with the declared display policies."
       },
       {
         "componentPath": "components/shared/blocks/StatusBadge.vue",

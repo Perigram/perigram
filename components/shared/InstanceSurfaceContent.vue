@@ -51,6 +51,8 @@ import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import InstancePreview from '~/components/shared/InstancePreview.vue';
 import InstanceRelationsBlock from '~/components/shared/InstanceRelationsBlock.vue';
 import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
+import { useRegistryStore } from '~/stores/registry';
 import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
@@ -65,10 +67,17 @@ const props = defineProps({
 });
 
 const { t, te } = useI18n();
+// Fact rows resolve from the served org type view (the compiled CTS
+// client bundle cached by useFileTypeView); the registry store touch
+// keeps the declaration-derived display-access registration alive
+// wherever fact rows render.
+const { typeById } = useFileTypeView();
+useRegistryStore();
 
 const display = computed(() => resolveInstanceDisplayContract({
   typeId: props.typeId,
   surface: props.surface,
+  typeRecord: typeById(props.typeId),
   extensions: props.displayExtensions,
   overrides: props.displayOverrides
 }));

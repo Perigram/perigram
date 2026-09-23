@@ -8,8 +8,10 @@ import { useRoute, useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import InstanceCard from '~/components/shared/InstanceCard.vue';
-import SpecsBlock from '~/components/shared/blocks/SpecsBlock.vue';
+import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import GeometryPreview from '~/components/shared/GeometryPreview.vue';
+import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { cassetteDesignCountsForSheetDesign, cassettePlacementCountForSheetDesign } from '~/utils/sheetDesigns.js';
 
 const props = defineProps({
@@ -19,6 +21,15 @@ const props = defineProps({
 
 const route = useRoute();
 const router = useRouter();
+// Specs facts resolve from the compiled type view — the sheet-design
+// declaration's dimensional group (units included), rendered through the
+// shared fact-row control.
+const { typeById } = useFileTypeView();
+const specFields = computed(() => resolveInstanceDisplayFields({
+  typeId: 'sheet_design',
+  surface: 'compact',
+  typeRecord: typeById('sheet_design')
+}));
 const projectSlug = computed(() => route.params.slug || props.design.lineage?.projectSlug || null);
 const canOpen = computed(() => Boolean(projectSlug.value && props.design._id));
 const cassetteDesigns = computed(() => cassetteDesignCountsForSheetDesign(props.design));
@@ -38,7 +49,7 @@ const openDesign = () => {
         <i class="ck-entity-icon ck-entity-icon-sheet-design"></i>
       </template>
       <template #compact-content>
-        <SpecsBlock type-id="sheetDesign" :entity="design" variant="compact" />
+        <DataBlock type-id="sheet_design" :entity="design" :fields="specFields" variant="compact" />
       </template>
       <Divider />
       <div class="grid grid-cols-1 gap-4">
@@ -51,7 +62,7 @@ const openDesign = () => {
           <small>{{ $t('sheetDesign.materialSources') }}</small>
           <Tag :value="materialSourceCount" severity="success" size="small" />
         </div>
-        <SpecsBlock type-id="sheetDesign" :entity="design" />
+        <DataBlock type-id="sheet_design" :entity="design" :fields="specFields" />
       </div>
       <template #footer>
         <div v-if="canOpen" class="flex justify-end" @click.stop>

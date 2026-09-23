@@ -273,11 +273,18 @@ the per-output contract (see `server/core/commands/README.md`).
 
 Display constructor metadata is split from access policy:
 
-- `ui-fields.js` declares reusable entity field groups such as summary,
-  geometry, stock, production, relations, and provenance.
-  Facade and facade-pattern summary counts are declared here and rendered
-  through `InstanceSurfaceContent`; their cards do not own local `DataBlock`
-  descriptor arrays.
+- `ui-fields.js` is the RESIDUAL fact vocabulary: field groups for entity
+  types that have no CTS type declaration yet (the production entity family,
+  master data, and the artifact-template leftovers; see the module header for
+  the full list and the rule that nothing new lands here). Every declared
+  type — the pack's own `cassette`, `sheet-design`, `facade-design`, and
+  `facade-pattern` included — carries its fact groups as authored
+  `render.groups` on its declaration
+  ([packages/cts/README.md](../cts/README.md) → `render.js`), compiled into
+  the served client bundle and resolved by
+  `utils/instance-display-contract.js` as the first-choice source. Nothing
+  below is affected by the split: descriptor vocabulary, child-count roles,
+  and preview-backed galleries are identical in both homes.
   Aggregate child-count facts may also mark `role: 'childCount'`; generated
   cards use that metadata together with explicit `summary.*Preview`
   `entityRefList` fields to swap a numeric count for a compact child gallery.
@@ -290,12 +297,16 @@ Display constructor metadata is split from access policy:
   Color summary facts declare the hex swatch through
   `display: 'swatch'`, which `DataBlock` renders as a color dot beside the
   value.
-- `ui-surfaces.js` declares which groups and display modes belong to surfaces
-  such as inline, compact, card, and detail. Cards are recognition surfaces:
-  they compose preview, identity, and the leading summary/specs/stock facts
-  with relation chips, while production internals and revision provenance
-  render only on the detail surface. Noisy entities (queue, catalog,
-  geometry capture, warehouse) pin an explicit card group list there.
+- `ui-surfaces.js` declares surface chrome policy: preview mode, data
+  display, relations, actions, status, and trace per surface (inline,
+  compact, card, detail), plus the legacy synthesized group lists for
+  residual-map types. Which GROUPS a surface shows is synthesized generically
+  over the resolved groups by `utils/instance-display-contract.js` (cards are
+  recognition surfaces: preview, identity, and the leading
+  summary/specs/stock facts with relation chips; production internals and
+  revision provenance render only on the detail surface; noisy residual
+  entities — queue, catalog, geometry capture, warehouse — pin explicit card
+  group lists there).
 - `field-access.js` remains the hard visibility boundary. A field group path
   that is not covered by field access must fail validation instead of rendering
   through a component-local escape hatch.

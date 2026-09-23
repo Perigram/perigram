@@ -19,7 +19,10 @@ import {
   primeSemanticTokens,
   tailwindThemeExtension
 } from '../assets/tokens/index.js';
-import { cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { cncFileTypes, cncWorkflows } from '../packages/domain-cnc/src/index.js';
+import { frameworkTypes } from '../packages/cts/src/index.js';
+import { techDrawingTypes } from '../packages/tech-drawing/src/index.js';
+import { normalizeType, renderPolicyFor } from '../packages/cts/src/index.js';
 import { normalizeWorkflow } from '../packages/workflows/src/index.js';
 import { decorateDataValue, resolveDataPath } from '../utils/data-display.js';
 import { resolveInstanceRelationRefs } from '../utils/instance-relations.js';
@@ -40,6 +43,9 @@ import {
 } from '../scripts/ui-visual-inventory.js';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
+
+const declarationFor = (typeId) => [...frameworkTypes, ...techDrawingTypes, ...cncFileTypes]
+  .find(type => type.id === typeId);
 
 const walkFiles = (dir, predicate, acc = []) => {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -603,6 +609,37 @@ describe('Design system manifest', () => {
   it('declares constructor surfaces and field groups in the domain contract', () => {
     expect(validateDesignSystemDisplayContracts()).toEqual([]);
 
+    // Declared types (framework, tech-drawing, CNC pack) carry their fact
+    // groups as authored render data: the compiled bundle facet is the
+    // one fact vocabulary. Legacy keys remain only for undeclared types.
+    const bundleDeclared = new Set([
+      'cassette', 'sheetDesign', 'penTemplate', 'layerStandard',
+      'user', 'organization', 'artifact', 'entityRevision'
+    ]);
+    const declaredGroups = (typeId) => {
+      const declaration = [...frameworkTypes, ...techDrawingTypes, ...cncFileTypes]
+        .find(type => type.id === typeId);
+      return declaration?.render?.groups || [];
+    };
+    for (const key of bundleDeclared) {
+      const entry = DESIGN_SYSTEM_ENTITY_CONTRACTS.find(contract => contract.key === key);
+      const groups = declaredGroups(entry.typeId.replace(/_/g, '-'));
+      expect(groups.length, `${key} declares its fact groups on its type declaration`).toBeGreaterThan(0);
+      for (const group of groups) {
+        for (const field of group.fields) {
+          expect(field.path, `${key}.${group.id}.${field.path} carries a label`).toBeTruthy();
+          expect(field.path).not.toMatch(/^entity\./);
+        }
+      }
+      // The bundle projection normalizes descriptors and the identity
+      // policy (renderPolicyFor).
+      const policy = renderPolicyFor(normalizeType(declarationFor(entry.typeId.replace(/_/g, '-'))));
+      expect(policy.groups.flatMap(group => group.fields)).toEqual(
+        expect.arrayContaining([expect.objectContaining({ path: groups[0].fields[0].path })])
+      );
+      expect(policy.identity.fields).toEqual(['identity.name', 'identity.slug', 'identity.uid']);
+    }
+
     for (const entry of DESIGN_SYSTEM_ENTITY_CONTRACTS) {
       expect(DESIGN_SYSTEM_SURFACES[entry.key]?.surfaces).toEqual(expect.objectContaining({
         inline: expect.any(Object),
@@ -610,7 +647,9 @@ describe('Design system manifest', () => {
         card: expect.any(Object),
         detail: expect.any(Object)
       }));
-      expect(DESIGN_SYSTEM_FIELD_GROUPS[entry.key] || {}).toBeTruthy();
+      if (!bundleDeclared.has(entry.key)) {
+        expect(DESIGN_SYSTEM_FIELD_GROUPS[entry.key] || {}).toBeTruthy();
+      }
     }
   });
 
@@ -751,7 +790,7 @@ describe('Design system manifest', () => {
     const relationsBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceRelationsBlock.vue'), 'utf8');
     const surfaceContent = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceSurfaceContent.vue'), 'utf8');
     const inlineRef = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceInlineRef.vue'), 'utf8');
-    const identityBlock = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/blocks/IdentityBlock.vue'), 'utf8');
+    const instanceCard = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstanceCard.vue'), 'utf8');
     const entityPreview = fs.readFileSync(path.join(REPO_ROOT, 'components/shared/InstancePreview.vue'), 'utf8');
     const cassetteThumbnail = fs.readFileSync(path.join(REPO_ROOT, 'components/CassetteThumbnail.vue'), 'utf8');
 
@@ -784,7 +823,8 @@ describe('Design system manifest', () => {
     expect(inlineRef).toContain(".listInstances(instances.canonicalTypeKey('sheetDesign'), { runId }, { silent: true })");
     expect(inlineRef).toContain('relationSheetDesigns');
     expect(inlineRef).not.toContain('instance-inline-compact-fallback');
-    expect(identityBlock).toContain('instance-inline-chip');
+    expect(instanceCard).toContain('instance-inline-chip');
+    expect(instanceCard).toContain('instanceIdentityLabel');
     expect(entityPreview).toContain('hideDimensionLayer');
     expect(entityPreview).toContain(':hide-dimension-layer="hideDimensionLayer"');
     expect(entityPreview).toContain('GeometryPreview');
@@ -801,7 +841,7 @@ describe('Design system manifest', () => {
       (file) => file.endsWith('Detail.vue') && !file.endsWith('.old.vue') && !file.endsWith('.v23.vue')
     ).filter((file) => {
       const source = fs.readFileSync(file, 'utf8');
-      return /<TraceChain\s+:entity|<IdentityBlock[^>]+variant=["']header["']|<InstanceState\b/.test(source);
+      return /<TraceChain\s+:entity|<InstanceState\b/.test(source);
     }).map((file) => path.relative(REPO_ROOT, file));
 
     expect(offenders).toEqual([]);

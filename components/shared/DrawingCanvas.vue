@@ -17,7 +17,6 @@ import { normalizeSketchDrawing, parseScene } from '~/utils/sketch.js';
 import { useLayerStandardsStore } from '~/stores/layerStandards';
 import { usePenTemplatesStore } from '~/stores/penTemplates';
 import ActionToolbar from '~/components/shared/ActionToolbar.vue';
-import IdentityBlock from '~/components/shared/blocks/IdentityBlock.vue';
 import LayerStandardCard from '~/components/entities/LayerStandard/LayerStandardCard.vue';
 import PenTemplateCard from '~/components/entities/PenTemplate/PenTemplateCard.vue';
 
@@ -129,6 +128,13 @@ const visibleDrawingLayers = computed(() => {
   if (!hasLayers.value) return [];
   return drawing.value.layers.filter(layer => visibleLayerSelection.value.includes(layer.name));
 });
+// Layer-row identity meta (the slug fact under the layer name), built in
+// script like every other identity meta line so template copy stays i18n.
+function layerRowMetaText(row) {
+  if (!row?.layer?.standardCode) return '';
+  const slug = row.sourceEntity?.identity?.slug;
+  return slug ? `slug: ${slug}` : '';
+}
 const designerSectionLayerCode = computed(() => (
   drawing.value?.designerSections?.standardCode ||
   drawing.value?.designerSections?.layerName ||
@@ -862,7 +868,12 @@ onBeforeUnmount(() => {
               <Checkbox v-model="visibleLayerSelection" :value="row.layer.name" :inputId="layerInputId(row.layer)" size="small" class="mt-1" />
               <div class="flex min-w-0 flex-1 flex-col gap-2">
                 <label :for="layerInputId(row.layer)" class="min-w-0">
-                  <IdentityBlock :entity="row.sourceEntity" variant="compact" :fields="row.layer.standardCode ? ['slug'] : []" />
+                  <span class="flex min-w-0 flex-col">
+                    <span class="truncate">{{ row.sourceEntity?.identity?.name }}</span>
+                    <small v-if="layerRowMetaText(row)" class="truncate" :title="layerRowMetaText(row)">
+                      {{ layerRowMetaText(row) }}
+                    </small>
+                  </span>
                 </label>
                 <LayerStandardCard v-if="row.standard" :standard="row.standard" variant="inline" />
                 <PenTemplateCard v-if="row.pen" :pen="row.pen" variant="inline" />

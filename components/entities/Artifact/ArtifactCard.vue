@@ -8,6 +8,7 @@ import InstanceCard from '~/components/shared/InstanceCard.vue';
 import DataBlock from '~/components/shared/blocks/DataBlock.vue';
 import InstanceInlineRef from '~/components/shared/InstanceInlineRef.vue';
 import { resolveInstanceDisplayFields } from '~/utils/instance-display-contract.js';
+import { useFileTypeView } from '~/composables/useFileTypeView.js';
 
 const props = defineProps({
   artifact: { type: Object, required: true },
@@ -28,8 +29,9 @@ const icon = computed(() => {
   return 'pi-file';
 });
 
-const ARTIFACT_FIELDS = resolveInstanceDisplayFields({ typeId: 'artifact', surface: 'card' })
-  .filter(field => field.display !== 'entityRef');
+const { typeById } = useFileTypeView();
+const ARTIFACT_FIELDS = computed(() => resolveInstanceDisplayFields({ typeId: 'artifact', surface: 'card', typeRecord: typeById('artifact') })
+  .filter(field => field.display !== 'entityRef'));
 
 const isChildControl = (event) => {
   const target = event?.target;

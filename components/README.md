@@ -39,8 +39,8 @@
   related entity, transition, or custom path), then an entity type when the
   subject is related, then a trait, an operator, and a value. Entity traits must
   come from the real domain contracts: exact `id`, workflow `status` from
-  `cncWorkflows`, and property paths from `cncInstanceFieldGroups` /
-  `cncEntityFieldAccess`. Do not expose storage terms like
+  `cncWorkflows`, and property paths from the residual
+  `cncInstanceFieldGroups` map or `cncEntityFieldAccess`. Do not expose storage terms like
   `lineage.organization` as user-facing targets; related entity types come from
   the domain frontend entity registry but must be constrained to valid lineage
   ancestors for the selected feature entity. Do not offer descendant filters
@@ -82,7 +82,7 @@ All entity-related components MUST use these patterns:
 
 | Concern | Pattern |
 |---|---|
-| Identity display (default: name/slug) | `<IdentityBlock :entity="..." variant="..." />` |
+| Identity display (default: name/slug) | `instanceIdentityLabel(entity, { typeLabel, unnamedLabel })` from `utils/instance-display-contract.js` — the compiled identity policy — rendered inline as title/chip markup |
 | Status display + transitions/actions | `<InstanceState :entity="..." type-id="..." :actions="..." />` |
 | Read-only status display | `<StatusBadge :entity="..." />` |
 | Current lifecycle location | `status.lifecycle.data.location` rendered by `<InstanceState>` |
@@ -717,7 +717,7 @@ broad whole-file CSS exceptions, and a second runtime visual layer fail.
 
 ## Composables Rule
 
-`useBlocks.js` composables (`useIdentity`, `useStatus`, `useSpecs`, `useLineage`) are **only** used inside the shared block components (`IdentityBlock`, `InstanceState`, `SpecsBlock`). Entity cards and pages must never import from `useBlocks.js` — they compose the block components instead.
+`useBlocks.js` composables (`useStatus`, `useLineage`) are **only** used inside the shared state/trace primitives (`InstanceState`, `TraceChain`). Entity cards and pages must never import from `useBlocks.js`; identity chrome resolves through the compiled identity policy helper and fact rows render through `DataBlock`.
 
 No exceptions are currently needed in used entity pages/cards; state-only conditionals should use a local `computed` from `entity.states`.
 

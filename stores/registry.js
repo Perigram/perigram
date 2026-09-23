@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia';
-import { computed, ref } from 'vue';
+import { computed, ref, watchEffect } from 'vue';
 import { useAuthStore } from './auth';
 import { createTypeRegistry, projectDomainFromView } from '~/packages/cts/src/index.js';
+import { registerDeclarationFieldAccess } from '#shared/instance-field-access.js';
 
 // The compiled CTS client bundle as first-class client state. The bundle is
 // per-user access projection data: it rides auth hydration
@@ -87,6 +88,27 @@ export const useRegistryStore = defineStore('registry', () => {
       }
     }
     return projectDomainFromView(registry, authStore.user?.organizationId || null, {});
+  });
+
+  // Fact-display access for declared types (Phase 6): the projected field
+  // policies of bundle types with no legacy domain entry, re-featured to
+  // the class-collection grant the server's instance access engine checks,
+  // registered into the shared display-access resolver. One registration
+  // per served view; org switches recompute the bundle and re-register.
+  watchEffect(() => {
+    const classByType = new Map((bundle.value.types || []).map(type => [type.id, type.class]));
+    const entries = {};
+    for (const [typeId, policy] of Object.entries(projectedDomain.value.fieldAccess || {})) {
+      const typeClass = classByType.get(typeId);
+      if (!typeClass) continue;
+      entries[typeId] = {
+        feature: ({ file: 'files', item: 'items', group: 'groups', process: 'processes' })[typeClass] || typeId,
+        read: policy.read || [],
+        write: policy.write || [],
+        admin: policy.admin || []
+      };
+    }
+    registerDeclarationFieldAccess(entries);
   });
 
   async function refresh() {

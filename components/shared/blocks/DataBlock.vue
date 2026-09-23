@@ -54,8 +54,18 @@ const props = defineProps({
     fieldLimit: { type: Number, default: null }
 });
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const authStore = useAuthStore();
+
+// Row labels resolve the descriptor's `label` as authored render data:
+// a value that is a translatable key localizes, anything else renders as
+// the authored string (declaration labels are data, like process status
+// labels — never missing-translation keys).
+function rowLabel(field) {
+    const label = field.label || field.i18n;
+    if (!label) return '';
+    return te?.(label) ? t(label) : label;
+}
 
 const policyFields = computed(() => filterEntityFields({
     fields: props.fields,
@@ -77,7 +87,7 @@ const visibleRows = computed(() =>
             const swatch = field.display === 'swatch' && /^[0-9a-f]{3,8}$/i.test(String(raw).replace('#', ''))
                 ? `#${String(raw).replace('#', '')}`
                 : null;
-            return { label: t(field.i18n), display, swatch };
+            return { label: rowLabel(field), display, swatch };
         })
         .slice(0, props.fieldLimit || undefined)
         .filter(Boolean)
