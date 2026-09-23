@@ -455,6 +455,7 @@ describe('display policy (SPEC §4/§7)', () => {
     registry.defineType({
       id: 'gadget', class: 'file',
       fields: {
+        title: { base: 'string' },
         widths: { base: 'list', itemType: { base: 'quantity', unit: 'mm' } },
         parts: { base: 'list', itemType: { base: 'ref', accepts: ['user'] } },
         tags: { base: 'list', itemType: { base: 'string' } },
@@ -464,12 +465,14 @@ describe('display policy (SPEC §4/§7)', () => {
     const record = compileClientBundle(registry).types[0];
     expect(record.glyph).toBe('pi pi-file');
     expect(record.sections).toEqual([
-      { id: 'summary', label: null, fields: ['tags'] },
+      { id: 'summary', label: null, fields: ['title', 'tags'] },
       { id: 'dimensions', label: null, fields: ['widths'] },
       { id: 'media', label: null, fields: ['specs'] },
       { id: 'relations', label: null, fields: ['parts'] }
     ]);
-    expect(record.identifier).toBeNull();
+    // No explicit flag: the first declared string field is minted as the
+    // identifier at the boundary (frozen; explicit flags deviate).
+    expect(record.identifier).toBe('title');
     expect(record.depiction.thumb).toBeNull();
   });
 
@@ -482,6 +485,9 @@ describe('display policy (SPEC §4/§7)', () => {
     });
     const record = compileClientBundle(registry, 'org-1').types[0];
     expect(record.name).toBeNull();
+    // The unnamed placeholder means "identifier value is null" and nothing
+    // else — the identifier itself was adopted (first string field).
+    expect(record.identifier).toBe('serial');
     expect(registry.compile('org-1').errors).toEqual([]);
   });
 
@@ -522,7 +528,7 @@ describe('display policy (SPEC §4/§7)', () => {
       states: { main: { initial: 'new', values: ['new'] } }
     });
     expect(registry.compile().errors).toContainEqual(
-      'type two-ids: identifier flag on multiple fields (name, serial) — exactly one or none'
+      'type two-ids: identifier flag on multiple fields (name, serial) — exactly one required'
     );
     const registry2 = createTypeRegistry({ id: 'render-flag-spec-2' });
     registry2.defineType({
@@ -534,6 +540,18 @@ describe('display policy (SPEC §4/§7)', () => {
     });
     expect(registry2.compile().errors).toContainEqual(
       'type two-pics: depiction flag on multiple fields (front, back) — at most one'
+    );
+    // No string field to adopt and no explicit flag: the compile error
+    // tells the author to mark one — records cannot render titles without
+    // a name field.
+    const registry3 = createTypeRegistry({ id: 'render-flag-spec-3' });
+    registry3.defineType({
+      id: 'no-name-field', class: 'item', name: 'No name field',
+      fields: { area: { base: 'quantity', unit: 'm2' } },
+      states: { main: { initial: 'new', values: ['new'] } }
+    });
+    expect(registry3.compile().errors).toContainEqual(
+      'type no-name-field: mark the field that names its records (identifier flag on exactly one field)'
     );
   });
 });

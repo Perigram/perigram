@@ -57,6 +57,10 @@ export const cncFileTypes = [
     version: 1,
     derived: true,
     fields: {
+      // Run-produced records carry no authored name at creation; the
+      // nullable identifier is the title contract (null renders the
+      // unnamed placeholder until a name lands).
+      title: { base: 'string', identifier: true, nullable: true, label: 'Title' },
       geometry: { base: 'json' },
       parts: { base: 'list', itemType: { base: 'ref', accepts: ['cassette'] }, nullable: true }
     },

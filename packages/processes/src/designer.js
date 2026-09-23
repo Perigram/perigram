@@ -7,6 +7,18 @@ export { operationKindOf };
 import { migrateV4Definition, resolveCtsDefinition, checkCtsGraphBindings, isCtsGraphDefinition, classMayDeclareChildren } from '../../cts/src/index.js';
 import { processType } from './types.js';
 
+// Field-id derivation for authored names: the label is user-plane, the
+// row key is plumbing. Splits on any non-alphanumeric run, lowercases the
+// first segment, capitalizes the rest ("Field name 2" -> "fieldName2").
+// Returns '' when nothing alphanumeric survives (unfinished input).
+function camelCaseId(value = '') {
+  const segments = String(value).split(/[^a-zA-Z0-9]+/).filter(Boolean);
+  if (!segments.length) return '';
+  const [first, ...rest] = segments;
+  return first.charAt(0).toLowerCase() + first.slice(1)
+    + rest.map(segment => segment.charAt(0).toUpperCase() + segment.slice(1)).join('');
+}
+
 // The single authored-definition seam (SPEC §20): every consumer of an
 // authored graph — server validation/activation, canvas round trip —
 // flows through here. v4 graphs migrate one-way to the species
@@ -256,11 +268,23 @@ export function compileTreeDeclarations(nodes = [], edges = []) {
       const unset = descriptor.base === 'ref'
         && (!Array.isArray(descriptor.accepts) || !descriptor.accepts.length);
       if (name && !unset) {
-        try {
-          describeType(descriptor);
-          map.set(name, { ...descriptor });
-        } catch (error) {
-          diagnostics.push(`class ${classLabelOf(target)}: field ${name}: ${error.message}`);
+        // The authored string is the user-plane label; the row key (the
+        // field id) derives from it. Authors never meet id spelling rules
+        // — "Field name Instant must be lowerCamelCase" is a defect, not
+        // a diagnostic. A name that sanitizes to nothing (unfinished
+        // non-latin input) stays out of the declaration, like any
+        // unsaved edit.
+        const fieldId = camelCaseId(name);
+        if (fieldId) {
+          try {
+            describeType(descriptor);
+            map.set(fieldId, {
+              ...descriptor,
+              ...(descriptor.label || fieldId === name ? {} : { label: name })
+            });
+          } catch (error) {
+            diagnostics.push(`class ${classLabelOf(target)}: field ${name}: ${error.message}`);
+          }
         }
       }
       fieldsByType.set(target.data.typeId, map);

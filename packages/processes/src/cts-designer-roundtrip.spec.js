@@ -131,6 +131,26 @@ describe('graph protocol v5 designer round trip', () => {
     expect(migrated.screens.list.sources[0].typeId).toBe('sheet');
   });
 
+  it('kebab-normalizes ctsTypes record typeIds so one type has one spelling', () => {
+    // Drafts saved by older sessions spelled the generated prefix with an
+    // underscore while every other record collection was kebab-normalized
+    // — the same type was then referenced under two spellings and
+    // validation reported "unknown type" on both.
+    const draft = {
+      dataflowVersion: 4,
+      ctsTypes: {
+        ctsClass_1: { id: 'ctsClass_1', kind: 'class', typeId: 't_uth93vgdab', class: 'item' },
+        ctsField_1: { id: 'ctsField_1', kind: 'field', typeId: 't_uth93vgdab', name: 'title', descriptor: { base: 'string' } },
+        ctsState_1: { id: 'ctsState_1', kind: 'state', typeId: 't_uth93vgdab', value: 'new', initial: true }
+      },
+      processNodes: {},
+      producerOutputs: {}
+    };
+    const { definition } = migrateProcessDefinition(draft);
+    const records = Object.values(definition.ctsTypes);
+    expect(records.every(record => record.typeId === 't-uth93vgdab')).toBe(true);
+  });
+
   it('a v4 definition loads onto the canvas and round-trips as v5', () => {
     const domain = projectedDomain();
     const v4 = {

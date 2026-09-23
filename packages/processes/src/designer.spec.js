@@ -443,6 +443,23 @@ describe('tree declaration compilation', () => {
     expect(compiled.gadget.states.main.initial).toBe('new');
   });
 
+  it('authored field names are labels; the row id derives, not validates', () => {
+    const widget = classNode('widget');
+    const nodes = [widget,
+      fieldNode('widget', 'Anythin', { base: 'string' }),
+      fieldNode('widget', 'Cut speed', { base: 'quantity', unit: 'mm' })
+    ];
+    const edges = [declares(nodes[1], widget, 'field'), declares(nodes[2], widget, 'field')];
+    const { declarations, diagnostics } = compileTreeDeclarations(nodes, edges);
+    expect(diagnostics).toEqual([]);
+    const fields = declarations.find(declaration => declaration.id === 'widget').fields;
+    // The authored spelling survives as the label; the id is plumbing.
+    expect(fields).toEqual({
+      anythin: { base: 'string', label: 'Anythin' },
+      cutSpeed: { base: 'quantity', unit: 'mm', label: 'Cut speed' }
+    });
+  });
+
   it('states without exactly one initial are a diagnostic, never a default (R4)', () => {
     const widget = classNode('widget');
     const nodes = [widget, stateNode('widget', 'raw'), stateNode('widget', 'done')];

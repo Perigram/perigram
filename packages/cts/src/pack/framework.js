@@ -49,7 +49,7 @@ export const frameworkTypes = [
     version: 1,
     name: 'Revision',
     glyph: 'pi pi-history',
-    fields: { note: { base: 'string', nullable: true, label: 'Note' } }
+    fields: { note: { base: 'string', nullable: true, label: 'Note', identifier: true } }
   },
   {
     id: 'process-definition', framework: true, class: 'process', scope: 'system', version: 1,

@@ -27,6 +27,7 @@ export const cncTypePack = [
     version: 1,
     payload: { mime: ['application/perigram+occs'], accept: ['.occs'], maxSize: 5 * 1024 * 1024 },
     fields: {
+      title: { base: 'string', identifier: true, label: 'Title', nullable: true },
       parameters: { base: 'list', itemType: { base: 'record', fields: {
         name: { base: 'string' }, value: { base: 'quantity', unit: 'mm' } } } },
       graph: { base: 'json' }
@@ -43,6 +44,7 @@ export const cncTypePack = [
     class: 'file',
     version: 1,
     fields: {
+      title: { base: 'string', identifier: true, label: 'Title', nullable: true },
       geometry: { base: 'list', itemType: { base: 'record', fields: {
         outer: { base: 'list', itemType: { base: 'record', fields: {
           x: { base: 'quantity', unit: 'mm' }, y: { base: 'quantity', unit: 'mm' } } } },
@@ -58,7 +60,7 @@ export const cncTypePack = [
     class: 'file',
     version: 1,
     payload: { mime: ['image/*'], accept: ['image/*'], maxSize: 25 * 1024 * 1024 },
-    fields: {}
+    fields: { title: { base: 'string', identifier: true, label: 'Title', nullable: true } }
   },
   {
     id: 'sheet',
@@ -131,6 +133,7 @@ export const cncTypePack = [
     class: 'process',
     version: 1,
     fields: {
+      title: { base: 'string', identifier: true, label: 'Title', nullable: true },
       job: { base: 'list', itemType: { base: 'record', fields: {
         item: { base: 'ref', accepts: ['occs', 'cut-plan'] },
         qty: { base: 'number' },
@@ -162,6 +165,7 @@ export const cncTypePack = [
     class: 'process',
     version: 1,
     fields: {
+      title: { base: 'string', identifier: true, label: 'Title', nullable: true },
       outputs: { base: 'list', itemType: { base: 'ref', accepts: ['cut-plan', 'sheet'] }, nullable: true }
     },
     edges: { provenance: { solved: { types: ['queue'], onRemove: 'restrict' } } },
