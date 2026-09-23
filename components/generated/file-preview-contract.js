@@ -17,16 +17,17 @@ export function instancePayloadFileUrl(attachment = {}) {
 }
 
 /**
- * Pure preview decision for a file instance: the type's compiled render
- * policy supplies the mode (`render.preview`, derived from payload
- * traits), the wire `attachments.primary` supplies the payload
- * reference. Returns `{ mode, fileUrl, renderable, hasPayload }`; a null
- * type or a type without payload policy resolves mode `'none'`.
+ * Pure preview decision for a file instance: the type's payload traits
+ * supply the mode (`payload.preview`, the SPEC §4 preview trait; the
+ * render-facet cut removed the `render.preview` channel), the wire
+ * `attachments.primary` supplies the payload reference. Returns
+ * `{ mode, fileUrl, renderable, hasPayload }`; a null type or a type
+ * without payload policy resolves mode `'none'`.
  */
 export function resolveFilePreview(entity = {}, type = null) {
   const attachment = entity?.attachments?.primary || null;
   const hasPayload = Boolean(attachment?.fileId);
-  const declared = type?.render?.preview
+  const declared = type?.payload?.preview
     || (type?.payload ? 'attachment' : 'none');
   const mode = declared === 'attachment' && !hasPayload ? 'none' : declared;
   return {
