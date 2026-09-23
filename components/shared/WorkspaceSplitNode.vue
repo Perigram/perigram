@@ -61,7 +61,12 @@ defineEmits(['activate', 'split', 'close', 'resize']);
 // surface owns its own tab strip and body), and the panel itself stretches
 // to the split cell.
 const panePanelPt = {
-  root: { class: 'h-full min-h-0 flex flex-col overflow-hidden' },
-  content: { class: 'flex min-h-0 flex-1 flex-col overflow-hidden p-0' }
+  root: { class: 'h-full min-h-0 min-w-0 flex flex-col overflow-hidden' },
+  // Panel's grid container and wrapper default to min-width:auto, so wide
+  // tab strips pushed them past the split cell - every layer must be able
+  // to shrink below its content for the tablist to overflow and scroll.
+  contentContainer: { class: 'flex min-h-0 min-w-0 flex-1 flex-col' },
+  contentWrapper: { class: 'flex min-h-0 min-w-0 flex-1 flex-col' },
+  content: { class: 'flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0' }
 };
 </script>
