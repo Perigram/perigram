@@ -48,7 +48,7 @@ import TreeTable from 'primevue/treetable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import { LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, SCALAR_BASES, tableColumnCount, applyBudget, SEVERITY_MAP, titleFor, childrenOfParent } from '#shared/ui-mapping/index.js';
+import { LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, SCALAR_BASES, tableColumnCount, applyBudget, SEVERITY_MAP, titleFor, iconFor, childrenOfParent } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
