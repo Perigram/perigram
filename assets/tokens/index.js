@@ -429,14 +429,7 @@ export const primeComponentTokens = {
     },
     panelmenu: {
         panel: {
-            background: 'transparent',
-            borderWidth: '0',
-            first: {
-                borderWidth: '0'
-            },
-            last: {
-                borderWidth: '0'
-            }
+            background: 'transparent'
         }
     },
     splitter: {

@@ -71,7 +71,7 @@
             class="w-full"
             :aria-label="$t('nav.home')"
           >
-            <template #item="{ item }">
+            <template #item="{ item, active, hasSubmenu }">
               <a v-ripple class="flex items-center px-4 py-2 cursor-pointer group">
                 <span v-if="item.icon" :class="[item.icon, 'text-primary group-hover:text-inherit']" />
                 <span
@@ -105,6 +105,12 @@
                   @transitioned="$emit('refresh')"
                 />
                 <Badge v-if="item.badge" class="ml-auto shrink-0" :value="item.badge" />
+                <i
+                  v-if="hasSubmenu"
+                  :class="['ml-2 shrink-0 text-muted transition-transform duration-200', active ? 'rotate-0' : '-rotate-90']"
+                  class="pi pi-chevron-down"
+                  aria-hidden="true"
+                />
                 <Button
                   v-if="item.typeId && item.section && collectionActions(item.section.region).length"
                   icon="pi pi-ellipsis-v"
