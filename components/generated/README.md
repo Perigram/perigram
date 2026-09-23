@@ -298,8 +298,9 @@ Discord-style operational shell:
   (`layouts/app.vue` resolves this from the active screen template).
 - The pane area is the same recursive `WorkspaceSplitNode` tree used by the
   project workspace, with every leaf wrapped in a PrimeVue `Panel` on the
-  zero canvas — no background, no border, no content padding (the hosted
-  surface owns its own chrome) — and split cells padded into gaps. The
+  zero canvas — transparent background, the default Panel hairline border
+  as the pane box, no content padding (the hosted surface owns its own
+  chrome) — and split cells padded into gaps. The
   Splitter gutters between the panels are 6px but never drawn: the
   division stays draggable without a visible divider: IDE-style file tabs, wheel-scrollable tab strips, split
   right/down, pane-local close, registered workspace pages (for example the
