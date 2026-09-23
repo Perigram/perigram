@@ -57,6 +57,7 @@ export default defineNuxtConfig({
 
     primevue: {
         options: {
+            ripple: true,
             theme: {
                 preset: Re_L,
                 options: {

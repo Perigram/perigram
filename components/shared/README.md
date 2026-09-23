@@ -551,8 +551,10 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   own their own body scrolling.
 - **`WorkspaceSplitNode.vue`**: Recursive PrimeVue splitter renderer for
   IDE-style file workspaces. Split nodes select horizontal or vertical layout;
-  leaf nodes expose one scoped file slot and an active-pane marker. Split-tree
-  mutation remains pure state owned by the caller.
+  leaf nodes expose one scoped file slot inside a PrimeVue `Panel` (bordered,
+  rounded, content padding zeroed through pt) and an active-pane marker.
+  Split cells carry the inter-pane gap; the Splitter gutters stay draggable.
+  Split-tree mutation remains pure state owned by the caller.
 - **`InstanceActionsPopover.vue`**: Shared ellipsis trigger and compact action
   popover for entity-local commands. Disclosure is opt-in, not the default:
   `InstancePage` action slots and full `InstanceCard` footers render their
@@ -596,14 +598,6 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   render it for the avatar/profile buttons, and the generated home workspace
   sidebar renders the panel-style trigger. It only flips the `theme-mode`
   cookie; the app layout applies the theme class.
-- **`CommunicationMenu.vue`**: The shared sidebar communication control: a
-  PrimeVue `TieredMenu` whose items are Chats (unread badge, opens the chats
-  workspace page) and Calls (a submenu with every direct/group conversation
-  that can be rung). Ongoing rooms are not menu entries — the home sidebar
-  lists them as persistent rows from the shared calls store, and brand-new
-  invites float through `components/calls/IncomingCalls.vue`. Conversations
-  and unread counts come from the auth/support stores; actions are delegated
-  through `open-chats`/`start-call` events.
 - **`InstanceRefInput.vue`**: Typed entity reference selector used by
   `TypedSettingsForm` for `instanceId` fields. It prefers workbench/scenario
   entity options and falls back to a manual id input only when no typed options

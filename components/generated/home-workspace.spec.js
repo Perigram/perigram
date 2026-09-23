@@ -36,13 +36,15 @@ describe('home workspace state', () => {
       activePaneId: 'pane-2',
       paneSequence: 2,
       openedEntityRefs: [{ key: 'project:p1', typeId: 'project', instanceId: 'p1' }],
-      openedPageRefs: [{ key: 'page:cassette-designer:c1', pageId: 'cassette-designer', typeId: 'cassette', instanceId: 'c1' }]
+      openedPageRefs: [{ key: 'page:cassette-designer:c1', pageId: 'cassette-designer', typeId: 'cassette', instanceId: 'c1' }],
+      sidebarCollapsed: true
     });
 
     const state = loadHomeWorkspaceState(storage, 'perigram:home-workspace:1:u1:o1');
     expect(state.paneTree.kind).toBe('split');
     expect(state.paneTree.children[0].tabKeys).toEqual(['project:p1']);
     expect(state.activePaneId).toBe('pane-2');
+    expect(state.sidebarCollapsed).toBe(true);
     expect(state.paneSequence).toBe(2);
     expect(state.openedEntityRefs).toEqual([{ key: 'project:p1', typeId: 'project', instanceId: 'p1' }]);
     expect(state.openedPageRefs).toEqual([{

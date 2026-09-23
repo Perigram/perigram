@@ -233,26 +233,29 @@ Discord-style operational shell:
   same generator contract as the desktop panes); instance opens on
   mobile follow the routed surface contract: the compiled detail screen
   route.
-- The sidebar owns navigation for the whole shell. Below the brand header, a
-  pinned communication nav renders the shared `CommunicationMenu.vue`
-  (components/shared): Chats and Calls as proper PrimeVue `TieredMenu`
-  items instead of hand-written rows.
+- The sidebar owns navigation for the whole shell as a PrimeVue
+  `PanelMenu`. The brand header is its own panel and carries the wrap
+  control: wrapped, the sidebar becomes an icon rail (brand mark, one icon
+  per top-level panel, chats, avatar) and the wordmark returns on expand;
+  the wrapped state persists with the workspace layout
+  (`sidebarCollapsed` in the home workspace state). The first panel is
+  communication: Chats (its header opens the chats workspace page and
+  expands) with joinable call rooms as persistent rows (icon, label,
+  participant count; clicking the row joins) sourced from the shared
+  `calls` store (`stores/calls.js`), which keeps the
+  `/api/livekit/active-rooms` snapshot fresh on `call.activity` events and
+  also drives the global `IncomingCalls` ring cards — only brand-new invites
+  float; ongoing calls stay in the sidebar and in chats — and a Calls
+  submenu listing direct/group conversations from the chats store (choosing
+  one rings the room through `/api/livekit/invite`).
   Chats open as the registered entity-less `chats` workspace page (see
   `workspace-pages.js`): a tab in the main pane area rendering `ChatSupport`
   full-page with its built-in inbox rail — chats are not a floating surface
-  on this route and the desktop floating launcher is hidden; the Chats menu
-  item carries the unread badge. The full-page chat splits into inbox rail
+  on this route and the desktop floating launcher is hidden. The full-page
+  chat splits into inbox rail
   plus thread through a container query on its host wrapper at 44rem; the
   row direction lives on the inner `.chat-page` node because a container
-  query cannot restyle its own container element. The Calls submenu lists direct/group
-  conversations from the chats store (choosing one rings the room through
-  `/api/livekit/invite`) — ongoing rooms are not menu entries.
-  Below the menu, the sidebar lists currently joinable rooms as persistent
-  rows (icon, label, participant count; clicking the row joins) sourced from
-  the shared `calls` store (`stores/calls.js`), which keeps the
-  `/api/livekit/active-rooms` snapshot fresh on `call.activity` events and
-  also drives the global `IncomingCalls` ring cards — only brand-new invites
-  float; ongoing calls stay in the sidebar and in chats.
+  query cannot restyle its own container element.
   Every call opens as
   an ephemeral `call` workspace tab (`CallWorkspacePage.vue` — stage plus
   the conversation chat rail) in the active pane, never a floating dialog;
@@ -268,26 +271,26 @@ Discord-style operational shell:
   applies only from the panel's own 40rem container width. Entity-less page definitions marked
   `ephemeral: true` are runtime-parameterized like this and never appear in
   add-tab lists.
-- Entity navigation is a PrimeVue `Tree` explorer at Aura defaults in a
-  self-scrolling wrapper. The tree renders the TYPE hierarchy from the
-  render contracts: registry containment (declared children edges) nests
-  types under their parents, manifest-backed types plus their ancestors
-  render as nodes (procedural labels only — the generated type key with
-  a locale override over the authored render label, plus the
-  render-policy icon; no entity contracts), and a type's home-section
-  instances hang beneath it. Root types — authored classes and groups —
-  are selectable: clicking any type node opens its compiled `typeList`
-  screen as a pane tab (`GeneratedScreenPane`, below), never a separate
-  route. Type folders expand/collapse. The tree
-  passthroughs are layout-only: nested rows indent inside the row content so
-  hover/selection keep the full row width, and the node label owns the
-  remaining width so trailing row controls align to the row end.
+- Entity navigation is one `PanelMenu` panel per top-level type, built
+  from the same TYPE hierarchy the render contracts declare: registry
+  containment (declared children edges) nests types under their parents,
+  manifest-backed types plus their ancestors render as panels (procedural
+  labels only — the generated type key with a locale override over the
+  authored render label, plus the registry's render-policy icon as the
+  PanelMenu item icon; no entity contracts), and a type's home-section
+  instances hang beneath it. Clicking a type panel header opens its
+  compiled `typeList` screen as a pane tab (`GeneratedScreenPane`, below)
+  and toggles the panel, never a separate route. Rows render through
+  PanelMenu's `#item` slot so the label owns the remaining width for
+  trailing row controls and the built-in submenu chevrons follow the
+  item icons.
 - Entity rows are inline entity entries through the shared component:
   `InstanceInlineRef variant="inline"` with `interactive: false` (non-expanding
   inline card, no detail popup), followed by the icon-variant `InstanceState`
-  and the separate ellipsis control at the end of the row. The tree owns
-  selection. Entity nodes carry no tree-level icon — the inline chip owns the
-  entity icon, and a tree icon would duplicate it.
+  and the separate ellipsis control at the end of the row. There is no
+  selection state: the open-in-active-pane row carries the normal text
+  color. Entity rows carry no panel-level icon — the inline chip owns the
+  entity icon, and a row icon would duplicate it.
 - Generated mutation buttons follow the hierarchy and live behind one
   ellipsis menu per row: section folders expose the region's compiled create
   actions, and each entity row resolves the create actions of its entity
@@ -332,11 +335,16 @@ Discord-style operational shell:
    ellipsis action buttons (section create actions, entity row actions)
    reveal on hover (`opacity-0 group-hover:opacity-100`, keyboard focus
    included) instead of sitting permanently beside every row.
-- The sidebar footer mounts the shared `UserAccountMenu`, so on this route the
-  desktop top navbar is hidden and its user controls live in the sidebar
+- The sidebar footer is a separate bottom profile panel mounting the shared
+  `UserAccountMenu`: a bordered trigger showing the user's actual name (and
+  the avatar alone in the wrapped rail), so on this route the desktop top
+  navbar is hidden and its user controls live in the sidebar
   (`layouts/app.vue` resolves this from the active screen template).
 - The pane area is the same recursive `WorkspaceSplitNode` tree used by the
-  project workspace: IDE-style file tabs, wheel-scrollable tab strips, split
+  project workspace, with every leaf wrapped in a PrimeVue `Panel` (bordered,
+  rounded surface, no content padding) and split cells padded into gaps —
+  the Splitter gutters between the panels stay draggable, so the moving
+  division survives the panel restyle: IDE-style file tabs, wheel-scrollable tab strips, split
   right/down, pane-local close, registered workspace pages (for example the
   cassette designer), and screen panes (`GeneratedScreenPane`): type
   screens through the shared type host, instance-bound detail screens

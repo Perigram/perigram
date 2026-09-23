@@ -11,7 +11,7 @@
       :key="child.id"
       :size="node.sizes?.[index] || 50"
       :min-size="15"
-      class="min-h-0 min-w-0 overflow-hidden"
+      class="min-h-0 min-w-0 overflow-hidden p-1.5"
     >
       <WorkspaceSplitNode
         :node="child"
@@ -34,13 +34,19 @@
     :data-active="node.id === activePaneId"
     @pointerdown="$emit('activate', node.id)"
   >
-    <slot :pane="node" />
+    <!-- Each leaf is a PrimeVue Panel: bordered, rounded surface with a gap
+         to its siblings. The Splitter above still owns the moving division,
+         so wrapping panes in Panels keeps the drag handles. -->
+    <Panel class="h-full" :pt="panePanelPt">
+      <slot :pane="node" />
+    </Panel>
   </div>
 </template>
 
 <script setup>
 import Splitter from 'primevue/splitter';
 import SplitterPanel from 'primevue/splitterpanel';
+import Panel from 'primevue/panel';
 
 defineOptions({ name: 'WorkspaceSplitNode' });
 
@@ -50,4 +56,12 @@ defineProps({
 });
 
 defineEmits(['activate', 'split', 'close', 'resize']);
+
+// Panel chrome follows the pane contract: no content padding (the hosted
+// surface owns its own tab strip and body), and the panel itself stretches
+// to the split cell.
+const panePanelPt = {
+  root: { class: 'h-full min-h-0 flex flex-col overflow-hidden' },
+  content: { class: 'flex min-h-0 flex-1 flex-col overflow-hidden p-0' }
+};
 </script>
