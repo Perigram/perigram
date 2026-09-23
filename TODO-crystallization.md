@@ -390,16 +390,24 @@ Status: WAITING (slice 1 of N).
 
 ### Phase 6 — One fact renderer `[ ]`
 
-Named domain blocks die; declared field groups + one renderer.
+The generic renderer already exists — `DataBlock` IS the
+descriptor-driven fact renderer (descriptors, access filtering,
+swatch/parameterMap policies, grid/compact variants, popup-scope
+collapse). Phase 6 is NOT "build a renderer"; inventing a parallel
+component beside it is the exact slop class this program kills. The cut
+is declaring the content of the two hardcoded blocks and deleting them:
 
-- Field groups and render policies declared in type paper
-  (field-schemas); compiler emits the identity group for every type;
-  dimensional facts render from declared groups with units.
-- Retire `IdentityBlock`, `SpecsBlock`, `DataBlock` as named
-  components; one generic descriptor-driven fact renderer (the
-  `DataBlock` mechanism generalized, access filtering preserved).
-- Acceptance: zero domain-named block components; representative
-  surfaces visually unchanged; audit + design-system specs green.
+- `SpecsBlock` dies: its hardcoded dimensional field list becomes a
+  declared field group with units in the domain display contract,
+  rendered through the existing renderer.
+- `IdentityBlock` dies: identity becomes the declared group every type
+  emits; the name→slug→uid→Unnamed fallback becomes a display policy
+  on that group.
+- `DataBlock` evolves in place only where a policy is missing (units as
+  suffix) — no new component, no rename.
+- Acceptance: `IdentityBlock`/`SpecsBlock` gone; no new renderer
+  component; representative surfaces render the same data; audit +
+  design-system specs green.
 
 ### Phase 7 — Finish the dual worlds `[ ]`
 
