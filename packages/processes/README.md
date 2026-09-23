@@ -58,7 +58,15 @@ palette item through record creation, typed port resolution, and twin
 lowering — the executable form of the palette audit. Declaration authoring composes in the same
 tree: Class/Field/State canvas nodes wire through the legality matrix
 (`declarationWireLegality`) and compile into registry declarations via
-`compileTreeDeclarations` (R4-enforcing, pure over the canvas arrays).
+`compileTreeDeclarations` (R4-enforcing, pure over the canvas arrays). A
+class node's `data.migrate` (array of SPEC §11 declared-migration steps,
+default absent) passes verbatim onto the emitted declaration — it is
+transient apply-time state written by the designer's step dialog, not
+persisted authoring state: the designer clears it once the declaration
+post consumes the steps, so a saved tree never carries a stale step set
+(the step language and one-time semantics live in
+[packages/cts](../cts/README.md) and
+[cts-types](../../server/features/cts-types/README.md)).
 Authored field names are LABELS, never validated as ids: the row key
 derives from the authored string (`camelCaseId` — "Cut speed" →
 `cutSpeed` carrying `label: 'Cut speed'`), and a name that sanitizes to

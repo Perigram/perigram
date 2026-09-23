@@ -42,7 +42,26 @@ record access, roles, screens, and dock/panel state:
   first-diagnostic focus. Declaration-post failures abort before validation
   and land in the same persistent validation feedback the canvas renders
   (never toasts alone), so an Apply that dies on a registry refusal keeps
-  showing its cause after the toasts expire. When validation returns an Apply migration plan
+  showing its cause after the toasts expire. A declaration post refused by
+  the type-migration gate (SPEC §11: a breaking type change with live
+  instances and no covering `migrate` steps) surfaces as a structured
+  failure instead of a flattened string, pauses Apply with
+  `pendingTypeMigration`, and opens `TypeMigrationStepsDialog` beside the
+  status ceremony: one row per breaking change, labeled by the type's
+  authored NAME and the field's authored LABEL (field ids map through the
+  tree's field nodes and the stored view's descriptor labels), offering
+  the declarative step — `rename-field` / `rename-enum-value` (one
+  new-name choice; enum targets are the type's retained states),
+  `retype-field` (keep the value as-is, `{op:'var',name:'value'}`, or set
+  it empty, `{op:'lit',value:null}` — the only two expressions the CEL
+  evaluator honestly supports for retypes today), `add-default-field`
+  (one default value), `remove-field` (confirm-only); an uncoverable
+  change (`remove-edge`) renders blocked with the reason and offers no
+  step. Confirming writes the steps onto the matching class node's
+  `data.migrate` (found by typeId), syncs, and retries the Apply — the
+  dialog is the author's consent; nothing auto-declares. Consumed steps
+  clear from the tree when their declaration post succeeds (steps are
+  one-time). When validation returns an Apply migration plan
   (removed workflow states with live instances) that the draft's declared
   migrations (`data.migrations.statuses`) do not already cover, Apply pauses
   with `pendingMigration` instead of activating; `ApplyMigrationDialog`
@@ -50,7 +69,9 @@ record access, roles, screens, and dock/panel state:
   declarations), and confirming persists the mappings as a declaration on
   the draft — save, then activate with no request payload (see the
   canonical Apply migration contract in
-  [server/features/process-definitions/README.md](../../server/features/process-definitions/README.md)).
+  [server/features/process-definitions/README.md](../../server/features/process-definitions/README.md)
+  and the refusal payload contract in
+  [server/features/cts-types/README.md](../../server/features/cts-types/README.md)).
 - `utils/processDesignerAccess.js` (grant-row normalization) and
   `utils/processDesignerPaletteText.js` (localized palette labels) are the
   shared pure helpers.

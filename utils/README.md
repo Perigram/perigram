@@ -7,9 +7,19 @@ Shared frontend utility modules used by Vue pages/components.
 - `design-system-contract.js`: Compatibility exports and validation for the CNC design-system contract now owned by `@cutkit/domain-cnc`. It does not import Vue components.
 - `design-system.js`: Runtime binding that attaches Vue card components and DTO factories to the contract. Used by `/test/ui-lab`.
 - `processDesignerSocketTone.js`: Pure process-port resolver used by every
-  designer node form and source edge. It maps structured port type/role data to
-  a semantic signal token so a socket and the wire it produces cannot drift
+  designer node form and source edge. It maps structured port type/role data to a
+  semantic signal token so a socket and the wire it produces cannot drift
   into separate color contracts.
+- `processDesignerTypeMigrations.js`: Pure seam of the type-migration
+  authoring loop (CTS SPEC §11/§14): a refused declaration post's plan
+  payload becomes step rows labeled by the authored vocabulary
+  (`declarationVocabulary` maps field ids back to labels through the tree
+  and the stored view), confirmed rows become migration steps, and the
+  steps write back onto (and clear from) the designer tree's class nodes.
+  The consuming flow and dialog live in
+  [components/process-designer](../components/process-designer/README.md);
+  the step language and the 400 plan payload are the
+  [cts-types](../server/features/cts-types/README.md) contract.
 - `instance-display-contract.js`: Pure resolver for the UI constructor and the
   one fact vocabulary seam — one resolver per display fact, bundle-only.
   `factsFor(typeView, surface)` projects the served CTS client bundle's
