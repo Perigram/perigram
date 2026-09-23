@@ -45,8 +45,9 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   borders. Cards drop their shadow, tab
   strips stay transparent, and tree rows run at explorer density.
   Workspace surfaces ride the zero canvas: Panels and PanelMenu panels
-  paint no background (the PanelMenu keeps its default hairline panel
-  border — that is the visible panel box), and Splitter gutters are
+  paint no background and Panels paint no border (PanelMenu panels keep
+  Aura's default hairline panel border, and the workspace node's pane
+  Panels restore the same border locally), and Splitter gutters are
   invisible — draggable, never drawn.
   Everything else keeps Aura defaults.
 - Tailwind semantic aliases are consumed by `tailwind.config.js`, whose
