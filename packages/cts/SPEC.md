@@ -174,10 +174,14 @@ on at most one field (its visual thumbnail source). When no field carries
 the identifier flag, normalization MINTS one: the first declared
 `string`-based field is flagged once, at the boundary, and the mint
 persists — later field additions never shift it; an explicit flag is the
-authored deviation and always wins. A type with no flag and no string
-field is a compile error telling the author to mark one; two or more of
-either flag is a compile error naming the fields; a system type without
-a name is a compile error naming the type id.
+authored deviation and always wins. A SYSTEM type with no flag and no
+string field is a compile error (the data is ours to fix); an ORG type
+in the same state stays compiled and served with `identifier: null` —
+its records display the unnamed placeholder, the visible authoring
+prompt — because a display-law gap must never eject a type from the view
+and cascade "unknown type" through every process bound to it. Two or
+more of either flag is a compile error naming the fields; a system type
+without a name is a compile error naming the type id.
 
 There is no `render` facet on types. Identity, grouping, list layout, and
 default sort are not declaration concerns: display grouping derives from
