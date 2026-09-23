@@ -31,7 +31,7 @@ export function getAppRegistry() {
     return appRegistry;
   }
 
-  const registry = createRegistry({ id: 'cutkit-app' });
+  const registry = createRegistry({ id: 'perigram-app' });
 
   registerAppBindings(registry);
 
@@ -260,10 +260,10 @@ function createProcessDelete(type, service, processGetById, deleteAdapters) {
 // Framework construction modes (beyond genericCreate/uploadArtifact).
 const frameworkModeHandlers = {};
 
-export const getCutkitRegistry = getAppRegistry;
+export const getPerigramRegistry = getAppRegistry;
 
 export function resetAppRegistryForTests() {
   appRegistry = null;
 }
 
-export const resetCutkitRegistryForTests = resetAppRegistryForTests;
+export const resetPerigramRegistryForTests = resetAppRegistryForTests;

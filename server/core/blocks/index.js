@@ -18,7 +18,7 @@ export {
   Specs,
   BaseEntity,
   createRegistry,
-  createCutkitRegistry,
+  createPerigramRegistry,
   createAttachmentRef,
   createCommandResult,
   createInstanceRef,

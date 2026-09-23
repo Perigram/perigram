@@ -38,7 +38,7 @@
      * Commons Clause restriction prohibits selling, sublicensing, or redistributing
      * the components themselves. This local adaptation keeps the published motion
      * model — animated through the shared GSAP motion patterns in
-     * composables/useMotion.js — while resolving visual treatment through CutKit
+     * composables/useMotion.js — while resolving visual treatment through Perigram
      * design tokens.
      */
     import type { CSSProperties, PropType } from 'vue'

@@ -9,8 +9,8 @@ services:
       update_config:
         order: start-first
     networks:
-      - cutkit-network
+      - perigram-network
 
 networks:
-  cutkit-network:
+  perigram-network:
     external: true

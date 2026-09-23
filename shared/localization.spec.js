@@ -11,7 +11,7 @@ const LOCALE_FILES = {
 };
 const VISIBLE_LITERAL_ATTRS = new Set(['label', 'placeholder', 'title', 'aria-label', 'header', 'message']);
 const VISIBLE_VALUE_COMPONENTS = new Set(['Badge', 'Chip', 'Tag']);
-const ALLOWED_VISIBLE_LITERALS = new Set(['CutKit', 'DXF', 'SVG', 'PDF', 'OCCS', 'JSON', 'CSV', 'RU', 'EN']);
+const ALLOWED_VISIBLE_LITERALS = new Set(['Perigram', 'DXF', 'SVG', 'PDF', 'OCCS', 'JSON', 'CSV', 'RU', 'EN']);
 
 function flattenLocale(value, prefix = '', out = {}) {
   for (const [key, entry] of Object.entries(value || {})) {

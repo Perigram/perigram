@@ -10,7 +10,7 @@
                     <small>{{ $t('common.terms') }}</small>
                 </NuxtLink>
                 <a 
-                    href="mailto:support@cutkit.io" 
+                    href="mailto:support@perigram.io" 
                     class="no-underline"
                 >
                     <small>{{ $t('support.email') }}</small>
@@ -19,7 +19,7 @@
             
             <div class="flex items-center gap-4">
                 <small>
-                    &copy; {{ new Date().getFullYear() }} {{ $t('common.allRightsReserved', { brand: 'CutKit' }) }}
+                    &copy; {{ new Date().getFullYear() }} {{ $t('common.allRightsReserved', { brand: 'Perigram' }) }}
                 </small>
             </div>
         </div>

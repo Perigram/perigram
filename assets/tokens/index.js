@@ -1,41 +1,52 @@
 /**
- * Signal orange is reserved for intent, selection, and focus. It carries the
- * app's energy without tinting every operational surface.
+ * Primary is contrast, not a color: it rides the zinc surface scale, so
+ * controls painted with it read as ink-on-surface — near-black on the light
+ * canvas, near-white on the dark one — the monochrome primary style of the
+ * PrimeVue showcase pages. Brand energy lives in the Perigram accent (the
+ * logo red `#ff0040`), which owns intent signals: focus rings, selection,
+ * and decision marks.
  */
-const signalOrangePrimary = {
-    50: '#fff0e9',
-    100: '#ffdaca',
-    200: '#ffb396',
-    300: '#ff8b60',
-    400: '#ff6733',
-    500: '#ff4b00',
-    600: '#db4100',
-    700: '#a93300',
-    800: '#7c2600',
-    900: '#5c1c00',
-    950: '#321000'
-    // 50: '#fce8ed',
-    // 100: '#f7c1cd',
-    // 200: '#ef8aa3',
-    // 300: '#e6547a',
-    // 400: '#de2a5a',
-    // 500: '#c9144a',
-    // 600: '#ad1040',
-    // 700: '#850c32',
-    // 800: '#610924',
-    // 900: '#48061b',
-    // 950: '#28030e'
+const zincPrimary = {
+    50: '#fafafa',
+    100: '#f4f4f5',
+    200: '#e4e4e7',
+    300: '#d4d4d8',
+    400: '#a1a1aa',
+    500: '#71717a',
+    600: '#52525b',
+    700: '#3f3f46',
+    800: '#27272a',
+    900: '#18181b',
+    950: '#09090b'
+};
+
+// The Perigram mark red from the logo, expanded into a full tonal ramp.
+const perigramAccent = {
+    50: '#feeef2',
+    100: '#fddbe4',
+    200: '#fbb9c9',
+    300: '#fb8ba7',
+    400: '#fc4d7b',
+    500: '#ff0040',
+    600: '#e1003c',
+    700: '#be0033',
+    800: '#9b0029',
+    900: '#7b0021',
+    950: '#4e0015'
 };
 
 export const designTokens = {
     palette: {
-        primary: signalOrangePrimary
+        primary: zincPrimary,
+        accent: perigramAccent
     },
     color: {
         primary: 'var(--p-primary-color)',
         primaryInk: 'var(--ck-primary-ink)',
         primaryContrast: 'var(--p-primary-contrast-color)',
-        primaryEmphasis: 'var(--p-primary-emphasis-color)',
+        accent: 'var(--p-accent-color)',
+        accentInk: 'var(--ck-accent-ink)',
+        accentContrast: 'var(--p-accent-contrast-color)',
         text: 'var(--p-text-color)',
         textMuted: 'var(--p-text-muted-color)',
         content: 'var(--p-content-background)',
@@ -140,13 +151,14 @@ export const cssVariableTokens = {
     '--ck-subtle-background': 'var(--p-surface-200)',
     '--ck-surface-raised': 'var(--p-content-background)',
     '--ck-border-subtle': 'var(--p-content-border-color)',
-    '--ck-selection-background': 'color-mix(in srgb, var(--p-primary-color) 20%, transparent)',
+    '--ck-selection-background': 'color-mix(in srgb, var(--p-accent-color) 20%, transparent)',
     // Scrollbars ride the theme through the PrimeVue text color, which
     // flips per scheme, so no separate dark override is needed. The hover
     // step strengthens the same mix.
     '--ck-scrollbar-thumb': 'color-mix(in srgb, var(--p-text-color) 32%, transparent)',
     '--ck-scrollbar-thumb-hover': 'color-mix(in srgb, var(--p-text-color) 55%, transparent)',
-    '--ck-primary-ink': '#a93300',
+    '--ck-primary-ink': '#3f3f46',
+    '--ck-accent-ink': '#be0033',
     '--ck-font-ui': designTokens.typography.ui,
     '--ck-font-mono': designTokens.typography.mono,
     '--ck-font-serif': designTokens.typography.serif,
@@ -166,7 +178,7 @@ export const cssVariableTokens = {
     '--ck-signal-structure': 'var(--ck-entity-tone-system)',
     '--ck-signal-data': 'var(--ck-entity-tone-material)',
     '--ck-signal-quantity': '#d39700',
-    '--ck-signal-decision': 'var(--ck-primary-500)',
+    '--ck-signal-decision': 'var(--ck-accent-500)',
     '--ck-signal-projection': 'var(--ck-entity-tone-system)',
     '--ck-signal-external': 'var(--ck-entity-tone-output)',
     '--ck-signal-value': 'var(--ck-entity-tone-system)',
@@ -193,7 +205,8 @@ export const cssVariableTokens = {
     '--ck-floating-menu-min-width': designTokens.layout.floatingMenuMinWidth,
     '--ck-preview-dialog-height': designTokens.layout.previewDialogHeight,
     '--ck-table-action-column-width': designTokens.layout.tableActionColumnWidth,
-    ...Object.fromEntries(Object.entries(signalOrangePrimary).map(([step, value]) => [`--ck-primary-${step}`, value]))
+    ...Object.fromEntries(Object.entries(zincPrimary).map(([step, value]) => [`--ck-primary-${step}`, value])),
+    ...Object.fromEntries(Object.entries(perigramAccent).map(([step, value]) => [`--ck-accent-${step}`, value]))
 };
 
 export const darkCssVariableTokens = {
@@ -208,6 +221,7 @@ export const darkCssVariableTokens = {
     '--ck-chrome-border': 'var(--p-content-border-color)',
     '--ck-subtle-background': 'var(--p-surface-800)',
     '--ck-primary-ink': 'var(--ck-primary-300)',
+    '--ck-accent-ink': 'var(--ck-accent-400)',
     '--ck-status-success': 'var(--p-emerald-400)',
     '--ck-status-warning': 'var(--p-amber-400)',
     '--ck-status-danger': 'var(--p-red-400)',
@@ -226,7 +240,6 @@ export const tailwindThemeExtension = {
             DEFAULT: designTokens.color.primary,
             ink: designTokens.color.primaryInk,
             contrast: designTokens.color.primaryContrast,
-            emphasis: designTokens.color.primaryEmphasis,
             50: 'var(--p-primary-50)',
             100: 'var(--p-primary-100)',
             200: 'var(--p-primary-200)',
@@ -238,6 +251,22 @@ export const tailwindThemeExtension = {
             800: 'var(--p-primary-800)',
             900: 'var(--p-primary-900)',
             950: 'var(--p-primary-950)'
+        },
+        accent: {
+            DEFAULT: designTokens.color.accent,
+            ink: designTokens.color.accentInk,
+            contrast: designTokens.color.accentContrast,
+            50: 'var(--p-accent-50)',
+            100: 'var(--p-accent-100)',
+            200: 'var(--p-accent-200)',
+            300: 'var(--p-accent-300)',
+            400: 'var(--p-accent-400)',
+            500: 'var(--p-accent-500)',
+            600: 'var(--p-accent-600)',
+            700: 'var(--p-accent-700)',
+            800: 'var(--p-accent-800)',
+            900: 'var(--p-accent-900)',
+            950: 'var(--p-accent-950)'
         },
         content: designTokens.color.content,
         'content-border': designTokens.color.contentBorder,
@@ -342,10 +371,60 @@ const zincSurface = {
 };
 
 export const primeSemanticTokens = {
-    primary: signalOrangePrimary,
+    primary: zincPrimary,
+    accent: perigramAccent,
+    // The accent owns interactive intent signals: focus rings and overlay
+    // selection stay brand-red while primary stays a neutral contrast ink.
+    focusRing: {
+        width: '1px',
+        style: 'solid',
+        color: '{accent.color}',
+        offset: '2px',
+        shadow: 'none'
+    },
     colorScheme: {
-        light: { surface: zincSurface },
-        dark: { surface: zincSurface }
+        light: {
+            surface: zincSurface,
+            primary: {
+                color: '{surface.900}',
+                hoverColor: '{surface.800}',
+                activeColor: '{surface.700}',
+                contrastColor: '{surface.0}'
+            },
+            accent: {
+                color: '{accent.600}',
+                hoverColor: '{accent.700}',
+                activeColor: '{accent.800}',
+                contrastColor: '#ffffff'
+            },
+            highlight: {
+                background: '{accent.100}',
+                focusBackground: '{accent.200}',
+                color: '{accent.700}',
+                focusColor: '{accent.800}'
+            }
+        },
+        dark: {
+            surface: zincSurface,
+            primary: {
+                color: '{surface.50}',
+                hoverColor: '{surface.200}',
+                activeColor: '{surface.300}',
+                contrastColor: '{surface.950}'
+            },
+            accent: {
+                color: '{accent.500}',
+                hoverColor: '{accent.400}',
+                activeColor: '{accent.300}',
+                contrastColor: '#ffffff'
+            },
+            highlight: {
+                background: '{accent.950}',
+                focusBackground: '{accent.900}',
+                color: '{accent.300}',
+                focusColor: '{accent.200}'
+            }
+        }
     }
 };
 

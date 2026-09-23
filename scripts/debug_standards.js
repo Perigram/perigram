@@ -4,7 +4,7 @@ dotenv.config();
 import { MongoClient } from 'mongodb';
 
 async function main() {
-  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/cutkit_dev';
+  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/perigram_dev';
   const client = new MongoClient(uri);
   try {
     await client.connect();

@@ -7,16 +7,16 @@ const resolveRoot = (path) => fileURLToPath(new URL(path, import.meta.url))
 const devHmrHost = process.env.NUXT_DEV_HMR_HOST || undefined
 const devHmrProtocol = process.env.NUXT_DEV_HMR_PROTOCOL || 'ws'
 const devHmrClientPort = Number(process.env.NUXT_DEV_HMR_CLIENT_PORT || 3000)
-const cutkitAliases = {
-    '@cutkit/core': resolveRoot('./packages/core/src/index.js'),
-    '@cutkit/workflows': resolveRoot('./packages/workflows/src/index.js'),
-    '@cutkit/mongo': resolveRoot('./packages/mongo/src/index.js'),
-    '@cutkit/nitro': resolveRoot('./packages/nitro/src/index.js'),
-    '@cutkit/vue': resolveRoot('./packages/vue/src/index.js'),
-    '@cutkit/devtools': resolveRoot('./packages/devtools/src/index.js'),
-    '@cutkit/mcp': resolveRoot('./packages/mcp/src/index.js'),
-    '@cutkit/processes': resolveRoot('./packages/processes/src/index.js'),
-    '@cutkit/domain-cnc': resolveRoot('./packages/domain-cnc/src/index.js')
+const perigramAliases = {
+    '@perigram/core': resolveRoot('./packages/core/src/index.js'),
+    '@perigram/workflows': resolveRoot('./packages/workflows/src/index.js'),
+    '@perigram/mongo': resolveRoot('./packages/mongo/src/index.js'),
+    '@perigram/nitro': resolveRoot('./packages/nitro/src/index.js'),
+    '@perigram/vue': resolveRoot('./packages/vue/src/index.js'),
+    '@perigram/devtools': resolveRoot('./packages/devtools/src/index.js'),
+    '@perigram/mcp': resolveRoot('./packages/mcp/src/index.js'),
+    '@perigram/processes': resolveRoot('./packages/processes/src/index.js'),
+    '@perigram/domain-cnc': resolveRoot('./packages/domain-cnc/src/index.js')
 }
 const portableAliases = {
     '#shared': resolveRoot('./shared'),
@@ -41,7 +41,7 @@ export default defineNuxtConfig({
     compatibilityDate: '2025-07-15',
 
     alias: {
-        ...cutkitAliases,
+        ...perigramAliases,
         ...portableAliases
     },
 
@@ -111,7 +111,7 @@ export default defineNuxtConfig({
     vite: {
         resolve: {
             alias: {
-                ...cutkitAliases,
+                ...perigramAliases,
                 ...portableAliases
             }
         },
@@ -212,8 +212,8 @@ export default defineNuxtConfig({
     },
 
     site: {
-        url: 'https://cutkit-demo-production.up.railway.app/',
-        name: 'CutKit',
+        url: 'https://perigram-demo-production.up.railway.app/',
+        name: 'Perigram',
     },
 
     app: {
@@ -221,7 +221,7 @@ export default defineNuxtConfig({
             htmlAttrs: {
                 lang: 'ru'
             },
-            title: 'CutKit - CNC Manufacturing Platform',
+            title: 'Perigram — Program the work. Compile the app.',
             style: [{ textContent: appTokenStyles }],
             meta: [
                 { charset: 'utf-8' },
@@ -251,12 +251,12 @@ export default defineNuxtConfig({
                 {
                     hid: 'description',
                     name: 'description',
-                    content: 'CutKit manages CNC cassette templates, nesting runs, material inventory, generated artifacts, and production lifecycle tracking.'
+                    content: 'Perigram compiles typed process declarations into a running application: workflows, screens, and access generated from what your organization authors.'
                 },
                 {
                     hid: 'keywords',
                     name: 'keywords',
-                    content: 'CutKit, CNC, nesting, cassette templates, manufacturing, material inventory'
+                    content: 'Perigram, process programming, process compiler, declarative applications, type system, generated UI'
                 },
                 {
                     hid: 'robots',
@@ -266,7 +266,7 @@ export default defineNuxtConfig({
                 {
                     hid: 'author',
                     name: 'author',
-                    content: 'CutKit'
+                    content: 'Perigram'
                 }
             ],
             link: [
@@ -318,7 +318,7 @@ export default defineNuxtConfig({
             ignored: [WORKTREE_WATCH_IGNORE]
         },
         alias: {
-            ...cutkitAliases,
+            ...perigramAliases,
             ...portableAliases
         },
         routeRules: {

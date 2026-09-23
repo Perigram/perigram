@@ -26,7 +26,7 @@ describe('drawing preview contract', () => {
 
   it('can prefer baked layerData over stored preview layers for geometry-first previews', () => {
     const drawing = normalizeGeometryDrawing({
-      __cutkitPreferLayerData: true,
+      __perigramPreferLayerData: true,
       data: {
         geometry: {
           preview: {

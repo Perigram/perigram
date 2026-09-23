@@ -1,6 +1,6 @@
 // CTS type storage service (strangler layer 0): org-authored type
 // declarations validated and versioned by the real @perigram/cts registry.
-// System types compile from @cutkit/domain-cnc at runtime; org types overlay
+// System types compile from @perigram/domain-cnc at runtime; org types overlay
 // them per SPEC §4 (no shadowing), and redefinition goes through the
 // refuse-on-breaking diff (SPEC §11).
 import { createError } from 'h3';

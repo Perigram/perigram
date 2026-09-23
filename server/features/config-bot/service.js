@@ -21,12 +21,12 @@ import { askOllama, getOllamaConfig } from './ollama.js';
 
 const DEFAULT_ENTITY_TYPES = ['cassette', 'sheet_design', 'artifact'];
 const PACKAGE_NAMES = [
-  '@cutkit/core',
-  '@cutkit/workflows',
-  '@cutkit/vue',
-  '@cutkit/devtools',
-  '@cutkit/mcp',
-  '@cutkit/domain-cnc'
+  '@perigram/core',
+  '@perigram/workflows',
+  '@perigram/vue',
+  '@perigram/devtools',
+  '@perigram/mcp',
+  '@perigram/domain-cnc'
 ];
 
 export async function generateDraft({ message, prompt, context = {}, sessionId = null } = {}, auth = {}) {
@@ -329,7 +329,7 @@ function createChatAnswer(prompt, knowledge) {
 function createSystemPrompt(knowledge) {
   const context = knowledge.slice(0, 6).map(item => `Source: ${item.path}\n${item.content}`).join('\n\n');
   return [
-    'You are ConfigBot for CutKit. Prefer draft package generation guidance over generic Q&A.',
+    'You are ConfigBot for Perigram. Prefer draft package generation guidance over generic Q&A.',
     'Never claim that repository writes or production mutations are available in v0.1.',
     context
   ].join('\n\n');

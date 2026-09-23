@@ -51,7 +51,7 @@ export const createDefaultOccsCassetteTemplateDefinition = () => ({
     joints: []
   },
   extensions: {
-    cutkit: {
+    perigram: {
       graphTree: {
         version: '0.4',
         parameters: { A: '500', B: '400', R: '35', T: '1' },

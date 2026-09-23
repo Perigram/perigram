@@ -18,7 +18,7 @@ function memoryStorage(initial = {}) {
 describe('home workspace state', () => {
   it('scopes the storage key to the user and organization', () => {
     expect(homeWorkspaceStorageKey({ userId: 'u1', organizationId: 'o1' }))
-      .toBe('cutkit:home-workspace:3:u1:o1');
+      .toBe('perigram:home-workspace:3:u1:o1');
     expect(homeWorkspaceStorageKey({ userId: '', organizationId: 'o1' })).toBe('');
     expect(homeWorkspaceStorageKey({ userId: 'u1', organizationId: '' })).toBe('');
   });
@@ -31,7 +31,7 @@ describe('home workspace state', () => {
       'horizontal',
       createWorkspaceLeaf('pane-2')
     );
-    saveHomeWorkspaceState(storage, 'cutkit:home-workspace:1:u1:o1', {
+    saveHomeWorkspaceState(storage, 'perigram:home-workspace:1:u1:o1', {
       paneTree,
       activePaneId: 'pane-2',
       paneSequence: 2,
@@ -39,7 +39,7 @@ describe('home workspace state', () => {
       openedPageRefs: [{ key: 'page:cassette-designer:c1', pageId: 'cassette-designer', typeId: 'cassette', instanceId: 'c1' }]
     });
 
-    const state = loadHomeWorkspaceState(storage, 'cutkit:home-workspace:1:u1:o1');
+    const state = loadHomeWorkspaceState(storage, 'perigram:home-workspace:1:u1:o1');
     expect(state.paneTree.kind).toBe('split');
     expect(state.paneTree.children[0].tabKeys).toEqual(['project:p1']);
     expect(state.activePaneId).toBe('pane-2');

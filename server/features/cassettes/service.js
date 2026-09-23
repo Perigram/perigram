@@ -136,7 +136,7 @@ function assertEvaluatableParametricTemplate(template = {}) {
       message: 'Cassette template has no OCCS construction definition — legacy parametric templates are no longer supported; recreate the template as an OCCS design'
     });
   }
-  if (!definition.extensions?.cutkit?.graphTree) {
+  if (!definition.extensions?.perigram?.graphTree) {
     throw createError({ statusCode: 400, message: 'Cassette template has no OCCS graph tree' });
   }
   return definition;

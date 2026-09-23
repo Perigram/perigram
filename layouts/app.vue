@@ -13,8 +13,8 @@
                         to="/"
                         class="flex items-center gap-2 no-underline text-primary whitespace-nowrap hover:opacity-80 transition-opacity mr-2 shrink-0 text-section-heading"
                     >
-                        <img src="/logo-light.svg" alt="CutKit" class="h-8 w-auto dark:hidden" />
-                        <img src="/logo-dark.svg" alt="CutKit" class="hidden h-8 w-auto dark:block" />
+                        <img src="/logo-light.svg" alt="Perigram" class="h-8 w-auto dark:hidden" />
+                        <img src="/logo-dark.svg" alt="Perigram" class="hidden h-8 w-auto dark:block" />
                     </NuxtLink>
 
                     <!-- <Divider layout="vertical" class="mx-1 hidden sm:block shrink-0" /> -->

@@ -1,6 +1,6 @@
 export {
   getAppRegistry,
-  getCutkitRegistry,
+  getPerigramRegistry,
   resetAppRegistryForTests,
-  resetCutkitRegistryForTests
+  resetPerigramRegistryForTests
 } from './app-registry.js';

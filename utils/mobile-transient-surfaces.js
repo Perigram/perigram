@@ -1,4 +1,4 @@
-export const MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT = 'cutkit:mobile-transient-surfaces-close';
+export const MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT = 'perigram:mobile-transient-surfaces-close';
 
 export function isMobileViewport() {
   return typeof window !== 'undefined'

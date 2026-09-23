@@ -1,5 +1,5 @@
 [Unit]
-Description=CutKit Forgejo autodeploy webhook receiver
+Description=Perigram Forgejo autodeploy webhook receiver
 After=network-online.target docker.service
 Wants=network-online.target
 

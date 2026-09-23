@@ -15,7 +15,7 @@ import {
   validateTransition
 } from '~/packages/workflows/src/index.js';
 import { assertTransitionAccess, hasInstanceAccess } from '../access/service.js';
-import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
+import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
 import { getEntityCollection, getInstanceDefinition, normalizeTypeId } from '~/server/runtime/entities.js';
 import { CLASS_COLLECTIONS } from '~/packages/cts/src/index.js';
 import { processEffects } from '../effects/service.js';
@@ -518,7 +518,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       transition,
       status: statusData,
       event: { source: { type: normalizedTypeId, id: flexId.toString() } },
-      registry: getCutkitRegistry()
+      registry: getPerigramRegistry()
     });
     return {
       status: newStatus,
@@ -869,7 +869,7 @@ function mergeLifecycle(current = {}, next = {}) {
 }
 
 function validateHookParams(hookConfig = {}) {
-  const domain = getCutkitRegistry().getDomain('cnc');
+  const domain = getPerigramRegistry().getDomain('cnc');
   const contract = domain?.hooks?.[hookConfig.handler];
   if (!contract) throw createError({ statusCode: 500, message: `Hook contract missing for ${hookConfig.handler}` });
 
@@ -917,7 +917,7 @@ function isConfigurationError(error) {
 
 async function runTransitionHooks(transition, phase, context, options = {}) {
   const effects = [];
-  const registry = getCutkitRegistry();
+  const registry = getPerigramRegistry();
   const { collectEffects = true, log = true } = options;
 
   for (const hookConfig of transition?.hooks || []) {
@@ -958,7 +958,7 @@ function resolveHookHandler(registry, typeId, handler) {
 }
 
 function isSynchronousHook(hookConfig = {}) {
-  const domain = getCutkitRegistry().getDomain('cnc');
+  const domain = getPerigramRegistry().getDomain('cnc');
   const contract = domain?.hooks?.[hookConfig.handler];
   return hookConfig.mode === 'sync' || hookConfig.blocking === true || contract?.mode === 'sync';
 }

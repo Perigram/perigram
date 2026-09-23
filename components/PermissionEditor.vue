@@ -167,7 +167,7 @@ import {
     cncDomain,
     cncWorkflows,
     getEntityFieldAccessPolicy
-} from '@cutkit/domain-cnc';
+} from '@perigram/domain-cnc';
 import PermissionRuleBuilder from './PermissionRuleBuilder.vue';
 
 const props = defineProps({

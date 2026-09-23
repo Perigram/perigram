@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { useGlobalStore } from '~/stores/global'
 
-const defaultTitle = 'CutKit'
+const defaultTitle = 'Perigram'
 
 export default defineNuxtPlugin((nuxtApp) => {
     const globalStore = useGlobalStore()

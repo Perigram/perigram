@@ -1,4 +1,4 @@
-export const OUTBOX_DB_NAME = 'cutkit-outbox'
+export const OUTBOX_DB_NAME = 'perigram-outbox'
 export const OUTBOX_STORE_NAME = 'operations'
 
 export class OfflineQueuedError extends Error {

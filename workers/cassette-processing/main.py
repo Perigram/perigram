@@ -50,7 +50,7 @@ except Exception as e:
     raise e
 
 cassettes = db["cassettes"]
-PROCESS_API_URL = os.environ.get("CUTKIT_API_URL", "http://app:3000").rstrip("/")
+PROCESS_API_URL = os.environ.get("PERIGRAM_API_URL", "http://app:3000").rstrip("/")
 WORKER_TOKEN = os.environ.get("WORKER_TOKEN", "")
 
 def mark_task_run(task_run_id, status, output=None, error=None):

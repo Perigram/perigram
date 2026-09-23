@@ -202,7 +202,7 @@
 // to the page's single update/sync entry point.
 import { computed } from 'vue';
 import { operationKindOf, typeIdOf } from '~/packages/cts/src/index.js';
-import { cncUiSurfaces } from '@cutkit/domain-cnc';
+import { cncUiSurfaces } from '@perigram/domain-cnc';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';

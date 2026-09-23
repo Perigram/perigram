@@ -51,7 +51,7 @@ describe('invitations', () => {
     const userId = 'admin-user';
     await db.collection('organizations').insertOne({
       _id: organizationId,
-      identity: { uid: organizationId, name: 'Cutkit Org' },
+      identity: { uid: organizationId, name: 'Perigram Org' },
       data: { roles: { role_operator: { id: 'role_operator', label: 'Operator' } } }
     });
     await db.collection('users').insertOne({
@@ -76,7 +76,7 @@ describe('invitations', () => {
     expect(rows[0].organizationId).toBe(organizationId);
     expect(rows[0].roleIds).toEqual(['role_operator']);
     await expect(invitationsService.getPublicByToken(invitation.token)).resolves.toEqual({
-      organizationName: 'Cutkit Org',
+      organizationName: 'Perigram Org',
       roleLabels: ['Operator'],
       expiresAt: expect.any(Date)
     });
@@ -87,7 +87,7 @@ describe('invitations', () => {
     const memberId = new ObjectId();
     await db.collection('organizations').insertOne({
       _id: organizationId,
-      identity: { uid: organizationId.toString(), name: 'Cutkit Org' },
+      identity: { uid: organizationId.toString(), name: 'Perigram Org' },
       data: { roles: { role_viewer: { id: 'role_viewer', label: 'Viewer' } } }
     });
     await db.collection('users').insertMany([{
@@ -116,7 +116,7 @@ describe('invitations', () => {
     const invitedUserId = 'invited-user';
     await db.collection('organizations').insertOne({
       _id: organizationId,
-      identity: { uid: organizationId, name: 'Cutkit Org' },
+      identity: { uid: organizationId, name: 'Perigram Org' },
       data: { roles: {
         role_operator: { id: 'role_operator', label: 'Operator' },
         role_reviewer: { id: 'role_reviewer', label: 'Reviewer' }

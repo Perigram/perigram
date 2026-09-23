@@ -5,7 +5,7 @@ import { resolveStateDisplay } from './state-engine.js';
 // Workflow source order: the compiled contract first — a served bundle
 // type record (its `states` facet + `transitions`) converts into the same
 // v2 machine shape the workflow machinery consumes — then the committed
-// `@cutkit/domain-cnc` machines as the verified-live fallback for
+// `@perigram/domain-cnc` machines as the verified-live fallback for
 // undeclared legacy types (cassette, cassette_design, artifact,
 // artifact_template, entity_revision, process_definition), which the
 // server status core still resolves as default workflows. Live app

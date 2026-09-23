@@ -10,7 +10,7 @@ import requests
 from model_providers import MODEL_AUTO_ORDER, MODEL_PRESETS, build_model_candidates, build_prompt_candidates, preload_model_providers
 
 
-API_URL = os.getenv("CUTKIT_API_URL", "http://localhost:3000").rstrip("/")
+API_URL = os.getenv("PERIGRAM_API_URL", "http://localhost:3000").rstrip("/")
 WORKER_TOKEN = os.getenv("WORKER_TOKEN", "")
 WORKER_ID = os.getenv("GEOMETRY_CAPTURE_WORKER_ID", "geometry-capture-worker")
 POLL_SECONDS = float(os.getenv("GEOMETRY_CAPTURE_POLL_SECONDS", "2"))

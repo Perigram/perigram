@@ -947,9 +947,9 @@ const preparedProfileDraftSketch = computed(() => closeOccsProfileSketchBoundary
 
 const templateOptions = computed(() => props.templateOptions || []);
 const selectedTemplateId = computed(() => persistedTemplateIdOverride.value || props.template?._id || '');
-const autosaveStorageKey = computed(() => `cutkit:cassette-designer-v2:draft:${selectedTemplateId.value || 'draft'}`);
-const inlineEditorPositionKey = 'cutkit:cassette-designer-v2:inline-editor-position';
-const onboardingStorageKey = 'cutkit:onboarding:cassette-designer-v2';
+const autosaveStorageKey = computed(() => `perigram:cassette-designer-v2:draft:${selectedTemplateId.value || 'draft'}`);
+const inlineEditorPositionKey = 'perigram:cassette-designer-v2:inline-editor-position';
+const onboardingStorageKey = 'perigram:onboarding:cassette-designer-v2';
 const cassetteMarkContext = computed(() => ({
   templateName: cassetteNameDraft.value || t('cassette.newCassette'),
   templateId: selectedTemplateId.value || 'draft'
@@ -1489,8 +1489,8 @@ const templateName = (template) => (
 );
 
 const templateTree = (template) => {
-  const graphTree = template?.data?.definition?.extensions?.cutkit?.graphTree ||
-    template?.definition?.extensions?.cutkit?.graphTree ||
+  const graphTree = template?.data?.definition?.extensions?.perigram?.graphTree ||
+    template?.definition?.extensions?.perigram?.graphTree ||
     template?.graphTree ||
     null;
   if (!graphTree) return createCassetteV2GraphTree();

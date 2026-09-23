@@ -103,28 +103,6 @@ export async function login(email, password) {
   };
 }
 
-export async function recoverSignupWithoutOrganization(email, password) {
-  const normalizedEmail = email.trim().toLowerCase();
-  const userRaw = await usersRepository.findByEmail(normalizedEmail);
-
-  if (!userRaw) {
-    throw createError({ statusCode: 404, message: 'User not found' });
-  }
-
-  const user = new User(userRaw);
-  if (!user.isActive) throw createError({ statusCode: 403, message: 'Account deactivated' });
-  if (user.organizationId || user.memberships.length) {
-    throw createError({ statusCode: 409, message: 'Email already registered' });
-  }
-
-  const valid = await verifyPassword(user.data.passwordHash, password);
-  if (!valid) {
-    throw createError({ statusCode: 409, message: 'Email already registered' });
-  }
-
-  return user;
-}
-
 export async function logout(sessionId) {
   await sessionsRepository.deleteBySessionId(sessionId);
   return { success: true };

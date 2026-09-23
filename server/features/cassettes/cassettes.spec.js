@@ -89,7 +89,7 @@ describe('Cassette Management & Ownership', () => {
 
     expect(result.identity.name).toBe('Generated Template');
     expect(result.data.type).toBe('PARAMETRIC');
-    expect(result.data.definition.extensions.cutkit.graphTree.nodes[0]).toMatchObject({
+    expect(result.data.definition.extensions.perigram.graphTree.nodes[0]).toMatchObject({
       id: 'face_1',
       operation: 'face.trapezoid'
     });
@@ -131,7 +131,7 @@ describe('Cassette Management & Ownership', () => {
   it('rejects design construction from templates without an OCCS graph tree', async () => {
     // Incomplete legacy parametric templates no longer exist: every create
     // falls back to a complete default OCCS document. The remaining
-    // non-evaluatable class is an OCCS document lacking the cutkit graph
+    // non-evaluatable class is an OCCS document lacking the perigram graph
     // tree (the designer's evaluated surface).
     const cassette = await cassetteService.create({
       name: 'Graphless Template',

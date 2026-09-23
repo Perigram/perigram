@@ -296,8 +296,8 @@ jsFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
   const relFile = path.relative('.', file);
 
-  if (relFile.startsWith('server/core/') && !relFile.endsWith('README.md') && /(@cutkit\/domain-cnc|packages\/domain-cnc)/.test(content)) {
-    console.error(`❌ ${relFile} imports CNC domain directly — use server/runtime/cutkit-registry.js`);
+  if (relFile.startsWith('server/core/') && !relFile.endsWith('README.md') && /(@perigram\/domain-cnc|packages\/domain-cnc)/.test(content)) {
+    console.error(`❌ ${relFile} imports CNC domain directly — use server/runtime/perigram-registry.js`);
     errors++;
   }
 
@@ -313,7 +313,7 @@ jsFiles.forEach(file => {
 
   if (
     (relFile.startsWith('components/shared/') || relFile === 'composables/useEntity.js' || relFile === 'components/ArtifactsTable.vue') &&
-    /(@cutkit\/domain-cnc|packages\/domain-cnc)/.test(content)
+    /(@perigram\/domain-cnc|packages\/domain-cnc)/.test(content)
   ) {
     console.error(`❌ ${relFile} imports CNC domain directly — consume the injected domain UI adapter`);
     errors++;
@@ -450,8 +450,8 @@ const genericUiFiles = [
 genericUiFiles.forEach(file => {
   const content = fs.readFileSync(file, 'utf8');
   const relFile = path.relative('.', file);
-  if (/from\s+['"]@cutkit\/domain-cnc['"]/.test(content)) {
-    console.error(`❌ ${relFile} imports @cutkit/domain-cnc directly — consume the client state stores (stores/instances, stores/registry) or the scoped artifact-ui seam`);
+  if (/from\s+['"]@perigram\/domain-cnc['"]/.test(content)) {
+    console.error(`❌ ${relFile} imports @perigram/domain-cnc directly — consume the client state stores (stores/instances, stores/registry) or the scoped artifact-ui seam`);
     errors++;
   }
 });
@@ -501,8 +501,8 @@ objectKeyFiles.forEach(file => {
   }
 });
 
-// 12. Concrete entity-name branches in @cutkit/processes
-console.log('\nChecking concrete entity-name branches in @cutkit/processes...');
+// 12. Concrete entity-name branches in @perigram/processes
+console.log('\nChecking concrete entity-name branches in @perigram/processes...');
 const processesDir = 'packages/processes/src';
 const processesFiles = walkDir(processesDir).filter(file => file.endsWith('.js') && !file.endsWith('.spec.js'));
 processesFiles.forEach(file => {
@@ -608,7 +608,7 @@ for (const file of walkDir('server').filter(item => item.endsWith('.js') && !ite
 }
 
 console.log('\n--- Bare workspace-package imports ---');
-// Bare `@cutkit/*` specifiers resolve only where workspace symlinks exist
+// Bare `@perigram/*` specifiers resolve only where workspace symlinks exist
 // (a host install); the dev container runs Nitro with its own node_modules
 // that has none, so such imports 500 at request time. Cross-root imports
 // must use the package.json `imports` subpaths (#packages/..., #shared/...,
@@ -617,7 +617,7 @@ for (const file of [...walkDir('server'), ...walkDir('shared')]) {
   if (!file.endsWith('.js') || file.endsWith('.spec.js')) continue;
   const relFile = path.relative('.', file);
   const content = fs.readFileSync(file, 'utf8');
-  for (const match of content.matchAll(/(?:from\s+['"]|import\s*\(\s*['"])@cutkit\//g)) {
+  for (const match of content.matchAll(/(?:from\s+['"]|import\s*\(\s*['"])@perigram\//g)) {
     console.error(`❌ ${relFile} imports bare workspace package near '${match[0].trim()}' — use #packages/... instead`);
     errors++;
   }

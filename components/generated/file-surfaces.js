@@ -5,7 +5,7 @@ import GeneratedFacadePatternDesignerWorkspacePage from '~/components/generated/
 import SheetDesignEditor from '~/components/SheetDesignEditor.vue';
 import SketchEditor from '~/components/artifacts/SketchEditor.vue';
 import ArtifactTextEditor from '~/components/artifacts/ArtifactTextEditor.vue';
-import { cncEditors } from '@cutkit/domain-cnc';
+import { cncEditors } from '@perigram/domain-cnc';
 import { techDrawingEditors } from '~/packages/tech-drawing/src/index.js';
 import { documentsEditors } from '~/packages/documents/src/index.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';

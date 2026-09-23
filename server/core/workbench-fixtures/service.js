@@ -1,5 +1,5 @@
 import { createError } from 'h3';
-import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
+import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
 import { contextToScenario, normalizeWorkbenchContext } from '~/test-data/workbench-context.js';
 import { compileWorkflowDraft } from '~/utils/workflow-compiler.js';
 import { createWorkflowState, getPrimaryState, getWorkflowRegion, normalizeWorkflow } from '~/packages/workflows/src/index.js';
@@ -52,7 +52,7 @@ export async function seedScenario({ scenario, context, workflows = {} } = {}) {
 }
 
 function getEntityCollections() {
-  const entities = getCutkitRegistry().getDomain('cnc')?.entities || [];
+  const entities = getPerigramRegistry().getDomain('cnc')?.entities || [];
   return Object.fromEntries(entities.map(entity => [entity.type, entity.collection]));
 }
 

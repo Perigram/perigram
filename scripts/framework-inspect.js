@@ -31,14 +31,14 @@ import { validateTransition } from '../packages/workflows/src/index.js';
 const command =  process.argv[2] || 'help';
 const MANIFEST_PATH = 'framework.manifest.json';
 const PACKAGE_NAMES = [
-  '@cutkit/core',
-  '@cutkit/workflows',
-  '@cutkit/mongo',
-  '@cutkit/nitro',
-  '@cutkit/vue',
-  '@cutkit/devtools',
-  '@cutkit/mcp',
-  '@cutkit/domain-cnc'
+  '@perigram/core',
+  '@perigram/workflows',
+  '@perigram/mongo',
+  '@perigram/nitro',
+  '@perigram/vue',
+  '@perigram/devtools',
+  '@perigram/mcp',
+  '@perigram/domain-cnc'
 ];
 const UI_COMPONENT_PATHS = {
   project: 'components/entities/Project/ProjectCard.vue',

@@ -1,7 +1,7 @@
 {
-    "name": "CutKit - CNC Manufacturing Platform",
-    "short_name": "CutKit",
-    "description": "CutKit manages CNC cassette templates, nesting runs, material inventory, generated artifacts, and production lifecycle tracking.",
+    "name": "Perigram",
+    "short_name": "Perigram",
+    "description": "Perigram compiles typed process declarations into a running application: workflows, screens, and access generated from what your organization authors.",
     "lang": "ru",
     "start_url": "/",
     "scope": "/",

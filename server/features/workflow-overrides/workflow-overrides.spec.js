@@ -7,8 +7,8 @@ vi.mock('./repository.js', () => ({
   findLatestByEntity: vi.fn()
 }));
 
-vi.mock('~/server/runtime/cutkit-registry.js', () => ({
-  getCutkitRegistry: () => ({
+vi.mock('~/server/runtime/perigram-registry.js', () => ({
+  getPerigramRegistry: () => ({
     getDomain: () => ({
       workflows: {
         project: {

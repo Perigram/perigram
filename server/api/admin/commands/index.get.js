@@ -7,7 +7,7 @@ export default defineEventHandler((event) => {
   return {
     success: true,
     registry: {
-      source: '@cutkit/domain-cnc:cncDomain',
+      source: '@perigram/domain-cnc:cncDomain',
       count: commands.length,
       commandCount: commands.length,
       handlerCount: commands.filter(command => command.handlerRegistered).length

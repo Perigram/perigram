@@ -2,7 +2,7 @@ import os
 from pymongo import MongoClient
 from gridfs import GridFSBucket
 
-MONGODB_URI = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI') or 'mongodb://localhost:27017/cutkit_demo'
+MONGODB_URI = os.environ.get('MONGODB_URI') or os.environ.get('MONGO_URI') or 'mongodb://localhost:27017/perigram_demo'
 
 _client = MongoClient(MONGODB_URI)
 

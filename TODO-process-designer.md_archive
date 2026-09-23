@@ -1756,7 +1756,7 @@ wiring is the only authoring path:
 
 - **Starter process templates deleted.** `PROCESS_TEMPLATES`
   (`server/features/process-definitions/process-templates.js`),
-  `createActiveFromTemplate`, `createTemplate` from the `@cutkit/processes`
+  `createActiveFromTemplate`, `createTemplate` from the `@perigram/processes`
   barrel, the signup/organization template pickers
   (`pages/auth/register.vue`, `pages/profile/index.vue`), the
   `processTemplateId` plumbing in the register API and organizations service,
@@ -2546,7 +2546,7 @@ Closed the per-output metadata checkbox above:
   declare their persisted outputs. The legacy `requiredEntityProfiles` key and
   the dead `requiredProducerOutputEntityTypes` helper (never consumed by
   validation or activation) are removed with their re-exports and spec.
-- **Result enforcement.** `@cutkit/core` owns
+- **Result enforcement.** `@perigram/core` owns
   `normalizeEntityOutputContracts`/`validateResultEntityOutputs`
   (re-exported through `server/core/blocks`). `executeCommand` validates the
   final immediate result (handler entities plus effect-contributed entities)

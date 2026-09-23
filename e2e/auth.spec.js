@@ -10,7 +10,7 @@ test.describe('authenticated app shell', () => {
     // The generated-screens IA opens on the process home surface — the
     // static /projects hub is gone by design.
     await expect(app.page).toHaveURL(/\/screens/);
-    await expect(app.page.locator('body')).toContainText(/cutkit|home|process|organization/i);
+    await expect(app.page.locator('body')).toContainText(/perigram|home|process|organization/i);
     await app.expectCleanRuntime();
   });
 });

@@ -121,7 +121,7 @@ test.describe('home and entity UI', () => {
     // Give the setup user a second membership: register a throwaway user
     // (cookie-free fetch, so the test session is untouched), invite the
     // setup user, and join.
-    const peerEmail = app.uniqueName('peer').replace(/\s+/g, '') + '@cutkit.local';
+    const peerEmail = app.uniqueName('peer').replace(/\s+/g, '') + '@perigram.local';
     const peerPassword = 'e2e-peer-password';
     const peerFetch = async (method, path, body) => {
       const response = await fetch(`${E2E_BASE_URL}${path}`, {

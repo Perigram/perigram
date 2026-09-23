@@ -310,7 +310,7 @@ const normalizeCassetteV2JointDrivers = (tree) => {
   for (const joints of jointsBySource.values()) {
     let hasDriver = false;
     for (const joint of joints) {
-      const explicitDriver = joint.driver ?? joint.placement?.driver ?? joint.extensions?.cutkit?.driver;
+      const explicitDriver = joint.driver ?? joint.placement?.driver ?? joint.extensions?.perigram?.driver;
       joint.driver = explicitDriver === undefined
         ? !hasDriver
         : Boolean(explicitDriver);
@@ -1289,7 +1289,7 @@ const cassetteMarkEntityForWorkpiece = (workpiece, index = 0) => ({
     value: CASSETTE_MARK_TEMPLATE
   },
   extensions: {
-    cutkit: {
+    perigram: {
       markKind: 'cassette',
       workpieceIndex: index + 1
     }
@@ -1369,7 +1369,7 @@ export const createCassetteV2OccsDocument = (definition = {}, context = {}) => {
       joints: []
     },
     extensions: {
-      cutkit: {
+      perigram: {
         nodi: {
           graph: 'public/nodi/face.trapezoid.json',
           operation: 'face.trapezoid',
@@ -1425,7 +1425,7 @@ export const createCassetteV2OccsDocumentFromTree = (tree = createCassetteV2Grap
               process: profile.process
             },
             extensions: {
-              cutkit: {
+              perigram: {
                 profileTemplateId: workpiece.profileTemplateId || '',
                 sketch: profile.sketch
               }
@@ -1509,7 +1509,7 @@ export const createCassetteV2OccsDocumentFromTree = (tree = createCassetteV2Grap
                     ])
                   },
               extensions: {
-                cutkit: {
+                perigram: {
                   relationId: entity.relationId,
                   hardwareWorkpieceId: entity.hardwareWorkpieceId
                 }
@@ -1547,7 +1547,7 @@ export const createCassetteV2OccsDocumentFromTree = (tree = createCassetteV2Grap
       }))
     },
     extensions: {
-      cutkit: {
+      perigram: {
         graphTree: sourceTree
       }
     }

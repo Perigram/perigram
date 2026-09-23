@@ -67,7 +67,7 @@
 
 *** Entity relations and containment
 
-    - Extend =@cutkit/core= with one canonical =EntityRef= value:
+    - Extend =@perigram/core= with one canonical =EntityRef= value:
       ={ type, id, revisionId? }=. The optional revision ID identifies an
       immutable =entity_revision= for that same source entity. Runtime results,
       process ports, relations, and provenance use this exact value shape.
@@ -820,7 +820,7 @@
 * WAITING Process designer rework
   [2026-07-18 Sat 09:30]
 ** WAITING Architecture rework
-   Process designer must be a complete representation of cutkit-core, with cnc-domain as implementation; so just like core we should re-use it in different domains.
+   Process designer must be a complete representation of perigram-core, with cnc-domain as implementation; so just like core we should re-use it in different domains.
 ** WAITING Node composition
    It should contain "create entity", which creates every entity possible; "modify entity" which includes any edit, including status change.
    Need to investigate how entities are composed, and how standard blocks and their entries look like. For them, need to refactor node set so that it allows to create/modify any of it in any reasonable way. Nodes should be grouped and have labels in palette.
@@ -831,8 +831,8 @@
 *** [2026-07-18] Core/domain projection, generic composition, and compact canvas
 
     Implementation:
-    - Added =CANONICAL_ENTITY_BLOCKS= to =@cutkit/core= and a reusable
-      =createProcessDesignerContract(domain)= projection in =@cutkit/processes=.
+    - Added =CANONICAL_ENTITY_BLOCKS= to =@perigram/core= and a reusable
+      =createProcessDesignerContract(domain)= projection in =@perigram/processes=.
       The projection covers core blocks and domain entities, workflows,
       commands, tasks, events, hooks, effects, attachment kinds, construction,
       field access, and field groups without importing CNC.
