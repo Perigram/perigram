@@ -284,7 +284,8 @@ Discord-style operational shell:
   its compiled `typeList` screen as a pane tab (`GeneratedScreenPane`,
   below) and toggles the panel, never a separate route. The whole type
   hierarchy auto-expands on first sight; explicit collapses persist per
-  key. Type rows carry `home-type-<typeId>` ids for the E2E selectors.
+  key. Default rendering ignores custom item ids, so the E2E selectors
+  ride the authored type names on default rows and headers.
   The sidebar paints no background — panels sit on the zero canvas with
   their default hairline border as the panel box. Sidebar row actions are
   gone with the custom rows: mutations belong to the compiled detail
