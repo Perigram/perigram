@@ -200,7 +200,7 @@ export function createFrameworkManifest({
 
   return {
     schemaVersion: 1,
-    name: 'cutkit-framework',
+    name: 'perigram-framework',
     packages,
     entities: summarizeDefinitions(entities),
     routes: summarizeRoutes(frontendEntities),

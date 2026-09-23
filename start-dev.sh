@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define paths
-SESSION_NAME="cutkit"
+SESSION_NAME="perigram"
 ROOT_DIR=$(pwd)
 export NODE_OPTIONS="--max-old-space-size=4096"
 
@@ -13,7 +13,7 @@ if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
 fi
 
 # Ensure network exists
-docker network create --driver overlay --attachable cutkit-network 2>/dev/null || true
+docker network create --driver overlay --attachable perigram-network 2>/dev/null || true
 
 # Clean up any existing containers from previous runs
 echo "Stopping existing containers..."

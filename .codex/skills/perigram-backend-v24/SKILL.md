@@ -1,9 +1,9 @@
 ---
-name: cutkit-backend-v24
-description: Apply the CutKit Demo v24 Golden Path when creating, modifying, reviewing, or debugging backend feature code under server/features, server/api, server/runtime, server/core/machines, access, command/task runtimes, or package domain registrations that must follow the repository backend architecture.
+name: perigram-backend-v24
+description: Apply the Perigram Demo v24 Golden Path when creating, modifying, reviewing, or debugging backend feature code under server/features, server/api, server/runtime, server/core/machines, access, command/task runtimes, or package domain registrations that must follow the repository backend architecture.
 ---
 
-# CutKit Backend v24
+# Perigram Backend v24
 
 Use this skill for backend work that touches feature services, repositories,
 models, API routes, command/task handlers, status hooks, runtime registration, or

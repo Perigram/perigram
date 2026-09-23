@@ -3,7 +3,7 @@
   CLOSED: [2026-01-09 Пт 14:49]
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-01-09 Пт 20:39
-  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/suo/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
@@ -31,7 +31,7 @@
      [2026-01-09] Finalized documentation and project renaming.
      Files changed: README.md, NEOLIT.md, docker configs, GitHub actions
      Docs updated: NEOLIT.md (SYSTEM, CONTAINER, COMPONENT levels)
-     Notes: Renamed project from Nest2D to CutKit. Cleaned up obsolete docs and reorganized deployment guides.
+     Notes: Renamed project from Nest2D to Perigram. Cleaned up obsolete docs and reorganized deployment guides.
 <<<<<<< Updated upstream
 * DONE run through all the components and pages and check locales usage.
   CLOSED: [2026-01-17 Сб 17:38]
@@ -43,7 +43,7 @@
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-01-16 Пт 21:09
 >>>>>>> Stashed changes
-  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/suo/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
@@ -54,7 +54,7 @@
   CLOSED: [2026-01-17 Сб 17:38]
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-01-18 Вс 20:07
-  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/suo/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
@@ -66,7 +66,7 @@
   CLOSED: [2026-01-18]
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-01-18 Вс 20:07
-  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/suo/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
@@ -109,11 +109,11 @@
      [2026-01-09] Finalized documentation and project renaming.
      Files changed: README.md, NEOLIT.md, docker configs, GitHub actions
      Docs updated: NEOLIT.md (SYSTEM, CONTAINER, COMPONENT levels)
-     Notes: Renamed project from Nest2D to CutKit. Cleaned up obsolete docs and reorganized deployment guides.
+     Notes: Renamed project from Nest2D to Perigram. Cleaned up obsolete docs and reorganized deployment guides.
 * DONE Cassette Renaming
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-01-16 Пт 21:10
-  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/suo/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
@@ -125,7 +125,7 @@
 * DONE Nesting Worker Fixes
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-01-16 Пт 21:10
-  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/suo/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
@@ -135,13 +135,13 @@
      Docs updated: NEOLIT.md (SYSTEM level)
      Notes: 
      - Set `ENV HOME=/home/appuser` in Dockerfile to fix ezdxf cache access.
-     - Standardized all stack deployment files to use `cutkit-network` (external) for reliable service discovery.
+     - Standardized all stack deployment files to use `perigram-network` (external) for reliable service discovery.
      - Switched to `MONGODB_URI` environment variable for consistency across all services.
      - Ensured workers correctly resolve the `mongo` host by aligning Docker networks.
 * DONE Nesting Error Handling & Batch Reset
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-01-16 Пт 21:10
-  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/suo/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
@@ -158,7 +158,7 @@
 * DONE State Management Rework (Batch Statuses)
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-01-16 Пт 21:10
-  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/suo/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
@@ -173,7 +173,7 @@
 * DONE Cassette Designer Save Fix
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-01-16 Пт 21:10
-  :ARCHIVE_FILE: /home/suo/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/suo/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
@@ -199,7 +199,7 @@
   :PROPERTIES:
   :ID: entity-system-refactor
   :ARCHIVE_TIME: 2026-06-02 Tue 13:39
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
@@ -253,14 +253,14 @@
        labels remain only permission presets. v0.1 exports virtual files only and has
        no apply/write path. Ollama is optional through deployment env vars.
        LAN host 192.168.0.67 has Ollama 0.24.0 with `qwen3:4b` and `bge-m3`
-       installed, served by enabled user unit `cutkit-ollama.service`; boot
+       installed, served by enabled user unit `perigram-ollama.service`; boot
        persistence still requires user linger or a system service because sudo
        is interactive on that host. Swarm config mounts
-       `/home/cutkit/Documents/cutkit-cortex` into the app at
-       `/opt/cutkit-cortex` for ConfigBot reindex. Production Docker build
+       `/home/perigram/Documents/perigram-cortex` into the app at
+       `/opt/perigram-cortex` for ConfigBot reindex. Production Docker build
        also exposed and fixed Nuxt SSR relative-import issues in
        `shared/ui-permissions.js` and `test-data/factories.js`. Built and
-       deployed local Swarm image `cutkit-app:configbot-v0.1`; app health is
+       deployed local Swarm image `perigram-app:configbot-v0.1`; app health is
        OK, ConfigBot routes are present behind auth, and the running container
        sees Ollama plus the cortex mount.
 
@@ -664,7 +664,7 @@
      Notes: Status now normalizes `lifecycle` alongside event-local
        `metadata`; workflow validation supports lifecycle schemas and
        actor/capability guards. Runtime machine definitions now come from
-       `@cutkit/domain-cnc` via the compatibility definitions export.
+       `@perigram/domain-cnc` via the compatibility definitions export.
 
 *** Agent Notes
      [2026-05-14] Fix queue nesting failure for parametric template string IDs
@@ -875,7 +875,7 @@
   :PROPERTIES:
   :ID: full-intent-contract-responsibility-audit-and-refactor
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -1155,7 +1155,7 @@
   :PROPERTIES:
   :ID: repo-local-codex-skills
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -1268,10 +1268,10 @@
 *** Agent Notes
      [2026-06-09] Add repo-local workflow and OCCS skills
      Files changed: .codex/README.md,
-       .codex/skills/cutkit-project-workflow/SKILL.md,
-       .codex/skills/cutkit-project-workflow/agents/openai.yaml,
-       .codex/skills/cutkit-backend-v24/SKILL.md,
-       .codex/skills/cutkit-backend-v24/agents/openai.yaml,
+       .codex/skills/perigram-project-workflow/SKILL.md,
+       .codex/skills/perigram-project-workflow/agents/openai.yaml,
+       .codex/skills/perigram-backend-v24/SKILL.md,
+       .codex/skills/perigram-backend-v24/agents/openai.yaml,
        .codex/skills/occs-compliance/SKILL.md,
        .codex/skills/occs-compliance/agents/openai.yaml,
        README.md, TODO.org
@@ -1285,12 +1285,12 @@
 *** Agent Notes
      [2026-06-09] Add repo-local Vue design-system skill
      Files changed: .codex/README.md,
-       .codex/skills/cutkit-vue-design-system/SKILL.md,
-       .codex/skills/cutkit-vue-design-system/agents/openai.yaml,
-       .codex/skills/cutkit-vue-design-system/references/design-system-contract.md,
+       .codex/skills/perigram-vue-design-system/SKILL.md,
+       .codex/skills/perigram-vue-design-system/agents/openai.yaml,
+       .codex/skills/perigram-vue-design-system/references/design-system-contract.md,
        TODO.org
      Docs updated: .codex/README.md (COMPONENT level), TODO.org
-     Notes: Moved the CutKit Vue design-system workflow into repo-local Codex
+     Notes: Moved the Perigram Vue design-system workflow into repo-local Codex
        assets so UI work can load the same project-specific card, primitive,
        token, i18n, UI lab, and validation guidance without relying on a global
        skill copy.
@@ -1298,7 +1298,7 @@
   :PROPERTIES:
   :ID: marketing-animation-landing-surface
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -1331,7 +1331,7 @@
   :PROPERTIES:
   :ID: geometry-capture-mvp
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -1507,7 +1507,7 @@
   :PROPERTIES:
   :ID: app-composition-agent-lane
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -1517,7 +1517,7 @@
      Files changed: server/features/workflow-overrides/*,
        server/api/workflow-overrides/*, server/core/machines/service.js,
        server/db/indexes.js, scripts/check-arch.js,
-       /home/isuo/Documents/cutkit-cortex/3_core/Агентский слой композиций CutKit.md
+       /home/isuo/Documents/perigram-cortex/3_core/Агентский слой композиций Perigram.md
      Docs updated: server/features/workflow-overrides/README.md,
        server/features/README.md, server/api/README.md,
        server/core/machines/README.md, TODO.org
@@ -1529,7 +1529,7 @@
   :PROPERTIES:
   :ID: core-project-route-workflow-fixes
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -1754,7 +1754,7 @@
   :PROPERTIES:
   :ID: e2e-workflow-test-harness
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -1791,7 +1791,7 @@
   :PROPERTIES:
   :ID: domain-entity-card-contract-redesign
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -1823,7 +1823,7 @@
   :PROPERTIES:
   :ID: warehouse-management-mvp
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -2173,7 +2173,7 @@
   :PROPERTIES:
   :ID: domain-builder-contract-component-redesign
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -2193,7 +2193,7 @@
   :PROPERTIES:
   :ID: entity-contract-ui-correction
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -2310,7 +2310,7 @@
   :PROPERTIES:
   :ID: entity-system-refactor
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
@@ -2364,14 +2364,14 @@
        labels remain only permission presets. v0.1 exports virtual files only and has
        no apply/write path. Ollama is optional through deployment env vars.
        LAN host 192.168.0.67 has Ollama 0.24.0 with `qwen3:4b` and `bge-m3`
-       installed, served by enabled user unit `cutkit-ollama.service`; boot
+       installed, served by enabled user unit `perigram-ollama.service`; boot
        persistence still requires user linger or a system service because sudo
        is interactive on that host. Swarm config mounts
-       `/home/cutkit/Documents/cutkit-cortex` into the app at
-       `/opt/cutkit-cortex` for ConfigBot reindex. Production Docker build
+       `/home/perigram/Documents/perigram-cortex` into the app at
+       `/opt/perigram-cortex` for ConfigBot reindex. Production Docker build
        also exposed and fixed Nuxt SSR relative-import issues in
        `shared/ui-permissions.js` and `test-data/factories.js`. Built and
-       deployed local Swarm image `cutkit-app:configbot-v0.1`; app health is
+       deployed local Swarm image `perigram-app:configbot-v0.1`; app health is
        OK, ConfigBot routes are present behind auth, and the running container
        sees Ollama plus the cortex mount.
 
@@ -2775,7 +2775,7 @@
      Notes: Status now normalizes `lifecycle` alongside event-local
        `metadata`; workflow validation supports lifecycle schemas and
        actor/capability guards. Runtime machine definitions now come from
-       `@cutkit/domain-cnc` via the compatibility definitions export.
+       `@perigram/domain-cnc` via the compatibility definitions export.
 
 *** Agent Notes
      [2026-05-14] Fix queue nesting failure for parametric template string IDs
@@ -2986,7 +2986,7 @@
   :PROPERTIES:
   :ID: arch-hardening-v24
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
   :END:
@@ -3047,7 +3047,7 @@
       support capabilities so the architecture checker no longer reports fake
       violations for non-entities. Fixed flexible-ID repository lookups for
       remaining entity modules, registered remnant/requisition services, and
-      added private `@cutkit/*` workspace package skeletons for core,
+      added private `@perigram/*` workspace package skeletons for core,
       workflows, Mongo/Nitro/Vue adapters, devtools, read-only MCP handlers,
       and the CNC domain pack.
 
@@ -3073,7 +3073,7 @@
     Docs updated: packages/core/README.md,
       server/core/blocks/README.md, TODO.org
     Notes: Moved the active server block export surface onto the internal
-      `@cutkit/core` implementation while preserving the existing
+      `@perigram/core` implementation while preserving the existing
       `~/server/core/blocks/index.js` import path and server-specific
       ObjectId/flexible-ID factory behavior. Added framework package contract
       tests for core definitions, workflow validation, CNC definitions, and
@@ -3084,7 +3084,7 @@
     Files changed: server/core/machines/service.js
     Docs updated: server/core/machines/README.md,
       packages/workflows/README.md, TODO.org
-    Notes: Reused `@cutkit/workflows` transition validation inside the runtime
+    Notes: Reused `@perigram/workflows` transition validation inside the runtime
       status service while preserving existing app state-machine definitions,
       Mongo status event logging, and hook dispatch behavior.
 
@@ -3156,7 +3156,7 @@
       server/core/machines/aggregator.js, composables/useEntity.js
     Docs updated: server/core/blocks/README.md, composables/README.md,
       packages/README.md, TODO.org
-    Notes: Added explicit `@cutkit/*` aliases for Nuxt, Nitro, Vite, and
+    Notes: Added explicit `@perigram/*` aliases for Nuxt, Nitro, Vite, and
       Vitest tooling, then switched runtime app imports to Nuxt root aliases
       instead of deep relative `packages/*` paths that resolve incorrectly
       from `.nuxt/dev`.
@@ -3306,7 +3306,7 @@
     :PROPERTIES:
     :ID:       ui-refactor-v24
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
     :END:
@@ -3433,7 +3433,7 @@
 * TODO run through all the components and pages and check locales usage.
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
   :END:
@@ -3443,7 +3443,7 @@
 * TODO run through all the components and pages and check layout and styling.
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
   :END:
@@ -3454,7 +3454,7 @@
 * TODO review nesting batch workflow
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
   :END:
@@ -3465,7 +3465,7 @@
 * TODO review nesting batch workflow
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
   :END:
@@ -3476,7 +3476,7 @@
 * TODO review cassette baking and usage in nesting
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-06-20 Sat 11:32
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
   :END:
@@ -3913,7 +3913,7 @@
     - TODO.org
     Notes:
     - Added OCCS-specific system pens, made pen seeding update stale system strokes by name, and mapped canonical OCCS layer codes to distinctive default pens.
-    - Re-seeded local MongoDB through `MONGODB_URI=mongodb://localhost:27017/cutkit_dev`: 14 system pens seeded, 22 OCCS layer standards upserted, and designer-critical layer codes resolve to non-white pen colors.
+    - Re-seeded local MongoDB through `MONGODB_URI=mongodb://localhost:27017/perigram_dev`: 14 system pens seeded, 22 OCCS layer standards upserted, and designer-critical layer codes resolve to non-white pen colors.
     - The fallback cassette v2 template renderer now passes expression labels into generated `dimension.cassette` annotations so root dimensions display `A` and `B` instead of default numeric values.
 
 *** Agent Notes
@@ -4159,7 +4159,7 @@
       docs/specs/nodi-occs-graph-checklist.md
     Notes: Updated the Nodi operation contract so explicit `startAnchor` and
       `endAnchor` graph sockets are first-class inputs, not internal details.
-      Manifest sockets now record both CutKit semantic type and concrete Nodi
+      Manifest sockets now record both Perigram semantic type and concrete Nodi
       `access`/`hint` metadata, with optional numeric `hintCode`, so direct
       graph-to-graph wiring can validate Nodi-native socket compatibility.
 
@@ -4173,7 +4173,7 @@
       docs/specs/nodi-operation-manifest.schema.json,
       docs/specs/nodi-occs-graph-checklist.md, docs/specs/README.md
     Notes: Promoted the agreed Nodi3d workflow fixes into a formal
-      CutKit-to-Nodi contract: root and edge-attached faces are placement
+      Perigram-to-Nodi contract: root and edge-attached faces are placement
       modes of one logical shape operation, root faces use a synthetic base
       edge, polygon parents resolve to the same base-edge input, trapezoid
       anchors use `start`/`end`, wrapper graphs keep the same logical
@@ -4645,11 +4645,11 @@
     - Restored real Nuxt `app.head` and `nitro.routeRules` config that had been replaced by placeholder comments.
 
 *** Agent Notes
-    [2026-05-19] Create CutKit Vue design-system Codex skill
+    [2026-05-19] Create Perigram Vue design-system Codex skill
     Files changed:
-    - /home/isuo/.codex/skills/cutkit-vue-design-system/SKILL.md
-    - /home/isuo/.codex/skills/cutkit-vue-design-system/agents/openai.yaml
-    - /home/isuo/.codex/skills/cutkit-vue-design-system/references/design-system-contract.md
+    - /home/isuo/.codex/skills/perigram-vue-design-system/SKILL.md
+    - /home/isuo/.codex/skills/perigram-vue-design-system/agents/openai.yaml
+    - /home/isuo/.codex/skills/perigram-vue-design-system/references/design-system-contract.md
     Docs updated:
     - TODO.org
     Notes:
@@ -4672,8 +4672,8 @@
     - framework.manifest.json
     - i18n/locales/en.json
     - i18n/locales/ru.json
-    - /home/isuo/.codex/skills/cutkit-vue-design-system/SKILL.md
-    - /home/isuo/.codex/skills/cutkit-vue-design-system/references/design-system-contract.md
+    - /home/isuo/.codex/skills/perigram-vue-design-system/SKILL.md
+    - /home/isuo/.codex/skills/perigram-vue-design-system/references/design-system-contract.md
     Docs updated:
     - components/README.md
     - components/shared/README.md
@@ -5072,11 +5072,11 @@
     - utils/README.md
     - TODO.org
     Notes:
-    - Added generic domain, process, and artifact type registries to `@cutkit/core`.
-    - Added `cncDomain`, `cncProcesses`, `cncArtifactTypes`, and UI metadata to `@cutkit/domain-cnc` while keeping Vue/Nuxt/Mongo implementation out of the domain package.
+    - Added generic domain, process, and artifact type registries to `@perigram/core`.
+    - Added `cncDomain`, `cncProcesses`, `cncArtifactTypes`, and UI metadata to `@perigram/domain-cnc` while keeping Vue/Nuxt/Mongo implementation out of the domain package.
     - Moved CNC service action handler binding from generic operations runtime into `server/adapters/cnc-domain.js`.
     - Added the initial `process_runs` runtime for declared async process execution and manifest visibility.
-    - Expanded `@cutkit/vue` to adapt domain UI/artifact metadata and switched `useEntity` to the aggregate CNC domain adapter.
+    - Expanded `@perigram/vue` to adapt domain UI/artifact metadata and switched `useEntity` to the aggregate CNC domain adapter.
 
 *** Agent Notes
     [2026-05-22] Complete domain-owned UI contracts and process bridges
@@ -5122,7 +5122,7 @@
     - workers/nesting/README.md
     - TODO.org
     Notes:
-    - Moved design-system entity contracts, primitive metadata, groups, and variants into `@cutkit/domain-cnc`; `utils/design-system-contract.js` is now compatibility validation/export only.
+    - Moved design-system entity contracts, primitive metadata, groups, and variants into `@perigram/domain-cnc`; `utils/design-system-contract.js` is now compatibility validation/export only.
     - Added `saveCassetteTemplate` as a CNC service action and routed `CassetteDesigner` saves through the generic operation endpoint.
     - Added admin process listing and process-run start support.
     - Linked nesting, DXF upload, file-processing, cassette-processing, and legacy nesting worker execution to `process_runs` while retaining legacy polling collections as compatibility queues.
@@ -5201,7 +5201,7 @@
     [2026-05-22] Implement golden architecture registry and process queue boundaries
     Files changed:
     - packages/core/src/index.js
-    - server/runtime/cutkit-registry.js
+    - server/runtime/perigram-registry.js
     - server/adapters/cnc-domain.js
     - server/core/operations/service.js
     - server/core/processes/service.js
@@ -5217,8 +5217,8 @@
     - workers/fileprocessing/main.py
     - workers/cassette-processing/main.py
     - workers/nesting/main.py
-    - plugins/cutkit-domain.js
-    - composables/useCutkitDomainUi.js
+    - plugins/perigram-domain.js
+    - composables/usePerigramDomainUi.js
     - composables/useEntity.js
     - components/ArtifactsTable.vue
     - scripts/check-arch.js
@@ -5240,7 +5240,7 @@
     - workers/nesting/README.md
     - TODO.org
     Notes:
-    - Added explicit CutKit registries and a single server app registry for CNC domain contracts, services, operation handlers, and hook handlers.
+    - Added explicit Perigram registries and a single server app registry for CNC domain contracts, services, operation handlers, and hook handlers.
     - Promoted `server/core/processes` from ledger helpers to a queue runtime with enqueue, claim, heartbeat, complete, fail, retry, cancel, and admin/worker APIs.
     - Moved worker process lifecycle writes behind `/api/processes/*` and added architecture checks blocking core-domain imports, direct `process_runs` writes, and direct CNC imports in shared frontend primitives.
 
@@ -5519,7 +5519,7 @@
     - Kept raw markup only for structural layout and the passive color swatch.
 
 *** Agent Notes
-    [2026-05-25] Render drawing layer panel with CutKit entity components
+    [2026-05-25] Render drawing layer panel with Perigram entity components
     Files changed:
     - components/shared/DrawingCanvas.vue
     - utils/drawingPreview.js
@@ -6984,7 +6984,7 @@
   :PROPERTIES:
   :ID: full-intent-contract-responsibility-audit-and-refactor
   :ARCHIVE_TIME: 2026-07-15 Wed 09:34
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -8755,7 +8755,7 @@
       system records are marked with `lineage.scope: "system"`,
       `lineage.public: true`, and `data.visibility.public: true`; access and
       field redaction allow read-level access to those records while keeping
-      writes/admin gated. The migration was run in `cutkit_app_dev` and marked
+      writes/admin gated. The migration was run in `perigram_app_dev` and marked
       1 material, 22 layer standards, 14 pens, and 6 tools.
 
     [2026-06-24] Filter generated process row actions by entity status
@@ -8790,7 +8790,7 @@
       action no longer carries the cassette-design bake mode. Runtime execution
       creates a full default OCCS template through the cassette service instead
       of a generic row with an empty definition. The migration rewrites both
-      drafts and active compiled definitions; it was run inside `cutkit_app_dev`
+      drafts and active compiled definitions; it was run inside `perigram_app_dev`
       and updated 36 process definitions, recompiling 35 of them.
 
     [2026-06-23] Fix process status inputs and construction prompt compilation
@@ -9199,8 +9199,8 @@
 
     [2026-06-22] Ban compatibility bridges in agent protocol
     Files changed: AGENTS.md,
-      .codex/skills/cutkit-project-workflow/SKILL.md,
-      .codex/skills/cutkit-backend-v24/SKILL.md
+      .codex/skills/perigram-project-workflow/SKILL.md,
+      .codex/skills/perigram-backend-v24/SKILL.md
     Docs updated: TODO.org
     Notes: Added a hard rule that changed data structures, permissions,
       routes, APIs, and process protocols must replace the old contract and
@@ -9266,7 +9266,7 @@
     Files changed: components/process-designer/ProcessActionNode.vue,
       pages/organization/process.vue, packages/processes/src/index.js,
       i18n/locales/en.json, i18n/locales/ru.json
-    Docs updated: .codex/skills/cutkit-vue-design-system/SKILL.md,
+    Docs updated: .codex/skills/perigram-vue-design-system/SKILL.md,
       components/README.md, docs/DESIGN_SYSTEM.md,
       components/process-designer/README.md, pages/organization/README.md,
       packages/processes/README.md, TODO.org
@@ -10179,12 +10179,12 @@
   CLOSED: [2026-08-06 Thu 08:42]
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-08-06 Thu 08:42
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
   [2026-07-18 Sat 12:12]
-  Everywhere in app, where dropdowns use cutkit entities, need to replace select element content with entity card (compact variant with preview), and selected items are displayed also as compact entity cards instead of having an input in select trigger with selected items as badges.
+  Everywhere in app, where dropdowns use perigram entities, need to replace select element content with entity card (compact variant with preview), and selected items are displayed also as compact entity cards instead of having an input in select trigger with selected items as badges.
 
 ** Implementation plan
 
@@ -10264,7 +10264,7 @@
   :PROPERTIES:
   :ID: architecture-repair-execution-plan-2026-07-15
   :ARCHIVE_TIME: 2026-08-06 Thu 09:45
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -10291,7 +10291,7 @@
 
 *** Entity relations and containment
 
-    - Extend =@cutkit/core= with one canonical =EntityRef= value:
+    - Extend =@perigram/core= with one canonical =EntityRef= value:
       ={ type, id, revisionId? }=. The optional revision ID identifies an
       immutable =entity_revision= for that same source entity. Runtime results,
       process ports, relations, and provenance use this exact value shape.
@@ -11042,13 +11042,13 @@
 * DONE Process designer rework
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-08-06 Thu 09:45
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
   :END:
   [2026-07-18 Sat 09:30]
 ** DONE Architecture rework
-   The process designer must be a reusable representation of CutKit core with a
+   The process designer must be a reusable representation of Perigram core with a
    supplied domain implementation, not a CNC-specific canvas and not a visual
    editor for internal runtime operations. Keep this WAITING until every
    supported capability has one documented and tested authoring path.
@@ -11074,7 +11074,7 @@
 * WAITING Template entity as actual template for generate typed artifacts with.
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-08-06 Thu 09:46
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -11161,7 +11161,7 @@
 * WAITING User-scoped generated project screen overloads
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-08-06 Thu 10:01
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: WAITING
   :END:
@@ -11223,7 +11223,7 @@
 * TODO Task 10
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-08-06 Thu 10:02
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_OLPATH: Original architecture repair request (verbatim; unimplemented after rollback)
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
@@ -11232,7 +11232,7 @@
 * DONE Task 9
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-08-06 Thu 10:02
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_OLPATH: Original architecture repair request (verbatim; unimplemented after rollback)
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: DONE
@@ -11248,7 +11248,7 @@
 * TODO Original context and constraint
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-08-06 Thu 10:02
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_OLPATH: Original architecture repair request (verbatim; unimplemented after rollback)
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
@@ -11259,7 +11259,7 @@
 * TODO Task 8
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-08-06 Thu 10:02
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_OLPATH: Original architecture repair request (verbatim; unimplemented after rollback)
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
@@ -11268,7 +11268,7 @@
 * TODO Task 7
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-08-06 Thu 10:02
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_OLPATH: Original architecture repair request (verbatim; unimplemented after rollback)
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
@@ -11277,7 +11277,7 @@
 * TODO Task 6
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-08-06 Thu 10:03
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_OLPATH: Original architecture repair request (verbatim; unimplemented after rollback)
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
@@ -11286,7 +11286,7 @@
 * TODO Task 5
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-08-06 Thu 10:03
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_OLPATH: Original architecture repair request (verbatim; unimplemented after rollback)
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
@@ -11295,7 +11295,7 @@
 * TODO Task 4
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-08-06 Thu 10:03
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_OLPATH: Original architecture repair request (verbatim; unimplemented after rollback)
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
@@ -11305,7 +11305,7 @@
   :PROPERTIES:
   :ID: original-architecture-repair-request-2026-07-13
   :ARCHIVE_TIME: 2026-08-06 Thu 10:03
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
   :END:

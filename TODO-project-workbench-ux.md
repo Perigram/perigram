@@ -2,7 +2,7 @@
 
 Status: READY
 
-Each task preserves the source review item immediately above its CutKit task.
+Each task preserves the source review item immediately above its Perigram task.
 No row implies acceptance, completion, or additional scope.
 
 Terms: Project workbench = `GeneratedProjectWorkspace`; pane =
@@ -87,7 +87,7 @@ OCCS `cassette` template.
 
 > Make tree item type visually explicit with consistent icons and optional secondary metadata.
 
-- [ ] Use `useCutkitDomainUi` and `IdentityBlock`; display only DTO-backed metadata.
+- [ ] Use `usePerigramDomainUi` and `IdentityBlock`; display only DTO-backed metadata.
 
 > Ensure tree indentation represents actual containment only.
 

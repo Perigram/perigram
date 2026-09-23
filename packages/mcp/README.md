@@ -1,4 +1,4 @@
-# COMPONENT: @cutkit/mcp
+# COMPONENT: @perigram/mcp
 
 Read-only MCP tool handlers for LLM-assisted industrial app planning. This package intentionally has no write or codegen tools in v1.
 

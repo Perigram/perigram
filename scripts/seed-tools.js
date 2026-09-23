@@ -6,7 +6,7 @@ import { MongoClient, ObjectId } from 'mongodb';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/cutkit_dev';
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/perigram_dev';
 const client = new MongoClient(MONGO_URI);
 
 const tools = [

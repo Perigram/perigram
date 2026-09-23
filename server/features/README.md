@@ -17,7 +17,7 @@ Every feature module in `server/features/[name]/` **must** contain:
 | `index.js` | **Public API.** Exports `service` namespace only — never `repository` or `model`. |
 
 `node scripts/check-arch.js` derives the entity feature set from
-`@cutkit/domain-cnc` persisted entity definitions. Run before every commit.
+`@perigram/domain-cnc` persisted entity definitions. Run before every commit.
 
 ### Entity vs Capability Modules
 

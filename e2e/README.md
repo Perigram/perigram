@@ -1,6 +1,6 @@
 # COMPONENT: E2E Workflow Tests
 
-Playwright tests for user-visible CutKit workflows. These tests exercise the
+Playwright tests for user-visible Perigram workflows. These tests exercise the
 Nuxt app and Nitro APIs against a running local/dev stack.
 
 ## Run Contract
@@ -24,8 +24,10 @@ The suite runs with one worker because every browser context starts from the
 same stored user session and organization selection is server-side session
 state. Tests that enter another organization must restore the original through
 fixture cleanup; parallel workers would otherwise race on that shared context.
-By default setup logs in as `e2e@cutkit.local` and registers that user on first
-run against `org-demo-acme` with a `ContractorAdmin` role. Override
+By default setup logs in as `e2e@perigram.local` and registers that user on
+first run, then creates the `E2E Contracting` organization through the
+authenticated organizations API (registration no longer creates
+organizations). Override
 `E2E_USER_EMAIL`, `E2E_USER_PASSWORD`, or `E2E_ORG_ID` when using another
 database. If local Playwright browsers are not installed, the config uses
 `/usr/bin/brave-browser` when available or `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`
@@ -104,7 +106,7 @@ worker stack; keep those in a separate spec so smoke tests stay cheap.
 | Variable | Default | Purpose |
 |---|---|---|
 | `E2E_BASE_URL` | `http://localhost:3000` | Running app URL. |
-| `E2E_USER_EMAIL` | `e2e@cutkit.local` | Login email for the E2E user. |
+| `E2E_USER_EMAIL` | `e2e@perigram.local` | Login email for the E2E user. |
 | `E2E_USER_PASSWORD` | `e2e-password` | Login password for the E2E user. |
 | `E2E_ORG_ID` | `org-demo-acme` | Organization id used when registering the E2E user. |
 | `E2E_REGISTER_ON_LOGIN_FAILURE` | `true` | Register the E2E user if login returns 401. |

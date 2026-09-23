@@ -6,8 +6,13 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 
 - `index.js` exports application semantic tokens plus bounded projections for
   PrimeVue, Tailwind, and Nuxt runtime CSS variables.
-  Its active palette keeps signal-orange intent accents on the zinc surface
-  scale. The surface contract is flat: the gray page (`--p-surface-100`
+  Primary is contrast, not a color: it rides the zinc surface scale, so
+  controls painted with it read as ink-on-surface (near-black on the light
+  canvas, near-white on the dark one) like the monochrome primaries of the
+  PrimeVue showcase pages. Brand energy lives in the Perigram accent — the
+  logo red `#ff0040` expanded into a full tonal ramp — which owns intent
+  signals: focus rings, overlay selection highlights, the chrome signal
+  rule, and decision marks. The surface contract is flat: the gray page (`--p-surface-100`
   light, `--p-surface-950` dark) is the single canvas; structural
   containers — panes, tab strips, layouts, chats, call surfaces — paint
   no background over it, PrimeVue controls and overlays carry the lighter
@@ -24,7 +29,10 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
 - Nuxt emits the exported `cssVariableTokens` and `darkCssVariableTokens`
   directly. `assets/css/main.css` consumes those variables but must not
   duplicate their values or bridge PrimeVue `--p-*` variables.
-- `assets/presets/re_l.js` extends Aura with the bounded primary palette and zinc surface scale
+- `assets/presets/re_l.js` extends Aura with the neutral (zinc) primary
+  palette, the Perigram accent palette, per-scheme primary colors resolved
+  against the surface scale, accent-driven focus rings and selection
+  highlights, and the zinc surface scale
   projection plus a minimal component-token set: collection chrome —
   table/tree-table/view headers, footers, footer cells, and paginators
   (standalone or embedded) — renders transparent so the hosting surface

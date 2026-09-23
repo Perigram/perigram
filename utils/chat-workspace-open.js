@@ -1,6 +1,6 @@
 import { useAuthStore } from '~/stores/auth';
 
-const WORKSPACE_CHAT_OPEN_EVENT = 'cutkit:open-workspace-chat';
+const WORKSPACE_CHAT_OPEN_EVENT = 'perigram:open-workspace-chat';
 
 const usePendingWorkspaceChat = () => useState('pendingWorkspaceChat', () => null);
 

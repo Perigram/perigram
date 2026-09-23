@@ -299,7 +299,7 @@ const resolveDrawing = async () => {
   }
 
   if (props.sourceType === 'occs-cassette') {
-    const graphTree = props.source?.extensions?.cutkit?.graphTree || props.source?.graphTree || null;
+    const graphTree = props.source?.extensions?.perigram?.graphTree || props.source?.graphTree || null;
     if (!graphTree) return null;
     return applyLayerPens(await renderCassetteV2TreeToDrawing(graphTree), penOptions);
   }
@@ -310,7 +310,7 @@ const resolveDrawing = async () => {
     const document = typeof props.source === 'string'
       ? JSON.parse(await fetchText(props.source))
       : props.source;
-    const graphTree = document?.extensions?.cutkit?.graphTree || document?.graphTree || null;
+    const graphTree = document?.extensions?.perigram?.graphTree || document?.graphTree || null;
     if (!graphTree) return null;
     return applyLayerPens(await renderCassetteV2TreeToDrawing(graphTree), penOptions);
   }

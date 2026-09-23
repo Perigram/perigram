@@ -1,6 +1,6 @@
 ---
 name: occs-compliance
-description: Work with the Open Cassette Component Standard in CutKit, including OCCS cassette template/design specs, docs/specs/Cassette spec, utils/occs helpers, cassette designer OCCS output, semantic layer standards, OCCS migration, previews, baking, nesting inputs, or validation and review of OCCS documents.
+description: Work with the Open Cassette Component Standard in Perigram, including OCCS cassette template/design specs, docs/specs/Cassette spec, utils/occs helpers, cassette designer OCCS output, semantic layer standards, OCCS migration, previews, baking, nesting inputs, or validation and review of OCCS documents.
 ---
 
 # OCCS Compliance
@@ -42,9 +42,9 @@ Load these only when the task needs them:
   avoid local hardcoded aliases.
 - Route drawing output through the shared `DrawingCanvas` contract with explicit
   layer-standard codes.
-- For backend persistence or baking changes, also apply the `cutkit-backend-v24`
+- For backend persistence or baking changes, also apply the `perigram-backend-v24`
   skill.
-- For Vue component changes, also apply the `cutkit-vue-design-system` skill.
+- For Vue component changes, also apply the `perigram-vue-design-system` skill.
 
 ## Validation
 

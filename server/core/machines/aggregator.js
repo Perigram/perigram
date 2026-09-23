@@ -1,6 +1,6 @@
 import { connectDB } from '../../db/mongo.js';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
+import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
 import { getEntityCollection } from '~/server/runtime/entities.js';
 
 /**
@@ -55,7 +55,7 @@ export const aggregator = {
 };
 
 function getAggregationMap() {
-  const summaries = getCutkitRegistry().getDomain('cnc')?.summaries || [];
+  const summaries = getPerigramRegistry().getDomain('cnc')?.summaries || [];
   return Object.fromEntries(summaries.map(summary => [
     summary.typeId,
     {

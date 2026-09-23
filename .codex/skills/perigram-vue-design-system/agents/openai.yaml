@@ -1,0 +1,4 @@
+interface:
+  display_name: "Perigram Vue Design System"
+  short_description: "Perigram Vue v24 UI workflow"
+  default_prompt: "Use $perigram-vue-design-system to update Perigram Vue UI consistently."

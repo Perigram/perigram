@@ -7,7 +7,7 @@ export function configurePush({ publicKey, privateKey }) {
         configured = null;
         return false;
     }
-    webpush.setVapidDetails('mailto:support@cutkit.dev', publicKey, privateKey);
+    webpush.setVapidDetails('mailto:support@perigram.dev', publicKey, privateKey);
     configured = { publicKey };
     return true;
 }
@@ -28,7 +28,7 @@ export function pushConfiguration() {
 export function notificationFromEvent(payload = {}) {
     if (payload.type === 'support.inbox') {
         return {
-            title: 'CutKit',
+            title: 'Perigram',
             body: 'New message',
             tag: `message:${payload.conversationKey}`,
             data: { url: '/chats' }
@@ -36,7 +36,7 @@ export function notificationFromEvent(payload = {}) {
     }
     if (payload.type === 'call.invite') {
         return {
-            title: payload.fromName || 'CutKit',
+            title: payload.fromName || 'Perigram',
             body: 'Incoming call',
             tag: `call:${payload.room}`,
             requireInteraction: true,

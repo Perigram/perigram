@@ -144,15 +144,10 @@ Responsibilities:
 is secure in production by default, but `SESSION_COOKIE_SECURE=false` can be set
 for plain HTTP LAN deployments so browsers keep the session cookie.
 `auth/register.post.js` is the public signup boundary. It accepts user
-credentials and, when `organizationName`/`processTemplateId` are provided,
-creates the user's initial organization membership and active starter process
-without calling protected organization CRUD routes. Legacy
-`organizationType` input is accepted only as a template fallback.
-Invitation-driven signup omits organization fields;
-the user creates only an account, then logs in and accepts the invitation link.
-If a previous signup created a password-backed user before the organization step
-existed, submitting the same email/password with organization details recovers
-that orphaned account instead of returning a duplicate-email dead end.
+credentials only (name, email, password) and creates the account without any
+organization, membership, or process side effects. New users join an
+organization by invitation or create their own after signing in through the
+authenticated organizations API used by the profile page.
 
 ## Example Handler
 ```javascript

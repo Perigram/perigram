@@ -3,7 +3,7 @@ import { resolveCtsDefinition } from './graph-protocol.js';
 import { createTypeRegistry, projectDomainFromView, frameworkTypes } from '~/packages/cts/src/index.js';
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import { prepareAuthoredDefinition, validateProcessDefinition } from '~/packages/processes/src/index.js';
-import { cncDomain } from '@cutkit/domain-cnc';
+import { cncDomain } from '@perigram/domain-cnc';
 
 // Contract migration (SPEC §20): persisted construction modes the type no
 // longer declares re-bind to the type's current default mode at the

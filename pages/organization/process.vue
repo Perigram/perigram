@@ -580,7 +580,7 @@ import {
   PROCESS_DATAFLOW_VERSION
 } from '~/packages/processes/src/index.js';
 import { normalizeScreenContract, SCREEN_TEMPLATES, SCREEN_SOURCE_MODES, SCREEN_REGION_SLOTS, SCREEN_REGION_SURFACES, SCREEN_LINEAGE_BINDING_FIELDS } from '~/packages/processes/src/screen-contract.js';
-import { cncDomain, cncPackContent } from '@cutkit/domain-cnc';
+import { cncDomain, cncPackContent } from '@perigram/domain-cnc';
 import { checkDeclarationsAgainstCts, classMayDeclareChildren, compileClientBundle, projectDomainFromView, normalizeType } from '~/packages/cts/src/index.js';
 import ProcessNode from '~/components/process-designer/ProcessNode.vue';
 import CtsTypeNode from '~/components/process-designer/CtsTypeNode.vue';

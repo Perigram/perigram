@@ -1,4 +1,4 @@
-## The cutkit file preprocessing worker 
+## The perigram file preprocessing worker 
 
 The application use dxf handle value as unique identificator for mathing the parts, lines, polygones etc. Time to time some dxf doen't provide the handle as unique field.
 The worker rebuild the dxf file, and create a valid JSON presentation for the dxf file, with list of close polygones and coresponding handle new the new file.
@@ -6,7 +6,7 @@ The worker rebuild the dxf file, and create a valid JSON presentation for the dx
 ## Build docker image
 
 ```sh
-docker build -t cutkit-worker-fileprocessing:local .
+docker build -t perigram-worker-fileprocessing:local .
 ````
 
 Run as service
@@ -15,11 +15,11 @@ Run as service
 docker service create \
   --name my-file-processing-service \
   --env-file ./.env \
-  cutkit-worker-fileprocessing:local
+  perigram-worker-fileprocessing:local
 ```
 
 ## Local development run 
 
 ```sh
-docker run --network host -it -v "$(pwd):/app" -w /app cutkit-worker-fileprocessing:local bash
+docker run --network host -it -v "$(pwd):/app" -w /app perigram-worker-fileprocessing:local bash
 ```

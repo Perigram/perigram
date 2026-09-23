@@ -11,7 +11,7 @@ import { compileProcessDefinition } from './index.js';
 import { projectUiContractChannels, UI_CONTRACT_ACTION_KINDS, UI_CONTRACT_TEMPLATES } from './ui-contract-projection.js';
 import { createTypeRegistry, frameworkTypes, projectDomainFromView, compileClientBundle } from '../../cts/src/index.js';
 import { cncTypePack } from '../../cts/src/pack/cnc.js';
-import { cncDomain, cncPackContent } from '@cutkit/domain-cnc';
+import { cncDomain, cncPackContent } from '@perigram/domain-cnc';
 import { createPersistedAcceptanceFixture } from '../../../test-data/persisted-acceptance.js';
 import { composeScreen } from '#shared/ui-mapping/index.js';
 

@@ -7,7 +7,7 @@
 const { MongoClient, ObjectId } = require('mongodb');
 
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
-const DB_NAME = process.env.MONGODB_DB || 'cutkit';
+const DB_NAME = process.env.MONGODB_DB || 'perigram';
 
 // Collections to migrate
 const COLLECTIONS = [

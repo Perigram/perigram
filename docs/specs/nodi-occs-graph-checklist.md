@@ -11,7 +11,7 @@ each evaluated `out.boundary`, and feed child faces from the cached parent
 boundary through a generated Nodi `Polyline` input. Compose OCCS into one Nodi3d
 graph only when export/debug needs a whole-document graph.
 
-CutKit handles:
+Perigram handles:
 
 - OCCS expression resolution
 - recursive face/fold traversal
@@ -54,7 +54,7 @@ If Nodi3d optional branches are inconvenient, create wrapper graphs:
 - `face.polygon.root`
 - `face.polygon.edge`
 
-CutKit still treats those as one logical `face.trapezoid` or `face.polygon`
+Perigram still treats those as one logical `face.trapezoid` or `face.polygon`
 operation with different placement modes.
 
 ## Anchor Naming
@@ -64,7 +64,7 @@ Use `start` and `end`, not `source.start` / `source.end`.
 Reason: the active base edge is already known from context. For a child face it
 is selected by `parentEdgeIndex` from the connected `parentPolygon` boundary.
 Numeric `0` / `1` is acceptable inside a Nodi graph, but less readable in OCCS
-or CutKit IR.
+or Perigram IR.
 
 ## Boundary Direction
 
@@ -78,7 +78,7 @@ Ei = vertex[i] -> vertex[(i + 1) % vertexCount]
 When composing graphs, connect the parent `out.boundary` to the child
 `parentPolygon` input and pass `parentEdgeIndex`. For incremental preview,
 connect an adapter `Polyline` created from the cached parent boundary vertices.
-If the graph has a test parent polygon for authoring, CutKit replaces that
+If the graph has a test parent polygon for authoring, Perigram replaces that
 connection for child instances.
 
 The trapezoid point rule (`P0..P3`) is defined in the
@@ -116,7 +116,7 @@ Build these first:
 - [ ] `region.union`
 - [ ] `entity.circleHole`
 - [ ] `region.difference`
-- [ ] `layer.collect` or CutKit-side layer collector
+- [ ] `layer.collect` or Perigram-side layer collector
 
 This is enough for: main face, simple returns, route lines, holes, final flat
 pattern contour, and semantic layer output.
@@ -133,7 +133,7 @@ pattern contour, and semantic layer output.
 | [ ] | `entity.slot` | `faceFrame`, `origin`, `width`, `height`, `cornerRadius`, `rotation` | `cutRegion`, `geometry` | Geometry layer is `cut.inner`. |
 | [ ] | `entity.polygonCutout` | `faceFrame`, `origin`, `points`, `rotation` | `cutRegion`, `geometry` | For arbitrary cutouts/hang cuts. |
 | [ ] | `region.offset` | `region`, `distance`, `mode` | `boundary` | Produces `contour.flat_pattern.offset_envelope`. |
-| [ ] | `layer.collect` | `items` | `layers` | Can be Nodi-side or CutKit-side. |
+| [ ] | `layer.collect` | `items` | `layers` | Can be Nodi-side or Perigram-side. |
 
 ## Minimum Tests
 

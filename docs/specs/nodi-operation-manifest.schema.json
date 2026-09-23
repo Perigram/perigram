@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://cutkit.dev/schemas/nodi-operation-manifest.schema.json",
-  "title": "CutKit Nodi3d Operation Manifest",
+  "$id": "https://perigram.dev/schemas/nodi-operation-manifest.schema.json",
+  "title": "Perigram Nodi3d Operation Manifest",
   "type": "object",
   "required": ["id", "operation", "version", "graphFile", "inputs", "outputs"],
   "additionalProperties": false,

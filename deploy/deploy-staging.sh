@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# CutKit staging autodeploy runner.
+# Perigram staging autodeploy runner.
 # Fetches origin/staging into the R240 checkout, builds the app image, and
 # rolls the Swarm service. Intended to be triggered by the Forgejo webhook
 # receiver, but safe to run by hand.
 
-CHECKOUT_DIR="${CHECKOUT_DIR:-/home/cutkit/cutkit-demo}"
-SERVICE_NAME="${SERVICE_NAME:-cutkit_app}"
-IMAGE_PREFIX="${IMAGE_PREFIX:-cutkit-app}"
+CHECKOUT_DIR="${CHECKOUT_DIR:-/home/perigram/perigram-demo}"
+SERVICE_NAME="${SERVICE_NAME:-perigram_app}"
+IMAGE_PREFIX="${IMAGE_PREFIX:-perigram-app}"
 GIT_BRANCH="${GIT_BRANCH:-staging}"
 HTTP_PROXY_PORT="${HTTP_PROXY_PORT:-12334}"
 

@@ -6,7 +6,7 @@ import {
   getSingleEndpoint
 } from './index.js';
 
-describe('@cutkit/vue endpoint map', () => {
+describe('@perigram/vue endpoint map', () => {
   it('registers canonical endpoint keys from route metadata', () => {
     const endpointMap = createEndpointMap([
       {

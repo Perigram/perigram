@@ -23,7 +23,7 @@ const APP_DOC_PATHS = [
 
 const CORTEX_DOC_NAMES = new Set([
   'ConfigBot как интерфейс настройки платформы.md',
-  'cutkit-core как доменное ядро.md',
+  'perigram-core как доменное ядро.md',
   'RAG.md',
   'Ollama.md',
   'Частный AI-сервер на локальной модели с подключением к облачным LLM.md'

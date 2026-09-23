@@ -2,23 +2,27 @@
     <div class="flex min-h-screen items-center justify-center bg-page p-4">
         <Panel class="w-full max-w-md">
             <div class="flex flex-col items-center gap-2 mb-8">
-                <i class="pi pi-box"></i>
-                <h1>CutKit</h1>
-                <p>{{ $t('auth.subtitle') }}</p>
+                <NuxtLink to="/" class="flex items-center no-underline" aria-label="Perigram">
+                    <img src="/logo-light.svg" alt="Perigram" class="h-7 w-auto dark:hidden" />
+                    <img src="/logo-dark.svg" alt="Perigram" class="hidden h-7 w-auto dark:block" />
+                </NuxtLink>
+                <p class="m-0">{{ $t('auth.subtitle') }}</p>
             </div>
 
             <form @submit.prevent="handleLogin" class="flex flex-col gap-4">
                 <div class="flex flex-col gap-1">
                     <label for="email">{{ $t('profile.email') }}</label>
-                    <InputText id="email" v-model="email" type="email" class="w-full" required />
+                    <InputText id="email" v-model="email" type="email" class="w-full" required autocomplete="email" />
                 </div>
 
                 <div class="flex flex-col gap-1">
                     <label for="password">{{ $t('profile.password') }}</label>
-                    <Password id="password" v-model="password" :feedback="false" toggleMask class="w-full" inputClass="w-full" required />
+                    <Password id="password" v-model="password" :feedback="false" toggleMask class="w-full" inputClass="w-full" required autocomplete="current-password" />
                 </div>
 
-                <Button type="submit" :label="$t('auth.login')" :loading="loading" class="w-full mt-2" />
+                <Message v-if="formError" severity="error" data-testid="login-error">{{ formError }}</Message>
+
+                <Button type="submit" :label="redirecting ? $t('auth.redirecting') : $t('auth.login')" :loading="loading || redirecting" class="w-full mt-2" />
             </form>
 
             <div class="mt-6 text-center">
@@ -34,11 +38,11 @@ import { computed, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '~/stores/auth';
-import { useToast } from 'primevue/usetoast';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
+import Message from 'primevue/message';
 
 definePageMeta({
     layout: 'empty'
@@ -47,12 +51,13 @@ definePageMeta({
 const router = useRouter();
 const route = useRoute();
 const authStore = useAuthStore();
-const toast = useToast();
 const { t } = useI18n();
 
 const email = ref('');
 const password = ref('');
 const loading = ref(false);
+const redirecting = ref(false);
+const formError = ref('');
 const redirectPath = computed(() => normalizeRedirect(route.query.redirect));
 const registerTarget = computed(() => ({
     path: '/auth/register',
@@ -64,11 +69,13 @@ const registerTarget = computed(() => ({
 
 const handleLogin = async () => {
     loading.value = true;
+    formError.value = '';
     try {
         await authStore.login(email.value, password.value);
+        redirecting.value = true;
         router.push(redirectPath.value || '/');
     } catch (error) {
-        toast.add({ severity: 'error', summary: t('common.error'), detail: error.message || t('auth.loginFailed'), life: 3000 });
+        formError.value = t('auth.loginFailed');
     } finally {
         loading.value = false;
     }

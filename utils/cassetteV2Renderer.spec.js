@@ -323,7 +323,7 @@ describe('cassette v2 trapezoid renderer', () => {
       topStartOffset: 'TSO',
       topEndOffset: 'TEO'
     });
-    expect(occs.extensions.cutkit.nodi.inputs.startAnchor).toBe(1);
+    expect(occs.extensions.perigram.nodi.inputs.startAnchor).toBe(1);
   });
 
   it('preserves OCCS expressions while resolving Nodi graph inputs from global parameters', () => {

@@ -3,7 +3,7 @@
 // and card grids return to the chosen order across navigation and reloads.
 // The declared default from the list-controls contract applies when no
 // preference exists.
-const PREFIX = 'cutkit:sort:';
+const PREFIX = 'perigram:sort:';
 
 export function loadSortPreference(scope = '') {
   if (!scope || typeof window === 'undefined') return null;

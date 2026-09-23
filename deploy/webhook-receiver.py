@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CutKit Forgejo webhook receiver.
+"""Perigram Forgejo webhook receiver.
 
 Listens for Forgejo push webhooks on a private LAN port, verifies the
 X-Forgejo-Signature HMAC, and runs the staging deploy when the pushed ref is
@@ -7,11 +7,11 @@ the staging branch.
 
 Configuration is read from the environment:
 
-- CUTKIT_WEBHOOK_SECRET : shared secret configured on the Forgejo webhook
-- CUTKIT_WEBHOOK_BIND   : listen address (default 192.168.0.106)
-- CUTKIT_WEBHOOK_PORT   : listen port (default 8088)
-- CUTKIT_DEPLOY_SCRIPT  : deploy runner (default /home/cutkit/autodeploy/deploy-staging.sh)
-- CUTKIT_DEPLOY_BRANCH  : ref that triggers a deploy (default refs/heads/staging)
+- PERIGRAM_WEBHOOK_SECRET : shared secret configured on the Forgejo webhook
+- PERIGRAM_WEBHOOK_BIND   : listen address (default 192.168.0.106)
+- PERIGRAM_WEBHOOK_PORT   : listen port (default 8088)
+- PERIGRAM_DEPLOY_SCRIPT  : deploy runner (default /home/perigram/autodeploy/deploy-staging.sh)
+- PERIGRAM_DEPLOY_BRANCH  : ref that triggers a deploy (default refs/heads/staging)
 """
 
 import hmac
@@ -24,15 +24,15 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-log = logging.getLogger("cutkit-webhook")
+log = logging.getLogger("perigram-webhook")
 
-SECRET = os.environ.get("CUTKIT_WEBHOOK_SECRET", "").encode()
-BIND = os.environ.get("CUTKIT_WEBHOOK_BIND", "192.168.0.106")
-PORT = int(os.environ.get("CUTKIT_WEBHOOK_PORT", "8088"))
+SECRET = os.environ.get("PERIGRAM_WEBHOOK_SECRET", "").encode()
+BIND = os.environ.get("PERIGRAM_WEBHOOK_BIND", "192.168.0.106")
+PORT = int(os.environ.get("PERIGRAM_WEBHOOK_PORT", "8088"))
 DEPLOY_SCRIPT = os.environ.get(
-    "CUTKIT_DEPLOY_SCRIPT", "/home/cutkit/autodeploy/deploy-staging.sh"
+    "PERIGRAM_DEPLOY_SCRIPT", "/home/perigram/autodeploy/deploy-staging.sh"
 )
-DEPLOY_BRANCH = os.environ.get("CUTKIT_DEPLOY_BRANCH", "refs/heads/staging")
+DEPLOY_BRANCH = os.environ.get("PERIGRAM_DEPLOY_BRANCH", "refs/heads/staging")
 
 
 def verify_signature(payload: bytes, signature: str) -> bool:
@@ -96,7 +96,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     if not SECRET:
-        log.error("CUTKIT_WEBHOOK_SECRET is required")
+        log.error("PERIGRAM_WEBHOOK_SECRET is required")
         sys.exit(1)
 
     server = ThreadingHTTPServer((BIND, PORT), Handler)

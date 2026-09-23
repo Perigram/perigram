@@ -15,7 +15,7 @@ import {
 // template process, roles, and the owner role assignment. Set E2E_USER_EMAIL
 // explicitly to pin a reused identity.
 const RUN_EMAIL = process.env.E2E_USER_EMAIL
-  || `e2e-${Date.now().toString(36)}@cutkit.local`;
+  || `e2e-${Date.now().toString(36)}@perigram.local`;
 
 export default async function globalSetup() {
   const context = await request.newContext({ baseURL: E2E_BASE_URL });
@@ -43,7 +43,7 @@ export default async function globalSetup() {
   } catch (error) {
     throw new Error([
       `Playwright E2E setup failed for ${E2E_BASE_URL}.`,
-      'Start the CutKit dev/compose stack first and provide valid E2E_USER_EMAIL/E2E_USER_PASSWORD.',
+      'Start the Perigram dev/compose stack first and provide valid E2E_USER_EMAIL/E2E_USER_PASSWORD.',
       error.message
     ].join(' '));
   } finally {
@@ -66,21 +66,35 @@ async function registerE2eUser(context, email) {
     data: {
       email,
       password: E2E_USER_PASSWORD,
-      name: E2E_USER_NAME,
-      // Registration only creates an organization via organizationName; a
-      // fresh org gets the full template process, roles, and the owner role
-      // assignment the suite switches to.
-      organizationName: 'E2E Contracting',
-      processTemplateId: 'contractor'
+      name: E2E_USER_NAME
     },
     failOnStatusCode: false
   });
 
   if (!response.ok() && response.status() !== 409) {
     const body = await safeResponseText(response);
-    throw new Error(`E2E registration failed (${response.status()}). ${body}`);
+    throw new Error(`E2E registration failed (${response.status}). ${body}`);
+  }
+
+  // Registration creates the account only: sign in and create the suite's
+  // organization through the authenticated organizations API - the same
+  // boundary the profile page uses - so the owner membership and empty
+  // starter process land on the session the suite switches to.
+  const login = await loginRequest(context, email);
+  if (!login.ok()) {
+    const body = await safeResponseText(login);
+    throw new Error(`E2E login after registration failed (${login.status}). ${body}`);
+  }
+
+  const org = await context.post('/api/organizations', {
+    data: { name: 'E2E Contracting', email }
+  });
+  if (!org.ok() && org.status() !== 409) {
+    const body = await safeResponseText(org);
+    throw new Error(`E2E organization creation failed (${org.status}). ${body}`);
   }
 }
+
 
 async function safeResponseText(response) {
   try {

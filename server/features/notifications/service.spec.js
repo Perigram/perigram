@@ -31,7 +31,7 @@ describe('notifications service', () => {
 
     it('maps user-scoped events to notifications and skips the rest', () => {
         expect(notificationFromEvent({ type: 'support.inbox', conversationKey: 'k' })).toEqual({
-            title: 'CutKit',
+            title: 'Perigram',
             body: 'New message',
             tag: 'message:k',
             data: { url: '/chats' }

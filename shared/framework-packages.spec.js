@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
 describe('Framework package contracts', () => {
-  it('registers entity definitions in @cutkit/core', async () => {
+  it('registers entity definitions in @perigram/core', async () => {
     const {
       BaseEntity,
       CANONICAL_BLOCK_SCHEMAS,
@@ -156,7 +156,7 @@ describe('Framework package contracts', () => {
     expect(isolated.getHookHandler('isolatedHook')).toBeTruthy();
   });
 
-  it('validates workflow transitions in @cutkit/workflows', async () => {
+  it('validates workflow transitions in @perigram/workflows', async () => {
     const { defineWorkflow, getWorkflow, validateTransition } = await import('../packages/workflows/src/index.js');
 
     const workflow = defineWorkflow('test_entity', {
@@ -191,7 +191,7 @@ describe('Framework package contracts', () => {
     const { createReadOnlyToolHandlers } = await import('../packages/mcp/src/index.js');
     const { createFrameworkManifest, queryDocs, summarizeRoutes, summarizeSummaries, validateUiPrimitives } = await import('../packages/devtools/src/index.js');
     const manifest = createFrameworkManifest({
-      packages: [{ name: '@cutkit/core' }],
+      packages: [{ name: '@perigram/core' }],
       entities: cncEntities,
       frontendEntities: cncDomain.ui.endpoints,
       workflows: cncWorkflows,
@@ -335,7 +335,7 @@ describe('Framework package contracts', () => {
 
   it('keeps the command runtime domain-agnostic', () => {
     const source = readFileSync('server/core/commands/service.js', 'utf8');
-    expect(source).not.toContain('@cutkit/domain-cnc');
+    expect(source).not.toContain('@perigram/domain-cnc');
     expect(source).not.toMatch(/features\/.*\/operations/);
     // The runtime registry imports no domain directly; every domain mounts
     // as a pack (SPEC §21) and the pack owns its domain content and handlers.

@@ -64,7 +64,7 @@ hardcoded legacy navigation cluster went with them (the boot-time projects
 fetch, the project-slug route hierarchy watcher against an unmounted
 endpoint, the hardcoded per-entity route tables in breadcrumb/trace
 routing, the queue editor flow and its orphan stores). The remaining
-client imports of `@cutkit/domain-cnc` are owned by legacy server
+client imports of `@perigram/domain-cnc` are owned by legacy server
 contracts, not by declarations —
 `utils/state-engine.js` (status labels/severity for feature-served
 types whose compiled workflows supplement the table),

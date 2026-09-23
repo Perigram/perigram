@@ -21,8 +21,12 @@ redirect gate for authenticated users.
   `/organization` are still not process entry candidates.
   Authenticated users without an active process use
   the static projects workspace.
-- Anonymous visitors stay on the landing page, which links to login
-  and registration.
+- The landing presents the platform core: authored process declarations
+  compiled into a running application. Anonymous visitors stay on the
+  landing page, which links to login and registration.
+- Authenticated users without any organization membership land on `/profile`,
+  where organization creation lives; the landing is not a dead end for
+  orgless accounts.
 
 ## Authenticated Areas
 
@@ -123,14 +127,19 @@ headerless bounded panel centers in the viewport, presents invitation identity
 inside the content, maps missing/expired tokens to localized user-facing copy,
 and keeps recovery navigation as a standard PrimeVue button. Raw request paths
 and server error strings are not rendered.
-`pages/auth/register.vue` is a public signup form. Normal signup collects the
-new user's credentials plus organization name and starter process and submits them to
-`/api/auth/register`; invitation signup is selected by the `invitation` query
-parameter and collects only account credentials. Login and registration preserve
+`pages/auth/register.vue` is a public signup form. Signup collects the
+new user's credentials only and submits them to `/api/auth/register`;
+organizations are never created during registration — users join by
+invitation or create their own from the profile page after signing in.
+Invitation signup is selected by the `invitation` query parameter and shows
+the invitation note, but the form itself is identical. Login and registration preserve
 a safe same-origin `redirect` query, so `/invitation/:token` can send anonymous
 users through auth and back to the invitation without asking the inviter for an
 email address. The register page must not list or create organizations through
-authenticated entity APIs.
+authenticated entity APIs. Both auth pages render their state inline — a
+loading button during submit, an inline error message on failure, a success
+state on the register page, and a redirecting state on the login page —
+because the empty layout mounts no global Toast host.
 
 Asset management routes under `pages/assets/` consume canonical v24 DTOs. Pen
 template screens must read `identity.name` for labels and `data.stroke` for

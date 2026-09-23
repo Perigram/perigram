@@ -227,7 +227,7 @@ const domain = {
   }
 };
 
-describe('@cutkit/processes compiler', () => {
+describe('@perigram/processes compiler', () => {
   it('derives runnable action contracts from authored effect nodes', () => {
     const compiled = compileProcessDefinition({
       dataflowVersion: 4,

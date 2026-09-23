@@ -3,8 +3,8 @@ services:
   user-file-processing-worker-normal:
     image: ghcr.io/1suo/file-processing-worker:latest
     environment:
-      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
-      - CUTKIT_API_URL=${CUTKIT_API_URL:-http://host.docker.internal:3000}
+      - MONGO_URI=mongodb://mongo:27017/perigram_dev
+      - PERIGRAM_API_URL=${PERIGRAM_API_URL:-http://host.docker.internal:3000}
       - WORKER_TOKEN=${WORKER_TOKEN}
       - WORKER_ID=file-processing-normal
       - WORKER_TAG=normal
@@ -19,7 +19,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
+      - MONGO_URI=mongodb://mongo:27017/perigram_dev
     deploy:
       replicas: 1
       update_config:
@@ -28,8 +28,8 @@ services:
   cassette-processing-worker:
     image: ghcr.io/1suo/cassette-processing-worker:latest
     environment:
-      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
-      - CUTKIT_API_URL=${CUTKIT_API_URL:-http://host.docker.internal:3000}
+      - MONGO_URI=mongodb://mongo:27017/perigram_dev
+      - PERIGRAM_API_URL=${PERIGRAM_API_URL:-http://host.docker.internal:3000}
       - WORKER_TOKEN=${WORKER_TOKEN}
       - WORKER_ID=cassette-processing
     deploy:
@@ -40,7 +40,7 @@ services:
   geometry-capture-worker:
     image: ghcr.io/1suo/geometry-capture-worker:latest
     environment:
-      - CUTKIT_API_URL=${CUTKIT_API_URL:-http://host.docker.internal:3000}
+      - PERIGRAM_API_URL=${PERIGRAM_API_URL:-http://host.docker.internal:3000}
       - WORKER_TOKEN=${WORKER_TOKEN}
       - GEOMETRY_CAPTURE_WORKER_ID=geometry-capture
       - GEOMETRY_CAPTURE_ML=${GEOMETRY_CAPTURE_ML:-1}
@@ -64,7 +64,7 @@ services:
 
   mongo:
     image: mongo:4.4
-    container_name: cutkit_mongo
+    container_name: perigram_mongo
     ports:
       - "27017:27017"
     volumes:

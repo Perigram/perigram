@@ -69,7 +69,7 @@ revision. Set `GEOMETRY_CAPTURE_MODEL_FIRST=0` to force OpenCV auto behavior.
 
 | Variable | Purpose |
 |---|---|
-| `CUTKIT_API_URL` | App base URL, default `http://localhost:3000`. |
+| `PERIGRAM_API_URL` | App base URL, default `http://localhost:3000`. |
 | `WORKER_TOKEN` | Shared worker token matching the app. |
 | `GEOMETRY_CAPTURE_WORKER_ID` | Optional stable worker id. |
 | `GEOMETRY_CAPTURE_ML` | `1` when the worker image includes ML dependencies; also enables model preload by default. |
@@ -91,7 +91,7 @@ is maintained for it, and no compose model-cache volume is declared.
 
 `requirements-ml.txt` remains available for non-compose/manual worker
 experiments. If a developer runs this worker outside the compose stack, they
-must provide `CUTKIT_API_URL`, `WORKER_TOKEN`, and any model/cache environment
+must provide `PERIGRAM_API_URL`, `WORKER_TOKEN`, and any model/cache environment
 explicitly.
 
 ## Related

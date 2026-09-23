@@ -1,4 +1,4 @@
-const CACHE = 'cutkit-static-v2'
+const CACHE = 'perigram-static-v2'
 // No '/_nuxt/' here on purpose: in dev that path serves live source modules,
 // and a cache-first worker (registered earlier by a prod build on the same
 // origin) would keep answering with stale code through any hard refresh.
@@ -20,7 +20,7 @@ self.addEventListener('push', (event) => {
     } catch {
         notification = {}
     }
-    event.waitUntil(self.registration.showNotification(notification.title || 'CutKit', {
+    event.waitUntil(self.registration.showNotification(notification.title || 'Perigram', {
         body: notification.body || '',
         tag: notification.tag || '',
         requireInteraction: Boolean(notification.requireInteraction),

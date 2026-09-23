@@ -1,5 +1,5 @@
 import { createError } from 'h3';
-import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
+import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
 import { normalizeTypeId } from '~/server/runtime/entities.js';
 import { assertEntityAccess } from '~/server/core/access/service.js';
 import { normalizeWorkflow } from '~/packages/workflows/src/index.js';
@@ -63,7 +63,7 @@ export function resolveDefaultWorkflow(typeId) {
 }
 
 function getDefaultWorkflow(typeId) {
-  const domain = getCutkitRegistry().getDomain('cnc');
+  const domain = getPerigramRegistry().getDomain('cnc');
   return domain?.workflows?.[typeId] || null;
 }
 
@@ -128,7 +128,7 @@ function isSystemTransition(transition = {}) {
 
 function assertKnownTypeId(typeId) {
   const normalized = normalizeTypeId(typeId);
-  if (!getCutkitRegistry().getInstanceDefinition(normalized)) {
+  if (!getPerigramRegistry().getInstanceDefinition(normalized)) {
     throw createError({ statusCode: 400, message: `Unknown entity type: ${typeId}` });
   }
   return normalized;

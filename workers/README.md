@@ -1,7 +1,7 @@
 # CONTAINER: Workers
 
 Worker services and app-side executors execute retryable `task_runs` declared by
-`@cutkit/domain-cnc`. The app owns task persistence and exposes the worker
+`@perigram/domain-cnc`. The app owns task persistence and exposes the worker
 protocol under `/api/tasks/*`; polling workers authenticate with
 `x-worker-token`.
 
@@ -28,7 +28,7 @@ The nesting service is different: it is a pure HTTP solver. The app-side
 `workers/nesting/worker_service.py` through `NESTING_WORKER_URL`.
 
 `WORKER_TOKEN` must be set on the app and workers. Local compose files default
-to `cutkit-dev-worker`; production stacks expect `WORKER_TOKEN` from the
+to `perigram-dev-worker`; production stacks expect `WORKER_TOKEN` from the
 environment/secrets.
 
 ## Docker

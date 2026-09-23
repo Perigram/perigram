@@ -3,7 +3,10 @@
     <section class="relative min-h-[88vh] overflow-hidden border-b border-content-border">
 
       <header class="relative z-10 mx-auto flex max-w-[var(--ck-page-max-width)] items-center justify-between gap-4 px-4 py-5 md:px-8">
-        <NuxtLink to="/" class="text-[var(--ck-primary-ink)] no-underline text-section-heading">CutKit</NuxtLink>
+        <NuxtLink to="/" class="flex items-center no-underline" aria-label="Perigram">
+          <img src="/logo-light.svg" alt="Perigram" class="h-7 w-auto dark:hidden" />
+          <img src="/logo-dark.svg" alt="Perigram" class="hidden h-7 w-auto dark:block" />
+        </NuxtLink>
         <div class="flex items-center gap-2">
           <Button :label="$t('auth.login')" text @click="navigateTo('/auth/login')" />
           <Button :label="$t('auth.signup')" icon="pi pi-arrow-right" @click="navigateTo('/auth/register')" />
@@ -30,7 +33,7 @@
     <section class="mx-auto grid max-w-[var(--ck-page-max-width)] grid-cols-1 gap-4 px-4 py-8 md:grid-cols-3 md:px-8">
       <Panel v-for="item in valueProps" :key="item.title" class="h-full">
         <div class="flex flex-col gap-2">
-          <i :class="item.icon" class="text-[var(--ck-primary-ink)]" aria-hidden="true"></i>
+          <i :class="item.icon" class="text-[var(--ck-accent-ink)]" aria-hidden="true"></i>
           <h2 class="m-0 text-section-heading">{{ item.title }}</h2>
           <p class="m-0 text-muted text-body">{{ item.description }}</p>
         </div>
@@ -53,19 +56,19 @@ const { t } = useI18n();
 
 const valueProps = computed(() => [
   {
-    icon: 'pi pi-sitemap',
-    title: t('marketing.valueTraceabilityTitle'),
-    description: t('marketing.valueTraceability')
+    icon: 'pi pi-code',
+    title: t('marketing.valueDeclareTitle'),
+    description: t('marketing.valueDeclare')
   },
   {
-    icon: 'pi pi-box',
-    title: t('marketing.valueCassetteTitle'),
-    description: t('marketing.valueCassette')
+    icon: 'pi pi-cpu',
+    title: t('marketing.valueCompileTitle'),
+    description: t('marketing.valueCompile')
   },
   {
-    icon: 'pi pi-chart-line',
-    title: t('marketing.valueProductionTitle'),
-    description: t('marketing.valueProduction')
+    icon: 'pi pi-bolt',
+    title: t('marketing.valueRuntimeTitle'),
+    description: t('marketing.valueRuntime')
   }
 ]);
 
@@ -80,7 +83,10 @@ async function redirectIfAuthenticated() {
       await navigateTo(processRoute);
       return;
     }
-    await navigateTo('/organization');
+    // Orgless users have no generated workspace yet; their entry point is
+    // the profile page where organization creation lives.
+    const hasOrganization = Boolean(authStore.userData?.organizationId) || authStore.memberships.length > 0;
+    await navigateTo(hasOrganization ? '/organization' : '/profile');
   }
 }
 

@@ -264,7 +264,7 @@ export function createRegistry({ id = 'app' } = {}) {
   return registry;
 }
 
-export const createCutkitRegistry = createRegistry;
+export const createPerigramRegistry = createRegistry;
 
 export const CANONICAL_ENTITY_BLOCKS = Object.freeze([
   'identity',

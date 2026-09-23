@@ -69,7 +69,7 @@ body {
 }
 
 .chrome-signal-rule {
-    border-top-color: var(--p-primary-color);
+    border-top-color: var(--p-accent-color);
     border-top-style: solid;
     border-top-width: var(--ck-chrome-signal-height);
 }

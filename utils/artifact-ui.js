@@ -1,4 +1,4 @@
-import { cncDomain } from '@cutkit/domain-cnc';
+import { cncDomain } from '@perigram/domain-cnc';
 
 // The artifact/editor family's scoped view of the legacy attachment-kind
 // and surface tables. The server's artifact/files features still serve

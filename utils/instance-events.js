@@ -1,4 +1,4 @@
-export const INSTANCE_CHANGED_EVENT = 'cutkit:instance-changed';
+export const INSTANCE_CHANGED_EVENT = 'perigram:instance-changed';
 
 export function emitInstanceChanged(detail = {}) {
   if (typeof window === 'undefined') return;

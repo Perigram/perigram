@@ -1,6 +1,6 @@
 # CONTAINER: Server
 
-Nuxt/Nitro backend for the CutKit modular monolith.
+Nuxt/Nitro backend for the Perigram modular monolith.
 
 ## Architecture
 
@@ -8,7 +8,7 @@ Nuxt/Nitro backend for the CutKit modular monolith.
 |---|---|---|
 | API routes | `server/api/` | HTTP boundary, auth extraction, request/response shaping. |
 | Feature modules | `server/features/` | Entity services, repositories, models, and command handlers. |
-| Blocks | `server/core/blocks/` | Compatibility exports for `@cutkit/core` DTOs/helpers. |
+| Blocks | `server/core/blocks/` | Compatibility exports for `@perigram/core` DTOs/helpers. |
 | Access | `server/core/access/` | Permission checks for entity services, workflows, and commands. |
 | Workflows | `server/core/machines/` | Status transitions, hook dispatch, summaries. |
 | Commands | `server/core/commands/` | Command execution and `command_runs`. |
@@ -43,7 +43,7 @@ per-route decoding.
 
 Commands are synchronous business intent boundaries. Tasks are asynchronous
 execution boundaries. Both are domain-agnostic runtimes backed by explicit
-registry definitions from `@cutkit/domain-cnc`.
+registry definitions from `@perigram/domain-cnc`.
 
 Command, task, and status handlers may return declared effects. Those effects
 are executed by the centralized effect runtime after validation so handlers

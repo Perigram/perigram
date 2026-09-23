@@ -1,4 +1,0 @@
-interface:
-  display_name: "CutKit Backend v24"
-  short_description: "Golden Path backend feature workflow"
-  default_prompt: "Use $cutkit-backend-v24 to implement a backend feature on the v24 Golden Path."

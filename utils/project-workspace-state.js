@@ -4,7 +4,7 @@ export const PROJECT_WORKSPACE_STATE_VERSION = 4;
 
 export function projectWorkspaceStorageKey({ userId, organizationId, projectId }) {
   if (!userId || !organizationId || !projectId) return '';
-  return ['cutkit', 'project-workspace', PROJECT_WORKSPACE_STATE_VERSION, userId, organizationId, projectId]
+  return ['perigram', 'project-workspace', PROJECT_WORKSPACE_STATE_VERSION, userId, organizationId, projectId]
     .map(String)
     .join(':');
 }

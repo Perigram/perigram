@@ -14,7 +14,7 @@ flowchart TB
     OrgTypes["Org-authored types<br/>(cts_types store)"]
   end
 
-  subgraph Compiler["@cutkit/processes"]
+  subgraph Compiler["@perigram/processes"]
     Normalize["normalization / validation"]
     Actions["action + screen + access compilation"]
     UiContract["UI contract projection<br/>(typeId-only vocabulary)"]
@@ -72,9 +72,9 @@ flowchart TB
 | Layer | Owns | Must Not Own |
 |---|---|---|
 | `@perigram/cts` | Value universe, type declarations, registry/compile, the CTS → compiler-domain projection | Vue, Nuxt, Mongo, workers |
-| `@cutkit/processes` | Process normalization, validation, compilation, UI-contract projection, durable evaluation | Concrete domain imports |
+| `@perigram/processes` | Process normalization, validation, compilation, UI-contract projection, durable evaluation | Concrete domain imports |
 | Packs (`server/packs/*`) | Domain declarations, services/commands/task executors/hook handlers as mountable units | Framework vocabulary |
-| `@cutkit/domain-cnc` | Pack-internal CNC content: legacy tables for the surviving non-process surfaces, shrinking with the legacy cut | Runtime handlers, DB access, Vue components |
+| `@perigram/domain-cnc` | Pack-internal CNC content: legacy tables for the surviving non-process surfaces, shrinking with the legacy cut | Runtime handlers, DB access, Vue components |
 | `server/runtime` | Pack mounting, framework services, the instance-service resolver | Business logic |
 | `server/core/*` | Command/task/effect/workflow runtimes (domain-agnostic) | Domain-specific imports |
 | `server/features/*` | Framework entity services; pack-internal feature modules | Core vocabulary or global registration |
@@ -87,7 +87,7 @@ sequenceDiagram
   participant D as Process Designer
   participant Api
   participant PD as process-definitions feature
-  participant C as @cutkit/processes compiler
+  participant C as @perigram/processes compiler
   participant R as App registry / instance services
   participant UI as Generated screens
 

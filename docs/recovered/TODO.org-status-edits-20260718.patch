@@ -71,7 +71,7 @@ index c3ec2eac..8fc7355e 100644
    [2026-07-18 Sat 09:30]
 -** DONE Architecture rework
 +** WAITING Architecture rework
-    Process designer must be a complete representation of cutkit-core, with cnc-domain as implementation; so just like core we should re-use it in different domains.
+    Process designer must be a complete representation of perigram-core, with cnc-domain as implementation; so just like core we should re-use it in different domains.
 -** DONE Node composition
 +** WAITING Node composition
     It should contain "create entity", which creates every entity possible; "modify entity" which includes any edit, including status change.

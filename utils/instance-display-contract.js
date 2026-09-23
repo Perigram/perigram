@@ -4,7 +4,7 @@ import {
   CNC_PREVIEW_MODES,
   CNC_RELATION_DISPLAYS,
   CNC_SURFACES
-} from '@cutkit/domain-cnc';
+} from '@perigram/domain-cnc';
 import { slotFor } from '#packages/cts/src/index.js';
 
 export const DEFAULT_INSTANCE_SURFACE = 'card';

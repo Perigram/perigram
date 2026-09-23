@@ -1,13 +1,13 @@
 * TODO CassetteDesigner rework
   :PROPERTIES:
   :ARCHIVE_TIME: 2026-08-06 Thu 13:20
-  :ARCHIVE_FILE: /home/isuo/Projects/cutkit-demo/components/TODO.org
+  :ARCHIVE_FILE: /home/isuo/Projects/perigram-demo/components/TODO.org
   :ARCHIVE_CATEGORY: TODO
   :ARCHIVE_TODO: TODO
   :END:
   First, need to understand rework direction.
   CassetteDesigner is a tool for designing cassette templates. It's top-level workflow:
-  1. User-driven design of cassette in 2d editor. Cassette is basically a tree of connected shapes (faces and flanges). See /home/suo/cutkit-demo/docs/specs/cassette-schema.md
+  1. User-driven design of cassette in 2d editor. Cassette is basically a tree of connected shapes (faces and flanges). See /home/suo/perigram-demo/docs/specs/cassette-schema.md
      User can click on shape edges to add child shapes, delete child shapes, modify dimensions, etc.
   2. Storing cassette template as JSON with tree stucture and variables (cassette schema).
   3. Conversion to DXF (probably not needed in this component, need to find proper place for this logic).

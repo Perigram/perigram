@@ -149,7 +149,7 @@ nodes filtered out at load, and entity/service/socket nodes are reconstructed
 from the process records so active definitions do not open to a blank canvas.
 Truly empty processes render compact canvas add controls for the same three
 object types.
-Route process round-tripping delegates to `@cutkit/processes`: canonical
+Route process round-tripping delegates to `@perigram/processes`: canonical
 semantic records project into Vue Flow nodes through
 `definitionToCanvas()`, and saving writes the visible canvas back through
 `canvasToDefinition()`. Canvas layout is therefore presentation state; roles,
@@ -214,7 +214,7 @@ remaining inspector surfaces are:
 The screens tab owns screen identity, generated UI template, route, placement,
 role ids, required access, source and region rows, typed bindings, and action
 ids. It exposes the complete canonical authored shape from the
-[`@cutkit/processes` screen contract](../../packages/processes/README.md), while
+[`@perigram/processes` screen contract](../../packages/processes/README.md), while
 the focused screen composable owns its mutations and mode normalization. Each
 required access record gates the screen against capability authored elsewhere;
 screen editing never writes role grants. Each display region keeps an
@@ -294,7 +294,7 @@ selectors. Change-status action grants also store the status transition
 condition under `action.access.statusFrom/statusTo`, derived from the incoming
 entity socket and target status.
 Entity decomposition and value composition use the complete canonical block
-vocabulary exported by `@cutkit/core`. The selected domain entity narrows which
+vocabulary exported by `@perigram/core`. The selected domain entity narrows which
 blocks exist, while core block entries plus domain field access/field groups
 drive the editable field choices. Typed construction modes expose their
 mode-specific inputs on create nodes, so derived constructors do not render an

@@ -41,7 +41,7 @@ The system consists of three main parts: the transition engine, the dynamic hook
   the legacy `status` block is never written onto them.
 
 The reusable workflow API is being extracted to
-[`@cutkit/workflows`](../../../packages/workflows/README.md). The current
+[`@perigram/workflows`](../../../packages/workflows/README.md). The current
 `service.js` is the runtime adapter and delegates transition validation to the
 package while using registered domain definitions, the app's existing event log,
 and hook dispatch.
@@ -50,7 +50,7 @@ Workflow definitions are v2 region machines. Flat lifecycles are represented as
 the `main` region; nested or parallel lifecycles add more regions under
 `workflow.regions`. Entity `status.state` is a structured snapshot, not a
 string; the canonical snapshot shape and workflow definition examples live in
-[`@cutkit/workflows`](../../../packages/workflows/README.md).
+[`@perigram/workflows`](../../../packages/workflows/README.md).
 
 Use `getPrimaryState(status)` for primary lifecycle reads and
 `getRegionState(status, regionId)` for scoped reads. Primary-state indexes and

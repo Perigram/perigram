@@ -105,7 +105,7 @@
       <div class="mt-8 pt-8 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
         <small>{{ $t('terms.lastUpdated') }}</small>
         <a
-          href="https://github.com/1suo/cutkit"
+          href="https://github.com/1suo/perigram"
           class="flex items-center gap-2"
         >
           <i class="pi pi-github"></i>

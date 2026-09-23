@@ -113,7 +113,7 @@ const setDxfSource = (dxfId, mapping = {}) => {
 
 const setGeometrySource = (cassette) => {
   canvasSource.value = props.preferGeometry
-    ? { ...cassette, __cutkitPreferLayerData: true }
+    ? { ...cassette, __perigramPreferLayerData: true }
     : cassette;
   canvasSourceType.value = 'geometry-preview';
   canvasLayerMapping.value = {};

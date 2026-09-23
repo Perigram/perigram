@@ -41,7 +41,7 @@ export const cncEntityConstruction = {
     modes: ['genericCreate'],
     defaultMode: 'genericCreate',
     inputs: [],
-    isConstructable: entity => entity.data?.type === 'STANDARD' || Boolean(entity.data?.definition?.extensions?.cutkit?.graphTree)
+    isConstructable: entity => entity.data?.type === 'STANDARD' || Boolean(entity.data?.definition?.extensions?.perigram?.graphTree)
   },
   facade: {
     modes: ['genericCreate'],

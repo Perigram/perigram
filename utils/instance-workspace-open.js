@@ -1,6 +1,6 @@
 import { useAuthStore } from '~/stores/auth';
 
-const WORKSPACE_OPEN_EVENT = 'cutkit:open-workspace-entity';
+const WORKSPACE_OPEN_EVENT = 'perigram:open-workspace-entity';
 
 const usePendingWorkspaceEntity = () => useState('pendingWorkspaceEntity', () => null);
 

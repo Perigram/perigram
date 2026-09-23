@@ -1,4 +1,4 @@
-import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
+import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
 
 /**
  * Compatibility export for legacy imports. Workflow definitions are resolved
@@ -7,11 +7,11 @@ import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
  */
 export const stateMachines = new Proxy({}, {
   get(_target, typeId) {
-    const domain = getCutkitRegistry().getDomain('cnc');
+    const domain = getPerigramRegistry().getDomain('cnc');
     return domain?.workflows?.[typeId] || null;
   },
   ownKeys() {
-    const domain = getCutkitRegistry().getDomain('cnc');
+    const domain = getPerigramRegistry().getDomain('cnc');
     return Reflect.ownKeys(domain?.workflows || {});
   },
   getOwnPropertyDescriptor() {

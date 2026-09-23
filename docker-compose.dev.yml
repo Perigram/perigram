@@ -6,18 +6,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: cutkit_app_dev
+    container_name: perigram_app_dev
     ports:
       - "3000:3000"
     volumes:
       - .:/src
       - /src/node_modules
-      - ${CONFIG_BOT_CORTEX_HOST_PATH:-/home/isuo/Documents/cutkit-cortex}:/opt/cutkit-cortex:ro
+      - ${CONFIG_BOT_CORTEX_HOST_PATH:-/home/isuo/Documents/perigram-cortex}:/opt/perigram-cortex:ro
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/cutkit_dev
+      - MONGODB_URI=mongodb://mongo:27017/perigram_dev
       - NODE_ENV=development
       - NODE_OPTIONS=${NODE_OPTIONS:---max-old-space-size=4096}
-      - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
+      - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
       - NESTING_WORKER_URL=http://nesting-worker:8000/nest
       - LIVEKIT_PUBLIC_URL=${LIVEKIT_PUBLIC_URL:-ws://localhost:7880}
       - LIVEKIT_INTERNAL_URL=${LIVEKIT_INTERNAL_URL:-ws://livekit:7880}
@@ -30,12 +30,12 @@ services:
       - NUXT_DEV_HMR_CLIENT_PORT=${NUXT_DEV_HMR_CLIENT_PORT:-3000}
       - CONFIG_BOT_CHAT_MODEL=${CONFIG_BOT_CHAT_MODEL:-qwen3:4b}
       - CONFIG_BOT_EMBED_MODEL=${CONFIG_BOT_EMBED_MODEL:-bge-m3}
-      - CONFIG_BOT_CORTEX_PATH=${CONFIG_BOT_CORTEX_PATH:-/opt/cutkit-cortex}
+      - CONFIG_BOT_CORTEX_PATH=${CONFIG_BOT_CORTEX_PATH:-/opt/perigram-cortex}
     depends_on:
       - mongo
       - livekit
     networks:
-      - cutkit-network
+      - perigram-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: sh -c 'npm run dev -- --host 0.0.0.0 $( [ "$NUXT_DEV_HTTPS" = "true" ] && echo --https )'
@@ -43,7 +43,7 @@ services:
 
   livekit:
     image: livekit/livekit-server:latest
-    container_name: cutkit_livekit
+    container_name: perigram_livekit
     command: --config /etc/livekit.yaml
     volumes:
       - ./livekit.dev.yaml:/etc/livekit.yaml:ro
@@ -52,19 +52,19 @@ services:
       - "7881:7881"
       - "7882:7882/udp"
     networks:
-      - cutkit-network
+      - perigram-network
     restart: unless-stopped
 
   mongo:
     image: mongo:4.4
-    container_name: cutkit_mongo
+    container_name: perigram_mongo
     command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
     networks:
-      - cutkit-network
+      - perigram-network
     restart: always
     healthcheck:
       test: ["CMD", "mongo", "--quiet", "--eval", "try { db.adminCommand('ismaster').ok } catch (e) { 0 }"]
@@ -79,9 +79,9 @@ services:
       context: .
       dockerfile: workers/fileprocessing/Dockerfile
     environment:
-      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
-      - CUTKIT_API_URL=http://app:3000
-      - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
+      - MONGO_URI=mongodb://mongo:27017/perigram_dev
+      - PERIGRAM_API_URL=http://app:3000
+      - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
       - WORKER_ID=file-processing-normal
       - WORKER_TAG=normal
       - MAX_ENTITY_LIMIT=999
@@ -89,7 +89,7 @@ services:
       - app
       - mongo
     networks:
-      - cutkit-network
+      - perigram-network
     restart: unless-stopped
 
   nesting-worker:
@@ -97,11 +97,11 @@ services:
       context: .
       dockerfile: workers/nesting/Dockerfile
     environment:
-      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
+      - MONGO_URI=mongodb://mongo:27017/perigram_dev
     depends_on:
       - mongo
     networks:
-      - cutkit-network
+      - perigram-network
     restart: unless-stopped
 
   cassette-processing-worker:
@@ -109,19 +109,19 @@ services:
       context: .
       dockerfile: workers/cassette-processing/Dockerfile
     environment:
-      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
-      - CUTKIT_API_URL=http://app:3000
-      - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
+      - MONGO_URI=mongodb://mongo:27017/perigram_dev
+      - PERIGRAM_API_URL=http://app:3000
+      - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
       - WORKER_ID=cassette-processing
     depends_on:
       - app
       - mongo
     networks:
-      - cutkit-network
+      - perigram-network
     restart: unless-stopped
 
 networks:
-  cutkit-network:
+  perigram-network:
     external: true
 
 volumes:

@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb';
 import { cncCommands } from '../../packages/domain-cnc/src/commands.js';
 
-const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/cutkit_dev';
+const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/perigram_dev';
 const apply = process.env.APPLY === '1';
 const client = new MongoClient(uri);
 

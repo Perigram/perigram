@@ -1,11 +1,11 @@
-# COMPONENT: @cutkit/vue
+# COMPONENT: @perigram/vue
 
 Frontend adapter helpers for framework entity route, surface, and attachment
 preview metadata. App composables consume this adapter instead of hardcoding
 domain route names.
 
 `composables/useEntity.js` consumes these helpers with endpoint definitions
-from `@cutkit/domain-cnc` for standard CRUD and list endpoints. Status
+from `@perigram/domain-cnc` for standard CRUD and list endpoints. Status
 transitions use the app-level canonical status API rather than entity PATCH
 route metadata.
 

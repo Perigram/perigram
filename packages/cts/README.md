@@ -164,7 +164,7 @@ imports the registry directly and consumes the compiler-domain projection
 fields, and statuses derive from the organization's type view. The
 designer tree is also the declaration-authoring surface (Class/Field/State
 nodes; compiled by `compileTreeDeclarations` from
-`@cutkit/processes`); `pages/organization/types.vue` is the read-only
+`@perigram/processes`); `pages/organization/types.vue` is the read-only
 registry browser fed by `GET /api/admin/cts/types` (org view: system types
 + org-authored declarations stored by `server/features/cts-types`). See
 [pages/organization/README.md](../../pages/organization/README.md).

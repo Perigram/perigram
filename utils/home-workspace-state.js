@@ -6,7 +6,7 @@ export const HOME_WORKSPACE_STATE_VERSION = 3;
 
 export function homeWorkspaceStorageKey({ userId, organizationId }) {
   if (!userId || !organizationId) return '';
-  return ['cutkit', 'home-workspace', HOME_WORKSPACE_STATE_VERSION, userId, organizationId]
+  return ['perigram', 'home-workspace', HOME_WORKSPACE_STATE_VERSION, userId, organizationId]
     .map(String)
     .join(':');
 }

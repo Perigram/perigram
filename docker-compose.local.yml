@@ -3,13 +3,13 @@
 services:
   mongo:
     image: mongo:4.4
-    container_name: cutkit_mongo
+    container_name: perigram_mongo
     ports:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
     networks:
-      - cutkit-network
+      - perigram-network
     restart: always
 
   user-file-processing-worker:
@@ -19,16 +19,16 @@ services:
       dockerfile: workers/fileprocessing/Dockerfile
     container_name: user-file-processing-worker
     environment:
-      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
-      - CUTKIT_API_URL=${CUTKIT_API_URL:-http://host.docker.internal:3000}
-      - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
+      - MONGO_URI=mongodb://mongo:27017/perigram_dev
+      - PERIGRAM_API_URL=${PERIGRAM_API_URL:-http://host.docker.internal:3000}
+      - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
       - WORKER_ID=file-processing-normal
       - WORKER_TAG=normal
       - MAX_ENTITY_LIMIT=999
     depends_on:
       - mongo
     networks:
-      - cutkit-network
+      - perigram-network
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -39,14 +39,14 @@ services:
       dockerfile: workers/cassette-processing/Dockerfile
     container_name: cassette-processing-worker
     environment:
-      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
-      - CUTKIT_API_URL=${CUTKIT_API_URL:-http://host.docker.internal:3000}
-      - WORKER_TOKEN=${WORKER_TOKEN:-cutkit-dev-worker}
+      - MONGO_URI=mongodb://mongo:27017/perigram_dev
+      - PERIGRAM_API_URL=${PERIGRAM_API_URL:-http://host.docker.internal:3000}
+      - WORKER_TOKEN=${WORKER_TOKEN:-perigram-dev-worker}
       - WORKER_ID=cassette-processing
     depends_on:
       - mongo
     networks:
-      - cutkit-network
+      - perigram-network
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -58,15 +58,15 @@ services:
       dockerfile: workers/nesting/Dockerfile
     container_name: nesting-worker
     environment:
-      - MONGO_URI=mongodb://mongo:27017/cutkit_dev
+      - MONGO_URI=mongodb://mongo:27017/perigram_dev
     depends_on:
       - mongo
     networks:
-      - cutkit-network
+      - perigram-network
     restart: unless-stopped
 
 networks:
-  cutkit-network:
+  perigram-network:
     external: true
 
 volumes:

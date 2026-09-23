@@ -206,7 +206,7 @@ describe('process v4 data execution', () => {
     );
     const trim = await executeProcessDataNode(
       { kind: 'value.string', operation: 'trim' },
-      { value: createDataPacket('  CutKit  ') }
+      { value: createDataPacket('  Perigram  ') }
     );
     const substring = await executeProcessDataNode(
       { kind: 'value.string', operation: 'substring' },
@@ -215,7 +215,7 @@ describe('process v4 data execution', () => {
 
     expect(sqrt.branches[0].items).toEqual([9]);
     expect(nand.branches[0].items).toEqual([false]);
-    expect(trim.branches[0].items).toEqual(['CutKit']);
+    expect(trim.branches[0].items).toEqual(['Perigram']);
     expect(substring.branches[0].items).toEqual(['roc']);
   });
 

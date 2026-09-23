@@ -10,15 +10,15 @@ import vue from '@vitejs/plugin-vue';
 const repo = (p) => path.resolve(__dirname, p);
 const stubs = repo('./test-tools/nuxt-app-stubs.mjs');
 
-const cutkitAliases = {
-  '@cutkit/core': repo('./packages/core/src/index.js'),
-  '@cutkit/workflows': repo('./packages/workflows/src/index.js'),
-  '@cutkit/mongo': repo('./packages/mongo/src/index.js'),
-  '@cutkit/nitro': repo('./packages/nitro/src/index.js'),
-  '@cutkit/vue': repo('./packages/vue/src/index.js'),
-  '@cutkit/devtools': repo('./packages/devtools/src/index.js'),
-  '@cutkit/mcp': repo('./packages/mcp/src/index.js'),
-  '@cutkit/domain-cnc': repo('./packages/domain-cnc/src/index.js')
+const perigramAliases = {
+  '@perigram/core': repo('./packages/core/src/index.js'),
+  '@perigram/workflows': repo('./packages/workflows/src/index.js'),
+  '@perigram/mongo': repo('./packages/mongo/src/index.js'),
+  '@perigram/nitro': repo('./packages/nitro/src/index.js'),
+  '@perigram/vue': repo('./packages/vue/src/index.js'),
+  '@perigram/devtools': repo('./packages/devtools/src/index.js'),
+  '@perigram/mcp': repo('./packages/mcp/src/index.js'),
+  '@perigram/domain-cnc': repo('./packages/domain-cnc/src/index.js')
 };
 
 export default defineConfig({
@@ -32,7 +32,7 @@ export default defineConfig({
       '@': repo('./'),
       '#app': stubs,
       '#imports': stubs,
-      ...cutkitAliases
+      ...perigramAliases
     }
   }
 });

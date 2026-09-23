@@ -37,7 +37,7 @@ describe('entity events store', () => {
             });
         vi.stubGlobal('$fetch', fetchMock);
         const received = [];
-        window.addEventListener('cutkit:instance-changed', event => received.push(event.detail));
+        window.addEventListener('perigram:instance-changed', event => received.push(event.detail));
 
         const store = useEntityEventsStore();
         store.connect();

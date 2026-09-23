@@ -11,7 +11,7 @@ convention. Docs land with every phase (`neo:` commits, owning READMEs).
 
 The sentence:
 
-> The shop's paperwork is already the program. CutKit makes it run.
+> The shop's paperwork is already the program. Perigram makes it run.
 
 Five concepts and two scope laws. Each carries a law and a test — the
 test is what rules code review.

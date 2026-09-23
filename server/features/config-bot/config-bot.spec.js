@@ -35,7 +35,7 @@ describe('ConfigBot draft generation', () => {
     const draftPackage = createConfigBotDraftPackage({
       prompt: 'Create cassette nesting workflow page',
       context: { target: 'admin-micro-app', typeId: 'cassette' },
-      knowledgeChunks: [{ source: 'app', path: 'README.md', title: 'System', content: 'CutKit documentation' }],
+      knowledgeChunks: [{ source: 'app', path: 'README.md', title: 'System', content: 'Perigram documentation' }],
       now: new Date('2026-05-27T00:00:00.000Z'),
       generatedBy: 'user-test'
     });

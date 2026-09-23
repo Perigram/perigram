@@ -349,12 +349,19 @@ describe('Design system manifest', () => {
       tabs: { tablist: { background: 'transparent' }, tabpanel: { background: 'transparent' } },
       tree: { root: { background: 'transparent' } }
     });
-    expect(Object.keys(primeSemanticTokens)).toEqual(['primary', 'colorScheme']);
+    expect(Object.keys(primeSemanticTokens)).toEqual(['primary', 'accent', 'focusRing', 'colorScheme']);
     expect(Object.keys(primeSemanticTokens.colorScheme)).toEqual(['light', 'dark']);
     expect(primeSemanticTokens.colorScheme.light.surface[100]).toBe('{zinc.100}');
     expect(primeSemanticTokens.colorScheme.dark.surface[950]).toBe('{zinc.950}');
-    expect(designTokens.palette.primary[500]).toBe('#ff4b00');
+    // Primary is a neutral contrast ink riding the zinc surface scale; the
+    // Perigram logo red is the accent and owns focus/selection signals.
+    expect(designTokens.palette.primary[500]).toBe('#71717a');
+    expect(designTokens.palette.accent[500]).toBe('#ff0040');
+    expect(primeSemanticTokens.colorScheme.light.primary.color).toBe('{surface.900}');
+    expect(primeSemanticTokens.colorScheme.dark.primary.color).toBe('{surface.50}');
+    expect(primeSemanticTokens.focusRing.color).toBe('{accent.color}');
     expect(cssVariableTokens['--ck-primary-700']).toBe(designTokens.palette.primary[700]);
+    expect(cssVariableTokens['--ck-accent-700']).toBe(designTokens.palette.accent[700]);
     expect(cssVariableTokens['--ck-chrome-background']).toBe('var(--p-surface-100)');
     expect(cssVariableTokens['--ck-page-background']).toBe('var(--p-surface-100)');
     expect(darkCssVariableTokens['--ck-chrome-background']).toBe('var(--p-surface-950)');

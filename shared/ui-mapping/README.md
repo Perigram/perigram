@@ -5,7 +5,7 @@ CTS declarations and compiled process contracts to presentation decisions —
 component keys, spans, variants, chrome, budgets, and action presentation.
 It is the seam between the semantic layers (the CTS client bundle from
 `@perigram/cts` and the compiled screen/action manifests from
-`@cutkit/processes`) and the app's PrimeVue component registry.
+`@perigram/processes`) and the app's PrimeVue component registry.
 
 This module is pure data and pure functions: no Vue, no Nuxt, no PrimeVue
 imports, no CNC names. Resolver output names registered component keys

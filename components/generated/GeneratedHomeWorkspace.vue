@@ -7,8 +7,8 @@
       >
         <header class="flex h-12 shrink-0 items-center border-b border-chrome-border px-3">
           <NuxtLink to="/" class="flex items-center no-underline">
-            <img src="/logo-light.svg" alt="CutKit" class="h-7 w-auto dark:hidden" />
-            <img src="/logo-dark.svg" alt="CutKit" class="hidden h-7 w-auto dark:block" />
+            <img src="/logo-light.svg" alt="Perigram" class="h-7 w-auto dark:hidden" />
+            <img src="/logo-dark.svg" alt="Perigram" class="hidden h-7 w-auto dark:block" />
           </NuxtLink>
         </header>
 

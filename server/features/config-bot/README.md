@@ -12,7 +12,7 @@ returns draft packages from `service.js`.
 |---|---|
 | `service.js` | Auth check, draft package assembly, chat fallback, knowledge reindex orchestration. |
 | `repository.js` | MongoDB access for `config_bot_sessions` and `config_bot_knowledge_chunks`. |
-| `indexer.js` | Reads selected app docs and cutkit-cortex notes into searchable chunks. |
+| `indexer.js` | Reads selected app docs and perigram-cortex notes into searchable chunks. |
 | `ollama.js` | Optional Ollama chat call with deterministic fallback when unavailable. |
 | `operations.js` | Command-runtime handlers for declared domain commands. |
 | `index.js` | Public service export. |
@@ -29,7 +29,7 @@ HTTP routes:
 - `GET /api/config-bot/sessions/:id` - loads the current user's session.
 - `POST /api/admin/config-bot/reindex` - refreshes app/cortex knowledge chunks.
 
-Domain commands in `@cutkit/domain-cnc`:
+Domain commands in `@perigram/domain-cnc`:
 
 - `generateConfigBotDraft`
 - `reindexConfigBotKnowledge`
@@ -55,9 +55,9 @@ production entity collections.
 
 ## Knowledge Sources
 
-`indexer.js` reads the app README set plus selected cutkit-cortex notes from
+`indexer.js` reads the app README set plus selected perigram-cortex notes from
 `CONFIG_BOT_CORTEX_PATH` when that environment variable is set. Container
-deployments mount the host cortex repo read-only at `/opt/cutkit-cortex`.
+deployments mount the host cortex repo read-only at `/opt/perigram-cortex`.
 Ollama is optional and controlled by:
 
 - `OLLAMA_BASE_URL`

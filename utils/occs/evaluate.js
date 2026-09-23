@@ -26,8 +26,8 @@ const getSheetWorkpieces = (definition = {}, tree = {}) => {
 };
 
 export const evaluateOccsCassetteTemplate = async (definition = {}, parameters = {}, context = {}) => {
-  const graphTree = definition?.extensions?.cutkit?.graphTree;
-  if (!graphTree) throw new Error('OCCS cassette template does not contain a CutKit graph tree');
+  const graphTree = definition?.extensions?.perigram?.graphTree;
+  if (!graphTree) throw new Error('OCCS cassette template does not contain a Perigram graph tree');
 
   const tree = clonePlain(graphTree);
   tree.parameters = {

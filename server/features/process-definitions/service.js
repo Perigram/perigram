@@ -31,7 +31,7 @@ import {
   getEntityFieldSchema,
   getEntityFieldSchemas
 } from '~/packages/domain-cnc/src/index.js';
-import { getCutkitRegistry } from '~/server/runtime/cutkit-registry.js';
+import { getPerigramRegistry } from '~/server/runtime/perigram-registry.js';
 import { toFlexibleId } from '~/server/utils/objectid.js';
 import { hasPermissionGrant, normalizePermissionGrants } from '#shared/access-control.js';
 import { ProcessDefinition } from './model.js';
@@ -646,7 +646,7 @@ export async function projectEntityThroughSocket({ socketId, instanceId, targetO
     throw createError({ statusCode: 400, message: 'Inbound sockets receive projected entities and cannot project source entities' });
   }
 
-  const registry = getCutkitRegistry();
+  const registry = getPerigramRegistry();
   const service = registry.getInstanceService(socket.typeId);
   if (!service?.processGetById) throw createError({ statusCode: 500, message: `Entity service cannot read ${socket.typeId} from a process` });
   const entity = await service.processGetById(instanceId, auth);
@@ -1811,7 +1811,7 @@ function resolveOrganizationId(auth = {}) {
 }
 
 function getDomain() {
-  return getCutkitRegistry().getDomain('cnc');
+  return getPerigramRegistry().getDomain('cnc');
 }
 
 // The compiler consumes the CTS-projected domain: strangler-converted system

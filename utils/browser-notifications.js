@@ -1,4 +1,4 @@
-export const NOTIFICATIONS_SETTING_KEY = 'cutkit.browserNotifications';
+export const NOTIFICATIONS_SETTING_KEY = 'perigram.browserNotifications';
 
 export function readNotificationSetting() {
     if (typeof window === 'undefined') return false;

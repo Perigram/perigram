@@ -1,12 +1,12 @@
-# CutKit Design System
+# Perigram Design System
 
 ## Source Of Truth
 
-CutKit uses PrimeVue 4, Tailwind utilities, and a small app token layer. The design system is code-driven:
+Perigram uses PrimeVue 4, Tailwind utilities, and a small app token layer. The design system is code-driven:
 
 - `assets/tokens/index.js` owns app semantic tokens and exports bounded PrimeVue/Tailwind projections.
 - `assets/presets/re_l.js` extends Aura with the primary brand palette only.
-- `tailwind.config.js` exposes semantic Tailwind aliases backed by PrimeVue `--p-*` and CutKit `--ck-*` variables.
+- `tailwind.config.js` exposes semantic Tailwind aliases backed by PrimeVue `--p-*` and Perigram `--ck-*` variables.
 - `assets/css/main.css` contains global app-shell, integration, and layout rules; it does not override PrimeVue selectors or variables.
 - `packages/domain-cnc/src/index.js` defines the CNC entity card/demo contract
   without importing Vue.
@@ -17,7 +17,7 @@ CutKit uses PrimeVue 4, Tailwind utilities, and a small app token layer. The des
 ## Token Policy
 
 PrimeVue/Aura owns generic controls, containers, typography defaults, spacing,
-borders, radii, shadows, and interaction states. Use CutKit `--ck-*` tokens only
+borders, radii, shadows, and interaction states. Use Perigram `--ck-*` tokens only
 for semantic typography, reusable layout constraints, and data-driven domain,
 geometry, or process visuals consumed by registered primitives or derived
 semantic composition. The
@@ -91,7 +91,7 @@ If no previewable child refs are loaded, keep the numeric count.
 Standard field groups are authored `render.groups` on type declarations,
 compiled into the served CTS client bundle; Vue cards consume resolved field
 descriptors through `utils/instance-display-contract.js` (bundle first,
-`@cutkit/domain-cnc`'s residual map for undeclared types). Final apps may
+`@perigram/domain-cnc`'s residual map for undeclared types). Final apps may
 layer additional field groups and surface overrides on top, but access policy
 still controls whether a path can render.
 

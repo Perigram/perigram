@@ -35,8 +35,8 @@ root-owned key files listed below.
 git remote -v
 # origin   https://forgejo.sodalab.pro/1suo/perigram.git   (public Forgejo)
 # forgejo  http://127.0.0.1:13000/sodalab/perigram.git     (SSH tunnel)
-# github   https://github.com/1suo/cutkit-demo.git         (mirror only)
-# lan      cutkit@192.168.0.106:...                        (legacy R240 bare repo)
+# github   https://github.com/1suo/perigram-demo.git         (mirror only)
+# lan      perigram@192.168.0.106:...                        (legacy R240 bare repo)
 ```
 
 Deploy flow and secrets are documented in
@@ -46,8 +46,8 @@ Deploy flow and secrets are documented in
 
 These files may exist on the workstation but must not be committed:
 
-- `~/.ssh/cutkit_r240_ed25519` — legacy R240 key (also registered in Forgejo)
-- `~/.config/cutkit-wireguard/` — legacy WireGuard keys for the R240 VPN
+- `~/.ssh/perigram_r240_ed25519` — legacy R240 key (also registered in Forgejo)
+- `~/.config/perigram-wireguard/` — legacy WireGuard keys for the R240 VPN
 - `~/.git-credentials` — Forgejo HTTPS token (mode `0600`)
 
 Store complete secrets only in a password manager or the local root-owned/key
@@ -56,16 +56,16 @@ files above. Do not put them in git, TODO notes, Obsidian, or chat transcripts.
 ## Legacy: R240 / WireGuard
 
 The previous topology ran everything on R240 (`192.168.0.106`, WireGuard
-endpoint `78.30.216.48:51820`, interface `cutkit-r330`, app on `:7100`,
-Forgejo on `:3002`, Swarm service `cutkit_app`, webhook autodeploy). None of
+endpoint `78.30.216.48:51820`, interface `perigram-r330`, app on `:7100`,
+Forgejo on `:3002`, Swarm service `perigram_app`, webhook autodeploy). None of
 it is part of the current deploy path; the machine is routinely powered off
 and only reachable over NetBird (`10.77.132.108`) when it is on. The
-`/etc/wireguard/cutkit-r330.conf` and R240 SSH material above belong to this
+`/etc/wireguard/perigram-r330.conf` and R240 SSH material above belong to this
 retired path.
 
 ## MongoDB Note
 
 Dev/staging services connect with `MONGODB_URI`/`NUXT_MONGODB_URI`. The dev
-compose network exposes the database as `cutkit_mongo`; keep using that name
+compose network exposes the database as `perigram_mongo`; keep using that name
 so connections never land on an unrelated `mongo` alias attached to the same
 network.

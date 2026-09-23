@@ -43,7 +43,7 @@ __pycache__
 *.pywz
 *.pyzw
 **/venv/**
-workers/nesting/cutkit-demo/
+workers/nesting/perigram-demo/
 workers/nesting/venv/
 workers/nesting/jagua-rs/jagua-rs/target/
 # test data 
