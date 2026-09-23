@@ -1,4 +1,4 @@
-# COMPONENT: @cutkit/processes
+# COMPONENT: @perigram/processes
 
 ## Designer Contract
 
@@ -12,7 +12,7 @@ field-group, canonical-block, and grouped-palette contracts. The generic
 designer package does not import a concrete domain.
 
 Canonical entity decomposition starts from
-`@cutkit/core/CANONICAL_ENTITY_BLOCKS` and is narrowed to blocks declared by the
+`@perigram/core/CANONICAL_ENTITY_BLOCKS` and is narrowed to blocks declared by the
 selected domain entity. Structural block operations instead read the domain's
 explicit canonical `blockSchemas` plus `blockComposition`. These contracts are
 never inferred by unioning entity fields. Open canonical blocks use authored,
@@ -256,7 +256,7 @@ explicitly — so an authored record survives the canvas cycle byte-identical
 not become `''`).
 
 Process lifecycle profiles and action nodes compile directly to normalized
-`@cutkit/workflows` v2 state machines. Entity profiles may provide a full
+`@perigram/workflows` v2 state machines. Entity profiles may provide a full
 workflow, but action-only graphs also synthesize workflows: create actions add
 their target status as a state, and status-mutating `updateEntity` actions add
 transitions with the process role ids and entity access requirements from the

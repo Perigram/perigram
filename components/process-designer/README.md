@@ -1,6 +1,6 @@
 # COMPONENT: Process Designer
 
-The organization process designer authors the `@cutkit/processes`
+The organization process designer authors the `@perigram/processes`
 `dataflowVersion: 4` contract in the graph-protocol v5 species vocabulary.
 There is no legacy authoring surface: every executable canvas record is a
 `processNode` (a `cts.*` species or a pure value-algebra kind), plus
@@ -141,7 +141,7 @@ forms. Per-producer field visibility (read / write / private lists) is
 authored on the producer output panel and compiles into the field policy.
 
 **Live evaluation** (`useProcessDesignerLiveGraph` over
-`interpretDeclarationEdges` in `@cutkit/processes`): the designer behaves
+`interpretDeclarationEdges` in `@perigram/processes`): the designer behaves
 like a node editor, not a form. Authoring state (canvas nodes minus
 presentation, edges, draft records) folds into one semantic signature; any
 change — a wire, a rename, an inspector edit — re-runs wire

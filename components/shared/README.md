@@ -207,7 +207,7 @@ The root exposes stable E2E hooks through `data-entity-status`,
 `data-type-id`, and `data-entity-id`; menu triggers and transition buttons
 use `data-status-menu-trigger` and `data-status-action`.
 
-**Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@cutkit/domain-cnc` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `InstanceState`, hides it, or renders read-only status.
+**Status policy:** v24 DTOs carry a `status` block, but not every card exposes lifecycle controls. Use the status policy declared in `@perigram/domain-cnc` and re-exported by `utils/design-system-contract.js` to decide whether a card shows `InstanceState`, hides it, or renders read-only status.
 Interactive status is enabled only for entity types that have a real workflow in
 `cncWorkflows`; non-workflow entities hide status chrome in cards unless a
 read-only `StatusBadge` is explicitly required. Live app transition actions are
@@ -235,7 +235,7 @@ synthesize local status labels or icons from action manifests.
 Workflow questions resolve from the compiled contract first: `InstanceState`
 converts the registry bundle's type record (`states` facet + `transitions`)
 through `utils/state-actions.js` `compiledWorkflowFor` before the legacy
-`@cutkit/domain-cnc` fallback, so declared types drive status-chrome
+`@perigram/domain-cnc` fallback, so declared types drive status-chrome
 visibility and server-action lookups contract-first. Development surfaces
 with custom workflow drafts derive lifecycle actions from workflow
 definitions through the same utility. Card and page command
@@ -244,7 +244,7 @@ slots; only real lifecycle transitions belong in the status surface.
 `InstanceState` can also receive a `workflows` prop or consume a provided
 `stateWorkflows` value. This is used only by development surfaces such as the
 admin workbench so live draft machines can drive previews without replacing the
-committed `@cutkit/domain-cnc` runtime workflow source.
+committed `@perigram/domain-cnc` runtime workflow source.
 Development surfaces that provide local workflows can also provide
 `statusTransitionHandler`; when present, `InstanceState` applies transitions
 through that handler instead of posting in-memory fixture ids to the server
@@ -302,7 +302,7 @@ Supported location shapes:
 Use status lifecycle location for "where the entity is now"; static ancestry remains in `lineage`, and files remain in `attachments`.
 
 ### `DrawingCanvas.vue`
-Shared SVG canvas for layer-aware drawing surfaces. It accepts normalized geometry previews, baked cassette `layerData` / `polygonParts`, DXF text/URLs, SVG URLs, legacy parametric cassette graphs, and OCCS cassette definitions with CutKit graph-tree extensions; owns layer visibility by default, viewer pan/zoom, cassette designer edge actions, shared viewer grid/stroke presentation, and layer-to-pen resolution through `utils/drawingPreview.js`. Viewport navigation is pointer-class aware: mouse wheel zooms at the cursor and drag pans (Shift in designer mode), while touch input pans with one finger in viewer modes and pinch-zoomes/pans with two fingers in every viewer/designer mode; designer mode reserves single-finger taps for face/edge interaction. The canvas root declares `touch-action: none` in viewer modes so the browser never claims a canvas gesture for page scrolling or zooming.
+Shared SVG canvas for layer-aware drawing surfaces. It accepts normalized geometry previews, baked cassette `layerData` / `polygonParts`, DXF text/URLs, SVG URLs, legacy parametric cassette graphs, and OCCS cassette definitions with Perigram graph-tree extensions; owns layer visibility by default, viewer pan/zoom, cassette designer edge actions, shared viewer grid/stroke presentation, and layer-to-pen resolution through `utils/drawingPreview.js`. Viewport navigation is pointer-class aware: mouse wheel zooms at the cursor and drag pans (Shift in designer mode), while touch input pans with one finger in viewer modes and pinch-zoomes/pans with two fingers in every viewer/designer mode; designer mode reserves single-finger taps for face/edge interaction. The canvas root declares `touch-action: none` in viewer modes so the browser never claims a canvas gesture for page scrolling or zooming.
 
 All drawing sources normalize to the same layer contract before rendering: `{ viewBox, layers: [{ name, standardCode?, paths }] }`. DXF layers keep their source layer names and optional mapping. Parametric cassette previews render through the same layer list and may provide caller-owned `layers.face` / `layers.boundary` metadata; if no layer metadata exists, they render as a neutral `geometry` layer instead of guessing production standards. Layer paths may be SVG paths, images, raw SVG snippets, or text primitives; text primitives are used for CAD-style dimension labels on semantic annotation layers such as `dimension.cassette`; labels with `designerControl` metadata stay in the layer output, and selected/hovered designer faces get compact chip overlays at those label coordinates that emit `designer-point-edit`. Designer overlay chip text uses PrimeVue `--p-content-background` against `currentColor` chip fills so labels keep contrast in both light and dark color schemes. Designer edge, fold-edge, face-select, face-action, point-edit, and section-edit hit overlays are overlays, not drawing layers. Free edge handles use invisible edge hit lines only for hover and show a `+` chip on hover; only the visible chip emits `designer-action` with the edge's source `edgeIndex`. Fold edge handles emit `designer-fold-select`; the fold angle chip is shown only when hovered or when that fold's child face is selected, then emits `designer-fold-angle-edit`. Designer face overlays emit `designer-face-select`, show hover feedback, highlight `selectedDesignerFaceId`, emit `designer-face-command` from the selected-face menu chip, and emit `designer-point-edit` from caller-provided offset controls. Designer assembly context can render non-interactive transparent workpiece outlines and source/target attachment markers while limiting face hit targets to caller-provided selectable workpiece ids, so background workpieces do not steal active face clicks. Designer section graphics belong to the caller-provided `code.cassette_mark` layer, so layer visibility toggles them; the section overlay only emits `designer-section-edit` from invisible draggable section-plane hit targets while that layer is visible and releases document-wide on mouseup.
 Cassette Designer v2 hardware placements are expanded by the OCCS renderer into
@@ -317,7 +317,7 @@ Layer-standard pen references may point to either the pen Mongo `_id` or its
 canonical `identity.uid`; both resolve to the same pen DTO.
 
 The optional viewer layer panel is part of the shared canvas surface but must
-render CutKit concepts through existing CutKit system components. Source DXF
+render Perigram concepts through existing Perigram system components. Source DXF
 layer names render through the identity policy helper; mapped layer standards use `LayerStandardCard`;
 resolved pens/colors use `PenTemplateCard`. Inline color dots, hand-rolled
 layer rows, or custom key/value renderers are not allowed for these entity
@@ -694,7 +694,7 @@ Shared wrappers own semantic structure and reusable layout constraints, while Pr
 ## Demo Contract
 
 The design-system demo is contract-driven:
-- `@cutkit/domain-cnc` contains entity UI policy and expected card prop names; `utils/design-system-contract.js` re-exports it for compatibility.
+- `@perigram/domain-cnc` contains entity UI policy and expected card prop names; `utils/design-system-contract.js` re-exports it for compatibility.
 - `utils/design-system.js` binds the contract to actual Vue components and DTO factories.
 - `test-data/factories.js` provides DTO-shaped examples with v24 blocks preserved.
 

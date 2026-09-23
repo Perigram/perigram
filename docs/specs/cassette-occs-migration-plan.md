@@ -1,6 +1,6 @@
 # Cassette Designer Migration To OCCS
 
-This note maps the current CutKit cassette designer/runtime format to the new
+This note maps the current Perigram cassette designer/runtime format to the new
 OCCS v0.4 draft package in [Cassette spec](<./Cassette spec/SPEC.md>) and
 describes how to move without breaking existing templates.
 
@@ -183,7 +183,7 @@ Provide a one-way converter for old graph records:
    - a new face with `baseLength: "inherit"` and `height: ext.param`
    - a fold from the matched source face edge to the new face `E0`
    - a role derived from `ext.type`, defaulting to `return_flange`
-7. Preserve the original graph under `definition.extensions.cutkitLegacyGraph`
+7. Preserve the original graph under `definition.extensions.perigramLegacyGraph`
    until converted templates have been verified.
 
 Because old records only store edge indexes, conversion should be treated as

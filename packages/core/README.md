@@ -1,4 +1,4 @@
-# COMPONENT: @cutkit/core
+# COMPONENT: @perigram/core
 
 Framework-neutral contract kernel. It owns canonical entity block DTOs, isolated
 registries, domain definition helpers, and normalized result helpers. It must not
@@ -20,7 +20,7 @@ import Vue, Nuxt, MongoDB, workers, or CNC-specific code.
   declare readable, writable, and constructible authoring capabilities.
   `identity.uid` is readable but never writable or constructible: the owning
   entity service creates stable identity.
-- Registry: `createRegistry()` and `createCutkitRegistry()`
+- Registry: `createRegistry()` and `createPerigramRegistry()`
 - Definitions: `defineDomain`, `defineEntity`, `defineWorkflow`,
   `defineCommand`, `defineTask`, `defineHook`, `defineAttachmentKind`
 - Runtime bindings: `registerInstanceService`, `registerCommandHandler`,
@@ -80,4 +80,4 @@ losslessly — the canonical round-trip contract lives in
 ## Related
 
 - [server/core/blocks](../../server/core/blocks/README.md)
-- [@cutkit/domain-cnc](../domain-cnc/README.md)
+- [@perigram/domain-cnc](../domain-cnc/README.md)

@@ -3,7 +3,7 @@
 Builds the explicit application registry used by backend runtimes.
 
 `app-registry.js` creates one `createRegistry()` instance, defines
-`@cutkit/domain-cnc`, registers entity services, command handlers, and workflow
+`@perigram/domain-cnc`, registers entity services, command handlers, and workflow
 hook handlers. Backend runtimes consume this registry instead of importing
 domain packages or feature modules directly.
 
@@ -12,7 +12,7 @@ registry/domain metadata. Runtime code such as status transitions, hooks, and
 summary aggregation must use these helpers instead of hardcoded pluralization
 rules.
 
-`cutkit-registry.js` is a compatibility re-export for older imports; new code
+`perigram-registry.js` is a compatibility re-export for older imports; new code
 should call `getAppRegistry()`.
 
 ## Registered Bindings
@@ -55,7 +55,7 @@ should call `getAppRegistry()`.
   registered feature hook handlers.
 - Domain definitions (commands, tasks, hooks, the canonical block
   vocabulary, UI metadata) are mounted from the packs; the legacy entity/
-  workflow/construction tables in `@cutkit/domain-cnc` are pack-internal
+  workflow/construction tables in `@perigram/domain-cnc` are pack-internal
   content for non-process surfaces and are not registry services.
 - Process definition services are registered as persisted entities. Active
   process compiled workflows are resolved by the workflow runtime before

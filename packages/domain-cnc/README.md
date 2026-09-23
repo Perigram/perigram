@@ -1,4 +1,4 @@
-# COMPONENT: @cutkit/domain-cnc
+# COMPONENT: @perigram/domain-cnc
 
 CNC domain implementation package. It owns manufacturing vocabulary and
 contracts, but imports no Vue, Nuxt, MongoDB, or worker implementation code.
@@ -82,7 +82,7 @@ Queue workflow UI actions start with `DRAFT -> NESTING`; any system-only
 cannot skip nesting from status controls. Queues can be moved to `ARCHIVED`
 from any current queue state through a menu transition; admin users can restore
 archived queues to `DRAFT`.
-CNC workflows export the v2 workflow contract from `@cutkit/workflows`. Current
+CNC workflows export the v2 workflow contract from `@perigram/workflows`. Current
 CNC lifecycles use a single `main` region, so persisted entity status stores
 `states.main` plus `status.state.active.main`; future independent
 lifecycle axes should add regions instead of overloading the primary state.
@@ -230,7 +230,7 @@ library profile changes.
 
 This package may declare UI policy: entity surface keys, status visibility,
 icons, docs, component paths, field groups, surface contracts, and field paths.
-It must not import Vue components. `@cutkit/vue` turns this metadata into
+It must not import Vue components. `@perigram/vue` turns this metadata into
 frontend lookup helpers.
 
 Entity icons are CSS class strings. CNC production entities (cassette
@@ -352,7 +352,7 @@ templates remain responsible for placing those management surfaces.
 
 ## Related
 
-- [@cutkit/core](../core/README.md)
+- [@perigram/core](../core/README.md)
 - [Runtime registry](../../server/runtime/README.md)
 
 ## Pack direction (SPEC §21)

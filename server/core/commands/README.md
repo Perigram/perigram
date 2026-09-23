@@ -28,7 +28,7 @@ Handlers receive `{ command, entities, parameters, data, auth }` and may return
 finishes.
 Entity results are enforced against the command's declared per-output
 contracts (`normalizeEntityOutputContracts`/`validateResultEntityOutputs` in
-`@cutkit/core`): an immediate result may carry only immediate-declared outputs,
+`@perigram/core`): an immediate result may carry only immediate-declared outputs,
 command-owned outputs must return persisted entity references, graph-owned
 outputs must not, and undeclared entity types are rejected together with
 entities contributed by returned effects. Task completion enforces the same

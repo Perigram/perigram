@@ -1,9 +1,9 @@
 ---
-name: cutkit-project-workflow
-description: Follow CutKit Demo repository workflow when doing coding-agent work in this repo, especially documentation-first context assembly, README synchronization, TODO.md Agent Notes, validation selection, commit discipline, branch discipline, and keeping AGENTS.md as the mandatory source of truth.
+name: perigram-project-workflow
+description: Follow Perigram Demo repository workflow when doing coding-agent work in this repo, especially documentation-first context assembly, README synchronization, TODO.md Agent Notes, validation selection, commit discipline, branch discipline, and keeping AGENTS.md as the mandatory source of truth.
 ---
 
-# CutKit Project Workflow
+# Perigram Project Workflow
 
 Use this skill as the repo-local entry point for project workflow. It does not
 replace `AGENTS.md`; read `AGENTS.md` first and treat it as authoritative.

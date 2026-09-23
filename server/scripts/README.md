@@ -108,7 +108,7 @@ To reset system data:
 
 ```bash
 # In MongoDB shell
-use cutkit;
+use perigram;
 db.layer_standards.deleteMany({ "lineage.userId": null });
 db.pen_templates.deleteMany({ "lineage.userId": null });
 db.tool_profiles.deleteMany({ "lineage.userId": null });

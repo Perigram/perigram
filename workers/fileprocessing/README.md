@@ -15,7 +15,7 @@ completes or fails the task through `/api/tasks/*`.
 | Variable | Purpose |
 |---|---|
 | `MONGO_URI` | MongoDB connection string. |
-| `CUTKIT_API_URL` | App base URL for `/api/tasks/*`. |
+| `PERIGRAM_API_URL` | App base URL for `/api/tasks/*`. |
 | `WORKER_TOKEN` | Shared worker token sent as `x-worker-token`. |
 | `WORKER_ID` | Worker identity recorded in `task_runs`. |
 | `WORKER_TAG` | Routing tag for normal vs high-entity-count processing. |

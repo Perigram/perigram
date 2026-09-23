@@ -1,4 +1,4 @@
-# COMPONENT: @cutkit/devtools
+# COMPONENT: @perigram/devtools
 
 Read-only inspection helpers for framework definitions, UI/design-system contracts, and manifest validation.
 

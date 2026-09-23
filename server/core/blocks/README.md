@@ -2,7 +2,7 @@
 
 Canonical class library for all v24 entities. Every feature model extends `BaseEntity` and composes these blocks.
 
-Implementation source is `@cutkit/core` through the `#packages/core/src/index.js`
+Implementation source is `@perigram/core` through the `#packages/core/src/index.js`
 package import alias; this directory is the application compatibility import
 path and owns server-specific helpers such as ObjectId attachment creation and
 flexible-ID lineage inheritance.
@@ -201,7 +201,7 @@ registry.getInstanceService('project');
 ```
 
 Entity, workflow, command, task, hook, and attachment-kind contracts are defined
-through a `createRegistry()` instance from `@cutkit/core`; server command/task
+through a `createRegistry()` instance from `@perigram/core`; server command/task
 runtimes consume those registry definitions after access checks.
 
 ---

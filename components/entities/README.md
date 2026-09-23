@@ -1,6 +1,6 @@
 # COMPONENT: Entity UI Components
 
-Manifest-backed Vue cards and detail surfaces for CutKit domain entities.
+Manifest-backed Vue cards and detail surfaces for Perigram domain entities.
 
 ## Scope
 
@@ -21,7 +21,7 @@ material data and cassette child counts from the domain field groups.
   See [components/shared/README.md](../shared/README.md) for the default-slot
   body contract.
 - Standard facts must resolve from the domain display constructor in
-  `@cutkit/domain-cnc` field groups. Do not add new local `DataBlock` path arrays
+  `@perigram/domain-cnc` field groups. Do not add new local `DataBlock` path arrays
   to entity cards; add or extend a field group and make sure the path is covered
   by field access policy.
 - The default slot is the canonical operational body and is reused by card
@@ -36,7 +36,7 @@ material data and cassette child counts from the domain field groups.
   render raw nested objects or rebuild identity/status rows locally.
 - Entity facts are access-aware. `DataBlock` requires an
   `type-id` prop and filter paths through `shared/instance-field-access.js`
-  using the field policies exported by `@cutkit/domain-cnc`. If a field is not
+  using the field policies exported by `@perigram/domain-cnc`. If a field is not
   declared in the policy, cards must not display it.
 - Relation refs should pass design-system UI keys (`materialPile`,
   `nestingRun`, `cassetteDesign`, `entityRevision`) instead of backend

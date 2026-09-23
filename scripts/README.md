@@ -21,7 +21,7 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   boundaries, canonical DTO blocks, command/task/status/UI boundary leaks,
   retired vocabulary, portable-runtime import rules, concrete CNC domain leaks
   in generic modules, duplicate object keys in domain registries, concrete
-  entity-name branches in `@cutkit/processes`, runtime legacy-process bridges,
+  entity-name branches in `@perigram/processes`, runtime legacy-process bridges,
   cross-feature repository imports, and source-assertion test practices. Every
   finding is blocking; there is no non-blocking migration inventory.
 - `check-agent-scope.js`: Diff guard for top-layer composition agents. It
@@ -56,6 +56,11 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
 - `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
   string `status.state` / `origin.state` values and `status_events` records to
   the v2 structured status shape. Supports `--dry-run`.
+- `server/scripts/migrate-cutkit-extensions-to-perigram.js`: One-shot data
+  migration for the CutKit → Perigram rename. Renames persisted authoring
+  extensions from `extensions.cutkit` to `extensions.perigram` at any
+  document depth in every non-system collection; documents carrying both
+  keys keep `perigram`. Supports `--dry-run`.
 - `server/scripts/migrate-call-channels-to-groups.js`: One-shot migration of
   the retired livekit `call_channels` collection into unified support
   `chat_groups` (participants start as the creating member; same ids keep

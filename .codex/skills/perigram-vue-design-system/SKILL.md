@@ -1,11 +1,11 @@
 ---
-name: cutkit-vue-design-system
-description: Apply the CutKit Vue v24 design system when creating, reviewing, or changing CutKit/Nuxt Vue components, especially entity cards, detail pages, shared UI primitives, PrimeVue/Tailwind styling, design tokens, UI lab/demo contracts, frontend documentation, components, composables/useEntity.js, utils/design-system files, assets/tokens, assets/css, pages that render entity UI, or the @cutkit/vue frontend adapter.
+name: perigram-vue-design-system
+description: Apply the Perigram Vue v24 design system when creating, reviewing, or changing Perigram/Nuxt Vue components, especially entity cards, detail pages, shared UI primitives, PrimeVue/Tailwind styling, design tokens, UI lab/demo contracts, frontend documentation, components, composables/useEntity.js, utils/design-system files, assets/tokens, assets/css, pages that render entity UI, or the @perigram/vue frontend adapter.
 ---
 
-# CutKit Vue Design System
+# Perigram Vue Design System
 
-Use this skill to keep CutKit Vue UI work aligned with the current v24
+Use this skill to keep Perigram Vue UI work aligned with the current v24
 design-system contract: PrimeVue 4 controls, Tailwind layout utilities,
 canonical DTO blocks, shared entity primitives, token-backed chrome, i18n
 labels, and manifest-driven UI lab coverage.

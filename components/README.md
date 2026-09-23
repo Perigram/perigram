@@ -132,7 +132,7 @@ remains secondary inspector configuration; retry is not hidden node metadata.
 There is no block substrate: constructs expose their bound type's declared
 row fields directly, mutates patch writable leaves and declared relation
 keys, and the field projection reads one field of the incoming entity — all
-through the generic `@cutkit/processes` designer contract over the supplied
+through the generic `@perigram/processes` designer contract over the supplied
 domain implementation.
 
 The process designer also exposes non-effect process algebra nodes for typed
@@ -631,7 +631,7 @@ identity or action cluster; reserve `StandardDialog` for creation flows,
 destructive confirmation, or forms with multiple fields.
 ## Design System Manifest
 
-`@cutkit/domain-cnc` defines the CNC design-system contract for entity demos:
+`@perigram/domain-cnc` defines the CNC design-system contract for entity demos:
 entity key, component prop name, variants, status policy, trace policy, factory
 name, field groups, surface contracts, and docs links.
 `utils/design-system-contract.js` is a compatibility export with validation, and
@@ -808,7 +808,7 @@ No exceptions are currently needed in used entity pages/cards; state-only condit
   the parent to distinguish DB templates from generated fixture templates,
   persists saves through the configured save handler by default, and emits a
   save payload with the saved cassette DTO plus the OCCS v2 definition and
-  `extensions.cutkit.graphTree` so the parent can mirror and reload the exact
+  `extensions.perigram.graphTree` so the parent can mirror and reload the exact
   graph tree. Template data is applied only when the selected template id
   changes; saving or updating the fixture context must not overwrite the
   in-progress name/graph draft. It starts from one root
@@ -1087,7 +1087,7 @@ overloads, designer file modes) all carry the thread; the panel renders inside t
 detail branch of the generated screen's `v-if` chain — never as a standalone
 `v-if` sibling, which would detach the regions fallback from the shared chain
 and render a raw region dump under overload screens like the home workspace.
-- For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock type-id="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `type-id` must match an entry in `@cutkit/domain-cnc` field access policy; otherwise the row is hidden.
+- For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock type-id="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `type-id` must match an entry in `@perigram/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data
   is a canonical DTO. Do not pass raw entities that only expose
@@ -1107,7 +1107,7 @@ the compiled manual action described above.
 - User-visible labels, headings, dialog headers, toast summaries/details, placeholders, and accessible labels must use `$t(...)` in templates or `t(...)` from `useI18n()` in script.
 - Keep `i18n/locales/en.json` and `i18n/locales/ru.json` structurally aligned whenever adding keys.
 - Run `npx vitest run shared/localization.spec.js` after adding frontend copy or translation keys; it catches locale key drift and missing static translation keys.
-- Brand names such as `CutKit` remain literal and are not localized.
+- Brand names such as `Perigram` remain literal and are not localized.
 
 ## Sizing
 

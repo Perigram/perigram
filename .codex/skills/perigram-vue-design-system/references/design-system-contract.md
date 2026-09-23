@@ -1,6 +1,6 @@
-# CutKit Vue Design-System Contract
+# Perigram Vue Design-System Contract
 
-This reference summarizes the current CutKit Vue component system in this
+This reference summarizes the current Perigram Vue component system in this
 repository.
 
 ## Source Files

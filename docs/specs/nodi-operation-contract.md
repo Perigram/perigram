@@ -1,6 +1,6 @@
 # Nodi3d Operation Contract
 
-This contract defines how CutKit compiles OCCS cassette documents into Nodi3d
+This contract defines how Perigram compiles OCCS cassette documents into Nodi3d
 graphs. It is not an OCCS schema extension. OCCS remains the saved cassette
 format; this contract describes the CAD backend manifest and compiler rules.
 
@@ -10,10 +10,10 @@ format; this contract describes the CAD backend manifest and compiler rules.
   caches the evaluated `out.boundary` vertices. A child face receives its parent
   boundary by adapting those vertices back into a generated Nodi `Polyline`
   connected to the child's `parentPolygon` input.
-- Composed graph compilation remains the export/debug path when CutKit needs a
+- Composed graph compilation remains the export/debug path when Perigram needs a
   single Nodi graph for a whole OCCS document.
-- CutKit resolves OCCS expressions before wiring Nodi number sockets.
-- CutKit walks face/fold topology recursively and wires child operations from
+- Perigram resolves OCCS expressions before wiring Nodi number sockets.
+- Perigram walks face/fold topology recursively and wires child operations from
   parent face edge outputs.
 - The designer/adoption layer stores topology and parameter values only. It
   must not synthesize face geometry, choose extrusion normals, or reinterpret
@@ -23,7 +23,7 @@ format; this contract describes the CAD backend manifest and compiler rules.
   graph's `parentPolygon`; in live incremental preview, connect an adapter
   `Polyline` created from the cached parent `out.boundary` vertices. Then set
   `parentEdgeIndex`.
-- Nodi3d operation graphs create geometry and region operations; CutKit may
+- Nodi3d operation graphs create geometry and region operations; Perigram may
   collect semantic layers if that is simpler than doing it inside Nodi.
 
 ## Logical Operations
@@ -41,7 +41,7 @@ Required logical face operations:
 If one Nodi graph cannot conveniently support both placement modes, create
 wrapper graph manifests such as `face.trapezoid.root` and
 `face.trapezoid.edge`. Their manifest `operation` stays `face.trapezoid`, so
-CutKit still sees one logical operation.
+Perigram still sees one logical operation.
 
 ## Placement Modes
 
@@ -59,7 +59,7 @@ must replace test-only inputs for child instances.
 
 ### `edge`
 
-For edge placement, CutKit wires the evaluated parent boundary into the child
+For edge placement, Perigram wires the evaluated parent boundary into the child
 operation and passes the selected edge index.
 
 ```json
@@ -87,14 +87,14 @@ vertex order:
 Ei = vertex[i] -> vertex[(i + 1) % vertexCount]
 ```
 
-Children inherit the selected parent edge direction. CutKit must not compute a
+Children inherit the selected parent edge direction. Perigram must not compute a
 normal or flip extrusion side in the designer. If a graph contains a fallback or
 test parent polygon, graph composition replaces that fallback connection at the
 `parentPolygon` input for child instances.
 
 ## Trapezoid Anchors
 
-Use these anchor names in CutKit IR and manifests:
+Use these anchor names in Perigram IR and manifests:
 
 | Anchor | Meaning |
 |---|---|
@@ -106,7 +106,7 @@ Use these anchor names in CutKit IR and manifests:
 | `P3` | Already computed face point `P3`. |
 
 Numeric anchors `0` and `1` may be used inside a Nodi graph, but manifests and
-CutKit IR should use `start` and `end`.
+Perigram IR should use `start` and `end`.
 
 If the Nodi graph exposes numeric anchor sockets, they are contract inputs, not
 private internals. Name them `startAnchor` and `endAnchor` and document their
@@ -130,7 +130,7 @@ Standard trapezoid point rule:
 
 ## Socket Type Layers
 
-The manifest records both the CutKit semantic type and the concrete Nodi socket
+The manifest records both the Perigram semantic type and the concrete Nodi socket
 shape. Graph-to-graph composition should primarily use Nodi-native socket
 metadata so operations can be wired directly without artificial adapters.
 
@@ -166,7 +166,7 @@ If a Nodi export uses numeric hint flags, the manifest may record both forms:
 }
 ```
 
-CutKit compiler validation must check Nodi compatibility by comparing
+Perigram compiler validation must check Nodi compatibility by comparing
 `nodi.access` and `nodi.hint`/`nodi.hintCode` between connected sockets. The
 semantic `type` is for OCCS mapping, readability, and higher-level validation.
 
@@ -213,12 +213,12 @@ Example:
 | `region.union` | Produces `contour.flat_pattern.face_and_returns`. |
 | `entity.circleHole` | Produces `cut.hole` geometry and a subtractable region. |
 | `region.difference` | Subtracts holes/cutouts from a face or blank. |
-| `layer.collect` | Optional if CutKit collects layers outside Nodi. |
+| `layer.collect` | Optional if Perigram collects layers outside Nodi. |
 
 ## Compiler Requirements
 
 - For child faces, `parentPolygon` plus `parentEdgeIndex` is the graph-to-graph
-  geometry input. CutKit wires the parent `out.boundary` to the child
+  geometry input. Perigram wires the parent `out.boundary` to the child
   `parentPolygon` socket.
 - `attachEdge` is a child-face edge selector, not a parent selector.
 - Parent polygon edge indexes are passed to the child graph; the graph extracts

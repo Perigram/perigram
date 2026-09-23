@@ -1,7 +1,11 @@
-# SYSTEM: CutKit Demo
+# SYSTEM: Perigram Demo
 
-Multi-tenant CNC manufacturing app and framework extraction sandbox. The app is
-a Nuxt/Nitro modular monolith backed by MongoDB and worker services.
+Perigram is a process programming platform: organizations author typed
+declarations, the process compiler turns them into runtime contracts, and
+generic instance services run every declared type. This repository is the
+demo deployment of that platform — a Nuxt/Nitro modular monolith backed by
+MongoDB and worker services, carrying a CNC manufacturing domain pack as
+its exercised example.
 
 ## Architecture
 
@@ -14,7 +18,7 @@ type (see [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md)).
 flowchart LR
   Cts["@perigram/cts<br/>type declarations + registry + projection"]
   Packs["server/packs/*<br/>documents → tech-drawing → cnc"]
-  Compiler["@cutkit/processes<br/>process compiler + UI contract"]
+  Compiler["@perigram/processes<br/>process compiler + UI contract"]
   Runtime["server/runtime/app-registry<br/>pack mounts + instance-service resolver"]
   Commands["server/core/commands<br/>command_runs"]
   Tasks["server/core/tasks<br/>task_runs"]
@@ -61,7 +65,7 @@ commands.
 
 | Container | Source | Responsibility |
 |---|---|---|
-| `cutkit-app` | `server/`, `pages/`, `components/`, `composables/` | Nuxt UI, Nitro API, command/task runtimes, feature services. |
+| `perigram-app` | `server/`, `pages/`, `components/`, `composables/` | Nuxt UI, Nitro API, command/task runtimes, feature services. |
 | `file-processing-worker` | `workers/fileprocessing/` | Claims `dxf.parseUpload`, processes uploaded DXF files. |
 | `cassette-processing-worker` | `workers/cassette-processing/` | Claims `cassette.bakeTemplate`, bakes cassette geometry. |
 | `nesting-worker` | `workers/nesting/` | FastAPI HTTP solver for nesting geometry. |
@@ -113,7 +117,12 @@ bindings that script-only checks cannot see.
 
 Do not run `npm run build` or start dev servers from coding-agent tasks unless a
 human explicitly asks. Worker endpoints require matching `WORKER_TOKEN` on app
-and workers; compose files use `cutkit-dev-worker` for local development.
+and workers; compose files use `perigram-dev-worker` for local development.
+
+The CutKit → Perigram rename changed default Mongo database names
+(`cutkit_dev` → `perigram_dev`): copy or reseed local databases, and run
+`node server/scripts/migrate-cutkit-extensions-to-perigram.js` once to
+rename persisted `extensions.cutkit` authoring keys to `extensions.perigram`.
 Docker dev starts Nuxt with `--host 0.0.0.0` so the app binds to the container
 interface and is reachable through the compose `3000:3000` port mapping.
 When opening the dev app from another device on the LAN, also set

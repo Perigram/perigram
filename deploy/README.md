@@ -71,12 +71,12 @@ with `docker compose -f docker-compose.dev.yml up -d app --renew-anon-volumes`
 Retired paths, kept for archaeology until deleted:
 
 - `webhook-receiver.py`, `deploy-staging.sh`, `install-autodeploy.sh`,
-  `cutkit-autodeploy.service` — the old R240 push-webhook pipeline (Swarm
-  service `cutkit_app`, port 7100). R240 is no longer part of any deploy.
+  `perigram-autodeploy.service` — the old R240 push-webhook pipeline (Swarm
+  service `perigram_app`, port 7100). R240 is no longer part of any deploy.
 - `.github/workflows/publish.yml` — the old GitHub Actions path (ghcr.io
   images, `docker stack deploy` to the Hetzner host). The GitHub remote is a
   mirror only.
-- Railway production (`cutkit-demo-production.up.railway.app`) is
+- Railway production (`perigram-demo-production.up.railway.app`) is
   decommissioned.
 
 ## Related

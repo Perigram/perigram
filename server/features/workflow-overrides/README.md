@@ -5,7 +5,7 @@ Organization-scoped lifecycle override storage for entity status machines.
 ## Responsibility
 
 - Persists active and archived workflow definitions in `workflow_overrides`.
-- Validates submitted definitions with `@cutkit/workflows` normalization before
+- Validates submitted definitions with `@perigram/workflows` normalization before
   activation.
 - Enforces organization-scoped admin access for the target entity domain.
 - Resolves the active organization override for the status engine, falling back

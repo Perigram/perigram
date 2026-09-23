@@ -17,7 +17,7 @@ Manages cassette templates (Standard and Parametric). Templates are the digital 
 - **`data.definition`**:
     - Parametric templates store either the legacy designer graph
       `{ params, extrusions }` or an OCCS v2 template document with
-      `extensions.cutkit.graphTree`.
+      `extensions.perigram.graphTree`.
     - Standard uploaded templates store layer mapping data such as `{ mapping }`.
 - **`data.parameters`**: Array<String> of configurable variable names.
 - **`data.revisions.geometry`**: Current immutable geometry revision pointer
@@ -64,7 +64,7 @@ It has the same baked geometry, `provenance.derivedFrom`, DXF/gridfs references,
 contract as a design created from the cassette UI. Process runtime status is
 applied after construction by the process-definition service. Parametric
 templates must be construction-ready before this path runs: OCCS templates need
-`data.definition.extensions.cutkit.graphTree`, and legacy parametric templates
+`data.definition.extensions.perigram.graphTree`, and legacy parametric templates
 need the required `A` and `B` graph parameters. Incomplete draft templates are
 rejected before WASM evaluation so the renderer never receives a graph with
 null string fields. `findDefaultConstructableTemplate()` returns the first

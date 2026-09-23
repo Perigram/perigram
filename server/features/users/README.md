@@ -31,18 +31,14 @@ Inherits all `BaseEntity` fields.
 5. Middleware → `server/middleware/auth.js` populates `event.context.auth`
 
 ## Public Signup
-`POST /api/auth/register` creates a password-backed user and, when
-`organizationName` is supplied, creates the first organization through the
-organizations service. The new user receives an active membership, lineage
-organization, an owner membership with permanent tenant-management grants, and
-an organization role assignment seeded from the selected starter template.
-Invitation signup intentionally omits
-organization fields: the account is created without a membership, then the user
-logs in and accepts `/invitation/:token` to create a pending membership for the
-inviting organization. `recoverSignupWithoutOrganization()` is the narrow
-recovery path for pre-fix accounts that have a password hash but no organization
-membership; it verifies the submitted password before the register route can
-attach the first organization.
+`POST /api/auth/register` creates a password-backed user from credentials
+only — name, email, and password. It never creates organizations,
+memberships, or processes: orgless accounts are the normal post-signup
+state. Users join an organization by invitation (`/invitation/:token`
+creates the pending membership after login) or create their own
+organization through the authenticated organizations API from the profile
+page, which grants the creator the owner membership with permanent
+tenant-management grants.
 
 ## Persistence Notes
 - `User.toJSON()` strips `data.passwordHash` and is safe for API responses.

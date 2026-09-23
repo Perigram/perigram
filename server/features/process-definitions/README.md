@@ -199,7 +199,7 @@ a no-op when the registry exposes no capability map. The capability derivation
 itself is the canonical projection in
 [`packages/processes`](../../../packages/processes/README.md).
 
-The pure scheduler lives in `@cutkit/processes`. This service supplies only
+The pure scheduler lives in `@perigram/processes`. This service supplies only
 authorized read adapters and effect adapters. Reads use registered entity
 services. Effects delegate to command, entity, status, projection, producer, or
 attachment services and never write another feature's repository. Generic
@@ -238,7 +238,7 @@ the draft copy from the current canvas instead of surfacing the 409 as a
 dead end, so no edit is lost.
 
 Entity lifecycle profiles and action nodes compile directly into normalized
-`@cutkit/workflows` v2 machines. Runtime status resolution uses the active
+`@perigram/workflows` v2 machines. Runtime status resolution uses the active
 process workflow before organization workflow overrides and domain defaults, so
 action-only process graphs still define the statuses and transitions exposed by
 the status runtime.
@@ -330,7 +330,7 @@ registered `processDelete(id, auth)` adapter only after domain and runtime
 capability checks. Delete actions must be manual, admin-scoped, and present in
 the caller's compiled action manifest; collection topology and failure behavior
 remain owned by the shared process mutation mapper documented in
-[`@cutkit/processes`](../../../packages/processes/README.md).
+[`@perigram/processes`](../../../packages/processes/README.md).
 Immediately before a compiled Create constructor or Modify persistence call,
 the effect adapter normalizes each connected Relations replacement against the
 current graph-declared owner/key/target/cardinality contract. It resolves every

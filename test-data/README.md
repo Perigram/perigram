@@ -93,7 +93,7 @@ New factories follow the same `factories.js` pattern shown above.
 Factories are built from:
 - v24 block contract in `server/core/blocks/README.md`
 - API DTO shapes emitted by feature models/services
-- Entity design-system manifest in `@cutkit/domain-cnc` through the
+- Entity design-system manifest in `@perigram/domain-cnc` through the
   compatibility exports in `utils/design-system-contract.js`
 - Workflow state definitions in `packages/domain-cnc/src/index.js`
 

@@ -342,7 +342,7 @@ input). The current `machineSnapshot`/`toolSnapshot`/algorithm-revision field
 habit on sheets becomes provenance semantics instead of per-entity cargo.
 
 Composition (audit correction): process graphs are the composition
-calculus, owned by `@cutkit/processes` — its node catalog (90+ kinds),
+calculus, owned by `@perigram/processes` — its node catalog (90+ kinds),
 socket roles, and packet shapes stay authoritative. The six species are a
 CLASSIFICATION of the graph's effect layer (`effect.createEntity/
 updateEntity/changeStatus/runCommand` are c/m/d plus command wrapping), not
@@ -713,7 +713,7 @@ Effect nodes take the species names of §8 (the canonical table is
 - `resolveCtsDefinition(definition, view)` lowers v5 records to the
   executable working shapes (types back to storage ids, row paths back to
   slot paths, species kinds back to operation kinds). It runs inside
-  `prepareAuthoredDefinition` (`@cutkit/processes`) — the single seam every
+  `prepareAuthoredDefinition` (`@perigram/processes`) — the single seam every
   validate/compile/activate path flows through; no consumer outside that
   package resolves or lowers the vocabulary. The lowered form is internal:
   never authored, never persisted. Persisted construction modes the type

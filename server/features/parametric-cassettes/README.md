@@ -1,6 +1,6 @@
 # COMPONENT: Parametric Cassettes
 
-Handles the evaluation and "baking" of parametric cassette templates into static DXF files that feed the generic nesting engine and instant export. Legacy templates use Nodi; OCCS v2 templates with CutKit graph-tree extensions use the canonical OCCS helpers.
+Handles the evaluation and "baking" of parametric cassette templates into static DXF files that feed the generic nesting engine and instant export. Legacy templates use Nodi; OCCS v2 templates with Perigram graph-tree extensions use the canonical OCCS helpers.
 
 ## Core Files
 - `service.js`: Business logic for geometry evaluation and baking.
