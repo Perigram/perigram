@@ -377,7 +377,18 @@ Deferred to the Phase 4 follow-up slices (tracked here):
 4. Phase 3 residual: `defineType` breaking-change refusals attach the
    binder list (`findTypeReferences`) to the 400 payload.
 
-Status: WAITING (slice 1 of N).
+Status of slice 2 (2026-09-23, parallel subagent session, merged):
+create verb removed — the only creation path is Customize on an
+inferred station (deep-clone with fresh id/route, compile-only keys
+stripped); inferred stations render in the compiled preview marked
+"Inferred"; authored-vs-inferred is DERIVED (membership in
+data.screens), no stored marker. Guard made total: canonicalJson
+treats null/undefined entries as absent (inference spells unset
+conditions as undefined keys; persistence drops them — without this
+the slice-1 guard could never flag a stored duplicate). Known edge:
+with zero inferred stations there is no creation entry — accepted
+consequence of delta-only. Remaining Phase 4 items: empty-section law,
+palette discipline.
 
 ### Phase 5 — Constants: one storage, two views `[ ]`
 
@@ -414,6 +425,38 @@ second channel exists. The cut is the channel, not the components:
   rows resolve from the compiled bundle; `IdentityBlock`/`SpecsBlock`
   gone; same data renders on representative surfaces; audit +
   design-system specs green.
+
+#### Agent Notes — 2026-09-23 (parallel subagent session, merged)
+
+Landed the recut scope: `render.groups` facet in @perigram/cts
+(descriptor records + identity policy) compiled into the client
+bundle; declarations carry the content (framework, tech-drawing, cnc
+pack — including the SpecsBlock dimensional group with units);
+`instance-display-contract.js` resolves bundle groups first with
+extensions composing on top; `cncInstanceFieldGroups` reduced to 20
+genuinely-undeclared types (reasons in its header);
+`registerDeclarationFieldAccess` seam feeds the registry projection
+into field-access checking. **IdentityBlock and SpecsBlock are
+deleted**; DataBlock stays as the generator's fact-row control, fed by
+bundle-resolved descriptors. New spec:
+`shared/fact-display-vocabulary.spec.js` (6 end-to-end cases).
+
+Stop-lines (tracked, where this seam grows next):
+- Designer tree authoring of `render.groups` (org types declare via
+  API/packs today; the seam compiles but has no authoring UI).
+- Access vocabulary still legacy-keyed for migrated types (declaration
+  projection lacks legacy DTO read paths like `specs.*`); documented at
+  the alias site.
+- Identity fallback for chrome keeps name→slug→typeLabel→Unnamed
+  (privacy rule: never raw uid); the full chain compiles as policy for
+  fact rows.
+
+Integrator notes: both parallel branches (phase 4b + phase 6) merged
+clean; visual inventory regenerated post-merge (cross-branch audit
+drift from 4b's process.vue changes);
+`packages/domain-cnc/src/relationships.spec.js` (2 failures) is
+pre-existing from parallel sessions — fails identically at the
+pre-merge local tip; not this program's defect.
 
 ### Phase 7 — Finish the dual worlds `[ ]`
 
