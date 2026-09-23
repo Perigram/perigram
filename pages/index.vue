@@ -15,7 +15,6 @@
 
       <div class="relative z-10 mx-auto flex min-h-[calc(88vh-5rem)] max-w-[var(--ck-page-max-width)] items-center px-4 pb-16 pt-8 md:px-8">
         <div class="max-w-3xl">
-          <Tag :value="$t('marketing.heroEyebrow')" severity="secondary" />
           <h1 class="mb-4 mt-5 max-w-2xl text-page-title">
             {{ $t('marketing.heroTitle') }}
           </h1>
@@ -49,7 +48,6 @@ import { useAuthStore } from '~/stores/auth';
 import { resolveProcessEntryRoute } from '~/utils/process-navigation';
 import Button from 'primevue/button';
 import Panel from 'primevue/panel';
-import Tag from 'primevue/tag';
 
 const authStore = useAuthStore();
 const { t } = useI18n();
