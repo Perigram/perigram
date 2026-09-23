@@ -12,8 +12,12 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
     // On the server, always try to set the user.
     // On the client, only set the user if they are not already set.
-    if (process.server || !userIsSet.value) {
-        const fetchOptions = process.server ? { headers: useRequestHeaders(['cookie']) } : {};
+    // `import.meta.server`, not `process.server`: the latter compiles
+    // false inside route middleware chunks in this Nuxt/Vite build, which
+    // silently dropped the SSR cookie forward — every authenticated page
+    // redirected to `/` at SSR and limped through client-side fallback.
+    if (import.meta.server || !userIsSet.value) {
+        const fetchOptions = import.meta.server ? { headers: useRequestHeaders(['cookie']) } : {};
         await authStore.setUser(fetchOptions);
     }
 

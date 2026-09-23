@@ -237,6 +237,13 @@ function listQueryFilter(filters = {}, declaredLineageKeys = new Set()) {
     }
     if (declaredLineageKeys.has(key)) {
       filter[`lineage.${key}`] = lineageMatchValues(value);
+      continue;
+    }
+    // Dotted form (`?lineage.<key>=…`) is the same filter: accept both
+    // spellings so no caller convention can silently disable scoping and
+    // return the whole collection.
+    if (key.startsWith('lineage.') && declaredLineageKeys.has(key.slice('lineage.'.length))) {
+      filter[key] = lineageMatchValues(value);
     }
   }
   return filter;
