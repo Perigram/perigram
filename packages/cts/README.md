@@ -94,10 +94,21 @@ module layout and how the code maps to the spec's build-order tiers.
   derived from declarations; where hand-mirrored status tables die) and
   `compileClientBundle()`, the single frontend/designer consumption
   contract. The projection compiles label/icon/preview/state policy and
-  passes the authored UI vocabulary through verbatim — `identityField`,
-  field `groups`, `listLayout`, and `sortKey` — so the client bundle is
+  passes the authored UI vocabulary through — `identityField`, field
+  `groups`, `listLayout`, and `sortKey` — so the client bundle is
   the one input the UI mapping resolvers need (see
-  [shared/ui-mapping](../../shared/ui-mapping/README.md)).
+  [shared/ui-mapping](../../shared/ui-mapping/README.md)). The fact-display
+  facet (Phase 6, one fact vocabulary): `render.groups` entries are display
+  field groups whose `fields` are normalized descriptor records
+  (`{ path, label?, display?, unit?, prefix?, suffix?, priority?,
+  fallbackPaths?, role?, typeId?, replacesCountPath? }` — bare field-name
+  strings normalize to `{ path }`), and the identity fallback policy is
+  compiled, not authored (`identity`: name → slug → uid with the localized
+  unnamed placeholder key). Fact-row surfaces resolve these descriptors
+  from the served bundle through
+  [utils/instance-display-contract.js](../../utils/README.md); authored
+  labels are render data (localizable when they are existing i18n keys,
+  plain strings otherwise).
 - `compat/domain-cnc.js` — DELETED (the strangler converter). The
   equivalence phase is over: the projection synthesizes from declarations
   only and legacy tables are not converted, projected, or served.

@@ -30,11 +30,11 @@ material data and cassette child counts from the domain field groups.
   production entities emphasize flow and generated outputs, material entities
   emphasize physical specs and stock, catalog entities emphasize options and
   visual samples, and system entities emphasize ownership/contact/file context.
-- Use `SpecsBlock`, `DataBlock`, `GeometryPreview`, `InstanceInlineRef`, and
+- Use `DataBlock`, `GeometryPreview`, `InstanceInlineRef`, and
   PrimeVue `Tag`/`Badge` controls for concise facts. Use `TraceLink` only where
   direct route navigation is intended, not for entity relation summaries. Do not
   render raw nested objects or rebuild identity/status rows locally.
-- Entity facts are access-aware. `DataBlock` and `SpecsBlock` require an
+- Entity facts are access-aware. `DataBlock` requires an
   `type-id` prop and filter paths through `shared/instance-field-access.js`
   using the field policies exported by `@cutkit/domain-cnc`. If a field is not
   declared in the policy, cards must not display it.
@@ -47,7 +47,7 @@ material data and cassette child counts from the domain field groups.
 - Subtitle chips are collapsed-context cues only. If an entity card declares a
   `#subtitle` slot for field values, it must guard it with
   `v-if="variant !== 'card'"` so full cards do not repeat `DataBlock`,
-  `SpecsBlock`, relation, or summary body facts in the header.
+  DataBlock, relation, or summary body facts in the header.
 
 ## Validation
 

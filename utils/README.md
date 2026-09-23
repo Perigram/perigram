@@ -10,15 +10,21 @@ Shared frontend utility modules used by Vue pages/components.
   designer node form and source edge. It maps structured port type/role data to
   a semantic signal token so a socket and the wire it produces cannot drift
   into separate color contracts.
-- `instance-display-contract.js`: Pure resolver for the UI constructor. It merges
-  core domain field groups/surfaces, optional app extensions, and per-call
-  overrides, then returns the effective surface contract and ordered field
-  descriptors for cards, details, workbench previews, and generated consumers.
+- `instance-display-contract.js`: Pure resolver for the UI constructor and the
+  one fact vocabulary seam. Fact-row descriptors resolve from the compiled
+  type view first — the served CTS client bundle's render facet
+  (`render.groups`, authored on type declarations and normalized by
+  `@perigram/cts` `renderPolicyFor`) — with the residual legacy domain map
+  (undeclared types only) and app extensions composing on top; per-call
+  overrides still win. Also owns the compiled identity chrome policy:
+  `instanceIdentityLabel` (name → slug → surrounding type label → localized
+  unnamed placeholder; ids stay private) and `instanceIdentityMeta`
+  (slug/serial/reference facts beside the label).
 - `app-instance-surfaces.js`: App-owned display extensions layered on top of the
-  core domain constructor. Production pages use it for route-specific surfaces
+  bundle-resolved groups. Production pages use it for route-specific surfaces
   such as project workspace rows, project detail facts, and selected warehouse
   inventory context without changing the reusable core library contract.
-- `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`.
+- `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`. Declared `unit`s render as value suffixes through the closed unit-symbol table (`mm`, `m`, `m2`→`m²`, `percent`, `min`, `deg`); `display: 'dimensions'` renders the width × length span of a resolved specs object.
 - `state-engine.js`: Compatibility status severity/icon mapping and entity route/icon registry used by shared status and trace components. New source-of-truth UI, artifact, and route metadata belongs in `@cutkit/domain-cnc` and is adapted by `@cutkit/vue`. Entity icons are CSS class strings: PrimeIcon classes, or the `ck-entity-icon-*` classes of the generated `ck-entity-icons` icon font (see `scripts/build-entity-icons.js`) used by CNC production entities. Keep both registries in sync when changing entity icons.
 - `state-actions.js`: Converts workflow definitions into default `InstanceState` action buttons so cards do not use hardcoded state transitions. Respects transition `display` (`inline`, `menu`, `hidden`) and hides self-loop metadata transitions by default. Callers may pass a workflow override; otherwise the utility uses the committed `@cutkit/domain-cnc` workflows. Also exposes `hasWorkflow()` so UI primitives can avoid server action lookups for workflow-less entity types without importing the domain package directly.
 - `state-location.js`: Normalizes typed current location facts from `status.lifecycle.data.location` for state surfaces. Supported UI types are `warehouse`, `coordinates`, and `address`.

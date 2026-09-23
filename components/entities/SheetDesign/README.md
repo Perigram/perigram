@@ -8,7 +8,8 @@
 - Inline and compact variants use `InstanceCard`, so they expand through the
   shared entity popover on click or keyboard activation.
 - The expanded inline/compact body reuses the same operational content as the
-  card variant: `GeometryPreview` plus `SpecsBlock`.
+  card variant: `GeometryPreview` plus the declared specs fact rows through
+  `DataBlock` (the sheet-design declaration's dimensional group).
 - Geometry presence is represented by the preview itself; the card does not add
   `Preview` or `DXF` tags that duplicate implementation details.
 - When rendered inside a project route, the card exposes an open action to
