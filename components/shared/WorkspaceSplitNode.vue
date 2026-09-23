@@ -2,7 +2,7 @@
   <Splitter
     v-if="node.kind === 'split'"
     :layout="node.orientation"
-    :gutter-size="1"
+    :gutter-size="6"
     class="h-full min-h-0 !border-0 !bg-transparent"
     @resizeend="$emit('resize', node.id, $event.sizes)"
   >

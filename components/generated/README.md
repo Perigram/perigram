@@ -280,10 +280,13 @@ Discord-style operational shell:
   PanelMenu item icon; no entity contracts), and a type's home-section
   instances hang beneath it. Clicking a type panel header opens its
   compiled `typeList` screen as a pane tab (`GeneratedScreenPane`, below)
-  and toggles the panel, never a separate route. Rows render through
-  PanelMenu's `#item` slot so the label owns the remaining width for
-  trailing row controls and the built-in submenu chevrons follow the
-  item icons.
+  and toggles the panel, never a separate route. Rows render through the
+  `#item` slot using the default PanelMenu row pattern from the PrimeVue
+  docs (v-ripple anchor, `text-primary group-hover:text-inherit` icon,
+  label, trailing `Badge`), extended only with the entity inline ref, the
+  icon-variant `InstanceState`, and the generated action ellipsis; the
+  sidebar and its panels paint no background or border — they sit on the
+  zero canvas like the rest of the shell.
 - Entity rows are inline entity entries through the shared component:
   `InstanceInlineRef variant="inline"` with `interactive: false` (non-expanding
   inline card, no detail popup), followed by the icon-variant `InstanceState`
@@ -341,10 +344,11 @@ Discord-style operational shell:
   navbar is hidden and its user controls live in the sidebar
   (`layouts/app.vue` resolves this from the active screen template).
 - The pane area is the same recursive `WorkspaceSplitNode` tree used by the
-  project workspace, with every leaf wrapped in a PrimeVue `Panel` (bordered,
-  rounded surface, no content padding) and split cells padded into gaps —
-  the Splitter gutters between the panels stay draggable, so the moving
-  division survives the panel restyle: IDE-style file tabs, wheel-scrollable tab strips, split
+  project workspace, with every leaf wrapped in a PrimeVue `Panel` on the
+  zero canvas — no background, no border, no content padding (the hosted
+  surface owns its own chrome) — and split cells padded into gaps. The
+  Splitter gutters between the panels are 6px but never drawn: the
+  division stays draggable without a visible divider: IDE-style file tabs, wheel-scrollable tab strips, split
   right/down, pane-local close, registered workspace pages (for example the
   cassette designer), and screen panes (`GeneratedScreenPane`): type
   screens through the shared type host, instance-bound detail screens

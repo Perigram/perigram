@@ -551,10 +551,11 @@ chat snapshot contract and lacks the fields needed for `CassetteThumbnail`.
   own their own body scrolling.
 - **`WorkspaceSplitNode.vue`**: Recursive PrimeVue splitter renderer for
   IDE-style file workspaces. Split nodes select horizontal or vertical layout;
-  leaf nodes expose one scoped file slot inside a PrimeVue `Panel` (bordered,
-  rounded, content padding zeroed through pt) and an active-pane marker.
-  Split cells carry the inter-pane gap; the Splitter gutters stay draggable.
-  Split-tree mutation remains pure state owned by the caller.
+  leaf nodes expose one scoped file slot inside a PrimeVue `Panel` riding the
+  zero canvas (no background or border, content padding zeroed through pt)
+  and an active-pane marker. Split cells carry the inter-pane gap; the
+  6px gutters are invisible but draggable — the division works without
+  being drawn. Split-tree mutation remains pure state owned by the caller.
 - **`InstanceActionsPopover.vue`**: Shared ellipsis trigger and compact action
   popover for entity-local commands. Disclosure is opt-in, not the default:
   `InstancePage` action slots and full `InstanceCard` footers render their

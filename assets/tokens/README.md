@@ -44,6 +44,9 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   (table, tree-table, and view — top and bottom) carry no separator
   borders. Cards drop their shadow, tab
   strips stay transparent, and tree rows run at explorer density.
+  Workspace surfaces ride the zero canvas: Panels and PanelMenu panels
+  paint no background and no border (structure reads through spacing and
+  gaps), and Splitter gutters are invisible — draggable, never drawn.
   Everything else keeps Aura defaults.
 - Tailwind semantic aliases are consumed by `tailwind.config.js`, whose
   content globs include `shared/ui-mapping/*.js`: the UI mapping contract's

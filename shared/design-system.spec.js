@@ -300,6 +300,15 @@ describe('Design system manifest', () => {
     expect(tailwindThemeExtension.height['preview-dialog']).toBe('var(--ck-preview-dialog-height)');
     expect(tailwindThemeExtension.width.swatch).toBe('var(--ck-swatch-size)');
     expect(primeComponentTokens).toEqual({
+      panel: { root: { background: 'transparent', borderColor: 'transparent' } },
+      panelmenu: {
+        panel: {
+          background: 'transparent', borderWidth: '0',
+          first: { borderWidth: '0' },
+          last: { borderWidth: '0' }
+        }
+      },
+      splitter: { gutter: { background: 'transparent' } },
       card: { root: { shadow: 'none' } },
       datatable: {
         root: { background: 'transparent' },
