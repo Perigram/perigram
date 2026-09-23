@@ -10,12 +10,14 @@ test.describe('home and entity UI', () => {
     // (Child first: the parent's edge references it.)
     await app.declareType({
       id: 'e2e-note',
+      name: 'E2E Note',
       class: 'item',
       fields: { name: { base: 'string' } },
       states: { main: { initial: 'new', values: ['new'], terminal: ['new'] } }
     });
     await app.declareType({
       id: 'e2e-folder',
+      name: 'E2E Folder',
       class: 'group',
       fields: { name: { base: 'string' } },
       edges: { children: { notes: { types: ['e2e-note'], onRemove: 'restrict' } } }
@@ -49,13 +51,13 @@ test.describe('home and entity UI', () => {
     // Desktop home shell: the raw PanelMenu carries one panel per
     // screen-backed type; designer-authored containment nests the child
     // type beneath its parent (never a root entry); each root source
-    // loads its pool from its endpoint. Type rows carry home-type-* ids.
-    await expect(app.page.locator('[id="home-type-cassette"]')).toBeVisible();
-    await expect(app.page.locator('[id="home-type-e2e-folder"]')).toBeVisible();
-    await expect(
-      app.page.locator('.p-panelmenu-panel:has([id="home-type-e2e-folder"]) [id="home-type-e2e-note"]')
-    ).toBeVisible();
-    await expect(app.page.locator('[id="home-type-e2e-note"]')).toHaveCount(1);
+    // loads its pool from its endpoint. Rows are default PanelMenu
+    // rendering, so the authored type names are the selectors.
+    await expect(app.page.locator('.p-panelmenu-header', { hasText: 'Cassette' })).toBeVisible();
+    const folderPanel = app.page.locator('.p-panelmenu-panel', { has: app.page.locator('.p-panelmenu-header', { hasText: 'E2E Folder' }) });
+    await expect(folderPanel).toBeVisible();
+    await expect(folderPanel.locator('.p-panelmenu-item', { hasText: 'E2E Note' })).toBeVisible();
+    await expect(app.page.locator('.p-panelmenu-root-list > .p-panelmenu-panel > .p-panelmenu-header', { hasText: 'E2E Note' })).toHaveCount(0);
     await expect.poll(() => requested.length, 'Expected the home cassette pool to load').toBeGreaterThan(0);
     await app.expectCleanRuntime();
   });
