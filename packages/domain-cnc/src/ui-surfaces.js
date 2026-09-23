@@ -1,59 +1,22 @@
-import { cncInstanceFieldGroups } from './ui-fields.js';
-
+// Design-system surface chrome vocabulary and the per-entry chrome
+// contracts the UI lab manifest validates. Live-type audit (2026-09):
+// this module consults no field-group table and pins no per-key
+// synthesized group lists — which groups a surface shows is class-level
+// generic policy at resolve time in `utils/instance-display-contract.js`.
+// Preview chrome survives only for the artifact family (Phase 7 cuts it
+// later); everything else previewed through here rendered retired types.
 export const CNC_SURFACES = ['inline', 'compact', 'card', 'detail', 'table', 'picker', 'workspace'];
 export const CNC_PREVIEW_MODES = ['none', 'icon', 'thumbnail', 'hero', 'canvas', 'attachment'];
 export const CNC_DATA_DISPLAYS = ['inline', 'compact', 'grid', 'sectioned', 'table', 'custom'];
 export const CNC_RELATION_DISPLAYS = ['none', 'inlineRefs', 'summary', 'expanded'];
 export const CNC_ACTION_DISPLAYS = ['none', 'menu', 'footer', 'toolbar', 'primaryOnly'];
 
-const defaultFieldGroupsFor = (key) => {
-  const groups = cncInstanceFieldGroups[key] || {};
-  if (groups.summary) return ['summary'];
-  if (groups.stock) return ['stock'];
-  if (groups.specs) return ['specs'];
-  if (groups.relations) return ['relations'];
-  return [];
-};
-
-const previewFor = (key) => {
-  if (['cassette', 'cassetteTemplate', 'cassetteDesign', 'cassetteInstance'].includes(key)) return 'thumbnail';
-  if (['sheetDesign', 'remnant', 'geometryCapture'].includes(key)) return 'canvas';
-  if (key === 'artifact') return 'attachment';
-  return 'none';
-};
-
-// Card surfaces answer "what is this and what is its primary fact": preview,
-// identity, the leading summary/specs/stock facts, and relation chips.
-// Production internals and revision provenance belong to the detail surface,
-// and noisy entities pin an explicit card group list.
-const CARD_GROUP_OVERRIDES = {
-  queue: ['summary'],
-  catalog: ['summary'],
-  geometryCapture: ['summary'],
-  warehouse: ['summary']
-};
-
-const cardGroupsFor = (key) => {
-  if (CARD_GROUP_OVERRIDES[key]) return CARD_GROUP_OVERRIDES[key];
-  const groups = cncInstanceFieldGroups[key] || {};
-  const orderedGroups = key === 'nestingRun'
-    ? ['summary', 'production', 'identity', 'specs', 'stock', 'geometry', 'relations']
-    : ['summary', 'identity', 'specs', 'stock', 'geometry', 'relations'];
-  return orderedGroups
-    .filter(group => groups[group]);
-};
-
-const detailGroupsFor = (key) => {
-  const groups = cncInstanceFieldGroups[key] || {};
-  return ['identity', 'summary', 'specs', 'stock', 'geometry', 'production', 'relations', 'provenance']
-    .filter(group => groups[group]);
-};
+const previewFor = (key) => (key === 'artifact' ? 'attachment' : 'none');
 
 export function createEntitySurfaceContracts(entityContracts = []) {
   return Object.fromEntries(entityContracts.map((entry) => {
     const key = entry.key;
     const preview = previewFor(key);
-    const compactGroups = defaultFieldGroupsFor(key);
     return [key, {
       key,
       typeId: entry.typeId,
@@ -62,7 +25,7 @@ export function createEntitySurfaceContracts(entityContracts = []) {
       surfaces: {
         inline: {
           preview: 'none',
-          fieldGroups: compactGroups,
+          fieldGroups: [],
           fieldLimit: 1,
           dataDisplay: 'inline',
           relations: 'none',
@@ -72,7 +35,7 @@ export function createEntitySurfaceContracts(entityContracts = []) {
         },
         compact: {
           preview: preview === 'hero' ? 'thumbnail' : preview,
-          fieldGroups: compactGroups,
+          fieldGroups: [],
           fieldLimit: 3,
           dataDisplay: 'compact',
           relations: 'summary',
@@ -82,7 +45,7 @@ export function createEntitySurfaceContracts(entityContracts = []) {
         },
         card: {
           preview: preview === 'canvas' ? 'hero' : preview,
-          fieldGroups: cardGroupsFor(key),
+          fieldGroups: [],
           dataDisplay: 'grid',
           relations: 'inlineRefs',
           actions: 'footer',
@@ -91,7 +54,7 @@ export function createEntitySurfaceContracts(entityContracts = []) {
         },
         detail: {
           preview: preview === 'none' ? 'none' : 'hero',
-          fieldGroups: detailGroupsFor(key),
+          fieldGroups: [],
           dataDisplay: 'sectioned',
           relations: 'expanded',
           actions: 'toolbar',

@@ -3,10 +3,10 @@
     <BreadcrumbTrail v-if="trail.length > 1" :instance="instance" :bundle="bundle" :pool="pool" />
     <div :class="LAYOUT.headerRow" class="header-row">
       <div :class="[LAYOUT.row, LAYOUT.headerIdentity]" class="header-identity">
-        <Avatar :icon="type?.render?.icon || 'pi pi-circle'" shape="circle" size="large" />
+        <Avatar :icon="glyph" shape="circle" size="large" />
         <div class="flex min-w-0 flex-1 flex-col gap-0.5">
           <span :class="[TYPE_BY_LEVEL[props.level] || 'text-section-heading', LAYOUT.nameClamp]">{{ identity }}</span>
-          <span class="text-supporting text-muted truncate">{{ type?.render?.label }} · {{ instance.id }}</span>
+          <span class="text-supporting text-muted truncate">{{ type?.name }} · {{ instance.id }}</span>
         </div>
         <!-- One status surface per header: the lifecycle strip carries the
              current state when the type declares a state axis; the badge
@@ -60,7 +60,7 @@ import Tag from 'primevue/tag';
 import Button from 'primevue/button';
 import Menu from 'primevue/menu';
 import {
-  LAYOUT, TYPE_BY_LEVEL, SEVERITY_MAP, HEADER_ACTIONS_INLINE, instanceIdentity,
+  LAYOUT, TYPE_BY_LEVEL, SEVERITY_MAP, HEADER_ACTIONS_INLINE, titleFor, iconFor,
   resolveActionButton, actionLabelKey, localizedLabel
 } from '#shared/ui-mapping/index.js';
 import ActionButton from './ActionButton.vue';
@@ -84,7 +84,8 @@ const props = defineProps({
 const emit = defineEmits(['run', 'toggle-edit']);
 
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const identity = computed(() => instanceIdentity(props.type, props.instance));
+const identity = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
+const glyph = computed(() => iconFor(props.type, props.instance));
 const trail = computed(() => {
   const chain = [];
   let cursor = props.instance;
@@ -121,7 +122,7 @@ const overflowMenuItems = computed(() => overflowActions.value.map(action => {
 const status = computed(() => {
   const value = props.instance.states?.main;
   if (!value || !props.type?.states?.main) return null;
-  const render = props.type.render?.states?.[value];
+  const render = props.type.states?.main?.render?.[value];
   return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
 });
 </script>

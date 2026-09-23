@@ -95,7 +95,8 @@ describe('generated labels', () => {
       label: 'Create t-k3x9fj2mqa new'
     }, '', i18n)).toBe('Job Ticket');
 
-    // Without a bundle entry the deterministic humanized fallback stays.
-    expect(generatedEntityLabel('t-unknown', i18n)).toBe('t unknown');
+    // Without a bundle entry the unnamed placeholder stays — humanized
+    // raw ids never render.
+    expect(generatedEntityLabel('t-unknown', i18n)).toBe('Unnamed');
   });
 });

@@ -358,9 +358,9 @@ describe('Framework package contracts', () => {
     expect(committed).toEqual(generated);
     expect(committed.validations).toEqual({ ok: true, issues: [] });
     expect(committed.designSystem.components.find(component => component.key === 'cassetteTemplate')?.fieldPaths).toEqual([]);
-    expect(committed.designSystem.components.find(component => component.key === 'cassetteDesign')?.fieldPaths).toEqual([
-      'data.parameters'
-    ]);
+    // The legacy residual fact map died with the fact channel: no
+    // design-system component carries legacy fact rows anymore.
+    expect(committed.designSystem.components.find(component => component.key === 'cassetteDesign')?.fieldPaths).toEqual([]);
     expect(committed.designSystem.primitives).toContainEqual(expect.objectContaining({
       key: 'InstancePage',
       componentPath: 'components/shared/InstancePage.vue'

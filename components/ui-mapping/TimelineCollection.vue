@@ -45,7 +45,7 @@ import Paginator from 'primevue/paginator';
 import Button from 'primevue/button';
 import {
   LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, formatValue,
-  SCALAR_BASES, instanceIdentity, resolveListControls, pageSlice
+  SCALAR_BASES, titleFor, resolveListControls, pageSlice
 } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
@@ -75,7 +75,7 @@ const page = computed(() => pageSlice(props.instances, first.value, pageSize.val
 
 const isLongString = descriptor => descriptor.base === 'string'
   && (descriptor.multiline === true || (descriptor.max || 0) >= 120);
-const identityOf = instance => instanceIdentity(props.type, instance);
+const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
 const bodyField = computed(() => {
   const entries = Object.entries(props.type?.fields || {});
   const long = entries.find(([, descriptor]) => isLongString(descriptor));

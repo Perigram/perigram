@@ -59,11 +59,15 @@ control for edit variants (`full`/`detail`); display variants stay
 shape-derived projections — authored data chooses input affordances, not
 read-only presentations. Field display names come from
 `fieldLabel(name, descriptor)`: the descriptor's `label` override, else
-the start-case name. `instanceIdentity(type,
-instance)` resolves the record label: the type's `identifier`-flagged
-field first, then the short-string heuristic, then the type `name`
-(never the raw id; an unnamed type renders "Unnamed") — and
-`formatQuantity` maps storage units to display symbols
+the start-case name. Record titles resolve through `titleFor(record,
+typeView, { unnamedLabel })`: the value of the type's `identifier`-flagged
+field when non-empty, else the localized unnamed placeholder (default
+`'Unnamed'`; callers pass `t('common.unnamed')`) — never record ids,
+never slugs, never heuristics. Display glyphs resolve through
+`iconFor(typeView, record?)`: `typeView.glyph`, except that a given
+record with a non-empty `depiction.thumb` field value wins (the declared
+thumbnail is per-record data). `formatQuantity` maps storage units to
+display symbols
 (`count`/`currency` render as bare localized numbers). Detail surfaces
 are sectioned by the derived `sections` (`resolveFieldGroups`: base
 assignment in summary/dimensions/media/relations/notes order, fields a
@@ -141,8 +145,9 @@ pure over the loaded pool. It reports which fields actually carry data
 or fact) and the enum values present per field
 (`enumValues`). `resolveListControls(type, instances)` builds the
 compose-time list contract every collection surface consumes:
-`searchKeys` (the `identifier`-flagged field, the preferred identity
-names, else the first short string), `sortKeys` (filled short scalars
+`searchKeys` (the `identifier`-flagged field only — the preferred-name
+and first-short-string heuristics are gone; a type without an identifier
+searches by title and id alone), `sortKeys` (filled short scalars
 with labels; the authored default-sort override channel is gone — the
 first filled short scalar is the natural default), `facets` (enum
 fields over the values actually present), and `pagination` from the
@@ -152,7 +157,7 @@ Two pure helpers consume it: `toolbarVisibleFor(node)` decides the bar
 (large lists always, small lists through multi-value facets, never off
 list surfaces) and `instanceMatchesToolbar(type, controls, instance,
 query, facetSelections)` applies it — substring search over the
-search-key fields plus the resolved identity label and the raw instance id
+search-key fields plus the resolved record title and the raw instance id
 (ids stay private display vocabulary, but finding a row by id remains
 functional), and
 exact facet matches.

@@ -21,7 +21,9 @@ import { normalizeHierarchyType } from '~/utils/instance-hierarchy.js';
 import { useAuthStore } from '~/stores/auth';
 import { isInteractiveEventTarget } from '~/utils/interactive-target.js';
 import { DESIGN_SYSTEM_ENTITY_CONTRACTS } from '~/utils/design-system-contract.js';
-import { instanceIdentityLabel, instanceIdentityMeta, resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { resolveInstanceDisplayContract } from '~/utils/instance-display-contract.js';
+import { titleFor } from '#shared/ui-mapping/index.js';
+import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { useFileTypeView } from '~/composables/useFileTypeView.js';
 import { hasMeaningfulWorkflowState } from '~/utils/state-actions.js';
 import { MOBILE_TRANSIENT_SURFACES_CLOSE_EVENT, requestCloseMobileTransientSurfaces } from '~/utils/mobile-transient-surfaces.js';
@@ -46,7 +48,6 @@ const props = defineProps({
   id: { type: [String, Number, Object], default: null },
   entity: { type: Object, default: null },
   fetch: { type: Boolean, default: true },
-  fields: { type: Array, default: () => ['serial'] },
   allowDetailRoute: { type: Boolean, default: true },
   interactive: { type: Boolean, default: true },
   variant: { type: String, default: 'inline' },
@@ -123,16 +124,16 @@ const compactDisplay = computed(() => resolveInstanceDisplayContract({
   surface: 'compact',
   typeRecord: typeById(generatedTypeId.value)
 }));
-// Identity chrome through the compiled identity policy; the chip title
-// carries the declared meta facts (serial/reference) beside the label.
-const identityLabel = computed(() => instanceIdentityLabel(resolved.value, {
-  typeLabel: compactTypeLabel.value,
-  unnamedLabel: t('common.unnamed')
-}));
-const identityMetaText = computed(() => instanceIdentityMeta(resolved.value, props.fields)
-  .filter(item => item.value !== identityLabel.value)
-  .map(item => `${item.key}: ${item.value}`)
-  .join(' · '));
+// Record titles resolve through the one title resolver (identifier field
+// value via the wire-to-screen bridge; unnamed otherwise). The legacy
+// meta-facts channel (slug/serial beside the label) died with the
+// identity-chrome helpers.
+const typeView = computed(() => typeById(generatedTypeId.value));
+const identityLabel = computed(() => titleFor(
+  typeView.value ? dtoToScreenInstance(resolved.value, typeView.value) : null,
+  typeView.value,
+  { unnamedLabel: t('common.unnamed') }
+));
 const compactDataFields = computed(() => compactDisplay.value.fields.filter(field =>
   field.display !== 'entityRef'
   && field.display !== 'entityRefList'
@@ -416,7 +417,7 @@ function tonePalette(role) {
           <span
             v-if="resolved"
             class="instance-inline-chip min-w-0 max-w-full flex-1"
-            :title="identityMetaText || identityLabel"
+            :title="identityLabel"
           >
             <i v-if="icon" :class="['instance-inline-chip-icon', icon]" aria-hidden="true"></i>
             <span class="instance-inline-chip-label">{{ identityLabel }}</span>
@@ -518,7 +519,7 @@ function tonePalette(role) {
     <span
       v-else-if="resolved"
       class="instance-inline-chip min-w-0 max-w-full"
-      :title="identityMetaText || identityLabel"
+      :title="identityLabel"
       data-instance-card-interactive="true"
     >
       <i v-if="icon" :class="['instance-inline-chip-icon', icon]" aria-hidden="true"></i>

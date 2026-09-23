@@ -21,7 +21,7 @@
       <div :class="LAYOUT.stackTight">
         <div :class="LAYOUT.rowBetween">
           <div class="flex flex-wrap items-center gap-2">
-            <i :class="type.render.icon" />
+            <i :class="glyph" />
             <span class="text-section-heading">{{ instanceLabel }}</span>
           </div>
           <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
@@ -45,7 +45,7 @@
     <Divider class="my-0" />
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div :class="LAYOUT.row">
-        <i :class="type.render.icon" />
+        <i :class="glyph" />
         <span class="text-section-heading">{{ instanceLabel }}</span>
       </div>
       <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
@@ -67,7 +67,7 @@
   </div>
 
   <div v-else class="flex min-w-0 flex-wrap items-center gap-2">
-    <i :class="type.render.icon" />
+    <i :class="glyph" />
     <span class="text-body">{{ instanceLabel }}</span>
     <Tag v-if="statusTag" :value="statusTag.label" :severity="statusTag.severity" />
     <FieldControl
@@ -90,7 +90,8 @@ import { computed, ref } from 'vue';
 import Card from 'primevue/card';
 import Tag from 'primevue/tag';
 import Divider from 'primevue/divider';
-import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, SEVERITY_MAP, instanceIdentity } from '#shared/ui-mapping/index.js';
+import { useI18n } from 'vue-i18n';
+import { LAYOUT, resolveSurface, applyBudget, ROW_FIELD_BUDGET, SEVERITY_MAP, titleFor, iconFor } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 import InstanceChip from './InstanceChip.vue';
 import SurfaceDetailBody from './SurfaceDetailBody.vue';
@@ -118,12 +119,14 @@ const toggleRelation = key => {
   expanded.value[key] = !expanded.value[key];
 };
 
+const { t } = useI18n();
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const instanceLabel = computed(() => instanceIdentity(props.type, props.instance));
+const instanceLabel = computed(() => titleFor(props.instance, props.type, { unnamedLabel: t('common.unnamed') }));
+const glyph = computed(() => iconFor(props.type, props.instance));
 const statusValue = computed(() => props.instance.states?.main);
 const statusTag = computed(() => {
   if (!statusValue.value) return null;
-  const render = props.type.render?.states?.[statusValue.value];
+  const render = props.type.states?.main?.render?.[statusValue.value];
   return {
     label: render?.label || startCase(statusValue.value),
     severity: SEVERITY_MAP[render?.severity] || 'secondary'

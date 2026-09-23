@@ -224,7 +224,7 @@ import { consumePendingWorkspaceInstance, workspaceInstanceOpenEvent } from '~/u
 import { consumePendingWorkspaceChat, workspaceChatOpenEvent } from '~/utils/chat-workspace-open.js';
 import GeneratedTypeScreen from '~/components/generated/GeneratedTypeScreen.vue';
 import GeneratedWorkspacePane from '~/components/generated/GeneratedWorkspacePane.vue';
-import { instanceIdentity, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
+import { titleFor, typeLabelKey, localizedLabel } from '#shared/ui-mapping/index.js';
 import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { isCreateAction, isGeneratedSurfaceAction, isRelationLinkAction } from '~/components/generated/action-visibility.js';
 import { mergeCollectionActionContext } from '~/components/generated/action-context.js';
@@ -344,8 +344,8 @@ const openedPageItems = computed(() => openedPageRefs.value.map(reference => {
   };
 }).filter(Boolean));
 // Opened screens as pane tabs. Type screens keep their manifest label;
-// instance-bound detail tabs label from the render identity contract
-// (instanceIdentity over the pool DTO), so the declared identity field
+// instance-bound detail tabs label from the one title resolver
+// (titleFor over the pool DTO), so the declared identity field
 // wins and raw ids never render. Labels and icons resolve live from the
 // manifest/registry/pool, so a recompiled process updates open tabs
 // without persisted stale text.
@@ -517,9 +517,10 @@ function openMobileInstance(instance = {}) {
 function typeLabelOf(typeId = '') {
   const record = registryStore.typeRecord(typeId);
   // Procedural label contract only: the generated type key (locale
-  // override) over the authored render label — no entity contracts.
+  // override) over the authored type name — no entity contracts, no raw
+  // ids.
   if (!record) return typeId;
-  return localizedLabel({ te, t }, typeLabelKey(typeId), record.render?.label || typeId);
+  return localizedLabel({ te, t }, typeLabelKey(typeId), record.name || '');
 }
 
 // The screen a type node opens: its compiled typeList screen.
@@ -542,7 +543,9 @@ function screenLabelFor(screenKey = '') {
 function instanceLabelOf(typeId = '', id = '') {
   const typeRecord = registryStore.typeRecord(typeId);
   const entity = instances.records?.[instances.canonicalTypeKey(typeId)]?.[String(id)];
-  if (typeRecord && entity) return instanceIdentity(typeRecord, dtoToScreenInstance(entity, typeRecord));
+  if (typeRecord && entity) {
+    return titleFor(dtoToScreenInstance(entity, typeRecord), typeRecord, { unnamedLabel: t('common.unnamed') });
+  }
   return typeLabelOf(typeId || id) || '';
 }
 
@@ -883,17 +886,19 @@ function childCreateActions(item = null) {
 }
 
 function actionContext(section = {}) {
-  // Parent option labels follow the render identity contract: each loaded
-  // DTO maps through the wire-to-screen bridge before instanceIdentity,
-  // so declared identity fields win and raw ids never render.
-  const typeRecord = registryStore.typeRecord(section.source.typeId) || { id: section.source.typeId };
+  // Parent option labels follow the one title resolver: each loaded DTO
+  // maps through the wire-to-screen bridge before titleFor, so declared
+  // identity fields win and raw ids never render.
+  const typeRecord = registryStore.typeRecord(section.source.typeId) || null;
   return {
     region: section.region,
     source: section.source,
     typeId: section.source.typeId,
     parentTypeId: section.source.typeId,
     parentOptions: section.items.map(entity => ({
-      label: instanceIdentity(typeRecord, dtoToScreenInstance(entity, typeRecord)),
+      label: typeRecord
+        ? titleFor(dtoToScreenInstance(entity, typeRecord), typeRecord, { unnamedLabel: t('common.unnamed') })
+        : t('common.unnamed'),
       value: entity._id || entity.identity?.uid,
       entity
     }))

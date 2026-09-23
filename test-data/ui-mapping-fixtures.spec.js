@@ -5,7 +5,7 @@ import {
   composeScreen,
   buildInstancePool,
   applyBudget,
-  instanceIdentity,
+  titleFor,
   resolveListLayout,
   VARIANTS
 } from '#shared/ui-mapping/index.js';
@@ -137,8 +137,8 @@ describe('hydration four breaks the previous skeleton', () => {
   });
 
   it('resolves declared identities and variable link cardinality', () => {
-    expect(instanceIdentity(bundle.types.find(type => type.id === 'folder'), pool.folder['folder-a1aialpha'])).toBe('Sleeve A1a-i-α');
-    expect(instanceIdentity(bundle.types.find(type => type.id === 'keeper'), pool.keeper['keeper-3'])).toBe('KPR-03');
+    expect(titleFor(pool.folder['folder-a1aialpha'], bundle.types.find(type => type.id === 'folder'))).toBe('Sleeve A1a-i-α');
+    expect(titleFor(pool.keeper['keeper-3'], bundle.types.find(type => type.id === 'keeper'))).toBe('KPR-03');
     const counts = instances.documents.map(document => document.relations.linkedSheets.length);
     expect(new Set(counts).size).toBeGreaterThan(3);
     const budget = { max: 2, overflow: 'count' };

@@ -280,40 +280,36 @@ the per-output contract (see `server/core/commands/README.md`).
 
 Display constructor metadata is split from access policy:
 
-- `ui-fields.js` is the RESIDUAL fact vocabulary: field groups for entity
-  types that have no CTS type declaration yet (the production entity family,
-  master data, and the artifact-template leftovers; see the module header for
-  the full list and the rule that nothing new lands here). Every declared
-  type — the pack's own `cassette`, `sheet-design`, `facade-design`, and
-  `facade-pattern` included — carries its fact groups as authored
-  `render.groups` on its declaration
-  ([packages/cts/README.md](../cts/README.md) → `render.js`), compiled into
-  the served client bundle and resolved by
-  `utils/instance-display-contract.js` as the first-choice source. Nothing
-  below is affected by the split: descriptor vocabulary, child-count roles,
-  and preview-backed galleries are identical in both homes.
+- `ui-fields.js` is the RESIDUAL fact vocabulary, reduced by the live-type
+  audit to the artifact family only: `artifact_template` keeps its rows
+  because the artifact family is undeclared master data that Phase 7 cuts
+  later (`artifact` itself is framework-declared and resolves from the
+  bundle). Every other key — the retired production family (project, queue,
+  nesting run, sheets, remnants, catalog, …) and the master-data leftovers
+  whose surfaces are gone — was deleted with the legacy fact channel;
+  nothing new may land here (declare the type instead). Every declared type
+  carries its fact vocabulary as field descriptors on the declaration,
+  compiled into the served client bundle and resolved by
+  `utils/instance-display-contract.js` (`factsFor`) as the only fact source.
+  Descriptor vocabulary, child-count roles, and preview-backed galleries are
+  identical in both homes.
   Aggregate child-count facts may also mark `role: 'childCount'`; generated
   cards use that metadata together with explicit `summary.*Preview`
   `entityRefList` fields to swap a numeric count for a compact child gallery.
-  Current preview-backed replacements include project queues, queue runs,
-  queue sheets, nesting-run sheet designs, library cassettes, and catalog
-  colors. The nesting-run `card` surface includes the `production` group so
-  generic card and popup surfaces can render `data.sheetDesignIds` as a
-  relation gallery; custom nesting-run cards still filter that group to sheet
-  designs so material source context stays in its dedicated source section.
   Color summary facts declare the hex swatch through
   `display: 'swatch'`, which `DataBlock` renders as a color dot beside the
   value.
-- `ui-surfaces.js` declares surface chrome policy: preview mode, data
-  display, relations, actions, status, and trace per surface (inline,
-  compact, card, detail), plus the legacy synthesized group lists for
-  residual-map types. Which GROUPS a surface shows is synthesized generically
-  over the resolved groups by `utils/instance-display-contract.js` (cards are
-  recognition surfaces: preview, identity, and the leading
-  summary/specs/stock facts with relation chips; production internals and
-  revision provenance render only on the detail surface; noisy residual
-  entities — queue, catalog, geometry capture, warehouse — pin explicit card
-  group lists there).
+- `ui-surfaces.js` declares the design-system surface chrome vocabulary and
+  the per-entry chrome contracts (preview mode, data display, relations,
+  actions, status, trace per surface: inline, compact, card, detail) that
+  the UI lab manifest validates. It consults no field-group table and pins
+  no per-key group lists — which GROUPS a surface shows is class-level
+  generic policy at resolve time in `utils/instance-display-contract.js`
+  (cards are recognition surfaces: preview, identity, and the leading
+  summary facts with relation chips; production internals and revision
+  provenance render only on the detail surface). The legacy per-key
+  synthesized-group overrides (queue, catalog, geometry capture, warehouse,
+  the nesting-run special case) are deleted.
 - `field-access.js` remains the hard visibility boundary. A field group path
   that is not covered by field access must fail validation instead of rendering
   through a component-local escape hatch.

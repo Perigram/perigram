@@ -11,19 +11,25 @@ Shared frontend utility modules used by Vue pages/components.
   a semantic signal token so a socket and the wire it produces cannot drift
   into separate color contracts.
 - `instance-display-contract.js`: Pure resolver for the UI constructor and the
-  one fact vocabulary seam. Fact-row descriptors resolve from the compiled
-  type view first — the served CTS client bundle's derived `sections`
-  (base-derived grouping from `@perigram/cts` `renderPolicyFor`, projected
-  as slot-qualified fact paths with descriptor labels and display kinds) —
-  with the residual legacy domain map (undeclared types only) and app
-  extensions composing on top; per-call overrides still win. Also owns the
-  compiled identity chrome policy: `instanceIdentityLabel` (name → slug →
-  surrounding type label → localized unnamed placeholder; ids stay private)
-  and `instanceIdentityMeta` (slug/serial/reference facts beside the label).
-- `app-instance-surfaces.js`: App-owned display extensions layered on top of the
-  bundle-resolved groups. Production pages use it for route-specific surfaces
-  such as project workspace rows, project detail facts, and selected warehouse
-  inventory context without changing the reusable core library contract.
+  one fact vocabulary seam — one resolver per display fact, bundle-only.
+  `factsFor(typeView, surface)` projects the served CTS client bundle's
+  derived `sections` plus the field descriptors into ordered slot-qualified
+  fact rows for a surface (class-generic group policy, shared field limits:
+  inline 1, compact 3). `resolveInstanceDisplayContract` composes on top:
+  bundle rows first, app extensions (`app-instance-surfaces.js`) over them,
+  per-call `fieldGroups`/`surfaces`/`overrides` last (they always win).
+  The legacy residual domain map is deleted — undeclared types resolve no
+  fact rows. Surface chrome (preview/dataDisplay/relations/actions/status/
+  trace) is class-generic policy derived from the type record (payload
+  presence, declared state axes); record titles and glyphs come from
+  `titleFor`/`iconFor` in [shared/ui-mapping](../shared/ui-mapping/README.md)
+  (the former identity-chrome helpers `instanceIdentityLabel`/
+  `instanceIdentityMeta` are gone).
+- `app-instance-surfaces.js`: App-owned display extensions layered on top of
+  the bundle-resolved fact rows (`resolveInstanceDisplayContract` composes
+  them; per-call overrides still win). The seam is the app's only
+  route-specific patch channel; its former project/warehouse entries died
+  with those entity types, so it currently carries no entries.
 - `data-display.js`: Shared path resolution and value formatting for generated `DataBlock` rows. It formats scalar values, booleans, scalar arrays, object arrays, and named object references while hiding non-displayable nested objects instead of rendering `[object Object]`. Declared `unit`s render as value suffixes through the closed unit-symbol table (`mm`, `m`, `m2`→`m²`, `percent`, `min`, `deg`); `display: 'dimensions'` renders the width × length span of a resolved specs object.
 - `state-engine.js`: Per-state display resolver over the compiled contract.
   `resolveStateDisplay(states, value)` maps a state value to
@@ -114,7 +120,9 @@ Shared frontend utility modules used by Vue pages/components.
   generated screen titles, home section headers, breadcrumbs, and process
   action buttons to i18n/domain entity labels while treating raw process ids,
   role-prefixed labels, generic action words, and status ids as fallback data
-  rather than primary visible copy.
+  rather than primary visible copy. The entity-label fallback chain is
+  `name` → localized unnamed placeholder: the authored bundle `name` is the
+  only non-i18n source (humanized raw ids never render).
 - `drawingPreview.js`: Pure drawing preview helpers for `DrawingCanvas`. It normalizes entity geometry previews, baked cassette `data.layerData` / `data.polygonParts` (including migration fallback under `data.geometry.data`), polygon-only remnant geometry, and cassette render results into the shared `{ viewBox, layers }` drawing contract, extracts designer edge overlays, and resolves layer pens by explicit source mapping, caller-provided `standardCode`, layer-name standard fallback, source layer styling, then default pen. If a matched layer standard points to a pen that is not loaded or no longer exists, normalization preserves the source layer `color` and `weight` before falling back to the default pen. It must not hardcode production layer standard codes; source/caller data owns layer semantics.
   Pen lookup accepts both `_id` and canonical `identity.uid`, matching the
   layer-standard persistence contract.

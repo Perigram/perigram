@@ -14,10 +14,11 @@ Entity cards and page components must NEVER import from `useBlocks.js` directly.
 State-only conditionals in entity cards should use a local `computed` from `entity.states`. Do not import `useStatus` outside shared status/block primitives.
 
 All shared and entity UI components consume the strict DTO contract: root `_id`
-plus canonical blocks only. Display identity through the compiled identity
-policy (`instanceIdentityLabel` from `utils/instance-display-contract.js`:
-name → slug → surrounding type label → localized unnamed placeholder; ids stay
-private display vocabulary), status through `entity.status.*`, and feature data
+plus canonical blocks only. Display identity through the one title resolver
+(`titleFor` from `shared/ui-mapping`, fed by the wire-to-screen bridge over
+the bundle type record: the declared `identifier` field value, else the
+localized unnamed placeholder; ids and slugs stay private display
+vocabulary), status through `entity.status.*`, and feature data
 through `entity.data.*`; do not read flat compatibility fields such as
 `entity.name`, `entity.id`, `entity.type`, or `entity.parameters`.
 

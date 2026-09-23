@@ -49,15 +49,19 @@ const bundle = {
     class: 'item',
     scope: 'org',
     version: 1,
-    fields: { note: { base: 'string' } },
+    name: 'Job Ticket',
+    glyph: 'pi pi-box',
+    identifier: 'name',
+    depiction: { glyph: 'pi pi-box', thumb: null },
+    fields: { name: { base: 'string', identifier: true }, note: { base: 'string' } },
+    sections: [{ id: 'summary', label: null, fields: ['name', 'note'] }],
     payload: null,
     edges: {},
-    states: { main: { initial: 'new', values: ['new'], terminal: [] } },
+    states: { main: { initial: 'new', values: ['new'], terminal: [], render: { new: { label: 'New', icon: null, severity: 'info' } } } },
     transitions: [],
     operators: {},
     revisions: [],
-    schema: {},
-    render: { label: 'Job Ticket', icon: 'pi pi-box', preview: 'none', identityField: null, listLayout: null, sortKey: null, groups: [], states: { new: { label: 'New', icon: null, severity: 'info' } } }
+    schema: {}
   }]
 };
 

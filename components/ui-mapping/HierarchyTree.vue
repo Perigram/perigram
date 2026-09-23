@@ -5,7 +5,8 @@
 <script setup>
 import { computed } from 'vue';
 import Tree from 'primevue/tree';
-import { instanceIdentity, childrenOfParent } from '#shared/ui-mapping/index.js';
+import { useI18n } from 'vue-i18n';
+import { titleFor, iconFor, childrenOfParent } from '#shared/ui-mapping/index.js';
 
 const props = defineProps({
   root: { type: Object, required: true },
@@ -15,7 +16,8 @@ const props = defineProps({
 
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
 
-const instanceLabel = (instance, type) => instanceIdentity(type, instance);
+const { t } = useI18n();
+const instanceLabel = (instance, type) => titleFor(instance, type, { unnamedLabel: t('common.unnamed') });
 
 // Children resolve through the shared hierarchy matcher (declared
 // lineageKey, never the edge's map key) — the same matcher as
@@ -32,8 +34,8 @@ const buildNodes = (instance, seen = new Set()) => {
     .filter(Boolean);
   return {
     key: instance.id,
-    label: `${type?.render?.label || instance.type}: ${instanceLabel(instance, type)}`,
-    icon: type?.render?.icon || 'pi pi-circle',
+    label: `${type?.name || instance.type}: ${instanceLabel(instance, type)}`,
+    icon: iconFor(type),
     children
   };
 };

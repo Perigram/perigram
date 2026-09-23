@@ -48,7 +48,7 @@ import TreeTable from 'primevue/treetable';
 import Column from 'primevue/column';
 import Tag from 'primevue/tag';
 import Button from 'primevue/button';
-import { LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, SCALAR_BASES, tableColumnCount, applyBudget, SEVERITY_MAP, instanceIdentity, childrenOfParent } from '#shared/ui-mapping/index.js';
+import { LAYOUT, fieldLabel, fieldLabelKey, localizedLabel, SCALAR_BASES, tableColumnCount, applyBudget, SEVERITY_MAP, titleFor, childrenOfParent } from '#shared/ui-mapping/index.js';
 import FieldControl from './FieldControl.vue';
 
 const props = defineProps({
@@ -66,11 +66,11 @@ const { te, t } = useI18n();
 
 const typesById = computed(() => Object.fromEntries((props.bundle?.types || []).map(type => [type.id, type])));
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const identityOf = instance => instanceIdentity(typesById.value[instance.type], instance);
+const identityOf = instance => titleFor(instance, typesById.value[instance.type], { unnamedLabel: t('common.unnamed') });
 const statusOf = (instance, type) => {
   const value = instance.states?.main;
   if (!value || !type?.states?.main) return null;
-  const render = type.render?.states?.[value];
+  const render = type.states?.main?.render?.[value];
   return { label: render?.label || startCase(value), severity: SEVERITY_MAP[render?.severity] || 'secondary' };
 };
 const scalarFields = computed(() => Object.entries(props.type?.fields || {})
@@ -96,7 +96,7 @@ const buildNode = (instance, seen = new Set()) => {
   return {
     key: instance.id,
     data: {
-      icon: type?.render?.icon || 'pi pi-circle',
+      icon: iconFor(type),
       label: identityOf(instance),
       status: statusOf(instance, type),
       fields: instance.fields,

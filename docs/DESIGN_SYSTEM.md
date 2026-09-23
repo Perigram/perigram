@@ -143,7 +143,7 @@ Shared ownership:
 - `ResponsiveGrid`'s `bounded` variant uses the shared bounded-item min/max
   width tokens for operational cards that must not grow indefinitely; extra
   width creates additional tracks.
-- `InstanceState`, `StatusBadge`, `TraceChain`, and `DataBlock` own v24 block visualization; identity chrome resolves through the compiled identity policy (`instanceIdentityLabel`) rendered inline.
+- `InstanceState`, `StatusBadge`, `TraceChain`, and `DataBlock` own v24 block visualization; record titles resolve through the one title resolver (`titleFor` from `shared/ui-mapping`: the declared identifier field, else the localized unnamed placeholder) rendered inline.
 - `StateLocation` renders typed mutable location facts from `status.lifecycle.data.location` so cards do not hardcode warehouse ids or coordinate text as static fields.
 - `DrawingCanvas` owns layer-aware SVG canvas rendering for DXF/SVG previews, cassette thumbnails, mapping previews, and cassette designer interactions. Sources must normalize into its `{ viewBox, layers }` contract and provide layer standard metadata explicitly; the shared canvas does not invent production layer codes.
 - `GeometryPreview` wraps `DrawingCanvas` for token-backed DXF/layer/polygon previews from `data.geometry.preview` so design cards show geometry instead of file-name fields.

@@ -8,9 +8,9 @@ tree. They own no per-type or per-screen logic — every component decision
 component keys to these SFCs is the handwritten design-system surface, and
 it is the only handwritten part.
 
-## Display helpers live in the mapping contract: `instanceIdentity(type,
-instance)` is the single identity heuristic (preferred short-string fields,
-then the first short string field, then the id) and `formatQuantity`
+## Display helpers live in the mapping contract: `titleFor(instance,
+type)` is the single title resolver (the declared `identifier` field
+value, else the unnamed placeholder) and `formatQuantity`
 renders unit symbols (`25.5°`, `43,200 min`) instead of raw storage units.
 
 Composition flow

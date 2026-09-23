@@ -65,7 +65,7 @@
               >
                 <template #default="{ node }">
                   <div v-if="node.data?.item?.kind === 'entity'" class="flex min-w-0 max-w-full flex-1 items-center gap-1 overflow-hidden" data-explorer-entity>
-                    <span class="truncate" :title="explorerEntityLabel(node.data.item.entity)">{{ explorerEntityLabel(node.data.item.entity) }}</span>
+                    <span class="truncate" :title="explorerEntityLabel(node.data.item.type, node.data.item.entity)">{{ explorerEntityLabel(node.data.item.type, node.data.item.entity) }}</span>
                   </div>
                   <div v-else class="flex min-w-0 flex-1 items-center gap-2">
                     <span class="min-w-0 flex-1 truncate">{{ node.label }}</span>
@@ -157,9 +157,11 @@ import { projectContextActionEntries } from '~/components/generated/project-cont
 import { resolveGeneratedWorkspacePage } from '~/components/generated/workspace-pages.js';
 import { useAuthStore } from '~/stores/auth';
 import { useInstancesStore } from '~/stores/instances';
+import { useRegistryStore } from '~/stores/registry';
 import { useEffectiveContainment } from '~/composables/useEffectiveContainment.js';
 import { generatedEntityLabel } from '~/utils/generated-labels.js';
-import { instanceIdentityLabel } from '~/utils/instance-display-contract.js';
+import { titleFor } from '#shared/ui-mapping/index.js';
+import { dtoToScreenInstance } from '~/utils/instance-shape.js';
 import { resolveInstanceRelationRefs } from '~/utils/instance-relations.js';
 import { projectExplorerHierarchy } from '~/utils/project-explorer-hierarchy.js';
 import { emptyTabItem, emptyTabKey, isEmptyTabKey } from '~/utils/workspace-empty-tabs.js';
@@ -187,10 +189,18 @@ const props = defineProps({
 const emit = defineEmits(['refresh', 'execute-action']);
 const authStore = useAuthStore();
 const instances = useInstancesStore();
+const registryStore = useRegistryStore();
 const effectiveContainment = useEffectiveContainment();
 const { t, te } = useI18n();
-function explorerEntityLabel(entity) {
-  return instanceIdentityLabel(entity, { unnamedLabel: t('common.unnamed') });
+// Explorer row titles resolve through the one title resolver (identifier
+// field value via the wire-to-screen bridge; unnamed otherwise).
+function explorerEntityLabel(entityType, entity) {
+  const typeRecord = registryStore.typeRecord(entityType);
+  return titleFor(
+    typeRecord ? dtoToScreenInstance(entity || {}, typeRecord) : null,
+    typeRecord,
+    { unnamedLabel: t('common.unnamed') }
+  );
 }
 const explorerOpen = ref(true);
 const explorerSize = ref(15);

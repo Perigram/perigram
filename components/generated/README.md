@@ -354,7 +354,7 @@ Discord-style operational shell:
   opening an item that already has a tab in the pane just selects it. Each
   tab keeps its own selected content while switching because pane tab keys
   and the selected key are persisted pane state. Detail tab titles follow
-  the render identity contract (`instanceIdentity` from the mapping
+  the one title resolver (`titleFor` from the mapping
   contract over the instances pool), so the declared identity field wins
   and raw ids never render; type-screen tabs carry procedural labels
   (the generated type key with a locale override over the manifest

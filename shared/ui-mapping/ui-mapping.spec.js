@@ -3,7 +3,8 @@ import {
   createUiMapping,
   formatValue,
   LAYOUT,
-  instanceIdentity,
+  titleFor,
+  iconFor,
   resolveFieldGroups,
   estimateRegionWeight,
   childrenModeFor,
@@ -354,17 +355,28 @@ describe('value formatting and layout vocabulary', () => {
   });
 });
 
-describe('identity and field groups', () => {
-  it('honors the identifier-flagged field before the heuristic', () => {
+describe('title, glyph, and field groups', () => {
+  it('resolves titles from the identifier field only — no ids, slugs, or heuristics', () => {
     const type = { identifier: 'codename', fields: { codename: { base: 'string', identifier: true }, serial: { base: 'string' } } };
-    expect(instanceIdentity(type, { fields: { codename: 'Redshift', serial: 'S-1' } })).toBe('Redshift');
-    // Instance ids are private display vocabulary: with no field and no
-    // type name the identity is the unnamed placeholder, never the raw id.
-    expect(instanceIdentity({ fields: {} }, { id: 'x-9', fields: {} })).toBe('Unnamed');
-    expect(instanceIdentity({ fields: {}, name: 'Bin' }, { id: 'x-9', fields: {} })).toBe('Bin');
-    expect(instanceIdentity({ fields: { name: { base: 'string' } } }, { id: 'id-missing', fields: { name: 'Kepler' } })).toBe('Kepler');
-    const valueOnly = { fields: { zeta: { base: 'string' } } };
-    expect(instanceIdentity(valueOnly, { id: 'x-1', fields: { zeta: 'Nomad' } })).toBe('Nomad');
+    expect(titleFor({ fields: { codename: 'Redshift', serial: 'S-1' } }, type)).toBe('Redshift');
+    // Empty identifier value: the unnamed placeholder (localizable),
+    // never the raw record id, never the slug, never another field.
+    expect(titleFor({ id: 'x-9', fields: { codename: '', serial: 'S-1' } }, type)).toBe('Unnamed');
+    expect(titleFor({ id: 'x-9', fields: {} }, type, { unnamedLabel: 'Sin nombre' })).toBe('Sin nombre');
+    // No identifier flag and no type view: unnamed, even when short
+    // strings, type names, or ids exist.
+    expect(titleFor({ id: 'x-1', fields: { zeta: 'Nomad' } }, { fields: { zeta: { base: 'string' } } })).toBe('Unnamed');
+    expect(titleFor({ id: 'x-1', fields: { zeta: 'Nomad' } }, null)).toBe('Unnamed');
+    expect(titleFor({ id: 'x-1', fields: { zeta: 'Nomad' } }, { name: 'Bin', fields: {} })).toBe('Unnamed');
+  });
+
+  it('resolves glyphs from the type with per-record depiction thumbs preferred', () => {
+    const type = { glyph: 'pi pi-box', depiction: { glyph: 'pi pi-box', thumb: 'snapshot' } };
+    expect(iconFor(type)).toBe('pi pi-box');
+    expect(iconFor(type, { fields: { snapshot: 'img://run-7' } })).toBe('img://run-7');
+    // An empty thumb value falls back to the glyph.
+    expect(iconFor(type, { fields: { snapshot: '' } })).toBe('pi pi-box');
+    expect(iconFor(null)).toBe('pi pi-circle');
   });
 
   it('projects derived sections with a trailing default group for unassigned fields', () => {
