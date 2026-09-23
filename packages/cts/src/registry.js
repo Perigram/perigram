@@ -243,7 +243,13 @@ export function createTypeRegistry({ id = 'cts', hasInstances = null } = {}) {
     if (identifiers.length > 1) {
       errors.push(`type ${type.id}: identifier flag on multiple fields (${identifiers.join(', ')}) — exactly one required`);
     }
-    if (identifiers.length === 0) {
+    // Org declarations without any identifier field (and nothing to mint
+    // from — no string field) are an AUTHORING PROMPT, not a view-fatal
+    // error: the type stays compiled and served (identifier: null — its
+    // records display the unnamed placeholder until a name field is
+    // authored). Fatal only for system/pack types, where the data is
+    // ours to fix.
+    if (identifiers.length === 0 && type.scope !== 'org') {
       errors.push(`type ${type.id}: mark the field that names its records (identifier flag on exactly one field)`);
     }
     const depictions = flagged('depiction');

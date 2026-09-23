@@ -615,9 +615,8 @@ describe('display policy (SPEC §4/§7)', () => {
     expect(registry2.compile().errors).toContainEqual(
       'type two-pics: depiction flag on multiple fields (front, back) — at most one'
     );
-    // No string field to adopt and no explicit flag: the compile error
-    // tells the author to mark one — records cannot render titles without
-    // a name field.
+    // No string field to adopt and no explicit flag: SYSTEM types get the
+    // compile error (the data is ours to fix).
     const registry3 = createTypeRegistry({ id: 'render-flag-spec-3' });
     registry3.defineType({
       id: 'no-name-field', class: 'item', name: 'No name field',
@@ -627,5 +626,21 @@ describe('display policy (SPEC §4/§7)', () => {
     expect(registry3.compile().errors).toContainEqual(
       'type no-name-field: mark the field that names its records (identifier flag on exactly one field)'
     );
+    // ORG types with nothing to mint from stay compiled and served — the
+    // missing identifier is an authoring prompt (records render the
+    // unnamed placeholder), never a view-fatal error that would eject the
+    // type and cascade "unknown type" through every bound process node.
+    const registry4 = createTypeRegistry({ id: 'render-flag-spec-4' });
+    registry4.defineType({
+      id: 'org-instant-only', class: 'item', scope: 'org', organizationId: 'org-1',
+      fields: { anythin: { base: 'instant', label: 'Anythin' } },
+      states: { main: { initial: 'GOO', values: ['GOO', 'CHANGED'], terminal: ['CHANGED'] } },
+      transitions: [{ from: 'GOO', to: 'CHANGED' }]
+    });
+    const orgView = registry4.compile('org-1');
+    expect(orgView.errors).toEqual([]);
+    const served = compileClientBundle(registry4, 'org-1').types
+      .find(record => record.id === 'org-instant-only');
+    expect(served.identifier).toBeNull();
   });
 });
