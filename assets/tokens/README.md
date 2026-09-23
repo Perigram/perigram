@@ -9,10 +9,11 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   Primary is contrast, not a color: it rides the zinc surface scale, so
   controls painted with it read as ink-on-surface (near-black on the light
   canvas, near-white on the dark one) like the monochrome primaries of the
-  PrimeVue showcase pages. Brand energy lives in the Perigram accent — the
-  logo red `#ff0040` expanded into a full tonal ramp — which owns intent
-  signals: focus rings, overlay selection highlights, the chrome signal
-  rule, and decision marks. The surface contract is flat: the gray page (`--p-surface-100`
+  PrimeVue showcase pages. PrimeVue's focus rings and selection highlights
+  keep their primary-driven defaults, so they render as neutral ink and zinc
+  tints. Brand energy lives in the Perigram accent — the logo red `#ff0040`
+  expanded into a full tonal ramp — reserved for text selection, the
+  decision signal, and brand ink. The surface contract is flat: the gray page (`--p-surface-100`
   light, `--p-surface-950` dark) is the single canvas; structural
   containers — panes, tab strips, layouts, chats, call surfaces — paint
   no background over it, PrimeVue controls and overlays carry the lighter
@@ -30,10 +31,9 @@ This directory is the frontend visual-token source for the current PrimeVue + Ta
   directly. `assets/css/main.css` consumes those variables but must not
   duplicate their values or bridge PrimeVue `--p-*` variables.
 - `assets/presets/re_l.js` extends Aura with the neutral (zinc) primary
-  palette, the Perigram accent palette, per-scheme primary colors resolved
-  against the surface scale, accent-driven focus rings and selection
-  highlights, and the zinc surface scale
-  projection plus a minimal component-token set: collection chrome —
+  palette, the Perigram accent palette, and per-scheme primary colors
+  resolved against the surface scale plus the zinc surface scale
+  projection and a minimal component-token set: collection chrome —
   table/tree-table/view headers, footers, footer cells, and paginators
   (standalone or embedded) — renders transparent so the hosting surface
   (page, panel, card) owns the background. Header chrome never paints at
