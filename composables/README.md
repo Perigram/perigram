@@ -217,7 +217,12 @@ socket-access string is written only onto pure value-algebra records
 lineage rows, and typed binding/filter maps, then normalizes through the
 [`@cutkit/processes` screen contract](../packages/processes/README.md). Source
 mode changes discard fields that are invalid for the selected mode rather than
-keeping a page-local shadow shape.
+keeping a page-local shadow shape. `customize(station)` is the composable's
+only creation verb (crystallization Phase 4): it duplicates a compiled
+inferred station into an authored `data.screens` record — fresh id and route,
+compile-derived keys and lineage bindings stripped, station kind preserved —
+so the duplicate begins projection-equal to inference and the compiler's
+redundancy guard refuses it at Apply until the author deviates.
 
 Loads process-compiled screen manifests for `pages/screens/[screenKey].vue`.
 The composable normalizes the screen contract, checks source-level process

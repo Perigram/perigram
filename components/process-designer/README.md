@@ -290,9 +290,21 @@ output" tag, the stable `nodeId:outputSocketId` identity as a muted code
 line, the producer's declared relation keys, and a hint that statuses and
 transitions come from the domain lifecycle, wired status definitions, and
 action nodes.
-`useProcessDesignerScreens` owns source/region creation, source-id reference
-updates, mode normalization, lineage rows, and typed scalar-map mutations. The
-Screens tab renders those mutations against the canonical
+`useProcessDesignerScreens` owns station customization, source-id reference
+updates, mode normalization, lineage rows, and typed scalar-map mutations.
+There is no create-a-screen-from-nothing verb: the Screens tab's compiled
+preview IS the station inventory — stations absent from `data.screens` are
+inference-owned, rendered read-only and marked as inferred, and their only
+authoring gesture is **Customize**, which duplicates the inferred station
+into an authored record. The duplicate gets a fresh id and route;
+compile-only keys (`labelKey`, `sourceRoute`) and compile-attached lineage
+bindings are dropped and the station's `kind` is preserved, so an untouched
+duplicate stays projection-equal to inference and Apply's redundancy guard
+refuses it until the author actually deviates (crystallization Phase 4 —
+overrides are derived from shape, never stored as a marker). Standalone
+non-type screens (home, route) remain plain authored records edited in
+place; retargeting a duplicate's template is the standalone authoring path.
+The Screens tab renders those mutations against the canonical
 [`screen-contract.js`](../../packages/processes/src/screen-contract.js)
 normalizer and validator; it does not maintain a page-local screen schema.
 Its compiled preview renders every emitted screen through the real
