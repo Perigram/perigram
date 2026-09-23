@@ -59,6 +59,13 @@ lowering — the executable form of the palette audit. Declaration authoring com
 tree: Class/Field/State canvas nodes wire through the legality matrix
 (`declarationWireLegality`) and compile into registry declarations via
 `compileTreeDeclarations` (R4-enforcing, pure over the canvas arrays).
+Authored field names are LABELS, never validated as ids: the row key
+derives from the authored string (`camelCaseId` — "Cut speed" →
+`cutSpeed` carrying `label: 'Cut speed'`), and a name that sanitizes to
+nothing stays out of the declaration like any unsaved edit — users never
+meet case rules. `ctsTypes` record typeIds kebab-normalize at the draft
+seam (`migrateV4Definition`), so an older underscore-spelled generated id
+(`t_…`) cannot leave one type referenced under two spellings.
 Declaration wires are live binding channels:
 `interpretDeclarationEdges` derives declaration-node type ids, class
 field/state counts, and species-record bindings from the current edge
