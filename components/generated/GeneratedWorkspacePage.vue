@@ -8,7 +8,7 @@
         :tabs="tabs"
         :active-key="page.key"
         @select="$emit('select-tab', $event)"
-        @close="$emit('close-tab', $event)"
+        @close-tab="$emit('close-tab', $event)"
         @add="$emit('add-tab', $event)"
         @refresh="$emit('refresh')"
       />
