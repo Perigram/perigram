@@ -707,11 +707,20 @@ transparent internal cell dividers (`bodyCell.borderColor`) — row
 stripes are gone, the row IS the card. Surfaces that want Notion-style
 gaps and rounding apply the shared row-surface recipe (a layout-only
 scoped `border-collapse: separate` block with a `0.25rem` row gap, plus
-`rounded-ui` through the official `rowClass` channel and a muted
+`rounded-ui` with a hairline ring — `outline-1 -outline-offset-1
+outline-content-border`, because table-row borders do not paint in
+separated-border mode while an inset outline follows the row radius —
+through the official `rowClass` channel, and a muted
 transparent header band through `pt`): the generated collection tables
 (`CollectionTable`, `HierarchyTable`), the legacy
 `GeneratedInstanceCollection`, and the organization users tables
 register it. Row paint belongs to the preset — one owner per concern.
+
+**Measured values** carry the mono face (`text-technical tabular-nums`,
+the sanctioned mono alias): quantities, instants, and numbers in
+generated displays — fields, table cells, card facts, detail bodies.
+Prose, labels, identities, and enum values stay in the UI face; mono is
+for values whose alignment or precision matters, never for text.
 
 **Control sizes** follow density, not preference: the generator's
 spacing scales carry `editorSize` (compact region scales 0.5/0.75 render
