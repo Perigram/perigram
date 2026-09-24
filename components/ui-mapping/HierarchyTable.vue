@@ -1,7 +1,6 @@
 <template>
   <div :class="[LAYOUT.scrollX, 'ck-collection-rows']">
-    <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key" class="min-w-max" :paginator="nodes.length > 10" :rows="10" :pt="tablePt"
-    :row-class="rowSurfaceClass">
+    <TreeTable :value="nodes" :expanded-keys="expandedKeys" size="small" data-key="key" class="min-w-max" :paginator="nodes.length > 10" :rows="10" :pt="tablePt">
     <Column>
       <template #body="{ node }">
         <div class="flex items-center gap-2">
@@ -62,23 +61,17 @@ const props = defineProps({
 
 defineEmits(['open']);
 
-// Same Notion-style row surfaces as CollectionTable: rounded content rows
-// over the transparent table box, muted transparent header band — through
-// TreeTable's official pt/rowClass channels.
-// The row surface is the preset's content background; its corners are
-// clipped here — a table row's own background is NOT clipped by its
-// radius (measured: the corner pixels stayed white), while clip-path
-// rounds them at the token radius.
-const rowSurfaceClass = () => '[clip-path:inset(0_round_var(--p-border-radius-xl))]';
+// Same row-surface recipe as CollectionTable (content rows over the
+// transparent table box, clipped corners, muted transparent header band).
 const tablePt = {
   root: { class: 'bg-transparent' },
   headerRow: { class: 'bg-transparent text-muted' },
-  headerCell: { class: 'bg-transparent text-muted' }
+  headerCell: { class: 'bg-transparent text-muted' },
+  // TreeTable has no rowClass prop — its rows bind the `row` pt section.
+  // The surface is the preset's row background; the clip rounds the corners
+  // (a row's background is not clipped by its radius) at the card radius.
+  row: { class: '[clip-path:inset(0_round_var(--p-border-radius-xl))]' }
 };
-// Row paint comes from the preset (row.background = content surface);
-// the recipe adds the rounded hairline ring here. The ring rides
-// outline+outline-offset — tr borders do not paint in separated-border
-// mode, while an inset outline follows the row's border-radius.
 
 const { te, t } = useI18n();
 
