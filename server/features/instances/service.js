@@ -356,8 +356,12 @@ function instanceService(typeId) {
       return await createValidated(draft, declaration, userId, organizationId);
     },
 
-    async processUpdate(id, patch = {}) {
-      const declaration = await requireDeclaration(typeId, null);
+    async processUpdate(id, patch = {}, context = null) {
+      // Context carries the acting organization (an auth-shaped object or
+      // a bare id): org-authored types resolve their declarations through
+      // it, static types ignore it.
+      const organizationId = typeof context === 'string' ? context : context?.organizationId || null;
+      const declaration = await requireDeclaration(typeId, organizationId);
       const collection = repository.collectionForClass(declaration.class);
       // Wire patches (block paths from the effect boundary) map to §3
       // writes: data/specs leaves land in the flat fields map,
@@ -408,7 +412,7 @@ function instanceService(typeId) {
       if (!hasInstanceAccess({ entity: current, typeId, feature, level: 'write', auth })) {
         throw createError({ statusCode: 403, message: 'Permission denied' });
       }
-      return await this.processUpdate(id, patch);
+      return await this.processUpdate(id, patch, organizationId);
     },
 
     async remove(id) {
