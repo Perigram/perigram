@@ -1,8 +1,9 @@
 <template>
-  <div :class="frameClass">
-    <div class="absolute inset-x-0 top-0 h-0.5 rounded-t-ui" :class="scope === 'system' ? 'border-content-border' : 'border-primary'" />
+  <DesignerNodeCard :selected="selected" size="md" stripe="bg-signal-structure">
     <div class="flex items-center gap-1.5 border-b border-content-border pb-1.5">
-      <i :class="classIcon" aria-hidden="true" />
+      <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle">
+        <i :class="classIcon" aria-hidden="true" />
+      </span>
       <strong class="min-w-0 flex-1 truncate text-label">{{ label }}</strong>
       <Tag :value="classOf" severity="secondary" />
     </div>
@@ -12,9 +13,9 @@
       <span v-if="fieldCount" class="text-supporting text-muted">{{ fieldCount }} fields</span>
       <span v-if="stateCount" class="text-supporting text-muted">· {{ stateCount }} states</span>
     </div>
-    <Handle id="input:declare" type="target" :position="Position.Left" class="!top-1/2 !h-3 !w-3 !-translate-y-1/2 !left-0 !-translate-x-1/2 !rounded-full" />
-    <Handle id="output:type" type="source" :position="Position.Right" class="!top-1/2 !h-3 !w-3 !-translate-y-1/2 !right-0 !translate-x-1/2 !rounded-full" />
-  </div>
+    <DesignerSocketHandle :socket="inputSpec" side="left" handle-id="input:declare" />
+    <DesignerSocketHandle :socket="outputSpec" side="right" handle-id="output:type" />
+  </DesignerNodeCard>
 </template>
 
 <script setup>
@@ -22,7 +23,8 @@
 // attach here; fields and states wire into it.
 import { computed } from 'vue';
 import Tag from 'primevue/tag';
-import { Handle, Position } from '@vue-flow/core';
+import DesignerNodeCard from '~/components/shared/DesignerNodeCard.vue';
+import DesignerSocketHandle from '~/components/shared/DesignerSocketHandle.vue';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -36,15 +38,12 @@ const version = computed(() => props.data.version || 1);
 const editor = computed(() => props.data.editor || null);
 const fieldCount = computed(() => Number(props.data.fieldCount) || 0);
 const stateCount = computed(() => Number(props.data.stateCount) || 0);
+const inputSpec = computed(() => props.data.inputSpecs?.[0] || {});
+const outputSpec = computed(() => props.data.outputSpecs?.[0] || {});
 const classIcon = computed(() => ({
   file: 'pi pi-file',
   item: 'pi pi-box',
   group: 'pi pi-folder',
   process: 'pi pi-cog'
 }[classOf.value] || 'pi pi-database'));
-
-const frameClass = computed(() => [
-  'relative w-60 rounded-ui border bg-content p-2.5 pt-3 shadow-card transition-colors',
-  props.selected ? 'border-primary' : 'border-content-border'
-]);
 </script>

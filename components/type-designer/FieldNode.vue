@@ -1,5 +1,5 @@
 <template>
-  <div :class="frameClass">
+  <DesignerNodeCard :selected="selected" size="sm">
     <div class="flex items-center gap-1.5">
       <i class="pi pi-angle-right text-muted" aria-hidden="true" />
       <InputText
@@ -13,15 +13,9 @@
       />
       <Tag :value="typeLabel" severity="secondary" />
     </div>
-    <Handle
-      v-if="isRef"
-      id="input:targets"
-      type="target"
-      :position="Position.Left"
-      class="!top-1/2 !h-3 !w-3 !-translate-y-1/2 !left-0 !-translate-x-1/2 !rounded-full"
-    />
-    <Handle id="output:field" type="source" :position="Position.Right" class="!top-1/2 !h-3 !w-3 !-translate-y-1/2 !right-0 !translate-x-1/2 !rounded-full" />
-  </div>
+    <DesignerSocketHandle v-if="isRef" :socket="inputSpec" side="left" handle-id="input:targets" />
+    <DesignerSocketHandle :socket="outputSpec" side="right" handle-id="output:field" />
+  </DesignerNodeCard>
 </template>
 
 <script setup>
@@ -31,7 +25,8 @@
 import { computed } from 'vue';
 import InputText from 'primevue/inputtext';
 import Tag from 'primevue/tag';
-import { Handle, Position } from '@vue-flow/core';
+import DesignerNodeCard from '~/components/shared/DesignerNodeCard.vue';
+import DesignerSocketHandle from '~/components/shared/DesignerSocketHandle.vue';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -42,6 +37,8 @@ defineEmits(['rename']);
 
 const name = computed(() => props.data.name || '');
 const isRef = computed(() => props.data.descriptor?.base === 'ref');
+const inputSpec = computed(() => props.data.inputSpecs?.[0] || {});
+const outputSpec = computed(() => props.data.outputSpecs?.[0] || {});
 const typeLabel = computed(() => {
   const descriptor = props.data.descriptor || {};
   if (descriptor.base === 'quantity') return `${descriptor.unit || '?'}`;
@@ -49,9 +46,4 @@ const typeLabel = computed(() => {
   if (descriptor.nullable) return `${descriptor.base}?`;
   return descriptor.base || 'field';
 });
-
-const frameClass = computed(() => [
-  'relative w-48 rounded-ui border bg-content p-2 shadow-card transition-colors',
-  props.selected ? 'border-primary' : 'border-content-border'
-]);
 </script>

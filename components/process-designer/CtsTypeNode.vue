@@ -1,8 +1,5 @@
 <template>
-  <div :class="frameClass">
-    <Handle id="input:declare" type="target" :position="Position.Left" class="!top-1/2 !h-3 !w-3 !-translate-y-1/2 !left-0 !-translate-x-1/2 !rounded-full" />
-    <Handle id="output:type" type="source" :position="Position.Right" class="!top-1/2 !h-3 !w-3 !-translate-y-1/2 !right-0 !translate-x-1/2 !rounded-full" />
-    <div class="absolute inset-x-0 top-0 h-0.5 rounded-t-ui bg-signal-structure"></div>
+  <DesignerNodeCard :selected="selected" size="md" stripe="bg-signal-structure">
     <div class="flex items-center gap-1.5 border-b border-content-border pb-1.5">
       <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle">
         <i :class="type?.icon || 'pi pi-database'" aria-hidden="true"></i>
@@ -13,7 +10,9 @@
     <div class="mt-2 flex flex-col gap-1">
       <span class="text-supporting text-muted">{{ $t('processDesigner.typeBindingHint') }}</span>
     </div>
-  </div>
+    <DesignerSocketHandle :socket="inputSpec" side="left" handle-id="input:declare" />
+    <DesignerSocketHandle :socket="outputSpec" side="right" handle-id="output:type" />
+  </DesignerNodeCard>
 </template>
 
 <script setup>
@@ -22,7 +21,8 @@
 // (role: 'type' edges are gestures, the binding lands in the record's type).
 import { computed } from 'vue';
 import Tag from 'primevue/tag';
-import { Handle, Position } from '@vue-flow/core';
+import DesignerNodeCard from '~/components/shared/DesignerNodeCard.vue';
+import DesignerSocketHandle from '~/components/shared/DesignerSocketHandle.vue';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -31,9 +31,6 @@ const props = defineProps({
 
 const typeId = computed(() => props.data?.typeId || '');
 const type = computed(() => props.data?.type || null);
-
-const frameClass = computed(() => [
-  'relative w-56 rounded-ui border bg-content p-2.5 pt-3 shadow-card transition-colors',
-  props.selected ? 'border-primary' : 'border-content-border'
-]);
+const inputSpec = computed(() => props.data?.inputSpecs?.[0] || {});
+const outputSpec = computed(() => props.data?.outputSpecs?.[0] || {});
 </script>

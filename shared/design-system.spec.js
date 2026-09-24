@@ -515,7 +515,7 @@ describe('Design system manifest', () => {
     }
     expect(files.filter(file => rawSurfaceBorder.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
     expect(files.filter(file => nonsemanticShadow.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
-    expect(files.filter(file => file !== 'components/process-designer/ProcessNode.vue' && nonsemanticRadius.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
+    expect(files.filter(file => file !== 'components/shared/DesignerSocketHandle.vue' && nonsemanticRadius.test(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')))).toEqual([]);
     expect(files.filter((file) => {
       const source = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
       const scopedBody = source.match(/<style\s+scoped[^>]*>([\s\S]*?)<\/style>/)?.[1]?.trim();
