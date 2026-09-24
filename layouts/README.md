@@ -76,7 +76,15 @@ not duplicated elsewhere in the account popover. Clicking the active
 organization opens its overview, while clicking another membership switches
 context before opening that overview. The
 floating desktop chat launcher is hidden on `/chats` because the full inbox is
-already present.
+already present. The launcher is viewport-anchored (`fixed bottom-8
+right-8`, desktop-only) through its plain wrapper element, never through
+utilities on the PrimeVue button: PrimeVue's own `.p-button` rules load
+after Tailwind and win at equal specificity, so `fixed` and explicit
+sizing on the component silently degrade to `position: relative` and the
+button drifts into the document flow. Every floating surface in the shell
+(the incoming-call stack, the offline outbox badge, the call window)
+anchors the same way, with the launcher between the outbox badge and the
+call surfaces in the stacking order.
 
 ## Related
 
