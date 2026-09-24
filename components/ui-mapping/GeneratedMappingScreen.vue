@@ -195,15 +195,19 @@ async function executeTransition(payload = {}) {
   await props.onTransition(payload);
 }
 const emit = defineEmits(['instance-mounted']);
+// `immediate`: a routed detail that mounts with the instance already in
+// the shared pool (navigated from a workspace that loaded the same
+// source) never changes the watched key, so without the immediate pass
+// the page would never fetch the declaration machine's transitions.
 watch(() => {
   const detail = (composed.value.regions || []).find(region => region.surfaceKind !== 'list');
   const instance = detail?.instances?.[0];
   return instance ? `${instance.type || props.screen?.typeId}|${String(instance._id || instance.id)}` : '';
-}, key => {
+}, () => {
   const detail = (composed.value.regions || []).find(region => region.surfaceKind !== 'list');
   const instance = detail?.instances?.[0];
   if (instance) emit('instance-mounted', instance);
-});
+}, { immediate: true });
 
 const openInstance = instance => {
   if (openable.value) props.onOpen(instance);
