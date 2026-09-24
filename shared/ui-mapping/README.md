@@ -156,11 +156,13 @@ type record plus instances — never instance-of-the-week heuristics.
 Two pure helpers consume it: `toolbarVisibleFor(node)` decides the bar
 (large lists always, small lists through multi-value facets, never off
 list surfaces) and `instanceMatchesToolbar(type, controls, instance,
-query, facetSelections)` applies it — substring search over the
-search-key fields plus the resolved record title and the raw instance id
-(ids stay private display vocabulary, but finding a row by id remains
-functional), and
-exact facet matches.
+query, facetSelections)` applies it — the selection composes into the
+canonical instance-filter tree
+([shared/instance-filters](../instance-filters/README.md)): an `or` of
+case-insensitive substring matches over the search-key fields plus the
+instance id (ids stay private display vocabulary, but finding a row by id
+remains functional) and exact facet equality, evaluated by the one shared
+matcher.
 
 ### Data states
 
@@ -312,12 +314,12 @@ fallback; `mode: 'list'` unscoped, or scoped by
 `relation: { sourceId, key }` / `lineage: { sourceId, key }` against the
 origin source's instance, or scoped by the compiler-emitted flat
 `filters` map — the inferred child-region shape — whose `$screen.*`
-placeholders resolve against the screen scope: a bare filter key is a
-declared lineage key (children edges, SPEC §6 of the CTS spec) matched
-against the pool instance's lineage ref id, and
-`primaryState`/`primaryStates` match the status window on
-`states.main`; unresolved placeholder values skip the filter, mirroring
-the server transport), maps
+placeholders resolve against the screen scope: the flat map normalizes
+into the canonical instance-filter tree
+([shared/instance-filters](../instance-filters/README.md)) and evaluates
+over the pool (bare keys read as lineage keys — the total client default;
+unresolved placeholder values drop as no-ops, mirroring the server
+transport), maps
 regions to surface kinds (detail main regions at `full`, nested detail at
 `detail`, list rows at `row`), attaches resolved surface policy, resolved
 action records, the per-region `dataState` (see Data states), the
@@ -367,6 +369,8 @@ handwritten.
 ## Related
 
 - [shared/README.md](../README.md) — shared contracts inventory.
+- [shared/instance-filters](../instance-filters/README.md) — canonical
+  filter tree the toolbar and source scoping compose into.
 - [packages/cts/README.md](../../packages/cts/README.md) — declaration layer
   whose client bundle is the input.
 - [packages/processes/README.md](../../packages/processes/README.md) —

@@ -42,6 +42,12 @@ imported through server modules that Nitro externalizes.
   component keys, spans, variants, chrome tokens, budgets, and button
   presentations. Pure data and functions; the canonical contract lives in
   [ui-mapping/README.md](./ui-mapping/README.md).
+- `instance-filters/`: Canonical instance-filter tree — the one filter
+  vocabulary the generic list transport, the generated-screen composition,
+  and the collection toolbar speak; the flat transport map compiled screen
+  sources emit is its projection. Pure data and functions; the canonical
+  contract lives in
+  [instance-filters/README.md](./instance-filters/README.md).
 - `*.spec.js`: Contract tests for shared framework and permission behavior.
 
 Import-alias rules are defined in [scripts/README.md](../scripts/README.md).

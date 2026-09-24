@@ -76,16 +76,18 @@ hand-written services.
   after construct).
 - List filters (the compiled screen-source transport contract, the same
   vocabulary the feature routes speak — cassettes' `libraryId`):
-  `list`/`processList` accept a flat scalar filter map and apply it
-  server-side. A bare key applies as `lineage.<key>` iff some parent's
-  declared children edge stamps that lineage key for the listed type
-  (the derivation walks the same view the derived indexes walk: static
-  pack declarations plus the organization's stored declarations, cached
-  per organization beside the declaration cache and invalidated with it);
-  ObjectId-shaped lineage values match both stored id forms. `primaryState`
-  and comma-separated `primaryStates` filter `states.main`, and `_id`
-  resolves reference lookups. Undeclared keys are transport noise — never
-  a Mongo path — and `limit`/`skip` stay transport parameters. This is
+  `list`/`processList` accept the flat scalar filter map defined as the
+  projection of the canonical instance-filter tree
+  ([shared/instance-filters](../../../shared/instance-filters/README.md)).
+  `filters.js` normalizes the map with the registry-derived declared
+  lineage-key gate — a bare key applies as `lineage.<key>` iff some
+  parent's declared children edge stamps that lineage key for the listed
+  type (the derivation walks the same view the derived indexes walk:
+  static pack declarations plus the organization's stored declarations,
+  cached per organization beside the declaration cache and invalidated
+  with it) — then projects the tree onto the stored §3 paths
+  (ObjectId-shaped lineage and `_id` values match both stored id forms;
+  undeclared keys are transport noise, never a Mongo path). This is
   what scopes an org-authored parent detail's child collection to the
   opened parent.
 - Payload replacement (`replacePayload`, the editor concern SPEC §3
