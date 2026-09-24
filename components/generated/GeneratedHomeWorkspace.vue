@@ -470,14 +470,14 @@ function menuKeyForElement(element) {
 }
 
 function onMenuClickCapture(event) {
-  const onChevron = Boolean(event.target.closest('.p-submenu-icon'));
+  const onChevron = Boolean(event.target.closest('.p-panelmenu-submenu-icon'));
   const header = event.target.closest('.p-panelmenu-header');
   const row = event.target.closest('.p-panelmenu-item');
   const element = header || row;
   if (!element) return;
   const key = menuKeyForElement(element);
   if (!key) return;
-  const hasChildren = Boolean(element.querySelector('.p-submenu-icon'));
+  const hasChildren = Boolean(element.querySelector('.p-panelmenu-submenu-icon'));
   if (!hasChildren) return; // leaf entry: the whole click is the command
   if (onChevron) {
     suppressNextMenuCommand.value = true;
