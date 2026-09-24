@@ -1,5 +1,5 @@
 <template>
-  <section class="flex min-w-0 flex-col gap-2" data-testid="instance-chat-panel">
+  <section class="flex min-w-0 flex-col gap-2 lg:sticky lg:top-0" data-testid="instance-chat-panel">
     <!-- Disclosure toggle: a PrimeVue text Button so Aura owns the focus,
          hover, and press states like every other control on the page. The
          icon is stable across states — aria-expanded carries the state. -->
@@ -14,11 +14,10 @@
       :aria-controls="threadId"
       @click="collapsed = !collapsed"
     />
-    <!-- Bounded host: the embedded thread owns its scrolling, never the detail
-         page height. The bound is the shared chat dimension token, so this
-         surface matches every other chat host in the app. The section paints
-         no container chrome of its own — the detail column already owns
-         section rhythm, and the thread supplies its own. -->
+    <!-- The rail body. The thread owns its scrolling; the host only bounds it
+         to the chat dimension token so an expanded thread never outgrows the
+         viewport, and never paints container chrome — the thread's own
+         surface is the surface. -->
     <div
       v-if="!collapsed"
       :id="threadId"
@@ -37,17 +36,26 @@
 
 <script setup>
 /**
- * The abstract instance detail page's conversation section: a
- * collapsed-by-default disclosure that expands a `ChatSupport` thread pinned
- * to `entity:<type>:<id>` in thread-only mode, so the page carries the composed
- * conversation without the inbox or back navigation.
+ * The instance detail page's conversation rail: the one place a thread
+ * renders in place instead of opening the shared popup.
  *
- * It rides the `InstancePage` column and therefore only ever appears in the
- * abstract branch of `GeneratedInstanceDetail`. Bounded hosts (flush
- * designers/editors) must NOT mount it: their column is an `h-full` no-scroll
- * frame, where an in-flow section collapses to nothing. Those hosts expose the
- * same thread through the shared chat popup (`utils/instance-chat.js`) from
- * their own chrome, exactly like `InstanceCard` and `InstanceInlineRef`.
+ * It occupies `InstancePage`'s sidebar slot, so from the two-track breakpoint
+ * up it is a sticky rail beside the body — visible, bounded, and in the
+ * page's own reading order. Below that breakpoint the slot stacks, so the
+ * rail follows the body as an ordinary full-width section.
+ *
+ * A PrimeVue text Button (Aura owns its focus/hover/press states; the icon is
+ * stable across states and `aria-expanded` carries the state) toggles a
+ * bounded `ChatSupport` in `embedded thread-only` mode pinned to
+ * `entity:<type>:<id>`, giving the composed conversation without the inbox or
+ * back navigation. It starts collapsed so detail pages stay quiet until the
+ * operator opens the thread.
+ *
+ * Bounded hosts must NOT mount it. Their `flush` frame is `h-full` and
+ * non-scrolling, where an in-flow rail has no track and collapses to nothing.
+ * Those hosts expose the same thread through the shared chat popup
+ * (`utils/instance-chat.js`) from their own chrome, exactly like
+ * `InstanceCard` and `InstanceInlineRef`.
  */
 import { computed, ref, useId } from 'vue'
 import Button from 'primevue/button'
