@@ -472,7 +472,11 @@ entry's semantic key or type. Lifecycle and control values retain their
 semantic port kinds (`status` and `event`) during edge validation.
 Graph edges are validated through exported typed port helpers:
 `normalizePortSpec()`, `portSpecsCompatible()`, `resolveNodePort()`, and
-`validateProcessEdges()`. The v1 contract covers existing process values only:
+`validateProcessEdges()`. Canvas socket handles have a single vocabulary
+home beside them in `ports.js`: `mintProcessSocketHandle()` mints
+`data:<id>` / `control:<id>` by port role, and `parseProcessSocketHandleId()`
+strips it (plus the legacy `input:`/`output:` spellings older drafts
+persisted) — nothing outside `ports.js` regexes a handle. The v1 contract covers existing process values only:
 entities, entity lists, canonical blocks, data values, statuses, events,
 organization projections, attachments, and task outputs. It prevents clear
 kind/entity mismatches while keeping generic authoring sockets, such as
