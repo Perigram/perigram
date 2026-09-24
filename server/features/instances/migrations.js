@@ -12,21 +12,25 @@ import { collectionForClass } from './repository.js';
 import * as entityEventService from '../instance-events/service.js';
 
 // Pure transform: one document through all steps in one pass. Returns the
-// rewritten flat fields, the rewritten primary state (undefined when no
-// step touched it), and the labels of the steps that applied. Idempotent
-// by construction: an already-renamed value or field no longer matches.
+// rewritten flat fields, changed axis paths, and the labels of steps that
+// applied. A state rename targets one exact axis and rewrites both an exact
+// leaf and any active descendant path beneath a renamed parent.
 export function transformInstanceForSteps(doc = {}, steps = []) {
   const fields = { ...(doc.fields || {}) };
-  let main = doc.states?.main;
+  const stateChanges = {};
   const applied = [];
   for (const step of steps) {
     switch (step.kind) {
-      case 'rename-enum-value':
-        if (main === step.from && step.from !== step.to) {
-          main = step.to;
+      case 'rename-enum-value': {
+        const current = doc.states?.[step.axis];
+        if (typeof current === 'string'
+          && (current === step.from || current.startsWith(`${step.from}.`))
+          && step.from !== step.to) {
+          stateChanges[step.axis] = `${step.to}${current.slice(step.from.length)}`;
           applied.push(step.kind);
         }
         break;
+      }
       case 'rename-field':
         if (Object.hasOwn(fields, step.from) && step.from !== step.to) {
           fields[step.to] = fields[step.from];
@@ -56,7 +60,7 @@ export function transformInstanceForSteps(doc = {}, steps = []) {
         throw new Error(`unknown migration step ${step.kind}`);
     }
   }
-  return { fields, main, applied };
+  return { fields, stateChanges, applied };
 }
 
 export async function applyTypeMigrationSteps({
@@ -78,9 +82,11 @@ export async function applyTypeMigrationSteps({
   });
   for await (const doc of cursor) {
     try {
-      const { fields, main, applied } = transformInstanceForSteps(doc, steps);
+      const { fields, stateChanges, applied } = transformInstanceForSteps(doc, steps);
       const set = { fields, typeVersion: toVersion, updatedAt: new Date().toISOString() };
-      if (main !== undefined && doc.states?.main !== main) set['states.main'] = main;
+      for (const [axis, state] of Object.entries(stateChanges)) {
+        set[`states.${axis}`] = state;
+      }
       await db.collection(collection).updateOne({ _id: doc._id }, { $set: set });
       await entityEventService.publishEntityChanged(
         { userId: actor || 'SYSTEM', organizationId: String(organizationId) },

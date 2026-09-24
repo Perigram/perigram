@@ -83,6 +83,10 @@ export function filterFromFlatFilters(filters = {}, { lineageKeys = null } = {})
       if (values.length) predicates.push({ field: 'states.main', op: 'in', value: values });
       continue;
     }
+    if (/^states\.[^.]+$/.test(key)) {
+      predicates.push({ field: key, op: 'eq', value: String(value) });
+      continue;
+    }
     const bareKey = key.startsWith(LINEAGE_PREFIX) ? key.slice(LINEAGE_PREFIX.length) : key;
     if (declared && !declared.has(bareKey)) continue;
     predicates.push({ field: `${LINEAGE_PREFIX}${bareKey}`, op: 'eq', value });
@@ -151,7 +155,7 @@ function relatedInstances(instance, address, pool) {
 
 function readFilterValue(instance, field) {
   if (field === '_id' || field === 'id') return instance?.id ?? null;
-  if (field === 'states.main') return instance?.states?.main ?? null;
+  if (/^states\.[^.]+$/.test(field)) return instance?.states?.[field.slice('states.'.length)] ?? null;
   if (field.startsWith(LINEAGE_PREFIX)) {
     const ref = instance?.lineage?.[field.slice(LINEAGE_PREFIX.length)];
     return ref?.id ?? ref ?? null;

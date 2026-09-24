@@ -14,6 +14,7 @@
 // bindings are positional (typeId/typeId/species-kind `type`), so
 // process-vocabulary descriptor strings are never misread as references.
 import { slotFor } from './field-schema-rows.js';
+import { collectStateEntries } from '../states.js';
 
 const RESERVED_GENERIC_SLOT = 'data.value';
 
@@ -23,7 +24,10 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
   const statesByType = new Map();
   const rowRootsByType = new Map();
   for (const type of view.values()) {
-    if (type.states?.main?.values) statesByType.set(type.id, new Set(type.states.main.values));
+    statesByType.set(type.id, new Map(Object.entries(type.states || {}).map(([axisName, axis]) => [
+      axisName,
+      new Set(collectStateEntries(axis).map(entry => entry.path))
+    ])));
     rowRootsByType.set(type.id, allowedFieldRoots(type));
   }
 
@@ -61,11 +65,18 @@ export function checkDeclarationsAgainstCts(processDefinition = {}, registry, or
       errors.push(`${path} references unknown type ${typeId}`);
     }
     if (!typeId || !statesByType.has(typeId)) return;
-    const states = statesByType.get(typeId);
-    for (const key of ['status', 'targetState', 'stateTo', 'toState', 'to']) {
-      const value = node[key];
-      if (typeof value === 'string' && value && !states.has(value)) {
-        errors.push(`${path} moves ${typeId} to undeclared state ${value}`);
+    const axes = statesByType.get(typeId);
+    const axisName = node.axis || node.state?.axis || 'main';
+    const states = axes.get(axisName);
+    if (states) {
+      const targets = [
+        ...['status', 'targetState', 'stateTo', 'toState', 'to'].map(key => node[key]),
+        node.state?.to
+      ].filter(value => typeof value === 'string' && value);
+      for (const value of targets) {
+        if (!states.has(value)) {
+          errors.push(`${path} moves ${typeId}.${axisName} to undeclared state ${value}`);
+        }
       }
     }
     const rowRoots = rowRootsByType.get(typeId);

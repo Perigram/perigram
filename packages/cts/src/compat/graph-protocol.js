@@ -593,9 +593,20 @@ function resolveDescriptorRecord(record = {}) {
 // `state` payload: to/label/severity/icon/terminal/intent) merge into the
 // projected axis through the same shared core the canvas compile uses.
 // `type`-kind records are registry references, not declarations.
-export function declarationsFromCtsRecords(records = {}, processNodes = {}) {
+export function declarationsFromCtsRecords(records = {}, processNodes = {}, graph = {}) {
   const byKind = kind => Object.values(records || {}).filter(record => record?.kind === kind);
-  const targetsByType = transitionNodeStateTargets(processNodes);
+  const transitionsByType = transitionNodeStateTargets(processNodes);
+  const recordIdByGraphNode = new Map((graph?.nodes || [])
+    .filter(node => node?.type === 'ctsState' && node.data?.refId)
+    .map(node => [String(node.id), String(node.data.refId)]));
+  const parentOf = new Map();
+  for (const edge of graph?.edges || []) {
+    if (edge.role !== 'type' || edge.label !== 'nested') continue;
+    const child = recordIdByGraphNode.get(String(edge.source));
+    const parent = recordIdByGraphNode.get(String(edge.target));
+    if (child && parent) parentOf.set(child, parent);
+  }
+
   const declarations = [];
   for (const cls of byKind('class')) {
     if (!cls.typeId) continue;
@@ -610,24 +621,66 @@ export function declarationsFromCtsRecords(records = {}, processNodes = {}) {
         declaration.fields[field.name] = { ...(field.descriptor || { base: 'string' }) };
       }
     }
-    const states = byKind('state').filter(state => state.typeId === cls.typeId && state.value);
-    const targets = targetsByType.get(cls.typeId) || [];
-    if (states.length) {
-      const treeValues = states.map(state => state.value);
-      // Transitions are canvas wires (absent here); the merged edge set is
-      // the transition nodes' fan-out, so sinks derive exactly as the
-      // canvas compile derives them.
-      const merged = mergeTransitionNodeStates({ values: treeValues, transitions: [], targets });
-      const initial = states.filter(state => state.initial === true).map(state => state.value);
-      declaration.states = {
-        main: {
-          initial: initial[0] || treeValues[0],
-          values: merged.values,
-          terminal: merged.terminal
-        }
-      };
-      declaration.transitions = merged.transitions;
+
+    const stateRecords = byKind('state')
+      .filter(state => state.typeId === cls.typeId && state.value)
+      .map(state => ({ ...state, id: String(state.id || state.refId || state.value) }));
+    const recordById = new Map(stateRecords.map(state => [state.id, state]));
+    for (const state of stateRecords) {
+      if (state.parentStateId && recordById.has(String(state.parentStateId))) {
+        parentOf.set(state.id, String(state.parentStateId));
+      }
     }
+
+    const byAxis = new Map();
+    for (const state of stateRecords) {
+      const axis = String(state.axis || 'main');
+      byAxis.set(axis, [...(byAxis.get(axis) || []), state]);
+    }
+    declaration.states = {};
+    declaration.transitions = [];
+    for (const [axis, states] of byAxis) {
+      const childrenOf = new Map(states.map(state => [state.id, []]));
+      const roots = [];
+      for (const state of states) {
+        const parentId = parentOf.get(state.id);
+        if (parentId && childrenOf.has(parentId)) childrenOf.get(parentId).push(state);
+        else roots.push(state);
+      }
+      const build = statesFor => Object.fromEntries(statesFor.map(state => {
+        const children = childrenOf.get(state.id) || [];
+        const selectedChild = children.find(child => child.initial === true) || children[0];
+        const policy = {
+          ...(state.label ? { label: state.label } : {}),
+          ...(state.severity ? { severity: state.severity } : {}),
+          ...(state.icon ? { icon: state.icon } : {})
+        };
+        const node = {
+          ...(state.terminal === true ? { terminal: true } : {}),
+          ...(children.length ? { initial: selectedChild.value } : {}),
+          ...(Object.keys(policy).length ? { policy } : {})
+        };
+        if (children.length) node.states = build(children);
+        return [state.value, node];
+      }));
+      const initialRoot = roots.find(state => state.initial === true) || roots[0];
+      if (!initialRoot) continue;
+      declaration.states[axis] = {
+        initial: initialRoot.value,
+        states: build(roots)
+      };
+      const transitions = (transitionsByType.get(cls.typeId) || [])
+        .filter(transition => transition.axis === axis);
+      const merged = mergeTransitionNodeStates({
+        machine: declaration.states[axis],
+        transitions
+      });
+      declaration.states[axis] = merged;
+      declaration.transitions.push(...merged.transitions);
+    }
+    if (!Object.keys(declaration.states).length) delete declaration.states;
+    if (!declaration.transitions.length) delete declaration.transitions;
+
     const operators = Array.isArray(cls.operators) ? cls.operators : [];
     if (operators.length) {
       declaration.operators = {};
@@ -658,18 +711,15 @@ export function transitionNodeStateTargets(processNodes = {}) {
   for (const record of Object.values(processNodes || {})) {
     if (operationKindOf(record || {}) !== 'effect.changeStatus') continue;
     const typeId = String(record.typeId || '');
-    const value = String(record.state?.to || record.target || '').trim();
-    if (!typeId || !value) continue;
-    const state = record.state || {};
-    const target = { value };
-    if (state.intent) target.intent = state.intent;
-    if (state.label) target.label = state.label;
-    if (state.severity) target.severity = state.severity;
-    if (state.icon) target.icon = state.icon;
-    if (state.terminal === true) target.terminal = true;
+    const axis = String(record.state?.axis || 'main');
+    const from = String(record.state?.from || '').trim();
+    const to = String(record.state?.to || record.target || '').trim();
+    if (!typeId || !from || !to) continue;
+    const transition = { axis, from, to };
+    if (record.state?.intent) transition.intent = record.state.intent;
     const list = byType.get(typeId) || [];
-    if (!list.some(existing => existing.value === value && (existing.intent || '') === (target.intent || ''))) {
-      list.push(target);
+    if (!list.some(existing => existing.axis === axis && existing.from === from && existing.to === to)) {
+      list.push(transition);
     }
     byType.set(typeId, list);
   }

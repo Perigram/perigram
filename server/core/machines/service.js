@@ -12,6 +12,7 @@ import {
   getWorkflowRegion,
   normalizeLifecycle,
   normalizeWorkflow,
+  resolveWorkflowStatePath,
   validateTransition
 } from '~/packages/workflows/src/index.js';
 import { assertTransitionAccess, hasInstanceAccess } from '../access/service.js';
@@ -79,7 +80,8 @@ export const stateService = {
     const normalizedMachine = normalizeWorkflow(machine);
     const regionId = normalizedMachine.primaryRegion || 'main';
     const region = getWorkflowRegion(normalizedMachine, regionId);
-    if (!region?.states?.[targetState]) {
+    const enteredTarget = resolveWorkflowStatePath(region, targetState);
+    if (!enteredTarget) {
       throw createError({
         statusCode: 400,
         message: `State ${targetState} is not defined for ${normalizedTypeId}`
@@ -95,10 +97,10 @@ export const stateService = {
     });
     const actorId = (typeof actor === 'object' ? actor.userId : actor) || 'SYSTEM';
     const eventId = new ObjectId();
-    const stateMetadata = mergeStatusDisplayMetadata(persistableStatusMetadata(metadata), region.states[targetState]);
+    const stateMetadata = mergeStatusDisplayMetadata(persistableStatusMetadata(metadata), region.states[enteredTarget]);
     const initialLifecycle = normalizeLifecycle();
     const status = createStatus(
-      createWorkflowState(normalizedMachine, { active: { [regionId]: targetState }, primary: targetState }),
+      createWorkflowState(normalizedMachine, { active: { [regionId]: enteredTarget }, primary: statusPrimaryForRegion(normalizedMachine, regionId, enteredTarget) }),
       actorId,
       stateMetadata,
       eventId,
@@ -111,9 +113,9 @@ export const stateService = {
       targetId: flexId,
       targetType: normalizedTypeId,
       fromState: null,
-      toState: targetState,
+      toState: enteredTarget,
       fromStatePrimary: null,
-      toStatePrimary: targetState,
+      toStatePrimary: statusData.state.primary,
       region: regionId,
       statusData,
       actor: buildEventActor(typeof actor === 'object' ? actor : {}, actorId),
@@ -124,7 +126,7 @@ export const stateService = {
     await db.collection(collection).updateOne(
       { _id: flexId },
       instanceDoc
-        ? { $set: { 'states.main': targetState, updatedAt: new Date().toISOString() } }
+        ? { $set: { ...instanceStateSetFromStatus(statusData), updatedAt: new Date().toISOString() } }
         : { $set: { status: statusData } }
     );
     return statusData;
@@ -378,7 +380,8 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
     const regionId = transitionScope.region || normalizedMachine.primaryRegion || 'main';
     const workflowRegion = getWorkflowRegion(normalizedMachine, regionId);
     const currentState = getRegionState(entity.states ?? entity.status, regionId, workflowRegion?.initial);
-    const targetStateDefinition = workflowRegion?.states?.[targetState] || {};
+    const enteredTarget = resolveWorkflowStatePath(workflowRegion, targetState);
+    const targetStateDefinition = enteredTarget ? workflowRegion.states[enteredTarget] : {};
     const transitionMetadata = mergeStatusDisplayMetadata(
       persistableStatusMetadata(transitionContext.metadata),
       targetStateDefinition
@@ -443,7 +446,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       targetId: flexId,
       targetType: normalizedTypeId,
       fromState: currentState,
-      toState: targetState,
+      toState: validation.to || enteredTarget,
       region: regionId,
       userId: actorId,
       userRole: auth.role,
@@ -471,9 +474,9 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       targetId: flexId,
       targetType: normalizedTypeId,
       fromState: currentState,
-      toState: targetState,
+      toState: validation.to || enteredTarget,
       fromStatePrimary: getPrimaryState(entity.states ?? entity.status, normalizedMachine.initial),
-      toStatePrimary: getPrimaryState(nextState, targetState),
+      toStatePrimary: getPrimaryState(nextState, normalizedMachine.initial),
       region: regionId,
       statusData,
       actor: buildEventActor(auth, actorId),
@@ -487,7 +490,7 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
     });
     
     const entitySet = instanceDoc
-      ? { 'states.main': targetState, updatedAt: new Date().toISOString() }
+      ? { ...instanceStateSetFromStatus(statusData), updatedAt: new Date().toISOString() }
       : {
         status: statusData,
         ...evidence.entityAttachmentSet,
@@ -512,8 +515,8 @@ async function performTransition(typeId, targetId, targetState, userId, userRole
       entity,
       typeId: normalizedTypeId,
       targetId: flexId,
-      targetState,
-      scopedState: targetState,
+      targetState: validation.to || enteredTarget,
+      scopedState: validation.to || enteredTarget,
       region: regionId,
       transition,
       status: statusData,
@@ -661,6 +664,23 @@ function normalizeTransitionScope(context = {}) {
     region: context?.region || context?.metadata?.region || context?.machineRegion || context?.machine || null,
     path: Array.isArray(context?.path) ? context.path : null
   };
+}
+
+const STATE_EVIDENCE_KEYS = new Set(['userId', 'timestamp', 'metadata', 'eventId', 'lifecycle']);
+
+function storedStateAxes(states = {}) {
+  return Object.fromEntries(Object.entries(states || {})
+    .filter(([axis, value]) => axis && !STATE_EVIDENCE_KEYS.has(axis) && typeof value === 'string' && value));
+}
+
+function instanceStateSetFromStatus(status = {}) {
+  return Object.fromEntries(Object.entries(status?.state?.active || {})
+    .filter(([axis, value]) => axis && typeof value === 'string' && value)
+    .map(([axis, value]) => [`states.${axis}`, value]));
+}
+
+function statusPrimaryForRegion(workflow = {}, regionId = '', state = '') {
+  return workflow.primaryRegion === regionId ? state : workflow.initial || state;
 }
 
 function mergeStatusDisplayMetadata(metadata = {}, stateDefinition = {}) {
@@ -1010,9 +1030,9 @@ async function loadEntityForWorkflow(typeId, targetId, options = {}) {
 
   // CTS-native instances live in per-class collections resolved per call
   // (org-authored types never enter the static registry). Search them the
-  // same way the instance boundary does; the status engine reads and
-  // writes those documents through the §3 shape (states.main), never the
-  // legacy status block.
+  // same way the instance boundary does; the status engine reads and writes
+  // those documents through the §3 all-axis state map, never the legacy
+  // status block.
   const found = await findInstanceDocument(db, targetId, normalizedTypeId);
   if (!found) {
     throw createError({
@@ -1034,15 +1054,15 @@ async function loadEntityForWorkflow(typeId, targetId, options = {}) {
   return { entity: instanceStateView(found.doc), machine, collection: found.collection, flexId: found.doc._id, instanceDoc: found.doc };
 }
 
-// The §3 stored shape keeps lifecycle in states.main; project the status
-// block the engine reads so transitions, guards, and hooks see the live
-// state instead of the initial default.
+// The §3 stored shape keeps one active leaf path per declared state axis.
+// Project every persisted axis into the engine view so a secondary-region
+// transition can never rewrite the primary axis by mistake.
 function instanceStateView(doc = {}) {
-  if (doc && typeof doc === 'object' && !doc.status && doc.states && typeof doc.states.main === 'string') {
-    return {
-      ...doc,
-      states: { main: doc.states.main }
-    };
+  if (doc && typeof doc === 'object' && !doc.status && doc.states) {
+    const axes = storedStateAxes(doc.states);
+    if (Object.keys(axes).length) {
+      return { ...doc, states: axes };
+    }
   }
   return doc;
 }

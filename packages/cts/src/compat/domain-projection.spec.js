@@ -25,8 +25,13 @@ const orgPanel = {
     width: { base: 'quantity', unit: 'mm' }
   },
   edges: { relations: { 'placed-on': { types: ['sheet'], onRemove: 'detach' } } },
-  states: { main: { initial: 'available', values: ['available', 'installed'], terminal: ['installed'] } },
-  transitions: [{ from: 'available', to: 'installed', intent: 'installPanel' }]
+  states: {
+    main: {
+      initial: 'available',
+      states: { available: {}, installed: { terminal: true } }
+    }
+  },
+  transitions: [{ axis: 'main', from: 'available', to: 'installed', intent: 'installPanel' }]
 };
 
 const orgBin = {

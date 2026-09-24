@@ -11,7 +11,15 @@ const view = new Map([
     class: 'group',
     edges: { children: { members: { types: ['queue', 'facade'], onRemove: 'restrict' } }, relations: { linked: { types: ['facade'], cardinality: 'many' } } }
   }],
-  ['queue', { id: 'queue', class: 'process', edges: {} }],
+  ['queue', {
+    id: 'queue',
+    class: 'process',
+    edges: {},
+    states: {
+      main: { initial: 'draft', states: { draft: {} } },
+      quality: { initial: 'unchecked', states: { unchecked: {} } }
+    }
+  }],
   ['facade', { id: 'facade', class: 'item', edges: {} }],
   ['cut-plan', { id: 'cut-plan', class: 'file', edges: {} }]
 ]);
@@ -28,6 +36,13 @@ describe('derived instance indexes (SPEC §13)', () => {
       expect(keySet(indexes, collection)).toContain(JSON.stringify({ type: 1, organizationId: 1, 'states.main': 1 }));
     }
     expect(keySet(indexes, 'files')).toHaveLength(2);
+  });
+
+  it('indexes every declared state axis used by a collection', () => {
+    const indexes = deriveInstanceIndexes(view);
+    expect(keySet(indexes, 'processes')).toContain(JSON.stringify({ type: 1, organizationId: 1, 'states.main': 1 }));
+    expect(keySet(indexes, 'processes')).toContain(JSON.stringify({ type: 1, organizationId: 1, 'states.quality': 1 }));
+    expect(keySet(indexes, 'files')).not.toContain(JSON.stringify({ type: 1, organizationId: 1, 'states.quality': 1 }));
   });
 
   it('indexes children edges on each child type\'s class collection and relations on the owner\'s', () => {

@@ -46,12 +46,12 @@ describe('dtoToScreenInstance', () => {
       _id: 'ent-2',
       lineage: { projectId: 'p-9', queueId: null },
       relations: { linkedSheets: [{ type: 'sheet', id: 's-1' }], pinned: { type: 'sheet', id: 's-2' } },
-      states: { main: 'READY' }
+      states: { main: 'READY', quality: 'PASSED' }
     }, typeRecord);
 
     expect(instance.lineage).toEqual({ projectId: { id: 'p-9' } });
     expect(instance.relations.linkedSheets).toEqual([{ type: 'sheet', id: 's-1' }]);
-    expect(instance.states).toEqual({ main: 'READY' });
+    expect(instance.states).toEqual({ main: 'READY', quality: 'PASSED' });
   });
 
   it('falls back to identity core fields for labels when rows carry none', () => {

@@ -15,7 +15,16 @@ vi.mock('../../core/access/service.js', () => ({
 vi.mock('../cts-types/repository.js', () => ({
   findByTypeId: vi.fn(async (organizationId, typeId) => (
     typeId === 'panel'
-      ? { id: 'panel', class: 'item', version: 2, fields: { serial: { base: 'string' }, width: { base: 'quantity', unit: 'mm' } }, states: { main: { initial: 'available' } } }
+      ? {
+        id: 'panel',
+        class: 'item',
+        version: 2,
+        fields: { serial: { base: 'string' }, width: { base: 'quantity', unit: 'mm' } },
+        states: {
+          main: { initial: 'available', states: { available: {}, installed: { terminal: true } } },
+          quality: { initial: 'unchecked', states: { unchecked: {}, passed: {} } }
+        }
+      }
       : typeId === 'gallery'
         ? { id: 'gallery', class: 'file', version: 1, payload: { mime: ['image/*'], maxSize: 1024 }, fields: { name: { base: 'string' } } }
         : null
@@ -91,6 +100,28 @@ describe('generic instance service stored shape (SPEC §3)', () => {
     expect(dto.specs).toEqual({ width: 2500 });
   });
 
+  it('initializes and projects every declared lifecycle axis', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('panel');
+
+    const dto = await service.create({ data: { serial: 'AX-1' }, lineage: {} }, 'user-1', 'org-1');
+
+    const stored = coll.insertOne.mock.calls[0][0];
+    expect(stored.states).toEqual({ main: 'available', quality: 'unchecked' });
+    expect(dto.states).toEqual({ main: 'available', quality: 'unchecked' });
+  });
+
+  it('refuses direct lifecycle writes outside the status runtime', async () => {
+    const coll = stubCollection();
+    const service = instanceServiceResolver('panel');
+
+    await expect(service.processUpdate('507f1f77bcf86cd799439011', {
+      data: { serial: 'AX-2' },
+      states: { quality: 'passed' }
+    }, 'org-1')).rejects.toThrow(/status runtime/);
+    expect(coll.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
   it('maps wire patch paths to §3 field writes', async () => {
     const coll = stubCollection();
     coll.findOneAndUpdate.mockResolvedValue({ _id: '507f1f77bcf86cd799439011', type: 'cassette', typeVersion: 1, fields: { name: 'Renamed' }, states: { main: 'active' }, lineage: {} });
@@ -98,13 +129,12 @@ describe('generic instance service stored shape (SPEC §3)', () => {
 
     await service.processUpdate('507f1f77bcf86cd799439011', {
       data: { name: 'Renamed' },
-      states: { main: 'active' },
       lineage: { organizationId: 'org-1' }
     });
 
     const set = coll.findOneAndUpdate.mock.calls[0][1].$set;
     expect(set['fields.name']).toBe('Renamed');
-    expect(set['states.main']).toBe('active');
+    expect(set['states.main']).toBeUndefined();
     // Tenancy is immutable after construct: the wire lineage projection's
     // organizationId key is not a writable edge.
     expect(set['lineage.organizationId']).toBeUndefined();

@@ -24,7 +24,11 @@ function declarationOverlayDomain(data = {}, domain = {}) {
   // Transition-node-declared target statuses ride the process records:
   // the overlay must know them or a draft binding check would refuse the
   // very target the transition node authors.
-  const declarations = declarationsFromCtsRecords(data?.ctsTypes || {}, data?.processNodes || {});
+  const declarations = declarationsFromCtsRecords(
+    data?.ctsTypes || {},
+    data?.processNodes || {},
+    data?.graph || {}
+  );
   if (!declarations.length) return domain;
   const registry = createTypeRegistry({ id: 'cts:draft-overlay' });
   const invalid = [];

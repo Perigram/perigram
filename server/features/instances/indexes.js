@@ -12,11 +12,15 @@ function indexEntry(collection, keys) {
 export function deriveInstanceIndexes(view = new Map()) {
   const indexes = [];
   const collectionsInUse = new Set();
+  const stateAxesByCollection = new Map();
 
   for (const type of view.values()) {
     const collection = CLASS_COLLECTIONS[type.class];
     if (!collection) continue;
     collectionsInUse.add(collection);
+    const axes = stateAxesByCollection.get(collection) || new Set();
+    for (const axis of Object.keys(type.states || {})) axes.add(axis);
+    stateAxesByCollection.set(collection, axes);
 
     // Declared relation edges: reverse lookups on the owner's collection.
     for (const key of Object.keys(type.edges?.relations || {})) {
@@ -39,10 +43,15 @@ export function deriveInstanceIndexes(view = new Map()) {
     }
   }
 
-  // Base set per class collection in use: list ordering + state windows.
+  // Base set per class collection in use: list ordering plus one state
+  // window for every axis declared by a type stored in that collection.
   for (const collection of collectionsInUse) {
     indexes.push(indexEntry(collection, { type: 1, organizationId: 1, createdAt: -1 }));
-    indexes.push(indexEntry(collection, { type: 1, organizationId: 1, 'states.main': 1 }));
+    const declaredAxes = stateAxesByCollection.get(collection);
+    const axes = declaredAxes?.size ? declaredAxes : new Set(['main']);
+    for (const axis of axes) {
+      indexes.push(indexEntry(collection, { type: 1, organizationId: 1, [`states.${axis}`]: 1 }));
+    }
   }
 
   return indexes;

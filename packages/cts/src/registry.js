@@ -2,7 +2,13 @@
 // (system first, org overlay, no shadowing), compile = R1-R6.
 import { normalizeRow, checkFields, rowToSchema } from './rows.js';
 import { normalizeEdges, checkLineageAcyclic } from './edges.js';
-import { normalizeStates, normalizeTransitions, checkStateTotality } from './states.js';
+import {
+  normalizeStates,
+  normalizeTransitions,
+  checkStateTotality,
+  collectStateEntries,
+  isLeafState
+} from './states.js';
 import { checkClassObligations } from './classes.js';
 import { normalizeOperator, OPERATOR_SPECIES_BY_LETTER } from './operators.js';
 import { requireCompatible, normalizeMigrateSteps } from './diff.js';
@@ -136,6 +142,7 @@ export function normalizeType(declaration = {}) {
 // are repair targets, not contracts to diff-protect.
 function storedDeclarationIsBroken(existing = {}, view = new Map()) {
   if (checkClassObligations(existing).length) return true;
+  if (checkStateTotality(existing).length) return true;
   for (const declaration of Object.values(existing.edges?.children || {})) {
     for (const childType of declaration.types || []) {
       if (!view.has(childType)) return true;
@@ -305,10 +312,13 @@ export function validateInstance(type, instance = {}) {
     return [`instance typeVersion ${instance.typeVersion} behind ${type.version} — ill-typed by definition (SPEC §11)`];
   }
   const errors = [...checkFields(type.fields, instance.fields)];
-  if (type.states.main) {
-    const state = instance.states?.main;
-    if (!type.states.main.values.includes(state)) {
-      errors.push(`states.main: expected one of [${type.states.main.values.join(', ')}], got ${JSON.stringify(state)}`);
+  for (const [axisName, axis] of Object.entries(type.states || {})) {
+    const leaves = collectStateEntries(axis)
+      .filter(entry => isLeafState(entry.node))
+      .map(entry => entry.path);
+    const state = instance.states?.[axisName];
+    if (!leaves.includes(state)) {
+      errors.push(`states.${axisName}: expected one of [${leaves.join(', ')}], got ${JSON.stringify(state)}`);
     }
   }
   return errors;

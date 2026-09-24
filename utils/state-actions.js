@@ -14,23 +14,26 @@ import { resolveStateDisplay } from './state-engine.js';
 // drive development surfaces with local workflow drafts and the
 // chrome-visibility questions shared primitives ask.
 export function compiledWorkflowFor(typeRecord = null) {
-  const axis = typeRecord?.states?.main;
-  if (!axis || !Array.isArray(axis.values) || !axis.values.length) return null;
-  const states = Object.fromEntries(axis.values.map(value => [value, {}]));
+  const axes = Object.entries(typeRecord?.states || {})
+    .filter(([, axis]) => axis?.states && typeof axis.states === 'object');
+  if (!axes.length) return null;
+  const transitions = Array.isArray(typeRecord.transitions) ? typeRecord.transitions : [];
+  const regions = Object.fromEntries(axes.map(([axisName, axis]) => [axisName, {
+    initial: axis.initial,
+    states: axis.states,
+    transitions: transitions
+      .filter(transition => (transition.axis || 'main') === axisName)
+      .map(({ axis: _axis, from, to, intent }) => ({ from, to, ...(intent ? { intent } : {}) }))
+  }]));
   return {
     schemaVersion: 2,
-    primaryRegion: 'main',
-    regions: {
-      main: {
-        initial: axis.initial,
-        states,
-        transitions: (Array.isArray(typeRecord.transitions) ? typeRecord.transitions : [])
-          .map(({ from, to, intent }) => ({ from, to, ...(intent ? { intent } : {}) }))
-      }
-    },
-    // The axis render map rides the machine so derived actions resolve
-    // their authored display policy (see `createStatusAction`).
-    _stateRender: axis.render || null
+    primaryRegion: regions.main ? 'main' : axes[0][0],
+    regions,
+    // Axis-indexed render maps ride the machine so derived actions resolve
+    // authored display policy in the transition's own region.
+    _stateRender: Object.fromEntries(axes
+      .map(([axisName, axis]) => [axisName, axis.render || null])
+      .filter(([, render]) => render))
   };
 }
 
@@ -104,7 +107,12 @@ export function resolveActionDisplay(transition = {}) {
 }
 
 export function createStatusAction(transition = {}, stateRender = null, t = value => value) {
-  const policy = resolveStateDisplay(stateRender ? { main: { render: stateRender } } : null, transition.to);
+  const region = transition.region || 'main';
+  const policy = resolveStateDisplay(
+    stateRender ? { [region]: { render: stateRender[region] || {} } } : null,
+    transition.to,
+    region
+  );
   return {
     label: transition.label || translateStatusLabel(transition.to, policy.label, t),
     to: transition.to,

@@ -15,6 +15,7 @@ export {
 } from './edges.js';
 export {
   normalizeStates, normalizeTransitions, checkStateTotality,
+  collectStateEntries, findState, initialStatePath, isLeafState,
   mergeTransitionNodeStates
 } from './states.js';
 export {

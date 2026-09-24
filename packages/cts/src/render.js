@@ -3,6 +3,7 @@
 // derive at compile time, and machine ids never reach the user plane
 // (this is where hand-mirrored status tables die).
 import { schemaFor } from './registry.js';
+import { collectStateEntries } from './states.js';
 
 const ICON_BY_CLASS = Object.freeze({
   party: 'pi pi-users', file: 'pi pi-file', item: 'pi pi-box',
@@ -46,22 +47,22 @@ export function deriveSections(fields = {}) {
   );
 }
 
-// Per-state display policy resolved onto the axes (SPEC §7): label
-// defaults to the start-cased value — state VALUES are authored
-// vocabulary, so this default is allowed — severity defaults secondary on
-// terminal values else info, icons default to none.
+// Per-state display policy resolved onto every canonical path (SPEC §7):
+// the local name supplies the default label, while terminal severity is
+// explicit state policy rather than inferred from missing transitions.
 function resolvedStateDisplay(states = {}) {
-  return Object.freeze(Object.fromEntries(Object.entries(states).map(([axisName, axis]) => {
-    const terminal = new Set(axis.terminal || []);
-    return [axisName, Object.freeze(Object.fromEntries((axis.values || []).map(value => {
-      const policy = axis.render?.[value] || {};
-      return [value, Object.freeze({
-        label: policy.label || startCase(value),
+  return Object.freeze(Object.fromEntries(Object.entries(states).map(([axisName, axis]) => [
+    axisName,
+    Object.freeze(Object.fromEntries(collectStateEntries(axis).map(({ path, node }) => {
+      const localName = path.split('.').at(-1);
+      const policy = { ...(axis.render?.[path] || {}), ...(node.policy || {}) };
+      return [path, Object.freeze({
+        label: policy.label || startCase(localName),
         icon: policy.icon || null,
-        severity: policy.severity || (terminal.has(value) ? 'secondary' : 'info')
+        severity: policy.severity || (node.terminal === true ? 'secondary' : 'info')
       })];
-    })))];
-  })));
+    })))
+  ])));
 }
 
 // Derivation-only display policy: the pieces the client bundle attaches

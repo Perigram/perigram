@@ -18,11 +18,11 @@ export function kebabStateTypeId(typeId = '') {
         .toLowerCase();
 }
 
-export function resolveStateDisplay(states = null, value = '') {
+export function resolveStateDisplay(states = null, value = '', axis = 'main') {
     const raw = value === null || value === undefined || value === ''
         ? 'UNKNOWN'
         : String(value);
-    const render = states?.main?.render || null;
+    const render = states?.[axis]?.render || states?.main?.render || null;
     const policy = render?.[raw] || render?.[raw.toLowerCase()] || render?.[raw.toUpperCase()] || null;
     if (!policy) return { label: raw, severity: 'secondary', icon: null };
     return {

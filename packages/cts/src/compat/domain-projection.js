@@ -12,6 +12,7 @@
 import { rowToFieldSchemas, slotFor } from './field-schema-rows.js';
 import { lineageKeyForParent } from '../edges.js';
 import { renderPolicyFor } from '../render.js';
+import { initialStatePath } from '../states.js';
 
 // Per-class instance collections (SPEC §13): the single home of the
 // storage mapping; the server instance repository imports this map.
@@ -52,7 +53,6 @@ const CORE_BLOCK_FIELDS = [
   coreField('origin.metadata', 'origin', 'json', { writable: false, constructible: false }),
   coreField('origin.eventId', 'origin', 'string', { writable: false, constructible: false }),
   coreField('origin.lifecycle', 'origin', 'json', { writable: false, constructible: false }),
-  coreField('states.main', 'status', 'status', { constructible: false }),
   coreField('status.userId', 'status', 'string', { writable: false, constructible: false }),
   coreField('status.timestamp', 'status', 'dateTime', { writable: false, constructible: false }),
   coreField('status.metadata', 'status', 'json', { constructible: false }),
@@ -107,34 +107,41 @@ function withAccessFlags(schema, policy) {
 // machines wherever a machine is needed, in exactly one shape. Returns
 // null for types without a declared axis (no synthesized lifecycle).
 export function declarationWorkflow(type = {}) {
-  const axis = type.states?.main;
-  if (!axis?.values?.length) return null;
-  const terminal = new Set(axis.terminal || []);
-  const display = renderPolicyFor(type).states.main || {};
-  return {
-    schemaVersion: 2,
-    primaryRegion: 'main',
-    regions: {
-      main: {
-        label: 'Lifecycle',
-        initial: axis.initial,
-        states: Object.fromEntries(axis.values.map(value => [
-          value,
-          {
-            ...(terminal.has(value) ? { isTerminal: true } : {}),
-            canUpdateMeta: !terminal.has(value),
-            ...(display[value]?.label ? { label: display[value].label } : {}),
-            ...(display[value]?.icon ? { icon: display[value].icon } : {}),
-            ...(display[value]?.severity ? { severity: display[value].severity } : {})
-          }
-        ])),
-        transitions: (type.transitions || []).map(transition => ({
+  const axes = Object.entries(type.states || {});
+  if (!axes.length) return null;
+  const display = renderPolicyFor(type).states || {};
+  const regions = Object.fromEntries(axes.map(([axisName, axis]) => {
+    const projectNode = (states = {}, prefix = []) => Object.fromEntries(
+      Object.entries(states).map(([name, node = {}]) => {
+        const path = [...prefix, name].join('.');
+        const policy = display[axisName]?.[path] || {};
+        return [name, {
+          ...(node.terminal === true ? { isTerminal: true } : {}),
+          canUpdateMeta: node.terminal !== true,
+          ...(node.states ? { initial: node.initial, states: projectNode(node.states, [...prefix, name]) } : {}),
+          ...(policy.label ? { label: policy.label } : {}),
+          ...(policy.icon ? { icon: policy.icon } : {}),
+          ...(policy.severity ? { severity: policy.severity } : {})
+        }];
+      })
+    );
+    return [axisName, {
+      label: axisName === 'main' ? 'Lifecycle' : axisName,
+      initial: initialStatePath(axis),
+      states: projectNode(axis.states),
+      transitions: (type.transitions || [])
+        .filter(transition => transition.axis === axisName)
+        .map(transition => ({
           from: transition.from,
           to: transition.to,
           ...(transition.intent ? { intent: transition.intent } : {})
         }))
-      }
-    }
+    }];
+  }));
+  return {
+    schemaVersion: 2,
+    primaryRegion: regions.main ? 'main' : axes[0][0],
+    regions
   };
 }
 
@@ -210,6 +217,7 @@ export function projectDomainFromView(registry, organizationId = null, baseDomai
     }
     fieldSchemas[type.id] = [
       ...CORE_BLOCK_FIELDS.filter(field => blocks.has(field.block) || field.path === '_id'),
+      ...Object.keys(type.states || {}).map(axisName => coreField(`states.${axisName}`, 'status', 'status', { constructible: false })),
       ...lineageFields,
       ...relationFields,
       ...rowEntries

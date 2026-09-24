@@ -56,11 +56,20 @@ export const frameworkTypes = [
     name: 'Process definition',
     glyph: 'pi pi-sitemap',
     fields: { name: { base: 'string', identifier: true } },
-    states: { main: { initial: 'DRAFT', values: ['DRAFT', 'ACTIVE', 'ARCHIVED'], terminal: ['ARCHIVED'] } },
+    states: {
+      main: {
+        initial: 'DRAFT',
+        states: {
+          DRAFT: {},
+          ACTIVE: {},
+          ARCHIVED: { terminal: true }
+        }
+      }
+    },
     transitions: [
-      { from: 'DRAFT', to: 'ACTIVE' },
-      { from: 'ACTIVE', to: 'ARCHIVED' },
-      { from: 'DRAFT', to: 'ARCHIVED' }
+      { axis: 'main', from: 'DRAFT', to: 'ACTIVE' },
+      { axis: 'main', from: 'ACTIVE', to: 'ARCHIVED' },
+      { axis: 'main', from: 'DRAFT', to: 'ARCHIVED' }
     ]
   }
 ];
