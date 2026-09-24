@@ -1,5 +1,5 @@
 <template>
-  <div :class="LAYOUT.scrollX">
+  <div :class="[LAYOUT.scrollX, 'ck-collection-rows']">
     <DataTable
     :value="instances"
     size="small"
@@ -13,6 +13,8 @@
     :sort-field="activeSortField"
     :sort-order="activeSortOrder"
     removable-sort
+    :pt="tablePt"
+    :row-class="rowSurfaceClass"
     @sort-change="onSortChange"
   >
       <template #empty>
@@ -103,6 +105,18 @@ defineEmits(['open']);
 
 const { te, t } = useI18n();
 
+// Notion-style row surfaces: every body row is a content-surface card
+// (rounded, one step above the canvas) with a hairline gap between rows —
+// the table box itself stays transparent. The header row recedes to a
+// muted transparent caption band. All classes ride PrimeVue's official
+// pt/rowClass channels with token-backed utilities; no scoped CSS.
+const tablePt = {
+  root: { class: 'bg-transparent' },
+  headerRow: { class: 'bg-transparent text-muted' },
+  headerCell: { class: 'bg-transparent text-muted' }
+};
+const rowSurfaceClass = () => 'bg-content rounded-ui';
+
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
 const pagination = computed(() => resolvedControls.value.pagination);
 const virtual = computed(() => props.instances.length > pagination.value.virtualizeAt);
@@ -180,3 +194,13 @@ const hiddenRefCount = instance => {
   return applyBudget(list, ROW_RELATION_BUDGET).hidden;
 };
 </script>
+
+<style scoped>
+/* Row-surface rhythm (layout-only declarations): separated cell borders
+   leave a hairline gap between the rounded content rows, so each row
+   reads as its own surface card over the transparent table box. */
+.ck-collection-rows :deep(.p-datatable-table) {
+  border-collapse: separate;
+  border-spacing: 0 0.25rem;
+}
+</style>

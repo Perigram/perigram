@@ -1852,7 +1852,8 @@
     "sortOrderLabel": "Изменить порядок сортировки",
     "moreActions": "Ещё действия",
     "new": "Создать",
-    "stateHistory": "История состояний"
+    "stateHistory": "История состояний",
+    "filters": "Фильтры"
   },
   "uiConstructor": {
     "title": "Демо UI-конструктора",

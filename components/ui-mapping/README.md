@@ -74,22 +74,21 @@ concerns:
   already-loaded instances keep their stale surfaces under one
   indeterminate progress bar instead — no component invents its own
   empty or loading state.
-- `CollectionToolbar.vue` — the one filtering surface for every list
-  layout: it materializes the composed `listControls` contract above the
-  region (a search input over the resolved `searchKeys` plus one
-  multi-select per enum facet over the values actually present — a value
-  set within a facet, conjunction across facets). It appears on
-  every large list past the `SEARCH_AT` budget — identity search always
-  functions, so it is never gated on the descriptor vocabulary — and on
-  small lists through multi-value enum facets. Its gaps come from the
-  system spacing scale
-  (`spacing.toolbar`) and its control sizes from `editorSize`, and it owns
-  no per-type logic — the region tree carries every decision. RegionBlock
-  stacks it on the system rhythm (`spacing.stackTight`) ahead of every
-  collection surface (table included), so it never sticks to the content
-  below. Search and facet selections are region-owned models RegionBlock
+- `CollectionToolbar.vue` — the region header's toggleable control set:
+  the search input and facet selects render only while their RegionBlock
+  header toggles are open (a search toggle when the toolbar budget
+  applies — every large list past `SEARCH_AT`, identity search always
+  functions — a filter toggle when multi-value enum facets exist, one
+  multi-select per facet over the values actually present: a value set
+  within a facet, conjunction across facets; the filter badge carries
+  the active selection count). Its gaps come from the system spacing
+  scale (`spacing.toolbar`) and its control sizes from `editorSize`, and
+  it owns no per-type logic — the region tree carries every decision.
+  Search and facet selections are region-owned models RegionBlock
   applies client-side over the loaded instances; columns keep only their
-  native sorting.
+  native sorting. The region header stays one line (label, count, opened
+  controls, toggle buttons, actions), wrapping only when the opened
+  controls or the action cluster demand it.
 
 ## Components
 
@@ -106,7 +105,10 @@ concerns:
 - `RegionBlock.vue` — one composed region with data-driven layout: the list
   layout comes from `resolveListLayout` (`table` | `tree-table` |
   `card-grid` | `timeline`, matched by class, hierarchy, or type override).
-  The standalone list region renders as a borderless Panel — regions paint
+  The list header is one wrapping line — label, count, toggleable search
+  and filter controls, toggle buttons, and actions; the toolbar controls
+  render inside it only while toggled open. The standalone list region
+  renders as a borderless Panel — regions paint
   no box; the higher record surface (`SurfaceHeader`'s `headerBar`) keeps
   the hairline border, and pane boxes own their own frames. A create
   action for the region's own type collapses its caption to the bare
@@ -124,7 +126,12 @@ concerns:
 - `CollectionTable.vue` — the columnar list projection (DataTable):
   identity (a link button when the screen has an `onOpen` handler),
   status, budgeted scalar descriptor columns, and the first
-  declared relation as budgeted chips. Columns come from the composed
+  declared relation as budgeted chips. Rows are Notion-style surface
+  cards — `bg-content rounded-ui` per row through the official
+  `rowClass` channel with a hairline separated-border gap (the
+  layout-only scoped block), the header band receding to a muted
+  transparent caption — every instance row sits one step above the
+  canvas while the table box stays unpainted. Columns come from the composed
   `listControls` contract (filled short scalars bounded by the richness
   budget — a field no loaded instance fills never becomes a column),
   identity/status/scalar columns are sortable (quantity values sort by
@@ -136,8 +143,10 @@ concerns:
   filter row.
 - `HierarchyTable.vue` — the hierarchical list projection (TreeTable):
   the collection plus its lineage descendants nested as expandable rows
-  with the same generated columns; row identities are link buttons under
-  the same `onOpen` navigation contract.
+  with the same generated columns and the same row-surface treatment as
+  `CollectionTable` (rounded content rows, hairline gaps, muted
+  transparent header band). Row identities are link buttons under the
+  same `onOpen` navigation contract.
 - `CardGrid.vue` — the media collection projection (DataView, paginated):
   cards lay out in the shared `ResponsiveGrid` primitive with container
   queries and bounded item tokens (viewport breakpoints lie inside panels),
@@ -251,7 +260,9 @@ concerns:
   highlights the value row and reveals a pencil icon.
 - `InstanceChip.vue`, `PreviewBox.vue`, `ActionButton.vue` — reference chips,
   payload previews keyed on the declared preview mode, and action-button
-  presentation from the compiled action record. Action and field labels
+  presentation from the compiled action record. Reference chips render as
+  `subtle` pills — one step above the canvas, below instance cards: an
+  inline reference is not an instance surface. Action and field labels
   resolve through the stable generated keys first
   (`actionLabelKey`/`fieldLabelKey`/`typeLabelKey` + `localizedLabel`),
   falling back to the resolver-derived label, so locale files may
