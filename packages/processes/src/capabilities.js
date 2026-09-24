@@ -46,7 +46,7 @@ export function projectEntityProcessCapabilities(domain = {}, serviceBindings = 
       create: createModes.length > 0,
       createModes,
       processUpdate: Boolean(binding.processUpdate),
-      delete: Boolean(entity.operations?.delete) && Boolean(binding.delete),
+      delete: Boolean(binding.delete),
       archive: Boolean(binding.archive) && workflowArchived(workflow),
       archiveIntent: workflowArchiveIntent(workflow),
       statusMutation: Boolean(workflow),

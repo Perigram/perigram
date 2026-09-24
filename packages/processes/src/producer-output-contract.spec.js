@@ -58,11 +58,14 @@ describe('producer output process contract', () => {
     expect(() => compileProcessDefinition(invalid, domain)).toThrow('must match producerOutputId');
   });
 
-  it('requires entity actions to carry their producer output context', () => {
+  it('lets existing-instance actions omit producer provenance', () => {
     const process = normalizeProcessDefinition(definition(), domain);
-    const action = { id: 'rename', actionKind: 'updateEntity', typeId: 'project' };
+    const action = { id: 'rename', actionKind: 'updateEntity', typeId: 'project', state: { to: 'ACTIVE' } };
 
-    expect(() => compileActions({ rename: action }, process, domain)).toThrow('requires producerOutputId');
+    expect(compileActions({ rename: action }, process, domain).rename).toMatchObject({
+      typeId: 'project',
+      producerOutputId: null
+    });
     expect(compileActions({
       rename: { ...action, producerOutputId: 'create:entity' }
     }, process, domain).rename).toMatchObject({
@@ -157,10 +160,11 @@ describe('producer output entry-state and binding diagnostics', () => {
 
     expect(compiled.producerOutputs).not.toHaveProperty('stale:result');
     expect(compiled.processNodes.stale.producerOutputId).toBeUndefined();
-    expect(compiled.actions.rename).toMatchObject({ producerOutputId: 'create:entity' });
-    // changeStatus nodes derive no action; they execute through orchestration
-    // with the upstream producer context.
-    expect(compiled.actions.stale).toBeUndefined();
+    expect(compiled.actions.rename).toMatchObject({ producerOutputId: null });
+    expect(compiled.actions.stale).toMatchObject({
+      actionKind: 'updateEntity',
+      state: { to: 'ACTIVE' }
+    });
     expect(Object.keys(compiled.producerOutputs)).toEqual(['create:entity']);
   });
 
@@ -177,7 +181,7 @@ describe('producer output entry-state and binding diagnostics', () => {
 
     const validation = validateProcessDefinition(invalid, domain);
     expect(validation.ok).toBe(false);
-    expect(validation.errors.join('\n')).toContain("Producer output create:entity region main entry state READY is not declared");
+    expect(validation.errors.join('\n')).toContain('initial READY is not declared');
   });
 
   it('keeps the declared entry state instead of selecting the first state', () => {
@@ -197,14 +201,24 @@ describe('producer output entry-state and binding diagnostics', () => {
     expect(workflow.initial).toBe('DONE');
   });
 
-  it('rejects an entity action without a producer binding at validation time', () => {
-    const invalid = definition();
-    invalid.actions = { rename: { id: 'rename', actionKind: 'updateEntity', typeId: 'project' } };
+  it('accepts an existing-instance action without a producer binding', () => {
+    const source = definition();
+    source.roleGrants = { role_operator: { feature: 'projects', roleId: 'role_operator', level: 'write' } };
+    source.actions = {
+      rename: {
+        id: 'rename',
+        actionKind: 'updateEntity',
+        typeId: 'project',
+        state: { from: 'CREATED', to: 'ACTIVE' },
+        access: { level: 'write', grants: [{ roleId: 'role_operator', level: 'write' }] }
+      }
+    };
 
-    const validation = validateProcessDefinition(invalid, domain);
-    expect(validation.ok).toBe(false);
-    expect(validation.errors.join('\n')).toContain('Action rename on project requires producerOutputId');
-    expect(() => compileProcessDefinition(invalid, domain)).toThrow('requires producerOutputId');
+    const roles = { role_operator: { id: 'role_operator', label: 'Operator' } };
+    const validation = validateProcessDefinition(source, domain, { roles });
+    expect(validation.ok).toBe(true);
+    const compiled = compileProcessDefinition(source, domain, { roles });
+    expect(compiled.actions.rename.producerOutputId).toBeNull();
   });
 
   it('rejects an action bound to an unknown or mistyped producer output', () => {

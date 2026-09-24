@@ -5,7 +5,7 @@ describe('Process Designer context contracts', () => {
   it('infers Current Entity from an unambiguous action or screen context', () => {
     const normalized = normalizeProcessDefinition({
       processNodes: {
-        current: { id: 'current', kind: 'read.currentEntity' }
+        current: { id: 'current', kind: 'cts.read', select: 'current' }
       },
       actions: {
         edit: { id: 'edit', typeId: 'project' }
@@ -24,7 +24,7 @@ describe('Process Designer context contracts', () => {
   it('keeps Current Entity selectable when contexts do not determine one type', () => {
     const normalized = normalizeProcessDefinition({
       processNodes: {
-        current: { id: 'current', kind: 'read.currentEntity' }
+        current: { id: 'current', kind: 'cts.read', select: 'current' }
       },
       actions: {
         edit: { id: 'edit', typeId: 'project' }

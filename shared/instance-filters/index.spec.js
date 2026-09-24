@@ -33,6 +33,11 @@ describe('flat transport projection', () => {
     expect(filterFromFlatFilters({ primaryStates: ' , ' })).toBeNull();
   });
 
+  it('accepts explicit declared state-axis filters', () => {
+    expect(filterFromFlatFilters({ 'states.quality': 'passed' }))
+      .toEqual({ field: 'states.quality', op: 'eq', value: 'passed' });
+  });
+
   it('drops transport parameters, empty values, and first-wins arrays', () => {
     expect(filterFromFlatFilters({ limit: 50, skip: 10 })).toBeNull();
     expect(filterFromFlatFilters({ primaryState: '', binId: null, other: undefined }, { lineageKeys: new Set(['binId']) }))

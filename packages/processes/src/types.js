@@ -54,6 +54,7 @@ export function mapDomainInputType(kind = 'json', metadata = {}) {
     data: 'json',
     list: 'json',
     projection: 'entity',
+    entity: 'entityRef',
     attachment: 'attachmentRef',
     task: 'taskRef'
   })[clean] || clean;
@@ -63,6 +64,7 @@ export function mapDomainInputType(kind = 'json', metadata = {}) {
     base: supported,
     nullable: Boolean(metadata.optional),
     typeId: supportsTypeId ? metadata.typeId : undefined,
+    unit: supported === 'number' ? metadata.unit : undefined,
     block: supported === 'block' ? metadata.block : undefined,
     capability: metadata.capability,
     accepts: metadata.accepts,
@@ -143,7 +145,9 @@ export function normalizeProcessSocket(socket = {}, fallback = {}) {
       ? source.access
       : (PROCESS_DATA_ACCESS.includes(fallback.access) ? fallback.access : 'item'),
     path: source.path || source.dataPath || fallback.path || '',
-    description: source.description || fallback.description || ''
+    description: source.description || fallback.description || '',
+    ...(source.plane || fallback.plane ? { plane: source.plane || fallback.plane } : {}),
+    multiple: source.multiple === true || fallback.multiple === true
   };
 }
 

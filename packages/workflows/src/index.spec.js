@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyWorkflowTransitionState, createWorkflowState, getPrimaryState, getRegionState, validateTransition } from './index.js';
+import { applyWorkflowTransitionState, createWorkflowState, getPrimaryState, getRegionState, normalizeWorkflow, validateTransition } from './index.js';
 
 const workflow = {
   schemaVersion: 2,
@@ -198,5 +198,95 @@ describe('workflow transition validation', () => {
     const next = applyWorkflowTransitionState(state, workflow, { region: 'qa', to: 'APPROVED' }, 'APPROVED');
     expect(next.primary).toBe('DRAFT');
     expect(next.active.qa).toBe('APPROVED');
+  });
+});
+
+const nestedWorkflow = {
+  schemaVersion: 2,
+  primaryRegion: 'main',
+  regions: {
+    main: {
+      initial: 'PRODUCTION',
+      states: {
+        PRODUCTION: {
+          initial: 'queued',
+          states: {
+            queued: {},
+            cutting: {}
+          }
+        },
+        // Deliberately collides with the nested local name `cutting`.
+        cutting: {},
+        FAILED: { isTerminal: true }
+      },
+      transitions: [
+        { from: 'PRODUCTION.cutting', to: 'FAILED' },
+        { from: 'PRODUCTION', to: 'cutting' }
+      ]
+    },
+    qa: {
+      initial: 'OPEN',
+      states: { OPEN: {}, APPROVED: { isTerminal: true } },
+      transitions: [{ from: 'OPEN', to: 'APPROVED' }]
+    }
+  }
+};
+
+describe('recursive workflow state trees', () => {
+  it('normalizes to exact full paths without local child aliases or collisions', () => {
+    const region = normalizeWorkflow(nestedWorkflow).regions.main;
+    expect(region.initial).toBe('PRODUCTION.queued');
+    expect(region.states['PRODUCTION']).toMatchObject({ path: ['PRODUCTION'] });
+    expect(region.states['PRODUCTION.cutting']).toMatchObject({ path: ['PRODUCTION', 'cutting'] });
+    expect(region.states.cutting).toMatchObject({ path: ['cutting'] });
+    expect(region.states.queued).toBeUndefined();
+    expect(region.states.cutting.path).toEqual(['cutting']);
+  });
+
+  it('creates and enters the configured initial leaf of a targeted parent', () => {
+    const state = createWorkflowState(nestedWorkflow);
+    expect(state.primary).toBe('PRODUCTION.queued');
+    expect(state.regions.main.path).toEqual(['PRODUCTION', 'queued']);
+
+    const moved = applyWorkflowTransitionState(
+      state,
+      nestedWorkflow,
+      { region: 'main', from: 'PRODUCTION', to: 'PRODUCTION' },
+      'PRODUCTION'
+    );
+    expect(moved.primary).toBe('PRODUCTION.queued');
+    expect(moved.active.qa).toBe('OPEN');
+  });
+
+  it('selects the most-specific active ancestor transition', () => {
+    const result = validateTransition({
+      workflow: nestedWorkflow,
+      currentState: 'PRODUCTION.cutting',
+      targetState: 'FAILED',
+      region: 'main',
+      role: 'EDITOR'
+    });
+    expect(result).toMatchObject({ ok: true, from: 'PRODUCTION.cutting', to: 'FAILED' });
+
+    const shadowed = validateTransition({
+      workflow: nestedWorkflow,
+      currentState: 'PRODUCTION.cutting',
+      targetState: 'cutting',
+      region: 'main',
+      role: 'EDITOR'
+    });
+    expect(shadowed).toMatchObject({ ok: false, reason: 'invalid_transition' });
+  });
+
+  it('preserves every untouched axis while moving one nested leaf', () => {
+    const state = createWorkflowState(nestedWorkflow, { active: { qa: 'APPROVED' } });
+    const next = applyWorkflowTransitionState(
+      state,
+      nestedWorkflow,
+      { region: 'main', from: 'PRODUCTION', to: 'PRODUCTION.cutting' },
+      'PRODUCTION.cutting'
+    );
+    expect(next.active).toEqual({ main: 'PRODUCTION.cutting', qa: 'APPROVED' });
+    expect(next.primary).toBe('PRODUCTION.cutting');
   });
 });

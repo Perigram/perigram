@@ -53,7 +53,17 @@ stub Nuxt/PrimeVue app plugins that are not active in the node test runner.
   the inventory. Component
   ownership is derived from the domain primitive registry: exact registered
   paths are shared/domain primitives and every other Vue file is derived usage.
-- `migrate-status-state-v2.js`: One-shot status migration. Converts legacy
+- `server/scripts/migrate-cts-state-trees.js`: one-way CTS declaration
+  migration from flat state axes to recursive state machines. It preserves
+  axes, transitions, and dotted leaf paths, moves terminal/render policy onto
+  state nodes, defaults to dry-run, and reports ambiguous secondary-axis data
+  for manual review. Use `--apply` to persist.
+- `server/scripts/migrate-process-state-declarations.js`: one-way process
+  draft/active declaration migration that derives stable state parent ids and
+  axes from declaration edges and adds `region: 'main'` to legacy status
+  migration rows. It is idempotent and dry-run by default; use `--apply` to
+  persist.
+- `migrate-status-state-v2.js`: One-shot legacy status migration. Converts
   string `status.state` / `origin.state` values and `status_events` records to
   the v2 structured status shape. Supports `--dry-run`.
 - `server/scripts/migrate-cutkit-extensions-to-perigram.js`: One-shot data

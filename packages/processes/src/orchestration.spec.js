@@ -772,11 +772,11 @@ describe('durable process orchestration', () => {
 
   it('previews pure/read data without executing effects', async () => {
     const definition = process([
-      { id: 'entities', kind: 'read.queryEntities', typeId: 'queue' },
+      { id: 'entities', kind: 'cts.read', select: 'all', typeId: 'queue' },
       { id: 'count', kind: 'collection.count', type: { base: 'entity' } },
       { id: 'effect', kind: 'effect.updateEntity', typeId: 'queue', trigger: { mode: 'event' } }
     ], ['entities', 'count', 'effect'], [{
-      id: 'entities-count', source: 'entities', sourceHandle: 'data:entities', target: 'count', targetHandle: 'data:value', role: 'data'
+      id: 'entities-count', source: 'entities', sourceHandle: 'data:result', target: 'count', targetHandle: 'data:value', role: 'data'
     }]);
     const executeEffect = vi.fn();
     const result = await previewProcessDataflow(definition, {}, {
@@ -792,12 +792,11 @@ describe('durable process orchestration', () => {
   it('advances run and step statuses on a read-only graph without entering the effect boundary', async () => {
     const definition = process([
       { id: 'trigger', kind: 'control.manualTrigger' },
-      { id: 'entities', kind: 'read.queryEntities', typeId: 'queue' },
+      { id: 'entities', kind: 'cts.read', select: 'all', typeId: 'queue' },
       { id: 'count', kind: 'collection.count', type: { base: 'entity' } }
     ], ['trigger', 'entities', 'count'], [
-      { id: 'trigger-entities', source: 'trigger', sourceHandle: 'data:entity', target: 'entities', targetHandle: 'data:value', role: 'data' },
       control('trigger', 'out', 'entities'),
-      { id: 'entities-count', source: 'entities', sourceHandle: 'data:entities', target: 'count', targetHandle: 'data:value', role: 'data' }
+      { id: 'entities-count', source: 'entities', sourceHandle: 'data:result', target: 'count', targetHandle: 'data:value', role: 'data' }
     ]);
     const executeEffect = vi.fn();
     const completed = await runProcessUntilSettled(createProcessRun(definition, {}), definition, {

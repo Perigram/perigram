@@ -41,7 +41,7 @@ import { compileActiveProcessRuntime } from './runtime.js';
 import { compileRegistryForOrganization } from '../cts-types/service.js';
 import { ensureInstanceIndexes } from '../instances/indexes.js';
 import { publishOrgContractChanged } from '../instance-events/service.js';
-import { projectDomainFromView } from '~/packages/cts/src/index.js';
+import { operationKindOf, projectDomainFromView } from '~/packages/cts/src/index.js';
 import { cncPackContent } from '~/packages/domain-cnc/src/index.js';
 import { resolveCompiledRelationOptions } from './relation-option-resolver.js';
 import {
@@ -842,7 +842,8 @@ async function executeDataflowActionRun({ process, actionId, instanceId, data, p
   if (run.status === 'failed') {
     throw createError({ statusCode: 400, message: run.error?.message || `Action ${actionId} failed` });
   }
-  const effectStep = [...(run.steps || [])].reverse().find(step => step.kind?.startsWith('effect.'));
+  const effectStep = [...(run.steps || [])].reverse()
+    .find(step => step.kind?.startsWith('effect.') || step.kind?.startsWith('cts.'));
   return effectStep?.output ?? run.result;
 }
 
@@ -1421,7 +1422,11 @@ async function executeDurableEffect(request, auth, run, processData) {
 }
 
 export async function performDurableEffect({ kind, record, inputs }, auth, processData = {}) {
-  if (kind === 'effect.runCommand') {
+  // Native species records classify once here: the durable branches stay
+  // keyed on the operation contract while the record keeps its species
+  // kind, discriminator, and authored state reference intact.
+  const operation = operationKindOf(record || {}) || kind;
+  if (operation === 'effect.runCommand') {
     if (!record.commandId) throw new Error('Command effect requires commandId');
     return await executeCommand(record.commandId, commandEffectPayload(record.commandId, inputs), auth);
   }
@@ -1432,19 +1437,16 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   const requiredCapability = {
     'effect.archiveEntity': 'archive',
     'effect.deleteEntity': 'delete'
-  }[kind];
+  }[operation];
   if (requiredCapability && service.processCapabilities?.[requiredCapability] !== true) {
     throw new Error(`${typeId} does not support process ${requiredCapability}`);
   }
-  if (kind === 'effect.deleteEntity' && !getDomain().entities?.find(entity => entity.type === typeId)?.operations?.delete) {
-    throw new Error(`${typeId} does not declare hard deletion`);
-  }
-  const relationContracts = ['effect.createEntity', 'effect.updateEntity'].includes(kind)
+  const relationContracts = ['effect.createEntity', 'effect.updateEntity'].includes(operation)
     ? processRelationContracts(record, processData)
     : [];
-  if (kind === 'effect.createEntity' || kind === 'effect.runProducer') {
+  if (operation === 'effect.createEntity' || operation === 'effect.runProducer') {
     const constructionDraft = processConstructionInputRecord(record, inputs);
-    let blockDraft = kind === 'effect.createEntity' ? processBlockInputRecord(record, inputs) : {};
+    let blockDraft = operation === 'effect.createEntity' ? processBlockInputRecord(record, inputs) : {};
     const relationValues = declaredRelationValues(inputs.relations, relationContracts);
     if (Object.keys(relationValues).length) blockDraft = { ...blockDraft, relations: relationValues };
     const executionAuth = createActionExecutionAuth(auth, record);
@@ -1501,7 +1503,7 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
   }
   const target = normalizeInstanceRef(inputs.entity);
   if (!target?.id) throw new Error(`${kind} requires an entity reference`);
-  if (kind === 'effect.updateEntity') {
+  if (operation === 'effect.updateEntity') {
     // Field schemas resolve against the projected view first — org/pack
     // types live there; legacy types not in the view keep the legacy
     // tables until their surfaces are deleted.
@@ -1552,22 +1554,29 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     if (!service.processUpdate) throw new Error(`Entity service cannot update ${typeId}`);
     return await service.processUpdate(target.id, patch, auth);
   }
-  if (kind === 'effect.changeStatus') {
+  if (operation === 'effect.changeStatus') {
     const patch = Object.fromEntries((inputs.changes?.changes || []).map(change => {
       if ((change.operation || 'set') !== 'set') throw new Error(`Status transition patch does not support ${change.operation}`);
       return [change.path, change.value];
     }));
+    // Native `cts.transition` records carry the declared target on
+    // `record.state` (axis + from + to); the legacy status socket remains
+    // the source only for records the load boundary has already migrated
+    // past — authored state always wins.
+    const targetState = typeof inputs.status === 'string'
+      ? inputs.status
+      : (inputs.status?.id ?? record.state?.to);
     const result = await stateService.transitionWithResult({
       typeId,
       targetId: target.id,
-      targetState: typeof inputs.status === 'string' ? inputs.status : inputs.status?.id,
+      targetState,
       auth,
       context: effectTransitionContext(record, inputs),
       patch: Object.keys(patch).length ? patch : null
     });
     return result.entity;
   }
-  if (kind === 'effect.archiveEntity') {
+  if (operation === 'effect.archiveEntity') {
     const result = await stateService.transitionWithResult({
       typeId,
       targetId: target.id,
@@ -1577,18 +1586,18 @@ export async function performDurableEffect({ kind, record, inputs }, auth, proce
     });
     return result.entity;
   }
-  if (kind === 'effect.deleteEntity') {
+  if (operation === 'effect.deleteEntity') {
     if (!service.processDelete) throw new Error(`Entity service cannot delete ${typeId}`);
     return await service.processDelete(target.id, auth);
   }
-  if (kind === 'effect.sendEntity') {
+  if (operation === 'effect.sendEntity') {
     return await projectEntityThroughSocket({
       socketId: record.socketId,
       instanceId: target.id,
       targetOrganizationId: record.targetOrganizationId
     }, auth);
   }
-  if (kind === 'effect.generateAttachment') {
+  if (operation === 'effect.generateAttachment') {
     if (!record.commandId) throw new Error('Attachment effect requires commandId');
     return await executeCommand(record.commandId, {
       entities: { [typeId]: target },
@@ -1602,6 +1611,7 @@ function effectTransitionContext(record = {}, inputs = {}) {
   const note = inputs.note ?? record.note;
   return {
     source: { kind: 'process-run', ...(record.id ? { actionId: record.id } : {}) },
+    ...(record.state?.axis ? { region: record.state.axis } : {}),
     ...(record.producerOutputId ? { producerOutputId: record.producerOutputId } : {}),
     ...(note != null && note !== '' ? { metadata: { note: String(note) } } : {})
   };

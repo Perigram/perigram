@@ -4,6 +4,15 @@
 // covering every breaking change; the server boundary executes covered
 // steps against instances. Rename intent is never inferred from the diff —
 // it is declared step territory.
+import { collectStateEntries } from './states.js';
+
+function statePathsByAxis(states = {}) {
+  return Object.fromEntries(Object.entries(states).map(([axisName, axis]) => [
+    axisName,
+    collectStateEntries(axis).map(entry => entry.path)
+  ]));
+}
+
 export function diffTypes(previous = {}, next = {}) {
   const changes = [];
   const previousRow = previous.fields || {};
@@ -31,16 +40,26 @@ export function diffTypes(previous = {}, next = {}) {
     }
   }
 
-  const previousValues = previous.states?.main?.values || [];
-  const nextValues = next.states?.main?.values || [];
-  for (const value of previousValues) {
-    if (!nextValues.includes(value)) changes.push({ severity: 'breaking', kind: 'remove-state', state: value });
+  const previousStates = statePathsByAxis(previous.states || {});
+  const nextStates = statePathsByAxis(next.states || {});
+  for (const [axisName, previousPaths] of Object.entries(previousStates)) {
+    const nextPaths = nextStates[axisName] || [];
+    for (const statePath of previousPaths) {
+      if (!nextPaths.includes(statePath)) {
+        changes.push({ severity: 'breaking', kind: 'remove-state', axis: axisName, state: statePath });
+      }
+    }
   }
-  // Additive state values are minor (SPEC §11): new enum entries extend
-  // the axis without invalidating stored instances. A rename is not
-  // inferred from a remove/add pair — it is declared migration intent.
-  for (const value of nextValues) {
-    if (!previousValues.includes(value)) changes.push({ severity: 'minor', kind: 'add-state', state: value });
+  // Additive canonical paths are minor: a new node/axis extends the machine
+  // without invalidating stored leaf paths. A rename is never inferred from
+  // the remove/add pair; it is declared migration intent.
+  for (const [axisName, nextPaths] of Object.entries(nextStates)) {
+    const previousPaths = previousStates[axisName] || [];
+    for (const statePath of nextPaths) {
+      if (!previousPaths.includes(statePath)) {
+        changes.push({ severity: 'minor', kind: 'add-state', axis: axisName, state: statePath });
+      }
+    }
   }
   const previousChildren = Object.keys(previous.edges?.children || {});
   const nextChildren = Object.keys(next.edges?.children || {});
@@ -86,9 +105,9 @@ export function normalizeMigrateSteps(steps) {
     if (kind === 'rename-enum-value') {
       const from = nonEmpty(step.from);
       const to = nonEmpty(step.to);
+      const axis = nonEmpty(step.axis);
       if (!from || !to) throw new Error('rename-enum-value requires from and to');
-      const axis = nonEmpty(step.axis) || 'main';
-      if (axis !== 'main') throw new Error(`rename-enum-value supports the main axis only, not ${axis}`);
+      if (!axis) throw new Error('rename-enum-value requires axis');
       return { kind, axis, from, to };
     }
     if (kind === 'rename-field') {
@@ -118,13 +137,13 @@ export function normalizeMigrateSteps(steps) {
 }
 
 function labelOf(step) {
-  if (step.kind === 'rename-enum-value') return `${step.kind} ${step.from} -> ${step.to}`;
+  if (step.kind === 'rename-enum-value') return `${step.kind} ${step.axis}.${step.from} -> ${step.to}`;
   if (step.kind === 'rename-field') return `${step.kind} ${step.from} -> ${step.to}`;
   return `${step.kind} ${step.field}`;
 }
 
 function changeLabel(change) {
-  if (change.kind === 'remove-state') return `remove-state ${change.state}`;
+  if (change.kind === 'remove-state') return `remove-state ${change.axis}.${change.state}`;
   if (change.kind === 'remove-edge') return `remove-edge ${change.edge}`;
   return `${change.kind} ${change.field}`;
 }
@@ -145,19 +164,22 @@ export function planTypeMigration(previous = {}, next = {}) {
   }
   const breaking = diff.changes.filter(change => change.severity === 'breaking');
   const errors = [];
-  const nextValues = next.states?.main?.values || [];
+  const nextStates = statePathsByAxis(next.states || {});
   const used = new Array(steps.length).fill(false);
   const renameAddsCovered = new Set();
 
   for (const step of steps) {
-    if (step.kind === 'rename-enum-value' && !nextValues.includes(step.to)) {
-      errors.push(`rename-enum-value target ${step.to} is not a state of the next declaration`);
+    if (step.kind === 'rename-enum-value' && !(nextStates[step.axis] || []).includes(step.to)) {
+      errors.push(`rename-enum-value target ${step.axis}.${step.to} is not a state of the next declaration`);
     }
   }
 
   for (const change of breaking) {
     if (change.kind === 'remove-state') {
-      const index = steps.findIndex((step, i) => !used[i] && step.kind === 'rename-enum-value' && step.from === change.state);
+      const index = steps.findIndex((step, i) => !used[i]
+        && step.kind === 'rename-enum-value'
+        && step.axis === change.axis
+        && step.from === change.state);
       if (index === -1) {
         errors.push(`${changeLabel(change)} requires a rename-enum-value step`);
       } else {

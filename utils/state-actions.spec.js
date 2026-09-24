@@ -25,19 +25,29 @@ const compiledRecord = {
   states: {
     main: {
       initial: 'draft',
-      values: ['draft', 'nesting', 'ready', 'closed'],
-      terminal: ['closed'],
+      states: {
+        draft: {},
+        nesting: {},
+        ready: {},
+        closed: { terminal: true }
+      },
       render: {
         draft: { label: 'Draft', icon: null, severity: 'info' },
         nesting: { label: 'Nesting', icon: 'pi pi-cog', severity: 'warn' },
         ready: { label: 'Ready', icon: 'pi pi-check', severity: 'success' },
         closed: { label: 'Closed', icon: null, severity: 'secondary' }
       }
+    },
+    quality: {
+      initial: 'unchecked',
+      states: { unchecked: {}, passed: {} },
+      render: { passed: { label: 'Passed', severity: 'success' } }
     }
   },
   transitions: [
     { axis: 'main', from: 'draft', to: 'nesting', intent: 'requestNesting' },
-    { axis: 'main', from: 'nesting', to: 'ready', intent: 'completeNesting' }
+    { axis: 'main', from: 'nesting', to: 'ready', intent: 'completeNesting' },
+    { axis: 'quality', from: 'unchecked', to: 'passed', intent: 'pass' }
   ]
 };
 
@@ -72,8 +82,14 @@ describe('compiled-contract workflows', () => {
         }
       }
     });
-    expect(Object.keys(compiled.regions.main.states)).toEqual(['draft', 'nesting', 'ready', 'closed']);
-    expect(compiled._stateRender).toBe(compiledRecord.states.main.render);
+    expect(Object.keys(compiled.regions.main.states)).toEqual([
+      'draft', 'nesting', 'ready', 'closed'
+    ]);
+    expect(Object.keys(compiled.regions.quality.states)).toEqual(['unchecked', 'passed']);
+    expect(compiled._stateRender).toEqual({
+      main: compiledRecord.states.main.render,
+      quality: compiledRecord.states.quality.render
+    });
   });
 
   it('returns null for records without a states facet', () => {
@@ -86,7 +102,7 @@ describe('compiled-contract workflows', () => {
     const compiled = compiledWorkflowFor(compiledRecord);
     expect(hasWorkflow('queue', {}, compiled)).toBe(true);
     expect(hasWorkflow('queue', {})).toBe(false);
-    expect(workflowStateCount('queue', {}, compiled)).toBe(4);
+    expect(workflowStateCount('queue', {}, compiled)).toBe(6);
     expect(hasMeaningfulWorkflowState('queue', {}, compiled)).toBe(true);
   });
 
@@ -96,14 +112,24 @@ describe('compiled-contract workflows', () => {
       state: { primary: 'draft', active: { main: 'draft' } },
       compiled: compiledWorkflowFor(compiledRecord)
     });
-    expect(actions).toEqual([expect.objectContaining({
-      to: 'nesting',
-      intent: 'requestNesting',
-      label: 'Nesting',
-      severity: 'warn',
-      icon: 'pi pi-cog',
-      display: 'inline',
-      region: 'main'
-    })]);
+    expect(actions).toEqual([
+      expect.objectContaining({
+        to: 'nesting',
+        intent: 'requestNesting',
+        label: 'Nesting',
+        severity: 'warn',
+        icon: 'pi pi-cog',
+        display: 'inline',
+        region: 'main'
+      }),
+      expect.objectContaining({
+        to: 'passed',
+        intent: 'pass',
+        label: 'Passed',
+        severity: 'success',
+        display: 'inline',
+        region: 'quality'
+      })
+    ]);
   });
 });

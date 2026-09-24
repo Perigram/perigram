@@ -1,4 +1,5 @@
 const workflows = new Map();
+const STATE_CHILDREN = Symbol('workflow-state-children');
 
 export function defineWorkflow(type, workflow) {
   if (!type) throw new Error('Workflow type is required');
@@ -66,36 +67,44 @@ export function createWorkflowState(workflow = {}, overrides = {}) {
   const active = {};
   const regions = {};
   for (const [id, region] of Object.entries(normalized.regions)) {
-    const state = overrides.active?.[id] || overrides.regions?.[id]?.state || region.initial;
+    const requested = overrides.active?.[id] || overrides.regions?.[id]?.state || region.initial;
+    const state = resolveWorkflowStatePath(region, requested) || region.initial;
     active[id] = state;
     regions[id] = {
       label: region.label || id,
       state,
-      path: Array.isArray(overrides.regions?.[id]?.path) ? overrides.regions[id].path : resolveStatePath(region, state)
+      path: statePathSegments(state)
     };
   }
-  const primary = overrides.primary || active[normalized.primaryRegion] || Object.values(active)[0];
+  const primaryRegion = normalized.primaryRegion;
+  const primary = active[primaryRegion] || Object.values(active)[0];
   return { schemaVersion: 2, primary, active, regions };
 }
 
 export function applyWorkflowTransitionState(currentState, workflow = {}, transition = {}, targetState) {
   const normalized = normalizeWorkflow(workflow);
   const regionId = transition.region || normalized.primaryRegion || 'main';
+  const defaults = createWorkflowState(normalized);
   const current = currentState && typeof currentState === 'object' && currentState.schemaVersion === 2
     ? currentState
-    : createWorkflowState(normalized, { active: { [regionId]: getRegionState(currentState, regionId, getPrimaryState(currentState, targetState)) } });
-  const active = { ...(current.active || {}) };
-  const regions = { ...(current.regions || {}) };
-  const next = targetState || transition.to;
+    : isWorkflowActiveMap(currentState)
+      ? { ...defaults, active: { ...defaults.active, ...currentState } }
+      : defaults;
+  const active = { ...defaults.active, ...(current.active || {}) };
+  const regions = { ...current.regions || {} };
+  const next = resolveWorkflowStatePath(normalized.regions[regionId], targetState || transition.to);
+  if (!next) throw new Error(`State ${targetState || transition.to} is not defined for workflow region ${regionId}`);
   const region = normalized.regions[regionId];
   active[regionId] = next;
   regions[regionId] = {
     ...(regions[regionId] || {}),
     label: region?.label || regionId,
     state: next,
-    path: resolveStatePath(region, next)
+    path: statePathSegments(next)
   };
-  const primary = regionId === normalized.primaryRegion ? next : current.primary || active[normalized.primaryRegion] || next;
+  const primary = regionId === normalized.primaryRegion
+    ? next
+    : active[normalized.primaryRegion] || active[regionId];
   return { schemaVersion: 2, primary, active, regions };
 }
 
@@ -106,10 +115,12 @@ export function validateTransition({ workflow, currentState, currentStatus = nul
   const workflowRegion = normalized.regions[regionId];
   if (!workflowRegion) return { ok: false, reason: 'region_missing', region: regionId };
   const from = currentState || getRegionState(currentStatus, regionId, workflowRegion.initial);
-  const transition = workflowRegion.transitions.find(item => item.from === from && item.to === targetState);
-  const stateDefinition = workflowRegion.states[targetState] || {};
+  const enteredTarget = resolveWorkflowStatePath(workflowRegion, targetState);
+  if (!enteredTarget) return { ok: false, reason: 'invalid_transition', from, to: targetState, region: regionId };
+  const transition = selectWorkflowTransition(workflowRegion, from, enteredTarget);
+  const stateDefinition = workflowRegion.states[enteredTarget] || {};
   const hasLifecycle = hasLifecyclePayload(lifecycle);
-  const selfLoop = from === targetState && (
+  const selfLoop = from === enteredTarget && (
     workflowRegion.states[from]?.canUpdateMeta ||
     (hasLifecycle && workflowRegion.states[from]?.canUpdateLifecycle !== false && workflowRegion.states[from]?.lifecycle)
   );
@@ -121,13 +132,13 @@ export function validateTransition({ workflow, currentState, currentStatus = nul
   const actorValidation = validateActorGuard({
     transition,
     currentStatus,
-    targetState,
+    targetState: enteredTarget,
     actorId,
     role
   });
   if (!actorValidation.ok) return { ...actorValidation, from, to: targetState, region: regionId };
 
-  return { ok: true, from, to: targetState, region: regionId, path, transition: transition || null };
+  return { ok: true, from, to: enteredTarget, region: regionId, path, transition: transition || null };
 }
 
 export function normalizeLifecycle(lifecycle = {}) {
@@ -262,32 +273,105 @@ export function createTransitionEngine({ entityStore, eventStore, hooks = {}, au
   };
 }
 
+export function workflowStateEntries(region = {}) {
+  return Object.entries(region?.states || {}).map(([path, definition]) => ({ path, definition }));
+}
+
+export function resolveWorkflowStatePath(region = {}, state) {
+  if (typeof state !== 'string' || !state || !Object.hasOwn(region?.states || {}, state)) return null;
+  let path = state;
+  let definition = region.states[state];
+  while (definition?.[STATE_CHILDREN] && Object.keys(definition[STATE_CHILDREN]).length) {
+    const child = definition.initial;
+    if (typeof child !== 'string' || !Object.hasOwn(definition[STATE_CHILDREN], child)) return null;
+    path = `${path}.${child}`;
+    definition = region.states[path];
+  }
+  return path;
+}
+
+export function workflowTransitionsForState(region = {}, state) {
+  for (const ancestor of activeStatePaths(region, state)) {
+    const transitions = (region.transitions || []).filter(transition => transition.from === ancestor);
+    if (transitions.length) return transitions;
+  }
+  return [];
+}
+
+function selectWorkflowTransition(region, state, targetState, intent = null) {
+  const ancestors = activeStatePaths(region, state);
+  for (const ancestor of ancestors) {
+    const candidates = (region.transitions || []).filter(transition => transition.from === ancestor);
+    if (!candidates.length) continue;
+    if (intent) return candidates.find(transition => transition.intent === intent) || null;
+    return candidates.find(transition => resolveWorkflowStatePath(region, transition.to) === targetState) || null;
+  }
+  return null;
+}
+
+function activeStatePaths(region = {}, state) {
+  if (typeof state !== 'string' || !Object.hasOwn(region?.states || {}, state)) return [];
+  const segments = state.split('.');
+  return segments.map((_, index) => segments.slice(0, index + 1).join('.')).reverse();
+}
+
+function isWorkflowActiveMap(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  if (value.schemaVersion === 2 || value.state || value.primary || value.active || value.regions) return false;
+  return Object.values(value).every(item => typeof item === 'string');
+}
+
 function normalizeRegion(id, region = {}) {
   if (!region.initial) throw new Error(`Workflow region ${id} requires initial`);
   if (!region.states || typeof region.states !== 'object') throw new Error(`Workflow region ${id} requires states`);
   const states = flattenStates(region.states);
-  return {
-    ...region,
-    id,
-    states,
-    transitions: (region.transitions || []).map(transition => ({ region: id, ...transition }))
-  };
+  const transitions = (region.transitions || []).map(transition => ({ region: id, ...transition }));
+  const normalized = { ...region, id, states, transitions };
+  const initial = resolveWorkflowStatePath(normalized, region.initial);
+  if (!initial) throw new Error(`Workflow region ${id} initial ${region.initial} is not declared`);
+  for (const transition of transitions) {
+    if (!Object.hasOwn(states, transition.from)) {
+      throw new Error(`Workflow region ${id} transition from ${transition.from} is not declared`);
+    }
+    if (!resolveWorkflowStatePath(normalized, transition.to)) {
+      throw new Error(`Workflow region ${id} transition to ${transition.to} is not declared`);
+    }
+  }
+  return { ...normalized, initial };
 }
 
-function flattenStates(states = {}, prefix = []) {
-  const flat = {};
-  for (const [key, value] of Object.entries(states)) {
-    const path = [...prefix, key];
+function flattenStates(states = {}, prefix = [], flat = {}, ancestors = new Set()) {
+  for (const [localName, value] of Object.entries(states)) {
+    if (!localName) throw new Error('Workflow state local name must be a non-empty path segment');
+    if (localName.includes('.') && prefix.length) {
+      throw new Error(`Workflow nested state local name ${localName} must be a single path segment`);
+    }
+    if (ancestors.has(value)) throw new Error(`Workflow state cycle at ${[...prefix, localName].join('.')}`);
+    const path = localName.includes('.') ? [localName] : [...prefix, localName];
+    const canonicalPath = path.join('.');
     const { states: children, ...definition } = value || {};
-    flat[key] = { ...definition, path };
-    flat[path.join('.')] = { ...definition, path };
+    if (Object.hasOwn(flat, canonicalPath)) {
+      throw new Error(`Workflow state path collision at ${canonicalPath}`);
+    }
+    const nextAncestors = new Set(ancestors).add(value);
+    const normalizedDefinition = { ...definition, path };
     if (children && typeof children === 'object') {
-      Object.assign(flat, flattenStates(children, path));
+      Object.defineProperty(normalizedDefinition, STATE_CHILDREN, { value: children });
+    }
+    flat[canonicalPath] = normalizedDefinition;
+    if (children && typeof children === 'object') {
+      if (!definition.initial) {
+        throw new Error(`Workflow state ${canonicalPath} requires exactly one initial child`);
+      }
+      if (!Object.hasOwn(children, definition.initial)) {
+        throw new Error(`Workflow state ${canonicalPath} initial child ${definition.initial} is not declared`);
+      }
+      flattenStates(children, path, flat, nextAncestors);
     }
   }
   return flat;
 }
 
-function resolveStatePath(region = {}, state) {
-  return region?.states?.[state]?.path || [state];
+function statePathSegments(state) {
+  return typeof state === 'string' && state ? state.split('.') : [];
 }

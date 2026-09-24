@@ -12,6 +12,10 @@
         @dblclick.stop
       />
     </div>
+    <div v-if="axis || hasParent" class="flex flex-wrap gap-1">
+      <span v-if="axis" class="rounded-ui border border-content-border px-1 text-muted text-supporting">{{ axis }}</span>
+      <span v-if="hasParent" class="rounded-ui border border-content-border px-1 text-muted text-supporting">parent</span>
+    </div>
     <DesignerSocketHandle :socket="inputSpec" side="left" handle-id="input:in" />
     <DesignerSocketHandle :socket="outputSpec" side="right" handle-id="output:state" />
   </DesignerNodeCard>
@@ -34,6 +38,8 @@ const props = defineProps({
 defineEmits(['rename']);
 
 const value = computed(() => props.data.value || '');
+const axis = computed(() => props.data.axis || '');
+const hasParent = computed(() => Boolean(props.data.parentStateId));
 const initial = computed(() => props.data.initial === true);
 const terminal = computed(() => props.data.terminal === true);
 const flagTone = computed(() => initial.value ? 'text-primary' : 'text-muted');

@@ -171,8 +171,8 @@ export function createUiMapping(overrides = {}) {
   }
 
   // resolveActionButton(action, { type }) -> { component, tone, icon, confirm, hidden }
-  // State-toned buttons read the target state's resolved display policy
-  // from the bundle type record (`type.states.main.render[value]`).
+  // State-toned buttons read the target state's resolved display policy from
+  // the bundle type record in the transition's own axis/region.
   function resolveActionButton(action = {}, options = {}) {
     const stateTarget = action.state?.to ? true : null;
     const entry = pickEntry(actionEntries, {
@@ -193,7 +193,8 @@ export function createUiMapping(overrides = {}) {
       hidden: false
     };
     if (outcome.tone === 'state' && stateTarget) {
-      const stateRender = options.type?.states?.main?.render?.[action.state.to];
+      const axis = action.state.axis || action.state.region || 'main';
+      const stateRender = options.type?.states?.[axis]?.render?.[action.state.to];
       outcome.severity = SEVERITY_MAP[stateRender?.severity] || 'secondary';
       outcome.icon = stateRender?.icon || outcome.icon;
       outcome.label = stateRender?.label || null;

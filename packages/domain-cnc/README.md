@@ -89,6 +89,10 @@ lifecycle axes should add regions instead of overloading the primary state.
 Organization process definitions can compile entity profile lifecycles into
 runtime workflows that override these domain defaults for that organization.
 The domain workflows remain the fallback and starter-template source.
+Process-visible lifecycles come from type declarations: `cassette` declares
+its `ACTIVE -> ARCHIVED` machine on the pack type (SPEC §7), so construction
+never carries a lifecycle-entry socket and process compilation reads the
+declaration — the legacy workflow table alone is not a process contract.
 The first intent-based nesting flow now uses transition intents instead of raw
 status names:
 - `requestNesting` moves `queue` from `DRAFT -> NESTING`.

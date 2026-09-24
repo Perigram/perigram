@@ -494,6 +494,28 @@ function getFirstActiveState(active = {}) {
   return Object.values(active || {}).find(Boolean) || null;
 }
 
+const STATUS_EVIDENCE_KEYS = new Set(['userId', 'timestamp', 'metadata', 'eventId', 'lifecycle']);
+
+function stateAxesFromStorage(states = {}) {
+  return Object.fromEntries(Object.entries(states || {})
+    .filter(([key, value]) => key && !STATUS_EVIDENCE_KEYS.has(key) && typeof value === 'string' && value));
+}
+
+function statusStateFromStorage(states = {}) {
+  const active = stateAxesFromStorage(states);
+  if (!Object.keys(active).length) return null;
+  const primary = active.main || Object.values(active)[0];
+  return {
+    schemaVersion: 2,
+    primary,
+    active,
+    regions: Object.fromEntries(Object.entries(active).map(([region, value]) => [region, {
+      state: value,
+      path: value.split('.').filter(Boolean)
+    }]))
+  };
+}
+
 export class Lineage {
   constructor(raw = {}) {
     for (const [key, value] of Object.entries(raw)) {
@@ -599,8 +621,13 @@ export class BaseEntity {
     // `status` block; pre-migration block documents keep parsing unchanged.
     this.status = raw.status?.state
       ? new Status(raw.status.state, raw.status.userId, raw.status.metadata, raw.status.eventId, raw.status.timestamp, raw.status.lifecycle)
-      : (raw.states?.main
-          ? new Status(raw.states.main, raw.states.userId, raw.states.metadata, raw.states.eventId, raw.states.timestamp, raw.states.lifecycle)
+      : (raw.states
+          ? (() => {
+              const state = statusStateFromStorage(raw.states);
+              return state
+                ? new Status(state, raw.states.userId, raw.states.metadata, raw.states.eventId, raw.states.timestamp, raw.states.lifecycle)
+                : null;
+            })()
           : null);
     this.specs = raw.specs ? new Specs(raw.specs) : null;
     this.attachments = raw.attachments || {};
@@ -631,12 +658,18 @@ export class BaseEntity {
       relations: this.relations.toJSON(),
       provenance: this.provenance.toJSON(),
       origin: this.origin?.toJSON() || null,
-      // Wire vocabulary: the stored v24 Status block projects onto flat
-      // `states` (main resolves through the workflow-state shapes the
-      // block may carry); storage keeps its block until each legacy
-      // feature migrates. The wire speaks states only.
+      // Wire vocabulary: every active workflow axis is stored as its
+      // canonical leaf path; evidence remains one status envelope. The
+      // `states` object is not a single primary-state alias.
       states: this.status
-        ? { main: getPrimaryState(this.status.state, null), userId: this.status.userId, timestamp: this.status.timestamp, metadata: this.status.metadata, eventId: this.status.eventId, lifecycle: this.status.lifecycle }
+        ? {
+            ...stateAxesFromStorage(this.status.state?.active || {}),
+            userId: this.status.userId,
+            timestamp: this.status.timestamp,
+            metadata: this.status.metadata,
+            eventId: this.status.eventId,
+            lifecycle: this.status.lifecycle
+          }
         : null,
       specs: this.specs?.toJSON() || null,
       attachments: this.attachments,

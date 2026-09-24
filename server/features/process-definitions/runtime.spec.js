@@ -43,7 +43,6 @@ describe('process runtime auth hydration', () => {
             typeId: 'queue',
             construction: { mode: 'genericCreate', inputs: [] },
             trigger: { mode: 'manual' },
-            state: { to: 'draft' },
             access: { level: 'write', grants: [{ roleId: PERSISTED_ACCEPTANCE_IDS.role, level: 'write' }] }
           }
         },

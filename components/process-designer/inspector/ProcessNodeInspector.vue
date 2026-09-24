@@ -37,50 +37,44 @@
         >{{ item.label }}</span>
       </div>
     </div>
-    <Panel v-if="op === 'effect.changeStatus' && typeId" :header="$t('processDesigner.transitionStatusHeader')" class="mt-0">
+    <Panel v-if="record.kind === 'cts.transition' && typeId" :header="$t('processDesigner.transitionStatusHeader')" class="mt-0">
       <div class="flex flex-col gap-3">
         <div class="flex flex-col gap-1">
-          <label>{{ $t('processDesigner.transitionStatusValue') }}</label>
-          <InputText
-            :model-value="record.state?.to || ''"
-            @update:model-value="value => updateTargetStatus('to', value)"
-          />
-        </div>
-        <div class="flex flex-col gap-1">
-          <label>{{ $t('processDesigner.transitionStatusLabel') }}</label>
-          <InputText
-            :model-value="record.state?.label || ''"
-            @update:model-value="value => updateTargetStatus('label', value)"
-          />
-        </div>
-        <div class="flex items-center gap-2">
+          <label>{{ $t('processDesigner.transitionAxis') }}</label>
           <Select
-            :model-value="record.state?.severity || ''"
-            :options="severityOptions"
+            :model-value="record.state?.axis || 'main'"
+            :options="transitionAxisOptions"
             option-label="label"
             option-value="value"
             size="small"
-            class="min-w-0 flex-1"
-            :aria-label="$t('processDesigner.transitionStatusSeverity')"
-            @update:model-value="value => updateTargetStatus('severity', value)"
-          />
-          <InputText
-            :model-value="record.state?.icon || ''"
-            size="small"
-            class="min-w-0 flex-1"
-            :placeholder="$t('processDesigner.transitionStatusIcon')"
-            @update:model-value="value => updateTargetStatus('icon', value)"
+            @update:model-value="value => updateTransitionReference('axis', value)"
           />
         </div>
-        <label class="flex items-center gap-2">
-          <Checkbox
-            :model-value="record.state?.terminal === true"
-            binary
-            @update:model-value="value => updateTargetStatus('terminal', value)"
+        <div class="flex flex-col gap-1">
+          <label>{{ $t('processDesigner.transitionFrom') }}</label>
+          <Select
+            :model-value="record.state?.from || ''"
+            :options="transitionPathOptions(record.state?.axis || 'main')"
+            option-label="label"
+            option-value="value"
+            size="small"
+            filter
+            @update:model-value="value => updateTransitionReference('from', value)"
           />
-          {{ $t('processDesigner.transitionStatusTerminal') }}
-        </label>
-        <small class="text-muted">{{ $t('processDesigner.transitionStatusHint') }}</small>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label>{{ $t('processDesigner.transitionTo') }}</label>
+          <Select
+            :model-value="record.state?.to || ''"
+            :options="transitionPathOptions(record.state?.axis || 'main')"
+            option-label="label"
+            option-value="value"
+            size="small"
+            filter
+            @update:model-value="value => updateTransitionReference('to', value)"
+          />
+        </div>
+        <small class="text-muted">{{ $t('processDesigner.transitionReferenceHint') }}</small>
       </div>
     </Panel>
     <Panel v-if="producerAvailable" :header="$t('processDesigner.createdEntity')" class="mt-0">
@@ -92,7 +86,6 @@
           </div>
           <Tag :value="$t('processDesigner.producerOutputTag')" severity="secondary" size="small" />
         </div>
-        <code class="text-supporting text-muted break-all">{{ producer.producerOutputId }}</code>
         <div class="flex flex-col gap-1">
           <label>{{ $t('processDesigner.relations') }}</label>
           <MultiSelect v-model="producer.relations" :options="relationOptionsFor(producer.typeId)" option-label="label" option-value="value" display="chip" class="w-full" @change="$emit('sync')" />
@@ -100,16 +93,6 @@
         <small class="text-muted">{{ $t('processDesigner.producerWorkflowHint') }}</small>
       </div>
     </Panel>
-    <div v-if="record.kind && !isEffect && !op.startsWith('control.') && !op.startsWith('source.')" class="flex flex-col gap-2">
-      <label>{{ $t('processDesigner.dataMatching') }}</label>
-      <Select v-model="record.matching" :options="dataMatchingOptions" option-label="label" option-value="value" size="small" @change="$emit('sync')" />
-      <div v-for="input in dataInputs" :key="input.id" class="flex items-center gap-2 text-supporting">
-        <span class="min-w-0 flex-1 truncate">{{ input.label }}</span>
-        <label class="flex items-center gap-1"><Checkbox :model-value="Boolean(record.inputTransforms?.[input.id]?.simplify)" binary @update:model-value="value => $emit('update-input-transform', { inputId: input.id, transform: 'simplify', enabled: value })" />{{ $t('processDesigner.simplify') }}</label>
-        <label class="flex items-center gap-1"><Checkbox :model-value="Boolean(record.inputTransforms?.[input.id]?.flatten)" binary @update:model-value="value => $emit('update-input-transform', { inputId: input.id, transform: 'flatten', enabled: value })" />{{ $t('processDesigner.flatten') }}</label>
-        <label class="flex items-center gap-1"><Checkbox :model-value="Boolean(record.inputTransforms?.[input.id]?.graft)" binary @update:model-value="value => $emit('update-input-transform', { inputId: input.id, transform: 'graft', enabled: value })" />{{ $t('processDesigner.graft') }}</label>
-      </div>
-    </div>
     <div v-if="preview.supported" class="flex flex-col gap-2">
       <div class="flex items-center justify-between gap-2">
         <label>{{ $t('processDesigner.outputPreview') }}</label>
@@ -134,11 +117,11 @@
         </section>
       </div>
     </div>
-    <div v-if="op === 'effect.runCommand'" class="flex flex-col gap-1">
+    <div v-if="record.kind === 'cts.command' || op === 'effect.runCommand'" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.service') }}</label>
       <Select v-model="record.commandId" :options="commandOptions" option-label="label" option-value="value" filter @change="$emit('sync')" />
     </div>
-    <Panel v-if="op === 'effect.runCommand' && record.commandId" :header="$t('processDesigner.commandService')" toggleable collapsed>
+    <Panel v-if="(record.kind === 'cts.command' || op === 'effect.runCommand') && record.commandId" :header="$t('processDesigner.commandService')" toggleable collapsed>
       <div class="flex flex-col gap-3">
         <Message v-if="!commandService" severity="secondary">{{ $t('processDesigner.commandServiceNone') }}</Message>
         <div v-if="commandService" class="flex flex-col gap-3">
@@ -185,24 +168,6 @@
         />
       </div>
     </Panel>
-    <div v-if="op === 'producer.join'" class="flex flex-col gap-1">
-      <label>{{ $t('processDesigner.typeId') }}</label>
-      <Select
-        :model-value="typeId"
-        :options="typeIdOptions"
-        option-label="label"
-        option-value="value"
-        @update:model-value="value => $emit('update-join-entity', value)"
-      />
-      <label>{{ $t('processDesigner.joinResultProducer') }}</label>
-      <Select
-        :model-value="record.selectedProducerOutputId"
-        :options="joinProducerOptions"
-        option-label="label"
-        option-value="value"
-        @update:model-value="value => $emit('update-join-producer', value)"
-      />
-    </div>
     <div v-if="op === 'effect.createEntity' && typeId && constructionModes.length" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.constructionMode') }}</label>
       <Select
@@ -234,7 +199,7 @@
       <label>{{ $t('processDesigner.attachmentKind') }}</label>
       <Select v-model="record.attachmentKind" :options="designer.attachmentKindOptions" option-label="label" option-value="value" filter @change="$emit('sync')" />
     </div>
-    <div v-if="op === 'read.related'" class="flex flex-col gap-1">
+    <div v-if="record.kind === 'cts.read' && record.select === 'related'" class="flex flex-col gap-1">
       <label>{{ $t('processDesigner.relation') }}</label>
       <Select v-model="record.relationKey" :options="relationOptionsFor(typeId)" option-label="label" option-value="value" filter @change="$emit('sync')" />
     </div>
@@ -250,7 +215,6 @@ import { computed } from 'vue';
 import { operationKindOf, typeIdOf } from '~/packages/cts/src/index.js';
 import { cncUiSurfaces } from '@perigram/domain-cnc';
 import Button from 'primevue/button';
-import Checkbox from 'primevue/checkbox';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Message from 'primevue/message';
@@ -274,7 +238,8 @@ const props = defineProps({
   commandOptions: { type: Array, default: () => [] },
   commandService: { type: Object, default: null },
   servicePrincipalOptions: { type: Array, default: () => [] },
-  joinProducerOptions: { type: Array, default: () => [] },
+  transitionAxisOptions: { type: Array, default: () => [{ label: 'main', value: 'main' }] },
+  transitionPathOptions: { type: Function, default: () => [] },
   constructionModes: { type: Array, default: () => [] },
   artifactKinds: { type: Array, default: () => [] },
   artifactKindOptions: { type: Array, default: () => [] },
@@ -293,11 +258,8 @@ const emit = defineEmits([
   'sync',
   'update-grant-roles',
   'update-grant-level',
-  'update-join-entity',
-  'update-join-producer',
   'update-construction-mode',
   'update-artifact-kinds',
-  'update-input-transform',
   'run-preview',
   'create-command-service',
   'remove-command-service'
@@ -307,32 +269,26 @@ const { t } = useI18n();
 const op = computed(() => operationKindOf(props.record || {}));
 const isEffect = computed(() => op.value.startsWith('effect.'));
 const typeId = computed(() => typeIdOf(props.record || {}));
-const dataInputs = computed(() => props.inputs.filter(item => item.role === 'data'));
-const severityOptions = ['info', 'success', 'warn', 'danger', 'secondary'].map(value => ({ label: value, value }));
 const accessLevelOptions = computed(() => [
   { label: t('processDesigner.accessRead'), value: 'read' },
   { label: t('processDesigner.accessWrite'), value: 'write' },
   { label: t('processDesigner.accessAdmin'), value: 'admin' }
 ]);
-const dataMatchingOptions = computed(() => ['longest', 'shortest', 'cross'].map(value => ({ label: t(`processDesigner.matching.${value}`), value })));
 const serviceBillingModeOptions = computed(() => [
   { label: t('processDesigner.serviceBillingNone'), value: 'none' },
   { label: t('processDesigner.serviceBillingPrepaidTokens'), value: 'prepaidTokens' }
 ]);
 
-// The transition node's inline target status (SPEC §20): value, label,
-// severity, icon, terminal — one payload (`record.state`) beside the
-// runtime target the entry wire and the status socket also write. Empty
-// values drop the key: unfinished authoring stays out of the compile.
-// Mutating the record's nested payload matches the section's v-model
-// convention; the sync event is the page's single re-derive entry point.
-function updateTargetStatus(key, value) {
+// A transition operation references a declared transition; it never authors
+// state policy. Changing axis clears endpoints that do not belong to it.
+function updateTransitionReference(key, value) {
+  const previousAxis = props.record.state?.axis || 'main';
   const state = { ...(props.record.state || {}) };
-  const cleaned = key === 'terminal'
-    ? (value === true ? true : undefined)
-    : String(value ?? '').trim() || undefined;
-  if (cleaned === undefined) delete state[key];
-  else state[key] = cleaned;
+  if (key === 'axis' && value !== previousAxis) {
+    state.from = '';
+    state.to = '';
+  }
+  state[key] = value;
   props.record.state = state;
   emit('sync');
 }

@@ -57,6 +57,56 @@ describe('status service lifecycle payloads', () => {
     vi.restoreAllMocks();
   });
 
+  it('persists a secondary-axis transition without rewriting the primary axis', async () => {
+    const machine = {
+      schemaVersion: 2,
+      primaryRegion: 'main',
+      regions: {
+        main: {
+          initial: 'PRODUCTION.cut',
+          states: {
+            PRODUCTION: {
+              initial: 'cut',
+              states: { cut: {}, done: { terminal: true } }
+            }
+          },
+          transitions: [{ from: 'PRODUCTION.cut', to: 'PRODUCTION.done' }]
+        },
+        quality: {
+          initial: 'OPEN',
+          states: { OPEN: {}, VERIFIED: { terminal: true } },
+          transitions: [{ from: 'OPEN', to: 'VERIFIED' }]
+        }
+      }
+    };
+    const resolveSpy = vi.spyOn(workflowOverridesService, 'resolveActiveWorkflow')
+      .mockResolvedValue(machine);
+    await db.collection('items').insertOne({
+      _id: 'item-axis-1',
+      type: 'axis-widget',
+      identity: { uid: 'item-axis-1', name: 'Axis widget' },
+      lineage: { organizationId: 'org-1' },
+      states: { main: 'PRODUCTION.cut', quality: 'OPEN', userId: 'creator' }
+    });
+
+    await statusService.transitionWithResult({
+      typeId: 'axis-widget',
+      targetId: 'item-axis-1',
+      targetState: 'VERIFIED',
+      auth: { userId: 'SYSTEM', role: 'SYSTEM', system: true },
+      context: { region: 'quality' }
+    });
+
+    const item = await db.collection('items').findOne({ _id: 'item-axis-1' });
+    expect(item.states.main).toBe('PRODUCTION.cut');
+    expect(item.states.quality).toBe('VERIFIED');
+    const event = await db.collection('status_events').findOne({ targetId: 'item-axis-1' });
+    expect(event.region).toBe('quality');
+    expect(event.toState).toBe('VERIFIED');
+    expect(event.toStatePrimary).toBe('PRODUCTION.cut');
+    resolveSpy.mockRestore();
+  });
+
   it('uses full auth context and registry collection metadata for cassette transitions', async () => {
     await db.collection('cassettes').insertOne({
       _id: 'cassette-1',

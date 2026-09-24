@@ -74,6 +74,22 @@ describe('BaseEntity state storage round-trip', () => {
     expect(new BaseEntity(both).toJSON().states).toMatchObject({ main: 'ARCHIVED', userId: 'user-4' });
   });
 
+  it('preserves independent lifecycle axes through a status round-trip', () => {
+    const entity = new BaseEntity({ identity: { uid: 'e-axes' }, lineage: { organizationId: 'org-1' } });
+    entity.applyStatus({
+      schemaVersion: 2,
+      primary: 'PRODUCTION.cut',
+      active: { main: 'PRODUCTION.cut', quality: 'verified' },
+      regions: {
+        main: { state: 'PRODUCTION.cut', path: ['PRODUCTION', 'cut'] },
+        quality: { state: 'verified', path: ['verified'] }
+      }
+    }, 'user-axes');
+
+    const reparsed = new BaseEntity(entity.toJSON());
+    expect(reparsed.toJSON().states).toMatchObject({ main: 'PRODUCTION.cut', quality: 'verified' });
+  });
+
   it('never emits a status block on the wire', () => {
     const entity = new BaseEntity({ identity: { uid: 'e-5' }, lineage: {} });
     entity.applyStatus(createStatusState('ACTIVE'), 'user-5');

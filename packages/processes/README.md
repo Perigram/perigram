@@ -1,5 +1,28 @@
 # COMPONENT: @perigram/processes
 
+## Authoring and execution planes
+
+The designer shell has two semantic graphs. The declaration graph owns CTS
+classes, fields, edges, recursive state machines, transitions, and operator
+contracts. The process graph composes those declarations through native
+species records. A process node may reference a declaration; it never
+redeclares lifecycle structure or type identity through a data wire. The
+normative state and species contracts live in
+[CTS SPEC §7 and §20](../cts/SPEC.md).
+
+Executable records remain species records from authored graph through
+resolution, validation, compilation, orchestration, server execution, and
+round-trip. `operationKindOf` is a classification helper only: it does not
+replace a species kind or its socket contract. Producer outputs belong only
+to actual entity origins; reads and consumer effects use the bound type's
+declared workflow and never synthesize lifecycle identity.
+
+The primary palette admits only CTS semantics and explicit process intent.
+Raw storage-id lookup, producer-path joins, per-node packet matching, and
+transport adapters are compiler concerns and are not author-facing node kinds.
+Type-changing traversal selects a declared children/parent/relation edge and
+exposes that edge's exact target type.
+
 ## Designer Contract
 
 `createProcessDesignerContract(domain)` is the framework-owned projection used
@@ -24,117 +47,65 @@ authorization rules only. Compose Block, Modify Block, and Get Field therefore
 never select or encode an entity type. Create and Update validate connected
 block fields against their target entity policy at the consumer boundary.
 
-The grouped authoring palette is a curated framework projection, separate from
-the exhaustive runtime catalog. It groups by authoring concern: Types
-(declaration items plus the registry type catalog at the designer
-surface), Operations (the effect species), Instances (entity sources
-plus the field projection), Values, and Lists and trees, with stable
-localization and description ids. Services are offered from the
-projected domain's `serviceContracts` — the registered operator surface
-— never from a legacy command table: there is no "run service"
-operation, because dropping a registered service item IS running it,
-and the item's ports derive from the operator's declared signature
-(`cts.service` resolves through the field-type seam, with empty ports
-and a compile diagnostic for unknown operators).
-Entity-bound palette items are graph-protocol v5 species kinds (`cts.*`,
-SPEC §20 of the CTS spec): Construct/Mutate/Transition/Remove over
-type declarations, one `cts.read` kind discriminated by `select`, and the
-field/compose/decompose structure family. The catalog carries `cts.*`
-definitions whose ports resolve through the record's operation-kind twin
-(`operationKindOf`/`resolveCtsRecord` from `@perigram/cts` — one canonical
-kind mapping, never duplicated); port contracts of a cts record and its v4
-twin are identical by test after stripping the origin species'
-authoring-only `Type` pin — the persistent binding input on
-`cts.construct`/`cts.read` (`TYPE_PIN_SPECIES`), typed by the binding
-once bound. Consumers (`carriesTypePin` false: mutate/transition/remove, the
-entity-derived reads parent/children/related, and `cts.field` — the
-SPEC §8 projection, entity in, value out at the authored slot path)
-carry no pin and never receive declaration wires — their `entity` input
-is a value socket; the binding follows the entity input's source type,
-else the stored preset. A migrated mutate renders its persisted `slots`
-as block sockets after the leaves, so legacy v4 block wiring keeps
-executing. `packages/processes/src/palette-trace.spec.js` walks every
-palette item through record creation, typed port resolution, and twin
-lowering — the executable form of the palette audit. Declaration authoring composes in the same
-tree: Class/Field/State canvas nodes wire through the legality matrix
-(`declarationWireLegality`) and compile into registry declarations via
-`compileTreeDeclarations` (R4-enforcing, pure over the canvas arrays and
-the bound process-node records). Transition nodes declare statuses too:
-a `cts.transition` record bound to a type may carry its target status
-inline on the record's `state` payload (`to`, plus `label`, `severity`,
-`icon`, `terminal`, and an optional `intent`), and the compile merges
-those graph-declared targets into the class's declaration — target
-values join `states.main.values` without tree nodes, the node fans a
-declared edge into the machine from every other declared value (SPEC
-§20: from-state resolves dynamically, so target-only is lossless), and
-per-value display policy composes with the tree's
-(severity/icon on state nodes) with the transition node winning where
-both declare the same value. The tree stays the structural home: the
-entry/initial state is authored only by wiring a state node into a
-construct, and end states derive as sinks of the merged transition set
-plus explicitly terminal transition targets. The persisted twin is
-`declarationsFromCtsRecords(ctsTypes, processNodes)` — the draft overlay
-reads the same merge, so acceptance validates bindings against
-transition-node-declared statuses before they are posted. A class
-node's `data.migrate` (array of SPEC §11 declared-migration steps,
-default absent) passes verbatim onto the emitted declaration — it is
-transient apply-time state written by the designer's step dialog, not
-persisted authoring state: the designer clears it once the declaration
-post consumes the steps, so a saved tree never carries a stale step set
-(the step language and one-time semantics live in
-[packages/cts](../cts/README.md) and
-[cts-types](../../server/features/cts-types/README.md)).
-Authored field names are LABELS, never validated as ids: the row key
-derives from the authored string (`camelCaseId` — "Cut speed" →
-`cutSpeed` carrying `label: 'Cut speed'`), and a name that sanitizes to
-nothing stays out of the declaration like any unsaved edit — users never
-meet case rules. `ctsTypes` record typeIds kebab-normalize at the draft
-seam (`migrateV4Definition`), so an older underscore-spelled generated id
-(`t_…`) cannot leave one type referenced under two spellings.
-Declaration wires are live binding channels:
-`interpretDeclarationEdges` derives declaration-node type ids, class
-field/state counts, and species-record bindings from the current edge
-set (pure over the canvas arrays, idempotent — a settled graph evaluates
-to no writes), and `declarationNodePorts` is the single home of every
-declaration handle's typed spec, including the state node's
-transition-from input.
-Generic creation exposes the type's declared row fields as typed
-construction sockets — the composer-less construct — and declared construct
-operators project as `via` modes with signature-derived mode inputs. Create Entity resolves either canonical block sockets or the
-selected domain construction mode's typed inputs. Run Service resolves the
-selected command definition into typed entity/parameter inputs and typed
-command-result outputs. Producer effects, conversions, predicates, patches,
-and trigger-payload plumbing remain runtime-only. Applications may change
-layout, but entity types, construction modes, commands, attachment kinds,
-blocks, and fields always come from the supplied domain contract.
-Palette translations are authoring presentation and are never process data.
-Executable process nodes persist their canonical kind; generated create-action
-captions are derived from the typed target entity at render time.
-Process definitions use only the current dataflow protocol. New definitions are
-authored at `dataflowVersion: 4`; package normalization
-does not infer a missing version or rewrite an older graph. Callers must provide
-the current semantic graph directly.
+The grouped authoring palette is a curated projection of CTS semantics. Its
+groups are declaration items, type-bound constructs, effect species, typed
+instance sources/navigation, values, collections, and flow. Registered
+services derive their ports from declared operator signatures. The exhaustive
+runtime catalog is not an authoring palette: packet matching, transport
+adapters, and producer identity remain compiler/runtime concerns.
 
-Declarative organization process compiler. It turns visual process definitions
-into runtime contracts for graph-derived role permissions, screen manifests,
-navigation, producer-output workflows and field policies, action nodes,
-services, and sockets.
+All entity-bound executable items are current species records (`cts.*`). Their
+ports resolve directly from the record and projected declarations; no
+operation-kind twin participates in validation or execution. Origin species
+carry a Type pin. Consumers infer their type from the entity input.
+Entity-derived reads additionally carry the exact declared edge target, so
+parent, children, and relation traversal expose the target type rather than
+reusing the source type. `cts.mutate` exposes writable declared fields and no
+status; `cts.transition` consumes an entity and references a declared
+transition; `cts.construct` exposes construction inputs and no lifecycle-entry
+socket.
 
-An entity-emitting socket is identified by
-`producerOutputId = nodeId:outputSocketId`. Compilation emits
-`producerOutputs[producerOutputId]`, which owns that output's workflow, field
-policy, and lineage bindings. `typeIdIndex` lists matching output ids for
-schema discovery only; runtime workflow selection always requires the exact
-producer output id.
+The declaration graph uses Class/Field/State/Transition/Operator nodes and
+typed declaration edges. `declarationWireLegality` and `declarationNodePorts`
+are its only connection contracts. A state connected to a class is a root
+state; a state connected to another state declares its single parent. A
+transition declaration connects explicit `from` and `to` states. The compiler
+builds recursive state machines through `compileTreeDeclarations`, including
+one initial state per machine, cycle/duplicate checks, explicit terminal
+flags, and canonical dotted paths. Draft acceptance calls
+`declarationsFromCtsRecords` with the same declaration graph, so nested state
+and edge semantics cannot differ between preview and APPLY.
 
-Validation is producer-scoped and fail-closed: an action that resolves an
-entity type must declare a `producerOutputId` that exists in
-`producerOutputs` and emits that entity type, and every producer lifecycle
-region with states must declare an entry state that is one of its states.
-Workflow synthesis never selects a first or default state — a region without a
-declared entry state is a validation error naming the producer output and
-region, and compilation of such a definition throws before any workflow is
-emitted.
+A class node's transient `data.migrate` carries SPEC §11 migration steps
+until the declaration post consumes and clears them. Authored field names are
+labels; `camelCaseId` derives the row key. Declaration binding edges are live
+channels interpreted over the declaration graph, while process species records
+persist the resolved type and retain their executable ports.
+
+Generic construction exposes declared row fields and declared construct
+operators. Services expose registered V→V signatures. Palette translations are
+presentation only; generated action captions derive from typed declarations.
+Callers provide the current semantic graph directly; normalization never
+infers a missing protocol version.
+
+The declarative organization process compiler turns current species
+records into runtime contracts for access, screens, navigation, declared
+workflow overlays, field policy, actions, services, and sockets.
+
+An entity-emitting origin socket is identified by
+`producerOutputId = nodeId:outputSocketId`. Only construct and
+entity-producing operator origins create producer outputs; reads and consumer
+effects never do. A producer output owns field policy, lineage/provenance, and
+an optional overlay of the bound type's declared workflow. Existing-instance
+consumer actions may omit a producer output and execute against the bound
+type declaration. A present `producerOutputId` must name an output of the
+same type.
+
+Every lifecycle region derives its entry from the CTS declaration. Compilation
+never chooses a first state or turns a read into a creator. A transition action
+references a declared transition; its process roles are carried as execution
+authorization without forking the type declaration into a producer-owned
+machine.
 Validation also emits non-operational warnings: any process node whose values
 cannot reach a persistence effect (reverse reachability over graph edges with
 `effect.*` nodes as the operational sinks) is reported as inspect-only. An
@@ -159,36 +130,18 @@ and required-input availability errors carry the same producer context: an
 entity edge error names the source `producerOutputId`, and a required effect
 input error on a producer names `producerOutputId` alongside the socket id.
 
-Producer outputs are owned by origin effects only (`effect.createEntity`,
-`effect.runProducer`, `effect.runCommand`). Consumer effects — Update, Change
-Status, Archive, Delete, Send, Generate Attachment — transform entities that
-arrived over an input wire: they mint no producer output, carry no producer
-identity of their own, and their derived actions bind to the upstream
-producer resolved from the entity input wire (through consumer chains and
-joins, with a single same-type candidate as the read-source fallback).
-Normalization prunes consumer-owned outputs and stale own-node bindings from
-persisted drafts, `migrateProducerOutputIdentities` does the same at the
-server boundary, and `syncProcessNodeProducerOutputs` never creates them in
-the designer — so each entity path has exactly one workflow anchor: where it
-begins. Status-change transitions synthesized from consumer actions land on
-the origin's machine, and downstream identity resolution
-(`resolveSourceProducerOutputId`, `upstreamProducerOutputId`) attributes
-consumer outputs to the upstream producer.
+Producer outputs are owned only by actual entity origins: `cts.construct` and
+entity-producing `cts.service`/`cts.command` records. Reads, field projections,
+and consumer species never mint output identity. Consumer actions resolve
+their type from the entity input. They may carry an upstream
+`producerOutputId` for field/lineage policy, but it is optional; lifecycle
+comes from the CTS type declaration. Transition actions carry their process
+role authorization into the status runtime for the referenced transition.
 
-Same-type producer paths converge only through the explicit `producer.join`
-node. It has exactly two required entity-stream inputs (`primary`,
-`secondary`, both List-access sockets of one authored entity type), one
-entity-stream output, and a `selectedProducerOutputId` that must name one of
-its connected sources; the evaluator concatenates both streams while the
-compiler resolves the output's producer identity as the selected source, and
-`syncProcessNodeProducerOutputs` deliberately creates no producer output for
-the join itself. `validateDataflowEdges` rejects implicit convergence — any
-other node receiving entity streams from two distinct producer outputs of the
-same entity type fails with the target node, both producer outputs, and both
-edge ids named — and rejects a join with an unconnected stream input or a
-selection outside its connected sources. Downstream identity resolution
-(lineage `sourceProducerOutputId`, edge diagnostics) is join-aware, so a
-joined stream reads as exactly one producer.
+Multiple same-type streams are ordinary typed list dataflow. The compiler may
+retain source provenance internally, but there is no author-facing producer
+join, selected producer identity, or requirement to choose a lifecycle
+producer merely to combine values.
 
 Diagnostics are structured records: `validateProcessDefinition` returns a
 `diagnostics` array beside `errors`, where each record carries `{ message,
@@ -218,6 +171,14 @@ same-type ownership return graph-addressable diagnostics; the migration
 never selects the first same-type producer. A type the supplied vocabulary
 does not know is left to validation's anchored unknown-type report rather
 than refused here — without a supplied vocabulary the strict rewrite stays.
+
+The v4 → v5 species rewrite itself (records and graph edges together —
+read/field handle migration, composer expansion onto construct/mutate field
+sockets, the retired lifecycle-entry sockets, and the mutate/transition
+split for smuggled statuses) is owned by `@perigram/cts`
+`migrateV4Definition`; see `packages/cts/README.md` (SPEC §20) for the
+canonical contract. This package consumes that seam through
+`prepareAuthoredDefinition` and never re-implements it.
 
 Compiler entry points are separated by responsibility. `normalization.js`,
 `validation.js`, `action-compilation.js`, `screen-compilation.js`,
@@ -283,19 +244,14 @@ not become `''`). Field-node descriptors carry the SPEC §4 display dictionary
 verbatim through the cycle, and class nodes round-trip their authored `glyph`
 (`null` on both halves when absent).
 
-Process lifecycle profiles and action nodes compile directly to normalized
-`@perigram/workflows` v2 state machines. Entity profiles may provide a full
-workflow, but action-only graphs also synthesize workflows: create actions add
-their target status as a state, and status-mutating `updateEntity` actions add
-transitions with the process role ids and entity access requirements from the
-action grant. Compilation preserves the authored workflow structure: every
-region in `workflow.regions` round-trips through compilation with its states,
-transitions, and region-level metadata, the source `primaryRegion` is kept, and
-workflow-level contracts (any top-level keys beyond the v2 structural fields)
-are carried into the emitted machine. Synthesized action states and transitions
-always land in the primary region; sibling regions pass through unchanged.
-Compilation never collapses a multi-region workflow into `regions.main`.
-Runtime adapters must not treat lifecycle data as visual-only metadata.
+Lifecycle compilation projects the bound CTS type's recursive state
+declarations into normalized `@perigram/workflows` v2 regions. Producer
+overlays preserve the complete region/state/transition structure and may add
+process-role authorization for declared transitions. Compilation never
+synthesizes lifecycle facts from action nodes: a create operation enters the
+declared initial leaf, and transition operations require a declared
+from/to pair or explicit migrated `fromAny` expansion. Every region remains
+independent; recursive state trees remain nested inside their region.
 
 `src/templates.js` contains starter process templates for organization
 bootstrap. Each template exposes organization role identities separately from

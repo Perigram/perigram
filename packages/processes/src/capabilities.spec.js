@@ -94,10 +94,10 @@ describe('process entity capability projection', () => {
     expect(capabilities.sheet.statusMutation).toBe(true);
   });
 
-  it('derives delete and archive only when both domain and runtime agree', () => {
+  it('derives delete from the registered runtime binding', () => {
     const capabilities = projectEntityProcessCapabilities(domain, bindings);
 
-    expect(capabilities.material.delete).toBe(false);
+    expect(capabilities.material.delete).toBe(true);
     expect(capabilities.material.processUpdate).toBe(false);
   });
 

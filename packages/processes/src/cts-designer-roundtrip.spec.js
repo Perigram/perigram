@@ -33,10 +33,10 @@ describe('graph protocol v5 designer round trip', () => {
       expect(getProcessNodeDefinition(item.kind), item.kind).not.toBeNull();
     }
     const readPresets = groups.instances.filter(item => item.kind === 'cts.read').map(item => item.preset.select);
-    expect(readPresets).toEqual(['current', 'byId', 'byRef', 'parent', 'children', 'related', 'query']);
+    expect(readPresets).toEqual(['current', 'byRef', 'all', 'parent', 'children', 'related']);
   });
 
-  it('catalog ports resolve cts records through the operation-kind twin', () => {
+  it('catalog ports resolve native species records without legacy sockets', () => {
     const domain = projectedDomain();
     const context = record => ({
       fieldSchemas: domain.fieldSchemas[record.typeId] || [],
@@ -51,26 +51,9 @@ describe('graph protocol v5 designer round trip', () => {
     const read = resolveCatalogNodePorts({ kind: 'cts.read', select: 'parent', typeId: 'sheet' }, context({ type: 'sheet' }));
     expect(read.outputs).toHaveLength(1);
 
-    // cts and v4 twins expose identical port contracts — except where the
-    // species deliberately upgrades the authoring contract: the origin
-    // species' persistent Type pin, and cts.field's entity projection
-    // (SPEC §8 p: entity in, value out — no intermediate block node).
-    for (const [ctsRecord, v4Record] of [
-      [{ kind: 'cts.transition', typeId: 'queue' }, { kind: 'effect.changeStatus', typeId: 'queue' }],
-      [{ kind: 'cts.read', select: 'parent', typeId: 'sheet' }, { kind: 'read.parent', typeId: 'sheet' }]
-    ]) {
-      const ctsPorts = resolveCatalogNodePorts(ctsRecord, { domain, fieldSchemas: domain.fieldSchemas.sheet || [] });
-      const v4Ports = resolveCatalogNodePorts(v4Record, { domain, fieldSchemas: domain.fieldSchemas.sheet || [] });
-      const stripSpeciesSurface = (ports, renameEntitySocket) => ({
-        ...ports,
-        inputs: ports.inputs
-          .filter(port => port.id !== 'type')
-          // entity-derived reads present `entity` (the consumer convention);
-          // the v4 twin's generic `value` is the same socket
-          .map(port => (renameEntitySocket && port.id === 'entity' ? { ...port, id: 'value', label: 'value' } : port))
-      });
-      expect(stripSpeciesSurface(ctsPorts, ctsRecord.kind === 'cts.read'), ctsRecord.kind).toEqual(v4Ports);
-    }
+    expect(transition.inputs.map(port => port.id)).toEqual(['entity', 'note']);
+    expect(transition.inputs.some(port => port.id === 'status' || port.id === 'changes')).toBe(false);
+    expect(read.inputs.map(port => port.id)).toEqual(['entity']);
     const fieldProjection = resolveCatalogNodePorts(
       { kind: 'cts.field', typeId: 'sheet', path: 'data.source' },
       { domain, fieldSchemas: domain.fieldSchemas.sheet || [] }
@@ -187,7 +170,7 @@ describe('graph protocol v5 designer round trip', () => {
     // resolution brings the working shapes back for the compiler
     const { definition: resolved, diagnostics } = resolveCtsDefinition(saved, domain);
     expect(diagnostics).toEqual([]);
-    expect(resolved.processNodes.update.kind).toBe('effect.updateEntity');
+    expect(resolved.processNodes.update.kind).toBe('cts.mutate');
     expect(resolved.processNodes.update.typeId).toBe('cut-plan');
   });
   it('type reference nodes persist through the canvas and their wires never reach validation', () => {
@@ -248,7 +231,7 @@ describe('graph protocol v5 designer round trip', () => {
         ghost: { id: 'ghost', kind: 'cts.service', operator: 'algebra.solve', trigger: { mode: 'manual' } }
       }
     }, { ...domain, serviceContracts: { 'nesting.solve': { command: 'solveNestingValue' } } });
-    expect(resolved.processNodes.solve).toMatchObject({ kind: 'effect.runCommand', commandId: 'solveNestingValue' });
+    expect(resolved.processNodes.solve).toMatchObject({ kind: 'cts.service', commandId: 'solveNestingValue' });
     expect(diagnostics).toContainEqual(expect.stringMatching(/unknown service operator algebra.solve/));
   });
 

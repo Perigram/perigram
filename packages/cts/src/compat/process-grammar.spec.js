@@ -16,8 +16,13 @@ function registryWithOrgType() {
   registry.defineType({
     id: 'widget', class: 'file', scope: 'org', organizationId: 'org-1',
     fields: { name: { base: 'string' }, stage: { base: 'enum', values: ['raw', 'done'] } },
-    states: { main: { initial: 'raw', values: ['raw', 'done'], terminal: ['done'] } },
-    transitions: [{ from: 'raw', to: 'done', intent: 'finish' }]
+    states: {
+      main: {
+        initial: 'raw',
+        states: { raw: {}, done: { terminal: true } }
+      }
+    },
+    transitions: [{ axis: 'main', from: 'raw', to: 'done', intent: 'finish' }]
   });
   return registry;
 }
@@ -106,7 +111,7 @@ describe('declaration-check phase', () => {
         }
       }
     }, registry, 'org-1');
-    expect(errors).toContainEqual(expect.stringMatching(/moves widget to undeclared state FLYING/));
+    expect(errors).toContainEqual(expect.stringMatching(/moves widget\.main to undeclared state FLYING/));
     expect(errors).toContainEqual(expect.stringMatching(/uses field data.rogue outside the widget row/));
     // queue rows are declared: the job root resolves, unknown roots fail,
     // managed blocks (identity) are policy facets, not rows

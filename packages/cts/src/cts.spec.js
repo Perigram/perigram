@@ -20,6 +20,19 @@ function packRegistry() {
   return registry;
 }
 
+function recursiveStates({ initial, values, terminal = [] }) {
+  const terminalValues = new Set(terminal);
+  return {
+    main: {
+      initial,
+      states: Object.fromEntries(values.map(value => [
+        value,
+        terminalValues.has(value) ? { terminal: true } : {}
+      ]))
+    }
+  };
+}
+
 describe('units (R3)', () => {
   it('unifies same units and declared conversions only', () => {
     expect(unify(quantity(1000, 'mm'), quantity(1, 'm'))).toEqual({ a: quantity(1, 'm'), b: quantity(1, 'm') });
@@ -104,7 +117,7 @@ describe('class obligations (R6)', () => {
     expect(() => registry.defineType({
       id: 'bare-item', class: 'item', scope: 'system',
       fields: { name: { base: 'string' } },
-      states: { main: { initial: 'new', values: ['new', 'done'] } }
+      states: recursiveStates({ initial: 'new', values: ['new', 'done'] })
     })).not.toThrow();
     registry.defineType({ id: 'bad-file', class: 'file', edges: { children: { c: { types: ['material'] } } } });
     expect(registry.compile().errors).toContainEqual(expect.stringMatching(/bad-file: file may not declare lineage children/));
@@ -126,21 +139,21 @@ describe('state totality (R4)', () => {
     const registry = packRegistry();
     expect(() => registry.defineType({
       id: 'bad-states', class: 'item', fields: { serial: { base: 'string' } },
-      states: { main: { initial: 'draft', values: ['draft'] } },
-      transitions: [{ from: 'ghost', to: 'draft' }]
+      states: recursiveStates({ initial: 'draft', values: ['draft'] }),
+      transitions: [{ axis: 'main', from: 'ghost', to: 'draft' }]
     })).toThrow(/from ghost/);
     expect(() => registry.defineType({
       id: 'bad-intents', class: 'item', fields: { serial: { base: 'string' } },
-      states: { main: { initial: 'draft', values: ['draft', 'done', 'dead'], terminal: ['done'] } },
+      states: recursiveStates({ initial: 'draft', values: ['draft', 'done', 'dead'], terminal: ['done'] }),
       transitions: [
-        { from: 'draft', to: 'done', intent: 'go' },
-        { from: 'draft', to: 'dead', intent: 'go' }
+        { axis: 'main', from: 'draft', to: 'done', intent: 'go' },
+        { axis: 'main', from: 'draft', to: 'dead', intent: 'go' }
       ]
     })).toThrow(/one intent has one target/);
     registry.defineType({
       id: 'unreachable', class: 'item', fields: { serial: { base: 'string' } },
-      states: { main: { initial: 'draft', values: ['draft', 'dead', 'alive'], terminal: ['dead'] } },
-      transitions: [{ from: 'alive', to: 'dead' }]
+      states: recursiveStates({ initial: 'draft', values: ['draft', 'dead', 'alive'], terminal: ['dead'] }),
+      transitions: [{ axis: 'main', from: 'alive', to: 'dead' }]
     });
     expect(registry.compile().errors).toContainEqual(expect.stringMatching(/terminal dead unreachable/));
   });
@@ -152,63 +165,70 @@ describe('state totality (R4)', () => {
   });
 });
 
-describe('transition-node statuses (SPEC §7/§20 merge)', () => {
-  it('fans declared edges from every other value; terminals derive over the merged set', () => {
+describe('transition declarations (SPEC §7/§20)', () => {
+  it('normalizes an already-declared recursive machine and its transitions', () => {
     const merged = mergeTransitionNodeStates({
+      machine: { initial: 'GOO', states: { GOO: {}, CHANGED: { terminal: true } } },
+      transitions: [{ axis: 'main', from: 'GOO', to: 'CHANGED', intent: 'change' }]
+    });
+    expect(merged.states).toEqual({ GOO: {}, CHANGED: { terminal: true } });
+    expect(merged.transitions).toEqual([
+      { axis: 'main', from: 'GOO', to: 'CHANGED', intent: 'change' }
+    ]);
+  });
+
+  it('refuses target-state synthesis from a process transition record', () => {
+    expect(() => mergeTransitionNodeStates({
       values: ['GOO'],
       transitions: [],
-      targets: [{ value: 'CHANGED', terminal: true }]
-    });
-    expect(merged).toEqual({
-      values: ['GOO', 'CHANGED'],
-      transitions: [{ from: 'GOO', to: 'CHANGED' }],
-      terminal: ['CHANGED']
-    });
+      targets: [{ value: 'CHANGED' }]
+    })).toThrow(/recursive state machine/);
   });
 
-  it('dedupes wire edges the fan-out repeats and drops off-values', () => {
-    const merged = mergeTransitionNodeStates({
-      values: ['a', 'b', 'c'],
-      transitions: [{ from: 'a', to: 'b', intent: 'go' }, { from: 'a', to: 'ghost' }],
-      targets: [{ value: 'b', intent: 'go' }]
-    });
-    expect(merged.transitions).toEqual([
-      { from: 'a', to: 'b', intent: 'go' },
-      { from: 'c', to: 'b', intent: 'go' }
-    ]);
-    // a and c carry outgoing edges; only b sinks.
-    expect(merged.terminal).toEqual(['b']);
-  });
-
-  it('declarationsFromCtsRecords merges persisted transition-node targets', () => {
+  it('declarationsFromCtsRecords compiles state records and declared transition references', () => {
     const records = {
       cls: { id: 'cls', kind: 'class', typeId: 't-goo-1', class: 'file' },
       goo: { id: 'goo', kind: 'state', typeId: 't-goo-1', value: 'GOO', initial: true, terminal: false },
-      changed: { id: 'changed', kind: 'state', typeId: 't-goo-1', value: 'CHANGED', initial: false, terminal: false }
+      changed: { id: 'changed', kind: 'state', typeId: 't-goo-1', value: 'CHANGED', initial: false, terminal: true }
     };
     const processNodes = {
-      move: { id: 'move', kind: 'cts.transition', typeId: 't-goo-1', state: { to: 'CHANGED' } }
+      move: {
+        id: 'move',
+        kind: 'cts.transition',
+        typeId: 't-goo-1',
+        state: { axis: 'main', from: 'GOO', to: 'CHANGED' }
+      }
     };
-    const [declaration] = declarationsFromCtsRecords(records, processNodes);
+    const [declaration] = declarationsFromCtsRecords(records, processNodes, {
+      nodes: [
+        { id: 'cls', type: 'ctsClass', data: { refId: 'cls' } },
+        { id: 'goo', type: 'ctsState', data: { refId: 'goo' } },
+        { id: 'changed', type: 'ctsState', data: { refId: 'changed' } }
+      ],
+      edges: [
+        { id: 'd1', source: 'goo', target: 'cls', role: 'type', label: 'state' },
+        { id: 'd2', source: 'changed', target: 'cls', role: 'type', label: 'state' }
+      ]
+    });
     expect(declaration.states.main).toEqual({
       initial: 'GOO',
-      values: ['GOO', 'CHANGED'],
-      terminal: ['CHANGED']
+      states: { GOO: {}, CHANGED: { terminal: true } },
+      transitions: [{ axis: 'main', from: 'GOO', to: 'CHANGED' }]
     });
-    expect(declaration.transitions).toEqual([{ from: 'GOO', to: 'CHANGED' }]);
-    // The merged declaration satisfies R4 as a whole: the target is
-    // reachable and the terminal derives from the merged edge set.
+    expect(declaration.transitions).toEqual([
+      { axis: 'main', from: 'GOO', to: 'CHANGED' }
+    ]);
     const registry = createTypeRegistry({ id: 'merge-check' });
     registry.defineType({ ...declaration, fields: { name: { base: 'string' } } });
     expect(registry.compile().errors).toEqual([]);
   });
 
-  it('declarationWorkflow derives the v2 machine a producer lifecycle and the status engine share', () => {
+  it('declarationWorkflow derives the recursive v2 machine the status engine shares', () => {
     const type = normalizeType({
       id: 't-goo-2', class: 'file', scope: 'org', organizationId: 'org-1',
       fields: { name: { base: 'string' } },
-      states: { main: { initial: 'GOO', values: ['GOO', 'CHANGED'], terminal: ['CHANGED'] } },
-      transitions: [{ from: 'GOO', to: 'CHANGED', intent: 'change' }]
+      states: recursiveStates({ initial: 'GOO', values: ['GOO', 'CHANGED'], terminal: ['CHANGED'] }),
+      transitions: [{ axis: 'main', from: 'GOO', to: 'CHANGED', intent: 'change' }]
     });
     const workflow = declarationWorkflow(type);
     expect(workflow.primaryRegion).toBe('main');
@@ -283,30 +303,41 @@ describe('evolution (R7, refuse-on-diff)', () => {
     const v1 = {
       id: 'item',
       fields: { name: { base: 'string' } },
-      states: { main: { values: ['draft', 'done'] } },
+      states: recursiveStates({ initial: 'draft', values: ['draft', 'done'] }),
       edges: { children: { batch: { typeId: 'batch' } } }
     };
     const additive = diffTypes(v1, {
       ...v1,
-      states: { main: { values: ['draft', 'done', 'archived'] } },
+      states: recursiveStates({ initial: 'draft', values: ['draft', 'done', 'archived'] }),
       edges: { children: { batch: { typeId: 'batch' }, kit: { typeId: 'kit' } } }
     });
     expect(additive.breaking).toBe(false);
     expect(additive.changes).toEqual([
-      { severity: 'minor', kind: 'add-state', state: 'archived' },
+      { severity: 'minor', kind: 'add-state', axis: 'main', state: 'archived' },
       { severity: 'minor', kind: 'add-edge', edge: 'children.kit' }
     ]);
-    const removedState = diffTypes(v1, { ...v1, states: { main: { values: ['draft'] } } });
-    expect(removedState.changes).toContainEqual({ severity: 'breaking', kind: 'remove-state', state: 'done' });
+    const removedState = diffTypes(v1, {
+      ...v1,
+      states: recursiveStates({ initial: 'draft', values: ['draft'] })
+    });
+    expect(removedState.changes).toContainEqual({
+      severity: 'breaking',
+      kind: 'remove-state',
+      axis: 'main',
+      state: 'done'
+    });
   });
 
   it('reports a rename as its remove/add pair — rename intent is never inferred', () => {
-    const v1 = { id: 'item', states: { main: { values: ['scrap', 'ready'] } } };
-    const diff = diffTypes(v1, { ...v1, states: { main: { values: ['recycled', 'ready'] } } });
+    const v1 = { id: 'item', states: recursiveStates({ initial: 'scrap', values: ['scrap', 'ready'] }) };
+    const diff = diffTypes(v1, {
+      ...v1,
+      states: recursiveStates({ initial: 'recycled', values: ['recycled', 'ready'] })
+    });
     expect(diff.breaking).toBe(true);
     expect(diff.changes).toEqual([
-      { severity: 'breaking', kind: 'remove-state', state: 'scrap' },
-      { severity: 'minor', kind: 'add-state', state: 'recycled' }
+      { severity: 'breaking', kind: 'remove-state', axis: 'main', state: 'scrap' },
+      { severity: 'minor', kind: 'add-state', axis: 'main', state: 'recycled' }
     ]);
   });
 
@@ -314,13 +345,13 @@ describe('evolution (R7, refuse-on-diff)', () => {
     const v1 = {
       id: 'item',
       fields: { thickness: { base: 'quantity', unit: 'mm' }, note: { base: 'string' } },
-      states: { main: { values: ['scrap', 'ready'] } }
+      states: recursiveStates({ initial: 'scrap', values: ['scrap', 'ready'] })
     };
     // scrap -> recycled rename plus a field retype through an expression.
     const v2 = {
       ...v1,
       fields: { thickness: { base: 'number' }, note: v1.fields.note },
-      states: { main: { values: ['recycled', 'ready'] } },
+      states: recursiveStates({ initial: 'recycled', values: ['recycled', 'ready'] }),
       migrate: [
         { kind: 'rename-enum-value', axis: 'main', from: 'scrap', to: 'recycled' },
         { kind: 'retype-field', field: 'thickness', via: { op: 'var', name: 'value' } }
@@ -333,15 +364,20 @@ describe('evolution (R7, refuse-on-diff)', () => {
   });
 
   it('refuses uncovered breaking changes, stale steps, and unknown targets', () => {
-    const v1 = { id: 'item', fields: { note: { base: 'string' } }, states: { main: { values: ['scrap'] } } };
+    const v1 = {
+      id: 'item',
+      fields: { note: { base: 'string' } },
+      states: recursiveStates({ initial: 'scrap', values: ['scrap'] })
+    };
     // No steps at all: uncovered.
-    expect(planTypeMigration(v1, { ...v1, states: { main: { values: [] } } }).errors)
-      .toEqual(['remove-state scrap requires a rename-enum-value step']);
+    expect(planTypeMigration(v1, { ...v1, states: { main: { states: {} } } }).errors)
+      .toEqual(['remove-state main.scrap requires a rename-enum-value step']);
     // Step target not in the next enum.
     expect(planTypeMigration(v1, {
-      ...v1, states: { main: { values: ['ready'] } },
-      migrate: [{ kind: 'rename-enum-value', from: 'scrap', to: 'missing' }]
-    }).errors).toEqual(['rename-enum-value target missing is not a state of the next declaration']);
+      ...v1,
+      states: recursiveStates({ initial: 'ready', values: ['ready'] }),
+      migrate: [{ kind: 'rename-enum-value', axis: 'main', from: 'scrap', to: 'missing' }]
+    }).errors).toEqual(['rename-enum-value target main.missing is not a state of the next declaration']);
     // A declared step matching nothing fails the gate instead of rotting.
     expect(planTypeMigration(v1, {
       ...v1, migrate: [{ kind: 'remove-field', field: 'note' }]
@@ -353,7 +389,8 @@ describe('evolution (R7, refuse-on-diff)', () => {
     // Malformed steps refuse normalization.
     expect(planTypeMigration(v1, { ...v1, migrate: [{ kind: 'nope' }] }).errors)
       .toEqual(['unknown migration step kind nope']);
-    expect(() => requireCompatible(v1, { ...v1, states: { main: { values: [] } } })).toThrow(/without a covering declared migration/);
+    expect(() => requireCompatible(v1, { ...v1, states: { main: { states: {} } } }))
+      .toThrow(/without a covering declared migration/);
   });
 
   it('a rename-field step covers its remove/add pair when descriptors match', () => {
@@ -470,7 +507,12 @@ describe('payload traits (SPEC §4)', () => {
     expect(normalizeType({ id: 'traits-doc', class: 'file', payload: { mime: ['image/png', 'image/jpeg'], maxSize: 1024, preview: 'attachment' } }).payload)
       .toEqual({ mime: ['image/png', 'image/jpeg'], maxSize: 1024, preview: 'attachment', creation: ['upload'] });
     expect(() => normalizeType({ id: 'empty-doc', class: 'file', payload: { mime: [] } })).toThrow(/at least one accepted MIME/);
-    expect(normalizeType({ id: 'bare-doc', class: 'item', states: { main: { initial: 'new', values: ['new'] } }, fields: { serial: { base: 'string' } } }).payload).toBeNull();
+    expect(normalizeType({
+      id: 'bare-doc',
+      class: 'item',
+      states: recursiveStates({ initial: 'new', values: ['new'] }),
+      fields: { serial: { base: 'string' } }
+    }).payload).toBeNull();
   });
 
   it('normalizes and validates the creation protocol list', () => {
@@ -499,7 +541,7 @@ describe('display policy (SPEC §4/§7)', () => {
         owner: { base: 'ref', accepts: ['user'] },
         notes: { base: 'string', max: 400, nullable: true }
       },
-      states: { main: { initial: 'draft', values: ['draft', 'done'], terminal: ['done'] } }
+      states: recursiveStates({ initial: 'draft', values: ['draft', 'done'], terminal: ['done'] })
     });
     const record = compileClientBundle(registry).types.find(type => type.id === 'widget');
     expect(record.render).toBeUndefined();
@@ -555,7 +597,7 @@ describe('display policy (SPEC §4/§7)', () => {
     registry.defineType({
       id: 'bare', class: 'item', scope: 'org', organizationId: 'org-1',
       fields: { serial: { base: 'string' } },
-      states: { main: { initial: 'new', values: ['new'] } }
+      states: recursiveStates({ initial: 'new', values: ['new'] })
     });
     const record = compileClientBundle(registry, 'org-1').types[0];
     expect(record.name).toBeNull();
@@ -569,7 +611,7 @@ describe('display policy (SPEC §4/§7)', () => {
     const legacy = normalizeType({
       id: 'legacy-widget', class: 'item',
       fields: { name: { base: 'string' }, color: { base: 'string', render: { control: 'ColorPicker' } } },
-      states: { main: { initial: 'draft', values: ['draft', 'done'], terminal: ['done'] } },
+      states: recursiveStates({ initial: 'draft', values: ['draft', 'done'], terminal: ['done'] }),
       render: {
         label: 'Legacy Widget',
         icon: 'pi pi-box',
@@ -599,7 +641,7 @@ describe('display policy (SPEC §4/§7)', () => {
         name: { base: 'string', identifier: true },
         serial: { base: 'string', identifier: true }
       },
-      states: { main: { initial: 'new', values: ['new'] } }
+      states: recursiveStates({ initial: 'new', values: ['new'] })
     });
     expect(registry.compile().errors).toContainEqual(
       'type two-ids: identifier flag on multiple fields (name, serial) — exactly one required'
@@ -621,7 +663,7 @@ describe('display policy (SPEC §4/§7)', () => {
     registry3.defineType({
       id: 'no-name-field', class: 'item', name: 'No name field',
       fields: { area: { base: 'quantity', unit: 'm2' } },
-      states: { main: { initial: 'new', values: ['new'] } }
+      states: recursiveStates({ initial: 'new', values: ['new'] })
     });
     expect(registry3.compile().errors).toContainEqual(
       'type no-name-field: mark the field that names its records (identifier flag on exactly one field)'
@@ -634,8 +676,8 @@ describe('display policy (SPEC §4/§7)', () => {
     registry4.defineType({
       id: 'org-instant-only', class: 'item', scope: 'org', organizationId: 'org-1',
       fields: { anythin: { base: 'instant', label: 'Anythin' } },
-      states: { main: { initial: 'GOO', values: ['GOO', 'CHANGED'], terminal: ['CHANGED'] } },
-      transitions: [{ from: 'GOO', to: 'CHANGED' }]
+      states: recursiveStates({ initial: 'GOO', values: ['GOO', 'CHANGED'], terminal: ['CHANGED'] }),
+      transitions: [{ axis: 'main', from: 'GOO', to: 'CHANGED' }]
     });
     const orgView = registry4.compile('org-1');
     expect(orgView.errors).toEqual([]);

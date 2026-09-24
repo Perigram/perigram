@@ -10,7 +10,7 @@
 import { createError } from 'h3';
 import { ObjectId } from 'mongodb';
 import { toFlexibleId } from '../../utils/objectid.js';
-import { frameworkTypes, CLASS_COLLECTIONS, lineageKeyForParent } from '~/packages/cts/src/index.js';
+import { frameworkTypes, CLASS_COLLECTIONS, initialStatePath, lineageKeyForParent } from '~/packages/cts/src/index.js';
 import { composeSystemDeclarations } from '~/server/packs/declarations.js';
 import * as typeStore from '../cts-types/repository.js';
 import * as repository from './repository.js';
@@ -121,6 +121,15 @@ function wireFieldsSplit(fields = {}, declaration = {}) {
   return { data, specs };
 }
 
+function initialStatesFor(declaration = {}, supplied = {}) {
+  const axes = Object.entries(declaration.states || {});
+  if (!axes.length) return { main: supplied.main || 'CREATED' };
+  return Object.fromEntries(axes.map(([axis, machine]) => {
+    const requested = supplied[axis] || machine.initial;
+    return [axis, initialStatePath(machine, requested) || requested || 'CREATED'];
+  }));
+}
+
 function toDto(doc, declaration = {}) {
   if (!doc) return null;
   const { data, specs } = wireFieldsSplit(doc.fields || {}, declaration);
@@ -132,7 +141,7 @@ function toDto(doc, declaration = {}) {
     type: doc.type,
     typeVersion: doc.typeVersion,
     identity: { uid: doc._id.toString(), ...(doc.name != null ? { name: doc.name } : {}) },
-    states: { main: doc.states?.main || 'CREATED' },
+    states: initialStatesFor(declaration, doc.states || {}),
     lineage,
     relations: doc.relations || {},
     // §3 payload slot projects onto the legacy wire attachments block.
@@ -265,7 +274,7 @@ function instanceService(typeId) {
       name: draft.identity?.name ?? null,
       // §3: the row is one flat fields map (data/specs split is wire-only)
       fields: { ...(draft.data || {}), ...(draft.specs || {}) },
-      states: { main: draft.states?.main || declaration.states?.main?.initial || 'CREATED' },
+      states: initialStatesFor(declaration, draft.states || {}),
       lineage: wireLineage,
       ...(draft.relations ? { relations: draft.relations } : {}),
       ...(payload ? { payload } : {}),
@@ -326,8 +335,14 @@ function instanceService(typeId) {
       const declaration = await requireDeclaration(typeId, organizationId);
       const collection = repository.collectionForClass(declaration.class);
       // Wire patches (block paths from the effect boundary) map to §3
-      // writes: data/specs leaves land in the flat fields map,
-      // states.main becomes states.main.
+      // writes. Lifecycle axes are deliberately absent: transitions and
+      // initial-state writes belong to the status runtime.
+      if (patch.states && Object.keys(patch.states).length) {
+        throw createError({
+          statusCode: 400,
+          message: `Type ${typeId} lifecycle transitions must run through the status runtime`
+        });
+      }
       const set = {};
       const mergeSlot = (slot, value) => {
         for (const [key, leaf] of Object.entries(value || {})) {
@@ -337,7 +352,6 @@ function instanceService(typeId) {
       if (patch.identity?.name !== undefined) set.name = patch.identity.name;
       if (patch.data && typeof patch.data === 'object') mergeSlot('data', patch.data);
       if (patch.specs && typeof patch.specs === 'object') mergeSlot('specs', patch.specs);
-      if (patch.states?.main !== undefined) set['states.main'] = patch.states.main;
       if (patch.lineage && typeof patch.lineage === 'object') {
         for (const [key, value] of Object.entries(patch.lineage)) {
           // Tenancy is immutable after construct: the wire projection's

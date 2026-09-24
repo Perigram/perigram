@@ -23,7 +23,7 @@ function declarationCanvas() {
       classNode('gadget'),
       { id: 'name-field', type: 'ctsField', position: { x: 0, y: 120 }, data: { refId: 'name-field', typeId: 'widget', name: 'name', descriptor: { base: 'string' } } },
       { id: 'ready-state', type: 'ctsState', position: { x: 0, y: 240 }, data: { refId: 'ready-state', typeId: 'widget', value: 'ready', severity: 'info', icon: 'pi pi-play-circle' } },
-      { id: 'done-state', type: 'ctsState', position: { x: 0, y: 360 }, data: { refId: 'done-state', typeId: 'widget', value: 'done', severity: 'success', icon: 'pi pi-check-circle' } },
+      { id: 'done-state', type: 'ctsState', position: { x: 0, y: 360 }, data: { refId: 'done-state', typeId: 'widget', value: 'done', initial: true, severity: 'success', icon: 'pi pi-check-circle' } },
       { id: 'make-widget', type: 'processNode', position: { x: 240, y: 120 }, data: { refId: 'make-widget', typeId: 'widget' } }
     ],
     edges: [
@@ -62,10 +62,10 @@ describe('declaration wire labels round-trip', () => {
     expect(diagnostics).toEqual([]);
     const widget = declarations.find(declaration => declaration.id === 'widget');
     expect(widget.fields).toMatchObject({ name: { base: 'string' } });
-    expect(widget.states.main.values).toEqual(['ready', 'ready.done']);
-    // terminal derives from the transition-node machine; none declared
-    expect(widget.states.main.terminal).toEqual(['ready', 'ready.done']);
-    expect(widget.transitions).toEqual([]);
+    expect(widget.states.main.states.ready.states.done).toEqual({
+      policy: { severity: 'success', icon: 'pi pi-check-circle' }
+    });
+    expect(widget.transitions).toBeUndefined();
     expect(widget.edges.children.gadgets).toMatchObject({ types: ['gadget'], onRemove: 'restrict' });
   });
 });

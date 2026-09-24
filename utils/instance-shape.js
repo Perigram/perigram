@@ -54,7 +54,8 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
     if (value == null) continue;
     lineage[key] = typeof value === 'object' ? value : { id: String(value) };
   }
-  const primary = dto.states?.main;
+  const states = Object.fromEntries(Object.entries(dto.states || {})
+    .filter(([axis, value]) => axis && typeof value === 'string' && value));
   // Declared preview field (type.previewSource — the authored
   // previewSource group row): the value reads straight off the wire DTO,
   // so generated previews render the declared channel (for example
@@ -70,7 +71,7 @@ export function dtoToScreenInstance(dto = {}, typeRecord = {}) {
     fields,
     lineage,
     relations: dto.relations || {},
-    states: primary ? { main: primary } : {},
+    states,
     // File payload reference (wire `attachments.primary`): kept verbatim
     // so preview surfaces resolve the payload download URL.
     payload: dto.attachments?.primary || null,

@@ -23,8 +23,10 @@ validation step for CNC workflow definitions from `@perigram/domain-cnc`.
 
 ## Workflow Shape
 
-Workflows use the v2 region contract. A simple lifecycle is a single `main`
-region; independent lifecycle axes can be added as additional regions.
+Workflows use the v2 region contract. Regions are independent lifecycle
+axes. Hierarchy inside one axis is expressed by recursive `states`, never by
+extra regions. A state with children has its own `initial` child; transitions
+use canonical dotted state paths.
 
 ```js
 {
@@ -32,9 +34,21 @@ region; independent lifecycle axes can be added as additional regions.
   primaryRegion: 'main',
   regions: {
     main: {
-      initial: 'DRAFT',
-      states: { DRAFT: {}, READY: {} },
-      transitions: [{ from: 'DRAFT', to: 'READY', access: { permissions: [] } }]
+      initial: 'PRODUCTION.cut',
+      states: {
+        PRODUCTION: {
+          initial: 'queued',
+          states: {
+            queued: {},
+            cutting: {}
+          }
+        },
+        DONE: {}
+      },
+      transitions: [
+        { from: 'PRODUCTION.queued', to: 'PRODUCTION.cutting' },
+        { from: 'PRODUCTION.cutting', to: 'DONE' }
+      ]
     },
     qa: {
       initial: 'OPEN',
@@ -45,19 +59,28 @@ region; independent lifecycle axes can be added as additional regions.
 }
 ```
 
-Runtime status snapshots store structured state:
+Runtime status snapshots store the active leaf path for each region. The
+workflow tree derives ancestry and the entered-child path; it does not store a
+second copy of the declaration as flat dotted enum values.
 
 ```js
 {
   schemaVersion: 2,
-  primary: 'READY',
-  active: { main: 'READY', qa: 'OPEN' },
+  primary: 'PRODUCTION.cutting',
+  active: { main: 'PRODUCTION.cutting', qa: 'OPEN' },
   regions: {
-    main: { state: 'READY', path: ['READY'] },
+    main: { state: 'PRODUCTION.cutting', path: ['PRODUCTION', 'cutting'] },
     qa: { state: 'OPEN', path: ['OPEN'] }
   }
 }
 ```
+
+Transition lookup walks the active leaf's ancestor paths from most-specific
+to least-specific. The first declared transition wins. A target child enters
+its ancestors; a target state with children enters that state's initial child;
+leaving a parent exits the complete descendant configuration. Creation enters
+the region's configured initial leaf. These rules are owned here; the CTS
+projection supplies the recursive tree and canonical paths.
 
 Workflow states may declare lifecycle payload schemas:
 

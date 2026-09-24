@@ -30,6 +30,19 @@ export const cncFileTypes = [
     fields: {
       name: { base: 'string' }
     },
+    // The declared lifecycle (SPEC §7): the type declaration owns initial
+    // state — construction no longer carries a lifecycle-entry socket. The
+    // legacy domain workflow table is not a process-visible contract.
+    states: {
+      main: {
+        initial: 'ACTIVE',
+        states: {
+          ACTIVE: {},
+          ARCHIVED: { terminal: true }
+        }
+      }
+    },
+    transitions: [{ axis: 'main', from: 'ACTIVE', to: 'ARCHIVED', intent: 'archiveCassette' }],
     revisions: 'geometry',
     render: {
       label: 'Cassette',
@@ -148,27 +161,11 @@ export const cncEditors = [
   { type: 'facade-pattern', surface: 'facade-pattern-designer', modes: ['edit'] }
 ];
 
-// Registered services (SPEC §8 s species): the nesting solver is a pure
-// V -> V service executed by the task runtime under 'nesting.solve'.
-export const cncServices = [
-  {
-    id: 'nesting.solve',
-    species: 'service',
-    command: 'solveNestingValue',
-    task: 'nesting.solve',
-    signature: {
-      input: { base: 'record', fields: {
-        polygons: { base: 'list', itemType: { base: 'json' } },
-        sheet: { base: 'record', fields: {
-          width: { base: 'quantity', unit: 'mm' },
-          length: { base: 'quantity', unit: 'mm' }
-        } }
-      } },
-      output: { base: 'json' }
-    },
-    render: { label: 'Nesting solver', icon: 'pi pi-compass' }
-  }
-];
+// Registered services (SPEC §8 s species) are executable registrations,
+// not aspirations. The legacy nesting solver's command handler was deleted
+// with the queue-flow legacy cut; the service stays out of the palette
+// until a real V -> V handler is registered again.
+export const cncServices = [];
 
 // Payload upload kinds for the pack's file types.
 export const cncAttachmentKinds = {

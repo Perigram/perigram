@@ -25,8 +25,13 @@ const orgPanel = {
     width: { base: 'quantity', unit: 'mm' }
   },
   edges: { relations: { 'placed-on': { types: ['sheet'], onRemove: 'detach' } } },
-  states: { main: { initial: 'available', values: ['available', 'installed'], terminal: ['installed'] } },
-  transitions: [{ from: 'available', to: 'installed', intent: 'installPanel' }]
+  states: {
+    main: {
+      initial: 'available',
+      states: { available: {}, installed: { terminal: true } }
+    }
+  },
+  transitions: [{ axis: 'main', from: 'available', to: 'installed', intent: 'installPanel' }]
 };
 
 const orgBin = {
@@ -150,9 +155,11 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
     expect(construction.defaultMode).toBe('genericCreate');
     // lineage keys and declared relation edges are construct-addressable
     // (SPEC §6): the panel's parent bin arrives as lineage.binId, its
-    // declared relation as relations.placed-on
+    // declared relation as relations.placed-on. No separate Name prompt:
+    // normalization minted the identifier flag on `serial`, so the row
+    // already names the record.
     expect(construction.inputs.map(input => input.id)).toEqual(
-      ['name', 'lineage.binId', 'relations.placed-on', 'data.serial', 'specs.width']
+      ['lineage.binId', 'relations.placed-on', 'data.serial', 'specs.width']
     );
     expect(construction.inputs.find(input => input.id === 'relations.placed-on')).toMatchObject({
       type: 'typeList',
@@ -179,7 +186,9 @@ describe('domain projection (synthesis only, after the legacy cut)', () => {
       required: true,
       prompt: true
     });
-    expect(occs.modeInputs.upload.map(input => input.id)).toEqual(['name', 'payload']);
+    // The identifier row (`title`) names the record: upload carries only
+    // the payload, never a second name prompt.
+    expect(occs.modeInputs.upload.map(input => input.id)).toEqual(['payload']);
     // Payload-less types keep genericCreate.
     expect(projected.construction.panel.modes).toEqual(['genericCreate']);
     expect(projected.construction.panel.defaultMode).toBe('genericCreate');

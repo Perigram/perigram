@@ -12,7 +12,7 @@ const SPEC_BY_KIND = {
   'cts.command': 'Runs any registered command (the generic service wrapper). Pick the command in the inspector; its signature becomes the sockets.',
   'cts.service': 'Runs a registered service operator (pure computation: values in, values out — never touches instances directly). Bound to its operator at drop.',
   'cts.conversion': 'Converts the wired instance into a new instance of the operator\'s output type, recording provenance (inputs + versions).',
-  'cts.read': 'Loads instances into the graph. `current` takes the instance from the screen/action context; `byId`/`byRef` look up; `parent`/`children`/`related` follow declared edges; `query` selects by predicate.',
+  'cts.read': 'Loads instances into the graph. `current` takes the instance from the screen/action context; `byRef` resolves a reference; `all` loads every visible instance of the type; `parent`/`children`/`related` follow declared edges.',
   'cts.field': 'Extracts one field (a pure value) from a record — the entity-to-value gate before values/math/service nodes.',
   'cts.compose': 'Composes a fields/edges patch from values — feed it into construct/mutate sockets.',
   'cts.decompose': 'Splits an instance into its blocks (identity, data, specs, …) for per-block reads and writes.',
@@ -41,7 +41,8 @@ const SPEC_BY_KIND = {
 };
 
 // v4 operation kinds (stored graphs, resolved twins) share the species
-// descriptions — one vocabulary.
+// descriptions — one vocabulary. Reads are absent: every load migrates them
+// to `cts.read` + select, so no v4 read spelling survives to render.
 const V4_ALIAS = {
   'effect.createEntity': 'cts.construct',
   'effect.runProducer': 'cts.construct',
@@ -52,13 +53,6 @@ const V4_ALIAS = {
   'effect.runCommand': 'cts.command',
   'effect.sendEntity': 'cts.command',
   'effect.generateAttachment': 'cts.conversion',
-  'read.currentEntity': 'cts.read',
-  'read.entityById': 'cts.read',
-  'read.resolveEntityRef': 'cts.read',
-  'read.parent': 'cts.read',
-  'read.children': 'cts.read',
-  'read.related': 'cts.read',
-  'read.queryEntities': 'cts.read',
   'record.getField': 'cts.field',
   'record.composeBlock': 'cts.compose',
   'record.modifyBlock': 'cts.compose',

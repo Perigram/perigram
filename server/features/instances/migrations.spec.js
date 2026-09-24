@@ -39,7 +39,7 @@ describe('transformInstanceForSteps', () => {
       fields: { note: 'a', thickness: 3, keep: true },
       states: { main: 'scrap' }
     };
-    const { fields, main, applied } = transformInstanceForSteps(doc, [
+    const { fields, stateChanges, applied } = transformInstanceForSteps(doc, [
       { kind: 'rename-enum-value', axis: 'main', from: 'scrap', to: 'recycled' },
       { kind: 'rename-field', from: 'note', to: 'label' },
       { kind: 'retype-field', field: 'thickness', via: { op: 'mul', args: [{ op: 'var', name: 'value' }, { op: 'lit', value: 10 }] } },
@@ -47,7 +47,7 @@ describe('transformInstanceForSteps', () => {
       { kind: 'add-default-field', field: 'origin', value: 'imported' }
     ]);
     expect(fields).toEqual({ label: 'a', thickness: 30, origin: 'imported' });
-    expect(main).toBe('recycled');
+    expect(stateChanges).toEqual({ main: 'recycled' });
     expect(applied).toHaveLength(5);
     // The source document is not mutated.
     expect(doc.fields).toEqual({ note: 'a', thickness: 3, keep: true });

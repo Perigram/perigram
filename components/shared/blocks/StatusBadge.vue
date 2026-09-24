@@ -3,8 +3,8 @@
  * StatusBadge - v24 Standardized
  * Atomic status chip. Display policy resolves from the compiled contract:
  * process-authored DTO metadata (`status.metadata.display`) wins, then the
- * served type view's per-state display policy (`states.main.render` through
- * the registry bundle), then a neutral chip carrying the raw value — the
+ * served type view's per-state display policy in the named axis (`states.<axis>
+ * .render` through the registry bundle), then a neutral chip carrying the raw value — the
  * stop-line for genuinely undeclared types. No legacy domain status table.
  */
 import Tag from 'primevue/tag';
@@ -16,6 +16,7 @@ import { kebabStateTypeId, resolveStateDisplay } from '~/utils/state-engine';
 const props = defineProps({
   state: { type: String, required: true },
   typeId: { type: String, default: '' },
+  axis: { type: String, default: 'main' },
   iconOnly: { type: Boolean, default: false },
   display: { type: Object, default: null }
 });
@@ -27,7 +28,8 @@ const config = computed(() => {
     const authored = props.display && typeof props.display === 'object' ? props.display : {};
     const policy = resolveStateDisplay(
         props.typeId ? registry.statesOf(kebabStateTypeId(props.typeId)) : null,
-        props.state
+        props.state,
+        props.axis
     );
     return {
         label: authored.label || policy.label,

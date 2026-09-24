@@ -26,6 +26,23 @@ Implementation tracker against [SPEC.md](./SPEC.md). Scope discipline:
 
 ## Designer rebuild layers
 
+### Current accepted hard cut — 2026-09-24
+
+- [ ] Replace flat `states.main.values` declarations with recursive state
+  machines: one initial state per machine, single-parent acyclic state paths,
+  explicit terminal flags, and reachable terminal validation.
+- [ ] Separate declaration graph facts from process graph execution. Native
+  `cts.*` records preserve their kinds and ports through migration,
+  resolution, validation, compilation, orchestration, and server execution.
+- [ ] Remove author-facing raw-id lookup, producer-path joins, fixed-arity
+  list construction, persisted packet matching/transforms, and hidden query
+  predicates. Keep only typed context/reference/all instance sources,
+  declared field projection, effect species, and supported control flow.
+- [ ] Make producer identity optional for existing-instance consumers and
+  derive lifecycle/transition authorization from the bound CTS declaration.
+- [ ] Add palette and nested-state E2E acceptance artifacts.
+
+
 - [x] **L0 — type storage**: `cts_types` collection + org-scoped
   `server/features/cts-types` (validate/diff-refuse/rollback via the real
   registry) + `GET|POST /api/admin/cts/types`, `DELETE /api/admin/cts/types/:id`;

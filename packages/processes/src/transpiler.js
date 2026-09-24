@@ -135,6 +135,8 @@ export function canvasToDefinition(canvas = {}, previousDefinition = {}) {
       // key, or compareSemanticRecords rejects activation).
       ...(kind === 'state' ? {
         value: data.value || '',
+        axis: data.axis || 'main',
+        parentStateId: data.parentStateId || null,
         initial: data.initial === true,
         terminal: data.terminal === true
       } : {})
@@ -253,6 +255,8 @@ function projectDeclarationRecords(records = {}, x) {
         ...(record.kind === 'state' ? {
           typeId: record.typeId || null,
           value: record.value || '',
+          axis: record.axis || 'main',
+          parentStateId: record.parentStateId || null,
           severity: record.severity || null,
           icon: record.icon || null,
           // Authored booleans project so the rebuild (which writes them

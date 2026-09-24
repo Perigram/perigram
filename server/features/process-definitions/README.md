@@ -1,16 +1,14 @@
 # COMPONENT: Process Definitions
 
-Organization-owned process definitions store the visual process graph and the
-compiled runtime contract for organization-role grants, producer-output
-workflows and field policies, service availability, sockets, screen manifests,
-and navigation. Runtime workflow resolution requires the exact
-`producerOutputId`; entity type is only schema metadata and an index key.
-Runtime role permissions are derived from the graph during compilation: role,
-entity-profile, and action access create grants; screen requirements only
-consume those grants and screen manifests create navigation. Service run/view access uses service identities
-instead of user roles. If a role has grants but no authored screen for the
-granted entity feature, compilation creates a generated entity-list screen for
-that role/feature instead of relying on static app navigation.
+Organization-owned process definitions store the current species process graph
+and compiled contracts for role grants, entity-origin field/lineage policy,
+declared workflow overlays, service availability, screens, and navigation.
+Entity type is the lifecycle/schema authority; `producerOutputId` is optional
+origin provenance, not a required workflow key for existing-instance
+operations. Runtime role permissions are derived from action and screen
+contracts. Service run/view access uses service identities rather than user
+roles. A role with grants but no authored screen receives the generated
+entity-list surface for the granted type.
 
 Activation is the only path that affects runtime behavior. The service
 requires canonical semantic process records, validates the draft, verifies the
@@ -88,61 +86,43 @@ migration. `migration-plan.js` owns the contract:
   invalidation event, so open screens reconcile exactly as if the
   mutation happened through an action.
 
-Creation, update, validation, and activation accept only the current semantic
-source at `dataflowVersion: 4`. Definitions with a missing or different
-dataflow version are rejected, and new definitions are authored directly in
-the current format. During the producer-output protocol cutover, these
-boundaries run the package-owned, one-way producer identity rewrite. Save and
-activation persist the rewritten semantic records and clear stale compiled
-output. Validation checks the same rewrite in memory. A definition with zero or
-multiple candidate entity outputs fails with node/socket diagnostics instead
-of selecting by entity type. Other normalization used by validation and
-compilation remains an in-memory projection and does not replace authored graph
-records.
+Creation, update, validation, activation, preview, and run accept current
+semantic species records. The one-way legacy migration runs before resolution;
+no retired operation kind is accepted after that boundary. Save and activation
+persist the current records. Draft acceptance overlays the draft's declaration
+graph on the projected CTS domain and validates the same recursive state/edge
+records that APPLY posts.
 
-The feature boundary is split into explicit collaborators. `compiler-adapter.js`
-owns current-protocol validation and activation projections — including
-graph-protocol v5 dual acceptance: definitions authored in the CTS
-vocabulary (`cts.*` species kinds, type ids, row paths; see
-[packages/cts/SPEC.md](../../../packages/cts/SPEC.md) §20) lower to the
-executable working shapes through `resolveCtsDefinition`/`checkCtsGraphBindings`
-at this one seam, so validate, activate, preview, and run paths accept both
-vocabularies while stored v4 graphs pass through untouched. Acceptance
-validates against the projected domain **overlaid with the draft's own
-`ctsTypes` declarations** (`declarationsFromCtsRecords`): SAVE persists
-in-tree-authored types as draft data — they only land in the registry at
-APPLY — so bindings to them must resolve at save time. Declarations that
-do not compile stub into the entity list (bindings save; APPLY reports
-the declaration error where it belongs); `draft-overlay.spec.js` pins
-the contract. The same tolerance covers every other protocol binding
-diagnostic (undeclared states, fields outside the row): an in-progress
-draft with access rules on a still-unbound node stays savable, and
-validate/apply own the report (`tryAcceptGraphProtocol` in the adapter,
-`persistedRewrites` in the service).
-`relation-option-resolver.js` owns scoped relation choices, `run-repository.js`
-owns the durable run/invocation/wait/receipt execution store, and `runtime.js`
-owns active-process compilation/auth hydration. Organization configuration is
-read and changed through the registered organization service. Neither runtime
-nor the feature service imports another feature's repository.
+Durable effect dispatch classifies once (`operationKindOf`) and keeps the
+record's species kind: `cts.construct`/`cts.mutate`/`cts.remove` run through
+the same construction/update/delete adapters as their retired v4 spellings,
+`cts.command`/`cts.service` run commands, and `cts.transition` executes
+through the status runtime using its declared `state` reference — target
+path, axis (`state.axis` becomes the transition region), and note — never a
+retired status socket or an arbitrary field patch.
 
-Process compilation runs through the CTS-projected domain: the active
-runtime, activation, contract diffs, and draft normalization build their
-compiler domain from the organization type store (`server/features/cts-types`)
-overlaid on the strangler-converted system declarations
-(`@perigram/cts` `projectDomainFromView`). A stored org type that no longer
-compiles fails activation loudly. `cts-server-equality.spec.js` is the
-env-gated live proof that the projection compiles byte-identical contracts,
-and `cts-v5-equivalence.spec.js` is the graph-protocol gate:
-`compile(v4)` and `compile(resolve(migrate(v4)))` must behave identically.
+`compiler-adapter.js` owns current-protocol validation and activation
+projections. `resolveCtsDefinition` resolves ids and paths without changing
+species kinds, discriminators, socket ids, or graph edges. The durable run
+repository owns run/invocation/wait/receipt storage, and `runtime.js` owns
+active-process compilation and auth hydration. No feature imports another
+feature's repository.
+
+Process compilation runs through `projectDomainFromView` over the organization
+type store plus mounted declarations. Workflow projection preserves recursive
+state trees. Consumer actions may omit producer identity; when present, the
+producer output must emit the same type. The compiled contract is derived from
+fresh semantic records for every validate/apply/run; stored compiled snapshots
+are inspection-only.
 
 ## Process execution
 
-`POST /api/process-definitions/:id/runs` starts a manual v4 trigger backed by
-durable MongoDB execution records. Runs, steps, invocations, waits, outputs, and
-receipts retain revision, producer, control-scope, and invocation identity.
-Before an effect is dispatched, its invocation snapshots the expected completion
-sockets and connected routes. Dispatch leaves the task non-terminal: only a
-durable receipt can supply terminal output and advance those routes.
+`POST /api/process-definitions/:id/runs` starts a manual current-species
+process run backed by durable MongoDB execution records. Runs, steps,
+invocations, waits, outputs, and receipts retain revision, provenance,
+control-scope, and invocation identity. Native species records and their
+authored ports are resolved once and used unchanged by validation, compilation,
+orchestration, and effect adapters.
 
 Receipt ingestion claims the invocation revision and advances the run in one
 MongoDB transaction. Duplicate or concurrent delivery is therefore an

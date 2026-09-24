@@ -37,7 +37,7 @@ function mongoFilterOf(node) {
 // their own storage paths, and field addresses live under `fields.`.
 function storagePathOf(field) {
   if (field === '_id' || field === 'id') return '_id';
-  if (field === 'states.main' || field.startsWith('lineage.')) return field;
+  if (/^states\.[^.]+$/.test(field) || field.startsWith('lineage.')) return field;
   return `fields.${field}`;
 }
 

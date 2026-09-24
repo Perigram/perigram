@@ -30,12 +30,11 @@ module layout and how the code maps to the spec's build-order tiers.
   (authored, else the derived `camel(declaringTypeId)+"Id"` fallback — one
   derivation home, consumed by the domain projection, derived indexes, and
   the UI generator); lineage acyclicity (R2).
-- `states.js` — single-axis states, guarded transitions, unique intents,
-  terminal reachability (R4); `mergeTransitionNodeStates` merges
-  transition-node-declared target statuses into a tree-declared axis
-  (values union, fan-out edges from every other value, sinks ∪ explicit
-  terminals — the shared core of `compileTreeDeclarations` and
-  `declarationsFromCtsRecords`).
+- `states.js` — recursive state machines: one initial state per machine,
+  single-parent acyclic trees, canonical dotted paths, guarded transitions,
+  unique intent targets, explicit terminal reachability, and hierarchy-aware
+  entry/transition semantics (R4). Workflow regions remain independent axes;
+  nested machines are state trees inside a region.
 - `operators.js` — the six species with typed signatures, event/schedule
   triggers; services and projections are ref-free.
 - `expressions.js` — CEL-semantics expression ASTs: total evaluation with a
@@ -90,9 +89,9 @@ module layout and how the code maps to the spec's build-order tiers.
 - `compat/domain-projection.js` — the single CTS → compiler-domain
   translator, synthesis-only: every type in the view (framework, pack,
   org) synthesizes its entities entry (per-class collection, §13),
-  `workflows` (declared states/transitions with render policy — derived
-  by the exported `declarationWorkflow(type)`, the one declaration→v2
-  machine seam the server's status resolution reuses), 
+  `workflows` (recursive declared state machines projected into workflow
+  regions — derived by the exported `declarationWorkflow(type)`, the one
+  declaration→v2 machine seam the server's status resolution reuses), 
   `fieldSchemas` (core-slot convention + rows), `fieldAccess` (bound to
   the cts-types feature), `containment` (children edges with lineage
   keys), `construction` (`genericCreate` + declared construct operators
@@ -145,21 +144,24 @@ module layout and how the code maps to the spec's build-order tiers.
   and canvas card kinds are never misread as type references.
 - `compat/domain-projection.js` — the single CTS → compiler-domain
   translator. See SPEC §15/§19 for what it owns per key.
-- `compat/graph-protocol.js` — the v5 graph protocol (SPEC §20):
-  `migrateV4Definition` (one-way persisted rewrite to species kinds, CTS
-  type ids, and verified row paths), `resolveCtsDefinition` (compile-time
-  lowering back to the executable working shapes through the projected
-  domain — internal, never persisted), `checkCtsGraphBindings`
-  (declaration-level binding validation), `operationKindOf` /
-  `resolveCtsRecord` (the single-record seam the designer and node catalog
-  route kind matching and port resolution through), and
-  `declarationsFromCtsRecords` (persisted `ctsTypes` draft records back
-  into declaration objects, so acceptance gates can validate a draft
-  against its own in-tree declarations before APPLY posts them). The v4
-  kind mapping
-  derives from `SPECIES_BY_EFFECT_KIND`; equivalence gates live in the
-  server process-definitions suite and the processes designer round-trip
-  spec.
+- `compat/graph-protocol.js` — the native species graph protocol (SPEC §20):
+  `migrateV4Definition` is the one-way persisted rewrite into current
+  species records; `resolveCtsDefinition` resolves declaration ids and row
+  paths while preserving species kinds, discriminators, socket ids, and
+  graph edges; `checkCtsGraphBindings` validates type, field, state,
+  transition, operator, and edge bindings. `operationKindOf` is a
+  classification helper only and never changes executable ports.
+  `declarationsFromCtsRecords` receives the declaration graph as well as
+  records, so nested state and edge acceptance matches what APPLY posts.
+  The rewrite migrates the graph with its records: retired read/field
+  handles move to the native sockets (`entity` streams, one `result`
+  output), the retired hidden-predicate query wires die, a composer fed
+  into a construct/mutate block expands into that consumer's field wires
+  (the composer and its now-dead decompose leave the graph), a construct's
+  lifecycle-entry socket dies with its default (the type declaration owns
+  initial state), and a v4 update that smuggled a status beside its field
+  patch splits into `cts.mutate -> cts.transition` with control and entity
+  wires chaining the two.
 - `pack/cnc.js` — the CNC starter type pack: the collapse-table acceptance
   fixture (file/item/group/process families, the typed nesting seam, and
   sample instances).
@@ -171,9 +173,10 @@ The package is browser-safe by contract (SPEC §13). The process designer
 imports the registry directly and consumes the compiler-domain projection
 (`projectDomainFromView`) as its only domain source — palette options,
 fields, and statuses derive from the organization's type view. The
-designer tree is also the declaration-authoring surface (Class/Field/State
-nodes; compiled by `compileTreeDeclarations` from
-`@perigram/processes`); `pages/organization/types.vue` is the read-only
+designer shell separates declaration authoring from executable process
+composition: Class/Field/State/Transition/Operator nodes compile through
+`compileTreeDeclarations`, while process nodes reference those declarations
+without rewriting them. `pages/organization/types.vue` is the read-only
 registry browser fed by `GET /api/admin/cts/types` (org view: system types
 + org-authored declarations stored by `server/features/cts-types`). See
 [pages/organization/README.md](../../pages/organization/README.md).
@@ -184,12 +187,10 @@ registry browser fed by `GET /api/admin/cts/types` (org view: system types
 rule with both passing and failing fixtures, the tenancy resolution, the
 diff refusal path, the pack compile, and the synthesis projection
 (`compat/domain-projection.spec.js`: per-class collections, declared
-workflows/construction/containment, tenancy). The v5 graph protocol
-equivalence gate
-(`server/features/process-definitions/cts-v5-equivalence.spec.js`) proves
-`compile(v4)` and `compile(resolve(migrate(v4)))` behave identically. The
-legacy source-flip equivalence gate was deleted with the converter:
-there is no legacy source left to be equivalent to.
+workflows/construction/containment, tenancy). The graph-protocol acceptance
+gate proves migration and resolution preserve current species kinds, typed
+ports, and executable behavior through compilation. The retired source-flip
+converter has no runtime path.
 
 ## Related
 

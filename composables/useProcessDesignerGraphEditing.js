@@ -30,9 +30,9 @@ export function useProcessDesignerGraphEditing({
       }
     }
     // Owned definition-plane records die with their canvas node: process
-    // records, the producer outputs they anchored, and join selections that
-    // pointed at the removed outputs. (Save-time canvas pruning covers
-    // unreferenced records, but validation and panels read the draft live.)
+    // records and the producer outputs they anchored. (Save-time canvas
+    // pruning covers unreferenced records, but validation and panels read
+    // the draft live.)
     const removedRecordIds = new Set();
     for (const node of selectedGraphNodes()) {
       const refId = node.data?.refId;
@@ -48,11 +48,6 @@ export function useProcessDesignerGraphEditing({
     const producerOutputs = draft.value?.data?.producerOutputs || {};
     for (const [producerOutputId, output] of Object.entries(producerOutputs)) {
       if (output && removedRecordIds.has(String(output.nodeId))) delete producerOutputs[producerOutputId];
-    }
-    for (const record of Object.values(draft.value?.data?.processNodes || {})) {
-      if (record?.selectedProducerOutputId && !producerOutputs[record.selectedProducerOutputId]) {
-        record.selectedProducerOutputId = '';
-      }
     }
     nodes.value = nodes.value.filter(node => !removedNodeIds.has(node.id));
     edges.value = edges.value.filter(edge => !removedEdgeIds.has(edge.id));

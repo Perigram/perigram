@@ -137,17 +137,17 @@ describe('process v4 data execution', () => {
     expect(result.branches[0].items).toEqual([20, 30]);
   });
 
-  it('keeps entity predicates declarative and filters in read context', async () => {
+  it('keeps entity predicates declarative and loads All unfiltered', async () => {
     const predicate = { kind: 'field', typeId: 'sheet', path: 'specs.width', operation: 'gte', value: 100 };
     expect(evaluateEntityPredicate(predicate, { specs: { width: 120 } })).toBe(true);
-    const queryEntities = vi.fn().mockResolvedValue([{ id: 'wide' }]);
+    const queryEntities = vi.fn().mockResolvedValue([{ id: 'wide' }, { id: 'narrow' }]);
     const result = await executeProcessDataNode(
-      { kind: 'read.queryEntities', typeId: 'sheet' },
-      { predicate: createDataPacket(predicate) },
+      { kind: 'cts.read', select: 'all', typeId: 'sheet' },
+      {},
       { queryEntities }
     );
-    expect(queryEntities).toHaveBeenCalledWith('sheet', predicate);
-    expect(result.branches[0].items).toEqual([{ id: 'wide' }]);
+    expect(queryEntities).toHaveBeenCalledWith('sheet');
+    expect(result.branches[0].items).toEqual([{ id: 'wide' }, { id: 'narrow' }]);
   });
 
   it('builds composable field patches without mutating the source record', async () => {
@@ -729,7 +729,7 @@ describe('process v4 data execution', () => {
       { identity: { name: 'Gamma' } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', typeId: 'project' },
+      { kind: 'cts.read', select: 'all', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -759,7 +759,7 @@ describe('process v4 data execution', () => {
       { identity: { name: 'Beta' }, states: { main: 'NEW' } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', typeId: 'project' },
+      { kind: 'cts.read', select: 'all', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -788,7 +788,7 @@ describe('process v4 data execution', () => {
       { identity: { name: 'Gamma' }, states: { main: 'DONE' } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', typeId: 'project' },
+      { kind: 'cts.read', select: 'all', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -818,7 +818,7 @@ describe('process v4 data execution', () => {
       { relations: { library: { type: 'library', id: 'lib-b' } } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', typeId: 'project' },
+      { kind: 'cts.read', select: 'all', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -844,7 +844,7 @@ describe('process v4 data execution', () => {
   it('returns an empty result when no entity matches the mask', async () => {
     const entities = [{ identity: { name: 'Alpha' } }];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', typeId: 'project' },
+      { kind: 'cts.read', select: 'all', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -875,7 +875,7 @@ describe('process v4 data execution', () => {
     ];
     const authorized = [all[0], all[2]];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', typeId: 'project' },
+      { kind: 'cts.read', select: 'all', typeId: 'project' },
       {},
       { queryEntities: async () => authorized }
     );
@@ -985,7 +985,7 @@ describe('process v4 data execution', () => {
       data: { updatedAt: `2026-08-${String(11 - index).padStart(2, '0')}T00:00:00.000Z` }
     }));
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', typeId: 'job' },
+      { kind: 'cts.read', select: 'all', typeId: 'job' },
       {},
       { queryEntities: async () => entities }
     );
@@ -1019,7 +1019,7 @@ describe('process v4 data execution', () => {
       { relations: { library: { type: 'library', id: 'lib-a' } } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', typeId: 'project' },
+      { kind: 'cts.read', select: 'all', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -1056,7 +1056,7 @@ describe('process v4 data execution', () => {
       { states: { main: 'NEW' }, identity: { name: 'c' } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', typeId: 'project' },
+      { kind: 'cts.read', select: 'all', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );
@@ -1139,7 +1139,7 @@ describe('process v4 data execution', () => {
       { identity: { name: 'Gamma' }, states: { main: 'DONE' } }
     ];
     const selected = await executeProcessDataNode(
-      { kind: 'read.queryEntities', typeId: 'project' },
+      { kind: 'cts.read', select: 'all', typeId: 'project' },
       {},
       { queryEntities: async () => entities }
     );

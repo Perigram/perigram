@@ -67,6 +67,17 @@ noise.
   `table`, and `formAction` templates are not covered because the seeded
   process authors no screens with them — once such screens exist, extend
   this spec with their variants.
+- `process-designer-cts.spec.js`: drives the retained palette through the
+  real designer save/reload/preview/run boundaries. It records the exact
+  species kind, ports, and result for every retained static and registry
+  operation, then writes a machine-readable acceptance artifact. Retired
+  raw-id lookup, producer joins, fixed-arity list constructors, packet
+  controls, and generic hierarchy traversal must not be present.
+- `hierarchical-state-flow.spec.js`: authors a recursive state declaration,
+  applies it, creates an instance at the declared initial leaf, executes a
+  nested transition through the generated action, and verifies the active
+  leaf path, action path, status history, and reload persistence. The
+  attached JSON and screenshots are the durable acceptance artifact.
 - `project-workspace.spec.js`: uses the active compiled Project detail screen
   and verifies a cassette reached through its linked Library region opens the
   embedded cassette designer in the same pane; verifies pane tabs, icon-only

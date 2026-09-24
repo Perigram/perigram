@@ -84,14 +84,13 @@ describe('literal -> construct field sockets', () => {
 
   it('a bound construct exposes the declared row fields as typed sockets', () => {
     const ids = ports.map(port => port.id);
-    for (const id of ['name', 'data.name', 'specs.thicknessMm', 'data.count', 'data.owner', 'data.madeAt', 'data.flag', 'states.main']) {
+    for (const id of ['data.name', 'specs.thicknessMm', 'data.count', 'data.owner', 'data.madeAt', 'data.flag']) {
       expect(ids, `missing socket ${id}`).toContain(id);
     }
     expect(input(ports, 'specs.thicknessMm').type).toMatchObject({ base: 'number', unit: 'mm' });
   });
 
   it('same-base literals wire into their field sockets', () => {
-    expect(processSocketsCompatible(literalOutput('string'), input(ports, 'name')).ok).toBe(true);
     expect(processSocketsCompatible(literalOutput('string'), input(ports, 'data.name')).ok).toBe(true);
     expect(processSocketsCompatible(literalOutput('number'), input(ports, 'data.count')).ok).toBe(true);
     expect(processSocketsCompatible(literalOutput('boolean'), input(ports, 'data.flag')).ok).toBe(true);

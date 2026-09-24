@@ -2105,7 +2105,7 @@ describe('@perigram/processes compiler', () => {
       },
       producerOutputs: producerOutputRecords([['project_entity', 'project']]),
       processNodes: {
-        current: { id: 'current', kind: 'read.currentEntity', typeId: 'project' },
+        current: { id: 'current', kind: 'cts.read', select: 'current', typeId: 'project' },
         deconstruct: { id: 'deconstruct', kind: 'record.deconstruct', typeId: 'project', blocks: ['relations'] },
         library: {
           id: 'library',
@@ -2140,8 +2140,8 @@ describe('@perigram/processes compiler', () => {
         nodes: ['current', 'deconstruct', 'library', 'modify', 'update_relations']
           .map(id => ({ id, type: 'processNode', data: { refId: id } })),
         edges: [
-          { id: 'current-deconstruct', source: 'current', sourceHandle: 'data:entity', target: 'deconstruct', targetHandle: 'data:entity', role: 'data' },
-          { id: 'current-update', source: 'current', sourceHandle: 'data:entity', target: 'update_relations', targetHandle: 'data:entity', role: 'data' },
+          { id: 'current-deconstruct', source: 'current', sourceHandle: 'data:result', target: 'deconstruct', targetHandle: 'data:entity', role: 'data' },
+          { id: 'current-update', source: 'current', sourceHandle: 'data:result', target: 'update_relations', targetHandle: 'data:entity', role: 'data' },
           { id: 'deconstruct-modify', source: 'deconstruct', sourceHandle: 'data:relations', target: 'modify', targetHandle: 'data:block', role: 'data' },
           { id: 'library-modify', source: 'library', sourceHandle: 'data:value', target: 'modify', targetHandle: 'data:entry:library', role: 'data' },
           { id: 'modify-update', source: 'modify', sourceHandle: 'data:block', target: 'update_relations', targetHandle: 'data:relations', role: 'data' }
@@ -4185,7 +4185,16 @@ describe('@perigram/processes compiler', () => {
           workflow: {
             schemaVersion: 2,
             primaryRegion: 'main',
-            regions: { main: { initial: 'PRODUCTION', states: { PRODUCTION: {}, DONE: {} }, transitions: [] } }
+            regions: {
+              main: {
+                initial: 'PRODUCTION',
+                states: {
+                  PRODUCTION: { initial: 'cut', states: { cut: {} } },
+                  DONE: {}
+                },
+                transitions: []
+              }
+            }
           }
         },
         fields: { read: [], write: [], private: [] }

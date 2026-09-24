@@ -126,28 +126,27 @@ export function useProcessDesignerNodeRecords({
   // and are filled by the sync pass, not the factory.
   function createProcessNode(id, kind = 'source.literalItem') {
     const op = operationKindOf({ kind });
+    const nativeSpecies = String(kind || '').startsWith('cts.');
     const createLike = ['effect.createEntity', 'effect.runProducer'].includes(op);
     const node = {
       id,
       kind,
       typeId: '',
-      operation: defaultProcessNodeOperation(op),
-      value: op === 'source.literalList' ? [] : op === 'source.literalTree' ? { branches: [] } : null,
-      fields: [],
       icon: iconForProcessNode(kind),
       inputs: [],
       outputs: []
     };
+    if (!nativeSpecies) {
+      node.operation = defaultProcessNodeOperation(kind);
+      node.value = op === 'source.literalList' ? [] : op === 'source.literalTree' ? { branches: [] } : null;
+      node.fields = [];
+    }
     if (createLike) node.construction = { mode: 'genericCreate', inputs: [] };
     // No default bindings: nodes are unbound until the author binds them
     // (wire a type node, or pick explicitly). A seeded domain type here is
-    // an invisible authoring decision the user never made.
-    if (op === 'producer.join') {
-      node.selectedProducerOutputId = '';
-    }
-    // initial status derives post-preset in syncProcessNode (the palette
-    // preset may bind a different type than the default).
-    if (createLike) node.state = {};
+    // an invisible authoring decision the user never made. Native species
+    // records have no operation switch, status-entry payload, or retired
+    // producer selector.
     syncProcessNode(node);
     return node;
   }

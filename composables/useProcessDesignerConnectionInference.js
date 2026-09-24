@@ -1,8 +1,6 @@
 import { operationKindOf } from '~/packages/cts/src/index.js';
-import { MAKE_LIST_INPUTS } from '~/packages/processes/src/index.js';
 
 export function useProcessDesignerConnectionInference({ nodes, draft, resolveOutputs, portForHandle, syncProcessNode }) {
-  const makeListInputs = new Set(MAKE_LIST_INPUTS);
   const genericKinds = new Set([
     'collection.makeList',
     'collection.packArray',
@@ -42,8 +40,7 @@ export function useProcessDesignerConnectionInference({ nodes, draft, resolveOut
     }
     const targetInput = String(connection.targetHandle || '').replace(/^(input|data):/, '');
     const drivesGenericType = !targetInput
-      || ['value', 'items', 'tree', 'left'].includes(targetInput)
-      || (targetRecord.kind === 'collection.makeList' && makeListInputs.has(targetInput));
+      || ['value', 'items', 'tree', 'left'].includes(targetInput);
     if (genericKinds.has(operationKindOf(targetRecord)) && drivesGenericType) targetRecord.type = { ...sourcePort.type };
     if (operationKindOf(targetRecord) === 'value.logic' && ['left', 'value', ''].includes(targetInput)) targetRecord.type = { ...sourcePort.type };
     if (['value.string', 'value.math', 'value.dateTime'].includes(targetRecord.kind)

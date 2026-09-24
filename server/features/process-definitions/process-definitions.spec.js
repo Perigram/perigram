@@ -156,7 +156,12 @@ describe('current process-definition service contract', () => {
       id: 'fixture-panel-9',
       class: 'file',
       fields: { name: { base: 'string' } },
-      states: { main: { initial: 'draft', values: ['draft', 'archived'], terminal: ['archived'] } }
+      states: {
+        main: {
+          initial: 'draft',
+          states: { draft: {}, archived: { terminal: true } }
+        }
+      }
     });
     vi.mocked(ctsTypes.compileRegistryForOrganization).mockResolvedValueOnce(orgRegistry);
 
@@ -178,8 +183,7 @@ describe('current process-definition service contract', () => {
         create: {
           id: 'create', kind: 'cts.construct', typeId: 'fixture-panel-9', via: 'genericCreate',
           producerOutputId: 'create:result', trigger: { mode: 'manual' },
-          access: { level: 'write', grants: [{ roleId, level: 'admin' }] },
-          state: { to: 'draft' }
+          access: { level: 'write', grants: [{ roleId, level: 'admin' }] }
         }
       }
     }));
@@ -293,7 +297,6 @@ describe('current process-definition service contract', () => {
     });
 
     const validation = await validate('process-draft', adminAuth());
-    console.log("VALIDATION ERRORS:", JSON.stringify(validation.errors));
     expect(validation.ok).toBe(true);
     expect(validation.diff.removedInstanceStatees).toEqual([{ typeId, statuses: ['LEGACY_RETIRED'] }]);
 
@@ -355,8 +358,8 @@ describe('current process-definition service contract', () => {
         regions: {
           main: {
             label: 'Project lifecycle',
-            initial: 'draft',
-            states: { draft: { canUpdateMeta: true }, LEGACY_RETIRED: {} },
+            initial: 'ACTIVE',
+            states: { ACTIVE: { canUpdateMeta: true }, LEGACY_RETIRED: {} },
             transitions: []
           }
         }
@@ -371,7 +374,7 @@ describe('current process-definition service contract', () => {
     processRepository.updateById.mockImplementation(async (id, process) => ({ ...process.toJSON(), _id: id }));
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === typeId
-        ? { processList: vi.fn().mockResolvedValue([{ states: { main: 'draft' } }]) }
+        ? { processList: vi.fn().mockResolvedValue([{ states: { main: 'ACTIVE' } }]) }
         : organizationService
     });
 
@@ -541,9 +544,8 @@ describe('current process-definition service contract', () => {
     const result = await activate('process-draft', adminAuth());
 
     expect(result.states.main).toBe('ACTIVE');
-    expect(result.data.compiled.lineageBindings).toEqual(expect.arrayContaining([
-      expect.objectContaining({ childTypeId: 'facade', parentTypeId: 'project', lineageKey: 'projectId' })
-    ]));
+    expect(result.data.compiled.producerOutputs['create_cassette:result'].workflow.regions.main.transitions)
+      .toEqual(expect.arrayContaining([expect.objectContaining({ from: 'ACTIVE', to: 'ARCHIVED' })]));
     expect(organizationService.setActiveProcessDefinition).toHaveBeenCalledWith('org-acceptance', 'process-draft');
   });
 
@@ -552,7 +554,7 @@ describe('current process-definition service contract', () => {
 
     expect(result.nodes.present.outputs.value.branches[0].items).toEqual([null]);
     expect(result.nodes.absent.outputs.value.branches[0].items).toEqual([
-      { missing: true, path: 'identity.reference' }
+      { missing: true, path: 'data.design' }
     ]);
     // The response is already the JSON contract: no undefined property or
     // array item degrades to null on the wire.
@@ -594,9 +596,7 @@ describe('current process-definition service contract', () => {
     expect(processUpdate).toHaveBeenCalledWith(
       'machine-1',
       expect.objectContaining({
-        'identity.uid': 'machine-1',
         'identity.name': 'Renamed machine',
-        'identity.slug': 'cnc-router',
         'identity.reference': { code: 'M-01', location: 'Hall A' }
       }),
       expect.objectContaining({ userId: 'admin', organizationId: 'org-acceptance' })
@@ -607,7 +607,7 @@ describe('current process-definition service contract', () => {
     expect(persisted.identity.reference).toEqual({ code: 'M-01', location: 'Hall A' });
   });
 
-  it('emits the updated typed entity DTO from a modify entity node that combines writable blocks with a status target', async () => {
+  it('splits a v4 update that smuggled a status beside its field patch into mutate -> transition', async () => {
     const machine = {
       type: 'machine',
       id: 'machine-1',
@@ -618,17 +618,21 @@ describe('current process-definition service contract', () => {
       attachments: {},
       states: { main: 'ACTIVE' }
     };
-    stateService.transitionWithResult.mockImplementation(async ({ targetState, patch }) => {
-      const updated = structuredClone(machine);
-      for (const [path, value] of Object.entries(patch || {})) {
-        setByPath(updated, path, value);
+    const processUpdate = vi.fn(async (id, patch) => {
+      const persisted = structuredClone(machine);
+      for (const [path, value] of Object.entries(patch)) {
+        setByPath(persisted, path, value);
       }
-      updated.status = { state: { primary: targetState }, timestamp: '2026-01-02T00:00:00.000Z', userId: 'admin' };
-      return { entity: updated, status: updated.status, actions: [], effects: [] };
+      return persisted;
+    });
+    stateService.transitionWithResult.mockImplementation(async ({ targetState }) => {
+      const updated = structuredClone(machine);
+      updated.states = { main: targetState };
+      return { entity: updated, status: { state: { primary: targetState } }, actions: [], effects: [] };
     });
     getAppRegistry.mockReturnValue({
       getInstanceService: type => type === 'machine'
-        ? {}
+        ? { processUpdate }
         : type === 'organization' ? organizationService : null
     });
     const data = readModifyWriteProcessData();
@@ -641,30 +645,29 @@ describe('current process-definition service contract', () => {
     }, adminAuth(), { runRepository });
 
     expect(run.status).toBe('succeeded');
+    // The field patch and the declared status are separate operations: the
+    // mutate persists fields only, the chained transition owns the state.
+    expect(processUpdate).toHaveBeenCalledWith(
+      'machine-1',
+      expect.objectContaining({
+        'identity.name': 'Renamed machine',
+        'identity.reference': { code: 'M-01', location: 'Hall A' }
+      }),
+      expect.anything()
+    );
     expect(stateService.transitionWithResult).toHaveBeenCalledTimes(1);
     expect(stateService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
       typeId: 'machine',
       targetId: 'machine-1',
-      targetState: 'MAINTENANCE',
-      patch: expect.objectContaining({
-        'identity.name': 'Renamed machine',
-        'identity.slug': 'cnc-router',
-        'identity.reference': { code: 'M-01', location: 'Hall A' }
-      })
+      targetState: 'MAINTENANCE'
     }));
-    const emitted = run.steps.find(step => step.nodeId === 'update')?.output;
-    expect(emitted).toMatchObject({
+    const transitionStep = run.steps.find(step => step.nodeId === 'update:status')?.output;
+    expect(transitionStep).toMatchObject({
       _id: 'machine-1',
-      identity: {
-        uid: 'machine-1',
-        name: 'Renamed machine',
-        slug: 'cnc-router',
-        reference: { code: 'M-01', location: 'Hall A' }
-      },
       states: { main: 'MAINTENANCE' }
     });
-    expect(emitted).not.toHaveProperty('actions');
-    expect(emitted).not.toHaveProperty('effects');
+    expect(transitionStep).not.toHaveProperty('actions');
+    expect(transitionStep).not.toHaveProperty('effects');
   });
 
   it('applies the authored initial primary state while retaining all workflow region initials', async () => {
@@ -762,6 +765,38 @@ describe('current process-definition service contract', () => {
     }));
     expect(result).toEqual(expect.objectContaining({ _id: 'sheet-1' }));
     expect(result).not.toHaveProperty('actions');
+  });
+
+  it('executes a native transition record through its declared state reference', async () => {
+    const entity = { _id: 'panel-1', type: 'panel', states: { main: 'production.cut', quality: 'open' } };
+    stateService.transitionWithResult.mockResolvedValue({
+      entity: { ...entity, states: { main: 'production.cut', quality: 'verified' } },
+      actions: [],
+      effects: []
+    });
+    getAppRegistry.mockReturnValue({
+      getInstanceService: type => type === 'panel' ? {} : organizationService
+    });
+
+    const result = await performDurableEffect({
+      kind: 'cts.transition',
+      record: {
+        kind: 'cts.transition',
+        id: 'verify',
+        typeId: 'panel',
+        state: { axis: 'quality', from: 'open', to: 'verified' }
+      },
+      inputs: { entity: { type: 'panel', id: 'panel-1' } }
+    }, adminAuth());
+
+    expect(stateService.transitionWithResult).toHaveBeenCalledWith(expect.objectContaining({
+      targetState: 'verified',
+      context: {
+        source: { kind: 'process-run', actionId: 'verify' },
+        region: 'quality'
+      }
+    }));
+    expect(result).toMatchObject({ _id: 'panel-1', states: { main: 'production.cut', quality: 'verified' } });
   });
 
   it('archives through a compiled domain intent and hard-deletes only through the runtime adapter', async () => {
@@ -872,7 +907,7 @@ function previewProcessData() {
           source: 'entity',
           sourceHandle: 'data:value',
           target: 'present',
-          targetHandle: 'data:block',
+          targetHandle: 'data:entity',
           role: 'data'
         },
         {
@@ -880,7 +915,7 @@ function previewProcessData() {
           source: 'entity',
           sourceHandle: 'data:value',
           target: 'absent',
-          targetHandle: 'data:block',
+          targetHandle: 'data:entity',
           role: 'data'
         }
       ],
@@ -893,9 +928,9 @@ function previewProcessData() {
     sockets: {},
     screens: {},
     processNodes: {
-      entity: { id: 'entity', kind: 'source.literalItem', value: { name: null } },
-      present: { id: 'present', kind: 'record.getField', block: 'identity', path: 'identity.name' },
-      absent: { id: 'absent', kind: 'record.getField', block: 'identity', path: 'identity.reference' }
+      entity: { id: 'entity', kind: 'source.literalItem', value: { data: { serial: null } } },
+      present: { id: 'present', kind: 'cts.field', typeId: 'part', path: 'data.serial' },
+      absent: { id: 'absent', kind: 'cts.field', typeId: 'part', path: 'data.design' }
     }
   };
 }
