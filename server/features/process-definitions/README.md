@@ -93,6 +93,14 @@ persist the current records. Draft acceptance overlays the draft's declaration
 graph on the projected CTS domain and validates the same recursive state/edge
 records that APPLY posts.
 
+Durable effect dispatch classifies once (`operationKindOf`) and keeps the
+record's species kind: `cts.construct`/`cts.mutate`/`cts.remove` run through
+the same construction/update/delete adapters as their retired v4 spellings,
+`cts.command`/`cts.service` run commands, and `cts.transition` executes
+through the status runtime using its declared `state` reference — target
+path, axis (`state.axis` becomes the transition region), and note — never a
+retired status socket or an arbitrary field patch.
+
 `compiler-adapter.js` owns current-protocol validation and activation
 projections. `resolveCtsDefinition` resolves ids and paths without changing
 species kinds, discriminators, socket ids, or graph edges. The durable run

@@ -153,6 +153,15 @@ module layout and how the code maps to the spec's build-order tiers.
   classification helper only and never changes executable ports.
   `declarationsFromCtsRecords` receives the declaration graph as well as
   records, so nested state and edge acceptance matches what APPLY posts.
+  The rewrite migrates the graph with its records: retired read/field
+  handles move to the native sockets (`entity` streams, one `result`
+  output), the retired hidden-predicate query wires die, a composer fed
+  into a construct/mutate block expands into that consumer's field wires
+  (the composer and its now-dead decompose leave the graph), a construct's
+  lifecycle-entry socket dies with its default (the type declaration owns
+  initial state), and a v4 update that smuggled a status beside its field
+  patch splits into `cts.mutate -> cts.transition` with control and entity
+  wires chaining the two.
 - `pack/cnc.js` — the CNC starter type pack: the collapse-table acceptance
   fixture (file/item/group/process families, the typed nesting seam, and
   sample instances).
