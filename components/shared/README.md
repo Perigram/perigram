@@ -152,7 +152,11 @@ Operation cards (process designer) and declaration cards (type designer
 family, on both the process and the type canvas) all consume them, so a
 transported type keeps one semantic look on every card it appears on; a
 spec-less handle degrades to the neutral data tone (the type canvas
-renders read-only and supplies no specs).
+renders read-only and supplies no specs). The channel→meaning contract
+these primitives enforce (what color, shape, pattern, stripe, and size
+each encode, and the card arrangement) is canonical in the
+[process designer README](../../components/process-designer/README.md)
+("Node UI contract").
 
 ### `DesignerWorkspace.vue`
 

@@ -1671,17 +1671,32 @@ function decorateEdges(items = []) {
   return items.map(edge => decorateEdge(edge));
 }
 
+// Wire pattern encodes the edge ROLE (what kind of connection a wire is):
+// solid data flow, dashed declaration binding, dotted control/event
+// trigger. It never encodes type — that is color's single meaning
+// (see the node UI contract in components/process-designer/README.md).
+const WIRE_PATTERNS = {
+  type: '6 4',
+  control: '2 4'
+};
+
 function decorateEdge(edge = {}) {
   const selected = edge.selected === true || edge.id === selectedEdgeId.value;
   const type = edge.type === 'smoothstep' || edge.type === 'step' ? 'default' : (edge.type || 'default');
   const sourcePort = sourcePortForEdge(edge);
+  const pattern = WIRE_PATTERNS[edge.role] || '';
   return {
     ...edge,
     type,
     animated: selected,
     style: {
-      stroke: selected ? 'var(--p-primary-color)' : processSocketColor(sourcePort),
-      strokeWidth: selected ? 3 : 2
+      stroke: selected
+        ? 'var(--p-primary-color)'
+        // Declaration bindings transport a TYPE, not data — the structure
+        // tone is their payload family.
+        : edge.role === 'type' ? 'var(--ck-signal-structure)' : processSocketColor(sourcePort),
+      strokeWidth: selected ? 3 : 2,
+      ...(pattern ? { strokeDasharray: pattern } : {})
     }
   };
 }
