@@ -53,6 +53,40 @@
           :aria-label="$t('uiMapping.filters')"
           @click="filtersOpen = !filtersOpen"
         />
+        <!-- Sort unfolds AT its button too: the select and order toggle
+             render beside it (card-grid projection; tables sort natively
+             by column). -->
+        <template v-if="sortOpen">
+          <InstanceSelect
+            v-model="sortName"
+            :options="sortOptions"
+            option-label="label"
+            option-value="value"
+            show-clear
+            size="small"
+            class="max-w-48"
+            :aria-label="$t('uiMapping.sortLabel')"
+          />
+          <Button
+            v-if="sortName"
+            :icon="sortOrder < 0 ? 'pi pi-sort-amount-up' : 'pi pi-sort-amount-down'"
+            text
+            rounded
+            size="small"
+            :aria-label="$t('uiMapping.sortOrderLabel')"
+            @click="sortOrder = -sortOrder"
+          />
+        </template>
+        <Button
+          v-if="sortToggleAvailable"
+          icon="pi-sort"
+          text
+          rounded
+          size="small"
+          :severity="sortOpen || sortActive ? undefined : 'secondary'"
+          :aria-label="$t('uiMapping.sortLabel')"
+          @click="sortOpen = !sortOpen"
+        />
         <ActionButton
           v-for="action in node.actions"
           :key="action.id"
@@ -87,7 +121,7 @@
       />
       <CardGrid
         v-else-if="listLayout === 'card-grid'"
-        :instances="filteredInstances"
+        :instances="sortedInstances"
         :type="node.type"
         :controls="node.listControls"
         :actions="instanceActionsForType"
@@ -180,6 +214,40 @@
           :aria-label="$t('uiMapping.filters')"
           @click="filtersOpen = !filtersOpen"
         />
+        <!-- Sort unfolds AT its button too: the select and order toggle
+             render beside it (card-grid projection; tables sort natively
+             by column). -->
+        <template v-if="sortOpen">
+          <InstanceSelect
+            v-model="sortName"
+            :options="sortOptions"
+            option-label="label"
+            option-value="value"
+            show-clear
+            size="small"
+            class="max-w-48"
+            :aria-label="$t('uiMapping.sortLabel')"
+          />
+          <Button
+            v-if="sortName"
+            :icon="sortOrder < 0 ? 'pi pi-sort-amount-up' : 'pi pi-sort-amount-down'"
+            text
+            rounded
+            size="small"
+            :aria-label="$t('uiMapping.sortOrderLabel')"
+            @click="sortOrder = -sortOrder"
+          />
+        </template>
+        <Button
+          v-if="sortToggleAvailable"
+          icon="pi-sort"
+          text
+          rounded
+          size="small"
+          :severity="sortOpen || sortActive ? undefined : 'secondary'"
+          :aria-label="$t('uiMapping.sortLabel')"
+          @click="sortOpen = !sortOpen"
+        />
         <ActionButton
           v-for="action in node.actions"
           :key="action.id"
@@ -216,7 +284,7 @@
       />
       <CardGrid
         v-else-if="listLayout === 'card-grid'"
-        :instances="filteredInstances"
+        :instances="sortedInstances"
         :type="node.type"
         :controls="node.listControls"
         :actions="instanceActionsForType"
@@ -385,11 +453,12 @@ import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import InputText from 'primevue/inputtext';
 import {
-  LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout, toolbarVisibleFor,
+  LAYOUT, GAP_BY_LEVEL, SMALL_LIST_AT, resolveListLayout, toolbarVisibleFor, sortControlRows,
   localizedLabel, typeLabelKey, instanceMatchesToolbar
 } from '#shared/ui-mapping/index.js';
 import { instanceMatchesFilter } from '#shared/instance-filters/index.js';
 import { builderFieldsForType } from '#shared/ui-mapping/index.js';
+import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
 import { loadFilterViewState, storeFilterViewState } from '~/utils/filter-view-state.js';
 import SurfaceBody from './SurfaceBody.vue';
 import CollectionTable from './CollectionTable.vue';
@@ -401,6 +470,7 @@ import StatGrid from './StatGrid.vue';
 import ActionButton from './ActionButton.vue';
 import SurfaceHeader from './SurfaceHeader.vue';
 import InstanceMultiSelect from '../shared/InstanceMultiSelect.vue';
+import InstanceSelect from '../shared/InstanceSelect.vue';
 import FilterBuilder from '../shared/FilterBuilder.vue';
 import RegionDataState from './RegionDataState.vue';
 import { useLocalizedTypeLabel } from './type-labels.js';
@@ -536,10 +606,38 @@ watch(builderScope, scope => {
 });
 watch(builderFilter, filter => storeFilterViewState(builderScope.value, filter));
 const activeFacetCount = computed(() => countPredicates(builderFilter.value));
+// Card ordering: the sort bar moved into the header cluster — the same
+// sortKeys contract, shared comparator, and persisted preference (scope
+// kept) the DataView header owned. The sort control serves the card-grid
+// projection (the table projection sorts natively by column).
+const sortScope = computed(() => `card-grid:${props.node.typeId || ''}`);
+const preferredSort = loadSortPreference(sortScope.value);
+const sortName = ref(preferredSort?.name || props.node.listControls?.defaultSort || null);
+const sortOrder = ref(preferredSort?.order || 1);
+const sortOpen = ref(false);
+const sortOptions = computed(() => (props.node.listControls?.sortKeys || [])
+  .map(key => ({ label: key.label, value: key.name })));
+const sortKeyResolved = computed(() => (props.node.listControls?.sortKeys || [])
+  .find(key => key.name === sortName.value) || null);
+const sortToggleAvailable = computed(() => listLayout.value === 'card-grid' && sortOptions.value.length > 0);
+const sortActive = computed(() => Boolean(sortName.value)
+  && sortName.value !== props.node.listControls?.defaultSort);
+watch([sortName, sortOrder], () => {
+  if (sortName.value) storeSortPreference(sortScope.value, { name: sortName.value, order: sortOrder.value });
+});
+watch(sortScope, scope => {
+  const restored = loadSortPreference(scope);
+  sortName.value = restored?.name || props.node.listControls?.defaultSort || null;
+  sortOrder.value = restored?.order || 1;
+});
+const sortedInstances = computed(() => (sortKeyResolved.value
+  ? sortControlRows(filteredInstances.value, sortKeyResolved.value, sortOrder.value)
+  : filteredInstances.value));
 watch(() => props.node.id, () => {
   search.value = '';
   searchOpen.value = false;
   filtersOpen.value = false;
+  sortOpen.value = false;
 });
 const filteredInstances = computed(() => {
   if (props.node.surfaceKind !== 'list') return props.node.instances;

@@ -1,31 +1,5 @@
 <template>
-  <DataView :value="sortedInstances" data-key="id" layout="grid" :paginator="sortedInstances.length > 8" :rows="8">
-    <template v-if="sortOptions.length" #header>
-      <div :class="LAYOUT.rowBetween">
-        <span class="text-label text-muted">{{ $t('uiMapping.sortLabel') }}</span>
-        <div :class="LAYOUT.row">
-          <AppSelect
-            v-model="sortName"
-            :options="sortOptions"
-            option-label="label"
-            option-value="value"
-            show-clear
-            :size="editorSize"
-            class="max-w-56"
-            :aria-label="$t('uiMapping.sortLabel')"
-          />
-          <Button
-            v-if="sortName"
-            :icon="sortOrder < 0 ? 'pi pi-sort-amount-up' : 'pi pi-sort-amount-down'"
-            text
-            rounded
-            :size="editorSize === 'small' ? 'small' : undefined"
-            :aria-label="$t('uiMapping.sortOrderLabel')"
-            @click="sortOrder = -sortOrder"
-          />
-        </div>
-      </div>
-    </template>
+  <DataView :value="instances" data-key="id" layout="grid" :paginator="sortedInstances.length > 8" :rows="8">
     <template #grid="slotProps">
       <ResponsiveGrid variant="dense" responsive-context="container">
         <Card v-for="instance in slotProps.items" :key="instance.id" :class="[LAYOUT.clip, 'w-full']">
@@ -100,13 +74,11 @@ import Menu from 'primevue/menu';
 import ResponsiveGrid from '~/components/shared/ResponsiveGrid.vue';
 import {
   LAYOUT, SCALAR_BASES, cardFactCount, SEVERITY_MAP, titleFor, iconFor,
-  fieldLabel, fieldLabelKey, localizedLabel, resolveListControls, sortControlRows,
+  fieldLabel, fieldLabelKey, localizedLabel, resolveListControls,
   resolveActionButton, actionLabelKey
 } from '#shared/ui-mapping/index.js';
-import { loadSortPreference, storeSortPreference } from '~/utils/ui-sort-preference.js';
 import FieldControl from './FieldControl.vue';
 import PreviewBox from './PreviewBox.vue';
-import AppSelect from '~/components/shared/InstanceSelect.vue';
 
 const spacing = inject('uiMappingSpacing', null);
 const editorSize = computed(() => (spacing ? spacing.editorSize : undefined));
@@ -132,25 +104,6 @@ const emit = defineEmits(['open', 'run']);
 const { te, t } = useI18n();
 
 const resolvedControls = computed(() => props.controls || resolveListControls(props.type, props.instances));
-// Card ordering runs over the same sortKeys contract as the table (same
-// semantics through the shared comparator); the initial selection is the
-// persisted sort choice for this type, falling back to the declared
-// default sort, and every change persists back.
-const scope = computed(() => `card-grid:${props.type?.id || ''}`);
-const preferred = loadSortPreference(scope.value);
-const sortName = ref(preferred?.name || resolvedControls.value.defaultSort);
-const sortOrder = ref(preferred?.order || 1);
-watch([sortName, sortOrder], () => {
-  if (sortName.value) storeSortPreference(scope.value, { name: sortName.value, order: sortOrder.value });
-});
-watch(() => resolvedControls.value.defaultSort, value => {
-  if (!sortName.value) sortName.value = value;
-});
-const sortKey = computed(() => resolvedControls.value.sortKeys.find(key => key.name === sortName.value) || null);
-const sortOptions = computed(() => resolvedControls.value.sortKeys.map(key => ({ label: key.label, value: key.name })));
-const sortedInstances = computed(() => (sortKey.value
-  ? sortControlRows(props.instances, sortKey.value, sortOrder.value)
-  : props.instances));
 
 const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
 const identityOf = instance => titleFor(instance, props.type, { unnamedLabel: t('common.unnamed') });
