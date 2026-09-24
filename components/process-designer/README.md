@@ -241,14 +241,17 @@ class/type-reference nodes target a ref field's inputs;
 class/reference nodes bind an origin species record's `Type` pin
 (consumers carry none — their entity input is a value socket);
 operator-bound and structure species carry no type to bind;
+state→state wires declare NESTING: the source state compiles under the
+target's parent status (`parent.child`, nested machines) — transitions
+are never declared by wires, only by transition nodes;
 class→class wires declare children edges (key + `onRemove`) — gated by
 `classMayDeclareChildren` (SPEC §5): a wire from a file-class parent is
 rejected at the connect gate and diagnosable in the tree with the class
 NAMED, because file identity is content and never carries containment;
 state→state
-wires are transitions with intents. Their typed port specs
+wires declare nesting (the parent status). Their typed port specs
 (`declarationNodePorts`, the single home for every declaration handle —
-including the state node's transition-from input) exist for those wires
+including the state node's parent input) exist for those wires
 only — a declaration node is never a value source, and nothing from the
 data plane feeds a class declare input — so declaration endpoints never
 pass through the generic socket-compatibility path. Declaration wires
@@ -406,8 +409,8 @@ construction, not per-card styling.
 
 | Channel | Encodes | Values |
 |---|---|---|
-| Socket & wire color | transported payload family | entity/reference (entities, entity refs and lists), structure (blocks, type bindings), quantity (number/integer), decision (boolean/predicate/status), temporal (date/dateTime/duration), external (attachments), effect (tasks), projection, data (everything else). Events carry no payload family and use the primary accent. |
-| Socket shape | what the socket deals in | filled circle = instance/value data; hollow ring = declaration binding (type/field wires, the Type pin); outline square (primary) = event; filled square = state/status |
+| Socket & wire color | transported payload family | reference (every instance stream: entities, entity refs and lists — one tone for the whole family), structure (blocks, type bindings), quantity (number/integer), decision (boolean/predicate/status), temporal (date/dateTime/duration), external (attachments), effect (tasks), projection, data (everything else). Events carry no payload family and use the primary accent. |
+| Socket shape | what the socket deals in | filled circle = instance/value data; filled diamond = declaration binding (type/field wires, the Type pin); filled rounded square in the primary accent = event; filled rounded square = state/status |
 | Wire pattern | edge role — what kind of connection | solid = data flow; dashed = declaration binding (`role: 'type'`); dotted = control/event trigger |
 | Handle position | direction | left = input/target, right = output/source |
 | Wire selection | selection | primary color, 3px |
