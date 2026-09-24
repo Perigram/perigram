@@ -75,25 +75,19 @@ concerns:
   indeterminate progress bar instead — no component invents its own
   empty or loading state.
 - `CollectionToolbar.vue` — the region header's toggleable control set:
-  the search input and facet selects render only while their RegionBlock
-  header toggles are open (a search toggle when the toolbar budget
-  applies — every large list past `SEARCH_AT`, identity search always
-  functions — a filter toggle on every list surface, because the filter
-  builder's field list always carries at least the name axis: one
-  multi-select per facet over the values actually present — a value set
-  within a facet, conjunction across facets — plus the shared
-  `FilterBuilder` popover for boolean composition; the filter badge
-  carries the active selection count). Its gaps come from the system spacing
-  scale (`spacing.toolbar`) and its control sizes from `editorSize`, and
-  it owns no per-type logic — the region tree carries every decision.
-  Search and facet selections are region-owned models RegionBlock
-  applies client-side over the loaded instances; the builder's composed
-  tree is persisted view state per type
-  (`utils/filter-view-state.js`) and conjoins with the quick controls
-  through the canonical filter tree. Columns keep only their
-  native sorting. The region header stays one line (label, count, opened
-  controls, toggle buttons, actions), wrapping only when the opened
-  controls or the action cluster demand it.
+  the search input renders while the search toggle is open; the filter
+  toggle opens the conditions panel (the shared `FilterBuilder`) in place
+  of any quick selects — set conditions are the one filtering state, so
+  there is no second control speaking the same axis. The panel's fields
+  derive through `builderFieldsForType` (see
+  [shared/ui-mapping](../../shared/ui-mapping/README.md)): every scalar
+  field, the primary status over the values actually present, and the
+  relation, parent, and children traversal axes. Search stays a
+  region-owned model; the composed tree is persisted view state per type
+  (`utils/filter-view-state.js`) and is evaluated with the one matcher
+  against the region's pool. Columns keep only their native sorting. The
+  region header stays one line (label, count, toggle buttons, actions);
+  the opened panel renders beneath it.
 
 ## Components
 
