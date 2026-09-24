@@ -952,6 +952,69 @@ const { filteredGroups: paletteGroups, contextGroups: contextPaletteGroups } = u
   searchText: paletteSearchText,
   isCompatible: contextItemCompatible
 });
+const lifecycleModes = computed(() => [
+  { label: t('processDesigner.lifecycleModeDefaultCreated'), value: 'defaultCreated' },
+  { label: t('processDesigner.lifecycleModeDomainDefault'), value: 'domainDefault' },
+  { label: t('processDesigner.lifecycleModeCustom'), value: 'custom' }
+]);
+const socketDirections = [
+  { label: 'outbound', value: 'outbound' },
+  { label: 'inbound', value: 'inbound' }
+];
+const screenTemplateOptions = SCREEN_TEMPLATES
+  .filter(value => !['route', 'organizationOverview', 'organizationAccount'].includes(value))
+  .map(value => ({ label: value, value }));
+const screenSourceModeOptions = SCREEN_SOURCE_MODES.map(value => ({ label: value, value }));
+const screenSlotOptions = SCREEN_REGION_SLOTS.map(value => ({ label: value, value }));
+const screenSurfaceOptions = SCREEN_REGION_SURFACES.map(value => ({ label: value, value }));
+const screenLineageBindingFields = SCREEN_LINEAGE_BINDING_FIELDS;
+const screenScalarTypeOptions = ['string', 'number', 'boolean', 'assignment'].map(value => ({ label: t(`processDesigner.scalarTypes.${value}`), value }));
+const screenBindingTypeOptions = screenScalarTypeOptions;
+const screenPlacementOptions = [
+  { label: 'hub', value: 'hub' },
+  { label: 'detail', value: 'detail' },
+  { label: 'hidden', value: 'hidden' }
+];
+const accessLevelOptions = [
+  { label: t('processDesigner.accessRead'), value: 'read' },
+  { label: t('processDesigner.accessWrite'), value: 'write' },
+  { label: t('processDesigner.accessAdmin'), value: 'admin' }
+];
+const defaultEdgeOptions = { type: 'default' };
+
+const activeName = computed(() => draft.value?.identity?.name || '');
+const isActiveProcess = computed(() => draft.value?.states?.main === 'ACTIVE');
+const isDirty = computed(() => Boolean(draft.value) && designerSignature() !== savedDraftSignature.value);
+const documentDockItems = computed(() => [
+  {
+    icon: () => h('i', { class: 'pi pi-folder-open', 'aria-hidden': 'true' }),
+    label: t('common.open'),
+    onClick: event => processMenu.value?.toggle(event),
+    hasPopup: true
+  },
+
+  {
+    icon: () => h('i', { class: renamingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-pencil', 'aria-hidden': 'true' }),
+    label: t('common.rename'),
+    onClick: event => openRenamePopover(event),
+    disabled: !draft.value?._id || isActiveProcess.value,
+    hasPopup: true
+  },
+  { separator: true },
+  {
+    icon: () => h('i', { class: savingDraft.value ? 'pi pi-spinner pi-spin' : 'pi pi-save', 'aria-hidden': 'true' }),
+    label: t('common.save'),
+    onClick: saveDraftFromDock,
+    disabled: !draft.value || savingDraft.value || creatingDraft.value || applyingProcess.value,
+    attention: isDirty.value
+  },
+  {
+    icon: () => h('i', { class: applyingProcess.value ? 'pi pi-spinner pi-spin' : 'pi pi-check', 'aria-hidden': 'true' }),
+    label: t('processDesigner.apply'),
+    onClick: applyProcess,
+    disabled: !draft.value?._id || isActiveProcess.value || applyingProcess.value || savingDraft.value || creatingDraft.value
+  }
+]);
 const canvasDockItems = computed(() => [
   {
     icon: () => h('i', { class: 'pi pi-search-minus', 'aria-hidden': 'true' }),
