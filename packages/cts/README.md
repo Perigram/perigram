@@ -113,7 +113,10 @@ module layout and how the code maps to the spec's build-order tiers.
   "Unnamed"), `glyph` (declaration override || class default),
   `identifier` (the resolved flag field id, or null), `depiction:
   { glyph, thumb }` (thumb = the depiction flag field id or null),
-  `fields` (descriptors including the normalized naming facet), and
+  `fields` (descriptors including the normalized naming facet),
+  `previewSource` (`{ path, display }` adopted from the authored
+  `render.groups` row flagged `previewSource` — the declared
+  data-field preview channel, or null), and
   `sections` — the derived grouping that replaces authored groups: total
   assignment by base (`quantity`→dimensions, `ref`→relations, `blob` or
   the depiction flag→media, multiline/long strings→notes, else summary;
