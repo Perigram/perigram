@@ -78,6 +78,17 @@ the screen instance shape. `eq` compares stringified values; `in` tests
 membership; `contains` lowercases both sides. Lineage addresses compare the
 ref id (`{ id }` objects and raw scalars both occur in pools).
 
+## Builder edit model
+
+`builder.js` owns the user-facing projection of the tree: one combinator
+(`and`/`or`) over predicate rows with per-row negation — the surface
+AND/OR/NOT is made of. `filterFromBuilderRows(rows, combinator)` composes
+rows into the canonical tree (incomplete rows drop; negated rows wrap
+`not`); `builderRowsFromFilter(filter)` decomposes exactly the trees the
+builder emits — a bare predicate is one row with the default combinator —
+and refuses foreign shapes (nested groups) with `null` instead of
+corrupting them.
+
 ## Server projection
 
 The Mongo translation is engine-specific and lives server-side in
@@ -105,6 +116,9 @@ existed.
   status `in` value set from its multi-select) and evaluates it over
   per-entity screen instances built with the shared DTO projection, with
   legacy status shapes resolved onto the status axis.
+- Filter builder: `components/shared/FilterBuilder.vue` edits the tree
+  itself (combinator + negated predicate rows through `builder.js`) and
+  hands the composed tree to its host; the builder never evaluates.
 
 ## Validation
 
