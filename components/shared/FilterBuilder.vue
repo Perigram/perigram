@@ -12,7 +12,7 @@
     />
 
     <Popover ref="popover">
-      <div class="flex min-w-80 max-w-96 flex-col gap-2">
+      <div class="flex min-w-72 max-w-96 flex-col gap-2">
         <div v-if="rows.length > 1" class="flex flex-wrap items-center justify-between gap-2">
           <SelectButton
             :model-value="combinator"
@@ -38,85 +38,92 @@
         <div
           v-for="(row, index) in rows"
           :key="index"
-          class="flex min-w-0 flex-wrap items-center gap-2"
+          class="flex min-w-0 flex-col gap-1"
         >
-          <Button
-            :label="fieldLabelFor(row.field)"
-            text
-            size="small"
-            class="w-36 shrink-0 justify-start"
-            :aria-label="fieldLabelFor(row.field)"
-            @click="openFieldPicker({ mode: 'row', index })"
-          />
-          <SelectButton
-            :model-value="rowKey(row)"
-            :options="opOptionsFor(row.field)"
-            option-label="label"
-            option-value="value"
-            size="small"
-            :allow-empty="false"
-            :aria-label="$t('common.filter')"
-            @update:model-value="value => setRowOp(index, value)"
-          />
-          <InputText
-            v-if="fieldKind(row.field) === 'text'"
-            :model-value="row.value"
-            size="small"
-            class="min-w-0 flex-1"
-            :placeholder="fieldLabelFor(row.field)"
-            @update:model-value="value => setRowValue(index, value)"
-          />
-          <InputNumber
-            v-else-if="fieldKind(row.field) === 'number'"
-            :model-value="typeof row.value === 'number' ? row.value : null"
-            size="small"
-            class="min-w-0 flex-1"
-            :aria-label="fieldLabelFor(row.field)"
-            @update:model-value="value => setRowValue(index, typeof value === 'number' ? value : '')"
-          />
-          <InputText
-            v-else-if="fieldKind(row.field) === 'instant'"
-            :model-value="row.value"
-            type="date"
-            size="small"
-            class="min-w-0 flex-1"
-            :aria-label="fieldLabelFor(row.field)"
-            @update:model-value="value => setRowValue(index, value || '')"
-          />
-          <SelectButton
-            v-else-if="fieldKind(row.field) === 'boolean'"
-            :model-value="row.value"
-            :options="booleanOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
-            :allow-empty="false"
-            :aria-label="fieldLabelFor(row.field)"
-            @update:model-value="value => setRowValue(index, value)"
-          />
-          <div
-            v-else
-            class="flex min-w-0 flex-1 flex-wrap items-center gap-1"
-          >
+          <div class="flex min-w-0 items-center gap-2">
             <Button
-              v-for="value in valueOptionsFor(row.field)"
-              :key="value.value"
-              :label="value.label"
+              :label="fieldLabelFor(row.field)"
+              text
               size="small"
-              :outlined="!isValueSelected(row, value.value)"
-              :severity="isValueSelected(row, value.value) ? undefined : 'secondary'"
-              @click="toggleValue(index, value.value)"
+              class="min-w-0 flex-1 justify-start [&_.p-button-label]:truncate"
+              :title="fieldLabelFor(row.field)"
+              :aria-label="fieldLabelFor(row.field)"
+              @click="openFieldPicker({ mode: 'row', index })"
+            />
+            <SelectButton
+              :model-value="rowKey(row)"
+              :options="opOptionsFor(row.field)"
+              option-label="label"
+              option-value="value"
+              size="small"
+              class="shrink-0"
+              :allow-empty="false"
+              :aria-label="$t('common.filter')"
+              @update:model-value="value => setRowOp(index, value)"
+            />
+            <Button
+              icon="pi pi-times"
+              text
+              rounded
+              size="small"
+              class="shrink-0"
+              severity="secondary"
+              :aria-label="$t('common.delete')"
+              @click="removeRow(index)"
             />
           </div>
-          <Button
-            icon="pi pi-times"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :aria-label="$t('common.delete')"
-            @click="removeRow(index)"
-          />
+          <div class="min-w-0">
+            <InputText
+              v-if="fieldKind(row.field) === 'text'"
+              :model-value="row.value"
+              size="small"
+              class="w-full"
+              :placeholder="fieldLabelFor(row.field)"
+              @update:model-value="value => setRowValue(index, value)"
+            />
+            <InputNumber
+              v-else-if="fieldKind(row.field) === 'number'"
+              :model-value="typeof row.value === 'number' ? row.value : null"
+              size="small"
+              class="w-full"
+              :aria-label="fieldLabelFor(row.field)"
+              @update:model-value="value => setRowValue(index, typeof value === 'number' ? value : '')"
+            />
+            <InputText
+              v-else-if="fieldKind(row.field) === 'instant'"
+              :model-value="row.value"
+              type="date"
+              size="small"
+              class="w-full"
+              :aria-label="fieldLabelFor(row.field)"
+              @update:model-value="value => setRowValue(index, value || '')"
+            />
+            <SelectButton
+              v-else-if="fieldKind(row.field) === 'boolean'"
+              :model-value="row.value"
+              :options="booleanOptions"
+              option-label="label"
+              option-value="value"
+              size="small"
+              :allow-empty="false"
+              :aria-label="fieldLabelFor(row.field)"
+              @update:model-value="value => setRowValue(index, value)"
+            />
+            <div
+              v-else
+              class="flex min-w-0 flex-wrap items-center gap-1"
+            >
+              <Button
+                v-for="value in valueOptionsFor(row.field)"
+                :key="value.value"
+                :label="value.label"
+                size="small"
+                :outlined="!isValueSelected(row, value.value)"
+                :severity="isValueSelected(row, value.value) ? undefined : 'secondary'"
+                @click="toggleValue(index, value.value)"
+              />
+            </div>
+          </div>
         </div>
 
         <div v-if="picker" class="flex max-h-56 flex-col gap-0.5 overflow-y-auto pt-1">
@@ -157,8 +164,12 @@ import { filterFromBuilderRows, builderRowsFromFilter } from '#shared/instance-f
 
 // The filter builder: a popover for boolean composition over the canonical
 // instance-filter tree, triggered by its own funnel button (badge carries
-// the active condition count). Set conditions render as single-line rows:
-// a field button, a segmented operator, and a value control.
+// the active condition count). A condition is two content-driven zones: a
+// header line where the field takes the leftover width and truncates (full
+// label on hover) while the segmented operator and remove keep their
+// intrinsic size, and a full-width value line. Nothing is a guessed fixed
+// width and no row re-wraps mid-content: enum chips wrap inside the value
+// line.
 //
 // Every control inside the popover is INLINE by construction — segmented
 // buttons, text/number/native-date inputs, enum value chips, and an
@@ -236,8 +247,8 @@ const OP_LABELS = {
   contains: () => t('uiMapping.opContains'),
   eq: () => t('uiMapping.opIs'),
   '!eq': () => t('uiMapping.opIsNot'),
-  in: () => t('uiMapping.opIn'),
-  '!in': () => t('uiMapping.opNotIn'),
+  in: () => t('uiMapping.opAnyOf'),
+  '!in': () => t('uiMapping.opNoneOf'),
   gt: () => '>',
   gte: () => '≥',
   lt: () => '<',
