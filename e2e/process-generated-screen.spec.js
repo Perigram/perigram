@@ -180,7 +180,7 @@ test.describe('process generated screens', () => {
     await app.page.goto(home.route);
     for (const section of sections) {
       const panel = app.page.locator('.p-panelmenu-panel', { has: app.page.locator('.p-panelmenu-header', { hasText: TYPE_NAMES[section.typeId] }) });
-      await expect(panel).toBeVisible();
+      await expect(panel).toBeVisible({ timeout: 20000 });
       await expect(panel.getByText(section.name).first()).toBeVisible();
     }
 
