@@ -391,6 +391,12 @@ the preview rows immediately.
 
 ## Node cards and sockets
 
+Every canvas card — the operation card and the declaration family alike —
+composes the shared frame and handle primitives
+([`components/shared`](../../components/shared/README.md):
+`DesignerNodeCard` for the card frame and size ladder, and
+`DesignerSocketHandle` for typed handles), so card chrome, proportions,
+and the socket vocabulary are one contract across species.
 `ProcessNode.vue` renders the catalog's resolved ports, not stored UI guesses.
 Inputs and outputs share explicit rows, and every handle is centered on the
 outer node rail rather than inheriting a position from variable-height content.
@@ -398,9 +404,13 @@ Socket labels stay concise; the exact element type, access, qualifier, and
 description are available on hover and to assistive technology instead of
 being repeated beside every socket. Color communicates transported base type
 (one `processDesignerSocketTone` mapping drives a source handle and its wire,
-so a contract has one semantic tone throughout the canvas), handle shape
+so a contract has one semantic tone throughout the canvas — declaration cards
+included: a class card's `type` output, a state card's status sockets, and a
+field card's typed output carry the same tones they carry on operation
+nodes), handle shape
 communicates Item/List/Tree access, and the thin node stripe communicates
-operation concern through the same `signal-*` aliases — no raw theme colors.
+operation concern (or, on type/class reference cards, the structure
+signal) through the same `signal-*` aliases — no raw theme colors.
 When selected, an unconnected primitive input reveals a compact inline typed
 fallback editor; this keeps inactive nodes quiet while preserving immediate
 authoring without a separate constant node. A typed status input's fallback

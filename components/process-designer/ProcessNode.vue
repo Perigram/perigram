@@ -1,6 +1,5 @@
 <template>
-  <div :class="nodeFrameClass" :title="data.purpose || data.summary || ''">
-    <div :class="['absolute inset-x-0 top-0 h-0.5 rounded-t-ui', accent.stripe]"></div>
+  <DesignerNodeCard :selected="selected" size="lg" :stripe="accent.stripe" :title="data.purpose || data.summary || ''">
     <div class="flex items-center gap-1.5 border-b border-content-border pb-1.5">
       <span :class="['flex h-5 w-5 shrink-0 items-center justify-center rounded-ui bg-subtle text-supporting', accent.icon]">
         <i :class="record.icon || data.icon || 'pi pi-sitemap'" aria-hidden="true"></i>
@@ -77,14 +76,7 @@
     <div v-if="socketRows.length" class="mt-2 flex flex-col">
       <div v-for="row in socketRows" :key="row.key" class="grid min-h-7 grid-cols-2 gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
-          <Handle
-            :id="mintProcessSocketHandle(row.input)"
-            type="target"
-            :position="Position.Left"
-            :class="handleClass(row.input, 'left')"
-            :style="handleStyle(row.input)"
-            :aria-label="socketTitle(row.input)"
-          />
+          <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
           <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5" @mousedown.stop @click.stop>
             <TypedValueControl
@@ -98,14 +90,7 @@
         </div>
         <div v-else></div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
-          <Handle
-            :id="mintProcessSocketHandle(row.output)"
-            type="source"
-            :position="Position.Right"
-            :class="handleClass(row.output, 'right')"
-            :style="handleStyle(row.output)"
-            :aria-label="socketTitle(row.output)"
-          />
+          <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
           <span class="block truncate text-supporting">{{ row.output.label }}</span>
         </div>
         <div v-else></div>
@@ -127,33 +112,33 @@
       </label>
       <div v-for="row in eventSocketRows" :key="row.key" class="grid min-h-7 grid-cols-2 gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
-          <Handle :id="mintProcessSocketHandle(row.input)" type="target" :position="Position.Left" :class="handleClass(row.input, 'left')" :style="handleStyle(row.input)" />
+          <DesignerSocketHandle :socket="row.input" side="left" :title="socketTitle(row.input)" />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
         </div>
         <div v-else></div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
-          <Handle :id="mintProcessSocketHandle(row.output)" type="source" :position="Position.Right" :class="handleClass(row.output, 'right')" :style="handleStyle(row.output)" />
+          <DesignerSocketHandle :socket="row.output" side="right" :title="socketTitle(row.output)" />
           <span class="block truncate text-supporting">{{ row.output.label }}</span>
         </div>
         <div v-else></div>
       </div>
     </div>
-  </div>
+  </DesignerNodeCard>
 </template>
 
 <script setup>
 import { operationKindOf } from '~/packages/cts/src/index.js';
 
 import { computed } from 'vue';
-import { Handle, Position } from '@vue-flow/core';
 import InputText from 'primevue/inputtext';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useI18n } from 'vue-i18n';
-import { formatProcessType, mintProcessSocketHandle } from '~/packages/processes/src/index.js';
+import { formatProcessType } from '~/packages/processes/src/index.js';
 import { nodeSpecSummary, socketSpecLine } from '~/composables/useNodeSpec.js';
-import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
+import DesignerNodeCard from '~/components/shared/DesignerNodeCard.vue';
+import DesignerSocketHandle from '~/components/shared/DesignerSocketHandle.vue';
 import TypedValueControl from './TypedValueControl.vue';
 
 const props = defineProps({
@@ -216,10 +201,6 @@ const hasInlineConfiguration = computed(() => (
   || fieldOptions.value.length > 0
   || opKind.value.startsWith('source.literal')
 ));
-const nodeFrameClass = computed(() => [
-  'relative w-72 rounded-ui border bg-content p-2.5 pt-3 shadow-card transition-colors',
-  props.selected ? 'border-primary' : 'border-content-border'
-]);
 const accent = computed(() => {
   if (opKind.value.startsWith('read.')) return { stripe: 'bg-signal-structure', icon: 'text-signal-structure' };
   if (opKind.value.startsWith('record.')) return { stripe: 'bg-signal-entity', icon: 'text-signal-entity' };
@@ -365,15 +346,4 @@ function socketClass(item, side) {
   ];
 }
 
-function handleClass(item, side) {
-  return [
-    '!top-1/2 !h-3 !w-3 !-translate-y-1/2',
-    item.access === 'tree' ? '!rounded-none' : item.access === 'list' ? '!rounded-sm' : '!rounded-full',
-    side === 'left' ? '!left-0 !-translate-x-1/2' : '!right-0 !translate-x-1/2'
-  ];
-}
-
-function handleStyle(item) {
-  return processSocketHandleStyle(item);
-}
 </script>

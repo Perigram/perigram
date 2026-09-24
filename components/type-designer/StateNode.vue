@@ -1,5 +1,5 @@
 <template>
-  <div :class="frameClass">
+  <DesignerNodeCard :selected="selected" size="sm">
     <div class="flex items-center gap-1.5">
       <i :class="[initial ? 'pi pi-flag-fill' : terminal ? 'pi pi-circle-fill' : 'pi pi-circle', flagTone]" aria-hidden="true" />
       <InputText
@@ -12,9 +12,9 @@
         @dblclick.stop
       />
     </div>
-    <Handle id="input:in" type="target" :position="Position.Left" class="!top-1/2 !h-3 !w-3 !-translate-y-1/2 !left-0 !-translate-x-1/2 !rounded-full" />
-    <Handle id="output:state" type="source" :position="Position.Right" class="!top-1/2 !h-3 !w-3 !-translate-y-1/2 !right-0 !translate-x-1/2 !rounded-full" />
-  </div>
+    <DesignerSocketHandle :socket="inputSpec" side="left" handle-id="input:in" />
+    <DesignerSocketHandle :socket="outputSpec" side="right" handle-id="output:state" />
+  </DesignerNodeCard>
 </template>
 
 <script setup>
@@ -22,7 +22,8 @@
 // wires are transitions, intents ride the edge (SPEC §7).
 import { computed } from 'vue';
 import InputText from 'primevue/inputtext';
-import { Handle, Position } from '@vue-flow/core';
+import DesignerNodeCard from '~/components/shared/DesignerNodeCard.vue';
+import DesignerSocketHandle from '~/components/shared/DesignerSocketHandle.vue';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -34,10 +35,7 @@ defineEmits(['rename']);
 const value = computed(() => props.data.value || '');
 const initial = computed(() => props.data.initial === true);
 const terminal = computed(() => props.data.terminal === true);
-const flagTone = computed(() => initial.value ? 'text-primary' : terminal.value ? 'text-muted' : 'text-muted');
-
-const frameClass = computed(() => [
-  'relative w-40 rounded-ui border bg-content p-2 shadow-card transition-colors',
-  props.selected ? 'border-primary' : 'border-content-border'
-]);
+const flagTone = computed(() => initial.value ? 'text-primary' : 'text-muted');
+const inputSpec = computed(() => props.data.inputSpecs?.[0] || {});
+const outputSpec = computed(() => props.data.outputSpecs?.[0] || {});
 </script>
