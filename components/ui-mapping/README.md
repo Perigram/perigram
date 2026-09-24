@@ -78,7 +78,9 @@ surface concerns:
   `CollectionToolbar`): search expands IN PLACE — the icon button becomes
   an icon field at its position (icon/Esc/empty-blur collapses) — and the
   shared `FilterBuilder` popover (own funnel trigger, condition-count
-  badge) renders in the header cluster. Set conditions are the one
+  badge) renders in the header cluster, and `SortControl` (its own
+  popover over the `sortKeys` contract) carries ordering for the
+  card-grid projection. Set conditions are the one
   filtering state — no parallel facet selects speak the same axis. The panel's fields derive through
   `builderFieldsForType` (see
   [shared/ui-mapping](../../shared/ui-mapping/README.md)): every scalar
@@ -94,6 +96,15 @@ surface concerns:
   toggle unfolding beside the sort button; the persisted per-type sort
   preference survives the move; table projections keep native column
   sorting, so the control renders only for card grids).
+
+- `SortControl.vue` — the collection sort control for the card-grid
+  projection (tables sort natively by column): a self-contained popover
+  over the composed `listControls.sortKeys` contract. Keys render inline
+  as buttons and the order toggle flips asc/desc beneath them; the host
+  owns the value, the order, and their persistence
+  (`utils/ui-sort-preference.js`). The list is inline deliberately — a
+  select overlay would sit outside the popover's DOM subtree, where the
+  popover's outside-click handling closes the control on every pick.
 
 ## Components
 
