@@ -1,46 +1,32 @@
 <template>
-  <TieredMenu :model="items" class="w-full !border-none !bg-transparent !p-0" :aria-label="$t('support.chatTitle')" />
+  <TieredMenu ref="menu" :model="items" popup :aria-label="$t('call.calls')" />
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import TieredMenu from 'primevue/tieredmenu';
 import { useI18n } from 'vue-i18n';
 import { useSupportChatStore } from '~/stores/supportChat';
 
 /**
- * The sidebar communication menu: Chats and Calls as proper PrimeVue
- * TieredMenu items. The Calls submenu lists every direct/group
- * conversation and rings it. Ongoing rooms are NOT listed here — they live
- * as persistent sidebar rows (see the generated home workspace sidebar) and
- * brand-new invites float through the global IncomingCalls surface. Data
- * comes from the auth/support stores; actions are delegated through events.
+ * The Calls flyout: a popup TieredMenu listing every direct/group
+ * conversation that can be rung. The sidebar's PanelMenu owns the
+ * always-present Calls row; its command toggles this flyout anchored at
+ * the row. Ongoing rooms are not listed here — they live as persistent
+ * rows in the same communication panel. Conversations come from the
+ * support store; the ring action is delegated through the start-call
+ * event.
  */
-const emit = defineEmits(['open-chats', 'start-call']);
+const emit = defineEmits(['start-call']);
 
+const menu = ref(null);
 const { t } = useI18n();
 const supportChatStore = useSupportChatStore();
 
 const conversations = computed(() => supportChatStore.conversations
   .filter(conversation => conversation.conversationKind === 'direct' || conversation.conversationKind === 'group'));
 
-const unreadCount = computed(() => Number(supportChatStore.totalUnread || 0));
-
-const items = computed(() => [
-  {
-    label: t('support.chatTitle'),
-    icon: 'pi pi-comments',
-    ...(unreadCount.value ? { badge: String(unreadCount.value), badgeSeverity: 'danger' } : {}),
-    command: () => emit('open-chats')
-  },
-  {
-    label: t('call.calls'),
-    icon: 'pi pi-phone',
-    items: callItems.value
-  }
-]);
-
-const callItems = computed(() => {
+const items = computed(() => {
   if (!conversations.value.length) {
     return [{ label: t('support.noConversations'), disabled: true }];
   }
@@ -59,4 +45,8 @@ function conversationLabel(conversation = {}) {
     || conversation?.participant?.name
     || t('common.user');
 }
+
+defineExpose({
+  toggle: event => menu.value?.toggle(event)
+});
 </script>
