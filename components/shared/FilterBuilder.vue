@@ -132,13 +132,24 @@
 
         <Button
           icon="pi pi-plus"
+          :label="$t('uiMapping.addCondition')"
           text
-          rounded
           size="small"
+          class="self-start"
           :aria-label="$t('uiMapping.addCondition')"
-          @click="event => addMenu?.toggle(event)"
+          @click="toggleFieldList"
         />
-        <Menu ref="addMenu" :model="addFieldItems" :popup="true" />
+        <div v-if="fieldsOpen" class="flex max-h-56 flex-col gap-0.5 overflow-y-auto pt-1">
+          <Button
+            v-for="field in fields"
+            :key="field.name"
+            :label="field.label"
+            text
+            size="small"
+            class="justify-start"
+            @click="addRowFor(field.name)"
+          />
+        </div>
       </div>
     </Popover>
   </span>
@@ -152,7 +163,6 @@ import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import DatePicker from 'primevue/datepicker';
 import Popover from 'primevue/popover';
-import Menu from 'primevue/menu';
 import SelectButton from 'primevue/selectbutton';
 import Select from '~/components/shared/InstanceSelect.vue';
 import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
@@ -161,11 +171,15 @@ import { filterFromBuilderRows, builderRowsFromFilter } from '#shared/instance-f
 // The filter builder: a popover for boolean composition over the canonical
 // instance-filter tree, triggered by its own funnel button (badge carries
 // the active condition count). Set conditions render as compact
-// single-line rows; the "+" button opens the field menu that appends a
-// row. One combinator (match all / match any) applies once more than one
-// row exists; negated operator twins compose `not`. It owns no matching
-// logic — every edit composes through #shared/instance-filters and the
-// host surface evaluates with the one matcher.
+// single-line rows; the "Add condition" button toggles an inline field
+// list whose buttons append rows. The list lives INSIDE the popover
+// deliberately: a nested overlay (menu) would sit outside the popover's
+// DOM subtree, where the popover's outside-click handling closes the
+// builder the moment a field is picked. One combinator (match all /
+// match any) applies once more than one row exists; negated operator
+// twins compose `not`. It owns no matching logic — every edit composes
+// through #shared/instance-filters and the host evaluates with the one
+// matcher.
 //
 // Fields are supplied by the host: `{ name, label, kind: 'text' | 'enum'
 // | 'boolean' | 'number' | 'instant', values? }` — enum fields carry
@@ -182,7 +196,7 @@ const emit = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
 const popover = ref();
-const addMenu = ref();
+const fieldsOpen = ref(false);
 const combinator = ref('and');
 const rows = ref([]);
 
@@ -191,10 +205,6 @@ const combinatorOptions = computed(() => [
   { label: t('uiMapping.matchAny'), value: 'or' }
 ]);
 const fieldOptions = computed(() => props.fields.map(field => ({ label: field.label, value: field.name })));
-const addFieldItems = computed(() => props.fields.map(field => ({
-  label: field.label,
-  command: () => addRowFor(field.name)
-})));
 const fieldByName = computed(() => new Map(props.fields.map(field => [field.name, field])));
 const booleanOptions = [
   { label: 'true', value: true },
@@ -218,7 +228,11 @@ function toDate(value) {
 }
 function toggle(event) {
   syncFromModel();
+  fieldsOpen.value = false;
   popover.value?.toggle(event);
+}
+function toggleFieldList() {
+  fieldsOpen.value = !fieldsOpen.value;
 }
 
 const KIND_OPS = {
@@ -335,6 +349,7 @@ function clearAll() {
 function addRowFor(name) {
   const field = fieldByName.value.get(name);
   if (!field) return;
+  fieldsOpen.value = false;
   rows.value.push({
     field: name,
     op: defaultOpFor(field.kind),
