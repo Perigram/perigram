@@ -490,24 +490,29 @@ through `utils/instance-chat.js`, so the surface the card lives on decides how
 the thread opens (desktop drawer, mobile `/chats` target).
 
 ### `InstanceChatPanel.vue` (detail-page thread)
-The instance detail page's own conversation section — the one place a thread
-renders in place instead of opening the shared popup. It is a **section
-disclosure**, not a container: a header row (chat glyph, localized label,
-chevron) toggles a bounded `ChatSupport` in `embedded thread-only` mode pinned
-to `entity:<type>:<id>`, so the page gets the composed conversation without the
-inbox or back navigation. It rides `InstancePage`'s own column through
-`GeneratedInstanceDetail`, and therefore covers both detail branches —
-abstract generated pages and the bounded `flush` overloads (workspace editors,
-file modes) — instead of being mounted beside the designer body, where a
-sibling panel collapses to zero height under an `h-full` body.
+The **abstract** instance detail page's own conversation section — the one
+place a thread renders in place instead of opening the shared popup. A PrimeVue
+text Button (Aura owns its focus/hover/press states; the icon is stable across
+states and `aria-expanded` carries the state) toggles a bounded `ChatSupport`
+in `embedded thread-only` mode pinned to `entity:<type>:<id>`, so the page gets
+the composed conversation without the inbox or back navigation. It rides
+`InstancePage`'s column, so `GeneratedInstanceDetail` mounts it in the
+`v-else-if` (abstract) branch only.
+
+Bounded hosts must NOT mount it. The `flush` branch is an `h-full`, non-scrolling
+frame that an operational designer/editor owns completely; an in-flow section
+either collapses to nothing against the body or forces the pane to scroll,
+breaking that contract. Bounded hosts instead expose the same thread through
+the shared chat popup (`utils/instance-chat.js`) from their own chrome — the
+bounded file pane's action strip and `GeneratedProjectWorkspace`'s actions
+strip both do this, matching `InstanceCard` and `InstanceInlineRef`.
 
 The disclosure is collapsed by default so detail pages stay chat-free until the
 operator opens the thread, and the expanded host is bounded by the
 `h-support-chat` dimension token (`supportChatHeight`), never a page-local
-height, so the embedded thread owns its own scrolling and never the detail
-page height. The panel paints no container chrome: it is a header row plus the
-thread, and the surrounding section owns the surface. The thread itself is
-`ChatSupport`'s chrome (see the Chat section below); this component adds none.
+height, so the embedded thread owns its own scrolling. The panel paints no
+container chrome: the detail column already owns section rhythm and the thread
+supplies its own, so a host box would frame the thread twice.
 
 ### `SupportMessageContent.vue`
 Renders support-chat message bodies. Plain text remains text, while
