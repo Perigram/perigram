@@ -1865,7 +1865,11 @@
     "opIn": "is any of",
     "opNotIn": "is none of",
     "fieldStatus": "Status",
-    "fieldName": "Name"
+    "fieldName": "Name",
+    "opGt": "greater than",
+    "opGte": "greater or equal",
+    "opLt": "less than",
+    "opLte": "less or equal"
   },
   "uiConstructor": {
     "title": "UI Constructor Demo",

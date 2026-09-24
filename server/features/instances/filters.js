@@ -26,6 +26,9 @@ function mongoFilterOf(node) {
   if (node.op === 'in') {
     return { [path]: { $in: node.value.flatMap(value => equalityForms(node.field, value)) } };
   }
+  if (node.op === 'gt' || node.op === 'gte' || node.op === 'lt' || node.op === 'lte') {
+    return { [path]: { [`$${node.op}`]: node.value } };
+  }
   return { [path]: { $regex: escapeRegex(String(node.value)), $options: 'i' } };
 }
 

@@ -1,3 +1,4 @@
+import { builderFieldsForType } from './index.js';
 import { describe, it, expect } from 'vitest';
 import {
   createUiMapping,
@@ -769,5 +770,59 @@ describe('create dialog input resolution', () => {
       type,
       bundle
     )).toEqual([]);
+  });
+});
+
+describe('builder field derivation', () => {
+  const documentType = {
+    id: 'document', name: 'Document',
+    fields: {
+      title: { base: 'string', identifier: true },
+      pages: { base: 'number' },
+      grade: { base: 'enum', values: ['a', 'b'] },
+      secret: { base: 'boolean' },
+      madeAt: { base: 'instant' },
+      graph: { base: 'json' }
+    }
+  };
+  const folderType = {
+    id: 'folder', name: 'Folder',
+    fields: { label: { base: 'string' } },
+    edges: { children: { docs: { types: ['document'], lineageKey: 'folderId' } } }
+  };
+  const sheetType = {
+    id: 'sheet', name: 'Sheet',
+    fields: { title: { base: 'string' } },
+    edges: { relations: { pinned: { types: ['document'] } } }
+  };
+  const bundle = { types: [documentType, folderType, sheetType] };
+
+  it('offers every scalar field plus the parent axis (declared by the parent)', () => {
+    const fields = builderFieldsForType(documentType, { bundle });
+    expect(fields.map(field => field.name)).toEqual([
+      'title', 'pages', 'grade', 'secret', 'madeAt',
+      'lineage.folderId.label'
+    ]);
+    expect(fields.find(field => field.name === 'grade')).toMatchObject({ kind: 'enum', values: ['a', 'b'] });
+    expect(fields.find(field => field.name === 'pages').kind).toBe('number');
+    expect(fields.find(field => field.name === 'secret').kind).toBe('boolean');
+    expect(fields.find(field => field.name === 'madeAt').kind).toBe('instant');
+    expect(fields.find(field => field.name === 'lineage.folderId.label')).toMatchObject({ kind: 'text', label: 'Folder → Label' });
+  });
+
+  it('offers the children axis (every child scalar) and the relation axis from own edges', () => {
+    const fields = builderFieldsForType(folderType, { bundle });
+    expect(fields.map(field => field.name)).toEqual([
+      'label',
+      'children.document.title', 'children.document.pages', 'children.document.grade', 'children.document.secret', 'children.document.madeAt'
+    ]);
+    expect(fields.find(field => field.name === 'children.document.title')).toMatchObject({ kind: 'text', label: 'Document → Title' });
+    // relations are declared on the owner: the sheet's pinned documents
+    const sheets = builderFieldsForType(sheetType, { bundle });
+    expect(sheets.find(field => field.name === 'relations.pinned.title')).toMatchObject({ kind: 'text', label: 'Pinned → Title' });
+  });
+
+  it('returns direct fields alone without a bundle', () => {
+    expect(builderFieldsForType(documentType).map(field => field.name)).toEqual(['title', 'pages', 'grade', 'secret', 'madeAt']);
   });
 });

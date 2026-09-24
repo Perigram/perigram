@@ -9,20 +9,8 @@
       :aria-label="$t('uiMapping.searchPlaceholder')"
     />
     <template v-if="filtersOpen">
-      <AppMultiSelect
-        v-for="facet in visibleFacets"
-        :key="facet.name"
-        :model-value="facetsModel[facet.name] ?? []"
-        :options="facetOptions(facet)"
-        option-label="label"
-        option-value="value"
-        :placeholder="facet.label"
-        :size="editorSize"
-        class="max-w-44"
-        :aria-label="facet.label"
-        @update:model-value="value => setFacet(facet.name, value)"
-      />
       <FilterBuilder
+        class="w-full"
         :model-value="filterModel"
         :fields="builderFields"
         @update:model-value="value => (filterModel = value)"
@@ -35,7 +23,6 @@
 import { computed, inject } from 'vue';
 import InputText from 'primevue/inputtext';
 import { LAYOUT } from '#shared/ui-mapping/index.js';
-import AppMultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import FilterBuilder from '~/components/shared/FilterBuilder.vue';
 
 // The collection toolbar's controls: the search input and facet selects
@@ -57,19 +44,9 @@ const props = defineProps({
 });
 
 const searchModel = defineModel('search', { type: String, default: '' });
-const facetsModel = defineModel('facets', { type: Object, default: () => ({}) });
 const filterModel = defineModel('filter', { type: Object, default: null });
 const spacing = inject('uiMappingSpacing', null);
 const toolbarClasses = computed(() => (spacing ? spacing.toolbar : LAYOUT.row));
 const editorSize = computed(() => (spacing ? spacing.editorSize : undefined));
 
-const controls = computed(() => props.node.listControls || null);
-const visibleFacets = computed(() => (controls.value?.facets || []).filter(facet => facet.values.length > 1));
-
-const startCase = value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
-const facetOptions = facet => facet.values.map(value => ({ label: startCase(value), value }));
-function setFacet(name, value) {
-  if (!Array.isArray(value) || !value.length) delete facetsModel.value[name];
-  else facetsModel.value[name] = value;
-}
 </script>

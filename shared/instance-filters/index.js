@@ -7,7 +7,7 @@
 
 // Operators exist because a consumer expresses them; the set grows only
 // when a consumer needs a new one.
-export const FILTER_OPS = Object.freeze(['eq', 'in', 'contains']);
+export const FILTER_OPS = Object.freeze(['eq', 'in', 'contains', 'gt', 'gte', 'lt', 'lte']);
 
 const TRANSPORT_PARAMETER_KEYS = new Set(['limit', 'skip']);
 const LINEAGE_PREFIX = 'lineage.';
@@ -92,7 +92,63 @@ export function filterFromFlatFilters(filters = {}, { lineageKeys = null } = {})
 
 // Address resolution reads the CTS §3 instance shape, never storage paths:
 // the instance id, the primary status, lineage ref ids, and flat fields
-// (quantities compare by their `.value`).
+// (quantities compare by their `.value`). Traversal addresses read RELATED
+// instances through the caller's pool: `relations.<key>.<field>` (any
+// target of the relation), `lineage.<key>.<field>` (the ancestor stored
+// under the key), and `children.<type>.<field>` (any pool instance of the
+// type whose lineage points back). One hop only.
+const RELATIONS_PREFIX = 'relations.';
+const CHILDREN_PREFIX = 'children:';
+
+function traversalAddress(field = '') {
+  if (field.startsWith(RELATIONS_PREFIX)) {
+    const rest = field.slice(RELATIONS_PREFIX.length).split('.');
+    if (rest.length === 2 && rest[0] && rest[1]) return { kind: 'relations', key: rest[0], field: rest[1] };
+  }
+  if (field.startsWith(LINEAGE_PREFIX)) {
+    const rest = field.slice(LINEAGE_PREFIX.length).split('.');
+    if (rest.length === 2 && rest[0] && rest[1]) return { kind: 'lineage', key: rest[0], field: rest[1] };
+  }
+  if (field.startsWith('children.')) {
+    const rest = field.slice('children.'.length).split('.');
+    if (rest.length === 2 && rest[0] && rest[1]) return { kind: 'children', key: rest[0], field: rest[1] };
+  }
+  return null;
+}
+
+function poolInstance(pool, type, id) {
+  const resolved = pool?.[type]?.[String(id ?? '')];
+  return resolved ?? null;
+}
+
+function poolById(pool, id) {
+  if (!pool) return null;
+  for (const byId of Object.values(pool)) {
+    const hit = byId[String(id ?? '')];
+    if (hit) return hit;
+  }
+  return null;
+}
+
+function relatedInstances(instance, address, pool) {
+  if (!pool || !address) return [];
+  if (address.kind === 'relations') {
+    const refs = instance?.relations?.[address.key];
+    const list = Array.isArray(refs) ? refs : refs ? [refs] : [];
+    return list.map(ref => poolInstance(pool, ref?.type, ref?.id ?? ref)).filter(Boolean);
+  }
+  if (address.kind === 'lineage') {
+    const ref = instance?.lineage?.[address.key];
+    const resolved = ref == null ? null : poolById(pool, ref?.id ?? ref);
+    return resolved ? [resolved] : [];
+  }
+  // children: any pool instance of the type whose lineage points back here
+  const parentId = instance?.id;
+  if (!parentId) return [];
+  return Object.values(pool?.[address.key] || {}).filter(child =>
+    Object.values(child?.lineage || {}).some(ref => String(ref?.id ?? ref ?? '') === String(parentId)));
+}
+
 function readFilterValue(instance, field) {
   if (field === '_id' || field === 'id') return instance?.id ?? null;
   if (field === 'states.main') return instance?.states?.main ?? null;
@@ -116,17 +172,41 @@ function predicateMatches(instance, predicate) {
     return predicate.value.some(candidate => String(candidate) === String(actual ?? ''));
   }
   if (actual === null || actual === undefined) return false;
-  return String(actual).toLowerCase().includes(String(predicate.value).toLowerCase());
+  if (predicate.op === 'contains') {
+    return String(actual).toLowerCase().includes(String(predicate.value).toLowerCase());
+  }
+  // Ordering: numeric when both sides parse as numbers, else lexicographic
+  // (ISO instants compare correctly as strings).
+  const left = Number(actual);
+  const right = Number(predicate.value);
+  const comparable = Number.isFinite(left) && Number.isFinite(right);
+  const a = comparable ? left : String(actual);
+  const b = comparable ? right : String(predicate.value);
+  if (predicate.op === 'gt') return a > b;
+  if (predicate.op === 'gte') return a >= b;
+  if (predicate.op === 'lt') return a < b;
+  return a <= b;
 }
 
-// instanceMatchesFilter(instance, node): the one in-memory matcher. A null
-// filter is the match-all; malformed input normalizes to no-ops instead of
-// failing the surface.
-export function instanceMatchesFilter(instance, node) {
+// instanceMatchesFilter(instance, node, { pool }): the one in-memory
+// matcher. A null filter is the match-all; malformed input normalizes to
+// no-ops instead of failing the surface. Traversal addresses need the
+// caller's instance pool ({ type -> { id -> instance } }); without one
+// they are no-ops, never failures.
+export function instanceMatchesFilter(instance, node, context = {}) {
   const filter = normalizeFilter(node);
   if (!filter) return true;
-  if (filter.and) return filter.and.every(child => instanceMatchesFilter(instance, child));
-  if (filter.or) return filter.or.some(child => instanceMatchesFilter(instance, child));
-  if (filter.not) return !instanceMatchesFilter(instance, filter.not);
+  if (filter.and) return filter.and.every(child => instanceMatchesFilter(instance, child, context));
+  if (filter.or) return filter.or.some(child => instanceMatchesFilter(instance, child, context));
+  if (filter.not) return !instanceMatchesFilter(instance, filter.not, context);
+  const address = traversalAddress(filter.field);
+  if (address) {
+    // Without a pool — or when the related instances are not loaded —
+    // the axis is unresolvable: a no-op, never a failure.
+    if (!context.pool) return true;
+    const related = relatedInstances(instance, address, context.pool);
+    if (!related.length) return true;
+    return related.some(target => predicateMatches(target, { ...filter, field: address.field }));
+  }
   return predicateMatches(instance, filter);
 }

@@ -1,142 +1,166 @@
 <template>
-  <span class="inline-flex">
-    <Button
-      icon="pi pi-filter"
-      :label="activeCount ? String(activeCount) : undefined"
-      outlined
-      severity="secondary"
+  <div class="flex min-w-0 flex-col gap-2">
+    <div v-if="rows.length > 1" class="flex flex-wrap items-center justify-between gap-2">
+      <SelectButton
+        :model-value="combinator"
+        :options="combinatorOptions"
+        option-label="label"
+        option-value="value"
+        size="small"
+        :allow-empty="false"
+        :aria-label="$t('uiMapping.matchAll')"
+        @update:model-value="value => setCombinator(value)"
+      />
+      <Button
+        icon="pi pi-times"
+        text
+        rounded
+        size="small"
+        severity="secondary"
+        :aria-label="$t('uiMapping.clearConditions')"
+        @click="clearAll"
+      />
+    </div>
+
+    <div
+      v-for="(row, index) in rows"
+      :key="index"
+      class="flex flex-wrap items-center gap-2"
+    >
+      <Select
+        :model-value="row.field"
+        :options="fieldOptions"
+        option-label="label"
+        option-value="value"
+        size="small"
+        filter
+        class="w-48"
+        :aria-label="fieldLabelFor(row.field)"
+        @update:model-value="value => setField(index, value)"
+      />
+      <Select
+        :model-value="rowKey(row)"
+        :options="opOptionsFor(row.field)"
+        option-label="label"
+        option-value="value"
+        size="small"
+        class="w-36"
+        :aria-label="$t('common.filter')"
+        @update:model-value="value => setRowOp(index, value)"
+      />
+      <InputText
+        v-if="fieldKind(row.field) === 'text'"
+        :model-value="row.value"
+        size="small"
+        class="min-w-32 flex-1"
+        :placeholder="fieldLabelFor(row.field)"
+        @update:model-value="value => setRowValue(index, value)"
+      />
+      <InputNumber
+        v-else-if="fieldKind(row.field) === 'number'"
+        :model-value="typeof row.value === 'number' ? row.value : null"
+        size="small"
+        class="min-w-28 flex-1"
+        :aria-label="fieldLabelFor(row.field)"
+        @update:model-value="value => setRowValue(index, typeof value === 'number' ? value : '')"
+      />
+      <DatePicker
+        v-else-if="fieldKind(row.field) === 'instant'"
+        :model-value="toDate(row.value)"
+        size="small"
+        class="min-w-36 flex-1"
+        :aria-label="fieldLabelFor(row.field)"
+        @update:model-value="value => setRowValue(index, value ? value.toISOString() : '')"
+      />
+      <Select
+        v-else-if="fieldKind(row.field) === 'boolean'"
+        :model-value="row.value"
+        :options="booleanOptions"
+        size="small"
+        class="min-w-24 flex-1"
+        :placeholder="fieldLabelFor(row.field)"
+        :aria-label="fieldLabelFor(row.field)"
+        @update:model-value="value => setRowValue(index, value ?? '')"
+      />
+      <MultiSelect
+        v-else-if="rowOp(row) === 'in'"
+        :model-value="Array.isArray(row.value) ? row.value : []"
+        :options="valueOptionsFor(row.field)"
+        option-label="label"
+        option-value="value"
+        size="small"
+        class="min-w-36 flex-1"
+        :placeholder="fieldLabelFor(row.field)"
+        :aria-label="fieldLabelFor(row.field)"
+        @update:model-value="value => setRowValue(index, value)"
+      />
+      <Select
+        v-else
+        :model-value="row.value"
+        :options="valueOptionsFor(row.field)"
+        option-label="label"
+        option-value="value"
+        size="small"
+        filter
+        class="min-w-36 flex-1"
+        :placeholder="fieldLabelFor(row.field)"
+        :aria-label="fieldLabelFor(row.field)"
+        @update:model-value="value => setRowValue(index, value ?? '')"
+      />
+      <Button
+        icon="pi pi-times"
+        text
+        rounded
+        size="small"
+        severity="secondary"
+        :aria-label="$t('common.delete')"
+        @click="removeRow(index)"
+      />
+    </div>
+
+    <Select
+      :model-value="null"
+      :options="fieldOptions"
+      option-label="label"
+      option-value="value"
       size="small"
-      :aria-label="$t('common.filter')"
-      @click="open"
+      filter
+      class="w-56"
+      :placeholder="$t('uiMapping.addCondition')"
+      :aria-label="$t('uiMapping.addCondition')"
+      @update:model-value="value => addRowFor(value)"
     />
-
-    <Popover ref="popover">
-      <div class="flex min-w-80 max-w-96 flex-col gap-3">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <SelectButton
-            :model-value="combinator"
-            :options="combinatorOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
-            :allow-empty="false"
-            :aria-label="$t('uiMapping.matchAll')"
-            @update:model-value="value => setCombinator(value)"
-          />
-          <Button
-            v-if="rows.length"
-            icon="pi pi-times"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :aria-label="$t('uiMapping.clearConditions')"
-            @click="clearAll"
-          />
-        </div>
-
-        <div
-          v-for="(row, index) in rows"
-          :key="index"
-          class="flex flex-wrap items-center gap-2"
-        >
-          <Select
-            :model-value="row.field"
-            :options="fieldOptions"
-            option-label="label"
-            option-value="value"
-            size="small"
-            class="w-40"
-            :aria-label="fieldLabelFor(row.field)"
-            @update:model-value="value => setField(index, value)"
-          />
-          <Select
-            :model-value="rowKey(row)"
-            :options="opOptionsFor(row.field)"
-            option-label="label"
-            option-value="value"
-            size="small"
-            class="w-36"
-            :aria-label="$t('common.filter')"
-            @update:model-value="value => setRowOp(index, value)"
-          />
-          <InputText
-            v-if="fieldKind(row.field) === 'text'"
-            :model-value="row.value"
-            size="small"
-            class="min-w-32 flex-1"
-            :placeholder="fieldLabelFor(row.field)"
-            @update:model-value="value => setRowValue(index, value)"
-          />
-          <MultiSelect
-            v-else-if="rowOp(row) === 'in'"
-            :model-value="Array.isArray(row.value) ? row.value : []"
-            :options="valueOptionsFor(row.field)"
-            option-label="label"
-            option-value="value"
-            size="small"
-            class="min-w-36 flex-1"
-            :placeholder="fieldLabelFor(row.field)"
-            :aria-label="fieldLabelFor(row.field)"
-            @update:model-value="value => setRowValue(index, value)"
-          />
-          <Select
-            v-else
-            :model-value="row.value"
-            :options="valueOptionsFor(row.field)"
-            option-label="label"
-            option-value="value"
-            size="small"
-            class="min-w-36 flex-1"
-            :placeholder="fieldLabelFor(row.field)"
-            :aria-label="fieldLabelFor(row.field)"
-            @update:model-value="value => setRowValue(index, value)"
-          />
-          <Button
-            icon="pi pi-times"
-            text
-            rounded
-            size="small"
-            severity="secondary"
-            :aria-label="$t('common.delete')"
-            @click="removeRow(index)"
-          />
-        </div>
-
-        <Button
-          :label="$t('uiMapping.addCondition')"
-          icon="pi pi-plus"
-          text
-          size="small"
-          @click="addRow"
-        />
-      </div>
-    </Popover>
-  </span>
+  </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
-import Popover from 'primevue/popover';
+import InputNumber from 'primevue/inputnumber';
+import DatePicker from 'primevue/datepicker';
 import SelectButton from 'primevue/selectbutton';
 import Select from '~/components/shared/InstanceSelect.vue';
 import MultiSelect from '~/components/shared/InstanceMultiSelect.vue';
 import { filterFromBuilderRows, builderRowsFromFilter } from '#shared/instance-filters/builder.js';
 
-// The filter builder: the user-facing surface for boolean composition over
-// the canonical instance-filter tree. One combinator (match all / match
-// any) over predicate rows; each row picks a field, an operator (including
-// the negated twins that compose `not`), and a value. It owns no matching
-// logic — every edit composes through #shared/instance-filters and the
-// host surface evaluates the result with the one matcher.
+// The filter conditions panel: the user-facing surface for boolean
+// composition over the canonical instance-filter tree. Set conditions
+// render as removable rows; the trailing select ("+ Add condition")
+// appends a row for any offered field. One combinator (match all / match
+// any) applies once more than one row exists; negated operator twins
+// compose `not`. It owns no matching logic — every edit composes through
+// #shared/instance-filters and the host surface evaluates with the one
+// matcher.
 //
-// Fields are supplied by the host: `{ name, label, kind: 'enum' | 'text',
-// values? }` — enum fields carry the values actually present, text fields
-// compare by substring. Trees the builder did not compose (nested groups)
-// decompose to nothing instead of being corrupted.
+// Fields are supplied by the host: `{ name, label, kind: 'text' | 'enum'
+// | 'boolean' | 'number' | 'instant', values? }` — enum fields carry
+// their declared values, and traversal names (`relations.<key>.<field>`,
+// `lineage.<key>.<field>`, `children.<type>.<field>`) are plain names the
+// matcher resolves against the host's pool. Trees the builder did not
+// compose (nested groups) decompose to nothing instead of being
+// corrupted.
 const props = defineProps({
   modelValue: { type: Object, default: null },
   fields: { type: Array, default: () => [] }
@@ -144,7 +168,6 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue']);
 
 const { t } = useI18n();
-const popover = ref();
 const combinator = ref('and');
 const rows = ref([]);
 
@@ -154,29 +177,60 @@ const combinatorOptions = computed(() => [
 ]);
 const fieldOptions = computed(() => props.fields.map(field => ({ label: field.label, value: field.name })));
 const fieldByName = computed(() => new Map(props.fields.map(field => [field.name, field])));
+const booleanOptions = [
+  { label: 'true', value: true },
+  { label: 'false', value: false }
+];
 
 function fieldKind(name) {
-  return fieldByName.value.get(name)?.kind === 'enum' ? 'enum' : 'text';
+  return fieldByName.value.get(name)?.kind || 'text';
 }
 function fieldLabelFor(name) {
   return fieldByName.value.get(name)?.label || name;
 }
 function valueOptionsFor(name) {
-  return (fieldByName.value.get(name)?.values || []).map(value => ({ label: value, value }));
+  return (fieldByName.value.get(name)?.values || []).map(value => ({ label: String(value), value }));
+}
+function toDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
-const TEXT_OPS = [
-  { op: 'contains', negate: false },
-  { op: 'contains', negate: true },
-  { op: 'eq', negate: false },
-  { op: 'eq', negate: true }
-];
-const ENUM_OPS = [
-  { op: 'in', negate: false },
-  { op: 'in', negate: true },
-  { op: 'eq', negate: false },
-  { op: 'eq', negate: true }
-];
+const KIND_OPS = {
+  text: [
+    { op: 'contains', negate: false },
+    { op: 'contains', negate: true },
+    { op: 'eq', negate: false },
+    { op: 'eq', negate: true }
+  ],
+  enum: [
+    { op: 'in', negate: false },
+    { op: 'in', negate: true },
+    { op: 'eq', negate: false },
+    { op: 'eq', negate: true }
+  ],
+  boolean: [
+    { op: 'eq', negate: false },
+    { op: 'eq', negate: true }
+  ],
+  number: [
+    { op: 'gt', negate: false },
+    { op: 'gte', negate: false },
+    { op: 'lt', negate: false },
+    { op: 'lte', negate: false },
+    { op: 'eq', negate: false },
+    { op: 'eq', negate: true }
+  ],
+  instant: [
+    { op: 'gt', negate: false },
+    { op: 'gte', negate: false },
+    { op: 'lt', negate: false },
+    { op: 'lte', negate: false },
+    { op: 'eq', negate: false },
+    { op: 'eq', negate: true }
+  ]
+};
 function opOptionsFor(name) {
   const labels = {
     'contains': t('uiMapping.opContains'),
@@ -184,9 +238,13 @@ function opOptionsFor(name) {
     'eq': t('uiMapping.opIs'),
     '!eq': t('uiMapping.opIsNot'),
     'in': t('uiMapping.opIn'),
-    '!in': t('uiMapping.opNotIn')
+    '!in': t('uiMapping.opNotIn'),
+    'gt': t('uiMapping.opGt'),
+    'gte': t('uiMapping.opGte'),
+    'lt': t('uiMapping.opLt'),
+    'lte': t('uiMapping.opLte')
   };
-  return (fieldKind(name) === 'enum' ? ENUM_OPS : TEXT_OPS)
+  return (KIND_OPS[fieldKind(name)] || KIND_OPS.text)
     .map(({ op, negate }) => ({ label: labels[`${negate ? '!' : ''}${op}`], value: `${negate ? '!' : ''}${op}` }));
 }
 function rowKey(row) {
@@ -196,14 +254,23 @@ function rowOp(row) {
   return row?.op;
 }
 
+function defaultOpFor(kind) {
+  return kind === 'enum' ? 'in' : kind === 'number' || kind === 'instant' ? 'gt' : 'contains';
+}
+
 function syncFromModel() {
   const decomposed = builderRowsFromFilter(props.modelValue);
   combinator.value = decomposed?.combinator || 'and';
   rows.value = decomposed ? decomposed.rows.map(row => ({ ...row })) : [];
 }
 function publish() {
-  emit('update:modelValue', filterFromBuilderRows(rows.value, combinator.value));
+  // Incomplete rows (empty values) live only in local state until they
+  // are complete — the tree never carries them, so the model round trip
+  // must not rebuild rows out from under the user mid-edit.
+  lastPublished = filterFromBuilderRows(rows.value, combinator.value);
+  emit('update:modelValue', lastPublished);
 }
+let lastPublished = null;
 function setCombinator(value) {
   combinator.value = value === 'or' ? 'or' : 'and';
   publish();
@@ -212,9 +279,10 @@ function setField(index, name) {
   const row = rows.value[index];
   if (!row || !fieldByName.value.has(name)) return;
   row.field = name;
-  row.value = fieldKind(name) === 'enum' ? [] : '';
-  row.op = fieldKind(name) === 'enum' ? 'in' : 'contains';
+  const kind = fieldKind(name);
+  row.op = defaultOpFor(kind);
   row.negate = false;
+  row.value = kind === 'enum' ? [] : '';
   publish();
 }
 function setRowOp(index, key) {
@@ -240,26 +308,20 @@ function clearAll() {
   rows.value = [];
   publish();
 }
-function addRow() {
-  const first = props.fields[0];
-  if (!first) return;
+function addRowFor(name) {
+  const field = fieldByName.value.get(name);
+  if (!field) return;
+  const kind = field.kind === 'enum' ? 'enum' : field.kind;
   rows.value.push({
-    field: first.name,
-    op: first.kind === 'enum' ? 'in' : 'contains',
-    value: first.kind === 'enum' ? [] : '',
+    field: name,
+    op: defaultOpFor(kind),
+    value: kind === 'enum' ? [] : '',
     negate: false
   });
+  publish();
 }
-const activeCount = computed(() => (props.modelValue ? countPredicates(props.modelValue) : 0));
-function countPredicates(node) {
-  if (!node || typeof node !== 'object') return 0;
-  if (node.and) return node.and.reduce((sum, child) => sum + countPredicates(child), 0);
-  if (node.or) return node.or.reduce((sum, child) => sum + countPredicates(child), 0);
-  if (node.not) return countPredicates(node.not);
-  return 1;
-}
-function open(event) {
+watch(() => props.modelValue, value => {
+  if (value === lastPublished) return;
   syncFromModel();
-  popover.value?.toggle(event);
-}
+}, { immediate: true });
 </script>

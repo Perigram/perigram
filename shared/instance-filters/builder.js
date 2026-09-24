@@ -48,3 +48,4 @@ export function builderRowsFromFilter(filter) {
   if (rows.some(row => !row)) return null;
   return { combinator: group.key, rows };
 }
+
