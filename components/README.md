@@ -700,6 +700,27 @@ elevation through overlay shadows — never through painting the canvas.
 Flattening the page onto the content surface is a contract violation:
 instances lose their step and every card goes invisible.
 
+**Table row surfaces** ride the same ladder: the PrimeVue preset paints
+every DataTable/TreeTable row as the content surface
+(`datatable`/`treetable` `row.background`) with structurally present but
+transparent internal cell dividers (`bodyCell.borderColor`) — row
+stripes are gone, the row IS the card. Surfaces that want Notion-style
+gaps and rounding apply the shared row-surface recipe (a layout-only
+scoped `border-collapse: separate` block with a `0.25rem` row gap, plus
+`rounded-ui` through the official `rowClass` channel and a muted
+transparent header band through `pt`): the generated collection tables
+(`CollectionTable`, `HierarchyTable`), the legacy
+`GeneratedInstanceCollection`, and the organization users tables
+register it. Row paint belongs to the preset — one owner per concern.
+
+**Control sizes** follow density, not preference: the generator's
+spacing scales carry `editorSize` (compact region scales 0.5/0.75 render
+PrimeVue controls at `small`; the normal scale and above render them at
+the default), operational chrome (toolbar buttons, table headers,
+inline actions) renders at `small`, and forms/dialogs render at the
+default — `large` is reserved for display-scale moments (hero actions),
+never for data surfaces.
+
 App scrollbars are themed globally in `assets/css/main.css` from
 `--ck-scrollbar-thumb` / `--ck-scrollbar-thumb-hover` (text-color mixes that
 follow each scheme): a floating rounded pill thumb over a fully transparent

@@ -65,8 +65,8 @@ changed field names onto the wire patch blocks (`name` →
 `processUpdate` writes) and re-emits both affordances as one `patch`
 event; without `onPatch` neither affordance renders.
 
-Region data states and the collection toolbar are shared surface
-concerns:
+Region data states and the region header's in-place controls are shared
+surface concerns:
 
 - `RegionDataState.vue` — materializes the composed region `dataState`:
   skeleton lines on first load (system stack rhythm), one shared Message
@@ -74,22 +74,6 @@ concerns:
   already-loaded instances keep their stale surfaces under one
   indeterminate progress bar instead — no component invents its own
   empty or loading state.
-- `CollectionToolbar.vue` — the region header's toggleable control set:
-  the search input and facet selects render only while their RegionBlock
-  header toggles are open (a search toggle when the toolbar budget
-  applies — every large list past `SEARCH_AT`, identity search always
-  functions — a filter toggle when multi-value enum facets exist, one
-  multi-select per facet over the values actually present: a value set
-  within a facet, conjunction across facets; the filter badge carries
-  the active selection count). Its gaps come from the system spacing
-  scale (`spacing.toolbar`) and its control sizes from `editorSize`, and
-  it owns no per-type logic — the region tree carries every decision.
-  Search and facet selections are region-owned models RegionBlock
-  applies client-side over the loaded instances; columns keep only their
-  native sorting. The region header stays one line (label, count, opened
-  controls, toggle buttons, actions), wrapping only when the opened
-  controls or the action cluster demand it.
-
 ## Components
 
 - `GeneratedMappingScreen.vue` — engine: composes and renders a compiled
@@ -105,9 +89,12 @@ concerns:
 - `RegionBlock.vue` — one composed region with data-driven layout: the list
   layout comes from `resolveListLayout` (`table` | `tree-table` |
   `card-grid` | `timeline`, matched by class, hierarchy, or type override).
-  The list header is one wrapping line — label, count, toggleable search
-  and filter controls, toggle buttons, and actions; the toolbar controls
-  render inside it only while toggled open. The standalone list region
+  The list header is one wrapping line — label, count, in-place expanding
+  search and filter controls, and actions. The search toggle expands into
+  an icon field AT the button's position (the icon or Esc collapses it;
+  an empty blur collapses too) and the filter toggle unfolds its facet
+  selects directly beside the button (the button stays as the collapse
+  anchor and carries the active-selection count badge). The standalone list region
   renders as a borderless Panel — regions paint
   no box; the higher record surface (`SurfaceHeader`'s `headerBar`) keeps
   the hairline border, and pane boxes own their own frames. A create
@@ -127,11 +114,12 @@ concerns:
   identity (a link button when the screen has an `onOpen` handler),
   status, budgeted scalar descriptor columns, and the first
   declared relation as budgeted chips. Rows are Notion-style surface
-  cards — `bg-content rounded-ui` per row through the official
-  `rowClass` channel with a hairline separated-border gap (the
-  layout-only scoped block), the header band receding to a muted
-  transparent caption — every instance row sits one step above the
-  canvas while the table box stays unpainted. Columns come from the composed
+  cards — the preset paints every row as the content surface with
+  transparent internal dividers; this table adds `rounded-ui` rows
+  through the official `rowClass` channel, a hairline separated-border
+  gap (the layout-only scoped block), and a muted transparent header
+  band — every instance row sits one step above the canvas while the
+  table box stays unpainted. Columns come from the composed
   `listControls` contract (filled short scalars bounded by the richness
   budget — a field no loaded instance fills never becomes a column),
   identity/status/scalar columns are sortable (quantity values sort by
