@@ -80,9 +80,13 @@ record access, roles, screens, and dock/panel state:
   [server/features/process-definitions/README.md](../../server/features/process-definitions/README.md)
   and the refusal payload contract in
   [server/features/cts-types/README.md](../../server/features/cts-types/README.md)).
-- `utils/processDesignerAccess.js` (grant-row normalization) and
-  `utils/processDesignerPaletteText.js` (localized palette labels) are the
-  shared pure helpers.
+- `utils/processDesignerAccess.js` (grant-row normalization),
+  `utils/processDesignerPaletteText.js` (localized palette labels),
+  `utils/processDesignerCommandPorts.js` (pure command-contract → port-row
+  projection for the runCommand panel), and
+  `utils/processDesignerDefinitionRecords.js` (pure service/socket record
+  factories — definition-plane records, kept out of the node-record
+  factories) are the shared pure helpers.
 
 Per-kind inspector sections live in
 [`inspector/`](./inspector/): `ProcessNodeInspector.vue` (authorization
@@ -153,6 +157,9 @@ after a frozen canvas. Class identity is the authored name — a mutable label w
 coupling to identity. The registry id is an opaque, randomly generated
 identifier (`utils/processDesignerIdentity.js`, kebab-safe, minted at
 node creation): never derived from the name, never shown, never edited.
+The same module mints every canvas/definition id the designer creates at
+runtime (`mintId` — graph nodes, edges, services, sockets, stations):
+time + counter + random, so same-millisecond drops cannot collide.
 Renaming is always a pure label change; persisted instances, posted org
 types, producer outputs, and relation references keep resolving.
 The class inspector owns NO lifecycle editor: a class is a name, a

@@ -10,6 +10,16 @@ Shared frontend utility modules used by Vue pages/components.
   designer node form and source edge. It maps structured port type/role data to a
   semantic signal token so a socket and the wire it produces cannot drift
   into separate color contracts.
+- `processDesignerIdentity.js`: Pure identity minting for the process
+  designer — opaque kebab-safe registry type ids, and `mintId()` for every
+  canvas/definition id created at runtime (nodes, edges, services, sockets,
+  stations), collision-proof across same-millisecond drops.
+- `processDesignerCommandPorts.js`: Pure projection of a domain command
+  contract into the handle-shaped port rows the runCommand inspector panel
+  renders; consumes no designer state.
+- `processDesignerDefinitionRecords.js`: Pure factories for the
+  definition-plane service and socket records (Roles tab surfaces); the
+  process-node record factories stay with the designer node-sync family.
 - `processDesignerTypeMigrations.js`: Pure seam of the type-migration
   authoring loop (CTS SPEC §11/§14): a refused declaration post's plan
   payload becomes step rows labeled by the authored vocabulary

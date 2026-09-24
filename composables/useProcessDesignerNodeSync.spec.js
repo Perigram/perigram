@@ -114,3 +114,58 @@ describe('effect record access stays a grant object', () => {
     expect(literal.access).toBe('item');
   });
 });
+
+// Record-shape contract: the factory seeds only what the record's species
+// carries, and the sync pass prunes the designer-owned junk keys older
+// factories persisted. Failure modes: every literal/value node carrying a
+// meaningless construction envelope and status/cases defaults (draft bloat,
+// "what does construction mean on a string?" authoring noise); a control
+// record LOSING its authored cases (the shared control contract reads
+// them); an entityRef literal whose binding is anything but a string type
+// id aligned with type.typeId (the type-confusion regression where the
+// whole type object was assigned to typeId).
+describe('process node record shape', () => {
+  it('a literal record carries no create-only envelope or dead defaults', () => {
+    freshDraft();
+    const literal = nodeRecords.createProcessNode('lit', 'source.literalItem');
+    expect(literal).not.toHaveProperty('construction');
+    expect(literal).not.toHaveProperty('cases');
+    expect(literal).not.toHaveProperty('status');
+    expect(literal.matching).toBe('longest');
+  });
+
+  it('a construct record carries its construction envelope and state', () => {
+    freshDraft();
+    const construct = nodeRecords.createProcessNode('c', 'cts.construct');
+    expect(construct.construction).toBeDefined();
+    expect(construct.state).toBeDefined();
+  });
+
+  it('sync prunes designer-owned junk keys from legacy drafts', () => {
+    freshDraft();
+    const record = nodeRecords.createProcessNode('legacy', 'source.literalItem');
+    Object.assign(record, { status: null, retry: { count: 2 } });
+    sync.syncProcessNode(record);
+    expect(record).not.toHaveProperty('status');
+    expect(record).not.toHaveProperty('retry');
+  });
+
+  it('sync never prunes authored control cases', () => {
+    freshDraft();
+    const control = { id: 'sw', kind: 'control.switch', cases: [{ value: 'a' }] };
+    sync.syncProcessNode(control);
+    expect(control.cases).toEqual([{ value: 'a' }]);
+  });
+
+  it('an entityRef literal keeps a string binding aligned with type.typeId', () => {
+    freshDraft();
+    const literal = nodeRecords.createProcessNode('ref', 'source.literalItem');
+    literal.type = { base: 'entityRef' };
+    sync.syncProcessNode(literal);
+    expect(typeof literal.typeId).toBe('string');
+    expect(literal.typeId).toBe(literal.type.typeId);
+    literal.value = { id: 'entity-1', type: 'stale-type' };
+    sync.syncProcessNode(literal);
+    expect(literal.value.type).toBe(literal.typeId);
+  });
+});

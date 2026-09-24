@@ -1,10 +1,35 @@
 import { CANONICAL_ENTITY_BLOCKS } from '../../core/src/index.js';
 import { PROCESS_PROTOCOL_VERSION } from './types.js';
 
-const HANDLE_PREFIXES = ['input:', 'output:', 'data:'];
+const HANDLE_PREFIXES = ['input:', 'output:', 'data:', 'control:'];
 export const PROCESS_SCALAR_KINDS = Object.freeze(['string', 'number', 'boolean', 'json', 'date']);
 export const PROCESS_STRUCTURES = Object.freeze(['item', 'list', 'tree']);
 export const PROCESS_DATAFLOW_VERSION = PROCESS_PROTOCOL_VERSION;
+
+// Socket-handle vocabulary — the single home for minting and parsing
+// canvas socket handles. A process socket's handle is `data:<id>` or
+// `control:<id>` by port role; the parse side also strips the legacy
+// `input:`/`output:` spellings older drafts persisted, so those edges keep
+// resolving to their ports. Nothing else should regex a handle.
+export function mintProcessSocketHandle(item = {}) {
+  return `${item.role === 'data' ? 'data' : 'control'}:${item.id}`;
+}
+
+export function parseProcessSocketHandleId(handle = '') {
+  return normalizeHandleId(handle, '');
+}
+
+export function isControlProcessSocketHandle(handle = '') {
+  return String(handle || '').startsWith('control:');
+}
+
+// An edge is a data-input edge iff its target handle carries a data-plane
+// prefix (`data:` today, `input:` in older drafts). Bare and `control:`
+// handles are not data inputs.
+export function isProcessDataHandle(handle = '') {
+  const value = String(handle || '');
+  return value.startsWith('data:') || value.startsWith('input:');
+}
 
 export function normalizePortSpec(io = {}, fallback = {}) {
   const source = io && typeof io === 'object' ? io : {};

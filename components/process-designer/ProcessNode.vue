@@ -59,37 +59,18 @@
         :placeholder="$t('common.id')"
         @update:model-value="value => update({ value: value ? { type: record.type?.typeId || record.typeId || '', id: value } : null })"
       />
-      <InputText
-        v-if="opKind === 'source.literalItem' && !['entityRef', 'number', 'integer', 'boolean', 'date', 'dateTime', 'status'].includes(record.type?.base)"
-        :model-value="literalDisplay"
-        size="small"
-        @update:model-value="updateLiteral"
-      />
-      <InputNumber
-        v-if="opKind === 'source.literalItem' && ['number', 'integer'].includes(record.type?.base)"
-        :model-value="Number(record.value) || 0"
-        size="small"
+      <TypedValueControl
+        v-if="opKind === 'source.literalItem' && record.type?.base !== 'entityRef'"
+        :base="record.type?.base || 'json'"
+        :model-value="record.value"
         @update:model-value="value => update({ value })"
-      />
-      <ToggleSwitch
-        v-if="opKind === 'source.literalItem' && record.type?.base === 'boolean'"
-        :model-value="Boolean(record.value)"
-        @update:model-value="value => update({ value })"
-      />
-      <DatePicker
-        v-if="opKind === 'source.literalItem' && ['date', 'dateTime'].includes(record.type?.base)"
-        :model-value="literalDate"
-        :show-time="record.type?.base === 'dateTime'"
-        hour-format="24"
-        size="small"
-        @update:model-value="value => update({ value: serializeLiteralDate(value) })"
       />
       <Textarea
         v-if="['source.literalList', 'source.literalTree'].includes(opKind)"
-        :model-value="literalDisplay"
+        :model-value="literalStructureDisplay"
         rows="3"
         auto-resize
-        @update:model-value="updateLiteral"
+        @update:model-value="updateLiteralStructure"
       />
     </div>
 
@@ -97,7 +78,7 @@
       <div v-for="row in socketRows" :key="row.key" class="grid min-h-7 grid-cols-2 gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
           <Handle
-            :id="socketHandleId(row.input)"
+            :id="mintProcessSocketHandle(row.input)"
             type="target"
             :position="Position.Left"
             :class="handleClass(row.input, 'left')"
@@ -106,54 +87,19 @@
           />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
           <div v-if="showInlineFallback(row.input)" class="nodrag nowheel mt-0.5" @mousedown.stop @click.stop>
-            <ToggleSwitch
-              v-if="row.input.base === 'boolean'"
-              :model-value="Boolean(inputDefault(row.input.id))"
-              @update:model-value="value => updateInputDefault(row.input.id, value)"
-            />
-            <InputNumber
-              v-else-if="['number', 'integer'].includes(row.input.base)"
-              :model-value="numericInputDefault(row.input.id)"
-              size="small"
-              class="w-full min-w-0"
-              :placeholder="$t('processDesigner.inlineValue')"
-              @update:model-value="value => updateInputDefault(row.input.id, value)"
-            />
-            <Select
-              v-else-if="row.input.base === 'status'"
+            <TypedValueControl
+              :base="row.input.base"
               :model-value="inputDefault(row.input.id)"
-              :options="data.processStatusOptions || []"
-              option-label="label"
-              option-value="value"
-              editable
-              size="small"
-              class="w-full min-w-0"
-              :placeholder="$t('processDesigner.transitionStatusValue')"
-              @update:model-value="value => updateStatusInputDefault(row.input.id, value)"
-            />
-            <DatePicker
-              v-else-if="['date', 'dateTime'].includes(row.input.base)"
-              :model-value="dateInputDefault(row.input.id)"
-              :show-time="row.input.base === 'dateTime'"
-              hour-format="24"
-              size="small"
-              class="w-full min-w-0"
-              @update:model-value="value => updateInputDefault(row.input.id, serializeDateInput(row.input, value))"
-            />
-            <InputText
-              v-else
-              :model-value="displayInputDefault(row.input.id)"
-              size="small"
-              class="w-full min-w-0"
+              :status-options="data.processStatusOptions || []"
               :placeholder="inputPlaceholder(row.input)"
-              @update:model-value="value => updateInputDefault(row.input.id, parseInputDefault(row.input, value))"
+              @update:model-value="value => onFallbackValue(row.input, value)"
             />
           </div>
         </div>
         <div v-else></div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
           <Handle
-            :id="socketHandleId(row.output)"
+            :id="mintProcessSocketHandle(row.output)"
             type="source"
             :position="Position.Right"
             :class="handleClass(row.output, 'right')"
@@ -181,12 +127,12 @@
       </label>
       <div v-for="row in eventSocketRows" :key="row.key" class="grid min-h-7 grid-cols-2 gap-x-5">
         <div v-if="row.input" :class="socketClass(row.input, 'left')" :title="socketTitle(row.input)">
-          <Handle :id="socketHandleId(row.input)" type="target" :position="Position.Left" :class="handleClass(row.input, 'left')" :style="handleStyle(row.input)" />
+          <Handle :id="mintProcessSocketHandle(row.input)" type="target" :position="Position.Left" :class="handleClass(row.input, 'left')" :style="handleStyle(row.input)" />
           <span class="block truncate text-supporting">{{ row.input.label }}</span>
         </div>
         <div v-else></div>
         <div v-if="row.output" :class="socketClass(row.output, 'right')" :title="socketTitle(row.output)">
-          <Handle :id="socketHandleId(row.output)" type="source" :position="Position.Right" :class="handleClass(row.output, 'right')" :style="handleStyle(row.output)" />
+          <Handle :id="mintProcessSocketHandle(row.output)" type="source" :position="Position.Right" :class="handleClass(row.output, 'right')" :style="handleStyle(row.output)" />
           <span class="block truncate text-supporting">{{ row.output.label }}</span>
         </div>
         <div v-else></div>
@@ -200,16 +146,15 @@ import { operationKindOf } from '~/packages/cts/src/index.js';
 
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
-import DatePicker from 'primevue/datepicker';
-import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Select from '~/components/shared/InstanceSelect.vue';
 import Textarea from 'primevue/textarea';
 import ToggleSwitch from 'primevue/toggleswitch';
 import { useI18n } from 'vue-i18n';
-import { formatProcessType } from '~/packages/processes/src/index.js';
+import { formatProcessType, mintProcessSocketHandle } from '~/packages/processes/src/index.js';
 import { nodeSpecSummary, socketSpecLine } from '~/composables/useNodeSpec.js';
 import { processSocketHandleStyle } from '~/utils/processDesignerSocketTone.js';
+import TypedValueControl from './TypedValueControl.vue';
 
 const props = defineProps({
   data: { type: Object, default: () => ({}) },
@@ -262,17 +207,9 @@ const baseTypeOptions = computed(() => [
   'enum',
   'entityRef'
 ].map(value => ({ label: t(`processDesigner.dataTypes.${value}`), value })));
-const literalDisplay = computed(() => {
-  if (record.value.type?.base === 'entityRef') return record.value.value?.id || '';
-  return typeof record.value.value === 'string'
-    ? record.value.value
-    : JSON.stringify(record.value.value, null, 2);
-});
-const literalDate = computed(() => {
-  if (!record.value.value) return null;
-  const value = new Date(record.value.value);
-  return Number.isNaN(value.getTime()) ? null : value;
-});
+const literalStructureDisplay = computed(() => (
+  typeof record.value.value === 'string' ? record.value.value : JSON.stringify(record.value.value, null, 2)
+));
 const hasInlineConfiguration = computed(() => (
   showTypeEditor.value
   || operationOptions.value.length
@@ -325,36 +262,19 @@ function updateValueType(base) {
         : base === 'json' ? {}
           : '';
     if (base === 'entityRef') {
-      updates.typeId = record.value.typeId || record.value.type || '';
+      updates.typeId = record.value.type?.typeId || record.value.typeId || '';
       updates.type.typeId = updates.typeId;
     }
   }
   update(updates);
 }
 
-function updateLiteral(value) {
-  if (record.value.type?.base === 'number') return update({ value: Number(value) });
-  if (record.value.type?.base === 'integer') return update({ value: Number.parseInt(value, 10) });
-  if (record.value.type?.base === 'boolean') return update({ value: value === true || value === 'true' });
-  if (record.value.type?.base === 'entityRef') {
-    return update({ value: value ? { type: record.value.typeId, id: value } : null });
+function updateLiteralStructure(value) {
+  try {
+    update({ value: JSON.parse(value) });
+  } catch {
+    update({ value });
   }
-  if (record.value.access !== 'item' || record.value.type?.base === 'json') {
-    try {
-      update({ value: JSON.parse(value) });
-    } catch {
-      update({ value });
-    }
-    return;
-  }
-  update({ value });
-}
-
-function serializeLiteralDate(value) {
-  if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return record.value.type?.base === 'date' ? date.toISOString().slice(0, 10) : date.toISOString();
 }
 
 function normalizeSpecs(items) {
@@ -402,47 +322,19 @@ function inputDefault(id) {
   return value.branches[0]?.items?.[0];
 }
 
-function displayInputDefault(id) {
-  const value = inputDefault(id);
-  if (value == null) return '';
-  if (typeof value === 'object' && value.id) return String(value.id);
-  return typeof value === 'string' ? value : JSON.stringify(value);
-}
-
-function numericInputDefault(id) {
-  const value = inputDefault(id);
-  return value == null || value === '' ? null : Number(value);
-}
-
-function dateInputDefault(id) {
-  const value = inputDefault(id);
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function serializeDateInput(input, value) {
-  if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  return input.base === 'date' ? date.toISOString().slice(0, 10) : date.toISOString();
-}
-
-function parseInputDefault(input, value) {
-  if (input.base === 'entityRef') {
-    return value ? { type: input.type?.typeId || '', id: value } : null;
-  }
-  if (input.base === 'json') {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return value;
-    }
-  }
-  return value;
+// The fallback editor's value landing: typed values arrive parsed from
+// TypedValueControl; an entityRef id string wraps into { type, id } here
+// because the entity type is this socket's contract, not the control's.
+function onFallbackValue(input, value) {
+  if (input.base === 'status') return updateStatusInputDefault(input.id, value);
+  const wrapped = input.base === 'entityRef' && value
+    ? { type: input.type?.typeId || '', id: value }
+    : value;
+  return updateInputDefault(input.id, wrapped);
 }
 
 function inputPlaceholder(input) {
+  if (input.base === 'status') return t('processDesigner.transitionStatusValue');
   if (input.base === 'entityRef') {
     return t('processDesigner.instanceIdFallback', { entity: input.type?.typeId || t('processDesigner.entity') });
   }
@@ -464,10 +356,6 @@ function updateStatusInputDefault(id, value) {
     inputDefaults: { ...(record.value.inputDefaults || {}), [id]: { branches: [{ path: [], items: [value] }] } },
     state: { ...(record.value.state || {}), to: value }
   });
-}
-
-function socketHandleId(item) {
-  return `${item.role === 'data' ? 'data' : 'control'}:${item.id}`;
 }
 
 function socketClass(item, side) {
