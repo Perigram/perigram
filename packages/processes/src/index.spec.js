@@ -3037,7 +3037,7 @@ describe('@perigram/processes compiler', () => {
       construction: { ...domain.construction, worksite: { modes: ['genericCreate'], defaultMode: 'genericCreate', inputs: [] } }
     });
 
-    expect(compiled.actions.create_worksite.label).toBe('Create Worksite INITIAL_STATE');
+    expect(compiled.actions.create_worksite.label).toBe('Create Worksite');
   });
 
   it('rejects generic creation for derived construction contracts', () => {
@@ -3454,7 +3454,7 @@ describe('@perigram/processes compiler', () => {
     expect(compiled.roles.role_creator.actions[0]).toMatchObject({ actionId: 'create_project', level: 'run' });
     expect(compiled.userAccess.user_creator.actions[0]).toMatchObject({
       id: 'create_project',
-      label: `Create project ${INITIAL_STATE}`,
+      label: 'Create project',
       actionKind: 'createInstance',
       typeId: 'project',
       sourceRoleIds: ['role_creator']
@@ -3504,7 +3504,7 @@ describe('@perigram/processes compiler', () => {
     expect(compiled.userAccess.user_maker.actions.find(action => action.id === 'make_project')).toMatchObject({
       actionKind: 'createInstance',
       typeId: 'project',
-      label: `Create Production Order ${INITIAL_STATE}`
+      label: 'Create Production Order'
     });
     expect(compiled.userAccess.user_maker.actions.find(action => action.id === 'make_project').typeId).toBe('project');
     expect(compiled.userAccess.user_maker.actions.find(action => action.id === 'make_project').inputPolicy).toBeTruthy();

@@ -3436,7 +3436,9 @@ function displayActionLabel(action = {}, id = '', process = {}, domain = {}) {
     || action.outputs?.find(output => output.typeId)?.typeId
     || '';
   if ((action.actionKind || 'createEntity') === 'createEntity') {
-    return ['Create', typeIdLabel(domain, typeId), action.state?.to].filter(Boolean).join(' ');
+    // The create caption names the target class only: the initial state is
+    // process machinery the surface reveals after creation, never button copy.
+    return ['Create', typeIdLabel(domain, typeId)].filter(Boolean).join(' ');
   }
   if (action.actionKind === 'updateEntity') {
     if (actionTargetState(action, process)) return stateTargetLabel(action, process) || ['Move', typeIdLabel(domain, typeId), action.state?.to].filter(Boolean).join(' ');

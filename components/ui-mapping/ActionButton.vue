@@ -20,12 +20,20 @@ import { resolveActionButton, actionLabelKey, localizedLabel } from '#shared/ui-
 
 const props = defineProps({
   action: { type: Object, required: true },
-  render: { type: Object, default: null }
+  render: { type: Object, default: null },
+  // Context-supplied caption: a host surface that already names the action's
+  // target may shorten the button ("New" beside a region header that carries
+  // the class name). Locale overrides for the action key still win.
+  label: { type: String, default: null }
 });
 
 defineEmits(['run']);
 
 const { te, t } = useI18n();
 const resolved = computed(() => resolveActionButton(props.action, { render: props.render }));
-const label = computed(() => localizedLabel({ te, t }, actionLabelKey(props.action.id), resolved.value.label || props.action.label));
+const label = computed(() => localizedLabel(
+  { te, t },
+  actionLabelKey(props.action.id),
+  props.label ?? (resolved.value.label || props.action.label)
+));
 </script>

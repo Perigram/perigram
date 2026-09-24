@@ -28,10 +28,22 @@ body {
 
 /* App-wide themed scrollbars: a floating rounded pill thumb on a fully
    transparent track, no arrow buttons, with a hover step. Tokens ride the
-   PrimeVue text color so both schemes stay in theme. */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: var(--ck-scrollbar-thumb) transparent;
+   PrimeVue text color so both schemes stay in theme.
+
+   Engine split: Chromium styles scrollbars only through the
+   ::-webkit-scrollbar pseudos below — and it ignores those pseudos whenever
+   a standard scrollbar-width/scrollbar-color is non-auto (Chromium 121+),
+   which regressed to native thin scrollbars that still draw arrow buttons
+   on classic-scrollbar platforms (for example Windows Chrome). The standard
+   properties therefore ride ONLY engines without the pseudos (Firefox),
+   gated by @supports; Chromium keeps the pseudo-styled pill, which has no
+   arrows by construction and is non-layout (appears only on scroll) on
+   overlay-scrollbar builds. */
+@supports not selector(::-webkit-scrollbar) {
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--ck-scrollbar-thumb) transparent;
+    }
 }
 
 *::-webkit-scrollbar {

@@ -687,7 +687,13 @@ the direction rule on the inner layout node.
 Use token-backed classes such as `max-w-app`, `status-*`, `signal-*`, PrimeVue semantic classes, and shared layout primitives (`StandardPage`, `ResponsiveGrid`, `TableFrame`, `StateBlock`) instead of local arbitrary max-widths, colors, radii, shadows, typography, or transition durations. Muted text is the `text-muted` class backed by the `muted` color entry (`colors.muted` → `var(--p-text-muted-color)`); the entry must live at `colors.muted` because Tailwind parses `text-muted` as the `text-` utility plus the `muted` color path — a top-level `text-muted` key can never generate the class. PrimeVue documentation names like `text-muted-color`, `text-color`, or `bg-surface-ground` are token names, not classes in this app — they compile to no CSS, silently fall back to inherited color, and `shared/design-system.spec.js` rejects them. `signal-*` names process-canvas meaning rather than a hue; raw Tailwind palette classes are reserved for real data only. Interactive rows and single-select lists use PrimeVue primitives — the chats inbox and feature pickers are `Listbox` with rich `#option` templates, link-style text actions are `Button` with the `link` variant — instead of hand-rolled `<button>` rows. App scrollbars are themed globally in `assets/css/main.css` from
 `--ck-scrollbar-thumb` / `--ck-scrollbar-thumb-hover` (text-color mixes that
 follow each scheme): a floating rounded pill thumb over a fully transparent
-track with no arrow buttons; only the IDE tab strips hide them entirely. Scoped CSS is limited to exact reusable-layout declarations enforced by `shared/design-system.spec.js`; padding remains Aura-owned spacing. Inline bindings are either exact reusable layout or derived semantic composition, or narrowly allowlisted when their visual value is driven by data.
+track with no arrow buttons; only the IDE tab strips hide them entirely.
+The engine split is deliberate: Chromium ignores `::-webkit-scrollbar`
+pseudos whenever a standard `scrollbar-width`/`scrollbar-color` is non-auto,
+so those standard properties ride only engines without the pseudos (Firefox,
+gated by `@supports not selector(::-webkit-scrollbar)`) — Chromium must keep
+the pseudo-styled pill or classic-scrollbar platforms regress to native
+thin scrollbars with arrow buttons. Scoped CSS is limited to exact reusable-layout declarations enforced by `shared/design-system.spec.js`; padding remains Aura-owned spacing. Inline bindings are either exact reusable layout or derived semantic composition, or narrowly allowlisted when their visual value is driven by data.
 
 ## UI Inventory Policy
 

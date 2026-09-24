@@ -1850,7 +1850,8 @@
     "stateMatrixHint": "Injected loading/denied/error source states",
     "sortLabel": "Sort by",
     "sortOrderLabel": "Toggle sort order",
-    "moreActions": "More actions"
+    "moreActions": "More actions",
+    "new": "New"
   },
   "uiConstructor": {
     "title": "UI Constructor Demo",
