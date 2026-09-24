@@ -1,13 +1,15 @@
 <template>
   <!-- Flush mode: a bounded operational overload (designer/editor) owns the
        whole file body, so the canonical InstancePage chrome is bypassed and the
-       body fills the pane directly instead of scrolling inside it. The
-       overflow boundary owns the scroll so the thread section below the body
-       stays reachable — the body alone must not claim the full height, or the
-       thread collapses to nothing. -->
+       body fills the pane directly instead of scrolling inside it. The column
+       therefore carries no inline thread: an in-flow section would either
+       collapse against the h-full body or force the pane to scroll, breaking
+       the bounded-editor contract. Bounded hosts expose the conversation
+       through the shared chat popup instead (the pane's own action strip, the
+       same route every other entity surface uses). -->
   <div
     v-if="entity && flush"
-    class="flex h-full min-h-0 w-full flex-col overflow-y-auto"
+    class="flex h-full min-h-0 w-full flex-col"
   >
     <GeneratedInstanceDetailBody
       :entity="entity"
@@ -17,13 +19,8 @@
       :actions="resolvedBodyActions"
       :suppress-child-summaries="suppressChildSummaries"
       mode="file"
-      class="shrink-0"
       @refresh="$emit('refresh')"
     />
-    <!-- The instance conversation rides the detail column in BOTH branches, so
-         abstract detail pages and bounded overloads (workspace editors, file
-         modes) carry the same thread. -->
-    <InstanceChatPanel :type="typeId" :id="instanceIdValue" :name="entityNameValue" />
     <slot />
   </div>
   <InstancePage

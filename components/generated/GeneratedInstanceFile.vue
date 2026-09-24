@@ -23,7 +23,7 @@
     </div>
 
     <div
-      v-if="tabActionIds.length"
+      v-if="tabActionIds.length || boundedDetail"
       class="flex shrink-0 flex-wrap items-center justify-end gap-1 border-b border-content-border px-2 py-1"
       data-tab-actions
     >
@@ -32,6 +32,21 @@
         :key="actionId"
         :action-id="actionId"
         @execute="executeAction"
+      />
+      <!-- A bounded detail host cannot carry the inline conversation section:
+           its column is an h-full no-scroll frame, so an in-flow thread would
+           collapse against the body. The pane therefore exposes the thread
+           through the shared chat popup, the same route every other entity
+           surface uses. -->
+      <Button
+        v-if="boundedDetail"
+        icon="pi pi-comments"
+        text
+        rounded
+        size="small"
+        severity="secondary"
+        :aria-label="$t('support.instanceChat')"
+        @click="openInstanceChat"
       />
     </div>
 
@@ -78,6 +93,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import Button from 'primevue/button';
 import GeneratedInstanceDetail from '~/components/generated/GeneratedInstanceDetail.vue';
 import { resolveGeneratedInstanceDetailOverload } from '~/components/generated/overloads.js';
 import GeneratedRegion from '~/components/generated/GeneratedRegion.vue';
@@ -89,6 +105,7 @@ import { useGeneratedScreen } from '~/composables/useGeneratedScreen.js';
 import { actionAppliesToEntity, isGeneratedSurfaceAction } from '~/components/generated/action-visibility.js';
 import { generatedEntityDetailConsumesAction } from '~/components/generated/detail-action-ownership.js';
 import { generatedActionRendersAt } from '~/components/generated/action-placement.js';
+import { openEntityChat } from '~/utils/instance-chat.js';
 import {
   generatedDetailActionIds,
   generatedDetailScreenForTypeId
@@ -137,6 +154,15 @@ const boundedDetail = computed(() => (
     Boolean(resolveGeneratedInstanceDetailOverload(props.item?.type))
     && detailChildRegions.value.length === 0
 ));
+// The bounded pane's conversation entry: the shared chat popup, the one route
+// every entity surface opens its thread through.
+function openInstanceChat() {
+  openEntityChat({
+    type: props.item?.type || '',
+    id: instanceId.value,
+    name: props.item?.entity?.identity?.name || ''
+  });
+}
 const detailChildActionIds = computed(() => [...new Set(detailChildRegions.value.flatMap(region => region.actions || []))]);
 const detailActionContext = computed(() => ({
   parentEntity: props.item?.entity || null,

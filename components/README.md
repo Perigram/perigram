@@ -1127,19 +1127,19 @@ past the threshold commits the reply. The composer shows a cancelable
 reply bar that renders like the in-bubble quote (sender plus snippet), not
 an alert-style PrimeVue Message. The composer input is a PrimeVue InputGroup — attach
 and voice sit in addons around the textarea while send is the trailing
-primary button (a direct InputGroup child, not an addon). Generated detail pages expose the same
-composed conversation through the shared `InstanceChatPanel` disclosure, and
-every entity surface carries a chat entry — the shared `InstanceCard` renders
-it for all card variants (footer row and expansion popover), and
-`InstanceInlineRef` popovers carry it too, all opening the entity thread through
+primary button (a direct InputGroup child, not an addon). Abstract generated
+detail pages expose the same composed conversation inline through
+[`InstanceChatPanel`](./shared/README.md) — the one in-page thread surface;
+bounded hosts cannot (their `flush` frame is `h-full` and non-scrolling) and
+therefore carry a chat entry that opens the shared popup instead. Every entity
+surface carries a chat entry — the shared `InstanceCard` renders it for all
+card variants (footer row and expansion popover), and `InstanceInlineRef`
+popovers carry it too, all opening the entity thread through
 `utils/instance-chat.js` (the single PrimeVue Dialog popup — consumed on chat
 mount). The
 detail panel rides `GeneratedInstanceDetail` — the canonical detail chrome —
-so abstract detail pages and bounded implementation panes (workspace
-overloads, designer file modes) all carry the thread; the panel renders inside the
-detail branch of the generated screen's `v-if` chain — never as a standalone
-`v-if` sibling, which would detach the regions fallback from the shared chain
-and render a raw region dump under overload screens like the home workspace.
+in its abstract branch; the bounded branch mounts no inline thread and its host
+(`GeneratedInstanceFile`) supplies the popup entry from the pane action strip.
 - For entity-specific data fields (tool dimensions, pen stroke, warehouse address), use `<DataBlock type-id="..." :entity="..." :fields="[...]" />` with the field array defined inline in the component's `<script setup>`. The `type-id` must match an entry in `@perigram/domain-cnc` field access policy; otherwise the row is hidden.
 - PrimeVue `<Select>` options that use `optionLabel="name"` must receive
   option arrays normalized through `utils/selectOptions.js` when the source data

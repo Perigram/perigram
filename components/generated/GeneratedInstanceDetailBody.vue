@@ -1,5 +1,5 @@
 <template>
-  <div :class="[bodyClass, $attrs.class]">
+  <div :class="bodyClass">
     <component
       :is="detailOverload.component"
       v-if="detailOverload"
@@ -22,10 +22,6 @@
 </template>
 
 <script setup>
-// The host owns the layout class (`$attrs.class`); this component owns only
-// its own body sizing.
-defineOptions({ inheritAttrs: false });
-
 import { computed } from 'vue';
 import InstanceSurfaceContent from '~/components/shared/InstanceSurfaceContent.vue';
 import GeneratedFilePreview from '~/components/generated/GeneratedFilePreview.vue';

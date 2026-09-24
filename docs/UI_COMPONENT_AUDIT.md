@@ -174,7 +174,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-generated-generatedinstancecollection-vue` | `components/generated/GeneratedInstanceCollection.vue` | derived usage | replace:chrome (4); remove:important-override (2); compliant:scoped-layout |
 | `ui-components-generated-generatedinstancedetail-vue` | `components/generated/GeneratedInstanceDetail.vue` | derived usage | compliant |
 | `ui-components-generated-generatedinstancedetailbody-vue` | `components/generated/GeneratedInstanceDetailBody.vue` | derived usage | compliant |
-| `ui-components-generated-generatedinstancefile-vue` | `components/generated/GeneratedInstanceFile.vue` | derived usage | replace:chrome (6) |
+| `ui-components-generated-generatedinstancefile-vue` | `components/generated/GeneratedInstanceFile.vue` | derived usage | replace:chrome (6); remove:important-override (2) |
 | `ui-components-generated-generatedobjectinput-vue` | `components/generated/GeneratedObjectInput.vue` | derived usage | compliant |
 | `ui-components-generated-generatedorganizationaccount-vue` | `components/generated/GeneratedOrganizationAccount.vue` | derived usage | replace:chrome (11) |
 | `ui-components-generated-generatedorganizationoverview-vue` | `components/generated/GeneratedOrganizationOverview.vue` | derived usage | compliant |
@@ -219,7 +219,7 @@ visual findings. Counts are occurrences, not exemptions. Run
 | `ui-components-shared-geometrypreview-vue` | `components/shared/GeometryPreview.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-instanceactionspopover-vue` | `components/shared/InstanceActionsPopover.vue` | derived usage | compliant |
 | `ui-components-shared-instancecard-vue` | `components/shared/InstanceCard.vue` | shared/domain primitive | centralize:layout (1) |
-| `ui-components-shared-instancechatpanel-vue` | `components/shared/InstanceChatPanel.vue` | derived usage | centralize:layout (1) |
+| `ui-components-shared-instancechatpanel-vue` | `components/shared/InstanceChatPanel.vue` | derived usage | compliant |
 | `ui-components-shared-instanceinlineref-vue` | `components/shared/InstanceInlineRef.vue` | derived usage | centralize:layout (1); replace:chrome (2); narrowly-allowlist:inline-data-driven (2) |
 | `ui-components-shared-instancemultiselect-vue` | `components/shared/InstanceMultiSelect.vue` | shared/domain primitive | compliant |
 | `ui-components-shared-instancepage-vue` | `components/shared/InstancePage.vue` | shared/domain primitive | replace:chrome (3); compliant:scoped-layout |

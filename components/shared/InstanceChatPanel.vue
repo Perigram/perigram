@@ -1,29 +1,28 @@
 <template>
   <section class="flex min-w-0 flex-col gap-2" data-testid="instance-chat-panel">
-    <!-- A section disclosure, not a container: this paints no chrome of its
-         own. The header row is the toggle, and the thread (ChatSupport's own
-         chrome) is the content. -->
-    <button
-      type="button"
-      class="flex min-w-0 items-center gap-2 self-start text-supporting"
+    <!-- Disclosure toggle: a PrimeVue text Button so Aura owns the focus,
+         hover, and press states like every other control on the page. The
+         icon is stable across states — aria-expanded carries the state. -->
+    <Button
+      :label="$t('support.instanceChat')"
+      icon="pi pi-comments"
+      text
+      severity="secondary"
+      size="small"
+      class="self-start"
       :aria-expanded="!collapsed"
       :aria-controls="threadId"
       @click="collapsed = !collapsed"
-    >
-      <i
-        class="pi shrink-0"
-        :class="collapsed ? 'pi-comments' : 'pi-chevron-down'"
-        aria-hidden="true"
-      />
-      <span class="truncate">{{ $t('support.instanceChat') }}</span>
-    </button>
-    <!-- Bounded host: the embedded thread owns its scrolling, never the
-         detail page height. The bound is the shared chat dimension token, so
-         this surface matches every other chat host in the app. -->
+    />
+    <!-- Bounded host: the embedded thread owns its scrolling, never the detail
+         page height. The bound is the shared chat dimension token, so this
+         surface matches every other chat host in the app. The section paints
+         no container chrome of its own — the detail column already owns
+         section rhythm, and the thread supplies its own. -->
     <div
       v-if="!collapsed"
       :id="threadId"
-      class="flex h-support-chat max-h-[calc(100dvh-6rem)] min-h-0 flex-col overflow-hidden"
+      class="flex h-support-chat min-h-0 flex-col overflow-hidden"
     >
       <ChatSupport
         :key="entityKey"
@@ -38,20 +37,21 @@
 
 <script setup>
 /**
- * The instance detail page's conversation section: a collapsed-by-default
- * disclosure that expands a `ChatSupport` thread pinned to
- * `entity:<type>:<id>` in thread-only mode, so the detail page carries the
- * composed conversation without the inbox or back navigation.
+ * The abstract instance detail page's conversation section: a
+ * collapsed-by-default disclosure that expands a `ChatSupport` thread pinned
+ * to `entity:<type>:<id>` in thread-only mode, so the page carries the composed
+ * conversation without the inbox or back navigation.
  *
- * It is a SECTION, deliberately not a Panel: the detail page's column already
- * owns section rhythm, and the thread supplies its own chrome. A host box here
- * would add a second surface frame around it.
- *
- * The expanded host is bounded by the shared `h-support-chat` dimension so the
- * thread scrolls itself; in bounded (flush) detail hosts this section is part
- * of the scrolling column, so the thread never fights the host for height.
+ * It rides the `InstancePage` column and therefore only ever appears in the
+ * abstract branch of `GeneratedInstanceDetail`. Bounded hosts (flush
+ * designers/editors) must NOT mount it: their column is an `h-full` no-scroll
+ * frame, where an in-flow section collapses to nothing. Those hosts expose the
+ * same thread through the shared chat popup (`utils/instance-chat.js`) from
+ * their own chrome, exactly like `InstanceCard` and `InstanceInlineRef`.
  */
 import { computed, ref, useId } from 'vue'
+import Button from 'primevue/button'
+import ChatSupport from '~/components/ChatSupport.vue'
 
 const props = defineProps({
   type: { type: String, required: true },
